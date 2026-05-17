@@ -1,0 +1,47 @@
+{
+  "google": {
+    "place_id": "ChIJx8wLC4K11wwRbfe7hhZiHXs",
+    "rating": 5.0,
+    "total": 0,
+    "reviews": []
+  },
+  "manual": [
+    {
+      "author": "Sarah M.",
+      "location": "Westlake Hills",
+      "rating": 5,
+      "text": "We used to eat dinner inside all summer. Now our patio is the most-used room in the house. No pesticides around our kids \u2014 that peace of mind is priceless.",
+      "source": "google"
+    },
+    {
+      "author": "David K.",
+      "location": "Barton Hills",
+      "rating": 5,
+      "text": "The rental program is worth every penny. They handle everything \u2014 I didn't even notice when they swapped the tank. My yard is just always protected.",
+      "source": "google"
+    },
+    {
+      "author": "Linda R.",
+      "location": "Travis Heights",
+      "rating": 5,
+      "text": "I garden constantly and was terrified of sprays hurting my bees. GreenGuard USA was the only option I trusted. Bees are thriving, mosquitoes are gone.",
+      "source": "google"
+    },
+    {
+      "author": "Marcus T.",
+      "location": "Bouldin Creek",
+      "rating": 5,
+      "text": "I was skeptical. I've tried sprays, citronella candles, everything. Within 10 days of the rental trap going in, I stopped getting bitten on my patio entirely. It genuinely works.",
+      "source": "nextdoor",
+      "neighborhood": "Bouldin Creek"
+    },
+    {
+      "author": "Jennifer L.",
+      "location": "Circle C Ranch",
+      "rating": 5,
+      "text": "The rental program was perfect for us. We didn't want to spend thousands upfront. GreenGuard handles everything, the CO\u2082 shows up every month, and my kids play outside again all summer.",
+      "source": "nextdoor",
+      "neighborhood": "Circle C Ranch"
+    }
+  ]
+}
