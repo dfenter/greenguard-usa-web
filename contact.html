@@ -1,0 +1,476 @@
+<style>
+/* ── SCOPED RESET ── */
+#gg-contact, #gg-contact * {
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased;
+}
+#gg-contact h1, #gg-contact h2, #gg-contact h3, #gg-contact h4,
+#gg-contact p, #gg-contact ul, #gg-contact li, #gg-contact div,
+#gg-contact span, #gg-contact button, #gg-contact a {
+  font-family: 'Nunito Sans', sans-serif !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+}
+#gg-contact ul { list-style: none !important; }
+/* ── FONT FORCE ── */
+#gg-contact h1,#gg-contact h2,#gg-contact h3,#gg-contact h4,#gg-contact h5,#gg-contact h6 { font-family: 'Nunito Sans', sans-serif !important; }
+#gg-contact a { text-decoration: none !important; }
+/* ── WRAPPER ── */
+#gg-contact {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  background: #1a2e1f !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+}
+/* ── NAV ── */
+#gg-contact .gg-nav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 9999 !important;
+  background: rgba(10,26,13,0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  padding: 14px 20px !important;
+}
+#gg-contact .gg-nav-inner {
+  max-width: 1100px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+#gg-contact .gg-logo { font-weight: 900 !important; color: #fff !important; letter-spacing: -0.02em !important; font-size: 1.1rem !important; }
+#gg-contact .gg-logo span { color: #7dffaa !important; }
+#gg-contact .gg-hamburger { width: 34px !important; height: 28px !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; cursor: pointer !important; }
+#gg-contact .gg-hamburger span { height: 3px !important; width: 100% !important; background: #c9a84c !important; border-radius: 2px !important; }
+#gg-contact .gg-menu { position: fixed !important; top: 0 !important; right: -100% !important; width: 260px !important; height: 100vh !important; background: #0d1a10 !important; border-left: 1px solid rgba(122,171,130,0.2) !important; padding: 80px 24px !important; transition: right 0.3s ease !important; z-index: 10000 !important; }
+#gg-contact .gg-menu.open { right: 0 !important; }
+#gg-contact .gg-menu a { display: block !important; padding: 14px 0 !important; color: #d4e6ca !important; font-weight: 700 !important; border-bottom: 1px solid rgba(122,171,130,0.15) !important; font-size: 0.95rem !important; }
+#gg-contact .gg-menu a:hover { color: #7dffaa !important; }
+#gg-contact .gg-menu-group {
+  display: block !important;
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: rgba(201,168,76,0.6) !important;
+  padding: 20px 0 4px !important;
+  margin-top: 4px !important;
+}
+#gg-contact .gg-menu-close { position: absolute !important; top: 18px !important; right: 18px !important; font-size: 22px !important; color: #c9a84c !important; cursor: pointer !important; }
+/* ── HERO ── */
+#gg-contact .ct-hero {
+  background: linear-gradient(135deg, #0d1a10 0%, #1a2e1f 50%, #2d4a32 100%) !important;
+  padding: 80px 48px 88px !important;
+  text-align: center !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+#gg-contact .ct-hero::before {
+  content: '' !important;
+  position: absolute !important; top: 50% !important; left: 50% !important;
+  transform: translate(-50%,-50%) !important;
+  width: 700px !important; height: 700px !important; border-radius: 50% !important;
+  border: 1px solid rgba(201,168,76,0.06) !important; pointer-events: none !important;
+}
+#gg-contact .ct-hero-inner { max-width: 640px !important; margin: 0 auto !important; position: relative !important; z-index: 2 !important; }
+#gg-contact .ct-tag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 16px !important; }
+#gg-contact .ct-h1 { font-size: clamp(2.2rem, 4.5vw, 3.4rem) !important; font-weight: 900 !important; line-height: 1.1 !important; color: #ffffff !important; margin-bottom: 18px !important; letter-spacing: -0.02em !important; }
+#gg-contact .ct-h1 span { color: #7aab82 !important; }
+#gg-contact .ct-hero-p { font-size: 1.05rem !important; color: rgba(212,230,202,0.72) !important; line-height: 1.75 !important; }
+/* ── TRUST BAR ── */
+#gg-contact .ct-trust { background: #2d4a32 !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 48px !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 32px !important; flex-wrap: wrap !important; }
+#gg-contact .ct-trust-item { display: flex !important; align-items: center !important; gap: 8px !important; font-size: 0.74rem !important; font-weight: 800 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: #a8edc0 !important; }
+#gg-contact .ct-check { color: #c9a84c !important; }
+/* ── MAIN CONTENT ── */
+#gg-contact .ct-main { padding: 80px 48px !important; background: #1a2e1f !important; }
+#gg-contact .ct-main-inner { max-width: 1100px !important; margin: 0 auto !important; display: grid !important; grid-template-columns: 1fr 1.6fr !important; gap: 64px !important; align-items: start !important; }
+/* ── CONTACT INFO PANEL ── */
+#gg-contact .ct-info { display: flex !important; flex-direction: column !important; gap: 12px !important; }
+#gg-contact .ct-info-label { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; margin-bottom: 24px !important; display: block !important; }
+#gg-contact .ct-info-card {
+  background: rgba(45,74,50,0.35) !important;
+  border: 1px solid rgba(122,171,130,0.2) !important;
+  border-radius: 10px !important;
+  padding: 22px 22px !important;
+  display: flex !important;
+  gap: 16px !important;
+  align-items: flex-start !important;
+  transition: border-color 0.2s !important;
+}
+#gg-contact .ct-info-card:hover { border-color: rgba(201,168,76,0.35) !important; }
+#gg-contact .ct-info-icon {
+  width: 42px !important; height: 42px !important;
+  border-radius: 8px !important;
+  background: rgba(201,168,76,0.12) !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 1.2rem !important; flex-shrink: 0 !important;
+}
+#gg-contact .ct-info-card h4 { font-size: 0.72rem !important; font-weight: 800 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(212,230,202,0.45) !important; margin-bottom: 5px !important; }
+#gg-contact .ct-info-card a, #gg-contact .ct-info-card p { font-size: 1rem !important; font-weight: 800 !important; color: #ffffff !important; line-height: 1.5 !important; }
+#gg-contact .ct-info-card a:hover { color: #7aab82 !important; }
+#gg-contact .ct-info-card .sub { font-size: 0.82rem !important; font-weight: 400 !important; color: rgba(212,230,202,0.5) !important; margin-top: 3px !important; display: block !important; }
+/* Social links */
+#gg-contact .ct-social { display: flex !important; gap: 10px !important; margin-top: 8px !important; }
+#gg-contact .ct-social-btn {
+  background: rgba(45,74,50,0.5) !important;
+  border: 1px solid rgba(122,171,130,0.2) !important;
+  border-radius: 8px !important;
+  padding: 10px 16px !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  color: rgba(212,230,202,0.65) !important;
+  display: flex !important; align-items: center !important; gap: 7px !important;
+  transition: border-color 0.2s, color 0.2s !important;
+}
+#gg-contact .ct-social-btn:hover { border-color: rgba(201,168,76,0.35) !important; color: #c9a84c !important; }
+/* Hours card */
+#gg-contact .ct-hours { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 10px !important; padding: 22px 22px !important; margin-top: 4px !important; }
+#gg-contact .ct-hours h4 { font-size: 0.72rem !important; font-weight: 800 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(212,230,202,0.45) !important; margin-bottom: 14px !important; }
+#gg-contact .ct-hours-row { display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 7px 0 !important; border-bottom: 1px solid rgba(122,171,130,0.1) !important; }
+#gg-contact .ct-hours-row:last-child { border-bottom: none !important; }
+#gg-contact .ct-hours-row span { font-size: 0.88rem !important; color: rgba(212,230,202,0.65) !important; font-weight: 600 !important; }
+#gg-contact .ct-hours-row .time { color: #ffffff !important; font-weight: 800 !important; }
+#gg-contact .ct-hours-row .badge { background: rgba(45,120,70,0.4) !important; border: 1px solid rgba(122,171,130,0.3) !important; border-radius: 100px !important; padding: 2px 10px !important; font-size: 0.68rem !important; font-weight: 700 !important; color: #a8edc0 !important; }
+/* ── BOOKING PANEL ── */
+#gg-contact .ct-booking { background: rgba(13,26,16,0.7) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 14px !important; overflow: hidden !important; }
+#gg-contact .ct-booking-header { background: linear-gradient(135deg, #0d1a10, #2d4a32) !important; padding: 28px 32px !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; }
+#gg-contact .ct-booking-header h2 { font-size: 1.4rem !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 6px !important; letter-spacing: -0.01em !important; }
+#gg-contact .ct-booking-header p { font-size: 0.9rem !important; color: rgba(212,230,202,0.65) !important; line-height: 1.6 !important; }
+#gg-contact .ct-booking-options { padding: 28px 32px !important; display: flex !important; flex-direction: column !important; gap: 14px !important; }
+#gg-contact .ct-booking-card {
+  background: rgba(45,74,50,0.4) !important;
+  border: 1px solid rgba(122,171,130,0.2) !important;
+  border-radius: 10px !important;
+  padding: 22px 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  transition: border-color 0.2s, transform 0.15s !important;
+  cursor: pointer !important;
+}
+#gg-contact .ct-booking-card:hover { border-color: rgba(201,168,76,0.4) !important; transform: translateX(4px) !important; }
+#gg-contact .ct-booking-card.featured { background: linear-gradient(135deg, rgba(42,92,56,0.7), rgba(61,122,79,0.5)) !important; border-color: rgba(201,168,76,0.3) !important; }
+#gg-contact .ct-booking-left { display: flex !important; gap: 16px !important; align-items: center !important; }
+#gg-contact .ct-booking-icon { width: 46px !important; height: 46px !important; border-radius: 10px !important; background: rgba(201,168,76,0.12) !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 1.3rem !important; flex-shrink: 0 !important; }
+#gg-contact .ct-booking-card.featured .ct-booking-icon { background: rgba(201,168,76,0.2) !important; }
+#gg-contact .ct-booking-card h4 { font-size: 0.97rem !important; font-weight: 800 !important; color: #ffffff !important; margin-bottom: 4px !important; }
+#gg-contact .ct-booking-card p { font-size: 0.84rem !important; color: rgba(212,230,202,0.6) !important; line-height: 1.5 !important; }
+#gg-contact .ct-booking-card .free-badge { display: inline-block !important; background: rgba(201,168,76,0.18) !important; border: 1px solid rgba(201,168,76,0.35) !important; border-radius: 100px !important; padding: 2px 10px !important; font-size: 0.68rem !important; font-weight: 700 !important; color: #c9a84c !important; margin-top: 5px !important; }
+#gg-contact .ct-arrow { color: rgba(212,230,202,0.3) !important; font-size: 1.1rem !important; flex-shrink: 0 !important; transition: color 0.2s !important; }
+#gg-contact .ct-booking-card:hover .ct-arrow { color: #c9a84c !important; }
+#gg-contact .ct-booking-divider { text-align: center !important; padding: 4px 0 !important; }
+#gg-contact .ct-booking-divider span { font-size: 0.72rem !important; font-weight: 700 !important; color: rgba(212,230,202,0.25) !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; }
+#gg-contact .ct-booking-footer { padding: 0 32px 28px !important; }
+#gg-contact .ct-booking-note { font-size: 0.8rem !important; color: rgba(212,230,202,0.38) !important; line-height: 1.65 !important; text-align: center !important; }
+#gg-contact .ct-booking-note a { color: #7aab82 !important; font-weight: 700 !important; }
+/* ── SERVICE AREA ── */
+#gg-contact .ct-area { padding: 72px 48px !important; background: #111c13 !important; }
+#gg-contact .ct-area-inner { max-width: 1100px !important; margin: 0 auto !important; }
+#gg-contact .ct-stag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 10px !important; }
+#gg-contact .ct-area h2 { font-size: clamp(1.8rem, 3vw, 2.6rem) !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 14px !important; letter-spacing: -0.02em !important; }
+#gg-contact .ct-area h2 span { color: #7aab82 !important; }
+#gg-contact .ct-area-p { font-size: 1rem !important; color: rgba(212,230,202,0.68) !important; line-height: 1.75 !important; margin-bottom: 36px !important; max-width: 560px !important; }
+#gg-contact .ct-area-grid { display: grid !important; grid-template-columns: repeat(4,1fr) !important; gap: 12px !important; }
+#gg-contact .ct-area-item { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 8px !important; padding: 14px 16px !important; display: flex !important; align-items: center !important; gap: 10px !important; }
+#gg-contact .ct-area-dot { width: 7px !important; height: 7px !important; border-radius: 50% !important; background: #7aab82 !important; flex-shrink: 0 !important; }
+#gg-contact .ct-area-item span { font-size: 0.88rem !important; font-weight: 700 !important; color: rgba(212,230,202,0.75) !important; }
+/* ── FOOTER ── */
+#gg-contact .ct-footer { background: #080f09 !important; border-top: 1px solid rgba(122,171,130,0.1) !important; padding: 64px 48px 36px !important; }
+#gg-contact .ct-footer-top { display: grid !important; grid-template-columns: 1.6fr 1fr 1fr 1fr !important; gap: 48px !important; padding-bottom: 48px !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; max-width: 1100px !important; margin: 0 auto !important; }
+#gg-contact .ct-footer-name { font-size: 1.1rem !important; font-weight: 900 !important; color: #ffffff !important; display: block !important; margin-bottom: 4px !important; }
+#gg-contact .ct-footer-name span { color: #7dffaa !important; }
+#gg-contact .ct-footer-tagline { font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; margin-bottom: 14px !important; display: block !important; }
+#gg-contact .ct-footer-desc { font-size: 0.87rem !important; color: rgba(255,255,255,0.42) !important; line-height: 1.7 !important; margin-bottom: 14px !important; }
+#gg-contact .ct-footer-contact { font-size: 0.87rem !important; color: rgba(255,255,255,0.45) !important; line-height: 1.8 !important; }
+#gg-contact .ct-footer-contact a { color: #7dffaa !important; }
+#gg-contact .ct-footer-col h4 { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.35) !important; margin-bottom: 16px !important; }
+#gg-contact .ct-footer-col ul { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#gg-contact .ct-footer-col a { font-size: 0.87rem !important; color: rgba(255,255,255,0.55) !important; transition: color 0.2s !important; }
+#gg-contact .ct-footer-col a:hover { color: #7dffaa !important; }
+#gg-contact .ct-footer-bottom { max-width: 1100px !important; margin: 32px auto 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 12px !important; }
+#gg-contact .ct-footer-bottom span { font-size: 0.74rem !important; color: rgba(255,255,255,0.2) !important; }
+#gg-contact .ct-eco-badge { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; }
+#gg-contact .ct-eco-dot { width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7dffaa !important; display: inline-block !important; }
+/* ── REVEAL ── */
+#gg-contact .ct-reveal { opacity: 0 !important; transform: translateY(18px) !important; transition: opacity 0.6s ease, transform 0.6s ease !important; }
+#gg-contact .ct-reveal.visible { opacity: 1 !important; transform: translateY(0) !important; }
+/* ── MOBILE ── */
+@media (max-width: 860px) {
+  #gg-contact .ct-hero { padding: 56px 20px 64px !important; }
+  #gg-contact .ct-trust { padding: 14px 20px !important; gap: 16px !important; }
+  #gg-contact .ct-main { padding: 52px 20px !important; }
+  #gg-contact .ct-main-inner { grid-template-columns: 1fr !important; gap: 40px !important; }
+  #gg-contact .ct-booking-header, #gg-contact .ct-booking-options, #gg-contact .ct-booking-footer { padding-left: 20px !important; padding-right: 20px !important; }
+  #gg-contact .ct-area { padding: 52px 20px !important; }
+  #gg-contact .ct-area-grid { grid-template-columns: 1fr 1fr !important; }
+  #gg-contact .ct-footer { padding: 48px 20px 28px !important; }
+  #gg-contact .ct-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<div id="gg-contact">
+  <!-- NAV -->
+  <div class="gg-nav">
+    <div class="gg-nav-inner">
+      <div class="gg-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-hamburger" onclick="document.querySelector('#gg-contact .gg-menu').classList.add('open')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+  <div class="gg-menu">
+  <div class="gg-menu-close" onclick="document.querySelector('#gg-contact .gg-menu').classList.remove('open')">X</div>
+  <span class="gg-menu-group">Services</span>
+  <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a>
+  <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+  <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+  <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+  <!-- <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a> -->
+  <span class="gg-menu-group">Shop</span>
+  <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+  <span class="gg-menu-group">Learn</span>
+  <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+  <a href="https://www.greenguard-usa.com/results">Results</a>
+  <a href="https://www.greenguard-usa.com/blog">Blog</a>
+  <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+  <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+  <span class="gg-menu-group">Company</span>
+  <a href="https://www.greenguard-usa.com/about">About Us</a>
+  <a href="https://www.greenguard-usa.com/contact">Contact</a>
+  <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+  <span class="gg-menu-group">Book</span>
+  <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+</div>
+  <!-- HERO -->
+  <div class="ct-hero">
+    <div class="ct-hero-inner">
+      <span class="ct-tag">GreenGuard USA · Austin, Texas</span>
+      <h1 class="ct-h1">Let's get rid of<br><span>your mosquitoes.</span></h1>
+      <p class="ct-hero-p">Book a free property assessment, schedule a service, or just reach out with a question. We're easy to get in touch with.</p>
+    </div>
+  </div>
+  <!-- TRUST BAR -->
+  <div class="ct-trust">
+    <div class="ct-trust-item"><span class="ct-check"></span> Free Property Assessment</div>
+    <div class="ct-trust-item"><span class="ct-check"></span> Same-Week Scheduling</div>
+    <div class="ct-trust-item"><span class="ct-check"></span> No Obligation</div>
+    <div class="ct-trust-item"><span class="ct-check"></span> Austin Area Service</div>
+  </div>
+  <!-- MAIN: CONTACT INFO + BOOKING -->
+  <div class="ct-main">
+    <div class="ct-main-inner">
+      <!-- LEFT: CONTACT INFO -->
+      <div class="ct-info ct-reveal">
+        <span class="ct-info-label">Get in Touch</span>
+        <div class="ct-info-card">
+          
+          <div>
+            <h4>Call or Text</h4>
+            <a href="tel:5125604129">512-560-4129</a>
+            <span class="sub">Fastest way to reach us</span>
+          </div>
+        </div>
+        <div class="ct-info-card">
+         
+          <div>
+            <h4>Email</h4>
+            <a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a>
+            <span class="sub">We respond within one business day</span>
+          </div>
+        </div>
+        <div class="ct-info-card">
+          
+          <div>
+            <h4>Service Area</h4>
+            <p>Austin, Texas &amp; surrounding areas</p>
+            <span class="sub">Cedar Park · Lakeway · Round Rock · Pflugerville · Bee Cave · Westlake</span>
+          </div>
+        </div>
+        <div class="ct-info-card">
+          
+          <div>
+            <h4>Website</h4>
+            <a href="https://www.greenguard-usa.com">greenguard-usa.com</a>
+          </div>
+        </div>
+        <div class="ct-social">
+          <a href="https://facebook.com/greenguardusa" class="ct-social-btn" target="_blank">
+            <span>f</span> Facebook
+          </a>
+          <a href="https://www.instagram.com/greenguardusa/" class="ct-social-btn" target="_blank">
+            <span>▲</span> Instagram
+          </a>
+        </div>
+        <div class="ct-hours">
+          <h4>Service Hours</h4>
+          <div class="ct-hours-row">
+            <span>Monday - Friday</span>
+            <span class="time">8:00 AM - 6:00 PM</span>
+          </div>
+          <div class="ct-hours-row">
+            <span>Saturday</span>
+            <span class="time">9:00 AM - 4:00 PM</span>
+          </div>
+          <div class="ct-hours-row">
+            <span>Sunday</span>
+            <span class="time">By Appointment</span>
+          </div>
+          <div class="ct-hours-row" style="margin-top:8px">
+            <span>Emergency CO₂ Refills</span>
+            <span class="badge">Call/Text Anytime</span>
+          </div>
+        </div>
+      </div>
+      <!-- RIGHT: BOOKING -->
+      <div class="ct-booking ct-reveal">
+        <div class="ct-booking-header">
+          <h2>Book an Appointment</h2>
+          <p>Choose the service that best fits your needs. All appointments are confirmed instantly through our scheduling system.</p>
+        </div>
+        <div class="ct-booking-options">
+          <div class="ct-booking-card featured" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">
+            <div class="ct-booking-left">
+              
+              <div>
+                <h4>Free Property Assessment</h4>
+                <p>We walk your yard, assess mosquito pressure, and give you a specific trap and placement recommendation.</p>
+                <span class="free-badge">100% Free · No Obligation</span>
+              </div>
+            </div>
+            <span class="ct-arrow">→</span>
+          </div>
+          <div class="ct-booking-divider"><span>- or -</span></div>
+          <div class="ct-booking-card" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=78836741','_blank')">
+            <div class="ct-booking-left">
+              
+              <div>
+                <h4>CO₂ Service Consultation</h4>
+                <p>Discuss your service plan, pricing tier, or delivery schedule with a GreenGuard USA technician.</p>
+              </div>
+            </div>
+            <span class="ct-arrow">→</span>
+          </div>
+          <div class="ct-booking-card" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808','_blank')">
+            <div class="ct-booking-left">
+              
+              <div>
+                <h4>Trap Installation or Rental Setup</h4>
+                <p>Schedule professional trap installation, CO₂ connection, and placement optimization at your property.</p>
+              </div>
+            </div>
+            <span class="ct-arrow">→</span>
+          </div>
+          <div class="ct-booking-card" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808','_blank')">
+            <div class="ct-booking-left">
+              
+              <div>
+                <h4>CO₂ Tank Delivery &amp; Refill</h4>
+                <p>Set up or manage your monthly CO₂ tank exchange delivery service.</p>
+              </div>
+            </div>
+            <span class="ct-arrow">→</span>
+          </div>
+        </div>
+        <div class="ct-booking-footer">
+          <p class="ct-booking-note">Prefer to talk first? Call or text <a href="tel:5125604129">512-560-4129</a> and we'll get you scheduled directly. All appointments are confirmed by our team within one business day.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- SERVICE AREA -->
+  <div class="ct-area">
+    <div class="ct-area-inner ct-reveal">
+      <span class="ct-stag">Where We Operate</span>
+      <h2>Serving Austin <span>&amp; surrounding communities</span></h2>
+      <p class="ct-area-p">GreenGuard USA delivers CO₂ trap installation, monthly tank refill service, and full-service rentals throughout the greater Austin metro area.</p>
+      <div class="ct-area-grid">
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Central Austin</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Westlake Hills</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Lakeway</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Bee Cave</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Cedar Park</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Round Rock</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Pflugerville</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Georgetown</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Dripping Springs</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Kyle</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Buda</span></div>
+        <div class="ct-area-item"><div class="ct-area-dot"></div><span>Manor</span></div>
+      </div>
+    </div>
+  </div>
+  <!-- FOOTER -->
+  <div class="ct-footer">
+    <div class="ct-footer-top">
+      <div>
+        <span class="ct-footer-name">Green<span>Guard</span> USA</span>
+        <span class="ct-footer-tagline">Smart. Safe. Effective.</span>
+        <p class="ct-footer-desc">Pesticide-free CO₂ mosquito control serving Austin, Texas. Authorized dealer for Biogents and Mosqitter Grand.</p>
+        <div class="ct-footer-contact">
+          <a href="tel:5125604129">512-560-4129</a><br>
+          <a href="https://www.greenguard-usa.com">greenguard-usa.com</a>
+        </div>
+      </div>
+      <div class="ct-footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a></li>
+          <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a></li>
+          <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
+          <li><a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a></li>
+          <li><a href="https://www.greenguard-usa.com/shop">Shop All Products</a></li>
+        </ul>
+      </div>
+      <div class="ct-footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a></li>
+          <li><a href="https://www.greenguard-usa.com/results">Results</a></li>
+          <li><a href="https://www.greenguard-usa.com/blog">Blog</a></li>
+          <li><a href="https://www.greenguard-usa.com/faq">FAQ</a></li>
+          <li><a href="https://www.greenguard-usa.com/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="ct-footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
+          <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
+          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
+          <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
+          <li><a href="https://www.instagram.com/greenguardusa/">Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="ct-footer-bottom">
+      <span>© 2025 GreenGuard USA · Austin, Texas</span>
+      <div class="ct-eco-badge"><div class="ct-eco-dot"></div>100% Pesticide-Free Service</div>
+    </div>
+  </div>
+</div><!-- end #gg-contact -->
+<script>
+(function() {
+  var reveals = document.querySelectorAll('#gg-contact .ct-reveal');
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e, i) {
+      if (e.isIntersecting) {
+        setTimeout(function() { e.target.classList.add('visible'); }, i * 80);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  reveals.forEach(function(el) { obs.observe(el); });
+  document.addEventListener('click', function(e) {
+    var menu = document.querySelector('#gg-contact .gg-menu');
+    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('#gg-contact .gg-hamburger')) {
+      menu.classList.remove('open');
+    }
+  });
+})();
+</script>

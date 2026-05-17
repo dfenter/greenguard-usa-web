@@ -1,0 +1,582 @@
+<style>
+/* ── SCOPED RESET ── */
+#gg-doom, #gg-doom * {
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased;
+}
+#gg-doom h1, #gg-doom h2, #gg-doom h3, #gg-doom h4,
+#gg-doom p, #gg-doom ul, #gg-doom li, #gg-doom div,
+#gg-doom span, #gg-doom button, #gg-doom a {
+  font-family: 'Nunito Sans', sans-serif !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+}
+#gg-doom ul { list-style: none !important; }
+/* ── FONT FORCE ── */
+#gg-doom h1,#gg-doom h2,#gg-doom h3,#gg-doom h4,#gg-doom h5,#gg-doom h6 { font-family: 'Nunito Sans', sans-serif !important; }
+#gg-doom a { text-decoration: none !important; }
+/* ── WRAPPER ── */
+#gg-doom {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  background: #1a2e1f !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+}
+/* ── NAV ── */
+#gg-doom .gg-nav { position: sticky !important; top: 0 !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
+#gg-doom .gg-nav-inner { max-width: 1100px !important; margin: 0 auto !important; display: flex !important; align-items: center !important; justify-content: space-between !important; }
+#gg-doom .gg-logo { font-weight: 900 !important; color: #fff !important; letter-spacing: -0.02em !important; font-size: 1.1rem !important; }
+#gg-doom .gg-logo span { color: #7dffaa !important; }
+#gg-doom .gg-hamburger { width: 34px !important; height: 28px !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; cursor: pointer !important; }
+#gg-doom .gg-hamburger span { height: 3px !important; width: 100% !important; background: #c9a84c !important; border-radius: 2px !important; }
+#gg-doom .gg-menu { position: fixed !important; top: 0 !important; right: -100% !important; width: 260px !important; height: 100vh !important; background: #0d1a10 !important; border-left: 1px solid rgba(122,171,130,0.2) !important; padding: 80px 24px !important; transition: right 0.3s ease !important; z-index: 10000 !important; }
+#gg-doom .gg-menu.open { right: 0 !important; }
+#gg-doom .gg-menu a { display: block !important; padding: 14px 0 !important; color: #d4e6ca !important; font-weight: 700 !important; border-bottom: 1px solid rgba(122,171,130,0.15) !important; font-size: 0.95rem !important; }
+#gg-doom .gg-menu a:hover { color: #7dffaa !important; }
+#gg-doom .gg-menu-group {
+  display: block !important;
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: rgba(201,168,76,0.6) !important;
+  padding: 20px 0 4px !important;
+  margin-top: 4px !important;
+}
+#gg-doom .gg-menu-close { position: absolute !important; top: 18px !important; right: 18px !important; font-size: 22px !important; color: #c9a84c !important; cursor: pointer !important; }
+/* ── GOLD BUTTON ── */
+#gg-doom .dm-btn-gold {
+  background: #c9a84c !important;
+  color: #0d1a10 !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  padding: 15px 36px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 24px rgba(201,168,76,0.25) !important;
+  transition: background 0.2s, transform 0.15s !important;
+  letter-spacing: 0.02em !important;
+}
+#gg-doom .dm-btn-gold:hover { background: #e8d08a !important; transform: translateY(-2px) !important; }
+/* ── HERO ── */
+#gg-doom .dm-hero {
+  background: linear-gradient(135deg, #0d1a10 0%, #1a2e1f 60%, #2d4a32 100%) !important;
+  padding: 96px 48px 104px !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  text-align: center !important;
+}
+#gg-doom .dm-hero::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -200px !important; right: -200px !important;
+  width: 700px !important; height: 700px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(201,168,76,0.05) !important;
+  pointer-events: none !important;
+}
+#gg-doom .dm-hero-inner { max-width: 760px !important; margin: 0 auto !important; position: relative !important; z-index: 2 !important; }
+#gg-doom .dm-tag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 20px !important; }
+#gg-doom .dm-h1 { font-size: clamp(2.6rem, 5.5vw, 4.2rem) !important; font-weight: 900 !important; line-height: 1.08 !important; color: #ffffff !important; margin-bottom: 24px !important; letter-spacing: -0.03em !important; }
+#gg-doom .dm-h1 span { color: #7aab82 !important; }
+#gg-doom .dm-hero-p { font-size: 1.12rem !important; color: rgba(212,230,202,0.72) !important; line-height: 1.8 !important; margin-bottom: 40px !important; max-width: 600px !important; margin-left: auto !important; margin-right: auto !important; }
+#gg-doom .dm-hero-stats {
+  display: flex !important;
+  gap: 0 !important;
+  justify-content: center !important;
+  border: 1px solid rgba(122,171,130,0.18) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  max-width: 520px !important;
+  margin: 0 auto !important;
+}
+#gg-doom .dm-stat {
+  flex: 1 !important;
+  padding: 20px 16px !important;
+  text-align: center !important;
+  border-right: 1px solid rgba(122,171,130,0.18) !important;
+  background: rgba(45,74,50,0.3) !important;
+}
+#gg-doom .dm-stat:last-child { border-right: none !important; }
+#gg-doom .dm-stat .num { font-size: 1.5rem !important; font-weight: 900 !important; color: #c9a84c !important; line-height: 1 !important; display: block !important; margin-bottom: 5px !important; }
+#gg-doom .dm-stat .lbl { font-size: 0.68rem !important; font-weight: 700 !important; color: rgba(212,230,202,0.5) !important; line-height: 1.4 !important; display: block !important; text-transform: uppercase !important; letter-spacing: 0.06em !important; }
+/* ── TRUST BAR ── */
+#gg-doom .dm-trust { background: #2d4a32 !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 48px !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 32px !important; flex-wrap: wrap !important; }
+#gg-doom .dm-trust-item { font-size: 0.74rem !important; font-weight: 800 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: #a8edc0 !important; display: flex !important; align-items: center !important; gap: 8px !important; }
+#gg-doom .dm-trust-item::before { content: '+' !important; color: #c9a84c !important; font-weight: 900 !important; }
+/* ── SHARED SECTION ── */
+#gg-doom .dm-section { padding: 88px 48px !important; background: #1a2e1f !important; }
+#gg-doom .dm-section-alt { background: #111c13 !important; }
+#gg-doom .dm-inner { max-width: 1100px !important; margin: 0 auto !important; }
+#gg-doom .dm-stag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 10px !important; }
+#gg-doom .dm-h2 { font-size: clamp(2rem, 3.5vw, 3rem) !important; font-weight: 900 !important; line-height: 1.12 !important; color: #ffffff !important; margin-bottom: 16px !important; letter-spacing: -0.02em !important; }
+#gg-doom .dm-h2 span { color: #7aab82 !important; }
+#gg-doom .dm-sub { font-size: 1.05rem !important; color: rgba(212,230,202,0.7) !important; line-height: 1.78 !important; max-width: 640px !important; }
+/* ── WHAT'S INCLUDED ── */
+#gg-doom .dm-included-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 20px !important; margin-top: 52px !important; }
+#gg-doom .dm-included-card { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 10px !important; padding: 28px 24px !important; transition: border-color 0.25s !important; }
+#gg-doom .dm-included-card:hover { border-color: rgba(201,168,76,0.35) !important; }
+#gg-doom .dm-included-card h3 { font-size: 1rem !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 10px !important; }
+#gg-doom .dm-included-card p { font-size: 0.9rem !important; line-height: 1.72 !important; color: rgba(212,230,202,0.68) !important; }
+/* ── SETUP STEPS ── */
+#gg-doom .dm-setup-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 60px !important; align-items: start !important; margin-top: 52px !important; }
+#gg-doom .dm-steps { display: flex !important; flex-direction: column !important; gap: 0 !important; }
+#gg-doom .dm-step { display: grid !important; grid-template-columns: 52px 1fr !important; gap: 20px !important; padding: 28px 0 !important; border-bottom: 1px solid rgba(122,171,130,0.12) !important; align-items: start !important; }
+#gg-doom .dm-step:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+#gg-doom .dm-step-num { width: 44px !important; height: 44px !important; border-radius: 50% !important; background: rgba(201,168,76,0.12) !important; border: 1px solid rgba(201,168,76,0.35) !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 0.85rem !important; font-weight: 900 !important; color: #c9a84c !important; flex-shrink: 0 !important; }
+#gg-doom .dm-step h3 { font-size: 1rem !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 8px !important; }
+#gg-doom .dm-step p { font-size: 0.9rem !important; line-height: 1.75 !important; color: rgba(212,230,202,0.68) !important; }
+#gg-doom .dm-step .dm-note { font-size: 0.82rem !important; color: #c9a84c !important; font-weight: 700 !important; margin-top: 8px !important; display: block !important; }
+/* Setup tips card */
+#gg-doom .dm-tips-card { background: rgba(13,26,16,0.7) !important; border: 1px solid rgba(201,168,76,0.25) !important; border-radius: 12px !important; padding: 32px 28px !important; }
+#gg-doom .dm-tips-card h3 { font-size: 1.05rem !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 20px !important; }
+#gg-doom .dm-tip-row { padding: 12px 0 !important; border-bottom: 1px solid rgba(122,171,130,0.1) !important; display: flex !important; gap: 14px !important; align-items: flex-start !important; }
+#gg-doom .dm-tip-row:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+#gg-doom .dm-tip-row .tip-label { font-size: 0.68rem !important; font-weight: 800 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: #c9a84c !important; flex-shrink: 0 !important; min-width: 80px !important; padding-top: 2px !important; }
+#gg-doom .dm-tip-row p { font-size: 0.88rem !important; line-height: 1.65 !important; color: rgba(212,230,202,0.7) !important; }
+/* ── MAINTENANCE ── */
+#gg-doom .dm-maint-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 20px !important; margin-top: 52px !important; }
+#gg-doom .dm-maint-card { background: rgba(26,46,31,0.85) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 10px !important; overflow: hidden !important; }
+#gg-doom .dm-maint-top { background: linear-gradient(135deg, #0d1a10, #2d4a32) !important; padding: 22px 24px 18px !important; border-bottom: 1px solid rgba(122,171,130,0.18) !important; }
+#gg-doom .dm-maint-top .freq { font-size: 0.68rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 8px !important; }
+#gg-doom .dm-maint-top h3 { font-size: 1.05rem !important; font-weight: 900 !important; color: #ffffff !important; }
+#gg-doom .dm-maint-body { padding: 20px 24px !important; }
+#gg-doom .dm-maint-body ul { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+#gg-doom .dm-maint-body li { font-size: 0.88rem !important; color: rgba(212,230,202,0.72) !important; line-height: 1.6 !important; display: flex !important; gap: 10px !important; align-items: flex-start !important; }
+#gg-doom .dm-maint-body li::before { content: '' !important; width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7aab82 !important; flex-shrink: 0 !important; margin-top: 6px !important; }
+/* ── SCIENCE ── */
+#gg-doom .dm-science-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 60px !important; align-items: center !important; }
+#gg-doom .dm-science-body p { font-size: 1rem !important; line-height: 1.82 !important; color: rgba(212,230,202,0.75) !important; margin-bottom: 18px !important; }
+#gg-doom .dm-science-body p:last-child { margin-bottom: 0 !important; }
+#gg-doom .dm-science-body strong { color: #c9a84c !important; font-weight: 800 !important; }
+#gg-doom .dm-science-stats { display: flex !important; flex-direction: column !important; gap: 14px !important; }
+#gg-doom .dm-science-stat { background: rgba(45,74,50,0.4) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 10px !important; padding: 22px 22px !important; }
+#gg-doom .dm-science-stat .big { font-size: 2rem !important; font-weight: 900 !important; color: #c9a84c !important; line-height: 1 !important; display: block !important; margin-bottom: 6px !important; }
+#gg-doom .dm-science-stat .desc { font-size: 0.86rem !important; color: rgba(212,230,202,0.62) !important; line-height: 1.55 !important; display: block !important; }
+#gg-doom .dm-science-stat.featured { background: linear-gradient(135deg, #2a5c38, #3d7a4f) !important; border-color: rgba(201,168,76,0.3) !important; }
+#gg-doom .dm-science-stat.featured .desc { color: rgba(212,230,202,0.85) !important; }
+/* ── SYSTEM SECTION ── */
+#gg-doom .dm-system-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 20px !important; margin-top: 52px !important; }
+#gg-doom .dm-system-card { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 10px !important; padding: 28px 24px !important; transition: border-color 0.25s, transform 0.25s !important; }
+#gg-doom .dm-system-card:hover { border-color: rgba(201,168,76,0.35) !important; transform: translateY(-3px) !important; }
+#gg-doom .dm-system-card.featured { background: linear-gradient(135deg, rgba(42,92,56,0.5), rgba(61,122,79,0.3)) !important; border-color: rgba(201,168,76,0.3) !important; }
+#gg-doom .dm-system-card h3 { font-size: 1rem !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 10px !important; }
+#gg-doom .dm-system-card p { font-size: 0.9rem !important; line-height: 1.72 !important; color: rgba(212,230,202,0.68) !important; }
+#gg-doom .dm-system-card .tag { display: inline-block !important; background: rgba(201,168,76,0.12) !important; border: 1px solid rgba(201,168,76,0.3) !important; border-radius: 100px !important; padding: 3px 10px !important; font-size: 0.68rem !important; font-weight: 800 !important; color: #c9a84c !important; margin-bottom: 12px !important; }
+/* ── CTA ── */
+#gg-doom .dm-cta { background: linear-gradient(135deg, #0a1a0d, #1a2e1f 50%, #0e1d12) !important; border-top: 1px solid rgba(201,168,76,0.2) !important; padding: 104px 48px !important; text-align: center !important; position: relative !important; overflow: hidden !important; }
+#gg-doom .dm-cta::before { content: '' !important; position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%,-50%) !important; width: 700px !important; height: 700px !important; border-radius: 50% !important; border: 1px solid rgba(201,168,76,0.06) !important; pointer-events: none !important; }
+#gg-doom .dm-cta-inner { position: relative !important; z-index: 2 !important; max-width: 620px !important; margin: 0 auto !important; }
+#gg-doom .dm-cta h2 { font-size: clamp(2.2rem, 4.5vw, 3.6rem) !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 18px !important; letter-spacing: -0.02em !important; line-height: 1.08 !important; }
+#gg-doom .dm-cta h2 span { color: #c9a84c !important; }
+#gg-doom .dm-cta p { font-size: 1.05rem !important; color: rgba(212,230,202,0.68) !important; line-height: 1.78 !important; margin-bottom: 44px !important; }
+#gg-doom .dm-cta-note { margin-top: 20px !important; font-size: 0.78rem !important; font-weight: 600 !important; color: rgba(212,230,202,0.32) !important; }
+#gg-doom .dm-cta-note a { color: #c9a84c !important; }
+/* ── FOOTER ── */
+#gg-doom .dm-footer { background: #080f09 !important; border-top: 1px solid rgba(122,171,130,0.1) !important; padding: 64px 48px 36px !important; }
+#gg-doom .dm-footer-top { display: grid !important; grid-template-columns: 1.6fr 1fr 1fr 1fr !important; gap: 48px !important; padding-bottom: 48px !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; max-width: 1100px !important; margin: 0 auto !important; }
+#gg-doom .dm-footer-name { font-size: 1.1rem !important; font-weight: 900 !important; color: #ffffff !important; display: block !important; margin-bottom: 4px !important; }
+#gg-doom .dm-footer-name span { color: #7dffaa !important; }
+#gg-doom .dm-footer-tagline { font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; margin-bottom: 14px !important; display: block !important; }
+#gg-doom .dm-footer-desc { font-size: 0.87rem !important; color: rgba(255,255,255,0.42) !important; line-height: 1.7 !important; margin-bottom: 14px !important; }
+#gg-doom .dm-footer-contact { font-size: 0.87rem !important; color: rgba(255,255,255,0.45) !important; line-height: 1.8 !important; }
+#gg-doom .dm-footer-contact a { color: #7dffaa !important; }
+#gg-doom .dm-footer-col h4 { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.35) !important; margin-bottom: 16px !important; }
+#gg-doom .dm-footer-col ul { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#gg-doom .dm-footer-col a { font-size: 0.87rem !important; color: rgba(255,255,255,0.55) !important; transition: color 0.2s !important; }
+#gg-doom .dm-footer-col a:hover { color: #7dffaa !important; }
+#gg-doom .dm-footer-bottom { max-width: 1100px !important; margin: 32px auto 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 12px !important; }
+#gg-doom .dm-footer-bottom span { font-size: 0.74rem !important; color: rgba(255,255,255,0.2) !important; }
+#gg-doom .dm-eco-badge { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; }
+#gg-doom .dm-eco-dot { width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7dffaa !important; display: inline-block !important; }
+/* ── REVEAL ── */
+#gg-doom .dm-reveal { opacity: 0 !important; transform: translateY(22px) !important; transition: opacity 0.7s ease, transform 0.7s ease !important; }
+#gg-doom .dm-reveal.visible { opacity: 1 !important; transform: translateY(0) !important; }
+/* ── MOBILE ── */
+@media (max-width: 860px) {
+  #gg-doom .dm-hero { padding: 64px 20px 72px !important; }
+  #gg-doom .dm-trust { padding: 14px 20px !important; gap: 16px !important; }
+  #gg-doom .dm-section { padding: 60px 20px !important; }
+  #gg-doom .dm-included-grid { grid-template-columns: 1fr !important; }
+  #gg-doom .dm-setup-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  #gg-doom .dm-maint-grid { grid-template-columns: 1fr !important; }
+  #gg-doom .dm-science-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  #gg-doom .dm-system-grid { grid-template-columns: 1fr !important; }
+  #gg-doom .dm-hero-stats { flex-direction: column !important; }
+  #gg-doom .dm-stat { border-right: none !important; border-bottom: 1px solid rgba(122,171,130,0.18) !important; }
+  #gg-doom .dm-stat:last-child { border-bottom: none !important; }
+  #gg-doom .dm-cta { padding: 64px 20px !important; }
+  #gg-doom .dm-footer { padding: 48px 20px 28px !important; }
+  #gg-doom .dm-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<div id="gg-doom">
+  <!-- NAV -->
+  <div class="gg-nav">
+    <div class="gg-nav-inner">
+      <div class="gg-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-hamburger" onclick="document.querySelector('#gg-doom .gg-menu').classList.add('open')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+  <div class="gg-menu">
+  <div class="gg-menu-close" onclick="document.querySelector('#gg-doom .gg-menu').classList.remove('open')">X</div>
+  <span class="gg-menu-group">Services</span>
+  <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a>
+  <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+  <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+  <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+  <!-- <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a> -->
+  <span class="gg-menu-group">Shop</span>
+  <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+  <span class="gg-menu-group">Learn</span>
+  <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+  <a href="https://www.greenguard-usa.com/results">Results</a>
+  <a href="https://www.greenguard-usa.com/blog">Blog</a>
+  <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+  <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+  <span class="gg-menu-group">Company</span>
+  <a href="https://www.greenguard-usa.com/about">About Us</a>
+  <a href="https://www.greenguard-usa.com/contact">Contact</a>
+  <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+  <span class="gg-menu-group">Book</span>
+  <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+</div>
+  <!-- HERO -->
+  <div class="dm-hero">
+    <div class="dm-hero-inner dm-reveal">
+      <span class="dm-tag">GreenGuard USA -- Larvicidal Mosquito Control -- Austin, Texas</span>
+      <h1 class="dm-h1">Mosquito Bucket <span>of Doom</span></h1>
+      <p class="dm-hero-p">A deceptively simple, scientifically proven system that lures female mosquitoes in to lay eggs -- and kills every larva before it becomes a biting adult. Stop mosquitoes at the source before they ever take flight.</p>
+      <div class="dm-hero-stats">
+        <div class="dm-stat">
+          <span class="num">$29.99</span>
+          <span class="lbl">Kit Price</span>
+        </div>
+        <div class="dm-stat">
+          <span class="num">14 Days</span>
+          <span class="lbl">Per Treatment</span>
+        </div>
+        <div class="dm-stat">
+          <span class="num">4,000</span>
+          <span class="lbl">Sq Ft Coverage</span>
+        </div>
+        <div class="dm-stat">
+          <span class="num">Zero</span>
+          <span class="lbl">Pesticides</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- TRUST BAR -->
+  <div class="dm-trust">
+    <div class="dm-trust-item">Kid Safe Design</div>
+    <div class="dm-trust-item">Pet Safe</div>
+    <div class="dm-trust-item">Pollinator Friendly</div>
+    <div class="dm-trust-item">Bti Larvicide</div>
+    <div class="dm-trust-item">Low Maintenance</div>
+  </div>
+  <!-- WHAT'S INCLUDED -->
+  <div class="dm-section">
+    <div class="dm-inner">
+      <div class="dm-reveal">
+        <span class="dm-stag">Kit Contents</span>
+        <h2 class="dm-h2">Everything in<span> the kit</span></h2>
+        <p class="dm-sub">The GreenGuard USA Mosquito Bucket of Doom Kit includes everything you need for a complete larvicidal mosquito control station, ready to deploy in your yard the same day.</p>
+      </div>
+      <div class="dm-included-grid">
+        <div class="dm-included-card dm-reveal">
+          <h3>3.5-Gallon Bucket</h3>
+          <p>Specifically sized for optimal BTI dosing and mosquito attraction. Large enough to maintain a stable breeding environment, small enough to place strategically around your property without being obtrusive. Includes a vented mesh lid to allow mosquitoes in while reducing access for wildlife and children.</p>
+        </div>
+        <div class="dm-included-card dm-reveal">
+          <h3>8 oz BTI Granules</h3>
+          <p>Bacillus thuringiensis israelensis -- a naturally occurring soil bacterium that is toxic exclusively to mosquito larvae and a small number of related insects. Completely harmless to humans, pets, birds, fish, bees, and all other wildlife. Sufficient to treat the bucket for multiple weeks.</p>
+        </div>
+        <div class="dm-included-card dm-reveal">
+          <h3>Safety Accessories</h3>
+          <p>Vented lid to control access while maintaining mosquito entry, and an escape stick positioned inside the bucket so that any small wildlife or insects that fall in can climb out safely. Designed for households with children and pets.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- SETUP INSTRUCTIONS -->
+  <div class="dm-section dm-section-alt">
+    <div class="dm-inner">
+      <div class="dm-reveal">
+        <span class="dm-stag">Setup Instructions</span>
+        <h2 class="dm-h2">Setting up your<span> Bucket of Doom</span></h2>
+        <p class="dm-sub">Setup takes under 10 minutes. Once placed, the bucket requires minimal maintenance to stay effective throughout mosquito season.</p>
+      </div>
+      <div class="dm-setup-grid">
+        <div class="dm-steps">
+          <div class="dm-step dm-reveal">
+            <div class="dm-step-num">1</div>
+            <div>
+              <h3>Fill with water</h3>
+              <p>Fill the bucket halfway with water. If using chlorinated tap water, let it sit uncovered for 24 to 48 hours before proceeding. This allows chlorine to dissipate, making the water more attractive to egg-laying females. Non-chlorinated water (collected rainwater or well water) can be used immediately.</p>
+            </div>
+          </div>
+          <div class="dm-step dm-reveal">
+            <div class="dm-step-num">2</div>
+            <div>
+              <h3>Add organic material</h3>
+              <p>Add a small handful of dried leaves, grass clippings, or hay to the water. As this material decomposes it releases CO2 and organic compounds that signal an ideal breeding site to female mosquitoes. This is what draws them in.</p>
+              <span class="dm-note">A small amount is sufficient -- roughly one handful.</span>
+            </div>
+          </div>
+          <div class="dm-step dm-reveal">
+            <div class="dm-step-num">3</div>
+            <div>
+              <h3>Add the BTI granules</h3>
+              <p>Add half of one included BTI dunk to the bucket. The BTI will begin working immediately, killing any larvae that hatch from eggs laid in the water. The slow-release formula remains active for up to 14 days per application.</p>
+            </div>
+          </div>
+          <div class="dm-step dm-reveal">
+            <div class="dm-step-num">4</div>
+            <div>
+              <h3>Place the lid and position the bucket</h3>
+              <p>Attach the vented mesh lid and position the escape stick inside the bucket. Place the bucket in a shaded area of your yard where mosquitoes are most active -- near vegetation, fence lines, or shaded beds. Avoid full sun, which inhibits mosquito activity and accelerates water evaporation.</p>
+              <span class="dm-note">Shaded placement significantly improves performance.</span>
+            </div>
+          </div>
+          <div class="dm-step dm-reveal">
+            <div class="dm-step-num">5</div>
+            <div>
+              <h3>Allow 2 to 3 weeks</h3>
+              <p>Mosquito activity near the bucket may increase initially as females locate it and begin laying eggs. This is the trap working as designed. Within 2 to 3 weeks, as fewer adults emerge from the captured larval cycle, you should notice a measurable reduction in biting activity across the property.</p>
+            </div>
+          </div>
+        </div>
+        <div class="dm-tips-card dm-reveal">
+          <h3>Placement and performance tips</h3>
+          <div class="dm-tip-row">
+            <span class="tip-label">Location</span>
+            <p>Place in shaded areas with natural vegetation nearby. Fence lines, shrub borders, and shaded garden beds are ideal. Avoid open lawn areas with full sun exposure.</p>
+          </div>
+          <div class="dm-tip-row">
+            <span class="tip-label">Water level</span>
+            <p>Keep the water at roughly the halfway mark. If water evaporates below that level, top it up. You do not need to change the water entirely -- the established organic environment is part of what makes it effective.</p>
+          </div>
+          <div class="dm-tip-row">
+            <span class="tip-label">Quantity</span>
+            <p>One bucket covers up to 4,000 square feet of breeding area. For larger properties or yards with significant mosquito pressure, deploying two or three buckets in different locations improves results substantially.</p>
+          </div>
+          <div class="dm-tip-row">
+            <span class="tip-label">Children</span>
+            <p>Always keep the vented lid secured. Do not place buckets where small children could access them unsupervised. The BTI is not harmful but the bucket presents a drowning hazard for toddlers.</p>
+          </div>
+          <div class="dm-tip-row">
+            <span class="tip-label">Water source</span>
+            <p>If using municipal tap water, let it sit 24 to 48 hours first. Collected rainwater, dehumidifier condensate, or well water can be used immediately without waiting.</p>
+          </div>
+          <div class="dm-tip-row">
+            <span class="tip-label">Patience</span>
+            <p>The bucket works by disrupting the breeding cycle, not by killing adult mosquitoes. Results build over 2 to 3 weeks as fewer new adults emerge. Do not judge effectiveness in the first few days.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- MAINTENANCE SCHEDULE -->
+  <div class="dm-section">
+    <div class="dm-inner">
+      <div class="dm-reveal">
+        <span class="dm-stag">Maintenance Schedule</span>
+        <h2 class="dm-h2">Keeping it<span> effective all season</span></h2>
+        <p class="dm-sub">The Bucket of Doom is low-maintenance by design. Following this schedule keeps it performing at full effectiveness throughout Austin's mosquito season.</p>
+      </div>
+      <div class="dm-maint-grid">
+        <div class="dm-maint-card dm-reveal">
+          <div class="dm-maint-top">
+            <span class="freq">Every 14 Days</span>
+            <h3>BTI Replenishment</h3>
+          </div>
+          <div class="dm-maint-body">
+            <ul>
+              <li>Add half of one BTI dunk to the bucket</li>
+              <li>Check water level and top up if needed</li>
+              <li>Confirm organic material is still present -- add a small amount if needed</li>
+              <li>Check that the lid is secure and the escape stick is in place</li>
+            </ul>
+          </div>
+        </div>
+        <div class="dm-maint-card dm-reveal">
+          <div class="dm-maint-top">
+            <span class="freq">Every 60 Days</span>
+            <h3>Full Reset</h3>
+          </div>
+          <div class="dm-maint-body">
+            <ul>
+              <li>Empty the bucket completely</li>
+              <li>Rinse the bucket and lid with clean water</li>
+              <li>Refill to the halfway mark with fresh water</li>
+              <li>Add fresh organic material and a new BTI dunk half</li>
+              <li>Replace bucket in the same location or adjust based on where mosquito activity is highest</li>
+            </ul>
+          </div>
+        </div>
+        <div class="dm-maint-card dm-reveal">
+          <div class="dm-maint-top">
+            <span class="freq">Seasonally</span>
+            <h3>End of Season Storage</h3>
+          </div>
+          <div class="dm-maint-body">
+            <ul>
+              <li>Empty and rinse the bucket before storing</li>
+              <li>Store remaining BTI dunks in a cool, dry location -- they remain effective for up to two years when stored properly</li>
+              <li>Inspect the lid and escape stick for wear before the next season</li>
+              <li>Restart setup in early March as Austin mosquito season begins</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- THE SCIENCE -->
+  <div class="dm-section dm-section-alt">
+    <div class="dm-inner">
+      <div class="dm-science-grid">
+        <div class="dm-science-body dm-reveal">
+          <span class="dm-stag">The Science</span>
+          <h2 class="dm-h2" style="margin-bottom:28px">Why it<span> works</span></h2>
+          <p>Female mosquitoes seek standing water with organic material to lay their eggs. The fermentation of grass clippings or leaf debris in water releases CO2 and organic compounds that signal an ideal breeding site. The bucket exploits this behavior by creating what appears to be the perfect location for egg-laying.</p>
+          <p>Once eggs are laid and larvae hatch, they ingest the BTI granules. <strong>BTI produces proteins that are toxic exclusively to mosquito larvae</strong> -- they rupture the larval gut lining and kill them within hours of ingestion. No other organism is affected.</p>
+          <p>Because only female mosquitoes seek blood meals and lay eggs, the trap disproportionately removes breeding females from the local population. Over 2 to 3 weeks of continuous operation, measurably fewer adult mosquitoes emerge.</p>
+          <p>BTI has been used in public health mosquito control programs for over 40 years and is approved for use in organic agriculture. It does not develop resistance in mosquito populations the way synthetic insecticides do.</p>
+        </div>
+        <div class="dm-science-stats dm-reveal">
+          <div class="dm-science-stat featured">
+            <span class="big">Bti Only</span>
+            <span class="desc">Toxic exclusively to mosquito larvae -- harmless to all other wildlife, pets, people, and beneficial insects</span>
+          </div>
+          <div class="dm-science-stat">
+            <span class="big">40+ Years</span>
+            <span class="desc">BTI has been used in public health mosquito control programs worldwide</span>
+          </div>
+          <div class="dm-science-stat">
+            <span class="big">No Resistance</span>
+            <span class="desc">Mosquitoes do not develop resistance to BTI, unlike synthetic insecticides</span>
+          </div>
+          <div class="dm-science-stat">
+            <span class="big">2-3 Weeks</span>
+            <span class="desc">Typical timeframe for noticeable reduction in adult mosquito populations</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- PART OF THE SYSTEM -->
+  <div class="dm-section">
+    <div class="dm-inner">
+      <div class="dm-reveal">
+        <span class="dm-stag">Complete Mosquito Control</span>
+        <h2 class="dm-h2">The Bucket of Doom<span> as part of your system</span></h2>
+        <p class="dm-sub">The Bucket of Doom targets mosquitoes at the larval stage. Paired with GreenGuard USA's CO2 trap program and barrier treatment, it creates a three-layer system that addresses the mosquito life cycle at every stage.</p>
+      </div>
+      <div class="dm-system-grid">
+        <div class="dm-system-card dm-reveal">
+          <span class="tag">Larval Stage</span>
+          <h3>Bucket of Doom</h3>
+          <p>Lures breeding females in and kills larvae with BTI before they become adults. Targets the reproductive source of your local mosquito population. Works continuously with minimal maintenance.</p>
+        </div>
+        <div class="dm-system-card dm-reveal">
+          <span class="tag">Adult Stage</span>
+          <h3>CO2 Trap</h3>
+          <p>Captures adult mosquitoes continuously using CO2 and human scent lures. Removes breeding females before they can reproduce and contribute to the next generation. The primary tool for population suppression in your yard.</p>
+        </div>
+        <div class="dm-system-card featured dm-reveal">
+          <span class="tag">Amplifier</span>
+          <h3>Barrier Treatment</h3>
+          <p>Masks human scent across the property, removing the competing signal that draws mosquitoes toward people. Redirects mosquitoes toward the CO2 trap for capture. Available to CO2 trap customers only.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- CTA -->
+  <div class="dm-cta">
+    <div class="dm-cta-inner">
+      <span class="dm-stag" style="display:block;margin-bottom:16px">$29.99 -- Austin TX -- Free Assessment Available</span>
+      <h2>Ready for a<span> mosquito-free yard?</span></h2>
+      <p>Book a free property assessment and we will walk your yard, recommend the right combination of larvicidal and CO2 trap control for your specific mosquito pressure, and get you set up the same week.</p>
+      <button class="dm-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
+      <div class="dm-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
+    </div>
+  </div>
+  <!-- FOOTER -->
+  <div class="dm-footer">
+    <div class="dm-footer-top">
+      <div>
+        <span class="dm-footer-name">Green<span>Guard</span> USA</span>
+        <span class="dm-footer-tagline">Smart. Safe. Effective.</span>
+        <p class="dm-footer-desc">Pesticide-free CO2 mosquito control serving Austin, Texas. Larvicidal traps, CO2 trap installation, monthly delivery, and full-service rentals.</p>
+        <div class="dm-footer-contact">
+          <a href="tel:5125604129">512-560-4129</a><br>
+          <a href="https://www.greenguard-usa.com">greenguard-usa.com</a>
+        </div>
+      </div>
+      <div class="dm-footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a></li>
+          <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a></li>
+          <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
+          <li><a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a></li>
+          <li><a href="https://www.greenguard-usa.com/shop">Shop All Products</a></li>
+        </ul>
+      </div>
+      <div class="dm-footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a></li>
+          <li><a href="https://www.greenguard-usa.com/results">Results</a></li>
+          <li><a href="https://www.greenguard-usa.com/blog">Blog</a></li>
+          <li><a href="https://www.greenguard-usa.com/faq">FAQ</a></li>
+          <li><a href="https://www.greenguard-usa.com/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="dm-footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
+          <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
+          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
+          <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
+          <li><a href="https://www.instagram.com/greenguardusa/">Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="dm-footer-bottom">
+      <span>2025 GreenGuard USA · Austin, Texas</span>
+      <div class="dm-eco-badge"><div class="dm-eco-dot"></div>100% Pesticide-Free Service</div>
+    </div>
+  </div>
+</div><!-- end #gg-doom -->
+<script>
+(function() {
+  var reveals = document.querySelectorAll('#gg-doom .dm-reveal');
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e, i) {
+      if (e.isIntersecting) {
+        setTimeout(function() { e.target.classList.add('visible'); }, i * 70);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  reveals.forEach(function(el) { obs.observe(el); });
+  document.addEventListener('click', function(e) {
+    var menu = document.querySelector('#gg-doom .gg-menu');
+    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('#gg-doom .gg-hamburger')) {
+      menu.classList.remove('open');
+    }
+  });
+})();
+</script>

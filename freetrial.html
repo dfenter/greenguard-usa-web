@@ -1,0 +1,485 @@
+<style>
+/* ── SCOPED RESET ── */
+#gg-trial, #gg-trial * { box-sizing: border-box !important; -webkit-font-smoothing: antialiased; }
+#gg-trial h1, #gg-trial h2, #gg-trial h3, #gg-trial h4,
+#gg-trial p, #gg-trial ul, #gg-trial li, #gg-trial div,
+#gg-trial span, #gg-trial button, #gg-trial a {
+  font-family: 'Nunito Sans', sans-serif !important;
+  margin: 0 !important; padding: 0 !important;
+  line-height: normal !important; letter-spacing: normal !important;
+}
+#gg-trial ul { list-style: none !important; }
+#gg-trial a { text-decoration: none !important; }
+
+/* ── WRAPPER ── */
+#gg-trial { width: 100% !important; max-width: 100% !important; overflow-x: hidden !important; background: #1a2e1f !important; }
+
+/* ── NAV ── */
+#gg-trial .gg-nav { position: sticky !important; top: 0 !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
+#gg-trial .gg-nav-inner { max-width: 1100px !important; margin: 0 auto !important; display: flex !important; align-items: center !important; justify-content: space-between !important; }
+#gg-trial .gg-logo { font-weight: 900 !important; color: #fff !important; letter-spacing: -0.02em !important; font-size: 1.1rem !important; }
+#gg-trial .gg-logo span { color: #7dffaa !important; }
+#gg-trial .gg-hamburger { width: 34px !important; height: 28px !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; cursor: pointer !important; }
+#gg-trial .gg-hamburger span { height: 3px !important; width: 100% !important; background: #c9a84c !important; border-radius: 2px !important; }
+#gg-trial .gg-menu { position: fixed !important; top: 0 !important; right: -100% !important; width: 260px !important; height: 100vh !important; background: #0d1a10 !important; border-left: 1px solid rgba(122,171,130,0.2) !important; padding: 80px 24px !important; transition: right 0.3s ease !important; z-index: 10000 !important; }
+#gg-trial .gg-menu.open { right: 0 !important; }
+#gg-trial .gg-menu a { display: block !important; padding: 14px 0 !important; color: #d4e6ca !important; font-weight: 700 !important; border-bottom: 1px solid rgba(122,171,130,0.15) !important; font-size: 0.95rem !important; }
+#gg-trial .gg-menu a:hover { color: #7dffaa !important; }
+#gg-trial .gg-menu-close { position: absolute !important; top: 18px !important; right: 18px !important; font-size: 22px !important; color: #c9a84c !important; cursor: pointer !important; }
+
+/* ── URGENCY BAR ── */
+#gg-trial .tr-urgent { background: #c9a84c !important; padding: 10px 20px !important; text-align: center !important; }
+#gg-trial .tr-urgent span { font-size: 0.8rem !important; font-weight: 800 !important; color: #0d1a10 !important; letter-spacing: 0.05em !important; }
+
+/* ── HERO ── */
+#gg-trial .tr-hero { background: linear-gradient(135deg, #0d1a10 0%, #1a2e1f 50%, #2d4a32 100%) !important; padding: 88px 48px 96px !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; position: relative !important; overflow: hidden !important; }
+#gg-trial .tr-hero::before { content: '' !important; position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%,-50%) !important; width: 800px !important; height: 800px !important; border-radius: 50% !important; border: 1px solid rgba(201,168,76,0.06) !important; pointer-events: none !important; }
+#gg-trial .tr-hero-inner { max-width: 1100px !important; margin: 0 auto !important; display: grid !important; grid-template-columns: 1.1fr 0.9fr !important; gap: 72px !important; align-items: center !important; position: relative !important; z-index: 2 !important; }
+#gg-trial .tr-tag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 16px !important; }
+#gg-trial .tr-h1 { font-size: clamp(2.4rem, 5vw, 3.8rem) !important; font-weight: 900 !important; line-height: 1.1 !important; color: #ffffff !important; margin-bottom: 20px !important; letter-spacing: -0.02em !important; }
+#gg-trial .tr-h1 span { color: #7aab82 !important; display: block !important; }
+#gg-trial .tr-hero-p { font-size: 1.1rem !important; color: rgba(212,230,202,0.78) !important; line-height: 1.75 !important; margin-bottom: 32px !important; }
+#gg-trial .tr-hero-checks { display: flex !important; flex-direction: column !important; gap: 10px !important; margin-bottom: 36px !important; }
+#gg-trial .tr-check { display: flex !important; align-items: center !important; gap: 10px !important; font-size: 0.92rem !important; font-weight: 700 !important; color: rgba(212,230,202,0.75) !important; }
+#gg-trial .tr-check-dot { width: 8px !important; height: 8px !important; border-radius: 50% !important; background: #7aab82 !important; flex-shrink: 0 !important; }
+#gg-trial .tr-hero-btns { display: flex !important; gap: 14px !important; flex-wrap: wrap !important; }
+#gg-trial .tr-btn-gold { background: #c9a84c !important; color: #0d1a10 !important; font-family: 'Nunito Sans', sans-serif !important; font-size: 1rem !important; font-weight: 800 !important; padding: 17px 36px !important; border: none !important; border-radius: 4px !important; cursor: pointer !important; box-shadow: 0 4px 28px rgba(201,168,76,0.3) !important; transition: background 0.2s, transform 0.15s !important; }
+#gg-trial .tr-btn-gold:hover { background: #e8d08a !important; transform: translateY(-2px) !important; }
+#gg-trial .tr-btn-outline { background: transparent !important; color: #d4e6ca !important; font-family: 'Nunito Sans', sans-serif !important; font-size: 0.92rem !important; font-weight: 700 !important; padding: 17px 32px !important; border: 2px solid rgba(212,230,202,0.35) !important; border-radius: 4px !important; cursor: pointer !important; transition: border-color 0.2s !important; }
+#gg-trial .tr-btn-outline:hover { border-color: rgba(212,230,202,0.65) !important; }
+
+/* Hero right -- offer card */
+#gg-trial .tr-offer-card { background: rgba(13,26,16,0.85) !important; border: 2px solid rgba(201,168,76,0.4) !important; border-radius: 14px !important; overflow: hidden !important; }
+#gg-trial .tr-offer-top { background: linear-gradient(135deg, #0d1a10, #2d4a32) !important; padding: 28px 32px !important; border-bottom: 1px solid rgba(201,168,76,0.2) !important; text-align: center !important; }
+#gg-trial .tr-offer-price { font-size: 4rem !important; font-weight: 900 !important; color: #ffffff !important; line-height: 1 !important; display: block !important; }
+#gg-trial .tr-offer-price-label { font-size: 0.78rem !important; font-weight: 800 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: #c9a84c !important; margin-top: 6px !important; display: block !important; }
+#gg-trial .tr-offer-body { padding: 24px 28px !important; }
+#gg-trial .tr-offer-items { display: flex !important; flex-direction: column !important; gap: 12px !important; margin-bottom: 24px !important; }
+#gg-trial .tr-offer-item { display: flex !important; gap: 10px !important; align-items: flex-start !important; font-size: 0.9rem !important; color: rgba(212,230,202,0.82) !important; line-height: 1.5 !important; }
+#gg-trial .tr-offer-item::before { content: '' !important; width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7aab82 !important; flex-shrink: 0 !important; margin-top: 6px !important; }
+#gg-trial .tr-offer-btn { width: 100% !important; background: #c9a84c !important; color: #0d1a10 !important; font-family: 'Nunito Sans', sans-serif !important; font-size: 1rem !important; font-weight: 800 !important; padding: 16px !important; border: none !important; border-radius: 4px !important; cursor: pointer !important; transition: background 0.2s !important; }
+#gg-trial .tr-offer-btn:hover { background: #e8d08a !important; }
+#gg-trial .tr-offer-note { font-size: 0.74rem !important; color: rgba(212,230,202,0.38) !important; text-align: center !important; margin-top: 12px !important; font-weight: 600 !important; }
+#gg-trial .tr-spots { background: rgba(201,168,76,0.1) !important; border: 1px solid rgba(201,168,76,0.25) !important; border-radius: 6px !important; padding: 10px 14px !important; margin-bottom: 16px !important; text-align: center !important; }
+#gg-trial .tr-spots span { font-size: 0.78rem !important; font-weight: 800 !important; color: #c9a84c !important; }
+
+/* ── TRUST BAR ── */
+#gg-trial .tr-trust { background: #2d4a32 !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 48px !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 32px !important; flex-wrap: wrap !important; }
+#gg-trial .tr-trust-item { font-size: 0.74rem !important; font-weight: 800 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: #a8edc0 !important; display: flex !important; align-items: center !important; gap: 8px !important; }
+#gg-trial .tr-trust-dot { color: #c9a84c !important; }
+
+/* ── SHARED SECTION ── */
+#gg-trial .tr-section { padding: 88px 48px !important; background: #1a2e1f !important; }
+#gg-trial .tr-section-alt { background: #111c13 !important; }
+#gg-trial .tr-inner { max-width: 1100px !important; margin: 0 auto !important; }
+#gg-trial .tr-stag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 10px !important; }
+#gg-trial .tr-h2 { font-size: clamp(1.9rem, 3.5vw, 2.9rem) !important; font-weight: 900 !important; line-height: 1.15 !important; color: #ffffff !important; margin-bottom: 16px !important; letter-spacing: -0.02em !important; }
+#gg-trial .tr-h2 span { color: #7aab82 !important; }
+#gg-trial .tr-sub { font-size: 1.05rem !important; color: rgba(212,230,202,0.72) !important; line-height: 1.75 !important; max-width: 620px !important; }
+
+/* ── WHAT YOU GET ── */
+#gg-trial .tr-get-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 20px !important; margin-top: 52px !important; }
+#gg-trial .tr-get-card { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 10px !important; padding: 28px 24px !important; transition: border-color 0.25s, transform 0.25s !important; }
+#gg-trial .tr-get-card:hover { border-color: rgba(201,168,76,0.35) !important; transform: translateY(-3px) !important; }
+#gg-trial .tr-get-card h3 { font-size: 1rem !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 8px !important; }
+#gg-trial .tr-get-card p { font-size: 0.88rem !important; line-height: 1.7 !important; color: rgba(212,230,202,0.68) !important; }
+#gg-trial .tr-get-card .free-tag { display: inline-block !important; background: rgba(122,171,130,0.15) !important; border: 1px solid rgba(122,171,130,0.3) !important; border-radius: 100px !important; padding: 3px 10px !important; font-size: 0.68rem !important; font-weight: 800 !important; color: #a8edc0 !important; margin-bottom: 12px !important; }
+
+/* ── WHAT HAPPENS AFTER ── */
+#gg-trial .tr-after-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 20px !important; margin-top: 52px !important; }
+#gg-trial .tr-after-card { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 10px !important; padding: 28px 24px !important; }
+#gg-trial .tr-after-card h3 { font-size: 1rem !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 10px !important; }
+#gg-trial .tr-after-card p { font-size: 0.88rem !important; line-height: 1.7 !important; color: rgba(212,230,202,0.68) !important; }
+#gg-trial .tr-after-card.featured { background: linear-gradient(135deg, rgba(42,92,56,0.6), rgba(61,122,79,0.4)) !important; border-color: rgba(201,168,76,0.3) !important; }
+
+/* ── VS SPRAYING ── */
+#gg-trial .tr-vs-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px !important; margin-top: 52px !important; }
+#gg-trial .tr-vs-card { background: rgba(45,74,50,0.3) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 10px !important; padding: 28px 26px !important; }
+#gg-trial .tr-vs-card.bad { background: rgba(30,20,20,0.4) !important; border-color: rgba(180,80,80,0.2) !important; }
+#gg-trial .tr-vs-card h3 { font-size: 0.82rem !important; font-weight: 800 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; margin-bottom: 16px !important; }
+#gg-trial .tr-vs-card.good h3 { color: #7aab82 !important; }
+#gg-trial .tr-vs-card.bad h3 { color: rgba(220,100,100,0.8) !important; }
+#gg-trial .tr-vs-row { display: flex !important; gap: 10px !important; align-items: flex-start !important; margin-bottom: 10px !important; font-size: 0.88rem !important; line-height: 1.6 !important; }
+#gg-trial .tr-vs-row.yes { color: rgba(212,230,202,0.78) !important; }
+#gg-trial .tr-vs-row.no { color: rgba(212,230,202,0.45) !important; }
+#gg-trial .tr-vs-row .marker { flex-shrink: 0 !important; font-weight: 900 !important; font-size: 0.8rem !important; margin-top: 1px !important; }
+#gg-trial .tr-vs-row.yes .marker { color: #7aab82 !important; }
+#gg-trial .tr-vs-row.no .marker { color: rgba(200,80,80,0.7) !important; }
+
+/* ── FAQ ── */
+#gg-trial .tr-faq { display: flex !important; flex-direction: column !important; gap: 8px !important; margin-top: 52px !important; }
+#gg-trial .tr-faq-item { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 10px !important; overflow: hidden !important; transition: border-color 0.2s !important; }
+#gg-trial .tr-faq-item.open { border-color: rgba(201,168,76,0.35) !important; }
+#gg-trial .tr-faq-q { width: 100% !important; background: transparent !important; border: none !important; padding: 20px 24px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 16px !important; cursor: pointer !important; text-align: left !important; font-family: 'Nunito Sans', sans-serif !important; }
+#gg-trial .tr-faq-q-text { font-size: 0.97rem !important; font-weight: 800 !important; color: #ffffff !important; flex: 1 !important; }
+#gg-trial .tr-faq-item.open .tr-faq-q-text { color: #c9a84c !important; }
+#gg-trial .tr-faq-chevron { width: 24px !important; height: 24px !important; border-radius: 50% !important; background: rgba(122,171,130,0.15) !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; font-size: 0.75rem !important; color: #7aab82 !important; transition: transform 0.3s !important; }
+#gg-trial .tr-faq-item.open .tr-faq-chevron { transform: rotate(180deg) !important; background: rgba(201,168,76,0.2) !important; color: #c9a84c !important; }
+#gg-trial .tr-faq-answer { max-height: 0 !important; overflow: hidden !important; transition: max-height 0.35s ease !important; }
+#gg-trial .tr-faq-item.open .tr-faq-answer { max-height: 300px !important; }
+#gg-trial .tr-faq-answer-inner { padding: 0 24px 20px !important; border-top: 1px solid rgba(122,171,130,0.12) !important; padding-top: 16px !important; }
+#gg-trial .tr-faq-answer-inner p { font-size: 0.93rem !important; line-height: 1.75 !important; color: rgba(212,230,202,0.75) !important; }
+
+/* ── CTA ── */
+#gg-trial .tr-cta { background: linear-gradient(135deg, #0a1a0d, #1a2e1f 50%, #0e1d12) !important; border-top: 1px solid rgba(201,168,76,0.2) !important; padding: 96px 48px !important; text-align: center !important; position: relative !important; overflow: hidden !important; }
+#gg-trial .tr-cta::before { content: '' !important; position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%,-50%) !important; width: 600px !important; height: 600px !important; border-radius: 50% !important; border: 1px solid rgba(201,168,76,0.07) !important; pointer-events: none !important; }
+#gg-trial .tr-cta-inner { position: relative !important; z-index: 2 !important; max-width: 640px !important; margin: 0 auto !important; }
+#gg-trial .tr-cta h2 { font-size: clamp(2.2rem, 4.5vw, 3.4rem) !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 18px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
+#gg-trial .tr-cta h2 span { color: #c9a84c !important; }
+#gg-trial .tr-cta p { font-size: 1.05rem !important; color: rgba(212,230,202,0.72) !important; line-height: 1.75 !important; margin-bottom: 40px !important; }
+#gg-trial .tr-cta-btns { display: flex !important; gap: 14px !important; justify-content: center !important; flex-wrap: wrap !important; }
+#gg-trial .tr-cta-note { margin-top: 18px !important; font-size: 0.78rem !important; font-weight: 600 !important; color: rgba(212,230,202,0.38) !important; }
+#gg-trial .tr-cta-note a { color: #c9a84c !important; }
+
+/* ── FOOTER ── */
+#gg-trial .tr-footer { background: #080f09 !important; border-top: 1px solid rgba(122,171,130,0.1) !important; padding: 64px 48px 36px !important; }
+#gg-trial .tr-footer-top { display: grid !important; grid-template-columns: 1.6fr 1fr 1fr 1fr !important; gap: 48px !important; padding-bottom: 48px !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; max-width: 1100px !important; margin: 0 auto !important; }
+#gg-trial .tr-footer-name { font-size: 1.1rem !important; font-weight: 900 !important; color: #ffffff !important; display: block !important; margin-bottom: 4px !important; }
+#gg-trial .tr-footer-name span { color: #7dffaa !important; }
+#gg-trial .tr-footer-tagline { font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; margin-bottom: 14px !important; display: block !important; }
+#gg-trial .tr-footer-desc { font-size: 0.87rem !important; color: rgba(255,255,255,0.42) !important; line-height: 1.7 !important; margin-bottom: 14px !important; }
+#gg-trial .tr-footer-contact { font-size: 0.87rem !important; color: rgba(255,255,255,0.45) !important; line-height: 1.8 !important; }
+#gg-trial .tr-footer-contact a { color: #7dffaa !important; }
+#gg-trial .tr-footer-col h4 { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.35) !important; margin-bottom: 16px !important; }
+#gg-trial .tr-footer-col ul { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#gg-trial .tr-footer-col a { font-size: 0.87rem !important; color: rgba(255,255,255,0.55) !important; transition: color 0.2s !important; }
+#gg-trial .tr-footer-col a:hover { color: #7dffaa !important; }
+#gg-trial .tr-footer-bottom { max-width: 1100px !important; margin: 32px auto 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 12px !important; }
+#gg-trial .tr-footer-bottom span { font-size: 0.74rem !important; color: rgba(255,255,255,0.2) !important; }
+#gg-trial .tr-eco-badge { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; }
+#gg-trial .tr-eco-dot { width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7dffaa !important; display: inline-block !important; }
+
+/* ── REVEAL ── */
+#gg-trial .tr-reveal { opacity: 0 !important; transform: translateY(22px) !important; transition: opacity 0.7s ease, transform 0.7s ease !important; }
+#gg-trial .tr-reveal.visible { opacity: 1 !important; transform: translateY(0) !important; }
+
+/* ── MOBILE ── */
+@media (max-width: 900px) {
+  #gg-trial .tr-hero { padding: 56px 20px 64px !important; }
+  #gg-trial .tr-hero-inner { grid-template-columns: 1fr !important; gap: 40px !important; }
+  #gg-trial .tr-trust { padding: 14px 20px !important; gap: 16px !important; }
+  #gg-trial .tr-section { padding: 60px 20px !important; }
+  #gg-trial .tr-get-grid { grid-template-columns: 1fr !important; }
+  #gg-trial .tr-after-grid { grid-template-columns: 1fr !important; }
+  #gg-trial .tr-vs-grid { grid-template-columns: 1fr !important; }
+  #gg-trial .tr-cta { padding: 64px 20px !important; }
+  #gg-trial .tr-footer { padding: 48px 20px 28px !important; }
+  #gg-trial .tr-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+}
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<div id="gg-trial">
+
+  <!-- URGENCY BAR -->
+  <div class="tr-urgent">
+    <span>Limited availability -- Austin area only -- No credit card required</span>
+  </div>
+
+  <!-- NAV -->
+  <div class="gg-nav">
+    <div class="gg-nav-inner">
+      <div class="gg-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-hamburger" onclick="document.querySelector('#gg-trial .gg-menu').classList.add('open')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+  <div class="gg-menu">
+    <div class="gg-menu-close" onclick="document.querySelector('#gg-trial .gg-menu').classList.remove('open')">X</div>
+    <a href="https://www.greenguard-usa.com/">Home</a>
+    <a href="https://www.greenguard-usa.com/shop">Shop</a>
+    <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">Services</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement</a>
+    <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact Us</a>
+  </div>
+
+  <!-- HERO -->
+  <div class="tr-hero">
+    <div class="tr-hero-inner">
+      <div class="tr-reveal">
+        <span class="tr-tag">Limited Time -- Austin Homeowners Only</span>
+        <h1 class="tr-h1">7 days. Free.<span>No commitment.</span></h1>
+        <p class="tr-hero-p">GreenGuard USA will deliver, install, and run a professional CO2 mosquito trap at your property for a full 7 days at zero cost. See what it actually does to your mosquito population before you spend a dollar.</p>
+        <div class="tr-hero-checks">
+          <div class="tr-check"><div class="tr-check-dot"></div>Professional trap delivery and setup included</div>
+          <div class="tr-check"><div class="tr-check-dot"></div>Full CO2 tank installed and running</div>
+          <div class="tr-check"><div class="tr-check-dot"></div>Strategically placed for maximum capture</div>
+          <div class="tr-check"><div class="tr-check-dot"></div>Pickup included -- no obligation to continue</div>
+          <div class="tr-check"><div class="tr-check-dot"></div>No credit card required</div>
+        </div>
+        <div class="tr-hero-btns">
+          <button class="tr-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Claim Your Free Trial</button>
+          
+        </div>
+      </div>
+
+      <div class="tr-offer-card tr-reveal">
+        <div class="tr-offer-top">
+          <span class="tr-offer-price">$0</span>
+          <span class="tr-offer-price-label">7-Day Full Trial -- Completely Free</span>
+        </div>
+        <div class="tr-offer-body">
+          <div class="tr-spots">
+            <span>Limited trial spots available in the Austin area</span>
+          </div>
+          <div class="tr-offer-items">
+            <div class="tr-offer-item">Professional CO2 trap (retail value $400+)</div>
+            <div class="tr-offer-item">Full CO2 tank installed and running</div>
+            <div class="tr-offer-item">Strategic site assessment and placement</div>
+            <div class="tr-offer-item">7 consecutive days of active mosquito capture</div>
+            <div class="tr-offer-item">Trap pickup at end of trial</div>
+            <div class="tr-offer-item">No contracts, no credit card, no pressure</div>
+          </div>
+          <button class="tr-offer-btn" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Claim Your Free Trial</button>
+          <p class="tr-offer-note">Austin area only. Residential properties. Subject to availability.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRUST BAR -->
+  <div class="tr-trust">
+    <div class="tr-trust-item"><span class="tr-trust-dot">+</span> 100% Free -- No Credit Card</div>
+    <div class="tr-trust-item"><span class="tr-trust-dot">+</span> No Contracts</div>
+    <div class="tr-trust-item"><span class="tr-trust-dot">+</span> Pesticide-Free</div>
+    <div class="tr-trust-item"><span class="tr-trust-dot">+</span> Safe for Kids, Pets and Bees</div>
+    <div class="tr-trust-item"><span class="tr-trust-dot">+</span> Austin Area Only</div>
+  </div>
+
+  <!-- WHAT YOU GET -->
+  <div class="tr-section" id="tr-how">
+    <div class="tr-inner">
+      <div class="tr-reveal">
+        <span class="tr-stag">What Is Included</span>
+        <h2 class="tr-h2">Everything delivered.<br><span>Nothing to buy.</span></h2>
+        <p class="tr-sub">This is a full professional setup -- the same equipment and service a paying customer receives. We do not cut corners on the trial.</p>
+      </div>
+      <div class="tr-get-grid">
+        <div class="tr-get-card tr-reveal">
+          <span class="free-tag">Included Free</span>
+          <h3>Site Assessment and Placement</h3>
+          <p>A GreenGuard USA technician visits your property, identifies mosquito pressure zones, and places the trap in the optimal position for maximum capture. Placement accounts for wind, shade, vegetation, and standing water sources.</p>
+        </div>
+        <div class="tr-get-card tr-reveal">
+          <span class="free-tag">Included Free</span>
+          <h3>Professional CO2 Trap Setup</h3>
+          <p>We install a Biogents BG-Mosquitaire CO2 trap with a full tank connected, regulator set, and attractant loaded. The same commercial-grade equipment used in our full service program. No assembly required on your part.</p>
+        </div>
+        <div class="tr-get-card tr-reveal">
+          <span class="free-tag">Included Free</span>
+          <h3>7 Days of Continuous Operation</h3>
+          <p>The trap runs 24 hours a day for the full 7-day trial period, continuously attracting and capturing mosquitoes. At the end of the 7 days we return to pick up the equipment -- with no obligation to continue.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VS SPRAYING -->
+  <div class="tr-section tr-section-alt">
+    <div class="tr-inner">
+      <div class="tr-reveal">
+        <span class="tr-stag">Why CO2 Trapping</span>
+        <h2 class="tr-h2">Not another spray.<span> A different approach entirely.</span></h2>
+        <p class="tr-sub">Traditional mosquito spray services fog your yard with synthetic pesticides every few weeks. GreenGuard USA eliminates mosquitoes at the source -- continuously, without chemicals.</p>
+      </div>
+      <div class="tr-vs-grid">
+        <div class="tr-vs-card good tr-reveal">
+          <h3>GreenGuard USA CO2 Trapping</h3>
+          <div class="tr-vs-row yes"><span class="marker">+</span> Zero pesticides, zero chemical residue in your yard</div>
+          <div class="tr-vs-row yes"><span class="marker">+</span> Safe for bees, butterflies, and pollinators</div>
+          <div class="tr-vs-row yes"><span class="marker">+</span> Targets breeding females, collapsing the population over time</div>
+          <div class="tr-vs-row yes"><span class="marker">+</span> Runs 24 hours a day, 7 days a week continuously</div>
+          <div class="tr-vs-row yes"><span class="marker">+</span> Kids and pets can use the yard immediately</div>
+          <div class="tr-vs-row yes"><span class="marker">+</span> Gets more effective over time as population declines</div>
+        </div>
+        <div class="tr-vs-card bad tr-reveal">
+          <h3>Traditional Spray Services</h3>
+          <div class="tr-vs-row no"><span class="marker">-</span> Synthetic pyrethroids applied across your entire yard</div>
+          <div class="tr-vs-row no"><span class="marker">-</span> Kills bees and pollinators on contact</div>
+          <div class="tr-vs-row no"><span class="marker">-</span> Temporary knockdown only -- mosquitoes return within days</div>
+          <div class="tr-vs-row no"><span class="marker">-</span> Re-entry waiting periods required after treatment</div>
+          <div class="tr-vs-row no"><span class="marker">-</span> Requires repeated treatments throughout the season</div>
+          <div class="tr-vs-row no"><span class="marker">-</span> Does not address the breeding population</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT HAPPENS AFTER -->
+  <div class="tr-section">
+    <div class="tr-inner">
+      <div class="tr-reveal">
+        <span class="tr-stag">After 7 Days</span>
+        <h2 class="tr-h2">You decide.<span> No pressure either way.</span></h2>
+        <p class="tr-sub">At the end of your trial, your GreenGuard USA technician will review your results with you and discuss options. You are never obligated to continue.</p>
+      </div>
+      <div class="tr-after-grid">
+        <div class="tr-after-card featured tr-reveal">
+          <h3>Continue with Monthly Service</h3>
+          <p>If the results speak for themselves, we set up a monthly CO2 tank delivery subscription and ongoing maintenance. Most trial customers choose this option. Pricing starts at $89.99 per month.</p>
+        </div>
+        <div class="tr-after-card tr-reveal">
+          <h3>Upgrade to Full Rental Program</h3>
+          <p>Have us own and manage everything -- trap, CO2, maintenance, and seasonal adjustments -- under a full-service rental plan. Ideal for customers who want zero involvement in equipment management.</p>
+        </div>
+        <div class="tr-after-card tr-reveal">
+          <h3>We Remove It -- No Charge</h3>
+          <p>If the trial does not convince you, we pick up the equipment at no cost with no questions asked. You are under no obligation and we will not follow up with sales pressure.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="tr-section tr-section-alt">
+    <div class="tr-inner">
+      <div class="tr-reveal">
+        <span class="tr-stag">Common Questions</span>
+        <h2 class="tr-h2">Free trial <span>FAQ</span></h2>
+      </div>
+      <div class="tr-faq tr-reveal">
+        <div class="tr-faq-item">
+          <button class="tr-faq-q" onclick="trToggle(this)">
+            <span class="tr-faq-q-text">Is this actually free? What is the catch?</span>
+            <span class="tr-faq-chevron">v</span>
+          </button>
+          <div class="tr-faq-answer"><div class="tr-faq-answer-inner">
+            <p>It is completely free. No credit card is required to claim the trial. We offer this because we are confident in the results -- customers who experience the trap working firsthand almost always continue service. The trial is our cost of customer acquisition, and we are happy to absorb it.</p>
+          </div></div>
+        </div>
+        <div class="tr-faq-item">
+          <button class="tr-faq-q" onclick="trToggle(this)">
+            <span class="tr-faq-q-text">Who qualifies for the free trial?</span>
+            <span class="tr-faq-chevron">v</span>
+          </button>
+          <div class="tr-faq-answer"><div class="tr-faq-answer-inner">
+            <p>The free trial is available to residential homeowners in the Austin, Texas service area. We limit the number of active trials at any time to maintain service quality. If trials are fully booked, we will add you to the waitlist and contact you when a spot opens.</p>
+          </div></div>
+        </div>
+        <div class="tr-faq-item">
+          <button class="tr-faq-q" onclick="trToggle(this)">
+            <span class="tr-faq-q-text">Will I see results in just 7 days?</span>
+            <span class="tr-faq-chevron">v</span>
+          </button>
+          <div class="tr-faq-answer"><div class="tr-faq-answer-inner">
+            <p>Most customers notice a meaningful reduction in mosquito activity within the first 7 days. Full population suppression takes 2 to 4 weeks of continuous operation as the breeding cycle is disrupted. The trial gives you a real, visible demonstration of how the trap performs on your specific property.</p>
+          </div></div>
+        </div>
+        <div class="tr-faq-item">
+          <button class="tr-faq-q" onclick="trToggle(this)">
+            <span class="tr-faq-q-text">Do I need to be home for setup and pickup?</span>
+            <span class="tr-faq-chevron">v</span>
+          </button>
+          <div class="tr-faq-answer"><div class="tr-faq-answer-inner">
+            <p>We ask that someone be available at the time of setup so the technician can walk the property and explain the placement. For pickup, you do not need to be present as long as the trap is accessible. We will coordinate both dates with you at the time of booking.</p>
+          </div></div>
+        </div>
+        <div class="tr-faq-item">
+          <button class="tr-faq-q" onclick="trToggle(this)">
+            <span class="tr-faq-q-text">How do I claim my trial?</span>
+            <span class="tr-faq-chevron">v</span>
+          </button>
+          <div class="tr-faq-answer"><div class="tr-faq-answer-inner">
+            <p>Click the "Claim Your Free Trial" button on this page and book your setup appointment through our scheduling system. Alternatively, call or text us at 512-560-4129 and we will get you scheduled directly. Setup is typically available within a few days of booking.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="tr-cta">
+    <div class="tr-cta-inner">
+      <span class="tr-stag" style="display:block;margin-bottom:14px">No Credit Card -- No Commitment -- Austin TX</span>
+      <h2>Try it free.<span> See how well it works.</span></h2>
+      <p>There is no reason not to try. We deliver, install, run it for 7 days, and pick it up if you decide it is not for you. No cost, no obligation, no pressure.</p>
+      <div class="tr-cta-btns">
+        <button class="tr-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Claim Your Free Trial</button>
+        
+      </div>
+      <div class="tr-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="tr-footer">
+    <div class="tr-footer-top">
+      <div>
+        <span class="tr-footer-name">Green<span>Guard</span> USA</span>
+        <span class="tr-footer-tagline">Smart. Safe. Effective.</span>
+        <p class="tr-footer-desc">Pesticide-free CO2 mosquito control serving Austin, Texas. Authorized dealer for Biogents and Mosqitter Grand.</p>
+        <div class="tr-footer-contact">
+          <a href="tel:5125604129">512-560-4129</a><br>
+          <a href="https://www.greenguard-usa.com">greenguard-usa.com</a>
+        </div>
+      </div>
+      <div class="tr-footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a></li>
+          <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rental Program</a></li>
+          <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
+          <li><a href="https://www.greenguard-usa.com/shop">Shop Traps and Tanks</a></li>
+        </ul>
+      </div>
+      <div class="tr-footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a></li>
+          <li><a href="https://www.greenguard-usa.com/blog">Blog</a></li>
+          <li><a href="https://www.greenguard-usa.com/faq">FAQ</a></li>
+          <li><a href="https://www.greenguard-usa.com/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="tr-footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
+          <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
+          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
+          <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="tr-footer-bottom">
+      <span>2025 GreenGuard USA · Austin, Texas</span>
+      <div class="tr-eco-badge"><div class="tr-eco-dot"></div>100% Pesticide-Free Service</div>
+    </div>
+  </div>
+
+</div><!-- end #gg-trial -->
+
+<script>
+(function() {
+  window.trToggle = function(btn) {
+    var item = btn.closest('.tr-faq-item');
+    var isOpen = item.classList.contains('open');
+    document.querySelectorAll('#gg-trial .tr-faq-item.open').forEach(function(el) { el.classList.remove('open'); });
+    if (!isOpen) item.classList.add('open');
+  };
+  var reveals = document.querySelectorAll('#gg-trial .tr-reveal');
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e, i) {
+      if (e.isIntersecting) {
+        setTimeout(function() { e.target.classList.add('visible'); }, i * 70);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  reveals.forEach(function(el) { obs.observe(el); });
+  document.addEventListener('click', function(e) {
+    var menu = document.querySelector('#gg-trial .gg-menu');
+    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('#gg-trial .gg-hamburger')) {
+      menu.classList.remove('open');
+    }
+  });
+})();
+</script>

@@ -1,0 +1,661 @@
+<style>
+/* ── SCOPED RESET ── */
+#gg-franchise, #gg-franchise * {
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased;
+}
+#gg-franchise h1, #gg-franchise h2, #gg-franchise h3, #gg-franchise h4,
+#gg-franchise p, #gg-franchise ul, #gg-franchise li, #gg-franchise div,
+#gg-franchise span, #gg-franchise button, #gg-franchise a {
+  font-family: 'Nunito Sans', sans-serif !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+}
+#gg-franchise ul { list-style: none !important; }
+/* ── FONT FORCE ── */
+#gg-franchise h1,#gg-franchise h2,#gg-franchise h3,#gg-franchise h4,#gg-franchise h5,#gg-franchise h6 { font-family: 'Nunito Sans', sans-serif !important; }
+#gg-franchise a { text-decoration: none !important; }
+/* ── WRAPPER ── */
+#gg-franchise {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  background: #1a2e1f !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+}
+/* ── NAV ── */
+#gg-franchise .gg-nav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 9999 !important;
+  background: rgba(10,26,13,0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  padding: 14px 20px !important;
+}
+#gg-franchise .gg-nav-inner {
+  max-width: 1100px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+#gg-franchise .gg-logo { font-weight: 900 !important; color: #fff !important; letter-spacing: -0.02em !important; font-size: 1.1rem !important; }
+#gg-franchise .gg-logo span { color: #7dffaa !important; }
+#gg-franchise .gg-hamburger { width: 34px !important; height: 28px !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; cursor: pointer !important; }
+#gg-franchise .gg-hamburger span { height: 3px !important; width: 100% !important; background: #c9a84c !important; border-radius: 2px !important; }
+#gg-franchise .gg-menu { position: fixed !important; top: 0 !important; right: -100% !important; width: 260px !important; height: 100vh !important; background: #0d1a10 !important; border-left: 1px solid rgba(122,171,130,0.2) !important; padding: 80px 24px !important; transition: right 0.3s ease !important; z-index: 10000 !important; }
+#gg-franchise .gg-menu.open { right: 0 !important; }
+#gg-franchise .gg-menu a { display: block !important; padding: 14px 0 !important; color: #d4e6ca !important; font-weight: 700 !important; border-bottom: 1px solid rgba(122,171,130,0.15) !important; font-size: 0.95rem !important; }
+#gg-franchise .gg-menu a:hover { color: #7dffaa !important; }
+#gg-franchise .gg-menu-group {
+  display: block !important;
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: rgba(201,168,76,0.6) !important;
+  padding: 20px 0 4px !important;
+  margin-top: 4px !important;
+}
+#gg-franchise .gg-menu-close { position: absolute !important; top: 18px !important; right: 18px !important; font-size: 22px !important; color: #c9a84c !important; cursor: pointer !important; }
+/* ── HERO ── */
+#gg-franchise .fr-hero {
+  background: linear-gradient(135deg, #0d1a10 0%, #1a2e1f 50%, #2d4a32 100%) !important;
+  padding: 88px 48px 96px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+}
+#gg-franchise .fr-hero::before {
+  content: '' !important;
+  position: absolute !important; top: 50% !important; left: 50% !important;
+  transform: translate(-50%,-50%) !important;
+  width: 800px !important; height: 800px !important; border-radius: 50% !important;
+  border: 1px solid rgba(201,168,76,0.06) !important; pointer-events: none !important;
+}
+#gg-franchise .fr-hero-inner {
+  max-width: 1100px !important; margin: 0 auto !important;
+  display: flex !important; align-items: center !important;
+  justify-content: space-between !important; gap: 60px !important;
+  position: relative !important; z-index: 2 !important;
+}
+#gg-franchise .fr-hero-left { max-width: 580px !important; flex: 1 !important; }
+#gg-franchise .fr-eyebrow {
+  display: inline-flex !important; align-items: center !important; gap: 8px !important;
+  background: rgba(201,168,76,0.15) !important; border: 1px solid rgba(201,168,76,0.35) !important;
+  border-radius: 100px !important; padding: 6px 16px !important; margin-bottom: 28px !important;
+}
+#gg-franchise .fr-eyebrow span { font-size: 0.72rem !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: #c9a84c !important; }
+#gg-franchise .fr-eyebrow-dot { width: 7px !important; height: 7px !important; border-radius: 50% !important; background: #c9a84c !important; display: inline-block !important; flex-shrink: 0 !important; animation: fr-pulse 2s ease-in-out infinite !important; }
+@keyframes fr-pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.75); } }
+#gg-franchise .fr-h1 { font-size: clamp(2.4rem, 5vw, 3.8rem) !important; font-weight: 900 !important; line-height: 1.1 !important; color: #ffffff !important; margin-bottom: 20px !important; letter-spacing: -0.02em !important; }
+#gg-franchise .fr-h1 span { color: #7aab82 !important; display: block !important; }
+#gg-franchise .fr-hero-p { font-size: 1.1rem !important; font-weight: 400 !important; line-height: 1.75 !important; color: rgba(212,230,202,0.82) !important; margin-bottom: 36px !important; max-width: 500px !important; }
+#gg-franchise .fr-hero-btns { display: flex !important; gap: 14px !important; flex-wrap: wrap !important; margin-bottom: 32px !important; }
+#gg-franchise .fr-btn-gold { background: #c9a84c !important; color: #0d1a10 !important; font-family: 'Nunito Sans', sans-serif !important; font-size: 0.95rem !important; font-weight: 800 !important; padding: 15px 32px !important; border: none !important; border-radius: 4px !important; cursor: pointer !important; box-shadow: 0 4px 24px rgba(201,168,76,0.25) !important; transition: background 0.2s, transform 0.15s !important; }
+#gg-franchise .fr-btn-gold:hover { background: #e8d08a !important; transform: translateY(-2px) !important; }
+/* fr-btn-outline removed */
+#gg-franchise .fr-btn-outline--disabled { background: transparent !important; color: #d4e6ca !important; font-family: 'Nunito Sans', sans-serif !important; font-size: 0.92rem !important; font-weight: 700 !important; padding: 15px 32px !important; border: 2px solid rgba(212,230,202,0.35) !important; border-radius: 4px !important; cursor: pointer !important; transition: border-color 0.2s !important; }
+#gg-franchise .fr-btn-outline:hover { border-color: rgba(212,230,202,0.65) !important; }
+#gg-franchise .fr-hero-reassurance { display: flex !important; gap: 20px !important; flex-wrap: wrap !important; }
+#gg-franchise .fr-reassurance-item { display: flex !important; align-items: center !important; gap: 7px !important; font-size: 0.78rem !important; font-weight: 700 !important; color: rgba(212,230,202,0.5) !important; }
+#gg-franchise .fr-reassurance-item::before { content: '✓' !important; color: #7aab82 !important; font-weight: 900 !important; }
+/* Hero right stats */
+#gg-franchise .fr-hero-right { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 14px !important; min-width: 280px !important; }
+#gg-franchise .fr-stat { background: rgba(45,74,50,0.65) !important; border: 1px solid rgba(122,171,130,0.3) !important; border-radius: 10px !important; padding: 24px 20px !important; text-align: center !important; }
+#gg-franchise .fr-stat.wide { grid-column: span 2 !important; background: linear-gradient(135deg, #2a5c38, #3d7a4f) !important; border-color: rgba(201,168,76,0.3) !important; }
+#gg-franchise .fr-stat-num { font-size: 2rem !important; font-weight: 900 !important; color: #c9a84c !important; line-height: 1 !important; display: block !important; margin-bottom: 6px !important; }
+#gg-franchise .fr-stat.wide .fr-stat-num { color: #ffffff !important; font-size: 2.2rem !important; }
+#gg-franchise .fr-stat-lbl { font-size: 0.72rem !important; font-weight: 700 !important; color: rgba(212,230,202,0.6) !important; line-height: 1.4 !important; display: block !important; }
+#gg-franchise .fr-stat.wide .fr-stat-lbl { color: rgba(212,230,202,0.85) !important; }
+/* ── TRUST BAR ── */
+#gg-franchise .fr-trust { background: #2d4a32 !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 16px 48px !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 32px !important; flex-wrap: wrap !important; }
+#gg-franchise .fr-trust-item { display: flex !important; align-items: center !important; gap: 8px !important; font-size: 0.74rem !important; font-weight: 800 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: #a8edc0 !important; }
+#gg-franchise .fr-check { color: #c9a84c !important; font-weight: 900 !important; }
+/* ── SHARED SECTION ── */
+#gg-franchise .fr-section { padding: 88px 48px !important; background: #1a2e1f !important; }
+#gg-franchise .fr-section-alt { background: #111c13 !important; }
+#gg-franchise .fr-inner { max-width: 1100px !important; margin: 0 auto !important; }
+#gg-franchise .fr-stag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 10px !important; }
+#gg-franchise .fr-h2 { font-size: clamp(1.9rem, 3.5vw, 2.9rem) !important; font-weight: 900 !important; line-height: 1.15 !important; color: #ffffff !important; margin-bottom: 16px !important; letter-spacing: -0.02em !important; }
+#gg-franchise .fr-h2 span { color: #7aab82 !important; }
+#gg-franchise .fr-sub { font-size: 1.05rem !important; font-weight: 400 !important; line-height: 1.75 !important; color: rgba(212,230,202,0.72) !important; max-width: 620px !important; }
+/* ── WHY GRID ── */
+#gg-franchise .fr-why-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 20px !important; margin-top: 52px !important; }
+#gg-franchise .fr-why-card { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 10px !important; padding: 32px 26px !important; transition: border-color 0.25s, transform 0.25s !important; }
+#gg-franchise .fr-why-card:hover { border-color: rgba(201,168,76,0.35) !important; transform: translateY(-3px) !important; }
+#gg-franchise .fr-why-icon { font-size: 2rem !important; margin-bottom: 16px !important; display: block !important; }
+#gg-franchise .fr-why-card h3 { font-size: 1.05rem !important; font-weight: 800 !important; color: #ffffff !important; margin-bottom: 10px !important; }
+#gg-franchise .fr-why-card p { font-size: 0.9rem !important; line-height: 1.72 !important; color: rgba(212,230,202,0.7) !important; }
+/* ── REVENUE MODEL ── */
+#gg-franchise .fr-revenue-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 60px !important; align-items: center !important; }
+#gg-franchise .fr-revenue-streams { margin-top: 36px !important; display: flex !important; flex-direction: column !important; gap: 14px !important; }
+#gg-franchise .fr-stream { display: flex !important; gap: 16px !important; align-items: flex-start !important; padding: 18px 20px !important; background: rgba(45,74,50,0.4) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 8px !important; transition: border-color 0.2s !important; }
+#gg-franchise .fr-stream:hover { border-color: rgba(201,168,76,0.3) !important; }
+#gg-franchise .fr-stream-icon { width: 40px !important; height: 40px !important; border-radius: 8px !important; background: rgba(201,168,76,0.12) !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 1.15rem !important; flex-shrink: 0 !important; }
+#gg-franchise .fr-stream h4 { font-size: 0.97rem !important; font-weight: 800 !important; color: #ffffff !important; margin-bottom: 4px !important; }
+#gg-franchise .fr-stream p { font-size: 0.88rem !important; line-height: 1.6 !important; color: rgba(212,230,202,0.65) !important; }
+#gg-franchise .fr-metrics { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 14px !important; }
+#gg-franchise .fr-metric { background: rgba(45,74,50,0.4) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 10px !important; padding: 28px 22px !important; text-align: center !important; }
+#gg-franchise .fr-metric.featured { background: linear-gradient(135deg, #2a5c38, #3d7a4f) !important; border-color: rgba(201,168,76,0.3) !important; grid-column: span 2 !important; }
+#gg-franchise .fr-metric .big { font-size: 2.4rem !important; font-weight: 900 !important; color: #c9a84c !important; line-height: 1 !important; margin-bottom: 8px !important; display: block !important; }
+#gg-franchise .fr-metric.featured .big { color: #ffffff !important; font-size: 2.8rem !important; }
+#gg-franchise .fr-metric .desc { font-size: 0.8rem !important; font-weight: 600 !important; color: rgba(212,230,202,0.55) !important; line-height: 1.4 !important; display: block !important; }
+#gg-franchise .fr-metric.featured .desc { color: rgba(212,230,202,0.85) !important; }
+/* ── WHAT'S INCLUDED ── */
+#gg-franchise .fr-included-grid { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 20px !important; margin-top: 52px !important; }
+#gg-franchise .fr-included-card { background: rgba(26,46,31,0.8) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 10px !important; overflow: hidden !important; transition: border-color 0.25s, transform 0.25s !important; }
+#gg-franchise .fr-included-card:hover { border-color: rgba(201,168,76,0.35) !important; transform: translateY(-3px) !important; }
+#gg-franchise .fr-included-top { background: linear-gradient(135deg, #0d1a10, #2d4a32) !important; padding: 24px 24px 20px !important; border-bottom: 1px solid rgba(122,171,130,0.18) !important; }
+#gg-franchise .fr-included-top .icon { font-size: 1.8rem !important; margin-bottom: 10px !important; display: block !important; }
+#gg-franchise .fr-included-top h3 { font-size: 1.05rem !important; font-weight: 900 !important; color: #ffffff !important; }
+#gg-franchise .fr-included-body { padding: 20px 24px !important; }
+#gg-franchise .fr-included-body p { font-size: 0.9rem !important; line-height: 1.72 !important; color: rgba(212,230,202,0.7) !important; }
+/* ── WHO IT'S FOR ── */
+#gg-franchise .fr-who-grid { display: grid !important; grid-template-columns: repeat(2,1fr) !important; gap: 16px !important; margin-top: 52px !important; }
+#gg-franchise .fr-who-card { background: rgba(45,74,50,0.3) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 10px !important; padding: 26px 24px !important; display: flex !important; gap: 16px !important; align-items: flex-start !important; transition: border-color 0.2s !important; }
+#gg-franchise .fr-who-card:hover { border-color: rgba(201,168,76,0.3) !important; }
+#gg-franchise .fr-who-icon { font-size: 1.8rem !important; flex-shrink: 0 !important; }
+#gg-franchise .fr-who-card h4 { font-size: 0.97rem !important; font-weight: 800 !important; color: #ffffff !important; margin-bottom: 6px !important; }
+#gg-franchise .fr-who-card p { font-size: 0.88rem !important; line-height: 1.65 !important; color: rgba(212,230,202,0.68) !important; }
+/* ── PROCESS ── */
+#gg-franchise .fr-process { display: grid !important; grid-template-columns: repeat(4,1fr) !important; gap: 0 !important; margin-top: 52px !important; position: relative !important; }
+#gg-franchise .fr-process::before { content: '' !important; position: absolute !important; top: 36px !important; left: 12.5% !important; right: 12.5% !important; height: 1px !important; background: linear-gradient(to right, rgba(122,171,130,0.12), rgba(201,168,76,0.3), rgba(122,171,130,0.12)) !important; }
+#gg-franchise .fr-step { text-align: center !important; padding: 0 20px !important; position: relative !important; z-index: 1 !important; }
+#gg-franchise .fr-step-circle { width: 72px !important; height: 72px !important; border-radius: 50% !important; background: linear-gradient(135deg, #2a5c38, #3d7a4f) !important; border: 2px solid rgba(201,168,76,0.3) !important; display: flex !important; align-items: center !important; justify-content: center !important; margin: 0 auto 20px !important; font-size: 1.3rem !important; font-weight: 900 !important; color: #c9a84c !important; }
+#gg-franchise .fr-step h4 { font-size: 0.95rem !important; font-weight: 800 !important; color: #ffffff !important; margin-bottom: 8px !important; }
+#gg-franchise .fr-step p { font-size: 0.84rem !important; line-height: 1.65 !important; color: rgba(212,230,202,0.62) !important; }
+/* ── DISCLOSURE ── */
+#gg-franchise .fr-disclosure { background: rgba(45,74,50,0.2) !important; border: 1px solid rgba(122,171,130,0.15) !important; border-radius: 10px !important; padding: 24px 28px !important; margin-top: 52px !important; }
+#gg-franchise .fr-disclosure p { font-size: 0.82rem !important; line-height: 1.7 !important; color: rgba(212,230,202,0.5) !important; }
+#gg-franchise .fr-disclosure strong { color: rgba(212,230,202,0.7) !important; font-weight: 700 !important; }
+/* ── CTA ── */
+#gg-franchise .fr-cta { background: linear-gradient(135deg, #0a1a0d, #1a2e1f 50%, #0e1d12) !important; border-top: 1px solid rgba(201,168,76,0.2) !important; padding: 96px 48px !important; text-align: center !important; position: relative !important; overflow: hidden !important; }
+#gg-franchise .fr-cta::before { content: '' !important; position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%,-50%) !important; width: 600px !important; height: 600px !important; border-radius: 50% !important; border: 1px solid rgba(201,168,76,0.07) !important; pointer-events: none !important; }
+#gg-franchise .fr-cta-inner { position: relative !important; z-index: 2 !important; max-width: 680px !important; margin: 0 auto !important; }
+#gg-franchise .fr-cta h2 { font-size: clamp(2.2rem, 4.5vw, 3.6rem) !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 18px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
+#gg-franchise .fr-cta h2 span { color: #c9a84c !important; }
+#gg-franchise .fr-cta p { font-size: 1.1rem !important; color: rgba(212,230,202,0.72) !important; line-height: 1.75 !important; margin-bottom: 44px !important; }
+#gg-franchise .fr-cta-cards { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 14px !important; margin-bottom: 40px !important; }
+#gg-franchise .fr-cta-card { background: rgba(45,74,50,0.4) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 10px !important; padding: 20px 16px !important; }
+#gg-franchise .fr-cta-card .icon { font-size: 1.5rem !important; margin-bottom: 8px !important; display: block !important; }
+#gg-franchise .fr-cta-card h4 { font-size: 0.88rem !important; font-weight: 800 !important; color: #ffffff !important; margin-bottom: 5px !important; }
+#gg-franchise .fr-cta-card p { font-size: 0.78rem !important; color: rgba(212,230,202,0.58) !important; line-height: 1.5 !important; }
+#gg-franchise .fr-cta-btns { display: flex !important; gap: 14px !important; justify-content: center !important; flex-wrap: wrap !important; }
+#gg-franchise .fr-cta-note { margin-top: 18px !important; font-size: 0.78rem !important; font-weight: 600 !important; color: rgba(212,230,202,0.38) !important; }
+#gg-franchise .fr-cta-note a { color: #c9a84c !important; }
+/* ── FOOTER ── */
+#gg-franchise .fr-footer { background: #080f09 !important; border-top: 1px solid rgba(122,171,130,0.1) !important; padding: 64px 48px 36px !important; }
+#gg-franchise .fr-footer-top { display: grid !important; grid-template-columns: 1.6fr 1fr 1fr 1fr !important; gap: 48px !important; padding-bottom: 48px !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; max-width: 1100px !important; margin: 0 auto !important; }
+#gg-franchise .fr-footer-name { font-size: 1.1rem !important; font-weight: 900 !important; color: #ffffff !important; display: block !important; margin-bottom: 4px !important; }
+#gg-franchise .fr-footer-name span { color: #7dffaa !important; }
+#gg-franchise .fr-footer-tagline { font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; margin-bottom: 14px !important; display: block !important; }
+#gg-franchise .fr-footer-desc { font-size: 0.87rem !important; color: rgba(255,255,255,0.42) !important; line-height: 1.7 !important; margin-bottom: 14px !important; }
+#gg-franchise .fr-footer-contact { font-size: 0.87rem !important; color: rgba(255,255,255,0.45) !important; line-height: 1.8 !important; }
+#gg-franchise .fr-footer-contact a { color: #7dffaa !important; }
+#gg-franchise .fr-footer-col h4 { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.35) !important; margin-bottom: 16px !important; }
+#gg-franchise .fr-footer-col ul { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#gg-franchise .fr-footer-col a { font-size: 0.87rem !important; color: rgba(255,255,255,0.55) !important; transition: color 0.2s !important; }
+#gg-franchise .fr-footer-col a:hover { color: #7dffaa !important; }
+#gg-franchise .fr-footer-bottom { max-width: 1100px !important; margin: 32px auto 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 12px !important; }
+#gg-franchise .fr-footer-bottom span { font-size: 0.74rem !important; color: rgba(255,255,255,0.2) !important; }
+#gg-franchise .fr-eco-badge { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; }
+#gg-franchise .fr-eco-dot { width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7dffaa !important; display: inline-block !important; }
+/* ── REVEAL ── */
+#gg-franchise .fr-reveal { opacity: 0 !important; transform: translateY(22px) !important; transition: opacity 0.7s ease, transform 0.7s ease !important; }
+#gg-franchise .fr-reveal.visible { opacity: 1 !important; transform: translateY(0) !important; }
+/* ── MOBILE ── */
+@media (max-width: 900px) {
+  #gg-franchise .fr-hero { padding: 52px 20px 64px !important; }
+  #gg-franchise .fr-hero-inner { flex-direction: column !important; gap: 36px !important; }
+  #gg-franchise .fr-hero-right { min-width: auto !important; width: 100% !important; }
+  #gg-franchise .fr-trust { padding: 14px 20px !important; gap: 16px !important; }
+  #gg-franchise .fr-section { padding: 60px 20px !important; }
+  #gg-franchise .fr-why-grid, #gg-franchise .fr-included-grid { grid-template-columns: 1fr !important; }
+  #gg-franchise .fr-revenue-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  #gg-franchise .fr-who-grid { grid-template-columns: 1fr !important; }
+  #gg-franchise .fr-process { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+  #gg-franchise .fr-process::before { display: none !important; }
+  #gg-franchise .fr-cta { padding: 60px 20px !important; }
+  #gg-franchise .fr-cta-cards { grid-template-columns: 1fr !important; }
+  #gg-franchise .fr-footer { padding: 48px 20px 28px !important; }
+  #gg-franchise .fr-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<div id="gg-franchise">
+  <!-- NAV -->
+  <div class="gg-nav">
+    <div class="gg-nav-inner">
+      <div class="gg-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-hamburger" onclick="document.querySelector('#gg-franchise .gg-menu').classList.add('open')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+  <div class="gg-menu">
+  <div class="gg-menu-close" onclick="document.querySelector('#gg-franchise .gg-menu').classList.remove('open')">X</div>
+  <span class="gg-menu-group">Services</span>
+  <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a>
+  <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+  <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+  <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+  <!-- <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a> -->
+  <span class="gg-menu-group">Shop</span>
+  <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+  <span class="gg-menu-group">Learn</span>
+  <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+  <a href="https://www.greenguard-usa.com/results">Results</a>
+  <a href="https://www.greenguard-usa.com/blog">Blog</a>
+  <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+  <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+  <span class="gg-menu-group">Company</span>
+  <a href="https://www.greenguard-usa.com/about">About Us</a>
+  <a href="https://www.greenguard-usa.com/contact">Contact</a>
+  <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+  <span class="gg-menu-group">Book</span>
+  <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+</div>
+  <!-- HERO -->
+  <div class="fr-hero">
+    <div class="fr-hero-inner">
+      <div class="fr-hero-left">
+        <div class="fr-eyebrow">
+          <div class="fr-eyebrow-dot"></div>
+          <span>Franchise Opportunities · Limited Territories</span>
+        </div>
+        <h1 class="fr-h1">Own a smarter mosquito<span>control franchise.</span></h1>
+        <p class="fr-hero-p">GreenGuard USA offers entrepreneurs a modern service business built around recurring monthly revenue, lean operations, and growing consumer demand for pesticide-free mosquito control.</p>
+        <div class="fr-hero-btns">
+          <button class="fr-btn-gold" onclick="document.getElementById('fr-cta').scrollIntoView({behavior:'smooth'})">Request Franchise Info</button>
+        </div>
+        <div class="fr-hero-reassurance">
+          <div class="fr-reassurance-item">No pest control experience required</div>
+          <div class="fr-reassurance-item">High growth potential</div>
+          <div class="fr-reassurance-item">Limited territories</div>
+        </div>
+      </div>
+      <div class="fr-hero-right">
+        <div class="fr-stat wide">
+          <span class="fr-stat-num">Recurring</span>
+          <span class="fr-stat-lbl">Monthly revenue model, customers need CO₂ refills every 20–27 days</span>
+        </div>
+        <div class="fr-stat">
+          <span class="fr-stat-num">Lean</span>
+          <span class="fr-stat-lbl">Small team, efficient routing, low overhead</span>
+        </div>
+        <div class="fr-stat">
+          <span class="fr-stat-num">EV</span>
+          <span class="fr-stat-lbl">Electric fleet, lower fuel costs</span>
+        </div>
+        <div class="fr-stat">
+          <span class="fr-stat-num">0</span>
+          <span class="fr-stat-lbl">Pesticides, strong market differentiation</span>
+        </div>
+        <div class="fr-stat">
+          <span class="fr-stat-num">Scale</span>
+          <span class="fr-stat-lbl">Add territories, vehicles &amp; techs incrementally</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- TRUST BAR -->
+  <div class="fr-trust">
+    <div class="fr-trust-item"><span class="fr-check">✓</span> Recurring Revenue Model</div>
+    <div class="fr-trust-item"><span class="fr-check">✓</span> Proven Systems &amp; Training</div>
+    <div class="fr-trust-item"><span class="fr-check">✓</span> Strong Market Differentiation</div>
+    <div class="fr-trust-item"><span class="fr-check">✓</span> No Experience Required</div>
+    <div class="fr-trust-item"><span class="fr-check">✓</span> Limited Territories Available</div>
+  </div>
+  <!-- WHY GREENGUARD -->
+  <div class="fr-section" id="fr-why">
+    <div class="fr-inner">
+      <div class="fr-reveal">
+        <span class="fr-stag">The Opportunity</span>
+        <h2 class="fr-h2">A persistent problem.<br><span>A better solution.</span></h2>
+        <p class="fr-sub">Mosquitoes are a year-round problem in warm climates, and consumer demand for pesticide-free alternatives is growing fast. GreenGuard USA was built to meet that shift.</p>
+      </div>
+      <div class="fr-why-grid">
+        <div class="fr-why-card fr-reveal">
+          
+          <h3>Growing Consumer Demand</h3>
+          <p>Homeowners increasingly question chemical sprays around children, pets, and pollinators. GreenGuard USA's pesticide-free positioning resonates strongly with modern buyers and commands premium pricing.</p>
+        </div>
+        <div class="fr-why-card fr-reveal">
+          
+          <h3>Built-In Repeat Business</h3>
+          <p>CO₂ traps require refills every 20–27 days. Every customer you install becomes a recurring monthly service account, creating revenue continuity that supports planning and growth.</p>
+        </div>
+        <div class="fr-why-card fr-reveal">
+          
+          <h3>Clear Market Differentiation</h3>
+          <p>GreenGuard USA is not a commodity spray service. The technology-forward, eco-responsible positioning sets franchisees apart from traditional pest control, supporting premium pricing and retention.</p>
+        </div>
+        <div class="fr-why-card fr-reveal">
+          
+          <h3>Lean to Start, Built to Scale</h3>
+          <p>Many franchisees begin with a small team and limited equipment. As demand grows, vehicles and technicians can be added incrementally, no need to restructure the business as you scale.</p>
+        </div>
+        <div class="fr-why-card fr-reveal">
+          
+          <h3>Bee-Safe &amp; Pollinator-Friendly</h3>
+          <p>CO₂ trapping targets only blood-seeking insects. This differentiator resonates with gardeners, beekeepers, HOAs, and environmentally conscious communities, a built-in marketing advantage.</p>
+        </div>
+        <div class="fr-why-card fr-reveal">
+          
+          <h3>Protected Territories</h3>
+          <p>GreenGuard USA awards territories selectively to protect market opportunity. Early franchisees benefit from strong positioning as the brand expands nationally.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- REVENUE MODEL -->
+  <div class="fr-section fr-section-alt" id="fr-model">
+    <div class="fr-inner">
+      <div class="fr-revenue-grid">
+        <div class="fr-reveal">
+          <span class="fr-stag">Revenue Model</span>
+          <h2 class="fr-h2">Multiple streams.<br><span>All recurring.</span></h2>
+          <p class="fr-sub">The GreenGuard USA model is structured around ongoing monthly service, not one-time transactions. Every customer installation creates a long-term revenue relationship.</p>
+          <div class="fr-revenue-streams">
+            <div class="fr-stream">
+              
+              <div>
+                <h4>Monthly CO₂ Tank Delivery</h4>
+                <p>Every trap customer needs a CO₂ refill every 20–27 days. Scheduled delivery routes create predictable monthly billing at $99–$639 per customer.</p>
+              </div>
+            </div>
+            <div class="fr-stream">
+              
+              <div>
+                <h4>Full-Service Trap Rentals</h4>
+                <p>Rental customers pay a higher monthly rate that includes the trap, CO₂, attractant refills, and all maintenance, the highest revenue-per-customer tier.</p>
+              </div>
+            </div>
+            <div class="fr-stream">
+              
+              <div>
+                <h4>Trap &amp; Equipment Sales</h4>
+                <p>One-time equipment sales to customers who prefer ownership. These customers then become CO₂ delivery subscribers, layering recurring revenue on top.</p>
+              </div>
+            </div>
+            <div class="fr-stream">
+              
+              <div>
+                <h4>Commercial &amp; HOA Accounts</h4>
+                <p>Restaurants, event venues, HOA common areas, and commercial properties represent high-value multi-unit accounts with strong retention.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="fr-reveal">
+          <div class="fr-metrics">
+            <div class="fr-metric featured">
+              <span class="big">Monthly</span>
+              <span class="desc">Recurring revenue, customers rebill every 20–27 days automatically</span>
+            </div>
+            <div class="fr-metric">
+              <span class="big">$99–$639</span>
+              <span class="desc">Monthly CO₂ delivery revenue per customer</span>
+            </div>
+            <div class="fr-metric">
+              <span class="big">Lean</span>
+              <span class="desc">Low overhead, online storefront, optimized team, efficient routing</span>
+            </div>
+            <div class="fr-metric">
+              <span class="big">EV</span>
+              <span class="desc">Fleet delivery, reduced fuel and operating costs</span>
+            </div>
+            <div class="fr-metric">
+              <span class="big">High</span>
+              <span class="desc">Customer retention, service is hands-off and continuous</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- WHAT'S INCLUDED -->
+  <div class="fr-section">
+    <div class="fr-inner">
+      <div class="fr-reveal">
+        <span class="fr-stag">Franchise Support</span>
+        <h2 class="fr-h2">Everything you need<span> to launch and grow.</span></h2>
+        <p class="fr-sub">GreenGuard USA provides the systems, training, and tools to remove guesswork and shorten the path to a functioning, growing business.</p>
+      </div>
+      <div class="fr-included-grid">
+        <div class="fr-included-card fr-reveal">
+          <div class="fr-included-top">
+            
+            <h3>Operational Playbook</h3>
+          </div>
+          <div class="fr-included-body">
+            <p>A complete system covering installations, service schedules, CO₂ refill routing, catch net maintenance, and seasonal adjustments. Designed to be followed by any operator, no prior pest control experience needed.</p>
+          </div>
+        </div>
+        <div class="fr-included-card fr-reveal">
+          <div class="fr-included-top">
+            
+            <h3>Training Program</h3>
+          </div>
+          <div class="fr-included-body">
+            <p>Structured training covering trap installation, CO₂ system operation, customer education, service protocols, and business operations. Designed to get you operational quickly with confidence.</p>
+          </div>
+        </div>
+        <div class="fr-included-card fr-reveal">
+          <div class="fr-included-top">
+            
+            <h3>Marketing Support</h3>
+          </div>
+          <div class="fr-included-body">
+            <p>Brand assets, messaging frameworks, local launch guidance, and digital marketing tools. You operate under the GreenGuard USA brand with proven positioning that resonates with modern homeowners.</p>
+          </div>
+        </div>
+        <div class="fr-included-card fr-reveal">
+          <div class="fr-included-top">
+            
+            <h3>Business Systems &amp; Software</h3>
+          </div>
+          <div class="fr-included-body">
+            <p>Integrated tools for customer management, scheduling, billing, and service workflows. Built to let franchisees focus on execution and growth, not building systems from scratch.</p>
+          </div>
+        </div>
+        <div class="fr-included-card fr-reveal">
+          <div class="fr-included-top">
+            
+            <h3>Ongoing Support</h3>
+          </div>
+          <div class="fr-included-body">
+            <p>Continued support as you grow, best practice updates, new product introductions, operational guidance, and peer franchisee community. You're in business for yourself, not by yourself.</p>
+          </div>
+        </div>
+        <div class="fr-included-card fr-reveal">
+          <div class="fr-included-top">
+            
+            <h3>Protected Territory</h3>
+          </div>
+          <div class="fr-included-body">
+            <p>Your territory is protected, GreenGuard USA will not award another franchisee within your defined area. Territories are awarded selectively to ensure market opportunity and franchisee success.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- WHO IT'S FOR -->
+  <div class="fr-section fr-section-alt">
+    <div class="fr-inner">
+      <div class="fr-reveal">
+        <span class="fr-stag">Is This Right For You?</span>
+        <h2 class="fr-h2">Who this franchise<span> is best suited for</span></h2>
+        <p class="fr-sub">Prior experience in pest control is not required. GreenGuard USA franchisees succeed by following established systems, managing operations, and building community relationships.</p>
+      </div>
+      <div class="fr-who-grid">
+        <div class="fr-who-card fr-reveal">
+          
+          <div>
+            <h4>Entrepreneurs Seeking Recurring Revenue</h4>
+            <p>You want to own a service business with predictable monthly billing, not a one-time transaction model. The CO₂ refill cycle creates natural revenue continuity.</p>
+          </div>
+        </div>
+        <div class="fr-who-card fr-reveal">
+         
+          <div>
+            <h4>Owner-Operators &amp; Hands-On Builders</h4>
+            <p>You want to be involved in building the business day-to-day, establishing your customer base, and growing into a multi-technician operation over time.</p>
+          </div>
+        </div>
+        <div class="fr-who-card fr-reveal">
+          
+          <div>
+            <h4>Multi-Territory Growth Minded</h4>
+            <p>You're thinking beyond one territory. The GreenGuard USA model is designed to scale, adding territories, vehicles, and staff incrementally without restructuring.</p>
+          </div>
+        </div>
+        <div class="fr-who-card fr-reveal">
+          
+          <div>
+            <h4>Mission-Aligned Operators</h4>
+            <p>You want to build a business that aligns with your values, environmentally responsible, community-focused, and genuinely differentiated from commodity competitors.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- PROCESS -->
+  <div class="fr-section">
+    <div class="fr-inner">
+      <div class="fr-reveal" style="text-align:center">
+        <span class="fr-stag">The Process</span>
+        <h2 class="fr-h2" style="margin-left:auto;margin-right:auto">From inquiry<span> to open for business</span></h2>
+        <p class="fr-sub" style="margin-left:auto;margin-right:auto">A straightforward, no-pressure process designed to help both sides make the right decision.</p>
+      </div>
+      <div class="fr-process fr-reveal">
+        <div class="fr-step">
+          <div class="fr-step-circle">1</div>
+          <h4>Request Information</h4>
+          <p>Submit your inquiry, no obligation. You'll receive a confidential franchise information packet outlining the model and process.</p>
+        </div>
+        <div class="fr-step">
+          <div class="fr-step-circle">2</div>
+          <h4>Discovery Call</h4>
+          <p>A conversation with the GreenGuard USA franchise team to discuss your market, goals, and fit. Questions welcome, this is mutual evaluation.</p>
+        </div>
+        <div class="fr-step">
+          <div class="fr-step-circle">3</div>
+          <h4>Review FDD</h4>
+          <p>Receive and review the Franchise Disclosure Document, which contains all financial, legal, and operational details required by law.</p>
+        </div>
+        <div class="fr-step">
+          <div class="fr-step-circle">4</div>
+          <h4>Launch &amp; Grow</h4>
+          <p>Complete training, receive your territory, and launch your GreenGuard USA franchise with full operational and marketing support.</p>
+        </div>
+      </div>
+      <!-- Disclosure -->
+      <div class="fr-disclosure fr-reveal">
+        <p><strong>Important Financial Disclosure:</strong> GreenGuard USA does not guarantee financial performance. Any references to recurring revenue, scalability, or profitability reflect the design of the business model, not a promise of results. Actual performance will vary based on market conditions, territory, management, effort, and adherence to the system. Specific financial information, including investment ranges and historical performance data, is provided only in the Franchise Disclosure Document during the formal franchise development process.</p>
+      </div>
+    </div>
+  </div>
+  <!-- CTA -->
+  <div class="fr-cta" id="fr-cta">
+    <div class="fr-cta-inner">
+      <span class="fr-stag" style="display:block;margin-bottom:14px">No Obligation · Confidential · Limited Territories</span>
+      <h2>Request franchise<span> information.</span></h2>
+      <p>The next step is a confidential information packet, no obligation, no pressure. Learn the model, the investment, and the process at your own pace.</p>
+      <div class="fr-cta-cards">
+        <div class="fr-cta-card">
+          
+          <h4>Info Packet</h4>
+          <p>Full overview of the model, support structure, and franchise process</p>
+        </div>
+        <div class="fr-cta-card">
+          
+          <h4>Discovery Call</h4>
+          <p>One-on-one conversation with the GreenGuard USA franchise team</p>
+        </div>
+        <div class="fr-cta-card">
+          
+          <h4>FDD Review</h4>
+          <p>Complete financial and legal disclosure, all the details you need</p>
+        </div>
+      </div>
+      <div class="fr-cta-btns">
+        <button class="fr-btn-gold" onclick="window.location.href='mailto:admin@greenguard-usa.com?subject=Franchise%20Information%20Request'">Request Franchise Information</button>
+        
+      </div>
+      <div class="fr-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
+    </div>
+  </div>
+  <!-- FOOTER -->
+  <div class="fr-footer">
+    <div class="fr-footer-top">
+      <div>
+        <span class="fr-footer-name">Green<span>Guard</span> USA</span>
+        <span class="fr-footer-tagline">Smart. Safe. Effective.</span>
+        <p class="fr-footer-desc">Pesticide-free CO₂ mosquito control serving Austin, Texas. Franchise opportunities available nationwide.</p>
+        <div class="fr-footer-contact">
+          <a href="tel:5125604129">512-560-4129</a><br>
+          <a href="https://www.greenguard-usa.com">greenguard-usa.com</a>
+        </div>
+      </div>
+      <div class="fr-footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a></li>
+          <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a></li>
+          <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
+          <li><a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a></li>
+          <li><a href="https://www.greenguard-usa.com/shop">Shop All Products</a></li>
+        </ul>
+      </div>
+      <div class="fr-footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a></li>
+          <li><a href="https://www.greenguard-usa.com/results">Results</a></li>
+          <li><a href="https://www.greenguard-usa.com/blog">Blog</a></li>
+          <li><a href="https://www.greenguard-usa.com/faq">FAQ</a></li>
+          <li><a href="https://www.greenguard-usa.com/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="fr-footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
+          <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
+          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
+          <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
+          <li><a href="https://www.instagram.com/greenguardusa/">Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="fr-footer-bottom">
+      <span>© 2025 GreenGuard USA · Austin, Texas</span>
+      <div class="fr-eco-badge"><div class="fr-eco-dot"></div>100% Pesticide-Free Service</div>
+    </div>
+  </div>
+</div><!-- end #gg-franchise -->
+<script>
+(function() {
+  var reveals = document.querySelectorAll('#gg-franchise .fr-reveal');
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e, i) {
+      if (e.isIntersecting) {
+        setTimeout(function() { e.target.classList.add('visible'); }, i * 70);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  reveals.forEach(function(el) { obs.observe(el); });
+  document.addEventListener('click', function(e) {
+    var menu = document.querySelector('#gg-franchise .gg-menu');
+    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('#gg-franchise .gg-hamburger')) {
+      menu.classList.remove('open');
+    }
+  });
+})();
+</script>

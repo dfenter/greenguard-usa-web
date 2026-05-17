@@ -1,0 +1,1169 @@
+<style>
+/* ── SCOPED RESET ── */
+#gg-placement, #gg-placement * {
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased;
+}
+#gg-placement h1, #gg-placement h2, #gg-placement h3, #gg-placement h4,
+#gg-placement p, #gg-placement ul, #gg-placement li, #gg-placement div,
+#gg-placement span, #gg-placement button, #gg-placement a, #gg-placement ol {
+  font-family: 'Nunito Sans', sans-serif !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+}
+#gg-placement ul, #gg-placement ol { list-style: none !important; }
+#gg-placement a { text-decoration: none !important; }
+/* ── WRAPPER ── */
+#gg-placement {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  background: #1a2e1f !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+}
+/* ── HERO ── */
+#gg-placement .pl-hero {
+  background: linear-gradient(135deg, #0d1a10 0%, #1a2e1f 50%, #2d4a32 100%) !important;
+  padding: 80px 48px 90px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+}
+#gg-placement .pl-hero::before {
+  content: '' !important;
+  position: absolute !important; top: 50% !important; left: 50% !important;
+  transform: translate(-50%,-50%) !important;
+  width: 700px !important; height: 700px !important; border-radius: 50% !important;
+  border: 1px solid rgba(201,168,76,0.06) !important; pointer-events: none !important;
+}
+#gg-placement .pl-hero-inner {
+  max-width: 800px !important; margin: 0 auto !important;
+  text-align: center !important; position: relative !important; z-index: 2 !important;
+}
+#gg-placement .pl-tag {
+  font-size: 0.7rem !important; font-weight: 800 !important;
+  letter-spacing: 0.15em !important; text-transform: uppercase !important;
+  color: #c9a84c !important; display: block !important; margin-bottom: 16px !important;
+}
+#gg-placement .pl-h1 {
+  font-size: clamp(2.2rem, 4.5vw, 3.6rem) !important;
+  font-weight: 900 !important; line-height: 1.1 !important;
+  color: #ffffff !important; margin-bottom: 20px !important;
+  letter-spacing: -0.02em !important;
+}
+#gg-placement .pl-h1 span { color: #7aab82 !important; }
+#gg-placement .pl-hero-sub {
+  font-size: 1.1rem !important; font-weight: 400 !important; line-height: 1.75 !important;
+  color: rgba(212,230,202,0.78) !important; max-width: 600px !important;
+  margin: 0 auto 36px !important;
+}
+#gg-placement .pl-hero-pills {
+  display: flex !important; gap: 12px !important;
+  justify-content: center !important; flex-wrap: wrap !important;
+}
+#gg-placement .pl-pill {
+  display: flex !important; align-items: center !important; gap: 7px !important;
+  background: rgba(45,74,50,0.6) !important;
+  border: 1px solid rgba(122,171,130,0.25) !important;
+  border-radius: 100px !important; padding: 8px 18px !important;
+  font-size: 0.75rem !important; font-weight: 700 !important;
+  color: #a8edc0 !important; letter-spacing: 0.03em !important;
+}
+#gg-placement .pl-pill::before { content: '✓' !important; color: #c9a84c !important; font-weight: 900 !important; }
+/* ── TRUST BAR ── */
+#gg-placement .pl-trust {
+  background: #2d4a32 !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  padding: 16px 48px !important;
+  display: flex !important; align-items: center !important;
+  justify-content: center !important; gap: 32px !important; flex-wrap: wrap !important;
+}
+#gg-placement .pl-trust-item {
+  display: flex !important; align-items: center !important; gap: 8px !important;
+  font-size: 0.74rem !important; font-weight: 800 !important;
+  letter-spacing: 0.08em !important; text-transform: uppercase !important;
+  color: #a8edc0 !important;
+}
+#gg-placement .pl-check { color: #c9a84c !important; font-weight: 900 !important; }
+/* ── SHARED ── */
+#gg-placement .pl-section { padding: 88px 48px !important; background: #1a2e1f !important; }
+#gg-placement .pl-section-alt { background: #111c13 !important; }
+#gg-placement .pl-inner { max-width: 1100px !important; margin: 0 auto !important; }
+#gg-placement .pl-stag {
+  font-size: 0.7rem !important; font-weight: 800 !important;
+  letter-spacing: 0.15em !important; text-transform: uppercase !important;
+  color: #c9a84c !important; display: block !important; margin-bottom: 10px !important;
+}
+#gg-placement .pl-h2 {
+  font-size: clamp(1.9rem, 3.5vw, 2.9rem) !important;
+  font-weight: 900 !important; line-height: 1.15 !important;
+  color: #ffffff !important; margin-bottom: 16px !important; letter-spacing: -0.02em !important;
+}
+#gg-placement .pl-h2 span { color: #7aab82 !important; }
+#gg-placement .pl-sub {
+  font-size: 1.05rem !important; font-weight: 400 !important; line-height: 1.75 !important;
+  color: rgba(212,230,202,0.72) !important; max-width: 620px !important;
+}
+/* ── GOLDEN RULE CARDS ── */
+#gg-placement .pl-rules-grid {
+  display: grid !important; grid-template-columns: repeat(3,1fr) !important;
+  gap: 20px !important; margin-top: 52px !important;
+}
+#gg-placement .pl-rule-card {
+  background: rgba(45,74,50,0.35) !important;
+  border: 1px solid rgba(122,171,130,0.2) !important;
+  border-radius: 10px !important; padding: 30px 26px !important;
+  transition: border-color 0.25s, transform 0.25s !important;
+}
+#gg-placement .pl-rule-card:hover {
+  border-color: rgba(201,168,76,0.35) !important; transform: translateY(-3px) !important;
+}
+#gg-placement .pl-rule-num {
+  font-size: 2.8rem !important; font-weight: 900 !important;
+  color: rgba(122,171,130,0.15) !important; line-height: 1 !important;
+  margin-bottom: 10px !important; display: block !important;
+}
+#gg-placement .pl-rule-icon { font-size: 1.8rem !important; margin-bottom: 14px !important; display: block !important; }
+#gg-placement .pl-rule-card h3 {
+  font-size: 1rem !important; font-weight: 800 !important;
+  color: #c9a84c !important; margin-bottom: 10px !important;
+}
+#gg-placement .pl-rule-card p {
+  font-size: 0.9rem !important; line-height: 1.72 !important;
+  color: rgba(212,230,202,0.7) !important;
+}
+/* ── TRAP TABS ── */
+#gg-placement .pl-tab-row {
+  display: flex !important; gap: 0 !important; margin-top: 52px !important;
+  border-bottom: 2px solid rgba(122,171,130,0.2) !important; margin-bottom: 40px !important;
+}
+#gg-placement .pl-tab {
+  padding: 14px 32px !important; font-size: 0.85rem !important;
+  font-weight: 800 !important; letter-spacing: 0.04em !important;
+  color: rgba(212,230,202,0.4) !important; cursor: pointer !important;
+  border-bottom: 3px solid transparent !important; margin-bottom: -2px !important;
+  background: transparent !important; border-top: none !important;
+  border-left: none !important; border-right: none !important;
+  transition: color 0.2s !important; font-family: 'Nunito Sans', sans-serif !important;
+}
+#gg-placement .pl-tab.active { color: #c9a84c !important; border-bottom-color: #c9a84c !important; }
+#gg-placement .pl-tab:hover { color: rgba(212,230,202,0.75) !important; }
+#gg-placement .pl-panel { display: none !important; }
+#gg-placement .pl-panel.active { display: block !important; }
+/* ── PLACEMENT SCENARIO CARDS ── */
+#gg-placement .pl-scenarios {
+  display: grid !important; grid-template-columns: 1fr 1fr !important;
+  gap: 22px !important;
+}
+#gg-placement .pl-scenario {
+  background: rgba(26,46,31,0.8) !important;
+  border: 1px solid rgba(122,171,130,0.2) !important;
+  border-radius: 10px !important; overflow: hidden !important;
+  transition: border-color 0.25s, transform 0.25s !important;
+}
+#gg-placement .pl-scenario:hover {
+  border-color: rgba(201,168,76,0.35) !important; transform: translateY(-3px) !important;
+}
+#gg-placement .pl-scenario-header {
+  background: linear-gradient(135deg, #0d1a10, #2d4a32) !important;
+  padding: 22px 26px !important; border-bottom: 1px solid rgba(122,171,130,0.18) !important;
+  display: flex !important; align-items: center !important; gap: 14px !important;
+}
+#gg-placement .pl-scenario-emoji { font-size: 1.8rem !important; flex-shrink: 0 !important; }
+#gg-placement .pl-scenario-header h3 {
+  font-size: 1.1rem !important; font-weight: 900 !important; color: #ffffff !important;
+}
+#gg-placement .pl-scenario-header .pl-coverage {
+  font-size: 0.68rem !important; font-weight: 700 !important;
+  color: #c9a84c !important; letter-spacing: 0.08em !important;
+  text-transform: uppercase !important; margin-top: 3px !important; display: block !important;
+}
+#gg-placement .pl-scenario-body { padding: 24px 26px !important; }
+#gg-placement .pl-scenario-body p {
+  font-size: 0.92rem !important; line-height: 1.72 !important;
+  color: rgba(212,230,202,0.72) !important; margin-bottom: 18px !important;
+}
+#gg-placement .pl-placement-steps { }
+#gg-placement .pl-placement-steps li {
+  font-size: 0.88rem !important; color: rgba(212,230,202,0.75) !important;
+  padding: 8px 0 !important; border-bottom: 1px solid rgba(122,171,130,0.1) !important;
+  display: flex !important; align-items: flex-start !important; gap: 10px !important;
+}
+#gg-placement .pl-placement-steps li::before {
+  content: '→' !important; color: #7aab82 !important; font-weight: 900 !important;
+  flex-shrink: 0 !important;
+}
+#gg-placement .pl-tip {
+  background: rgba(201,168,76,0.08) !important;
+  border: 1px solid rgba(201,168,76,0.2) !important;
+  border-radius: 6px !important; padding: 12px 14px !important;
+  margin-top: 16px !important;
+  font-size: 0.82rem !important; line-height: 1.6 !important;
+  color: rgba(212,230,202,0.7) !important;
+}
+#gg-placement .pl-tip strong { color: #c9a84c !important; font-weight: 800 !important; }
+/* ── DIAGRAM: HEIGHT CHART ── */
+#gg-placement .pl-height-visual {
+  background: rgba(45,74,50,0.3) !important;
+  border: 1px solid rgba(122,171,130,0.2) !important;
+  border-radius: 12px !important; padding: 40px !important;
+  margin-top: 40px !important;
+}
+#gg-placement .pl-height-title {
+  font-size: 0.72rem !important; font-weight: 800 !important;
+  letter-spacing: 0.12em !important; text-transform: uppercase !important;
+  color: #c9a84c !important; margin-bottom: 28px !important; display: block !important;
+}
+#gg-placement .pl-height-rows { display: flex !important; flex-direction: column !important; gap: 12px !important; }
+#gg-placement .pl-height-row {
+  display: flex !important; align-items: center !important; gap: 16px !important;
+}
+#gg-placement .pl-height-label {
+  font-size: 0.78rem !important; font-weight: 700 !important;
+  color: rgba(212,230,202,0.55) !important; width: 90px !important;
+  flex-shrink: 0 !important; text-align: right !important;
+}
+#gg-placement .pl-height-bar-wrap {
+  flex: 1 !important; background: rgba(45,74,50,0.4) !important;
+  border-radius: 4px !important; height: 28px !important; position: relative !important;
+  overflow: hidden !important;
+}
+#gg-placement .pl-height-bar {
+  height: 100% !important; border-radius: 4px !important;
+  display: flex !important; align-items: center !important; padding-left: 12px !important;
+  font-size: 0.75rem !important; font-weight: 800 !important; color: #0d1a10 !important;
+  transition: width 1s ease !important;
+}
+#gg-placement .pl-height-bar.ideal { background: #c9a84c !important; }
+#gg-placement .pl-height-bar.good { background: #7aab82 !important; }
+#gg-placement .pl-height-bar.avoid { background: rgba(212,100,80,0.6) !important; color: rgba(255,255,255,0.8) !important; }
+/* ── DOS AND DON'TS ── */
+#gg-placement .pl-dos-grid {
+  display: grid !important; grid-template-columns: 1fr 1fr !important;
+  gap: 28px !important; margin-top: 52px !important;
+}
+#gg-placement .pl-dos-col { }
+#gg-placement .pl-dos-head {
+  display: flex !important; align-items: center !important; gap: 10px !important;
+  font-size: 0.78rem !important; font-weight: 800 !important;
+  letter-spacing: 0.1em !important; text-transform: uppercase !important;
+  margin-bottom: 16px !important; padding-bottom: 12px !important;
+  border-bottom: 2px solid !important;
+}
+#gg-placement .pl-dos-head.do { color: #7aab82 !important; border-color: rgba(122,171,130,0.4) !important; }
+#gg-placement .pl-dos-head.dont { color: rgba(212,100,80,0.8) !important; border-color: rgba(212,100,80,0.3) !important; }
+#gg-placement .pl-dos-list li {
+  font-size: 0.92rem !important; line-height: 1.65 !important;
+  color: rgba(212,230,202,0.75) !important;
+  padding: 11px 0 !important; border-bottom: 1px solid rgba(122,171,130,0.1) !important;
+  display: flex !important; align-items: flex-start !important; gap: 10px !important;
+}
+#gg-placement .pl-dos-list.do li::before {
+  content: '✓' !important; color: #7aab82 !important; font-weight: 900 !important; flex-shrink: 0 !important;
+}
+#gg-placement .pl-dos-list.dont li::before {
+  content: '✗' !important; color: rgba(212,100,80,0.7) !important; font-weight: 900 !important; flex-shrink: 0 !important;
+}
+/* ── WIND & ENVIRONMENT SECTION ── */
+#gg-placement .pl-env-grid {
+  display: grid !important; grid-template-columns: repeat(3,1fr) !important;
+  gap: 20px !important; margin-top: 52px !important;
+}
+#gg-placement .pl-env-card {
+  background: rgba(45,74,50,0.35) !important;
+  border: 1px solid rgba(122,171,130,0.18) !important;
+  border-radius: 10px !important; padding: 28px 24px !important;
+  transition: border-color 0.2s !important;
+}
+#gg-placement .pl-env-card:hover { border-color: rgba(201,168,76,0.3) !important; }
+#gg-placement .pl-env-icon { font-size: 1.8rem !important; margin-bottom: 14px !important; display: block !important; }
+#gg-placement .pl-env-card h3 {
+  font-size: 0.97rem !important; font-weight: 800 !important;
+  color: #ffffff !important; margin-bottom: 8px !important;
+}
+#gg-placement .pl-env-card p {
+  font-size: 0.88rem !important; line-height: 1.7 !important;
+  color: rgba(212,230,202,0.68) !important;
+}
+/* ── SEASONAL GUIDE ── */
+#gg-placement .pl-seasonal-grid {
+  display: grid !important; grid-template-columns: repeat(4,1fr) !important;
+  gap: 16px !important; margin-top: 52px !important;
+}
+#gg-placement .pl-season-card {
+  background: rgba(45,74,50,0.3) !important;
+  border: 1px solid rgba(122,171,130,0.18) !important;
+  border-radius: 10px !important; padding: 26px 20px !important;
+  text-align: center !important; transition: border-color 0.2s, transform 0.2s !important;
+}
+#gg-placement .pl-season-card:hover {
+  border-color: rgba(201,168,76,0.3) !important; transform: translateY(-3px) !important;
+}
+#gg-placement .pl-season-card.peak { border-color: #c9a84c !important; background: rgba(45,74,50,0.5) !important; }
+#gg-placement .pl-season-icon { font-size: 2rem !important; margin-bottom: 12px !important; display: block !important; }
+#gg-placement .pl-season-name {
+  font-size: 0.78rem !important; font-weight: 800 !important;
+  letter-spacing: 0.1em !important; text-transform: uppercase !important;
+  color: #c9a84c !important; margin-bottom: 8px !important; display: block !important;
+}
+#gg-placement .pl-season-card h3 {
+  font-size: 1rem !important; font-weight: 800 !important;
+  color: #ffffff !important; margin-bottom: 8px !important;
+}
+#gg-placement .pl-season-card p {
+  font-size: 0.82rem !important; line-height: 1.65 !important;
+  color: rgba(212,230,202,0.65) !important;
+}
+#gg-placement .pl-season-intensity {
+  margin-top: 12px !important; height: 4px !important;
+  border-radius: 2px !important; background: rgba(122,171,130,0.15) !important;
+  overflow: hidden !important;
+}
+#gg-placement .pl-season-intensity-fill {
+  height: 100% !important; border-radius: 2px !important; background: #c9a84c !important;
+}
+/* ── MULTIPLE TRAP STRATEGY ── */
+#gg-placement .pl-multi-grid {
+  display: grid !important; grid-template-columns: 1fr 1fr !important;
+  gap: 24px !important; margin-top: 52px !important;
+}
+#gg-placement .pl-multi-card {
+  background: rgba(26,46,31,0.8) !important;
+  border: 1px solid rgba(122,171,130,0.2) !important;
+  border-radius: 10px !important; padding: 32px 28px !important;
+  transition: border-color 0.25s !important;
+}
+#gg-placement .pl-multi-card:hover { border-color: rgba(201,168,76,0.35) !important; }
+#gg-placement .pl-multi-card h3 {
+  font-size: 1.15rem !important; font-weight: 900 !important;
+  color: #ffffff !important; margin-bottom: 12px !important;
+}
+#gg-placement .pl-multi-card p {
+  font-size: 0.92rem !important; line-height: 1.72 !important;
+  color: rgba(212,230,202,0.7) !important; margin-bottom: 16px !important;
+}
+#gg-placement .pl-multi-steps li {
+  font-size: 0.88rem !important; color: rgba(212,230,202,0.72) !important;
+  padding: 8px 0 !important; border-bottom: 1px solid rgba(122,171,130,0.1) !important;
+  display: flex !important; align-items: flex-start !important; gap: 10px !important;
+}
+#gg-placement .pl-multi-steps li::before {
+  content: '→' !important; color: #7aab82 !important; font-weight: 900 !important; flex-shrink: 0 !important;
+}
+/* ── MAINTENANCE SCHEDULE ── */
+#gg-placement .pl-maint-grid {
+  display: grid !important; grid-template-columns: repeat(3,1fr) !important;
+  gap: 20px !important; margin-top: 52px !important;
+}
+#gg-placement .pl-maint-card {
+  background: rgba(45,74,50,0.3) !important;
+  border: 1px solid rgba(122,171,130,0.18) !important;
+  border-radius: 10px !important; padding: 28px 24px !important;
+  position: relative !important; transition: border-color 0.2s !important;
+}
+#gg-placement .pl-maint-card:hover { border-color: rgba(201,168,76,0.3) !important; }
+#gg-placement .pl-maint-freq {
+  font-size: 0.65rem !important; font-weight: 800 !important;
+  letter-spacing: 0.12em !important; text-transform: uppercase !important;
+  color: #c9a84c !important; border: 1px solid rgba(201,168,76,0.35) !important;
+  padding: 4px 10px !important; border-radius: 100px !important;
+  display: inline-block !important; margin-bottom: 14px !important;
+}
+#gg-placement .pl-maint-card h3 {
+  font-size: 0.97rem !important; font-weight: 800 !important;
+  color: #ffffff !important; margin-bottom: 10px !important;
+}
+#gg-placement .pl-maint-list li {
+  font-size: 0.87rem !important; color: rgba(212,230,202,0.7) !important;
+  padding: 7px 0 !important; border-bottom: 1px solid rgba(122,171,130,0.1) !important;
+  display: flex !important; align-items: flex-start !important; gap: 9px !important;
+}
+#gg-placement .pl-maint-list li::before {
+  content: '✓' !important; color: #7aab82 !important; font-weight: 900 !important; flex-shrink: 0 !important;
+}
+/* ── CTA ── */
+#gg-placement .pl-cta {
+  background: linear-gradient(135deg, #0a1a0d, #1a2e1f 50%, #0e1d12) !important;
+  border-top: 1px solid rgba(201,168,76,0.2) !important;
+  padding: 88px 48px !important; text-align: center !important;
+  position: relative !important; overflow: hidden !important;
+}
+#gg-placement .pl-cta::before {
+  content: '' !important; position: absolute !important;
+  top: 50% !important; left: 50% !important; transform: translate(-50%,-50%) !important;
+  width: 600px !important; height: 600px !important; border-radius: 50% !important;
+  border: 1px solid rgba(201,168,76,0.07) !important; pointer-events: none !important;
+}
+#gg-placement .pl-cta-inner { position: relative !important; z-index: 2 !important; max-width: 640px !important; margin: 0 auto !important; }
+#gg-placement .pl-cta h2 {
+  font-size: clamp(2rem, 4vw, 3.2rem) !important; font-weight: 900 !important;
+  color: #ffffff !important; margin-bottom: 16px !important; letter-spacing: -0.02em !important; line-height: 1.1 !important;
+}
+#gg-placement .pl-cta h2 span { color: #c9a84c !important; }
+#gg-placement .pl-cta p {
+  font-size: 1.05rem !important; color: rgba(212,230,202,0.72) !important;
+  line-height: 1.75 !important; margin-bottom: 36px !important;
+}
+#gg-placement .pl-cta-btns { display: flex !important; gap: 14px !important; justify-content: center !important; flex-wrap: wrap !important; }
+#gg-placement .pl-btn-gold {
+  background: #c9a84c !important; color: #0d1a10 !important;
+  font-family: 'Nunito Sans', sans-serif !important; font-size: 0.92rem !important;
+  font-weight: 800 !important; padding: 15px 32px !important; border: none !important;
+  border-radius: 4px !important; cursor: pointer !important;
+  box-shadow: 0 4px 24px rgba(201,168,76,0.25) !important;
+  transition: background 0.2s, transform 0.15s !important; letter-spacing: 0.02em !important;
+}
+#gg-placement .pl-btn-gold:hover { background: #e8d08a !important; transform: translateY(-2px) !important; }
+#gg-placement .pl-btn-outline {
+  background: transparent !important; color: #d4e6ca !important;
+  font-family: 'Nunito Sans', sans-serif !important; font-size: 0.92rem !important;
+  font-weight: 700 !important; padding: 15px 32px !important;
+  border: 2px solid rgba(212,230,202,0.3) !important; border-radius: 4px !important;
+  cursor: pointer !important; transition: border-color 0.2s !important;
+}
+#gg-placement .pl-btn-outline:hover { border-color: rgba(212,230,202,0.6) !important; }
+#gg-placement .pl-cta-note {
+  margin-top: 18px !important; font-size: 0.78rem !important;
+  font-weight: 600 !important; color: rgba(212,230,202,0.38) !important;
+}
+#gg-placement .pl-cta-note a { color: #c9a84c !important; }
+/* ── FOOTER ── */
+#gg-placement .pl-footer { background: #080f09 !important; border-top: 1px solid rgba(122,171,130,0.1) !important; padding: 64px 48px 36px !important; }
+#gg-placement .pl-footer-top { display: grid !important; grid-template-columns: 1.6fr 1fr 1fr 1fr !important; gap: 48px !important; padding-bottom: 48px !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; max-width: 1100px !important; margin: 0 auto !important; }
+#gg-placement .pl-footer-name { font-size: 1.1rem !important; font-weight: 900 !important; color: #ffffff !important; display: block !important; margin-bottom: 4px !important; }
+#gg-placement .pl-footer-name span { color: #7dffaa !important; }
+#gg-placement .pl-footer-tagline { font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; margin-bottom: 14px !important; display: block !important; }
+#gg-placement .pl-footer-desc { font-size: 0.87rem !important; color: rgba(255,255,255,0.42) !important; line-height: 1.7 !important; margin-bottom: 14px !important; }
+#gg-placement .pl-footer-contact { font-size: 0.87rem !important; color: rgba(255,255,255,0.45) !important; line-height: 1.8 !important; }
+#gg-placement .pl-footer-contact a { color: #7dffaa !important; }
+#gg-placement .pl-footer-col h4 { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.35) !important; margin-bottom: 16px !important; }
+#gg-placement .pl-footer-col ul { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#gg-placement .pl-footer-col a { font-size: 0.87rem !important; color: rgba(255,255,255,0.55) !important; transition: color 0.2s !important; }
+#gg-placement .pl-footer-col a:hover { color: #7dffaa !important; }
+#gg-placement .pl-footer-bottom { max-width: 1100px !important; margin: 32px auto 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 12px !important; }
+#gg-placement .pl-footer-bottom span { font-size: 0.74rem !important; color: rgba(255,255,255,0.2) !important; }
+#gg-placement .pl-eco-badge { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; }
+#gg-placement .pl-eco-dot { width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7dffaa !important; display: inline-block !important; }
+/* ── REVEAL ── */
+#gg-placement .pl-reveal { opacity: 0 !important; transform: translateY(22px) !important; transition: opacity 0.7s ease, transform 0.7s ease !important; }
+#gg-placement .pl-reveal.visible { opacity: 1 !important; transform: translateY(0) !important; }
+/* ── MOBILE ── */
+@media (max-width: 900px) {
+  #gg-placement .pl-hero { padding: 52px 20px 64px !important; }
+  #gg-placement .pl-trust { padding: 14px 20px !important; gap: 16px !important; }
+  #gg-placement .pl-section { padding: 60px 20px !important; }
+  #gg-placement .pl-rules-grid, #gg-placement .pl-env-grid, #gg-placement .pl-maint-grid { grid-template-columns: 1fr !important; }
+  #gg-placement .pl-scenarios, #gg-placement .pl-dos-grid, #gg-placement .pl-multi-grid { grid-template-columns: 1fr !important; }
+  #gg-placement .pl-seasonal-grid { grid-template-columns: 1fr 1fr !important; }
+  #gg-placement .pl-height-visual { padding: 24px 20px !important; }
+  #gg-placement .pl-cta { padding: 60px 20px !important; }
+  #gg-placement .pl-footer { padding: 48px 20px 28px !important; }
+  #gg-placement .pl-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+}
+
+/* ── NAVBAR / HAMBURGER ── */
+#gg-placement .gg-nav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 9999 !important;
+  background: rgba(10,26,13,0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  padding: 14px 20px !important;
+}
+#gg-placement .gg-nav-inner {
+  max-width: 1100px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+#gg-placement .gg-logo {
+  font-weight: 900 !important;
+  color: #fff !important;
+  letter-spacing: -0.02em !important;
+}
+#gg-placement .gg-logo span { color:#7dffaa !important; }
+#gg-placement .gg-hamburger {
+  width: 34px !important;
+  height: 28px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  cursor: pointer !important;
+}
+#gg-placement .gg-hamburger span {
+  height: 3px !important;
+  width: 100% !important;
+  background: #c9a84c !important;
+  border-radius: 2px !important;
+}
+#gg-placement .gg-menu {
+  position: fixed !important;
+  top: 0 !important;
+  right: -100% !important;
+  width: 260px !important;
+  height: 100vh !important;
+  background: #0d1a10 !important;
+  border-left: 1px solid rgba(122,171,130,0.2) !important;
+  padding: 80px 24px !important;
+  transition: right 0.3s ease !important;
+  z-index: 10000 !important;
+}
+#gg-placement .gg-menu.open { right: 0 !important; }
+#gg-placement .gg-menu a {
+  display: block !important;
+  padding: 14px 0 !important;
+  color: #d4e6ca !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid rgba(122,171,130,0.15) !important;
+}
+#gg-placement .gg-menu a:hover { color:#7dffaa !important; }
+#gg-placement .gg-menu-close {
+  position: absolute !important;
+  top: 18px !important;
+  right: 18px !important;
+  font-size: 22px !important;
+  color: #c9a84c !important;
+  cursor: pointer !important;
+}
+#gg-placement .gg-menu-group {
+  display: block !important;
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: rgba(201,168,76,0.6) !important;
+  padding: 20px 0 4px !important;
+  margin-top: 4px !important;
+}
+
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<div id="gg-placement">
+
+<!-- NAV -->
+  <div class="gg-nav">
+    <div class="gg-nav-inner">
+      <div class="gg-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-hamburger" onclick="document.querySelector('#gg-placement .gg-menu').classList.add('open')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+  <div class="gg-menu">
+  <div class="gg-menu-close" onclick="document.querySelector('#gg-placement .gg-menu').classList.remove('open')">X</div>
+  <span class="gg-menu-group">Services</span>
+  <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a>
+  <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+  <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+  <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+  <!-- <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a> -->
+  <span class="gg-menu-group">Shop</span>
+  <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+  <span class="gg-menu-group">Learn</span>
+  <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+  <a href="https://www.greenguard-usa.com/results">Results</a>
+  <a href="https://www.greenguard-usa.com/blog">Blog</a>
+  <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+  <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+  <span class="gg-menu-group">Company</span>
+  <a href="https://www.greenguard-usa.com/about">About Us</a>
+  <a href="https://www.greenguard-usa.com/contact">Contact</a>
+  <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+  <span class="gg-menu-group">Book</span>
+  <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+</div>
+
+  <!-- HERO -->
+  <div class="pl-hero">
+    <div class="pl-hero-inner">
+      <span class="pl-tag">GreenGuard USA · Placement Guide</span>
+      <h1 class="pl-h1">Place it right.<br><span>Catch more mosquitoes.</span></h1>
+      <p class="pl-hero-sub">Trap placement is the single biggest factor in how well your CO₂ trap performs. This guide covers exactly where, how high, and when to position your Biogents or Mosqitter Grand for maximum results.</p>
+      <div class="pl-hero-pills">
+        <div class="pl-pill">Biogents BG-Mosquitaire</div>
+        <div class="pl-pill">Mosqitter Grand</div>
+        <div class="pl-pill">Austin TX Climate</div>
+        <div class="pl-pill">Expert Backed</div>
+      </div>
+    </div>
+  </div>
+  <!-- TRUST BAR -->
+  <div class="pl-trust">
+    <div class="pl-trust-item"><span class="pl-check">✓</span> Based on Biogents Research</div>
+    <div class="pl-trust-item"><span class="pl-check">✓</span> Mosqitter Grand Field Data</div>
+    <div class="pl-trust-item"><span class="pl-check">✓</span> Austin Tested</div>
+    <div class="pl-trust-item"><span class="pl-check">✓</span> Free Consultation Available</div>
+  </div>
+  <!-- THE GOLDEN RULES -->
+  <div class="pl-section">
+    <div class="pl-inner">
+      <div class="pl-reveal">
+        <span class="pl-stag">The Fundamentals</span>
+        <h2 class="pl-h2">Six golden rules of <span>trap placement</span></h2>
+        <p class="pl-sub">Before diving into specific scenarios, these six principles apply to every CO₂ trap on every property. Get these right and your trap will perform at its peak.</p>
+      </div>
+      <div class="pl-rules-grid">
+        <div class="pl-rule-card pl-reveal">
+          
+          <h3>Place Between Source and Target</h3>
+          <p>Position your trap between where mosquitoes breed (standing water, dense vegetation, shaded areas) and where people gather (patio, pool, seating). The trap intercepts mosquitoes on their way to you.</p>
+        </div>
+        <div class="pl-rule-card pl-reveal">
+          
+          <h3>Face Into Prevailing Wind</h3>
+          <p>CO₂ and scent plumes travel downwind. Orient your trap so the attractant plume blows toward the mosquito breeding zones , not toward your house or seating area. In Austin, prevailing winds are typically from the south.</p>
+        </div>
+        <div class="pl-rule-card pl-reveal">
+          
+          <h3>Get the Height Right</h3>
+          <p>Most mosquito species fly at 2–4 feet above the ground. Place your trap intake at the same height as mosquitoes fly , approximately 2 feet off the ground is ideal for most species. Never place on the ground or above 5 feet.</p>
+        </div>
+        <div class="pl-rule-card pl-reveal">
+          
+          <h3>Keep Away from Wind Obstructions</h3>
+          <p>Walls, dense hedges, and fences block the CO₂ plume. Place the trap in open air with at least 6–10 feet of clearance from solid barriers in the direction the plume travels. Partial shade above is fine , lateral blockage is the problem.</p>
+        </div>
+        <div class="pl-rule-card pl-reveal">
+          
+          <h3>Stay 30–100 Feet from People</h3>
+          <p>Your trap should be far enough from seating areas that it pulls mosquitoes away before they reach you , but not so far that coverage overlaps minimally with your yard. 30–50 feet upwind of your patio is the sweet spot.</p>
+        </div>
+        <div class="pl-rule-card pl-reveal">
+          
+          <h3>Run Continuously</h3>
+          <p>CO₂ traps work by population suppression over time, not instant kill. Run your trap 24/7 for best results. Turning it off for extended periods allows the mosquito population to recover and restarts the suppression cycle.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- HEIGHT GUIDE -->
+  <div class="pl-section pl-section-alt">
+    <div class="pl-inner">
+      <div class="pl-reveal">
+        <span class="pl-stag">Height Guide</span>
+        <h2 class="pl-h2">Trap height <span>matters a lot</span></h2>
+        <p class="pl-sub">Different mosquito species fly at different heights. Most common pest species in Austin , including Aedes aegypti (tiger mosquito) and Culex , fly low. Here's how to dial in the right height.</p>
+      </div>
+      <div class="pl-height-visual pl-reveal">
+        <span class="pl-height-title">Trap Intake Placement Height , Effectiveness by Height</span>
+        <div class="pl-height-rows">
+          <div class="pl-height-row">
+            <div class="pl-height-label">Ground level</div>
+            <div class="pl-height-bar-wrap"><div class="pl-height-bar avoid" style="width:20%">Avoid</div></div>
+          </div>
+          <div class="pl-height-row">
+            <div class="pl-height-label">1 ft / 30 cm</div>
+            <div class="pl-height-bar-wrap"><div class="pl-height-bar good" style="width:45%">Acceptable</div></div>
+          </div>
+          <div class="pl-height-row">
+            <div class="pl-height-label">2 ft / 60 cm</div>
+            <div class="pl-height-bar-wrap"><div class="pl-height-bar ideal" style="width:100%">✦ Ideal for most species</div></div>
+          </div>
+          <div class="pl-height-row">
+            <div class="pl-height-label">3 ft / 90 cm</div>
+            <div class="pl-height-bar-wrap"><div class="pl-height-bar ideal" style="width:90%">✦ Ideal</div></div>
+          </div>
+          <div class="pl-height-row">
+            <div class="pl-height-label">4 ft / 1.2 m</div>
+            <div class="pl-height-bar-wrap"><div class="pl-height-bar good" style="width:65%">Good</div></div>
+          </div>
+          <div class="pl-height-row">
+            <div class="pl-height-label">5 ft / 1.5 m</div>
+            <div class="pl-height-bar-wrap"><div class="pl-height-bar good" style="width:40%">Reduced</div></div>
+          </div>
+          <div class="pl-height-row">
+            <div class="pl-height-label">6+ ft / 1.8m+</div>
+            <div class="pl-height-bar-wrap"><div class="pl-height-bar avoid" style="width:15%">Avoid</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- PLACEMENT BY TRAP TYPE (TABBED) -->
+  <div class="pl-section">
+    <div class="pl-inner">
+      <div class="pl-reveal">
+        <span class="pl-stag">Placement by Trap</span>
+        <h2 class="pl-h2">Scenarios for <span>your property type</span></h2>
+        <p class="pl-sub">Each trap has slightly different optimal placement based on its coverage radius and attraction system. Select your trap below for property-specific guidance.</p>
+      </div>
+```
+  <div class="pl-tab-row pl-reveal">
+    <button class="pl-tab active" onclick="plSwitch('biogents', this)"> Biogents BG-Mosquitaire</button>
+    <button class="pl-tab" onclick="plSwitch('grand', this)"> Mosqitter Grand</button>
+  </div>
+  <!-- BIOGENTS PANEL -->
+  <div class="pl-panel active" id="pl-panel-biogents">
+    <div class="pl-scenarios">
+      <div class="pl-scenario pl-reveal">
+        <div class="pl-scenario-header">
+          
+          <div>
+            <h3>Standard Residential Yard</h3>
+            <span class="pl-coverage">Coverage: up to 1 acre</span>
+          </div>
+        </div>
+        <div class="pl-scenario-body">
+          <p>Typical Austin lot with a back yard, patio, and lawn. Single trap is sufficient for most properties under 0.5 acres.</p>
+          <ul class="pl-placement-steps">
+            <li>Place 30–50 ft upwind of your primary seating or patio area</li>
+            <li>Position trap at the edge of your lawn near vegetation or landscaping , mosquitoes rest in shade</li>
+            <li>Mount at 2–3 ft height on a stake or fence post</li>
+            <li>Ensure trap faces prevailing south wind , plume should travel toward shaded/breeding areas</li>
+            <li>Keep at least 10 ft from solid walls or dense hedges</li>
+          </ul>
+          <div class="pl-tip"><strong>Austin tip:</strong> Target shaded areas near the back fence or tree line , Aedes aegypti (the tiger mosquito dominant in Austin) rests in dense vegetation and rarely flies more than 200 yards from breeding sites.</div>
+        </div>
+      </div>
+      <div class="pl-scenario pl-reveal">
+        <div class="pl-scenario-header">
+          <div class="pl-scenario-emoji">🏊</div>
+          <div>
+            <h3>Pool or Water Feature</h3>
+            <span class="pl-coverage">Coverage: pool + surrounding area</span>
+          </div>
+        </div>
+        <div class="pl-scenario-body">
+          <p>Pool areas are high-value targets. Standing water nearby accelerates breeding , position to intercept before mosquitoes reach swimmers.</p>
+          <ul class="pl-placement-steps">
+            <li>Place trap between the breeding source (nearby vegetation, drainage) and the pool</li>
+            <li>Position 2–3 ft height on a stake, upwind side of the pool</li>
+            <li>Check for standing water weekly within 100 ft , dump or treat any containers</li>
+            <li>Add a scent lure to boost capture rates</li>
+          </ul>
+          <div class="pl-tip"><strong>Pro tip:</strong> A second trap on the shaded side of the yard (even partially) dramatically improves results when pool mosquito pressure is high.</div>
+        </div>
+      </div>
+      <div class="pl-scenario pl-reveal">
+        <div class="pl-scenario-header">
+          
+          <div>
+            <h3>Wooded or Heavily Landscaped Lot</h3>
+            <span class="pl-coverage">2 traps recommended for 1+ acre</span>
+          </div>
+        </div>
+        <div class="pl-scenario-body">
+          <p>Dense trees and mature landscaping create many mosquito resting zones. More coverage points are needed.</p>
+          <ul class="pl-placement-steps">
+            <li>Place first trap at the transition zone between lawn and tree line</li>
+            <li>Second trap near any shaded seating or entertainment area</li>
+            <li>Use 3 ft height , above low ground cover but below dense canopy</li>
+            <li>Avoid placing directly under heavy tree canopy , CO₂ plume gets trapped</li>
+            <li>Consider Mosquito Bucket of Doom supplement to capture Aedes albopictus in vegetation</li>
+          </ul>
+          <div class="pl-tip"><strong>Austin tip:</strong> Live oak canopy is a major resting zone for tiger mosquitoes. Position one trap at the drip line of your largest oak for dramatically improved results.</div>
+        </div>
+      </div>
+      <div class="pl-scenario pl-reveal">
+        <div class="pl-scenario-header">
+          
+          <div>
+            <h3>Outdoor Dining or Entertainment</h3>
+            <span class="pl-coverage">Targeted protection zone</span>
+          </div>
+        </div>
+        <div class="pl-scenario-body">
+          <p>Restaurant patios, covered outdoor kitchens, and event spaces need targeted coverage without the trap being visually intrusive.</p>
+          <ul class="pl-placement-steps">
+            <li>Position trap at the perimeter of the entertainment zone, not center</li>
+            <li>Place upwind so plume pulls mosquitoes away from guests</li>
+            <li>Use fence-mounted bracket to keep off the ground and out of traffic paths</li>
+            <li>For covered patios: place just outside the covered area, not under the roof</li>
+            <li>Run continuously , evening activation alone isn't enough for population suppression</li>
+          </ul>
+          <div class="pl-tip"><strong>Commercial tip:</strong> For restaurant patios, two Biogents traps flanking the dining area outperform one central trap significantly.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- MOSQITTER GRAND PANEL -->
+  <div class="pl-panel" id="pl-panel-grand">
+    <div class="pl-scenarios">
+      <div class="pl-scenario pl-reveal">
+        <div class="pl-scenario-header">
+          
+          <div>
+            <h3>Large Residential Property (1–2 acres)</h3>
+            <span class="pl-coverage">Coverage: up to 2 acres per unit</span>
+          </div>
+        </div>
+        <div class="pl-scenario-body">
+          <p>The Mosqitter Grand's 4-way attraction system means placement is slightly more flexible than single-signal traps , but positioning still matters significantly.</p>
+          <ul class="pl-placement-steps">
+            <li>Center the Grand roughly in the middle of your property's mosquito pressure zone</li>
+            <li>Place at ground level on the included stake , the Grand is designed for 2–3 ft height</li>
+            <li>Orient the CO₂ emission port facing into prevailing wind direction</li>
+            <li>Minimum 15 ft clearance from solid structures in any direction</li>
+            <li>Connect to a dedicated outdoor power outlet , the Grand requires 110V/125W continuous power</li>
+          </ul>
+          <div class="pl-tip"><strong>Grand advantage:</strong> The heat and UV elements attract mosquitoes regardless of wind direction , making the Grand more forgiving in complex wind environments like enclosed yards.</div>
+        </div>
+      </div>
+      <div class="pl-scenario pl-reveal">
+        <div class="pl-scenario-header">
+          
+          <div>
+            <h3>Waterfront or Lakeside Property</h3>
+            <span class="pl-coverage">High pressure , 1–2 units recommended</span>
+          </div>
+        </div>
+        <div class="pl-scenario-body">
+          <p>Waterfront properties face extreme mosquito pressure from the water's edge. The Grand's 2-acre radius is especially valuable here.</p>
+          <ul class="pl-placement-steps">
+            <li>Place the Grand between the shoreline and the primary living or entertainment area</li>
+            <li>Position 40–60 ft from the water's edge , not at the shore</li>
+            <li>Orient so CO₂ plume faces the water, pulling mosquitoes away from structures</li>
+            <li>For properties over 150 ft of shoreline, a second unit offset at 100 ft improves coverage significantly</li>
+            <li>Use app to boost CO₂ output at dawn and dusk when mosquito activity peaks</li>
+          </ul>
+          <div class="pl-tip"><strong>Lake Austin tip:</strong> Midge and mosquito pressure is highest within 50 ft of the waterline at dawn and dusk. The Grand positioned at the midpoint of your lot captures the most insects during these peak windows.</div>
+        </div>
+      </div>
+      <div class="pl-scenario pl-reveal">
+        <div class="pl-scenario-header">
+          
+          <div>
+            <h3>Commercial Patio or Event Venue</h3>
+            <span class="pl-coverage">Multi-unit planning</span>
+          </div>
+        </div>
+        <div class="pl-scenario-body">
+          <p>Commercial applications need strategic multi-unit layouts to create overlapping protection zones with no gaps.</p>
+          <ul class="pl-placement-steps">
+            <li>Map your coverage area and divide into 2-acre zones , one Grand per zone</li>
+            <li>Stagger units at 150 ft intervals for overlapping coverage without signal competition</li>
+            <li>Place units at the perimeter of the guest area, not inside it</li>
+            <li>Use the app to synchronize operating schedules across all units</li>
+            <li>Install on permanent posts for stability , the Grand weighs 70 lbs</li>
+          </ul>
+          <div class="pl-tip"><strong>Event tip:</strong> Activate all Grands 3–4 hours before an event begins. The trap starts catching immediately but population suppression takes time , pre-event operation dramatically reduces guest exposure.</div>
+        </div>
+      </div>
+      <div class="pl-scenario pl-reveal">
+        <div class="pl-scenario-header">
+          
+          <div>
+            <h3>Power &amp; Installation Requirements</h3>
+            <span class="pl-coverage">Technical setup guide</span>
+          </div>
+        </div>
+        <div class="pl-scenario-body">
+          <p>The Mosqitter Grand has specific power and installation requirements unlike lightweight portable traps.</p>
+          <ul class="pl-placement-steps">
+            <li>Requires dedicated 110V outdoor GFCI outlet within cord reach</li>
+            <li>Do not use extension cords longer than 25 ft , voltage drop reduces performance</li>
+            <li>Mount on included heavy-duty stake driven 12–18 inches into firm ground</li>
+            <li>In high-wind areas (open fields, waterfront) use optional ground anchor kit</li>
+            <li>CO₂ tank connects via regulator , keep tank upright, shaded, and within 6 ft of trap</li>
+            <li>Download the Mosqitter app and connect via Bluetooth before first use</li>
+          </ul>
+          <div class="pl-tip"><strong>GreenGuard USA handles all of this:</strong> Our team manages full installation including power assessment, staking, CO₂ connection, and app configuration for all rental and install customers.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+  </div>
+  <!-- DO'S AND DON'TS -->
+  <div class="pl-section pl-section-alt">
+    <div class="pl-inner">
+      <div class="pl-reveal">
+        <span class="pl-stag">Common Mistakes</span>
+        <h2 class="pl-h2">What to do , and <span>what to avoid</span></h2>
+        <p class="pl-sub">These are the most common placement mistakes we see when evaluating underperforming traps. Avoid these and you'll see dramatically better results.</p>
+      </div>
+      <div class="pl-dos-grid">
+        <div class="pl-dos-col pl-reveal">
+          <div class="pl-dos-head do">✓ &nbsp;Do These</div>
+          <ul class="pl-dos-list do">
+            <li>Run the trap continuously 24 hours a day, 7 days a week</li>
+            <li>Place trap upwind of mosquito breeding areas</li>
+            <li>Keep trap intake at 2–3 feet above the ground</li>
+            <li>Position between the mosquito source and your seating area</li>
+            <li>Leave 10+ ft clearance from solid walls and dense hedges</li>
+            <li>Eliminate standing water within 100 ft of your property</li>
+            <li>Replace CO₂ tank as soon as it runs empty , no CO₂, no catching</li>
+            <li>Use the scent lure with your trap , it significantly improves catch rates</li>
+            <li>Allow 2–3 weeks for full population suppression before judging results</li>
+            <li>Empty the catch bag monthly to maintain airflow</li>
+          </ul>
+        </div>
+        <div class="pl-dos-col pl-reveal">
+          <div class="pl-dos-head dont">✗ &nbsp;Avoid These</div>
+          <ul class="pl-dos-list dont">
+            <li>Placing the trap directly next to your seating area , it pulls mosquitoes toward you</li>
+            <li>Turning the trap off at night , peak mosquito activity is dawn and dusk</li>
+            <li>Placing the trap on the ground , too low, poor airflow, moisture damage risk</li>
+            <li>Positioning behind a solid fence or wall , CO₂ plume gets blocked</li>
+            <li>Placing under a solid roof or covered porch , plume gets trapped overhead</li>
+            <li>Letting the CO₂ tank run empty unnoticed , the trap is completely ineffective without CO₂</li>
+            <li>Moving the trap constantly before suppression takes effect , give it 3 weeks</li>
+            <li>Placing in direct full sun all day , excessive heat can affect electronics and trap efficiency</li>
+            <li>Running extension cords across traffic areas for the Mosqitter Grand</li>
+            <li>Expecting instant results , CO₂ trapping is population suppression, not instant kill</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ENVIRONMENTAL FACTORS -->
+  <div class="pl-section">
+    <div class="pl-inner">
+      <div class="pl-reveal">
+        <span class="pl-stag">Environmental Factors</span>
+        <h2 class="pl-h2">How Austin's climate <span>affects placement</span></h2>
+        <p class="pl-sub">Austin's heat, humidity, and seasonal weather patterns create unique conditions for CO₂ trapping. Here's how to adapt your setup to local conditions.</p>
+      </div>
+      <div class="pl-env-grid">
+        <div class="pl-env-card pl-reveal">
+          <span class="pl-env-icon">🌬️</span>
+          <h3>Wind Direction (Austin)</h3>
+          <p>Austin's prevailing winds blow from the south and southeast. Position your trap so the CO₂ and scent plume travels northward toward vegetation and breeding areas. Wind shifts are common in spring , check seasonally.</p>
+        </div>
+        <div class="pl-env-card pl-reveal">
+          <span class="pl-env-icon">🌡️</span>
+          <h3>Summer Heat</h3>
+          <p>Austin summers above 100°F increase mosquito activity at dawn and dusk while suppressing midday activity. Ensure your trap is in partial shade during the hottest part of the day , sustained direct sun above 95°F can affect performance.</p>
+        </div>
+        <div class="pl-env-card pl-reveal">
+          <span class="pl-env-icon">💧</span>
+          <h3>Humidity &amp; Rain</h3>
+          <p>Post-rain periods see mosquito population spikes within 7–10 days as eggs hatch. Both traps are rated for outdoor use in rain, but avoid placing in low areas that collect standing water around the trap base.</p>
+        </div>
+        <div class="pl-env-card pl-reveal">
+          
+          <h3>Urban Heat Island</h3>
+          <p>Austin's urban core stays warmer than surrounding areas, extending the effective mosquito season into November and December. In central Austin neighborhoods, year-round trap operation is recommended , not just April–October.</p>
+        </div>
+        <div class="pl-env-card pl-reveal">
+          
+          <h3>Greenbelt &amp; Waterways</h3>
+          <p>Properties adjacent to Barton Creek, Town Lake, or any of Austin's greenbelt corridors face elevated pressure from Culex mosquitoes that breed in slow-moving water. Place your trap between the green space boundary and your yard.</p>
+        </div>
+        <div class="pl-env-card pl-reveal">
+          
+          <h3>Hill Country Topography</h3>
+          <p>Properties in the Hill Country west of Austin (Lakeway, Westlake, Bee Cave) experience cold air drainage at night, concentrating mosquitoes in low-lying areas. Focus trap placement at low points and drainage channels.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- SEASONAL GUIDE -->
+  <div class="pl-section pl-section-alt">
+    <div class="pl-inner">
+      <div class="pl-reveal">
+        <span class="pl-stag">Seasonal Guide · Austin, TX</span>
+        <h2 class="pl-h2">Year-round protection <span>strategy</span></h2>
+        <p class="pl-sub">Austin's near-year-round warmth means mosquito season extends well beyond what most Texans expect. Here's how to adjust your strategy each season.</p>
+      </div>
+      <div class="pl-seasonal-grid">
+        <div class="pl-season-card pl-reveal">
+          
+          <span class="pl-season-name">Spring · Mar–May</span>
+          <h3>Ramp Up Season</h3>
+          <p>Population rebuilds from winter. Start trapping in March. Egg hatches accelerate after spring rains , this is when early season suppression pays the biggest dividends.</p>
+          <div class="pl-season-intensity"><div class="pl-season-intensity-fill" style="width:60%"></div></div>
+        </div>
+        <div class="pl-season-card peak pl-reveal">
+          
+          <span class="pl-season-name">Summer · Jun–Aug</span>
+          <h3>Peak Season</h3>
+          <p>Maximum mosquito pressure. Run all traps 24/7. Dawn and dusk activity is intense. Consider adding a second trap if pressure is high. CO₂ usage peaks , schedule extra deliveries.</p>
+          <div class="pl-season-intensity"><div class="pl-season-intensity-fill" style="width:100%"></div></div>
+        </div>
+        <div class="pl-season-card pl-reveal">
+          
+          <span class="pl-season-name">Fall · Sep–Nov</span>
+          <h3>Extended Season</h3>
+          <p>Austin's warm fall keeps mosquitoes active through October and often November. Don't shut down early , fall populations can spike after late-season rains. Taper operations in late November.</p>
+          <div class="pl-season-intensity"><div class="pl-season-intensity-fill" style="width:70%"></div></div>
+        </div>
+        <div class="pl-season-card pl-reveal">
+          
+          <span class="pl-season-name">Winter · Dec–Feb</span>
+          <h3>Low Season (Not Zero)</h3>
+          <p>Central Austin rarely gets cold enough to fully eliminate mosquitoes. Reduce to partial operation during cold snaps but maintain trapping capability. A warm February week can trigger early hatching.</p>
+          <div class="pl-season-intensity"><div class="pl-season-intensity-fill" style="width:20%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- MULTIPLE TRAP STRATEGY -->
+  <div class="pl-section">
+    <div class="pl-inner">
+      <div class="pl-reveal">
+        <span class="pl-stag">Multi-Trap Strategy</span>
+        <h2 class="pl-h2">When one trap <span>isn't enough</span></h2>
+        <p class="pl-sub">For properties over 1 acre, or with multiple mosquito pressure zones, a multi-trap strategy delivers dramatically better results than a single unit.</p>
+      </div>
+      <div class="pl-multi-grid">
+        <div class="pl-multi-card pl-reveal">
+          <h3>Triangle Placement (3 Traps)</h3>
+          <p>The most effective layout for large rectangular properties. Creates overlapping coverage with no gaps and addresses mosquito pressure from multiple directions simultaneously.</p>
+          <ul class="pl-multi-steps">
+            <li>Place trap 1 at the back of the property near the vegetation boundary</li>
+            <li>Place trap 2 and 3 at either side of the property, 30–50 ft from the centerline</li>
+            <li>Orient all traps facing inward , plumes overlap in the center living zone</li>
+            <li>This arrangement covers 2–3 acres effectively with Biogents units</li>
+          </ul>
+        </div>
+        <div class="pl-multi-card pl-reveal">
+          <h3>Perimeter Placement (2 Traps)</h3>
+          <p>Ideal for properties with a clear mosquito source on one side , a creek, greenbelt, or dense neighbor's vegetation. Creates a defensive line between source and target.</p>
+          <ul class="pl-multi-steps">
+            <li>Space two traps 80–100 ft apart along the property edge facing the source</li>
+            <li>Orient both units facing the source , overlapping plumes create a "wall" of CO₂</li>
+            <li>Primary entertainment area should be positioned away from this line</li>
+            <li>Effective for creek-adjacent lots, greenbelt properties, and wooded back fences</li>
+          </ul>
+        </div>
+        <div class="pl-multi-card pl-reveal">
+          <h3>Zone Defense (Mixed Traps)</h3>
+          <p>Combine a Mosqitter Grand for broad coverage with one or two Biogents traps for targeted protection in specific high-use zones.</p>
+          <ul class="pl-multi-steps">
+            <li>Grand positioned centrally for 2-acre base coverage</li>
+            <li>Biogents unit near the pool or primary seating for targeted reinforcement</li>
+            <li>Second Biogents at the property boundary nearest to a breeding source</li>
+            <li>Most effective configuration for large properties with diverse mosquito pressure</li>
+          </ul>
+        </div>
+        <div class="pl-multi-card pl-reveal">
+          <h3>Not Sure What You Need?</h3>
+          <p>Our free property consultation includes a full mosquito pressure assessment. We walk your property, identify breeding zones, map wind patterns, and design a custom coverage plan.</p>
+          <ul class="pl-multi-steps">
+            <li>Free site visit , no obligation</li>
+            <li>Written placement recommendation included</li>
+            <li>Works for both purchase and rental customers</li>
+            <li>Available for residential and commercial properties in the Austin area</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- MAINTENANCE SCHEDULE -->
+  <div class="pl-section pl-section-alt">
+    <div class="pl-inner">
+      <div class="pl-reveal">
+        <span class="pl-stag">Maintenance Schedule</span>
+        <h2 class="pl-h2">Keep your trap <span>performing at peak</span></h2>
+        <p class="pl-sub">A well-maintained trap catches dramatically more mosquitoes. GreenGuard USA rental customers don't need to worry about any of this , we handle it all. For owners, here's the schedule to follow.</p>
+      </div>
+      <div class="pl-maint-grid">
+        <div class="pl-maint-card pl-reveal">
+          <span class="pl-maint-freq">Weekly</span>
+          <h3>Quick Checks</h3>
+          <ul class="pl-maint-list">
+            <li>Check CO₂ tank level , refill before empty</li>
+            <li>Visually inspect catch bag , empty if full</li>
+            <li>Confirm power light / app shows active operation</li>
+            <li>Clear any debris blocking intake or exhaust</li>
+          </ul>
+        </div>
+        <div class="pl-maint-card pl-reveal">
+          <span class="pl-maint-freq">Monthly</span>
+          <h3>Routine Service</h3>
+          <ul class="pl-maint-list">
+            <li>CO₂ tank exchange (GreenGuard USA delivers to your door)</li>
+            <li>Replace scent lure </li>
+            <li>Clean catch net / bag with water , allow to dry fully</li>
+            <li>Wipe down exterior housing</li>
+          </ul>
+        </div>
+        <div class="pl-maint-card pl-reveal">
+          <span class="pl-maint-freq">Seasonal</span>
+          <h3>Deep Service</h3>
+          <ul class="pl-maint-list">
+            <li>Reassess trap placement as vegetation grows in spring</li>
+            <li>Check and tighten all stake/mounting hardware</li>
+            <li>Inspect power cord and CO₂ hose for wear or cracks</li>
+            <li>Update Mosqitter Grand app firmware if available</li>
+            <li>Adjust placement for seasonal wind direction changes</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- CTA -->
+  <div class="pl-cta">
+    <div class="pl-cta-inner">
+      <span class="pl-tag" style="display:block;margin-bottom:14px">Free · No Commitment · Austin Area</span>
+      <h2>Want us to do <span>the placement for you?</span></h2>
+      <p>Our free consultation includes a full property walk-through, mosquito pressure assessment, and a written placement plan , so your trap performs at maximum efficacy from day one.</p>
+      <div class="pl-cta-btns">
+        <button class="pl-btn-gold" onclick="window.open('https://www.greenguard-usa.com/contact','_blank')">Book Free Consultation</button>
+        <button class="pl-btn-outline" onclick="window.open('https://www.greenguard-usa.com/co2-trap-rental-austin','_blank')">View Rental Plans</button>
+      </div>
+      <div class="pl-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
+    </div>
+  </div>
+  <!-- FOOTER -->
+  <div class="pl-footer">
+    <div class="pl-footer-top">
+      <div>
+        <span class="pl-footer-name">Green<span>Guard</span> USA</span>
+        <span class="pl-footer-tagline">Smart. Safe. Effective.</span>
+        <p class="pl-footer-desc">Pesticide-free CO₂ mosquito control serving Austin, Texas. Authorized dealer for Biogents and Mosqitter Grand.</p>
+        <div class="pl-footer-contact">
+          <a href="tel:5125604129">512-560-4129</a><br>
+          <a href="https://www.greenguard-usa.com">greenguard-usa.com</a>
+        </div>
+      </div>
+      <div class="pl-footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a></li>
+          <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a></li>
+          <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
+          <li><a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a></li>
+          <li><a href="https://www.greenguard-usa.com/shop">Shop All Products</a></li>
+        </ul>
+      </div>
+      <div class="pl-footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a></li>
+          <li><a href="https://www.greenguard-usa.com/results">Results</a></li>
+          <li><a href="https://www.greenguard-usa.com/blog">Blog</a></li>
+          <li><a href="https://www.greenguard-usa.com/faq">FAQ</a></li>
+          <li><a href="https://www.greenguard-usa.com/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="pl-footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
+          <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
+          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
+          <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
+          <li><a href="https://www.instagram.com/greenguardusa/">Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="pl-footer-bottom">
+      <span>© 2025 GreenGuard USA · Austin, Texas</span>
+      <div class="pl-eco-badge"><div class="pl-eco-dot"></div>100% Pesticide-Free Service</div>
+    </div>
+  </div>
+</div><!-- end #gg-placement -->
+<script>
+(function(){
+  var reveals=document.querySelectorAll('#gg-placement .pl-reveal');
+  var obs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}
+    });
+  },{threshold:0.1});
+  reveals.forEach(function(el){obs.observe(el);});
+  document.addEventListener('click',function(e){
+    var menu=document.querySelector('#gg-placement .gg-menu');
+    if(menu && menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('#gg-placement .gg-hamburger')){
+      menu.classList.remove('open');
+    }
+  });
+})();
+</script>

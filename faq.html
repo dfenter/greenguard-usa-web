@@ -1,0 +1,949 @@
+<style>
+/* ── SCOPED RESET ── */
+#gg-faq, #gg-faq * {
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased;
+}
+#gg-faq h1, #gg-faq h2, #gg-faq h3, #gg-faq h4,
+#gg-faq p, #gg-faq ul, #gg-faq li, #gg-faq div,
+#gg-faq span, #gg-faq button, #gg-faq a {
+  font-family: 'Nunito Sans', sans-serif !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+}
+#gg-faq ul { list-style: none !important; }
+/* ── FONT FORCE ── */
+#gg-faq h1,#gg-faq h2,#gg-faq h3,#gg-faq h4,#gg-faq h5,#gg-faq h6 { font-family: 'Nunito Sans', sans-serif !important; }
+#gg-faq a { text-decoration: none !important; }
+/* ── WRAPPER ── */
+#gg-faq {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  background: #1a2e1f !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+}
+/* ── NAV ── */
+#gg-faq .gg-nav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 9999 !important;
+  background: rgba(10,26,13,0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  padding: 14px 20px !important;
+}
+#gg-faq .gg-nav-inner {
+  max-width: 1100px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+#gg-faq .gg-logo {
+  font-weight: 900 !important;
+  color: #fff !important;
+  letter-spacing: -0.02em !important;
+  font-size: 1.1rem !important;
+}
+#gg-faq .gg-logo span { color: #7dffaa !important; }
+#gg-faq .gg-hamburger {
+  width: 34px !important;
+  height: 28px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  cursor: pointer !important;
+}
+#gg-faq .gg-hamburger span {
+  height: 3px !important;
+  width: 100% !important;
+  background: #c9a84c !important;
+  border-radius: 2px !important;
+}
+#gg-faq .gg-menu {
+  position: fixed !important;
+  top: 0 !important;
+  right: -100% !important;
+  width: 260px !important;
+  height: 100vh !important;
+  background: #0d1a10 !important;
+  border-left: 1px solid rgba(122,171,130,0.2) !important;
+  padding: 80px 24px !important;
+  transition: right 0.3s ease !important;
+  z-index: 10000 !important;
+}
+#gg-faq .gg-menu.open { right: 0 !important; }
+#gg-faq .gg-menu a {
+  display: block !important;
+  padding: 14px 0 !important;
+  color: #d4e6ca !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid rgba(122,171,130,0.15) !important;
+  font-size: 0.95rem !important;
+}
+#gg-faq .gg-menu a:hover { color: #7dffaa !important; }
+#gg-faq .gg-menu-group {
+  display: block !important;
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: rgba(201,168,76,0.6) !important;
+  padding: 20px 0 4px !important;
+  margin-top: 4px !important;
+}
+#gg-faq .gg-menu-close {
+  position: absolute !important;
+  top: 18px !important;
+  right: 18px !important;
+  font-size: 22px !important;
+  color: #c9a84c !important;
+  cursor: pointer !important;
+}
+/* ── HERO ── */
+#gg-faq .fq-hero {
+  background: linear-gradient(135deg, #0d1a10 0%, #1a2e1f 50%, #2d4a32 100%) !important;
+  padding: 80px 48px 90px !important;
+  text-align: center !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+#gg-faq .fq-hero::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important; left: 50% !important;
+  transform: translate(-50%,-50%) !important;
+  width: 600px !important; height: 600px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(201,168,76,0.07) !important;
+  pointer-events: none !important;
+}
+#gg-faq .fq-hero-inner {
+  max-width: 700px !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+#gg-faq .fq-tag {
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: #c9a84c !important;
+  display: block !important;
+  margin-bottom: 16px !important;
+}
+#gg-faq .fq-h1 {
+  font-size: clamp(2.2rem, 4.5vw, 3.6rem) !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  color: #ffffff !important;
+  margin-bottom: 20px !important;
+  letter-spacing: -0.02em !important;
+}
+#gg-faq .fq-h1 span { color: #7aab82 !important; }
+#gg-faq .fq-hero-sub {
+  font-size: 1.05rem !important;
+  font-weight: 400 !important;
+  line-height: 1.75 !important;
+  color: rgba(212,230,202,0.75) !important;
+  margin-bottom: 32px !important;
+}
+#gg-faq .fq-hero-pills {
+  display: flex !important;
+  gap: 10px !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+}
+#gg-faq .fq-pill {
+  background: rgba(45,74,50,0.6) !important;
+  border: 1px solid rgba(122,171,130,0.25) !important;
+  border-radius: 100px !important;
+  padding: 7px 16px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  color: #a8edc0 !important;
+  cursor: pointer !important;
+  transition: border-color 0.2s, background 0.2s !important;
+}
+#gg-faq .fq-pill:hover {
+  border-color: rgba(201,168,76,0.4) !important;
+  background: rgba(45,74,50,0.9) !important;
+  color: #c9a84c !important;
+}
+/* ── TRUST BAR ── */
+#gg-faq .fq-trust {
+  background: #2d4a32 !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  padding: 14px 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 32px !important;
+  flex-wrap: wrap !important;
+}
+#gg-faq .fq-trust-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: #a8edc0 !important;
+}
+#gg-faq .fq-check { color: #c9a84c !important; font-weight: 900 !important; }
+/* ── SHARED SECTION ── */
+#gg-faq .fq-section {
+  padding: 72px 48px !important;
+  background: #1a2e1f !important;
+}
+#gg-faq .fq-section-alt { background: #111c13 !important; }
+#gg-faq .fq-inner {
+  max-width: 860px !important;
+  margin: 0 auto !important;
+}
+#gg-faq .fq-section-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  margin-bottom: 28px !important;
+}
+#gg-faq .fq-section-icon {
+  font-size: 1.6rem !important;
+  flex-shrink: 0 !important;
+}
+#gg-faq .fq-section-title {
+  font-size: 1.3rem !important;
+  font-weight: 900 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.01em !important;
+}
+#gg-faq .fq-section-title span { color: #c9a84c !important; }
+/* ── ACCORDION ── */
+#gg-faq .fq-accordion { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+#gg-faq .fq-item {
+  background: rgba(45,74,50,0.35) !important;
+  border: 1px solid rgba(122,171,130,0.18) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  transition: border-color 0.2s !important;
+}
+#gg-faq .fq-item.open { border-color: rgba(201,168,76,0.35) !important; }
+#gg-faq .fq-question {
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 20px 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+}
+#gg-faq .fq-question:hover { background: rgba(45,74,50,0.4) !important; }
+#gg-faq .fq-q-text {
+  font-size: 0.97rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  line-height: 1.4 !important;
+  flex: 1 !important;
+}
+#gg-faq .fq-item.open .fq-q-text { color: #c9a84c !important; }
+#gg-faq .fq-chevron {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  background: rgba(122,171,130,0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  font-size: 0.75rem !important;
+  color: #7aab82 !important;
+  transition: transform 0.3s, background 0.2s !important;
+}
+#gg-faq .fq-item.open .fq-chevron {
+  transform: rotate(180deg) !important;
+  background: rgba(201,168,76,0.2) !important;
+  color: #c9a84c !important;
+}
+#gg-faq .fq-answer {
+  max-height: 0 !important;
+  overflow: hidden !important;
+  transition: max-height 0.35s ease !important;
+}
+#gg-faq .fq-item.open .fq-answer { max-height: 600px !important; }
+#gg-faq .fq-answer-inner {
+  padding: 0 24px 20px !important;
+  border-top: 1px solid rgba(122,171,130,0.12) !important;
+  padding-top: 16px !important;
+}
+#gg-faq .fq-answer-inner p {
+  font-size: 0.93rem !important;
+  line-height: 1.75 !important;
+  color: rgba(212,230,202,0.78) !important;
+  margin-bottom: 10px !important;
+}
+#gg-faq .fq-answer-inner p:last-child { margin-bottom: 0 !important; }
+#gg-faq .fq-answer-inner strong { color: #c9a84c !important; font-weight: 800 !important; }
+#gg-faq .fq-answer-inner ul {
+  margin-top: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+#gg-faq .fq-answer-inner ul li {
+  font-size: 0.9rem !important;
+  color: rgba(212,230,202,0.75) !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  line-height: 1.6 !important;
+}
+#gg-faq .fq-answer-inner ul li::before {
+  content: '→' !important;
+  color: #7aab82 !important;
+  font-weight: 900 !important;
+  flex-shrink: 0 !important;
+}
+#gg-faq .fq-answer-inner a {
+  color: #7aab82 !important;
+  text-decoration: underline !important;
+  font-weight: 700 !important;
+}
+/* ── TERMS / RETURN POLICY (compact) ── */
+#gg-faq .fq-policy-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 20px !important;
+  margin-top: 0 !important;
+}
+#gg-faq .fq-policy-card {
+  background: rgba(45,74,50,0.3) !important;
+  border: 1px solid rgba(122,171,130,0.18) !important;
+  border-radius: 10px !important;
+  padding: 24px 22px !important;
+}
+#gg-faq .fq-policy-card h4 {
+  font-size: 0.9rem !important;
+  font-weight: 800 !important;
+  color: #c9a84c !important;
+  margin-bottom: 10px !important;
+}
+#gg-faq .fq-policy-card p, #gg-faq .fq-policy-card li {
+  font-size: 0.87rem !important;
+  line-height: 1.7 !important;
+  color: rgba(212,230,202,0.68) !important;
+}
+#gg-faq .fq-policy-card ul {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+}
+#gg-faq .fq-policy-card li {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+}
+#gg-faq .fq-policy-card li::before {
+  content: '✓' !important;
+  color: #7aab82 !important;
+  font-weight: 900 !important;
+  flex-shrink: 0 !important;
+}
+/* ── CTA ── */
+#gg-faq .fq-cta {
+  background: linear-gradient(135deg, #0a1a0d, #1a2e1f 50%, #0e1d12) !important;
+  border-top: 1px solid rgba(201,168,76,0.2) !important;
+  padding: 80px 48px !important;
+  text-align: center !important;
+}
+#gg-faq .fq-cta-inner { max-width: 600px !important; margin: 0 auto !important; }
+#gg-faq .fq-cta h2 {
+  font-size: clamp(2rem, 4vw, 3rem) !important;
+  font-weight: 900 !important;
+  color: #ffffff !important;
+  margin-bottom: 16px !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.1 !important;
+}
+#gg-faq .fq-cta h2 span { color: #c9a84c !important; }
+#gg-faq .fq-cta p {
+  font-size: 1.05rem !important;
+  color: rgba(212,230,202,0.72) !important;
+  line-height: 1.75 !important;
+  margin-bottom: 36px !important;
+}
+#gg-faq .fq-cta-btns {
+  display: flex !important;
+  gap: 14px !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+}
+#gg-faq .fq-btn-gold {
+  background: #c9a84c !important;
+  color: #0d1a10 !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: 0.92rem !important;
+  font-weight: 800 !important;
+  padding: 15px 32px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 24px rgba(201,168,76,0.25) !important;
+  transition: background 0.2s, transform 0.15s !important;
+}
+#gg-faq .fq-btn-gold:hover { background: #e8d08a !important; transform: translateY(-2px) !important; }
+#gg-faq .fq-btn-outline {
+  background: transparent !important;
+  color: #d4e6ca !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  padding: 15px 32px !important;
+  border: 2px solid rgba(212,230,202,0.3) !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: border-color 0.2s !important;
+}
+#gg-faq .fq-btn-outline:hover { border-color: rgba(212,230,202,0.65) !important; }
+#gg-faq .fq-cta-note {
+  margin-top: 18px !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  color: rgba(212,230,202,0.38) !important;
+}
+#gg-faq .fq-cta-note a { color: #c9a84c !important; }
+/* ── FOOTER ── */
+#gg-faq .fq-footer { background: #080f09 !important; border-top: 1px solid rgba(122,171,130,0.1) !important; padding: 64px 48px 36px !important; }
+#gg-faq .fq-footer-top { display: grid !important; grid-template-columns: 1.6fr 1fr 1fr 1fr !important; gap: 48px !important; padding-bottom: 48px !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; max-width: 1100px !important; margin: 0 auto !important; }
+#gg-faq .fq-footer-name { font-size: 1.1rem !important; font-weight: 900 !important; color: #ffffff !important; display: block !important; margin-bottom: 4px !important; }
+#gg-faq .fq-footer-name span { color: #7dffaa !important; }
+#gg-faq .fq-footer-tagline { font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; margin-bottom: 14px !important; display: block !important; }
+#gg-faq .fq-footer-desc { font-size: 0.87rem !important; color: rgba(255,255,255,0.42) !important; line-height: 1.7 !important; margin-bottom: 14px !important; }
+#gg-faq .fq-footer-contact { font-size: 0.87rem !important; color: rgba(255,255,255,0.45) !important; line-height: 1.8 !important; }
+#gg-faq .fq-footer-contact a { color: #7dffaa !important; }
+#gg-faq .fq-footer-col h4 { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.35) !important; margin-bottom: 16px !important; }
+#gg-faq .fq-footer-col ul { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#gg-faq .fq-footer-col a { font-size: 0.87rem !important; color: rgba(255,255,255,0.55) !important; transition: color 0.2s !important; }
+#gg-faq .fq-footer-col a:hover { color: #7dffaa !important; }
+#gg-faq .fq-footer-bottom { max-width: 1100px !important; margin: 32px auto 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 12px !important; }
+#gg-faq .fq-footer-bottom span { font-size: 0.74rem !important; color: rgba(255,255,255,0.2) !important; }
+#gg-faq .fq-eco-badge { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; }
+#gg-faq .fq-eco-dot { width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7dffaa !important; display: inline-block !important; }
+/* ── REVEAL ── */
+#gg-faq .fq-reveal { opacity: 0 !important; transform: translateY(18px) !important; transition: opacity 0.6s ease, transform 0.6s ease !important; }
+#gg-faq .fq-reveal.visible { opacity: 1 !important; transform: translateY(0) !important; }
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  #gg-faq .fq-hero { padding: 52px 20px 60px !important; }
+  #gg-faq .fq-trust { padding: 14px 20px !important; gap: 16px !important; }
+  #gg-faq .fq-section { padding: 52px 20px !important; }
+  #gg-faq .fq-policy-grid { grid-template-columns: 1fr !important; }
+  #gg-faq .fq-cta { padding: 60px 20px !important; }
+  #gg-faq .fq-footer { padding: 48px 20px 28px !important; }
+  #gg-faq .fq-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<div id="gg-faq">
+  <!-- NAV -->
+  <div class="gg-nav">
+    <div class="gg-nav-inner">
+      <div class="gg-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-hamburger" onclick="document.querySelector('#gg-faq .gg-menu').classList.add('open')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+  <div class="gg-menu">
+  <div class="gg-menu-close" onclick="document.querySelector('#gg-faq .gg-menu').classList.remove('open')">X</div>
+  <span class="gg-menu-group">Services</span>
+  <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a>
+  <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+  <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+  <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+  <!-- <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a> -->
+  <span class="gg-menu-group">Shop</span>
+  <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+  <span class="gg-menu-group">Learn</span>
+  <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+  <a href="https://www.greenguard-usa.com/results">Results</a>
+  <a href="https://www.greenguard-usa.com/blog">Blog</a>
+  <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+  <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+  <span class="gg-menu-group">Company</span>
+  <a href="https://www.greenguard-usa.com/about">About Us</a>
+  <a href="https://www.greenguard-usa.com/contact">Contact</a>
+  <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+  <span class="gg-menu-group">Book</span>
+  <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+</div>
+  <!-- HERO -->
+  <div class="fq-hero">
+    <div class="fq-hero-inner">
+      <span class="fq-tag">GreenGuard USA · Austin, Texas</span>
+      <h1 class="fq-h1">Got questions?<br><span>We've got answers.</span></h1>
+      <p class="fq-hero-sub">Everything you need to know about CO₂ mosquito trapping, our services, pricing, delivery, and policies, all in one place.</p>
+      <div class="fq-hero-pills">
+        <div class="fq-pill" onclick="document.getElementById('fq-general').scrollIntoView({behavior:'smooth'})">How It Works</div>
+        <div class="fq-pill" onclick="document.getElementById('fq-products').scrollIntoView({behavior:'smooth'})">Products &amp; Services</div>
+        <div class="fq-pill" onclick="document.getElementById('fq-delivery').scrollIntoView({behavior:'smooth'})">Delivery &amp; Subscriptions</div>
+        <div class="fq-pill" onclick="document.getElementById('fq-safety').scrollIntoView({behavior:'smooth'})">Safety &amp; Results</div>
+        <div class="fq-pill" onclick="document.getElementById('fq-policies').scrollIntoView({behavior:'smooth'})">Policies</div>
+      </div>
+    </div>
+  </div>
+  <!-- TRUST BAR -->
+  <div class="fq-trust">
+    <div class="fq-trust-item"><span class="fq-check">✓</span> 100% Pesticide-Free</div>
+    <div class="fq-trust-item"><span class="fq-check">✓</span> Safe for Kids, Pets &amp; Bees</div>
+    <div class="fq-trust-item"><span class="fq-check">✓</span> Austin Area Service</div>
+    <div class="fq-trust-item"><span class="fq-check">✓</span> Month-to-Month, No Contracts</div>
+  </div>
+  <!-- GENERAL / HOW IT WORKS -->
+  <div class="fq-section" id="fq-general">
+    <div class="fq-inner">
+      <div class="fq-section-head fq-reveal">
+        
+        <div class="fq-section-title">General <span>How It Works</span></div>
+      </div>
+      <div class="fq-accordion">
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">What is GreenGuard USA?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>GreenGuard USA is an Austin-based mosquito control company founded in 2025. We specialize in CO₂-powered mosquito traps , a pesticide-free, scientifically proven method of reducing mosquito populations. We offer trap sales, professional installation, monthly CO₂ tank delivery, and full-service trap rentals, all serviced by our all-electric EV fleet.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">How do CO₂ mosquito traps work?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>Mosquitoes locate their hosts by detecting carbon dioxide , the same gas humans exhale when breathing. Our CO₂ traps release a precise stream of CO₂ (along with optional scent attractants) to mimic a living host and draw mosquitoes in from up to 100 feet away.</p>
+            <p>Once attracted, mosquitoes are captured by a gentle fan airflow and contained in a catch net. No zapping, no chemicals , just targeted, continuous elimination at the source. Over 2–4 weeks, the local mosquito population collapses as breeding females are removed from the cycle before they can reproduce.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Why is CO₂ more effective than sprays or zappers?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>Traditional sprays coat your yard with neurotoxic pesticides that kill indiscriminately , harming bees, pollinators, and soil ecosystems. Bug zappers attract insects with UV light, which mosquitoes respond to weakly , they primarily catch harmless moths and beetles.</p>
+            <p>CO₂ trapping uses the primary signal mosquitoes actually rely on to find hosts. It's highly specific to blood-seeking insects, operates continuously 24/7, and suppresses the breeding population rather than just repelling mosquitoes temporarily.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">What areas do you service?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>We currently provide CO₂ tank delivery, installation, maintenance, and rental services throughout the <strong>Austin, Texas</strong> metro area. This includes central Austin, Westlake Hills, Lakeway, Bee Cave, Round Rock, Cedar Park, Pflugerville, and surrounding communities.</p>
+            <p>If you're unsure whether we service your area, call or text us at <strong>512-560-4129</strong> and we'll let you know.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- PRODUCTS & SERVICES -->
+  <div class="fq-section fq-section-alt" id="fq-products">
+    <div class="fq-inner">
+      <div class="fq-section-head fq-reveal">
+        
+        <div class="fq-section-title">Products &amp; <span>Services</span></div>
+      </div>
+      <div class="fq-accordion">
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">What traps do you sell and service?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>We work with two of the world's leading CO₂ mosquito traps:</p>
+            <ul>
+              <li><strong>Biogents BG-Mosquitaire CO₂</strong> , Scientifically developed and globally trusted, ideal for standard Austin residential yards up to ⅓ acre. Uses CO₂ plus the BG-Sweetscent human scent lure. IP68 waterproof, low power consumption.</li>
+              <li><strong>Mosqitter Grand</strong> , Premium 4-way attraction system (CO₂ + heat + UV light + Mosqilure scent). Covers up to 2 acres per unit. App-controlled, stainless steel build. Trusted at the G20 Summit 2023. Ideal for large properties, commercial patios, and serious mosquito problems.</li>
+            </ul>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Which trap is right for my property?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>A good rule of thumb:</p>
+            <ul>
+              <li>Standard residential yard up to ⅓ acre → <strong>Biogents BG-Mosquitaire</strong></li>
+              <li>Large property 1–2 acres → <strong>Mosqitter Grand</strong></li>
+              <li>Commercial patio, event venue, or HOA → <strong>Mosqitter Grand (multi-unit)</strong></li>
+            </ul>
+            <p>Not sure? Book a free property assessment and we'll walk your yard, assess mosquito pressure zones, and give you a specific recommendation , at no cost.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Do I need professional installation?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>Proper placement is the single biggest factor in how well your trap performs. GreenGuard USA provides a detailed site assessment to identify where mosquitoes are breeding and resting on your property, and we place the trap for optimal coverage.</p>
+            <p>Improper placement , wrong height, wrong direction, too close to solid walls , can reduce efficacy by 50% or more. We strongly recommend professional installation for all new customers. See our <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a> for more detail.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">How much CO₂ does a trap use and how long does a tank last?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>For a <strong>Biogents trap</strong> running at the lowest recommended setting:</p>
+            <ul>
+              <li>Running 24/7 , approximately <strong>1 lb of CO₂ per day</strong>. A 20 lb tank lasts ~20 days.</li>
+              <li>With a timer (off 12am–6am) , approximately <strong>0.75 lbs per day</strong>. A 20 lb tank lasts ~27 days.</li>
+            </ul>
+            <p>For the <strong>Mosqitter Grand</strong>, CO₂ usage varies by operating mode and can be adjusted via the app. Our monthly delivery service is calibrated to your specific setup so you never run dry.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Can I use the trap indoors?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>Our CO₂ outdoor traps are designed for <strong>outdoor use only</strong> and are most effective when placed in shaded areas with good air circulation. They are not suitable for indoor use.</p>
+            <p>We do offer a separate indoor mosquito trap that does not use CO₂ , contact us at <strong>512-560-4129</strong> for details.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Can I buy CO₂ tanks separately?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>Yes, CO₂ tanks are available for purchase individually through our <a href="https://www.greenguard-usa.com/shop">online shop</a>. However, our monthly tank exchange delivery service is the most convenient option , we deliver a full tank and take away the empty on a set schedule, so your trap never stops running.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- DELIVERY & SUBSCRIPTIONS -->
+  <div class="fq-section" id="fq-delivery">
+    <div class="fq-inner">
+      <div class="fq-section-head fq-reveal">
+        
+        <div class="fq-section-title">Delivery &amp; <span>Subscriptions</span></div>
+      </div>
+      <div class="fq-accordion">
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">How does the CO₂ tank delivery service work?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>We offer a full-service CO₂ tank exchange delivered to your property on a monthly schedule. A GreenGuard USA technician will:</p>
+            <ul>
+              <li>Disconnect and remove the empty CO₂ tank</li>
+              <li>Connect a fresh full tank to the regulator</li>
+              <li>Inspect and clean the trap</li>
+              <li>Adjust the regulator as needed</li>
+            </ul>
+            <p>This hands-off approach ensures continuous mosquito protection without any hassle on your part. Delivery is made by our all-electric EV fleet.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">What CO₂ delivery tiers are available?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>We offer three monthly delivery tiers based on your tank size and property coverage needs:</p>
+            <ul>
+              <li><strong>Standard From $89.99/mo:</strong> Single cylinder exchange, ideal for smaller properties</li>
+              <li><strong>Premium  From $139.99/mo:</strong> Mid-size cylinder, expanded coverage, priority scheduling</li>
+              <li><strong>Estate  From $189.99/mo:</strong> Large cylinder, maximum coverage, priority scheduling</li>
+            </ul>
+            <p>Not sure which tier fits your setup? Book a free consultation and we'll recommend the right one for your trap and property size.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Do I need to be home for deliveries?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>No, as long as your trap and empty CO₂ tank are accessible, our technician can complete the exchange without you being present. Most customers simply leave the area unlocked on delivery day.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Can I pause, modify, or cancel my subscription?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>Yes. You can pause, modify, or cancel your CO₂ delivery subscription at any time. We just ask for at least <strong>48 hours notice before your next scheduled delivery</strong> to avoid a missed service fee.</p>
+            <p>We operate month-to-month, no long-term contracts required. You stay because the service works, not because you're locked in.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">What if I run out of CO₂ between scheduled deliveries?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>We offer next-day emergency refills for customers who run dry between scheduled deliveries. The Mosqitter Grand app will also alert you when your CO₂ level is getting low, giving you advance notice to request a top-up.</p>
+            <p>Call or text <strong>512-560-4129</strong> and we'll get you sorted quickly.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- SAFETY & RESULTS -->
+  <div class="fq-section fq-section-alt" id="fq-safety">
+    <div class="fq-inner">
+      <div class="fq-section-head fq-reveal">
+       
+        <div class="fq-section-title">Safety &amp; <span>Results</span></div>
+      </div>
+      <div class="fq-accordion">
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Are CO₂ traps safe for kids, pets, and the environment?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>Completely. Our traps use <strong>zero pesticides, chemicals, or sprays</strong> of any kind. There is no residue on your lawn, no drift into your garden, and no chemical exposure risk for children or animals. CO₂ traps work purely through physical capture, mosquitoes are drawn in and contained, nothing harmful is released.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Will the traps harm bees, butterflies, or other beneficial insects?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>No. CO₂ traps are highly specific to blood-seeking insects. Bees, butterflies, and other beneficial insects do not respond to CO₂ and human scent lures, they are completely unaffected. This is one of the primary reasons we chose CO₂ trapping over conventional spray treatments.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">How long does it take to see results?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>Most customers notice a significant reduction in mosquito bites within <strong>7–10 days</strong> of continuous operation. Within <strong>2–4 weeks</strong>, the local breeding cycle begins to break as female mosquitoes are removed before they can reproduce.</p>
+            <p>For maximum results, continuous year-round operation combined with additional control measures, such as larvicidal treatment of standing water and removing breeding sites, can reduce mosquito populations by up to <strong>95%</strong>.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Should I run the trap 24/7 or only at certain times?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>For best results, run your trap <strong>continuously 24/7</strong>. CO₂ trapping works by suppressing the mosquito population over time, not instant kill. Turning the trap off for extended periods allows the population to recover and restarts the suppression cycle.</p>
+            <p>If you want to conserve CO₂, using a timer to turn off between 12am–6am (the lowest activity period) still provides excellent results while extending tank life from ~20 days to ~27 days.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">Do the traps work year-round in Austin?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>Yes. Austin's warm climate means mosquitoes are active nearly year-round, often into November and December in central Austin neighborhoods. We recommend continuous operation from at least March through November, with reduced operation during cold snaps in winter.</p>
+            <p>Both the Biogents and Mosqitter Grand traps are built for continuous outdoor operation and handle Austin's heat and humidity without issue.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ORDERS & SUPPORT -->
+  <div class="fq-section" id="fq-support">
+    <div class="fq-inner">
+      <div class="fq-section-head fq-reveal">
+        
+        <div class="fq-section-title">Orders &amp; <span>Support</span></div>
+      </div>
+      <div class="fq-accordion">
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">What payment methods do you accept?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>We accept all major credit cards, debit cards, and PayPal. All product payments are made at the time of purchase. Service payments are made at the time of service. Subscription billing follows your agreed delivery schedule.</p>
+          </div></div>
+        </div>
+        <div class="fq-item fq-reveal">
+          <button class="fq-question" onclick="fqToggle(this)">
+            <span class="fq-q-text">How do I contact customer support?</span>
+            <span class="fq-chevron">▼</span>
+          </button>
+          <div class="fq-answer"><div class="fq-answer-inner">
+            <p>We're easy to reach:</p>
+            <ul>
+              <li><strong>Call or text:</strong> 512-560-4129</li>
+              <li><strong>Email:</strong> info@greenguard-usa.com</li>
+              <li><strong>Online:</strong> <a href="https://www.greenguard-usa.com/contact">greenguard-usa.com/contact</a></li>
+            </ul>
+            <p>For urgent CO₂ refill requests or service issues, calling or texting is the fastest way to reach us.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- POLICIES -->
+  <div class="fq-section fq-section-alt" id="fq-policies">
+    <div class="fq-inner">
+      <div class="fq-section-head fq-reveal">
+        
+        <div class="fq-section-title">Policies &amp; <span>Terms</span></div>
+      </div>
+      <div class="fq-policy-grid fq-reveal">
+        <div class="fq-policy-card">
+          <h4>Return Policy</h4>
+          <ul>
+            <li>Unused, unopened products may be returned within 60 days for a full refund</li>
+            <li>Used products are not eligible unless defective or damaged on arrival</li>
+            <li>Report defective/damaged items within 7 days of receipt with photos</li>
+            <li>Refunds processed within 7–10 business days to original payment method</li>
+            <li>Return shipping costs are the customer's responsibility unless due to our error</li>
+          </ul>
+        </div>
+        <div class="fq-policy-card">
+          <h4>Service Cancellations</h4>
+          <ul>
+            <li>Service appointments must be canceled at least 24 hours in advance</li>
+            <li>CO₂ delivery subscriptions require 48 hours notice before next delivery</li>
+            <li>Subscriptions canceled before next billing cycle will not be charged further</li>
+            <li>No long-term contracts, all plans are month-to-month</li>
+          </ul>
+        </div>
+        <div class="fq-policy-card">
+          <h4>Terms of Service</h4>
+          <ul>
+            <li>By using our services you agree to provide accurate order and contact information</li>
+            <li>CO₂ trapping reduces mosquito populations but does not guarantee complete elimination</li>
+            <li>GreenGuard USA is not liable for indirect or consequential damages</li>
+            <li>Terms may be updated; continued use constitutes acceptance</li>
+          </ul>
+        </div>
+        <div class="fq-policy-card">
+          <h4>Shipping &amp; Delivery</h4>
+          <ul>
+            <li>Orders are processed and shipped promptly, delivery times may vary</li>
+            <li>Customers are responsible for providing an accurate delivery address</li>
+            <li>GreenGuard USA is not responsible for packages lost due to incorrect address details</li>
+            <li>CO₂ service deliveries are made by our Austin-area EV fleet</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- CTA -->
+  <div class="fq-cta">
+    <div class="fq-cta-inner">
+      <h2>Still have <span>questions?</span></h2>
+      <p>Book a free property assessment and we'll walk your yard, answer every question in person, and recommend the right solution, at no cost.</p>
+      <div class="fq-cta-btns">
+        <button class="fq-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Book Free Assessment</button>
+        <button class="fq-btn-outline" onclick="window.open('https://www.greenguard-usa.com/contact','_blank')">Contact Us</button>
+      </div>
+      <div class="fq-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
+    </div>
+  </div>
+  <!-- FOOTER -->
+  <div class="fq-footer">
+    <div class="fq-footer-top">
+      <div>
+        <span class="fq-footer-name">Green<span>Guard</span> USA</span>
+        <span class="fq-footer-tagline">Smart. Safe. Effective.</span>
+        <p class="fq-footer-desc">Pesticide-free CO₂ mosquito control serving Austin, Texas. Authorized dealer for Biogents and Mosqitter Grand.</p>
+        <div class="fq-footer-contact">
+          <a href="tel:5125604129">512-560-4129</a><br>
+          <a href="https://www.greenguard-usa.com">greenguard-usa.com</a>
+        </div>
+      </div>
+      <div class="fq-footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a></li>
+          <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a></li>
+          <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
+          <li><a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a></li>
+          <li><a href="https://www.greenguard-usa.com/shop">Shop All Products</a></li>
+        </ul>
+      </div>
+      <div class="fq-footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a></li>
+          <li><a href="https://www.greenguard-usa.com/results">Results</a></li>
+          <li><a href="https://www.greenguard-usa.com/blog">Blog</a></li>
+          <li><a href="https://www.greenguard-usa.com/faq">FAQ</a></li>
+          <li><a href="https://www.greenguard-usa.com/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="fq-footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
+          <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
+          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
+          <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
+          <li><a href="https://www.instagram.com/greenguardusa/">Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="fq-footer-bottom">
+      <span>© 2025 GreenGuard USA · Austin, Texas</span>
+      <div class="fq-eco-badge"><div class="fq-eco-dot"></div>100% Pesticide-Free Service</div>
+    </div>
+  </div>
+</div><!-- end #gg-faq -->
+<script>
+(function() {
+  // Accordion
+  window.fqToggle = function(btn) {
+    var item = btn.closest('.fq-item');
+    var isOpen = item.classList.contains('open');
+    // Close all
+    document.querySelectorAll('#gg-faq .fq-item.open').forEach(function(el) {
+      el.classList.remove('open');
+    });
+    // Open clicked if it wasn't open
+    if (!isOpen) item.classList.add('open');
+  };
+  // Scroll reveal
+  var reveals = document.querySelectorAll('#gg-faq .fq-reveal');
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e, i) {
+      if (e.isIntersecting) {
+        setTimeout(function() { e.target.classList.add('visible'); }, i * 60);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  reveals.forEach(function(el) { obs.observe(el); });
+  // Menu close on outside click
+  document.addEventListener('click', function(e) {
+    var menu = document.querySelector('#gg-faq .gg-menu');
+    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('#gg-faq .gg-hamburger')) {
+      menu.classList.remove('open');
+    }
+  });
+})();
+</script>

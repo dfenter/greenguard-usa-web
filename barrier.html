@@ -1,0 +1,724 @@
+<style>
+/* ── SCOPED RESET ── */
+#gg-barrier, #gg-barrier * {
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased;
+}
+#gg-barrier h1, #gg-barrier h2, #gg-barrier h3, #gg-barrier h4,
+#gg-barrier p, #gg-barrier ul, #gg-barrier li, #gg-barrier div,
+#gg-barrier span, #gg-barrier button, #gg-barrier a {
+  font-family: 'Nunito Sans', sans-serif !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+}
+#gg-barrier ul { list-style: none !important; }
+/* ── FONT FORCE ── */
+#gg-barrier h1,#gg-barrier h2,#gg-barrier h3,#gg-barrier h4,#gg-barrier h5,#gg-barrier h6 { font-family: 'Nunito Sans', sans-serif !important; }
+#gg-barrier a { text-decoration: none !important; }
+/* ── WRAPPER ── */
+#gg-barrier {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  background: #1a2e1f !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+}
+/* ── NAV ── */
+#gg-barrier .gg-nav { position: sticky !important; top: 0 !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
+#gg-barrier .gg-nav-inner { max-width: 1100px !important; margin: 0 auto !important; display: flex !important; align-items: center !important; justify-content: space-between !important; }
+#gg-barrier .gg-logo { font-weight: 900 !important; color: #fff !important; letter-spacing: -0.02em !important; font-size: 1.1rem !important; }
+#gg-barrier .gg-logo span { color: #7dffaa !important; }
+#gg-barrier .gg-hamburger { width: 34px !important; height: 28px !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; cursor: pointer !important; }
+#gg-barrier .gg-hamburger span { height: 3px !important; width: 100% !important; background: #c9a84c !important; border-radius: 2px !important; }
+#gg-barrier .gg-menu { position: fixed !important; top: 0 !important; right: -100% !important; width: 260px !important; height: 100vh !important; background: #0d1a10 !important; border-left: 1px solid rgba(122,171,130,0.2) !important; padding: 80px 24px !important; transition: right 0.3s ease !important; z-index: 10000 !important; }
+#gg-barrier .gg-menu.open { right: 0 !important; }
+#gg-barrier .gg-menu a { display: block !important; padding: 14px 0 !important; color: #d4e6ca !important; font-weight: 700 !important; border-bottom: 1px solid rgba(122,171,130,0.15) !important; font-size: 0.95rem !important; }
+#gg-barrier .gg-menu a:hover { color: #7dffaa !important; }
+#gg-barrier .gg-menu-group {
+  display: block !important;
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: rgba(201,168,76,0.6) !important;
+  padding: 20px 0 4px !important;
+  margin-top: 4px !important;
+}
+#gg-barrier .gg-menu-close { position: absolute !important; top: 18px !important; right: 18px !important; font-size: 22px !important; color: #c9a84c !important; cursor: pointer !important; }
+/* ── BUTTONS ── */
+#gg-barrier .br-btn-gold {
+  background: #c9a84c !important;
+  color: #0d1a10 !important;
+  font-family: 'Nunito Sans', sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  padding: 15px 36px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 24px rgba(201,168,76,0.25) !important;
+  transition: background 0.2s, transform 0.15s !important;
+  letter-spacing: 0.02em !important;
+}
+#gg-barrier .br-btn-gold:hover { background: #e8d08a !important; transform: translateY(-2px) !important; }
+/* ── HERO ── */
+#gg-barrier .br-hero {
+  background: linear-gradient(135deg, #0d1a10 0%, #1a2e1f 60%, #2d4a32 100%) !important;
+  padding: 96px 48px 104px !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+#gg-barrier .br-hero::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -200px !important; right: -200px !important;
+  width: 700px !important; height: 700px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(201,168,76,0.05) !important;
+  pointer-events: none !important;
+}
+#gg-barrier .br-hero-inner {
+  max-width: 780px !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+#gg-barrier .br-tag {
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  color: #c9a84c !important;
+  display: block !important;
+  margin-bottom: 20px !important;
+}
+#gg-barrier .br-h1 {
+  font-size: clamp(2.6rem, 5.5vw, 4.2rem) !important;
+  font-weight: 900 !important;
+  line-height: 1.08 !important;
+  color: #ffffff !important;
+  margin-bottom: 24px !important;
+  letter-spacing: -0.03em !important;
+}
+#gg-barrier .br-h1 span { color: #7aab82 !important; }
+#gg-barrier .br-hero-p {
+  font-size: 1.15rem !important;
+  color: rgba(212,230,202,0.72) !important;
+  line-height: 1.8 !important;
+  margin-bottom: 20px !important;
+  max-width: 620px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+#gg-barrier .br-hero-sub {
+  font-size: 0.9rem !important;
+  color: rgba(212,230,202,0.48) !important;
+  line-height: 1.7 !important;
+  margin-bottom: 40px !important;
+  max-width: 520px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+#gg-barrier .br-hero-btns {
+  display: flex !important;
+  gap: 14px !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 48px !important;
+}
+#gg-barrier .br-hero-stats {
+  display: flex !important;
+  gap: 0 !important;
+  justify-content: center !important;
+  border: 1px solid rgba(122,171,130,0.18) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  max-width: 560px !important;
+  margin: 0 auto !important;
+}
+#gg-barrier .br-stat {
+  flex: 1 !important;
+  padding: 20px 16px !important;
+  text-align: center !important;
+  border-right: 1px solid rgba(122,171,130,0.18) !important;
+  background: rgba(45,74,50,0.3) !important;
+}
+#gg-barrier .br-stat:last-child { border-right: none !important; }
+#gg-barrier .br-stat .num {
+  font-size: 1.6rem !important;
+  font-weight: 900 !important;
+  color: #c9a84c !important;
+  line-height: 1 !important;
+  display: block !important;
+  margin-bottom: 5px !important;
+}
+#gg-barrier .br-stat .lbl {
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  color: rgba(212,230,202,0.5) !important;
+  line-height: 1.4 !important;
+  display: block !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+/* ── TRUST BAR ── */
+#gg-barrier .br-trust {
+  background: #2d4a32 !important;
+  border-bottom: 1px solid rgba(122,171,130,0.2) !important;
+  padding: 14px 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 32px !important;
+  flex-wrap: wrap !important;
+}
+#gg-barrier .br-trust-item {
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: #a8edc0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+#gg-barrier .br-trust-item::before { content: '+' !important; color: #c9a84c !important; font-weight: 900 !important; }
+/* ── SHARED SECTIONS ── */
+#gg-barrier .br-section { padding: 88px 48px !important; background: #1a2e1f !important; }
+#gg-barrier .br-section-alt { background: #111c13 !important; }
+#gg-barrier .br-inner { max-width: 1100px !important; margin: 0 auto !important; }
+#gg-barrier .br-stag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 10px !important; }
+#gg-barrier .br-h2 { font-size: clamp(2rem, 3.5vw, 3rem) !important; font-weight: 900 !important; line-height: 1.12 !important; color: #ffffff !important; margin-bottom: 16px !important; letter-spacing: -0.02em !important; }
+#gg-barrier .br-h2 span { color: #7aab82 !important; }
+#gg-barrier .br-sub { font-size: 1.05rem !important; color: rgba(212,230,202,0.7) !important; line-height: 1.78 !important; max-width: 640px !important; }
+/* ── HOW IT WORKS ── */
+#gg-barrier .br-how-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 64px !important;
+  align-items: center !important;
+  margin-top: 52px !important;
+}
+#gg-barrier .br-how-steps { display: flex !important; flex-direction: column !important; gap: 0 !important; }
+#gg-barrier .br-step {
+  display: grid !important;
+  grid-template-columns: 52px 1fr !important;
+  gap: 20px !important;
+  padding: 28px 0 !important;
+  border-bottom: 1px solid rgba(122,171,130,0.12) !important;
+  align-items: start !important;
+}
+#gg-barrier .br-step:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+#gg-barrier .br-step-line {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+#gg-barrier .br-step-circle {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: rgba(201,168,76,0.12) !important;
+  border: 1px solid rgba(201,168,76,0.35) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.85rem !important;
+  font-weight: 900 !important;
+  color: #c9a84c !important;
+  flex-shrink: 0 !important;
+}
+#gg-barrier .br-step h3 { font-size: 1rem !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 8px !important; }
+#gg-barrier .br-step p { font-size: 0.9rem !important; line-height: 1.75 !important; color: rgba(212,230,202,0.68) !important; }
+#gg-barrier .br-how-callout {
+  background: rgba(13,26,16,0.7) !important;
+  border: 1px solid rgba(201,168,76,0.25) !important;
+  border-radius: 12px !important;
+  padding: 36px 32px !important;
+}
+#gg-barrier .br-how-callout h3 {
+  font-size: 1.2rem !important;
+  font-weight: 900 !important;
+  color: #ffffff !important;
+  margin-bottom: 16px !important;
+  line-height: 1.3 !important;
+}
+#gg-barrier .br-how-callout p {
+  font-size: 0.95rem !important;
+  line-height: 1.82 !important;
+  color: rgba(212,230,202,0.72) !important;
+  margin-bottom: 20px !important;
+}
+#gg-barrier .br-how-callout p:last-child { margin-bottom: 0 !important; }
+#gg-barrier .br-how-callout strong { color: #c9a84c !important; font-weight: 800 !important; }
+/* ── CO2 CUSTOMERS ONLY ── */
+#gg-barrier .br-exclusive-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 64px !important;
+  align-items: center !important;
+}
+#gg-barrier .br-exclusive-body p {
+  font-size: 1rem !important;
+  line-height: 1.82 !important;
+  color: rgba(212,230,202,0.75) !important;
+  margin-bottom: 20px !important;
+}
+#gg-barrier .br-exclusive-body p:last-child { margin-bottom: 0 !important; }
+#gg-barrier .br-exclusive-body strong { color: #c9a84c !important; font-weight: 800 !important; }
+#gg-barrier .br-exclusive-card {
+  background: rgba(45,74,50,0.35) !important;
+  border: 1px solid rgba(122,171,130,0.2) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+#gg-barrier .br-exclusive-top {
+  background: linear-gradient(135deg, #0d1a10, #2d4a32) !important;
+  padding: 28px 28px 24px !important;
+  border-bottom: 1px solid rgba(122,171,130,0.18) !important;
+}
+#gg-barrier .br-exclusive-top .badge {
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: #c9a84c !important;
+  border: 1px solid rgba(201,168,76,0.4) !important;
+  padding: 4px 10px !important;
+  border-radius: 100px !important;
+  display: inline-block !important;
+  margin-bottom: 14px !important;
+}
+#gg-barrier .br-exclusive-top h3 {
+  font-size: 1.3rem !important;
+  font-weight: 900 !important;
+  color: #ffffff !important;
+  margin-bottom: 6px !important;
+  line-height: 1.2 !important;
+}
+#gg-barrier .br-exclusive-top p {
+  font-size: 0.85rem !important;
+  color: rgba(212,230,202,0.55) !important;
+  line-height: 1.6 !important;
+}
+#gg-barrier .br-exclusive-bottom { padding: 24px 28px !important; }
+#gg-barrier .br-exclusive-rows { display: flex !important; flex-direction: column !important; gap: 0 !important; }
+#gg-barrier .br-exclusive-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 12px 0 !important;
+  border-bottom: 1px solid rgba(122,171,130,0.1) !important;
+  font-size: 0.88rem !important;
+}
+#gg-barrier .br-exclusive-row:last-child { border-bottom: none !important; }
+#gg-barrier .br-exclusive-row .key { color: rgba(212,230,202,0.65) !important; font-weight: 600 !important; }
+#gg-barrier .br-exclusive-row .val { color: #ffffff !important; font-weight: 800 !important; }
+#gg-barrier .br-exclusive-row .val.gold { color: #c9a84c !important; }
+#gg-barrier .br-exclusive-cta { padding: 0 28px 24px !important; }
+/* ── FAQ ── */
+#gg-barrier .br-faq { display: flex !important; flex-direction: column !important; gap: 8px !important; margin-top: 52px !important; }
+#gg-barrier .br-faq-item { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 10px !important; overflow: hidden !important; transition: border-color 0.2s !important; }
+#gg-barrier .br-faq-item.open { border-color: rgba(201,168,76,0.35) !important; }
+#gg-barrier .br-faq-q { width: 100% !important; background: transparent !important; border: none !important; padding: 20px 24px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 16px !important; cursor: pointer !important; text-align: left !important; font-family: 'Nunito Sans', sans-serif !important; }
+#gg-barrier .br-faq-q:hover { background: rgba(45,74,50,0.4) !important; }
+#gg-barrier .br-faq-q-text { font-size: 0.97rem !important; font-weight: 800 !important; color: #ffffff !important; flex: 1 !important; line-height: 1.4 !important; }
+#gg-barrier .br-faq-item.open .br-faq-q-text { color: #c9a84c !important; }
+#gg-barrier .br-faq-chevron { width: 24px !important; height: 24px !important; border-radius: 50% !important; background: rgba(122,171,130,0.15) !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; font-size: 0.75rem !important; color: #7aab82 !important; transition: transform 0.3s, background 0.2s !important; }
+#gg-barrier .br-faq-item.open .br-faq-chevron { transform: rotate(180deg) !important; background: rgba(201,168,76,0.2) !important; color: #c9a84c !important; }
+#gg-barrier .br-faq-answer { max-height: 0 !important; overflow: hidden !important; transition: max-height 0.35s ease !important; }
+#gg-barrier .br-faq-item.open .br-faq-answer { max-height: 400px !important; }
+#gg-barrier .br-faq-answer-inner { padding: 0 24px 22px !important; border-top: 1px solid rgba(122,171,130,0.12) !important; padding-top: 18px !important; }
+#gg-barrier .br-faq-answer-inner p { font-size: 0.93rem !important; line-height: 1.78 !important; color: rgba(212,230,202,0.75) !important; }
+/* ── CTA ── */
+#gg-barrier .br-cta {
+  background: linear-gradient(135deg, #0a1a0d, #1a2e1f 50%, #0e1d12) !important;
+  border-top: 1px solid rgba(201,168,76,0.2) !important;
+  padding: 104px 48px !important;
+  text-align: center !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+#gg-barrier .br-cta::before {
+  content: '' !important;
+  position: absolute !important; top: 50% !important; left: 50% !important;
+  transform: translate(-50%,-50%) !important;
+  width: 700px !important; height: 700px !important; border-radius: 50% !important;
+  border: 1px solid rgba(201,168,76,0.06) !important; pointer-events: none !important;
+}
+#gg-barrier .br-cta-inner { position: relative !important; z-index: 2 !important; max-width: 620px !important; margin: 0 auto !important; }
+#gg-barrier .br-cta h2 { font-size: clamp(2.2rem, 4.5vw, 3.6rem) !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 18px !important; letter-spacing: -0.02em !important; line-height: 1.08 !important; }
+#gg-barrier .br-cta h2 span { color: #c9a84c !important; }
+#gg-barrier .br-cta p { font-size: 1.05rem !important; color: rgba(212,230,202,0.68) !important; line-height: 1.78 !important; margin-bottom: 44px !important; }
+#gg-barrier .br-cta-btns { display: flex !important; gap: 14px !important; justify-content: center !important; flex-wrap: wrap !important; }
+#gg-barrier .br-cta-note { margin-top: 20px !important; font-size: 0.78rem !important; font-weight: 600 !important; color: rgba(212,230,202,0.32) !important; }
+#gg-barrier .br-cta-note a { color: #c9a84c !important; }
+/* ── FOOTER ── */
+#gg-barrier .br-footer { background: #080f09 !important; border-top: 1px solid rgba(122,171,130,0.1) !important; padding: 64px 48px 36px !important; }
+#gg-barrier .br-footer-top { display: grid !important; grid-template-columns: 1.6fr 1fr 1fr 1fr !important; gap: 48px !important; padding-bottom: 48px !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; max-width: 1100px !important; margin: 0 auto !important; }
+#gg-barrier .br-footer-name { font-size: 1.1rem !important; font-weight: 900 !important; color: #ffffff !important; display: block !important; margin-bottom: 4px !important; }
+#gg-barrier .br-footer-name span { color: #7dffaa !important; }
+#gg-barrier .br-footer-tagline { font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; margin-bottom: 14px !important; display: block !important; }
+#gg-barrier .br-footer-desc { font-size: 0.87rem !important; color: rgba(255,255,255,0.42) !important; line-height: 1.7 !important; margin-bottom: 14px !important; }
+#gg-barrier .br-footer-contact { font-size: 0.87rem !important; color: rgba(255,255,255,0.45) !important; line-height: 1.8 !important; }
+#gg-barrier .br-footer-contact a { color: #7dffaa !important; }
+#gg-barrier .br-footer-col h4 { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.35) !important; margin-bottom: 16px !important; }
+#gg-barrier .br-footer-col ul { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#gg-barrier .br-footer-col a { font-size: 0.87rem !important; color: rgba(255,255,255,0.55) !important; transition: color 0.2s !important; }
+#gg-barrier .br-footer-col a:hover { color: #7dffaa !important; }
+#gg-barrier .br-footer-bottom { max-width: 1100px !important; margin: 32px auto 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 12px !important; }
+#gg-barrier .br-footer-bottom span { font-size: 0.74rem !important; color: rgba(255,255,255,0.2) !important; }
+#gg-barrier .br-eco-badge { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; }
+#gg-barrier .br-eco-dot { width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7dffaa !important; display: inline-block !important; }
+/* ── REVEAL ── */
+#gg-barrier .br-reveal { opacity: 0 !important; transform: translateY(22px) !important; transition: opacity 0.7s ease, transform 0.7s ease !important; }
+#gg-barrier .br-reveal.visible { opacity: 1 !important; transform: translateY(0) !important; }
+/* ── MOBILE ── */
+@media (max-width: 860px) {
+  #gg-barrier .br-hero { padding: 64px 20px 72px !important; }
+  #gg-barrier .br-trust { padding: 14px 20px !important; gap: 16px !important; }
+  #gg-barrier .br-section { padding: 60px 20px !important; }
+  #gg-barrier .br-how-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  #gg-barrier .br-exclusive-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  #gg-barrier .br-hero-stats { flex-direction: column !important; border-radius: 10px !important; }
+  #gg-barrier .br-stat { border-right: none !important; border-bottom: 1px solid rgba(122,171,130,0.18) !important; }
+  #gg-barrier .br-stat:last-child { border-bottom: none !important; }
+  #gg-barrier .br-cta { padding: 64px 20px !important; }
+  #gg-barrier .br-footer { padding: 48px 20px 28px !important; }
+  #gg-barrier .br-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<div id="gg-barrier">
+  <!-- NAV -->
+  <div class="gg-nav">
+    <div class="gg-nav-inner">
+      <div class="gg-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-hamburger" onclick="document.querySelector('#gg-barrier .gg-menu').classList.add('open')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+  <div class="gg-menu">
+  <div class="gg-menu-close" onclick="document.querySelector('#gg-barrier .gg-menu').classList.remove('open')">X</div>
+  <span class="gg-menu-group">Services</span>
+  <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a>
+  <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+  <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+  <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+  <!-- <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a> -->
+  <span class="gg-menu-group">Shop</span>
+  <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+  <span class="gg-menu-group">Learn</span>
+  <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+  <a href="https://www.greenguard-usa.com/results">Results</a>
+  <a href="https://www.greenguard-usa.com/blog">Blog</a>
+  <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+  <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+  <span class="gg-menu-group">Company</span>
+  <a href="https://www.greenguard-usa.com/about">About Us</a>
+  <a href="https://www.greenguard-usa.com/contact">Contact</a>
+  <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+  <span class="gg-menu-group">Book</span>
+  <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+</div>
+  <!-- HERO -->
+  <div class="br-hero">
+    <div class="br-hero-inner br-reveal">
+      <span class="br-tag">GreenGuard USA -- Austin, Texas -- CO2 Trap Customers Only</span>
+      <h1 class="br-h1">The barrier that works <span>with your trap.</span></h1>
+      <p class="br-hero-p">Our plant-based barrier treatment masks the human scent signals mosquitoes use to locate people. With those signals removed, your CO2 trap becomes the dominant attractant in the area -- driving mosquitoes into capture rather than into your yard.</p>
+      <p class="br-hero-sub">Available exclusively to GreenGuard USA CO2 trap customers. $49.99 per treatment. No contracts.</p>
+      <div class="br-hero-btns">
+        <button class="br-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
+      </div>
+      <div class="br-hero-stats">
+        <div class="br-stat">
+          <span class="num">$49.99</span>
+          <span class="lbl">Per Treatment</span>
+        </div>
+        <div class="br-stat">
+          <span class="num">28 Days</span>
+          <span class="lbl">Protection Per Visit</span>
+        </div>
+        <div class="br-stat">
+          <span class="num">Zero</span>
+          <span class="lbl">Pesticides Used</span>
+        </div>
+        <div class="br-stat">
+          <span class="num">CO2</span>
+          <span class="lbl">Trap Required</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- TRUST BAR -->
+  <div class="br-trust">
+    <div class="br-trust-item">100% Pesticide-Free</div>
+    <div class="br-trust-item">Safe for Kids, Pets and Bees</div>
+    <div class="br-trust-item">Plant-Based Formula</div>
+    <div class="br-trust-item">CO2 Trap Customers Only</div>
+    <div class="br-trust-item">No Contracts</div>
+  </div>
+  <!-- HOW IT WORKS -->
+  <div class="br-section" id="br-how">
+    <div class="br-inner">
+      <div class="br-reveal">
+        <span class="br-stag">The Mechanism</span>
+        <h2 class="br-h2">How the barrier and trap<span> work as one system</span></h2>
+        <p class="br-sub">The barrier treatment is not a standalone product. It is engineered to amplify the performance of your CO2 trap by removing the competing signal that draws mosquitoes toward people.</p>
+      </div>
+      <div class="br-how-grid">
+        <div class="br-how-steps br-reveal">
+          <div class="br-step">
+            <div class="br-step-line">
+              <div class="br-step-circle">1</div>
+            </div>
+            <div>
+              <h3>Property Inspection</h3>
+              <p>Our technician maps mosquito pressure zones across your property, identifies resting areas and vegetation corridors, and confirms your CO2 trap placement. This determines exactly where to apply the barrier for maximum effect.</p>
+            </div>
+          </div>
+          <div class="br-step">
+            <div class="br-step-line">
+              <div class="br-step-circle">2</div>
+            </div>
+            <div>
+              <h3>Scent Masking Application</h3>
+              <p>We apply our plant-based essential oil formula around the perimeter of your property and key resting zones. The formula masks the human scent compounds mosquitoes rely on to locate hosts, effectively cloaking your outdoor living areas.</p>
+            </div>
+          </div>
+          <div class="br-step">
+            <div class="br-step-line">
+              <div class="br-step-circle">3</div>
+            </div>
+            <div>
+              <h3>Mosquitoes Redirected to the Trap</h3>
+              <p>With human scent masked across the property, your CO2 trap becomes the strongest attractant signal in the area. Mosquitoes that would otherwise target people are drawn toward the trap, captured, and removed from the breeding population continuously.</p>
+            </div>
+          </div>
+        </div>
+        <div class="br-how-callout br-reveal">
+          <h3>Why human scent masking changes everything</h3>
+          <p>A CO2 trap competes with the people in your yard. Both emit CO2. Both emit heat and scent compounds. Mosquitoes respond to whichever signal is strongest -- and a person standing nearby often wins that competition.</p>
+          <p>The barrier removes your scent from the equation entirely. <strong>Your CO2 trap is no longer competing -- it is the only game in town.</strong> Every mosquito that enters your property follows the CO2 plume directly into capture rather than toward your family.</p>
+          <p>The result is a measurably higher capture rate from your existing trap, and significantly less biting activity in the areas where you actually spend time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- CO2 CUSTOMERS ONLY -->
+  <div class="br-section br-section-alt">
+    <div class="br-inner">
+      <div class="br-exclusive-grid">
+        <div class="br-exclusive-body br-reveal">
+          <span class="br-stag">Why CO2 Trap Customers Only</span>
+          <h2 class="br-h2" style="margin-bottom:28px">The barrier needs<span> a trap to work</span></h2>
+          <p>The barrier treatment works by redirecting mosquitoes -- it does not eliminate them on its own. Without a CO2 trap present, masking human scent simply disperses mosquitoes around the property rather than capturing them. The treatment is only effective as part of a complete system.</p>
+          <p>If you do not yet have a CO2 trap installed, the right first step is a free property assessment. We will walk your yard, recommend the right trap for your property size, and discuss how the barrier treatment fits into your complete mosquito control plan.</p>
+          <p>Existing GreenGuard USA CO2 trap customers can add the barrier treatment to their service at any time by booking through the assessment link below.</p>
+        </div>
+        <div class="br-exclusive-card br-reveal">
+          <div class="br-exclusive-top">
+            <span class="badge">CO2 Trap Add-On</span>
+            <h3>Barrier Treatment</h3>
+            <p>Available to GreenGuard USA CO2 trap customers. Book through your property assessment.</p>
+          </div>
+          <div class="br-exclusive-bottom">
+            <div class="br-exclusive-rows">
+              <div class="br-exclusive-row">
+                <span class="key">Price per treatment</span>
+                <span class="val gold">$49.99</span>
+              </div>
+              <div class="br-exclusive-row">
+                <span class="key">Protection duration</span>
+                <span class="val">Up to 28 days</span>
+              </div>
+              <div class="br-exclusive-row">
+                <span class="key">Recurring option</span>
+                <span class="val">Every 4 weeks</span>
+              </div>
+              <div class="br-exclusive-row">
+                <span class="key">Formula</span>
+                <span class="val">Plant-based essential oils</span>
+              </div>
+              <div class="br-exclusive-row">
+                <span class="key">Pesticides</span>
+                <span class="val">None</span>
+              </div>
+              <div class="br-exclusive-row">
+                <span class="key">Contract required</span>
+                <span class="val">None</span>
+              </div>
+              <div class="br-exclusive-row">
+                <span class="key">CO2 trap required</span>
+                <span class="val">Yes</span>
+              </div>
+            </div>
+          </div>
+          <div class="br-exclusive-cta">
+            <button class="br-btn-gold" style="width:100%" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- FAQ -->
+  <div class="br-section">
+    <div class="br-inner">
+      <div class="br-reveal">
+        <span class="br-stag">Common Questions</span>
+        <h2 class="br-h2">Barrier treatment <span>FAQ</span></h2>
+      </div>
+      <div class="br-faq br-reveal">
+        <div class="br-faq-item">
+          <button class="br-faq-q" onclick="brToggle(this)">
+            <span class="br-faq-q-text">Is the treatment safe for kids, pets, and bees?</span>
+            <span class="br-faq-chevron">v</span>
+          </button>
+          <div class="br-faq-answer"><div class="br-faq-answer-inner">
+            <p>Yes. The formula is entirely plant-based and free of synthetic pesticides. Children and pets can access treated areas on the same day as application with no waiting period required. The formula does not affect bees or pollinators -- it is specifically designed to target the scent signals mosquitoes use to locate hosts, which bees and other beneficial insects do not respond to.</p>
+          </div></div>
+        </div>
+        <div class="br-faq-item">
+          <button class="br-faq-q" onclick="brToggle(this)">
+            <span class="br-faq-q-text">Why is the barrier only available to CO2 trap customers?</span>
+            <span class="br-faq-chevron">v</span>
+          </button>
+          <div class="br-faq-answer"><div class="br-faq-answer-inner">
+            <p>The barrier masks human scent to redirect mosquitoes toward your CO2 trap. Without a trap present, the barrier disperses mosquitoes around the property rather than eliminating them. The two systems are designed to work together -- the barrier removes the competing signal, and the trap captures the mosquitoes that get redirected. Offering the barrier without a trap in place would not produce meaningful results for the customer.</p>
+          </div></div>
+        </div>
+        <div class="br-faq-item">
+          <button class="br-faq-q" onclick="brToggle(this)">
+            <span class="br-faq-q-text">How long does each treatment last?</span>
+            <span class="br-faq-chevron">v</span>
+          </button>
+          <div class="br-faq-answer"><div class="br-faq-answer-inner">
+            <p>Each treatment provides up to 28 days of protection under normal conditions. Heavy rain can reduce the effective window. We recommend scheduling recurring treatments every 4 weeks during Austin's mosquito season, which typically runs from March through November.</p>
+          </div></div>
+        </div>
+        <div class="br-faq-item">
+          <button class="br-faq-q" onclick="brToggle(this)">
+            <span class="br-faq-q-text">How is this different from a traditional mosquito spray service?</span>
+            <span class="br-faq-chevron">v</span>
+          </button>
+          <div class="br-faq-answer"><div class="br-faq-answer-inner">
+            <p>Traditional spray services apply synthetic pyrethroid insecticides across your entire yard. These chemicals are toxic to bees and pollinators, require re-entry waiting periods, and leave residue on surfaces. Our treatment uses only plant-derived essential oils applied to targeted zones, with no chemical residue, no pollinator risk, and no waiting period before your family can use the yard.</p>
+          </div></div>
+        </div>
+        <div class="br-faq-item">
+          <button class="br-faq-q" onclick="brToggle(this)">
+            <span class="br-faq-q-text">Do I need to be home for the treatment?</span>
+            <span class="br-faq-chevron">v</span>
+          </button>
+          <div class="br-faq-answer"><div class="br-faq-answer-inner">
+            <p>No. As long as your yard is accessible, our technician can complete the treatment without you being present. We will notify you when the service is complete. Most customers leave a gate unlocked on treatment day and resume normal use of the yard the same afternoon.</p>
+          </div></div>
+        </div>
+        <div class="br-faq-item">
+          <button class="br-faq-q" onclick="brToggle(this)">
+            <span class="br-faq-q-text">Is there a contract for recurring barrier treatment?</span>
+            <span class="br-faq-chevron">v</span>
+          </button>
+          <div class="br-faq-answer"><div class="br-faq-answer-inner">
+            <p>No. Like all GreenGuard USA services, the barrier treatment is month-to-month with no long-term commitment. You can book a single treatment or set up a recurring schedule and cancel or pause at any time with 48 hours notice.</p>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- CTA -->
+  <div class="br-cta">
+    <div class="br-cta-inner">
+      <span class="br-stag" style="display:block;margin-bottom:16px">CO2 Trap Customers -- Austin TX -- No Contracts</span>
+      <h2>Ready to amplify<span> your trap?</span></h2>
+      <p>Book a free property assessment and we will walk your yard, confirm your trap placement, and discuss adding the barrier treatment to your service plan.</p>
+      <div class="br-cta-btns">
+        <button class="br-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
+      </div>
+      <div class="br-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
+    </div>
+  </div>
+  <!-- FOOTER -->
+  <div class="br-footer">
+    <div class="br-footer-top">
+      <div>
+        <span class="br-footer-name">Green<span>Guard</span> USA</span>
+        <span class="br-footer-tagline">Smart. Safe. Effective.</span>
+        <p class="br-footer-desc">Pesticide-free CO2 mosquito control serving Austin, Texas. Barrier treatments, CO2 trap installation, monthly delivery, and full-service rentals.</p>
+        <div class="br-footer-contact">
+          <a href="tel:5125604129">512-560-4129</a><br>
+          <a href="https://www.greenguard-usa.com">greenguard-usa.com</a>
+        </div>
+      </div>
+      <div class="br-footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a></li>
+          <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a></li>
+          <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
+          <li><a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a></li>
+          <li><a href="https://www.greenguard-usa.com/shop">Shop All Products</a></li>
+        </ul>
+      </div>
+      <div class="br-footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a></li>
+          <li><a href="https://www.greenguard-usa.com/results">Results</a></li>
+          <li><a href="https://www.greenguard-usa.com/blog">Blog</a></li>
+          <li><a href="https://www.greenguard-usa.com/faq">FAQ</a></li>
+          <li><a href="https://www.greenguard-usa.com/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="br-footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
+          <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
+          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
+          <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
+          <li><a href="https://www.instagram.com/greenguardusa/">Instagram</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="br-footer-bottom">
+      <span>2025 GreenGuard USA · Austin, Texas</span>
+      <div class="br-eco-badge"><div class="br-eco-dot"></div>100% Pesticide-Free Service</div>
+    </div>
+  </div>
+</div><!-- end #gg-barrier -->
+<script>
+(function() {
+  window.brToggle = function(btn) {
+    var item = btn.closest('.br-faq-item');
+    var isOpen = item.classList.contains('open');
+    document.querySelectorAll('#gg-barrier .br-faq-item.open').forEach(function(el) {
+      el.classList.remove('open');
+    });
+    if (!isOpen) item.classList.add('open');
+  };
+  var reveals = document.querySelectorAll('#gg-barrier .br-reveal');
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e, i) {
+      if (e.isIntersecting) {
+        setTimeout(function() { e.target.classList.add('visible'); }, i * 70);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  reveals.forEach(function(el) { obs.observe(el); });
+  document.addEventListener('click', function(e) {
+    var menu = document.querySelector('#gg-barrier .gg-menu');
+    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('#gg-barrier .gg-hamburger')) {
+      menu.classList.remove('open');
+    }
+  });
+})();
+</script>
