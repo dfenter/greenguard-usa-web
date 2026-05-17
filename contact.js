@@ -1,20 +1,15 @@
 (function(){
-  var url='https://greenguard-usa.github.io/greenguard-usa-web/contact.html?v='+Date.now();
-  fetch(url).then(function(r){return r.text();}).then(function(html){
-    var parser=new DOMParser();
-    var doc=parser.parseFromString(html,'text/html');
-    doc.querySelectorAll('style,link').forEach(function(el){
-      document.head.appendChild(document.importNode(el,true));
-    });
-    var frag=document.createDocumentFragment();
-    Array.from(doc.body.childNodes).forEach(function(el){
-      frag.appendChild(document.importNode(el,true));
-    });
-    document.body.appendChild(frag);
-    document.body.querySelectorAll('script').forEach(function(s){
-      var ns=document.createElement('script');
-      ns.textContent=s.textContent;
-      s.parentNode.replaceChild(ns,s);
-    });
-  }).catch(function(e){console.error('GreenGuard load error:',e);});
+  var x=new XMLHttpRequest();
+  x.open('GET','https://greenguard-usa.github.io/greenguard-usa-web/contact.html?v='+Date.now(),false);
+  x.send();
+  if(x.status===200){
+    var d=document.createElement('div');
+    d.innerHTML=x.responseText;
+    var h=d.querySelector('style');
+    var l=d.querySelector('link');
+    var b=d.querySelector('body')||d;
+    if(h)document.head.appendChild(h);
+    if(l)document.head.appendChild(l);
+    document.write(b.innerHTML);
+  }
 })();
