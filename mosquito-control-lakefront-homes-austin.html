@@ -1,0 +1,136 @@
+<style>
+#gg-sci-d,#gg-sci-d *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+#gg-sci-d h1,#gg-sci-d h2,#gg-sci-d h3,#gg-sci-d h4,#gg-sci-d p,#gg-sci-d ul,#gg-sci-d li,#gg-sci-d div,#gg-sci-d span,#gg-sci-d a,#gg-sci-d button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
+#gg-sci-d ul{list-style:none}#gg-sci-d a{text-decoration:none}
+#gg-sci-d{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
+#gg-sci-d .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-sci-d .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+#gg-sci-d .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
+#gg-sci-d .gg-logo span{color:#7dffaa}
+#gg-sci-d .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
+#gg-sci-d .gg-hamburger span{height:3px;width:100%;background:#c9a84c;border-radius:2px}
+#gg-sci-d .gg-drawer{position:fixed;top:0;right:-100%;width:280px;height:100%;background:#0a1a0d;z-index:10000;padding:60px 26px 26px;display:flex;flex-direction:column;gap:5px;transition:right .28s ease;overflow-y:auto}
+#gg-sci-d .gg-drawer.open{right:0}
+#gg-sci-d .gg-drawer-close{position:absolute;top:18px;right:18px;background:none;border:none;color:#7dffaa;font-size:1.1rem;cursor:pointer}
+#gg-sci-d .gg-group{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(201,232,209,.45);margin-top:14px;padding-bottom:4px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-sci-d .gg-drawer a{color:rgba(201,232,209,.8);font-size:.92rem;padding:5px 0;border-bottom:1px solid rgba(122,171,130,.07);transition:color .2s}
+#gg-sci-d .gg-drawer a:hover{color:#7dffaa}
+#gg-sci-d .gg-footer{background:#080f09;padding:50px 20px 20px}
+#gg-sci-d .gg-footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-sci-d .gg-footer-logo{font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px}
+#gg-sci-d .gg-footer-logo span{color:#7dffaa}
+#gg-sci-d .gg-footer-tagline{font-size:.74rem;color:#7dffaa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+#gg-sci-d .gg-footer-desc{font-size:.82rem;color:rgba(201,232,209,.5);line-height:1.6;margin-bottom:10px}
+#gg-sci-d .gg-footer-link{display:block;font-size:.83rem;color:rgba(201,232,209,.65);margin-bottom:4px}
+#gg-sci-d .gg-footer-col-head{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,232,209,.4);margin-bottom:11px;font-weight:700}
+#gg-sci-d .gg-footer-col a{display:block;font-size:.84rem;color:rgba(201,232,209,.6);margin-bottom:7px;transition:color .2s}
+#gg-sci-d .gg-footer-col a:hover{color:#7dffaa}
+#gg-sci-d .gg-footer-bottom{max-width:1100px;margin:16px auto 0;display:flex;justify-content:space-between;align-items:center;font-size:.77rem;color:rgba(201,232,209,.37);flex-wrap:wrap;gap:8px}
+#gg-sci-d .gg-footer-badge{background:rgba(45,74,50,.5);border:1px solid rgba(122,171,130,.18);border-radius:12px;padding:3px 11px;font-size:.69rem;color:rgba(201,232,209,.55)}
+@media(max-width:720px){#gg-sci-d .gg-footer-inner{grid-template-columns:1fr 1fr}}
+#gg-sci-d .gg-hero{background:linear-gradient(135deg,#0d1a10,#1a2e1f 60%,#2d4a32);padding:72px 20px 58px}
+#gg-sci-d .gg-hero-inner{max-width:820px;margin:0 auto}
+#gg-sci-d .gg-badge-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+#gg-sci-d .gg-badge{background:rgba(45,74,50,.7);border:1px solid rgba(122,171,130,.3);border-radius:20px;padding:5px 13px;font-size:.73rem;color:#7dffaa;letter-spacing:.04em}
+#gg-sci-d .gg-h1{font-size:clamp(1.8rem,4vw,2.75rem);font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px}
+#gg-sci-d .gg-h1 span{color:#7dffaa}
+#gg-sci-d .gg-hero-p{font-size:1.05rem;color:rgba(201,232,209,.82);line-height:1.68;margin-bottom:24px}
+#gg-sci-d .gg-facts{display:flex;gap:12px;flex-wrap:wrap}
+#gg-sci-d .gg-fact{background:rgba(45,74,50,.6);border:1px solid rgba(122,171,130,.22);border-radius:10px;padding:14px 18px;flex:1;min-width:120px}
+#gg-sci-d .gg-fact-n{font-size:1.55rem;font-weight:900;color:#7dffaa;letter-spacing:-.02em}
+#gg-sci-d .gg-fact-l{font-size:.74rem;color:rgba(201,232,209,.65);margin-top:3px}
+#gg-sci-d .gg-article{max-width:820px;margin:0 auto;padding:58px 20px}
+#gg-sci-d .gg-sec-h{font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin:0 0 12px}
+#gg-sci-d .gg-sec-h span{color:#7dffaa}
+#gg-sci-d .gg-p{font-size:1rem;color:rgba(201,232,209,.82);line-height:1.76;margin-bottom:15px}
+#gg-sci-d .gg-callout{background:rgba(45,74,50,.4);border-left:3px solid #7dffaa;border-radius:0 10px 10px 0;padding:17px 22px;margin:22px 0}
+#gg-sci-d .gg-callout p{color:rgba(201,232,209,.88);font-size:.96rem;line-height:1.65;margin:0}
+#gg-sci-d .gg-img{width:100%;border-radius:12px;border:1px solid rgba(122,171,130,.15);margin:24px 0;display:block}
+#gg-sci-d .gg-table{width:100%;border-collapse:collapse;margin:22px 0}
+#gg-sci-d .gg-table th{background:rgba(45,74,50,.6);color:#7dffaa;font-size:.8rem;font-weight:700;text-align:left;padding:11px 15px;letter-spacing:.04em;text-transform:uppercase}
+#gg-sci-d .gg-table td{padding:11px 15px;font-size:.91rem;color:rgba(201,232,209,.8);border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-sci-d .gg-table tr:last-child td{border-bottom:none}
+#gg-sci-d .gg-good{color:#7dffaa;font-weight:700}
+#gg-sci-d .gg-bad{color:#ff8a80;font-weight:700}
+#gg-sci-d .gg-divider{height:1px;background:rgba(122,171,130,.14);margin:38px 0}
+#gg-sci-d .gg-related{background:#111c13;padding:48px 20px}
+#gg-sci-d .gg-related-inner{max-width:820px;margin:0 auto}
+#gg-sci-d .gg-related-h{font-size:1.15rem;font-weight:900;color:#fff;margin-bottom:18px}
+#gg-sci-d .gg-related-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px}
+#gg-sci-d .gg-rel-card{background:rgba(45,74,50,.35);border:1px solid rgba(122,171,130,.17);border-radius:12px;padding:19px;transition:border-color .2s;text-decoration:none;display:block}
+#gg-sci-d .gg-rel-card:hover{border-color:rgba(122,171,130,.38)}
+#gg-sci-d .gg-rel-h{font-size:.9rem;font-weight:800;color:#fff;margin-bottom:5px}
+#gg-sci-d .gg-rel-p{font-size:.8rem;color:rgba(201,232,209,.6);line-height:1.5}
+#gg-sci-d .gg-cta{background:linear-gradient(135deg,#0a1a0d,#1a2e1f 50%,#0e1d12);padding:62px 20px;text-align:center}
+#gg-sci-d .gg-cta-inner{max-width:620px;margin:0 auto}
+#gg-sci-d .gg-cta-h{font-size:clamp(1.65rem,3.5vw,2.35rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:13px;line-height:1.2}
+#gg-sci-d .gg-cta-p{font-size:.96rem;color:rgba(201,232,209,.75);margin-bottom:24px;line-height:1.65}
+#gg-sci-d .gg-btn-gold{background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.92rem;padding:13px 26px;border-radius:8px;border:none;cursor:pointer;text-decoration:none;transition:background .2s,transform .15s;display:inline-block}
+#gg-sci-d .gg-btn-gold:hover{background:#e8d08a;transform:translateY(-2px)}
+</style>
+<div id="gg-sci-d">
+  <div class="gg-nav"><div class="gg-nav-inner">
+    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+    <div class="gg-hamburger" onclick="document.querySelector('#gg-sci-d .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
+  </div></div>
+  <div class="gg-drawer">
+    <button class="gg-drawer-close" onclick="document.querySelector('#gg-sci-d .gg-drawer').classList.remove('open')">&#10005;</button>
+    <span class="gg-group">Services</span>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+    <span class="gg-group">Shop</span>
+    <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+    <span class="gg-group">Learn</span>
+    <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+    <a href="https://www.greenguard-usa.com/results">Results</a><a href="https://www.greenguard-usa.com/blog">Blog</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a><a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+    <span class="gg-group">Company</span>
+    <a href="https://www.greenguard-usa.com/about">About Us</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact</a>
+    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    <span class="gg-group">Book</span>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+  </div>
+  <div class="gg-hero"><div class="gg-hero-inner">
+    <div class="gg-badge-row"><span class="gg-badge">GreenGuard USA</span><span class="gg-badge">Lakefront Guide</span></div>
+    <h1 class="gg-h1">Mosquito Control for <span>Lakefront Homes</span> in Austin</h1>
+    <p class="gg-hero-p">How to manage the elevated mosquito pressure that comes with Austin waterfront living — Lake Travis, Lake Austin, Lake Georgetown, and Barton Creek properties.</p>
+    <div class="gg-facts"><div class="gg-fact"><div class="gg-fact-n">500 ft</div><div class="gg-fact-l">High-pressure zone from waterline</div></div><div class="gg-fact"><div class="gg-fact-n">2 mi</div><div class="gg-fact-l">Culex travel range</div></div><div class="gg-fact"><div class="gg-fact-n">2 ac</div><div class="gg-fact-l">Grand coverage per unit</div></div></div>
+  </div></div>
+  <div class="gg-article"><h2 class="gg-sec-h">Why Waterfront Properties Are Different</h2><p class="gg-p">Lakefront properties in Austin face a fundamentally different mosquito challenge than standard residential lots. The proximity to water — whether Lake Travis, Lake Austin, Lake Georgetown, Barton Creek, or Town Lake — provides sustained, high-volume breeding habitat that continuously replenishes the local mosquito population regardless of what control measures are applied on the property itself.</p><p class="gg-p">Properties within 500 feet of a shoreline experience the highest sustained mosquito densities in the Austin metro. The challenge is not just the mosquitoes breeding on your property, but the constant pressure from the water's edge that requires ongoing interception.</p><div class="gg-callout"><p>Culex quinquefasciatus — the southern house mosquito dominant near Austin's lakes and slow-moving water — can travel up to 2 miles from its breeding site. Lakefront properties receive pressure from breeding sites well beyond their own boundaries.</p></div><h2 class="gg-sec-h">Austin's Waterfront Mosquito Species</h2><p class="gg-p"><strong style="color:#7dffaa">Culex quinquefasciatus (Southern House Mosquito)</strong> — The dominant species near Austin's lakes and waterways. Breeds in organically enriched standing water: lake margins, boat dock areas, drainage channels, and marina slip water. Active primarily at dawn and dusk, can travel 1-2 miles. Primary vector of West Nile virus in Central Texas.</p><p class="gg-p"><strong style="color:#7dffaa">Aedes aegypti (Tiger Mosquito)</strong> — Also present at lakefront properties due to residential landscaping. Breeds in small containers near structures. Short range (under 200 feet) but extremely aggressive daytime biter.</p><p class="gg-p"><strong style="color:#7dffaa">Aedes albopictus (Asian Tiger Mosquito)</strong> — Found in woodland areas adjacent to lakefront properties. Breeds in tree holes and containers. Range up to 600 feet. Active morning through late afternoon.</p><h2 class="gg-sec-h">Trap Placement for Lakefront Properties</h2><p class="gg-p">The most effective placement for waterfront properties positions the trap between the shoreline and the primary outdoor living or entertainment area. This intercepts mosquitoes on their approach from water breeding sites before they reach your dock, deck, or seating area.</p><p class="gg-p">Recommended positioning for Austin lake properties:</p><p class="gg-p">&#8226; Place 40-60 feet from the water's edge (not at the shore itself)</p><p class="gg-p">&#8226; Orient CO&#8322; emission port facing the water — plume pulls mosquitoes away from structures</p><p class="gg-p">&#8226; Height: 2-3 feet above ground for Biogents, ground-mounted stake for Mosqitter Grand</p><p class="gg-p">&#8226; For properties with over 150 feet of shoreline, a second unit offset at 100-foot intervals improves coverage significantly</p><h2 class="gg-sec-h">Why the Mosqitter Grand Is the Right Tool</h2><p class="gg-p">For most lakefront properties in Austin, we recommend the Mosqitter Grand over the Biogents BG-Mosquitaire. The reasons are specific to the waterfront environment:</p><p class="gg-p"><strong style="color:#7dffaa">Coverage radius.</strong> The Grand covers up to 2 acres per unit. A lakefront property receiving sustained pressure from beyond its boundaries needs the maximum interception radius available.</p><p class="gg-p"><strong style="color:#7dffaa">Multi-signal attraction.</strong> The Grand's four-signal system (CO&#8322; + heat + UV + scent) is less dependent on wind direction than CO&#8322;-only traps. In open waterfront environments where wind is variable and comes off the water at unpredictable angles, this multi-directional attraction is a significant advantage.</p><p class="gg-p"><strong style="color:#7dffaa">App-controlled output.</strong> You can increase CO&#8322; output during peak activity periods (dawn and dusk when Culex is most active) and reduce it during low-activity midday hours to optimize tank life.</p><h2 class="gg-sec-h">Standing Water Management</h2><p class="gg-p">No trap alone can fully address extreme waterfront pressure without eliminating supplemental breeding sites on the property itself. For lakefront properties, we recommend:</p><p class="gg-p">Inspect and treat (or eliminate) any standing water within 100 feet of your structure weekly during peak season. Gutters, boat covers, dock equipment, planter saucers, and low spots in the landscape all contribute. Larvicidal dunks (Bacillus thuringiensis israelensis, or Bti) are safe for wildlife, fish, and pets and can be used in water features that cannot be drained. This two-pronged approach — trapping adults plus managing breeding sites — delivers the most significant results for high-pressure lakefront properties.</p></div>
+<div class="gg-related"><div class="gg-related-inner"><div class="gg-related-h">Related Articles</div><div class="gg-related-grid"><a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work" class="gg-rel-card"><div class="gg-rel-h">Why CO&#8322; Mosquito Traps Work</div><p class="gg-rel-p">The science behind CO&#8322; as a mosquito attractant and how population suppression works.</p></a><a href="https://www.greenguard-usa.com/co2-traps-vs-mosquito-spraying" class="gg-rel-card"><div class="gg-rel-h">CO&#8322; Traps vs. Mosquito Spraying</div><p class="gg-rel-p">A direct comparison of CO&#8322; trapping and conventional pesticide spray programs.</p></a><a href="https://www.greenguard-usa.com/mosquito-control-pollinator-gardens" class="gg-rel-card"><div class="gg-rel-h">Mosquito Control for Pollinator Gardens</div><p class="gg-rel-p">How to eliminate mosquitoes without harming bees, butterflies, or beneficial insects.</p></a><a href="https://www.greenguard-usa.com/how-far-do-mosquitoes-travel-texas" class="gg-rel-card"><div class="gg-rel-h">How Far Do Mosquitoes Travel in Texas?</div><p class="gg-rel-p">Species-by-species travel range data and what it means for your control strategy.</p></a></div></div></div>
+  <div class="gg-cta"><div class="gg-cta-inner">
+    <h2 class="gg-cta-h">Ready to Put the Science to Work?</h2>
+    <p class="gg-cta-p">Book a free property consultation. We assess your mosquito pressure zones and design a coverage plan — at no cost, no obligation.</p>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+  </div></div>
+  <div class="gg-footer"><div class="gg-footer-inner">
+    <div>
+      <div class="gg-footer-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-footer-tagline">Smart. Safe. Effective.</div>
+      <p class="gg-footer-desc">Pesticide-free CO&#8322; mosquito control serving Austin, Texas. Authorized dealer for Biogents and Mosqitter Grand.</p>
+      <a href="tel:+15125604129" class="gg-footer-link">512-560-4129</a>
+      <a href="https://www.greenguard-usa.com" class="gg-footer-link">greenguard-usa.com</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
+      <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+      <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rental Program</a>
+      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
+      <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+      <a href="https://www.greenguard-usa.com/blog">Blog</a><a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Company</div>
+      <a href="https://www.greenguard-usa.com/about">About Us</a>
+      <a href="https://www.greenguard-usa.com/contact">Contact</a>
+      <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    </div>
+  </div>
+  <div class="gg-footer-bottom">
+    <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
+    <span class="gg-footer-badge">100% Pesticide-Free Service</span>
+  </div></div>
+</div>

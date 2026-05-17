@@ -1,0 +1,136 @@
+<style>
+#gg-sci-a,#gg-sci-a *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+#gg-sci-a h1,#gg-sci-a h2,#gg-sci-a h3,#gg-sci-a h4,#gg-sci-a p,#gg-sci-a ul,#gg-sci-a li,#gg-sci-a div,#gg-sci-a span,#gg-sci-a a,#gg-sci-a button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
+#gg-sci-a ul{list-style:none}#gg-sci-a a{text-decoration:none}
+#gg-sci-a{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
+#gg-sci-a .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-sci-a .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+#gg-sci-a .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
+#gg-sci-a .gg-logo span{color:#7dffaa}
+#gg-sci-a .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
+#gg-sci-a .gg-hamburger span{height:3px;width:100%;background:#c9a84c;border-radius:2px}
+#gg-sci-a .gg-drawer{position:fixed;top:0;right:-100%;width:280px;height:100%;background:#0a1a0d;z-index:10000;padding:60px 26px 26px;display:flex;flex-direction:column;gap:5px;transition:right .28s ease;overflow-y:auto}
+#gg-sci-a .gg-drawer.open{right:0}
+#gg-sci-a .gg-drawer-close{position:absolute;top:18px;right:18px;background:none;border:none;color:#7dffaa;font-size:1.1rem;cursor:pointer}
+#gg-sci-a .gg-group{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(201,232,209,.45);margin-top:14px;padding-bottom:4px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-sci-a .gg-drawer a{color:rgba(201,232,209,.8);font-size:.92rem;padding:5px 0;border-bottom:1px solid rgba(122,171,130,.07);transition:color .2s}
+#gg-sci-a .gg-drawer a:hover{color:#7dffaa}
+#gg-sci-a .gg-footer{background:#080f09;padding:50px 20px 20px}
+#gg-sci-a .gg-footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-sci-a .gg-footer-logo{font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px}
+#gg-sci-a .gg-footer-logo span{color:#7dffaa}
+#gg-sci-a .gg-footer-tagline{font-size:.74rem;color:#7dffaa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+#gg-sci-a .gg-footer-desc{font-size:.82rem;color:rgba(201,232,209,.5);line-height:1.6;margin-bottom:10px}
+#gg-sci-a .gg-footer-link{display:block;font-size:.83rem;color:rgba(201,232,209,.65);margin-bottom:4px}
+#gg-sci-a .gg-footer-col-head{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,232,209,.4);margin-bottom:11px;font-weight:700}
+#gg-sci-a .gg-footer-col a{display:block;font-size:.84rem;color:rgba(201,232,209,.6);margin-bottom:7px;transition:color .2s}
+#gg-sci-a .gg-footer-col a:hover{color:#7dffaa}
+#gg-sci-a .gg-footer-bottom{max-width:1100px;margin:16px auto 0;display:flex;justify-content:space-between;align-items:center;font-size:.77rem;color:rgba(201,232,209,.37);flex-wrap:wrap;gap:8px}
+#gg-sci-a .gg-footer-badge{background:rgba(45,74,50,.5);border:1px solid rgba(122,171,130,.18);border-radius:12px;padding:3px 11px;font-size:.69rem;color:rgba(201,232,209,.55)}
+@media(max-width:720px){#gg-sci-a .gg-footer-inner{grid-template-columns:1fr 1fr}}
+#gg-sci-a .gg-hero{background:linear-gradient(135deg,#0d1a10,#1a2e1f 60%,#2d4a32);padding:72px 20px 58px}
+#gg-sci-a .gg-hero-inner{max-width:820px;margin:0 auto}
+#gg-sci-a .gg-badge-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+#gg-sci-a .gg-badge{background:rgba(45,74,50,.7);border:1px solid rgba(122,171,130,.3);border-radius:20px;padding:5px 13px;font-size:.73rem;color:#7dffaa;letter-spacing:.04em}
+#gg-sci-a .gg-h1{font-size:clamp(1.8rem,4vw,2.75rem);font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px}
+#gg-sci-a .gg-h1 span{color:#7dffaa}
+#gg-sci-a .gg-hero-p{font-size:1.05rem;color:rgba(201,232,209,.82);line-height:1.68;margin-bottom:24px}
+#gg-sci-a .gg-facts{display:flex;gap:12px;flex-wrap:wrap}
+#gg-sci-a .gg-fact{background:rgba(45,74,50,.6);border:1px solid rgba(122,171,130,.22);border-radius:10px;padding:14px 18px;flex:1;min-width:120px}
+#gg-sci-a .gg-fact-n{font-size:1.55rem;font-weight:900;color:#7dffaa;letter-spacing:-.02em}
+#gg-sci-a .gg-fact-l{font-size:.74rem;color:rgba(201,232,209,.65);margin-top:3px}
+#gg-sci-a .gg-article{max-width:820px;margin:0 auto;padding:58px 20px}
+#gg-sci-a .gg-sec-h{font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin:0 0 12px}
+#gg-sci-a .gg-sec-h span{color:#7dffaa}
+#gg-sci-a .gg-p{font-size:1rem;color:rgba(201,232,209,.82);line-height:1.76;margin-bottom:15px}
+#gg-sci-a .gg-callout{background:rgba(45,74,50,.4);border-left:3px solid #7dffaa;border-radius:0 10px 10px 0;padding:17px 22px;margin:22px 0}
+#gg-sci-a .gg-callout p{color:rgba(201,232,209,.88);font-size:.96rem;line-height:1.65;margin:0}
+#gg-sci-a .gg-img{width:100%;border-radius:12px;border:1px solid rgba(122,171,130,.15);margin:24px 0;display:block}
+#gg-sci-a .gg-table{width:100%;border-collapse:collapse;margin:22px 0}
+#gg-sci-a .gg-table th{background:rgba(45,74,50,.6);color:#7dffaa;font-size:.8rem;font-weight:700;text-align:left;padding:11px 15px;letter-spacing:.04em;text-transform:uppercase}
+#gg-sci-a .gg-table td{padding:11px 15px;font-size:.91rem;color:rgba(201,232,209,.8);border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-sci-a .gg-table tr:last-child td{border-bottom:none}
+#gg-sci-a .gg-good{color:#7dffaa;font-weight:700}
+#gg-sci-a .gg-bad{color:#ff8a80;font-weight:700}
+#gg-sci-a .gg-divider{height:1px;background:rgba(122,171,130,.14);margin:38px 0}
+#gg-sci-a .gg-related{background:#111c13;padding:48px 20px}
+#gg-sci-a .gg-related-inner{max-width:820px;margin:0 auto}
+#gg-sci-a .gg-related-h{font-size:1.15rem;font-weight:900;color:#fff;margin-bottom:18px}
+#gg-sci-a .gg-related-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px}
+#gg-sci-a .gg-rel-card{background:rgba(45,74,50,.35);border:1px solid rgba(122,171,130,.17);border-radius:12px;padding:19px;transition:border-color .2s;text-decoration:none;display:block}
+#gg-sci-a .gg-rel-card:hover{border-color:rgba(122,171,130,.38)}
+#gg-sci-a .gg-rel-h{font-size:.9rem;font-weight:800;color:#fff;margin-bottom:5px}
+#gg-sci-a .gg-rel-p{font-size:.8rem;color:rgba(201,232,209,.6);line-height:1.5}
+#gg-sci-a .gg-cta{background:linear-gradient(135deg,#0a1a0d,#1a2e1f 50%,#0e1d12);padding:62px 20px;text-align:center}
+#gg-sci-a .gg-cta-inner{max-width:620px;margin:0 auto}
+#gg-sci-a .gg-cta-h{font-size:clamp(1.65rem,3.5vw,2.35rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:13px;line-height:1.2}
+#gg-sci-a .gg-cta-p{font-size:.96rem;color:rgba(201,232,209,.75);margin-bottom:24px;line-height:1.65}
+#gg-sci-a .gg-btn-gold{background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.92rem;padding:13px 26px;border-radius:8px;border:none;cursor:pointer;text-decoration:none;transition:background .2s,transform .15s;display:inline-block}
+#gg-sci-a .gg-btn-gold:hover{background:#e8d08a;transform:translateY(-2px)}
+</style>
+<div id="gg-sci-a">
+  <div class="gg-nav"><div class="gg-nav-inner">
+    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+    <div class="gg-hamburger" onclick="document.querySelector('#gg-sci-a .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
+  </div></div>
+  <div class="gg-drawer">
+    <button class="gg-drawer-close" onclick="document.querySelector('#gg-sci-a .gg-drawer').classList.remove('open')">&#10005;</button>
+    <span class="gg-group">Services</span>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+    <span class="gg-group">Shop</span>
+    <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+    <span class="gg-group">Learn</span>
+    <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+    <a href="https://www.greenguard-usa.com/results">Results</a><a href="https://www.greenguard-usa.com/blog">Blog</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a><a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+    <span class="gg-group">Company</span>
+    <a href="https://www.greenguard-usa.com/about">About Us</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact</a>
+    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    <span class="gg-group">Book</span>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+  </div>
+  <div class="gg-hero"><div class="gg-hero-inner">
+    <div class="gg-badge-row"><span class="gg-badge">GreenGuard USA</span><span class="gg-badge">Mosquito Science</span></div>
+    <h1 class="gg-h1">Why CO&#8322; Mosquito <span>Traps Work</span></h1>
+    <p class="gg-hero-p">Understanding the biology behind CO&#8322; mosquito trapping and why it outperforms sprays, zappers, and every other alternative.</p>
+    <div class="gg-facts"><div class="gg-fact"><div class="gg-fact-n">93%</div><div class="gg-fact-l">Independent bite reduction</div></div><div class="gg-fact"><div class="gg-fact-n">24/7</div><div class="gg-fact-l">Continuous operation</div></div><div class="gg-fact"><div class="gg-fact-n">2-3 wks</div><div class="gg-fact-l">Population suppression</div></div></div>
+  </div></div>
+  <div class="gg-article"><h2 class="gg-sec-h">How Mosquitoes Find You</h2><p class="gg-p">Mosquitoes are not random. Every time a female mosquito leaves a resting site in search of a blood meal, she is navigating using chemical and thermal signals that have been refined over millions of years of evolution. The primary signal is carbon dioxide — the CO&#8322; you exhale with every breath.</p><p class="gg-p">Mosquitoes detect CO&#8322; through specialized sensory organs (maxillary palps) that can sense concentrations as low as a few parts per million at distances up to 100 feet. When a rising CO&#8322; plume is detected, the mosquito turns upwind and follows the gradient toward the source. Secondary signals — body heat, moisture, octenol (a compound in breath and sweat), and lactic acid — sharpen the approach as the mosquito closes in.</p><div class="gg-callout"><p>Key insight: CO&#8322; is the primary long-range attractant that initiates host-seeking behavior. Without detecting CO&#8322;, mosquitoes do not begin the approach sequence.</p></div><h2 class="gg-sec-h">How CO&#8322; Traps Exploit This Biology</h2><p class="gg-p">A CO&#8322; mosquito trap releases a precise, continuous stream of carbon dioxide from a pressurized tank, mimicking the CO&#8322; signature of a large mammal. The trap's attractant plume travels downwind, intersecting the flight paths of host-seeking female mosquitoes in the surrounding area.</p><p class="gg-p">When a mosquito detects the plume and follows it to the source, she encounters a fan-generated airflow that draws her into the capture net. There is no zapping, no toxic bait, no chemicals released — the mosquito is physically captured and contained. Over time, the catch net fills with the very females responsible for breeding the next generation.</p><h2 class="gg-sec-h">Population Suppression vs. Instant Kill</h2><p class="gg-p">This is the most important concept to understand about CO&#8322; trapping: it works by population suppression over time, not immediate elimination. Unlike spraying — which kills mosquitoes present at the moment of application but leaves the population to recover — CO&#8322; trapping continuously removes breeding females before they can reproduce.</p><p class="gg-p">A single female Aedes aegypti can lay 100-200 eggs per batch and complete multiple breeding cycles in her lifespan. Removing her from the population before she breeds eliminates not just one mosquito but an entire downstream lineage. This is why the results build over 2-3 weeks of continuous operation, and why sustained trapping produces dramatically better results than any single-event treatment.</p><div class="gg-callout"><p>Independent field studies using Biogents traps demonstrated 93% bite reduction after 6 months of continuous operation across real residential properties.</p></div><h2 class="gg-sec-h">The Role of Supplemental Attractants</h2><p class="gg-p">CO&#8322; alone is highly effective, but pairing it with species-specific attractants improves capture rates significantly. Biogents traps use the patented BG-Sweetscent lure — a proprietary blend that mimics human skin odor compounds and attracts Aedes aegypti (the tiger mosquito most common in Austin) more effectively than CO&#8322; alone.</p><p class="gg-p">The Mosqitter Grand takes this further with a four-signal system: CO&#8322; + radiant heat (mimicking body temperature) + UV light (activating visual host-seeking cues) + Mosqilure scent bait. This multi-signal approach is less dependent on wind direction and attracts a broader range of mosquito species.</p><h2 class="gg-sec-h">Why This Outperforms Sprays and Zappers</h2><p class="gg-p">Conventional mosquito sprays use pyrethrins or synthetic pyrethroids to kill mosquitoes on contact. They are indiscriminate — killing bees, beneficial predatory insects, and aquatic organisms in addition to mosquitoes. They provide short-term relief (hours to a few days) and leave the mosquito population intact, ready to rebound from untreated areas.</p><p class="gg-p">Bug zappers attract insects using UV light. Mosquitoes respond weakly to UV and primarily use it as a close-range cue, not a long-range attractant. Studies consistently show that zappers catch very few mosquitoes and primarily kill moths, beetles, and other non-pest insects.</p><p class="gg-p">CO&#8322; trapping is species-specific (blood-seeking insects only), operates continuously without degrading, and removes breeding females from the population cycle rather than providing temporary knockdown. It is the only approach that reduces the long-term local mosquito burden.</p></div>
+<div class="gg-related"><div class="gg-related-inner"><div class="gg-related-h">Related Articles</div><div class="gg-related-grid"><a href="https://www.greenguard-usa.com/co2-traps-vs-mosquito-spraying" class="gg-rel-card"><div class="gg-rel-h">CO&#8322; Traps vs. Mosquito Spraying</div><p class="gg-rel-p">A direct comparison of CO&#8322; trapping and conventional pesticide spray programs.</p></a><a href="https://www.greenguard-usa.com/mosquito-control-pollinator-gardens" class="gg-rel-card"><div class="gg-rel-h">Mosquito Control for Pollinator Gardens</div><p class="gg-rel-p">How to eliminate mosquitoes without harming bees, butterflies, or beneficial insects.</p></a><a href="https://www.greenguard-usa.com/mosquito-control-lakefront-homes-austin" class="gg-rel-card"><div class="gg-rel-h">Mosquito Control for Lakefront Homes</div><p class="gg-rel-p">Strategies for waterfront properties facing elevated mosquito pressure from Austin's lakes.</p></a><a href="https://www.greenguard-usa.com/how-far-do-mosquitoes-travel-texas" class="gg-rel-card"><div class="gg-rel-h">How Far Do Mosquitoes Travel in Texas?</div><p class="gg-rel-p">Species-by-species travel range data and what it means for your control strategy.</p></a></div></div></div>
+  <div class="gg-cta"><div class="gg-cta-inner">
+    <h2 class="gg-cta-h">Ready to Put the Science to Work?</h2>
+    <p class="gg-cta-p">Book a free property consultation. We assess your mosquito pressure zones and design a coverage plan — at no cost, no obligation.</p>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+  </div></div>
+  <div class="gg-footer"><div class="gg-footer-inner">
+    <div>
+      <div class="gg-footer-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-footer-tagline">Smart. Safe. Effective.</div>
+      <p class="gg-footer-desc">Pesticide-free CO&#8322; mosquito control serving Austin, Texas. Authorized dealer for Biogents and Mosqitter Grand.</p>
+      <a href="tel:+15125604129" class="gg-footer-link">512-560-4129</a>
+      <a href="https://www.greenguard-usa.com" class="gg-footer-link">greenguard-usa.com</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
+      <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+      <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rental Program</a>
+      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
+      <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+      <a href="https://www.greenguard-usa.com/blog">Blog</a><a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Company</div>
+      <a href="https://www.greenguard-usa.com/about">About Us</a>
+      <a href="https://www.greenguard-usa.com/contact">Contact</a>
+      <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    </div>
+  </div>
+  <div class="gg-footer-bottom">
+    <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
+    <span class="gg-footer-badge">100% Pesticide-Free Service</span>
+  </div></div>
+</div>
