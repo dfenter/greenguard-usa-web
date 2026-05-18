@@ -1,9 +1,45 @@
 {
   "google": {
     "place_id": "ChIJx8wLC4K11wwRbfe7hhZiHXs",
-    "rating": 5.0,
-    "total": 0,
-    "reviews": []
+    "rating": 5,
+    "total": 15,
+    "reviews": [
+      {
+        "author": "Betny Townsend",
+        "rating": 5,
+        "text": "We love GreenGuard\u2019s service. We\u2019ve gotten so many of our neighbors to sign up you\u2019d think we were on the payroll. For a lot of folks in our circle, anything that harms pollinators is a non-starter, and this has been the best thing we\u2019ve tried by far for mosquitos. It\u2019s sooo satisfying to look at the bag of trapped mosquitoes after it\u2019s rained. Highly recommend!",
+        "time": "in the last week",
+        "source": "google"
+      },
+      {
+        "author": "Jim S",
+        "rating": 5,
+        "text": "Great service, really hammers the mosquitos.",
+        "time": "in the last week",
+        "source": "google"
+      },
+      {
+        "author": "Michael Gorski",
+        "rating": 5,
+        "text": "These guys are the real deal! If you have a mosquito machine, they are a must have and it won\u2019t cost you any more money going on getting the CO2 yourself. Excellent service! I cannot tell you how much anxiety they relieve me of lol",
+        "time": "a week ago",
+        "source": "google"
+      },
+      {
+        "author": "Roger Anderson",
+        "rating": 5,
+        "text": "After about 20 years of putting in the patio we are finally able to use it.  Even though our pest control does a great job,  their sprays and crystals never really did the job.  Our neighbors told us about GreenGuard and we couldn't be happier to sit out and not be chased into the house because of the mosquitoes.  Thanks to GreenGuard we are truly enjoying our patio for the first time.",
+        "time": "a week ago",
+        "source": "google"
+      },
+      {
+        "author": "Jake Spencer",
+        "rating": 5,
+        "text": "",
+        "time": "9 months ago",
+        "source": "google"
+      }
+    ]
   },
   "manual": [
     {
