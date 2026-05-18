@@ -224,6 +224,21 @@
   #gg-franchise .fr-footer { padding: 48px 20px 28px !important; }
   #gg-franchise .fr-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
 }
+
+#gg-franchise .fr-form-wrap{background:rgba(45,74,50,.25);border:1px solid rgba(122,171,130,.2);border-radius:16px;padding:36px;margin-top:28px}
+#gg-franchise .fr-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+#gg-franchise .fr-field{display:flex;flex-direction:column;gap:6px}
+#gg-franchise .fr-label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(201,232,209,.6);font-weight:700}
+#gg-franchise .fr-input{background:rgba(10,26,13,.6);border:1px solid rgba(122,171,130,.25);border-radius:8px;padding:12px 16px;font-size:.93rem;color:#fff;font-family:'Nunito Sans',sans-serif;transition:border-color .2s;width:100%}
+#gg-franchise .fr-input:focus{outline:none;border-color:rgba(122,171,130,.6)}
+#gg-franchise .fr-input::placeholder{color:rgba(201,232,209,.35)}
+#gg-franchise .fr-textarea{background:rgba(10,26,13,.6);border:1px solid rgba(122,171,130,.25);border-radius:8px;padding:12px 16px;font-size:.93rem;color:#fff;font-family:'Nunito Sans',sans-serif;transition:border-color .2s;width:100%;min-height:110px;resize:vertical}
+#gg-franchise .fr-textarea:focus{outline:none;border-color:rgba(122,171,130,.6)}
+#gg-franchise .fr-textarea::placeholder{color:rgba(201,232,209,.35)}
+#gg-franchise .fr-submit{background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.95rem;padding:14px 32px;border-radius:8px;border:none;cursor:pointer;transition:background .2s,transform .15s;margin-top:6px}
+#gg-franchise .fr-submit:hover{background:#e8d08a;transform:translateY(-2px)}
+#gg-franchise .fr-form-note{font-size:.78rem;color:rgba(201,232,209,.45);margin-top:14px}
+@media(max-width:600px){#gg-franchise .fr-form-grid{grid-template-columns:1fr}}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <div id="gg-franchise">
@@ -251,6 +266,12 @@
     <a href="https://www.greenguard-usa.com/mosquito-control-steiner-ranch">Steiner Ranch</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-cedar-park">Cedar Park</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-pflugerville">Pflugerville</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-kyle">Kyle</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-buda">Buda</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-leander">Leander</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-liberty-hill">Liberty Hill</a>
     <span class="gg-menu-group">Learn</span>
     <a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work">Why CO&#8322; Traps Work</a>
     <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
@@ -593,9 +614,33 @@
           <p>Complete financial and legal disclosure, all the details you need</p>
         </div>
       </div>
-      <div class="fr-cta-btns">
-        <button class="fr-btn-gold" onclick="window.location.href='mailto:admin@greenguard-usa.com?subject=Franchise%20Information%20Request'">Request Franchise Information</button>
-        
+      <div class="fr-form-wrap">
+        <form action="mailto:admin@greenguard-usa.com" method="POST" enctype="text/plain">
+          <div class="fr-form-grid">
+            <div class="fr-field">
+              <label class="fr-label">Full Name</label>
+              <input class="fr-input" name="Name" type="text" placeholder="Your full name" required>
+            </div>
+            <div class="fr-field">
+              <label class="fr-label">Email Address</label>
+              <input class="fr-input" name="Email" type="email" placeholder="your@email.com" required>
+            </div>
+            <div class="fr-field">
+              <label class="fr-label">Phone Number</label>
+              <input class="fr-input" name="Phone" type="tel" placeholder="(512) 000-0000">
+            </div>
+            <div class="fr-field">
+              <label class="fr-label">City / Territory of Interest</label>
+              <input class="fr-input" name="Territory" type="text" placeholder="e.g. Houston, Dallas, Phoenix">
+            </div>
+          </div>
+          <div class="fr-field" style="margin-bottom:14px">
+            <label class="fr-label">Background and Goals</label>
+            <textarea class="fr-textarea" name="Message" placeholder="Tell us briefly about your background and what interests you about the GreenGuard USA model."></textarea>
+          </div>
+          <button type="submit" class="fr-submit">Send Franchise Inquiry</button>
+          <p class="fr-form-note">No obligation. Confidential. We respond within one business day.</p>
+        </form>
       </div>
       <div class="fr-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
     </div>

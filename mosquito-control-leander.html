@@ -1,0 +1,223 @@
+<style>
+#gg-sa,#gg-sa *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+#gg-sa h1,#gg-sa h2,#gg-sa h3,#gg-sa h4,#gg-sa p,#gg-sa ul,#gg-sa li,#gg-sa div,#gg-sa span,#gg-sa a,#gg-sa button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
+#gg-sa ul{list-style:none}#gg-sa a{text-decoration:none}
+#gg-sa{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
+#gg-sa .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-sa .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+#gg-sa .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
+#gg-sa .gg-logo span{color:#7dffaa}
+#gg-sa .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
+#gg-sa .gg-hamburger span{height:3px;width:100%;background:#c9a84c;border-radius:2px}
+#gg-sa .gg-drawer{position:fixed;top:0;right:-100%;width:280px;height:100%;background:#0a1a0d;z-index:10000;padding:60px 26px 26px;display:flex;flex-direction:column;gap:5px;transition:right .28s ease;overflow-y:auto}
+#gg-sa .gg-drawer.open{right:0}
+#gg-sa .gg-drawer-close{position:absolute;top:18px;right:18px;background:none;border:none;color:#7dffaa;font-size:1.1rem;cursor:pointer}
+#gg-sa .gg-group{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(201,232,209,.45);margin-top:14px;padding-bottom:4px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-sa .gg-drawer a{color:rgba(201,232,209,.8);font-size:.92rem;padding:5px 0;border-bottom:1px solid rgba(122,171,130,.07);transition:color .2s}
+#gg-sa .gg-drawer a:hover{color:#7dffaa}
+#gg-sa .gg-footer{background:#080f09;padding:50px 20px 20px}
+#gg-sa .gg-footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-sa .gg-footer-logo{font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px}
+#gg-sa .gg-footer-logo span{color:#7dffaa}
+#gg-sa .gg-footer-tagline{font-size:.74rem;color:#7dffaa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+#gg-sa .gg-footer-desc{font-size:.82rem;color:rgba(201,232,209,.5);line-height:1.6;margin-bottom:10px}
+#gg-sa .gg-footer-link{display:block;font-size:.83rem;color:rgba(201,232,209,.65);margin-bottom:4px}
+#gg-sa .gg-footer-col-head{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,232,209,.4);margin-bottom:11px;font-weight:700}
+#gg-sa .gg-footer-col a{display:block;font-size:.84rem;color:rgba(201,232,209,.6);margin-bottom:7px;transition:color .2s}
+#gg-sa .gg-footer-col a:hover{color:#7dffaa}
+#gg-sa .gg-footer-bottom{max-width:1100px;margin:16px auto 0;display:flex;justify-content:space-between;align-items:center;font-size:.77rem;color:rgba(201,232,209,.37);flex-wrap:wrap;gap:8px}
+#gg-sa .gg-footer-badge{background:rgba(45,74,50,.5);border:1px solid rgba(122,171,130,.18);border-radius:12px;padding:3px 11px;font-size:.69rem;color:rgba(201,232,209,.55)}
+@media(max-width:720px){#gg-sa .gg-footer-inner{grid-template-columns:1fr 1fr}}
+#gg-sa .gg-hero{background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 45%,#2d4a32 100%);padding:80px 20px 70px}
+#gg-sa .gg-hero-inner{max-width:880px;margin:0 auto;text-align:center}
+#gg-sa .gg-badge-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+#gg-sa .gg-badge{background:rgba(45,74,50,.7);border:1px solid rgba(122,171,130,.3);border-radius:20px;padding:5px 14px;font-size:.74rem;color:#7dffaa;letter-spacing:.04em}
+#gg-sa .gg-dot{width:7px;height:7px;background:#7dffaa;border-radius:50%;animation:pp 2s infinite;display:inline-block}
+@keyframes pp{0%,100%{opacity:1}50%{opacity:.4}}
+#gg-sa .gg-h1{font-size:clamp(1.85rem,4vw,2.85rem);font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:18px}
+#gg-sa .gg-h1 span{color:#7dffaa}
+#gg-sa .gg-hero-p{font-size:1.03rem;color:rgba(201,232,209,.82);max-width:680px;margin:0 auto 30px;line-height:1.65}
+#gg-sa .gg-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:30px}
+#gg-sa .gg-btn-gold{background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.92rem;padding:13px 26px;border-radius:8px;border:none;cursor:pointer;text-decoration:none;transition:background .2s,transform .15s;display:inline-block}
+#gg-sa .gg-btn-gold:hover{background:#e8d08a;transform:translateY(-2px)}
+#gg-sa .gg-btn-outline{background:transparent;color:#7dffaa;font-weight:700;font-size:.92rem;padding:12px 22px;border-radius:8px;border:1px solid rgba(122,171,130,.4);cursor:pointer;text-decoration:none;transition:border-color .2s,color .2s;display:inline-block}
+#gg-sa .gg-btn-outline:hover{border-color:#7dffaa;color:#fff}
+#gg-sa .gg-pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+#gg-sa .gg-pill{background:rgba(45,74,50,.5);border:1px solid rgba(122,171,130,.2);border-radius:16px;padding:4px 13px;font-size:.75rem;color:rgba(201,232,209,.75)}
+#gg-sa .gg-sec{padding:66px 20px}
+#gg-sa .gg-sec.alt{background:#111c13}
+#gg-sa .gg-sec-inner{max-width:1000px;margin:0 auto}
+#gg-sa .gg-eye{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#7dffaa;margin-bottom:10px;font-weight:700}
+#gg-sa .gg-h2{font-size:clamp(1.5rem,3vw,2.15rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:14px;line-height:1.2}
+#gg-sa .gg-h2 span{color:#7dffaa}
+#gg-sa .gg-body{font-size:.97rem;color:rgba(201,232,209,.8);line-height:1.72;margin-bottom:14px}
+#gg-sa .gg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:18px;margin-top:30px}
+#gg-sa .gg-card{background:rgba(45,74,50,.35);border:1px solid rgba(122,171,130,.17);border-radius:14px;padding:26px;transition:border-color .2s}
+#gg-sa .gg-card:hover{border-color:rgba(122,171,130,.38)}
+#gg-sa .gg-card-icon{font-size:1.65rem;margin-bottom:10px}
+#gg-sa .gg-card-h{font-size:.98rem;font-weight:800;color:#fff;margin-bottom:7px}
+#gg-sa .gg-card-p{font-size:.86rem;color:rgba(201,232,209,.72);line-height:1.6}
+#gg-sa .gg-list{display:flex;flex-direction:column;gap:9px;margin-top:18px}
+#gg-sa .gg-li{display:flex;align-items:flex-start;gap:10px;color:rgba(201,232,209,.82);font-size:.94rem;line-height:1.55}
+#gg-sa .gg-li::before{content:"✓";color:#7dffaa;font-weight:800;flex-shrink:0}
+#gg-sa .gg-stat-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:26px}
+#gg-sa .gg-stat{background:rgba(45,74,50,.4);border:1px solid rgba(122,171,130,.2);border-radius:12px;padding:16px 20px;text-align:center;flex:1;min-width:120px}
+#gg-sa .gg-stat-n{font-size:1.85rem;font-weight:900;color:#7dffaa;letter-spacing:-.02em}
+#gg-sa .gg-stat-l{font-size:.74rem;color:rgba(201,232,209,.6);margin-top:3px}
+#gg-sa .gg-cta{background:linear-gradient(135deg,#0a1a0d,#1a2e1f 50%,#0e1d12);padding:66px 20px;text-align:center}
+#gg-sa .gg-cta-inner{max-width:640px;margin:0 auto}
+#gg-sa .gg-cta-h{font-size:clamp(1.7rem,3.5vw,2.45rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:14px;line-height:1.2}
+#gg-sa .gg-cta-p{font-size:.97rem;color:rgba(201,232,209,.75);margin-bottom:26px;line-height:1.65}
+#gg-sa .gg-cta-note{font-size:.79rem;color:rgba(201,232,209,.44);margin-top:14px}
+#gg-sa .gg-email-cap{background:#0d1a10;padding:48px 20px;text-align:center}
+#gg-sa .gg-email-cap-inner{max-width:560px;margin:0 auto}
+#gg-sa .gg-email-h{font-size:1.5rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:10px}
+#gg-sa .gg-email-p{font-size:.9rem;color:rgba(201,232,209,.68);margin-bottom:20px;line-height:1.6}
+#gg-sa .gg-email-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#gg-sa .gg-email-input{background:rgba(10,26,13,.7);border:1px solid rgba(122,171,130,.3);border-radius:8px;padding:11px 16px;font-size:.9rem;color:#fff;font-family:'Nunito Sans',sans-serif;min-width:240px}
+#gg-sa .gg-email-input::placeholder{color:rgba(201,232,209,.35)}
+#gg-sa .gg-email-btn{background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.88rem;padding:11px 22px;border-radius:8px;border:none;cursor:pointer;transition:background .2s}
+#gg-sa .gg-email-btn:hover{background:#e8d08a}
+#gg-sa .gg-email-note{font-size:.72rem;color:rgba(201,232,209,.38);margin-top:10px}
+@media(max-width:600px){#gg-sa .gg-hero{padding:60px 20px 48px}#gg-sa .gg-btns{flex-direction:column;align-items:center}}
+</style>
+<div id="gg-sa">
+  <div class="gg-nav"><div class="gg-nav-inner">
+    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+    <div class="gg-hamburger" onclick="document.querySelector('#gg-sa .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
+  </div></div>
+  <div class="gg-drawer">
+    <button class="gg-drawer-close" onclick="document.querySelector('#gg-sa .gg-drawer').classList.remove('open')">&#10005;</button>
+    <span class="gg-group">Services</span>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+    <span class="gg-group">Service Areas</span>
+    <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-dripping-springs">Dripping Springs</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-steiner-ranch">Steiner Ranch</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-cedar-park">Cedar Park</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-pflugerville">Pflugerville</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-kyle">Kyle</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-buda">Buda</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-leander">Leander</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-liberty-hill">Liberty Hill</a>
+    <span class="gg-group">Learn</span>
+    <a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work">Why CO&#8322; Traps Work</a>
+    <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
+    <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+    <a href="https://www.greenguard-usa.com/case-studies">Results &amp; Case Studies</a>
+    <a href="https://www.greenguard-usa.com/blog">Blog</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+    <span class="gg-group">Shop</span>
+    <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+    <span class="gg-group">Company</span>
+    <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
+    <a href="https://www.greenguard-usa.com/team">Our Team</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact</a>
+    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    <span class="gg-group">Book</span>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+  </div>
+  <div class="gg-hero"><div class="gg-hero-inner">
+    <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Serving Leander, Texas</div><div class="gg-badge">100% Pesticide-Free</div></div>
+    <h1 class="gg-h1">Mosquito Control in <span>Leander</span></h1>
+    <p class="gg-hero-p">Leander has grown into one of Williamson County's largest communities, with outdoor living expectations to match. GreenGuard USA provides pesticide-free CO&#8322; mosquito control for Leander homeowners.</p>
+    <div class="gg-btns">
+      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+      <a href="https://www.greenguard-usa.com/co2-trap-rental-austin" class="gg-btn-outline">See Rental Plans</a>
+    </div>
+    <div class="gg-pills"><span class="gg-pill">100% Pesticide-Free</span><span class="gg-pill">CO&#8322; Technology</span><span class="gg-pill">EV Fleet Delivery</span><span class="gg-pill">Month-to-Month</span></div>
+  </div></div>
+
+  <div class="gg-sec alt"><div class="gg-sec-inner">
+    <div class="gg-eye">Local Mosquito Conditions</div>
+    <h2 class="gg-h2">Leander Mosquito Pressure: Lake Travis Edge and Suburban Growth</h2>
+    <p class="gg-body">Leander sits at the northern edge of Lake Travis, with the Balcones Canyonlands and Cedar Park corridor to the east. The city's proximity to Lake Travis introduces Culex pressure from the lake and its surrounding drainage, while the dense residential development that has spread across Williamson County in the past decade creates the container and irrigation-based breeding habitat that supports tiger mosquito populations. The result is sustained pressure from both off-site water sources and property-level breeding.</p>
+    <div class="gg-stat-row"><div class="gg-stat"><div class="gg-stat-n">0</div><div class="gg-stat-l">Pesticides used</div></div><div class="gg-stat"><div class="gg-stat-n">93%</div><div class="gg-stat-l">Bite reduction</div></div><div class="gg-stat"><div class="gg-stat-n">24/7</div><div class="gg-stat-l">Continuous operation</div></div></div>
+  </div></div>
+
+  <div class="gg-sec"><div class="gg-sec-inner">
+    <div class="gg-eye">Why GreenGuard USA</div>
+    <h2 class="gg-h2">CO&#8322; Trapping for <span>Leander Homeowners</span></h2>
+    <p class="gg-body">Leander's active outdoor community, with strong demand for functional pool areas, covered patios, and family-friendly outdoor spaces, deserves a mosquito control approach that does not require chemical applications to their yards. Our pesticide-free CO&#8322; trapping program provides continuous protection without residue on surfaces, without harm to pollinators, and without the exposure concerns that come with synthetic pyrethroid spray programs.</p>
+    <div class="gg-list"><div class="gg-li">Effective at Lake Travis edge and inland residential lots</div><div class="gg-li">Safe for Balcones Canyonlands adjacent properties</div><div class="gg-li">Monthly CO&#8322; delivery throughout Williamson County</div><div class="gg-li">Free property walk and placement consultation</div><div class="gg-li">Month-to-month service, no contracts</div></div>
+  </div></div>
+
+  <div class="gg-sec alt"><div class="gg-sec-inner">
+    <div class="gg-eye">Our Services</div>
+    <h2 class="gg-h2">What We Offer in <span>Leander</span></h2>
+    <div class="gg-grid">
+      <div class="gg-card"><div class="gg-card-icon">&#9651;</div><div class="gg-card-h">CO&#8322; Tank Delivery</div><p class="gg-card-p">Monthly CO&#8322; cylinder exchange to your door by our all-electric fleet. From $89.99/mo.</p></div>
+      <div class="gg-card"><div class="gg-card-icon">&#9675;</div><div class="gg-card-h">Full-Service Trap Rental</div><p class="gg-card-p">We own the trap, handle CO&#8322;, maintenance, and seasonal adjustments. From $159.99/mo.</p></div>
+      <div class="gg-card"><div class="gg-card-icon">&#9632;</div><div class="gg-card-h">Free Property Consultation</div><p class="gg-card-p">We walk your property, map pressure zones, and design the right coverage plan. No cost.</p></div>
+    </div>
+  </div></div>
+
+
+  <div class="gg-sec"><div class="gg-sec-inner">
+    <div class="gg-eye">Go Deeper</div>
+    <h2 class="gg-h2">Science, <span>Nearby Areas &amp; Proof</span></h2>
+    <div class="gg-grid"><a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work" class="gg-card" style="text-decoration:none;display:block"><div class="gg-card-h">Why CO&#8322; Traps Work</div><p class="gg-card-p">The science behind population suppression.</p><div style="margin-top:12px;font-size:.8rem;color:#7dffaa;font-weight:700">Read article &#8599;</div></a><a href="https://www.greenguard-usa.com/mosquito-control-pollinator-gardens" class="gg-card" style="text-decoration:none;display:block"><div class="gg-card-h">Pollinator Garden Guide</div><p class="gg-card-p">Controlling mosquitoes without harming bees.</p><div style="margin-top:12px;font-size:.8rem;color:#7dffaa;font-weight:700">Read article &#8599;</div></a><a href="https://www.greenguard-usa.com/mosquito-control-cedar-park" class="gg-card" style="text-decoration:none;display:block"><div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-bottom:6px">Service Area</div><div class="gg-card-h">Cedar Park Mosquito Control</div><p class="gg-card-p">Pesticide-free CO&#8322; trapping serving Cedar Park, TX.</p><div style="margin-top:12px;font-size:.8rem;color:#7dffaa;font-weight:700">View page &#8599;</div></a><a href="https://www.greenguard-usa.com/mosquito-control-liberty-hill" class="gg-card" style="text-decoration:none;display:block"><div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-bottom:6px">Service Area</div><div class="gg-card-h">Liberty Hill Mosquito Control</div><p class="gg-card-p">Pesticide-free CO&#8322; trapping serving Liberty Hill, TX.</p><div style="margin-top:12px;font-size:.8rem;color:#7dffaa;font-weight:700">View page &#8599;</div></a><a href="https://www.greenguard-usa.com/mosquito-control-round-rock" class="gg-card" style="text-decoration:none;display:block"><div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-bottom:6px">Service Area</div><div class="gg-card-h">Round Rock Mosquito Control</div><p class="gg-card-p">Pesticide-free CO&#8322; trapping serving Round Rock, TX.</p><div style="margin-top:12px;font-size:.8rem;color:#7dffaa;font-weight:700">View page &#8599;</div></a><a href="https://www.greenguard-usa.com/case-studies" class="gg-card" style="text-decoration:none;display:block"><div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-bottom:6px">Social Proof</div><div class="gg-card-h">Results &amp; Case Studies</div><p class="gg-card-p">Documented mosquito control results from Austin-area homes and properties.</p><div style="margin-top:12px;font-size:.8rem;color:#7dffaa;font-weight:700">See results &#8599;</div></a></div>
+  </div></div>
+
+  <div class="gg-sec"><div class="gg-sec-inner">
+    <div class="gg-eye">Service Area</div>
+    <h2 class="gg-h2">Serving <span>Leander</span> and Surrounding Areas</h2>
+    <p class="gg-body">We serve Leander neighborhoods including Crystal Falls, Travisso, Grand Mesa, Mason Hills, and Bryson, as well as rural properties in northwest Williamson County.</p>
+    <p class="gg-body">Not sure if we cover your address? Call or text us at <a href="tel:+15125604129" style="color:#7dffaa">512-560-4129</a> and we will confirm availability and schedule your free consultation.</p>
+  </div></div>
+
+  <div class="gg-email-cap"><div class="gg-email-cap-inner">
+    <h2 class="gg-email-h">Seasonal Outdoor Living Tips</h2>
+    <p class="gg-email-p">Mosquito pressure forecasts and outdoor living guides for Austin homeowners, a few times a year.</p>
+    <form class="gg-email-row" action="mailto:admin@greenguard-usa.com" method="POST" enctype="text/plain">
+      <input class="gg-email-input" name="Email" type="email" placeholder="Your email address" required>
+      <button type="submit" class="gg-email-btn">Subscribe</button>
+    </form>
+    <p class="gg-email-note">GreenGuard USA &#183; No spam &#183; Unsubscribe any time</p>
+  </div></div>
+
+  <div class="gg-cta"><div class="gg-cta-inner">
+    <h2 class="gg-cta-h">Ready to Reclaim Your Outdoor Space?</h2>
+    <p class="gg-cta-p">Book a complimentary consultation. We visit your Leander property, assess mosquito pressure, and design a custom plan at no cost and no obligation.</p>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <p class="gg-cta-note">Free &#183; No Commitment &#183; Leander, Williamson County</p>
+  </div></div>
+
+  <div class="gg-footer"><div class="gg-footer-inner">
+    <div>
+      <div class="gg-footer-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-footer-tagline">Smart. Safe. Effective.</div>
+      <p class="gg-footer-desc">Pesticide-free CO&#8322; mosquito control serving Austin, Texas. Authorized dealer for Biogents and Mosqitter Grand.</p>
+      <a href="tel:+15125604129" class="gg-footer-link">512-560-4129</a>
+      <a href="https://www.greenguard-usa.com" class="gg-footer-link">greenguard-usa.com</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
+      <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+      <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rental Program</a>
+      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
+      <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+      <a href="https://www.greenguard-usa.com/blog">Blog</a><a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Company</div>
+      <a href="https://www.greenguard-usa.com/about">About Us</a>
+      <a href="https://www.greenguard-usa.com/contact">Contact</a>
+      <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    </div>
+  </div>
+  <div class="gg-footer-bottom">
+    <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
+    <span class="gg-footer-badge">100% Pesticide-Free Service</span>
+  </div></div>
+</div>
+<!-- TIDIO CHAT: replace YOUR_TIDIO_KEY with your key from Tidio dashboard Settings > Integrations > Website -->
+<script src="//code.tidio.co/YOUR_TIDIO_KEY.js" async></script>
