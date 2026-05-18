@@ -48,7 +48,8 @@
     "MISC": {
       "Data": [],
       "Instances": []
-    }
+    },
+    "chartData": []
   },
   "params": {
     "siteId": 0,
@@ -458,6 +459,21 @@
           }
         }
       }
+    },
+    "custom.chartData": {
+      "binding": {
+        "config": {
+          "path": "view.custom.rawHistoryData"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\ttry:\n\t\tselected = self.view.custom.selectedEquipment\n\texcept:\n\t\tselected = 'all'\n\tpen_names = ['IWT Actual','POGT Actual','DAT Actual','IWT Target','POGT Target','DAT Target']\n\ttime_data = {}\n\tcount_data = {}\n\tfor r in range(value.getRowCount()):\n\t\tts    = value.getValueAt(r, 't_stamp')\n\t\teq_id = str(value.getValueAt(r, 'coolingTowerDataID') or '')\n\t\tpl    = str(value.getValueAt(r, 'paramLabel') or '')\n\t\tv     = value.getValueAt(r, 'value')\n\t\tif selected != 'all' and eq_id != str(selected): continue\n\t\tif pl not in pen_names: continue\n\t\tif ts not in time_data:\n\t\t\ttime_data[ts] = {}\n\t\t\tcount_data[ts] = {}\n\t\tif v is not None:\n\t\t\tif pl in time_data[ts] and time_data[ts][pl] is not None:\n\t\t\t\ttime_data[ts][pl] = (time_data[ts][pl] * count_data[ts].get(pl,1) + v) / (count_data[ts].get(pl,1) + 1)\n\t\t\t\tcount_data[ts][pl] = count_data[ts].get(pl,1) + 1\n\t\t\telse:\n\t\t\t\ttime_data[ts][pl] = v\n\t\t\t\tcount_data[ts][pl] = 1\n\theaders = ['t_stamp'] + pen_names\n\trows = [[ts] + [time_data[ts].get(p) for p in pen_names] for ts in sorted(time_data.keys())]\n\treturn system.dataset.toDataSet(headers, rows)\n",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": true
     }
   },
   "props": {
@@ -2448,15 +2464,81 @@
                     "borderRadius": "8px",
                     "border": "1px solid #E2E8F0",
                     "backgroundColor": "#FFFFFF"
+                  },
+                  "config": {
+                    "mode": "historical",
+                    "subplots": [
+                      {
+                        "name": "Temperatures",
+                        "yAxis": {
+                          "label": "Temperature (\u00b0F)",
+                          "autoRange": true
+                        },
+                        "pens": [
+                          {
+                            "name": "DAT Actual",
+                            "color": "#1B5E20",
+                            "lineStyle": "Solid",
+                            "lineWeight": 2
+                          },
+                          {
+                            "name": "IWT Actual",
+                            "color": "#1565C0",
+                            "lineStyle": "Solid",
+                            "lineWeight": 2
+                          },
+                          {
+                            "name": "POGT Actual",
+                            "color": "#DC2626",
+                            "lineStyle": "Solid",
+                            "lineWeight": 2
+                          },
+                          {
+                            "name": "DAT Target",
+                            "color": "#1B5E20",
+                            "lineStyle": "Dash",
+                            "lineWeight": 1
+                          },
+                          {
+                            "name": "IWT Target",
+                            "color": "#1565C0",
+                            "lineStyle": "Dash",
+                            "lineWeight": 1
+                          },
+                          {
+                            "name": "POGT Target",
+                            "color": "#DC2626",
+                            "lineStyle": "Dash",
+                            "lineWeight": 1
+                          }
+                        ]
+                      }
+                    ]
                   }
                 },
                 "propConfig": {
                   "props.data": {
                     "binding": {
-                      "type": "property",
                       "config": {
-                        "path": "view.custom.rawHistoryData"
-                      }
+                        "path": "view.custom.chartData"
+                      },
+                      "type": "property"
+                    }
+                  },
+                  "props.time.start": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.trendStartDate"
+                      },
+                      "type": "property"
+                    }
+                  },
+                  "props.time.end": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.trendEndDate"
+                      },
+                      "type": "property"
                     }
                   }
                 }
