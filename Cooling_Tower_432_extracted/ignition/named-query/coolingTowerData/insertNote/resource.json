@@ -27,7 +27,7 @@
       {
         "type": "Parameter",
         "identifier": "t_stamp",
-        "sqlType": 93
+        "sqlType": 12
       },
       {
         "type": "Parameter",

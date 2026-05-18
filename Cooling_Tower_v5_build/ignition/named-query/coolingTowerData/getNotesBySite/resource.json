@@ -27,12 +27,12 @@
       {
         "type": "Parameter",
         "identifier": "startDate",
-        "sqlType": 93
+        "sqlType": 12
       },
       {
         "type": "Parameter",
         "identifier": "endDate",
-        "sqlType": 93
+        "sqlType": 12
       }
     ],
     "permissions": [
