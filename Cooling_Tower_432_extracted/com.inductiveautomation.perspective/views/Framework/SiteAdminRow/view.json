@@ -1,0 +1,129 @@
+{
+  "custom": {},
+  "params": {
+    "siteId": 0,
+    "site": "",
+    "region": ""
+  },
+  "propConfig": {
+    "params.siteId": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.site": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.region": {
+      "paramDirection": "input",
+      "persistent": true
+    }
+  },
+  "root": {
+    "meta": {
+      "name": "root"
+    },
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "row",
+      "style": {
+        "borderBottom": "1px solid #E0E0E0",
+        "padding": "0 8px",
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "height": "40px"
+      }
+    },
+    "children": [
+      {
+        "meta": {
+          "name": "SiteName"
+        },
+        "position": {
+          "basis": "240px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": 13
+          }
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.site"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CurrentRegion"
+        },
+        "position": {
+          "basis": "200px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "color": "#555555"
+          }
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.params.region"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RegionDropdown"
+        },
+        "position": {
+          "basis": "220px",
+          "shrink": 0
+        },
+        "props": {
+          "placeholder": "Reassign...",
+          "options": []
+        },
+        "propConfig": {
+          "props.options": {
+            "binding": {
+              "config": {
+                "path": "session.custom.regionOptions"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "events": {
+          "component": {
+            "onValueChanged": {
+              "config": {
+                "script": "\tnewRegion = self.props.value\n\tif newRegion is None: return\n\tsiteId = self.view.params.siteId\n\ttry:\n\t\tsystem.db.runNamedQuery(\n\t\t\t'coolingTowerData/updateSiteRegion',\n\t\t\t{'siteId': siteId, 'region': newRegion}\n\t\t)\n\t\tself.view.params.region = newRegion\n\texcept Exception as e:\n\t\tsystem.perspective.print('Region update error: ' + str(e))\n"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "type": "ia.input.dropdown"
+      }
+    ],
+    "position": {
+      "height": 40
+    }
+  }
+}

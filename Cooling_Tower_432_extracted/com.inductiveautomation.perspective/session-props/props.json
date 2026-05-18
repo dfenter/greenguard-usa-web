@@ -1,0 +1,84 @@
+{
+  "custom": {
+    "Header": "value",
+    "Site": "Vernon",
+    "currentSite": 6,
+    "header": "Overview",
+    "tankConfig": "value",
+    "currentSiteName": ""
+  },
+  "propConfig": {
+    "custom.site": {
+      "binding": {
+        "config": {
+          "parameters": {
+            "siteId": "{this.custom.currentSite}"
+          },
+          "queryPath": "coolingTowerData/getSite"
+        },
+        "type": "query"
+      }
+    },
+    "props.auth": {
+      "access": "PRIVATE",
+      "persistent": false
+    },
+    "props.device.accelerometer": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.device.identifier": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.device.timezone": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.device.type": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.device.userAgent": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.gateway": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.geolocation.data": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.geolocation.permissionGranted": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.host": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.id": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "props.lastActivity": {
+      "access": "SYSTEM",
+      "persistent": false
+    },
+    "custom.currentSite": {
+      "persistent": true
+    },
+    "custom.currentSiteName": {
+      "persistent": true
+    }
+  },
+  "props": {
+    "address": "10.9.20.197",
+    "device": {},
+    "geolocation": {},
+    "locale": "en-US",
+    "timeZoneId": "America/Chicago"
+  }
+}

@@ -1,0 +1,3 @@
+SELECT coolingTowerDataID, approachTempTarget, incomingWaterTempTarget, processGasOutTempTarget, altEquipmentName
+FROM coolingTowerStickyValues
+WHERE coolingTowerDataID = :coolingTowerDataID

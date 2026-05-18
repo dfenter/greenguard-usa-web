@@ -1,0 +1,176 @@
+{
+  "custom": {},
+  "events": {
+    "system": {
+      "onStartup": {
+        "config": {
+          "script": "\tif self.params.tabIndex is not None and self.params.tabIndex > 0:\n\t\tself.getChild(\"root\").getChild(\"TabContainer\").props.currentTabIndex=self.params.tabIndex\n\telse:\n\t\tself.getChild(\"root\").getChild(\"TabContainer\").props.currentTabIndex=0\n"
+        },
+        "scope": "G",
+        "type": "script"
+      }
+    }
+  },
+  "params": {
+    "tabIndex": "value"
+  },
+  "propConfig": {
+    "params.tabIndex": {
+      "paramDirection": "input",
+      "persistent": true
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 1080,
+      "width": 1920
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "meta": {
+              "name": "Overview"
+            },
+            "props": {
+              "path": "Regions/Overviews/Midwest Region Overview"
+            },
+            "type": "ia.display.view"
+          },
+          {
+            "meta": {
+              "name": "Burlington"
+            },
+            "position": {
+              "tabIndex": 1
+            },
+            "props": {
+              "params": {
+                "siteId": 2,
+                "tabIndex": 0
+              },
+              "path": "Sites/siteView"
+            },
+            "type": "ia.display.view"
+          },
+          {
+            "meta": {
+              "name": "Carrollton"
+            },
+            "position": {
+              "tabIndex": 2
+            },
+            "props": {
+              "params": {
+                "siteId": 3,
+                "tabIndex": 0
+              },
+              "path": "Sites/siteView"
+            },
+            "type": "ia.display.view"
+          },
+          {
+            "meta": {
+              "name": "Mapleton"
+            },
+            "position": {
+              "tabIndex": 3
+            },
+            "props": {
+              "params": {
+                "siteId": 15,
+                "tabIndex": 0
+              },
+              "path": "Sites/siteView"
+            },
+            "type": "ia.display.view"
+          },
+          {
+            "meta": {
+              "name": "Mt Vernon"
+            },
+            "position": {
+              "tabIndex": 4
+            },
+            "props": {
+              "params": {
+                "siteId": 18,
+                "tabIndex": 0
+              },
+              "path": "Sites/siteView"
+            },
+            "type": "ia.display.view"
+          },
+          {
+            "meta": {
+              "name": "Pittsboro"
+            },
+            "position": {
+              "tabIndex": 5
+            },
+            "props": {
+              "params": {
+                "siteId": 22,
+                "tabIndex": 0
+              },
+              "path": "Sites/siteView"
+            },
+            "type": "ia.display.view"
+          }
+        ],
+        "meta": {
+          "name": "TabContainer"
+        },
+        "position": {
+          "basis": "1080px"
+        },
+        "propConfig": {
+          "props.currentTabIndex": {
+            "onChange": {
+              "enabled": true,
+              "script": "\tsite_name = self.props.tabs[self.props.currentTabIndex].get('text', '')\n\tsite_ids  = {'Burlington': 2, 'Carrollton': 3, 'Mapleton': 15, 'Mt Vernon': 18, 'Pittsboro': 22}\n\tself.session.custom.currentSiteName = site_name\n\tself.session.custom.site            = site_name\n\tif site_name in site_ids:\n\t\tself.session.custom.currentSite = site_ids[site_name]\n",
+              "scope": "G"
+            }
+          }
+        },
+        "props": {
+          "currentTabIndex": "value",
+          "menuType": "modern",
+          "tabSize": {
+            "width": 120
+          },
+          "tabs": [
+            {
+              "text": "Overview"
+            },
+            {
+              "text": "Burlington"
+            },
+            {
+              "text": "Carrollton"
+            },
+            {
+              "text": "Mapleton"
+            },
+            {
+              "text": "Mt Vernon"
+            },
+            {
+              "text": "Pittsboro"
+            }
+          ]
+        },
+        "type": "ia.container.tab"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column"
+    },
+    "type": "ia.container.flex"
+  }
+}

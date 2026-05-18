@@ -1,0 +1,50 @@
+{
+  "scope": "DG",
+  "version": 2,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "query.sql"
+  ],
+  "attributes": {
+    "useMaxReturnSize": false,
+    "autoBatchEnabled": false,
+    "fallbackValue": "",
+    "maxReturnSize": 100,
+    "cacheUnit": "SEC",
+    "type": "UpdateQuery",
+    "enabled": true,
+    "cacheAmount": 1,
+    "cacheEnabled": false,
+    "database": "",
+    "fallbackEnabled": false,
+    "lastModificationSignature": "42f4dd96e709637d144b2376367a42372fabb69b866b414894792ebd2e46c46a",
+    "permissions": [
+      {
+        "zone": "",
+        "role": ""
+      }
+    ],
+    "lastModification": {
+      "actor": "dfenter",
+      "timestamp": "2026-02-20T18:41:08Z"
+    },
+    "parameters": [
+      {
+        "type": "Parameter",
+        "identifier": "siteId",
+        "sqlType": 2
+      },
+      {
+        "type": "Parameter",
+        "identifier": "equipmentId",
+        "sqlType": 2
+      },
+      {
+        "type": "Parameter",
+        "identifier": "equipmentNumber",
+        "sqlType": 2
+      }
+    ]
+  }
+}

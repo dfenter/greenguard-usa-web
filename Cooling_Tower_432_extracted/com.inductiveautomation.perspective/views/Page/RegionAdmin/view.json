@@ -1,0 +1,273 @@
+{
+  "custom": {
+    "allSites": [],
+    "regionOptions": [],
+    "pendingChanges": []
+  },
+  "params": {},
+  "propConfig": {
+    "custom.allSites": {
+      "binding": {
+        "config": {
+          "queryPath": "coolingTowerData/getAllSitesWithRegion"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None: return []\n\tds = system.dataset.toPyDataSet(value)\n\treturn [{\n\t\t'instancePosition': {}, 'instanceStyle': {'classes': ''},\n\t\t'siteId':  row['id'],\n\t\t'site':    row['site'],\n\t\t'region':  row['region'] if row['region'] else ''\n\t} for row in ds]\n",
+            "type": "script"
+          }
+        ],
+        "type": "query"
+      },
+      "persistent": true
+    },
+    "custom.regionOptions": {
+      "binding": {
+        "config": {
+          "queryPath": "coolingTowerData/getAllRegions"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None: return []\n\tds = system.dataset.toPyDataSet(value)\n\treturn [{'label': row['region'], 'value': row['region']} for row in ds]\n",
+            "type": "script"
+          }
+        ],
+        "type": "query"
+      },
+      "persistent": true
+    }
+  },
+  "root": {
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "height": "100%"
+      }
+    },
+    "children": [
+      {
+        "meta": {
+          "name": "PageTitle"
+        },
+        "position": {
+          "basis": "48px",
+          "shrink": 0
+        },
+        "props": {
+          "text": "Region / Site Assignment",
+          "style": {
+            "fontSize": 20,
+            "fontWeight": "bold",
+            "padding": "12px 16px",
+            "borderBottom": "2px solid #E0E0E0"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Instructions"
+        },
+        "position": {
+          "basis": "32px",
+          "shrink": 0
+        },
+        "props": {
+          "text": "Select a row then use the dropdown below to reassign the region.",
+          "style": {
+            "fontSize": 12,
+            "color": "#666666",
+            "padding": "4px 16px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "SiteTable"
+        },
+        "position": {
+          "grow": 1
+        },
+        "props": {
+          "columns": [
+            {
+              "field": "id",
+              "header": {
+                "title": "ID"
+              },
+              "width": 60,
+              "editable": false
+            },
+            {
+              "field": "Site",
+              "header": {
+                "title": "Site"
+              },
+              "width": 250,
+              "editable": false
+            },
+            {
+              "field": "Current Region",
+              "header": {
+                "title": "Current Region"
+              },
+              "width": 250,
+              "editable": false
+            }
+          ],
+          "rowHeight": 36,
+          "alternatingRowBackground": true,
+          "showPaginationBar": true,
+          "pageSize": 20,
+          "selectionMode": "single",
+          "style": {
+            "overflowY": "auto",
+            "margin": "0 16px"
+          }
+        },
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "config": {
+                "queryPath": "coolingTowerData/getAllSitesWithRegion"
+              },
+              "transforms": [
+                {
+                  "code": "if value is None: return system.dataset.toDataSet([], [])\nheaders = [\"id\", \"Site\", \"Current Region\"]\nrows = []\nfor r in range(value.getRowCount()):\n\trows.append([\n\t\tvalue.getValueAt(r, \"id\"),\n\t\tstr(value.getValueAt(r, \"site\") or \"\"),\n\t\tstr(value.getValueAt(r, \"region\") or \"Unassigned\")\n\t])\nreturn system.dataset.toDataSet(headers, rows)\n",
+                  "type": "script"
+                }
+              ],
+              "type": "query"
+            }
+          }
+        },
+        "type": "ia.display.table"
+      },
+      {
+        "meta": {
+          "name": "AssignBar"
+        },
+        "position": {
+          "basis": "56px",
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "padding": "8px 16px",
+            "borderTop": "1px solid #E0E0E0",
+            "gap": "12px",
+            "backgroundColor": "#F8F8F8"
+          }
+        },
+        "children": [
+          {
+            "meta": {
+              "name": "AssignLabel"
+            },
+            "position": {
+              "basis": "120px",
+              "shrink": 0
+            },
+            "props": {
+              "text": "Assign selected to:",
+              "style": {
+                "fontSize": 13
+              }
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "RegionDropdown"
+            },
+            "position": {
+              "basis": "240px",
+              "shrink": 0
+            },
+            "props": {
+              "placeholder": "Select region...",
+              "options": [
+                {
+                  "label": "Central Region",
+                  "value": "Central Region"
+                },
+                {
+                  "label": "East Region",
+                  "value": "East Region"
+                },
+                {
+                  "label": "Midwest Region",
+                  "value": "Midwest Region"
+                },
+                {
+                  "label": "North Region",
+                  "value": "North Region"
+                },
+                {
+                  "label": "Northeast Region",
+                  "value": "Northeast Region"
+                },
+                {
+                  "label": "South Region",
+                  "value": "South Region"
+                },
+                {
+                  "label": "Southeast Region",
+                  "value": "Southeast Region"
+                },
+                {
+                  "label": "Southwest Region",
+                  "value": "Southwest Region"
+                }
+              ]
+            },
+            "type": "ia.input.dropdown"
+          },
+          {
+            "meta": {
+              "name": "SaveButton"
+            },
+            "position": {
+              "basis": "120px",
+              "shrink": 0
+            },
+            "props": {
+              "text": "Save Assignment"
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "\ttable    = self.getSibling('SiteTable')\n\tselected = table.props.selection.data\n\tif not selected or selected.getRowCount() == 0:\n\t\tsystem.perspective.openPopup('adminError','Framework/ErrorPopup',\n\t\t\tparams={'message': 'Please select a site first.'})\n\t\treturn\n\tregion = self.getSibling('RegionDropdown').props.value\n\tif not region:\n\t\tsystem.perspective.openPopup('adminError','Framework/ErrorPopup',\n\t\t\tparams={'message': 'Please select a region.'})\n\t\treturn\n\tsiteId = selected.getValueAt(0, 'id')\n\tsite   = selected.getValueAt(0, 'Site')\n\ttry:\n\t\tsystem.db.runNamedQuery('coolingTowerData/updateSiteRegion',\n\t\t\t{'siteId': siteId, 'region': region})\n\t\tsystem.perspective.openPopup('adminSuccess','Framework/SuccessPopup',\n\t\t\tparams={'message': site + ' assigned to ' + region})\n\t\t# Refresh table\n\t\ttable.refreshBinding('props.data')\n\texcept Exception as e:\n\t\tsystem.perspective.openPopup('adminError','Framework/ErrorPopup',\n\t\t\tparams={'message': 'Save failed: ' + str(e)})\n"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
+            "type": "ia.input.button"
+          }
+        ],
+        "type": "ia.container.flex"
+      }
+    ],
+    "type": "ia.container.flex"
+  },
+  "events": {
+    "system": {
+      "onStartup": {
+        "config": {
+          "script": "\ttry:\n\t\tds = system.db.runNamedQuery('coolingTowerData/getAllRegions', {})\n\t\topts = [{'label': 'None', 'value': ''}]\n\t\tfor r in range(ds.getRowCount()):\n\t\t\treg = ds.getValueAt(r, 'region')\n\t\t\topts.append({'label': reg, 'value': reg})\n\t\tself.session.custom.regionOptions = opts\n\texcept Exception as e:\n\t\tsystem.perspective.print('RegionAdmin startup error: ' + str(e))\n"
+        },
+        "scope": "G",
+        "type": "script"
+      }
+    }
+  }
+}

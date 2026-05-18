@@ -1,0 +1,1914 @@
+{
+  "custom": {
+    "BAC": 2,
+    "CDA": 2,
+    "DCAC": 2,
+    "FNC": 2,
+    "GAN": 2,
+    "GOX": 2,
+    "MAC": 2,
+    "NLUChiller": 2,
+    "RNC": 2,
+    "airExpander": 2,
+    "allEquipmentList": {
+      "$": [
+        "ds",
+        192,
+        1771612049417
+      ],
+      "$columns": [
+        {
+          "data": [
+            "MAC",
+            "BAC",
+            "RNC",
+            "FNC",
+            "GOX",
+            "GAN",
+            "CDA",
+            "AirExpander",
+            "WarmExpander",
+            "ColdExpander",
+            "ArgonSkid",
+            "AuxillaryCooler",
+            "DCAC",
+            "Chiller",
+            "NLUChiller"
+          ],
+          "name": "equipmentType",
+          "type": "String"
+        }
+      ]
+    },
+    "argonSkid": 2,
+    "auxillaryCooler": 2,
+    "chiller": 2,
+    "coldExpander": 2,
+    "edit": true,
+    "equipmentIds": {
+      "$": [
+        "ds",
+        192,
+        1771612049416
+      ],
+      "$columns": [
+        {
+          "data": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "name": "id",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            "MAC",
+            "BAC",
+            "RNC",
+            "FNC",
+            "GOX",
+            "GAN",
+            "CDA",
+            "AirExpander",
+            "WarmExpander",
+            "ColdExpander",
+            "ArgonSkid",
+            "AuxillaryCooler",
+            "DCAC",
+            "Chiller",
+            "NLUChiller"
+          ],
+          "name": "equipmentType",
+          "type": "String"
+        },
+        {
+          "data": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            6,
+            2,
+            2,
+            2,
+            2,
+            6,
+            2,
+            2,
+            2
+          ],
+          "name": "maxNumber",
+          "type": "Integer"
+        }
+      ]
+    },
+    "instancesEquipmentList": [
+      {
+        "equipmentType": "MAC",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "BAC",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "RNC",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "FNC",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "GOX",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "GAN",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "CDA",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "AirExpander",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "WarmExpander",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "ColdExpander",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "ArgonSkid",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "AuxillaryCooler",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "DCAC",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "Chiller",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      },
+      {
+        "equipmentType": "NLUChiller",
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        }
+      }
+    ],
+    "siteConfig": {
+      "$": [
+        "ds",
+        192,
+        1771612964214
+      ],
+      "$columns": [
+        {
+          "data": [
+            1
+          ],
+          "name": "id",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "siteId",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "MAC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "BAC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "RNC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "FNC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "GOX",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "GAN",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "CDA",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "airExpander",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "warmExpander",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "coldExpander",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "argonSkid",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "auxillaryCooler",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "DCAC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "chiller",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            2
+          ],
+          "name": "NLUChiller",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            1
+          ],
+          "name": "intercoolers",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            1
+          ],
+          "name": "aftercoolers",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            1
+          ],
+          "name": "oilcoolers",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            1
+          ],
+          "name": "auxEquipment",
+          "type": "Integer"
+        }
+      ]
+    },
+    "siteConfigInstance": [
+      {
+        "BAC": 2,
+        "CDA": 2,
+        "DCAC": 2,
+        "FNC": 2,
+        "GAN": 2,
+        "GOX": 2,
+        "MAC": 2,
+        "NLUChiller": 2,
+        "RNC": 2,
+        "airExpander": 2,
+        "argonSkid": 2,
+        "auxillaryCooler": 2,
+        "chiller": 2,
+        "coldExpander": 2,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": []
+        },
+        "warmExpander": 2
+      }
+    ],
+    "siteId": 0,
+    "warmExpander": 2
+  },
+  "params": {},
+  "propConfig": {
+    "custom.BAC": {
+      "persistent": true
+    },
+    "custom.CDA": {
+      "persistent": true
+    },
+    "custom.DCAC": {
+      "persistent": true
+    },
+    "custom.FNC": {
+      "persistent": true
+    },
+    "custom.GAN": {
+      "persistent": true
+    },
+    "custom.GOX": {
+      "persistent": true
+    },
+    "custom.MAC": {
+      "persistent": true
+    },
+    "custom.NLUChiller": {
+      "persistent": true
+    },
+    "custom.RNC": {
+      "persistent": true
+    },
+    "custom.airExpander": {
+      "persistent": true
+    },
+    "custom.allEquipmentList": {
+      "binding": {
+        "config": {
+          "queryPath": "coolingTowerData/getAllEquipmentTypes"
+        },
+        "type": "query"
+      },
+      "persistent": true
+    },
+    "custom.argonSkid": {
+      "persistent": true
+    },
+    "custom.auxillaryCooler": {
+      "persistent": true
+    },
+    "custom.chiller": {
+      "persistent": true
+    },
+    "custom.coldExpander": {
+      "persistent": true
+    },
+    "custom.edit": {
+      "persistent": true
+    },
+    "custom.equipmentIds": {
+      "binding": {
+        "config": {
+          "queryPath": "coolingTowerData/getEquipmentIds"
+        },
+        "type": "query"
+      },
+      "persistent": true
+    },
+    "custom.instancesEquipmentList": {
+      "binding": {
+        "config": {
+          "path": "view.custom.allEquipmentList"
+        },
+        "transforms": [
+          {
+            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['equipmentType'] = entry['equipmentType']\n\t\tinstance['instanceStyle'] = {'classes': []}\n\t\tinstance['instancePosition'] = {}\n\t\tinstances.append(instance)\n\treturn instances",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": true
+    },
+    "custom.siteConfig": {
+      "binding": {
+        "config": {
+          "parameters": {
+            "siteId": "{view.custom.siteId}"
+          },
+          "queryPath": "coolingTowerData/getSiteConfig"
+        },
+        "type": "query"
+      },
+      "persistent": true
+    },
+    "custom.siteConfigInstance": {
+      "binding": {
+        "config": {
+          "path": "view.custom.siteConfig"
+        },
+        "transforms": [
+          {
+            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['MAC'] = entry['MAC']\n\t\tinstance['BAC'] = entry['BAC']\n\t\tinstance['RNC'] = entry['RNC']\n\t\tinstance['FNC'] = entry['FNC']\n\t\tinstance['GAN'] = entry['GAN']\n\t\tinstance['GOX'] = entry['GOX']\n\t\tinstance['CDA'] = entry['CDA']\n\t\tinstance['chiller'] = entry['chiller']\n\t\tinstance['NLUChiller'] = entry['NLUChiller']\n\t\tinstance['airExpander'] = entry['airExpander']\n\t\tinstance['warmExpander'] = entry['warmExpander']\n\t\tinstance['coldExpander'] = entry['coldExpander']\n\t\tinstance['argonSkid'] = entry['argonSkid']\n\t\tinstance['auxillaryCooler'] = entry['auxillaryCooler']\n\t\tinstance['DCAC'] = entry['DCAC']\n\t\tinstance['instanceStyle'] = {'classes': []}\n\t\tinstance['instancePosition'] = {}\n\t\tinstances.append(instance)\n\treturn instances",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "onChange": {
+        "enabled": true,
+        "script": "\tself.custom.CDA = self.custom.siteConfigInstance[0].CDA\n\tself.custom.BAC = self.custom.siteConfigInstance[0].BAC\n\tself.custom.RNC = self.custom.siteConfigInstance[0].RNC\n\tself.custom.chiller = self.custom.siteConfigInstance[0].chiller\n\tself.custom.MAC = self.custom.siteConfigInstance[0].MAC\n\tself.custom.GOX = self.custom.siteConfigInstance[0].GOX\n\tself.custom.coldExpander = self.custom.siteConfigInstance[0].coldExpander\n\tself.custom.auxillaryCooler = self.custom.siteConfigInstance[0].auxillaryCooler\n\tself.custom.NLUChiller = self.custom.siteConfigInstance[0].NLUChiller\n\tself.custom.GAN = self.custom.siteConfigInstance[0].GAN\n\tself.custom.warmExpander = self.custom.siteConfigInstance[0].warmExpander\n\tself.custom.airExpander = self.custom.siteConfigInstance[0].airExpander\n\tself.custom.FNC = self.custom.siteConfigInstance[0].FNC\n\tself.custom.argonSkid = self.custom.siteConfigInstance[0].argonSkid\n\tself.custom.DCAC = self.custom.siteConfigInstance[0].DCAC"
+      },
+      "persistent": true
+    },
+    "custom.siteConfigInstance[0].BAC": {
+      "onChange": {
+        "enabled": true,
+        "script": "\tself.custom.BAC = self.custom.siteConfigInstance[0].BAC"
+      }
+    },
+    "custom.siteConfigInstance[0].CDA": {
+      "onChange": {
+        "enabled": true,
+        "script": "\tself.custom.CDA = self.custom.siteConfigInstance[0].CDA"
+      }
+    },
+    "custom.siteConfigInstance[0].DCAC": {
+      "onChange": {
+        "enabled": true,
+        "script": "\tself.custom.DCAC = self.custom.siteConfigInstance[0].DCAC"
+      }
+    },
+    "custom.siteConfigInstance[0].FNC": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.FNC = self.custom.siteConfigInstance[0].FNC\n\t"
+      }
+    },
+    "custom.siteConfigInstance[0].GAN": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.GAN = self.custom.siteConfigInstance[0].GAN"
+      }
+    },
+    "custom.siteConfigInstance[0].GOX": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.GOX = self.custom.siteConfigInstance[0].GOX\n\t"
+      }
+    },
+    "custom.siteConfigInstance[0].MAC": {
+      "onChange": {
+        "enabled": true,
+        "script": "\tself.custom.MAC = self.custom.siteConfigInstance[0].MAC"
+      }
+    },
+    "custom.siteConfigInstance[0].NLUChiller": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.NLUChiller = self.custom.siteConfigInstance[0].NLUChiller"
+      }
+    },
+    "custom.siteConfigInstance[0].RNC": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.RNC = self.custom.siteConfigInstance[0].RNC\n\t"
+      }
+    },
+    "custom.siteConfigInstance[0].airExpander": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.airExpander = self.custom.siteConfigInstance[0].airExpander"
+      }
+    },
+    "custom.siteConfigInstance[0].argonSkid": {
+      "onChange": {
+        "enabled": true,
+        "script": "\tself.custom.argonSkid = self.custom.siteConfigInstance[0].argonSkid"
+      }
+    },
+    "custom.siteConfigInstance[0].auxillaryCooler": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.auxillaryCooler = self.custom.siteConfigInstance[0].auxillaryCooler\n"
+      }
+    },
+    "custom.siteConfigInstance[0].chiller": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.chiller = self.custom.siteConfigInstance[0].chiller\n"
+      }
+    },
+    "custom.siteConfigInstance[0].coldExpander": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.coldExpander = self.custom.siteConfigInstance[0].coldExpander\n\t"
+      }
+    },
+    "custom.siteConfigInstance[0].warmExpander": {
+      "onChange": {
+        "enabled": true,
+        "script": "\n\tself.custom.warmExpander = self.custom.siteConfigInstance[0].warmExpander"
+      }
+    },
+    "custom.siteId": {
+      "persistent": true
+    },
+    "custom.warmExpander": {
+      "persistent": true
+    }
+  },
+  "events": {
+    "system": {
+      "onStartup": {
+        "config": {
+          "script": "\t# Pre-populate siteId from session so correct site loads on open\n\ttry:\n\t\tsid = self.session.custom.currentSite\n\t\tif sid is not None and sid != 0:\n\t\t\tself.custom.siteId = sid\n\texcept:\n\t\tpass\n"
+        },
+        "scope": "G",
+        "type": "script"
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "width": 700,
+      "height": 738
+    }
+  },
+  "root": {
+    "meta": {
+      "name": "root"
+    },
+    "type": "ia.container.coord",
+    "props": {
+      "style": {
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "children": [
+      {
+        "meta": {
+          "name": "Header"
+        },
+        "position": {
+          "height": 52,
+          "width": 700,
+          "x": 0,
+          "y": 0
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#2C5F2E"
+          }
+        },
+        "type": "ia.container.coord",
+        "children": [
+          {
+            "meta": {
+              "name": "Icon"
+            },
+            "position": {
+              "height": 36,
+              "width": 36,
+              "x": 20,
+              "y": 8
+            },
+            "props": {
+              "text": "\u2699",
+              "style": {
+                "fontSize": 22,
+                "color": "#FFFFFF",
+                "textAlign": "center"
+              }
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "Title"
+            },
+            "position": {
+              "height": 36,
+              "width": 620,
+              "x": 60,
+              "y": 8
+            },
+            "props": {
+              "text": "Site Equipment Configuration",
+              "style": {
+                "fontSize": 18,
+                "color": "#FFFFFF",
+                "fontWeight": "bold"
+              }
+            },
+            "type": "ia.display.label"
+          }
+        ]
+      },
+      {
+        "meta": {
+          "name": "SiteLabel"
+        },
+        "position": {
+          "height": 30,
+          "width": 50,
+          "x": 20,
+          "y": 62
+        },
+        "props": {
+          "text": "Site:",
+          "style": {
+            "fontSize": 13,
+            "color": "#333333",
+            "fontWeight": "bold"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Dropdown"
+        },
+        "position": {
+          "height": 32,
+          "width": 240,
+          "x": 70,
+          "y": 62
+        },
+        "props": {
+          "placeholder": {
+            "text": "Select Site..."
+          }
+        },
+        "propConfig": {
+          "props.options": {
+            "binding": {
+              "config": {
+                "queryPath": "coolingTowerData/getAllSitesDropdown"
+              },
+              "type": "query"
+            }
+          },
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.siteId"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.dropdown"
+      },
+      {
+        "meta": {
+          "name": "DescLabel"
+        },
+        "position": {
+          "height": 30,
+          "width": 330,
+          "x": 320,
+          "y": 63
+        },
+        "props": {
+          "text": "Set count of each equipment type at this site.",
+          "style": {
+            "fontSize": 11,
+            "color": "#777777",
+            "fontStyle": "italic"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ColHdrBg"
+        },
+        "position": {
+          "height": 28,
+          "width": 660,
+          "x": 20,
+          "y": 96
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#4A4A4A"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ColHdrEquipment"
+        },
+        "position": {
+          "height": 28,
+          "width": 540,
+          "x": 28,
+          "y": 96
+        },
+        "props": {
+          "text": "Equipment Type",
+          "style": {
+            "fontSize": 12,
+            "fontWeight": "bold",
+            "color": "#FFFFFF",
+            "padding": "4px 0"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "ColHdrCount"
+        },
+        "position": {
+          "height": 28,
+          "width": 80,
+          "x": 600,
+          "y": 96
+        },
+        "props": {
+          "text": "Count",
+          "style": {
+            "fontSize": 12,
+            "fontWeight": "bold",
+            "color": "#FFFFFF",
+            "textAlign": "center",
+            "padding": "4px 0"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowBg_0"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 128
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#F5F5F5"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_0"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 128
+        },
+        "props": {
+          "text": "MAC",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_1"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 133
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.MAC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_1"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 164
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_1"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 164
+        },
+        "props": {
+          "text": "BAC",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_2"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 169
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.BAC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_2"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 200
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#F5F5F5"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_2"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 200
+        },
+        "props": {
+          "text": "RNC",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_4"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 205
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.RNC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_3"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 236
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_3"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 236
+        },
+        "props": {
+          "text": "FNC",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_3"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 241
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.FNC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_4"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 272
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#F5F5F5"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_4"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 272
+        },
+        "props": {
+          "text": "GOX",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_5"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 277
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.GOX"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_5"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 308
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_5"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 308
+        },
+        "props": {
+          "text": "GAN",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_6"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 313
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.GAN"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_6"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 344
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#F5F5F5"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_6"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 344
+        },
+        "props": {
+          "text": "CDA",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_7"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 349
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.CDA"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_7"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 380
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_7"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 380
+        },
+        "props": {
+          "text": "Air Expander",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_16"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 385
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.airExpander"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_8"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 416
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#F5F5F5"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_8"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 416
+        },
+        "props": {
+          "text": "Warm Expander",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_15"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 421
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.warmExpander"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_9"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 452
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_9"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 452
+        },
+        "props": {
+          "text": "Cold Expander",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_13"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 457
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.argonSkid"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_10"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 488
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#F5F5F5"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_10"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 488
+        },
+        "props": {
+          "text": "Argon Skid",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_14"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 493
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.coldExpander"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_11"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 524
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_11"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 524
+        },
+        "props": {
+          "text": "Auxiliary Cooler",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_12"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 529
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.auxillaryCooler"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_12"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 560
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#F5F5F5"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_12"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 560
+        },
+        "props": {
+          "text": "DCAC",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_11"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 565
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.DCAC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_13"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 596
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_13"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 596
+        },
+        "props": {
+          "text": "Chiller",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_10"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 601
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.chiller"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "RowBg_14"
+        },
+        "position": {
+          "height": 36,
+          "width": 660,
+          "x": 20,
+          "y": 632
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#F5F5F5"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "RowLabel_14"
+        },
+        "position": {
+          "height": 36,
+          "width": 540,
+          "x": 28,
+          "y": 632
+        },
+        "props": {
+          "text": "NLU Chiller",
+          "style": {
+            "fontSize": 13,
+            "color": "#222222",
+            "paddingTop": "10px"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_9"
+        },
+        "position": {
+          "height": 26,
+          "width": 80,
+          "x": 600,
+          "y": 637
+        },
+        "props": {
+          "style": {
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.NLUChiller"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "Divider"
+        },
+        "position": {
+          "height": 1,
+          "width": 660,
+          "x": 20,
+          "y": 676
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#CCCCCC"
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "CancelButton"
+        },
+        "position": {
+          "height": 36,
+          "width": 110,
+          "x": 440,
+          "y": 686
+        },
+        "props": {
+          "text": "Cancel"
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {
+                "script": "\tsystem.perspective.closePopup('config')\n"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "type": "ia.input.button"
+      },
+      {
+        "meta": {
+          "name": "Button"
+        },
+        "position": {
+          "height": 36,
+          "width": 120,
+          "x": 560,
+          "y": 686
+        },
+        "props": {
+          "text": "Save Changes"
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "path": "view.custom.edit"
+              },
+              "transforms": [
+                {
+                  "fallback": "",
+                  "inputType": "scalar",
+                  "mappings": [
+                    {
+                      "input": true,
+                      "output": "Save Site Configuration"
+                    },
+                    {
+                      "input": false,
+                      "output": "Edit Site Configuration"
+                    }
+                  ],
+                  "outputType": "scalar",
+                  "type": "map"
+                }
+              ],
+              "type": "property"
+            }
+          }
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {
+                "script": "\tMAC = self.view.custom.MAC\n\tBAC = self.view.custom.BAC\n\tRNC = self.view.custom.RNC\n\tFNC = self.view.custom.FNC\n\tGOX = self.view.custom.GOX\n\tGAN = self.view.custom.GAN\n\tCDA = self.view.custom.CDA\n\tchiller = self.view.custom.chiller\n\tairExpander = self.view.custom.airExpander\n\twarmExpander = self.view.custom.warmExpander\n\tcoldExpander = self.view.custom.coldExpander\n\targonSkid = self.view.custom.argonSkid\n\tauxillaryCooler = self.view.custom.auxillaryCooler\n\tDCAC = self.view.custom.DCAC\n\tNLUChiller = self.view.custom.NLUChiller\n\tsiteId = self.view.custom.siteId\n\tequipmentId = [MAC,BAC,RNC,FNC,GOX,GAN,CDA,chiller,airExpander,warmExpander,coldExpander,argonSkid,auxillaryCooler,DCAC,NLUChiller,siteId]\n\ttxID=system.db.beginNamedQueryTransaction(project= \"Cooling_Tower_Approach_Temps\", database=\"Plant_Stats_DB_Write_Server\")\n\tparams  = {\"siteId\":siteId, \"MAC\":MAC, \"BAC\":BAC, \"RNC\":RNC, \"FNC\":FNC, \"GOX\":GOX, \"GAN\":GAN, \"CDA\":CDA, \"airExpander\":airExpander, \"warmExpander\":warmExpander,\"coldExpander\":coldExpander, \"argonSkid\":argonSkid, \"auxillaryCooler\":auxillaryCooler, \"DCAC\":DCAC, \"NLUChiller\":NLUChiller, \"chiller\":chiller}\n\tparams1 = {\"siteId\":siteId, \"equipmentNumber\":MAC, \"equipmentId\":1}\t\n\tparams2 = {\"siteId\":siteId, \"equipmentNumber\":BAC, \"equipmentId\":2}\n\tparams3 = {\"siteId\":siteId, \"equipmentNumber\":RNC, \"equipmentId\":3}\n\tparams4 = {\"siteId\":siteId, \"equipmentNumber\":FNC, \"equipmentId\":4}\n\tparams5 = {\"siteId\":siteId, \"equipmentNumber\":GOX, \"equipmentId\":5}\n\tparams6 = {\"siteId\":siteId, \"equipmentNumber\":GAN, \"equipmentId\":6}\n\tparams7 = {\"siteId\":siteId, \"equipmentNumber\":CDA, \"equipmentId\":7}\n\tparams8 = {\"siteId\":siteId, \"equipmentNumber\":airExpander, \"equipmentId\":8}\n\tparams9 = {\"siteId\":siteId, \"equipmentNumber\":warmExpander, \"equipmentId\":9}\n\tparams10 = {\"siteId\":siteId, \"equipmentNumber\":coldExpander, \"equipmentId\":10}\n\tparams11 = {\"siteId\":siteId, \"equipmentNumber\":argonSkid, \"equipmentId\":11}\n\tparams12 = {\"siteId\":siteId, \"equipmentNumber\":auxillaryCooler, \"equipmentId\":12}\n\tparams13 = {\"siteId\":siteId, \"equipmentNumber\":DCAC, \"equipmentId\":13}\n\tparams14 = {\"siteId\":siteId, \"equipmentNumber\":chiller, \"equipmentId\":14}\n\tparams15 = {\"siteId\":siteId, \"equipmentNumber\":NLUChiller, \"equipmentId\":15}\t\n\tconfig = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/updateSiteConfig\", parameters=params, tx=txID)\n\tconfig2 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/MACDataEnable\", parameters=params1, tx=txID)\n\tconfig3 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/BACDataEnable\", parameters=params2, tx=txID)\n\tconfig4 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/RNCDataEnable\", parameters=params3, tx=txID)\n\tconfig5 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/FNCDataEnable\", parameters=params4, tx=txID)\n\tconfig6 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/GOXDataEnable\", parameters=params5, tx=txID)\n\tconfig7 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/GANDataEnable\", parameters=params6, tx=txID)\n\tconfig8 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/CDADataEnable\", parameters=params7, tx=txID)\n\tconfig9 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/AirExpanderDataEnable\", parameters=params8, tx=txID)\n\tconfig10 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/warmExpanderDataEnable\", parameters=params9, tx=txID)\n\tconfig11 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/coldExpanderDataEnable\", parameters=params10, tx=txID)\n\tconfig12 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/argonSkidDataEnable\", parameters=params11, tx=txID)\n\tconfig13 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/auxillaryCoolerDataEnable\", parameters=params12, tx=txID)\n\tconfig14 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/DCACDataEnable\", parameters=params13, tx=txID)\n\tconfig15 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/chillerDataEnable\", parameters=params14, tx=txID)\n\tconfig16 = system.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\",path=\"coolingTowerData/enables/NLUChillerDataEnable\", parameters=params15, tx=txID)\n\tsystem.db.commitTransaction(txID)\n\tsystem.db.closeTransaction(txID)"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "type": "ia.input.button"
+      }
+    ]
+  }
+}

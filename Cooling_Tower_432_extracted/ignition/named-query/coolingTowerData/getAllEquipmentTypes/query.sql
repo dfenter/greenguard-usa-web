@@ -1,0 +1,3 @@
+SELECT equipmentType 
+FROM equipmentType
+
