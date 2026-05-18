@@ -1,0 +1,141 @@
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+<style>
+#gg-bee,#gg-bee *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+#gg-bee h1,#gg-bee h2,#gg-bee h3,#gg-bee h4,#gg-bee p,#gg-bee ul,#gg-bee li,#gg-bee div,#gg-bee span,#gg-bee a,#gg-bee button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
+#gg-bee ul{list-style:none}#gg-bee a{text-decoration:none}
+#gg-bee{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
+#gg-bee .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-bee .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+#gg-bee .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}#gg-bee .gg-logo span{color:#7dffaa}
+#gg-bee .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
+#gg-bee .gg-hamburger span{height:3px;width:100%;background:#c9a84c;border-radius:2px}
+#gg-bee .gg-drawer{position:fixed;top:0;right:-100%;width:280px;height:100%;background:#0a1a0d;z-index:10000;padding:60px 26px 26px;display:flex;flex-direction:column;gap:5px;transition:right .28s ease;overflow-y:auto}
+#gg-bee .gg-drawer.open{right:0}
+#gg-bee .gg-drawer-close{position:absolute;top:18px;right:18px;background:none;border:none;color:#7dffaa;font-size:1.1rem;cursor:pointer}
+#gg-bee .gg-group{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(201,232,209,.45);margin-top:14px;padding-bottom:4px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-bee .gg-drawer a{color:rgba(201,232,209,.8);font-size:.92rem;padding:5px 0;border-bottom:1px solid rgba(122,171,130,.07);transition:color .2s}
+#gg-bee .gg-drawer a:hover{color:#7dffaa}
+#gg-bee .gg-hero{background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 45%,#2d4a32 100%);padding:80px 20px 70px}
+#gg-bee .gg-hero-inner{max-width:880px;margin:0 auto;text-align:center}
+#gg-bee .gg-badge-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+#gg-bee .gg-badge{background:rgba(45,74,50,.7);border:1px solid rgba(122,171,130,.3);border-radius:20px;padding:5px 14px;font-size:.74rem;color:#7dffaa;letter-spacing:.04em}
+#gg-bee .gg-dot{width:7px;height:7px;background:#7dffaa;border-radius:50%;animation:pp 2s infinite;display:inline-block}
+@keyframes pp{0%,100%{opacity:1}50%{opacity:.4}}
+#gg-bee .gg-h1{font-size:clamp(1.85rem,4vw,2.85rem);font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:18px}
+#gg-bee .gg-h1 span{color:#7dffaa}
+#gg-bee .gg-hero-p{font-size:1.03rem;color:rgba(201,232,209,.82);max-width:680px;margin:0 auto 30px;line-height:1.65}
+#gg-bee .gg-btn-gold{background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.92rem;padding:13px 26px;border-radius:8px;border:none;cursor:pointer;text-decoration:none;transition:background .2s,transform .15s;display:inline-block}
+#gg-bee .gg-btn-gold:hover{background:#e8d08a;transform:translateY(-2px)}
+#gg-bee .gg-sec{padding:66px 20px}
+#gg-bee .gg-sec.alt{background:#111c13}
+#gg-bee .gg-sec-inner{max-width:1000px;margin:0 auto}
+#gg-bee .gg-eye{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#7dffaa;margin-bottom:10px;font-weight:700}
+#gg-bee .gg-h2{font-size:clamp(1.5rem,3vw,2.15rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:14px;line-height:1.2}
+#gg-bee .gg-h2 span{color:#7dffaa}
+#gg-bee .gg-body{font-size:.97rem;color:rgba(201,232,209,.8);line-height:1.72;margin-bottom:14px}
+#gg-bee .gg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:18px;margin-top:30px}
+#gg-bee .gg-card{background:rgba(45,74,50,.35);border:1px solid rgba(122,171,130,.17);border-radius:14px;padding:26px;transition:border-color .2s}
+#gg-bee .gg-card:hover{border-color:rgba(122,171,130,.38)}
+#gg-bee .gg-card-h{font-size:.98rem;font-weight:800;color:#fff;margin-bottom:7px}
+#gg-bee .gg-card-p{font-size:.86rem;color:rgba(201,232,209,.72);line-height:1.6}
+#gg-bee .gg-list{display:flex;flex-direction:column;gap:9px;margin-top:18px}
+#gg-bee .gg-li{display:flex;align-items:flex-start;gap:10px;color:rgba(201,232,209,.82);font-size:.94rem;line-height:1.55}
+#gg-bee .gg-li::before{content:"";width:6px;height:6px;background:#7dffaa;border-radius:50%;flex-shrink:0;margin-top:8px}
+#gg-bee .gg-cta{background:linear-gradient(135deg,#0a1a0d,#1a2e1f 50%,#0e1d12);padding:66px 20px;text-align:center}
+#gg-bee .gg-cta-inner{max-width:640px;margin:0 auto}
+#gg-bee .gg-cta-h{font-size:clamp(1.7rem,3.5vw,2.45rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:14px;line-height:1.2}
+#gg-bee .gg-cta-p{font-size:.97rem;color:rgba(201,232,209,.75);margin-bottom:26px;line-height:1.65}
+#gg-bee .gg-cta-note{font-size:.79rem;color:rgba(201,232,209,.44);margin-top:14px}
+#gg-bee .gg-footer{background:#080f09;padding:50px 20px 20px}
+#gg-bee .gg-footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-bee .gg-footer-logo{font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px}
+#gg-bee .gg-footer-logo span{color:#7dffaa}
+#gg-bee .gg-footer-tagline{font-size:.74rem;color:#7dffaa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+#gg-bee .gg-footer-desc{font-size:.82rem;color:rgba(201,232,209,.5);line-height:1.6;margin-bottom:10px}
+#gg-bee .gg-footer-link{display:block;font-size:.83rem;color:rgba(201,232,209,.65);margin-bottom:4px}
+#gg-bee .gg-footer-col-head{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,232,209,.4);margin-bottom:11px;font-weight:700}
+#gg-bee .gg-footer-col a{display:block;font-size:.84rem;color:rgba(201,232,209,.6);margin-bottom:7px;transition:color .2s}
+#gg-bee .gg-footer-col a:hover{color:#7dffaa}
+#gg-bee .gg-footer-bottom{max-width:1100px;margin:16px auto 0;display:flex;justify-content:space-between;align-items:center;font-size:.77rem;color:rgba(201,232,209,.37);flex-wrap:wrap;gap:8px}
+#gg-bee .gg-footer-badge{background:rgba(45,74,50,.5);border:1px solid rgba(122,171,130,.18);border-radius:12px;padding:3px 11px;font-size:.69rem;color:rgba(201,232,209,.55)}
+@media(max-width:720px){#gg-bee .gg-footer-inner{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){#gg-bee .gg-hero{padding:60px 20px 48px}}
+</style>
+<div id="gg-bee">
+  <div class="gg-nav"><div class="gg-nav-inner">
+    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+    <div class="gg-hamburger" onclick="document.querySelector('#gg-bee .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
+  </div></div>
+  <div class="gg-drawer">
+    <button class="gg-drawer-close" onclick="document.querySelector('#gg-bee .gg-drawer').classList.remove('open')">&#10005;</button>
+    <span class="gg-group">Services</span>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <span class="gg-group">Service Areas</span>
+    <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-dripping-springs">Dripping Springs</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
+    <span class="gg-group">Learn</span>
+    <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
+    <a href="https://www.greenguard-usa.com/bee-safe-mosquito-control">Bee-Safe Protection</a>
+    <a href="https://www.greenguard-usa.com/outdoor-wellness">Outdoor Wellness</a>
+    <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
+    <a href="https://www.greenguard-usa.com/blog">Blog</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    <span class="gg-group">Company</span>
+    <a href="https://www.greenguard-usa.com/about">About Us</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact</a>
+    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    <span class="gg-group">Book</span>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+  </div>
+  <div class="gg-hero"><div class="gg-hero-inner">
+    <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">PollinatorSafe Protection</div></div>
+    <h1 class="gg-h1">Mosquito Control That Is <span>Safe for Bees</span></h1>
+    <p class="gg-hero-p">GreenGuard USA's CO&#8322; protection technology is the only mosquito management approach that is genuinely safe for bees, butterflies, and the pollinators your outdoor ecosystem depends on.</p>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+  </div></div>
+
+<div class="gg-sec"><div class="gg-sec-inner"><div class="gg-eye">Why Most Approaches Harm Bees</div><h2 class="gg-h2">The problem with conventional mosquito spraying</h2><p class="gg-body">Every conventional mosquito spray product uses broad-spectrum insecticides. When applied to your yard, these compounds land on the same flowering plants that bees and butterflies feed from. There is no application technique that targets mosquitoes while sparing pollinators, the mechanism of action affects all insects it contacts.</p><p class="gg-body">CO&#8322; trapping is different at the fundamental level. The trap attracts mosquitoes using CO&#8322; and human scent compounds, signals that blood-seeking insects use to locate hosts. Bees navigate using floral volatiles and visual cues that have nothing to do with CO&#8322;. They are not attracted to the trap and are not affected by its operation. <a href="https://www.greenguard-usa.com/mosquito-control-pollinator-gardens" style="color:#7dffaa">Read our pollinator garden guide.</a></p></div></div>
+<div class="gg-sec alt"><div class="gg-sec-inner"><div class="gg-eye">PollinatorSafe Protection</div><h2 class="gg-h2">What makes GreenGuard USA different</h2><p class="gg-body">Our protection technology releases nothing into the environment that is not already in the atmosphere. CO&#8322; is present naturally at 0.04% of the air around you. The human scent attractants dissipate in open air. There is no residue on your garden plants, no contamination of nectar or pollen, and no waiting period before bees can safely forage.</p><p class="gg-body">For certified wildlife habitats, organic gardens, native plant installations, and properties with bee colonies, GreenGuard USA is the only mosquito protection approach that requires no exceptions or accommodations.</p><div class="gg-grid"><div class="gg-card"><div class="gg-card-h">Honeybees</div><p class="gg-card-p">Not attracted to CO&#8322; traps. Forage freely on treated properties with no exposure risk.</p></div><div class="gg-card"><div class="gg-card-h">Native Bees</div><p class="gg-card-p">Ground-nesting and cavity-nesting native bees are fully protected. Nothing enters the soil.</p></div><div class="gg-card"><div class="gg-card-h">Butterflies</div><p class="gg-card-p">Monarchs and all butterfly species are unaffected. Milkweed and host plants receive no treatment.</p></div><div class="gg-card"><div class="gg-card-h">Beneficial Insects</div><p class="gg-card-p">Predatory wasps, ladybugs, lacewings, and soil beetles are all safe.</p></div></div></div></div>
+
+  <div class="gg-cta"><div class="gg-cta-inner">
+    <h2 class="gg-cta-h">Protect Your Pollinators and Your Family</h2>
+    <p class="gg-cta-p">Book a free consultation. We design a coverage plan that works alongside your garden ecosystem, not against it.</p>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <p class="gg-cta-note">Free &#183; Pollinator-Safe &#183; Serving Austin and Expanding</p>
+  </div></div>
+
+  <div class="gg-footer"><div class="gg-footer-inner">
+    <div>
+      <div class="gg-footer-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-footer-tagline">Smart. Safe. Effective.</div>
+      <p class="gg-footer-desc">Luxury eco-friendly outdoor protection serving Austin, Texas and expanding nationwide.</p>
+      <a href="tel:+15125604129" class="gg-footer-link">512-560-4129</a>
+      <a href="https://www.greenguard-usa.com" class="gg-footer-link">greenguard-usa.com</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
+      <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Delivery</a>
+      <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Protection Program</a>
+      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
+      <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
+      <a href="https://www.greenguard-usa.com/bee-safe-mosquito-control">Bee-Safe Protection</a>
+      <a href="https://www.greenguard-usa.com/blog">Blog</a><a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Company</div>
+      <a href="https://www.greenguard-usa.com/about">About Us</a>
+      <a href="https://www.greenguard-usa.com/contact">Contact</a>
+      <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    </div>
+  </div>
+  <div class="gg-footer-bottom">
+    <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
+    <span class="gg-footer-badge">100% Pesticide-Free</span>
+  </div></div>
+</div>

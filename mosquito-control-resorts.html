@@ -1,0 +1,141 @@
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+<style>
+#gg-res,#gg-res *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+#gg-res h1,#gg-res h2,#gg-res h3,#gg-res h4,#gg-res p,#gg-res ul,#gg-res li,#gg-res div,#gg-res span,#gg-res a,#gg-res button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
+#gg-res ul{list-style:none}#gg-res a{text-decoration:none}
+#gg-res{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
+#gg-res .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-res .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+#gg-res .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}#gg-res .gg-logo span{color:#7dffaa}
+#gg-res .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
+#gg-res .gg-hamburger span{height:3px;width:100%;background:#c9a84c;border-radius:2px}
+#gg-res .gg-drawer{position:fixed;top:0;right:-100%;width:280px;height:100%;background:#0a1a0d;z-index:10000;padding:60px 26px 26px;display:flex;flex-direction:column;gap:5px;transition:right .28s ease;overflow-y:auto}
+#gg-res .gg-drawer.open{right:0}
+#gg-res .gg-drawer-close{position:absolute;top:18px;right:18px;background:none;border:none;color:#7dffaa;font-size:1.1rem;cursor:pointer}
+#gg-res .gg-group{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(201,232,209,.45);margin-top:14px;padding-bottom:4px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-res .gg-drawer a{color:rgba(201,232,209,.8);font-size:.92rem;padding:5px 0;border-bottom:1px solid rgba(122,171,130,.07);transition:color .2s}
+#gg-res .gg-drawer a:hover{color:#7dffaa}
+#gg-res .gg-hero{background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 45%,#2d4a32 100%);padding:80px 20px 70px}
+#gg-res .gg-hero-inner{max-width:880px;margin:0 auto;text-align:center}
+#gg-res .gg-badge-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+#gg-res .gg-badge{background:rgba(45,74,50,.7);border:1px solid rgba(122,171,130,.3);border-radius:20px;padding:5px 14px;font-size:.74rem;color:#7dffaa;letter-spacing:.04em}
+#gg-res .gg-dot{width:7px;height:7px;background:#7dffaa;border-radius:50%;animation:pp 2s infinite;display:inline-block}
+@keyframes pp{0%,100%{opacity:1}50%{opacity:.4}}
+#gg-res .gg-h1{font-size:clamp(1.85rem,4vw,2.85rem);font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:18px}
+#gg-res .gg-h1 span{color:#7dffaa}
+#gg-res .gg-hero-p{font-size:1.03rem;color:rgba(201,232,209,.82);max-width:680px;margin:0 auto 30px;line-height:1.65}
+#gg-res .gg-btn-gold{background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.92rem;padding:13px 26px;border-radius:8px;border:none;cursor:pointer;text-decoration:none;transition:background .2s,transform .15s;display:inline-block}
+#gg-res .gg-btn-gold:hover{background:#e8d08a;transform:translateY(-2px)}
+#gg-res .gg-sec{padding:66px 20px}
+#gg-res .gg-sec.alt{background:#111c13}
+#gg-res .gg-sec-inner{max-width:1000px;margin:0 auto}
+#gg-res .gg-eye{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#7dffaa;margin-bottom:10px;font-weight:700}
+#gg-res .gg-h2{font-size:clamp(1.5rem,3vw,2.15rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:14px;line-height:1.2}
+#gg-res .gg-h2 span{color:#7dffaa}
+#gg-res .gg-body{font-size:.97rem;color:rgba(201,232,209,.8);line-height:1.72;margin-bottom:14px}
+#gg-res .gg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:18px;margin-top:30px}
+#gg-res .gg-card{background:rgba(45,74,50,.35);border:1px solid rgba(122,171,130,.17);border-radius:14px;padding:26px;transition:border-color .2s}
+#gg-res .gg-card:hover{border-color:rgba(122,171,130,.38)}
+#gg-res .gg-card-h{font-size:.98rem;font-weight:800;color:#fff;margin-bottom:7px}
+#gg-res .gg-card-p{font-size:.86rem;color:rgba(201,232,209,.72);line-height:1.6}
+#gg-res .gg-list{display:flex;flex-direction:column;gap:9px;margin-top:18px}
+#gg-res .gg-li{display:flex;align-items:flex-start;gap:10px;color:rgba(201,232,209,.82);font-size:.94rem;line-height:1.55}
+#gg-res .gg-li::before{content:"";width:6px;height:6px;background:#7dffaa;border-radius:50%;flex-shrink:0;margin-top:8px}
+#gg-res .gg-cta{background:linear-gradient(135deg,#0a1a0d,#1a2e1f 50%,#0e1d12);padding:66px 20px;text-align:center}
+#gg-res .gg-cta-inner{max-width:640px;margin:0 auto}
+#gg-res .gg-cta-h{font-size:clamp(1.7rem,3.5vw,2.45rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:14px;line-height:1.2}
+#gg-res .gg-cta-p{font-size:.97rem;color:rgba(201,232,209,.75);margin-bottom:26px;line-height:1.65}
+#gg-res .gg-cta-note{font-size:.79rem;color:rgba(201,232,209,.44);margin-top:14px}
+#gg-res .gg-footer{background:#080f09;padding:50px 20px 20px}
+#gg-res .gg-footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-res .gg-footer-logo{font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px}
+#gg-res .gg-footer-logo span{color:#7dffaa}
+#gg-res .gg-footer-tagline{font-size:.74rem;color:#7dffaa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+#gg-res .gg-footer-desc{font-size:.82rem;color:rgba(201,232,209,.5);line-height:1.6;margin-bottom:10px}
+#gg-res .gg-footer-link{display:block;font-size:.83rem;color:rgba(201,232,209,.65);margin-bottom:4px}
+#gg-res .gg-footer-col-head{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,232,209,.4);margin-bottom:11px;font-weight:700}
+#gg-res .gg-footer-col a{display:block;font-size:.84rem;color:rgba(201,232,209,.6);margin-bottom:7px;transition:color .2s}
+#gg-res .gg-footer-col a:hover{color:#7dffaa}
+#gg-res .gg-footer-bottom{max-width:1100px;margin:16px auto 0;display:flex;justify-content:space-between;align-items:center;font-size:.77rem;color:rgba(201,232,209,.37);flex-wrap:wrap;gap:8px}
+#gg-res .gg-footer-badge{background:rgba(45,74,50,.5);border:1px solid rgba(122,171,130,.18);border-radius:12px;padding:3px 11px;font-size:.69rem;color:rgba(201,232,209,.55)}
+@media(max-width:720px){#gg-res .gg-footer-inner{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){#gg-res .gg-hero{padding:60px 20px 48px}}
+</style>
+<div id="gg-res">
+  <div class="gg-nav"><div class="gg-nav-inner">
+    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+    <div class="gg-hamburger" onclick="document.querySelector('#gg-res .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
+  </div></div>
+  <div class="gg-drawer">
+    <button class="gg-drawer-close" onclick="document.querySelector('#gg-res .gg-drawer').classList.remove('open')">&#10005;</button>
+    <span class="gg-group">Services</span>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <span class="gg-group">Service Areas</span>
+    <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-dripping-springs">Dripping Springs</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
+    <span class="gg-group">Learn</span>
+    <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
+    <a href="https://www.greenguard-usa.com/bee-safe-mosquito-control">Bee-Safe Protection</a>
+    <a href="https://www.greenguard-usa.com/outdoor-wellness">Outdoor Wellness</a>
+    <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
+    <a href="https://www.greenguard-usa.com/blog">Blog</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    <span class="gg-group">Company</span>
+    <a href="https://www.greenguard-usa.com/about">About Us</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact</a>
+    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    <span class="gg-group">Book</span>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+  </div>
+  <div class="gg-hero"><div class="gg-hero-inner">
+    <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Resort Protection</div></div>
+    <h1 class="gg-h1">Outdoor Protection for <span>Resorts and Hospitality Properties</span></h1>
+    <p class="gg-hero-p">Resort outdoor environments are the product guests pay for. GreenGuard USA provides continuous, hospitality-grade mosquito protection without pesticide applications that conflict with guest safety and environmental commitments.</p>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+  </div></div>
+
+<div class="gg-sec"><div class="gg-sec-inner"><div class="gg-eye">The Hospitality Standard for Outdoor Protection</div><h2 class="gg-h2">What guests expect</h2><p class="gg-body">Resort guests have an expectation of comfort in outdoor spaces, pool areas, dining terraces, garden pathways, and recreation areas. Mosquito pressure that interrupts outdoor enjoyment directly affects guest satisfaction scores, reviews, and return visits. It is a hospitality problem as much as an environmental one.</p><p class="gg-body">The conventional spray approach creates its own hospitality problems: the chemical scent following a treatment, the residue on outdoor furniture and dining surfaces, the need to notify guests of treatment schedules. GreenGuard USA's continuous protection program eliminates all of these concerns.</p></div></div>
+<div class="gg-sec alt"><div class="gg-sec-inner"><div class="gg-eye">Hospitality-Grade Outdoor Protection</div><h2 class="gg-h2">Continuous, invisible, pesticide-free</h2><p class="gg-body">Our outdoor protection system operates continuously without guest-visible treatment. There is no spray scent, no residue, no notification requirement, and no treatment windows to work around. The protection is built into the property environment and functions 24 hours a day.</p><p class="gg-body">For resort properties, we design multi-unit coverage plans that create overlapping protection zones across pool decks, outdoor dining, garden pathways, and recreation areas. The Mosqitter Grand's app control allows operating schedules to be synchronized with property activity patterns.</p><div class="gg-grid"><div class="gg-card"><div class="gg-card-h">Continuous Coverage</div><p class="gg-card-p">No treatment windows. Protection operates whether guests are present or not.</p></div><div class="gg-card"><div class="gg-card-h">No Guest Notifications</div><p class="gg-card-p">No pesticide disclosure. Nothing to communicate to guests.</p></div><div class="gg-card"><div class="gg-card-h">Multi-Zone Coverage</div><p class="gg-card-p">Overlapping protection zones for pool, dining, pathways, and recreation areas.</p></div><div class="gg-card"><div class="gg-card-h">Environmental Commitment</div><p class="gg-card-p">Zero pesticides. Pollinator-safe. Supports sustainability reporting.</p></div></div></div></div>
+
+  <div class="gg-cta"><div class="gg-cta-inner">
+    <h2 class="gg-cta-h">Protect Your Guest Experience</h2>
+    <p class="gg-cta-p">Contact us for a property assessment. We design a hospitality-grade coverage plan for your full outdoor footprint.</p>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <p class="gg-cta-note">Free Assessment &#183; Commercial Rates &#183; Texas and Expanding</p>
+  </div></div>
+
+  <div class="gg-footer"><div class="gg-footer-inner">
+    <div>
+      <div class="gg-footer-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-footer-tagline">Smart. Safe. Effective.</div>
+      <p class="gg-footer-desc">Luxury eco-friendly outdoor protection serving Austin, Texas and expanding nationwide.</p>
+      <a href="tel:+15125604129" class="gg-footer-link">512-560-4129</a>
+      <a href="https://www.greenguard-usa.com" class="gg-footer-link">greenguard-usa.com</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
+      <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Delivery</a>
+      <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Protection Program</a>
+      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
+      <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
+      <a href="https://www.greenguard-usa.com/bee-safe-mosquito-control">Bee-Safe Protection</a>
+      <a href="https://www.greenguard-usa.com/blog">Blog</a><a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Company</div>
+      <a href="https://www.greenguard-usa.com/about">About Us</a>
+      <a href="https://www.greenguard-usa.com/contact">Contact</a>
+      <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    </div>
+  </div>
+  <div class="gg-footer-bottom">
+    <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
+    <span class="gg-footer-badge">100% Pesticide-Free</span>
+  </div></div>
+</div>

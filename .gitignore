@@ -4,3 +4,7 @@ Cooling_Tower_NamedQueries_only.zip
 Cooling_Tower_432_fixed.zip
 Cooling_Tower_test.zip
 Cooling_Tower_NamedQueries_only.zip
+Cooling_Tower*
+*.zip
+.DS_Store
+**/.DS_Store
