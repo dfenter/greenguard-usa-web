@@ -155,7 +155,7 @@
           "currentTabIndex": "value",
           "menuType": "modern",
           "tabSize": {
-            "width": 120
+            "width": 160
           },
           "tabs": [
             {
@@ -188,7 +188,11 @@
       "name": "root"
     },
     "props": {
-      "direction": "column"
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#F8FAFC",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+      }
     },
     "type": "ia.container.flex"
   }

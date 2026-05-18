@@ -14,7 +14,11 @@
       "name": "root"
     },
     "type": "ia.container.coord",
-    "props": {},
+    "props": {
+      "style": {
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+      }
+    },
     "children": [
       {
         "meta": {
@@ -28,7 +32,7 @@
         },
         "props": {
           "style": {
-            "backgroundColor": "#1E5C8E"
+            "backgroundColor": "#1565C0"
           }
         },
         "type": "ia.container.coord",
@@ -48,7 +52,8 @@
               "style": {
                 "fontSize": 18,
                 "color": "#FFFFFF",
-                "fontWeight": "bold"
+                "fontWeight": "700",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
               }
             },
             "type": "ia.display.label"
@@ -69,8 +74,9 @@
           "text": "Site:",
           "style": {
             "fontSize": 13,
-            "fontWeight": "bold",
-            "color": "#333"
+            "fontWeight": "600",
+            "color": "#0F172A",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
           }
         },
         "type": "ia.display.label"
@@ -86,7 +92,12 @@
           "y": 62
         },
         "props": {
-          "placeholder": "Select site..."
+          "placeholder": "Select site...",
+          "style": {
+            "border": "1px solid #E2E8F0",
+            "borderRadius": "4px",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+          }
         },
         "propConfig": {
           "props.options": {
@@ -120,8 +131,9 @@
           "text": "Category:",
           "style": {
             "fontSize": 13,
-            "fontWeight": "bold",
-            "color": "#333"
+            "fontWeight": "600",
+            "color": "#0F172A",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
           }
         },
         "type": "ia.display.label"
@@ -159,7 +171,12 @@
               "label": "Other",
               "value": "other"
             }
-          ]
+          ],
+          "style": {
+            "border": "1px solid #E2E8F0",
+            "borderRadius": "4px",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+          }
         },
         "type": "ia.input.dropdown"
       },
@@ -177,8 +194,9 @@
           "text": "Feedback:",
           "style": {
             "fontSize": 13,
-            "fontWeight": "bold",
-            "color": "#333"
+            "fontWeight": "600",
+            "color": "#0F172A",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
           }
         },
         "type": "ia.display.label"
@@ -194,7 +212,13 @@
           "y": 128
         },
         "props": {
-          "placeholder": "Describe the issue or suggestion..."
+          "placeholder": "Describe the issue or suggestion...",
+          "style": {
+            "border": "1px solid #E2E8F0",
+            "borderRadius": "4px",
+            "fontSize": "13px",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+          }
         },
         "type": "ia.input.text-area"
       },
@@ -209,7 +233,16 @@
           "y": 296
         },
         "props": {
-          "text": "Cancel"
+          "text": "Cancel",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "border": "1px solid #E2E8F0",
+            "borderRadius": "6px",
+            "color": "#64748B",
+            "fontWeight": "600",
+            "fontSize": "13px",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+          }
         },
         "events": {
           "component": {
@@ -235,7 +268,15 @@
           "y": 296
         },
         "props": {
-          "text": "Submit"
+          "text": "Submit",
+          "style": {
+            "backgroundColor": "#1565C0",
+            "color": "#FFFFFF",
+            "borderRadius": "6px",
+            "fontWeight": "600",
+            "fontSize": "13px",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+          }
         },
         "events": {
           "component": {

@@ -1816,7 +1816,11 @@
       "name": "root"
     },
     "props": {
-      "direction": "column"
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#F8FAFC",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+      }
     },
     "type": "ia.container.flex"
   }

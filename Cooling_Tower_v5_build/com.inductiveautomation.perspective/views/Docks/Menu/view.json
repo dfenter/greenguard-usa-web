@@ -1,504 +1,435 @@
 {
-  "custom": {
-    "header": "Overview"
-  },
-  "params": {
-    "selectedRegion": "value"
-  },
-  "propConfig": {
-    "custom.header": {
-      "binding": {
-        "config": {
-          "bidirectional": true,
-          "path": "session.custom.header"
-        },
-        "type": "property"
-      },
-      "persistent": true
-    },
-    "params.selectedRegion": {
-      "paramDirection": "input",
-      "persistent": true
-    }
-  },
+  "custom": {},
+  "params": {},
+  "propConfig": {},
   "props": {
-    "defaultSize": {
-      "height": 926,
-      "width": 185
-    },
-    "inputBehavior": "merge",
-    "loading": {
-      "mode": "blocking"
-    }
+    "defaultSize": {"width": 240, "height": 900}
   },
   "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#172617",
+        "height": "100%",
+        "overflow": "hidden",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+      }
+    },
     "children": [
       {
+        "meta": {"name": "LogoBar"},
+        "type": "ia.container.flex",
+        "position": {"basis": "64px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "padding": "0 16px",
+            "gap": "10px",
+            "borderBottom": "1px solid rgba(255,255,255,0.08)"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "Logo"},
+            "type": "ia.display.label",
+            "props": {"text": "🌿", "style": {"fontSize": 24}}
+          },
+          {
+            "meta": {"name": "AppName"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "Cooling Tower",
+              "style": {"fontSize": 14, "fontWeight": "700", "color": "#FFFFFF"}
+            }
+          },
+          {
+            "meta": {"name": "Version"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "v5",
+              "style": {"fontSize": 11, "color": "#6B9E6B"}
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "NavOverview"},
+        "type": "ia.container.flex",
+        "position": {"basis": "44px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px", "gap": "10px", "cursor": "pointer"}
+        },
         "events": {
           "component": {
-            "onItemClicked": {
-              "config": {
-                "script": "\tif event.label == 'User Feedback':\n\t\tsystem.perspective.openPopup(\n\t\t\t'feedback',\n\t\t\t'User Feedback/Add Feedback',\n\t\t\tparams={},\n\t\t\twidth=560,\n\t\t\theight=360,\n\t\t)\n\telif event.label == 'Config':\n\t\tsystem.perspective.openPopup(\n\t\t\t'config',\n\t\t\t'Page/Configuration',\n\t\t\tparams={'siteId': self.session.custom.currentSite or 0},\n\t\t\twidth=900,\n\t\t\theight=700,\n\t\t\tmodal=True\n\t\t)\n\telse:\n\t\tself.session.custom.header = event.label\n\t\tself.view.custom.header = event.label\n"
-              },
+            "onActionPerformed": {
+              "config": {"script": "system.perspective.navigate(page='/overview')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
-        "meta": {
-          "name": "Features"
-        },
-        "position": {
-          "grow": 1
-        },
-        "propConfig": {
-          "custom.header": {
-            "binding": {
-              "config": {
-                "path": "session.custom.header"
-              },
-              "type": "property"
-            },
-            "onChange": {
-              "enabled": false,
-              "script": "\tself.page.props.title = self.session.custom.header"
-            }
-          },
-          "props.items[0].style.fontWeight": {
-            "binding": {
-              "config": {
-                "path": "page.props.path"
-              },
-              "transforms": [
-                {
-                  "expression": "if ({value} = {this.props.items[0].target}, \"bold\", \"normal\")",
-                  "type": "expression"
-                }
-              ],
-              "type": "property"
-            }
-          },
-          "props.items[1].style.fontWeight": {
-            "binding": {
-              "config": {
-                "path": "page.props.path"
-              },
-              "transforms": [
-                {
-                  "expression": "if ({value} = {this.props.items[1].target}, \"bold\", \"normal\")",
-                  "type": "expression"
-                }
-              ],
-              "type": "property"
-            }
-          },
-          "props.items[2].style.fontWeight": {
-            "binding": {
-              "config": {
-                "path": "page.props.path"
-              },
-              "transforms": [
-                {
-                  "expression": "if ({value} = {this.props.items[2].target}, \"bold\", \"normal\")",
-                  "type": "expression"
-                }
-              ],
-              "type": "property"
-            }
-          },
-          "props.items[3].style.fontWeight": {
-            "binding": {
-              "config": {
-                "path": "page.props.path"
-              },
-              "transforms": [
-                {
-                  "expression": "if ({value} = {this.props.items[3].target}, \"bold\", \"normal\")",
-                  "type": "expression"
-                }
-              ],
-              "type": "property"
-            }
-          },
-          "props.items[4].style.fontWeight": {
-            "binding": {
-              "config": {
-                "path": "page.props.path"
-              },
-              "transforms": [
-                {
-                  "expression": "if ({value} = {this.props.items[4].target}, \"bold\", \"normal\")",
-                  "type": "expression"
-                }
-              ],
-              "type": "property"
-            }
-          },
-          "props.items[5].style.fontWeight": {
-            "binding": {
-              "config": {
-                "path": "page.props.path"
-              },
-              "transforms": [
-                {
-                  "expression": "if ({value} = {this.props.items[5].target}, \"bold\", \"normal\")",
-                  "type": "expression"
-                }
-              ],
-              "type": "property"
-            }
-          },
-          "props.items[6].style.fontWeight": {
-            "binding": {
-              "config": {
-                "path": "page.props.path"
-              },
-              "transforms": [
-                {
-                  "expression": "if ({value} = {this.props.items[6].target}, \"bold\", \"normal\")",
-                  "type": "expression"
-                }
-              ],
-              "type": "property"
-            }
-          },
-          "props.items[7].style.fontWeight": {
-            "binding": {
-              "config": {
-                "path": "page.props.path"
-              },
-              "transforms": [
-                {
-                  "expression": "if ({value} = {this.props.items[7].target}, \"bold\", \"normal\")",
-                  "type": "expression"
-                }
-              ],
-              "type": "property"
-            }
-          },
-          "props.items[8].style.fontWeight": {
-            "binding": {
-              "config": {
-                "path": "page.props.path"
-              },
-              "transforms": [
-                {
-                  "expression": "if ({value} = {this.props.items[8].target}, \"bold\", \"normal\")",
-                  "type": "expression"
-                }
-              ],
-              "type": "property"
-            }
-          }
-        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "⌂", "style": {"fontSize": 16, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Overview", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavFleet"},
+        "type": "ia.container.flex",
+        "position": {"basis": "44px", "shrink": 0},
         "props": {
-          "backActionText": "back",
-          "itemStyle": {
-            "classes": "Menu/Item"
-          },
-          "items": [
-            {
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/sort"
-                },
-                "text": "Overview"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "showHeader": false,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/Overview"
-            },
-            {
-              "backActionText": "",
-              "enabled": true,
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/dashboard"
-                },
-                "text": "Fleet Dashboard"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "resetOnClick": false,
-              "showHeader": false,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/fleet",
-              "visible": true
-            },
-            {
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/toys"
-                },
-                "text": "Central Region"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "showHeader": false,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/central-region"
-            },
-            {
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/airport_shuttle"
-                },
-                "text": "East Region"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "showHeader": false,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/east-region"
-            },
-            {
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/agriculture"
-                },
-                "text": "Midwest Region"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "showHeader": false,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/midwest-region"
-            },
-            {
-              "backActionText": "",
-              "enabled": true,
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/ac_unit"
-                },
-                "text": "North Region"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "resetOnClick": false,
-              "showHeader": true,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/north-region",
-              "visible": true
-            },
-            {
-              "backActionText": "",
-              "enabled": true,
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/business"
-                },
-                "text": "Northeast Region"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "resetOnClick": false,
-              "showHeader": true,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/northeast-region",
-              "visible": true
-            },
-            {
-              "backActionText": "",
-              "enabled": true,
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/star_rate"
-                },
-                "text": "South Region"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "resetOnClick": false,
-              "showHeader": true,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/south-region",
-              "visible": true
-            },
-            {
-              "backActionText": "",
-              "enabled": true,
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/eco"
-                },
-                "text": "Southeast Region"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "resetOnClick": false,
-              "showHeader": true,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/southeast-region",
-              "visible": true
-            },
-            {
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/toys"
-                },
-                "text": "Southwest Region"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "showHeader": false,
-              "style": {
-                "classes": "",
-                "fontSize": "16px",
-                "overflow": "hidden",
-                "overflowX": "hidden",
-                "overflowY": "hidden"
-              },
-              "target": "/southwest-region"
-            },
-            {
-              "backActionText": "",
-              "enabled": true,
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/settings"
-                },
-                "text": "Config"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "resetOnClick": false,
-              "showHeader": false,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "",
-              "visible": true
-            },
-            {
-              "backActionText": "",
-              "enabled": false,
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": ""
-                },
-                "text": "User Feedback"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "resetOnClick": false,
-              "showHeader": true,
-              "style": {
-                "classes": "",
-                "fontSize": "16px",
-                "fontWeight": "normal",
-                "overflow": "hidden"
-              },
-              "target": "/feedback",
-              "visible": true
-            },
-            {
-              "backActionText": "",
-              "enabled": true,
-              "items": [],
-              "label": {
-                "icon": {
-                  "path": "material/settings"
-                },
-                "text": "Region Admin"
-              },
-              "navIcon": {
-                "color": "",
-                "path": "material/chevron_right"
-              },
-              "resetOnClick": false,
-              "showHeader": false,
-              "style": {
-                "classes": "",
-                "fontSize": "16px"
-              },
-              "target": "/region-admin",
-              "visible": true
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px", "gap": "10px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "system.perspective.navigate(page='/fleet')"},
+              "scope": "G",
+              "type": "script"
             }
-          ],
-          "style": {
-            "classes": "Menu/Menu"
           }
         },
-        "type": "ia.navigation.menutree"
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "▦", "style": {"fontSize": 16, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Fleet Dashboard", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "SepRegions"},
+        "type": "ia.display.label",
+        "position": {"basis": "28px", "shrink": 0},
+        "props": {
+          "text": "─ REGIONS ─",
+          "style": {
+            "fontSize": 10,
+            "color": "#6B9E6B",
+            "letterSpacing": "1px",
+            "padding": "8px 16px 2px 16px"
+          }
+        }
+      },
+      {
+        "meta": {"name": "NavCentral"},
+        "type": "ia.container.flex",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px 0 28px", "gap": "8px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "self.session.custom.currentRegion = 'Central Region'\nsystem.perspective.navigate(page='/region')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Central Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavEast"},
+        "type": "ia.container.flex",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px 0 28px", "gap": "8px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "self.session.custom.currentRegion = 'East Region'\nsystem.perspective.navigate(page='/region')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "East Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavMidwest"},
+        "type": "ia.container.flex",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px 0 28px", "gap": "8px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "self.session.custom.currentRegion = 'Midwest Region'\nsystem.perspective.navigate(page='/region')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Midwest Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavNorth"},
+        "type": "ia.container.flex",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px 0 28px", "gap": "8px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "self.session.custom.currentRegion = 'North Region'\nsystem.perspective.navigate(page='/region')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "North Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavNortheast"},
+        "type": "ia.container.flex",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px 0 28px", "gap": "8px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "self.session.custom.currentRegion = 'Northeast Region'\nsystem.perspective.navigate(page='/region')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Northeast Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavSouth"},
+        "type": "ia.container.flex",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px 0 28px", "gap": "8px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "self.session.custom.currentRegion = 'South Region'\nsystem.perspective.navigate(page='/region')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "South Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavSoutheast"},
+        "type": "ia.container.flex",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px 0 28px", "gap": "8px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "self.session.custom.currentRegion = 'Southeast Region'\nsystem.perspective.navigate(page='/region')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Southeast Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavSouthwest"},
+        "type": "ia.container.flex",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px 0 28px", "gap": "8px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "self.session.custom.currentRegion = 'Southwest Region'\nsystem.perspective.navigate(page='/region')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Southwest Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "SepAdmin"},
+        "type": "ia.display.label",
+        "position": {"basis": "28px", "shrink": 0},
+        "props": {
+          "text": "─ ADMIN ─",
+          "style": {
+            "fontSize": 10,
+            "color": "#6B9E6B",
+            "letterSpacing": "1px",
+            "padding": "8px 16px 2px 16px"
+          }
+        }
+      },
+      {
+        "meta": {"name": "NavConfig"},
+        "type": "ia.container.flex",
+        "position": {"basis": "44px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px", "gap": "10px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "system.perspective.openPopup('config', 'Page/Configuration', params={}, width=700, height=760, modal=True)"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "⚙", "style": {"fontSize": 16, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Config", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavRegionAdmin"},
+        "type": "ia.container.flex",
+        "position": {"basis": "44px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px", "gap": "10px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "system.perspective.navigate(page='/region-admin')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "🛡", "style": {"fontSize": 15, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Region Admin", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavNewSite"},
+        "type": "ia.container.flex",
+        "position": {"basis": "44px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px", "gap": "10px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "system.perspective.navigate(page='/new-site')"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "+", "style": {"fontSize": 18, "color": "#6B9E6B", "width": "20px", "fontWeight": "700"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "New Site", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "NavFeedback"},
+        "type": "ia.container.flex",
+        "position": {"basis": "44px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"alignItems": "center", "padding": "0 16px", "gap": "10px", "cursor": "pointer"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {"script": "system.perspective.openPopup('feedback', 'User Feedback/Add Feedback', params={}, width=560, height=360)"},
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "children": [
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "✉", "style": {"fontSize": 15, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "User Feedback", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "Spacer"},
+        "type": "ia.display.label",
+        "position": {"grow": 1},
+        "props": {"text": ""}
+      },
+      {
+        "meta": {"name": "FooterBar"},
+        "type": "ia.container.flex",
+        "position": {"basis": "48px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "padding": "0 16px",
+            "borderTop": "1px solid rgba(255,255,255,0.08)",
+            "gap": "8px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "BrandLabel"},
+            "type": "ia.display.label",
+            "position": {"grow": 1},
+            "props": {
+              "text": "GreenGuard Industrial",
+              "style": {"fontSize": 11, "color": "#6B9E6B"}
+            }
+          },
+          {
+            "meta": {"name": "VersionLabel"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "DS v1.0",
+              "style": {"fontSize": 10, "color": "#4A7A4A"}
+            }
+          }
+        ]
       }
-    ],
-    "meta": {
-      "name": "root"
-    },
-    "props": {
-      "direction": "column",
-      "style": {
-        "backgroundColor": "#D5D5D5",
-        "overflow": "visible"
-      }
-    },
-    "type": "ia.container.flex"
+    ]
   }
 }
