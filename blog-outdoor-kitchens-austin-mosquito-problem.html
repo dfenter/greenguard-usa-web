@@ -1,0 +1,168 @@
+<style>
+#gg-blog,#gg-blog *,#gg-post,#gg-post *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+#gg-blog h1,#gg-blog h2,#gg-blog h3,#gg-blog p,#gg-blog a,#gg-blog div,#gg-blog span,#gg-blog ul,#gg-blog li,#gg-blog button,
+#gg-post h1,#gg-post h2,#gg-post h3,#gg-post p,#gg-post a,#gg-post div,#gg-post span,#gg-post ul,#gg-post li,#gg-post button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
+#gg-blog ul,#gg-post ul{list-style:none}
+#gg-blog a,#gg-post a{text-decoration:none}
+#gg-blog,#gg-post{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
+#gg-blog .gg-nav,#gg-post .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-blog .gg-nav-inner,#gg-post .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+#gg-blog .gg-logo,#gg-post .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
+#gg-blog .gg-logo span,#gg-post .gg-logo span{color:#7dffaa}
+#gg-blog .gg-hamburger,#gg-post .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
+#gg-blog .gg-hamburger span,#gg-post .gg-hamburger span{height:3px;width:100%;background:#c9a84c;border-radius:2px}
+#gg-blog .gg-drawer,#gg-post .gg-drawer{position:fixed;top:0;right:-100%;width:280px;height:100%;background:#0a1a0d;z-index:10000;padding:60px 26px 26px;display:flex;flex-direction:column;gap:5px;transition:right .28s ease;overflow-y:auto}
+#gg-blog .gg-drawer.open,#gg-post .gg-drawer.open{right:0}
+#gg-blog .gg-drawer-close,#gg-post .gg-drawer-close{position:absolute;top:18px;right:18px;background:none;border:none;color:#7dffaa;font-size:1.1rem;cursor:pointer}
+#gg-blog .gg-group,#gg-post .gg-group{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(201,232,209,.45);margin-top:14px;padding-bottom:4px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-blog .gg-drawer a,#gg-post .gg-drawer a{color:rgba(201,232,209,.8);font-size:.92rem;padding:5px 0;border-bottom:1px solid rgba(122,171,130,.07);transition:color .2s}
+#gg-blog .gg-drawer a:hover,#gg-post .gg-drawer a:hover{color:#7dffaa}
+#gg-blog .gg-footer,#gg-post .gg-footer{background:#080f09;padding:50px 20px 20px}
+#gg-blog .gg-footer-inner,#gg-post .gg-footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-blog .gg-footer-logo,#gg-post .gg-footer-logo{font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px}
+#gg-blog .gg-footer-logo span,#gg-post .gg-footer-logo span{color:#7dffaa}
+#gg-blog .gg-footer-tagline,#gg-post .gg-footer-tagline{font-size:.74rem;color:#7dffaa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+#gg-blog .gg-footer-desc,#gg-post .gg-footer-desc{font-size:.82rem;color:rgba(201,232,209,.5);line-height:1.6;margin-bottom:10px}
+#gg-blog .gg-footer-link,#gg-post .gg-footer-link{display:block;font-size:.83rem;color:rgba(201,232,209,.65);margin-bottom:4px}
+#gg-blog .gg-footer-col-head,#gg-post .gg-footer-col-head{font-size:.67rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,232,209,.4);margin-bottom:11px;font-weight:700}
+#gg-blog .gg-footer-col a,#gg-post .gg-footer-col a{display:block;font-size:.84rem;color:rgba(201,232,209,.6);margin-bottom:7px;transition:color .2s}
+#gg-blog .gg-footer-col a:hover,#gg-post .gg-footer-col a:hover{color:#7dffaa}
+#gg-blog .gg-footer-bottom,#gg-post .gg-footer-bottom{max-width:1100px;margin:16px auto 0;display:flex;justify-content:space-between;align-items:center;font-size:.77rem;color:rgba(201,232,209,.37);flex-wrap:wrap;gap:8px}
+#gg-blog .gg-footer-badge,#gg-post .gg-footer-badge{background:rgba(45,74,50,.5);border:1px solid rgba(122,171,130,.18);border-radius:12px;padding:3px 11px;font-size:.69rem;color:rgba(201,232,209,.55)}
+@media(max-width:720px){#gg-blog .gg-footer-inner,#gg-post .gg-footer-inner{grid-template-columns:1fr 1fr}}
+
+#gg-post .gg-hero{background:linear-gradient(135deg,#0d1a10,#1a2e1f 55%,#2d4a32);padding:68px 20px 52px}
+#gg-post .gg-hero-inner{max-width:780px;margin:0 auto}
+#gg-post .gg-breadcrumb{font-size:.78rem;color:rgba(201,232,209,.5);margin-bottom:16px}
+#gg-post .gg-breadcrumb a{color:rgba(201,232,209,.5);transition:color .2s}
+#gg-post .gg-breadcrumb a:hover{color:#7dffaa}
+#gg-post .gg-cat{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-bottom:12px}
+#gg-post .gg-h1{font-size:clamp(1.75rem,4vw,2.6rem);font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.15;margin-bottom:16px}
+#gg-post .gg-lead{font-size:1.08rem;color:rgba(201,232,209,.82);line-height:1.7;margin-bottom:22px}
+#gg-post .gg-meta{font-size:.78rem;color:rgba(201,232,209,.45);padding-top:16px;border-top:1px solid rgba(122,171,130,.15)}
+#gg-post .gg-article{max-width:780px;margin:0 auto;padding:52px 20px 40px}
+#gg-post .gg-sec-h{font-size:clamp(1.2rem,2.5vw,1.65rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin:36px 0 12px}
+#gg-post .gg-p{font-size:1rem;color:rgba(201,232,209,.83);line-height:1.78;margin-bottom:16px}
+#gg-post .gg-p a{color:#7dffaa;border-bottom:1px solid rgba(122,171,130,.35);transition:border-color .2s}
+#gg-post .gg-p a:hover{border-color:#7dffaa}
+#gg-post .gg-callout{background:rgba(45,74,50,.4);border-left:3px solid #7dffaa;border-radius:0 10px 10px 0;padding:18px 22px;margin:26px 0}
+#gg-post .gg-callout p{color:rgba(201,232,209,.9);font-size:.97rem;line-height:1.68;margin:0}
+#gg-post .gg-divider{height:1px;background:rgba(122,171,130,.14);margin:38px 0}
+#gg-post .gg-related{background:#111c13;padding:48px 20px}
+#gg-post .gg-related-inner{max-width:780px;margin:0 auto}
+#gg-post .gg-related-h{font-size:1.1rem;font-weight:900;color:#fff;margin-bottom:18px}
+#gg-post .gg-related-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+#gg-post .gg-rel-card{background:rgba(45,74,50,.35);border:1px solid rgba(122,171,130,.17);border-radius:12px;padding:18px;transition:border-color .2s;display:block}
+#gg-post .gg-rel-card:hover{border-color:rgba(122,171,130,.38)}
+#gg-post .gg-rel-cat{font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-bottom:6px}
+#gg-post .gg-rel-h{font-size:.88rem;font-weight:800;color:#fff;line-height:1.35}
+#gg-post .gg-cta{background:linear-gradient(135deg,#0a1a0d,#1a2e1f 50%,#0e1d12);padding:60px 20px;text-align:center}
+#gg-post .gg-cta-inner{max-width:600px;margin:0 auto}
+#gg-post .gg-cta-h{font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:12px;line-height:1.2}
+#gg-post .gg-cta-p{font-size:.96rem;color:rgba(201,232,209,.74);margin-bottom:24px;line-height:1.65}
+#gg-post .gg-btn{background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.92rem;padding:13px 26px;border-radius:8px;border:none;cursor:pointer;text-decoration:none;transition:background .2s,transform .15s;display:inline-block}
+#gg-post .gg-btn:hover{background:#e8d08a;transform:translateY(-2px)}
+#gg-post .gg-btn-out{background:transparent;color:#7dffaa;font-weight:700;font-size:.92rem;padding:12px 20px;border-radius:8px;border:1px solid rgba(122,171,130,.4);text-decoration:none;transition:border-color .2s;display:inline-block;margin-left:10px}
+#gg-post .gg-btn-out:hover{border-color:#7dffaa}
+</style>
+<div id="gg-post">
+  <div class="gg-nav"><div class="gg-nav-inner">
+    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+    <div class="gg-hamburger" onclick="document.querySelector('#gg-post .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
+  </div></div>
+  <div class="gg-drawer">
+    <button class="gg-drawer-close" onclick="document.querySelector('#gg-post .gg-drawer').classList.remove('open')">&#10005;</button>
+    <span class="gg-group">Services</span>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+    <span class="gg-group">Service Areas</span>
+    <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-dripping-springs">Dripping Springs</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-steiner-ranch">Steiner Ranch</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
+    <span class="gg-group">Learn</span>
+    <a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work">Why CO&#8322; Traps Work</a>
+    <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
+    <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+    <a href="https://www.greenguard-usa.com/case-studies">Results &amp; Case Studies</a>
+    <a href="https://www.greenguard-usa.com/blog">Blog</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+    <span class="gg-group">Shop</span>
+    <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+    <span class="gg-group">Company</span>
+    <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
+    <a href="https://www.greenguard-usa.com/team">Our Team</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact</a>
+    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    <span class="gg-group">Book</span>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+  </div>
+  <div class="gg-hero"><div class="gg-hero-inner">
+    <div class="gg-breadcrumb"><a href="https://www.greenguard-usa.com/blog">Blog</a> &rsaquo; Outdoor Living</div>
+    <div class="gg-cat">Outdoor Living</div>
+    <h1 class="gg-h1">Outdoor Kitchens in Austin: The Problem Nobody Mentions</h1>
+    <p class="gg-lead">Outdoor kitchens represent one of the most popular home improvements in Austin. They also create a set of conditions that tend to concentrate mosquito pressure exactly where you plan to spend time.</p>
+    <div class="gg-meta">GreenGuard USA &nbsp;&middot;&nbsp; April 1, 2025</div>
+  </div></div>
+
+  <div class="gg-article">
+<h2 class="gg-sec-h">Why Outdoor Kitchens Attract Mosquitoes</h2>
+<p class="gg-p">An outdoor kitchen in use produces carbon dioxide from cooking, body heat from people gathered around it, and moisture from cleaning and food preparation. These are the three primary signals that host-seeking female mosquitoes use to locate people. Add in the fact that guests tend to stand fairly still while waiting for food and conversation, and you have conditions that are essentially optimal for mosquitoes.</p>
+<p class="gg-p">Covered outdoor kitchen structures compound this by creating shaded environments that mosquitoes prefer for resting. The roof that keeps afternoon sun off your guests also keeps it off the mosquitoes resting in the adjacent vegetation.</p>
+<h2 class="gg-sec-h">The Spray Program Problem</h2>
+<p class="gg-p">Many outdoor kitchen owners default to professional spray programs. There is a practical problem with this approach that does not get discussed often enough: spray programs apply pesticide to your yard on a schedule, and that pesticide lands on the surfaces where you prepare and serve food.</p>
+<p class="gg-p">The compounds used in most residential spray programs are synthetic pyrethroids. They are not acutely toxic to adults in the quantities typically applied, but they are persistent, and they do land on grills, countertops, and food preparation surfaces if those areas are not carefully protected during application. For households that take food quality seriously, this is worth understanding. The full picture is covered in our article on <a href="https://www.greenguard-usa.com/co2-traps-vs-mosquito-spraying" class="gg-p-link">CO&#8322; traps versus mosquito spraying</a>.</p>
+<h2 class="gg-sec-h">Positioning Traps Around Outdoor Kitchens</h2>
+<p class="gg-p">CO&#8322; trapping solves this problem cleanly because nothing is applied to your yard or its surfaces. A trap positioned at the perimeter of the outdoor kitchen area, upwind, intercepts mosquitoes before they reach your guests. For covered outdoor kitchens, the trap should be placed just outside the covered structure, not under the roof where the CO&#8322; plume would be trapped overhead.</p>
+<p class="gg-p">For restaurants, event venues, and commercial outdoor kitchen operations, a two-trap approach flanking the cooking and dining area outperforms a single central unit. Traps can run continuously without affecting food preparation, cleanup, or food safety.</p>
+<h2 class="gg-sec-h">Getting the Outdoor Kitchen Investment Right</h2>
+<p class="gg-p">An outdoor kitchen that does not get used is a significant waste of a significant investment. The solution is straightforward once you understand the problem, and it does not require any compromise to the food quality, the environment, or the people gathered around your table.</p>
+
+  </div>
+
+  <div class="gg-related"><div class="gg-related-inner">
+    <div class="gg-related-h">Continue Reading</div>
+    <div class="gg-related-grid"><a href="https://www.greenguard-usa.com/blog-taking-back-your-outdoor-space" class="gg-rel-card"><div class="gg-rel-cat">Outdoor Living</div><div class="gg-rel-h">The Case for Taking Back Your Outdoor Space</div></a><a href="https://www.greenguard-usa.com/blog-what-is-actually-in-mosquito-spray" class="gg-rel-card"><div class="gg-rel-cat">Health and Family</div><div class="gg-rel-h">What Is Actually in Mosquito Spray</div></a><a href="https://www.greenguard-usa.com/blog-how-austin-hosts-keep-guests-comfortable" class="gg-rel-card"><div class="gg-rel-cat">Outdoor Living</div><div class="gg-rel-h">How Austin's Best Hosts Keep Guests Comfortable Outdoors</div></a></div>
+  </div></div>
+
+  <div class="gg-cta"><div class="gg-cta-inner">
+    <h2 class="gg-cta-h">Protect Your Outdoor Kitchen Investment</h2>
+    <p class="gg-cta-p">A free property consultation identifies the right trap position and coverage plan for your specific outdoor kitchen setup.</p>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/blog" class="gg-btn-out">Back to Blog</a>
+  </div></div>
+
+  <div class="gg-footer"><div class="gg-footer-inner">
+    <div>
+      <div class="gg-footer-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-footer-tagline">Smart. Safe. Effective.</div>
+      <p class="gg-footer-desc">Pesticide-free CO&#8322; mosquito control serving Austin, Texas. Authorized dealer for Biogents and Mosqitter Grand.</p>
+      <a href="tel:+15125604129" class="gg-footer-link">512-560-4129</a>
+      <a href="https://www.greenguard-usa.com" class="gg-footer-link">greenguard-usa.com</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
+      <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+      <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rental Program</a>
+      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
+      <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+      <a href="https://www.greenguard-usa.com/blog">Blog</a><a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    </div>
+    <div class="gg-footer-col"><div class="gg-footer-col-head">Company</div>
+      <a href="https://www.greenguard-usa.com/about">About Us</a>
+      <a href="https://www.greenguard-usa.com/contact">Contact</a>
+      <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+    </div>
+  </div>
+  <div class="gg-footer-bottom">
+    <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
+    <span class="gg-footer-badge">100% Pesticide-Free Service</span>
+  </div></div>
+</div>
