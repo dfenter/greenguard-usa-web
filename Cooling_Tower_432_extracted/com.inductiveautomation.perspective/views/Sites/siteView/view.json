@@ -8,6 +8,52 @@
     "MAC": {},
     "MISC": {},
     "RNC": {},
+    "chartData": {
+      "$": [
+        "ds",
+        192,
+        1779128244752
+      ],
+      "$columns": [
+        {
+          "data": [],
+          "name": "t_stamp",
+          "type": "String"
+        },
+        {
+          "data": [],
+          "name": "IWT Actual",
+          "type": "String"
+        },
+        {
+          "data": [],
+          "name": "POGT Actual",
+          "type": "String"
+        },
+        {
+          "data": [],
+          "name": "DAT Actual",
+          "type": "String"
+        },
+        {
+          "data": [],
+          "name": "IWT Target",
+          "type": "String"
+        },
+        {
+          "data": [],
+          "name": "POGT Target",
+          "type": "String"
+        },
+        {
+          "data": [],
+          "name": "DAT Target",
+          "type": "String"
+        }
+      ]
+    },
+    "comparisonSiteData": null,
+    "comparisonSiteId": 0,
     "configRows": [
       {
         "designApproachTempF": "",
@@ -25,6 +71,76 @@
         "siteId": 10
       }
     ],
+    "enabledEquipmentOptions": [
+      {
+        "label": "All Equipment",
+        "value": "all"
+      },
+      {
+        "label": "MAC 1 Intercooler 1",
+        "value": "1851"
+      },
+      {
+        "label": "MAC 1 Intercooler 2",
+        "value": "1852"
+      },
+      {
+        "label": "MAC 1 Intercooler 3",
+        "value": "1853"
+      },
+      {
+        "label": "MAC 1 Aftercooler 1",
+        "value": "1854"
+      },
+      {
+        "label": "MAC 1 OilCooler 1",
+        "value": "1855"
+      },
+      {
+        "label": "RNC 1 Intercooler 1",
+        "value": "1904"
+      },
+      {
+        "label": "RNC 1 Intercooler 2",
+        "value": "1905"
+      },
+      {
+        "label": "RNC 1 Intercooler 3",
+        "value": "1906"
+      },
+      {
+        "label": "RNC 1 Intercooler 4",
+        "value": "1907"
+      },
+      {
+        "label": "RNC 1 Intercooler 5",
+        "value": "1908"
+      },
+      {
+        "label": "RNC 1 Aftercooler 1",
+        "value": "1909"
+      },
+      {
+        "label": "RNC 1 OilCooler 1",
+        "value": "1910"
+      },
+      {
+        "label": "WarmExpander 1 Aftercooler 1",
+        "value": "1949"
+      },
+      {
+        "label": "ColdExpander 1 Aftercooler 1",
+        "value": "1951"
+      },
+      {
+        "label": "ArgonSkid 1 Aftercooler 1",
+        "value": "1953"
+      },
+      {
+        "label": "Chiller 1 Aftercooler 1",
+        "value": "2032"
+      }
+    ],
     "endDate": {
       "$": [
         "ts",
@@ -33,6 +149,27 @@
       ],
       "$ts": 1767887671846
     },
+    "lastEntry": "No data recorded",
+    "notesData": {
+      "$": [
+        "ds",
+        192,
+        1779128244752
+      ],
+      "$columns": []
+    },
+    "notesText": "",
+    "previousActuals": {},
+    "rawHistoryData": {
+      "$": [
+        "ds",
+        192,
+        1779128244752
+      ],
+      "$columns": []
+    },
+    "seasonalBaseline": {},
+    "selectedEquipment": "all",
     "site": "Irving",
     "startDate": {
       "$": [
@@ -47,45 +184,29 @@
       "approachTemp": "value",
       "processGasOutTemp": "value"
     },
-    "selectedEquipment": "all",
-    "rawHistoryData": {},
-    "enabledEquipmentOptions": [
-      {
-        "label": "All Equipment",
-        "value": "all"
-      }
-    ],
-    "trendStartDate": {
-      "$": [
-        "ts",
-        192,
-        0
-      ],
-      "$ts": 0
-    },
     "trendEndDate": {
       "$": [
         "ts",
         192,
-        0
+        1779128244502
       ],
-      "$ts": 0
+      "$ts": 1779128244502
     },
-    "lastEntry": "",
-    "worstDevSite": 0,
-    "notesText": "",
-    "notesData": {},
-    "previousActuals": {},
-    "comparisonSiteId": 0,
-    "comparisonSiteData": {},
-    "seasonalBaseline": {},
-    "chartData": []
+    "trendStartDate": {
+      "$": [
+        "ts",
+        192,
+        1779128244505
+      ],
+      "$ts": 1763493444502
+    },
+    "worstDevSite": 0
   },
   "events": {
     "system": {
       "onStartup": {
         "config": {
-          "script": "\t# Set 6-month trend window\n\tself.custom.trendEndDate   = system.date.now()\n\tself.custom.trendStartDate = system.date.addMonths(self.custom.trendEndDate, -6)\n\tself.custom.selectedEquipment = 'all'\n\tself.custom.comparisonSiteId  = 0\n\t\n\t# Pre-populate actuals from last recorded entry\n\ttry:\n\t\tprevDs = system.db.runNamedQuery(\n\t\t\t\"coolingTowerData/getLastActualsBySite\",\n\t\t\t{\"siteId\": self.params.siteId}\n\t\t)\n\t\tprev = {}\n\t\tfor r in range(prevDs.getRowCount()):\n\t\t\teqId    = str(prevDs.getValueAt(r, 'coolingTowerDataID'))\n\t\t\tparamId = str(prevDs.getValueAt(r, 'parameterTypesID'))\n\t\t\tval     = prevDs.getValueAt(r, 'value')\n\t\t\tif eqId not in prev: prev[eqId] = {}\n\t\t\tprev[eqId][paramId] = val\n\t\tself.custom.previousActuals = prev\n\texcept Exception as e:\n\t\tsystem.perspective.print('Pre-populate error: ' + str(e))\n"
+          "script": "\t# Set 6-month trend window\n\tself.custom.trendEndDate   \u003d system.date.now()\n\tself.custom.trendStartDate \u003d system.date.addMonths(self.custom.trendEndDate, -6)\n\tself.custom.selectedEquipment \u003d \u0027all\u0027\n\tself.custom.comparisonSiteId  \u003d 0\n\t\n\t# Pre-populate actuals from last recorded entry\n\ttry:\n\t\tprevDs \u003d system.db.runNamedQuery(\n\t\t\t\"coolingTowerData/getLastActualsBySite\",\n\t\t\t{\"siteId\": self.params.siteId}\n\t\t)\n\t\tprev \u003d {}\n\t\tfor r in range(prevDs.getRowCount()):\n\t\t\teqId    \u003d str(prevDs.getValueAt(r, \u0027coolingTowerDataID\u0027))\n\t\t\tparamId \u003d str(prevDs.getValueAt(r, \u0027parameterTypesID\u0027))\n\t\t\tval     \u003d prevDs.getValueAt(r, \u0027value\u0027)\n\t\t\tif eqId not in prev: prev[eqId] \u003d {}\n\t\t\tprev[eqId][paramId] \u003d val\n\t\tself.custom.previousActuals \u003d prev\n\texcept Exception as e:\n\t\tsystem.perspective.print(\u0027Pre-populate error: \u0027 + str(e))\n"
         },
         "scope": "G",
         "type": "script"
@@ -119,7 +240,7 @@
         },
         "transforms": [
           {
-            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['enabled'] = True\n\t\tinstance['id'] = entry['id']\n\t\tinstance['siteId'] = entry['siteId']\n\t\tinstance['parameter'] = entry['Parameter']\n\t\tinstance['instanceStyle'] = {'classes': None}\n\t\tinstance['instancePosition'] = {}\n\t\tinstance['processGasOutTempF'] = ''\n\t\tinstance['processGasOutTempFTarget'] = ''\n\t\tinstance['designApproachTempF'] = ''\n\t\tinstance['designApproachTempFTarget'] = ''\n\t\tinstance['designIncomingWaterTempFTarget'] = ''\n\t\tinstances.append(instance)\n\treturn instances",
+            "code": "\tnewDS \u003d system.dataset.toPyDataSet(value)\n\tinstances \u003d []\n\tfor entry in newDS:\n\t\tinstance \u003d {}\n\t\tinstance[\u0027enabled\u0027] \u003d True\n\t\tinstance[\u0027id\u0027] \u003d entry[\u0027id\u0027]\n\t\tinstance[\u0027siteId\u0027] \u003d entry[\u0027siteId\u0027]\n\t\tinstance[\u0027parameter\u0027] \u003d entry[\u0027Parameter\u0027]\n\t\tinstance[\u0027instanceStyle\u0027] \u003d {\u0027classes\u0027: None}\n\t\tinstance[\u0027instancePosition\u0027] \u003d {}\n\t\tinstance[\u0027processGasOutTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027processGasOutTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designIncomingWaterTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstances.append(instance)\n\treturn instances",
             "type": "script"
           }
         ],
@@ -127,7 +248,7 @@
       },
       "onChange": {
         "enabled": false,
-        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"MAC_BAC\").getChild(\"FlexRepeater_0\").props.instances = currentValue.value"
+        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"MAC_BAC\").getChild(\"FlexRepeater_0\").props.instances \u003d currentValue.value"
       }
     },
     "custom.BAC.ids": {
@@ -176,7 +297,7 @@
         },
         "transforms": [
           {
-            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['enabled'] = True\n\t\tinstance['id'] = entry['id']\n\t\tinstance['siteId'] = entry['siteId']\n\t\tinstance['siteId'] = entry['siteId']\n\t\tinstance['parameter'] = entry['Parameter']\n\t\tinstance['instanceStyle'] = {'classes': None}\n\t\tinstance['instancePosition'] = {}\n\t\tinstance['processGasOutTempF'] = ''\n\t\tinstance['processGasOutTempFTarget'] = ''\n\t\tinstance['designApproachTempF'] = ''\n\t\tinstance['designApproachTempFTarget'] = ''\n\t\tinstance['designIncomingWaterTempFTarget'] = ''\n\t\tinstances.append(instance)\n\treturn instances",
+            "code": "\tnewDS \u003d system.dataset.toPyDataSet(value)\n\tinstances \u003d []\n\tfor entry in newDS:\n\t\tinstance \u003d {}\n\t\tinstance[\u0027enabled\u0027] \u003d True\n\t\tinstance[\u0027id\u0027] \u003d entry[\u0027id\u0027]\n\t\tinstance[\u0027siteId\u0027] \u003d entry[\u0027siteId\u0027]\n\t\tinstance[\u0027siteId\u0027] \u003d entry[\u0027siteId\u0027]\n\t\tinstance[\u0027parameter\u0027] \u003d entry[\u0027Parameter\u0027]\n\t\tinstance[\u0027instanceStyle\u0027] \u003d {\u0027classes\u0027: None}\n\t\tinstance[\u0027instancePosition\u0027] \u003d {}\n\t\tinstance[\u0027processGasOutTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027processGasOutTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designIncomingWaterTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstances.append(instance)\n\treturn instances",
             "type": "script"
           }
         ],
@@ -184,7 +305,7 @@
       },
       "onChange": {
         "enabled": false,
-        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"CDA_MISC\").getChild(\"FlexRepeater\").props.instances = currentValue.value"
+        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"CDA_MISC\").getChild(\"FlexRepeater\").props.instances \u003d currentValue.value"
       }
     },
     "custom.CDA.ids": {
@@ -233,7 +354,7 @@
         },
         "transforms": [
           {
-            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['enabled'] = True\n\t\tinstance['id'] = entry['id']\n\t\tinstance['siteId'] = entry['siteId']\n\t\tinstance['parameter'] = entry['Parameter']\n\t\tinstance['instanceStyle'] = {'classes': None}\n\t\tinstance['instancePosition'] = {}\n\t\tinstance['processGasOutTempF'] = ''\n\t\tinstance['processGasOutTempFTarget'] = ''\n\t\tinstance['designApproachTempF'] = ''\n\t\tinstance['designApproachTempFTarget'] = ''\n\t\tinstance['designIncomingWaterTempFTarget'] = ''\n\t\tinstances.append(instance)\n\treturn instances",
+            "code": "\tnewDS \u003d system.dataset.toPyDataSet(value)\n\tinstances \u003d []\n\tfor entry in newDS:\n\t\tinstance \u003d {}\n\t\tinstance[\u0027enabled\u0027] \u003d True\n\t\tinstance[\u0027id\u0027] \u003d entry[\u0027id\u0027]\n\t\tinstance[\u0027siteId\u0027] \u003d entry[\u0027siteId\u0027]\n\t\tinstance[\u0027parameter\u0027] \u003d entry[\u0027Parameter\u0027]\n\t\tinstance[\u0027instanceStyle\u0027] \u003d {\u0027classes\u0027: None}\n\t\tinstance[\u0027instancePosition\u0027] \u003d {}\n\t\tinstance[\u0027processGasOutTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027processGasOutTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designIncomingWaterTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstances.append(instance)\n\treturn instances",
             "type": "script"
           }
         ],
@@ -241,7 +362,7 @@
       },
       "onChange": {
         "enabled": false,
-        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"RNC_FNC\").getChild(\"FlexRepeater_0\").props.instances = currentValue.value"
+        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"RNC_FNC\").getChild(\"FlexRepeater_0\").props.instances \u003d currentValue.value"
       }
     },
     "custom.FNC.ids": {
@@ -290,7 +411,7 @@
         },
         "transforms": [
           {
-            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['enabled'] = True\n\t\tinstance['id'] = entry['id']\n\t\tinstance['siteId'] = entry['siteId']\n\t\tinstance['parameter'] = entry['Parameter']\n\t\tinstance['instanceStyle'] = {'classes': None}\n\t\tinstance['instancePosition'] = {}\n\t\tinstance['processGasOutTempF'] = ''\n\t\tinstance['processGasOutTempFTarget'] = ''\n\t\tinstance['designApproachTempF'] = ''\n\t\tinstance['designApproachTempFTarget'] = ''\n\t\tinstance['designIncomingWaterTempFTarget'] = ''\n\t\tinstances.append(instance)\n\treturn instances",
+            "code": "\tnewDS \u003d system.dataset.toPyDataSet(value)\n\tinstances \u003d []\n\tfor entry in newDS:\n\t\tinstance \u003d {}\n\t\tinstance[\u0027enabled\u0027] \u003d True\n\t\tinstance[\u0027id\u0027] \u003d entry[\u0027id\u0027]\n\t\tinstance[\u0027siteId\u0027] \u003d entry[\u0027siteId\u0027]\n\t\tinstance[\u0027parameter\u0027] \u003d entry[\u0027Parameter\u0027]\n\t\tinstance[\u0027instanceStyle\u0027] \u003d {\u0027classes\u0027: None}\n\t\tinstance[\u0027instancePosition\u0027] \u003d {}\n\t\tinstance[\u0027processGasOutTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027processGasOutTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designIncomingWaterTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstances.append(instance)\n\treturn instances",
             "type": "script"
           }
         ],
@@ -298,7 +419,7 @@
       },
       "onChange": {
         "enabled": false,
-        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"GAN_GOX\").getChild(\"FlexRepeater\").props.instances = currentValue.value"
+        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"GAN_GOX\").getChild(\"FlexRepeater\").props.instances \u003d currentValue.value"
       }
     },
     "custom.GAN.ids": {
@@ -347,7 +468,7 @@
         },
         "transforms": [
           {
-            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['enabled'] = True\n\t\tinstance['id'] = entry['id']\n\t\tinstance['siteId'] = entry['siteId']\n\t\tinstance['parameter'] = entry['Parameter']\n\t\tinstance['instanceStyle'] = {'classes': None}\n\t\tinstance['instancePosition'] = {}\n\t\tinstance['processGasOutTempF'] = ''\n\t\tinstance['processGasOutTempFTarget'] = ''\n\t\tinstance['designApproachTempF'] = ''\n\t\tinstance['designApproachTempFTarget'] = ''\n\t\tinstance['designIncomingWaterTempFTarget'] = ''\n\t\tinstances.append(instance)\n\treturn instances",
+            "code": "\tnewDS \u003d system.dataset.toPyDataSet(value)\n\tinstances \u003d []\n\tfor entry in newDS:\n\t\tinstance \u003d {}\n\t\tinstance[\u0027enabled\u0027] \u003d True\n\t\tinstance[\u0027id\u0027] \u003d entry[\u0027id\u0027]\n\t\tinstance[\u0027siteId\u0027] \u003d entry[\u0027siteId\u0027]\n\t\tinstance[\u0027parameter\u0027] \u003d entry[\u0027Parameter\u0027]\n\t\tinstance[\u0027instanceStyle\u0027] \u003d {\u0027classes\u0027: None}\n\t\tinstance[\u0027instancePosition\u0027] \u003d {}\n\t\tinstance[\u0027processGasOutTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027processGasOutTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designIncomingWaterTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstances.append(instance)\n\treturn instances",
             "type": "script"
           }
         ],
@@ -355,7 +476,7 @@
       },
       "onChange": {
         "enabled": false,
-        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"GAN_GOX\").getChild(\"FlexRepeater_0\").props.instances = currentValue.value"
+        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"GAN_GOX\").getChild(\"FlexRepeater_0\").props.instances \u003d currentValue.value"
       }
     },
     "custom.GOX.ids": {
@@ -404,7 +525,7 @@
         },
         "transforms": [
           {
-            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['enabled'] = True\n\t\tinstance['id'] = entry['id']\n\t\tinstance['siteId'] = entry['siteId']\n\t\tinstance['parameter'] = entry['Parameter']\n\t\tinstance['instanceStyle'] = {'classes': None}\n\t\tinstance['instancePosition'] = {}\n\t\tinstance['processGasOutTempF'] = ''\n\t\tinstance['processGasOutTempFTarget'] = ''\n\t\tinstance['designApproachTempF'] = ''\n\t\tinstance['designApproachTempFTarget'] = ''\n\t\tinstance['designIncomingWaterTempFTarget'] = ''\n\t\tinstances.append(instance)\n\treturn instances",
+            "code": "\tnewDS \u003d system.dataset.toPyDataSet(value)\n\tinstances \u003d []\n\tfor entry in newDS:\n\t\tinstance \u003d {}\n\t\tinstance[\u0027enabled\u0027] \u003d True\n\t\tinstance[\u0027id\u0027] \u003d entry[\u0027id\u0027]\n\t\tinstance[\u0027siteId\u0027] \u003d entry[\u0027siteId\u0027]\n\t\tinstance[\u0027parameter\u0027] \u003d entry[\u0027Parameter\u0027]\n\t\tinstance[\u0027instanceStyle\u0027] \u003d {\u0027classes\u0027: None}\n\t\tinstance[\u0027instancePosition\u0027] \u003d {}\n\t\tinstance[\u0027processGasOutTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027processGasOutTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designIncomingWaterTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstances.append(instance)\n\treturn instances",
             "type": "script"
           }
         ],
@@ -412,7 +533,7 @@
       },
       "onChange": {
         "enabled": false,
-        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"MAC_BAC\").getChild(\"FlexRepeater\").props.instances = currentValue.value"
+        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"MAC_BAC\").getChild(\"FlexRepeater\").props.instances \u003d currentValue.value"
       }
     },
     "custom.MAC.MACids": {
@@ -461,7 +582,7 @@
         },
         "transforms": [
           {
-            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['enabled'] = True\n\t\tinstance['id'] = entry['id']\n\t\tinstance['siteId'] = entry['siteId']\n\t\tinstance['parameter'] = entry['Parameter']\n\t\tinstance['instanceStyle'] = {'classes': None}\n\t\tinstance['instancePosition'] = {}\n\t\tinstance['processGasOutTempF'] = ''\n\t\tinstance['processGasOutTempFTarget'] = ''\n\t\tinstance['designApproachTempF'] = ''\n\t\tinstance['designApproachTempFTarget'] = ''\n\t\tinstance['designIncomingWaterTempFTarget'] = ''\n\t\tinstances.append(instance)\n\treturn instances",
+            "code": "\tnewDS \u003d system.dataset.toPyDataSet(value)\n\tinstances \u003d []\n\tfor entry in newDS:\n\t\tinstance \u003d {}\n\t\tinstance[\u0027enabled\u0027] \u003d True\n\t\tinstance[\u0027id\u0027] \u003d entry[\u0027id\u0027]\n\t\tinstance[\u0027siteId\u0027] \u003d entry[\u0027siteId\u0027]\n\t\tinstance[\u0027parameter\u0027] \u003d entry[\u0027Parameter\u0027]\n\t\tinstance[\u0027instanceStyle\u0027] \u003d {\u0027classes\u0027: None}\n\t\tinstance[\u0027instancePosition\u0027] \u003d {}\n\t\tinstance[\u0027processGasOutTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027processGasOutTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designIncomingWaterTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstances.append(instance)\n\treturn instances",
             "type": "script"
           }
         ],
@@ -469,7 +590,7 @@
       },
       "onChange": {
         "enabled": false,
-        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"CDA_MISC\").getChild(\"FlexRepeater_0\").props.instances = currentValue.value"
+        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"CDA_MISC\").getChild(\"FlexRepeater_0\").props.instances \u003d currentValue.value"
       }
     },
     "custom.MISC.ids": {
@@ -518,7 +639,7 @@
         },
         "transforms": [
           {
-            "code": "\tnewDS = system.dataset.toPyDataSet(value)\n\tinstances = []\n\tfor entry in newDS:\n\t\tinstance = {}\n\t\tinstance['enabled'] = True\n\t\tinstance['id'] = entry['id']\n\t\tinstance['siteId'] = entry['siteId']\n\t\tinstance['parameter'] = entry['Parameter']\n\t\tinstance['instanceStyle'] = {'classes': None}\n\t\tinstance['instancePosition'] = {}\n\t\tinstance['processGasOutTempF'] = ''\n\t\tinstance['processGasOutTempFTarget'] = ''\n\t\tinstance['designApproachTempF'] = ''\n\t\tinstance['designApproachTempFTarget'] = ''\n\t\tinstance['designIncomingWaterTempFTarget'] = ''\n\t\tinstances.append(instance)\n\treturn instances",
+            "code": "\tnewDS \u003d system.dataset.toPyDataSet(value)\n\tinstances \u003d []\n\tfor entry in newDS:\n\t\tinstance \u003d {}\n\t\tinstance[\u0027enabled\u0027] \u003d True\n\t\tinstance[\u0027id\u0027] \u003d entry[\u0027id\u0027]\n\t\tinstance[\u0027siteId\u0027] \u003d entry[\u0027siteId\u0027]\n\t\tinstance[\u0027parameter\u0027] \u003d entry[\u0027Parameter\u0027]\n\t\tinstance[\u0027instanceStyle\u0027] \u003d {\u0027classes\u0027: None}\n\t\tinstance[\u0027instancePosition\u0027] \u003d {}\n\t\tinstance[\u0027processGasOutTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027processGasOutTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempF\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designApproachTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstance[\u0027designIncomingWaterTempFTarget\u0027] \u003d \u0027\u0027\n\t\tinstances.append(instance)\n\treturn instances",
             "type": "script"
           }
         ],
@@ -526,7 +647,7 @@
       },
       "onChange": {
         "enabled": false,
-        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"RNC_FNC\").getChild(\"FlexRepeater\").props.instances = currentValue.value"
+        "script": "\tself.getChild(\"root\").getChild(\"TabContainer\").getChild(\"RNC_FNC\").getChild(\"FlexRepeater\").props.instances \u003d currentValue.value"
       }
     },
     "custom.RNC.ids": {
@@ -553,50 +674,42 @@
         "type": "query"
       }
     },
-    "custom.configRows": {
+    "custom.chartData": {
+      "binding": {
+        "config": {
+          "path": "view.custom.rawHistoryData"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\ttry:\n\t\tselected \u003d self.view.custom.selectedEquipment\n\texcept:\n\t\tselected \u003d \u0027all\u0027\n\tpen_names \u003d [\u0027IWT Actual\u0027,\u0027POGT Actual\u0027,\u0027DAT Actual\u0027,\u0027IWT Target\u0027,\u0027POGT Target\u0027,\u0027DAT Target\u0027]\n\ttime_data \u003d {}\n\tcount_data \u003d {}\n\tfor r in range(value.getRowCount()):\n\t\tts    \u003d value.getValueAt(r, \u0027t_stamp\u0027)\n\t\teq_id \u003d str(value.getValueAt(r, \u0027coolingTowerDataID\u0027) or \u0027\u0027)\n\t\tpl    \u003d str(value.getValueAt(r, \u0027paramLabel\u0027) or \u0027\u0027)\n\t\tv     \u003d value.getValueAt(r, \u0027value\u0027)\n\t\tif selected !\u003d \u0027all\u0027 and eq_id !\u003d str(selected): continue\n\t\tif pl not in pen_names: continue\n\t\tif ts not in time_data:\n\t\t\ttime_data[ts] \u003d {}\n\t\t\tcount_data[ts] \u003d {}\n\t\tif v is not None:\n\t\t\tif pl in time_data[ts] and time_data[ts][pl] is not None:\n\t\t\t\ttime_data[ts][pl] \u003d (time_data[ts][pl] * count_data[ts].get(pl,1) + v) / (count_data[ts].get(pl,1) + 1)\n\t\t\t\tcount_data[ts][pl] \u003d count_data[ts].get(pl,1) + 1\n\t\t\telse:\n\t\t\t\ttime_data[ts][pl] \u003d v\n\t\t\t\tcount_data[ts][pl] \u003d 1\n\theaders \u003d [\u0027t_stamp\u0027] + pen_names\n\trows \u003d [[ts] + [time_data[ts].get(p) for p in pen_names] for ts in sorted(time_data.keys())]\n\treturn system.dataset.toDataSet(headers, rows)\n",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
       "persistent": true
     },
-    "custom.site": {
+    "custom.comparisonSiteData": {
       "binding": {
         "config": {
           "parameters": {
-            "siteId": "{view.params.siteId}"
+            "endDate": "{view.custom.trendEndDate}",
+            "siteId": "{view.custom.comparisonSiteId}",
+            "startDate": "{view.custom.trendStartDate}"
           },
-          "queryPath": "coolingTowerData/getSite"
+          "queryPath": "coolingTowerData/getHistoryBySite"
         },
+        "transforms": [
+          {
+            "code": "\t# Only return data if a comparison site is actually selected\n\tif value is None: return None\n\treturn value\n",
+            "type": "script"
+          }
+        ],
         "type": "query"
       },
       "persistent": true
     },
-    "custom.targets": {
-      "persistent": true
-    },
-    "params.siteId": {
-      "paramDirection": "input",
-      "persistent": true,
-      "onChange": {
-        "enabled": true,
-        "script": "\tself.custom.selectedEquipment = 'all'\n"
-      }
-    },
-    "custom.rawHistoryData": {
-      "binding": {
-        "config": {
-          "parameters": {
-            "siteId": "{view.params.siteId}",
-            "startDate": "{view.custom.trendStartDate}",
-            "endDate": "{view.custom.trendEndDate}"
-          },
-          "queryPath": "coolingTowerData/getHistoryBySite"
-        },
-        "type": "query",
-        "transforms": [
-          {
-            "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\treturn value\n",
-            "type": "script"
-          }
-        ]
-      },
+    "custom.configRows": {
       "persistent": true
     },
     "custom.enabledEquipmentOptions": {
@@ -609,7 +722,7 @@
         },
         "transforms": [
           {
-            "code": "\t# Build dropdown options from enabled equipment for this site\n\toptions = [{'label': 'All Equipment', 'value': 'all'}]\n\tif value is not None:\n\t\tds = system.dataset.toPyDataSet(value)\n\t\tfor row in ds:\n\t\t\toptions.append({\n\t\t\t\t'label': row['Parameter'],\n\t\t\t\t'value': str(row['id'])\n\t\t\t})\n\treturn options\n",
+            "code": "\t# Build dropdown options from enabled equipment for this site\n\toptions \u003d [{\u0027label\u0027: \u0027All Equipment\u0027, \u0027value\u0027: \u0027all\u0027}]\n\tif value is not None:\n\t\tds \u003d system.dataset.toPyDataSet(value)\n\t\tfor row in ds:\n\t\t\toptions.append({\n\t\t\t\t\u0027label\u0027: row[\u0027Parameter\u0027],\n\t\t\t\t\u0027value\u0027: str(row[\u0027id\u0027])\n\t\t\t})\n\treturn options\n",
             "type": "script"
           }
         ],
@@ -627,25 +740,7 @@
         },
         "transforms": [
           {
-            "code": "\tif value is not None and value.getRowCount() > 0:\n\t\tv = value.getValueAt(0, 'lastEntry')\n\t\tif v is not None:\n\t\t\treturn 'Last entry: ' + system.date.format(v, 'MM/dd/yyyy')\n\treturn 'No data recorded'\n",
-            "type": "script"
-          }
-        ],
-        "type": "query"
-      },
-      "persistent": true
-    },
-    "custom.worstDevSite": {
-      "binding": {
-        "config": {
-          "parameters": {
-            "siteId": "{view.params.siteId}"
-          },
-          "queryPath": "coolingTowerData/getLatestOutOfSpec"
-        },
-        "transforms": [
-          {
-            "code": "\tif value is None:\n\t\treturn 0\n\tworst = 0\n\tfor r in range(value.getRowCount()):\n\t\tdev = value.getValueAt(r, 'deviation')\n\t\tif dev is not None:\n\t\t\tabsDev = abs(dev)\n\t\t\tif absDev > worst:\n\t\t\t\tworst = absDev\n\treturn worst\n",
+            "code": "\tif value is not None and value.getRowCount() \u003e 0:\n\t\tv \u003d value.getValueAt(0, \u0027lastEntry\u0027)\n\t\tif v is not None:\n\t\t\treturn \u0027Last entry: \u0027 + system.date.format(v, \u0027MM/dd/yyyy\u0027)\n\treturn \u0027No data recorded\u0027\n",
             "type": "script"
           }
         ],
@@ -657,57 +752,19 @@
       "binding": {
         "config": {
           "parameters": {
+            "endDate": "{view.custom.trendEndDate}",
             "siteId": "{view.params.siteId}",
-            "startDate": "{view.custom.trendStartDate}",
-            "endDate": "{view.custom.trendEndDate}"
+            "startDate": "{view.custom.trendStartDate}"
           },
           "queryPath": "coolingTowerData/getNotesBySite"
         },
-        "type": "query",
         "transforms": [
           {
             "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\treturn value\n",
             "type": "script"
           }
-        ]
-      },
-      "persistent": true
-    },
-    "custom.seasonalBaseline": {
-      "binding": {
-        "config": {
-          "parameters": {
-            "siteId": "{view.params.siteId}"
-          },
-          "queryPath": "coolingTowerData/getSeasonalBaseline"
-        },
-        "transforms": [
-          {
-            "code": "\tif value is None: return {}\n\tds = system.dataset.toPyDataSet(value)\n\treturn {str(row['month']): row['baselineDAT'] for row in ds}\n",
-            "type": "script"
-          }
         ],
         "type": "query"
-      },
-      "persistent": true
-    },
-    "custom.comparisonSiteData": {
-      "binding": {
-        "config": {
-          "parameters": {
-            "siteId": "{view.custom.comparisonSiteId}",
-            "startDate": "{view.custom.trendStartDate}",
-            "endDate": "{view.custom.trendEndDate}"
-          },
-          "queryPath": "coolingTowerData/getHistoryBySite"
-        },
-        "type": "query",
-        "transforms": [
-          {
-            "code": "\t# Only return data if a comparison site is actually selected\n\tif value is None: return None\n\treturn value\n",
-            "type": "script"
-          }
-        ]
       },
       "persistent": true
     },
@@ -721,7 +778,7 @@
         },
         "transforms": [
           {
-            "code": "\tif value is None: return {}\n\tresult = {}\n\tfor r in range(value.getRowCount()):\n\t\teqId    = str(value.getValueAt(r, 'coolingTowerDataID'))\n\t\tparamId = str(value.getValueAt(r, 'parameterTypesID'))\n\t\tval     = value.getValueAt(r, 'value')\n\t\tif eqId not in result:\n\t\t\tresult[eqId] = {}\n\t\tresult[eqId][paramId] = val\n\treturn result\n",
+            "code": "\tif value is None: return {}\n\tresult \u003d {}\n\tfor r in range(value.getRowCount()):\n\t\teqId    \u003d str(value.getValueAt(r, \u0027coolingTowerDataID\u0027))\n\t\tparamId \u003d str(value.getValueAt(r, \u0027parameterTypesID\u0027))\n\t\tval     \u003d value.getValueAt(r, \u0027value\u0027)\n\t\tif eqId not in result:\n\t\t\tresult[eqId] \u003d {}\n\t\tresult[eqId][paramId] \u003d val\n\treturn result\n",
             "type": "script"
           }
         ],
@@ -729,19 +786,83 @@
       },
       "persistent": true
     },
-    "custom.chartData": {
+    "custom.rawHistoryData": {
       "binding": {
         "config": {
-          "path": "view.custom.rawHistoryData"
+          "parameters": {
+            "endDate": "{view.custom.trendEndDate}",
+            "siteId": "{view.params.siteId}",
+            "startDate": "{view.custom.trendStartDate}"
+          },
+          "queryPath": "coolingTowerData/getHistoryBySite"
         },
         "transforms": [
           {
-            "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\ttry:\n\t\tselected = self.view.custom.selectedEquipment\n\texcept:\n\t\tselected = 'all'\n\tpen_names = ['IWT Actual','POGT Actual','DAT Actual','IWT Target','POGT Target','DAT Target']\n\ttime_data = {}\n\tcount_data = {}\n\tfor r in range(value.getRowCount()):\n\t\tts    = value.getValueAt(r, 't_stamp')\n\t\teq_id = str(value.getValueAt(r, 'coolingTowerDataID') or '')\n\t\tpl    = str(value.getValueAt(r, 'paramLabel') or '')\n\t\tv     = value.getValueAt(r, 'value')\n\t\tif selected != 'all' and eq_id != str(selected): continue\n\t\tif pl not in pen_names: continue\n\t\tif ts not in time_data:\n\t\t\ttime_data[ts] = {}\n\t\t\tcount_data[ts] = {}\n\t\tif v is not None:\n\t\t\tif pl in time_data[ts] and time_data[ts][pl] is not None:\n\t\t\t\ttime_data[ts][pl] = (time_data[ts][pl] * count_data[ts].get(pl,1) + v) / (count_data[ts].get(pl,1) + 1)\n\t\t\t\tcount_data[ts][pl] = count_data[ts].get(pl,1) + 1\n\t\t\telse:\n\t\t\t\ttime_data[ts][pl] = v\n\t\t\t\tcount_data[ts][pl] = 1\n\theaders = ['t_stamp'] + pen_names\n\trows = [[ts] + [time_data[ts].get(p) for p in pen_names] for ts in sorted(time_data.keys())]\n\treturn system.dataset.toDataSet(headers, rows)\n",
+            "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\treturn value\n",
             "type": "script"
           }
         ],
-        "type": "property"
+        "type": "query"
       },
+      "persistent": true
+    },
+    "custom.seasonalBaseline": {
+      "binding": {
+        "config": {
+          "parameters": {
+            "siteId": "{view.params.siteId}"
+          },
+          "queryPath": "coolingTowerData/getSeasonalBaseline"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None: return {}\n\tds \u003d system.dataset.toPyDataSet(value)\n\treturn {str(row[\u0027month\u0027]): row[\u0027baselineDAT\u0027] for row in ds}\n",
+            "type": "script"
+          }
+        ],
+        "type": "query"
+      },
+      "persistent": true
+    },
+    "custom.site": {
+      "binding": {
+        "config": {
+          "parameters": {
+            "siteId": "{view.params.siteId}"
+          },
+          "queryPath": "coolingTowerData/getSite"
+        },
+        "type": "query"
+      },
+      "persistent": true
+    },
+    "custom.targets": {
+      "persistent": true
+    },
+    "custom.worstDevSite": {
+      "binding": {
+        "config": {
+          "parameters": {
+            "siteId": "{view.params.siteId}"
+          },
+          "queryPath": "coolingTowerData/getLatestOutOfSpec"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None:\n\t\treturn 0\n\tworst \u003d 0\n\tfor r in range(value.getRowCount()):\n\t\tdev \u003d value.getValueAt(r, \u0027deviation\u0027)\n\t\tif dev is not None:\n\t\t\tabsDev \u003d abs(dev)\n\t\t\tif absDev \u003e worst:\n\t\t\t\tworst \u003d absDev\n\treturn worst\n",
+            "type": "script"
+          }
+        ],
+        "type": "query"
+      },
+      "persistent": true
+    },
+    "params.siteId": {
+      "onChange": {
+        "enabled": true,
+        "script": "\tself.custom.selectedEquipment \u003d \u0027all\u0027\n"
+      },
+      "paramDirection": "input",
       "persistent": true
     }
   },
@@ -766,7 +887,7 @@
               "y": 9
             },
             "props": {
-              "formattedValue": "",
+              "formattedValue": null,
               "pickerType": "date"
             },
             "type": "ia.input.date-time-input"
@@ -776,7 +897,7 @@
               "component": {
                 "onActionPerformed": {
                   "config": {
-                    "script": "\tnow = self.getSibling(\"DateTimeInput\").props.value\n\t\n\tif now is None:\n\t\tsystem.perspective.openPopup('saveValidation','Framework/ErrorPopup',\n\t\t\tparams={'message': 'Please select a date before saving.'})\n\t\treturn\n\t\n\t# Get username for audit trail\n\ttry:\n\t\tsubmittedBy = self.session.props.auth.user.userName or 'unknown'\n\texcept:\n\t\tsubmittedBy = 'unknown'\n\t\n\trows = []\n\ttabs      = [\"MAC_BAC\", \"RNC_FNC\", \"GAN_GOX\", \"CDA_MISC\"]\n\trepeaters = [\"FlexRepeater\", \"FlexRepeater_0\"]\n\tparamIds_to_save = [\"6\",\"3\",\"1\",\"4\",\"2\",\"5\"]\n\tparamId_map = {\n\t\t\"6\": \"designApproachTempF\",\n\t\t\"3\": \"designApproachTempFTarget\",\n\t\t\"1\": \"designIncomingWaterTempF\",\n\t\t\"4\": \"designIncomingWaterTempFTarget\",\n\t\t\"2\": \"processGasOutTempF\",\n\t\t\"5\": \"processGasOutTempFTarget\"\n\t}\n\tactuals = {\"1\", \"2\", \"6\"}\n\t\n\tfor tabName in tabs:\n\t\ttry:\n\t\t\ttabView = self.getChild(tabName)\n\t\texcept:\n\t\t\tcontinue\n\t\tfor repeaterName in repeaters:\n\t\t\ttry:\n\t\t\t\trepeater = tabView.getChild(repeaterName)\n\t\t\texcept:\n\t\t\t\tcontinue\n\t\t\tfor inst in repeater.props.instances:\n\t\t\t\tdataID = inst[\"params\"].get(\"id\")\n\t\t\t\tif dataID is None: continue\n\t\t\t\tfor paramId in paramIds_to_save:\n\t\t\t\t\tparamName = paramId_map.get(paramId)\n\t\t\t\t\tvalue     = inst[\"params\"].get(paramName)\n\t\t\t\t\tif paramId in actuals and (value is None or value == ''): continue\n\t\t\t\t\trows.append({\n\t\t\t\t\t\t\"coolingTowerDataID\": dataID,\n\t\t\t\t\t\t\"parameterTypesID\":   paramId,\n\t\t\t\t\t\t\"t_stamp\":            now,\n\t\t\t\t\t\t\"value\":              value,\n\t\t\t\t\t\t\"submittedBy\":        submittedBy\n\t\t\t\t\t})\n\t\n\tif not rows:\n\t\tsystem.perspective.openPopup('saveValidation','Framework/ErrorPopup',\n\t\t\tparams={'message': 'No data to save. Enter at least one actual value.'})\n\t\treturn\n\t\n\ttry:\n\t\tsystem.db.runNamedQuery(\n\t\t\t\"coolingTowerData/insertCoolingTowerData\",\n\t\t\t{\"rows\": rows, \"submittedBy\": submittedBy}\n\t\t)\n\t\t# Save notes if entered\n\t\tnoteText = self.view.custom.notesText.strip()\n\t\tif noteText:\n\t\t\tsystem.db.runNamedQuery(\n\t\t\t\t\"coolingTowerData/insertNote\",\n\t\t\t\t{\n\t\t\t\t\t\"siteId\":      self.view.params.siteId,\n\t\t\t\t\t\"t_stamp\":     now,\n\t\t\t\t\t\"note\":        noteText,\n\t\t\t\t\t\"submittedBy\": submittedBy\n\t\t\t\t}\n\t\t\t)\n\t\t\tself.view.custom.notesText = ''\n\t\tsystem.perspective.openPopup('saveSuccess','Framework/SuccessPopup',\n\t\t\tparams={'message': str(len(rows)) + ' records saved by ' + submittedBy + '.'})\n\texcept Exception as e:\n\t\tsystem.perspective.openPopup('saveError','Framework/ErrorPopup',\n\t\t\tparams={'message': 'Save failed: ' + str(e)})\n"
+                    "script": "\tnow \u003d self.getSibling(\"DateTimeInput\").props.value\n\t\n\tif now is None:\n\t\tsystem.perspective.openPopup(\u0027saveValidation\u0027,\u0027Framework/ErrorPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: \u0027Please select a date before saving.\u0027})\n\t\treturn\n\t\n\t# Get username for audit trail\n\ttry:\n\t\tsubmittedBy \u003d self.session.props.auth.user.userName or \u0027unknown\u0027\n\texcept:\n\t\tsubmittedBy \u003d \u0027unknown\u0027\n\t\n\trows \u003d []\n\ttabs      \u003d [\"MAC_BAC\", \"RNC_FNC\", \"GAN_GOX\", \"CDA_MISC\"]\n\trepeaters \u003d [\"FlexRepeater\", \"FlexRepeater_0\"]\n\tparamIds_to_save \u003d [\"6\",\"3\",\"1\",\"4\",\"2\",\"5\"]\n\tparamId_map \u003d {\n\t\t\"6\": \"designApproachTempF\",\n\t\t\"3\": \"designApproachTempFTarget\",\n\t\t\"1\": \"designIncomingWaterTempF\",\n\t\t\"4\": \"designIncomingWaterTempFTarget\",\n\t\t\"2\": \"processGasOutTempF\",\n\t\t\"5\": \"processGasOutTempFTarget\"\n\t}\n\tactuals \u003d {\"1\", \"2\", \"6\"}\n\t\n\tfor tabName in tabs:\n\t\ttry:\n\t\t\ttabView \u003d self.getChild(tabName)\n\t\texcept:\n\t\t\tcontinue\n\t\tfor repeaterName in repeaters:\n\t\t\ttry:\n\t\t\t\trepeater \u003d tabView.getChild(repeaterName)\n\t\t\texcept:\n\t\t\t\tcontinue\n\t\t\tfor inst in repeater.props.instances:\n\t\t\t\tdataID \u003d inst[\"params\"].get(\"id\")\n\t\t\t\tif dataID is None: continue\n\t\t\t\tfor paramId in paramIds_to_save:\n\t\t\t\t\tparamName \u003d paramId_map.get(paramId)\n\t\t\t\t\tvalue     \u003d inst[\"params\"].get(paramName)\n\t\t\t\t\tif paramId in actuals and (value is None or value \u003d\u003d \u0027\u0027): continue\n\t\t\t\t\trows.append({\n\t\t\t\t\t\t\"coolingTowerDataID\": dataID,\n\t\t\t\t\t\t\"parameterTypesID\":   paramId,\n\t\t\t\t\t\t\"t_stamp\":            now,\n\t\t\t\t\t\t\"value\":              value,\n\t\t\t\t\t\t\"submittedBy\":        submittedBy\n\t\t\t\t\t})\n\t\n\tif not rows:\n\t\tsystem.perspective.openPopup(\u0027saveValidation\u0027,\u0027Framework/ErrorPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: \u0027No data to save. Enter at least one actual value.\u0027})\n\t\treturn\n\t\n\ttry:\n\t\tsystem.db.runNamedQuery(\n\t\t\t\"coolingTowerData/insertCoolingTowerData\",\n\t\t\t{\"rows\": rows, \"submittedBy\": submittedBy}\n\t\t)\n\t\t# Save notes if entered\n\t\tnoteText \u003d self.view.custom.notesText.strip()\n\t\tif noteText:\n\t\t\tsystem.db.runNamedQuery(\n\t\t\t\t\"coolingTowerData/insertNote\",\n\t\t\t\t{\n\t\t\t\t\t\"siteId\":      self.view.params.siteId,\n\t\t\t\t\t\"t_stamp\":     now,\n\t\t\t\t\t\"note\":        noteText,\n\t\t\t\t\t\"submittedBy\": submittedBy\n\t\t\t\t}\n\t\t\t)\n\t\t\tself.view.custom.notesText \u003d \u0027\u0027\n\t\tsystem.perspective.openPopup(\u0027saveSuccess\u0027,\u0027Framework/SuccessPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: str(len(rows)) + \u0027 records saved by \u0027 + submittedBy + \u0027.\u0027})\n\texcept Exception as e:\n\t\tsystem.perspective.openPopup(\u0027saveError\u0027,\u0027Framework/ErrorPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: \u0027Save failed: \u0027 + str(e)})\n"
                   },
                   "scope": "G",
                   "type": "script"
@@ -835,7 +956,7 @@
               "component": {
                 "onActionPerformed": {
                   "config": {
-                    "script": "\tself.view.custom.targets.IncomingWaterTemp = self.getSibling(\"NumericEntryField\").props.value"
+                    "script": "\tself.view.custom.targets.IncomingWaterTemp \u003d self.getSibling(\"NumericEntryField\").props.value"
                   },
                   "scope": "G",
                   "type": "script"
@@ -866,13 +987,6 @@
               "x": 860,
               "y": 9
             },
-            "props": {
-              "style": {
-                "fontSize": 13,
-                "color": "#666666",
-                "fontStyle": "italic"
-              }
-            },
             "propConfig": {
               "props.text": {
                 "binding": {
@@ -881,6 +995,13 @@
                   },
                   "type": "property"
                 }
+              }
+            },
+            "props": {
+              "style": {
+                "color": "#666666",
+                "fontSize": 13,
+                "fontStyle": "italic"
               }
             },
             "type": "ia.display.label"
@@ -895,28 +1016,11 @@
               "x": 1108,
               "y": 7
             },
-            "props": {
-              "style": {
-                "fontSize": 13,
-                "fontWeight": "bold",
-                "textAlign": "center",
-                "borderRadius": "4px",
-                "padding": "4px 8px"
-              }
-            },
             "propConfig": {
-              "props.text": {
-                "binding": {
-                  "config": {
-                    "expression": "if({view.custom.worstDevSite} > 10, \"\u26a0 OUT OF SPEC\", if({view.custom.worstDevSite} > 5, \"\u26a0 WARNING\", \"\u2713 IN SPEC\"))"
-                  },
-                  "type": "expr"
-                }
-              },
               "props.style.backgroundColor": {
                 "binding": {
                   "config": {
-                    "expression": "if({view.custom.worstDevSite} > 10, \"#FF4444\", if({view.custom.worstDevSite} > 5, \"#FFD700\", \"#70AD47\"))"
+                    "expression": "if({view.custom.worstDevSite} \u003e 10, \"#FF4444\", if({view.custom.worstDevSite} \u003e 5, \"#FFD700\", \"#70AD47\"))"
                   },
                   "type": "expr"
                 }
@@ -924,7 +1028,15 @@
               "props.style.color": {
                 "binding": {
                   "config": {
-                    "expression": "if({view.custom.worstDevSite} > 10, \"#FFFFFF\", if({view.custom.worstDevSite} > 5, \"#333333\", \"#FFFFFF\"))"
+                    "expression": "if({view.custom.worstDevSite} \u003e 10, \"#FFFFFF\", if({view.custom.worstDevSite} \u003e 5, \"#333333\", \"#FFFFFF\"))"
+                  },
+                  "type": "expr"
+                }
+              },
+              "props.text": {
+                "binding": {
+                  "config": {
+                    "expression": "if({view.custom.worstDevSite} \u003e 10, \"⚠ OUT OF SPEC\", if({view.custom.worstDevSite} \u003e 5, \"⚠ WARNING\", \"✓ IN SPEC\"))"
                   },
                   "type": "expr"
                 }
@@ -932,10 +1044,19 @@
               "props.toolTipText": {
                 "binding": {
                   "config": {
-                    "expression": "if({view.custom.worstDevSite} > 10, \"One or more parameters exceed spec by >10\u00b0F\", if({view.custom.worstDevSite} > 5, \"One or more parameters exceed spec by >5\u00b0F\", \"All parameters within spec\"))"
+                    "expression": "if({view.custom.worstDevSite} \u003e 10, \"One or more parameters exceed spec by \u003e10°F\", if({view.custom.worstDevSite} \u003e 5, \"One or more parameters exceed spec by \u003e5°F\", \"All parameters within spec\"))"
                   },
                   "type": "expr"
                 }
+              }
+            },
+            "props": {
+              "style": {
+                "borderRadius": "4px",
+                "fontSize": 13,
+                "fontWeight": "bold",
+                "padding": "4px 8px",
+                "textAlign": "center"
               }
             },
             "type": "ia.display.label"
@@ -950,12 +1071,6 @@
               "x": 630,
               "y": 9
             },
-            "props": {
-              "placeholder": "Optional note for this entry...",
-              "style": {
-                "fontSize": 13
-              }
-            },
             "propConfig": {
               "props.text": {
                 "binding": {
@@ -965,6 +1080,12 @@
                   },
                   "type": "property"
                 }
+              }
+            },
+            "props": {
+              "placeholder": "Optional note for this entry...",
+              "style": {
+                "fontSize": 13
               }
             },
             "type": "ia.input.text-field"
@@ -2386,18 +2507,19 @@
           {
             "children": [
               {
-                "meta": {
-                  "name": "TrendControls"
-                },
-                "position": {
-                  "height": 50,
-                  "width": 1760,
-                  "x": 0,
-                  "y": 0
-                },
-                "props": {},
                 "children": [
                   {
+                    "events": {
+                      "component": {
+                        "onActionPerformed": {
+                          "config": {
+                            "script": "\tend \u003d system.date.now()\n\tself.view.custom.trendEndDate   \u003d end\n\tself.view.custom.trendStartDate \u003d system.date.addMonths(end, -1)\n"
+                          },
+                          "scope": "G",
+                          "type": "script"
+                        }
+                      }
+                    },
                     "meta": {
                       "name": "Btn1M"
                     },
@@ -2410,20 +2532,20 @@
                     "props": {
                       "text": "1M"
                     },
+                    "type": "ia.input.button"
+                  },
+                  {
                     "events": {
                       "component": {
                         "onActionPerformed": {
                           "config": {
-                            "script": "\tend = system.date.now()\n\tself.view.custom.trendEndDate   = end\n\tself.view.custom.trendStartDate = system.date.addMonths(end, -1)\n"
+                            "script": "\tend \u003d system.date.now()\n\tself.view.custom.trendEndDate   \u003d end\n\tself.view.custom.trendStartDate \u003d system.date.addMonths(end, -3)\n"
                           },
                           "scope": "G",
                           "type": "script"
                         }
                       }
                     },
-                    "type": "ia.input.button"
-                  },
-                  {
                     "meta": {
                       "name": "Btn3M"
                     },
@@ -2436,20 +2558,20 @@
                     "props": {
                       "text": "3M"
                     },
+                    "type": "ia.input.button"
+                  },
+                  {
                     "events": {
                       "component": {
                         "onActionPerformed": {
                           "config": {
-                            "script": "\tend = system.date.now()\n\tself.view.custom.trendEndDate   = end\n\tself.view.custom.trendStartDate = system.date.addMonths(end, -3)\n"
+                            "script": "\tend \u003d system.date.now()\n\tself.view.custom.trendEndDate   \u003d end\n\tself.view.custom.trendStartDate \u003d system.date.addMonths(end, -6)\n"
                           },
                           "scope": "G",
                           "type": "script"
                         }
                       }
                     },
-                    "type": "ia.input.button"
-                  },
-                  {
                     "meta": {
                       "name": "Btn6M"
                     },
@@ -2462,20 +2584,20 @@
                     "props": {
                       "text": "6M"
                     },
+                    "type": "ia.input.button"
+                  },
+                  {
                     "events": {
                       "component": {
                         "onActionPerformed": {
                           "config": {
-                            "script": "\tend = system.date.now()\n\tself.view.custom.trendEndDate   = end\n\tself.view.custom.trendStartDate = system.date.addMonths(end, -6)\n"
+                            "script": "\tend \u003d system.date.now()\n\tself.view.custom.trendEndDate   \u003d end\n\tself.view.custom.trendStartDate \u003d system.date.addMonths(end, -12)\n"
                           },
                           "scope": "G",
                           "type": "script"
                         }
                       }
                     },
-                    "type": "ia.input.button"
-                  },
-                  {
                     "meta": {
                       "name": "Btn1Y"
                     },
@@ -2487,17 +2609,6 @@
                     },
                     "props": {
                       "text": "1Y"
-                    },
-                    "events": {
-                      "component": {
-                        "onActionPerformed": {
-                          "config": {
-                            "script": "\tend = system.date.now()\n\tself.view.custom.trendEndDate   = end\n\tself.view.custom.trendStartDate = system.date.addMonths(end, -12)\n"
-                          },
-                          "scope": "G",
-                          "type": "script"
-                        }
-                      }
                     },
                     "type": "ia.input.button"
                   },
@@ -2512,10 +2623,10 @@
                       "y": 9
                     },
                     "props": {
-                      "text": "From:",
                       "style": {
                         "fontSize": 13
-                      }
+                      },
+                      "text": "From:"
                     },
                     "type": "ia.display.label"
                   },
@@ -2529,9 +2640,6 @@
                       "x": 288,
                       "y": 9
                     },
-                    "props": {
-                      "pickerType": "date"
-                    },
                     "propConfig": {
                       "props.value": {
                         "binding": {
@@ -2542,6 +2650,10 @@
                           "type": "property"
                         }
                       }
+                    },
+                    "props": {
+                      "formattedValue": "Nov 18, 2025 1:17 PM",
+                      "pickerType": "date"
                     },
                     "type": "ia.input.date-time-input"
                   },
@@ -2556,10 +2668,10 @@
                       "y": 9
                     },
                     "props": {
-                      "text": "To:",
                       "style": {
                         "fontSize": 13
-                      }
+                      },
+                      "text": "To:"
                     },
                     "type": "ia.display.label"
                   },
@@ -2573,9 +2685,6 @@
                       "x": 490,
                       "y": 9
                     },
-                    "props": {
-                      "pickerType": "date"
-                    },
                     "propConfig": {
                       "props.value": {
                         "binding": {
@@ -2586,6 +2695,10 @@
                           "type": "property"
                         }
                       }
+                    },
+                    "props": {
+                      "formattedValue": "May 18, 2026 1:17 PM",
+                      "pickerType": "date"
                     },
                     "type": "ia.input.date-time-input"
                   },
@@ -2600,10 +2713,10 @@
                       "y": 9
                     },
                     "props": {
-                      "text": "Compare:",
                       "style": {
                         "fontSize": 13
-                      }
+                      },
+                      "text": "Compare:"
                     },
                     "type": "ia.display.label"
                   },
@@ -2617,10 +2730,6 @@
                       "x": 744,
                       "y": 9
                     },
-                    "props": {
-                      "placeholder": "Select site to compare...",
-                      "options": []
-                    },
                     "propConfig": {
                       "props.options": {
                         "binding": {
@@ -2629,7 +2738,7 @@
                           },
                           "transforms": [
                             {
-                              "code": "\tif value is None: return [{'label': 'None', 'value': 0}]\n\tds = system.dataset.toPyDataSet(value)\n\topts = [{'label': 'None', 'value': 0}]\n\tfor row in ds:\n\t\topts.append({'label': row['Label'], 'value': row['value']})\n\treturn opts\n",
+                              "code": "\tif value is None: return [{\u0027label\u0027: \u0027None\u0027, \u0027value\u0027: 0}]\n\tds \u003d system.dataset.toPyDataSet(value)\n\topts \u003d [{\u0027label\u0027: \u0027None\u0027, \u0027value\u0027: 0}]\n\tfor row in ds:\n\t\topts.append({\u0027label\u0027: row[\u0027Label\u0027], \u0027value\u0027: row[\u0027value\u0027]})\n\treturn opts\n",
                               "type": "script"
                             }
                           ],
@@ -2646,9 +2755,23 @@
                         }
                       }
                     },
+                    "props": {
+                      "placeholder": "Select site to compare..."
+                    },
                     "type": "ia.input.dropdown"
                   },
                   {
+                    "events": {
+                      "component": {
+                        "onActionPerformed": {
+                          "config": {
+                            "script": "\ttry:\n\t\tds \u003d system.db.runNamedQuery(\n\t\t\t\u0027coolingTowerData/getHistoryBySite\u0027,\n\t\t\t{\n\t\t\t\t\u0027siteId\u0027:    self.view.params.siteId,\n\t\t\t\t\u0027startDate\u0027: self.view.custom.trendStartDate,\n\t\t\t\t\u0027endDate\u0027:   self.view.custom.trendEndDate\n\t\t\t}\n\t\t)\n\t\tsiteName \u003d str(self.view.custom.site or \u0027Site_\u0027 + str(self.view.params.siteId))\n\t\tfileName \u003d siteName.replace(\u0027 \u0027, \u0027_\u0027) + \u0027_trend_data.csv\u0027\n\t\tcsvBytes \u003d system.dataset.toCSV(ds, True).encode(\u0027utf-8\u0027)\n\t\tsystem.perspective.download(fileName, csvBytes)\n\texcept Exception as e:\n\t\tsystem.perspective.openPopup(\n\t\t\t\u0027exportError\u0027, \u0027Framework/ErrorPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: \u0027Export failed: \u0027 + str(e)}\n\t\t)\n"
+                          },
+                          "scope": "G",
+                          "type": "script"
+                        }
+                      }
+                    },
                     "meta": {
                       "name": "ExportButton"
                     },
@@ -2661,20 +2784,16 @@
                     "props": {
                       "text": "EXPORT CSV"
                     },
-                    "events": {
-                      "component": {
-                        "onActionPerformed": {
-                          "config": {
-                            "script": "\ttry:\n\t\tds = system.db.runNamedQuery(\n\t\t\t'coolingTowerData/getHistoryBySite',\n\t\t\t{\n\t\t\t\t'siteId':    self.view.params.siteId,\n\t\t\t\t'startDate': self.view.custom.trendStartDate,\n\t\t\t\t'endDate':   self.view.custom.trendEndDate\n\t\t\t}\n\t\t)\n\t\tsiteName = str(self.view.custom.site or 'Site_' + str(self.view.params.siteId))\n\t\tfileName = siteName.replace(' ', '_') + '_trend_data.csv'\n\t\tcsvBytes = system.dataset.toCSV(ds, True).encode('utf-8')\n\t\tsystem.perspective.download(fileName, csvBytes)\n\texcept Exception as e:\n\t\tsystem.perspective.openPopup(\n\t\t\t'exportError', 'Framework/ErrorPopup',\n\t\t\tparams={'message': 'Export failed: ' + str(e)}\n\t\t)\n"
-                          },
-                          "scope": "G",
-                          "type": "script"
-                        }
-                      }
-                    },
                     "type": "ia.input.button"
                   }
                 ],
+                "meta": {
+                  "name": "TrendControls"
+                },
+                "position": {
+                  "height": 50,
+                  "width": 1760
+                },
                 "type": "ia.container.coord"
               },
               {
@@ -2687,17 +2806,15 @@
                   "x": 10,
                   "y": 58
                 },
-                "props": {
-                  "options": [
-                    {
-                      "label": "All Equipment",
-                      "value": "all"
-                    }
-                  ],
-                  "value": "all",
-                  "placeholder": "Filter by equipment..."
-                },
                 "propConfig": {
+                  "props.options": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.enabledEquipmentOptions"
+                      },
+                      "type": "property"
+                    }
+                  },
                   "props.value": {
                     "binding": {
                       "config": {
@@ -2706,21 +2823,16 @@
                       },
                       "type": "property"
                     }
-                  },
-                  "props.options": {
-                    "binding": {
-                      "config": {
-                        "path": "view.custom.enabledEquipmentOptions"
-                      },
-                      "type": "property"
-                    }
                   }
+                },
+                "props": {
+                  "placeholder": "Filter by equipment..."
                 },
                 "type": "ia.input.dropdown"
               },
               {
                 "meta": {
-                  "name": "PowerChart"
+                  "name": "PowerChart_0"
                 },
                 "position": {
                   "height": 600,
@@ -2729,84 +2841,12 @@
                   "y": 98
                 },
                 "props": {
-                  "config": {
-                    "mode": "historical",
-                    "subplots": [
-                      {
-                        "name": "Temperatures",
-                        "yAxis": {
-                          "label": "Temperature (\u00b0F)",
-                          "autoRange": true
-                        },
-                        "pens": [
-                          {
-                            "name": "DAT Actual",
-                            "color": "#2C5F2E",
-                            "lineStyle": "Solid",
-                            "lineWeight": 2
-                          },
-                          {
-                            "name": "IWT Actual",
-                            "color": "#4472C4",
-                            "lineStyle": "Solid",
-                            "lineWeight": 2
-                          },
-                          {
-                            "name": "POGT Actual",
-                            "color": "#ED7D31",
-                            "lineStyle": "Solid",
-                            "lineWeight": 2
-                          },
-                          {
-                            "name": "DAT Target",
-                            "color": "#2C5F2E",
-                            "lineStyle": "Dash",
-                            "lineWeight": 1
-                          },
-                          {
-                            "name": "IWT Target",
-                            "color": "#4472C4",
-                            "lineStyle": "Dash",
-                            "lineWeight": 1
-                          },
-                          {
-                            "name": "POGT Target",
-                            "color": "#ED7D31",
-                            "lineStyle": "Dash",
-                            "lineWeight": 1
-                          }
-                        ]
-                      }
-                    ]
+                  "interaction": {
+                    "chartZoomLevel": 1,
+                    "rangeZoomLevel": 1
                   }
                 },
-                "propConfig": {
-                  "props.data": {
-                    "binding": {
-                      "config": {
-                        "path": "view.custom.chartData"
-                      },
-                      "type": "property"
-                    }
-                  },
-                  "props.time.start": {
-                    "binding": {
-                      "config": {
-                        "path": "view.custom.trendStartDate"
-                      },
-                      "type": "property"
-                    }
-                  },
-                  "props.time.end": {
-                    "binding": {
-                      "config": {
-                        "path": "view.custom.trendEndDate"
-                      },
-                      "type": "property"
-                    }
-                  }
-                },
-                "type": "ia.chart.power-chart"
+                "type": "ia.chart.powerchart"
               },
               {
                 "meta": {
@@ -2817,6 +2857,22 @@
                   "width": 1750,
                   "x": 5,
                   "y": 710
+                },
+                "propConfig": {
+                  "props.data": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.rawHistoryData"
+                      },
+                      "transforms": [
+                        {
+                          "code": "\t# Convert dataset to list of dicts for Table component\n\tif value is None: return []\n\tresult \u003d []\n\tfor r in range(value.getRowCount()):\n\t\tts  \u003d value.getValueAt(r, \u0027t_stamp\u0027)\n\t\tresult.append({\n\t\t\t\u0027t_stamp\u0027:       system.date.format(ts, \u0027MM/dd/yyyy HH:mm\u0027) if ts else \u0027\u0027,\n\t\t\t\u0027equipmentName\u0027: str(value.getValueAt(r, \u0027equipmentName\u0027) or \u0027\u0027),\n\t\t\t\u0027paramLabel\u0027:    str(value.getValueAt(r, \u0027paramLabel\u0027) or \u0027\u0027),\n\t\t\t\u0027value\u0027:         value.getValueAt(r, \u0027value\u0027)\n\t\t})\n\treturn result\n",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
                 },
                 "props": {
                   "columns": [
@@ -2837,33 +2893,65 @@
                     },
                     {
                       "field": "value",
-                      "header": "Value (\u00b0F)",
+                      "header": "Value (°F)",
                       "width": 100
                     }
                   ],
-                  "data": [],
                   "pageSize": 50,
                   "showPaginationBar": true
-                },
-                "propConfig": {
-                  "props.data": {
-                    "binding": {
-                      "config": {
-                        "path": "view.custom.rawHistoryData"
-                      },
-                      "transforms": [
-                        {
-                          "code": "\t# Convert dataset to list of dicts for Table component\n\tif value is None: return []\n\tresult = []\n\tfor r in range(value.getRowCount()):\n\t\tts  = value.getValueAt(r, 't_stamp')\n\t\tresult.append({\n\t\t\t't_stamp':       system.date.format(ts, 'MM/dd/yyyy HH:mm') if ts else '',\n\t\t\t'equipmentName': str(value.getValueAt(r, 'equipmentName') or ''),\n\t\t\t'paramLabel':    str(value.getValueAt(r, 'paramLabel') or ''),\n\t\t\t'value':         value.getValueAt(r, 'value')\n\t\t})\n\treturn result\n",
-                          "type": "script"
-                        }
-                      ],
-                      "type": "property"
-                    }
-                  }
                 },
                 "type": "ia.display.table"
               },
               {
+                "children": [
+                  {
+                    "meta": {
+                      "name": "NotesHeader"
+                    },
+                    "position": {
+                      "basis": "28px"
+                    },
+                    "props": {
+                      "style": {
+                        "backgroundColor": "#F0F0F0",
+                        "fontSize": 14,
+                        "fontWeight": "bold",
+                        "padding": "4px 8px"
+                      },
+                      "text": "Entry Notes"
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "NotesList"
+                    },
+                    "position": {
+                      "grow": 1
+                    },
+                    "propConfig": {
+                      "props.instances": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.notesData"
+                          },
+                          "transforms": [
+                            {
+                              "code": "\tif value is None: return []\n\tds \u003d system.dataset.toPyDataSet(value)\n\treturn [{\n\t\t\u0027instancePosition\u0027: {}, \u0027instanceStyle\u0027: {\u0027classes\u0027: \u0027\u0027},\n\t\t\u0027t_stamp\u0027:     system.date.format(row[\u0027t_stamp\u0027], \u0027MM/dd/yyyy\u0027),\n\t\t\u0027submittedBy\u0027: row[\u0027submittedBy\u0027] or \u0027unknown\u0027,\n\t\t\u0027note\u0027:        row[\u0027note\u0027]\n\t} for row in ds]\n",
+                              "type": "script"
+                            }
+                          ],
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "props": {
+                      "direction": "column",
+                      "path": "Framework/NoteRow"
+                    },
+                    "type": "ia.display.flex-repeater"
+                  }
+                ],
                 "meta": {
                   "name": "NotesPanel"
                 },
@@ -2876,56 +2964,6 @@
                 "props": {
                   "direction": "column"
                 },
-                "children": [
-                  {
-                    "meta": {
-                      "name": "NotesHeader"
-                    },
-                    "position": {
-                      "basis": "28px"
-                    },
-                    "props": {
-                      "text": "Entry Notes",
-                      "style": {
-                        "fontSize": 14,
-                        "fontWeight": "bold",
-                        "padding": "4px 8px",
-                        "backgroundColor": "#F0F0F0"
-                      }
-                    },
-                    "type": "ia.display.label"
-                  },
-                  {
-                    "meta": {
-                      "name": "NotesList"
-                    },
-                    "position": {
-                      "grow": 1
-                    },
-                    "props": {
-                      "instances": [],
-                      "direction": "column",
-                      "path": "Framework/NoteRow"
-                    },
-                    "propConfig": {
-                      "props.instances": {
-                        "binding": {
-                          "config": {
-                            "path": "view.custom.notesData"
-                          },
-                          "transforms": [
-                            {
-                              "code": "\tif value is None: return []\n\tds = system.dataset.toPyDataSet(value)\n\treturn [{\n\t\t'instancePosition': {}, 'instanceStyle': {'classes': ''},\n\t\t't_stamp':     system.date.format(row['t_stamp'], 'MM/dd/yyyy'),\n\t\t'submittedBy': row['submittedBy'] or 'unknown',\n\t\t'note':        row['note']\n\t} for row in ds]\n",
-                              "type": "script"
-                            }
-                          ],
-                          "type": "property"
-                        }
-                      }
-                    },
-                    "type": "ia.display.flex-repeater"
-                  }
-                ],
                 "type": "ia.container.flex"
               }
             ],
@@ -2938,31 +2976,24 @@
             "type": "ia.container.coord"
           },
           {
-            "meta": {
-              "name": "Baseline"
-            },
-            "position": {
-              "tabIndex": 5
-            },
-            "type": "ia.container.coord",
             "children": [
               {
                 "meta": {
                   "name": "BaselineTitle"
                 },
                 "position": {
-                  "x": 20,
-                  "y": 14,
+                  "height": 30,
                   "width": 900,
-                  "height": 30
+                  "x": 20,
+                  "y": 14
                 },
                 "props": {
-                  "text": "Seasonal Baseline \u2014 Design Approach Temperature (\u00b0F)",
                   "style": {
+                    "color": "#2C5F2E",
                     "fontSize": 17,
-                    "fontWeight": "bold",
-                    "color": "#2C5F2E"
-                  }
+                    "fontWeight": "bold"
+                  },
+                  "text": "Seasonal Baseline — Design Approach Temperature (°F)"
                 },
                 "type": "ia.display.label"
               },
@@ -2971,18 +3002,18 @@
                   "name": "BaselineDesc"
                 },
                 "position": {
-                  "x": 20,
-                  "y": 48,
+                  "height": 22,
                   "width": 900,
-                  "height": 22
+                  "x": 20,
+                  "y": 48
                 },
                 "props": {
-                  "text": "Enter the expected monthly DAT baseline for this site. These values are saved to the database and overlaid on the trend chart.",
                   "style": {
-                    "fontSize": 12,
                     "color": "#777777",
+                    "fontSize": 12,
                     "fontStyle": "italic"
-                  }
+                  },
+                  "text": "Enter the expected monthly DAT baseline for this site. These values are saved to the database and overlaid on the trend chart."
                 },
                 "type": "ia.display.label"
               },
@@ -2991,18 +3022,18 @@
                   "name": "HdrMonth_L"
                 },
                 "position": {
-                  "x": 40,
-                  "y": 76,
+                  "height": 22,
                   "width": 110,
-                  "height": 22
+                  "x": 40,
+                  "y": 76
                 },
                 "props": {
-                  "text": "Month",
                   "style": {
+                    "color": "#444",
                     "fontSize": 12,
-                    "fontWeight": "bold",
-                    "color": "#444"
-                  }
+                    "fontWeight": "bold"
+                  },
+                  "text": "Month"
                 },
                 "type": "ia.display.label"
               },
@@ -3011,18 +3042,18 @@
                   "name": "HdrTarget_L"
                 },
                 "position": {
-                  "x": 160,
-                  "y": 76,
+                  "height": 22,
                   "width": 110,
-                  "height": 22
+                  "x": 160,
+                  "y": 76
                 },
                 "props": {
-                  "text": "Target DAT (\u00b0F)",
                   "style": {
+                    "color": "#444",
                     "fontSize": 12,
-                    "fontWeight": "bold",
-                    "color": "#444"
-                  }
+                    "fontWeight": "bold"
+                  },
+                  "text": "Target DAT (°F)"
                 },
                 "type": "ia.display.label"
               },
@@ -3031,18 +3062,18 @@
                   "name": "HdrSaved_L"
                 },
                 "position": {
-                  "x": 280,
-                  "y": 76,
+                  "height": 22,
                   "width": 100,
-                  "height": 22
+                  "x": 280,
+                  "y": 76
                 },
                 "props": {
-                  "text": "Saved Value",
                   "style": {
+                    "color": "#888",
                     "fontSize": 12,
-                    "fontWeight": "bold",
-                    "color": "#888"
-                  }
+                    "fontWeight": "bold"
+                  },
+                  "text": "Saved Value"
                 },
                 "type": "ia.display.label"
               },
@@ -3051,18 +3082,18 @@
                   "name": "HdrMonth_R"
                 },
                 "position": {
-                  "x": 440,
-                  "y": 76,
+                  "height": 22,
                   "width": 110,
-                  "height": 22
+                  "x": 440,
+                  "y": 76
                 },
                 "props": {
-                  "text": "Month",
                   "style": {
+                    "color": "#444",
                     "fontSize": 12,
-                    "fontWeight": "bold",
-                    "color": "#444"
-                  }
+                    "fontWeight": "bold"
+                  },
+                  "text": "Month"
                 },
                 "type": "ia.display.label"
               },
@@ -3071,18 +3102,18 @@
                   "name": "HdrTarget_R"
                 },
                 "position": {
-                  "x": 560,
-                  "y": 76,
+                  "height": 22,
                   "width": 110,
-                  "height": 22
+                  "x": 560,
+                  "y": 76
                 },
                 "props": {
-                  "text": "Target DAT (\u00b0F)",
                   "style": {
+                    "color": "#444",
                     "fontSize": 12,
-                    "fontWeight": "bold",
-                    "color": "#444"
-                  }
+                    "fontWeight": "bold"
+                  },
+                  "text": "Target DAT (°F)"
                 },
                 "type": "ia.display.label"
               },
@@ -3091,18 +3122,18 @@
                   "name": "HdrSaved_R"
                 },
                 "position": {
-                  "x": 680,
-                  "y": 76,
+                  "height": 22,
                   "width": 100,
-                  "height": 22
+                  "x": 680,
+                  "y": 76
                 },
                 "props": {
-                  "text": "Saved Value",
                   "style": {
+                    "color": "#888",
                     "fontSize": 12,
-                    "fontWeight": "bold",
-                    "color": "#888"
-                  }
+                    "fontWeight": "bold"
+                  },
+                  "text": "Saved Value"
                 },
                 "type": "ia.display.label"
               },
@@ -3111,17 +3142,17 @@
                   "name": "LblJan"
                 },
                 "position": {
-                  "x": 40,
-                  "y": 105,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 40,
+                  "y": 105
                 },
                 "props": {
-                  "text": "January",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "January"
                 },
                 "type": "ia.display.label"
               },
@@ -3130,13 +3161,13 @@
                   "name": "InputJan"
                 },
                 "position": {
-                  "x": 160,
-                  "y": 105,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 160,
+                  "y": 105
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3145,17 +3176,10 @@
                   "name": "SavedJan"
                 },
                 "position": {
-                  "x": 280,
-                  "y": 105,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 280,
+                  "y": 105
                 },
                 "propConfig": {
                   "props.text": {
@@ -3165,12 +3189,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('1');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u00271\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3180,17 +3211,17 @@
                   "name": "LblFeb"
                 },
                 "position": {
-                  "x": 40,
-                  "y": 141,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 40,
+                  "y": 141
                 },
                 "props": {
-                  "text": "February",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "February"
                 },
                 "type": "ia.display.label"
               },
@@ -3199,13 +3230,13 @@
                   "name": "InputFeb"
                 },
                 "position": {
-                  "x": 160,
-                  "y": 141,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 160,
+                  "y": 141
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3214,17 +3245,10 @@
                   "name": "SavedFeb"
                 },
                 "position": {
-                  "x": 280,
-                  "y": 141,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 280,
+                  "y": 141
                 },
                 "propConfig": {
                   "props.text": {
@@ -3234,12 +3258,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('2');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u00272\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3249,17 +3280,17 @@
                   "name": "LblMar"
                 },
                 "position": {
-                  "x": 40,
-                  "y": 177,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 40,
+                  "y": 177
                 },
                 "props": {
-                  "text": "March",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "March"
                 },
                 "type": "ia.display.label"
               },
@@ -3268,13 +3299,13 @@
                   "name": "InputMar"
                 },
                 "position": {
-                  "x": 160,
-                  "y": 177,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 160,
+                  "y": 177
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3283,17 +3314,10 @@
                   "name": "SavedMar"
                 },
                 "position": {
-                  "x": 280,
-                  "y": 177,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 280,
+                  "y": 177
                 },
                 "propConfig": {
                   "props.text": {
@@ -3303,12 +3327,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('3');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u00273\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3318,17 +3349,17 @@
                   "name": "LblApr"
                 },
                 "position": {
-                  "x": 40,
-                  "y": 213,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 40,
+                  "y": 213
                 },
                 "props": {
-                  "text": "April",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "April"
                 },
                 "type": "ia.display.label"
               },
@@ -3337,13 +3368,13 @@
                   "name": "InputApr"
                 },
                 "position": {
-                  "x": 160,
-                  "y": 213,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 160,
+                  "y": 213
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3352,17 +3383,10 @@
                   "name": "SavedApr"
                 },
                 "position": {
-                  "x": 280,
-                  "y": 213,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 280,
+                  "y": 213
                 },
                 "propConfig": {
                   "props.text": {
@@ -3372,12 +3396,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('4');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u00274\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3387,17 +3418,17 @@
                   "name": "LblMay"
                 },
                 "position": {
-                  "x": 40,
-                  "y": 249,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 40,
+                  "y": 249
                 },
                 "props": {
-                  "text": "May",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "May"
                 },
                 "type": "ia.display.label"
               },
@@ -3406,13 +3437,13 @@
                   "name": "InputMay"
                 },
                 "position": {
-                  "x": 160,
-                  "y": 249,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 160,
+                  "y": 249
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3421,17 +3452,10 @@
                   "name": "SavedMay"
                 },
                 "position": {
-                  "x": 280,
-                  "y": 249,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 280,
+                  "y": 249
                 },
                 "propConfig": {
                   "props.text": {
@@ -3441,12 +3465,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('5');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u00275\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3456,17 +3487,17 @@
                   "name": "LblJun"
                 },
                 "position": {
-                  "x": 40,
-                  "y": 285,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 40,
+                  "y": 285
                 },
                 "props": {
-                  "text": "June",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "June"
                 },
                 "type": "ia.display.label"
               },
@@ -3475,13 +3506,13 @@
                   "name": "InputJun"
                 },
                 "position": {
-                  "x": 160,
-                  "y": 285,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 160,
+                  "y": 285
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3490,17 +3521,10 @@
                   "name": "SavedJun"
                 },
                 "position": {
-                  "x": 280,
-                  "y": 285,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 280,
+                  "y": 285
                 },
                 "propConfig": {
                   "props.text": {
@@ -3510,12 +3534,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('6');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u00276\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3525,17 +3556,17 @@
                   "name": "LblJul"
                 },
                 "position": {
-                  "x": 440,
-                  "y": 105,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 440,
+                  "y": 105
                 },
                 "props": {
-                  "text": "July",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "July"
                 },
                 "type": "ia.display.label"
               },
@@ -3544,13 +3575,13 @@
                   "name": "InputJul"
                 },
                 "position": {
-                  "x": 560,
-                  "y": 105,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 560,
+                  "y": 105
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3559,17 +3590,10 @@
                   "name": "SavedJul"
                 },
                 "position": {
-                  "x": 680,
-                  "y": 105,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 680,
+                  "y": 105
                 },
                 "propConfig": {
                   "props.text": {
@@ -3579,12 +3603,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('7');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u00277\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3594,17 +3625,17 @@
                   "name": "LblAug"
                 },
                 "position": {
-                  "x": 440,
-                  "y": 141,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 440,
+                  "y": 141
                 },
                 "props": {
-                  "text": "August",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "August"
                 },
                 "type": "ia.display.label"
               },
@@ -3613,13 +3644,13 @@
                   "name": "InputAug"
                 },
                 "position": {
-                  "x": 560,
-                  "y": 141,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 560,
+                  "y": 141
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3628,17 +3659,10 @@
                   "name": "SavedAug"
                 },
                 "position": {
-                  "x": 680,
-                  "y": 141,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 680,
+                  "y": 141
                 },
                 "propConfig": {
                   "props.text": {
@@ -3648,12 +3672,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('8');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u00278\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3663,17 +3694,17 @@
                   "name": "LblSep"
                 },
                 "position": {
-                  "x": 440,
-                  "y": 177,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 440,
+                  "y": 177
                 },
                 "props": {
-                  "text": "September",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "September"
                 },
                 "type": "ia.display.label"
               },
@@ -3682,13 +3713,13 @@
                   "name": "InputSep"
                 },
                 "position": {
-                  "x": 560,
-                  "y": 177,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 560,
+                  "y": 177
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3697,17 +3728,10 @@
                   "name": "SavedSep"
                 },
                 "position": {
-                  "x": 680,
-                  "y": 177,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 680,
+                  "y": 177
                 },
                 "propConfig": {
                   "props.text": {
@@ -3717,12 +3741,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('9');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u00279\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3732,17 +3763,17 @@
                   "name": "LblOct"
                 },
                 "position": {
-                  "x": 440,
-                  "y": 213,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 440,
+                  "y": 213
                 },
                 "props": {
-                  "text": "October",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "October"
                 },
                 "type": "ia.display.label"
               },
@@ -3751,13 +3782,13 @@
                   "name": "InputOct"
                 },
                 "position": {
-                  "x": 560,
-                  "y": 213,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 560,
+                  "y": 213
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3766,17 +3797,10 @@
                   "name": "SavedOct"
                 },
                 "position": {
-                  "x": 680,
-                  "y": 213,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 680,
+                  "y": 213
                 },
                 "propConfig": {
                   "props.text": {
@@ -3786,12 +3810,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('10');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u002710\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3801,17 +3832,17 @@
                   "name": "LblNov"
                 },
                 "position": {
-                  "x": 440,
-                  "y": 249,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 440,
+                  "y": 249
                 },
                 "props": {
-                  "text": "November",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "November"
                 },
                 "type": "ia.display.label"
               },
@@ -3820,13 +3851,13 @@
                   "name": "InputNov"
                 },
                 "position": {
-                  "x": 560,
-                  "y": 249,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 560,
+                  "y": 249
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3835,17 +3866,10 @@
                   "name": "SavedNov"
                 },
                 "position": {
-                  "x": 680,
-                  "y": 249,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 680,
+                  "y": 249
                 },
                 "propConfig": {
                   "props.text": {
@@ -3855,12 +3879,19 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('11');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u002711\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
                       "type": "property"
                     }
+                  }
+                },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
                   }
                 },
                 "type": "ia.display.label"
@@ -3870,17 +3901,17 @@
                   "name": "LblDec"
                 },
                 "position": {
-                  "x": 440,
-                  "y": 285,
+                  "height": 30,
                   "width": 110,
-                  "height": 30
+                  "x": 440,
+                  "y": 285
                 },
                 "props": {
-                  "text": "December",
                   "style": {
                     "fontSize": 13,
                     "paddingTop": "6px"
-                  }
+                  },
+                  "text": "December"
                 },
                 "type": "ia.display.label"
               },
@@ -3889,13 +3920,13 @@
                   "name": "InputDec"
                 },
                 "position": {
-                  "x": 560,
-                  "y": 285,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
+                  "x": 560,
+                  "y": 285
                 },
                 "props": {
-                  "placeholder": "\u00b0F"
+                  "placeholder": "°F"
                 },
                 "type": "ia.input.numeric-entry-field"
               },
@@ -3904,17 +3935,10 @@
                   "name": "SavedDec"
                 },
                 "position": {
-                  "x": 680,
-                  "y": 285,
+                  "height": 30,
                   "width": 100,
-                  "height": 30
-                },
-                "props": {
-                  "style": {
-                    "fontSize": 12,
-                    "color": "#888",
-                    "paddingTop": "7px"
-                  }
+                  "x": 680,
+                  "y": 285
                 },
                 "propConfig": {
                   "props.text": {
@@ -3924,7 +3948,7 @@
                       },
                       "transforms": [
                         {
-                          "code": "b=value or {};v=b.get('12');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "code": "b\u003dvalue or {};v\u003db.get(\u002712\u0027);return str(round(v,1))+\u0027 °F\u0027 if v is not None else \u0027—\u0027",
                           "type": "script"
                         }
                       ],
@@ -3932,37 +3956,44 @@
                     }
                   }
                 },
+                "props": {
+                  "style": {
+                    "color": "#888",
+                    "fontSize": 12,
+                    "paddingTop": "7px"
+                  }
+                },
                 "type": "ia.display.label"
               },
               {
-                "meta": {
-                  "name": "SaveBaselineBtn"
-                },
-                "position": {
-                  "x": 40,
-                  "y": 335,
-                  "width": 180,
-                  "height": 36
-                },
-                "props": {
-                  "text": "Save Baseline Values",
-                  "style": {
-                    "backgroundColor": "#2C5F2E",
-                    "color": "#FFFFFF",
-                    "fontWeight": "bold",
-                    "borderRadius": "4px"
-                  }
-                },
                 "events": {
                   "component": {
                     "onActionPerformed": {
                       "config": {
-                        "script": "\tsiteId = self.view.params.siteId\n\tmonthMap = {\n\t\t1: self.getSibling('InputJan').props.value,\n\t\t2: self.getSibling('InputFeb').props.value,\n\t\t3: self.getSibling('InputMar').props.value,\n\t\t4: self.getSibling('InputApr').props.value,\n\t\t5: self.getSibling('InputMay').props.value,\n\t\t6: self.getSibling('InputJun').props.value,\n\t\t7: self.getSibling('InputJul').props.value,\n\t\t8: self.getSibling('InputAug').props.value,\n\t\t9: self.getSibling('InputSep').props.value,\n\t\t10: self.getSibling('InputOct').props.value,\n\t\t11: self.getSibling('InputNov').props.value,\n\t\t12: self.getSibling('InputDec').props.value\n\t}\n\tsaved = 0\n\ttry:\n\t\tfor month, val in monthMap.items():\n\t\t\tif val is not None:\n\t\t\t\tsystem.db.runNamedQuery(\n\t\t\t\t\t'coolingTowerData/upsertSeasonalBaseline',\n\t\t\t\t\t{'siteId': siteId, 'month': month, 'baselineDAT': float(val)}\n\t\t\t\t)\n\t\t\t\tsaved += 1\n\t\tif saved > 0:\n\t\t\tsystem.perspective.openPopup('baselineOK', 'Framework/SuccessPopup',\n\t\t\t\tparams={'message': str(saved) + ' month(s) saved successfully.'})\n\t\telse:\n\t\t\tsystem.perspective.openPopup('baselineErr', 'Framework/ErrorPopup',\n\t\t\t\tparams={'message': 'No values entered. Enter at least one month.'})\n\texcept Exception as e:\n\t\tsystem.perspective.openPopup('baselineErr', 'Framework/ErrorPopup',\n\t\t\tparams={'message': 'Save failed: ' + str(e)})\n"
+                        "script": "\tsiteId \u003d self.view.params.siteId\n\tmonthMap \u003d {\n\t\t1: self.getSibling(\u0027InputJan\u0027).props.value,\n\t\t2: self.getSibling(\u0027InputFeb\u0027).props.value,\n\t\t3: self.getSibling(\u0027InputMar\u0027).props.value,\n\t\t4: self.getSibling(\u0027InputApr\u0027).props.value,\n\t\t5: self.getSibling(\u0027InputMay\u0027).props.value,\n\t\t6: self.getSibling(\u0027InputJun\u0027).props.value,\n\t\t7: self.getSibling(\u0027InputJul\u0027).props.value,\n\t\t8: self.getSibling(\u0027InputAug\u0027).props.value,\n\t\t9: self.getSibling(\u0027InputSep\u0027).props.value,\n\t\t10: self.getSibling(\u0027InputOct\u0027).props.value,\n\t\t11: self.getSibling(\u0027InputNov\u0027).props.value,\n\t\t12: self.getSibling(\u0027InputDec\u0027).props.value\n\t}\n\tsaved \u003d 0\n\ttry:\n\t\tfor month, val in monthMap.items():\n\t\t\tif val is not None:\n\t\t\t\tsystem.db.runNamedQuery(\n\t\t\t\t\t\u0027coolingTowerData/upsertSeasonalBaseline\u0027,\n\t\t\t\t\t{\u0027siteId\u0027: siteId, \u0027month\u0027: month, \u0027baselineDAT\u0027: float(val)}\n\t\t\t\t)\n\t\t\t\tsaved +\u003d 1\n\t\tif saved \u003e 0:\n\t\t\tsystem.perspective.openPopup(\u0027baselineOK\u0027, \u0027Framework/SuccessPopup\u0027,\n\t\t\t\tparams\u003d{\u0027message\u0027: str(saved) + \u0027 month(s) saved successfully.\u0027})\n\t\telse:\n\t\t\tsystem.perspective.openPopup(\u0027baselineErr\u0027, \u0027Framework/ErrorPopup\u0027,\n\t\t\t\tparams\u003d{\u0027message\u0027: \u0027No values entered. Enter at least one month.\u0027})\n\texcept Exception as e:\n\t\tsystem.perspective.openPopup(\u0027baselineErr\u0027, \u0027Framework/ErrorPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: \u0027Save failed: \u0027 + str(e)})\n"
                       },
                       "scope": "G",
                       "type": "script"
                     }
                   }
+                },
+                "meta": {
+                  "name": "SaveBaselineBtn"
+                },
+                "position": {
+                  "height": 36,
+                  "width": 180,
+                  "x": 40,
+                  "y": 335
+                },
+                "props": {
+                  "style": {
+                    "backgroundColor": "#2C5F2E",
+                    "borderRadius": "4px",
+                    "color": "#FFFFFF",
+                    "fontWeight": "bold"
+                  },
+                  "text": "Save Baseline Values"
                 },
                 "type": "ia.input.button"
               },
@@ -3971,38 +4002,31 @@
                   "name": "BaselineNote"
                 },
                 "position": {
-                  "x": 40,
-                  "y": 384,
+                  "height": 22,
                   "width": 780,
-                  "height": 22
+                  "x": 40,
+                  "y": 384
                 },
                 "props": {
-                  "text": "Note: Leave a month blank to leave its existing value unchanged. Saved baselines appear as reference lines on the TRENDS chart.",
                   "style": {
-                    "fontSize": 11,
                     "color": "#999999",
+                    "fontSize": 11,
                     "fontStyle": "italic"
-                  }
+                  },
+                  "text": "Note: Leave a month blank to leave its existing value unchanged. Saved baselines appear as reference lines on the TRENDS chart."
                 },
                 "type": "ia.display.label"
               }
-            ]
-          },
-          {
+            ],
             "meta": {
-              "name": "History"
+              "name": "Baseline"
             },
             "position": {
-              "tabIndex": 6
+              "tabIndex": 5
             },
-            "type": "ia.container.flex",
-            "props": {
-              "direction": "column",
-              "style": {
-                "padding": "16px",
-                "gap": "16px"
-              }
-            },
+            "type": "ia.container.coord"
+          },
+          {
             "children": [
               {
                 "meta": {
@@ -4013,12 +4037,12 @@
                   "shrink": 0
                 },
                 "props": {
-                  "text": "Target Change History",
                   "style": {
+                    "color": "#2C5F2E",
                     "fontSize": 17,
-                    "fontWeight": "bold",
-                    "color": "#2C5F2E"
-                  }
+                    "fontWeight": "bold"
+                  },
+                  "text": "Target Change History"
                 },
                 "type": "ia.display.label"
               },
@@ -4030,7 +4054,21 @@
                   "basis": "320px",
                   "shrink": 0
                 },
+                "propConfig": {
+                  "props.data": {
+                    "binding": {
+                      "config": {
+                        "parameters": {
+                          "siteId": "{view.params.siteId}"
+                        },
+                        "queryPath": "coolingTowerData/getTargetHistory"
+                      },
+                      "type": "query"
+                    }
+                  }
+                },
                 "props": {
+                  "alternatingRowBackground": true,
                   "columns": [
                     {
                       "field": "changedAt",
@@ -4056,21 +4094,21 @@
                     {
                       "field": "approachTempTarget",
                       "header": {
-                        "title": "DAT Target (\u00b0F)"
+                        "title": "DAT Target (°F)"
                       },
                       "width": 120
                     },
                     {
                       "field": "incomingWaterTempTarget",
                       "header": {
-                        "title": "IWT Target (\u00b0F)"
+                        "title": "IWT Target (°F)"
                       },
                       "width": 120
                     },
                     {
                       "field": "processGasOutTempTarget",
                       "header": {
-                        "title": "POGT Target (\u00b0F)"
+                        "title": "POGT Target (°F)"
                       },
                       "width": 130
                     },
@@ -4083,21 +4121,7 @@
                     }
                   ],
                   "rowHeight": 36,
-                  "alternatingRowBackground": true,
                   "showPaginationBar": true
-                },
-                "propConfig": {
-                  "props.data": {
-                    "binding": {
-                      "config": {
-                        "parameters": {
-                          "siteId": "{view.params.siteId}"
-                        },
-                        "queryPath": "coolingTowerData/getTargetHistory"
-                      },
-                      "type": "query"
-                    }
-                  }
                 },
                 "type": "ia.display.table"
               },
@@ -4110,12 +4134,12 @@
                   "shrink": 0
                 },
                 "props": {
-                  "text": "Monthly Data Completeness \u2014 Last 12 Months",
                   "style": {
+                    "color": "#2C5F2E",
                     "fontSize": 17,
-                    "fontWeight": "bold",
-                    "color": "#2C5F2E"
-                  }
+                    "fontWeight": "bold"
+                  },
+                  "text": "Monthly Data Completeness — Last 12 Months"
                 },
                 "type": "ia.display.label"
               },
@@ -4126,7 +4150,21 @@
                 "position": {
                   "grow": 1
                 },
+                "propConfig": {
+                  "props.data": {
+                    "binding": {
+                      "config": {
+                        "parameters": {
+                          "siteId": "{view.params.siteId}"
+                        },
+                        "queryPath": "coolingTowerData/getDataCompletenessHistory"
+                      },
+                      "type": "query"
+                    }
+                  }
+                },
                 "props": {
+                  "alternatingRowBackground": true,
                   "columns": [
                     {
                       "field": "yr",
@@ -4151,25 +4189,25 @@
                     }
                   ],
                   "rowHeight": 34,
-                  "alternatingRowBackground": true,
                   "showPaginationBar": false
-                },
-                "propConfig": {
-                  "props.data": {
-                    "binding": {
-                      "config": {
-                        "parameters": {
-                          "siteId": "{view.params.siteId}"
-                        },
-                        "queryPath": "coolingTowerData/getDataCompletenessHistory"
-                      },
-                      "type": "query"
-                    }
-                  }
                 },
                 "type": "ia.display.table"
               }
-            ]
+            ],
+            "meta": {
+              "name": "History"
+            },
+            "position": {
+              "tabIndex": 6
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "gap": "16px",
+                "padding": "16px"
+              }
+            },
+            "type": "ia.container.flex"
           }
         ],
         "meta": {
@@ -4178,8 +4216,17 @@
         "position": {
           "basis": "980px"
         },
+        "propConfig": {
+          "props.currentTabIndex": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.tabIndex} \u003e\u003d 0, {view.params.tabIndex}, 0)"
+              },
+              "type": "expr"
+            }
+          }
+        },
         "props": {
-          "currentTabIndex": 0,
           "tabSize": {
             "width": 160
           },
@@ -4193,17 +4240,7 @@
             "HISTORY"
           ]
         },
-        "type": "ia.container.tab",
-        "propConfig": {
-          "props.currentTabIndex": {
-            "binding": {
-              "config": {
-                "expression": "if({view.params.tabIndex} >= 0, {view.params.tabIndex}, 0)"
-              },
-              "type": "expr"
-            }
-          }
-        }
+        "type": "ia.container.tab"
       }
     ],
     "meta": {
