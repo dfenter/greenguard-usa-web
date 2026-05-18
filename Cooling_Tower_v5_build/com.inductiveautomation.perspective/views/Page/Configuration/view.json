@@ -20,30 +20,67 @@
   },
   "params": {},
   "propConfig": {
-    "custom.siteId": {"persistent": true},
-    "custom.MAC": {"persistent": true},
-    "custom.BAC": {"persistent": true},
-    "custom.RNC": {"persistent": true},
-    "custom.FNC": {"persistent": true},
-    "custom.GOX": {"persistent": true},
-    "custom.GAN": {"persistent": true},
-    "custom.CDA": {"persistent": true},
-    "custom.airExpander": {"persistent": true},
-    "custom.warmExpander": {"persistent": true},
-    "custom.coldExpander": {"persistent": true},
-    "custom.argonSkid": {"persistent": true},
-    "custom.auxillaryCooler": {"persistent": true},
-    "custom.DCAC": {"persistent": true},
-    "custom.chiller": {"persistent": true},
-    "custom.NLUChiller": {"persistent": true},
+    "custom.siteId": {
+      "persistent": true
+    },
+    "custom.MAC": {
+      "persistent": true
+    },
+    "custom.BAC": {
+      "persistent": true
+    },
+    "custom.RNC": {
+      "persistent": true
+    },
+    "custom.FNC": {
+      "persistent": true
+    },
+    "custom.GOX": {
+      "persistent": true
+    },
+    "custom.GAN": {
+      "persistent": true
+    },
+    "custom.CDA": {
+      "persistent": true
+    },
+    "custom.airExpander": {
+      "persistent": true
+    },
+    "custom.warmExpander": {
+      "persistent": true
+    },
+    "custom.coldExpander": {
+      "persistent": true
+    },
+    "custom.argonSkid": {
+      "persistent": true
+    },
+    "custom.auxillaryCooler": {
+      "persistent": true
+    },
+    "custom.DCAC": {
+      "persistent": true
+    },
+    "custom.chiller": {
+      "persistent": true
+    },
+    "custom.NLUChiller": {
+      "persistent": true
+    },
     "custom.siteConfig": {
       "persistent": true,
       "binding": {
         "type": "query",
         "config": {
           "queryPath": "coolingTowerData/getSiteConfig",
-          "parameters": {"siteId": "{view.custom.siteId}"},
-          "polling": {"enabled": false, "rate": 0},
+          "parameters": {
+            "siteId": "{view.custom.siteId}"
+          },
+          "polling": {
+            "enabled": false,
+            "rate": 0
+          },
           "transform": {
             "type": "script",
             "config": {
@@ -55,10 +92,15 @@
     }
   },
   "props": {
-    "defaultSize": {"width": 700, "height": 760}
+    "defaultSize": {
+      "width": 700,
+      "height": 760
+    }
   },
   "root": {
-    "meta": {"name": "root"},
+    "meta": {
+      "name": "root"
+    },
     "type": "ia.container.coord",
     "props": {
       "style": {
@@ -83,44 +125,100 @@
     },
     "children": [
       {
-        "meta": {"name": "Header"},
+        "meta": {
+          "name": "Header"
+        },
         "type": "ia.container.coord",
-        "position": {"x": 0, "y": 0, "width": 700, "height": 52},
+        "position": {
+          "x": 0,
+          "y": 0,
+          "width": 700,
+          "height": 52
+        },
         "props": {
-          "style": {"backgroundColor": "#1B5E20"}
+          "style": {
+            "backgroundColor": "#1B5E20"
+          }
         },
         "children": [
           {
-            "meta": {"name": "HeaderIcon"},
+            "meta": {
+              "name": "HeaderIcon"
+            },
             "type": "ia.display.label",
-            "position": {"x": 20, "y": 10, "width": 32, "height": 32},
+            "position": {
+              "x": 20,
+              "y": 10,
+              "width": 32,
+              "height": 32
+            },
             "props": {
-              "text": "⚙",
-              "style": {"fontSize": 22, "color": "#FFFFFF", "textAlign": "center"}
+              "text": "\u2699",
+              "style": {
+                "fontSize": 22,
+                "color": "#FFFFFF",
+                "textAlign": "center"
+              }
             }
           },
           {
-            "meta": {"name": "HeaderTitle"},
+            "meta": {
+              "name": "HeaderTitle"
+            },
             "type": "ia.display.label",
-            "position": {"x": 58, "y": 10, "width": 620, "height": 32},
+            "position": {
+              "x": 58,
+              "y": 10,
+              "width": 620,
+              "height": 32
+            },
             "props": {
               "text": "Site Equipment Configuration",
-              "style": {"fontSize": 18, "fontWeight": "700", "color": "#FFFFFF"}
+              "style": {
+                "fontSize": 18,
+                "fontWeight": "700",
+                "color": "#FFFFFF"
+              }
             }
           }
         ]
       },
       {
-        "meta": {"name": "SiteLabel"},
+        "meta": {
+          "name": "SiteLabel"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 66, "width": 50, "height": 28},
-        "props": {"text": "Site:", "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A"}}
+        "position": {
+          "x": 20,
+          "y": 66,
+          "width": 50,
+          "height": 28
+        },
+        "props": {
+          "text": "Site:",
+          "style": {
+            "fontSize": 13,
+            "fontWeight": "600",
+            "color": "#0F172A"
+          }
+        }
       },
       {
-        "meta": {"name": "SiteDropdown"},
+        "meta": {
+          "name": "SiteDropdown"
+        },
         "type": "ia.input.dropdown",
-        "position": {"x": 76, "y": 62, "width": 240, "height": 36},
-        "props": {"style": {"fontSize": 13}},
+        "position": {
+          "x": 76,
+          "y": 62,
+          "width": 240,
+          "height": 36
+        },
+        "props": {
+          "style": {
+            "fontSize": 13
+          }
+        },
         "propConfig": {
           "props.options": {
             "binding": {
@@ -128,342 +226,1122 @@
               "config": {
                 "queryPath": "coolingTowerData/getAllSitesDropdown",
                 "parameters": {},
-                "polling": {"enabled": false, "rate": 0}
+                "polling": {
+                  "enabled": false,
+                  "rate": 0
+                }
               }
             }
           },
           "props.value": {
             "binding": {
               "type": "property",
-              "config": {"bidirectional": true, "path": "view.custom.siteId"}
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.siteId"
+              }
             }
           }
         }
       },
       {
-        "meta": {"name": "DescLabel"},
+        "meta": {
+          "name": "DescLabel"
+        },
         "type": "ia.display.label",
-        "position": {"x": 330, "y": 67, "width": 350, "height": 24},
+        "position": {
+          "x": 330,
+          "y": 67,
+          "width": 350,
+          "height": 24
+        },
         "props": {
           "text": "Set count for each equipment type at this site.",
-          "style": {"fontSize": 11, "fontStyle": "italic", "color": "#64748B"}
+          "style": {
+            "fontSize": 11,
+            "fontStyle": "italic",
+            "color": "#64748B"
+          }
         }
       },
       {
-        "meta": {"name": "ColHeaderBar"},
+        "meta": {
+          "name": "ColHeaderBar"
+        },
         "type": "ia.container.coord",
-        "position": {"x": 20, "y": 98, "width": 660, "height": 28},
-        "props": {"style": {"backgroundColor": "#2E3748"}},
+        "position": {
+          "x": 20,
+          "y": 98,
+          "width": 660,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "backgroundColor": "#2E3748"
+          }
+        },
         "children": [
           {
-            "meta": {"name": "HEquip"},
+            "meta": {
+              "name": "HEquip"
+            },
             "type": "ia.display.label",
-            "position": {"x": 8, "y": 0, "width": 540, "height": 28},
+            "position": {
+              "x": 8,
+              "y": 0,
+              "width": 540,
+              "height": 28
+            },
             "props": {
               "text": "EQUIPMENT TYPE",
-              "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px"}
+              "style": {
+                "fontSize": 11,
+                "fontWeight": "700",
+                "color": "#FFFFFF",
+                "letterSpacing": "0.8px"
+              }
             }
           },
           {
-            "meta": {"name": "HCount"},
+            "meta": {
+              "name": "HCount"
+            },
             "type": "ia.display.label",
-            "position": {"x": 588, "y": 0, "width": 64, "height": 28},
+            "position": {
+              "x": 588,
+              "y": 0,
+              "width": 64,
+              "height": 28
+            },
             "props": {
               "text": "COUNT",
-              "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "textAlign": "center", "letterSpacing": "0.8px"}
+              "style": {
+                "fontSize": 11,
+                "fontWeight": "700",
+                "color": "#FFFFFF",
+                "textAlign": "center",
+                "letterSpacing": "0.8px"
+              }
             }
           }
         ]
       },
       {
-        "meta": {"name": "BG_MAC"},
+        "meta": {
+          "name": "BG_MAC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 130, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+        "position": {
+          "x": 20,
+          "y": 130,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FAFBFC"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_MAC"},
+        "meta": {
+          "name": "Lbl_MAC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 130, "width": 540, "height": 36},
-        "props": {"text": "MAC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 130,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "MAC",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_MAC"},
+        "meta": {
+          "name": "Input_MAC"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 134, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.MAC"}}}}
+        "position": {
+          "x": 608,
+          "y": 134,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.MAC"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_BAC"},
+        "meta": {
+          "name": "BG_BAC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 166, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+        "position": {
+          "x": 20,
+          "y": 166,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_BAC"},
+        "meta": {
+          "name": "Lbl_BAC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 166, "width": 540, "height": 36},
-        "props": {"text": "BAC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 166,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "BAC",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_BAC"},
+        "meta": {
+          "name": "Input_BAC"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 170, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.BAC"}}}}
+        "position": {
+          "x": 608,
+          "y": 170,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.BAC"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_RNC"},
+        "meta": {
+          "name": "BG_RNC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 202, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+        "position": {
+          "x": 20,
+          "y": 202,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FAFBFC"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_RNC"},
+        "meta": {
+          "name": "Lbl_RNC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 202, "width": 540, "height": 36},
-        "props": {"text": "RNC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 202,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "RNC",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_RNC"},
+        "meta": {
+          "name": "Input_RNC"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 206, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.RNC"}}}}
+        "position": {
+          "x": 608,
+          "y": 206,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.RNC"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_FNC"},
+        "meta": {
+          "name": "BG_FNC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 238, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+        "position": {
+          "x": 20,
+          "y": 238,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_FNC"},
+        "meta": {
+          "name": "Lbl_FNC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 238, "width": 540, "height": 36},
-        "props": {"text": "FNC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 238,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "FNC",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_FNC"},
+        "meta": {
+          "name": "Input_FNC"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 242, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.FNC"}}}}
+        "position": {
+          "x": 608,
+          "y": 242,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.FNC"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_GOX"},
+        "meta": {
+          "name": "BG_GOX"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 274, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+        "position": {
+          "x": 20,
+          "y": 274,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FAFBFC"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_GOX"},
+        "meta": {
+          "name": "Lbl_GOX"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 274, "width": 540, "height": 36},
-        "props": {"text": "GOX", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 274,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "GOX",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_GOX"},
+        "meta": {
+          "name": "Input_GOX"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 278, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.GOX"}}}}
+        "position": {
+          "x": 608,
+          "y": 278,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.GOX"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_GAN"},
+        "meta": {
+          "name": "BG_GAN"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 310, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+        "position": {
+          "x": 20,
+          "y": 310,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_GAN"},
+        "meta": {
+          "name": "Lbl_GAN"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 310, "width": 540, "height": 36},
-        "props": {"text": "GAN", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 310,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "GAN",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_GAN"},
+        "meta": {
+          "name": "Input_GAN"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 314, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.GAN"}}}}
+        "position": {
+          "x": 608,
+          "y": 314,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.GAN"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_CDA"},
+        "meta": {
+          "name": "BG_CDA"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 346, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+        "position": {
+          "x": 20,
+          "y": 346,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FAFBFC"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_CDA"},
+        "meta": {
+          "name": "Lbl_CDA"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 346, "width": 540, "height": 36},
-        "props": {"text": "CDA", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 346,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "CDA",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_CDA"},
+        "meta": {
+          "name": "Input_CDA"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 350, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.CDA"}}}}
+        "position": {
+          "x": 608,
+          "y": 350,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.CDA"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_AirExpander"},
+        "meta": {
+          "name": "BG_AirExpander"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 382, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+        "position": {
+          "x": 20,
+          "y": 382,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_AirExpander"},
+        "meta": {
+          "name": "Lbl_AirExpander"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 382, "width": 540, "height": 36},
-        "props": {"text": "Air Expander", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 382,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "Air Expander",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_AirExpander"},
+        "meta": {
+          "name": "Input_AirExpander"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 386, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.airExpander"}}}}
+        "position": {
+          "x": 608,
+          "y": 386,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.airExpander"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_WarmExpander"},
+        "meta": {
+          "name": "BG_WarmExpander"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 418, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+        "position": {
+          "x": 20,
+          "y": 418,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FAFBFC"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_WarmExpander"},
+        "meta": {
+          "name": "Lbl_WarmExpander"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 418, "width": 540, "height": 36},
-        "props": {"text": "Warm Expander", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 418,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "Warm Expander",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_WarmExpander"},
+        "meta": {
+          "name": "Input_WarmExpander"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 422, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.warmExpander"}}}}
+        "position": {
+          "x": 608,
+          "y": 422,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.warmExpander"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_ColdExpander"},
+        "meta": {
+          "name": "BG_ColdExpander"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 454, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+        "position": {
+          "x": 20,
+          "y": 454,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_ColdExpander"},
+        "meta": {
+          "name": "Lbl_ColdExpander"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 454, "width": 540, "height": 36},
-        "props": {"text": "Cold Expander", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 454,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "Cold Expander",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_ColdExpander"},
+        "meta": {
+          "name": "Input_ColdExpander"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 458, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.coldExpander"}}}}
+        "position": {
+          "x": 608,
+          "y": 458,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.coldExpander"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_ArgonSkid"},
+        "meta": {
+          "name": "BG_ArgonSkid"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 490, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+        "position": {
+          "x": 20,
+          "y": 490,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FAFBFC"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_ArgonSkid"},
+        "meta": {
+          "name": "Lbl_ArgonSkid"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 490, "width": 540, "height": 36},
-        "props": {"text": "Argon Skid", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 490,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "Argon Skid",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_ArgonSkid"},
+        "meta": {
+          "name": "Input_ArgonSkid"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 494, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.argonSkid"}}}}
+        "position": {
+          "x": 608,
+          "y": 494,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.argonSkid"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_AuxCooler"},
+        "meta": {
+          "name": "BG_AuxCooler"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 526, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+        "position": {
+          "x": 20,
+          "y": 526,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_AuxCooler"},
+        "meta": {
+          "name": "Lbl_AuxCooler"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 526, "width": 540, "height": 36},
-        "props": {"text": "Aux. Cooler", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 526,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "Aux. Cooler",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_AuxCooler"},
+        "meta": {
+          "name": "Input_AuxCooler"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 530, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.auxillaryCooler"}}}}
+        "position": {
+          "x": 608,
+          "y": 530,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.auxillaryCooler"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_DCAC"},
+        "meta": {
+          "name": "BG_DCAC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 562, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+        "position": {
+          "x": 20,
+          "y": 562,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FAFBFC"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_DCAC"},
+        "meta": {
+          "name": "Lbl_DCAC"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 562, "width": 540, "height": 36},
-        "props": {"text": "DCAC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 562,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "DCAC",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_DCAC"},
+        "meta": {
+          "name": "Input_DCAC"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 566, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.DCAC"}}}}
+        "position": {
+          "x": 608,
+          "y": 566,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.DCAC"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_Chiller"},
+        "meta": {
+          "name": "BG_Chiller"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 598, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+        "position": {
+          "x": 20,
+          "y": 598,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_Chiller"},
+        "meta": {
+          "name": "Lbl_Chiller"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 598, "width": 540, "height": 36},
-        "props": {"text": "Chiller", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 598,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "Chiller",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_Chiller"},
+        "meta": {
+          "name": "Input_Chiller"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 602, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.chiller"}}}}
+        "position": {
+          "x": 608,
+          "y": 602,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.chiller"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "BG_NLUChiller"},
+        "meta": {
+          "name": "BG_NLUChiller"
+        },
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 634, "width": 660, "height": 36},
-        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+        "position": {
+          "x": 20,
+          "y": 634,
+          "width": 660,
+          "height": 36
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "backgroundColor": "#FAFBFC"
+          }
+        }
       },
       {
-        "meta": {"name": "Lbl_NLUChiller"},
+        "meta": {
+          "name": "Lbl_NLUChiller"
+        },
         "type": "ia.display.label",
-        "position": {"x": 28, "y": 634, "width": 540, "height": 36},
-        "props": {"text": "NLU Chiller", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+        "position": {
+          "x": 28,
+          "y": 634,
+          "width": 540,
+          "height": 36
+        },
+        "props": {
+          "text": "NLU Chiller",
+          "style": {
+            "fontSize": 13,
+            "color": "#0F172A",
+            "paddingTop": "10px"
+          }
+        }
       },
       {
-        "meta": {"name": "Input_NLUChiller"},
+        "meta": {
+          "name": "Input_NLUChiller"
+        },
         "type": "ia.input.numeric-entry-field",
-        "position": {"x": 608, "y": 638, "width": 64, "height": 28},
-        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
-        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.NLUChiller"}}}}
+        "position": {
+          "x": 608,
+          "y": 638,
+          "width": 64,
+          "height": 28
+        },
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.NLUChiller"
+              }
+            }
+          }
+        }
       },
       {
-        "meta": {"name": "CancelBtn"},
+        "meta": {
+          "name": "CancelBtn"
+        },
         "type": "ia.input.button",
-        "position": {"x": 420, "y": 684, "width": 120, "height": 36},
+        "position": {
+          "x": 420,
+          "y": 655,
+          "width": 120,
+          "height": 36
+        },
         "props": {
           "text": "Cancel",
           "style": {
@@ -488,9 +1366,16 @@
         }
       },
       {
-        "meta": {"name": "SaveBtn"},
+        "meta": {
+          "name": "SaveBtn"
+        },
         "type": "ia.input.button",
-        "position": {"x": 556, "y": 684, "width": 124, "height": 36},
+        "position": {
+          "x": 556,
+          "y": 655,
+          "width": 124,
+          "height": 36
+        },
         "props": {
           "text": "Save",
           "style": {
