@@ -681,7 +681,7 @@
         },
         "transforms": [
           {
-            "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\ttry:\n\t\tselected = self.view.custom.selectedEquipment\n\texcept:\n\t\tselected = 'all'\n\tpen_names = ['IWT Actual','POGT Actual','DAT Actual','IWT Target','POGT Target','DAT Target']\n\ttime_data = {}\n\tcount_data = {}\n\tfor r in range(value.getRowCount()):\n\t\tts    = value.getValueAt(r, 't_stamp')\n\t\teq_id = str(value.getValueAt(r, 'coolingTowerDataID') or '')\n\t\tpl    = str(value.getValueAt(r, 'paramLabel') or '')\n\t\tv     = value.getValueAt(r, 'value')\n\t\tif selected != 'all' and eq_id != str(selected): continue\n\t\tif pl not in pen_names: continue\n\t\tif ts not in time_data:\n\t\t\ttime_data[ts] = {}\n\t\t\tcount_data[ts] = {}\n\t\tif v is not None:\n\t\t\tif pl in time_data[ts] and time_data[ts][pl] is not None:\n\t\t\t\ttime_data[ts][pl] = (time_data[ts][pl] * count_data[ts].get(pl,1) + v) / (count_data[ts].get(pl,1) + 1)\n\t\t\t\tcount_data[ts][pl] = count_data[ts].get(pl,1) + 1\n\t\t\telse:\n\t\t\t\ttime_data[ts][pl] = v\n\t\t\t\tcount_data[ts][pl] = 1\n\theaders = ['t_stamp'] + pen_names\n\trows = [[ts] + [time_data[ts].get(p) for p in pen_names] for ts in sorted(time_data.keys())]\n\treturn system.dataset.toDataSet(headers, rows)\n",
+            "code": "\tif value is None: return []\n\ttry:\n\t\tselected = self.view.custom.selectedEquipment\n\texcept:\n\t\tselected = 'all'\n\tval_cols = ['IWT Actual','POGT Actual','DAT Actual','IWT Target','POGT Target','DAT Target']\n\teq_data  = {}\n\teq_names = {}\n\tfor r in range(value.getRowCount()):\n\t\tts    = value.getValueAt(r, 't_stamp')\n\t\teq_id = str(value.getValueAt(r, 'coolingTowerDataID') or '')\n\t\teq_nm = str(value.getValueAt(r, 'equipmentName') or eq_id)\n\t\tpl    = str(value.getValueAt(r, 'paramLabel') or '')\n\t\tv     = value.getValueAt(r, 'value')\n\t\tif selected != 'all' and eq_id != str(selected): continue\n\t\tif pl not in val_cols: continue\n\t\tts_ms = system.date.toMillis(ts) if ts else None\n\t\tif ts_ms is None: continue\n\t\teq_names[eq_id] = eq_nm\n\t\tif eq_id not in eq_data: eq_data[eq_id] = {}\n\t\tif ts_ms not in eq_data[eq_id]: eq_data[eq_id][ts_ms] = {'time': ts_ms}\n\t\tif v is not None: eq_data[eq_id][ts_ms][pl] = v\n\tresult = []\n\tfor eq_id in sorted(eq_data.keys()):\n\t\tpts = [eq_data[eq_id][ts] for ts in sorted(eq_data[eq_id].keys())]\n\t\tresult.append({'name': eq_names.get(eq_id, eq_id), 'data': pts})\n\treturn result\n",
             "type": "script"
           }
         ],
@@ -869,7 +869,7 @@
       "persistent": true,
       "onChange": {
         "enabled": true,
-        "script": "\traw = self.view.custom.rawHistoryData\n\tselected = currentValue.value\n\tif raw is None: self.view.custom.chartData = system.dataset.toDataSet([], []); return\n\tpen_names = ['IWT Actual','POGT Actual','DAT Actual','IWT Target','POGT Target','DAT Target']\n\ttime_data = {}\n\tcount_data = {}\n\tfor r in range(raw.getRowCount()):\n\t\tts    = raw.getValueAt(r, 't_stamp')\n\t\teq_id = str(raw.getValueAt(r, 'coolingTowerDataID') or '')\n\t\tpl    = str(raw.getValueAt(r, 'paramLabel') or '')\n\t\tv     = raw.getValueAt(r, 'value')\n\t\tif selected != 'all' and eq_id != str(selected): continue\n\t\tif pl not in pen_names: continue\n\t\tif ts not in time_data:\n\t\t\ttime_data[ts] = {}\n\t\t\tcount_data[ts] = {}\n\t\tif v is not None:\n\t\t\tif pl in time_data[ts] and time_data[ts][pl] is not None:\n\t\t\t\ttime_data[ts][pl] = (time_data[ts][pl] * count_data[ts].get(pl,1) + v) / (count_data[ts].get(pl,1) + 1)\n\t\t\t\tcount_data[ts][pl] = count_data[ts].get(pl,1) + 1\n\t\t\telse:\n\t\t\t\ttime_data[ts][pl] = v\n\t\t\t\tcount_data[ts][pl] = 1\n\theaders = ['t_stamp'] + pen_names\n\trows = [[ts] + [time_data[ts].get(p) for p in pen_names] for ts in sorted(time_data.keys())]\n\tself.view.custom.chartData = system.dataset.toDataSet(headers, rows)\n"
+        "script": "\traw = self.view.custom.rawHistoryData\n\tselected = currentValue.value\n\tif raw is None: self.view.custom.chartData = []; return\n\tval_cols = ['IWT Actual','POGT Actual','DAT Actual','IWT Target','POGT Target','DAT Target']\n\teq_data  = {}\n\teq_names = {}\n\tfor r in range(raw.getRowCount()):\n\t\tts    = raw.getValueAt(r, 't_stamp')\n\t\teq_id = str(raw.getValueAt(r, 'coolingTowerDataID') or '')\n\t\teq_nm = str(raw.getValueAt(r, 'equipmentName') or eq_id)\n\t\tpl    = str(raw.getValueAt(r, 'paramLabel') or '')\n\t\tv     = raw.getValueAt(r, 'value')\n\t\tif selected != 'all' and eq_id != str(selected): continue\n\t\tif pl not in val_cols: continue\n\t\tts_ms = system.date.toMillis(ts) if ts else None\n\t\tif ts_ms is None: continue\n\t\teq_names[eq_id] = eq_nm\n\t\tif eq_id not in eq_data: eq_data[eq_id] = {}\n\t\tif ts_ms not in eq_data[eq_id]: eq_data[eq_id][ts_ms] = {'time': ts_ms}\n\t\tif v is not None: eq_data[eq_id][ts_ms][pl] = v\n\tresult = []\n\tfor eq_id in sorted(eq_data.keys()):\n\t\tpts = [eq_data[eq_id][ts] for ts in sorted(eq_data[eq_id].keys())]\n\t\tresult.append({'name': eq_names.get(eq_id, eq_id), 'data': pts})\n\tself.view.custom.chartData = result\n"
       }
     }
   },
@@ -2839,97 +2839,27 @@
               },
               {
                 "meta": {
-                  "name": "PowerChart_0"
+                  "name": "TimeSeriesChart"
                 },
+                "type": "ia.chart.timeseries",
                 "position": {
                   "height": 600,
                   "width": 1750,
                   "x": 5,
                   "y": 98
                 },
-                "props": {
-                  "interaction": {
-                    "chartZoomLevel": 1,
-                    "rangeZoomLevel": 1
-                  },
-                  "config": {
-                    "mode": "historical",
-                    "subplots": [
-                      {
-                        "name": "Temperatures",
-                        "yAxis": {
-                          "label": "Temperature (\u00b0F)",
-                          "autoRange": true
-                        },
-                        "pens": [
-                          {
-                            "name": "DAT Actual",
-                            "color": "#2C5F2E",
-                            "lineStyle": "Solid",
-                            "lineWeight": 2
-                          },
-                          {
-                            "name": "IWT Actual",
-                            "color": "#4472C4",
-                            "lineStyle": "Solid",
-                            "lineWeight": 2
-                          },
-                          {
-                            "name": "POGT Actual",
-                            "color": "#ED7D31",
-                            "lineStyle": "Solid",
-                            "lineWeight": 2
-                          },
-                          {
-                            "name": "DAT Target",
-                            "color": "#2C5F2E",
-                            "lineStyle": "Dash",
-                            "lineWeight": 1
-                          },
-                          {
-                            "name": "IWT Target",
-                            "color": "#4472C4",
-                            "lineStyle": "Dash",
-                            "lineWeight": 1
-                          },
-                          {
-                            "name": "POGT Target",
-                            "color": "#ED7D31",
-                            "lineStyle": "Dash",
-                            "lineWeight": 1
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "type": "ia.chart.powerchart",
+                "props": {},
                 "propConfig": {
-                  "props.data": {
+                  "props.series": {
                     "binding": {
                       "config": {
                         "path": "view.custom.chartData"
                       },
                       "type": "property"
                     }
-                  },
-                  "props.time.start": {
-                    "binding": {
-                      "config": {
-                        "path": "view.custom.trendStartDate"
-                      },
-                      "type": "property"
-                    }
-                  },
-                  "props.time.end": {
-                    "binding": {
-                      "config": {
-                        "path": "view.custom.trendEndDate"
-                      },
-                      "type": "property"
-                    }
                   }
-                }
+                },
+                "custom": {}
               },
               {
                 "meta": {
