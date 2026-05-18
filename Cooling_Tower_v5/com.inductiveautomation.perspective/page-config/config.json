@@ -34,7 +34,7 @@
         "content": "push",
         "handle": "hide",
         "iconUrl": "",
-        "id": "left",
+        "id": "",
         "modal": false,
         "resizable": false,
         "show": "visible",
