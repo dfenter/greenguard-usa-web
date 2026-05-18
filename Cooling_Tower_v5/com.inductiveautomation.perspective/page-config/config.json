@@ -1,0 +1,10 @@
+{
+  "pages": [
+    { "url": "/overview",     "page": "Page/Home" },
+    { "url": "/fleet",        "page": "Page/FleetDashboard" },
+    { "url": "/region",       "page": "Regions/RegionView" },
+    { "url": "/region-admin", "page": "Page/RegionAdmin" },
+    { "url": "/new-site",     "page": "Page/NewSite" }
+  ],
+  "defaultPage": "/overview"
+}

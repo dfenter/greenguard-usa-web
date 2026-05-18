@@ -1,0 +1,350 @@
+{
+  "custom": {
+    "fleetData": [],
+    "filterRegion": "All",
+    "filteredData": [],
+    "countRed": 0,
+    "countYellow": 0,
+    "countStale": 0
+  },
+  "params": {},
+  "propConfig": {
+    "custom.filterRegion": {"persistent": true},
+    "custom.fleetData": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "result = []\nfor row in (value or []):\n\tlastEntry = row.get('lastEntry', None)\n\tif lastEntry is None:\n\t\tlastEntryStr = 'Never'\n\telse:\n\t\ttry:\n\t\t\tif hasattr(lastEntry, 'strftime'):\n\t\t\t\tlastEntryStr = lastEntry.strftime('%m/%d/%Y')\n\t\t\telse:\n\t\t\t\tlastEntryStr = str(lastEntry)[:10]\n\t\texcept:\n\t\t\tlastEntryStr = str(lastEntry)\n\tresult.append({\n\t\t'siteId': row.get('siteId', 0),\n\t\t'siteName': row.get('siteName', ''),\n\t\t'region': row.get('region', ''),\n\t\t'lastEntry': lastEntryStr,\n\t\t'daysSince': row.get('daysSince', 9999) or 9999,\n\t\t'worstDev': row.get('worstDev', 0) or 0,\n\t\t'completeness': row.get('completeness', 0) or 0,\n\t\t'equipment': row.get('equipment', 0) or 0,\n\t\t'instancePosition': {},\n\t\t'instanceStyle': {'classes': ''}\n\t})\nreturn result"
+            }
+          }
+        }
+      }
+    },
+    "custom.filteredData": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.fleetData",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "filterRegion = self.view.custom.filterRegion\nif filterRegion == 'All' or not filterRegion:\n\treturn list(value or [])\nresult = []\nfor row in (value or []):\n\tif row.get('region', '') == filterRegion:\n\t\tresult.append(row)\nreturn result"
+            }
+          }
+        }
+      }
+    },
+    "custom.countRed": {
+      "persistent": false,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.filteredData",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tif (row.get('worstDev', 0) or 0) > 10:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.countYellow": {
+      "persistent": false,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.filteredData",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tdev = row.get('worstDev', 0) or 0\n\tif dev > 5 and dev <= 10:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.countStale": {
+      "persistent": false,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.filteredData",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tdays = row.get('daysSince', 9999)\n\tif days is None or days > 30:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {"width": 1400, "height": 900}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "width": "100%",
+        "height": "100%",
+        "padding": "16px",
+        "gap": "12px",
+        "backgroundColor": "#F4F6F8"
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "TitleBar"},
+        "type": "ia.container.flex",
+        "position": {"basis": "52px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "gap": "12px",
+            "backgroundColor": "#FFFFFF",
+            "padding": "0 16px",
+            "borderRadius": "6px",
+            "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "Title"},
+            "type": "ia.display.label",
+            "position": {"grow": 1},
+            "props": {"text": "Fleet Dashboard", "style": {"fontSize": 22, "fontWeight": "bold", "color": "#2C5F2E"}}
+          },
+          {
+            "meta": {"name": "RegionLbl"},
+            "type": "ia.display.label",
+            "props": {"text": "Region:", "style": {"fontSize": 13, "color": "#555"}}
+          },
+          {
+            "meta": {"name": "RegionFilter"},
+            "type": "ia.input.dropdown",
+            "position": {"basis": "200px"},
+            "props": {"style": {"fontSize": 13}},
+            "propConfig": {
+              "props.options": {
+                "binding": {
+                  "type": "query",
+                  "config": {
+                    "queryPath": "coolingTowerData/getAllRegions",
+                    "parameters": {},
+                    "polling": {"enabled": false, "rate": 0},
+                    "transform": {
+                      "type": "script",
+                      "config": {
+                        "script": "opts = [{'label': 'All', 'value': 'All'}]\nfor row in (value or []):\n\treg = row.get('region', '')\n\tif reg:\n\t\topts.append({'label': reg, 'value': reg})\nreturn opts"
+                      }
+                    }
+                  }
+                }
+              },
+              "props.value": {
+                "binding": {
+                  "type": "property",
+                  "config": {"bidirectional": true, "path": "view.custom.filterRegion"}
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "ExportBtn"},
+            "type": "ia.input.button",
+            "position": {"basis": "140px"},
+            "props": {
+              "text": "⬇ Export CSV",
+              "style": {"backgroundColor": "#1E5C8E", "color": "#FFF", "fontSize": 12, "borderRadius": "4px"}
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "data = self.view.custom.filteredData\nif not data:\n\treturn\nheaders = ['siteId', 'siteName', 'region', 'lastEntry', 'daysSince', 'worstDev', 'completeness', 'equipment']\ncsvText = ','.join(headers) + '\\n'\nfor row in data:\n\tvals = [str(row.get(h, '')) for h in headers]\n\tcsvText += ','.join(vals) + '\\n'\nsystem.perspective.download('fleet_export.csv', csvText.encode('utf-8'), 'text/csv')"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "SummaryBadges"},
+        "type": "ia.container.flex",
+        "position": {"basis": "56px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"gap": "12px", "alignItems": "center"}
+        },
+        "children": [
+          {
+            "meta": {"name": "RedBadge"},
+            "type": "ia.container.flex",
+            "position": {"basis": "200px"},
+            "props": {
+              "direction": "row",
+              "style": {
+                "alignItems": "center",
+                "backgroundColor": "#FF4444",
+                "borderRadius": "8px",
+                "padding": "8px 16px",
+                "gap": "10px",
+                "height": "52px"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Count"},
+                "type": "ia.display.label",
+                "props": {"style": {"fontSize": 28, "fontWeight": "bold", "color": "#FFF"}},
+                "propConfig": {"props.text": {"binding": {"type": "property", "config": {"path": "view.custom.countRed"}}}}
+              },
+              {
+                "meta": {"name": "Lbl"},
+                "type": "ia.display.label",
+                "props": {"text": "Out of Spec", "style": {"fontSize": 13, "color": "#FFE0E0"}}
+              }
+            ]
+          },
+          {
+            "meta": {"name": "YellowBadge"},
+            "type": "ia.container.flex",
+            "position": {"basis": "200px"},
+            "props": {
+              "direction": "row",
+              "style": {
+                "alignItems": "center",
+                "backgroundColor": "#FFD700",
+                "borderRadius": "8px",
+                "padding": "8px 16px",
+                "gap": "10px",
+                "height": "52px"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Count"},
+                "type": "ia.display.label",
+                "props": {"style": {"fontSize": 28, "fontWeight": "bold", "color": "#333"}},
+                "propConfig": {"props.text": {"binding": {"type": "property", "config": {"path": "view.custom.countYellow"}}}}
+              },
+              {
+                "meta": {"name": "Lbl"},
+                "type": "ia.display.label",
+                "props": {"text": "Warning", "style": {"fontSize": 13, "color": "#555"}}
+              }
+            ]
+          },
+          {
+            "meta": {"name": "GreyBadge"},
+            "type": "ia.container.flex",
+            "position": {"basis": "200px"},
+            "props": {
+              "direction": "row",
+              "style": {
+                "alignItems": "center",
+                "backgroundColor": "#AAAAAA",
+                "borderRadius": "8px",
+                "padding": "8px 16px",
+                "gap": "10px",
+                "height": "52px"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Count"},
+                "type": "ia.display.label",
+                "props": {"style": {"fontSize": 28, "fontWeight": "bold", "color": "#FFF"}},
+                "propConfig": {"props.text": {"binding": {"type": "property", "config": {"path": "view.custom.countStale"}}}}
+              },
+              {
+                "meta": {"name": "Lbl"},
+                "type": "ia.display.label",
+                "props": {"text": "Stale (>30 days)", "style": {"fontSize": 13, "color": "#EEE"}}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "meta": {"name": "ColHeaders"},
+        "type": "ia.container.flex",
+        "position": {"basis": "36px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "backgroundColor": "#2C5F2E",
+            "padding": "0 8px",
+            "borderRadius": "6px 6px 0 0"
+          }
+        },
+        "children": [
+          {"meta": {"name": "H_Site"},   "type": "ia.display.label", "position": {"basis": "180px", "shrink": 0}, "props": {"text": "Site",         "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+          {"meta": {"name": "H_Region"}, "type": "ia.display.label", "position": {"basis": "160px", "shrink": 0}, "props": {"text": "Region",       "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+          {"meta": {"name": "H_Last"},   "type": "ia.display.label", "position": {"basis": "120px", "shrink": 0}, "props": {"text": "Last Entry",   "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+          {"meta": {"name": "H_Days"},   "type": "ia.display.label", "position": {"basis": "80px",  "shrink": 0}, "props": {"text": "Days Ago",     "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+          {"meta": {"name": "H_Status"}, "type": "ia.display.label", "position": {"basis": "150px", "shrink": 0}, "props": {"text": "Spec Status",  "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+          {"meta": {"name": "H_Comp"},   "type": "ia.display.label", "position": {"basis": "200px", "shrink": 0}, "props": {"text": "Completeness", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "FleetList"},
+        "type": "ia.display.flex-repeater",
+        "position": {"grow": 1},
+        "props": {
+          "instances": [],
+          "repeatMode": "children",
+          "direction": "column",
+          "style": {"overflowY": "auto", "backgroundColor": "#FFFFFF", "borderRadius": "0 0 6px 6px"}
+        },
+        "propConfig": {
+          "props.instances": {
+            "binding": {
+              "type": "property",
+              "config": {"path": "view.custom.filteredData"}
+            }
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "FleetRow"},
+            "type": "ia.display.view",
+            "position": {"basis": "40px", "shrink": 0},
+            "props": {
+              "path": "Framework/FleetRow",
+              "params": {}
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "siteId = self.props.params.get('siteId', 0)\nsiteName = self.props.params.get('siteName', '')\nregion = self.props.params.get('region', '')\nself.session.custom.currentSite = siteId\nself.session.custom.currentSiteName = siteName\nself.session.custom.currentRegion = region\nsystem.perspective.navigate(page='/region')"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

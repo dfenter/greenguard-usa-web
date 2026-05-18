@@ -1,0 +1,123 @@
+{
+  "custom": {},
+  "params": {
+    "siteId": 0,
+    "siteName": "",
+    "region": "",
+    "lastEntry": "Never",
+    "daysSince": 9999,
+    "worstDev": 0.0,
+    "completeness": 0,
+    "equipment": 0
+  },
+  "propConfig": {
+    "params.siteId":      { "paramDirection": "input", "persistent": true },
+    "params.siteName":    { "paramDirection": "input", "persistent": true },
+    "params.region":      { "paramDirection": "input", "persistent": true },
+    "params.lastEntry":   { "paramDirection": "input", "persistent": true },
+    "params.daysSince":   { "paramDirection": "input", "persistent": true },
+    "params.worstDev":    { "paramDirection": "input", "persistent": true },
+    "params.completeness":{ "paramDirection": "input", "persistent": true },
+    "params.equipment":   { "paramDirection": "input", "persistent": true }
+  },
+  "props": { "defaultSize": { "width": 220, "height": 110 } },
+  "root": {
+    "meta": { "name": "root" },
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": "8px",
+        "padding": "12px 14px",
+        "boxShadow": "0 2px 6px rgba(0,0,0,0.08)",
+        "cursor": "pointer",
+        "gap": "6px"
+      }
+    },
+    "propConfig": {
+      "props.style.borderLeft": {
+        "binding": {
+          "config": { "expression": "if({view.params.daysSince} > 30, \"5px solid #AAAAAA\", if({view.params.worstDev} > 10, \"5px solid #FF4444\", if({view.params.worstDev} > 5, \"5px solid #FFD700\", \"5px solid #70AD47\")))" },
+          "type": "expr"
+        }
+      }
+    },
+    "events": {
+      "component": {
+        "onActionPerformed": {
+          "config": {
+            "script": "\tself.session.custom.currentSite     = self.view.params.siteId\n\tself.session.custom.currentSiteName = self.view.params.siteName\n"
+          },
+          "scope": "G", "type": "script"
+        }
+      }
+    },
+    "children": [
+      {
+        "meta": { "name": "SiteName" },
+        "props": { "style": { "fontSize": 14, "fontWeight": "bold", "color": "#1A1A1A" } },
+        "propConfig": { "props.text": { "binding": { "config": { "path": "view.params.siteName" }, "type": "property" } } },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": { "name": "StatusBadge" },
+        "position": { "basis": "24px", "shrink": 0 },
+        "props": { "style": { "fontSize": 11, "fontWeight": "bold", "borderRadius": "4px", "padding": "2px 8px", "textAlign": "center", "maxWidth": "150px" } },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": { "expression": "if({view.params.daysSince} > 30, \"🕐 STALE\", if({view.params.worstDev} > 10, \"⚠ OUT OF SPEC\", if({view.params.worstDev} > 5, \"⚠ WARNING\", \"✓ IN SPEC\")))" },
+              "type": "expr"
+            }
+          },
+          "props.style.backgroundColor": {
+            "binding": {
+              "config": { "expression": "if({view.params.daysSince} > 30, \"#CCCCCC\", if({view.params.worstDev} > 10, \"#FF4444\", if({view.params.worstDev} > 5, \"#FFD700\", \"#70AD47\")))" },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": { "expression": "if({view.params.daysSince} > 30, \"#555\", if({view.params.worstDev} > 10, \"#FFF\", if({view.params.worstDev} > 5, \"#333\", \"#FFF\")))" },
+              "type": "expr"
+            }
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": { "name": "LastEntry" },
+        "props": { "style": { "fontSize": 11, "color": "#888" } },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": { "expression": "\"Last: \" + {view.params.lastEntry} + \" (\" + if({view.params.daysSince} < 9999, toString({view.params.daysSince}) + \"d\", \"never\") + \")\"" },
+              "type": "expr"
+            }
+          }
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": { "name": "Completeness" },
+        "props": { "style": { "fontSize": 11 } },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": { "expression": "toString({view.params.completeness}) + \"% complete · \" + toString({view.params.equipment}) + \" units\"" },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": { "expression": "if({view.params.completeness} < 50, \"#CC0000\", if({view.params.completeness} < 80, \"#B8860B\", \"#2E7D32\"))" },
+              "type": "expr"
+            }
+          }
+        },
+        "type": "ia.display.label"
+      }
+    ]
+  }
+}

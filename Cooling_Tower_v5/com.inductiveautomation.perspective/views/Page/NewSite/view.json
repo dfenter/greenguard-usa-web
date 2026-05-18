@@ -1,0 +1,189 @@
+{
+  "custom": {
+    "siteName": "",
+    "region": "",
+    "regionOptions": []
+  },
+  "params": {},
+  "propConfig": {
+    "custom.siteName": {"persistent": true},
+    "custom.region": {"persistent": true},
+    "custom.regionOptions": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getAllRegions",
+          "parameters": {},
+          "polling": {"enabled": false, "rate": 0},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "result = []\nfor row in (value or []):\n\treg = row.get('region', '')\n\tif reg:\n\t\tresult.append({'label': reg, 'value': reg})\nreturn result"
+            }
+          }
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {"width": 700, "height": 700}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "width": "100%",
+        "height": "100%",
+        "padding": "16px",
+        "gap": "16px",
+        "backgroundColor": "#F4F6F8",
+        "maxWidth": "600px"
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "Title"},
+        "type": "ia.display.label",
+        "position": {"basis": "36px", "shrink": 0},
+        "props": {
+          "text": "Add New Site",
+          "style": {"fontSize": 22, "fontWeight": "bold", "color": "#2C5F2E"}
+        }
+      },
+      {
+        "meta": {"name": "FormCard"},
+        "type": "ia.container.flex",
+        "position": {"basis": "auto", "shrink": 0},
+        "props": {
+          "direction": "column",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "borderRadius": "8px",
+            "padding": "20px",
+            "boxShadow": "0 1px 4px rgba(0,0,0,0.1)",
+            "gap": "16px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "SiteNameLbl"},
+            "type": "ia.display.label",
+            "props": {"text": "Site Name", "style": {"fontSize": 13, "fontWeight": "600", "color": "#333"}}
+          },
+          {
+            "meta": {"name": "SiteNameField"},
+            "type": "ia.input.text-field",
+            "props": {
+              "placeholderText": "Enter site name...",
+              "style": {"fontSize": 13, "width": "100%"}
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "property",
+                  "config": {"bidirectional": true, "path": "view.custom.siteName"}
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "RegionLbl"},
+            "type": "ia.display.label",
+            "props": {"text": "Region", "style": {"fontSize": 13, "fontWeight": "600", "color": "#333"}}
+          },
+          {
+            "meta": {"name": "RegionDropdown"},
+            "type": "ia.input.dropdown",
+            "props": {"style": {"fontSize": 13, "width": "100%"}},
+            "propConfig": {
+              "props.options": {
+                "binding": {
+                  "type": "property",
+                  "config": {"path": "view.custom.regionOptions"}
+                }
+              },
+              "props.value": {
+                "binding": {
+                  "type": "property",
+                  "config": {"bidirectional": true, "path": "view.custom.region"}
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "AddSiteBtn"},
+            "type": "ia.input.button",
+            "props": {
+              "text": "Add Site",
+              "style": {
+                "backgroundColor": "#2C5F2E",
+                "color": "#FFFFFF",
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "borderRadius": "6px",
+                "padding": "10px 24px",
+                "width": "160px"
+              }
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "siteName = self.view.custom.siteName.strip() if self.view.custom.siteName else ''\nregion = self.view.custom.region\nif not siteName:\n\tsystem.perspective.openPopup('nsErr', 'Framework/ErrorPopup', params={'message': 'Please enter a site name.'})\n\treturn\nif not region:\n\tsystem.perspective.openPopup('nsErr', 'Framework/ErrorPopup', params={'message': 'Please select a region.'})\n\treturn\ntry:\n\tsystem.db.runPrepUpdate(\n\t\t'INSERT INTO siteListASU (siteName, region) VALUES (?, ?)',\n\t\t[siteName, region],\n\t\tdatasource='Plant_Stats_DB_Write_Server'\n\t)\n\tnewSiteId = system.db.runScalarQuery(\n\t\t'SELECT MAX(siteId) FROM siteListASU WHERE siteName = ?',\n\t\t[siteName],\n\t\tdatasource='Plant_Stats_DB_Write_Server'\n\t)\n\tif newSiteId:\n\t\tsystem.db.runPrepUpdate(\n\t\t\t'INSERT INTO siteConfig (siteId, MAC, BAC, RNC, FNC, GOX, GAN, CDA, AirExpander, WarmExpander, ColdExpander, ArgonSkid, AuxillaryCooler, DCAC, Chiller, NLUChiller) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)',\n\t\t\t[newSiteId],\n\t\t\tdatasource='Plant_Stats_DB_Write_Server'\n\t\t)\n\tself.view.custom.siteName = ''\n\tself.view.custom.region = ''\n\tsystem.perspective.openPopup('nsOK', 'Framework/SuccessPopup', params={'message': 'Site \"' + siteName + '\" added to region \"' + region + '\". Next steps: run the 03_seed_sites.sql pattern to add equipment rows, then configure equipment counts via the Config popup.'})\nexcept Exception as e:\n\tsystem.perspective.openPopup('nsErr', 'Framework/ErrorPopup', params={'message': 'Failed to add site: ' + str(e)})"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "InstructionsCard"},
+        "type": "ia.container.flex",
+        "position": {"grow": 1},
+        "props": {
+          "direction": "column",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "borderRadius": "8px",
+            "padding": "20px",
+            "boxShadow": "0 1px 4px rgba(0,0,0,0.1)",
+            "gap": "10px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "InstTitle"},
+            "type": "ia.display.label",
+            "props": {"text": "4-Step New Site Process", "style": {"fontSize": 14, "fontWeight": "bold", "color": "#2C5F2E"}}
+          },
+          {
+            "meta": {"name": "Step1"},
+            "type": "ia.display.label",
+            "props": {"text": "1. Enter site name and region above, then click Add Site.", "style": {"fontSize": 12, "color": "#444"}}
+          },
+          {
+            "meta": {"name": "Step2"},
+            "type": "ia.display.label",
+            "props": {"text": "2. Run 03_seed_sites.sql pattern in the database to create equipment rows for the new site.", "style": {"fontSize": 12, "color": "#444"}}
+          },
+          {
+            "meta": {"name": "Step3"},
+            "type": "ia.display.label",
+            "props": {"text": "3. Open the Config popup (⚙ in the menu) and select the new site to set equipment counts.", "style": {"fontSize": 12, "color": "#444"}}
+          },
+          {
+            "meta": {"name": "Step4"},
+            "type": "ia.display.label",
+            "props": {"text": "4. Navigate to the site via its region view and begin entering temperature data.", "style": {"fontSize": 12, "color": "#444"}}
+          }
+        ]
+      }
+    ]
+  }
+}

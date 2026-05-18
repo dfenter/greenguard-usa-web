@@ -1,0 +1,7 @@
+{
+  "title": "Cooling Tower Approach Temps",
+  "description": "Fleet-wide cooling tower approach temperature monitoring — v5 rebuild",
+  "parent": "",
+  "enabled": true,
+  "inheritable": false
+}

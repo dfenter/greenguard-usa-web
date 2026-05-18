@@ -1,0 +1,146 @@
+{
+  "custom": {},
+  "params": {},
+  "propConfig": {},
+  "props": {
+    "defaultSize": {"width": 560, "height": 360}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.coord",
+    "props": {
+      "style": {
+        "width": "560px",
+        "height": "360px",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": "8px",
+        "overflow": "hidden"
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "Header"},
+        "type": "ia.container.flex",
+        "position": {"x": 0, "y": 0, "width": 560, "height": 48},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "backgroundColor": "#1E5C8E",
+            "padding": "0 20px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "HeaderTitle"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "Submit Feedback",
+              "style": {"fontSize": 17, "fontWeight": "bold", "color": "#FFFFFF"}
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "SiteLbl"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 66, "width": 60, "height": 28},
+        "props": {"text": "Site:", "style": {"fontSize": 13, "color": "#555"}}
+      },
+      {
+        "meta": {"name": "SiteDropdown"},
+        "type": "ia.input.dropdown",
+        "position": {"x": 82, "y": 62, "width": 220, "height": 32},
+        "props": {"style": {"fontSize": 13}},
+        "propConfig": {
+          "props.options": {
+            "binding": {
+              "type": "query",
+              "config": {
+                "queryPath": "coolingTowerData/getAllSitesDropdown",
+                "parameters": {},
+                "polling": {"enabled": false, "rate": 0}
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {"name": "CategoryLbl"},
+        "type": "ia.display.label",
+        "position": {"x": 318, "y": 66, "width": 70, "height": 28},
+        "props": {"text": "Category:", "style": {"fontSize": 13, "color": "#555"}}
+      },
+      {
+        "meta": {"name": "CategoryDropdown"},
+        "type": "ia.input.dropdown",
+        "position": {"x": 392, "y": 62, "width": 148, "height": 32},
+        "props": {
+          "style": {"fontSize": 13},
+          "options": [
+            {"label": "Bug",          "value": "Bug"},
+            {"label": "Data Issue",   "value": "Data Issue"},
+            {"label": "Feature",      "value": "Feature"},
+            {"label": "UI",           "value": "UI"},
+            {"label": "Other",        "value": "Other"}
+          ]
+        }
+      },
+      {
+        "meta": {"name": "FeedbackLbl"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 106, "width": 520, "height": 20},
+        "props": {"text": "Feedback:", "style": {"fontSize": 13, "color": "#555"}}
+      },
+      {
+        "meta": {"name": "FeedbackArea"},
+        "type": "ia.input.text-area",
+        "position": {"x": 20, "y": 128, "width": 520, "height": 150},
+        "props": {
+          "placeholderText": "Describe the issue, suggestion, or feedback...",
+          "style": {"fontSize": 13, "resize": "none"}
+        }
+      },
+      {
+        "meta": {"name": "CancelBtn"},
+        "type": "ia.input.button",
+        "position": {"x": 300, "y": 300, "width": 110, "height": 36},
+        "props": {
+          "text": "Cancel",
+          "style": {"backgroundColor": "#888888", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "4px"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {
+                "script": "system.perspective.closePopup('addFeedback')"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
+      },
+      {
+        "meta": {"name": "SubmitBtn"},
+        "type": "ia.input.button",
+        "position": {"x": 420, "y": 300, "width": 120, "height": 36},
+        "props": {
+          "text": "Submit",
+          "style": {"backgroundColor": "#1E5C8E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "4px"}
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {
+                "script": "siteDropdown = self.getSibling('SiteDropdown')\ncategoryDropdown = self.getSibling('CategoryDropdown')\nfeedbackArea = self.getSibling('FeedbackArea')\nsiteId = siteDropdown.props.value\ncategory = categoryDropdown.props.value\nfeedbackText = feedbackArea.props.text if feedbackArea.props.text else ''\nif not feedbackText.strip():\n\tsystem.perspective.openPopup('fbErr', 'Framework/ErrorPopup', params={'message': 'Please enter feedback text before submitting.'})\n\treturn\nif not category:\n\tsystem.perspective.openPopup('fbErr', 'Framework/ErrorPopup', params={'message': 'Please select a category.'})\n\treturn\ntry:\n\tsystem.db.runNamedQuery(\n\t\tproject='Cooling_Tower_Approach_Temps',\n\t\tpath='coolingTowerData/insertUserFeedback',\n\t\tparameters={\n\t\t\t'siteId': siteId or 0,\n\t\t\t'category': category,\n\t\t\t'feedbackText': feedbackText.strip()\n\t\t}\n\t)\n\tsystem.perspective.closePopup('addFeedback')\n\tsystem.perspective.openPopup('fbOK', 'Framework/SuccessPopup', params={'message': 'Thank you! Your feedback has been submitted.'})\nexcept Exception as e:\n\tsystem.perspective.openPopup('fbErr', 'Framework/ErrorPopup', params={'message': 'Submission failed: ' + str(e)})"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

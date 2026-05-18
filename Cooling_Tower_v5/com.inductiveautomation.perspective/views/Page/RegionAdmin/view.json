@@ -1,0 +1,208 @@
+{
+  "custom": {
+    "allSites": [],
+    "regionOptions": [],
+    "selectedSiteId": 0,
+    "selectedSiteName": "",
+    "selectedRegion": "",
+    "pendingChanges": []
+  },
+  "params": {},
+  "propConfig": {
+    "custom.selectedSiteId": {"persistent": true},
+    "custom.selectedSiteName": {"persistent": true},
+    "custom.selectedRegion": {"persistent": true},
+    "custom.allSites": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getAllSitesWithRegion",
+          "parameters": {},
+          "polling": {"enabled": false, "rate": 0},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "result = []\nfor row in (value or []):\n\tresult.append({\n\t\t'siteId': row.get('siteId', 0),\n\t\t'site': row.get('site', '') or row.get('siteName', ''),\n\t\t'region': row.get('region', ''),\n\t\t'instancePosition': {},\n\t\t'instanceStyle': {'classes': ''}\n\t})\nreturn result"
+            }
+          }
+        }
+      }
+    },
+    "custom.regionOptions": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getAllRegions",
+          "parameters": {},
+          "polling": {"enabled": false, "rate": 0},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "result = []\nfor row in (value or []):\n\treg = row.get('region', '')\n\tif reg:\n\t\tresult.append({'label': reg, 'value': reg})\nreturn result"
+            }
+          }
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {"width": 1000, "height": 800}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "width": "100%",
+        "height": "100%",
+        "padding": "16px",
+        "gap": "12px",
+        "backgroundColor": "#F4F6F8"
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "Title"},
+        "type": "ia.display.label",
+        "position": {"basis": "36px", "shrink": 0},
+        "props": {
+          "text": "Region / Site Assignment",
+          "style": {"fontSize": 20, "fontWeight": "bold", "color": "#2C5F2E"}
+        }
+      },
+      {
+        "meta": {"name": "Instructions"},
+        "type": "ia.display.label",
+        "position": {"basis": "24px", "shrink": 0},
+        "props": {
+          "text": "Select a site row, choose a new region, and save.",
+          "style": {"fontSize": 13, "color": "#666666"}
+        }
+      },
+      {
+        "meta": {"name": "SiteTable"},
+        "type": "ia.display.table",
+        "position": {"grow": 1},
+        "props": {
+          "style": {
+            "borderRadius": "6px",
+            "boxShadow": "0 1px 4px rgba(0,0,0,0.1)",
+            "backgroundColor": "#FFFFFF"
+          },
+          "columns": [
+            {"field": "siteId", "header": "ID",     "width": 60},
+            {"field": "site",   "header": "Site",   "width": 300},
+            {"field": "region", "header": "Region", "width": 250}
+          ],
+          "selection": {"mode": "single"}
+        },
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "type": "property",
+              "config": {"path": "view.custom.allSites"}
+            }
+          }
+        },
+        "events": {
+          "component": {
+            "onRowClick": {
+              "config": {
+                "script": "row = event.row\nself.view.custom.selectedSiteId = row.get('siteId', 0)\nself.view.custom.selectedSiteName = row.get('site', '')\nself.view.custom.selectedRegion = row.get('region', '')"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
+      },
+      {
+        "meta": {"name": "EditRow"},
+        "type": "ia.container.flex",
+        "position": {"basis": "52px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "gap": "12px",
+            "backgroundColor": "#FFFFFF",
+            "padding": "8px 16px",
+            "borderRadius": "6px",
+            "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "SiteIdentLabel"},
+            "type": "ia.display.label",
+            "props": {"text": "Site:", "style": {"fontSize": 13, "color": "#555"}}
+          },
+          {
+            "meta": {"name": "SelectedSiteName"},
+            "type": "ia.display.label",
+            "position": {"basis": "220px"},
+            "props": {"style": {"fontSize": 13, "fontWeight": "bold", "color": "#222"}},
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.selectedSiteId} > 0, {view.custom.selectedSiteName}, '(none selected)')"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "NewRegionLabel"},
+            "type": "ia.display.label",
+            "props": {"text": "New Region:", "style": {"fontSize": 13, "color": "#555"}}
+          },
+          {
+            "meta": {"name": "RegionDropdown"},
+            "type": "ia.input.dropdown",
+            "position": {"basis": "220px"},
+            "props": {"style": {"fontSize": 13}},
+            "propConfig": {
+              "props.options": {
+                "binding": {
+                  "type": "property",
+                  "config": {"path": "view.custom.regionOptions"}
+                }
+              },
+              "props.value": {
+                "binding": {
+                  "type": "property",
+                  "config": {"bidirectional": true, "path": "view.custom.selectedRegion"}
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "SaveRegionBtn"},
+            "type": "ia.input.button",
+            "position": {"basis": "100px"},
+            "props": {
+              "text": "Save",
+              "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "4px"}
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "siteId = self.view.custom.selectedSiteId\nnewRegion = self.view.custom.selectedRegion\nif not siteId:\n\tsystem.perspective.openPopup('raErr', 'Framework/ErrorPopup', params={'message': 'Please select a site from the table first.'})\n\treturn\nif not newRegion:\n\tsystem.perspective.openPopup('raErr', 'Framework/ErrorPopup', params={'message': 'Please select a new region.'})\n\treturn\ntry:\n\tsystem.db.runNamedQuery(\n\t\tproject='Cooling_Tower_Approach_Temps',\n\t\tpath='coolingTowerData/updateSiteRegion',\n\t\tparameters={'siteId': siteId, 'region': newRegion}\n\t)\n\t# Refresh the table\n\trefreshed = system.db.runNamedQuery(\n\t\tproject='Cooling_Tower_Approach_Temps',\n\t\tpath='coolingTowerData/getAllSitesWithRegion',\n\t\tparameters={}\n\t)\n\tnewList = []\n\tfor row in (refreshed or []):\n\t\tnewList.append({'siteId': row.get('siteId', 0), 'site': row.get('site', '') or row.get('siteName', ''), 'region': row.get('region', ''), 'instancePosition': {}, 'instanceStyle': {'classes': ''}})\n\tself.view.custom.allSites = newList\n\tsystem.perspective.openPopup('raOK', 'Framework/SuccessPopup', params={'message': 'Region updated successfully.'})\nexcept Exception as e:\n\tsystem.perspective.openPopup('raErr', 'Framework/ErrorPopup', params={'message': 'Update failed: ' + str(e)})"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

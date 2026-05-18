@@ -1,0 +1,19 @@
+{
+  "custom": {},
+  "params": { "title": "" },
+  "propConfig": { "params.title": { "paramDirection": "input" } },
+  "props": { "defaultSize": { "width": 960, "height": 32 } },
+  "root": {
+    "meta": { "name": "root" },
+    "type": "ia.container.flex",
+    "props": { "direction": "row", "style": { "alignItems": "center", "backgroundColor": "#3A3A3A", "padding": "0 12px", "height": "32px" } },
+    "children": [
+      {
+        "meta": { "name": "Title" },
+        "props": { "style": { "fontSize": 13, "fontWeight": "bold", "color": "#FFFFFF" } },
+        "propConfig": { "props.text": { "binding": { "config": { "path": "view.params.title" }, "type": "property" } } },
+        "type": "ia.display.label"
+      }
+    ]
+  }
+}

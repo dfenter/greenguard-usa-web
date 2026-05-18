@@ -1,0 +1,1208 @@
+{
+  "custom": {
+    "site": {},
+    "trendStartDate": "",
+    "trendEndDate": "",
+    "selectedEquipment": "all",
+    "notesText": "",
+    "lastEntry": "No data recorded",
+    "worstDevSite": null,
+    "previousActuals": {},
+    "seasonalBaseline": {},
+    "rawHistoryData": [],
+    "notesData": [],
+    "enabledEquipmentOptions": [{"label": "All Equipment", "value": "all"}],
+    "MAC": {"Data": [], "Instances": []},
+    "BAC": {"Data": [], "Instances": []},
+    "RNC": {"Data": [], "Instances": []},
+    "FNC": {"Data": [], "Instances": []},
+    "GOX": {"Data": [], "Instances": []},
+    "GAN": {"Data": [], "Instances": []},
+    "CDA": {"Data": [], "Instances": []},
+    "MISC": {"Data": [], "Instances": []}
+  },
+  "params": {
+    "siteId": 0,
+    "tabIndex": -1
+  },
+  "propConfig": {
+    "params.siteId": {"paramDirection": "input", "persistent": true},
+    "params.tabIndex": {"paramDirection": "input", "persistent": true},
+    "custom.site": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getSite",
+          "parameters": {"siteId": "{view.params.siteId}"},
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.lastEntry": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getLastEntryBySite",
+          "parameters": {"siteId": "{view.params.siteId}"},
+          "polling": {"enabled": false, "rate": 0},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "from datetime import datetime\nif value is None or len(value) == 0:\n\treturn 'No data recorded'\nrow = value[0]\nif row['entryDate'] is None:\n\treturn 'No data recorded'\ntry:\n\td = row['entryDate']\n\tif hasattr(d, 'strftime'):\n\t\treturn 'Last entry: ' + d.strftime('%m/%d/%Y')\n\treturn 'Last entry: ' + str(d)[:10]\nexcept:\n\treturn 'No data recorded'"
+            }
+          }
+        }
+      }
+    },
+    "custom.worstDevSite": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getLatestOutOfSpec",
+          "parameters": {"siteId": "{view.params.siteId}"},
+          "polling": {"enabled": false, "rate": 0},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "if value is None or len(value) == 0:\n\treturn None\nmaxDev = 0.0\nfor row in value:\n\tdev = row.get('deviation', 0) or 0\n\tif abs(dev) > maxDev:\n\t\tmaxDev = abs(dev)\nreturn maxDev if maxDev > 0 else None"
+            }
+          }
+        }
+      }
+    },
+    "custom.previousActuals": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getLastActualsBySite",
+          "parameters": {"siteId": "{view.params.siteId}"},
+          "polling": {"enabled": false, "rate": 0},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "result = {}\nif value is None:\n\treturn result\nfor row in value:\n\teqId = str(row.get('equipmentId', ''))\n\tparamId = str(row.get('parameterId', ''))\n\tval = row.get('value', None)\n\tif eqId not in result:\n\t\tresult[eqId] = {}\n\tresult[eqId][paramId] = val\nreturn result"
+            }
+          }
+        }
+      }
+    },
+    "custom.seasonalBaseline": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getSeasonalBaseline",
+          "parameters": {"siteId": "{view.params.siteId}"},
+          "polling": {"enabled": false, "rate": 0},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "result = {}\nif value is None:\n\treturn result\nfor row in value:\n\tmonth = str(row.get('month', ''))\n\tresult[month] = row.get('baselineDAT', None)\nreturn result"
+            }
+          }
+        }
+      }
+    },
+    "custom.rawHistoryData": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getHistoryBySite",
+          "parameters": {
+            "siteId": "{view.params.siteId}",
+            "startDate": "{view.custom.trendStartDate}",
+            "endDate": "{view.custom.trendEndDate}"
+          },
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.notesData": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getNotesBySite",
+          "parameters": {
+            "siteId": "{view.params.siteId}",
+            "startDate": "{view.custom.trendStartDate}",
+            "endDate": "{view.custom.trendEndDate}"
+          },
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.MAC.Data": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getEquipmentData",
+          "parameters": {"siteId": "{view.params.siteId}", "equipmentId": 1},
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.MAC.Instances": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.MAC.Data",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "instances = []\nprevActuals = self.view.custom.previousActuals\nfor row in (value or []):\n\tid = row.get('id', 0)\n\tsiteId = row.get('siteId', 0)\n\tparam = row.get('parameter', '')\n\taltName = row.get('altEquipmentName', '') or ''\n\teqKey = str(id)\n\teqActuals = prevActuals.get(eqKey, {})\n\tprevIWT = eqActuals.get('1', None)\n\tprevPOGT = eqActuals.get('2', None)\n\tapproachTemp = None\n\tif prevIWT is not None and prevPOGT is not None:\n\t\tapproachTemp = prevPOGT - prevIWT\n\tinstances.append({'id': id, 'siteId': siteId, 'parameter': param, 'altEquipmentName': altName, 'approachTempTarget': None, 'incomingWaterTempTarget': None, 'processGasOutTempTarget': None, 'designIncomingWaterTempF': prevIWT, 'processGasOutTempF': prevPOGT, 'designApproachTempF': approachTemp, 'previousIWT': prevIWT, 'previousPOGT': prevPOGT, 'instancePosition': {}, 'instanceStyle': {'classes': ''}})\nreturn instances"
+            }
+          }
+        }
+      }
+    },
+    "custom.BAC.Data": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getEquipmentData",
+          "parameters": {"siteId": "{view.params.siteId}", "equipmentId": 2},
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.BAC.Instances": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.BAC.Data",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "instances = []\nprevActuals = self.view.custom.previousActuals\nfor row in (value or []):\n\tid = row.get('id', 0)\n\tsiteId = row.get('siteId', 0)\n\tparam = row.get('parameter', '')\n\taltName = row.get('altEquipmentName', '') or ''\n\teqKey = str(id)\n\teqActuals = prevActuals.get(eqKey, {})\n\tprevIWT = eqActuals.get('1', None)\n\tprevPOGT = eqActuals.get('2', None)\n\tapproachTemp = None\n\tif prevIWT is not None and prevPOGT is not None:\n\t\tapproachTemp = prevPOGT - prevIWT\n\tinstances.append({'id': id, 'siteId': siteId, 'parameter': param, 'altEquipmentName': altName, 'approachTempTarget': None, 'incomingWaterTempTarget': None, 'processGasOutTempTarget': None, 'designIncomingWaterTempF': prevIWT, 'processGasOutTempF': prevPOGT, 'designApproachTempF': approachTemp, 'previousIWT': prevIWT, 'previousPOGT': prevPOGT, 'instancePosition': {}, 'instanceStyle': {'classes': ''}})\nreturn instances"
+            }
+          }
+        }
+      }
+    },
+    "custom.RNC.Data": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getEquipmentData",
+          "parameters": {"siteId": "{view.params.siteId}", "equipmentId": 3},
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.RNC.Instances": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.RNC.Data",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "instances = []\nprevActuals = self.view.custom.previousActuals\nfor row in (value or []):\n\tid = row.get('id', 0)\n\tsiteId = row.get('siteId', 0)\n\tparam = row.get('parameter', '')\n\taltName = row.get('altEquipmentName', '') or ''\n\teqKey = str(id)\n\teqActuals = prevActuals.get(eqKey, {})\n\tprevIWT = eqActuals.get('1', None)\n\tprevPOGT = eqActuals.get('2', None)\n\tapproachTemp = None\n\tif prevIWT is not None and prevPOGT is not None:\n\t\tapproachTemp = prevPOGT - prevIWT\n\tinstances.append({'id': id, 'siteId': siteId, 'parameter': param, 'altEquipmentName': altName, 'approachTempTarget': None, 'incomingWaterTempTarget': None, 'processGasOutTempTarget': None, 'designIncomingWaterTempF': prevIWT, 'processGasOutTempF': prevPOGT, 'designApproachTempF': approachTemp, 'previousIWT': prevIWT, 'previousPOGT': prevPOGT, 'instancePosition': {}, 'instanceStyle': {'classes': ''}})\nreturn instances"
+            }
+          }
+        }
+      }
+    },
+    "custom.FNC.Data": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getEquipmentData",
+          "parameters": {"siteId": "{view.params.siteId}", "equipmentId": 4},
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.FNC.Instances": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.FNC.Data",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "instances = []\nprevActuals = self.view.custom.previousActuals\nfor row in (value or []):\n\tid = row.get('id', 0)\n\tsiteId = row.get('siteId', 0)\n\tparam = row.get('parameter', '')\n\taltName = row.get('altEquipmentName', '') or ''\n\teqKey = str(id)\n\teqActuals = prevActuals.get(eqKey, {})\n\tprevIWT = eqActuals.get('1', None)\n\tprevPOGT = eqActuals.get('2', None)\n\tapproachTemp = None\n\tif prevIWT is not None and prevPOGT is not None:\n\t\tapproachTemp = prevPOGT - prevIWT\n\tinstances.append({'id': id, 'siteId': siteId, 'parameter': param, 'altEquipmentName': altName, 'approachTempTarget': None, 'incomingWaterTempTarget': None, 'processGasOutTempTarget': None, 'designIncomingWaterTempF': prevIWT, 'processGasOutTempF': prevPOGT, 'designApproachTempF': approachTemp, 'previousIWT': prevIWT, 'previousPOGT': prevPOGT, 'instancePosition': {}, 'instanceStyle': {'classes': ''}})\nreturn instances"
+            }
+          }
+        }
+      }
+    },
+    "custom.GOX.Data": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getEquipmentData",
+          "parameters": {"siteId": "{view.params.siteId}", "equipmentId": 5},
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.GOX.Instances": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.GOX.Data",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "instances = []\nprevActuals = self.view.custom.previousActuals\nfor row in (value or []):\n\tid = row.get('id', 0)\n\tsiteId = row.get('siteId', 0)\n\tparam = row.get('parameter', '')\n\taltName = row.get('altEquipmentName', '') or ''\n\teqKey = str(id)\n\teqActuals = prevActuals.get(eqKey, {})\n\tprevIWT = eqActuals.get('1', None)\n\tprevPOGT = eqActuals.get('2', None)\n\tapproachTemp = None\n\tif prevIWT is not None and prevPOGT is not None:\n\t\tapproachTemp = prevPOGT - prevIWT\n\tinstances.append({'id': id, 'siteId': siteId, 'parameter': param, 'altEquipmentName': altName, 'approachTempTarget': None, 'incomingWaterTempTarget': None, 'processGasOutTempTarget': None, 'designIncomingWaterTempF': prevIWT, 'processGasOutTempF': prevPOGT, 'designApproachTempF': approachTemp, 'previousIWT': prevIWT, 'previousPOGT': prevPOGT, 'instancePosition': {}, 'instanceStyle': {'classes': ''}})\nreturn instances"
+            }
+          }
+        }
+      }
+    },
+    "custom.GAN.Data": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getEquipmentData",
+          "parameters": {"siteId": "{view.params.siteId}", "equipmentId": 6},
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.GAN.Instances": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.GAN.Data",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "instances = []\nprevActuals = self.view.custom.previousActuals\nfor row in (value or []):\n\tid = row.get('id', 0)\n\tsiteId = row.get('siteId', 0)\n\tparam = row.get('parameter', '')\n\taltName = row.get('altEquipmentName', '') or ''\n\teqKey = str(id)\n\teqActuals = prevActuals.get(eqKey, {})\n\tprevIWT = eqActuals.get('1', None)\n\tprevPOGT = eqActuals.get('2', None)\n\tapproachTemp = None\n\tif prevIWT is not None and prevPOGT is not None:\n\t\tapproachTemp = prevPOGT - prevIWT\n\tinstances.append({'id': id, 'siteId': siteId, 'parameter': param, 'altEquipmentName': altName, 'approachTempTarget': None, 'incomingWaterTempTarget': None, 'processGasOutTempTarget': None, 'designIncomingWaterTempF': prevIWT, 'processGasOutTempF': prevPOGT, 'designApproachTempF': approachTemp, 'previousIWT': prevIWT, 'previousPOGT': prevPOGT, 'instancePosition': {}, 'instanceStyle': {'classes': ''}})\nreturn instances"
+            }
+          }
+        }
+      }
+    },
+    "custom.CDA.Data": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getEquipmentData",
+          "parameters": {"siteId": "{view.params.siteId}", "equipmentId": 7},
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.CDA.Instances": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.CDA.Data",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "instances = []\nprevActuals = self.view.custom.previousActuals\nfor row in (value or []):\n\tid = row.get('id', 0)\n\tsiteId = row.get('siteId', 0)\n\tparam = row.get('parameter', '')\n\taltName = row.get('altEquipmentName', '') or ''\n\teqKey = str(id)\n\teqActuals = prevActuals.get(eqKey, {})\n\tprevIWT = eqActuals.get('1', None)\n\tprevPOGT = eqActuals.get('2', None)\n\tapproachTemp = None\n\tif prevIWT is not None and prevPOGT is not None:\n\t\tapproachTemp = prevPOGT - prevIWT\n\tinstances.append({'id': id, 'siteId': siteId, 'parameter': param, 'altEquipmentName': altName, 'approachTempTarget': None, 'incomingWaterTempTarget': None, 'processGasOutTempTarget': None, 'designIncomingWaterTempF': prevIWT, 'processGasOutTempF': prevPOGT, 'designApproachTempF': approachTemp, 'previousIWT': prevIWT, 'previousPOGT': prevPOGT, 'instancePosition': {}, 'instanceStyle': {'classes': ''}})\nreturn instances"
+            }
+          }
+        }
+      }
+    },
+    "custom.MISC.Data": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getEquipmentDataMISC",
+          "parameters": {"siteId": "{view.params.siteId}", "equipmentId": 8},
+          "polling": {"enabled": false, "rate": 0}
+        }
+      }
+    },
+    "custom.MISC.Instances": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.MISC.Data",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "instances = []\nprevActuals = self.view.custom.previousActuals\nfor row in (value or []):\n\tid = row.get('id', 0)\n\tsiteId = row.get('siteId', 0)\n\tparam = row.get('parameter', '')\n\taltName = row.get('altEquipmentName', '') or ''\n\teqKey = str(id)\n\teqActuals = prevActuals.get(eqKey, {})\n\tprevIWT = eqActuals.get('1', None)\n\tprevPOGT = eqActuals.get('2', None)\n\tapproachTemp = None\n\tif prevIWT is not None and prevPOGT is not None:\n\t\tapproachTemp = prevPOGT - prevIWT\n\tinstances.append({'id': id, 'siteId': siteId, 'parameter': param, 'altEquipmentName': altName, 'approachTempTarget': None, 'incomingWaterTempTarget': None, 'processGasOutTempTarget': None, 'designIncomingWaterTempF': prevIWT, 'processGasOutTempF': prevPOGT, 'designApproachTempF': approachTemp, 'previousIWT': prevIWT, 'previousPOGT': prevPOGT, 'instancePosition': {}, 'instanceStyle': {'classes': ''}})\nreturn instances"
+            }
+          }
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {"width": 1400, "height": 960}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "width": "100%",
+        "height": "100%",
+        "backgroundColor": "#F4F6F8"
+      }
+    },
+    "events": {
+      "component": {
+        "onStartup": {
+          "config": {
+            "script": "from datetime import datetime, timedelta\nfrom java.util import Date\nimport calendar\nnow = system.date.now()\nsix_months_ago = system.date.addMonths(now, -6)\nself.view.custom.trendEndDate = now\nself.view.custom.trendStartDate = six_months_ago\nself.view.custom.selectedEquipment = 'all'"
+          },
+          "scope": "G",
+          "type": "script"
+        }
+      },
+      "propertyChange": {
+        "params.siteId": {
+          "config": {
+            "script": "self.view.custom.selectedEquipment = 'all'"
+          },
+          "scope": "G",
+          "type": "script"
+        }
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "Toolbar"},
+        "type": "ia.container.coord",
+        "position": {"basis": "54px", "shrink": 0},
+        "props": {
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "borderBottom": "2px solid #2C5F2E",
+            "width": "100%",
+            "height": "54px",
+            "position": "relative"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "EntryDatePicker"},
+            "type": "ia.input.date-time-input",
+            "position": {"x": 18, "y": 9, "width": 170, "height": 32},
+            "props": {
+              "pickerType": "date",
+              "dateFormat": "MM/dd/yyyy",
+              "style": {"fontSize": 13}
+            }
+          },
+          {
+            "meta": {"name": "IWTLabel"},
+            "type": "ia.display.label",
+            "position": {"x": 200, "y": 12, "width": 185, "height": 28},
+            "props": {
+              "text": "Incoming Water Temp (°F)",
+              "style": {"fontSize": 12, "color": "#555", "fontWeight": "600"}
+            }
+          },
+          {
+            "meta": {"name": "IWTGlobal"},
+            "type": "ia.input.numeric-entry-field",
+            "position": {"x": 390, "y": 9, "width": 80, "height": 32},
+            "props": {
+              "value": 120,
+              "style": {"fontSize": 13}
+            }
+          },
+          {
+            "meta": {"name": "ApplyAllBtn"},
+            "type": "ia.input.button",
+            "position": {"x": 478, "y": 9, "width": 120, "height": 32},
+            "props": {
+              "text": "APPLY TO ALL",
+              "style": {
+                "backgroundColor": "#2C5F2E",
+                "color": "#FFFFFF",
+                "fontSize": 12,
+                "fontWeight": "bold",
+                "borderRadius": "4px"
+              }
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "iwtVal = self.getSibling('IWTGlobal').props.value\nif iwtVal is None:\n\treturn\nfor eqType in ['MAC', 'BAC', 'RNC', 'FNC', 'GOX', 'GAN', 'CDA', 'MISC']:\n\tinstances = getattr(self.view.custom, eqType).Instances\n\tupdated = []\n\tfor inst in instances:\n\t\tnewInst = dict(inst)\n\t\tnewInst['designIncomingWaterTempF'] = iwtVal\n\t\tif newInst.get('processGasOutTempF') is not None:\n\t\t\tnewInst['designApproachTempF'] = newInst['processGasOutTempF'] - iwtVal\n\t\tupdated.append(newInst)\n\tgetattr(self.view.custom, eqType).Instances = updated"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "NoteField"},
+            "type": "ia.input.text-field",
+            "position": {"x": 610, "y": 9, "width": 220, "height": 32},
+            "props": {
+              "placeholderText": "Optional note...",
+              "style": {"fontSize": 12}
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "property",
+                  "config": {
+                    "bidirectional": true,
+                    "path": "view.custom.notesText"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "LastEntryLabel"},
+            "type": "ia.display.label",
+            "position": {"x": 845, "y": 12, "width": 220, "height": 28},
+            "props": {
+              "style": {"fontSize": 12, "color": "#555", "fontStyle": "italic"}
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "property",
+                  "config": {"path": "view.custom.lastEntry"}
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "StatusBadge"},
+            "type": "ia.display.label",
+            "position": {"x": 1075, "y": 9, "width": 140, "height": 32},
+            "props": {
+              "style": {
+                "fontSize": 12,
+                "fontWeight": "bold",
+                "borderRadius": "6px",
+                "padding": "4px 10px",
+                "textAlign": "center"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.worstDevSite} is null, 'NO DATA', if({view.custom.worstDevSite} > 10, '⚠ OUT OF SPEC', if({view.custom.worstDevSite} > 5, '⚠ WARNING', '✓ IN SPEC')))"
+                  }
+                }
+              },
+              "props.style.backgroundColor": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.worstDevSite} is null, '#CCCCCC', if({view.custom.worstDevSite} > 10, '#FF4444', if({view.custom.worstDevSite} > 5, '#FFD700', '#70AD47')))"
+                  }
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.worstDevSite} is null, '#555', if({view.custom.worstDevSite} > 10, '#FFF', if({view.custom.worstDevSite} > 5, '#333', '#FFF')))"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "SaveDataBtn"},
+            "type": "ia.input.button",
+            "position": {"x": 1225, "y": 9, "width": 150, "height": 32},
+            "props": {
+              "text": "SAVE DATA",
+              "style": {
+                "backgroundColor": "#1A4020",
+                "color": "#FFFFFF",
+                "fontSize": 13,
+                "fontWeight": "bold",
+                "borderRadius": "4px"
+              }
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "import system\nsiteId = self.view.params.siteId\nif not siteId:\n\tsystem.perspective.openPopup('saveErr', 'Framework/ErrorPopup', params={'message': 'No site selected. Cannot save.'})\n\treturn\n\n# collect entry date from toolbar\ntry:\n\tentryDate = self.getSibling('EntryDatePicker').props.value\nexcept:\n\tentryDate = system.date.now()\n\nif entryDate is None:\n\tsystem.perspective.openPopup('saveErr', 'Framework/ErrorPopup', params={'message': 'Please select an entry date.'})\n\treturn\n\nrows = []\n\n# Gather instances from each equipment type\nfor eqType in ['MAC', 'BAC', 'RNC', 'FNC', 'GOX', 'GAN', 'CDA', 'MISC']:\n\ttry:\n\t\tinstances = getattr(self.view.custom, eqType).Instances\n\texcept:\n\t\tinstances = []\n\tfor inst in instances:\n\t\tiwt = inst.get('designIncomingWaterTempF', None)\n\t\tpogt = inst.get('processGasOutTempF', None)\n\t\tif iwt is None and pogt is None:\n\t\t\tcontinue\n\t\trows.append({\n\t\t\t'equipmentId': inst.get('id', 0),\n\t\t\t'siteId': siteId,\n\t\t\t'entryDate': entryDate,\n\t\t\t'designIncomingWaterTempF': iwt,\n\t\t\t'processGasOutTempF': pogt,\n\t\t\t'designApproachTempF': inst.get('designApproachTempF', None),\n\t\t\t'approachTempTarget': inst.get('approachTempTarget', None),\n\t\t\t'incomingWaterTempTarget': inst.get('incomingWaterTempTarget', None),\n\t\t\t'processGasOutTempTarget': inst.get('processGasOutTempTarget', None)\n\t\t})\n\nif len(rows) == 0:\n\tsystem.perspective.openPopup('saveErr', 'Framework/ErrorPopup', params={'message': 'No temperature values entered. Please enter at least one IWT or POGT value.'})\n\treturn\n\ntry:\n\tfor row in rows:\n\t\tsystem.db.runNamedQuery(\n\t\t\tproject='Cooling_Tower_Approach_Temps',\n\t\t\tpath='coolingTowerData/insertCoolingTowerData',\n\t\t\tparameters={\n\t\t\t\t'equipmentId': row['equipmentId'],\n\t\t\t\t'siteId': row['siteId'],\n\t\t\t\t'entryDate': row['entryDate'],\n\t\t\t\t'designIncomingWaterTempF': row['designIncomingWaterTempF'],\n\t\t\t\t'processGasOutTempF': row['processGasOutTempF'],\n\t\t\t\t'designApproachTempF': row['designApproachTempF'],\n\t\t\t\t'approachTempTarget': row['approachTempTarget'],\n\t\t\t\t'incomingWaterTempTarget': row['incomingWaterTempTarget'],\n\t\t\t\t'processGasOutTempTarget': row['processGasOutTempTarget']\n\t\t\t}\n\t\t)\n\tnoteText = self.view.custom.notesText\n\tif noteText and noteText.strip():\n\t\tsystem.db.runNamedQuery(\n\t\t\tproject='Cooling_Tower_Approach_Temps',\n\t\t\tpath='coolingTowerData/insertNote',\n\t\t\tparameters={\n\t\t\t\t'siteId': siteId,\n\t\t\t\t'noteDate': entryDate,\n\t\t\t\t'noteText': noteText.strip()\n\t\t\t}\n\t\t)\n\t\tself.view.custom.notesText = ''\n\tsystem.perspective.openPopup('saveOK', 'Framework/SuccessPopup', params={'message': 'Data saved successfully for ' + str(len(rows)) + ' equipment rows.'})\nexcept Exception as e:\n\tsystem.perspective.openPopup('saveErr', 'Framework/ErrorPopup', params={'message': 'Save failed: ' + str(e)})"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "MainTabs"},
+        "type": "ia.container.tab",
+        "position": {"grow": 1},
+        "props": {
+          "style": {"width": "100%"},
+          "tabs": [
+            {"label": "MAC/BAC",  "closeEnabled": false},
+            {"label": "RNC/FNC",  "closeEnabled": false},
+            {"label": "GAN/GOX",  "closeEnabled": false},
+            {"label": "CDA/MISC", "closeEnabled": false},
+            {"label": "TRENDS",   "closeEnabled": false},
+            {"label": "BASELINE", "closeEnabled": false},
+            {"label": "HISTORY",  "closeEnabled": false}
+          ]
+        },
+        "propConfig": {
+          "props.currentTab": {
+            "binding": {
+              "type": "expr",
+              "config": {
+                "expression": "if({view.params.tabIndex} >= 0, {view.params.tabIndex}, 0)"
+              }
+            }
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "Tab0_MACBAC"},
+            "type": "ia.container.coord",
+            "props": {
+              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "overflow": "auto"}
+            },
+            "children": [
+              {
+                "meta": {"name": "ColHeaders"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 0, "width": 960, "height": 36},
+                "props": {
+                  "direction": "row",
+                  "style": {"alignItems": "center", "backgroundColor": "#2C5F2E", "padding": "0 8px", "height": "36px"}
+                },
+                "children": [
+                  {"meta": {"name": "H_Equip"}, "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "Equipment", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_IWT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_IWTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_POGT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_DAT"}, "type": "ia.display.label", "position": {"basis": "90px"}, "props": {"text": "DAT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_DATTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_Dev"}, "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "Deviation", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+                ]
+              },
+              {
+                "meta": {"name": "MACLabel"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 36, "width": 460, "height": 24},
+                "props": {"text": "MAC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+              },
+              {
+                "meta": {"name": "MACRepeater"},
+                "type": "ia.display.flex-repeater",
+                "position": {"x": 0, "y": 60, "width": 960, "height": 400},
+                "props": {
+                  "instances": [],
+                  "repeatMode": "children",
+                  "direction": "column",
+                  "style": {}
+                },
+                "propConfig": {
+                  "props.instances": {
+                    "binding": {
+                      "type": "property",
+                      "config": {"path": "view.custom.MAC.Instances"}
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "meta": {"name": "InputParameter"},
+                    "type": "ia.display.view",
+                    "position": {"basis": "44px", "shrink": 0},
+                    "props": {"path": "Framework/InputParameter", "params": {}}
+                  }
+                ]
+              },
+              {
+                "meta": {"name": "BACLabel"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 464, "width": 460, "height": 24},
+                "props": {"text": "BAC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+              },
+              {
+                "meta": {"name": "BACRepeater"},
+                "type": "ia.display.flex-repeater",
+                "position": {"x": 0, "y": 488, "width": 960, "height": 400},
+                "props": {
+                  "instances": [],
+                  "repeatMode": "children",
+                  "direction": "column",
+                  "style": {}
+                },
+                "propConfig": {
+                  "props.instances": {
+                    "binding": {
+                      "type": "property",
+                      "config": {"path": "view.custom.BAC.Instances"}
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "meta": {"name": "InputParameter"},
+                    "type": "ia.display.view",
+                    "position": {"basis": "44px", "shrink": 0},
+                    "props": {"path": "Framework/InputParameter", "params": {}}
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "meta": {"name": "Tab1_RNCFNC"},
+            "type": "ia.container.coord",
+            "props": {
+              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "overflow": "auto"}
+            },
+            "children": [
+              {
+                "meta": {"name": "ColHeaders"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 0, "width": 960, "height": 36},
+                "props": {
+                  "direction": "row",
+                  "style": {"alignItems": "center", "backgroundColor": "#2C5F2E", "padding": "0 8px", "height": "36px"}
+                },
+                "children": [
+                  {"meta": {"name": "H_Equip"}, "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "Equipment", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_IWT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_IWTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_POGT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_DAT"}, "type": "ia.display.label", "position": {"basis": "90px"}, "props": {"text": "DAT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_DATTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_Dev"}, "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "Deviation", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+                ]
+              },
+              {
+                "meta": {"name": "RNCLabel"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 36, "width": 460, "height": 24},
+                "props": {"text": "RNC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+              },
+              {
+                "meta": {"name": "RNCRepeater"},
+                "type": "ia.display.flex-repeater",
+                "position": {"x": 0, "y": 60, "width": 960, "height": 400},
+                "props": {"instances": [], "repeatMode": "children", "direction": "column", "style": {}},
+                "propConfig": {
+                  "props.instances": {
+                    "binding": {"type": "property", "config": {"path": "view.custom.RNC.Instances"}}
+                  }
+                },
+                "children": [
+                  {"meta": {"name": "InputParameter"}, "type": "ia.display.view", "position": {"basis": "44px", "shrink": 0}, "props": {"path": "Framework/InputParameter", "params": {}}}
+                ]
+              },
+              {
+                "meta": {"name": "FNCLabel"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 464, "width": 460, "height": 24},
+                "props": {"text": "FNC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+              },
+              {
+                "meta": {"name": "FNCRepeater"},
+                "type": "ia.display.flex-repeater",
+                "position": {"x": 0, "y": 488, "width": 960, "height": 400},
+                "props": {"instances": [], "repeatMode": "children", "direction": "column", "style": {}},
+                "propConfig": {
+                  "props.instances": {
+                    "binding": {"type": "property", "config": {"path": "view.custom.FNC.Instances"}}
+                  }
+                },
+                "children": [
+                  {"meta": {"name": "InputParameter"}, "type": "ia.display.view", "position": {"basis": "44px", "shrink": 0}, "props": {"path": "Framework/InputParameter", "params": {}}}
+                ]
+              }
+            ]
+          },
+          {
+            "meta": {"name": "Tab2_GANGOX"},
+            "type": "ia.container.coord",
+            "props": {
+              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "overflow": "auto"}
+            },
+            "children": [
+              {
+                "meta": {"name": "ColHeaders"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 0, "width": 960, "height": 36},
+                "props": {
+                  "direction": "row",
+                  "style": {"alignItems": "center", "backgroundColor": "#2C5F2E", "padding": "0 8px", "height": "36px"}
+                },
+                "children": [
+                  {"meta": {"name": "H_Equip"}, "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "Equipment", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_IWT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_IWTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_POGT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_DAT"}, "type": "ia.display.label", "position": {"basis": "90px"}, "props": {"text": "DAT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_DATTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_Dev"}, "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "Deviation", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+                ]
+              },
+              {
+                "meta": {"name": "GANLabel"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 36, "width": 460, "height": 24},
+                "props": {"text": "GAN Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+              },
+              {
+                "meta": {"name": "GANRepeater"},
+                "type": "ia.display.flex-repeater",
+                "position": {"x": 0, "y": 60, "width": 960, "height": 400},
+                "props": {"instances": [], "repeatMode": "children", "direction": "column", "style": {}},
+                "propConfig": {
+                  "props.instances": {
+                    "binding": {"type": "property", "config": {"path": "view.custom.GAN.Instances"}}
+                  }
+                },
+                "children": [
+                  {"meta": {"name": "InputParameter"}, "type": "ia.display.view", "position": {"basis": "44px", "shrink": 0}, "props": {"path": "Framework/InputParameter", "params": {}}}
+                ]
+              },
+              {
+                "meta": {"name": "GOXLabel"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 464, "width": 460, "height": 24},
+                "props": {"text": "GOX Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+              },
+              {
+                "meta": {"name": "GOXRepeater"},
+                "type": "ia.display.flex-repeater",
+                "position": {"x": 0, "y": 488, "width": 960, "height": 400},
+                "props": {"instances": [], "repeatMode": "children", "direction": "column", "style": {}},
+                "propConfig": {
+                  "props.instances": {
+                    "binding": {"type": "property", "config": {"path": "view.custom.GOX.Instances"}}
+                  }
+                },
+                "children": [
+                  {"meta": {"name": "InputParameter"}, "type": "ia.display.view", "position": {"basis": "44px", "shrink": 0}, "props": {"path": "Framework/InputParameter", "params": {}}}
+                ]
+              }
+            ]
+          },
+          {
+            "meta": {"name": "Tab3_CDAMISC"},
+            "type": "ia.container.coord",
+            "props": {
+              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "overflow": "auto"}
+            },
+            "children": [
+              {
+                "meta": {"name": "ColHeaders"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 0, "width": 960, "height": 36},
+                "props": {
+                  "direction": "row",
+                  "style": {"alignItems": "center", "backgroundColor": "#2C5F2E", "padding": "0 8px", "height": "36px"}
+                },
+                "children": [
+                  {"meta": {"name": "H_Equip"}, "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "Equipment", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_IWT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_IWTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_POGT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_DAT"}, "type": "ia.display.label", "position": {"basis": "90px"}, "props": {"text": "DAT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_DATTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
+                  {"meta": {"name": "H_Dev"}, "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "Deviation", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+                ]
+              },
+              {
+                "meta": {"name": "CDALabel"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 36, "width": 460, "height": 24},
+                "props": {"text": "CDA Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+              },
+              {
+                "meta": {"name": "CDARepeater"},
+                "type": "ia.display.flex-repeater",
+                "position": {"x": 0, "y": 60, "width": 960, "height": 400},
+                "props": {"instances": [], "repeatMode": "children", "direction": "column", "style": {}},
+                "propConfig": {
+                  "props.instances": {
+                    "binding": {"type": "property", "config": {"path": "view.custom.CDA.Instances"}}
+                  }
+                },
+                "children": [
+                  {"meta": {"name": "InputParameter"}, "type": "ia.display.view", "position": {"basis": "44px", "shrink": 0}, "props": {"path": "Framework/InputParameter", "params": {}}}
+                ]
+              },
+              {
+                "meta": {"name": "MISCLabel"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 464, "width": 460, "height": 24},
+                "props": {"text": "MISC Equipment", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+              },
+              {
+                "meta": {"name": "MISCRepeater"},
+                "type": "ia.display.flex-repeater",
+                "position": {"x": 0, "y": 488, "width": 960, "height": 400},
+                "props": {"instances": [], "repeatMode": "children", "direction": "column", "style": {}},
+                "propConfig": {
+                  "props.instances": {
+                    "binding": {"type": "property", "config": {"path": "view.custom.MISC.Instances"}}
+                  }
+                },
+                "children": [
+                  {"meta": {"name": "InputParameter"}, "type": "ia.display.view", "position": {"basis": "44px", "shrink": 0}, "props": {"path": "Framework/InputParameter", "params": {}}}
+                ]
+              }
+            ]
+          },
+          {
+            "meta": {"name": "Tab4_Trends"},
+            "type": "ia.container.flex",
+            "props": {
+              "direction": "column",
+              "style": {"width": "100%", "height": "100%", "padding": "12px", "gap": "12px", "backgroundColor": "#F4F6F8"}
+            },
+            "children": [
+              {
+                "meta": {"name": "TrendControls"},
+                "type": "ia.container.flex",
+                "position": {"basis": "48px", "shrink": 0},
+                "props": {
+                  "direction": "row",
+                  "style": {"alignItems": "center", "gap": "8px", "backgroundColor": "#FFFFFF", "padding": "8px 12px", "borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"}
+                },
+                "children": [
+                  {"meta": {"name": "Lbl1M"}, "type": "ia.input.button", "position": {"basis": "60px"}, "props": {"text": "1M", "style": {"fontSize": 12, "backgroundColor": "#E8F5E9", "color": "#2C5F2E", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -1)"}, "scope": "G", "type": "script"}}}},
+                  {"meta": {"name": "Lbl3M"}, "type": "ia.input.button", "position": {"basis": "60px"}, "props": {"text": "3M", "style": {"fontSize": 12, "backgroundColor": "#E8F5E9", "color": "#2C5F2E", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -3)"}, "scope": "G", "type": "script"}}}},
+                  {"meta": {"name": "Lbl6M"}, "type": "ia.input.button", "position": {"basis": "60px"}, "props": {"text": "6M", "style": {"fontSize": 12, "backgroundColor": "#2C5F2E", "color": "#FFF", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -6)"}, "scope": "G", "type": "script"}}}},
+                  {"meta": {"name": "Lbl12M"}, "type": "ia.input.button", "position": {"basis": "60px"}, "props": {"text": "12M", "style": {"fontSize": 12, "backgroundColor": "#E8F5E9", "color": "#2C5F2E", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -12)"}, "scope": "G", "type": "script"}}}},
+                  {"meta": {"name": "Sep1"}, "type": "ia.display.label", "position": {"basis": "20px"}, "props": {"text": "|", "style": {"color": "#CCC"}}},
+                  {"meta": {"name": "StartLbl"}, "type": "ia.display.label", "props": {"text": "From:", "style": {"fontSize": 12, "color": "#555"}}},
+                  {"meta": {"name": "StartDate"}, "type": "ia.input.date-time-input", "position": {"basis": "160px"}, "props": {"pickerType": "date", "dateFormat": "MM/dd/yyyy"}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.trendStartDate"}}}}},
+                  {"meta": {"name": "EndLbl"}, "type": "ia.display.label", "props": {"text": "To:", "style": {"fontSize": 12, "color": "#555"}}},
+                  {"meta": {"name": "EndDate"}, "type": "ia.input.date-time-input", "position": {"basis": "160px"}, "props": {"pickerType": "date", "dateFormat": "MM/dd/yyyy"}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.trendEndDate"}}}}},
+                  {"meta": {"name": "ExportBtn"}, "type": "ia.input.button", "position": {"basis": "120px"}, "props": {"text": "⬇ Export CSV", "style": {"fontSize": 12, "backgroundColor": "#1E5C8E", "color": "#FFF", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "data = self.view.custom.rawHistoryData\nif not data:\n\treturn\nheaders = list(data[0].keys()) if data else []\nrows = []\nfor row in data:\n\trows.append([str(row.get(h,'')) for h in headers])\ncsvText = ','.join(headers) + '\\n'\nfor row in rows:\n\tcsvText += ','.join(row) + '\\n'\nsystem.perspective.download('history_export.csv', csvText.encode('utf-8'), 'text/csv')"}, "scope": "G", "type": "script"}}}}
+                ]
+              },
+              {
+                "meta": {"name": "PowerChart"},
+                "type": "ia.chart.power-chart",
+                "position": {"grow": 1},
+                "props": {
+                  "style": {"borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"}
+                },
+                "propConfig": {
+                  "props.data": {
+                    "binding": {
+                      "type": "property",
+                      "config": {"path": "view.custom.rawHistoryData"}
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {"name": "NotesSectionLabel"},
+                "type": "ia.display.label",
+                "position": {"basis": "28px", "shrink": 0},
+                "props": {"text": "Site Notes", "style": {"fontSize": 14, "fontWeight": "bold", "color": "#2C5F2E"}}
+              },
+              {
+                "meta": {"name": "NotesTable"},
+                "type": "ia.display.table",
+                "position": {"basis": "200px", "shrink": 0},
+                "props": {
+                  "style": {"borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"},
+                  "columns": [
+                    {"field": "noteDate", "header": "Date", "width": 120},
+                    {"field": "noteText", "header": "Note", "width": 600},
+                    {"field": "createdBy", "header": "By", "width": 150}
+                  ]
+                },
+                "propConfig": {
+                  "props.data": {
+                    "binding": {
+                      "type": "property",
+                      "config": {"path": "view.custom.notesData"}
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "meta": {"name": "Tab5_Baseline"},
+            "type": "ia.container.coord",
+            "props": {
+              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "padding": "20px"}
+            },
+            "children": [
+              {
+                "meta": {"name": "BaselineTitle"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 0, "width": 600, "height": 28},
+                "props": {"text": "Seasonal Baseline Approach Temperature (°F)", "style": {"fontSize": 16, "fontWeight": "bold", "color": "#2C5F2E"}}
+              },
+              {
+                "meta": {"name": "BaselineDesc"},
+                "type": "ia.display.label",
+                "position": {"x": 0, "y": 32, "width": 700, "height": 20},
+                "props": {"text": "Enter the target approach temperature for each month. Used to contextualize seasonal performance.", "style": {"fontSize": 12, "color": "#777"}}
+              },
+              {
+                "meta": {"name": "JanRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 70, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "January", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['1']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['1']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "FebRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 114, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "February", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['2']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['2']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "MarRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 158, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "March", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['3']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['3']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "AprRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 202, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "April", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['4']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['4']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "MayRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 246, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "May", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['5']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['5']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "JunRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 0, "y": 290, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "June", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['6']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['6']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "JulRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 360, "y": 70, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "July", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['7']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['7']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "AugRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 360, "y": 114, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "August", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['8']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['8']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "SepRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 360, "y": 158, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "September", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['9']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['9']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "OctRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 360, "y": 202, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "October", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['10']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['10']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "NovRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 360, "y": 246, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "November", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['11']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['11']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "DecRow"},
+                "type": "ia.container.flex",
+                "position": {"x": 360, "y": 290, "width": 340, "height": 40},
+                "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
+                "children": [
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "December", "style": {"fontSize": 13, "fontWeight": "600"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['12']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['12']}) + ' °F')"}}}}}
+                ]
+              },
+              {
+                "meta": {"name": "SaveBaselineBtn"},
+                "type": "ia.input.button",
+                "position": {"x": 0, "y": 350, "width": 200, "height": 36},
+                "props": {
+                  "text": "Save Seasonal Baselines",
+                  "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "4px"}
+                },
+                "events": {
+                  "component": {
+                    "onActionPerformed": {
+                      "config": {
+                        "script": "siteId = self.view.params.siteId\nif not siteId:\n\treturn\nmonthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']\nmonthRows = ['JanRow','FebRow','MarRow','AprRow','MayRow','JunRow','JulRow','AugRow','SepRow','OctRow','NovRow','DecRow']\nfor i, rowName in enumerate(monthRows):\n\tmonthNum = i + 1\n\ttry:\n\t\tval = self.getSibling(rowName).getChild('Input').props.value\n\texcept:\n\t\tval = None\n\tif val is not None:\n\t\tsystem.db.runNamedQuery(\n\t\t\tproject='Cooling_Tower_Approach_Temps',\n\t\t\tpath='coolingTowerData/upsertSeasonalBaseline',\n\t\t\tparameters={'siteId': siteId, 'month': monthNum, 'baselineDAT': val}\n\t\t)\nsystem.perspective.openPopup('baselineOK', 'Framework/SuccessPopup', params={'message': 'Seasonal baselines saved.'})"
+                      },
+                      "scope": "G",
+                      "type": "script"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "meta": {"name": "Tab6_History"},
+            "type": "ia.container.flex",
+            "props": {
+              "direction": "column",
+              "style": {"width": "100%", "height": "100%", "padding": "16px", "gap": "16px", "backgroundColor": "#F4F6F8"}
+            },
+            "children": [
+              {
+                "meta": {"name": "TargetHistTitle"},
+                "type": "ia.display.label",
+                "position": {"basis": "28px", "shrink": 0},
+                "props": {"text": "Target Change History", "style": {"fontSize": 15, "fontWeight": "bold", "color": "#2C5F2E"}}
+              },
+              {
+                "meta": {"name": "TargetHistTable"},
+                "type": "ia.display.table",
+                "position": {"grow": 1},
+                "props": {
+                  "style": {"borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"},
+                  "columns": [
+                    {"field": "changedAt",              "header": "Changed At",       "width": 160},
+                    {"field": "changedBy",              "header": "Changed By",       "width": 140},
+                    {"field": "equipmentName",          "header": "Equipment",        "width": 180},
+                    {"field": "approachTempTarget",     "header": "Approach Target",  "width": 130},
+                    {"field": "incomingWaterTempTarget","header": "IWT Target",       "width": 120},
+                    {"field": "processGasOutTempTarget","header": "POGT Target",      "width": 120}
+                  ]
+                },
+                "propConfig": {
+                  "props.data": {
+                    "binding": {
+                      "type": "query",
+                      "config": {
+                        "queryPath": "coolingTowerData/getTargetHistory",
+                        "parameters": {"siteId": "{view.params.siteId}"},
+                        "polling": {"enabled": false, "rate": 0}
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {"name": "CompletenessTitle"},
+                "type": "ia.display.label",
+                "position": {"basis": "28px", "shrink": 0},
+                "props": {"text": "Monthly Submission Completeness", "style": {"fontSize": 15, "fontWeight": "bold", "color": "#2C5F2E"}}
+              },
+              {
+                "meta": {"name": "CompletenessTable"},
+                "type": "ia.display.table",
+                "position": {"grow": 1},
+                "props": {
+                  "style": {"borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"},
+                  "columns": [
+                    {"field": "yr",                 "header": "Year",         "width": 80},
+                    {"field": "mo",                 "header": "Month",        "width": 80},
+                    {"field": "equipSubmitted",     "header": "Units Submitted","width": 140},
+                    {"field": "completenessPercent","header": "Completeness %","width": 140}
+                  ]
+                },
+                "propConfig": {
+                  "props.data": {
+                    "binding": {
+                      "type": "query",
+                      "config": {
+                        "queryPath": "coolingTowerData/getDataCompletenessHistory",
+                        "parameters": {"siteId": "{view.params.siteId}"},
+                        "polling": {"enabled": false, "rate": 0}
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

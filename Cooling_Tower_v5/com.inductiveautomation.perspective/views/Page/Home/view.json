@@ -1,0 +1,341 @@
+{
+  "custom": {
+    "countOutOfSpec": 0,
+    "countWarning": 0,
+    "countStale": 0,
+    "totalSites": 0
+  },
+  "params": {},
+  "propConfig": {
+    "custom.countOutOfSpec": {
+      "persistent": false,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tif (row.get('worstDev', 0) or 0) > 10:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.countWarning": {
+      "persistent": false,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tdev = row.get('worstDev', 0) or 0\n\tif dev > 5 and dev <= 10:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.countStale": {
+      "persistent": false,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tdays = row.get('daysSince', None)\n\tif days is None or days > 30:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.totalSites": {
+      "persistent": false,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "return len(value) if value else 0"
+            }
+          }
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {"width": 1200, "height": 900}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "width": "100%",
+        "height": "100%",
+        "backgroundColor": "#F4F6F8",
+        "padding": "32px 48px",
+        "gap": "24px"
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "MainTitle"},
+        "type": "ia.display.label",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "text": "Cooling Tower Approach Temperature Tool",
+          "style": {"fontSize": 28, "fontWeight": "bold", "color": "#2C5F2E"}
+        }
+      },
+      {
+        "meta": {"name": "Subtitle"},
+        "type": "ia.display.label",
+        "position": {"basis": "24px", "shrink": 0},
+        "props": {
+          "text": "Fleet-wide monitoring · 8 Regions · 38 Sites",
+          "style": {"fontSize": 14, "color": "#888888"}
+        }
+      },
+      {
+        "meta": {"name": "KPIRow"},
+        "type": "ia.container.flex",
+        "position": {"basis": "100px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"gap": "16px", "alignItems": "stretch"}
+        },
+        "children": [
+          {
+            "meta": {"name": "TotalCard"},
+            "type": "ia.container.flex",
+            "position": {"basis": "220px"},
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "borderRadius": "10px",
+                "padding": "16px 20px",
+                "boxShadow": "0 2px 8px rgba(0,0,0,0.08)",
+                "borderLeft": "5px solid #2C5F2E",
+                "justifyContent": "center"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Num"},
+                "type": "ia.display.label",
+                "props": {"style": {"fontSize": 36, "fontWeight": "bold", "color": "#2C5F2E"}},
+                "propConfig": {"props.text": {"binding": {"type": "property", "config": {"path": "view.custom.totalSites"}}}}
+              },
+              {"meta": {"name": "Lbl"}, "type": "ia.display.label", "props": {"text": "Total Sites", "style": {"fontSize": 13, "color": "#777"}}}
+            ]
+          },
+          {
+            "meta": {"name": "OutOfSpecCard"},
+            "type": "ia.container.flex",
+            "position": {"basis": "220px"},
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "borderRadius": "10px",
+                "padding": "16px 20px",
+                "boxShadow": "0 2px 8px rgba(0,0,0,0.08)",
+                "borderLeft": "5px solid #FF4444",
+                "justifyContent": "center"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Num"},
+                "type": "ia.display.label",
+                "props": {"style": {"fontSize": 36, "fontWeight": "bold", "color": "#FF4444"}},
+                "propConfig": {"props.text": {"binding": {"type": "property", "config": {"path": "view.custom.countOutOfSpec"}}}}
+              },
+              {"meta": {"name": "Lbl"}, "type": "ia.display.label", "props": {"text": "Out of Spec", "style": {"fontSize": 13, "color": "#777"}}}
+            ]
+          },
+          {
+            "meta": {"name": "WarningCard"},
+            "type": "ia.container.flex",
+            "position": {"basis": "220px"},
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "borderRadius": "10px",
+                "padding": "16px 20px",
+                "boxShadow": "0 2px 8px rgba(0,0,0,0.08)",
+                "borderLeft": "5px solid #FFD700",
+                "justifyContent": "center"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Num"},
+                "type": "ia.display.label",
+                "props": {"style": {"fontSize": 36, "fontWeight": "bold", "color": "#B8860B"}},
+                "propConfig": {"props.text": {"binding": {"type": "property", "config": {"path": "view.custom.countWarning"}}}}
+              },
+              {"meta": {"name": "Lbl"}, "type": "ia.display.label", "props": {"text": "Warning", "style": {"fontSize": 13, "color": "#777"}}}
+            ]
+          },
+          {
+            "meta": {"name": "StaleCard"},
+            "type": "ia.container.flex",
+            "position": {"basis": "220px"},
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "borderRadius": "10px",
+                "padding": "16px 20px",
+                "boxShadow": "0 2px 8px rgba(0,0,0,0.08)",
+                "borderLeft": "5px solid #AAAAAA",
+                "justifyContent": "center"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Num"},
+                "type": "ia.display.label",
+                "props": {"style": {"fontSize": 36, "fontWeight": "bold", "color": "#888888"}},
+                "propConfig": {"props.text": {"binding": {"type": "property", "config": {"path": "view.custom.countStale"}}}}
+              },
+              {"meta": {"name": "Lbl"}, "type": "ia.display.label", "props": {"text": "Stale (>30 days)", "style": {"fontSize": 13, "color": "#777"}}}
+            ]
+          }
+        ]
+      },
+      {
+        "meta": {"name": "RegionNavLabel"},
+        "type": "ia.display.label",
+        "position": {"basis": "28px", "shrink": 0},
+        "props": {
+          "text": "NAVIGATE BY REGION",
+          "style": {"fontSize": 13, "fontWeight": "bold", "color": "#555555", "letterSpacing": "1px"}
+        }
+      },
+      {
+        "meta": {"name": "RegionRow1"},
+        "type": "ia.container.flex",
+        "position": {"basis": "52px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"gap": "12px", "alignItems": "center"}
+        },
+        "children": [
+          {
+            "meta": {"name": "BtnCentral"},
+            "type": "ia.input.button",
+            "position": {"basis": "190px"},
+            "props": {"text": "Central Region", "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "6px", "height": "44px"}},
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Central Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnEast"},
+            "type": "ia.input.button",
+            "position": {"basis": "190px"},
+            "props": {"text": "East Region", "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "6px", "height": "44px"}},
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'East Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnMidwest"},
+            "type": "ia.input.button",
+            "position": {"basis": "190px"},
+            "props": {"text": "Midwest Region", "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "6px", "height": "44px"}},
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Midwest Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnNorth"},
+            "type": "ia.input.button",
+            "position": {"basis": "190px"},
+            "props": {"text": "North Region", "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "6px", "height": "44px"}},
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'North Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          }
+        ]
+      },
+      {
+        "meta": {"name": "RegionRow2"},
+        "type": "ia.container.flex",
+        "position": {"basis": "52px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"gap": "12px", "alignItems": "center"}
+        },
+        "children": [
+          {
+            "meta": {"name": "BtnNortheast"},
+            "type": "ia.input.button",
+            "position": {"basis": "190px"},
+            "props": {"text": "Northeast Region", "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "6px", "height": "44px"}},
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Northeast Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnSouth"},
+            "type": "ia.input.button",
+            "position": {"basis": "190px"},
+            "props": {"text": "South Region", "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "6px", "height": "44px"}},
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'South Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnSoutheast"},
+            "type": "ia.input.button",
+            "position": {"basis": "190px"},
+            "props": {"text": "Southeast Region", "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "6px", "height": "44px"}},
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Southeast Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnSouthwest"},
+            "type": "ia.input.button",
+            "position": {"basis": "190px"},
+            "props": {"text": "Southwest Region", "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "6px", "height": "44px"}},
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Southwest Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          }
+        ]
+      },
+      {
+        "meta": {"name": "FleetDashBtn"},
+        "type": "ia.input.button",
+        "position": {"basis": "44px", "shrink": 0},
+        "props": {
+          "text": "View Full Fleet Dashboard →",
+          "style": {
+            "backgroundColor": "#1E5C8E",
+            "color": "#FFFFFF",
+            "fontSize": 14,
+            "fontWeight": "bold",
+            "borderRadius": "6px",
+            "maxWidth": "260px"
+          }
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {
+                "script": "system.perspective.navigate(page='/fleet')"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
