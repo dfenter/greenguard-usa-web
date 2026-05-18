@@ -11,34 +11,40 @@
     "equipment": 0
   },
   "propConfig": {
-    "params.siteId":      { "paramDirection": "input", "persistent": true },
-    "params.siteName":    { "paramDirection": "input", "persistent": true },
-    "params.region":      { "paramDirection": "input", "persistent": true },
-    "params.lastEntry":   { "paramDirection": "input", "persistent": true },
-    "params.daysSince":   { "paramDirection": "input", "persistent": true },
-    "params.worstDev":    { "paramDirection": "input", "persistent": true },
-    "params.completeness":{ "paramDirection": "input", "persistent": true },
-    "params.equipment":   { "paramDirection": "input", "persistent": true }
+    "params.siteId":       { "paramDirection": "input", "persistent": true },
+    "params.siteName":     { "paramDirection": "input", "persistent": true },
+    "params.region":       { "paramDirection": "input", "persistent": true },
+    "params.lastEntry":    { "paramDirection": "input", "persistent": true },
+    "params.daysSince":    { "paramDirection": "input", "persistent": true },
+    "params.worstDev":     { "paramDirection": "input", "persistent": true },
+    "params.completeness": { "paramDirection": "input", "persistent": true },
+    "params.equipment":    { "paramDirection": "input", "persistent": true }
   },
-  "props": { "defaultSize": { "width": 220, "height": 110 } },
+  "props": {
+    "defaultSize": { "width": 230, "height": 120 }
+  },
   "root": {
     "meta": { "name": "root" },
     "type": "ia.container.flex",
     "props": {
       "direction": "column",
       "style": {
+        "gap": "6px",
         "backgroundColor": "#FFFFFF",
         "borderRadius": "8px",
-        "padding": "12px 14px",
-        "boxShadow": "0 2px 6px rgba(0,0,0,0.08)",
+        "border": "1px solid #E2E8F0",
+        "padding": "12px 16px",
+        "boxShadow": "0 1px 3px rgba(0,0,0,0.08)",
         "cursor": "pointer",
-        "gap": "6px"
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
       }
     },
     "propConfig": {
       "props.style.borderLeft": {
         "binding": {
-          "config": { "expression": "if({view.params.daysSince} > 30, \"5px solid #AAAAAA\", if({view.params.worstDev} > 10, \"5px solid #FF4444\", if({view.params.worstDev} > 5, \"5px solid #FFD700\", \"5px solid #70AD47\")))" },
+          "config": {
+            "expression": "if({view.params.daysSince} > 30, \"5px solid #94A3B8\", if({view.params.worstDev} > 10, \"5px solid #DC2626\", if({view.params.worstDev} > 5, \"5px solid #F59E0B\", \"5px solid #16A34A\")))"
+          },
           "type": "expr"
         }
       }
@@ -49,74 +55,111 @@
           "config": {
             "script": "\tself.session.custom.currentSite     = self.view.params.siteId\n\tself.session.custom.currentSiteName = self.view.params.siteName\n"
           },
-          "scope": "G", "type": "script"
+          "scope": "G",
+          "type": "script"
         }
       }
     },
     "children": [
       {
         "meta": { "name": "SiteName" },
-        "props": { "style": { "fontSize": 14, "fontWeight": "bold", "color": "#1A1A1A" } },
-        "propConfig": { "props.text": { "binding": { "config": { "path": "view.params.siteName" }, "type": "property" } } },
-        "type": "ia.display.label"
+        "position": { "basis": "24px", "shrink": 0 },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 14,
+            "fontWeight": "700",
+            "color": "#0F172A"
+          }
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": { "path": "view.params.siteName" },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": { "name": "StatusBadge" },
         "position": { "basis": "24px", "shrink": 0 },
-        "props": { "style": { "fontSize": 11, "fontWeight": "bold", "borderRadius": "4px", "padding": "2px 8px", "textAlign": "center", "maxWidth": "150px" } },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 11,
+            "fontWeight": "700",
+            "borderRadius": "4px",
+            "padding": "2px 10px",
+            "maxWidth": "160px",
+            "color": "#FFFFFF"
+          }
+        },
         "propConfig": {
           "props.text": {
             "binding": {
-              "config": { "expression": "if({view.params.daysSince} > 30, \"🕐 STALE\", if({view.params.worstDev} > 10, \"⚠ OUT OF SPEC\", if({view.params.worstDev} > 5, \"⚠ WARNING\", \"✓ IN SPEC\")))" },
+              "config": {
+                "expression": "if({view.params.daysSince} > 30, \"🕐 STALE\", if({view.params.worstDev} > 10, \"⚠ OUT OF SPEC\", if({view.params.worstDev} > 5, \"⚠ WARNING\", \"✓ IN SPEC\")))"
+              },
               "type": "expr"
             }
           },
           "props.style.backgroundColor": {
             "binding": {
-              "config": { "expression": "if({view.params.daysSince} > 30, \"#CCCCCC\", if({view.params.worstDev} > 10, \"#FF4444\", if({view.params.worstDev} > 5, \"#FFD700\", \"#70AD47\")))" },
-              "type": "expr"
-            }
-          },
-          "props.style.color": {
-            "binding": {
-              "config": { "expression": "if({view.params.daysSince} > 30, \"#555\", if({view.params.worstDev} > 10, \"#FFF\", if({view.params.worstDev} > 5, \"#333\", \"#FFF\")))" },
+              "config": {
+                "expression": "if({view.params.daysSince} > 30, \"#94A3B8\", if({view.params.worstDev} > 10, \"#DC2626\", if({view.params.worstDev} > 5, \"#F59E0B\", \"#16A34A\")))"
+              },
               "type": "expr"
             }
           }
-        },
-        "type": "ia.display.label"
+        }
       },
       {
         "meta": { "name": "LastEntry" },
-        "props": { "style": { "fontSize": 11, "color": "#888" } },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 11,
+            "color": "#64748B"
+          }
+        },
         "propConfig": {
           "props.text": {
             "binding": {
-              "config": { "expression": "\"Last: \" + {view.params.lastEntry} + \" (\" + if({view.params.daysSince} < 9999, toString({view.params.daysSince}) + \"d\", \"never\") + \")\"" },
+              "config": {
+                "expression": "\"Last: \" + {view.params.lastEntry}"
+              },
               "type": "expr"
             }
           }
-        },
-        "type": "ia.display.label"
+        }
       },
       {
         "meta": { "name": "Completeness" },
-        "props": { "style": { "fontSize": 11 } },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 11
+          }
+        },
         "propConfig": {
           "props.text": {
             "binding": {
-              "config": { "expression": "toString({view.params.completeness}) + \"% complete · \" + toString({view.params.equipment}) + \" units\"" },
+              "config": {
+                "expression": "toString({view.params.completeness}) + \"% · \" + toString({view.params.equipment}) + \" units\""
+              },
               "type": "expr"
             }
           },
           "props.style.color": {
             "binding": {
-              "config": { "expression": "if({view.params.completeness} < 50, \"#CC0000\", if({view.params.completeness} < 80, \"#B8860B\", \"#2E7D32\"))" },
+              "config": {
+                "expression": "if({view.params.completeness} < 50, \"#DC2626\", if({view.params.completeness} < 80, \"#D97706\", \"#16A34A\"))"
+              },
               "type": "expr"
             }
           }
-        },
-        "type": "ia.display.label"
+        }
       }
     ]
   }

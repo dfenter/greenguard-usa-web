@@ -11,27 +11,49 @@
     "props": {
       "direction": "column",
       "style": {
-        "width": "100%",
+        "backgroundColor": "#172617",
         "height": "100%",
-        "backgroundColor": "#1A2E1A",
-        "overflowY": "auto"
+        "overflow": "hidden",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
       }
     },
     "children": [
       {
-        "meta": {"name": "AppTitle"},
-        "type": "ia.display.label",
-        "position": {"basis": "52px", "shrink": 0},
+        "meta": {"name": "LogoBar"},
+        "type": "ia.container.flex",
+        "position": {"basis": "64px", "shrink": 0},
         "props": {
-          "text": "Cooling Tower Monitor",
+          "direction": "row",
           "style": {
-            "fontSize": 13,
-            "fontWeight": "bold",
-            "color": "#AADDAA",
-            "padding": "16px 16px 10px 16px",
-            "borderBottom": "1px solid #2C4A2C"
+            "alignItems": "center",
+            "padding": "0 16px",
+            "gap": "10px",
+            "borderBottom": "1px solid rgba(255,255,255,0.08)"
           }
-        }
+        },
+        "children": [
+          {
+            "meta": {"name": "Logo"},
+            "type": "ia.display.label",
+            "props": {"text": "🌿", "style": {"fontSize": 24}}
+          },
+          {
+            "meta": {"name": "AppName"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "Cooling Tower",
+              "style": {"fontSize": 14, "fontWeight": "700", "color": "#FFFFFF"}
+            }
+          },
+          {
+            "meta": {"name": "Version"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "v5",
+              "style": {"fontSize": 11, "color": "#6B9E6B"}
+            }
+          }
+        ]
       },
       {
         "meta": {"name": "NavOverview"},
@@ -39,28 +61,20 @@
         "position": {"basis": "44px", "shrink": 0},
         "props": {
           "direction": "row",
-          "style": {
-            "alignItems": "center",
-            "padding": "0 16px",
-            "gap": "10px",
-            "cursor": "pointer",
-            "backgroundColor": "transparent"
-          }
+          "style": {"alignItems": "center", "padding": "0 16px", "gap": "10px", "cursor": "pointer"}
         },
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "system.perspective.navigate(page='/overview')"
-              },
+              "config": {"script": "system.perspective.navigate(page='/overview')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "⌂", "style": {"fontSize": 16, "color": "#AADDAA", "width": "20px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Overview", "style": {"fontSize": 13, "color": "#DDDDDD"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "⌂", "style": {"fontSize": 16, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Overview", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -74,17 +88,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "system.perspective.navigate(page='/fleet')"
-              },
+              "config": {"script": "system.perspective.navigate(page='/fleet')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "▦", "style": {"fontSize": 16, "color": "#AADDAA", "width": "20px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Fleet Dashboard", "style": {"fontSize": 13, "color": "#DDDDDD"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "▦", "style": {"fontSize": 16, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Fleet Dashboard", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -92,13 +104,12 @@
         "type": "ia.display.label",
         "position": {"basis": "28px", "shrink": 0},
         "props": {
-          "text": "REGIONS",
+          "text": "─ REGIONS ─",
           "style": {
             "fontSize": 10,
-            "fontWeight": "bold",
-            "color": "#6A8A6A",
-            "padding": "8px 16px 2px 16px",
-            "letterSpacing": "2px"
+            "color": "#6B9E6B",
+            "letterSpacing": "1px",
+            "padding": "8px 16px 2px 16px"
           }
         }
       },
@@ -113,17 +124,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "self.session.custom.currentRegion = 'Central Region'\nsystem.perspective.navigate(page='/region')"
-              },
+              "config": {"script": "self.session.custom.currentRegion = 'Central Region'\nsystem.perspective.navigate(page='/region')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#AADDAA", "width": "18px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Central", "style": {"fontSize": 13, "color": "#CCCCCC"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Central Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -137,17 +146,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "self.session.custom.currentRegion = 'East Region'\nsystem.perspective.navigate(page='/region')"
-              },
+              "config": {"script": "self.session.custom.currentRegion = 'East Region'\nsystem.perspective.navigate(page='/region')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#AADDAA", "width": "18px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "East", "style": {"fontSize": 13, "color": "#CCCCCC"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "East Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -161,17 +168,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "self.session.custom.currentRegion = 'Midwest Region'\nsystem.perspective.navigate(page='/region')"
-              },
+              "config": {"script": "self.session.custom.currentRegion = 'Midwest Region'\nsystem.perspective.navigate(page='/region')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#AADDAA", "width": "18px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Midwest", "style": {"fontSize": 13, "color": "#CCCCCC"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Midwest Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -185,17 +190,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "self.session.custom.currentRegion = 'North Region'\nsystem.perspective.navigate(page='/region')"
-              },
+              "config": {"script": "self.session.custom.currentRegion = 'North Region'\nsystem.perspective.navigate(page='/region')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#AADDAA", "width": "18px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "North", "style": {"fontSize": 13, "color": "#CCCCCC"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "North Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -209,17 +212,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "self.session.custom.currentRegion = 'Northeast Region'\nsystem.perspective.navigate(page='/region')"
-              },
+              "config": {"script": "self.session.custom.currentRegion = 'Northeast Region'\nsystem.perspective.navigate(page='/region')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#AADDAA", "width": "18px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Northeast", "style": {"fontSize": 13, "color": "#CCCCCC"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Northeast Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -233,17 +234,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "self.session.custom.currentRegion = 'South Region'\nsystem.perspective.navigate(page='/region')"
-              },
+              "config": {"script": "self.session.custom.currentRegion = 'South Region'\nsystem.perspective.navigate(page='/region')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#AADDAA", "width": "18px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "South", "style": {"fontSize": 13, "color": "#CCCCCC"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "South Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -257,17 +256,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "self.session.custom.currentRegion = 'Southeast Region'\nsystem.perspective.navigate(page='/region')"
-              },
+              "config": {"script": "self.session.custom.currentRegion = 'Southeast Region'\nsystem.perspective.navigate(page='/region')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#AADDAA", "width": "18px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Southeast", "style": {"fontSize": 13, "color": "#CCCCCC"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Southeast Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -281,28 +278,28 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "self.session.custom.currentRegion = 'Southwest Region'\nsystem.perspective.navigate(page='/region')"
-              },
+              "config": {"script": "self.session.custom.currentRegion = 'Southwest Region'\nsystem.perspective.navigate(page='/region')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#AADDAA", "width": "18px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Southwest", "style": {"fontSize": 13, "color": "#CCCCCC"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "◉", "style": {"fontSize": 13, "color": "#6B9E6B", "width": "18px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Southwest Region", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
-        "meta": {"name": "Sep2"},
+        "meta": {"name": "SepAdmin"},
         "type": "ia.display.label",
-        "position": {"basis": "20px", "shrink": 0},
+        "position": {"basis": "28px", "shrink": 0},
         "props": {
-          "text": "",
+          "text": "─ ADMIN ─",
           "style": {
-            "borderBottom": "1px solid #2C4A2C",
-            "margin": "4px 16px"
+            "fontSize": 10,
+            "color": "#6B9E6B",
+            "letterSpacing": "1px",
+            "padding": "8px 16px 2px 16px"
           }
         }
       },
@@ -317,17 +314,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "system.perspective.openPopup('config', 'Page/Configuration', params={}, modal=True)"
-              },
+              "config": {"script": "system.perspective.openPopup('config', 'Page/Configuration', params={}, width=700, height=760, modal=True)"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "⚙", "style": {"fontSize": 16, "color": "#AADDAA", "width": "20px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Config", "style": {"fontSize": 13, "color": "#DDDDDD"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "⚙", "style": {"fontSize": 16, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Config", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -341,17 +336,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "system.perspective.navigate(page='/region-admin')"
-              },
+              "config": {"script": "system.perspective.navigate(page='/region-admin')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "🛡", "style": {"fontSize": 15, "color": "#AADDAA", "width": "20px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Region Admin", "style": {"fontSize": 13, "color": "#DDDDDD"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "🛡", "style": {"fontSize": 15, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "Region Admin", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -365,17 +358,15 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "system.perspective.navigate(page='/new-site')"
-              },
+              "config": {"script": "system.perspective.navigate(page='/new-site')"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "+", "style": {"fontSize": 18, "color": "#AADDAA", "width": "20px", "fontWeight": "bold"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "New Site", "style": {"fontSize": 13, "color": "#DDDDDD"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "+", "style": {"fontSize": 18, "color": "#6B9E6B", "width": "20px", "fontWeight": "700"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "New Site", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
         ]
       },
       {
@@ -389,17 +380,54 @@
         "events": {
           "component": {
             "onActionPerformed": {
-              "config": {
-                "script": "system.perspective.openPopup('addFeedback', 'User Feedback/Add Feedback', params={}, modal=True)"
-              },
+              "config": {"script": "system.perspective.openPopup('feedback', 'User Feedback/Add Feedback', params={}, width=560, height=360)"},
               "scope": "G",
               "type": "script"
             }
           }
         },
         "children": [
-          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "✉", "style": {"fontSize": 15, "color": "#AADDAA", "width": "20px"}}},
-          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "User Feedback", "style": {"fontSize": 13, "color": "#DDDDDD"}}}
+          {"meta": {"name": "Icon"}, "type": "ia.display.label", "props": {"text": "✉", "style": {"fontSize": 15, "color": "#6B9E6B", "width": "20px"}}},
+          {"meta": {"name": "Lbl"},  "type": "ia.display.label", "props": {"text": "User Feedback", "style": {"fontSize": 14, "color": "#FFFFFF"}}}
+        ]
+      },
+      {
+        "meta": {"name": "Spacer"},
+        "type": "ia.display.label",
+        "position": {"grow": 1},
+        "props": {"text": ""}
+      },
+      {
+        "meta": {"name": "FooterBar"},
+        "type": "ia.container.flex",
+        "position": {"basis": "48px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "padding": "0 16px",
+            "borderTop": "1px solid rgba(255,255,255,0.08)",
+            "gap": "8px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "BrandLabel"},
+            "type": "ia.display.label",
+            "position": {"grow": 1},
+            "props": {
+              "text": "GreenGuard Industrial",
+              "style": {"fontSize": 11, "color": "#6B9E6B"}
+            }
+          },
+          {
+            "meta": {"name": "VersionLabel"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "DS v1.0",
+              "style": {"fontSize": 10, "color": "#4A7A4A"}
+            }
+          }
         ]
       }
     ]

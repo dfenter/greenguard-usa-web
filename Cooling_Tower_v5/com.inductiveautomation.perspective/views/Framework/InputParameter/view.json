@@ -15,7 +15,7 @@
     "previousPOGT": null
   },
   "propConfig": {
-    "params.id":                     { "paramDirection": "input", "persistent": true },
+    "params.id":                      { "paramDirection": "input", "persistent": true },
     "params.siteId":                  { "paramDirection": "input", "persistent": true },
     "params.parameter":               { "paramDirection": "input", "persistent": true },
     "params.altEquipmentName":        { "paramDirection": "input", "persistent": true },
@@ -28,24 +28,29 @@
     "params.previousIWT":             { "paramDirection": "input", "persistent": true },
     "params.previousPOGT":            { "paramDirection": "input", "persistent": true }
   },
-  "props": { "defaultSize": { "width": 960, "height": 44 } },
+  "props": {
+    "defaultSize": { "width": 960, "height": 44 }
+  },
   "root": {
     "meta": { "name": "root" },
     "type": "ia.container.flex",
     "props": {
       "direction": "row",
       "style": {
-        "alignItems": "center",
-        "borderBottom": "1px solid #E8E8E8",
-        "padding": "4px 8px",
         "height": "44px",
-        "backgroundColor": "#FFFFFF"
+        "alignItems": "center",
+        "borderBottom": "1px solid #E2E8F0",
+        "padding": "0 10px",
+        "backgroundColor": "#FFFFFF",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
       }
     },
     "propConfig": {
       "props.style.backgroundColor": {
         "binding": {
-          "config": { "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null and abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#FFF5F5\", \"#FFFFFF\")" },
+          "config": {
+            "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null and abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#FEF2F2\", if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null and abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#FFFBEB\", \"#FFFFFF\"))"
+          },
           "type": "expr"
         }
       }
@@ -54,117 +59,193 @@
       {
         "meta": { "name": "EquipName" },
         "position": { "basis": "200px", "shrink": 0 },
-        "props": { "style": { "fontSize": 13, "fontWeight": "bold", "color": "#222" } },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "fontWeight": "600",
+            "color": "#0F172A",
+            "overflow": "hidden"
+          }
+        },
         "propConfig": {
           "props.text": {
             "binding": {
-              "config": { "expression": "if({view.params.altEquipmentName} != \"\", {view.params.altEquipmentName}, {view.params.parameter})" },
+              "config": {
+                "expression": "if({view.params.altEquipmentName} != \"\", {view.params.altEquipmentName}, {view.params.parameter})"
+              },
               "type": "expr"
             }
           }
-        },
-        "type": "ia.display.label"
+        }
       },
       {
         "meta": { "name": "IWTActual" },
-        "position": { "basis": "100px", "shrink": 0 },
-        "propConfig": {
-          "props.value": {
-            "binding": { "config": { "bidirectional": true, "path": "view.params.designIncomingWaterTempF" }, "type": "property" }
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "IWT °F",
+          "style": {
+            "fontSize": 13
           }
         },
-        "props": { "placeholder": "IWT °F", "style": { "fontSize": 13 } },
-        "type": "ia.input.numeric-entry-field"
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.designIncomingWaterTempF" },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": { "name": "IWTTarget" },
-        "position": { "basis": "100px", "shrink": 0 },
-        "propConfig": {
-          "props.value": {
-            "binding": { "config": { "bidirectional": true, "path": "view.params.incomingWaterTempTarget" }, "type": "property" }
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "IWT Tgt",
+          "style": {
+            "fontSize": 12,
+            "color": "#64748B"
           }
         },
-        "props": { "placeholder": "IWT Tgt", "style": { "fontSize": 13, "color": "#777" } },
-        "type": "ia.input.numeric-entry-field"
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.incomingWaterTempTarget" },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": { "name": "POGTActual" },
-        "position": { "basis": "100px", "shrink": 0 },
-        "propConfig": {
-          "props.value": {
-            "binding": { "config": { "bidirectional": true, "path": "view.params.processGasOutTempF" }, "type": "property" }
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "POGT °F",
+          "style": {
+            "fontSize": 13
           }
         },
-        "props": { "placeholder": "POGT °F", "style": { "fontSize": 13 } },
-        "type": "ia.input.numeric-entry-field"
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.processGasOutTempF" },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": { "name": "POGTTarget" },
-        "position": { "basis": "100px", "shrink": 0 },
-        "propConfig": {
-          "props.value": {
-            "binding": { "config": { "bidirectional": true, "path": "view.params.processGasOutTempTarget" }, "type": "property" }
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "POGT Tgt",
+          "style": {
+            "fontSize": 12,
+            "color": "#64748B"
           }
         },
-        "props": { "placeholder": "POGT Tgt", "style": { "fontSize": 13, "color": "#777" } },
-        "type": "ia.input.numeric-entry-field"
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.processGasOutTempTarget" },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": { "name": "DATActual" },
-        "position": { "basis": "90px", "shrink": 0 },
-        "props": { "style": { "fontSize": 13, "fontWeight": "bold", "textAlign": "center" } },
+        "position": { "basis": "88px", "shrink": 0 },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 14,
+            "fontWeight": "700",
+            "textAlign": "center"
+          }
+        },
         "propConfig": {
           "props.text": {
             "binding": {
-              "config": { "expression": "if({view.params.designApproachTempF} is not null, toString(round({view.params.designApproachTempF}, 2)) + \" °F\", \"—\")" },
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null, toString(round({view.params.designApproachTempF}, 1)) + \" °F\", \"—\")"
+              },
               "type": "expr"
             }
           },
           "props.style.color": {
             "binding": {
-              "config": { "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#CC0000\", if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#B8860B\", \"#2E7D32\")), \"#555555\")" },
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#DC2626\", if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#D97706\", \"#16A34A\")), \"#64748B\")"
+              },
               "type": "expr"
             }
           }
-        },
-        "type": "ia.display.label"
+        }
       },
       {
         "meta": { "name": "DATTarget" },
-        "position": { "basis": "100px", "shrink": 0 },
-        "propConfig": {
-          "props.value": {
-            "binding": { "config": { "bidirectional": true, "path": "view.params.approachTempTarget" }, "type": "property" }
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "DAT Tgt",
+          "style": {
+            "fontSize": 12,
+            "color": "#64748B"
           }
         },
-        "props": { "placeholder": "DAT Tgt", "style": { "fontSize": 13, "color": "#777" } },
-        "type": "ia.input.numeric-entry-field"
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.approachTempTarget" },
+              "type": "property"
+            }
+          }
+        }
       },
       {
         "meta": { "name": "DevBadge" },
-        "position": { "basis": "110px", "shrink": 0 },
-        "props": { "style": { "fontSize": 11, "fontWeight": "bold", "borderRadius": "4px", "padding": "2px 6px", "textAlign": "center" } },
+        "position": { "basis": "100px", "shrink": 0 },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 11,
+            "fontWeight": "700",
+            "borderRadius": "4px",
+            "padding": "2px 8px",
+            "textAlign": "center"
+          }
+        },
         "propConfig": {
           "props.text": {
             "binding": {
-              "config": { "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, \"Δ \" + toString(round(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}), 1)) + \" °F\", \"—\")" },
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, \"Δ \" + toString(round(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}), 1)) + \"°F\", \"\")"
+              },
               "type": "expr"
             }
           },
           "props.style.backgroundColor": {
             "binding": {
-              "config": { "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#FF4444\", if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#FFD700\", \"#70AD47\")), \"#EEEEEE\")" },
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#DC2626\", if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#F59E0B\", \"#16A34A\")), \"transparent\")"
+              },
               "type": "expr"
             }
           },
           "props.style.color": {
             "binding": {
-              "config": { "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#FFF\", if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#333\", \"#FFF\")), \"#888\")" },
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#FFFFFF\", \"#FFFFFF\"), \"transparent\")"
+              },
               "type": "expr"
             }
           }
-        },
-        "type": "ia.display.label"
+        }
       }
     ]
   }

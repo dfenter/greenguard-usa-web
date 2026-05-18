@@ -1,5 +1,7 @@
 {
-  "custom": {},
+  "custom": {
+    "submitted": false
+  },
   "params": {},
   "propConfig": {},
   "props": {
@@ -14,29 +16,27 @@
         "height": "360px",
         "backgroundColor": "#FFFFFF",
         "borderRadius": "8px",
-        "overflow": "hidden"
+        "overflow": "hidden",
+        "boxShadow": "0 4px 12px rgba(0,0,0,0.15)",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
       }
     },
     "children": [
       {
         "meta": {"name": "Header"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 0, "width": 560, "height": 48},
+        "type": "ia.container.coord",
+        "position": {"x": 0, "y": 0, "width": 560, "height": 52},
         "props": {
-          "direction": "row",
-          "style": {
-            "alignItems": "center",
-            "backgroundColor": "#1E5C8E",
-            "padding": "0 20px"
-          }
+          "style": {"backgroundColor": "#1565C0"}
         },
         "children": [
           {
-            "meta": {"name": "HeaderTitle"},
+            "meta": {"name": "Title"},
             "type": "ia.display.label",
+            "position": {"x": 16, "y": 10, "width": 524, "height": 32},
             "props": {
               "text": "Submit Feedback",
-              "style": {"fontSize": 17, "fontWeight": "bold", "color": "#FFFFFF"}
+              "style": {"fontSize": 18, "fontWeight": "700", "color": "#FFFFFF"}
             }
           }
         ]
@@ -44,14 +44,20 @@
       {
         "meta": {"name": "SiteLbl"},
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 66, "width": 60, "height": 28},
-        "props": {"text": "Site:", "style": {"fontSize": 13, "color": "#555"}}
+        "position": {"x": 20, "y": 70, "width": 60, "height": 24},
+        "props": {
+          "text": "Site:",
+          "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A"}
+        }
       },
       {
         "meta": {"name": "SiteDropdown"},
         "type": "ia.input.dropdown",
-        "position": {"x": 82, "y": 62, "width": 220, "height": 32},
-        "props": {"style": {"fontSize": 13}},
+        "position": {"x": 80, "y": 66, "width": 220, "height": 36},
+        "props": {
+          "placeholderText": "Select site...",
+          "style": {"fontSize": 13}
+        },
         "propConfig": {
           "props.options": {
             "binding": {
@@ -68,52 +74,71 @@
       {
         "meta": {"name": "CategoryLbl"},
         "type": "ia.display.label",
-        "position": {"x": 318, "y": 66, "width": 70, "height": 28},
-        "props": {"text": "Category:", "style": {"fontSize": 13, "color": "#555"}}
+        "position": {"x": 316, "y": 70, "width": 70, "height": 24},
+        "props": {
+          "text": "Category:",
+          "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A"}
+        }
       },
       {
         "meta": {"name": "CategoryDropdown"},
         "type": "ia.input.dropdown",
-        "position": {"x": 392, "y": 62, "width": 148, "height": 32},
+        "position": {"x": 390, "y": 66, "width": 150, "height": 36},
         "props": {
           "style": {"fontSize": 13},
           "options": [
-            {"label": "Bug",          "value": "Bug"},
-            {"label": "Data Issue",   "value": "Data Issue"},
-            {"label": "Feature",      "value": "Feature"},
-            {"label": "UI",           "value": "UI"},
-            {"label": "Other",        "value": "Other"}
-          ]
+            {"label": "Bug / Error",      "value": "bug"},
+            {"label": "Data Issue",       "value": "data"},
+            {"label": "Feature Request",  "value": "feature"},
+            {"label": "UI / Display",     "value": "ui"},
+            {"label": "Other",            "value": "other"}
+          ],
+          "value": "bug"
         }
       },
       {
         "meta": {"name": "FeedbackLbl"},
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 106, "width": 520, "height": 20},
-        "props": {"text": "Feedback:", "style": {"fontSize": 13, "color": "#555"}}
+        "position": {"x": 20, "y": 114, "width": 520, "height": 20},
+        "props": {
+          "text": "Feedback:",
+          "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A"}
+        }
       },
       {
-        "meta": {"name": "FeedbackArea"},
+        "meta": {"name": "FeedbackInput"},
         "type": "ia.input.text-area",
-        "position": {"x": 20, "y": 128, "width": 520, "height": 150},
+        "position": {"x": 20, "y": 136, "width": 520, "height": 148},
         "props": {
-          "placeholderText": "Describe the issue, suggestion, or feedback...",
-          "style": {"fontSize": 13, "resize": "none"}
+          "placeholderText": "Describe the issue or suggestion...",
+          "style": {
+            "fontSize": 13,
+            "border": "1px solid #E2E8F0",
+            "borderRadius": "4px",
+            "resize": "none"
+          }
         }
       },
       {
         "meta": {"name": "CancelBtn"},
         "type": "ia.input.button",
-        "position": {"x": 300, "y": 300, "width": 110, "height": 36},
+        "position": {"x": 310, "y": 300, "width": 110, "height": 36},
         "props": {
           "text": "Cancel",
-          "style": {"backgroundColor": "#888888", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "4px"}
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "border": "1px solid #E2E8F0",
+            "borderRadius": "6px",
+            "color": "#64748B",
+            "fontWeight": "600",
+            "fontSize": 13
+          }
         },
         "events": {
           "component": {
             "onActionPerformed": {
               "config": {
-                "script": "system.perspective.closePopup('addFeedback')"
+                "script": "system.perspective.closePopup('feedback')"
               },
               "scope": "G",
               "type": "script"
@@ -124,16 +149,22 @@
       {
         "meta": {"name": "SubmitBtn"},
         "type": "ia.input.button",
-        "position": {"x": 420, "y": 300, "width": 120, "height": 36},
+        "position": {"x": 430, "y": 300, "width": 110, "height": 36},
         "props": {
           "text": "Submit",
-          "style": {"backgroundColor": "#1E5C8E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "4px"}
+          "style": {
+            "backgroundColor": "#1565C0",
+            "color": "#FFFFFF",
+            "borderRadius": "6px",
+            "fontWeight": "600",
+            "fontSize": 13
+          }
         },
         "events": {
           "component": {
             "onActionPerformed": {
               "config": {
-                "script": "siteDropdown = self.getSibling('SiteDropdown')\ncategoryDropdown = self.getSibling('CategoryDropdown')\nfeedbackArea = self.getSibling('FeedbackArea')\nsiteId = siteDropdown.props.value\ncategory = categoryDropdown.props.value\nfeedbackText = feedbackArea.props.text if feedbackArea.props.text else ''\nif not feedbackText.strip():\n\tsystem.perspective.openPopup('fbErr', 'Framework/ErrorPopup', params={'message': 'Please enter feedback text before submitting.'})\n\treturn\nif not category:\n\tsystem.perspective.openPopup('fbErr', 'Framework/ErrorPopup', params={'message': 'Please select a category.'})\n\treturn\ntry:\n\tsystem.db.runNamedQuery(\n\t\tproject='Cooling_Tower_Approach_Temps',\n\t\tpath='coolingTowerData/insertUserFeedback',\n\t\tparameters={\n\t\t\t'siteId': siteId or 0,\n\t\t\t'category': category,\n\t\t\t'feedbackText': feedbackText.strip()\n\t\t}\n\t)\n\tsystem.perspective.closePopup('addFeedback')\n\tsystem.perspective.openPopup('fbOK', 'Framework/SuccessPopup', params={'message': 'Thank you! Your feedback has been submitted.'})\nexcept Exception as e:\n\tsystem.perspective.openPopup('fbErr', 'Framework/ErrorPopup', params={'message': 'Submission failed: ' + str(e)})"
+                "script": "site     = self.getSibling('SiteDropdown').props.value\ncategory = self.getSibling('CategoryDropdown').props.value\nfeedback = self.getSibling('FeedbackInput').props.text\nif not site:\n\tsystem.perspective.openPopup('fbErr','Framework/ErrorPopup',params={'message':'Please select a site.'})\n\treturn\nif not feedback or not feedback.strip():\n\tsystem.perspective.openPopup('fbErr','Framework/ErrorPopup',params={'message':'Please enter feedback before submitting.'})\n\treturn\ntry:\n\tuser = self.session.props.auth.user.userName or 'unknown'\n\tsystem.db.runNamedQuery('coolingTowerData/insertUserFeedback',\n\t\t{'site':site,'username':user,'category':category,'feedback':feedback.strip()})\n\tsystem.perspective.closePopup('feedback')\n\tsystem.perspective.openPopup('fbOK','Framework/SuccessPopup',\n\t\tparams={'message':'Thank you! Feedback submitted for '+site+'.'})\nexcept Exception as e:\n\tsystem.perspective.openPopup('fbErr','Framework/ErrorPopup',params={'message':'Submit failed: '+str(e)})"
               },
               "scope": "G",
               "type": "script"

@@ -9,13 +9,13 @@
     "GOX": 0,
     "GAN": 0,
     "CDA": 0,
-    "AirExpander": 0,
-    "WarmExpander": 0,
-    "ColdExpander": 0,
-    "ArgonSkid": 0,
-    "AuxillaryCooler": 0,
+    "airExpander": 0,
+    "warmExpander": 0,
+    "coldExpander": 0,
+    "argonSkid": 0,
+    "auxillaryCooler": 0,
     "DCAC": 0,
-    "Chiller": 0,
+    "chiller": 0,
     "NLUChiller": 0
   },
   "params": {},
@@ -28,13 +28,13 @@
     "custom.GOX": {"persistent": true},
     "custom.GAN": {"persistent": true},
     "custom.CDA": {"persistent": true},
-    "custom.AirExpander": {"persistent": true},
-    "custom.WarmExpander": {"persistent": true},
-    "custom.ColdExpander": {"persistent": true},
-    "custom.ArgonSkid": {"persistent": true},
-    "custom.AuxillaryCooler": {"persistent": true},
+    "custom.airExpander": {"persistent": true},
+    "custom.warmExpander": {"persistent": true},
+    "custom.coldExpander": {"persistent": true},
+    "custom.argonSkid": {"persistent": true},
+    "custom.auxillaryCooler": {"persistent": true},
     "custom.DCAC": {"persistent": true},
-    "custom.Chiller": {"persistent": true},
+    "custom.chiller": {"persistent": true},
     "custom.NLUChiller": {"persistent": true},
     "custom.siteConfig": {
       "persistent": true,
@@ -47,7 +47,7 @@
           "transform": {
             "type": "script",
             "config": {
-              "script": "if value and len(value) > 0:\n\trow = value[0]\n\tself.view.custom.MAC = row.get('MAC', 0) or 0\n\tself.view.custom.BAC = row.get('BAC', 0) or 0\n\tself.view.custom.RNC = row.get('RNC', 0) or 0\n\tself.view.custom.FNC = row.get('FNC', 0) or 0\n\tself.view.custom.GOX = row.get('GOX', 0) or 0\n\tself.view.custom.GAN = row.get('GAN', 0) or 0\n\tself.view.custom.CDA = row.get('CDA', 0) or 0\n\tself.view.custom.AirExpander = row.get('AirExpander', 0) or 0\n\tself.view.custom.WarmExpander = row.get('WarmExpander', 0) or 0\n\tself.view.custom.ColdExpander = row.get('ColdExpander', 0) or 0\n\tself.view.custom.ArgonSkid = row.get('ArgonSkid', 0) or 0\n\tself.view.custom.AuxillaryCooler = row.get('AuxillaryCooler', 0) or 0\n\tself.view.custom.DCAC = row.get('DCAC', 0) or 0\n\tself.view.custom.Chiller = row.get('Chiller', 0) or 0\n\tself.view.custom.NLUChiller = row.get('NLUChiller', 0) or 0\n\treturn row\nreturn {}"
+              "script": "if value and len(value) > 0:\n\trow = value[0]\n\tself.view.custom.MAC = row.get('MAC', 0) or 0\n\tself.view.custom.BAC = row.get('BAC', 0) or 0\n\tself.view.custom.RNC = row.get('RNC', 0) or 0\n\tself.view.custom.FNC = row.get('FNC', 0) or 0\n\tself.view.custom.GOX = row.get('GOX', 0) or 0\n\tself.view.custom.GAN = row.get('GAN', 0) or 0\n\tself.view.custom.CDA = row.get('CDA', 0) or 0\n\tself.view.custom.airExpander = row.get('airExpander', 0) or 0\n\tself.view.custom.warmExpander = row.get('warmExpander', 0) or 0\n\tself.view.custom.coldExpander = row.get('coldExpander', 0) or 0\n\tself.view.custom.argonSkid = row.get('argonSkid', 0) or 0\n\tself.view.custom.auxillaryCooler = row.get('auxillaryCooler', 0) or 0\n\tself.view.custom.DCAC = row.get('DCAC', 0) or 0\n\tself.view.custom.chiller = row.get('chiller', 0) or 0\n\tself.view.custom.NLUChiller = row.get('NLUChiller', 0) or 0\n\treturn row\nreturn {}"
             }
           }
         }
@@ -66,7 +66,8 @@
         "height": "760px",
         "backgroundColor": "#FFFFFF",
         "borderRadius": "8px",
-        "overflow": "hidden"
+        "overflow": "hidden",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
       }
     },
     "events": {
@@ -83,23 +84,28 @@
     "children": [
       {
         "meta": {"name": "Header"},
-        "type": "ia.container.flex",
+        "type": "ia.container.coord",
         "position": {"x": 0, "y": 0, "width": 700, "height": 52},
         "props": {
-          "direction": "row",
-          "style": {
-            "alignItems": "center",
-            "backgroundColor": "#2C5F2E",
-            "padding": "0 20px"
-          }
+          "style": {"backgroundColor": "#1B5E20"}
         },
         "children": [
           {
+            "meta": {"name": "HeaderIcon"},
+            "type": "ia.display.label",
+            "position": {"x": 20, "y": 10, "width": 32, "height": 32},
+            "props": {
+              "text": "⚙",
+              "style": {"fontSize": 22, "color": "#FFFFFF", "textAlign": "center"}
+            }
+          },
+          {
             "meta": {"name": "HeaderTitle"},
             "type": "ia.display.label",
+            "position": {"x": 58, "y": 10, "width": 620, "height": 32},
             "props": {
-              "text": "⚙ Site Equipment Configuration",
-              "style": {"fontSize": 18, "fontWeight": "bold", "color": "#FFFFFF"}
+              "text": "Site Equipment Configuration",
+              "style": {"fontSize": 18, "fontWeight": "700", "color": "#FFFFFF"}
             }
           }
         ]
@@ -107,16 +113,14 @@
       {
         "meta": {"name": "SiteLabel"},
         "type": "ia.display.label",
-        "position": {"x": 20, "y": 66, "width": 60, "height": 28},
-        "props": {"text": "Site:", "style": {"fontSize": 13, "fontWeight": "600", "color": "#333"}}
+        "position": {"x": 20, "y": 66, "width": 50, "height": 28},
+        "props": {"text": "Site:", "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A"}}
       },
       {
         "meta": {"name": "SiteDropdown"},
         "type": "ia.input.dropdown",
-        "position": {"x": 85, "y": 62, "width": 220, "height": 32},
-        "props": {
-          "style": {"fontSize": 13}
-        },
+        "position": {"x": 76, "y": 62, "width": 240, "height": 36},
+        "props": {"style": {"fontSize": 13}},
         "propConfig": {
           "props.options": {
             "binding": {
@@ -139,184 +143,336 @@
       {
         "meta": {"name": "DescLabel"},
         "type": "ia.display.label",
-        "position": {"x": 320, "y": 66, "width": 360, "height": 28},
-        "props": {"text": "Set count of each equipment type.", "style": {"fontSize": 12, "color": "#777"}}
+        "position": {"x": 330, "y": 67, "width": 350, "height": 24},
+        "props": {
+          "text": "Set count for each equipment type at this site.",
+          "style": {"fontSize": 11, "fontStyle": "italic", "color": "#64748B"}
+        }
       },
       {
         "meta": {"name": "ColHeaderBar"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 96, "width": 700, "height": 32},
-        "props": {
-          "direction": "row",
-          "style": {"alignItems": "center", "backgroundColor": "#3A3A3A", "padding": "0 20px"}
-        },
+        "type": "ia.container.coord",
+        "position": {"x": 20, "y": 98, "width": 660, "height": 28},
+        "props": {"style": {"backgroundColor": "#2E3748"}},
         "children": [
-          {"meta": {"name": "HEquip"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "Equipment Type", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-          {"meta": {"name": "HCount"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "Count", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+          {
+            "meta": {"name": "HEquip"},
+            "type": "ia.display.label",
+            "position": {"x": 8, "y": 0, "width": 540, "height": 28},
+            "props": {
+              "text": "EQUIPMENT TYPE",
+              "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px"}
+            }
+          },
+          {
+            "meta": {"name": "HCount"},
+            "type": "ia.display.label",
+            "position": {"x": 588, "y": 0, "width": 64, "height": 28},
+            "props": {
+              "text": "COUNT",
+              "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "textAlign": "center", "letterSpacing": "0.8px"}
+            }
+          }
         ]
       },
       {
-        "meta": {"name": "Row_MAC"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 128, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#F5F5F5", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "MAC", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.MAC"}}}}}
-        ]
+        "meta": {"name": "BG_MAC"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 130, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
       },
       {
-        "meta": {"name": "Row_BAC"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 164, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#FFFFFF", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "BAC", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.BAC"}}}}}
-        ]
+        "meta": {"name": "Lbl_MAC"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 130, "width": 540, "height": 36},
+        "props": {"text": "MAC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
       },
       {
-        "meta": {"name": "Row_RNC"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 200, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#F5F5F5", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "RNC", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.RNC"}}}}}
-        ]
+        "meta": {"name": "Input_MAC"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 134, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.MAC"}}}}
       },
       {
-        "meta": {"name": "Row_FNC"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 236, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#FFFFFF", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "FNC", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.FNC"}}}}}
-        ]
+        "meta": {"name": "BG_BAC"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 166, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
       },
       {
-        "meta": {"name": "Row_GOX"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 272, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#F5F5F5", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "GOX", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.GOX"}}}}}
-        ]
+        "meta": {"name": "Lbl_BAC"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 166, "width": 540, "height": 36},
+        "props": {"text": "BAC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
       },
       {
-        "meta": {"name": "Row_GAN"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 308, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#FFFFFF", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "GAN", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.GAN"}}}}}
-        ]
+        "meta": {"name": "Input_BAC"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 170, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.BAC"}}}}
       },
       {
-        "meta": {"name": "Row_CDA"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 344, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#F5F5F5", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "CDA", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.CDA"}}}}}
-        ]
+        "meta": {"name": "BG_RNC"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 202, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
       },
       {
-        "meta": {"name": "Row_AirExpander"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 380, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#FFFFFF", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "Air Expander", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.AirExpander"}}}}}
-        ]
+        "meta": {"name": "Lbl_RNC"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 202, "width": 540, "height": 36},
+        "props": {"text": "RNC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
       },
       {
-        "meta": {"name": "Row_WarmExpander"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 416, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#F5F5F5", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "Warm Expander", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.WarmExpander"}}}}}
-        ]
+        "meta": {"name": "Input_RNC"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 206, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.RNC"}}}}
       },
       {
-        "meta": {"name": "Row_ColdExpander"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 452, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#FFFFFF", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "Cold Expander", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.ColdExpander"}}}}}
-        ]
+        "meta": {"name": "BG_FNC"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 238, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
       },
       {
-        "meta": {"name": "Row_ArgonSkid"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 488, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#F5F5F5", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "Argon Skid", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.ArgonSkid"}}}}}
-        ]
+        "meta": {"name": "Lbl_FNC"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 238, "width": 540, "height": 36},
+        "props": {"text": "FNC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
       },
       {
-        "meta": {"name": "Row_AuxCooler"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 524, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#FFFFFF", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "Auxiliary Cooler", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.AuxillaryCooler"}}}}}
-        ]
+        "meta": {"name": "Input_FNC"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 242, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.FNC"}}}}
       },
       {
-        "meta": {"name": "Row_DCAC"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 560, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#F5F5F5", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "DCAC", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.DCAC"}}}}}
-        ]
+        "meta": {"name": "BG_GOX"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 274, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
       },
       {
-        "meta": {"name": "Row_Chiller"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 596, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#FFFFFF", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "Chiller", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.Chiller"}}}}}
-        ]
+        "meta": {"name": "Lbl_GOX"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 274, "width": 540, "height": 36},
+        "props": {"text": "GOX", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
       },
       {
-        "meta": {"name": "Row_NLUChiller"},
-        "type": "ia.container.flex",
-        "position": {"x": 0, "y": 632, "width": 700, "height": 36},
-        "props": {"direction": "row", "style": {"alignItems": "center", "backgroundColor": "#F5F5F5", "padding": "0 20px", "borderBottom": "1px solid #E8E8E8"}},
-        "children": [
-          {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"grow": 1}, "props": {"text": "NLU Chiller", "style": {"fontSize": 13}}},
-          {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"style": {"fontSize": 13}}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.NLUChiller"}}}}}
-        ]
+        "meta": {"name": "Input_GOX"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 278, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.GOX"}}}}
+      },
+      {
+        "meta": {"name": "BG_GAN"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 310, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+      },
+      {
+        "meta": {"name": "Lbl_GAN"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 310, "width": 540, "height": 36},
+        "props": {"text": "GAN", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_GAN"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 314, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.GAN"}}}}
+      },
+      {
+        "meta": {"name": "BG_CDA"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 346, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+      },
+      {
+        "meta": {"name": "Lbl_CDA"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 346, "width": 540, "height": 36},
+        "props": {"text": "CDA", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_CDA"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 350, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.CDA"}}}}
+      },
+      {
+        "meta": {"name": "BG_AirExpander"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 382, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+      },
+      {
+        "meta": {"name": "Lbl_AirExpander"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 382, "width": 540, "height": 36},
+        "props": {"text": "Air Expander", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_AirExpander"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 386, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.airExpander"}}}}
+      },
+      {
+        "meta": {"name": "BG_WarmExpander"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 418, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+      },
+      {
+        "meta": {"name": "Lbl_WarmExpander"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 418, "width": 540, "height": 36},
+        "props": {"text": "Warm Expander", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_WarmExpander"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 422, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.warmExpander"}}}}
+      },
+      {
+        "meta": {"name": "BG_ColdExpander"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 454, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+      },
+      {
+        "meta": {"name": "Lbl_ColdExpander"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 454, "width": 540, "height": 36},
+        "props": {"text": "Cold Expander", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_ColdExpander"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 458, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.coldExpander"}}}}
+      },
+      {
+        "meta": {"name": "BG_ArgonSkid"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 490, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+      },
+      {
+        "meta": {"name": "Lbl_ArgonSkid"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 490, "width": 540, "height": 36},
+        "props": {"text": "Argon Skid", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_ArgonSkid"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 494, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.argonSkid"}}}}
+      },
+      {
+        "meta": {"name": "BG_AuxCooler"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 526, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+      },
+      {
+        "meta": {"name": "Lbl_AuxCooler"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 526, "width": 540, "height": 36},
+        "props": {"text": "Aux. Cooler", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_AuxCooler"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 530, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.auxillaryCooler"}}}}
+      },
+      {
+        "meta": {"name": "BG_DCAC"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 562, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+      },
+      {
+        "meta": {"name": "Lbl_DCAC"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 562, "width": 540, "height": 36},
+        "props": {"text": "DCAC", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_DCAC"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 566, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.DCAC"}}}}
+      },
+      {
+        "meta": {"name": "BG_Chiller"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 598, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FFFFFF"}}
+      },
+      {
+        "meta": {"name": "Lbl_Chiller"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 598, "width": 540, "height": 36},
+        "props": {"text": "Chiller", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_Chiller"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 602, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.chiller"}}}}
+      },
+      {
+        "meta": {"name": "BG_NLUChiller"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 634, "width": 660, "height": 36},
+        "props": {"text": "", "style": {"backgroundColor": "#FAFBFC"}}
+      },
+      {
+        "meta": {"name": "Lbl_NLUChiller"},
+        "type": "ia.display.label",
+        "position": {"x": 28, "y": 634, "width": 540, "height": 36},
+        "props": {"text": "NLU Chiller", "style": {"fontSize": 13, "color": "#0F172A", "paddingTop": "10px"}}
+      },
+      {
+        "meta": {"name": "Input_NLUChiller"},
+        "type": "ia.input.numeric-entry-field",
+        "position": {"x": 608, "y": 638, "width": 64, "height": 28},
+        "props": {"style": {"fontSize": 13, "textAlign": "center"}},
+        "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.NLUChiller"}}}}
       },
       {
         "meta": {"name": "CancelBtn"},
         "type": "ia.input.button",
-        "position": {"x": 430, "y": 700, "width": 120, "height": 36},
+        "position": {"x": 420, "y": 684, "width": 120, "height": 36},
         "props": {
           "text": "Cancel",
           "style": {
-            "backgroundColor": "#888888",
-            "color": "#FFFFFF",
+            "backgroundColor": "#FFFFFF",
+            "border": "1px solid #E2E8F0",
+            "borderRadius": "6px",
             "fontSize": 13,
-            "fontWeight": "bold",
-            "borderRadius": "4px"
+            "fontWeight": "600",
+            "color": "#64748B"
           }
         },
         "events": {
@@ -334,22 +490,22 @@
       {
         "meta": {"name": "SaveBtn"},
         "type": "ia.input.button",
-        "position": {"x": 560, "y": 700, "width": 120, "height": 36},
+        "position": {"x": 556, "y": 684, "width": 124, "height": 36},
         "props": {
           "text": "Save",
           "style": {
-            "backgroundColor": "#2C5F2E",
+            "backgroundColor": "#1B5E20",
             "color": "#FFFFFF",
+            "borderRadius": "6px",
             "fontSize": 13,
-            "fontWeight": "bold",
-            "borderRadius": "4px"
+            "fontWeight": "600"
           }
         },
         "events": {
           "component": {
             "onActionPerformed": {
               "config": {
-                "script": "siteId = self.view.custom.siteId\nif not siteId:\n\tsystem.perspective.openPopup('cfgErr', 'Framework/ErrorPopup', params={'message': 'Please select a site.'})\n\treturn\nMAC = self.view.custom.MAC\nBAC = self.view.custom.BAC\nRNC = self.view.custom.RNC\nFNC = self.view.custom.FNC\nGOX = self.view.custom.GOX\nGAN = self.view.custom.GAN\nCDA = self.view.custom.CDA\nAirExpander = self.view.custom.AirExpander\nWarmExpander = self.view.custom.WarmExpander\nColdExpander = self.view.custom.ColdExpander\nArgonSkid = self.view.custom.ArgonSkid\nAuxillaryCooler = self.view.custom.AuxillaryCooler\nDCAC = self.view.custom.DCAC\nChiller = self.view.custom.Chiller\nNLUChiller = self.view.custom.NLUChiller\ntry:\n\ttxID = system.db.beginNamedQueryTransaction(project='Cooling_Tower_Approach_Temps', database='Plant_Stats_DB_Write_Server')\n\tsystem.db.runNamedQuery(\n\t\tproject='Cooling_Tower_Approach_Temps',\n\t\tpath='coolingTowerData/updateSiteConfig',\n\t\tparameters={'siteId': siteId, 'MAC': MAC, 'BAC': BAC, 'RNC': RNC, 'FNC': FNC, 'GOX': GOX, 'GAN': GAN, 'CDA': CDA, 'AirExpander': AirExpander, 'WarmExpander': WarmExpander, 'ColdExpander': ColdExpander, 'ArgonSkid': ArgonSkid, 'AuxillaryCooler': AuxillaryCooler, 'DCAC': DCAC, 'Chiller': Chiller, 'NLUChiller': NLUChiller},\n\t\ttx=txID\n\t)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/MACDataEnable', parameters={'siteId': siteId, 'equipmentNumber': MAC}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/BACDataEnable', parameters={'siteId': siteId, 'equipmentNumber': BAC}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/RNCDataEnable', parameters={'siteId': siteId, 'equipmentNumber': RNC}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/FNCDataEnable', parameters={'siteId': siteId, 'equipmentNumber': FNC}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/GOXDataEnable', parameters={'siteId': siteId, 'equipmentNumber': GOX}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/GANDataEnable', parameters={'siteId': siteId, 'equipmentNumber': GAN}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/CDADataEnable', parameters={'siteId': siteId, 'equipmentNumber': CDA}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/AirExpanderDataEnable', parameters={'siteId': siteId, 'equipmentNumber': AirExpander}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/warmExpanderDataEnable', parameters={'siteId': siteId, 'equipmentNumber': WarmExpander}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/coldExpanderDataEnable', parameters={'siteId': siteId, 'equipmentNumber': ColdExpander}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/argonSkidDataEnable', parameters={'siteId': siteId, 'equipmentNumber': ArgonSkid}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/auxillaryCoolerDataEnable', parameters={'siteId': siteId, 'equipmentNumber': AuxillaryCooler}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/DCACDataEnable', parameters={'siteId': siteId, 'equipmentNumber': DCAC}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/chillerDataEnable', parameters={'siteId': siteId, 'equipmentNumber': Chiller}, tx=txID)\n\tsystem.db.runNamedQuery(project='Cooling_Tower_Approach_Temps', path='coolingTowerData/enables/NLUChillerDataEnable', parameters={'siteId': siteId, 'equipmentNumber': NLUChiller}, tx=txID)\n\tsystem.db.commitTransaction(txID)\n\tsystem.db.closeTransaction(txID)\n\tsystem.perspective.closePopup('config')\n\tsystem.perspective.openPopup('cfgOK', 'Framework/SuccessPopup', params={'message': 'Configuration saved for site ' + str(siteId) + '.'})\nexcept Exception as e:\n\ttry:\n\t\tsystem.db.rollbackTransaction(txID)\n\t\tsystem.db.closeTransaction(txID)\n\texcept:\n\t\tpass\n\tsystem.perspective.openPopup('cfgErr', 'Framework/ErrorPopup', params={'message': 'Save failed: ' + str(e)})"
+                "script": "siteId = self.view.custom.siteId\nif not siteId:\n\tsystem.perspective.openPopup('cfgErr','Framework/ErrorPopup',params={'message':'Please select a site first.'})\n\treturn\nMAC=self.view.custom.MAC; BAC=self.view.custom.BAC; RNC=self.view.custom.RNC\nFNC=self.view.custom.FNC; GOX=self.view.custom.GOX; GAN=self.view.custom.GAN\nCDA=self.view.custom.CDA; chiller=self.view.custom.chiller\nNLUChiller=self.view.custom.NLUChiller; airExpander=self.view.custom.airExpander\nwarmExpander=self.view.custom.warmExpander; coldExpander=self.view.custom.coldExpander\nargonSkid=self.view.custom.argonSkid; auxillaryCooler=self.view.custom.auxillaryCooler\nDCAC=self.view.custom.DCAC\ntxID = None\ntry:\n\ttxID = system.db.beginNamedQueryTransaction(project=\"Cooling_Tower_Approach_Temps\", database=\"Plant_Stats_DB_Write_Server\")\n\tsystem.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\", path=\"coolingTowerData/updateSiteConfig\", parameters={\"siteId\":siteId,\"MAC\":MAC,\"BAC\":BAC,\"RNC\":RNC,\"FNC\":FNC,\"GOX\":GOX,\"GAN\":GAN,\"CDA\":CDA,\"chiller\":chiller,\"NLUChiller\":NLUChiller,\"airExpander\":airExpander,\"warmExpander\":warmExpander,\"coldExpander\":coldExpander,\"argonSkid\":argonSkid,\"auxillaryCooler\":auxillaryCooler,\"DCAC\":DCAC}, tx=txID)\n\tfor name,eqId,count in [(\"MACDataEnable\",1,MAC),(\"BACDataEnable\",2,BAC),(\"RNCDataEnable\",3,RNC),(\"FNCDataEnable\",4,FNC),(\"GOXDataEnable\",5,GOX),(\"GANDataEnable\",6,GAN),(\"CDADataEnable\",7,CDA),(\"AirExpanderDataEnable\",8,airExpander),(\"warmExpanderDataEnable\",9,warmExpander),(\"coldExpanderDataEnable\",10,coldExpander),(\"argonSkidDataEnable\",11,argonSkid),(\"auxillaryCoolerDataEnable\",12,auxillaryCooler),(\"DCACDataEnable\",13,DCAC),(\"chillerDataEnable\",14,chiller),(\"NLUChillerDataEnable\",15,NLUChiller)]:\n\t\tsystem.db.runNamedQuery(project=\"Cooling_Tower_Approach_Temps\", path=\"coolingTowerData/enables/\"+name, parameters={\"siteId\":siteId,\"equipmentNumber\":count}, tx=txID)\n\tsystem.db.commitTransaction(txID)\n\tsystem.db.closeTransaction(txID)\n\tsystem.perspective.closePopup('config')\n\tsystem.perspective.openPopup('cfgOK','Framework/SuccessPopup',params={'message':'Configuration saved successfully.'})\nexcept Exception as e:\n\tif txID:\n\t\tsystem.db.rollbackTransaction(txID)\n\t\tsystem.db.closeTransaction(txID)\n\tsystem.perspective.openPopup('cfgErr','Framework/ErrorPopup',params={'message':'Save failed: '+str(e)})"
               },
               "scope": "G",
               "type": "script"

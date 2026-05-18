@@ -357,7 +357,8 @@
       "style": {
         "width": "100%",
         "height": "100%",
-        "backgroundColor": "#F4F6F8"
+        "backgroundColor": "#F8FAFC",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
       }
     },
     "events": {
@@ -388,7 +389,8 @@
         "props": {
           "style": {
             "backgroundColor": "#FFFFFF",
-            "borderBottom": "2px solid #2C5F2E",
+            "borderBottom": "1px solid #E2E8F0",
+            "boxShadow": "0 1px 3px rgba(0,0,0,0.06)",
             "width": "100%",
             "height": "54px",
             "position": "relative"
@@ -398,11 +400,16 @@
           {
             "meta": {"name": "EntryDatePicker"},
             "type": "ia.input.date-time-input",
-            "position": {"x": 18, "y": 9, "width": 170, "height": 32},
+            "position": {"x": 18, "y": 9, "width": 170, "height": 36},
             "props": {
               "pickerType": "date",
               "dateFormat": "MM/dd/yyyy",
-              "style": {"fontSize": 13}
+              "style": {
+                "fontSize": 13,
+                "height": "36px",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "4px"
+              }
             }
           },
           {
@@ -411,30 +418,43 @@
             "position": {"x": 200, "y": 12, "width": 185, "height": 28},
             "props": {
               "text": "Incoming Water Temp (°F)",
-              "style": {"fontSize": 12, "color": "#555", "fontWeight": "600"}
+              "style": {
+                "fontSize": 13,
+                "color": "#64748B",
+                "fontWeight": "400",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+              }
             }
           },
           {
             "meta": {"name": "IWTGlobal"},
             "type": "ia.input.numeric-entry-field",
-            "position": {"x": 390, "y": 9, "width": 80, "height": 32},
+            "position": {"x": 390, "y": 9, "width": 80, "height": 36},
             "props": {
               "value": 120,
-              "style": {"fontSize": 13}
+              "style": {
+                "fontSize": 13,
+                "height": "36px",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "4px"
+              }
             }
           },
           {
             "meta": {"name": "ApplyAllBtn"},
             "type": "ia.input.button",
-            "position": {"x": 478, "y": 9, "width": 120, "height": 32},
+            "position": {"x": 478, "y": 9, "width": 120, "height": 36},
             "props": {
               "text": "APPLY TO ALL",
               "style": {
-                "backgroundColor": "#2C5F2E",
-                "color": "#FFFFFF",
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "color": "#1B5E20",
                 "fontSize": 12,
-                "fontWeight": "bold",
-                "borderRadius": "4px"
+                "fontWeight": "600",
+                "height": "36px",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
               }
             },
             "events": {
@@ -452,10 +472,16 @@
           {
             "meta": {"name": "NoteField"},
             "type": "ia.input.text-field",
-            "position": {"x": 610, "y": 9, "width": 220, "height": 32},
+            "position": {"x": 610, "y": 9, "width": 220, "height": 36},
             "props": {
               "placeholderText": "Optional note...",
-              "style": {"fontSize": 12}
+              "style": {
+                "fontSize": 13,
+                "height": "36px",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "4px",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+              }
             },
             "propConfig": {
               "props.text": {
@@ -474,7 +500,12 @@
             "type": "ia.display.label",
             "position": {"x": 845, "y": 12, "width": 220, "height": 28},
             "props": {
-              "style": {"fontSize": 12, "color": "#555", "fontStyle": "italic"}
+              "style": {
+                "fontSize": 12,
+                "color": "#64748B",
+                "fontStyle": "italic",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+              }
             },
             "propConfig": {
               "props.text": {
@@ -488,14 +519,19 @@
           {
             "meta": {"name": "StatusBadge"},
             "type": "ia.display.label",
-            "position": {"x": 1075, "y": 9, "width": 140, "height": 32},
+            "position": {"x": 1075, "y": 11, "width": 140, "height": 32},
             "props": {
               "style": {
-                "fontSize": 12,
-                "fontWeight": "bold",
+                "fontSize": 13,
+                "fontWeight": "700",
                 "borderRadius": "6px",
-                "padding": "4px 10px",
-                "textAlign": "center"
+                "padding": "0 12px",
+                "textAlign": "center",
+                "height": "32px",
+                "display": "flex",
+                "alignItems": "center",
+                "justifyContent": "center",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
               }
             },
             "propConfig": {
@@ -511,7 +547,7 @@
                 "binding": {
                   "type": "expr",
                   "config": {
-                    "expression": "if({view.custom.worstDevSite} is null, '#CCCCCC', if({view.custom.worstDevSite} > 10, '#FF4444', if({view.custom.worstDevSite} > 5, '#FFD700', '#70AD47')))"
+                    "expression": "if({view.custom.worstDevSite} is null, '#94A3B8', if({view.custom.worstDevSite} > 10, '#DC2626', if({view.custom.worstDevSite} > 5, '#F59E0B', '#16A34A')))"
                   }
                 }
               },
@@ -519,7 +555,7 @@
                 "binding": {
                   "type": "expr",
                   "config": {
-                    "expression": "if({view.custom.worstDevSite} is null, '#555', if({view.custom.worstDevSite} > 10, '#FFF', if({view.custom.worstDevSite} > 5, '#333', '#FFF')))"
+                    "expression": "if({view.custom.worstDevSite} is null, '#FFFFFF', if({view.custom.worstDevSite} > 10, '#FFFFFF', if({view.custom.worstDevSite} > 5, '#FFFFFF', '#FFFFFF')))"
                   }
                 }
               }
@@ -528,15 +564,17 @@
           {
             "meta": {"name": "SaveDataBtn"},
             "type": "ia.input.button",
-            "position": {"x": 1225, "y": 9, "width": 150, "height": 32},
+            "position": {"x": 1225, "y": 9, "width": 150, "height": 36},
             "props": {
               "text": "SAVE DATA",
               "style": {
-                "backgroundColor": "#1A4020",
+                "backgroundColor": "#1B5E20",
                 "color": "#FFFFFF",
-                "fontSize": 13,
-                "fontWeight": "bold",
-                "borderRadius": "4px"
+                "fontSize": 14,
+                "fontWeight": "700",
+                "borderRadius": "6px",
+                "height": "36px",
+                "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
               }
             },
             "events": {
@@ -559,6 +597,7 @@
         "position": {"grow": 1},
         "props": {
           "style": {"width": "100%"},
+          "tabSize": {"width": 140},
           "tabs": [
             {"label": "MAC/BAC",  "closeEnabled": false},
             {"label": "RNC/FNC",  "closeEnabled": false},
@@ -584,7 +623,7 @@
             "meta": {"name": "Tab0_MACBAC"},
             "type": "ia.container.coord",
             "props": {
-              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "overflow": "auto"}
+              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F8FAFC", "overflow": "auto"}
             },
             "children": [
               {
@@ -593,24 +632,29 @@
                 "position": {"x": 0, "y": 0, "width": 960, "height": 36},
                 "props": {
                   "direction": "row",
-                  "style": {"alignItems": "center", "backgroundColor": "#2C5F2E", "padding": "0 8px", "height": "36px"}
+                  "style": {
+                    "alignItems": "center",
+                    "backgroundColor": "#2E3748",
+                    "padding": "0 8px",
+                    "height": "36px"
+                  }
                 },
                 "children": [
-                  {"meta": {"name": "H_Equip"}, "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "Equipment", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_IWT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_IWTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_POGT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_DAT"}, "type": "ia.display.label", "position": {"basis": "90px"}, "props": {"text": "DAT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_DATTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_Dev"}, "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "Deviation", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+                  {"meta": {"name": "H_Equip"},   "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "EQUIPMENT",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_IWT"},     "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)",    "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_IWTTgt"},  "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT TARGET",  "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_POGT"},    "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT TARGET", "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_DAT"},     "type": "ia.display.label", "position": {"basis": "90px"},  "props": {"text": "DAT (°F)",    "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_DATTgt"},  "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT TARGET",  "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_Dev"},     "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "DEVIATION",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}}
                 ]
               },
               {
                 "meta": {"name": "MACLabel"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 36, "width": 460, "height": 24},
-                "props": {"text": "MAC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+                "position": {"x": 0, "y": 36, "width": 960, "height": 24},
+                "props": {"text": "MAC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "600", "color": "#1B5E20", "padding": "4px 8px", "backgroundColor": "#E8F5E9", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
               },
               {
                 "meta": {"name": "MACRepeater"},
@@ -642,8 +686,8 @@
               {
                 "meta": {"name": "BACLabel"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 464, "width": 460, "height": 24},
-                "props": {"text": "BAC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+                "position": {"x": 0, "y": 464, "width": 960, "height": 24},
+                "props": {"text": "BAC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "600", "color": "#1B5E20", "padding": "4px 8px", "backgroundColor": "#E8F5E9", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
               },
               {
                 "meta": {"name": "BACRepeater"},
@@ -678,7 +722,7 @@
             "meta": {"name": "Tab1_RNCFNC"},
             "type": "ia.container.coord",
             "props": {
-              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "overflow": "auto"}
+              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F8FAFC", "overflow": "auto"}
             },
             "children": [
               {
@@ -687,24 +731,29 @@
                 "position": {"x": 0, "y": 0, "width": 960, "height": 36},
                 "props": {
                   "direction": "row",
-                  "style": {"alignItems": "center", "backgroundColor": "#2C5F2E", "padding": "0 8px", "height": "36px"}
+                  "style": {
+                    "alignItems": "center",
+                    "backgroundColor": "#2E3748",
+                    "padding": "0 8px",
+                    "height": "36px"
+                  }
                 },
                 "children": [
-                  {"meta": {"name": "H_Equip"}, "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "Equipment", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_IWT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_IWTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_POGT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_DAT"}, "type": "ia.display.label", "position": {"basis": "90px"}, "props": {"text": "DAT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_DATTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_Dev"}, "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "Deviation", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+                  {"meta": {"name": "H_Equip"},   "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "EQUIPMENT",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_IWT"},     "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)",    "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_IWTTgt"},  "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT TARGET",  "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_POGT"},    "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT TARGET", "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_DAT"},     "type": "ia.display.label", "position": {"basis": "90px"},  "props": {"text": "DAT (°F)",    "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_DATTgt"},  "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT TARGET",  "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_Dev"},     "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "DEVIATION",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}}
                 ]
               },
               {
                 "meta": {"name": "RNCLabel"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 36, "width": 460, "height": 24},
-                "props": {"text": "RNC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+                "position": {"x": 0, "y": 36, "width": 960, "height": 24},
+                "props": {"text": "RNC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "600", "color": "#1B5E20", "padding": "4px 8px", "backgroundColor": "#E8F5E9", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
               },
               {
                 "meta": {"name": "RNCRepeater"},
@@ -723,8 +772,8 @@
               {
                 "meta": {"name": "FNCLabel"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 464, "width": 460, "height": 24},
-                "props": {"text": "FNC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+                "position": {"x": 0, "y": 464, "width": 960, "height": 24},
+                "props": {"text": "FNC Cooling Towers", "style": {"fontSize": 13, "fontWeight": "600", "color": "#1B5E20", "padding": "4px 8px", "backgroundColor": "#E8F5E9", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
               },
               {
                 "meta": {"name": "FNCRepeater"},
@@ -746,7 +795,7 @@
             "meta": {"name": "Tab2_GANGOX"},
             "type": "ia.container.coord",
             "props": {
-              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "overflow": "auto"}
+              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F8FAFC", "overflow": "auto"}
             },
             "children": [
               {
@@ -755,24 +804,29 @@
                 "position": {"x": 0, "y": 0, "width": 960, "height": 36},
                 "props": {
                   "direction": "row",
-                  "style": {"alignItems": "center", "backgroundColor": "#2C5F2E", "padding": "0 8px", "height": "36px"}
+                  "style": {
+                    "alignItems": "center",
+                    "backgroundColor": "#2E3748",
+                    "padding": "0 8px",
+                    "height": "36px"
+                  }
                 },
                 "children": [
-                  {"meta": {"name": "H_Equip"}, "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "Equipment", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_IWT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_IWTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_POGT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_DAT"}, "type": "ia.display.label", "position": {"basis": "90px"}, "props": {"text": "DAT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_DATTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_Dev"}, "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "Deviation", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+                  {"meta": {"name": "H_Equip"},   "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "EQUIPMENT",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_IWT"},     "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)",    "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_IWTTgt"},  "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT TARGET",  "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_POGT"},    "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT TARGET", "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_DAT"},     "type": "ia.display.label", "position": {"basis": "90px"},  "props": {"text": "DAT (°F)",    "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_DATTgt"},  "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT TARGET",  "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_Dev"},     "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "DEVIATION",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}}
                 ]
               },
               {
                 "meta": {"name": "GANLabel"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 36, "width": 460, "height": 24},
-                "props": {"text": "GAN Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+                "position": {"x": 0, "y": 36, "width": 960, "height": 24},
+                "props": {"text": "GAN Cooling Towers", "style": {"fontSize": 13, "fontWeight": "600", "color": "#1B5E20", "padding": "4px 8px", "backgroundColor": "#E8F5E9", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
               },
               {
                 "meta": {"name": "GANRepeater"},
@@ -791,8 +845,8 @@
               {
                 "meta": {"name": "GOXLabel"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 464, "width": 460, "height": 24},
-                "props": {"text": "GOX Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+                "position": {"x": 0, "y": 464, "width": 960, "height": 24},
+                "props": {"text": "GOX Cooling Towers", "style": {"fontSize": 13, "fontWeight": "600", "color": "#1B5E20", "padding": "4px 8px", "backgroundColor": "#E8F5E9", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
               },
               {
                 "meta": {"name": "GOXRepeater"},
@@ -814,7 +868,7 @@
             "meta": {"name": "Tab3_CDAMISC"},
             "type": "ia.container.coord",
             "props": {
-              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "overflow": "auto"}
+              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F8FAFC", "overflow": "auto"}
             },
             "children": [
               {
@@ -823,24 +877,29 @@
                 "position": {"x": 0, "y": 0, "width": 960, "height": 36},
                 "props": {
                   "direction": "row",
-                  "style": {"alignItems": "center", "backgroundColor": "#2C5F2E", "padding": "0 8px", "height": "36px"}
+                  "style": {
+                    "alignItems": "center",
+                    "backgroundColor": "#2E3748",
+                    "padding": "0 8px",
+                    "height": "36px"
+                  }
                 },
                 "children": [
-                  {"meta": {"name": "H_Equip"}, "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "Equipment", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_IWT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_IWTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_POGT"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_DAT"}, "type": "ia.display.label", "position": {"basis": "90px"}, "props": {"text": "DAT (°F)", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_DATTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT Target", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}},
-                  {"meta": {"name": "H_Dev"}, "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "Deviation", "style": {"fontSize": 12, "fontWeight": "bold", "color": "#FFF"}}}
+                  {"meta": {"name": "H_Equip"},   "type": "ia.display.label", "position": {"basis": "200px"}, "props": {"text": "EQUIPMENT",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_IWT"},     "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT (°F)",    "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_IWTTgt"},  "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "IWT TARGET",  "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_POGT"},    "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT (°F)",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_POGTTgt"}, "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "POGT TARGET", "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_DAT"},     "type": "ia.display.label", "position": {"basis": "90px"},  "props": {"text": "DAT (°F)",    "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_DATTgt"},  "type": "ia.display.label", "position": {"basis": "100px"}, "props": {"text": "DAT TARGET",  "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}},
+                  {"meta": {"name": "H_Dev"},     "type": "ia.display.label", "position": {"basis": "110px"}, "props": {"text": "DEVIATION",   "style": {"fontSize": 12, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px", "textTransform": "uppercase"}}}
                 ]
               },
               {
                 "meta": {"name": "CDALabel"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 36, "width": 460, "height": 24},
-                "props": {"text": "CDA Cooling Towers", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+                "position": {"x": 0, "y": 36, "width": 960, "height": 24},
+                "props": {"text": "CDA Cooling Towers", "style": {"fontSize": 13, "fontWeight": "600", "color": "#1B5E20", "padding": "4px 8px", "backgroundColor": "#E8F5E9", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
               },
               {
                 "meta": {"name": "CDARepeater"},
@@ -859,8 +918,8 @@
               {
                 "meta": {"name": "MISCLabel"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 464, "width": 460, "height": 24},
-                "props": {"text": "MISC Equipment", "style": {"fontSize": 13, "fontWeight": "bold", "color": "#2C5F2E", "padding": "4px 8px", "backgroundColor": "#E8F5E9"}}
+                "position": {"x": 0, "y": 464, "width": 960, "height": 24},
+                "props": {"text": "MISC Equipment", "style": {"fontSize": 13, "fontWeight": "600", "color": "#1B5E20", "padding": "4px 8px", "backgroundColor": "#E8F5E9", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
               },
               {
                 "meta": {"name": "MISCRepeater"},
@@ -883,7 +942,7 @@
             "type": "ia.container.flex",
             "props": {
               "direction": "column",
-              "style": {"width": "100%", "height": "100%", "padding": "12px", "gap": "12px", "backgroundColor": "#F4F6F8"}
+              "style": {"width": "100%", "height": "100%", "padding": "12px", "gap": "12px", "backgroundColor": "#F8FAFC"}
             },
             "children": [
               {
@@ -892,19 +951,152 @@
                 "position": {"basis": "48px", "shrink": 0},
                 "props": {
                   "direction": "row",
-                  "style": {"alignItems": "center", "gap": "8px", "backgroundColor": "#FFFFFF", "padding": "8px 12px", "borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"}
+                  "style": {
+                    "alignItems": "center",
+                    "gap": "8px",
+                    "backgroundColor": "#FFFFFF",
+                    "borderBottom": "1px solid #E2E8F0",
+                    "padding": "8px 16px",
+                    "height": "48px"
+                  }
                 },
                 "children": [
-                  {"meta": {"name": "Lbl1M"}, "type": "ia.input.button", "position": {"basis": "60px"}, "props": {"text": "1M", "style": {"fontSize": 12, "backgroundColor": "#E8F5E9", "color": "#2C5F2E", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -1)"}, "scope": "G", "type": "script"}}}},
-                  {"meta": {"name": "Lbl3M"}, "type": "ia.input.button", "position": {"basis": "60px"}, "props": {"text": "3M", "style": {"fontSize": 12, "backgroundColor": "#E8F5E9", "color": "#2C5F2E", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -3)"}, "scope": "G", "type": "script"}}}},
-                  {"meta": {"name": "Lbl6M"}, "type": "ia.input.button", "position": {"basis": "60px"}, "props": {"text": "6M", "style": {"fontSize": 12, "backgroundColor": "#2C5F2E", "color": "#FFF", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -6)"}, "scope": "G", "type": "script"}}}},
-                  {"meta": {"name": "Lbl12M"}, "type": "ia.input.button", "position": {"basis": "60px"}, "props": {"text": "12M", "style": {"fontSize": 12, "backgroundColor": "#E8F5E9", "color": "#2C5F2E", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -12)"}, "scope": "G", "type": "script"}}}},
-                  {"meta": {"name": "Sep1"}, "type": "ia.display.label", "position": {"basis": "20px"}, "props": {"text": "|", "style": {"color": "#CCC"}}},
-                  {"meta": {"name": "StartLbl"}, "type": "ia.display.label", "props": {"text": "From:", "style": {"fontSize": 12, "color": "#555"}}},
-                  {"meta": {"name": "StartDate"}, "type": "ia.input.date-time-input", "position": {"basis": "160px"}, "props": {"pickerType": "date", "dateFormat": "MM/dd/yyyy"}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.trendStartDate"}}}}},
-                  {"meta": {"name": "EndLbl"}, "type": "ia.display.label", "props": {"text": "To:", "style": {"fontSize": 12, "color": "#555"}}},
-                  {"meta": {"name": "EndDate"}, "type": "ia.input.date-time-input", "position": {"basis": "160px"}, "props": {"pickerType": "date", "dateFormat": "MM/dd/yyyy"}, "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.trendEndDate"}}}}},
-                  {"meta": {"name": "ExportBtn"}, "type": "ia.input.button", "position": {"basis": "120px"}, "props": {"text": "⬇ Export CSV", "style": {"fontSize": 12, "backgroundColor": "#1E5C8E", "color": "#FFF", "borderRadius": "4px"}}, "events": {"component": {"onActionPerformed": {"config": {"script": "data = self.view.custom.rawHistoryData\nif not data:\n\treturn\nheaders = list(data[0].keys()) if data else []\nrows = []\nfor row in data:\n\trows.append([str(row.get(h,'')) for h in headers])\ncsvText = ','.join(headers) + '\\n'\nfor row in rows:\n\tcsvText += ','.join(row) + '\\n'\nsystem.perspective.download('history_export.csv', csvText.encode('utf-8'), 'text/csv')"}, "scope": "G", "type": "script"}}}}
+                  {
+                    "meta": {"name": "Lbl1M"},
+                    "type": "ia.input.button",
+                    "position": {"basis": "60px"},
+                    "props": {
+                      "text": "1M",
+                      "style": {
+                        "fontSize": 12,
+                        "color": "#64748B",
+                        "backgroundColor": "#FFFFFF",
+                        "border": "1px solid #E2E8F0",
+                        "borderRadius": "4px",
+                        "height": "30px",
+                        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                      }
+                    },
+                    "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -1)"}, "scope": "G", "type": "script"}}}
+                  },
+                  {
+                    "meta": {"name": "Lbl3M"},
+                    "type": "ia.input.button",
+                    "position": {"basis": "60px"},
+                    "props": {
+                      "text": "3M",
+                      "style": {
+                        "fontSize": 12,
+                        "color": "#64748B",
+                        "backgroundColor": "#FFFFFF",
+                        "border": "1px solid #E2E8F0",
+                        "borderRadius": "4px",
+                        "height": "30px",
+                        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                      }
+                    },
+                    "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -3)"}, "scope": "G", "type": "script"}}}
+                  },
+                  {
+                    "meta": {"name": "Lbl6M"},
+                    "type": "ia.input.button",
+                    "position": {"basis": "60px"},
+                    "props": {
+                      "text": "6M",
+                      "style": {
+                        "fontSize": 12,
+                        "color": "#64748B",
+                        "backgroundColor": "#FFFFFF",
+                        "border": "1px solid #E2E8F0",
+                        "borderRadius": "4px",
+                        "height": "30px",
+                        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                      }
+                    },
+                    "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -6)"}, "scope": "G", "type": "script"}}}
+                  },
+                  {
+                    "meta": {"name": "Lbl12M"},
+                    "type": "ia.input.button",
+                    "position": {"basis": "60px"},
+                    "props": {
+                      "text": "12M",
+                      "style": {
+                        "fontSize": 12,
+                        "color": "#64748B",
+                        "backgroundColor": "#FFFFFF",
+                        "border": "1px solid #E2E8F0",
+                        "borderRadius": "4px",
+                        "height": "30px",
+                        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                      }
+                    },
+                    "events": {"component": {"onActionPerformed": {"config": {"script": "self.view.custom.trendStartDate = system.date.addMonths(system.date.now(), -12)"}, "scope": "G", "type": "script"}}}
+                  },
+                  {
+                    "meta": {"name": "Sep1"},
+                    "type": "ia.display.label",
+                    "position": {"basis": "20px"},
+                    "props": {"text": "|", "style": {"color": "#E2E8F0"}}
+                  },
+                  {
+                    "meta": {"name": "StartLbl"},
+                    "type": "ia.display.label",
+                    "props": {"text": "From:", "style": {"fontSize": 12, "color": "#64748B", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
+                  },
+                  {
+                    "meta": {"name": "StartDate"},
+                    "type": "ia.input.date-time-input",
+                    "position": {"basis": "160px"},
+                    "props": {
+                      "pickerType": "date",
+                      "dateFormat": "MM/dd/yyyy",
+                      "style": {
+                        "border": "1px solid #E2E8F0",
+                        "borderRadius": "4px",
+                        "height": "32px"
+                      }
+                    },
+                    "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.trendStartDate"}}}}
+                  },
+                  {
+                    "meta": {"name": "EndLbl"},
+                    "type": "ia.display.label",
+                    "props": {"text": "To:", "style": {"fontSize": 12, "color": "#64748B", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}
+                  },
+                  {
+                    "meta": {"name": "EndDate"},
+                    "type": "ia.input.date-time-input",
+                    "position": {"basis": "160px"},
+                    "props": {
+                      "pickerType": "date",
+                      "dateFormat": "MM/dd/yyyy",
+                      "style": {
+                        "border": "1px solid #E2E8F0",
+                        "borderRadius": "4px",
+                        "height": "32px"
+                      }
+                    },
+                    "propConfig": {"props.value": {"binding": {"type": "property", "config": {"bidirectional": true, "path": "view.custom.trendEndDate"}}}}
+                  },
+                  {
+                    "meta": {"name": "ExportBtn"},
+                    "type": "ia.input.button",
+                    "position": {"basis": "120px"},
+                    "props": {
+                      "text": "⬇ Export CSV",
+                      "style": {
+                        "fontSize": 12,
+                        "color": "#64748B",
+                        "backgroundColor": "#FFFFFF",
+                        "border": "1px solid #E2E8F0",
+                        "borderRadius": "4px",
+                        "height": "30px",
+                        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                      }
+                    },
+                    "events": {"component": {"onActionPerformed": {"config": {"script": "data = self.view.custom.rawHistoryData\nif not data:\n\treturn\nheaders = list(data[0].keys()) if data else []\nrows = []\nfor row in data:\n\trows.append([str(row.get(h,'')) for h in headers])\ncsvText = ','.join(headers) + '\\n'\nfor row in rows:\n\tcsvText += ','.join(row) + '\\n'\nsystem.perspective.download('history_export.csv', csvText.encode('utf-8'), 'text/csv')"}, "scope": "G", "type": "script"}}}
+                  }
                 ]
               },
               {
@@ -912,7 +1104,11 @@
                 "type": "ia.chart.power-chart",
                 "position": {"grow": 1},
                 "props": {
-                  "style": {"borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"}
+                  "style": {
+                    "borderRadius": "8px",
+                    "border": "1px solid #E2E8F0",
+                    "backgroundColor": "#FFFFFF"
+                  }
                 },
                 "propConfig": {
                   "props.data": {
@@ -927,18 +1123,30 @@
                 "meta": {"name": "NotesSectionLabel"},
                 "type": "ia.display.label",
                 "position": {"basis": "28px", "shrink": 0},
-                "props": {"text": "Site Notes", "style": {"fontSize": 14, "fontWeight": "bold", "color": "#2C5F2E"}}
+                "props": {
+                  "text": "Site Notes",
+                  "style": {
+                    "fontSize": 16,
+                    "fontWeight": "700",
+                    "color": "#1B5E20",
+                    "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                  }
+                }
               },
               {
                 "meta": {"name": "NotesTable"},
                 "type": "ia.display.table",
                 "position": {"basis": "200px", "shrink": 0},
                 "props": {
-                  "style": {"borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"},
+                  "style": {
+                    "borderRadius": "8px",
+                    "border": "1px solid #E2E8F0",
+                    "backgroundColor": "#FFFFFF"
+                  },
                   "columns": [
-                    {"field": "noteDate", "header": "Date", "width": 120},
-                    {"field": "noteText", "header": "Note", "width": 600},
-                    {"field": "createdBy", "header": "By", "width": 150}
+                    {"field": "noteDate",  "header": "Date", "width": 120},
+                    {"field": "noteText",  "header": "Note", "width": 600},
+                    {"field": "createdBy", "header": "By",   "width": 150}
                   ]
                 },
                 "propConfig": {
@@ -956,160 +1164,188 @@
             "meta": {"name": "Tab5_Baseline"},
             "type": "ia.container.coord",
             "props": {
-              "style": {"width": "100%", "height": "100%", "backgroundColor": "#F4F6F8", "padding": "20px"}
+              "style": {
+                "width": "100%",
+                "height": "100%",
+                "backgroundColor": "#F8FAFC",
+                "padding": "24px"
+              }
             },
             "children": [
               {
                 "meta": {"name": "BaselineTitle"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 0, "width": 600, "height": 28},
-                "props": {"text": "Seasonal Baseline Approach Temperature (°F)", "style": {"fontSize": 16, "fontWeight": "bold", "color": "#2C5F2E"}}
+                "position": {"x": 0, "y": 0, "width": 700, "height": 32},
+                "props": {
+                  "text": "Seasonal Baseline Approach Temperature (°F)",
+                  "style": {
+                    "fontSize": 18,
+                    "fontWeight": "700",
+                    "color": "#1B5E20",
+                    "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                  }
+                }
               },
               {
                 "meta": {"name": "BaselineDesc"},
                 "type": "ia.display.label",
-                "position": {"x": 0, "y": 32, "width": 700, "height": 20},
-                "props": {"text": "Enter the target approach temperature for each month. Used to contextualize seasonal performance.", "style": {"fontSize": 12, "color": "#777"}}
+                "position": {"x": 0, "y": 40, "width": 700, "height": 20},
+                "props": {
+                  "text": "Enter the target approach temperature for each month. Used to contextualize seasonal performance.",
+                  "style": {
+                    "fontSize": 13,
+                    "color": "#64748B",
+                    "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                  }
+                }
               },
               {
                 "meta": {"name": "JanRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 0, "y": 70, "width": 340, "height": 40},
+                "position": {"x": 0, "y": 78, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "January", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['1']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['1']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "January",   "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['1']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['1']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "FebRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 0, "y": 114, "width": 340, "height": 40},
+                "position": {"x": 0, "y": 122, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "February", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['2']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['2']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "February",  "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['2']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['2']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "MarRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 0, "y": 158, "width": 340, "height": 40},
+                "position": {"x": 0, "y": 166, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "March", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['3']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['3']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "March",     "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['3']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['3']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "AprRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 0, "y": 202, "width": 340, "height": 40},
+                "position": {"x": 0, "y": 210, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "April", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['4']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['4']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "April",     "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['4']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['4']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "MayRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 0, "y": 246, "width": 340, "height": 40},
+                "position": {"x": 0, "y": 254, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "May", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['5']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['5']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "May",       "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['5']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['5']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "JunRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 0, "y": 290, "width": 340, "height": 40},
+                "position": {"x": 0, "y": 298, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "June", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['6']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['6']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "June",      "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['6']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['6']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "JulRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 360, "y": 70, "width": 340, "height": 40},
+                "position": {"x": 360, "y": 78, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "July", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['7']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['7']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "July",      "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['7']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['7']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "AugRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 360, "y": 114, "width": 340, "height": 40},
+                "position": {"x": 360, "y": 122, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "August", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['8']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['8']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "August",    "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['8']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['8']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "SepRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 360, "y": 158, "width": 340, "height": 40},
+                "position": {"x": 360, "y": 166, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "September", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['9']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['9']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "September", "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['9']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['9']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "OctRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 360, "y": 202, "width": 340, "height": 40},
+                "position": {"x": 360, "y": 210, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "October", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['10']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['10']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "October",   "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['10']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['10']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "NovRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 360, "y": 246, "width": 340, "height": 40},
+                "position": {"x": 360, "y": 254, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "November", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['11']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['11']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "November",  "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['11']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['11']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "DecRow"},
                 "type": "ia.container.flex",
-                "position": {"x": 360, "y": 290, "width": 340, "height": 40},
+                "position": {"x": 360, "y": 298, "width": 340, "height": 40},
                 "props": {"direction": "row", "style": {"alignItems": "center", "gap": "12px"}},
                 "children": [
-                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "December", "style": {"fontSize": 13, "fontWeight": "600"}}},
-                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F"}},
-                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 11, "color": "#888"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['12']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['12']}) + ' °F')"}}}}}
+                  {"meta": {"name": "Lbl"}, "type": "ia.display.label", "position": {"basis": "80px"}, "props": {"text": "December",  "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}},
+                  {"meta": {"name": "Input"}, "type": "ia.input.numeric-entry-field", "position": {"basis": "80px"}, "props": {"placeholder": "°F", "style": {"height": "36px", "border": "1px solid #E2E8F0", "borderRadius": "4px"}}},
+                  {"meta": {"name": "Saved"}, "type": "ia.display.label", "props": {"style": {"fontSize": 12, "color": "#64748B", "fontStyle": "italic", "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"}}, "propConfig": {"props.text": {"binding": {"type": "expr", "config": {"expression": "if(isNull({view.custom.seasonalBaseline['12']}), 'No baseline', 'Saved: ' + toString({view.custom.seasonalBaseline['12']}) + ' °F')"}}}}}
                 ]
               },
               {
                 "meta": {"name": "SaveBaselineBtn"},
                 "type": "ia.input.button",
-                "position": {"x": 0, "y": 350, "width": 200, "height": 36},
+                "position": {"x": 0, "y": 358, "width": 220, "height": 36},
                 "props": {
                   "text": "Save Seasonal Baselines",
-                  "style": {"backgroundColor": "#2C5F2E", "color": "#FFF", "fontSize": 13, "fontWeight": "bold", "borderRadius": "4px"}
+                  "style": {
+                    "backgroundColor": "#1B5E20",
+                    "color": "#FFFFFF",
+                    "fontSize": 13,
+                    "fontWeight": "600",
+                    "borderRadius": "6px",
+                    "height": "36px",
+                    "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                  }
                 },
                 "events": {
                   "component": {
@@ -1130,28 +1366,40 @@
             "type": "ia.container.flex",
             "props": {
               "direction": "column",
-              "style": {"width": "100%", "height": "100%", "padding": "16px", "gap": "16px", "backgroundColor": "#F4F6F8"}
+              "style": {"width": "100%", "height": "100%", "padding": "16px", "gap": "16px", "backgroundColor": "#F8FAFC"}
             },
             "children": [
               {
                 "meta": {"name": "TargetHistTitle"},
                 "type": "ia.display.label",
                 "position": {"basis": "28px", "shrink": 0},
-                "props": {"text": "Target Change History", "style": {"fontSize": 15, "fontWeight": "bold", "color": "#2C5F2E"}}
+                "props": {
+                  "text": "Target Change History",
+                  "style": {
+                    "fontSize": 16,
+                    "fontWeight": "700",
+                    "color": "#1B5E20",
+                    "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                  }
+                }
               },
               {
                 "meta": {"name": "TargetHistTable"},
                 "type": "ia.display.table",
                 "position": {"grow": 1},
                 "props": {
-                  "style": {"borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"},
+                  "style": {
+                    "borderRadius": "8px",
+                    "border": "1px solid #E2E8F0",
+                    "backgroundColor": "#FFFFFF"
+                  },
                   "columns": [
-                    {"field": "changedAt",              "header": "Changed At",       "width": 160},
-                    {"field": "changedBy",              "header": "Changed By",       "width": 140},
-                    {"field": "equipmentName",          "header": "Equipment",        "width": 180},
-                    {"field": "approachTempTarget",     "header": "Approach Target",  "width": 130},
-                    {"field": "incomingWaterTempTarget","header": "IWT Target",       "width": 120},
-                    {"field": "processGasOutTempTarget","header": "POGT Target",      "width": 120}
+                    {"field": "changedAt",               "header": "Changed At",      "width": 160},
+                    {"field": "changedBy",               "header": "Changed By",      "width": 140},
+                    {"field": "equipmentName",           "header": "Equipment",       "width": 180},
+                    {"field": "approachTempTarget",      "header": "Approach Target", "width": 130},
+                    {"field": "incomingWaterTempTarget", "header": "IWT Target",      "width": 120},
+                    {"field": "processGasOutTempTarget", "header": "POGT Target",     "width": 120}
                   ]
                 },
                 "propConfig": {
@@ -1171,19 +1419,31 @@
                 "meta": {"name": "CompletenessTitle"},
                 "type": "ia.display.label",
                 "position": {"basis": "28px", "shrink": 0},
-                "props": {"text": "Monthly Submission Completeness", "style": {"fontSize": 15, "fontWeight": "bold", "color": "#2C5F2E"}}
+                "props": {
+                  "text": "Monthly Submission Completeness",
+                  "style": {
+                    "fontSize": 16,
+                    "fontWeight": "700",
+                    "color": "#1B5E20",
+                    "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+                  }
+                }
               },
               {
                 "meta": {"name": "CompletenessTable"},
                 "type": "ia.display.table",
                 "position": {"grow": 1},
                 "props": {
-                  "style": {"borderRadius": "6px", "boxShadow": "0 1px 4px rgba(0,0,0,0.1)"},
+                  "style": {
+                    "borderRadius": "8px",
+                    "border": "1px solid #E2E8F0",
+                    "backgroundColor": "#FFFFFF"
+                  },
                   "columns": [
-                    {"field": "yr",                 "header": "Year",         "width": 80},
-                    {"field": "mo",                 "header": "Month",        "width": 80},
-                    {"field": "equipSubmitted",     "header": "Units Submitted","width": 140},
-                    {"field": "completenessPercent","header": "Completeness %","width": 140}
+                    {"field": "yr",                  "header": "Year",           "width": 80},
+                    {"field": "mo",                  "header": "Month",          "width": 80},
+                    {"field": "equipSubmitted",      "header": "Units Submitted","width": 140},
+                    {"field": "completenessPercent", "header": "Completeness %", "width": 140}
                   ]
                 },
                 "propConfig": {
