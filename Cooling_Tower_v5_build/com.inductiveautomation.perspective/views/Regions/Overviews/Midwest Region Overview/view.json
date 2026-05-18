@@ -1,0 +1,1835 @@
+{
+  "custom": {
+    "endDate": {
+      "$": [
+        "ts",
+        192,
+        1771534305096
+      ],
+      "$ts": 1771534305096
+    },
+    "region": "Midwest",
+    "startDate": {
+      "$": [
+        "ts",
+        192,
+        1771534242053
+      ],
+      "$ts": 1770929442052
+    },
+    "site_Burlington_points": [],
+    "site_Burlington_worstDev": 0,
+    "site_Burlington_lastEntry": "",
+    "site_Carrollton_points": [],
+    "site_Carrollton_worstDev": 0,
+    "site_Carrollton_lastEntry": "",
+    "site_Mapleton_points": [],
+    "site_Mapleton_worstDev": 0,
+    "site_Mapleton_lastEntry": "",
+    "site_Mt_Vernon_points": [],
+    "site_Mt_Vernon_worstDev": 0,
+    "site_Mt_Vernon_lastEntry": "",
+    "site_Pittsboro_points": [],
+    "site_Pittsboro_worstDev": 0,
+    "site_Pittsboro_lastEntry": "",
+    "site_Burlington_paramDetail": "",
+    "site_Carrollton_paramDetail": "",
+    "site_Mapleton_paramDetail": "",
+    "site_Mt_Vernon_paramDetail": "",
+    "site_Pittsboro_paramDetail": "",
+    "fleetData_Midwest_Region": [],
+    "countRed_Midwest_Region": 0,
+    "countYellow_Midwest_Region": 0,
+    "countStale_Midwest_Region": 0
+  },
+  "events": {
+    "system": {
+      "onStartup": {
+        "config": {
+          "script": "\tself.custom.endDate   = system.date.now()\n\tself.custom.startDate = system.date.addMonths(self.custom.endDate, -1)\n\n\t# Load fleet summary for Midwest Region in one query (worstDev + lastEntry + completeness)\n\ttry:\n\t\tfleetDs = system.db.runNamedQuery('coolingTowerData/getFleetSummary', {})\n\t\t# Index by site name for O(1) lookup\n\t\tfleetByName = {}\n\t\tfor r in range(fleetDs.getRowCount()):\n\t\t\tsn = fleetDs.getValueAt(r, 'siteName')\n\t\t\tif fleetDs.getValueAt(r, 'region') == 'Midwest Region':\n\t\t\t\tfleetByName[sn] = {\n\t\t\t\t\t'worstDev':   fleetDs.getValueAt(r, 'worstDev') or 0.0,\n\t\t\t\t\t'lastEntry':  system.date.format(fleetDs.getValueAt(r, 'lastEntry'), 'MM/dd/yy') if fleetDs.getValueAt(r, 'lastEntry') else 'No data',\n\t\t\t\t\t'siteId':     fleetDs.getValueAt(r, 'siteId'),\n\t\t\t\t\t'completeness': fleetDs.getValueAt(r, 'completenessPercent') or 0\n\t\t\t\t}\n\texcept Exception as e:\n\t\tsystem.perspective.print('Overview fleet query error: ' + str(e))\n\t\tfleetByName = {}\n\n\t# Load sparklines per site (1 query each - cannot be batched)\n\ttry:\n\t\trow = fleetByName.get('Burlington', {})\n\t\tself.custom.site_Burlington_worstDev   = row.get('worstDev', 0.0)\n\t\tself.custom.site_Burlington_lastEntry  = row.get('lastEntry', 'No data')\n\n\t\t# Compute paramDetail from worstDev breakdown\n\t\tparamDetail = ''\n\t\tsiteId = row.get('siteId')\n\t\tif siteId and row.get('worstDev', 0) > 5:\n\t\t\tspecDs = system.db.runNamedQuery(\n\t\t\t\t'coolingTowerData/getLatestOutOfSpec', {'siteId': siteId}\n\t\t\t)\n\t\t\tparamWorst = {}\n\t\t\tparamNames = {1: 'IWT', 2: 'POGT', 6: 'DAT'}\n\t\t\tfor r in range(specDs.getRowCount()):\n\t\t\t\tdev = specDs.getValueAt(r, 'deviation')\n\t\t\t\tpid = specDs.getValueAt(r, 'parameterTypesID')\n\t\t\t\tif dev is not None:\n\t\t\t\t\tif pid not in paramWorst or abs(dev) > abs(paramWorst[pid]):\n\t\t\t\t\t\tparamWorst[pid] = dev\n\t\t\tparts = []\n\t\t\tfor pid in [6, 1, 2]:\n\t\t\t\tif pid in paramWorst and abs(paramWorst[pid]) > 5:\n\t\t\t\t\tsign = '+' if paramWorst[pid] > 0 else ''\n\t\t\t\t\tparts.append(paramNames[pid] + ' ' + sign + '%.1f\\u00b0F' % paramWorst[pid])\n\t\t\tparamDetail = '  '.join(parts)\n\t\tself.custom.site_Burlington_paramDetail = paramDetail\n\n\t\t# Sparkline - 1 month of DAT actuals\n\t\tsparkDs = system.db.runNamedQuery(\n\t\t\t'coolingTowerData/getMonthlyApproachBySite', {'site': 'Burlington'}\n\t\t)\n\t\tpts = [sparkDs.getValueAt(r, 'value') for r in range(sparkDs.getRowCount())]\n\t\tself.custom.site_Burlington_points = pts if pts else []\n\texcept Exception as e:\n\t\tself.custom.site_Burlington_worstDev    = 0\n\t\tself.custom.site_Burlington_lastEntry   = 'Error'\n\t\tself.custom.site_Burlington_paramDetail = ''\n\t\tself.custom.site_Burlington_points      = []\n\t\tsystem.perspective.print('Overview error Burlington: ' + str(e))\n\n\ttry:\n\t\trow = fleetByName.get('Carrollton', {})\n\t\tself.custom.site_Carrollton_worstDev   = row.get('worstDev', 0.0)\n\t\tself.custom.site_Carrollton_lastEntry  = row.get('lastEntry', 'No data')\n\n\t\t# Compute paramDetail from worstDev breakdown\n\t\tparamDetail = ''\n\t\tsiteId = row.get('siteId')\n\t\tif siteId and row.get('worstDev', 0) > 5:\n\t\t\tspecDs = system.db.runNamedQuery(\n\t\t\t\t'coolingTowerData/getLatestOutOfSpec', {'siteId': siteId}\n\t\t\t)\n\t\t\tparamWorst = {}\n\t\t\tparamNames = {1: 'IWT', 2: 'POGT', 6: 'DAT'}\n\t\t\tfor r in range(specDs.getRowCount()):\n\t\t\t\tdev = specDs.getValueAt(r, 'deviation')\n\t\t\t\tpid = specDs.getValueAt(r, 'parameterTypesID')\n\t\t\t\tif dev is not None:\n\t\t\t\t\tif pid not in paramWorst or abs(dev) > abs(paramWorst[pid]):\n\t\t\t\t\t\tparamWorst[pid] = dev\n\t\t\tparts = []\n\t\t\tfor pid in [6, 1, 2]:\n\t\t\t\tif pid in paramWorst and abs(paramWorst[pid]) > 5:\n\t\t\t\t\tsign = '+' if paramWorst[pid] > 0 else ''\n\t\t\t\t\tparts.append(paramNames[pid] + ' ' + sign + '%.1f\\u00b0F' % paramWorst[pid])\n\t\t\tparamDetail = '  '.join(parts)\n\t\tself.custom.site_Carrollton_paramDetail = paramDetail\n\n\t\t# Sparkline - 1 month of DAT actuals\n\t\tsparkDs = system.db.runNamedQuery(\n\t\t\t'coolingTowerData/getMonthlyApproachBySite', {'site': 'Carrollton'}\n\t\t)\n\t\tpts = [sparkDs.getValueAt(r, 'value') for r in range(sparkDs.getRowCount())]\n\t\tself.custom.site_Carrollton_points = pts if pts else []\n\texcept Exception as e:\n\t\tself.custom.site_Carrollton_worstDev    = 0\n\t\tself.custom.site_Carrollton_lastEntry   = 'Error'\n\t\tself.custom.site_Carrollton_paramDetail = ''\n\t\tself.custom.site_Carrollton_points      = []\n\t\tsystem.perspective.print('Overview error Carrollton: ' + str(e))\n\n\ttry:\n\t\trow = fleetByName.get('Mapleton', {})\n\t\tself.custom.site_Mapleton_worstDev   = row.get('worstDev', 0.0)\n\t\tself.custom.site_Mapleton_lastEntry  = row.get('lastEntry', 'No data')\n\n\t\t# Compute paramDetail from worstDev breakdown\n\t\tparamDetail = ''\n\t\tsiteId = row.get('siteId')\n\t\tif siteId and row.get('worstDev', 0) > 5:\n\t\t\tspecDs = system.db.runNamedQuery(\n\t\t\t\t'coolingTowerData/getLatestOutOfSpec', {'siteId': siteId}\n\t\t\t)\n\t\t\tparamWorst = {}\n\t\t\tparamNames = {1: 'IWT', 2: 'POGT', 6: 'DAT'}\n\t\t\tfor r in range(specDs.getRowCount()):\n\t\t\t\tdev = specDs.getValueAt(r, 'deviation')\n\t\t\t\tpid = specDs.getValueAt(r, 'parameterTypesID')\n\t\t\t\tif dev is not None:\n\t\t\t\t\tif pid not in paramWorst or abs(dev) > abs(paramWorst[pid]):\n\t\t\t\t\t\tparamWorst[pid] = dev\n\t\t\tparts = []\n\t\t\tfor pid in [6, 1, 2]:\n\t\t\t\tif pid in paramWorst and abs(paramWorst[pid]) > 5:\n\t\t\t\t\tsign = '+' if paramWorst[pid] > 0 else ''\n\t\t\t\t\tparts.append(paramNames[pid] + ' ' + sign + '%.1f\\u00b0F' % paramWorst[pid])\n\t\t\tparamDetail = '  '.join(parts)\n\t\tself.custom.site_Mapleton_paramDetail = paramDetail\n\n\t\t# Sparkline - 1 month of DAT actuals\n\t\tsparkDs = system.db.runNamedQuery(\n\t\t\t'coolingTowerData/getMonthlyApproachBySite', {'site': 'Mapleton'}\n\t\t)\n\t\tpts = [sparkDs.getValueAt(r, 'value') for r in range(sparkDs.getRowCount())]\n\t\tself.custom.site_Mapleton_points = pts if pts else []\n\texcept Exception as e:\n\t\tself.custom.site_Mapleton_worstDev    = 0\n\t\tself.custom.site_Mapleton_lastEntry   = 'Error'\n\t\tself.custom.site_Mapleton_paramDetail = ''\n\t\tself.custom.site_Mapleton_points      = []\n\t\tsystem.perspective.print('Overview error Mapleton: ' + str(e))\n\n\ttry:\n\t\trow = fleetByName.get('Mt Vernon', {})\n\t\tself.custom.site_Mt_Vernon_worstDev   = row.get('worstDev', 0.0)\n\t\tself.custom.site_Mt_Vernon_lastEntry  = row.get('lastEntry', 'No data')\n\n\t\t# Compute paramDetail from worstDev breakdown\n\t\tparamDetail = ''\n\t\tsiteId = row.get('siteId')\n\t\tif siteId and row.get('worstDev', 0) > 5:\n\t\t\tspecDs = system.db.runNamedQuery(\n\t\t\t\t'coolingTowerData/getLatestOutOfSpec', {'siteId': siteId}\n\t\t\t)\n\t\t\tparamWorst = {}\n\t\t\tparamNames = {1: 'IWT', 2: 'POGT', 6: 'DAT'}\n\t\t\tfor r in range(specDs.getRowCount()):\n\t\t\t\tdev = specDs.getValueAt(r, 'deviation')\n\t\t\t\tpid = specDs.getValueAt(r, 'parameterTypesID')\n\t\t\t\tif dev is not None:\n\t\t\t\t\tif pid not in paramWorst or abs(dev) > abs(paramWorst[pid]):\n\t\t\t\t\t\tparamWorst[pid] = dev\n\t\t\tparts = []\n\t\t\tfor pid in [6, 1, 2]:\n\t\t\t\tif pid in paramWorst and abs(paramWorst[pid]) > 5:\n\t\t\t\t\tsign = '+' if paramWorst[pid] > 0 else ''\n\t\t\t\t\tparts.append(paramNames[pid] + ' ' + sign + '%.1f\\u00b0F' % paramWorst[pid])\n\t\t\tparamDetail = '  '.join(parts)\n\t\tself.custom.site_Mt_Vernon_paramDetail = paramDetail\n\n\t\t# Sparkline - 1 month of DAT actuals\n\t\tsparkDs = system.db.runNamedQuery(\n\t\t\t'coolingTowerData/getMonthlyApproachBySite', {'site': 'Mt Vernon'}\n\t\t)\n\t\tpts = [sparkDs.getValueAt(r, 'value') for r in range(sparkDs.getRowCount())]\n\t\tself.custom.site_Mt_Vernon_points = pts if pts else []\n\texcept Exception as e:\n\t\tself.custom.site_Mt_Vernon_worstDev    = 0\n\t\tself.custom.site_Mt_Vernon_lastEntry   = 'Error'\n\t\tself.custom.site_Mt_Vernon_paramDetail = ''\n\t\tself.custom.site_Mt_Vernon_points      = []\n\t\tsystem.perspective.print('Overview error Mt Vernon: ' + str(e))\n\n\ttry:\n\t\trow = fleetByName.get('Pittsboro', {})\n\t\tself.custom.site_Pittsboro_worstDev   = row.get('worstDev', 0.0)\n\t\tself.custom.site_Pittsboro_lastEntry  = row.get('lastEntry', 'No data')\n\n\t\t# Compute paramDetail from worstDev breakdown\n\t\tparamDetail = ''\n\t\tsiteId = row.get('siteId')\n\t\tif siteId and row.get('worstDev', 0) > 5:\n\t\t\tspecDs = system.db.runNamedQuery(\n\t\t\t\t'coolingTowerData/getLatestOutOfSpec', {'siteId': siteId}\n\t\t\t)\n\t\t\tparamWorst = {}\n\t\t\tparamNames = {1: 'IWT', 2: 'POGT', 6: 'DAT'}\n\t\t\tfor r in range(specDs.getRowCount()):\n\t\t\t\tdev = specDs.getValueAt(r, 'deviation')\n\t\t\t\tpid = specDs.getValueAt(r, 'parameterTypesID')\n\t\t\t\tif dev is not None:\n\t\t\t\t\tif pid not in paramWorst or abs(dev) > abs(paramWorst[pid]):\n\t\t\t\t\t\tparamWorst[pid] = dev\n\t\t\tparts = []\n\t\t\tfor pid in [6, 1, 2]:\n\t\t\t\tif pid in paramWorst and abs(paramWorst[pid]) > 5:\n\t\t\t\t\tsign = '+' if paramWorst[pid] > 0 else ''\n\t\t\t\t\tparts.append(paramNames[pid] + ' ' + sign + '%.1f\\u00b0F' % paramWorst[pid])\n\t\t\tparamDetail = '  '.join(parts)\n\t\tself.custom.site_Pittsboro_paramDetail = paramDetail\n\n\t\t# Sparkline - 1 month of DAT actuals\n\t\tsparkDs = system.db.runNamedQuery(\n\t\t\t'coolingTowerData/getMonthlyApproachBySite', {'site': 'Pittsboro'}\n\t\t)\n\t\tpts = [sparkDs.getValueAt(r, 'value') for r in range(sparkDs.getRowCount())]\n\t\tself.custom.site_Pittsboro_points = pts if pts else []\n\texcept Exception as e:\n\t\tself.custom.site_Pittsboro_worstDev    = 0\n\t\tself.custom.site_Pittsboro_lastEntry   = 'Error'\n\t\tself.custom.site_Pittsboro_paramDetail = ''\n\t\tself.custom.site_Pittsboro_points      = []\n\t\tsystem.perspective.print('Overview error Pittsboro: ' + str(e))\n"
+        },
+        "scope": "G",
+        "type": "script"
+      }
+    }
+  },
+  "params": {
+    "site": "Midwest Region"
+  },
+  "propConfig": {
+    "custom.endDate": {
+      "binding": {
+        "config": {
+          "expression": "now()"
+        },
+        "type": "expr"
+      },
+      "persistent": true
+    },
+    "custom.region": {
+      "persistent": true
+    },
+    "custom.startDate": {
+      "persistent": true
+    },
+    "params.site": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "custom.fleetData_Midwest_Region": {
+      "binding": {
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None: return []\n\tds = system.dataset.toPyDataSet(value)\n\tregion = 'Midwest Region'\n\trows = []\n\tfor row in ds:\n\t\tif row['region'] != region: continue\n\t\tdays = row['daysSinceEntry'] if row['daysSinceEntry'] is not None else 9999\n\t\trows.append({\n\t\t\t'instancePosition': {}, 'instanceStyle': {'classes': ''},\n\t\t\t'siteId':       row['siteId'],\n\t\t\t'siteName':     row['siteName'],\n\t\t\t'region':       row['region'] or '',\n\t\t\t'lastEntry':    system.date.format(row['lastEntry'], 'MM/dd/yyyy') if row['lastEntry'] else 'Never',\n\t\t\t'daysSince':    days,\n\t\t\t'worstDev':     row['worstDev'] or 0.0,\n\t\t\t'completeness': row['completenessPercent'] or 0,\n\t\t\t'equipment':    row['enabledEquipment'] or 0\n\t\t})\n\treturn rows\n",
+            "type": "script"
+          }
+        ],
+        "type": "query"
+      },
+      "persistent": true
+    },
+    "custom.countRed_Midwest_Region": {
+      "binding": {
+        "config": {
+          "path": "view.custom.fleetData_Midwest_Region"
+        },
+        "transforms": [
+          {
+            "code": "\tif not value: return 0\n\treturn sum(1 for r in value if r.get('worstDev',0) > 10)\n",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": true
+    },
+    "custom.countYellow_Midwest_Region": {
+      "binding": {
+        "config": {
+          "path": "view.custom.fleetData_Midwest_Region"
+        },
+        "transforms": [
+          {
+            "code": "\tif not value: return 0\n\treturn sum(1 for r in value if 5 < r.get('worstDev',0) <= 10)\n",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": true
+    },
+    "custom.countStale_Midwest_Region": {
+      "binding": {
+        "config": {
+          "path": "view.custom.fleetData_Midwest_Region"
+        },
+        "transforms": [
+          {
+            "code": "\tif not value: return 0\n\treturn sum(1 for r in value if r.get('daysSince',9999) > 30)\n",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": true
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 1080,
+      "width": 1920
+    },
+    "loading": {
+      "mode": "blocking"
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "meta": {
+                      "name": "Label_0"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "textAlign": "center"
+                      },
+                      "text": "Burlington"
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "Label"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "type": "ia.display.label",
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Burlington_worstDev} > 10, \"\u26a0 OUT OF SPEC\", if({view.custom.site_Burlington_worstDev} > 5, \"\u26a0 WARNING\", \"\u2714 IN SPEC\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.color": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Burlington_worstDev} > 10, \"#CC0000\", if({view.custom.site_Burlington_worstDev} > 5, \"#B8860B\", \"#2C7A2C\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.fontWeight": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Burlington_worstDev} > 5, \"bold\", \"normal\")"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.toolTipText": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Burlington_worstDev} > 10, \"Out of spec >10\u00b0F | Last: \" + {view.custom.site_Burlington_lastEntry}, if({view.custom.site_Burlington_worstDev} > 5, \"Warning >5\u00b0F | Last: \" + {view.custom.site_Burlington_lastEntry}, \"Last entry: \" + {view.custom.site_Burlington_lastEntry}))"
+                          },
+                          "type": "expr"
+                        }
+                      }
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "whiteSpace": "nowrap",
+                        "overflow": "hidden"
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "Sparkline"
+                    },
+                    "position": {
+                      "basis": "100px"
+                    },
+                    "props": {
+                      "points": [
+                        59,
+                        80,
+                        80,
+                        100,
+                        68,
+                        62,
+                        87,
+                        72,
+                        42,
+                        49,
+                        58,
+                        53,
+                        57,
+                        51,
+                        42,
+                        32,
+                        37,
+                        30,
+                        24,
+                        38,
+                        57,
+                        29,
+                        18,
+                        32,
+                        38,
+                        24,
+                        24,
+                        24,
+                        20,
+                        21,
+                        29,
+                        32,
+                        26,
+                        18,
+                        32,
+                        36,
+                        30,
+                        36,
+                        29,
+                        32,
+                        29,
+                        28,
+                        41,
+                        20,
+                        28,
+                        58,
+                        18,
+                        24,
+                        16,
+                        2,
+                        22,
+                        17,
+                        22,
+                        21,
+                        12,
+                        22,
+                        14,
+                        13,
+                        11,
+                        20,
+                        16,
+                        16,
+                        18,
+                        12,
+                        28,
+                        28,
+                        32,
+                        16,
+                        16,
+                        24,
+                        16,
+                        20,
+                        14,
+                        18,
+                        12,
+                        26,
+                        17,
+                        11,
+                        30,
+                        16,
+                        9,
+                        20,
+                        42,
+                        13,
+                        13,
+                        24,
+                        17,
+                        13,
+                        20,
+                        12,
+                        14,
+                        13,
+                        14,
+                        71,
+                        82,
+                        20,
+                        16,
+                        20,
+                        22,
+                        17,
+                        5
+                      ]
+                    },
+                    "type": "ia.display.sparkline",
+                    "propConfig": {
+                      "props.points": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Burlington_points"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "ParamDetail"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 9,
+                        "textAlign": "center",
+                        "color": "#CC0000",
+                        "fontWeight": "bold",
+                        "whiteSpace": "normal",
+                        "overflow": "visible",
+                        "lineHeight": "1.2",
+                        "padding": "0 4px"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Burlington_paramDetail"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "LastEntry"
+                    },
+                    "position": {
+                      "basis": "18px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "color": "#888888",
+                        "fontStyle": "italic"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Burlington_lastEntry"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  }
+                ],
+                "meta": {
+                  "name": "FlexContainer"
+                },
+                "position": {
+                  "basis": "200px",
+                  "shrink": 0
+                },
+                "props": {
+                  "direction": "column",
+                  "style": {
+                    "cursor": "pointer"
+                  }
+                },
+                "type": "ia.container.flex",
+                "events": {
+                  "mouse": {
+                    "onMouseClicked": {
+                      "config": {
+                        "script": "\tsystem.perspective.navigate(\n\t\t'/midwest-region',\n\t\tparams={'tabIndex': 1}\n\t)\n"
+                      },
+                      "scope": "G",
+                      "type": "script"
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {
+                  "name": "Label_0"
+                },
+                "position": {
+                  "basis": "50px"
+                },
+                "props": {
+                  "style": {
+                    "textAlign": "center"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "children": [
+                  {
+                    "meta": {
+                      "name": "Label_0"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "textAlign": "center"
+                      },
+                      "text": "Carrollton"
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "Label"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "type": "ia.display.label",
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Carrollton_worstDev} > 10, \"\u26a0 OUT OF SPEC\", if({view.custom.site_Carrollton_worstDev} > 5, \"\u26a0 WARNING\", \"\u2714 IN SPEC\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.color": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Carrollton_worstDev} > 10, \"#CC0000\", if({view.custom.site_Carrollton_worstDev} > 5, \"#B8860B\", \"#2C7A2C\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.fontWeight": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Carrollton_worstDev} > 5, \"bold\", \"normal\")"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.toolTipText": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Carrollton_worstDev} > 10, \"Out of spec >10\u00b0F | Last: \" + {view.custom.site_Carrollton_lastEntry}, if({view.custom.site_Carrollton_worstDev} > 5, \"Warning >5\u00b0F | Last: \" + {view.custom.site_Carrollton_lastEntry}, \"Last entry: \" + {view.custom.site_Carrollton_lastEntry}))"
+                          },
+                          "type": "expr"
+                        }
+                      }
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "whiteSpace": "nowrap",
+                        "overflow": "hidden"
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "Sparkline"
+                    },
+                    "position": {
+                      "basis": "100px"
+                    },
+                    "props": {
+                      "points": [
+                        59,
+                        80,
+                        80,
+                        100,
+                        68,
+                        62,
+                        87,
+                        72,
+                        42,
+                        49,
+                        58,
+                        53,
+                        57,
+                        51,
+                        42,
+                        32,
+                        37,
+                        30,
+                        24,
+                        38,
+                        57,
+                        29,
+                        18,
+                        32,
+                        38,
+                        24,
+                        24,
+                        24,
+                        20,
+                        21,
+                        29,
+                        32,
+                        26,
+                        18,
+                        32,
+                        36,
+                        30,
+                        36,
+                        29,
+                        32,
+                        29,
+                        28,
+                        41,
+                        20,
+                        28,
+                        58,
+                        18,
+                        24,
+                        16,
+                        2,
+                        22,
+                        17,
+                        22,
+                        21,
+                        12,
+                        22,
+                        14,
+                        13,
+                        11,
+                        20,
+                        16,
+                        16,
+                        18,
+                        12,
+                        28,
+                        28,
+                        32,
+                        16,
+                        16,
+                        24,
+                        16,
+                        20,
+                        14,
+                        18,
+                        12,
+                        26,
+                        17,
+                        11,
+                        30,
+                        16,
+                        9,
+                        20,
+                        42,
+                        13,
+                        13,
+                        24,
+                        17,
+                        13,
+                        20,
+                        12,
+                        14,
+                        13,
+                        14,
+                        71,
+                        82,
+                        20,
+                        16,
+                        20,
+                        22,
+                        17,
+                        5
+                      ]
+                    },
+                    "type": "ia.display.sparkline",
+                    "propConfig": {
+                      "props.points": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Carrollton_points"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "ParamDetail"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 9,
+                        "textAlign": "center",
+                        "color": "#CC0000",
+                        "fontWeight": "bold",
+                        "whiteSpace": "normal",
+                        "overflow": "visible",
+                        "lineHeight": "1.2",
+                        "padding": "0 4px"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Carrollton_paramDetail"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "LastEntry"
+                    },
+                    "position": {
+                      "basis": "18px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "color": "#888888",
+                        "fontStyle": "italic"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Carrollton_lastEntry"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  }
+                ],
+                "meta": {
+                  "name": "FlexContainer_0"
+                },
+                "position": {
+                  "basis": "200px",
+                  "shrink": 0
+                },
+                "props": {
+                  "direction": "column",
+                  "style": {
+                    "cursor": "pointer"
+                  }
+                },
+                "type": "ia.container.flex",
+                "events": {
+                  "mouse": {
+                    "onMouseClicked": {
+                      "config": {
+                        "script": "\tsystem.perspective.navigate(\n\t\t'/midwest-region',\n\t\tparams={'tabIndex': 2}\n\t)\n"
+                      },
+                      "scope": "G",
+                      "type": "script"
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {
+                  "name": "Label_1"
+                },
+                "position": {
+                  "basis": "50px"
+                },
+                "props": {
+                  "style": {
+                    "textAlign": "center"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "children": [
+                  {
+                    "meta": {
+                      "name": "Label_0"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "textAlign": "center"
+                      },
+                      "text": "Mapleton"
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "Label"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "type": "ia.display.label",
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Mapleton_worstDev} > 10, \"\u26a0 OUT OF SPEC\", if({view.custom.site_Mapleton_worstDev} > 5, \"\u26a0 WARNING\", \"\u2714 IN SPEC\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.color": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Mapleton_worstDev} > 10, \"#CC0000\", if({view.custom.site_Mapleton_worstDev} > 5, \"#B8860B\", \"#2C7A2C\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.fontWeight": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Mapleton_worstDev} > 5, \"bold\", \"normal\")"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.toolTipText": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Mapleton_worstDev} > 10, \"Out of spec >10\u00b0F | Last: \" + {view.custom.site_Mapleton_lastEntry}, if({view.custom.site_Mapleton_worstDev} > 5, \"Warning >5\u00b0F | Last: \" + {view.custom.site_Mapleton_lastEntry}, \"Last entry: \" + {view.custom.site_Mapleton_lastEntry}))"
+                          },
+                          "type": "expr"
+                        }
+                      }
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "whiteSpace": "nowrap",
+                        "overflow": "hidden"
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "Sparkline"
+                    },
+                    "position": {
+                      "basis": "100px"
+                    },
+                    "props": {
+                      "points": [
+                        59,
+                        80,
+                        80,
+                        100,
+                        68,
+                        62,
+                        87,
+                        72,
+                        42,
+                        49,
+                        58,
+                        53,
+                        57,
+                        51,
+                        42,
+                        32,
+                        37,
+                        30,
+                        24,
+                        38,
+                        57,
+                        29,
+                        18,
+                        32,
+                        38,
+                        24,
+                        24,
+                        24,
+                        20,
+                        21,
+                        29,
+                        32,
+                        26,
+                        18,
+                        32,
+                        36,
+                        30,
+                        36,
+                        29,
+                        32,
+                        29,
+                        28,
+                        41,
+                        20,
+                        28,
+                        58,
+                        18,
+                        24,
+                        16,
+                        2,
+                        22,
+                        17,
+                        22,
+                        21,
+                        12,
+                        22,
+                        14,
+                        13,
+                        11,
+                        20,
+                        16,
+                        16,
+                        18,
+                        12,
+                        28,
+                        28,
+                        32,
+                        16,
+                        16,
+                        24,
+                        16,
+                        20,
+                        14,
+                        18,
+                        12,
+                        26,
+                        17,
+                        11,
+                        30,
+                        16,
+                        9,
+                        20,
+                        42,
+                        13,
+                        13,
+                        24,
+                        17,
+                        13,
+                        20,
+                        12,
+                        14,
+                        13,
+                        14,
+                        71,
+                        82,
+                        20,
+                        16,
+                        20,
+                        22,
+                        17,
+                        5
+                      ]
+                    },
+                    "type": "ia.display.sparkline",
+                    "propConfig": {
+                      "props.points": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Mapleton_points"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "ParamDetail"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 9,
+                        "textAlign": "center",
+                        "color": "#CC0000",
+                        "fontWeight": "bold",
+                        "whiteSpace": "normal",
+                        "overflow": "visible",
+                        "lineHeight": "1.2",
+                        "padding": "0 4px"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Mapleton_paramDetail"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "LastEntry"
+                    },
+                    "position": {
+                      "basis": "18px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "color": "#888888",
+                        "fontStyle": "italic"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Mapleton_lastEntry"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  }
+                ],
+                "meta": {
+                  "name": "FlexContainer_1"
+                },
+                "position": {
+                  "basis": "200px",
+                  "shrink": 0
+                },
+                "props": {
+                  "direction": "column",
+                  "style": {
+                    "cursor": "pointer"
+                  }
+                },
+                "type": "ia.container.flex",
+                "events": {
+                  "mouse": {
+                    "onMouseClicked": {
+                      "config": {
+                        "script": "\tsystem.perspective.navigate(\n\t\t'/midwest-region',\n\t\tparams={'tabIndex': 3}\n\t)\n"
+                      },
+                      "scope": "G",
+                      "type": "script"
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {
+                  "name": "Label_2"
+                },
+                "position": {
+                  "basis": "50px"
+                },
+                "props": {
+                  "style": {
+                    "textAlign": "center"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "children": [
+                  {
+                    "meta": {
+                      "name": "Label_0"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "textAlign": "center"
+                      },
+                      "text": "Mt Vernon"
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "Label"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "type": "ia.display.label",
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Mt_Vernon_worstDev} > 10, \"\u26a0 OUT OF SPEC\", if({view.custom.site_Mt_Vernon_worstDev} > 5, \"\u26a0 WARNING\", \"\u2714 IN SPEC\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.color": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Mt_Vernon_worstDev} > 10, \"#CC0000\", if({view.custom.site_Mt_Vernon_worstDev} > 5, \"#B8860B\", \"#2C7A2C\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.fontWeight": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Mt_Vernon_worstDev} > 5, \"bold\", \"normal\")"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.toolTipText": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Mt_Vernon_worstDev} > 10, \"Out of spec >10\u00b0F | Last: \" + {view.custom.site_Mt_Vernon_lastEntry}, if({view.custom.site_Mt_Vernon_worstDev} > 5, \"Warning >5\u00b0F | Last: \" + {view.custom.site_Mt_Vernon_lastEntry}, \"Last entry: \" + {view.custom.site_Mt_Vernon_lastEntry}))"
+                          },
+                          "type": "expr"
+                        }
+                      }
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "whiteSpace": "nowrap",
+                        "overflow": "hidden"
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "Sparkline"
+                    },
+                    "position": {
+                      "basis": "100px"
+                    },
+                    "props": {
+                      "points": [
+                        59,
+                        80,
+                        80,
+                        100,
+                        68,
+                        62,
+                        87,
+                        72,
+                        42,
+                        49,
+                        58,
+                        53,
+                        57,
+                        51,
+                        42,
+                        32,
+                        37,
+                        30,
+                        24,
+                        38,
+                        57,
+                        29,
+                        18,
+                        32,
+                        38,
+                        24,
+                        24,
+                        24,
+                        20,
+                        21,
+                        29,
+                        32,
+                        26,
+                        18,
+                        32,
+                        36,
+                        30,
+                        36,
+                        29,
+                        32,
+                        29,
+                        28,
+                        41,
+                        20,
+                        28,
+                        58,
+                        18,
+                        24,
+                        16,
+                        2,
+                        22,
+                        17,
+                        22,
+                        21,
+                        12,
+                        22,
+                        14,
+                        13,
+                        11,
+                        20,
+                        16,
+                        16,
+                        18,
+                        12,
+                        28,
+                        28,
+                        32,
+                        16,
+                        16,
+                        24,
+                        16,
+                        20,
+                        14,
+                        18,
+                        12,
+                        26,
+                        17,
+                        11,
+                        30,
+                        16,
+                        9,
+                        20,
+                        42,
+                        13,
+                        13,
+                        24,
+                        17,
+                        13,
+                        20,
+                        12,
+                        14,
+                        13,
+                        14,
+                        71,
+                        82,
+                        20,
+                        16,
+                        20,
+                        22,
+                        17,
+                        5
+                      ]
+                    },
+                    "type": "ia.display.sparkline",
+                    "propConfig": {
+                      "props.points": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Mt_Vernon_points"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "ParamDetail"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 9,
+                        "textAlign": "center",
+                        "color": "#CC0000",
+                        "fontWeight": "bold",
+                        "whiteSpace": "normal",
+                        "overflow": "visible",
+                        "lineHeight": "1.2",
+                        "padding": "0 4px"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Mt_Vernon_paramDetail"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "LastEntry"
+                    },
+                    "position": {
+                      "basis": "18px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "color": "#888888",
+                        "fontStyle": "italic"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Mt_Vernon_lastEntry"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  }
+                ],
+                "meta": {
+                  "name": "FlexContainer_2"
+                },
+                "position": {
+                  "basis": "200px",
+                  "shrink": 0
+                },
+                "props": {
+                  "direction": "column",
+                  "style": {
+                    "cursor": "pointer"
+                  }
+                },
+                "type": "ia.container.flex",
+                "events": {
+                  "mouse": {
+                    "onMouseClicked": {
+                      "config": {
+                        "script": "\tsystem.perspective.navigate(\n\t\t'/midwest-region',\n\t\tparams={'tabIndex': 4}\n\t)\n"
+                      },
+                      "scope": "G",
+                      "type": "script"
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {
+                  "name": "Label_3"
+                },
+                "position": {
+                  "basis": "50px"
+                },
+                "props": {
+                  "style": {
+                    "textAlign": "center"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "children": [
+                  {
+                    "meta": {
+                      "name": "Label_0"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "textAlign": "center"
+                      },
+                      "text": "Pittsboro"
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "Label"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "type": "ia.display.label",
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Pittsboro_worstDev} > 10, \"\u26a0 OUT OF SPEC\", if({view.custom.site_Pittsboro_worstDev} > 5, \"\u26a0 WARNING\", \"\u2714 IN SPEC\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.color": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Pittsboro_worstDev} > 10, \"#CC0000\", if({view.custom.site_Pittsboro_worstDev} > 5, \"#B8860B\", \"#2C7A2C\"))"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.style.fontWeight": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Pittsboro_worstDev} > 5, \"bold\", \"normal\")"
+                          },
+                          "type": "expr"
+                        }
+                      },
+                      "props.toolTipText": {
+                        "binding": {
+                          "config": {
+                            "expression": "if({view.custom.site_Pittsboro_worstDev} > 10, \"Out of spec >10\u00b0F | Last: \" + {view.custom.site_Pittsboro_lastEntry}, if({view.custom.site_Pittsboro_worstDev} > 5, \"Warning >5\u00b0F | Last: \" + {view.custom.site_Pittsboro_lastEntry}, \"Last entry: \" + {view.custom.site_Pittsboro_lastEntry}))"
+                          },
+                          "type": "expr"
+                        }
+                      }
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "whiteSpace": "nowrap",
+                        "overflow": "hidden"
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "Sparkline"
+                    },
+                    "position": {
+                      "basis": "100px"
+                    },
+                    "props": {
+                      "points": [
+                        59,
+                        80,
+                        80,
+                        100,
+                        68,
+                        62,
+                        87,
+                        72,
+                        42,
+                        49,
+                        58,
+                        53,
+                        57,
+                        51,
+                        42,
+                        32,
+                        37,
+                        30,
+                        24,
+                        38,
+                        57,
+                        29,
+                        18,
+                        32,
+                        38,
+                        24,
+                        24,
+                        24,
+                        20,
+                        21,
+                        29,
+                        32,
+                        26,
+                        18,
+                        32,
+                        36,
+                        30,
+                        36,
+                        29,
+                        32,
+                        29,
+                        28,
+                        41,
+                        20,
+                        28,
+                        58,
+                        18,
+                        24,
+                        16,
+                        2,
+                        22,
+                        17,
+                        22,
+                        21,
+                        12,
+                        22,
+                        14,
+                        13,
+                        11,
+                        20,
+                        16,
+                        16,
+                        18,
+                        12,
+                        28,
+                        28,
+                        32,
+                        16,
+                        16,
+                        24,
+                        16,
+                        20,
+                        14,
+                        18,
+                        12,
+                        26,
+                        17,
+                        11,
+                        30,
+                        16,
+                        9,
+                        20,
+                        42,
+                        13,
+                        13,
+                        24,
+                        17,
+                        13,
+                        20,
+                        12,
+                        14,
+                        13,
+                        14,
+                        71,
+                        82,
+                        20,
+                        16,
+                        20,
+                        22,
+                        17,
+                        5
+                      ]
+                    },
+                    "type": "ia.display.sparkline",
+                    "propConfig": {
+                      "props.points": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Pittsboro_points"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "meta": {
+                      "name": "ParamDetail"
+                    },
+                    "position": {
+                      "basis": "32px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 9,
+                        "textAlign": "center",
+                        "color": "#CC0000",
+                        "fontWeight": "bold",
+                        "whiteSpace": "normal",
+                        "overflow": "visible",
+                        "lineHeight": "1.2",
+                        "padding": "0 4px"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Pittsboro_paramDetail"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  },
+                  {
+                    "meta": {
+                      "name": "LastEntry"
+                    },
+                    "position": {
+                      "basis": "18px"
+                    },
+                    "props": {
+                      "style": {
+                        "fontSize": 10,
+                        "textAlign": "center",
+                        "color": "#888888",
+                        "fontStyle": "italic"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "config": {
+                            "path": "view.custom.site_Pittsboro_lastEntry"
+                          },
+                          "type": "property"
+                        }
+                      }
+                    },
+                    "type": "ia.display.label"
+                  }
+                ],
+                "meta": {
+                  "name": "FlexContainer_3"
+                },
+                "position": {
+                  "basis": "200px",
+                  "shrink": 0
+                },
+                "props": {
+                  "direction": "column",
+                  "style": {
+                    "cursor": "pointer"
+                  }
+                },
+                "type": "ia.container.flex",
+                "events": {
+                  "mouse": {
+                    "onMouseClicked": {
+                      "config": {
+                        "script": "\tsystem.perspective.navigate(\n\t\t'/midwest-region',\n\t\tparams={'tabIndex': 5}\n\t)\n"
+                      },
+                      "scope": "G",
+                      "type": "script"
+                    }
+                  }
+                }
+              }
+            ],
+            "meta": {
+              "name": "FlexContainer"
+            },
+            "position": {
+              "basis": "428px"
+            },
+            "type": "ia.container.flex"
+          }
+        ],
+        "meta": {
+          "name": "ASU Overview"
+        },
+        "props": {
+          "direction": "column"
+        },
+        "type": "ia.container.flex"
+      },
+      {
+        "meta": {
+          "name": "FleetSection"
+        },
+        "position": {
+          "grow": 1
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "padding": "8px 0"
+          }
+        },
+        "children": [
+          {
+            "meta": {
+              "name": "FleetSectionTitle"
+            },
+            "position": {
+              "basis": "32px",
+              "shrink": 0
+            },
+            "props": {
+              "text": "Midwest Region \u2014 Site Status Summary",
+              "style": {
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "borderTop": "2px solid #CCCCCC",
+                "padding": "6px 8px",
+                "backgroundColor": "#F5F5F5"
+              }
+            },
+            "type": "ia.display.label"
+          },
+          {
+            "meta": {
+              "name": "FleetBadges"
+            },
+            "position": {
+              "basis": "44px",
+              "shrink": 0
+            },
+            "props": {
+              "direction": "row",
+              "style": {
+                "padding": "6px 8px",
+                "gap": "12px",
+                "alignItems": "center"
+              }
+            },
+            "children": [
+              {
+                "meta": {
+                  "name": "BadgeRed"
+                },
+                "position": {
+                  "basis": "150px"
+                },
+                "props": {
+                  "style": {
+                    "backgroundColor": "#FF4444",
+                    "color": "#FFFFFF",
+                    "borderRadius": "6px",
+                    "padding": "6px 12px",
+                    "fontSize": 13,
+                    "fontWeight": "bold",
+                    "textAlign": "center"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "expression": "\"\u26a0 \" + toString({view.custom.countRed_Midwest_Region}) + \" Out of Spec\""
+                      },
+                      "type": "expr"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "BadgeYellow"
+                },
+                "position": {
+                  "basis": "140px"
+                },
+                "props": {
+                  "style": {
+                    "backgroundColor": "#FFD700",
+                    "color": "#333333",
+                    "borderRadius": "6px",
+                    "padding": "6px 12px",
+                    "fontSize": 13,
+                    "fontWeight": "bold",
+                    "textAlign": "center"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "expression": "\"\u26a0 \" + toString({view.custom.countYellow_Midwest_Region}) + \" Warning\""
+                      },
+                      "type": "expr"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "BadgeGrey"
+                },
+                "position": {
+                  "basis": "130px"
+                },
+                "props": {
+                  "style": {
+                    "backgroundColor": "#AAAAAA",
+                    "color": "#FFFFFF",
+                    "borderRadius": "6px",
+                    "padding": "6px 12px",
+                    "fontSize": 13,
+                    "fontWeight": "bold",
+                    "textAlign": "center"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "expression": "\"\ud83d\udd50 \" + toString({view.custom.countStale_Midwest_Region}) + \" Stale\""
+                      },
+                      "type": "expr"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              }
+            ],
+            "type": "ia.container.flex"
+          },
+          {
+            "meta": {
+              "name": "FleetTable"
+            },
+            "position": {
+              "grow": 1
+            },
+            "props": {
+              "columns": [
+                {
+                  "field": "Site",
+                  "header": {
+                    "title": "Site"
+                  },
+                  "width": 200
+                },
+                {
+                  "field": "Last Entry",
+                  "header": {
+                    "title": "Last Entry"
+                  },
+                  "width": 130
+                },
+                {
+                  "field": "Days Ago",
+                  "header": {
+                    "title": "Days Ago"
+                  },
+                  "width": 90
+                },
+                {
+                  "field": "Spec Status",
+                  "header": {
+                    "title": "Spec Status"
+                  },
+                  "width": 130
+                },
+                {
+                  "field": "Completeness %",
+                  "header": {
+                    "title": "Monthly Completeness"
+                  },
+                  "width": 160
+                }
+              ],
+              "rowHeight": 34,
+              "alternatingRowBackground": true,
+              "showPaginationBar": false,
+              "style": {
+                "maxHeight": "280px",
+                "overflowY": "auto"
+              }
+            },
+            "propConfig": {
+              "props.data": {
+                "binding": {
+                  "config": {
+                    "expression": "ds_value = {view.custom.fleetData_Midwest_Region}\nif not ds_value: return system.dataset.toDataSet([], [])\nheaders = [\"Site\", \"Last Entry\", \"Days Ago\", \"Spec Status\", \"Completeness %\"]\nrows = []\nfor row in ds_value:\n\tworstDev  = row.get('worstDev', 0) or 0\n\tdaysSince = row.get('daysSince', 9999) or 9999\n\tleStr     = str(row.get('lastEntry', 'Never') or 'Never')\n\tdaStr     = str(int(daysSince)) if daysSince < 9999 else 'N/A'\n\tcompPct   = str(row.get('completeness', 0) or 0) + '%'\n\tif worstDev > 10:    spec = \"OUT OF SPEC\"\n\telif worstDev > 5:   spec = \"WARNING\"\n\telif daysSince > 30: spec = \"STALE\"\n\telse:                spec = \"IN SPEC\"\n\trows.append([str(row.get('siteName','')), leStr, daStr, spec, compPct])\nreturn system.dataset.toDataSet(headers, rows)\n"
+                  },
+                  "type": "expr"
+                }
+              }
+            },
+            "type": "ia.display.table"
+          }
+        ],
+        "type": "ia.container.flex"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column"
+    },
+    "type": "ia.container.flex"
+  }
+}

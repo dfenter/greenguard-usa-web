@@ -1,0 +1,65 @@
+{
+  "scope": "DG",
+  "version": 2,
+  "restricted": false,
+  "overridable": true,
+  "files": [
+    "query.sql"
+  ],
+  "attributes": {
+    "useMaxReturnSize": false,
+    "autoBatchEnabled": false,
+    "fallbackValue": "",
+    "maxReturnSize": 0,
+    "cacheUnit": "SEC",
+    "type": "UpdateQuery",
+    "enabled": true,
+    "cacheAmount": 1,
+    "cacheEnabled": false,
+    "database": "",
+    "fallbackEnabled": false,
+    "parameters": [
+      {
+        "type": "Parameter",
+        "identifier": "coolingTowerDataID",
+        "sqlType": 4
+      },
+      {
+        "type": "Parameter",
+        "identifier": "changedBy",
+        "sqlType": 12
+      },
+      {
+        "type": "Parameter",
+        "identifier": "approachTempTarget",
+        "sqlType": 8
+      },
+      {
+        "type": "Parameter",
+        "identifier": "incomingWaterTempTarget",
+        "sqlType": 8
+      },
+      {
+        "type": "Parameter",
+        "identifier": "processGasOutTempTarget",
+        "sqlType": 8
+      },
+      {
+        "type": "Parameter",
+        "identifier": "altEquipmentName",
+        "sqlType": 12
+      }
+    ],
+    "permissions": [
+      {
+        "zone": "",
+        "role": ""
+      }
+    ],
+    "lastModification": {
+      "actor": "dfenter",
+      "timestamp": "2026-05-15T14:00:00Z"
+    },
+    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}

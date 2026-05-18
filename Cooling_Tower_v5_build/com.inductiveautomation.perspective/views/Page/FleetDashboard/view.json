@@ -1,0 +1,417 @@
+{
+  "custom": {
+    "fleetData": [],
+    "filterRegion": "All",
+    "filteredData": [],
+    "countRed": 0,
+    "countYellow": 0,
+    "countStale": 0
+  },
+  "params": {},
+  "propConfig": {
+    "custom.filterRegion": {"persistent": true},
+    "custom.fleetData": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "result = []\nfor row in (value or []):\n\tlastEntry = row.get('lastEntry', None)\n\tif lastEntry is None:\n\t\tlastEntryStr = 'Never'\n\telse:\n\t\ttry:\n\t\t\tif hasattr(lastEntry, 'strftime'):\n\t\t\t\tlastEntryStr = lastEntry.strftime('%m/%d/%Y')\n\t\t\telse:\n\t\t\t\tlastEntryStr = str(lastEntry)[:10]\n\t\texcept:\n\t\t\tlastEntryStr = str(lastEntry)\n\tresult.append({\n\t\t'siteId': row.get('siteId', 0),\n\t\t'siteName': row.get('siteName', ''),\n\t\t'region': row.get('region', ''),\n\t\t'lastEntry': lastEntryStr,\n\t\t'daysSince': row.get('daysSince', 9999) or 9999,\n\t\t'worstDev': row.get('worstDev', 0) or 0,\n\t\t'completeness': row.get('completeness', 0) or 0,\n\t\t'equipment': row.get('equipment', 0) or 0,\n\t\t'instancePosition': {},\n\t\t'instanceStyle': {'classes': ''}\n\t})\nreturn result"
+            }
+          }
+        }
+      }
+    },
+    "custom.filteredData": {
+      "persistent": true,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.fleetData",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "filterRegion = self.view.custom.filterRegion\nif filterRegion == 'All' or not filterRegion:\n\treturn list(value or [])\nresult = []\nfor row in (value or []):\n\tif row.get('region', '') == filterRegion:\n\t\tresult.append(row)\nreturn result"
+            }
+          }
+        }
+      }
+    },
+    "custom.countRed": {
+      "persistent": false,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.filteredData",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tif (row.get('worstDev', 0) or 0) > 10:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.countYellow": {
+      "persistent": false,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.filteredData",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tdev = row.get('worstDev', 0) or 0\n\tif dev > 5 and dev <= 10:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.countStale": {
+      "persistent": false,
+      "binding": {
+        "type": "property",
+        "config": {
+          "path": "view.custom.filteredData",
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tdays = row.get('daysSince', 9999)\n\tif days is None or days > 30:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {"width": 1400, "height": 900}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#F8FAFC",
+        "height": "100%",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "TitleBar"},
+        "type": "ia.container.flex",
+        "position": {"basis": "60px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "backgroundColor": "#FFFFFF",
+            "borderBottom": "1px solid #E2E8F0",
+            "boxShadow": "0 1px 3px rgba(0,0,0,0.06)",
+            "padding": "0 20px",
+            "gap": "12px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "Title"},
+            "type": "ia.display.label",
+            "position": {"grow": 1},
+            "props": {
+              "text": "Fleet Dashboard",
+              "style": {"fontSize": 22, "fontWeight": "700", "color": "#0F172A"}
+            }
+          },
+          {
+            "meta": {"name": "FilterLabel"},
+            "type": "ia.display.label",
+            "position": {"basis": "60px"},
+            "props": {
+              "text": "Region:",
+              "style": {"fontSize": 13, "color": "#64748B"}
+            }
+          },
+          {
+            "meta": {"name": "RegionFilter"},
+            "type": "ia.input.dropdown",
+            "position": {"basis": "200px"},
+            "props": {"style": {"fontSize": 13}},
+            "propConfig": {
+              "props.options": {
+                "binding": {
+                  "type": "query",
+                  "config": {
+                    "queryPath": "coolingTowerData/getAllRegions",
+                    "parameters": {},
+                    "polling": {"enabled": false, "rate": 0},
+                    "transform": {
+                      "type": "script",
+                      "config": {
+                        "script": "opts = [{'label': 'All', 'value': 'All'}]\nfor row in (value or []):\n\treg = row.get('region', '')\n\tif reg:\n\t\topts.append({'label': reg, 'value': reg})\nreturn opts"
+                      }
+                    }
+                  }
+                }
+              },
+              "props.value": {
+                "binding": {
+                  "type": "property",
+                  "config": {"bidirectional": true, "path": "view.custom.filterRegion"}
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "Divider"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "",
+              "style": {
+                "borderLeft": "1px solid #E2E8F0",
+                "height": "24px",
+                "margin": "0 4px"
+              }
+            }
+          },
+          {
+            "meta": {"name": "ExportBtn"},
+            "type": "ia.input.button",
+            "props": {
+              "text": "⬇ Export CSV",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "fontSize": 13,
+                "color": "#64748B",
+                "height": "36px",
+                "padding": "0 14px"
+              }
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "data = self.view.custom.filteredData\nif not data:\n\treturn\nheaders = ['siteId', 'siteName', 'region', 'lastEntry', 'daysSince', 'worstDev', 'completeness', 'equipment']\ncsv = ','.join(headers) + '\\n'\nfor row in data:\n\tvals = [str(row.get(h, '')) for h in headers]\n\tcsv += ','.join(vals) + '\\n'\nsystem.perspective.download('fleet_summary.csv', csv.encode('utf-8'), 'text/csv')"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "SummaryBadges"},
+        "type": "ia.container.flex",
+        "position": {"basis": "60px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "backgroundColor": "#FFFFFF",
+            "borderBottom": "1px solid #E2E8F0",
+            "padding": "0 20px",
+            "gap": "12px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "RedBadge"},
+            "type": "ia.display.label",
+            "props": {
+              "style": {
+                "backgroundColor": "#DC2626",
+                "color": "#FFFFFF",
+                "borderRadius": "6px",
+                "padding": "6px 14px",
+                "fontSize": 13,
+                "fontWeight": "700"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "\"⚠ \" + toString({view.custom.countRed}) + \" Out of Spec\""
+                  }
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "YellowBadge"},
+            "type": "ia.display.label",
+            "props": {
+              "style": {
+                "backgroundColor": "#F59E0B",
+                "color": "#FFFFFF",
+                "borderRadius": "6px",
+                "padding": "6px 14px",
+                "fontSize": 13,
+                "fontWeight": "700"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "\"⚠ \" + toString({view.custom.countYellow}) + \" Warning\""
+                  }
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "GreyBadge"},
+            "type": "ia.display.label",
+            "props": {
+              "style": {
+                "backgroundColor": "#94A3B8",
+                "color": "#FFFFFF",
+                "borderRadius": "6px",
+                "padding": "6px 14px",
+                "fontSize": 13,
+                "fontWeight": "700"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "\"🕐 \" + toString({view.custom.countStale}) + \" Stale\""
+                  }
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "Spacer"},
+            "type": "ia.display.label",
+            "position": {"grow": 1},
+            "props": {"text": ""}
+          },
+          {
+            "meta": {"name": "SitesCount"},
+            "type": "ia.display.label",
+            "props": {
+              "style": {"fontSize": 12, "color": "#64748B"}
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "toString(len({view.custom.filteredData})) + \" sites\""
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "ColumnHeaders"},
+        "type": "ia.container.flex",
+        "position": {"basis": "36px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "backgroundColor": "#2E3748",
+            "padding": "0 12px",
+            "gap": 0
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "H_Site"},
+            "type": "ia.display.label",
+            "position": {"basis": "180px"},
+            "props": {"text": "SITE", "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px"}}
+          },
+          {
+            "meta": {"name": "H_Region"},
+            "type": "ia.display.label",
+            "position": {"basis": "160px"},
+            "props": {"text": "REGION", "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px"}}
+          },
+          {
+            "meta": {"name": "H_Last"},
+            "type": "ia.display.label",
+            "position": {"basis": "120px"},
+            "props": {"text": "LAST ENTRY", "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px"}}
+          },
+          {
+            "meta": {"name": "H_Days"},
+            "type": "ia.display.label",
+            "position": {"basis": "80px"},
+            "props": {"text": "DAYS AGO", "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px"}}
+          },
+          {
+            "meta": {"name": "H_Status"},
+            "type": "ia.display.label",
+            "position": {"basis": "160px"},
+            "props": {"text": "STATUS", "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px"}}
+          },
+          {
+            "meta": {"name": "H_Completeness"},
+            "type": "ia.display.label",
+            "position": {"basis": "190px"},
+            "props": {"text": "COMPLETENESS", "style": {"fontSize": 11, "fontWeight": "700", "color": "#FFFFFF", "letterSpacing": "0.8px"}}
+          }
+        ]
+      },
+      {
+        "meta": {"name": "FleetList"},
+        "type": "ia.container.flex",
+        "position": {"grow": 1},
+        "props": {
+          "direction": "column",
+          "style": {"overflowY": "auto"}
+        },
+        "children": [
+          {
+            "meta": {"name": "FleetRepeater"},
+            "type": "ia.display.flex-repeater",
+            "position": {"grow": 1},
+            "props": {
+              "instances": [],
+              "repeatMode": "children",
+              "direction": "column"
+            },
+            "propConfig": {
+              "props.instances": {
+                "binding": {
+                  "type": "property",
+                  "config": {"path": "view.custom.filteredData"}
+                }
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "FleetRow"},
+                "type": "ia.display.view",
+                "position": {"basis": "40px", "shrink": 0},
+                "props": {
+                  "path": "Framework/FleetRow",
+                  "params": {}
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

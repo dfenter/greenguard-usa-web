@@ -1,0 +1,252 @@
+{
+  "custom": {},
+  "params": {
+    "id": 0,
+    "siteId": 0,
+    "parameter": "",
+    "altEquipmentName": "",
+    "approachTempTarget": null,
+    "incomingWaterTempTarget": null,
+    "processGasOutTempTarget": null,
+    "designIncomingWaterTempF": null,
+    "processGasOutTempF": null,
+    "designApproachTempF": null,
+    "previousIWT": null,
+    "previousPOGT": null
+  },
+  "propConfig": {
+    "params.id":                      { "paramDirection": "input", "persistent": true },
+    "params.siteId":                  { "paramDirection": "input", "persistent": true },
+    "params.parameter":               { "paramDirection": "input", "persistent": true },
+    "params.altEquipmentName":        { "paramDirection": "input", "persistent": true },
+    "params.approachTempTarget":      { "paramDirection": "input", "persistent": true },
+    "params.incomingWaterTempTarget": { "paramDirection": "input", "persistent": true },
+    "params.processGasOutTempTarget": { "paramDirection": "input", "persistent": true },
+    "params.designIncomingWaterTempF":{ "paramDirection": "input", "persistent": true },
+    "params.processGasOutTempF":      { "paramDirection": "input", "persistent": true },
+    "params.designApproachTempF":     { "paramDirection": "input", "persistent": true },
+    "params.previousIWT":             { "paramDirection": "input", "persistent": true },
+    "params.previousPOGT":            { "paramDirection": "input", "persistent": true }
+  },
+  "props": {
+    "defaultSize": { "width": 960, "height": 44 }
+  },
+  "root": {
+    "meta": { "name": "root" },
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "row",
+      "style": {
+        "height": "44px",
+        "alignItems": "center",
+        "borderBottom": "1px solid #E2E8F0",
+        "padding": "0 10px",
+        "backgroundColor": "#FFFFFF",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+      }
+    },
+    "propConfig": {
+      "props.style.backgroundColor": {
+        "binding": {
+          "config": {
+            "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null and abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#FEF2F2\", if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null and abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#FFFBEB\", \"#FFFFFF\"))"
+          },
+          "type": "expr"
+        }
+      }
+    },
+    "children": [
+      {
+        "meta": { "name": "EquipName" },
+        "position": { "basis": "200px", "shrink": 0 },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 13,
+            "fontWeight": "600",
+            "color": "#0F172A",
+            "overflow": "hidden"
+          }
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.altEquipmentName} != \"\", {view.params.altEquipmentName}, {view.params.parameter})"
+              },
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": { "name": "IWTActual" },
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "IWT °F",
+          "style": {
+            "fontSize": 13
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.designIncomingWaterTempF" },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": { "name": "IWTTarget" },
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "IWT Tgt",
+          "style": {
+            "fontSize": 12,
+            "color": "#64748B"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.incomingWaterTempTarget" },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": { "name": "POGTActual" },
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "POGT °F",
+          "style": {
+            "fontSize": 13
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.processGasOutTempF" },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": { "name": "POGTTarget" },
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "POGT Tgt",
+          "style": {
+            "fontSize": 12,
+            "color": "#64748B"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.processGasOutTempTarget" },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": { "name": "DATActual" },
+        "position": { "basis": "88px", "shrink": 0 },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 14,
+            "fontWeight": "700",
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null, toString(round({view.params.designApproachTempF}, 1)) + \" °F\", \"—\")"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#DC2626\", if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#D97706\", \"#16A34A\")), \"#64748B\")"
+              },
+              "type": "expr"
+            }
+          }
+        }
+      },
+      {
+        "meta": { "name": "DATTarget" },
+        "position": { "basis": "96px", "shrink": 0 },
+        "type": "ia.input.numeric-entry-field",
+        "props": {
+          "placeholder": "DAT Tgt",
+          "style": {
+            "fontSize": 12,
+            "color": "#64748B"
+          }
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": { "bidirectional": true, "path": "view.params.approachTempTarget" },
+              "type": "property"
+            }
+          }
+        }
+      },
+      {
+        "meta": { "name": "DevBadge" },
+        "position": { "basis": "100px", "shrink": 0 },
+        "type": "ia.display.label",
+        "props": {
+          "style": {
+            "fontSize": 11,
+            "fontWeight": "700",
+            "borderRadius": "4px",
+            "padding": "2px 8px",
+            "textAlign": "center"
+          }
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, \"Δ \" + toString(round(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}), 1)) + \"°F\", \"\")"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.backgroundColor": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 10, \"#DC2626\", if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#F59E0B\", \"#16A34A\")), \"transparent\")"
+              },
+              "type": "expr"
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "config": {
+                "expression": "if({view.params.designApproachTempF} is not null and {view.params.approachTempTarget} is not null, if(abs({view.params.designApproachTempF} - {view.params.approachTempTarget}) > 5, \"#FFFFFF\", \"#FFFFFF\"), \"transparent\")"
+              },
+              "type": "expr"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

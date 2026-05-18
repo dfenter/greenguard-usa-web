@@ -1,0 +1,904 @@
+{
+  "custom": {
+    "BAC": "value",
+    "CDA": "value",
+    "DCAC": "value",
+    "FNC": "value",
+    "GAN": "value",
+    "GOX": "value",
+    "MAC": "value",
+    "NLUChiller": "value",
+    "RNC": "value",
+    "airExpander": "value",
+    "argonSkid": "value",
+    "auxillaryCooler": "value",
+    "chiller": "value",
+    "coldExpander": "value",
+    "siteConfig": {
+      "$": [
+        "ds",
+        192,
+        1770133233163
+      ],
+      "$columns": [
+        {
+          "data": [
+            2
+          ],
+          "name": "id",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            1
+          ],
+          "name": "siteId",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "MAC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "BAC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "RNC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "FNC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "GOX",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "GAN",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "CDA",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "airExpander",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "warmExpander",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "coldExpander",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "argonSkid",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "auxillaryCooler",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "DCAC",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "chiller",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "NLUChiller",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "intercoolers",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "aftercoolers",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "oilcoolers",
+          "type": "Integer"
+        },
+        {
+          "data": [
+            0
+          ],
+          "name": "auxEquipment",
+          "type": "Integer"
+        }
+      ]
+    },
+    "warmExpander": "value"
+  },
+  "params": {
+    "BAC": "value",
+    "CDA": "value",
+    "DCAC": "value",
+    "FNC": "value",
+    "GAN": "value",
+    "GOX": "value",
+    "MAC": "value",
+    "NLUChiller": "value",
+    "RNC": "value",
+    "airExpander": "value",
+    "argonSkid": "value",
+    "auxillaryCooler": "value",
+    "chiller": "value",
+    "coldExpander": "value",
+    "site": 1,
+    "warmExpander": "value"
+  },
+  "propConfig": {
+    "custom.BAC": {
+      "persistent": true
+    },
+    "custom.CDA": {
+      "persistent": true
+    },
+    "custom.DCAC": {
+      "persistent": true
+    },
+    "custom.FNC": {
+      "persistent": true
+    },
+    "custom.GAN": {
+      "persistent": true
+    },
+    "custom.GOX": {
+      "persistent": true
+    },
+    "custom.MAC": {
+      "persistent": true
+    },
+    "custom.NLUChiller": {
+      "persistent": true
+    },
+    "custom.RNC": {
+      "persistent": true
+    },
+    "custom.airExpander": {
+      "persistent": true
+    },
+    "custom.argonSkid": {
+      "persistent": true
+    },
+    "custom.auxillaryCooler": {
+      "persistent": true
+    },
+    "custom.chiller": {
+      "persistent": true
+    },
+    "custom.coldExpander": {
+      "persistent": true
+    },
+    "custom.siteConfig": {
+      "binding": {
+        "config": {
+          "parameters": {
+            "siteId": "{view.params.site}"
+          },
+          "queryPath": "coolingTowerData/getSiteConfig"
+        },
+        "type": "query"
+      },
+      "persistent": true
+    },
+    "custom.warmExpander": {
+      "persistent": true
+    },
+    "params.BAC": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.CDA": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.DCAC": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.FNC": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.GAN": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.GOX": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.MAC": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.NLUChiller": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.RNC": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.airExpander": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.argonSkid": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.auxillaryCooler": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.chiller": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.coldExpander": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.site": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.warmExpander": {
+      "paramDirection": "input",
+      "persistent": true
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "height": 321,
+      "width": 653
+    }
+  },
+  "root": {
+    "children": [
+      {
+        "meta": {
+          "name": "NumericEntryField_1"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.MAC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "Label"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 4
+        },
+        "props": {
+          "text": "MAC"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_2"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 20
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.BAC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_3"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 60
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.FNC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_4"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 40
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.RNC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_5"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 80
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.GOX"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_6"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 100
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.GAN"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_7"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 120
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.CDA"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "Label_0"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 24
+        },
+        "props": {
+          "text": "BAC"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_1"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 64
+        },
+        "props": {
+          "text": "FNC"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_2"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 44
+        },
+        "props": {
+          "text": "RNC"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_4"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 124
+        },
+        "props": {
+          "text": "CDA"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_5"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 104
+        },
+        "props": {
+          "text": "GAN"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_6"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 84
+        },
+        "props": {
+          "text": "GOX"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_7"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 144
+        },
+        "props": {
+          "text": "AirExpander"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_8"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 184
+        },
+        "props": {
+          "text": "ColdExpander"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_9"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 164
+        },
+        "props": {
+          "text": "WarmExpander"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_10"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 264
+        },
+        "props": {
+          "text": "Chiller"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_11"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 244
+        },
+        "props": {
+          "text": "DCAC"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_12"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 224
+        },
+        "props": {
+          "text": "Auxillary Cooler"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_13"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 204
+        },
+        "props": {
+          "text": "ArgonSkid"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "Label_14"
+        },
+        "position": {
+          "height": 20,
+          "width": 303,
+          "x": 57,
+          "y": 284
+        },
+        "props": {
+          "text": "NLUChiller"
+        },
+        "type": "ia.display.label"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_9"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 280
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.NLUChiller"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_10"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 260
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.chiller"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_11"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 240
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.DCAC"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_12"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 220
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.auxillaryCooler"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_13"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 180
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.argonSkid"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_14"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 200
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.coldExpander"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_15"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 160
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.warmExpander"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      },
+      {
+        "meta": {
+          "name": "NumericEntryField_16"
+        },
+        "position": {
+          "height": 20,
+          "width": 150,
+          "x": 475,
+          "y": 140
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "config": {
+                "bidirectional": true,
+                "path": "view.custom.airExpander"
+              },
+              "type": "property"
+            }
+          }
+        },
+        "type": "ia.input.numeric-entry-field"
+      }
+    ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "style": {
+        "overflow": "visible"
+      }
+    },
+    "type": "ia.container.coord"
+  }
+}

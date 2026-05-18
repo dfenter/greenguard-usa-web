@@ -1,0 +1,542 @@
+{
+  "custom": {
+    "countOutOfSpec": 0,
+    "countWarning": 0,
+    "countStale": 0,
+    "totalSites": 0
+  },
+  "params": {},
+  "propConfig": {
+    "custom.countOutOfSpec": {
+      "persistent": false,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tif (row.get('worstDev', 0) or 0) > 10:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.countWarning": {
+      "persistent": false,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tdev = row.get('worstDev', 0) or 0\n\tif dev > 5 and dev <= 10:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.countStale": {
+      "persistent": false,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "count = 0\nfor row in (value or []):\n\tdays = row.get('daysSince', None)\n\tif days is None or days > 30:\n\t\tcount += 1\nreturn count"
+            }
+          }
+        }
+      }
+    },
+    "custom.totalSites": {
+      "persistent": false,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary",
+          "parameters": {},
+          "polling": {"enabled": true, "rate": 300000},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "return len(value) if value else 0"
+            }
+          }
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {"width": 1200, "height": 900}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#F8FAFC",
+        "padding": "32px 48px",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "PageTitle"},
+        "type": "ia.display.label",
+        "position": {"basis": "44px", "shrink": 0},
+        "props": {
+          "text": "Cooling Tower Approach Temperature Tool",
+          "style": {
+            "fontSize": 28,
+            "fontWeight": "700",
+            "color": "#1B5E20",
+            "marginBottom": "4px"
+          }
+        }
+      },
+      {
+        "meta": {"name": "Subtitle"},
+        "type": "ia.display.label",
+        "position": {"basis": "28px", "shrink": 0},
+        "props": {
+          "text": "Fleet-wide monitoring · 8 Regions · 38 Sites",
+          "style": {
+            "fontSize": 14,
+            "color": "#64748B",
+            "marginBottom": "24px"
+          }
+        }
+      },
+      {
+        "meta": {"name": "SectionLabel_KPI"},
+        "type": "ia.display.label",
+        "position": {"basis": "22px", "shrink": 0},
+        "props": {
+          "text": "FLEET STATUS",
+          "style": {
+            "fontSize": 11,
+            "fontWeight": "700",
+            "color": "#64748B",
+            "letterSpacing": "1.5px",
+            "marginBottom": "8px"
+          }
+        }
+      },
+      {
+        "meta": {"name": "KpiRow"},
+        "type": "ia.container.flex",
+        "position": {"basis": "120px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "gap": "20px",
+            "marginBottom": "40px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "TotalSites"},
+            "type": "ia.container.flex",
+            "position": {"basis": "220px", "shrink": 0},
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "borderLeft": "4px solid #1B5E20",
+                "borderRadius": "8px",
+                "padding": "20px 24px",
+                "boxShadow": "0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06)",
+                "gap": "4px"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Number"},
+                "type": "ia.display.label",
+                "props": {
+                  "style": {"fontSize": 36, "fontWeight": "700", "color": "#1B5E20"}
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "property",
+                      "config": {"path": "view.custom.totalSites"}
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {"name": "Label"},
+                "type": "ia.display.label",
+                "props": {
+                  "text": "Total Active Sites",
+                  "style": {"fontSize": 12, "color": "#64748B"}
+                }
+              }
+            ]
+          },
+          {
+            "meta": {"name": "OutOfSpec"},
+            "type": "ia.container.flex",
+            "position": {"basis": "220px", "shrink": 0},
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#FEF2F2",
+                "borderLeft": "4px solid #DC2626",
+                "borderRadius": "8px",
+                "padding": "20px 24px",
+                "boxShadow": "0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06)",
+                "gap": "4px"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Number"},
+                "type": "ia.display.label",
+                "props": {
+                  "style": {"fontSize": 36, "fontWeight": "700", "color": "#DC2626"}
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "property",
+                      "config": {"path": "view.custom.countOutOfSpec"}
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {"name": "Label"},
+                "type": "ia.display.label",
+                "props": {
+                  "text": "⚠ Out of Spec  (>10°F)",
+                  "style": {"fontSize": 12, "color": "#DC2626"}
+                }
+              }
+            ]
+          },
+          {
+            "meta": {"name": "Warning"},
+            "type": "ia.container.flex",
+            "position": {"basis": "220px", "shrink": 0},
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#FFFBEB",
+                "borderLeft": "4px solid #D97706",
+                "borderRadius": "8px",
+                "padding": "20px 24px",
+                "boxShadow": "0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06)",
+                "gap": "4px"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Number"},
+                "type": "ia.display.label",
+                "props": {
+                  "style": {"fontSize": 36, "fontWeight": "700", "color": "#D97706"}
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "property",
+                      "config": {"path": "view.custom.countWarning"}
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {"name": "Label"},
+                "type": "ia.display.label",
+                "props": {
+                  "text": "⚠ Warning  (5–10°F)",
+                  "style": {"fontSize": 12, "color": "#D97706"}
+                }
+              }
+            ]
+          },
+          {
+            "meta": {"name": "Stale"},
+            "type": "ia.container.flex",
+            "position": {"basis": "220px", "shrink": 0},
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#F1F5F9",
+                "borderLeft": "4px solid #94A3B8",
+                "borderRadius": "8px",
+                "padding": "20px 24px",
+                "boxShadow": "0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06)",
+                "gap": "4px"
+              }
+            },
+            "children": [
+              {
+                "meta": {"name": "Number"},
+                "type": "ia.display.label",
+                "props": {
+                  "style": {"fontSize": 36, "fontWeight": "700", "color": "#64748B"}
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "property",
+                      "config": {"path": "view.custom.countStale"}
+                    }
+                  }
+                }
+              },
+              {
+                "meta": {"name": "Label"},
+                "type": "ia.display.label",
+                "props": {
+                  "text": "🕐 Stale  (>30 days)",
+                  "style": {"fontSize": 12, "color": "#64748B"}
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "meta": {"name": "SectionLabel_Regions"},
+        "type": "ia.display.label",
+        "position": {"basis": "22px", "shrink": 0},
+        "props": {
+          "text": "NAVIGATE BY REGION",
+          "style": {
+            "fontSize": 11,
+            "fontWeight": "700",
+            "color": "#64748B",
+            "letterSpacing": "1.5px",
+            "marginBottom": "8px"
+          }
+        }
+      },
+      {
+        "meta": {"name": "RegionRow1"},
+        "type": "ia.container.flex",
+        "position": {"basis": "62px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"gap": "14px"}
+        },
+        "children": [
+          {
+            "meta": {"name": "BtnCentral"},
+            "type": "ia.input.button",
+            "position": {"basis": "200px"},
+            "props": {
+              "text": "Central Region",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "color": "#0F172A",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "height": "48px",
+                "boxShadow": "0 1px 2px rgba(0,0,0,0.05)",
+                "cursor": "pointer"
+              }
+            },
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Central Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnEast"},
+            "type": "ia.input.button",
+            "position": {"basis": "200px"},
+            "props": {
+              "text": "East Region",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "color": "#0F172A",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "height": "48px",
+                "boxShadow": "0 1px 2px rgba(0,0,0,0.05)",
+                "cursor": "pointer"
+              }
+            },
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'East Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnMidwest"},
+            "type": "ia.input.button",
+            "position": {"basis": "200px"},
+            "props": {
+              "text": "Midwest Region",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "color": "#0F172A",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "height": "48px",
+                "boxShadow": "0 1px 2px rgba(0,0,0,0.05)",
+                "cursor": "pointer"
+              }
+            },
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Midwest Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnNorth"},
+            "type": "ia.input.button",
+            "position": {"basis": "200px"},
+            "props": {
+              "text": "North Region",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "color": "#0F172A",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "height": "48px",
+                "boxShadow": "0 1px 2px rgba(0,0,0,0.05)",
+                "cursor": "pointer"
+              }
+            },
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'North Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          }
+        ]
+      },
+      {
+        "meta": {"name": "RegionRow2"},
+        "type": "ia.container.flex",
+        "position": {"basis": "62px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {"gap": "14px", "marginBottom": "32px"}
+        },
+        "children": [
+          {
+            "meta": {"name": "BtnNortheast"},
+            "type": "ia.input.button",
+            "position": {"basis": "200px"},
+            "props": {
+              "text": "Northeast Region",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "color": "#0F172A",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "height": "48px",
+                "boxShadow": "0 1px 2px rgba(0,0,0,0.05)",
+                "cursor": "pointer"
+              }
+            },
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Northeast Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnSouth"},
+            "type": "ia.input.button",
+            "position": {"basis": "200px"},
+            "props": {
+              "text": "South Region",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "color": "#0F172A",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "height": "48px",
+                "boxShadow": "0 1px 2px rgba(0,0,0,0.05)",
+                "cursor": "pointer"
+              }
+            },
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'South Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnSoutheast"},
+            "type": "ia.input.button",
+            "position": {"basis": "200px"},
+            "props": {
+              "text": "Southeast Region",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "color": "#0F172A",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "height": "48px",
+                "boxShadow": "0 1px 2px rgba(0,0,0,0.05)",
+                "cursor": "pointer"
+              }
+            },
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Southeast Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          },
+          {
+            "meta": {"name": "BtnSouthwest"},
+            "type": "ia.input.button",
+            "position": {"basis": "200px"},
+            "props": {
+              "text": "Southwest Region",
+              "style": {
+                "backgroundColor": "#FFFFFF",
+                "border": "1px solid #E2E8F0",
+                "borderRadius": "6px",
+                "color": "#0F172A",
+                "fontSize": 13,
+                "fontWeight": "600",
+                "height": "48px",
+                "boxShadow": "0 1px 2px rgba(0,0,0,0.05)",
+                "cursor": "pointer"
+              }
+            },
+            "events": {"component": {"onActionPerformed": {"config": {"script": "self.session.custom.currentRegion = 'Southwest Region'\nsystem.perspective.navigate(page='/region')"}, "scope": "G", "type": "script"}}}
+          }
+        ]
+      },
+      {
+        "meta": {"name": "FleetDashboardLink"},
+        "type": "ia.input.button",
+        "position": {"basis": "48px", "shrink": 0},
+        "props": {
+          "text": "→ Open Full Fleet Dashboard",
+          "style": {
+            "backgroundColor": "#1B5E20",
+            "color": "#FFFFFF",
+            "borderRadius": "6px",
+            "fontSize": 14,
+            "fontWeight": "600",
+            "height": "48px",
+            "maxWidth": "280px",
+            "border": "none"
+          }
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {
+                "script": "system.perspective.navigate(page='/fleet')"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "custom": {
+    "submitted": false
+  },
+  "params": {},
+  "propConfig": {},
+  "props": {
+    "defaultSize": {"width": 560, "height": 360}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.coord",
+    "props": {
+      "style": {
+        "width": "560px",
+        "height": "360px",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": "8px",
+        "overflow": "hidden",
+        "boxShadow": "0 4px 12px rgba(0,0,0,0.15)",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "Header"},
+        "type": "ia.container.coord",
+        "position": {"x": 0, "y": 0, "width": 560, "height": 52},
+        "props": {
+          "style": {"backgroundColor": "#1565C0"}
+        },
+        "children": [
+          {
+            "meta": {"name": "Title"},
+            "type": "ia.display.label",
+            "position": {"x": 16, "y": 10, "width": 524, "height": 32},
+            "props": {
+              "text": "Submit Feedback",
+              "style": {"fontSize": 18, "fontWeight": "700", "color": "#FFFFFF"}
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "SiteLbl"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 70, "width": 60, "height": 24},
+        "props": {
+          "text": "Site:",
+          "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A"}
+        }
+      },
+      {
+        "meta": {"name": "SiteDropdown"},
+        "type": "ia.input.dropdown",
+        "position": {"x": 80, "y": 66, "width": 220, "height": 36},
+        "props": {
+          "placeholderText": "Select site...",
+          "style": {"fontSize": 13}
+        },
+        "propConfig": {
+          "props.options": {
+            "binding": {
+              "type": "query",
+              "config": {
+                "queryPath": "coolingTowerData/getAllSitesDropdown",
+                "parameters": {},
+                "polling": {"enabled": false, "rate": 0}
+              }
+            }
+          }
+        }
+      },
+      {
+        "meta": {"name": "CategoryLbl"},
+        "type": "ia.display.label",
+        "position": {"x": 316, "y": 70, "width": 70, "height": 24},
+        "props": {
+          "text": "Category:",
+          "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A"}
+        }
+      },
+      {
+        "meta": {"name": "CategoryDropdown"},
+        "type": "ia.input.dropdown",
+        "position": {"x": 390, "y": 66, "width": 150, "height": 36},
+        "props": {
+          "style": {"fontSize": 13},
+          "options": [
+            {"label": "Bug / Error",      "value": "bug"},
+            {"label": "Data Issue",       "value": "data"},
+            {"label": "Feature Request",  "value": "feature"},
+            {"label": "UI / Display",     "value": "ui"},
+            {"label": "Other",            "value": "other"}
+          ],
+          "value": "bug"
+        }
+      },
+      {
+        "meta": {"name": "FeedbackLbl"},
+        "type": "ia.display.label",
+        "position": {"x": 20, "y": 114, "width": 520, "height": 20},
+        "props": {
+          "text": "Feedback:",
+          "style": {"fontSize": 13, "fontWeight": "600", "color": "#0F172A"}
+        }
+      },
+      {
+        "meta": {"name": "FeedbackInput"},
+        "type": "ia.input.text-area",
+        "position": {"x": 20, "y": 136, "width": 520, "height": 148},
+        "props": {
+          "placeholderText": "Describe the issue or suggestion...",
+          "style": {
+            "fontSize": 13,
+            "border": "1px solid #E2E8F0",
+            "borderRadius": "4px",
+            "resize": "none"
+          }
+        }
+      },
+      {
+        "meta": {"name": "CancelBtn"},
+        "type": "ia.input.button",
+        "position": {"x": 310, "y": 300, "width": 110, "height": 36},
+        "props": {
+          "text": "Cancel",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "border": "1px solid #E2E8F0",
+            "borderRadius": "6px",
+            "color": "#64748B",
+            "fontWeight": "600",
+            "fontSize": 13
+          }
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {
+                "script": "system.perspective.closePopup('feedback')"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
+      },
+      {
+        "meta": {"name": "SubmitBtn"},
+        "type": "ia.input.button",
+        "position": {"x": 430, "y": 300, "width": 110, "height": 36},
+        "props": {
+          "text": "Submit",
+          "style": {
+            "backgroundColor": "#1565C0",
+            "color": "#FFFFFF",
+            "borderRadius": "6px",
+            "fontWeight": "600",
+            "fontSize": 13
+          }
+        },
+        "events": {
+          "component": {
+            "onActionPerformed": {
+              "config": {
+                "script": "site     = self.getSibling('SiteDropdown').props.value\ncategory = self.getSibling('CategoryDropdown').props.value\nfeedback = self.getSibling('FeedbackInput').props.text\nif not site:\n\tsystem.perspective.openPopup('fbErr','Framework/ErrorPopup',params={'message':'Please select a site.'})\n\treturn\nif not feedback or not feedback.strip():\n\tsystem.perspective.openPopup('fbErr','Framework/ErrorPopup',params={'message':'Please enter feedback before submitting.'})\n\treturn\ntry:\n\tuser = self.session.props.auth.user.userName or 'unknown'\n\tsystem.db.runNamedQuery('coolingTowerData/insertUserFeedback',\n\t\t{'site':site,'username':user,'category':category,'feedback':feedback.strip()})\n\tsystem.perspective.closePopup('feedback')\n\tsystem.perspective.openPopup('fbOK','Framework/SuccessPopup',\n\t\tparams={'message':'Thank you! Feedback submitted for '+site+'.'})\nexcept Exception as e:\n\tsystem.perspective.openPopup('fbErr','Framework/ErrorPopup',params={'message':'Submit failed: '+str(e)})"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

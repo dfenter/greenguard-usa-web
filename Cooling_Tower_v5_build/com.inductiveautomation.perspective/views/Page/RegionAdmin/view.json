@@ -1,0 +1,248 @@
+{
+  "custom": {
+    "allSites": [],
+    "regionOptions": [],
+    "selectedSiteId": 0,
+    "selectedSiteName": "",
+    "selectedCurrentRegion": "",
+    "newRegion": ""
+  },
+  "params": {},
+  "propConfig": {
+    "custom.selectedSiteId": {"persistent": true},
+    "custom.selectedSiteName": {"persistent": true},
+    "custom.selectedCurrentRegion": {"persistent": true},
+    "custom.newRegion": {"persistent": true},
+    "custom.allSites": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getAllSitesWithRegion",
+          "parameters": {},
+          "polling": {"enabled": false, "rate": 0},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "result = []\nfor row in (value or []):\n\tresult.append({\n\t\t'siteId': row.get('siteId', 0),\n\t\t'site': row.get('site', '') or row.get('siteName', ''),\n\t\t'region': row.get('region', ''),\n\t\t'instancePosition': {},\n\t\t'instanceStyle': {'classes': ''}\n\t})\nreturn result"
+            }
+          }
+        }
+      }
+    },
+    "custom.regionOptions": {
+      "persistent": true,
+      "binding": {
+        "type": "query",
+        "config": {
+          "queryPath": "coolingTowerData/getAllRegions",
+          "parameters": {},
+          "polling": {"enabled": false, "rate": 0},
+          "transform": {
+            "type": "script",
+            "config": {
+              "script": "result = []\nfor row in (value or []):\n\treg = row.get('region', '')\n\tif reg:\n\t\tresult.append({'label': reg, 'value': reg})\nreturn result"
+            }
+          }
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {"width": 1000, "height": 800}
+  },
+  "root": {
+    "meta": {"name": "root"},
+    "type": "ia.container.flex",
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#F8FAFC",
+        "height": "100%",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+      }
+    },
+    "children": [
+      {
+        "meta": {"name": "Header"},
+        "type": "ia.container.flex",
+        "position": {"basis": "60px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "backgroundColor": "#1B5E20",
+            "alignItems": "center",
+            "padding": "0 24px",
+            "gap": "12px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "Icon"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "⬡",
+              "style": {"fontSize": 20, "color": "#FFFFFF"}
+            }
+          },
+          {
+            "meta": {"name": "Title"},
+            "type": "ia.display.label",
+            "position": {"grow": 1},
+            "props": {
+              "text": "Region / Site Assignment",
+              "style": {"fontSize": 20, "fontWeight": "700", "color": "#FFFFFF"}
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "Instructions"},
+        "type": "ia.container.flex",
+        "position": {"basis": "40px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "padding": "0 24px",
+            "backgroundColor": "#FFFFFF",
+            "borderBottom": "1px solid #E2E8F0"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "InstructionText"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "Click a row to select a site, then choose a new region and save.",
+              "style": {"fontSize": 13, "color": "#64748B", "fontStyle": "italic"}
+            }
+          }
+        ]
+      },
+      {
+        "meta": {"name": "TableArea"},
+        "type": "ia.display.table",
+        "position": {"grow": 1},
+        "props": {
+          "columns": [
+            {"field": "site",   "header": "Site",           "width": 200},
+            {"field": "region", "header": "Current Region", "width": 200}
+          ],
+          "rowHeight": 40,
+          "alternatingRowBackground": true,
+          "style": {"backgroundColor": "#FFFFFF"}
+        },
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "type": "property",
+              "config": {"path": "view.custom.allSites"}
+            }
+          }
+        },
+        "events": {
+          "component": {
+            "onCellClick": {
+              "config": {
+                "script": "self.view.custom.selectedSiteId = event.rowData.get('siteId', 0)\nself.view.custom.selectedSiteName = event.rowData.get('site', '')\nself.view.custom.selectedCurrentRegion = event.rowData.get('region', '')"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
+      },
+      {
+        "meta": {"name": "ActionBar"},
+        "type": "ia.container.flex",
+        "position": {"basis": "68px", "shrink": 0},
+        "props": {
+          "direction": "row",
+          "style": {
+            "alignItems": "center",
+            "backgroundColor": "#FFFFFF",
+            "borderTop": "2px solid #E2E8F0",
+            "padding": "0 24px",
+            "gap": "16px"
+          }
+        },
+        "children": [
+          {
+            "meta": {"name": "SelectedLabel"},
+            "type": "ia.display.label",
+            "position": {"grow": 1},
+            "props": {
+              "style": {"fontSize": 13, "color": "#0F172A", "fontWeight": "600"}
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "\"Selected: \" + if({view.custom.selectedSiteName} != '', {view.custom.selectedSiteName}, '(none)')"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "NewRegionLabel"},
+            "type": "ia.display.label",
+            "props": {
+              "text": "New Region:",
+              "style": {"fontSize": 13, "color": "#64748B"}
+            }
+          },
+          {
+            "meta": {"name": "RegionDropdown"},
+            "type": "ia.input.dropdown",
+            "position": {"basis": "200px"},
+            "props": {"style": {"fontSize": 13}},
+            "propConfig": {
+              "props.options": {
+                "binding": {
+                  "type": "property",
+                  "config": {"path": "view.custom.regionOptions"}
+                }
+              },
+              "props.value": {
+                "binding": {
+                  "type": "property",
+                  "config": {"bidirectional": true, "path": "view.custom.newRegion"}
+                }
+              }
+            }
+          },
+          {
+            "meta": {"name": "SaveBtn"},
+            "type": "ia.input.button",
+            "props": {
+              "text": "Save Region",
+              "style": {
+                "backgroundColor": "#1B5E20",
+                "color": "#FFFFFF",
+                "borderRadius": "6px",
+                "height": "36px",
+                "padding": "0 20px",
+                "fontWeight": "600",
+                "fontSize": 13
+              }
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "siteId = self.view.custom.selectedSiteId\nregion = self.view.custom.newRegion\nif not siteId:\n\tsystem.perspective.openPopup('raErr','Framework/ErrorPopup',params={'message':'Please select a site from the table.'})\n\treturn\nif not region:\n\tsystem.perspective.openPopup('raErr','Framework/ErrorPopup',params={'message':'Please select a new region.'})\n\treturn\ntry:\n\tsystem.db.runNamedQuery('coolingTowerData/updateSiteRegion',{'siteId':siteId,'region':region})\n\tsystem.perspective.openPopup('raOK','Framework/SuccessPopup',params={'message':self.view.custom.selectedSiteName+' moved to '+region+'.'})\n\tself.view.custom.selectedSiteId = 0\n\tself.view.custom.selectedSiteName = ''\n\tself.view.custom.newRegion = ''\nexcept Exception as e:\n\tsystem.perspective.openPopup('raErr','Framework/ErrorPopup',params={'message':'Save failed: '+str(e)})"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
