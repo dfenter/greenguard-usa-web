@@ -5,6 +5,9 @@ on:
     - cron: '0 9 * * *'   # 3 AM CST daily
   workflow_dispatch:        # manual trigger from GitHub Actions tab
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   fetch:
     runs-on: ubuntu-latest
