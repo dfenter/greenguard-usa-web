@@ -1,10 +1,47 @@
 {
-  "pages": [
-    { "url": "/overview",     "page": "Page/Home" },
-    { "url": "/fleet",        "page": "Page/FleetDashboard" },
-    { "url": "/region",       "page": "Regions/RegionView" },
-    { "url": "/region-admin", "page": "Page/RegionAdmin" },
-    { "url": "/new-site",     "page": "Page/NewSite" }
-  ],
-  "defaultPage": "/overview"
+  "pages": {
+    "/": {
+      "title": "Cooling Tower",
+      "viewPath": "Page/Home"
+    },
+    "/overview": {
+      "title": "Overview",
+      "viewPath": "Page/Home"
+    },
+    "/fleet": {
+      "title": "Fleet Dashboard",
+      "viewPath": "Page/FleetDashboard"
+    },
+    "/region": {
+      "title": "Region View",
+      "viewPath": "Regions/RegionView"
+    },
+    "/region-admin": {
+      "title": "Region Admin",
+      "viewPath": "Page/RegionAdmin"
+    },
+    "/new-site": {
+      "title": "New Site",
+      "viewPath": "Page/NewSite"
+    }
+  },
+  "sharedDocks": {
+    "cornerPriority": "top-bottom",
+    "left": [
+      {
+        "anchor": "fixed",
+        "autoBreakpoint": 480,
+        "content": "push",
+        "handle": "hide",
+        "iconUrl": "",
+        "id": "left",
+        "modal": false,
+        "resizable": false,
+        "show": "visible",
+        "size": 220,
+        "viewParams": {},
+        "viewPath": "Docks/Menu"
+      }
+    ]
+  }
 }
