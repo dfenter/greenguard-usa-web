@@ -10,7 +10,7 @@
     "useMaxReturnSize": false,
     "autoBatchEnabled": false,
     "fallbackValue": "",
-    "maxReturnSize": 2000,
+    "maxReturnSize": 0,
     "cacheUnit": "SEC",
     "type": "Query",
     "enabled": true,
