@@ -78,7 +78,8 @@
     "previousActuals": {},
     "comparisonSiteId": 0,
     "comparisonSiteData": {},
-    "seasonalBaseline": {}
+    "seasonalBaseline": {},
+    "chartData": []
   },
   "events": {
     "system": {
@@ -725,6 +726,21 @@
           }
         ],
         "type": "query"
+      },
+      "persistent": true
+    },
+    "custom.chartData": {
+      "binding": {
+        "config": {
+          "path": "view.custom.rawHistoryData"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\ttry:\n\t\tselected = self.view.custom.selectedEquipment\n\texcept:\n\t\tselected = 'all'\n\tpen_names = ['IWT Actual','POGT Actual','DAT Actual','IWT Target','POGT Target','DAT Target']\n\ttime_data = {}\n\tcount_data = {}\n\tfor r in range(value.getRowCount()):\n\t\tts    = value.getValueAt(r, 't_stamp')\n\t\teq_id = str(value.getValueAt(r, 'coolingTowerDataID') or '')\n\t\tpl    = str(value.getValueAt(r, 'paramLabel') or '')\n\t\tv     = value.getValueAt(r, 'value')\n\t\tif selected != 'all' and eq_id != str(selected): continue\n\t\tif pl not in pen_names: continue\n\t\tif ts not in time_data:\n\t\t\ttime_data[ts] = {}\n\t\t\tcount_data[ts] = {}\n\t\tif v is not None:\n\t\t\tif pl in time_data[ts] and time_data[ts][pl] is not None:\n\t\t\t\ttime_data[ts][pl] = (time_data[ts][pl] * count_data[ts].get(pl,1) + v) / (count_data[ts].get(pl,1) + 1)\n\t\t\t\tcount_data[ts][pl] = count_data[ts].get(pl,1) + 1\n\t\t\telse:\n\t\t\t\ttime_data[ts][pl] = v\n\t\t\t\tcount_data[ts][pl] = 1\n\theaders = ['t_stamp'] + pen_names\n\trows = [[ts] + [time_data[ts].get(p) for p in pen_names] for ts in sorted(time_data.keys())]\n\treturn system.dataset.toDataSet(headers, rows)\n",
+            "type": "script"
+          }
+        ],
+        "type": "property"
       },
       "persistent": true
     }
@@ -2724,6 +2740,12 @@
                         },
                         "pens": [
                           {
+                            "name": "DAT Actual",
+                            "color": "#2C5F2E",
+                            "lineStyle": "Solid",
+                            "lineWeight": 2
+                          },
+                          {
                             "name": "IWT Actual",
                             "color": "#4472C4",
                             "lineStyle": "Solid",
@@ -2736,10 +2758,10 @@
                             "lineWeight": 2
                           },
                           {
-                            "name": "DAT Actual",
-                            "color": "#70AD47",
-                            "lineStyle": "Solid",
-                            "lineWeight": 2
+                            "name": "DAT Target",
+                            "color": "#2C5F2E",
+                            "lineStyle": "Dash",
+                            "lineWeight": 1
                           },
                           {
                             "name": "IWT Target",
@@ -2752,24 +2774,6 @@
                             "color": "#ED7D31",
                             "lineStyle": "Dash",
                             "lineWeight": 1
-                          },
-                          {
-                            "name": "DAT Target",
-                            "color": "#70AD47",
-                            "lineStyle": "Dash",
-                            "lineWeight": 1
-                          },
-                          {
-                            "name": "DAT Baseline",
-                            "color": "#9B59B6",
-                            "lineStyle": "Dot",
-                            "lineWeight": 1
-                          },
-                          {
-                            "name": "Comparison DAT",
-                            "color": "#E74C3C",
-                            "lineStyle": "DashDot",
-                            "lineWeight": 2
                           }
                         ]
                       }
@@ -2780,7 +2784,23 @@
                   "props.data": {
                     "binding": {
                       "config": {
-                        "path": "view.custom.rawHistoryData"
+                        "path": "view.custom.chartData"
+                      },
+                      "type": "property"
+                    }
+                  },
+                  "props.time.start": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.trendStartDate"
+                      },
+                      "type": "property"
+                    }
+                  },
+                  "props.time.end": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.trendEndDate"
                       },
                       "type": "property"
                     }
@@ -2918,68 +2938,1021 @@
             "type": "ia.container.coord"
           },
           {
-            "meta": { "name": "Baseline" },
-            "position": { "tabIndex": 5 },
+            "meta": {
+              "name": "Baseline"
+            },
+            "position": {
+              "tabIndex": 5
+            },
             "type": "ia.container.coord",
             "children": [
               {
-                "meta": { "name": "BaselineTitle" },
-                "position": { "x": 20, "y": 14, "width": 900, "height": 30 },
-                "props": { "text": "Seasonal Baseline — Design Approach Temperature (°F)", "style": { "fontSize": 17, "fontWeight": "bold", "color": "#2C5F2E" } },
+                "meta": {
+                  "name": "BaselineTitle"
+                },
+                "position": {
+                  "x": 20,
+                  "y": 14,
+                  "width": 900,
+                  "height": 30
+                },
+                "props": {
+                  "text": "Seasonal Baseline \u2014 Design Approach Temperature (\u00b0F)",
+                  "style": {
+                    "fontSize": 17,
+                    "fontWeight": "bold",
+                    "color": "#2C5F2E"
+                  }
+                },
                 "type": "ia.display.label"
               },
               {
-                "meta": { "name": "BaselineDesc" },
-                "position": { "x": 20, "y": 48, "width": 900, "height": 22 },
-                "props": { "text": "Enter the expected monthly DAT baseline for this site. These values are saved to the database and overlaid on the trend chart.", "style": { "fontSize": 12, "color": "#777777", "fontStyle": "italic" } },
+                "meta": {
+                  "name": "BaselineDesc"
+                },
+                "position": {
+                  "x": 20,
+                  "y": 48,
+                  "width": 900,
+                  "height": 22
+                },
+                "props": {
+                  "text": "Enter the expected monthly DAT baseline for this site. These values are saved to the database and overlaid on the trend chart.",
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#777777",
+                    "fontStyle": "italic"
+                  }
+                },
                 "type": "ia.display.label"
               },
-              { "meta": { "name": "HdrMonth_L" }, "position": { "x": 40, "y": 76, "width": 110, "height": 22 }, "props": { "text": "Month", "style": { "fontSize": 12, "fontWeight": "bold", "color": "#444" } }, "type": "ia.display.label" },
-              { "meta": { "name": "HdrTarget_L" }, "position": { "x": 160, "y": 76, "width": 110, "height": 22 }, "props": { "text": "Target DAT (°F)", "style": { "fontSize": 12, "fontWeight": "bold", "color": "#444" } }, "type": "ia.display.label" },
-              { "meta": { "name": "HdrSaved_L" }, "position": { "x": 280, "y": 76, "width": 100, "height": 22 }, "props": { "text": "Saved Value", "style": { "fontSize": 12, "fontWeight": "bold", "color": "#888" } }, "type": "ia.display.label" },
-              { "meta": { "name": "HdrMonth_R" }, "position": { "x": 440, "y": 76, "width": 110, "height": 22 }, "props": { "text": "Month", "style": { "fontSize": 12, "fontWeight": "bold", "color": "#444" } }, "type": "ia.display.label" },
-              { "meta": { "name": "HdrTarget_R" }, "position": { "x": 560, "y": 76, "width": 110, "height": 22 }, "props": { "text": "Target DAT (°F)", "style": { "fontSize": 12, "fontWeight": "bold", "color": "#444" } }, "type": "ia.display.label" },
-              { "meta": { "name": "HdrSaved_R" }, "position": { "x": 680, "y": 76, "width": 100, "height": 22 }, "props": { "text": "Saved Value", "style": { "fontSize": 12, "fontWeight": "bold", "color": "#888" } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblJan" }, "position": { "x": 40, "y": 105, "width": 110, "height": 30 }, "props": { "text": "January", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputJan" }, "position": { "x": 160, "y": 105, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedJan" }, "position": { "x": 280, "y": 105, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('1');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblFeb" }, "position": { "x": 40, "y": 141, "width": 110, "height": 30 }, "props": { "text": "February", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputFeb" }, "position": { "x": 160, "y": 141, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedFeb" }, "position": { "x": 280, "y": 141, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('2');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblMar" }, "position": { "x": 40, "y": 177, "width": 110, "height": 30 }, "props": { "text": "March", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputMar" }, "position": { "x": 160, "y": 177, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedMar" }, "position": { "x": 280, "y": 177, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('3');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblApr" }, "position": { "x": 40, "y": 213, "width": 110, "height": 30 }, "props": { "text": "April", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputApr" }, "position": { "x": 160, "y": 213, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedApr" }, "position": { "x": 280, "y": 213, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('4');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblMay" }, "position": { "x": 40, "y": 249, "width": 110, "height": 30 }, "props": { "text": "May", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputMay" }, "position": { "x": 160, "y": 249, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedMay" }, "position": { "x": 280, "y": 249, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('5');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblJun" }, "position": { "x": 40, "y": 285, "width": 110, "height": 30 }, "props": { "text": "June", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputJun" }, "position": { "x": 160, "y": 285, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedJun" }, "position": { "x": 280, "y": 285, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('6');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblJul" }, "position": { "x": 440, "y": 105, "width": 110, "height": 30 }, "props": { "text": "July", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputJul" }, "position": { "x": 560, "y": 105, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedJul" }, "position": { "x": 680, "y": 105, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('7');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblAug" }, "position": { "x": 440, "y": 141, "width": 110, "height": 30 }, "props": { "text": "August", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputAug" }, "position": { "x": 560, "y": 141, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedAug" }, "position": { "x": 680, "y": 141, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('8');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblSep" }, "position": { "x": 440, "y": 177, "width": 110, "height": 30 }, "props": { "text": "September", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputSep" }, "position": { "x": 560, "y": 177, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedSep" }, "position": { "x": 680, "y": 177, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('9');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblOct" }, "position": { "x": 440, "y": 213, "width": 110, "height": 30 }, "props": { "text": "October", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputOct" }, "position": { "x": 560, "y": 213, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedOct" }, "position": { "x": 680, "y": 213, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('10');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblNov" }, "position": { "x": 440, "y": 249, "width": 110, "height": 30 }, "props": { "text": "November", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputNov" }, "position": { "x": 560, "y": 249, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedNov" }, "position": { "x": 680, "y": 249, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('11');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
-              { "meta": { "name": "LblDec" }, "position": { "x": 440, "y": 285, "width": 110, "height": 30 }, "props": { "text": "December", "style": { "fontSize": 13, "paddingTop": "6px" } }, "type": "ia.display.label" },
-              { "meta": { "name": "InputDec" }, "position": { "x": 560, "y": 285, "width": 100, "height": 30 }, "props": { "placeholder": "°F" }, "type": "ia.input.numeric-entry-field" },
-              { "meta": { "name": "SavedDec" }, "position": { "x": 680, "y": 285, "width": 100, "height": 30 }, "props": { "style": { "fontSize": 12, "color": "#888", "paddingTop": "7px" } }, "propConfig": { "props.text": { "binding": { "config": { "path": "view.custom.seasonalBaseline" }, "transforms": [{ "code": "b=value or {};v=b.get('12');return str(round(v,1))+' °F' if v is not None else '—'", "type": "script" }], "type": "property" } } }, "type": "ia.display.label" },
               {
-                "meta": { "name": "SaveBaselineBtn" },
-                "position": { "x": 40, "y": 335, "width": 180, "height": 36 },
-                "props": { "text": "Save Baseline Values", "style": { "backgroundColor": "#2C5F2E", "color": "#FFFFFF", "fontWeight": "bold", "borderRadius": "4px" } },
+                "meta": {
+                  "name": "HdrMonth_L"
+                },
+                "position": {
+                  "x": 40,
+                  "y": 76,
+                  "width": 110,
+                  "height": 22
+                },
+                "props": {
+                  "text": "Month",
+                  "style": {
+                    "fontSize": 12,
+                    "fontWeight": "bold",
+                    "color": "#444"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "HdrTarget_L"
+                },
+                "position": {
+                  "x": 160,
+                  "y": 76,
+                  "width": 110,
+                  "height": 22
+                },
+                "props": {
+                  "text": "Target DAT (\u00b0F)",
+                  "style": {
+                    "fontSize": 12,
+                    "fontWeight": "bold",
+                    "color": "#444"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "HdrSaved_L"
+                },
+                "position": {
+                  "x": 280,
+                  "y": 76,
+                  "width": 100,
+                  "height": 22
+                },
+                "props": {
+                  "text": "Saved Value",
+                  "style": {
+                    "fontSize": 12,
+                    "fontWeight": "bold",
+                    "color": "#888"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "HdrMonth_R"
+                },
+                "position": {
+                  "x": 440,
+                  "y": 76,
+                  "width": 110,
+                  "height": 22
+                },
+                "props": {
+                  "text": "Month",
+                  "style": {
+                    "fontSize": 12,
+                    "fontWeight": "bold",
+                    "color": "#444"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "HdrTarget_R"
+                },
+                "position": {
+                  "x": 560,
+                  "y": 76,
+                  "width": 110,
+                  "height": 22
+                },
+                "props": {
+                  "text": "Target DAT (\u00b0F)",
+                  "style": {
+                    "fontSize": 12,
+                    "fontWeight": "bold",
+                    "color": "#444"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "HdrSaved_R"
+                },
+                "position": {
+                  "x": 680,
+                  "y": 76,
+                  "width": 100,
+                  "height": 22
+                },
+                "props": {
+                  "text": "Saved Value",
+                  "style": {
+                    "fontSize": 12,
+                    "fontWeight": "bold",
+                    "color": "#888"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblJan"
+                },
+                "position": {
+                  "x": 40,
+                  "y": 105,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "January",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputJan"
+                },
+                "position": {
+                  "x": 160,
+                  "y": 105,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedJan"
+                },
+                "position": {
+                  "x": 280,
+                  "y": 105,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('1');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblFeb"
+                },
+                "position": {
+                  "x": 40,
+                  "y": 141,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "February",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputFeb"
+                },
+                "position": {
+                  "x": 160,
+                  "y": 141,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedFeb"
+                },
+                "position": {
+                  "x": 280,
+                  "y": 141,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('2');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblMar"
+                },
+                "position": {
+                  "x": 40,
+                  "y": 177,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "March",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputMar"
+                },
+                "position": {
+                  "x": 160,
+                  "y": 177,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedMar"
+                },
+                "position": {
+                  "x": 280,
+                  "y": 177,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('3');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblApr"
+                },
+                "position": {
+                  "x": 40,
+                  "y": 213,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "April",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputApr"
+                },
+                "position": {
+                  "x": 160,
+                  "y": 213,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedApr"
+                },
+                "position": {
+                  "x": 280,
+                  "y": 213,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('4');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblMay"
+                },
+                "position": {
+                  "x": 40,
+                  "y": 249,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "May",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputMay"
+                },
+                "position": {
+                  "x": 160,
+                  "y": 249,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedMay"
+                },
+                "position": {
+                  "x": 280,
+                  "y": 249,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('5');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblJun"
+                },
+                "position": {
+                  "x": 40,
+                  "y": 285,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "June",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputJun"
+                },
+                "position": {
+                  "x": 160,
+                  "y": 285,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedJun"
+                },
+                "position": {
+                  "x": 280,
+                  "y": 285,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('6');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblJul"
+                },
+                "position": {
+                  "x": 440,
+                  "y": 105,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "July",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputJul"
+                },
+                "position": {
+                  "x": 560,
+                  "y": 105,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedJul"
+                },
+                "position": {
+                  "x": 680,
+                  "y": 105,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('7');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblAug"
+                },
+                "position": {
+                  "x": 440,
+                  "y": 141,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "August",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputAug"
+                },
+                "position": {
+                  "x": 560,
+                  "y": 141,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedAug"
+                },
+                "position": {
+                  "x": 680,
+                  "y": 141,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('8');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblSep"
+                },
+                "position": {
+                  "x": 440,
+                  "y": 177,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "September",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputSep"
+                },
+                "position": {
+                  "x": 560,
+                  "y": 177,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedSep"
+                },
+                "position": {
+                  "x": 680,
+                  "y": 177,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('9');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblOct"
+                },
+                "position": {
+                  "x": 440,
+                  "y": 213,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "October",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputOct"
+                },
+                "position": {
+                  "x": 560,
+                  "y": 213,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedOct"
+                },
+                "position": {
+                  "x": 680,
+                  "y": 213,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('10');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblNov"
+                },
+                "position": {
+                  "x": 440,
+                  "y": 249,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "November",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputNov"
+                },
+                "position": {
+                  "x": 560,
+                  "y": 249,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedNov"
+                },
+                "position": {
+                  "x": 680,
+                  "y": 249,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('11');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "LblDec"
+                },
+                "position": {
+                  "x": 440,
+                  "y": 285,
+                  "width": 110,
+                  "height": 30
+                },
+                "props": {
+                  "text": "December",
+                  "style": {
+                    "fontSize": 13,
+                    "paddingTop": "6px"
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "InputDec"
+                },
+                "position": {
+                  "x": 560,
+                  "y": 285,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "placeholder": "\u00b0F"
+                },
+                "type": "ia.input.numeric-entry-field"
+              },
+              {
+                "meta": {
+                  "name": "SavedDec"
+                },
+                "position": {
+                  "x": 680,
+                  "y": 285,
+                  "width": 100,
+                  "height": 30
+                },
+                "props": {
+                  "style": {
+                    "fontSize": 12,
+                    "color": "#888",
+                    "paddingTop": "7px"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "config": {
+                        "path": "view.custom.seasonalBaseline"
+                      },
+                      "transforms": [
+                        {
+                          "code": "b=value or {};v=b.get('12');return str(round(v,1))+' \u00b0F' if v is not None else '\u2014'",
+                          "type": "script"
+                        }
+                      ],
+                      "type": "property"
+                    }
+                  }
+                },
+                "type": "ia.display.label"
+              },
+              {
+                "meta": {
+                  "name": "SaveBaselineBtn"
+                },
+                "position": {
+                  "x": 40,
+                  "y": 335,
+                  "width": 180,
+                  "height": 36
+                },
+                "props": {
+                  "text": "Save Baseline Values",
+                  "style": {
+                    "backgroundColor": "#2C5F2E",
+                    "color": "#FFFFFF",
+                    "fontWeight": "bold",
+                    "borderRadius": "4px"
+                  }
+                },
                 "events": {
                   "component": {
                     "onActionPerformed": {
@@ -2994,40 +3967,120 @@
                 "type": "ia.input.button"
               },
               {
-                "meta": { "name": "BaselineNote" },
-                "position": { "x": 40, "y": 384, "width": 780, "height": 22 },
-                "props": { "text": "Note: Leave a month blank to leave its existing value unchanged. Saved baselines appear as reference lines on the TRENDS chart.", "style": { "fontSize": 11, "color": "#999999", "fontStyle": "italic" } },
+                "meta": {
+                  "name": "BaselineNote"
+                },
+                "position": {
+                  "x": 40,
+                  "y": 384,
+                  "width": 780,
+                  "height": 22
+                },
+                "props": {
+                  "text": "Note: Leave a month blank to leave its existing value unchanged. Saved baselines appear as reference lines on the TRENDS chart.",
+                  "style": {
+                    "fontSize": 11,
+                    "color": "#999999",
+                    "fontStyle": "italic"
+                  }
+                },
                 "type": "ia.display.label"
               }
             ]
           },
           {
-            "meta": { "name": "History" },
-            "position": { "tabIndex": 6 },
+            "meta": {
+              "name": "History"
+            },
+            "position": {
+              "tabIndex": 6
+            },
             "type": "ia.container.flex",
             "props": {
               "direction": "column",
-              "style": { "padding": "16px", "gap": "16px" }
+              "style": {
+                "padding": "16px",
+                "gap": "16px"
+              }
             },
             "children": [
               {
-                "meta": { "name": "HistoryTitle" },
-                "position": { "basis": "32px", "shrink": 0 },
-                "props": { "text": "Target Change History", "style": { "fontSize": 17, "fontWeight": "bold", "color": "#2C5F2E" } },
+                "meta": {
+                  "name": "HistoryTitle"
+                },
+                "position": {
+                  "basis": "32px",
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "Target Change History",
+                  "style": {
+                    "fontSize": 17,
+                    "fontWeight": "bold",
+                    "color": "#2C5F2E"
+                  }
+                },
                 "type": "ia.display.label"
               },
               {
-                "meta": { "name": "TargetHistoryTable" },
-                "position": { "basis": "320px", "shrink": 0 },
+                "meta": {
+                  "name": "TargetHistoryTable"
+                },
+                "position": {
+                  "basis": "320px",
+                  "shrink": 0
+                },
                 "props": {
                   "columns": [
-                    { "field": "changedAt",              "header": { "title": "Changed At" },        "width": 160 },
-                    { "field": "changedBy",              "header": { "title": "Changed By" },        "width": 140 },
-                    { "field": "equipmentName",          "header": { "title": "Equipment" },         "width": 200 },
-                    { "field": "approachTempTarget",     "header": { "title": "DAT Target (°F)" },   "width": 120 },
-                    { "field": "incomingWaterTempTarget","header": { "title": "IWT Target (°F)" },   "width": 120 },
-                    { "field": "processGasOutTempTarget","header": { "title": "POGT Target (°F)" },  "width": 130 },
-                    { "field": "altEquipmentName",       "header": { "title": "Alt Name" },          "width": 160 }
+                    {
+                      "field": "changedAt",
+                      "header": {
+                        "title": "Changed At"
+                      },
+                      "width": 160
+                    },
+                    {
+                      "field": "changedBy",
+                      "header": {
+                        "title": "Changed By"
+                      },
+                      "width": 140
+                    },
+                    {
+                      "field": "equipmentName",
+                      "header": {
+                        "title": "Equipment"
+                      },
+                      "width": 200
+                    },
+                    {
+                      "field": "approachTempTarget",
+                      "header": {
+                        "title": "DAT Target (\u00b0F)"
+                      },
+                      "width": 120
+                    },
+                    {
+                      "field": "incomingWaterTempTarget",
+                      "header": {
+                        "title": "IWT Target (\u00b0F)"
+                      },
+                      "width": 120
+                    },
+                    {
+                      "field": "processGasOutTempTarget",
+                      "header": {
+                        "title": "POGT Target (\u00b0F)"
+                      },
+                      "width": 130
+                    },
+                    {
+                      "field": "altEquipmentName",
+                      "header": {
+                        "title": "Alt Name"
+                      },
+                      "width": 160
+                    }
                   ],
                   "rowHeight": 36,
                   "alternatingRowBackground": true,
@@ -3037,7 +4090,9 @@
                   "props.data": {
                     "binding": {
                       "config": {
-                        "parameters": { "siteId": "{view.params.siteId}" },
+                        "parameters": {
+                          "siteId": "{view.params.siteId}"
+                        },
                         "queryPath": "coolingTowerData/getTargetHistory"
                       },
                       "type": "query"
@@ -3047,19 +4102,53 @@
                 "type": "ia.display.table"
               },
               {
-                "meta": { "name": "CompletenessTitle" },
-                "position": { "basis": "32px", "shrink": 0 },
-                "props": { "text": "Monthly Data Completeness — Last 12 Months", "style": { "fontSize": 17, "fontWeight": "bold", "color": "#2C5F2E" } },
+                "meta": {
+                  "name": "CompletenessTitle"
+                },
+                "position": {
+                  "basis": "32px",
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "Monthly Data Completeness \u2014 Last 12 Months",
+                  "style": {
+                    "fontSize": 17,
+                    "fontWeight": "bold",
+                    "color": "#2C5F2E"
+                  }
+                },
                 "type": "ia.display.label"
               },
               {
-                "meta": { "name": "CompletenessTable" },
-                "position": { "grow": 1 },
+                "meta": {
+                  "name": "CompletenessTable"
+                },
+                "position": {
+                  "grow": 1
+                },
                 "props": {
                   "columns": [
-                    { "field": "yr",             "header": { "title": "Year" },              "width": 80 },
-                    { "field": "mo",             "header": { "title": "Month" },             "width": 80 },
-                    { "field": "equipSubmitted", "header": { "title": "Equipment Reported" },"width": 180 }
+                    {
+                      "field": "yr",
+                      "header": {
+                        "title": "Year"
+                      },
+                      "width": 80
+                    },
+                    {
+                      "field": "mo",
+                      "header": {
+                        "title": "Month"
+                      },
+                      "width": 80
+                    },
+                    {
+                      "field": "equipSubmitted",
+                      "header": {
+                        "title": "Equipment Reported"
+                      },
+                      "width": 180
+                    }
                   ],
                   "rowHeight": 34,
                   "alternatingRowBackground": true,
@@ -3069,7 +4158,9 @@
                   "props.data": {
                     "binding": {
                       "config": {
-                        "parameters": { "siteId": "{view.params.siteId}" },
+                        "parameters": {
+                          "siteId": "{view.params.siteId}"
+                        },
                         "queryPath": "coolingTowerData/getDataCompletenessHistory"
                       },
                       "type": "query"
