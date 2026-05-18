@@ -191,4 +191,33 @@
   </div></div>
 </div>
 <!-- TIDIO CHAT: replace 2oaqyblfyjn6xy86vutzzvr1ykg9twav with your key from Tidio dashboard Settings > Integrations > Website -->
-<script src="//code.tidio.co/2oaqyblfyjn6xy86vutzzvr1ykg9twav.js" async></script>
+<script>/* gg-accordion */
+(function(){
+  var d=document.querySelector('.gg-drawer');
+  if(!d)return;
+  d.style.overflowY='auto';
+  var gs=d.querySelectorAll('.gg-group');
+  gs.forEach(function(g){
+    var links=[],el=g.nextElementSibling;
+    while(el&&!el.classList.contains('gg-group')&&!el.classList.contains('gg-drawer-close')){
+      if(el.tagName==='A')links.push(el);
+      el=el.nextElementSibling;
+    }
+    if(!links.length)return;
+    var w=document.createElement('div');
+    w.style.cssText='overflow:hidden;max-height:0;transition:max-height .22s ease;display:flex;flex-direction:column;gap:4px;padding-left:4px';
+    links[0].parentNode.insertBefore(w,links[0]);
+    links.forEach(function(l){w.appendChild(l)});
+    var arr=document.createElement('span');
+    arr.innerHTML='&#9658;';
+    arr.style.cssText='font-size:.5rem;margin-left:auto;transition:transform .2s;line-height:1;flex-shrink:0';
+    g.style.cssText=g.style.cssText+';cursor:pointer;display:flex;align-items:center;user-select:none';
+    g.appendChild(arr);
+    function open(){w.style.maxHeight=w.scrollHeight+'px';arr.style.transform='rotate(90deg)'}
+    function close(){w.style.maxHeight='0';arr.style.transform=''}
+    var isOpen=false;
+    g.addEventListener('click',function(){isOpen=!isOpen;isOpen?open():close()});
+    if(g.textContent.trim()==='Book'){isOpen=true;setTimeout(open,0)}
+  });
+})();
+</script>2oaqyblfyjn6xy86vutzzvr1ykg9twav.js" async></script>
