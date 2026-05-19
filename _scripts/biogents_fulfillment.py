@@ -7,7 +7,8 @@ Required env vars:
   SQUARESPACE_API_KEY   - Squarespace Developer API key (Commerce read scope)
   BIOGENTS_USERNAME     - Login email for biogentspro.com dealer portal
   BIOGENTS_PASSWORD     - Password for biogentspro.com dealer portal
-  BIOGENTS_SHIP_TO      - JSON object: {"name","address1","city","state","zip","country"}
+  BIOGENTS_BILL_TO      - JSON object for GreenGuard billing address:
+                          {"name","company","address1","city","state","zip","country"}
   BIOGENTS_PRODUCT_MAP  - JSON object mapping Squarespace SKU -> biogentspro.com product URL
                           e.g. '{"BG-GAT":"https://biogentspro.com/product/bg-gat/"}'
 
@@ -35,7 +36,7 @@ from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 SQUARESPACE_API_KEY = os.environ.get("SQUARESPACE_API_KEY", "")
 BIOGENTS_USERNAME   = os.environ.get("BIOGENTS_USERNAME", "")
 BIOGENTS_PASSWORD   = os.environ.get("BIOGENTS_PASSWORD", "")
-BIOGENTS_SHIP_TO    = json.loads(os.environ.get("BIOGENTS_SHIP_TO", "{}"))
+BIOGENTS_BILL_TO    = json.loads(os.environ.get("BIOGENTS_BILL_TO", "{}"))
 BIOGENTS_PORTAL     = "https://biogentspro.com"
 DRY_RUN             = os.environ.get("DRY_RUN", "").lower() == "true"
 STATE_FILE          = os.environ.get("STATE_FILE", "_data/processed_biogents_orders.json")
@@ -119,6 +120,22 @@ def biogents_items(order: dict) -> list[dict]:
     return [li for li in order.get("lineItems", []) if is_biogents_item(li)]
 
 
+def extract_ship_address(order: dict) -> dict:
+    """Normalize Squarespace shippingAddress fields for use in the checkout form."""
+    addr = order.get("shippingAddress") or order.get("billingAddress") or {}
+    return {
+        "first_name": addr.get("firstName", ""),
+        "last_name":  addr.get("lastName", ""),
+        "address1":   addr.get("address1", ""),
+        "address2":   addr.get("address2", ""),
+        "city":       addr.get("city", ""),
+        "state":      addr.get("state", ""),
+        "zip":        addr.get("postalCode", ""),
+        "country":    addr.get("countryCode", "US"),
+        "phone":      addr.get("phone", ""),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Playwright buyer
 # ---------------------------------------------------------------------------
@@ -157,8 +174,10 @@ class BiogentsBuyer:
         self._logged_in = True
         print("Logged in to biogentspro.com")
 
-    def place_order(self, sku: str, quantity: int, squarespace_order_id: str) -> str:
+    def place_order(self, sku: str, quantity: int, squarespace_order_id: str, ship_to: dict) -> str:
         """Navigate to the product, set quantity, add to cart, and check out.
+        ship_to: customer shipping address extracted from the Squarespace order.
+        Billing is always filled from BIOGENTS_BILL_TO (GreenGuard business address).
         Returns the biogentspro.com confirmation order number."""
         product_url = PRODUCT_MAP.get(sku)
         if not product_url:
@@ -189,16 +208,38 @@ class BiogentsBuyer:
         page.wait_for_timeout(1_500)  # brief pause for cart animation
         page.goto(f"{BIOGENTS_PORTAL}/checkout/", wait_until="domcontentloaded")
 
-        # If a shipping address form appears, fill it.
-        addr_field = page.locator("input#shipping_address_1")
-        if addr_field.count() > 0 and BIOGENTS_SHIP_TO:
-            ship = BIOGENTS_SHIP_TO
-            page.locator("input#shipping_first_name").fill(ship.get("name", "").split()[0])
-            page.locator("input#shipping_last_name").fill(" ".join(ship.get("name", "").split()[1:]))
-            addr_field.fill(ship.get("address1", ""))
-            page.locator("input#shipping_city").fill(ship.get("city", ""))
-            page.locator("select#shipping_state").select_option(label=ship.get("state", ""))
-            page.locator("input#shipping_postcode").fill(ship.get("zip", ""))
+        # Fill billing fields with GreenGuard business address.
+        if BIOGENTS_BILL_TO:
+            bill = BIOGENTS_BILL_TO
+            bill_name_parts = bill.get("name", "").split(None, 1)
+            page.locator("input#billing_first_name").fill(bill_name_parts[0] if bill_name_parts else "")
+            page.locator("input#billing_last_name").fill(bill_name_parts[1] if len(bill_name_parts) > 1 else "")
+            company_field = page.locator("input#billing_company")
+            if company_field.count() > 0:
+                company_field.fill(bill.get("company", ""))
+            page.locator("input#billing_address_1").fill(bill.get("address1", ""))
+            page.locator("input#billing_city").fill(bill.get("city", ""))
+            page.locator("select#billing_state").select_option(label=bill.get("state", ""))
+            page.locator("input#billing_postcode").fill(bill.get("zip", ""))
+
+        # Enable "Ship to a different address?" and fill with the customer's address.
+        ship_checkbox = page.locator("#ship-to-different-address-checkbox")
+        if ship_checkbox.count() > 0 and not ship_checkbox.is_checked():
+            ship_checkbox.check()
+            page.wait_for_timeout(500)  # let the shipping section animate in
+
+        if ship_to:
+            addr_field = page.locator("input#shipping_address_1")
+            if addr_field.count() > 0:
+                page.locator("input#shipping_first_name").fill(ship_to.get("first_name", ""))
+                page.locator("input#shipping_last_name").fill(ship_to.get("last_name", ""))
+                addr_field.fill(ship_to.get("address1", ""))
+                addr2 = ship_to.get("address2", "")
+                if addr2:
+                    page.locator("input#shipping_address_2").fill(addr2)
+                page.locator("input#shipping_city").fill(ship_to.get("city", ""))
+                page.locator("select#shipping_state").select_option(label=ship_to.get("state", ""))
+                page.locator("input#shipping_postcode").fill(ship_to.get("zip", ""))
 
         # Place order
         place_btn = page.locator(
@@ -311,8 +352,9 @@ def main() -> None:
 
     if DRY_RUN:
         for order in new_orders:
-            items = biogents_items(order)
-            print(f"DRY RUN — would process SS order {order['id']}:")
+            items    = biogents_items(order)
+            ship_to  = extract_ship_address(order)
+            print(f"DRY RUN — would process SS order {order['id']} → ship to {ship_to.get('first_name')} {ship_to.get('last_name')}, {ship_to.get('city')} {ship_to.get('state')}:")
             for li in items:
                 print(f"  {li['sku']} x{li['quantity']} → {PRODUCT_MAP.get(li['sku'], 'URL NOT MAPPED')}")
         save_state(state)
@@ -322,11 +364,12 @@ def main() -> None:
         buyer = BiogentsBuyer(pw)
         try:
             for order in new_orders:
-                ss_id  = order["id"]
-                items  = biogents_items(order)
-                errors = []
+                ss_id   = order["id"]
+                items   = biogents_items(order)
+                ship_to = extract_ship_address(order)
+                errors  = []
 
-                print(f"Processing SS order {ss_id} ({len(items)} Biogents line items)...")
+                print(f"Processing SS order {ss_id} ({len(items)} Biogents line items) → ship to {ship_to.get('city')}, {ship_to.get('state')}...")
 
                 placed_items = []
                 for li in items:
@@ -334,7 +377,7 @@ def main() -> None:
                     qty = li.get("quantity", 1)
                     for attempt in range(1, MAX_RETRIES + 1):
                         try:
-                            conf_id = buyer.place_order(sku, qty, ss_id)
+                            conf_id = buyer.place_order(sku, qty, ss_id, ship_to)
                             placed_items.append({
                                 "sku":              sku,
                                 "qty":              qty,

@@ -31,7 +31,7 @@ jobs:
           SQUARESPACE_API_KEY:  ${{ secrets.SQUARESPACE_API_KEY }}
           BIOGENTS_USERNAME:    ${{ secrets.BIOGENTS_USERNAME }}
           BIOGENTS_PASSWORD:    ${{ secrets.BIOGENTS_PASSWORD }}
-          BIOGENTS_SHIP_TO:     ${{ secrets.BIOGENTS_SHIP_TO }}
+          BIOGENTS_BILL_TO:     ${{ secrets.BIOGENTS_BILL_TO }}
           BIOGENTS_PRODUCT_MAP: ${{ secrets.BIOGENTS_PRODUCT_MAP }}
           NOTIFICATION_EMAIL:   ${{ secrets.NOTIFICATION_EMAIL }}
           SMTP_HOST:            ${{ secrets.SMTP_HOST }}
