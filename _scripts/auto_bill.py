@@ -1,43 +1,51 @@
 #!/usr/bin/env python3
 """
-Auto-bills completed Acuity appointments via saved Stripe payment methods.
-Runs daily via GitHub Actions, targeting appointments from 3 days ago.
+Auto-bills completed cal.com bookings via saved Stripe payment methods.
+Runs daily via GitHub Actions, targeting bookings from 3 days ago.
 
 Required GitHub Secrets:
-  ACUITY_USER_ID    — Acuity Integrations → API → User ID
-  ACUITY_API_KEY    — Acuity Integrations → API → API Key
-  STRIPE_SECRET_KEY — Stripe Dashboard → Developers → API keys → Secret key
+  CAL_API_KEY          — cal.com → Settings → Developer → API Keys
+  BILLABLE_EVENT_TYPES — JSON map of returning-customer event type IDs → price in cents
+                         e.g. {"123456": 15000}  ($150.00)
+                         First-booking event types are intentionally excluded to prevent
+                         double-charging customers who already paid through cal.com checkout.
+  STRIPE_SECRET_KEY    — Stripe Dashboard → Developers → API keys → Secret key
 """
 import base64, json, os, sys, urllib.request, urllib.parse
 from datetime import datetime, timedelta, timezone
 
 import stripe
 
-ACUITY_USER_ID = os.environ['ACUITY_USER_ID']
-ACUITY_API_KEY = os.environ['ACUITY_API_KEY']
-stripe.api_key = os.environ['STRIPE_SECRET_KEY']
+CAL_API_KEY          = os.environ['CAL_API_KEY']
+BILLABLE_EVENT_TYPES = json.loads(os.environ['BILLABLE_EVENT_TYPES'])
+stripe.api_key       = os.environ['STRIPE_SECRET_KEY']
 
 DAYS_AFTER_APPOINTMENT = 3
+CAL_HEADERS = {
+    'Authorization':   f'Bearer {CAL_API_KEY}',
+    'cal-api-version': '2024-08-13',
+}
 
 
-def acuity_get(path, params=None):
-    url = 'https://acuityscheduling.com/api/v1/' + path
+def cal_get(path, params=None):
+    url = 'https://api.cal.com/v2' + path
     if params:
         url += '?' + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url)
-    creds = base64.b64encode(f'{ACUITY_USER_ID}:{ACUITY_API_KEY}'.encode()).decode()
-    req.add_header('Authorization', f'Basic {creds}')
+    req = urllib.request.Request(url, headers=CAL_HEADERS)
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
 
 
-def get_appointments_for_date(date_str):
-    return acuity_get('appointments', {'minDate': date_str, 'maxDate': date_str, 'max': 200})
+def get_bookings_for_date(date_str):
+    after  = date_str + 'T00:00:00.000Z'
+    before = date_str + 'T23:59:59.999Z'
+    data = cal_get('/bookings', {'afterStart': after, 'beforeEnd': before, 'take': 200})
+    return data.get('data', {}).get('bookings', [])
 
 
-def already_charged(appointment_id):
+def already_charged(booking_id):
     results = stripe.PaymentIntent.search(
-        query=f"metadata['acuity_appointment_id']:'{appointment_id}' AND status:'succeeded'"
+        query=f"metadata['cal_booking_id']:'{booking_id}' AND status:'succeeded'"
     )
     return bool(results.data)
 
@@ -56,16 +64,16 @@ def resolve_customer_and_payment_method(email):
         return None, None
 
     best_customer = None
-    best_pm_id = None
-    best_ts = 0
+    best_pm_id    = None
+    best_ts       = 0
 
     for customer in customers:
         charges = stripe.Charge.list(customer=customer.id, limit=1)
         for charge in charges.data:
             if charge.status == 'succeeded' and charge.payment_method and charge.created > best_ts:
-                best_ts = charge.created
+                best_ts       = charge.created
                 best_customer = customer
-                best_pm_id = charge.payment_method
+                best_pm_id    = charge.payment_method
 
     if best_customer:
         return best_customer, best_pm_id
@@ -79,27 +87,25 @@ def resolve_customer_and_payment_method(email):
     return None, None
 
 
-def process_appointment(appt):
-    appt_id = str(appt['id'])
-    email = appt.get('email', '')
-    price_str = appt.get('price') or '0'
+def process_booking(appt):
+    appt_id       = str(appt['id'])
+    attendees     = appt.get('attendees') or [{}]
+    email         = attendees[0].get('email', '')
+    event_type_id = str(appt.get('eventTypeId', ''))
 
-    if appt.get('canceled'):
-        return 'skipped', 'cancelled appointment'
+    if appt.get('status') == 'cancelled':
+        return 'skipped', 'cancelled booking'
 
-    if appt.get('paid') == 'yes':
-        return 'skipped', f'already paid ${price_str} in Acuity'
+    if event_type_id not in BILLABLE_EVENT_TYPES:
+        return 'skipped', f'event type {event_type_id} not in BILLABLE_EVENT_TYPES (first-booking or unknown type)'
 
-    try:
-        amount_cents = int(round(float(price_str) * 100))
-    except (ValueError, TypeError):
-        return 'skipped', f'invalid price value: {price_str!r}'
+    amount_cents = BILLABLE_EVENT_TYPES[event_type_id]
 
     if amount_cents == 0:
         return 'skipped', 'price is $0'
 
     if not email:
-        return 'skipped', 'no email on appointment'
+        return 'skipped', 'no email on booking'
 
     if already_charged(appt_id):
         return 'skipped', 'already charged in Stripe'
@@ -110,6 +116,7 @@ def process_appointment(appt):
     if not pm_id:
         return 'skipped', f'no saved payment method for {email}'
 
+    price_display = f'${amount_cents / 100:.2f}'
     intent = stripe.PaymentIntent.create(
         customer=customer.id,
         payment_method=pm_id,
@@ -117,12 +124,12 @@ def process_appointment(appt):
         currency='usd',
         confirm=True,
         off_session=True,
-        metadata={'acuity_appointment_id': appt_id},
-        description=f'GreenGuard USA – Appointment #{appt_id}',
+        metadata={'cal_booking_id': appt_id},
+        description=f'GreenGuard USA – Booking #{appt_id}',
     )
 
     if intent.status == 'succeeded':
-        return 'charged', f'${price_str} → {intent.id}'
+        return 'charged', f'{price_display} → {intent.id}'
 
     if intent.status == 'requires_action':
         # Card issuer requires 3D Secure authentication (common in EU, rare in US).
@@ -137,22 +144,21 @@ def process_appointment(appt):
 
 def main():
     target_date = (datetime.now(timezone.utc) - timedelta(days=DAYS_AFTER_APPOINTMENT)).strftime('%Y-%m-%d')
-    print(f'Auto-billing: processing appointments from {target_date}\n')
+    print(f'Auto-billing: processing bookings from {target_date}\n')
 
-    appointments = get_appointments_for_date(target_date)
-    print(f'Found {len(appointments)} appointment(s)\n')
+    bookings = get_bookings_for_date(target_date)
+    print(f'Found {len(bookings)} booking(s)\n')
 
     totals = {'charged': 0, 'skipped': 0, 'action_needed': 0, 'pending': 0, 'error': 0}
 
-    for appt in appointments:
-        appt_id = appt.get('id')
-        name = f"{appt.get('firstName', '')} {appt.get('lastName', '')}".strip() or 'Unknown'
-        appt_type = appt.get('type', '')
-        label = f'Appointment #{appt_id} – {name} ({appt_type})'
-        print(label)
+    for appt in bookings:
+        appt_id   = appt.get('id')
+        name      = (appt.get('attendees') or [{}])[0].get('name', 'Unknown')
+        appt_type = appt.get('title', '')
+        print(f'Booking #{appt_id} – {name} ({appt_type})')
 
         try:
-            status, detail = process_appointment(appt)
+            status, detail = process_booking(appt)
             tag = f'[{status.upper().replace("_", " ")}]'
             print(f'  {tag} {detail}')
             totals[status] = totals.get(status, 0) + 1

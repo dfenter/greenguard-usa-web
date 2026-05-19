@@ -21,9 +21,9 @@ jobs:
       - name: Install dependencies
         run: pip install stripe
 
-      - name: Charge appointments from 3 days ago
+      - name: Charge bookings from 3 days ago
         env:
-          ACUITY_USER_ID:    ${{ secrets.ACUITY_USER_ID }}
-          ACUITY_API_KEY:    ${{ secrets.ACUITY_API_KEY }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          CAL_API_KEY:          ${{ secrets.CAL_API_KEY }}
+          BILLABLE_EVENT_TYPES: ${{ secrets.BILLABLE_EVENT_TYPES }}
+          STRIPE_SECRET_KEY:    ${{ secrets.STRIPE_SECRET_KEY }}
         run: python3 _scripts/auto_bill.py
