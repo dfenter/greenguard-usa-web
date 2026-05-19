@@ -1,16 +1,17 @@
 {
   "scope": "G",
-  "version": 1,
   "documentation": "",
-  "overrides": {},
+  "version": 1,
+  "restricted": false,
+  "overridable": false,
   "files": [
     "view.json"
   ],
   "attributes": {
     "lastModification": {
-      "actor": "dfenter",
-      "timestamp": "2026-05-15T14:00:00Z"
+      "actor": "external",
+      "timestamp": "2026-05-16T22:44:36Z"
     },
-    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000"
+    "lastModificationSignature": "16ce823c32e4755aef0563ba05762fb2df0d8550b757e4df4de0ff70c0ae6893"
   }
 }

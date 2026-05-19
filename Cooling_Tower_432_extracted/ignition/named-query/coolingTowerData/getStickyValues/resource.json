@@ -18,13 +18,7 @@
     "cacheEnabled": false,
     "database": "",
     "fallbackEnabled": false,
-    "parameters": [
-      {
-        "type": "Parameter",
-        "identifier": "coolingTowerDataID",
-        "sqlType": 4
-      }
-    ],
+    "lastModificationSignature": "ed50ebe4221cc3d57ecb79dc0320d990deb372a50c87327db40e2fdaf40df4af",
     "permissions": [
       {
         "zone": "",
@@ -32,9 +26,15 @@
       }
     ],
     "lastModification": {
-      "actor": "dfenter",
-      "timestamp": "2026-05-15T14:00:00Z"
+      "actor": "external",
+      "timestamp": "2026-05-16T22:44:36Z"
     },
-    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000"
+    "parameters": [
+      {
+        "type": "Parameter",
+        "identifier": "coolingTowerDataID",
+        "sqlType": 4
+      }
+    ]
   }
 }

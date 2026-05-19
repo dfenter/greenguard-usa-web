@@ -18,6 +18,17 @@
     "cacheEnabled": false,
     "database": "",
     "fallbackEnabled": false,
+    "lastModificationSignature": "854627734a7155e7beaa5c9724aefa6bf489f31b3b4e1ac596d4b5c2b47adecc",
+    "permissions": [
+      {
+        "zone": "",
+        "role": ""
+      }
+    ],
+    "lastModification": {
+      "actor": "external",
+      "timestamp": "2026-05-16T22:44:36Z"
+    },
     "parameters": [
       {
         "type": "Parameter",
@@ -49,17 +60,6 @@
         "identifier": "changedBy",
         "sqlType": 12
       }
-    ],
-    "permissions": [
-      {
-        "zone": "",
-        "role": ""
-      }
-    ],
-    "lastModification": {
-      "actor": "dfenter",
-      "timestamp": "2026-05-15T14:00:00Z"
-    },
-    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000"
+    ]
   }
 }

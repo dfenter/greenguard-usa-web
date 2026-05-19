@@ -18,13 +18,7 @@
     "cacheEnabled": false,
     "database": "",
     "fallbackEnabled": false,
-    "parameters": [
-      {
-        "type": "Parameter",
-        "identifier": "siteId",
-        "sqlType": 4
-      }
-    ],
+    "lastModificationSignature": "1525bdbeb85c009e3f379b5bf391b50c1dc808f4da41dd955eb0ccae91b244be",
     "permissions": [
       {
         "zone": "",
@@ -32,9 +26,15 @@
       }
     ],
     "lastModification": {
-      "actor": "dfenter",
-      "timestamp": "2026-05-15T14:00:00Z"
+      "actor": "external",
+      "timestamp": "2026-05-16T22:44:36Z"
     },
-    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000"
+    "parameters": [
+      {
+        "type": "Parameter",
+        "identifier": "siteId",
+        "sqlType": 4
+      }
+    ]
   }
 }

@@ -1,8 +1,404 @@
 {
   "custom": {
-    "allSites": [],
-    "regionOptions": [],
-    "pendingChanges": []
+    "allSites": [
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "",
+        "site": "Delisle",
+        "siteId": 6
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "",
+        "site": "Spartanburg BB",
+        "siteId": 25
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "",
+        "site": "Spartanburg SL",
+        "siteId": 26
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "",
+        "site": "Wax",
+        "siteId": 34
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Central Region",
+        "site": "Irving",
+        "siteId": 10
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Central Region",
+        "site": "Lawton",
+        "siteId": 14
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Central Region",
+        "site": "Mulberry",
+        "siteId": 19
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Central Region",
+        "site": "Odessa",
+        "siteId": 21
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Central Region",
+        "site": "Penwell",
+        "siteId": 38
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "East Region",
+        "site": "Cayce",
+        "siteId": 4
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "East Region",
+        "site": "Gaston",
+        "siteId": 8
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "East Region",
+        "site": "Wake Forest",
+        "siteId": 32
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Midwest Region",
+        "site": "Burlington",
+        "siteId": 2
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Midwest Region",
+        "site": "Carrollton",
+        "siteId": 3
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Midwest Region",
+        "site": "Mapleton",
+        "siteId": 15
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Midwest Region",
+        "site": "Mt Vernon",
+        "siteId": 18
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Midwest Region",
+        "site": "Pittsboro",
+        "siteId": 22
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "North Region",
+        "site": "Dickinson",
+        "siteId": 7
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "North Region",
+        "site": "Grimes",
+        "siteId": 9
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "North Region",
+        "site": "Norfolk",
+        "siteId": 20
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "North Region",
+        "site": "Waverly",
+        "siteId": 33
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Northeast Region",
+        "site": "Albany",
+        "siteId": 0
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Northeast Region",
+        "site": "Middletown",
+        "siteId": 17
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Northeast Region",
+        "site": "St Marys",
+        "siteId": 27
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Northeast Region",
+        "site": "Toledo",
+        "siteId": 29
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Northeast Region",
+        "site": "West Point",
+        "siteId": 36
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "South Region",
+        "site": "San Antonio",
+        "siteId": 23
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "South Region",
+        "site": "Seguin",
+        "siteId": 24
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "South Region",
+        "site": "Stafford",
+        "siteId": 28
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "South Region",
+        "site": "Westlake",
+        "siteId": 35
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Southeast Region",
+        "site": "Chattanooga",
+        "siteId": 5
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Southeast Region",
+        "site": "Lakeland",
+        "siteId": 13
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Southeast Region",
+        "site": "WPB",
+        "siteId": 37
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Southwest Region",
+        "site": "Albuquerque",
+        "siteId": 1
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Southwest Region",
+        "site": "Irwindale",
+        "siteId": 11
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Southwest Region",
+        "site": "Kapolei",
+        "siteId": 12
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Southwest Region",
+        "site": "Mesa",
+        "siteId": 16
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Southwest Region",
+        "site": "Vacaville",
+        "siteId": 30
+      },
+      {
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "region": "Southwest Region",
+        "site": "Vernon",
+        "siteId": 31
+      }
+    ],
+    "pendingChanges": [],
+    "regionOptions": [
+      {
+        "label": "Central Region",
+        "value": "Central Region"
+      },
+      {
+        "label": "East Region",
+        "value": "East Region"
+      },
+      {
+        "label": "Midwest Region",
+        "value": "Midwest Region"
+      },
+      {
+        "label": "North Region",
+        "value": "North Region"
+      },
+      {
+        "label": "Northeast Region",
+        "value": "Northeast Region"
+      },
+      {
+        "label": "South Region",
+        "value": "South Region"
+      },
+      {
+        "label": "Southeast Region",
+        "value": "Southeast Region"
+      },
+      {
+        "label": "Southwest Region",
+        "value": "Southwest Region"
+      }
+    ]
+  },
+  "events": {
+    "system": {
+      "onStartup": {
+        "config": {
+          "script": "\ttry:\n\t\tds \u003d system.db.runNamedQuery(\u0027coolingTowerData/getAllRegions\u0027, {})\n\t\topts \u003d [{\u0027label\u0027: \u0027None\u0027, \u0027value\u0027: \u0027\u0027}]\n\t\tfor r in range(ds.getRowCount()):\n\t\t\treg \u003d ds.getValueAt(r, \u0027region\u0027)\n\t\t\topts.append({\u0027label\u0027: reg, \u0027value\u0027: reg})\n\t\tself.session.custom.regionOptions \u003d opts\n\texcept Exception as e:\n\t\tsystem.perspective.print(\u0027RegionAdmin startup error: \u0027 + str(e))\n"
+        },
+        "scope": "G",
+        "type": "script"
+      }
+    }
   },
   "params": {},
   "propConfig": {
@@ -13,7 +409,7 @@
         },
         "transforms": [
           {
-            "code": "\tif value is None: return []\n\tds = system.dataset.toPyDataSet(value)\n\treturn [{\n\t\t'instancePosition': {}, 'instanceStyle': {'classes': ''},\n\t\t'siteId':  row['id'],\n\t\t'site':    row['site'],\n\t\t'region':  row['region'] if row['region'] else ''\n\t} for row in ds]\n",
+            "code": "\tif value is None: return []\n\tds \u003d system.dataset.toPyDataSet(value)\n\treturn [{\n\t\t\u0027instancePosition\u0027: {}, \u0027instanceStyle\u0027: {\u0027classes\u0027: \u0027\u0027},\n\t\t\u0027siteId\u0027:  row[\u0027id\u0027],\n\t\t\u0027site\u0027:    row[\u0027site\u0027],\n\t\t\u0027region\u0027:  row[\u0027region\u0027] if row[\u0027region\u0027] else \u0027\u0027\n\t} for row in ds]\n",
             "type": "script"
           }
         ],
@@ -28,7 +424,7 @@
         },
         "transforms": [
           {
-            "code": "\tif value is None: return []\n\tds = system.dataset.toPyDataSet(value)\n\treturn [{'label': row['region'], 'value': row['region']} for row in ds]\n",
+            "code": "\tif value is None: return []\n\tds \u003d system.dataset.toPyDataSet(value)\n\treturn [{\u0027label\u0027: row[\u0027region\u0027], \u0027value\u0027: row[\u0027region\u0027]} for row in ds]\n",
             "type": "script"
           }
         ],
@@ -37,16 +433,8 @@
       "persistent": true
     }
   },
+  "props": {},
   "root": {
-    "meta": {
-      "name": "root"
-    },
-    "props": {
-      "direction": "column",
-      "style": {
-        "height": "100%"
-      }
-    },
     "children": [
       {
         "meta": {
@@ -57,13 +445,13 @@
           "shrink": 0
         },
         "props": {
-          "text": "Region / Site Assignment",
           "style": {
+            "borderBottom": "2px solid #E0E0E0",
             "fontSize": 20,
             "fontWeight": "bold",
-            "padding": "12px 16px",
-            "borderBottom": "2px solid #E0E0E0"
-          }
+            "padding": "12px 16px"
+          },
+          "text": "Region / Site Assignment"
         },
         "type": "ia.display.label"
       },
@@ -76,12 +464,12 @@
           "shrink": 0
         },
         "props": {
-          "text": "Select a row then use the dropdown below to reassign the region.",
           "style": {
-            "fontSize": 12,
             "color": "#666666",
+            "fontSize": 12,
             "padding": "4px 16px"
-          }
+          },
+          "text": "Select a row then use the dropdown below to reassign the region."
         },
         "type": "ia.display.label"
       },
@@ -92,43 +480,6 @@
         "position": {
           "grow": 1
         },
-        "props": {
-          "columns": [
-            {
-              "field": "id",
-              "header": {
-                "title": "ID"
-              },
-              "width": 60,
-              "editable": false
-            },
-            {
-              "field": "Site",
-              "header": {
-                "title": "Site"
-              },
-              "width": 250,
-              "editable": false
-            },
-            {
-              "field": "Current Region",
-              "header": {
-                "title": "Current Region"
-              },
-              "width": 250,
-              "editable": false
-            }
-          ],
-          "rowHeight": 36,
-          "alternatingRowBackground": true,
-          "showPaginationBar": true,
-          "pageSize": 20,
-          "selectionMode": "single",
-          "style": {
-            "overflowY": "auto",
-            "margin": "0 16px"
-          }
-        },
         "propConfig": {
           "props.data": {
             "binding": {
@@ -137,7 +488,7 @@
               },
               "transforms": [
                 {
-                  "code": "if value is None: return system.dataset.toDataSet([], [])\nheaders = [\"id\", \"Site\", \"Current Region\"]\nrows = []\nfor r in range(value.getRowCount()):\n\trows.append([\n\t\tvalue.getValueAt(r, \"id\"),\n\t\tstr(value.getValueAt(r, \"site\") or \"\"),\n\t\tstr(value.getValueAt(r, \"region\") or \"Unassigned\")\n\t])\nreturn system.dataset.toDataSet(headers, rows)\n",
+                  "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\theaders \u003d [\"id\", \"Site\", \"Current Region\"]\n\trows \u003d []\n\tfor r in range(value.getRowCount()):\n\t\trows.append([\n\t\t\tvalue.getValueAt(r, \"id\"),\n\t\t\tstr(value.getValueAt(r, \"site\") or \"\"),\n\t\t\tstr(value.getValueAt(r, \"region\") or \"Unassigned\")\n\t\t])\n\treturn system.dataset.toDataSet(headers, rows)\n",
                   "type": "script"
                 }
               ],
@@ -145,26 +496,46 @@
             }
           }
         },
+        "props": {
+          "alternatingRowBackground": true,
+          "columns": [
+            {
+              "editable": false,
+              "field": "id",
+              "header": {
+                "title": "ID"
+              },
+              "width": 60
+            },
+            {
+              "editable": false,
+              "field": "Site",
+              "header": {
+                "title": "Site"
+              },
+              "width": 250
+            },
+            {
+              "editable": false,
+              "field": "Current Region",
+              "header": {
+                "title": "Current Region"
+              },
+              "width": 250
+            }
+          ],
+          "pageSize": 20,
+          "rowHeight": 36,
+          "selectionMode": "single",
+          "showPaginationBar": true,
+          "style": {
+            "margin": "0 16px",
+            "overflowY": "auto"
+          }
+        },
         "type": "ia.display.table"
       },
       {
-        "meta": {
-          "name": "AssignBar"
-        },
-        "position": {
-          "basis": "56px",
-          "shrink": 0
-        },
-        "props": {
-          "direction": "row",
-          "style": {
-            "alignItems": "center",
-            "padding": "8px 16px",
-            "borderTop": "1px solid #E0E0E0",
-            "gap": "12px",
-            "backgroundColor": "#F8F8F8"
-          }
-        },
         "children": [
           {
             "meta": {
@@ -175,10 +546,10 @@
               "shrink": 0
             },
             "props": {
-              "text": "Assign selected to:",
               "style": {
                 "fontSize": 13
-              }
+              },
+              "text": "Assign selected to:"
             },
             "type": "ia.display.label"
           },
@@ -191,7 +562,6 @@
               "shrink": 0
             },
             "props": {
-              "placeholder": "Select region...",
               "options": [
                 {
                   "label": "Central Region",
@@ -225,11 +595,23 @@
                   "label": "Southwest Region",
                   "value": "Southwest Region"
                 }
-              ]
+              ],
+              "placeholder": "Select region..."
             },
             "type": "ia.input.dropdown"
           },
           {
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "\ttable    \u003d self.getSibling(\u0027SiteTable\u0027)\n\tselected \u003d table.props.selection.data\n\tif not selected or selected.getRowCount() \u003d\u003d 0:\n\t\tsystem.perspective.openPopup(\u0027adminError\u0027,\u0027Framework/ErrorPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: \u0027Please select a site first.\u0027})\n\t\treturn\n\tregion \u003d self.getSibling(\u0027RegionDropdown\u0027).props.value\n\tif not region:\n\t\tsystem.perspective.openPopup(\u0027adminError\u0027,\u0027Framework/ErrorPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: \u0027Please select a region.\u0027})\n\t\treturn\n\tsiteId \u003d selected.getValueAt(0, \u0027id\u0027)\n\tsite   \u003d selected.getValueAt(0, \u0027Site\u0027)\n\ttry:\n\t\tsystem.db.runNamedQuery(\u0027coolingTowerData/updateSiteRegion\u0027,\n\t\t\t{\u0027siteId\u0027: siteId, \u0027region\u0027: region})\n\t\tsystem.perspective.openPopup(\u0027adminSuccess\u0027,\u0027Framework/SuccessPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: site + \u0027 assigned to \u0027 + region})\n\t\t# Refresh table\n\t\ttable.refreshBinding(\u0027props.data\u0027)\n\texcept Exception as e:\n\t\tsystem.perspective.openPopup(\u0027adminError\u0027,\u0027Framework/ErrorPopup\u0027,\n\t\t\tparams\u003d{\u0027message\u0027: \u0027Save failed: \u0027 + str(e)})\n"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            },
             "meta": {
               "name": "SaveButton"
             },
@@ -240,34 +622,37 @@
             "props": {
               "text": "Save Assignment"
             },
-            "events": {
-              "component": {
-                "onActionPerformed": {
-                  "config": {
-                    "script": "\ttable    = self.getSibling('SiteTable')\n\tselected = table.props.selection.data\n\tif not selected or selected.getRowCount() == 0:\n\t\tsystem.perspective.openPopup('adminError','Framework/ErrorPopup',\n\t\t\tparams={'message': 'Please select a site first.'})\n\t\treturn\n\tregion = self.getSibling('RegionDropdown').props.value\n\tif not region:\n\t\tsystem.perspective.openPopup('adminError','Framework/ErrorPopup',\n\t\t\tparams={'message': 'Please select a region.'})\n\t\treturn\n\tsiteId = selected.getValueAt(0, 'id')\n\tsite   = selected.getValueAt(0, 'Site')\n\ttry:\n\t\tsystem.db.runNamedQuery('coolingTowerData/updateSiteRegion',\n\t\t\t{'siteId': siteId, 'region': region})\n\t\tsystem.perspective.openPopup('adminSuccess','Framework/SuccessPopup',\n\t\t\tparams={'message': site + ' assigned to ' + region})\n\t\t# Refresh table\n\t\ttable.refreshBinding('props.data')\n\texcept Exception as e:\n\t\tsystem.perspective.openPopup('adminError','Framework/ErrorPopup',\n\t\t\tparams={'message': 'Save failed: ' + str(e)})\n"
-                  },
-                  "scope": "G",
-                  "type": "script"
-                }
-              }
-            },
             "type": "ia.input.button"
           }
         ],
+        "meta": {
+          "name": "AssignBar"
+        },
+        "position": {
+          "basis": "56px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "alignItems": "center",
+            "backgroundColor": "#F8F8F8",
+            "borderTop": "1px solid #E0E0E0",
+            "gap": "12px",
+            "padding": "8px 16px"
+          }
+        },
         "type": "ia.container.flex"
       }
     ],
-    "type": "ia.container.flex"
-  },
-  "events": {
-    "system": {
-      "onStartup": {
-        "config": {
-          "script": "\ttry:\n\t\tds = system.db.runNamedQuery('coolingTowerData/getAllRegions', {})\n\t\topts = [{'label': 'None', 'value': ''}]\n\t\tfor r in range(ds.getRowCount()):\n\t\t\treg = ds.getValueAt(r, 'region')\n\t\t\topts.append({'label': reg, 'value': reg})\n\t\tself.session.custom.regionOptions = opts\n\texcept Exception as e:\n\t\tsystem.perspective.print('RegionAdmin startup error: ' + str(e))\n"
-        },
-        "scope": "G",
-        "type": "script"
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "height": "100%"
       }
-    }
+    },
+    "type": "ia.container.flex"
   }
 }

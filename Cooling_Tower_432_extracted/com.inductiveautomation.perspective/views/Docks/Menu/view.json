@@ -38,7 +38,7 @@
           "component": {
             "onItemClicked": {
               "config": {
-                "script": "\tif event.label == 'User Feedback':\n\t\tsystem.perspective.openPopup(\n\t\t\t'feedback',\n\t\t\t'User Feedback/Add Feedback',\n\t\t\tparams={},\n\t\t\twidth=560,\n\t\t\theight=360,\n\t\t)\n\telif event.label == 'Config':\n\t\tsystem.perspective.openPopup(\n\t\t\t'config',\n\t\t\t'Page/Configuration',\n\t\t\tparams={'siteId': self.session.custom.currentSite or 0},\n\t\t\twidth=900,\n\t\t\theight=700,\n\t\t\tmodal=True\n\t\t)\n\telse:\n\t\tself.session.custom.header = event.label\n\t\tself.view.custom.header = event.label\n"
+                "script": "\tif event.label == 'User Feedback':\n\t\tsystem.perspective.openPopup(\n\t\t\t'feedback',\n\t\t\t'User Feedback/Add Feedback',\n\t\t\tparams={},\n\t\t\twidth=560,\n\t\t\theight=360,\n\t\t)\n\telif event.label == 'Config':\n\t\tsystem.perspective.openPopup(\n\t\t\t'config',\n\t\t\t'Page/Configuration',\n\t\t\tparams={'site': self.session.custom.site},\n\t\t\twidth=900,\n\t\t\theight=700,\n\t\t\tmodal=True\n\t\t)\n\telse:\n\t\tself.session.custom.header = event.label\n\t\tself.view.custom.header = event.label\n"
               },
               "scope": "G",
               "type": "script"

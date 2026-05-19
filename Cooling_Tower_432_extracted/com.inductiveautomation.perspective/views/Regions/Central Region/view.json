@@ -115,8 +115,7 @@
             "props": {
               "path": "Sites/siteView",
               "params": {
-                "tabIndex": 0,
-                "siteId": 35
+                "tabIndex": 0
               }
             },
             "type": "ia.display.view"
@@ -156,9 +155,8 @@
         "propConfig": {
           "props.currentTabIndex": {
             "onChange": {
-              "enabled": true,
-              "script": "\tsite_name = self.props.tabs[self.props.currentTabIndex].get('text', '')\n\tsite_ids  = {'Irving': 10, 'Waxahachie': 35, 'Lawton': 14, 'Mulberry': 19, 'Odessa': 21, 'Penwell': 38}\n\tself.session.custom.currentSiteName = site_name\n\tself.session.custom.site            = site_name\n\tif site_name in site_ids:\n\t\tself.session.custom.currentSite = site_ids[site_name]\n",
-              "scope": "G"
+              "enabled": false,
+              "script": "\tself.session.custom.site = self.props.tabs[self.props.currentTabIndex].text"
             }
           }
         },

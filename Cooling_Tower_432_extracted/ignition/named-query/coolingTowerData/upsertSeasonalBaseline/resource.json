@@ -18,6 +18,17 @@
     "cacheEnabled": false,
     "database": "",
     "fallbackEnabled": false,
+    "lastModificationSignature": "7894ccaf8a3f93cdc39db90eb511c96762431071eb65aa98f689a2a627a934f3",
+    "permissions": [
+      {
+        "zone": "",
+        "role": ""
+      }
+    ],
+    "lastModification": {
+      "actor": "external",
+      "timestamp": "2026-05-16T22:44:36Z"
+    },
     "parameters": [
       {
         "type": "Parameter",
@@ -34,17 +45,6 @@
         "identifier": "baselineDAT",
         "sqlType": 8
       }
-    ],
-    "permissions": [
-      {
-        "zone": "",
-        "role": ""
-      }
-    ],
-    "lastModification": {
-      "actor": "dfenter",
-      "timestamp": "2026-05-15T14:00:00Z"
-    },
-    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000"
+    ]
   }
 }

@@ -18,7 +18,7 @@
     "cacheEnabled": false,
     "database": "",
     "fallbackEnabled": false,
-    "parameters": [],
+    "lastModificationSignature": "65328fc0724c04d625ce0c138aa5e649dfacff7f3b1d29cd4e8be7a3d4216659",
     "permissions": [
       {
         "zone": "",
@@ -26,9 +26,9 @@
       }
     ],
     "lastModification": {
-      "actor": "dfenter",
-      "timestamp": "2026-05-15T14:00:00Z"
+      "actor": "external",
+      "timestamp": "2026-05-16T22:44:36Z"
     },
-    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000"
+    "parameters": []
   }
 }

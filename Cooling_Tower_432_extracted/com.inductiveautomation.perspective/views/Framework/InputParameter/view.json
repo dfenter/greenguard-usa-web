@@ -47,7 +47,8 @@
     "processGasOutTempF": "",
     "processGasOutTempFTarget": 120,
     "recordDate": "value",
-    "siteId": 10
+    "siteId": 10,
+    "loaded": false
   },
   "propConfig": {
     "custom.DATDifference": {
@@ -103,7 +104,7 @@
         "type": "expr"
       },
       "onChange": {
-        "enabled": true,
+        "enabled": false,
         "script": "\tself.params.designApproachTempF = currentValue.value"
       },
       "persistent": true
@@ -122,7 +123,7 @@
         "type": "expr"
       },
       "onChange": {
-        "enabled": true,
+        "enabled": false,
         "script": "\tself.params.designApproachTempFTarget = currentValue.value"
       },
       "persistent": true
@@ -220,6 +221,10 @@
     "params.siteId": {
       "paramDirection": "input",
       "persistent": true
+    },
+    "params.loaded": {
+      "paramDirection": "input",
+      "persistent": true
     }
   },
   "props": {
@@ -286,7 +291,18 @@
         "props": {
           "value": 85
         },
-        "type": "ia.input.numeric-entry-field"
+        "type": "ia.input.numeric-entry-field",
+        "events": {
+          "component": {
+            "onValueChanged": {
+              "config": {
+                "script": "\t# Only persist after initial load to avoid writing during pre-population\n\tif not self.view.params.loaded: return\n\n\t# Persist updated sticky values and log target change\n\teid = self.view.params.id\n\tif eid:\n\t\ttry:\n\t\t\tchangedBy = self.session.props.auth.user.userName or 'unknown'\n\t\texcept:\n\t\t\tchangedBy = 'unknown'\n\t\ttry:\n\t\t\tsystem.db.runNamedQuery(\n\t\t\t\t\"coolingTowerData/upsertStickyValues\",\n\t\t\t\t{\n\t\t\t\t\t\"coolingTowerDataID\":     eid,\n\t\t\t\t\t\"approachTempTarget\":      self.view.params.designApproachTempFTarget,\n\t\t\t\t\t\"incomingWaterTempTarget\": self.view.params.designIncomingWaterTempFTarget,\n\t\t\t\t\t\"processGasOutTempTarget\": self.view.params.processGasOutTempFTarget,\n\t\t\t\t\t\"altEquipmentName\":        self.view.params.altEquipmentName,\n\t\t\t\t\t\"changedBy\":               changedBy\n\t\t\t\t}\n\t\t\t)\n\t\texcept Exception as e:\n\t\t\tsystem.perspective.print(\"upsertStickyValues error: \" + str(e))\n"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
       },
       {
         "meta": {
@@ -312,7 +328,18 @@
         "props": {
           "value": 120
         },
-        "type": "ia.input.numeric-entry-field"
+        "type": "ia.input.numeric-entry-field",
+        "events": {
+          "component": {
+            "onValueChanged": {
+              "config": {
+                "script": "\t# Only persist after initial load to avoid writing during pre-population\n\tif not self.view.params.loaded: return\n\n\t# Persist updated sticky values and log target change\n\teid = self.view.params.id\n\tif eid:\n\t\ttry:\n\t\t\tchangedBy = self.session.props.auth.user.userName or 'unknown'\n\t\texcept:\n\t\t\tchangedBy = 'unknown'\n\t\ttry:\n\t\t\tsystem.db.runNamedQuery(\n\t\t\t\t\"coolingTowerData/upsertStickyValues\",\n\t\t\t\t{\n\t\t\t\t\t\"coolingTowerDataID\":     eid,\n\t\t\t\t\t\"approachTempTarget\":      self.view.params.designApproachTempFTarget,\n\t\t\t\t\t\"incomingWaterTempTarget\": self.view.params.designIncomingWaterTempFTarget,\n\t\t\t\t\t\"processGasOutTempTarget\": self.view.params.processGasOutTempFTarget,\n\t\t\t\t\t\"altEquipmentName\":        self.view.params.altEquipmentName,\n\t\t\t\t\t\"changedBy\":               changedBy\n\t\t\t\t}\n\t\t\t)\n\t\texcept Exception as e:\n\t\t\tsystem.perspective.print(\"upsertStickyValues error: \" + str(e))\n"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
       },
       {
         "meta": {
@@ -606,7 +633,18 @@
         "props": {
           "placeholder": "Enter alternate equipment name"
         },
-        "type": "ia.input.text-field"
+        "type": "ia.input.text-field",
+        "events": {
+          "component": {
+            "onValueChanged": {
+              "config": {
+                "script": "\t# Only persist after initial load to avoid writing during pre-population\n\tif not self.view.params.loaded: return\n\n\t# Persist updated sticky values and log target change\n\teid = self.view.params.id\n\tif eid:\n\t\ttry:\n\t\t\tchangedBy = self.session.props.auth.user.userName or 'unknown'\n\t\texcept:\n\t\t\tchangedBy = 'unknown'\n\t\ttry:\n\t\t\tsystem.db.runNamedQuery(\n\t\t\t\t\"coolingTowerData/upsertStickyValues\",\n\t\t\t\t{\n\t\t\t\t\t\"coolingTowerDataID\":     eid,\n\t\t\t\t\t\"approachTempTarget\":      self.view.params.designApproachTempFTarget,\n\t\t\t\t\t\"incomingWaterTempTarget\": self.view.params.designIncomingWaterTempFTarget,\n\t\t\t\t\t\"processGasOutTempTarget\": self.view.params.processGasOutTempFTarget,\n\t\t\t\t\t\"altEquipmentName\":        self.view.params.altEquipmentName,\n\t\t\t\t\t\"changedBy\":               changedBy\n\t\t\t\t}\n\t\t\t)\n\t\texcept Exception as e:\n\t\t\tsystem.perspective.print(\"upsertStickyValues error: \" + str(e))\n"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        }
       }
     ],
     "meta": {

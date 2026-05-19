@@ -1,29 +1,505 @@
 {
   "custom": {
-    "fleetData": [],
-    "staleDays": 30,
-    "filterRegion": "All",
     "countRed": 0,
+    "countStale": 35,
     "countYellow": 0,
-    "countStale": 0
+    "filterRegion": "All",
+    "fleetData": [
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 16,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Central Region",
+        "siteId": 10,
+        "siteName": "Irving",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Central Region",
+        "siteId": 14,
+        "siteName": "Lawton",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Central Region",
+        "siteId": 19,
+        "siteName": "Mulberry",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Central Region",
+        "siteId": 21,
+        "siteName": "Odessa",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Central Region",
+        "siteId": 38,
+        "siteName": "Penwell",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "East Region",
+        "siteId": 4,
+        "siteName": "Cayce",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "East Region",
+        "siteId": 8,
+        "siteName": "Gaston",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "East Region",
+        "siteId": 32,
+        "siteName": "Wake Forest",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Midwest Region",
+        "siteId": 2,
+        "siteName": "Burlington",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Midwest Region",
+        "siteId": 3,
+        "siteName": "Carrollton",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Midwest Region",
+        "siteId": 15,
+        "siteName": "Mapleton",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Midwest Region",
+        "siteId": 18,
+        "siteName": "Mt Vernon",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Midwest Region",
+        "siteId": 22,
+        "siteName": "Pittsboro",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "North Region",
+        "siteId": 7,
+        "siteName": "Dickinson",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "North Region",
+        "siteId": 9,
+        "siteName": "Grimes",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "North Region",
+        "siteId": 20,
+        "siteName": "Norfolk",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "North Region",
+        "siteId": 33,
+        "siteName": "Waverly",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Northeast Region",
+        "siteId": 0,
+        "siteName": "Albany",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Northeast Region",
+        "siteId": 17,
+        "siteName": "Middletown",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Northeast Region",
+        "siteId": 27,
+        "siteName": "St Marys",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Northeast Region",
+        "siteId": 29,
+        "siteName": "Toledo",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Northeast Region",
+        "siteId": 36,
+        "siteName": "West Point",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "South Region",
+        "siteId": 23,
+        "siteName": "San Antonio",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "South Region",
+        "siteId": 24,
+        "siteName": "Seguin",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "South Region",
+        "siteId": 28,
+        "siteName": "Stafford",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "South Region",
+        "siteId": 35,
+        "siteName": "Westlake",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Southeast Region",
+        "siteId": 5,
+        "siteName": "Chattanooga",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Southeast Region",
+        "siteId": 13,
+        "siteName": "Lakeland",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Southeast Region",
+        "siteId": 37,
+        "siteName": "WPB",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Southwest Region",
+        "siteId": 1,
+        "siteName": "Albuquerque",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Southwest Region",
+        "siteId": 11,
+        "siteName": "Irwindale",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Southwest Region",
+        "siteId": 12,
+        "siteName": "Kapolei",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Southwest Region",
+        "siteId": 16,
+        "siteName": "Mesa",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Southwest Region",
+        "siteId": 30,
+        "siteName": "Vacaville",
+        "worstDev": 0
+      },
+      {
+        "completeness": 0,
+        "daysSince": 9999,
+        "equipment": 0,
+        "instancePosition": {},
+        "instanceStyle": {
+          "classes": ""
+        },
+        "lastEntry": "Never",
+        "region": "Southwest Region",
+        "siteId": 31,
+        "siteName": "Vernon",
+        "worstDev": 0
+      }
+    ],
+    "staleDays": 30
   },
   "params": {},
   "propConfig": {
-    "custom.fleetData": {
-      "binding": {
-        "config": {
-          "queryPath": "coolingTowerData/getFleetSummary"
-        },
-        "transforms": [
-          {
-            "code": "\tif value is None: return []\n\tds = system.dataset.toPyDataSet(value)\n\tfilterRegion = self.view.custom.filterRegion\n\trows = []\n\tfor row in ds:\n\t\tif filterRegion != 'All' and row['region'] != filterRegion: continue\n\t\tdays = row['daysSinceEntry'] if row['daysSinceEntry'] is not None else 9999\n\t\trows.append({\n\t\t\t'instancePosition': {}, 'instanceStyle': {'classes': ''},\n\t\t\t'siteId':       row['siteId'],\n\t\t\t'siteName':     row['siteName'],\n\t\t\t'region':       row['region'] or '',\n\t\t\t'lastEntry':    system.date.format(row['lastEntry'], 'MM/dd/yyyy') if row['lastEntry'] else 'Never',\n\t\t\t'daysSince':    days,\n\t\t\t'worstDev':     row['worstDev'] or 0.0,\n\t\t\t'completeness': row['completenessPercent'] or 0,\n\t\t\t'equipment':    row['enabledEquipment'] or 0\n\t\t})\n\treturn rows\n",
-            "type": "script"
-          }
-        ],
-        "type": "query"
-      },
-      "persistent": true
-    },
     "custom.countRed": {
       "binding": {
         "config": {
@@ -31,22 +507,7 @@
         },
         "transforms": [
           {
-            "code": "\tif not value: return 0\n\treturn sum(1 for r in value if r.get('worstDev',0) > 10)\n",
-            "type": "script"
-          }
-        ],
-        "type": "property"
-      },
-      "persistent": true
-    },
-    "custom.countYellow": {
-      "binding": {
-        "config": {
-          "path": "view.custom.fleetData"
-        },
-        "transforms": [
-          {
-            "code": "\tif not value: return 0\n\treturn sum(1 for r in value if 5 < r.get('worstDev',0) <= 10)\n",
+            "code": "\tif not value: return 0\n\treturn sum(1 for r in value if r.get(\u0027worstDev\u0027,0) \u003e 10)\n",
             "type": "script"
           }
         ],
@@ -61,41 +522,49 @@
         },
         "transforms": [
           {
-            "code": "\tif not value: return 0\n\treturn sum(1 for r in value if r.get('daysSince',9999) > 30)\n",
+            "code": "\tif not value: return 0\n\treturn sum(1 for r in value if r.get(\u0027daysSince\u0027,9999) \u003e 30)\n",
             "type": "script"
           }
         ],
         "type": "property"
       },
       "persistent": true
+    },
+    "custom.countYellow": {
+      "binding": {
+        "config": {
+          "path": "view.custom.fleetData"
+        },
+        "transforms": [
+          {
+            "code": "\tif not value: return 0\n\treturn sum(1 for r in value if 5 \u003c r.get(\u0027worstDev\u0027,0) \u003c\u003d 10)\n",
+            "type": "script"
+          }
+        ],
+        "type": "property"
+      },
+      "persistent": true
+    },
+    "custom.fleetData": {
+      "binding": {
+        "config": {
+          "queryPath": "coolingTowerData/getFleetSummary"
+        },
+        "transforms": [
+          {
+            "code": "\tif value is None: return []\n\tds \u003d system.dataset.toPyDataSet(value)\n\tfilterRegion \u003d self.view.custom.filterRegion\n\trows \u003d []\n\tfor row in ds:\n\t\tif filterRegion !\u003d \u0027All\u0027 and row[\u0027region\u0027] !\u003d filterRegion: continue\n\t\tdays \u003d row[\u0027daysSinceEntry\u0027] if row[\u0027daysSinceEntry\u0027] is not None else 9999\n\t\trows.append({\n\t\t\t\u0027instancePosition\u0027: {}, \u0027instanceStyle\u0027: {\u0027classes\u0027: \u0027\u0027},\n\t\t\t\u0027siteId\u0027:       row[\u0027siteId\u0027],\n\t\t\t\u0027siteName\u0027:     row[\u0027siteName\u0027],\n\t\t\t\u0027region\u0027:       row[\u0027region\u0027] or \u0027\u0027,\n\t\t\t\u0027lastEntry\u0027:    system.date.format(row[\u0027lastEntry\u0027], \u0027MM/dd/yyyy\u0027) if row[\u0027lastEntry\u0027] else \u0027Never\u0027,\n\t\t\t\u0027daysSince\u0027:    days,\n\t\t\t\u0027worstDev\u0027:     row[\u0027worstDev\u0027] or 0.0,\n\t\t\t\u0027completeness\u0027: row[\u0027completenessPercent\u0027] or 0,\n\t\t\t\u0027equipment\u0027:    row[\u0027enabledEquipment\u0027] or 0\n\t\t})\n\treturn rows\n",
+            "type": "script"
+          }
+        ],
+        "type": "query"
+      },
+      "persistent": true
     }
   },
+  "props": {},
   "root": {
-    "meta": {
-      "name": "root"
-    },
-    "props": {
-      "direction": "column",
-      "style": {
-        "padding": "16px"
-      }
-    },
     "children": [
       {
-        "meta": {
-          "name": "TitleBar"
-        },
-        "position": {
-          "basis": "50px",
-          "shrink": 0
-        },
-        "props": {
-          "direction": "row",
-          "style": {
-            "alignItems": "center",
-            "marginBottom": "8px"
-          }
-        },
         "children": [
           {
             "meta": {
@@ -105,11 +574,11 @@
               "grow": 1
             },
             "props": {
-              "text": "Fleet Dashboard",
               "style": {
                 "fontSize": 22,
                 "fontWeight": "bold"
-              }
+              },
+              "text": "Fleet Dashboard"
             },
             "type": "ia.display.label"
           },
@@ -121,10 +590,10 @@
               "basis": "60px"
             },
             "props": {
-              "text": "Region:",
               "style": {
                 "fontSize": 13
-              }
+              },
+              "text": "Region:"
             },
             "type": "ia.display.label"
           },
@@ -135,10 +604,6 @@
             "position": {
               "basis": "200px"
             },
-            "props": {
-              "options": [],
-              "value": "All"
-            },
             "propConfig": {
               "props.options": {
                 "binding": {
@@ -147,7 +612,7 @@
                   },
                   "transforms": [
                     {
-                      "code": "\tif value is None: return [{'label':'All','value':'All'}]\n\tds = system.dataset.toPyDataSet(value)\n\topts = [{'label':'All','value':'All'}]\n\tfor row in ds:\n\t\topts.append({'label': row['region'], 'value': row['region']})\n\treturn opts\n",
+                      "code": "\tif value is None: return [{\u0027label\u0027:\u0027All\u0027,\u0027value\u0027:\u0027All\u0027}]\n\tds \u003d system.dataset.toPyDataSet(value)\n\topts \u003d [{\u0027label\u0027:\u0027All\u0027,\u0027value\u0027:\u0027All\u0027}]\n\tfor row in ds:\n\t\topts.append({\u0027label\u0027: row[\u0027region\u0027], \u0027value\u0027: row[\u0027region\u0027]})\n\treturn opts\n",
                       "type": "script"
                     }
                   ],
@@ -165,53 +630,24 @@
               }
             },
             "type": "ia.input.dropdown"
-          },
-          {
-            "meta": {
-              "name": "ExportButton"
-            },
-            "position": {
-              "basis": "130px",
-              "shrink": 0
-            },
-            "props": {
-              "text": "⬇ Export CSV",
-              "style": {
-                "marginLeft": "12px",
-                "fontSize": 13
-              }
-            },
-            "events": {
-              "component": {
-                "onActionPerformed": {
-                  "config": {
-                    "script": "\tdata = self.view.custom.fleetData\n\tif not data:\n\t\treturn\n\theaders = ['Site','Region','Last Entry','Days Ago','Worst Dev (F)','Completeness %','Equipment Count']\n\tlines = [','.join(headers)]\n\tfor r in data:\n\t\tdays = r.get('daysSince', 9999)\n\t\trow = [\n\t\t\tr.get('siteName',''),\n\t\t\tr.get('region',''),\n\t\t\tr.get('lastEntry','Never'),\n\t\t\tstr(int(days)) if days < 9999 else 'Never',\n\t\t\tstr(round(r.get('worstDev',0), 2)),\n\t\t\tstr(r.get('completeness',0)) + '%',\n\t\t\tstr(r.get('equipment',0))\n\t\t]\n\t\tlines.append(','.join('\"' + v + '\"' for v in row))\n\tcsv = '\\n'.join(lines)\n\tsystem.perspective.download('fleet_summary.csv', csv.encode('utf-8'), 'text/csv')\n"
-                  },
-                  "scope": "G",
-                  "type": "script"
-                }
-              }
-            },
-            "type": "ia.input.button"
           }
         ],
-        "type": "ia.container.flex"
-      },
-      {
         "meta": {
-          "name": "SummaryBadges"
+          "name": "TitleBar"
         },
         "position": {
           "basis": "50px",
           "shrink": 0
         },
         "props": {
-          "direction": "row",
           "style": {
-            "marginBottom": "10px",
-            "gap": "12px"
+            "alignItems": "center",
+            "marginBottom": "8px"
           }
         },
+        "type": "ia.container.flex"
+      },
+      {
         "children": [
           {
             "meta": {
@@ -220,25 +656,25 @@
             "position": {
               "basis": "160px"
             },
-            "props": {
-              "style": {
-                "backgroundColor": "#FF4444",
-                "color": "#FFF",
-                "borderRadius": "6px",
-                "padding": "8px 12px",
-                "fontSize": 13,
-                "fontWeight": "bold",
-                "textAlign": "center"
-              }
-            },
             "propConfig": {
               "props.text": {
                 "binding": {
                   "config": {
-                    "expression": "\"\u26a0 \" + toString({view.custom.countRed}) + \" Out of Spec\""
+                    "expression": "\"⚠ \" + toString({view.custom.countRed}) + \" Out of Spec\""
                   },
                   "type": "expr"
                 }
+              }
+            },
+            "props": {
+              "style": {
+                "backgroundColor": "#FF4444",
+                "borderRadius": "6px",
+                "color": "#FFF",
+                "fontSize": 13,
+                "fontWeight": "bold",
+                "padding": "8px 12px",
+                "textAlign": "center"
               }
             },
             "type": "ia.display.label"
@@ -250,25 +686,25 @@
             "position": {
               "basis": "160px"
             },
-            "props": {
-              "style": {
-                "backgroundColor": "#FFD700",
-                "color": "#333",
-                "borderRadius": "6px",
-                "padding": "8px 12px",
-                "fontSize": 13,
-                "fontWeight": "bold",
-                "textAlign": "center"
-              }
-            },
             "propConfig": {
               "props.text": {
                 "binding": {
                   "config": {
-                    "expression": "\"\u26a0 \" + toString({view.custom.countYellow}) + \" Warning\""
+                    "expression": "\"⚠ \" + toString({view.custom.countYellow}) + \" Warning\""
                   },
                   "type": "expr"
                 }
+              }
+            },
+            "props": {
+              "style": {
+                "backgroundColor": "#FFD700",
+                "borderRadius": "6px",
+                "color": "#333",
+                "fontSize": 13,
+                "fontWeight": "bold",
+                "padding": "8px 12px",
+                "textAlign": "center"
               }
             },
             "type": "ia.display.label"
@@ -280,30 +716,43 @@
             "position": {
               "basis": "160px"
             },
-            "props": {
-              "style": {
-                "backgroundColor": "#AAAAAA",
-                "color": "#FFF",
-                "borderRadius": "6px",
-                "padding": "8px 12px",
-                "fontSize": 13,
-                "fontWeight": "bold",
-                "textAlign": "center"
-              }
-            },
             "propConfig": {
               "props.text": {
                 "binding": {
                   "config": {
-                    "expression": "\"\ud83d\udd50 \" + toString({view.custom.countStale}) + \" Stale\""
+                    "expression": "\"🕐 \" + toString({view.custom.countStale}) + \" Stale\""
                   },
                   "type": "expr"
                 }
               }
             },
+            "props": {
+              "style": {
+                "backgroundColor": "#AAAAAA",
+                "borderRadius": "6px",
+                "color": "#FFF",
+                "fontSize": 13,
+                "fontWeight": "bold",
+                "padding": "8px 12px",
+                "textAlign": "center"
+              }
+            },
             "type": "ia.display.label"
           }
         ],
+        "meta": {
+          "name": "SummaryBadges"
+        },
+        "position": {
+          "basis": "50px",
+          "shrink": 0
+        },
+        "props": {
+          "style": {
+            "gap": "12px",
+            "marginBottom": "10px"
+          }
+        },
         "type": "ia.container.flex"
       },
       {
@@ -313,7 +762,24 @@
         "position": {
           "grow": 1
         },
+        "propConfig": {
+          "props.data": {
+            "binding": {
+              "config": {
+                "queryPath": "coolingTowerData/getFleetSummary"
+              },
+              "transforms": [
+                {
+                  "code": "\tif value is None: return system.dataset.toDataSet([], [])\n\theaders \u003d [\"Site\", \"Region\", \"Last Entry\", \"Days Ago\", \"Spec Status\", \"Completeness %\"]\n\trows \u003d []\n\tfor r in range(value.getRowCount()):\n\t\tsiteName  \u003d str(value.getValueAt(r, \"siteName\") or \"\")\n\t\tregion    \u003d str(value.getValueAt(r, \"region\") or \"\")\n\t\tlastEntry \u003d value.getValueAt(r, \"lastEntry\")\n\t\tdaysSince \u003d value.getValueAt(r, \"daysSinceEntry\")\n\t\tworstDev  \u003d value.getValueAt(r, \"worstDev\") or 0\n\t\tcompPct   \u003d value.getValueAt(r, \"completenessPercent\") or 0\n\t\t\n\t\tleStr \u003d system.date.format(lastEntry, \"MM/dd/yyyy\") if lastEntry else \"Never\"\n\t\tdaStr \u003d str(int(daysSince)) if daysSince is not None else \"N/A\"\n\t\t\n\t\tif worstDev \u003e 10:    spec \u003d \"OUT OF SPEC\"\n\t\telif worstDev \u003e 5:   spec \u003d \"WARNING\"\n\t\telif daysSince and daysSince \u003e 30: spec \u003d \"STALE\"\n\t\telse:                spec \u003d \"IN SPEC\"\n\t\t\n\t\trows.append([siteName, region, leStr, daStr, spec, str(compPct) + \"%\"])\n\treturn system.dataset.toDataSet(headers, rows)\n",
+                  "type": "script"
+                }
+              ],
+              "type": "query"
+            }
+          }
+        },
         "props": {
+          "alternatingRowBackground": true,
           "columns": [
             {
               "field": "Site",
@@ -359,42 +825,23 @@
             }
           ],
           "rowHeight": 36,
-          "alternatingRowBackground": true,
           "showPaginationBar": false,
           "style": {
             "overflowY": "auto"
           }
         },
-        "propConfig": {
-          "props.data": {
-            "binding": {
-              "config": {
-                "path": "view.custom.fleetData"
-              },
-              "transforms": [
-                {
-                  "code": "if not value: return []\nresult = []\nfor r in value:\n\tdays  = r.get('daysSince', 9999)\n\tworst = r.get('worstDev', 0)\n\tif worst > 10:     spec = '⚠ OUT OF SPEC'\n\telif worst > 5:    spec = '⚠ WARNING'\n\telif days > 30:    spec = '🕐 STALE'\n\telse:              spec = '✓ IN SPEC'\n\tdayStr = str(int(days)) if days < 9999 else 'Never'\n\tresult.append({\n\t\t'Site':           r.get('siteName', ''),\n\t\t'Region':         r.get('region', ''),\n\t\t'Last Entry':     r.get('lastEntry', 'Never'),\n\t\t'Days Ago':       dayStr,\n\t\t'Spec Status':    spec,\n\t\t'Completeness %': str(r.get('completeness', 0)) + '%  (' + str(r.get('equipment', 0)) + ' units)'\n\t})\nreturn result\n",
-                  "type": "script"
-                }
-              ],
-              "type": "property"
-            }
-          }
-        },
-        "events": {
-          "component": {
-            "onCellClick": {
-              "config": {
-                "script": "\tregionMap = {\n\t\t'Central Region':   '/central-region',\n\t\t'East Region':      '/east-region',\n\t\t'Midwest Region':   '/midwest-region',\n\t\t'North Region':     '/north-region',\n\t\t'Northeast Region': '/northeast-region',\n\t\t'South Region':     '/south-region',\n\t\t'Southeast Region': '/southeast-region',\n\t\t'Southwest Region': '/southwest-region'\n\t}\n\tsiteName = event.rowData.get('Site', '')\n\tregion   = event.rowData.get('Region', '')\n\tfor r in self.view.custom.fleetData:\n\t\tif r.get('siteName') == siteName:\n\t\t\tself.session.custom.currentSite     = r.get('siteId', 0)\n\t\t\tself.session.custom.currentSiteName = siteName\n\t\t\tbreak\n\turl = regionMap.get(region, '')\n\tif url:\n\t\tsystem.perspective.navigate(page=url)\n"
-              },
-              "scope": "G",
-              "type": "script"
-            }
-          }
-        },
         "type": "ia.display.table"
       }
     ],
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "padding": "16px"
+      }
+    },
     "type": "ia.container.flex"
   }
 }

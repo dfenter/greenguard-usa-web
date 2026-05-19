@@ -4,8 +4,45 @@
     "Site": "Vernon",
     "currentSite": 6,
     "header": "Overview",
-    "tankConfig": "value",
-    "currentSiteName": ""
+    "regionOptions": [
+      {
+        "label": "None",
+        "value": ""
+      },
+      {
+        "label": "Central Region",
+        "value": "Central Region"
+      },
+      {
+        "label": "East Region",
+        "value": "East Region"
+      },
+      {
+        "label": "Midwest Region",
+        "value": "Midwest Region"
+      },
+      {
+        "label": "North Region",
+        "value": "North Region"
+      },
+      {
+        "label": "Northeast Region",
+        "value": "Northeast Region"
+      },
+      {
+        "label": "South Region",
+        "value": "South Region"
+      },
+      {
+        "label": "Southeast Region",
+        "value": "Southeast Region"
+      },
+      {
+        "label": "Southwest Region",
+        "value": "Southwest Region"
+      }
+    ],
+    "tankConfig": "value"
   },
   "propConfig": {
     "custom.site": {
@@ -66,12 +103,6 @@
     "props.lastActivity": {
       "access": "SYSTEM",
       "persistent": false
-    },
-    "custom.currentSite": {
-      "persistent": true
-    },
-    "custom.currentSiteName": {
-      "persistent": true
     }
   },
   "props": {

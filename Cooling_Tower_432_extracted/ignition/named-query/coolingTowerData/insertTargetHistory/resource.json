@@ -18,6 +18,17 @@
     "cacheEnabled": false,
     "database": "",
     "fallbackEnabled": false,
+    "lastModificationSignature": "79e878593d726e92b5528a70ef1a5c9f77d03b7ca5abd4c5d0ec3a9ed387da06",
+    "permissions": [
+      {
+        "zone": "",
+        "role": ""
+      }
+    ],
+    "lastModification": {
+      "actor": "external",
+      "timestamp": "2026-05-16T22:44:36Z"
+    },
     "parameters": [
       {
         "type": "Parameter",
@@ -49,17 +60,6 @@
         "identifier": "altEquipmentName",
         "sqlType": 12
       }
-    ],
-    "permissions": [
-      {
-        "zone": "",
-        "role": ""
-      }
-    ],
-    "lastModification": {
-      "actor": "dfenter",
-      "timestamp": "2026-05-15T14:00:00Z"
-    },
-    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000"
+    ]
   }
 }

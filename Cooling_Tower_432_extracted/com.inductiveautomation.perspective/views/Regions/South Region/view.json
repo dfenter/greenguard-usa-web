@@ -113,9 +113,8 @@
         "propConfig": {
           "props.currentTabIndex": {
             "onChange": {
-              "enabled": true,
-              "script": "\tsite_name = self.props.tabs[self.props.currentTabIndex].get('text', '')\n\tsite_ids  = {'San Antonio': 23, 'Seguin': 24, 'Stafford': 28, 'Westlake': 35}\n\tself.session.custom.currentSiteName = site_name\n\tself.session.custom.site            = site_name\n\tif site_name in site_ids:\n\t\tself.session.custom.currentSite = site_ids[site_name]\n",
-              "scope": "G"
+              "enabled": false,
+              "script": "\tself.session.custom.tankConfig = self.props.currentTabIndex\n\tself.session.custom.Site = self.props.tabs[self.props.currentTabIndex].text"
             }
           }
         },

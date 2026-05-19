@@ -16,6 +16,10 @@
       "title": "",
       "viewPath": "Regions/East Region"
     },
+    "/fleet": {
+      "title": "Fleet Dashboard",
+      "viewPath": "Page/FleetDashboard"
+    },
     "/midwest-region": {
       "title": "",
       "viewPath": "Regions/Midwest Region"
@@ -28,6 +32,10 @@
       "title": "Northeast Region",
       "viewPath": "Regions/Northeast Region"
     },
+    "/region-admin": {
+      "title": "Region Admin",
+      "viewPath": "Page/RegionAdmin"
+    },
     "/south-region": {
       "title": "South Region",
       "viewPath": "Regions/South Region"
@@ -39,14 +47,6 @@
     "/southwest-region": {
       "title": "Southwest Region",
       "viewPath": "Regions/Southwest Region"
-    },
-    "/fleet": {
-      "title": "Fleet Dashboard",
-      "viewPath": "Page/FleetDashboard"
-    },
-    "/region-admin": {
-      "title": "Region Admin",
-      "viewPath": "Page/RegionAdmin"
     }
   },
   "sharedDocks": {

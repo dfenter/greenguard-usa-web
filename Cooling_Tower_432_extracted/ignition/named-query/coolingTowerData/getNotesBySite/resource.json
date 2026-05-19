@@ -18,6 +18,17 @@
     "cacheEnabled": false,
     "database": "",
     "fallbackEnabled": false,
+    "lastModificationSignature": "c5ee2db777eddf9b3ada31cb9d2ddaeb6d21b83812820fd9256054317d6b6731",
+    "permissions": [
+      {
+        "zone": "",
+        "role": ""
+      }
+    ],
+    "lastModification": {
+      "actor": "dfenter",
+      "timestamp": "2026-05-18T17:41:40Z"
+    },
     "parameters": [
       {
         "type": "Parameter",
@@ -34,17 +45,6 @@
         "identifier": "endDate",
         "sqlType": 12
       }
-    ],
-    "permissions": [
-      {
-        "zone": "",
-        "role": ""
-      }
-    ],
-    "lastModification": {
-      "actor": "dfenter",
-      "timestamp": "2026-05-15T14:00:00Z"
-    },
-    "lastModificationSignature": "0000000000000000000000000000000000000000000000000000000000000000"
+    ]
   }
 }
