@@ -42,17 +42,41 @@ def already_charged(appointment_id):
     return bool(results.data)
 
 
-def get_stripe_customer(email):
-    customers = stripe.Customer.list(email=email, limit=1)
-    return customers.data[0] if customers.data else None
+def resolve_customer_and_payment_method(email):
+    """
+    Handles duplicate Stripe customer profiles by scanning all profiles for this
+    email and returning the one with the most recent successful charge, along with
+    the payment method used on that charge.
 
+    Falls back to any profile that has a saved card if no charge history exists.
+    Returns (customer, payment_method_id) or (None, None).
+    """
+    customers = stripe.Customer.list(email=email, limit=10).data
+    if not customers:
+        return None, None
 
-def get_payment_method_id(customer):
-    pm_id = (customer.invoice_settings or {}).get('default_payment_method')
-    if pm_id:
-        return pm_id
-    pms = stripe.PaymentMethod.list(customer=customer.id, type='card', limit=1)
-    return pms.data[0].id if pms.data else None
+    best_customer = None
+    best_pm_id = None
+    best_ts = 0
+
+    for customer in customers:
+        charges = stripe.Charge.list(customer=customer.id, limit=1)
+        for charge in charges.data:
+            if charge.status == 'succeeded' and charge.payment_method and charge.created > best_ts:
+                best_ts = charge.created
+                best_customer = customer
+                best_pm_id = charge.payment_method
+
+    if best_customer:
+        return best_customer, best_pm_id
+
+    # No charge history — fall back to first profile that has a saved card
+    for customer in customers:
+        pms = stripe.PaymentMethod.list(customer=customer.id, type='card', limit=1)
+        if pms.data:
+            return customer, pms.data[0].id
+
+    return None, None
 
 
 def process_appointment(appt):
@@ -80,11 +104,9 @@ def process_appointment(appt):
     if already_charged(appt_id):
         return 'skipped', 'already charged in Stripe'
 
-    customer = get_stripe_customer(email)
+    customer, pm_id = resolve_customer_and_payment_method(email)
     if not customer:
         return 'skipped', f'no Stripe customer for {email}'
-
-    pm_id = get_payment_method_id(customer)
     if not pm_id:
         return 'skipped', f'no saved payment method for {email}'
 
