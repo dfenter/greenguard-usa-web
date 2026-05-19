@@ -27,6 +27,7 @@ CAL_API_KEY       = os.environ['CAL_API_KEY']
 stripe.api_key    = os.environ['STRIPE_SECRET_KEY']
 EVENT_TYPE_CONFIG = json.loads(os.environ['EVENT_TYPE_CONFIG'])
 STRIPE_PRICE_MAP  = json.loads(os.environ['STRIPE_PRICE_MAP'])
+DRY_RUN           = os.environ.get('DRY_RUN', '').lower() in ('1', 'true', 'yes')
 
 DAYS_AFTER_APPOINTMENT = 3
 CAL_HEADERS = {
@@ -184,17 +185,21 @@ def resolve_customer_and_payment_method(email):
     return None, None
 
 
-def booking_already_processed(booking_id):
-    """Check subscriptions and invoice items for this booking_id to prevent duplicates."""
+def booking_already_processed(booking_id, customer_id=None):
+    """
+    Check Stripe for evidence this booking was already billed.
+    Subscriptions are searchable by metadata; invoice items must be listed by customer.
+    """
     sub_results = stripe.Subscription.search(
         query=f"metadata['cal_booking_id']:'{booking_id}' AND status:'active'"
     )
     if sub_results.data:
         return True
-    inv_results = stripe.InvoiceItem.search(
-        query=f"metadata['cal_booking_id']:'{booking_id}'"
-    )
-    return bool(inv_results.data)
+    if customer_id:
+        for item in stripe.InvoiceItem.list(customer=customer_id, limit=100).auto_paging_iter():
+            if item.metadata.get('cal_booking_id') == booking_id:
+                return True
+    return False
 
 
 def ensure_subscription(customer, sku, price_id, qty, booking_id, default_pm_id):
@@ -205,6 +210,9 @@ def ensure_subscription(customer, sku, price_id, qty, booking_id, default_pm_id)
             if item['price']['id'] == price_id:
                 print(f'    [SUB EXISTS] {sku} — {sub.id}')
                 return
+    if DRY_RUN:
+        print(f'    [DRY RUN] Would create subscription: {sku} × {qty}')
+        return
     sub = stripe.Subscription.create(
         customer=customer.id,
         items=[{'price': price_id, 'quantity': qty}],
@@ -216,12 +224,15 @@ def ensure_subscription(customer, sku, price_id, qty, booking_id, default_pm_id)
 
 def add_invoice_item(customer, sku, price_id, booking_id):
     """Add a one-time invoice item to the customer's next subscription invoice."""
+    amt = SKU_CATALOG[sku]['amount']
+    if DRY_RUN:
+        print(f'    [DRY RUN] Would add invoice item: {sku} ${amt/100:.2f}')
+        return
     item = stripe.InvoiceItem.create(
         customer=customer.id,
         price=price_id,
         metadata={'cal_booking_id': booking_id, 'sku': sku},
     )
-    amt = SKU_CATALOG[sku]['amount']
     print(f'    [INVOICE ITEM] {sku} ${amt/100:.2f} — {item.id}')
 
 
@@ -274,20 +285,22 @@ def process_booking(booking):
     if not email:
         return 'skipped', 'no attendee email'
 
-    if booking_already_processed(booking_id):
-        return 'skipped', 'already processed in Stripe'
-
     customer, pm_id = resolve_customer_and_payment_method(email)
     if not customer:
         return 'skipped', f'no Stripe customer for {email}'
     if not pm_id:
         return 'skipped', f'no saved payment method for {email}'
 
+    if booking_already_processed(booking_id, customer.id):
+        return 'skipped', 'already processed in Stripe'
+
     process_skus(customer, pm_id, skus, params['trap_count'], booking_id)
     return 'processed', f'SKUs: {", ".join(skus)}'
 
 
 def main():
+    if DRY_RUN:
+        print('*** DRY RUN — no Stripe writes will occur ***\n')
     target_date = (datetime.now(timezone.utc) - timedelta(days=DAYS_AFTER_APPOINTMENT)).strftime('%Y-%m-%d')
     print(f'Auto-billing: processing bookings from {target_date}\n')
 
