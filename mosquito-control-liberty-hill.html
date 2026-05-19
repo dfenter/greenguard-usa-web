@@ -81,14 +81,24 @@
 #gg-sa .gg-email-note{font-size:.72rem;color:rgba(201,232,209,.38);margin-top:10px}
 @media(max-width:600px){#gg-sa .gg-hero{padding:60px 20px 48px}#gg-sa .gg-btns{flex-direction:column;align-items:center}}
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+.gg-logo-sse{display:block;font-size:.52rem;letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-top:2px;line-height:1}
+
+#gg-sa .gg-nav-tagline{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#7dffaa;font-weight:700;padding:10px 0 14px;border-bottom:1px solid rgba(122,171,130,.15);margin-bottom:6px}
+
+#gg-sa .gg-unique-stat{display:inline-flex;flex-direction:column;align-items:flex-start;background:rgba(45,74,50,.4);border:1px solid rgba(122,171,130,.2);border-radius:12px;padding:16px 24px;margin-top:20px}
+#gg-sa .gg-unique-stat-n{font-size:2rem;font-weight:900;color:#7dffaa;letter-spacing:-.02em;line-height:1}
+#gg-sa .gg-unique-stat-l{font-size:.75rem;color:rgba(201,232,209,.6);margin-top:4px}
+#gg-sa .gg-unique-img{width:100%;border-radius:12px;border:1px solid rgba(122,171,130,.15);margin:22px 0;display:block}
 </style>
 <div id="gg-sa">
   <div class="gg-nav"><div class="gg-nav-inner">
-    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA<span class="gg-logo-sse">Smart. Safe. Effective.</span></a>
     <div class="gg-hamburger" onclick="document.querySelector('#gg-sa .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
   </div></div>
   <div class="gg-drawer">
-    <button class="gg-drawer-close" onclick="document.querySelector('#gg-sa .gg-drawer').classList.remove('open')">&#10005;</button>
+    <button class="gg-drawer-close" onclick="document.querySelector('#gg-sa .gg-drawer').classList.remove('open')">
+    <div class="gg-nav-tagline">Smart. Safe. Effective.</div>&#10005;</button>
     <span class="gg-group">Services</span>
     <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
     <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
@@ -135,9 +145,8 @@
     <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
     <a href="https://www.greenguard-usa.com/team">Our Team</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
-    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Serving Liberty Hill, Texas</div></div>
@@ -172,6 +181,18 @@
     </div>
   </div></div>
 
+
+  <div class="gg-sec alt"><div class="gg-sec-inner">
+    <div class="gg-eye">Rural Acreage and the San Gabriel Headwaters</div>
+    <h2 class="gg-h2">Managing Large Lots in <span>Hill Country Terrain</span></h2>
+<p class="gg-body">Liberty Hill sits at the western edge of the Austin metro's growth corridor, where Williamson County transitions from suburban density to genuine Hill Country rural character. The San Gabriel River, whose headwaters are in the limestone country west of Liberty Hill, runs through the city and provides the primary natural mosquito pressure source for properties along its corridor. Properties on larger lots and acreage tracts face a combination of creek-based Culex pressure and the container breeding that comes with the irrigation and landscaping of any residential property.</p>
+<p class="gg-body">The acreage properties that characterize much of Liberty Hill's residential character face a coverage challenge that is fundamentally different from suburban lots. A single standard Biogents unit covering one-third of an acre is insufficient for a two-acre rural property. The Mosqitter Grand, with its two-acre coverage radius per unit, is designed for exactly this environment.</p>
+<p class="gg-body">We also work with Liberty Hill ranching and large-property owners who face the intersection of agricultural water features, natural drainage, and residential outdoor living spaces. Stock tanks, seasonal ponds, and the drainage channels common to rural Hays and Williamson County properties represent breeding sources that require a different approach than suburban container management. Our rural property assessments address all of these factors.</p>
+    <div class="gg-unique-stat">
+          <div class="gg-unique-stat-n">2 ac</div>
+          <div class="gg-unique-stat-l">Coverage per Mosqitter Grand unit for large lots</div>
+        </div>
+  </div></div>
 
   <div class="gg-sec"><div class="gg-sec-inner">
     <div class="gg-eye">Go Deeper</div>
@@ -223,7 +244,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Company</div>
       <a href="https://www.greenguard-usa.com/about">About Us</a>
       <a href="https://www.greenguard-usa.com/contact">Contact</a>
-      <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+      
     </div>
   </div>
   <div class="gg-footer-bottom">

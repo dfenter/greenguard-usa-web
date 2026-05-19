@@ -68,14 +68,19 @@
 #gg-ft-sat .ft-footer-note{font-size:.78rem;color:rgba(201,232,209,.4);background:rgba(45,74,50,.2);border:1px solid rgba(122,171,130,.12);border-radius:10px;padding:14px 18px;line-height:1.6;margin-top:28px}
 @media(max-width:600px){#gg-ft-sat .ft-form-grid{grid-template-columns:1fr}}
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+.gg-logo-sse{display:block;font-size:.52rem;letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-top:2px;line-height:1}
+
+#gg-ft-sat .gg-nav-tagline{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#7dffaa;font-weight:700;padding:10px 0 14px;border-bottom:1px solid rgba(122,171,130,.15);margin-bottom:6px}
 </style>
 <div id="gg-ft-sat">
   <div class="gg-nav"><div class="gg-nav-inner">
-    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA<span class="gg-logo-sse">Smart. Safe. Effective.</span></a>
     <div class="gg-hamburger" onclick="document.querySelector('#gg-ft-sat .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
   </div></div>
   <div class="gg-drawer">
-    <button class="gg-drawer-close" onclick="document.querySelector('#gg-ft-sat .gg-drawer').classList.remove('open')">&#10005;</button>
+    <button class="gg-drawer-close" onclick="document.querySelector('#gg-ft-sat .gg-drawer').classList.remove('open')">
+    <div class="gg-nav-tagline">Smart. Safe. Effective.</div>&#10005;</button>
     <span class="gg-group">Services</span>
     <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
     <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
@@ -89,7 +94,6 @@
     <a href="https://www.greenguard-usa.com/mosquito-control-country-clubs">Country Clubs</a>
     <span class="gg-group">Company</span>
     <a href="https://www.greenguard-usa.com/about">About Us</a>
-    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
     <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment (Austin)</a>

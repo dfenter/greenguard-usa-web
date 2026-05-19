@@ -192,6 +192,10 @@
   #gg-co2 .co-footer { padding: 48px 20px 28px !important; }
   #gg-co2 .co-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
 }
+
+.gg-logo-sse{display:block;font-size:.52rem;letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-top:2px;line-height:1}
+
+#gg-co2 .gg-nav-tagline{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#7dffaa;font-weight:700;padding:10px 0 14px;border-bottom:1px solid rgba(122,171,130,.15);margin-bottom:6px}
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
@@ -201,14 +205,15 @@
   <!-- NAV -->
   <div class="gg-nav">
     <div class="gg-nav-inner">
-      <div class="gg-logo">Green<span>Guard</span> USA</div>
+      <div class="gg-logo">Green<span>Guard</span> USA<span class="gg-logo-sse">Smart. Safe. Effective.</span></div>
       <div class="gg-hamburger" onclick="document.querySelector('#gg-co2 .gg-menu').classList.add('open')">
         <span></span><span></span><span></span>
       </div>
     </div>
   </div>
   <div class="gg-menu">
-    <div class="gg-menu-close" onclick="document.querySelector('#gg-co2 .gg-menu').classList.remove('open')">X</div>
+    <div class="gg-menu-close" onclick="document.querySelector('#gg-co2 .gg-menu').classList.remove('open')">
+    <div class="gg-nav-tagline">Smart. Safe. Effective.</div>X</div>
     <span class="gg-menu-group">Services</span>
     <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
     <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
@@ -249,9 +254,8 @@
     <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
     <a href="https://www.greenguard-usa.com/team">Our Team</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
-    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
     <span class="gg-menu-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
   </div>
 
   <!-- HERO -->
@@ -552,7 +556,7 @@
         <ul>
           <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
           <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
-          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
+          <li></li>
           <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
           <li><a href="https://www.instagram.com/greenguardusa/">Instagram</a></li>
         </ul>
@@ -564,7 +568,40 @@
     </div>
   </div>
 
-</div><!-- end #gg-co2 -->
+</div>
+<script>
+/* gg-accordion-v2 */
+(function(){
+  function init(){
+    var d=document.querySelector('.gg-drawer')||document.querySelector('.gg-menu');
+    if(!d)return false;
+    var gs=d.querySelectorAll('.gg-group,.gg-menu-group');
+    if(!gs.length)return false;
+    d.style.overflowY='auto';
+    gs.forEach(function(g){
+      if(g.dataset.acc)return;g.dataset.acc='1';
+      var sel='.gg-group,.gg-menu-group,.gg-drawer-close,.gg-menu-close';
+      var links=[],el=g.nextElementSibling;
+      while(el&&!el.matches(sel)){if(el.tagName==='A')links.push(el);el=el.nextElementSibling;}
+      if(!links.length)return;
+      var w=document.createElement('div');
+      w.style.cssText='overflow:hidden;max-height:0;transition:max-height .22s ease;display:flex;flex-direction:column;gap:4px;padding-left:4px';
+      links[0].parentNode.insertBefore(w,links[0]);links.forEach(function(l){w.appendChild(l)});
+      var arr=document.createElement('span');arr.innerHTML='&#9658;';
+      arr.style.cssText='font-size:.5rem;margin-left:auto;transition:transform .2s;line-height:1;flex-shrink:0';
+      g.style.cursor='pointer';g.style.display='flex';g.style.alignItems='center';g.style.userSelect='none';
+      g.appendChild(arr);
+      var open=false;
+      function show(){w.style.maxHeight=w.scrollHeight+'px';arr.style.transform='rotate(90deg)';open=true}
+      function hide(){w.style.maxHeight='0';arr.style.transform='';open=false}
+      g.addEventListener('click',function(){open?hide():show()});
+      if(/^Book/.test(g.textContent.trim()))setTimeout(show,0);
+    });return true;
+  }
+  if(!init())setTimeout(init,120);
+})();
+</script>
+<script src="//code.tidio.co/2oaqyblfyjn6xy86vutzzvr1ykg9twav.js" async></script><!-- end #gg-co2 -->
 
 <script>
 

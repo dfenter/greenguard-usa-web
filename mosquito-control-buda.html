@@ -81,14 +81,24 @@
 #gg-sa .gg-email-note{font-size:.72rem;color:rgba(201,232,209,.38);margin-top:10px}
 @media(max-width:600px){#gg-sa .gg-hero{padding:60px 20px 48px}#gg-sa .gg-btns{flex-direction:column;align-items:center}}
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+.gg-logo-sse{display:block;font-size:.52rem;letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-top:2px;line-height:1}
+
+#gg-sa .gg-nav-tagline{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#7dffaa;font-weight:700;padding:10px 0 14px;border-bottom:1px solid rgba(122,171,130,.15);margin-bottom:6px}
+
+#gg-sa .gg-unique-stat{display:inline-flex;flex-direction:column;align-items:flex-start;background:rgba(45,74,50,.4);border:1px solid rgba(122,171,130,.2);border-radius:12px;padding:16px 24px;margin-top:20px}
+#gg-sa .gg-unique-stat-n{font-size:2rem;font-weight:900;color:#7dffaa;letter-spacing:-.02em;line-height:1}
+#gg-sa .gg-unique-stat-l{font-size:.75rem;color:rgba(201,232,209,.6);margin-top:4px}
+#gg-sa .gg-unique-img{width:100%;border-radius:12px;border:1px solid rgba(122,171,130,.15);margin:22px 0;display:block}
 </style>
 <div id="gg-sa">
   <div class="gg-nav"><div class="gg-nav-inner">
-    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+    <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA<span class="gg-logo-sse">Smart. Safe. Effective.</span></a>
     <div class="gg-hamburger" onclick="document.querySelector('#gg-sa .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
   </div></div>
   <div class="gg-drawer">
-    <button class="gg-drawer-close" onclick="document.querySelector('#gg-sa .gg-drawer').classList.remove('open')">&#10005;</button>
+    <button class="gg-drawer-close" onclick="document.querySelector('#gg-sa .gg-drawer').classList.remove('open')">
+    <div class="gg-nav-tagline">Smart. Safe. Effective.</div>&#10005;</button>
     <span class="gg-group">Services</span>
     <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
     <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
@@ -135,9 +145,8 @@
     <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
     <a href="https://www.greenguard-usa.com/team">Our Team</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
-    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Serving Buda, Texas</div></div>
@@ -172,6 +181,18 @@
     </div>
   </div></div>
 
+
+  <div class="gg-sec alt"><div class="gg-sec-inner">
+    <div class="gg-eye">Onion Creek and the South Austin Corridor</div>
+    <h2 class="gg-h2">Year-Round Creek Pressure <span>From the Headwaters</span></h2>
+<p class="gg-body">Buda sits along Onion Creek, which originates in the Hill Country to the west and flows through the city before continuing northeast toward Austin and eventually Lady Bird Lake. The creek and its tributary drainage channels provide sustained Culex mosquito breeding habitat through the warm season, with post-rain population spikes that are among the more dramatic in the south Austin corridor.</p>
+<p class="gg-body">The Onion Creek floodplain in Buda creates a zone of elevated pressure that affects properties not just immediately adjacent to the creek but across a wider neighborhood footprint. When Onion Creek floods after a significant rain event, it creates new temporary breeding habitat across the floodplain that produces a wave of adult mosquitoes seven to ten days later.</p>
+<p class="gg-body">The Buda residential pattern, with significant rural-suburban transition properties at the city's edges, also means some addresses face the same challenges as Hill Country rural properties: larger lots, more drainage features, and in some cases stock tanks or seasonal ponds that sustain breeding across multiple seasons. For these properties, the Mosqitter Grand's two-acre coverage radius provides meaningful protection that multiple smaller units would not.</p>
+    <div class="gg-unique-stat">
+          <div class="gg-unique-stat-n">7-10</div>
+          <div class="gg-unique-stat-l">Days after rain for Onion Creek population spike</div>
+        </div>
+  </div></div>
 
   <div class="gg-sec"><div class="gg-sec-inner">
     <div class="gg-eye">Go Deeper</div>
@@ -223,7 +244,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Company</div>
       <a href="https://www.greenguard-usa.com/about">About Us</a>
       <a href="https://www.greenguard-usa.com/contact">Contact</a>
-      <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+      
     </div>
   </div>
   <div class="gg-footer-bottom">
