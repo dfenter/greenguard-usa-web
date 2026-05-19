@@ -1,0 +1,49 @@
+name: Biogents Order Fulfillment
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # every 10 minutes
+  workflow_dispatch:           # manual trigger from GitHub Actions tab
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  fulfill:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright
+          playwright install chromium --with-deps
+
+      - name: Run Biogents fulfillment script
+        env:
+          SQUARESPACE_API_KEY:  ${{ secrets.SQUARESPACE_API_KEY }}
+          BIOGENTS_USERNAME:    ${{ secrets.BIOGENTS_USERNAME }}
+          BIOGENTS_PASSWORD:    ${{ secrets.BIOGENTS_PASSWORD }}
+          BIOGENTS_SHIP_TO:     ${{ secrets.BIOGENTS_SHIP_TO }}
+          BIOGENTS_PRODUCT_MAP: ${{ secrets.BIOGENTS_PRODUCT_MAP }}
+          NOTIFICATION_EMAIL:   ${{ secrets.NOTIFICATION_EMAIL }}
+          SMTP_HOST:            ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:            ${{ secrets.SMTP_PORT }}
+          SMTP_USER:            ${{ secrets.SMTP_USER }}
+          SMTP_PASS:            ${{ secrets.SMTP_PASS }}
+        run: python3 _scripts/biogents_fulfillment.py
+
+      - name: Commit updated order state
+        run: |
+          git config user.name "GreenGuard Bot"
+          git config user.email "bot@greenguard-usa.com"
+          git add _data/processed_biogents_orders.json
+          git diff --staged --quiet || git commit -m "chore: record Biogents orders [skip ci]"
+          git push
