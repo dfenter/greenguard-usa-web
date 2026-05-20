@@ -27,20 +27,22 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests — try again in 15 minutes' })
   }
 
-  // Verify the email belongs to a known Stripe customer before sending a link.
-  // This prevents magic links being sent to arbitrary addresses.
-  const customers = await stripe.customers.search({
-    query: `email:"${email}"`,
-    limit: 1,
-  })
+  try {
+    // Verify the email belongs to a known Stripe customer before sending a link.
+    // This prevents magic links being sent to arbitrary addresses.
+    const customers = await stripe.customers.search({
+      query: `email:"${email}"`,
+      limit: 1,
+    })
 
-  if (customers.data.length === 0) {
-    // Return 200 with same message to avoid email enumeration
-    return res.status(200).json({ sent: true })
+    if (customers.data.length > 0) {
+      const token = await createMagicToken(email)
+      await sendMagicLink(email, token)
+    }
+  } catch (err) {
+    console.error('request-link error:', err)
   }
 
-  const token = await createMagicToken(email)
-  await sendMagicLink(email, token)
-
+  // Always return 200 — avoids enumeration of customers or infrastructure state
   res.status(200).json({ sent: true })
 }

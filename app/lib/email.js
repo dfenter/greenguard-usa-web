@@ -1,8 +1,12 @@
 const { Resend } = require('resend')
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
+
+function getResend() {
+  if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY is not set')
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 /**
  * Send a magic login link to the given email.
@@ -10,7 +14,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-us
 async function sendMagicLink(email, token) {
   const link = `${APP_URL}/auth/verify?token=${encodeURIComponent(token)}`
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: `GreenGuard USA <${FROM}>`,
     to: email,
     subject: 'Your GreenGuard login link',

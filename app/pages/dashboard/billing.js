@@ -75,6 +75,7 @@ export default function Billing({ subscriptions, invoices, isAdmin }) {
                 {sub.label} · renews {fmtDate(sub.currentPeriodEnd)}
               </div>
             </div>
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a href="/api/customer/billing-portal" className="btn-gold" style={{ whiteSpace: 'nowrap' }}>
               Manage payment method
             </a>

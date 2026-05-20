@@ -75,6 +75,7 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
                 ))}
               </>
             )}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/api/auth/logout"
               style={{

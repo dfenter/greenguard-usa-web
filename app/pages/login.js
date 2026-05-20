@@ -52,14 +52,14 @@ export default function Login({ error }) {
                 </h2>
                 <p style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.65)', lineHeight: 1.6 }}>
                   If <strong style={{ color: '#d4e6ca' }}>{email}</strong> is linked to a GreenGuard account,
-                  you'll receive a sign-in link within a minute.
+                  you&apos;ll receive a sign-in link within a minute.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit}>
                 <h2 style={{ fontSize: '1.15rem', fontWeight: 900, marginBottom: 6 }}>Sign in</h2>
                 <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', marginBottom: 24, lineHeight: 1.5 }}>
-                  Enter the email address associated with your GreenGuard service. We'll send you a sign-in link.
+                  Enter the email address associated with your GreenGuard service. We&apos;ll send you a sign-in link.
                 </p>
 
                 {error === 'expired' && (

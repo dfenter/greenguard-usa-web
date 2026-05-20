@@ -16,6 +16,7 @@ async function readRawBody(req) {
 
 function verifySignature(rawBody, signature, secret) {
   const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
+  if (!signature || expected.length !== signature.length) return false
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
 }
 

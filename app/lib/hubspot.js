@@ -47,23 +47,19 @@ async function upsertContact({ email, name, phone, address, metadata = {} }) {
 
 /**
  * Add an engagement note to a contact.
+ * Uses a single create call with inline association (v13 API — no separate associationsApi).
  */
 async function addNote(contactId, noteBody) {
-  const note = await client.crm.objects.notesApi.basicApi.create({
+  return client.crm.objects.notes.basicApi.create({
     properties: {
       hs_note_body: noteBody,
       hs_timestamp: new Date().toISOString(),
     },
+    associations: [{
+      to: { id: String(contactId) },
+      types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 202 }],
+    }],
   })
-
-  await client.crm.objects.notesApi.associationsApi.create(
-    note.id,
-    'contacts',
-    contactId,
-    [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 202 }]
-  )
-
-  return note
 }
 
 /**
