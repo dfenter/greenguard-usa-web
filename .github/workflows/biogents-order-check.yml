@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install playwright
+          pip install playwright pyotp
           playwright install chromium --with-deps
 
       - name: Run Biogents fulfillment script
@@ -33,6 +33,8 @@ jobs:
           BIOGENTS_PASSWORD:    ${{ secrets.BIOGENTS_PASSWORD }}
           BIOGENTS_BILL_TO:     ${{ secrets.BIOGENTS_BILL_TO }}
           BIOGENTS_PRODUCT_MAP: ${{ secrets.BIOGENTS_PRODUCT_MAP }}
+          BIOGENTS_TOTP_SECRET: ${{ secrets.BIOGENTS_TOTP_SECRET }}
+          BIOGENTS_SESSION:     ${{ secrets.BIOGENTS_SESSION }}
           NOTIFICATION_EMAIL:   ${{ secrets.NOTIFICATION_EMAIL }}
           SMTP_HOST:            ${{ secrets.SMTP_HOST }}
           SMTP_PORT:            ${{ secrets.SMTP_PORT }}
