@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useState, useEffect } from 'react'
 
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Overview' },
@@ -16,6 +17,9 @@ const ADMIN_NAV_LINKS = [
 
 export default function PortalLayout({ children, title, isAdmin = false }) {
   const router = useRouter()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => setMenuOpen(false), [router.pathname])
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -29,13 +33,21 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
         <div style={{
           maxWidth: 1100, margin: '0 auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          height: 56,
+          height: 56, position: 'relative',
         }}>
           <Link href="/dashboard" style={{ fontWeight: 900, fontSize: '1rem', letterSpacing: '-0.02em' }}>
             Green<span style={{ color: '#7dffaa' }}>Guard</span>
           </Link>
 
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            className="hamburger"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label="Open navigation"
+          >
+            <span /><span /><span />
+          </button>
+
+          <div className={'nav-links' + (menuOpen ? ' open' : '')}>
             {NAV_LINKS.map(({ href, label }) => (
               <Link
                 key={href}
