@@ -19,6 +19,7 @@ const PRICE_ID_MAP = {
   TANK2: process.env.STRIPE_PRICE_TANK2,
   TANK3: process.env.STRIPE_PRICE_TANK3,
   TANK4: process.env.STRIPE_PRICE_TANK4,
+  TANK6: process.env.STRIPE_PRICE_TANK6,
   TANK10: process.env.STRIPE_PRICE_TANK10,
   BARRIER: process.env.STRIPE_PRICE_BARRIER,
   BAIT: process.env.STRIPE_PRICE_BAIT,

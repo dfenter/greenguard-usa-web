@@ -8,3 +8,9 @@ Cooling_Tower*
 *.zip
 .DS_Store
 **/.DS_Store
+
+# Service account keys — never commit
+greenguard-service-account-key.json
+*-service-account-key.json
+app/.env
+app/.env.local
