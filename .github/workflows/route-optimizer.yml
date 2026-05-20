@@ -2,7 +2,7 @@ name: Weekly Route Optimizer
 
 on:
   schedule:
-    # Monday 9 AM CST = 15:00 UTC (accounting for CST = UTC-6)
+    # Monday 9 AM CST = 15:00 UTC (CST = UTC-6)
     - cron: '0 15 * * 1'
   workflow_dispatch:  # allow manual run
 
@@ -21,9 +21,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install dependencies
+        run: pip install cryptography
+
       - name: Run route optimizer
         env:
-          CALCOM_API_KEY: ${{ secrets.CALCOM_API_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: python _scripts/route_optimizer.py
 
@@ -47,7 +50,9 @@ jobs:
             const fs = require('fs');
             const plan = JSON.parse(fs.readFileSync(`route_plan_${week}.json`, 'utf8'));
             const days = plan.days.map(d => {
-              const lines = d.stops.map((s, i) => `  ${i+1}. ${s.attendee} — ${s.address} (${s.duration_min} min)`).join('\n');
+              const lines = d.stops.map((s, i) =>
+                `  ${i+1}. ${s.customer || 'Customer'} — ${s.address} (${s.duration_min} min)`
+              ).join('\n');
               return `### ${d.date} — ${d.stop_count} stops (~${d.total_service_min} min service)\n${lines}\n[Open in Maps](${d.maps_url})`;
             }).join('\n\n');
 

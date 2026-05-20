@@ -1,187 +1,241 @@
 #!/usr/bin/env python3
 """
 Weekly route optimizer — runs Monday 9 AM CST via GitHub Actions.
-Fetches the week's Cal.com appointments, builds an optimized daily route
-using Google Maps Distance Matrix API, commits route_plan_YYYY-WW.json.
+Reads the week's bookings from Google Calendar (all Cal.com bookings sync there),
+builds an optimized daily route using Google Maps Distance Matrix API,
+commits route_plan_YYYY-WW.json and opens a GitHub issue for approval.
+
+Auth: Google service account JSON stored in GOOGLE_SERVICE_ACCOUNT_KEY secret
+      (base64-encoded). The service account has domain-wide delegation to
+      admin@greenguard-usa.com with scope calendar.readonly.
 """
+import base64
 import json
 import os
 import sys
 import datetime
 import urllib.request
 import urllib.parse
-import urllib.error
-from itertools import permutations
+import re
 
-CALCOM_API_KEY = os.environ.get('CALCOM_API_KEY', '')
-GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 DEPOT = '1519 Parkway, Austin, TX 78703'
+CALENDAR_ID = 'admin@greenguard-usa.com'
+BOOKING_TAG = 'GreenGuard USA'
 
-# Load event type durations from cal-event-types.json (source of truth)
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+GOOGLE_SERVICE_ACCOUNT_KEY = os.environ.get('GOOGLE_SERVICE_ACCOUNT_KEY', '')
+
+# Load event type durations from cal-event-types.json
 _EVENT_TYPES_PATH = os.path.join(os.path.dirname(__file__), '..', 'app', 'lib', 'cal-event-types.json')
 try:
     with open(_EVENT_TYPES_PATH) as _f:
-        _CAL_EVENT_TYPES = {et['title'].lower(): et['durationMin'] for et in json.load(_f)['eventTypes']}
-except Exception:
+        _CAL_EVENT_TYPES = {
+            et['title'].lower().strip(): et['durationMin']
+            for et in json.load(_f)['eventTypes']
+        }
+except Exception as e:
+    print(f'Warning: could not load cal-event-types.json: {e}')
     _CAL_EVENT_TYPES = {}
 
-# Fallback duration map by visit type
-DURATION_MAP = {
-    'assessment': 30,
-    'check': 20,
-    'installation': 60,
-    'exchange': 45,
-    'troubleshoot': 60,
-    'barrier': 30,
-    'service': 35,
-}
+# Fallback duration by visit type keyword in title
+FALLBACK_DURATIONS = [
+    ('biogents', 35),
+    ('mosqitter', 45),
+    ('ten tank', 90),
+    ('six', 75),
+    ('four', 60),
+    ('two', 45),
+    ('one', 30),
+    ('assessment', 30),
+    ('installation', 60),
+]
 
 
-def calcom_fetch(path):
-    url = f'https://api.cal.com/v1{path}{"&" if "?" in path else "?"}apiKey={CALCOM_API_KEY}'
-    with urllib.request.urlopen(url) as resp:
-        return json.loads(resp.read())
+# ── Google auth ─────────────────────────────────────────────────────────────
+
+def get_google_access_token(service_account_key_b64: str, subject: str, scope: str) -> str:
+    """Obtain a short-lived access token via JWT assertion (service account)."""
+    import time, hmac, hashlib
+
+    key_json = json.loads(base64.b64decode(service_account_key_b64).decode('utf-8'))
+    client_email = key_json['client_email']
+    private_key_pem = key_json['private_key']
+
+    now = int(time.time())
+    header = base64.urlsafe_b64encode(json.dumps({'alg': 'RS256', 'typ': 'JWT'}).encode()).rstrip(b'=')
+    payload = base64.urlsafe_b64encode(json.dumps({
+        'iss': client_email,
+        'sub': subject,
+        'scope': scope,
+        'aud': 'https://oauth2.googleapis.com/token',
+        'iat': now,
+        'exp': now + 3600,
+    }).encode()).rstrip(b'=')
+
+    signing_input = header + b'.' + payload
+
+    # Sign with RSA-SHA256 using the private key
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+        from cryptography.hazmat.backends import default_backend
+
+        private_key = serialization.load_pem_private_key(
+            private_key_pem.encode(), password=None, backend=default_backend()
+        )
+        signature = private_key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+        sig_b64 = base64.urlsafe_b64encode(signature).rstrip(b'=')
+    except ImportError:
+        print('ERROR: cryptography package required. Run: pip install cryptography')
+        sys.exit(1)
+
+    jwt = signing_input + b'.' + sig_b64
+
+    data = urllib.parse.urlencode({
+        'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        'assertion': jwt.decode('utf-8'),
+    }).encode()
+
+    req = urllib.request.Request(
+        'https://oauth2.googleapis.com/token',
+        data=data,
+        headers={'Content-Type': 'application/x-www-form-urlencoded'},
+    )
+    with urllib.request.urlopen(req) as resp:
+        token_data = json.loads(resp.read())
+    return token_data['access_token']
 
 
-def maps_fetch(path):
-    base = 'https://maps.googleapis.com/maps/api'
-    url = f'{base}{path}&key={GOOGLE_MAPS_API_KEY}'
-    with urllib.request.urlopen(url) as resp:
-        return json.loads(resp.read())
+def gcal_list_events(access_token: str, time_min: str, time_max: str, q: str = 'GreenGuard USA'):
+    """Fetch events from Google Calendar within a time range."""
+    params = urllib.parse.urlencode({
+        'calendarId': CALENDAR_ID,
+        'timeMin': time_min,
+        'timeMax': time_max,
+        'maxResults': 250,
+        'singleEvents': 'true',
+        'orderBy': 'startTime',
+        'q': q,
+    })
+    url = f'https://www.googleapis.com/calendar/v3/calendars/{urllib.parse.quote(CALENDAR_ID)}/events?{params}'
+    req = urllib.request.Request(url, headers={'Authorization': f'Bearer {access_token}'})
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read()).get('items', [])
 
 
-def get_week_bookings(monday: datetime.date, saturday: datetime.date):
-    """Fetch all accepted bookings for the week."""
-    after = monday.isoformat() + 'T00:00:00Z'
-    before = saturday.isoformat() + 'T23:59:59Z'
-    params = urllib.parse.urlencode({'afterStart': after, 'beforeEnd': before, 'status': 'ACCEPTED'})
-    data = calcom_fetch(f'/bookings?{params}')
-    return data.get('bookings', [])
+# ── Parsing helpers ──────────────────────────────────────────────────────────
+
+def parse_email(description: str) -> str:
+    """Extract customer email from event description."""
+    if not description:
+        return ''
+    m = re.search(r'Email:\s*(\S+)', description, re.IGNORECASE)
+    return m.group(1).strip() if m else ''
 
 
-def group_by_day(bookings):
-    """Group bookings by date."""
-    days = {}
-    for b in bookings:
-        day = b['startTime'][:10]
-        days.setdefault(day, []).append(b)
-    return days
+def parse_customer_name(description: str) -> str:
+    m = re.search(r'Name:\s*(.+)', description or '', re.IGNORECASE)
+    return m.group(1).strip() if m else ''
 
 
-def get_stop_duration(booking):
-    """Estimate service duration from event type title (primary) or visit type fallback."""
-    event_title = (booking.get('eventType', {}).get('title') or booking.get('title') or '').lower().strip()
-    # Strip "CustomerName: " prefix if present (Acuity-style)
-    if ': ' in event_title:
-        event_title = event_title.split(': ', 1)[1]
-    event_title = event_title.replace(' (greenguard usa)', '').strip()
-
-    # Primary: look up duration from cal-event-types.json
-    if event_title in _CAL_EVENT_TYPES:
-        return _CAL_EVENT_TYPES[event_title]
-
-    # Fallback: use visit type from form responses
-    responses = booking.get('responses', {})
-    visit_type = (responses.get('visitType', {}).get('value') or 'service').lower()
-    base = DURATION_MAP.get(visit_type, 35)
-    addons = responses.get('addons', {}).get('value', [])
-    if 'BARRIER' in addons:
-        base += 30
-    if 'TIMER-INSTALL' in addons:
-        base += 15
-    return base
+def normalize_title(raw: str) -> str:
+    """Strip 'CustomerName: ' prefix and ' (GreenGuard USA)' suffix."""
+    title = re.sub(r'^[^:]+:\s*', '', raw or '')
+    title = re.sub(r'\s*\(GreenGuard USA\)\s*$', '', title, flags=re.IGNORECASE)
+    return title.strip()
 
 
-def get_address(booking):
-    responses = booking.get('responses', {})
-    address = (responses.get('address', {}).get('value') or booking.get('location') or '').strip()
-    return address or None
+def get_duration(title: str) -> int:
+    """Look up service duration in minutes from event type title."""
+    normalized = title.lower().strip()
+    if normalized in _CAL_EVENT_TYPES:
+        return _CAL_EVENT_TYPES[normalized]
+    for keyword, duration in FALLBACK_DURATIONS:
+        if keyword in normalized:
+            return duration
+    return 35  # default
 
 
-def build_distance_matrix(origins, destinations):
-    """Call Google Maps Distance Matrix API."""
+# ── Maps helpers ─────────────────────────────────────────────────────────────
+
+def maps_distance_matrix(origins: list, destinations: list) -> list:
+    """Return duration_seconds matrix[origin][destination]."""
     o_param = '|'.join(urllib.parse.quote(o) for o in origins)
     d_param = '|'.join(urllib.parse.quote(d) for d in destinations)
-    path = f'/distancematrix/json?origins={o_param}&destinations={d_param}&units=imperial'
-    return maps_fetch(path)
+    url = (
+        f'https://maps.googleapis.com/maps/api/distancematrix/json'
+        f'?origins={o_param}&destinations={d_param}&units=imperial&key={GOOGLE_MAPS_API_KEY}'
+    )
+    with urllib.request.urlopen(url) as resp:
+        data = json.loads(resp.read())
+    rows = data.get('rows', [])
+    return [
+        [row['elements'][j].get('duration', {}).get('value', 999999) for j in range(len(destinations))]
+        for row in rows
+    ]
 
 
-def nearest_neighbor_route(depot, stops):
-    """
-    Simple nearest-neighbor TSP heuristic.
-    stops: list of dicts with 'address' key.
-    Returns stops in optimized order.
-    """
+def nearest_neighbor(depot: str, stops: list) -> list:
+    """Simple nearest-neighbor TSP from depot. Returns reordered stops."""
     if not stops:
         return []
     if len(stops) == 1:
         return stops
 
-    all_locations = [depot] + [s['address'] for s in stops]
-    n = len(all_locations)
+    all_locs = [depot] + [s['address'] for s in stops]
+    n = len(all_locs)
 
     try:
-        matrix_data = build_distance_matrix(all_locations, all_locations)
-        rows = matrix_data.get('rows', [])
-        durations = [
-            [
-                row['elements'][j].get('duration', {}).get('value', 999999)
-                for j in range(n)
-            ]
-            for row in rows
-        ]
+        matrix = maps_distance_matrix(all_locs, all_locs)
     except Exception as e:
-        print(f'Warning: Distance matrix failed ({e}), using original order')
+        print(f'  Distance matrix failed ({e}), using original order')
         return stops
 
-    # Nearest-neighbor starting from depot (index 0)
     visited = [False] * n
-    route_indices = [0]
+    route = [0]
     visited[0] = True
 
     for _ in range(len(stops)):
-        current = route_indices[-1]
+        curr = route[-1]
         nearest = min(
             (j for j in range(1, n) if not visited[j]),
-            key=lambda j: durations[current][j],
+            key=lambda j: matrix[curr][j],
             default=None,
         )
         if nearest is None:
             break
-        route_indices.append(nearest)
+        route.append(nearest)
         visited[nearest] = True
 
-    # Map back to stops (subtract 1 for depot offset)
-    return [stops[i - 1] for i in route_indices if i > 0]
+    return [stops[i - 1] for i in route if i > 0]
 
 
-def build_maps_url(depot, ordered_stops):
-    """Build a Google Maps directions URL for the optimized route."""
-    if not ordered_stops:
-        return None
-    origin = urllib.parse.quote(depot)
-    waypoints = '/'.join(urllib.parse.quote(s['address']) for s in ordered_stops[:-1]) if len(ordered_stops) > 1 else ''
-    destination = urllib.parse.quote(ordered_stops[-1]['address'])
+def build_maps_url(depot: str, stops: list) -> str:
+    if not stops:
+        return ''
+    enc = urllib.parse.quote
+    origin = enc(depot)
+    waypoints = '/'.join(enc(s['address']) for s in stops[:-1]) if len(stops) > 1 else ''
+    dest = enc(stops[-1]['address'])
     url = f'https://www.google.com/maps/dir/{origin}/'
     if waypoints:
         url += waypoints + '/'
-    url += destination
-    return url
+    return url + dest
 
+
+# ── Main ─────────────────────────────────────────────────────────────────────
 
 def get_week_dates():
     today = datetime.date.today()
-    # Find this week's Monday
     monday = today - datetime.timedelta(days=today.weekday())
     saturday = monday + datetime.timedelta(days=5)
     week_num = monday.isocalendar()[1]
-    year = monday.year
-    return monday, saturday, f'{year}-W{week_num:02d}'
+    return monday, saturday, f'{monday.year}-W{week_num:02d}'
 
 
 def main():
-    if not CALCOM_API_KEY:
-        print('ERROR: CALCOM_API_KEY not set')
+    if not GOOGLE_SERVICE_ACCOUNT_KEY:
+        print('ERROR: GOOGLE_SERVICE_ACCOUNT_KEY not set')
         sys.exit(1)
     if not GOOGLE_MAPS_API_KEY:
         print('ERROR: GOOGLE_MAPS_API_KEY not set')
@@ -190,41 +244,63 @@ def main():
     monday, saturday, week_label = get_week_dates()
     print(f'Building route plan for {week_label} ({monday} – {saturday})')
 
-    bookings = get_week_bookings(monday, saturday)
+    access_token = get_google_access_token(
+        GOOGLE_SERVICE_ACCOUNT_KEY,
+        subject=CALENDAR_ID,
+        scope='https://www.googleapis.com/auth/calendar.readonly',
+    )
+
+    time_min = monday.isoformat() + 'T00:00:00-06:00'  # CST
+    time_max = saturday.isoformat() + 'T23:59:59-06:00'
+
+    events = gcal_list_events(access_token, time_min, time_max)
+    bookings = [
+        e for e in events
+        if BOOKING_TAG in (e.get('summary') or '') or BOOKING_TAG in (e.get('description') or '')
+    ]
     print(f'Found {len(bookings)} bookings')
 
-    days_map = group_by_day(bookings)
-    day_plans = []
+    # Group by day
+    days: dict[str, list] = {}
+    for e in bookings:
+        day = (e.get('start', {}).get('dateTime') or e.get('start', {}).get('date', ''))[:10]
+        days.setdefault(day, []).append(e)
 
-    for day_str in sorted(days_map):
-        day_bookings = days_map[day_str]
+    day_plans = []
+    for day_str in sorted(days):
         stops = []
-        for b in day_bookings:
-            address = get_address(b)
+        for e in days[day_str]:
+            address = e.get('location') or ''
             if not address:
-                print(f'  Skipping booking {b.get("uid")} — no address')
+                # Try description
+                desc = e.get('description', '')
+                m = re.search(r'Location\s*={3,}\s*\n(.+)', desc, re.IGNORECASE)
+                address = m.group(1).strip() if m else ''
+            if not address:
+                print(f'  Skipping {e.get("summary", "?")} — no address')
                 continue
+
+            title = normalize_title(e.get('summary', ''))
             stops.append({
-                'booking_uid': b.get('uid'),
-                'attendee': b.get('attendees', [{}])[0].get('name', ''),
-                'email': b.get('attendees', [{}])[0].get('email', ''),
+                'gcal_event_id': e.get('id'),
+                'customer': parse_customer_name(e.get('description', '')),
+                'email': parse_email(e.get('description', '')),
                 'address': address,
-                'start_time': b.get('startTime'),
-                'duration_min': get_stop_duration(b),
-                'visit_type': b.get('responses', {}).get('visitType', {}).get('value', 'service'),
+                'start_time': e.get('start', {}).get('dateTime', ''),
+                'title': title,
+                'duration_min': get_duration(title),
             })
 
         if not stops:
             continue
 
-        optimized = nearest_neighbor_route(DEPOT, stops)
+        optimized = nearest_neighbor(DEPOT, stops)
         maps_url = build_maps_url(DEPOT, optimized)
-        total_service_min = sum(s['duration_min'] for s in optimized)
 
         day_plans.append({
             'date': day_str,
             'stop_count': len(optimized),
-            'total_service_min': total_service_min,
+            'total_service_min': sum(s['duration_min'] for s in optimized),
             'maps_url': maps_url,
             'approved': False,
             'stops': optimized,
@@ -234,6 +310,7 @@ def main():
         'week': week_label,
         'generated_at': datetime.datetime.utcnow().isoformat() + 'Z',
         'depot': DEPOT,
+        'source': 'google-calendar',
         'days': day_plans,
     }
 
@@ -241,9 +318,8 @@ def main():
     with open(output_path, 'w') as f:
         json.dump(plan, f, indent=2)
 
-    print(f'Route plan saved to {output_path}')
     total_stops = sum(d['stop_count'] for d in day_plans)
-    print(f'Total: {total_stops} stops across {len(day_plans)} day(s)')
+    print(f'Done. {total_stops} stops across {len(day_plans)} day(s) → {output_path}')
 
 
 if __name__ == '__main__':

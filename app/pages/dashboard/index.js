@@ -3,7 +3,7 @@ import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
 import { getSubscriptions, getInvoices } from '../../lib/stripe'
-import { getBookingsForEmail } from '../../lib/calcom'
+import { getUpcomingBookingsForEmail } from '../../lib/gcal'
 import { findContactByEmail } from '../../lib/hubspot'
 
 export async function getServerSideProps({ req }) {
@@ -15,13 +15,11 @@ export async function getServerSideProps({ req }) {
   const [subscriptions, invoices, bookings, contact] = await Promise.all([
     stripeCustomerId ? getSubscriptions(stripeCustomerId) : Promise.resolve([]),
     stripeCustomerId ? getInvoices(stripeCustomerId, 1) : Promise.resolve([]),
-    getBookingsForEmail(email, new Date().toISOString()).catch(() => []),
+    getUpcomingBookingsForEmail(email, 1).catch(() => []),
     findContactByEmail(email).catch(() => null),
   ])
 
-  const nextBooking = bookings
-    .filter((b) => b.status === 'ACCEPTED' && new Date(b.startTime) > new Date())
-    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))[0] || null
+  const nextBooking = bookings[0] || null
 
   const activeSub = subscriptions[0] || null
   const lastInvoice = invoices[0] || null
