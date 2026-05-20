@@ -1,0 +1,272 @@
+<style>
+/* ── SCOPED RESET ── */
+#gg-book, #gg-book * { box-sizing: border-box !important; -webkit-font-smoothing: antialiased; }
+#gg-book h1, #gg-book h2, #gg-book h3, #gg-book h4,
+#gg-book p, #gg-book ul, #gg-book li, #gg-book div,
+#gg-book span, #gg-book button, #gg-book a {
+  font-family: 'Nunito Sans', sans-serif !important;
+  margin: 0 !important; padding: 0 !important;
+  line-height: normal !important; letter-spacing: normal !important;
+}
+#gg-book ul { list-style: none !important; }
+#gg-book a { text-decoration: none !important; }
+
+/* ── WRAPPER ── */
+#gg-book { width: 100% !important; max-width: 100% !important; overflow-x: hidden !important; background: #1a2e1f !important; }
+
+/* ── NAV ── */
+#gg-book .gg-nav { position: sticky !important; top: 0 !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
+#gg-book .gg-nav-inner { max-width: 1100px !important; margin: 0 auto !important; display: flex !important; align-items: center !important; justify-content: space-between !important; }
+#gg-book .gg-logo { font-weight: 900 !important; color: #fff !important; letter-spacing: -0.02em !important; font-size: 1.1rem !important; }
+#gg-book .gg-logo span { color: #7dffaa !important; }
+#gg-book .gg-hamburger { width: 34px !important; height: 28px !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; cursor: pointer !important; }
+#gg-book .gg-hamburger span { height: 3px !important; width: 100% !important; background: #c9a84c !important; border-radius: 2px !important; }
+#gg-book .gg-menu { position: fixed !important; top: 0 !important; right: -100% !important; width: 260px !important; height: 100vh !important; background: #0d1a10 !important; border-left: 1px solid rgba(122,171,130,0.2) !important; padding: 80px 24px !important; transition: right 0.3s ease !important; z-index: 10000 !important; }
+#gg-book .gg-menu.open { right: 0 !important; }
+#gg-book .gg-menu a { display: block !important; padding: 14px 0 !important; color: #d4e6ca !important; font-weight: 700 !important; border-bottom: 1px solid rgba(122,171,130,0.15) !important; font-size: 0.95rem !important; }
+#gg-book .gg-menu a:hover { color: #7dffaa !important; }
+#gg-book .gg-menu-close { position: absolute !important; top: 18px !important; right: 18px !important; font-size: 22px !important; color: #c9a84c !important; cursor: pointer !important; }
+
+/* ── HERO ── */
+#gg-book .bk-hero { background: linear-gradient(135deg, #0d1a10 0%, #1a2e1f 50%, #2d4a32 100%) !important; padding: 72px 48px 80px !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; text-align: center !important; position: relative !important; overflow: hidden !important; }
+#gg-book .bk-hero::before { content: '' !important; position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%,-50%) !important; width: 700px !important; height: 700px !important; border-radius: 50% !important; border: 1px solid rgba(201,168,76,0.06) !important; pointer-events: none !important; }
+#gg-book .bk-hero-inner { max-width: 720px !important; margin: 0 auto !important; position: relative !important; z-index: 2 !important; }
+#gg-book .bk-tag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 16px !important; }
+#gg-book .bk-h1 { font-size: clamp(2.2rem, 4.5vw, 3.4rem) !important; font-weight: 900 !important; line-height: 1.1 !important; color: #ffffff !important; margin-bottom: 18px !important; letter-spacing: -0.02em !important; }
+#gg-book .bk-h1 span { color: #7aab82 !important; }
+#gg-book .bk-sub { font-size: 1.05rem !important; color: rgba(212,230,202,0.75) !important; line-height: 1.75 !important; margin-bottom: 32px !important; max-width: 580px !important; margin-left: auto !important; margin-right: auto !important; }
+#gg-book .bk-checks { display: flex !important; gap: 24px !important; justify-content: center !important; flex-wrap: wrap !important; margin-bottom: 0 !important; }
+#gg-book .bk-check { display: flex !important; align-items: center !important; gap: 8px !important; font-size: 0.88rem !important; font-weight: 700 !important; color: rgba(212,230,202,0.72) !important; }
+#gg-book .bk-check-dot { width: 7px !important; height: 7px !important; border-radius: 50% !important; background: #7aab82 !important; flex-shrink: 0 !important; }
+
+/* ── TRUST BAR ── */
+#gg-book .bk-trust { background: #2d4a32 !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 12px 48px !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 32px !important; flex-wrap: wrap !important; }
+#gg-book .bk-trust-item { font-size: 0.72rem !important; font-weight: 800 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: #a8edc0 !important; display: flex !important; align-items: center !important; gap: 8px !important; }
+#gg-book .bk-trust-dot { color: #c9a84c !important; }
+
+/* ── CALENDAR SECTION ── */
+#gg-book .bk-cal-section { padding: 64px 48px 80px !important; background: #1a2e1f !important; }
+#gg-book .bk-cal-inner { max-width: 1000px !important; margin: 0 auto !important; }
+#gg-book .bk-cal-label { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 10px !important; text-align: center !important; }
+#gg-book .bk-cal-title { font-size: clamp(1.6rem, 3vw, 2.2rem) !important; font-weight: 900 !important; color: #ffffff !important; text-align: center !important; margin-bottom: 8px !important; letter-spacing: -0.02em !important; }
+#gg-book .bk-cal-desc { font-size: 0.95rem !important; color: rgba(212,230,202,0.65) !important; text-align: center !important; margin-bottom: 40px !important; }
+#gg-book .bk-cal-wrap { background: rgba(13,26,16,0.7) !important; border: 1px solid rgba(122,171,130,0.2) !important; border-radius: 14px !important; overflow: hidden !important; padding: 8px !important; }
+#gg-book #cal-booking-embed { width: 100% !important; min-height: 680px !important; }
+
+/* ── WHAT HAPPENS SECTION ── */
+#gg-book .bk-section { padding: 80px 48px !important; background: #111c13 !important; }
+#gg-book .bk-section-inner { max-width: 1100px !important; margin: 0 auto !important; }
+#gg-book .bk-stag { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #c9a84c !important; display: block !important; margin-bottom: 10px !important; }
+#gg-book .bk-h2 { font-size: clamp(1.8rem, 3.5vw, 2.6rem) !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 14px !important; letter-spacing: -0.02em !important; line-height: 1.15 !important; }
+#gg-book .bk-h2 span { color: #7aab82 !important; }
+#gg-book .bk-desc { font-size: 1rem !important; color: rgba(212,230,202,0.68) !important; line-height: 1.75 !important; max-width: 580px !important; margin-bottom: 48px !important; }
+#gg-book .bk-steps { display: grid !important; grid-template-columns: repeat(3,1fr) !important; gap: 20px !important; }
+#gg-book .bk-step { background: rgba(45,74,50,0.35) !important; border: 1px solid rgba(122,171,130,0.18) !important; border-radius: 10px !important; padding: 28px 24px !important; }
+#gg-book .bk-step-num { font-size: 0.7rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; color: #c9a84c !important; text-transform: uppercase !important; margin-bottom: 10px !important; display: block !important; }
+#gg-book .bk-step h3 { font-size: 1rem !important; font-weight: 900 !important; color: #ffffff !important; margin-bottom: 8px !important; }
+#gg-book .bk-step p { font-size: 0.87rem !important; color: rgba(212,230,202,0.65) !important; line-height: 1.7 !important; }
+
+/* ── FOOTER ── */
+#gg-book .bk-footer { background: #080f09 !important; border-top: 1px solid rgba(122,171,130,0.1) !important; padding: 48px 48px 28px !important; }
+#gg-book .bk-footer-inner { max-width: 1100px !important; margin: 0 auto !important; display: flex !important; justify-content: space-between !important; align-items: flex-start !important; flex-wrap: wrap !important; gap: 32px !important; padding-bottom: 32px !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+#gg-book .bk-footer-brand { max-width: 280px !important; }
+#gg-book .bk-footer-name { font-size: 1.1rem !important; font-weight: 900 !important; color: #ffffff !important; display: block !important; margin-bottom: 4px !important; }
+#gg-book .bk-footer-name span { color: #7dffaa !important; }
+#gg-book .bk-footer-tagline { font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.28) !important; margin-bottom: 12px !important; display: block !important; }
+#gg-book .bk-footer-desc { font-size: 0.85rem !important; color: rgba(255,255,255,0.4) !important; line-height: 1.7 !important; }
+#gg-book .bk-footer-links h4 { font-size: 0.68rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.3) !important; margin-bottom: 14px !important; }
+#gg-book .bk-footer-links ul { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#gg-book .bk-footer-links a { font-size: 0.85rem !important; color: rgba(255,255,255,0.5) !important; transition: color 0.2s !important; }
+#gg-book .bk-footer-links a:hover { color: #7dffaa !important; }
+#gg-book .bk-footer-bottom { max-width: 1100px !important; margin: 24px auto 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; flex-wrap: wrap !important; gap: 10px !important; }
+#gg-book .bk-footer-bottom span { font-size: 0.72rem !important; color: rgba(255,255,255,0.2) !important; }
+#gg-book .bk-eco { display: flex !important; align-items: center !important; gap: 6px !important; font-size: 0.68rem !important; font-weight: 700 !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; color: rgba(255,255,255,0.25) !important; }
+#gg-book .bk-eco-dot { width: 6px !important; height: 6px !important; border-radius: 50% !important; background: #7dffaa !important; display: inline-block !important; }
+
+/* ── REVEAL ── */
+#gg-book .bk-reveal { opacity: 0 !important; transform: translateY(20px) !important; transition: opacity 0.65s ease, transform 0.65s ease !important; }
+#gg-book .bk-reveal.visible { opacity: 1 !important; transform: translateY(0) !important; }
+
+/* ── MOBILE ── */
+@media (max-width: 900px) {
+  #gg-book .bk-hero { padding: 56px 20px 64px !important; }
+  #gg-book .bk-checks { flex-direction: column !important; align-items: center !important; gap: 12px !important; }
+  #gg-book .bk-trust { padding: 12px 20px !important; gap: 14px !important; }
+  #gg-book .bk-cal-section { padding: 48px 16px 64px !important; }
+  #gg-book .bk-section { padding: 60px 20px !important; }
+  #gg-book .bk-steps { grid-template-columns: 1fr !important; }
+  #gg-book .bk-footer { padding: 40px 20px 24px !important; }
+  #gg-book .bk-footer-inner { flex-direction: column !important; }
+}
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<div id="gg-book">
+
+  <!-- NAV -->
+  <div class="gg-nav">
+    <div class="gg-nav-inner">
+      <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA</a>
+      <div class="gg-hamburger" onclick="document.querySelector('#gg-book .gg-menu').classList.add('open')">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+  <div class="gg-menu">
+    <div class="gg-menu-close" onclick="document.querySelector('#gg-book .gg-menu').classList.remove('open')">✕</div>
+    <a href="https://www.greenguard-usa.com/">Home</a>
+    <a href="https://www.greenguard-usa.com/shop">Shop</a>
+    <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">Services</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    <a href="https://www.greenguard-usa.com/book">Book a Free Assessment</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact Us</a>
+  </div>
+
+  <!-- HERO -->
+  <div class="bk-hero">
+    <div class="bk-hero-inner bk-reveal">
+      <span class="bk-tag">Austin, TX — No Credit Card Required</span>
+      <h1 class="bk-h1">Book Your Free<span>Property Assessment</span></h1>
+      <p class="bk-sub">A GreenGuard USA technician visits your property, maps mosquito pressure zones, and recommends the right solution. Free, no-obligation, and takes about 30 minutes.</p>
+      <div class="bk-checks">
+        <div class="bk-check"><div class="bk-check-dot"></div>On-site visit by a GreenGuard technician</div>
+        <div class="bk-check"><div class="bk-check-dot"></div>Custom trap placement recommendation</div>
+        <div class="bk-check"><div class="bk-check-dot"></div>No pressure, no commitment</div>
+        <div class="bk-check"><div class="bk-check-dot"></div>Austin area only</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRUST BAR -->
+  <div class="bk-trust">
+    <div class="bk-trust-item"><span class="bk-trust-dot">+</span> 100% Free</div>
+    <div class="bk-trust-item"><span class="bk-trust-dot">+</span> No Credit Card</div>
+    <div class="bk-trust-item"><span class="bk-trust-dot">+</span> Pesticide-Free Solution</div>
+    <div class="bk-trust-item"><span class="bk-trust-dot">+</span> Safe for Kids &amp; Pets</div>
+    <div class="bk-trust-item"><span class="bk-trust-dot">+</span> Austin Metro Only</div>
+  </div>
+
+  <!-- CALENDAR EMBED -->
+  <div class="bk-cal-section">
+    <div class="bk-cal-inner">
+      <div class="bk-reveal">
+        <span class="bk-cal-label">Schedule Online</span>
+        <h2 class="bk-cal-title">Pick a time that works for you</h2>
+        <p class="bk-cal-desc">Select any available slot below. You'll receive a confirmation email immediately.</p>
+      </div>
+      <div class="bk-cal-wrap bk-reveal">
+        <div id="cal-booking-embed"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT HAPPENS NEXT -->
+  <div class="bk-section">
+    <div class="bk-section-inner">
+      <div class="bk-reveal">
+        <span class="bk-stag">What To Expect</span>
+        <h2 class="bk-h2">Simple process.<span> Real results.</span></h2>
+        <p class="bk-desc">From booking to a mosquito-free yard in three steps.</p>
+      </div>
+      <div class="bk-steps">
+        <div class="bk-step bk-reveal">
+          <span class="bk-step-num">Step 01</span>
+          <h3>We Visit Your Property</h3>
+          <p>A GreenGuard technician arrives at your scheduled time, walks the property, and identifies high-pressure mosquito zones — shaded areas, standing water, dense vegetation, and wind patterns.</p>
+        </div>
+        <div class="bk-step bk-reveal">
+          <span class="bk-step-num">Step 02</span>
+          <h3>You Get a Custom Plan</h3>
+          <p>We recommend the right number of traps, optimal placement locations, and the service level that fits your property. No generic quotes — every recommendation is site-specific.</p>
+        </div>
+        <div class="bk-step bk-reveal">
+          <span class="bk-step-num">Step 03</span>
+          <h3>Start When You're Ready</h3>
+          <p>If you want to move forward, we schedule setup immediately. If not, no problem — the assessment is free with zero obligation. Most customers see results within the first two weeks of service.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="bk-footer">
+    <div class="bk-footer-inner">
+      <div class="bk-footer-brand">
+        <span class="bk-footer-name">Green<span>Guard</span> USA</span>
+        <span class="bk-footer-tagline">Pesticide-Free Mosquito Control</span>
+        <p class="bk-footer-desc">Serving the Austin metro area with CO₂-based mosquito trapping. Safe for kids, pets, and pollinators.</p>
+      </div>
+      <div class="bk-footer-links">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">CO₂ Trap Rental</a></li>
+          <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">Tank Delivery</a></li>
+          <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
+          <li><a href="https://www.greenguard-usa.com/pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="bk-footer-links">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://www.greenguard-usa.com/">Home</a></li>
+          <li><a href="https://www.greenguard-usa.com/faq">FAQ</a></li>
+          <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
+          <li><a href="https://www.greenguard-usa.com/book">Book Assessment</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="bk-footer-bottom">
+      <span>© 2025 GreenGuard USA. All rights reserved.</span>
+      <div class="bk-eco"><span class="bk-eco-dot"></span> Pesticide-Free · Austin, TX</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Cal.com Embed -->
+<script type="text/javascript">
+(function (C, A, L) {
+  let p = function (a, ar) { a.q.push(ar); };
+  let d = C.document;
+  C.Cal = C.Cal || function () {
+    let cal = C.Cal; let ar = arguments;
+    if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; }
+    if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if (typeof namespace === "string") { cal.ns[namespace] = cal.ns[namespace] || api; p(cal.ns[namespace], ar); p(cal, [L, namespace, ar[2]]); } else p(cal, ar); return; }
+    p(cal, ar);
+  };
+})(window, "https://app.cal.com/embed/embed.js", "init");
+
+Cal("init", "property-assessment", { origin: "https://cal.com" });
+
+Cal.ns["property-assessment"]("inline", {
+  elementOrSelector: "#cal-booking-embed",
+  config: { layout: "month_view" },
+  calLink: "greenguard-usa/property-assessment",
+});
+
+Cal.ns["property-assessment"]("ui", {
+  cssVarsPerTheme: {
+    light: { "cal-brand": "#c9a84c" },
+    dark:  { "cal-brand": "#c9a84c" }
+  },
+  hideEventTypeDetails: false,
+  layout: "month_view"
+});
+</script>
+
+<!-- Scroll reveal -->
+<script>
+(function () {
+  const obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('#gg-book .bk-reveal').forEach(function (el) { obs.observe(el); });
+})();
+</script>
