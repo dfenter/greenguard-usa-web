@@ -221,11 +221,19 @@ class BiogentsBuyer:
                 import pyotp
             except ImportError:
                 raise RuntimeError("pyotp not installed — run: pip install pyotp")
-            code = pyotp.TOTP(BIOGENTS_TOTP_SECRET).now()
+            totp = pyotp.TOTP(BIOGENTS_TOTP_SECRET)
             print("  Entering TOTP code for 2FA...")
-            otp_field.first.fill(code)
+            otp_field.first.fill(totp.now())
             page.locator("button[type=submit], input[type=submit]").first.click()
             page.wait_for_timeout(2_000)
+            # If the OTP field is still visible the code hit a 30-second boundary;
+            # wait for the next window and retry once.
+            if otp_field.count() > 0:
+                print("  TOTP code rejected — waiting for next window and retrying...")
+                page.wait_for_timeout(31_000)
+                otp_field.first.fill(totp.now())
+                page.locator("button[type=submit], input[type=submit]").first.click()
+                page.wait_for_timeout(2_000)
 
         if "/my-account/" not in page.url:
             raise RuntimeError(
@@ -381,6 +389,11 @@ def validate_env() -> bool:
         if not os.environ.get(var):
             print(f"ERROR: {var} is not set.")
             ok = False
+    if not BIOGENTS_TOTP_SECRET and not BIOGENTS_SESSION:
+        print(
+            "WARNING: Neither BIOGENTS_TOTP_SECRET nor BIOGENTS_SESSION is set. "
+            "Login will fail if biogentspro.com requires 2FA."
+        )
     return ok
 
 

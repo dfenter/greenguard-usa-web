@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '*/10 * * * *'   # every 10 minutes
   workflow_dispatch:           # manual trigger from GitHub Actions tab
+    inputs:
+      dry_run:
+        description: 'Dry run — log what would be ordered without placing anything'
+        type: boolean
+        default: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -20,10 +25,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: '_scripts/requirements.txt'
 
       - name: Install dependencies
         run: |
-          pip install playwright pyotp
+          pip install -r _scripts/requirements.txt
           playwright install chromium --with-deps
 
       - name: Run Biogents fulfillment script
@@ -40,6 +47,7 @@ jobs:
           SMTP_PORT:            ${{ secrets.SMTP_PORT }}
           SMTP_USER:            ${{ secrets.SMTP_USER }}
           SMTP_PASS:            ${{ secrets.SMTP_PASS }}
+          DRY_RUN:              ${{ inputs.dry_run || 'false' }}
         run: python3 _scripts/biogents_fulfillment.py
 
       - name: Commit updated order state
