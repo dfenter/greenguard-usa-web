@@ -5,11 +5,9 @@ Reads the week's bookings from Google Calendar (all Cal.com bookings sync there)
 builds an optimized daily route using Google Maps Distance Matrix API,
 commits route_plan_YYYY-WW.json and opens a GitHub issue for approval.
 
-Auth: Google service account JSON stored in GOOGLE_SERVICE_ACCOUNT_KEY secret
-      (base64-encoded). The service account has domain-wide delegation to
-      admin@greenguard-usa.com with scope calendar.readonly.
+Auth: OAuth2 refresh token (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN).
+      No external libraries required — uses only Python built-ins.
 """
-import base64
 import json
 import os
 import sys
@@ -23,7 +21,9 @@ CALENDAR_ID = 'admin@greenguard-usa.com'
 BOOKING_TAG = 'GreenGuard USA'
 
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
-GOOGLE_SERVICE_ACCOUNT_KEY = os.environ.get('GOOGLE_SERVICE_ACCOUNT_KEY', '')
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+GOOGLE_REFRESH_TOKEN = os.environ.get('GOOGLE_REFRESH_TOKEN', '')
 
 # Load event type durations from cal-event-types.json
 _EVENT_TYPES_PATH = os.path.join(os.path.dirname(__file__), '..', 'app', 'lib', 'cal-event-types.json')
@@ -53,49 +53,14 @@ FALLBACK_DURATIONS = [
 
 # ── Google auth ─────────────────────────────────────────────────────────────
 
-def get_google_access_token(service_account_key_b64: str, subject: str, scope: str) -> str:
-    """Obtain a short-lived access token via JWT assertion (service account)."""
-    import time, hmac, hashlib
-
-    key_json = json.loads(base64.b64decode(service_account_key_b64).decode('utf-8'))
-    client_email = key_json['client_email']
-    private_key_pem = key_json['private_key']
-
-    now = int(time.time())
-    header = base64.urlsafe_b64encode(json.dumps({'alg': 'RS256', 'typ': 'JWT'}).encode()).rstrip(b'=')
-    payload = base64.urlsafe_b64encode(json.dumps({
-        'iss': client_email,
-        'sub': subject,
-        'scope': scope,
-        'aud': 'https://oauth2.googleapis.com/token',
-        'iat': now,
-        'exp': now + 3600,
-    }).encode()).rstrip(b'=')
-
-    signing_input = header + b'.' + payload
-
-    # Sign with RSA-SHA256 using the private key
-    try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-        from cryptography.hazmat.backends import default_backend
-
-        private_key = serialization.load_pem_private_key(
-            private_key_pem.encode(), password=None, backend=default_backend()
-        )
-        signature = private_key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
-        sig_b64 = base64.urlsafe_b64encode(signature).rstrip(b'=')
-    except ImportError:
-        print('ERROR: cryptography package required. Run: pip install cryptography')
-        sys.exit(1)
-
-    jwt = signing_input + b'.' + sig_b64
-
+def get_google_access_token(client_id: str, client_secret: str, refresh_token: str) -> str:
+    """Exchange a refresh token for a short-lived access token (no external deps)."""
     data = urllib.parse.urlencode({
-        'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-        'assertion': jwt.decode('utf-8'),
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'refresh_token': refresh_token,
+        'grant_type': 'refresh_token',
     }).encode()
-
     req = urllib.request.Request(
         'https://oauth2.googleapis.com/token',
         data=data,
@@ -103,6 +68,9 @@ def get_google_access_token(service_account_key_b64: str, subject: str, scope: s
     )
     with urllib.request.urlopen(req) as resp:
         token_data = json.loads(resp.read())
+    if 'access_token' not in token_data:
+        print(f'ERROR: token refresh failed: {token_data}')
+        sys.exit(1)
     return token_data['access_token']
 
 
@@ -234,8 +202,8 @@ def get_week_dates():
 
 
 def main():
-    if not GOOGLE_SERVICE_ACCOUNT_KEY:
-        print('ERROR: GOOGLE_SERVICE_ACCOUNT_KEY not set')
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REFRESH_TOKEN:
+        print('ERROR: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN must be set')
         sys.exit(1)
     if not GOOGLE_MAPS_API_KEY:
         print('ERROR: GOOGLE_MAPS_API_KEY not set')
@@ -244,11 +212,7 @@ def main():
     monday, saturday, week_label = get_week_dates()
     print(f'Building route plan for {week_label} ({monday} – {saturday})')
 
-    access_token = get_google_access_token(
-        GOOGLE_SERVICE_ACCOUNT_KEY,
-        subject=CALENDAR_ID,
-        scope='https://www.googleapis.com/auth/calendar.readonly',
-    )
+    access_token = get_google_access_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN)
 
     time_min = monday.isoformat() + 'T00:00:00-06:00'  # CST
     time_max = saturday.isoformat() + 'T23:59:59-06:00'
