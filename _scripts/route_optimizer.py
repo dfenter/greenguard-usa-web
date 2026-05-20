@@ -17,7 +17,15 @@ CALCOM_API_KEY = os.environ.get('CALCOM_API_KEY', '')
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 DEPOT = '1519 Parkway, Austin, TX 78703'
 
-# Service duration map (minutes) — matches SKU engine in app/lib/sku-engine.js
+# Load event type durations from cal-event-types.json (source of truth)
+_EVENT_TYPES_PATH = os.path.join(os.path.dirname(__file__), '..', 'app', 'lib', 'cal-event-types.json')
+try:
+    with open(_EVENT_TYPES_PATH) as _f:
+        _CAL_EVENT_TYPES = {et['title'].lower(): et['durationMin'] for et in json.load(_f)['eventTypes']}
+except Exception:
+    _CAL_EVENT_TYPES = {}
+
+# Fallback duration map by visit type
 DURATION_MAP = {
     'assessment': 30,
     'check': 20,
@@ -61,7 +69,18 @@ def group_by_day(bookings):
 
 
 def get_stop_duration(booking):
-    """Estimate service duration from Cal.com booking responses."""
+    """Estimate service duration from event type title (primary) or visit type fallback."""
+    event_title = (booking.get('eventType', {}).get('title') or booking.get('title') or '').lower().strip()
+    # Strip "CustomerName: " prefix if present (Acuity-style)
+    if ': ' in event_title:
+        event_title = event_title.split(': ', 1)[1]
+    event_title = event_title.replace(' (greenguard usa)', '').strip()
+
+    # Primary: look up duration from cal-event-types.json
+    if event_title in _CAL_EVENT_TYPES:
+        return _CAL_EVENT_TYPES[event_title]
+
+    # Fallback: use visit type from form responses
     responses = booking.get('responses', {})
     visit_type = (responses.get('visitType', {}).get('value') or 'service').lower()
     base = DURATION_MAP.get(visit_type, 35)

@@ -5,7 +5,7 @@ const SKU_PRICES = {
   BG2: 266.99,
   BG3: 399.99,
   'MQ-RENT': 299.99,
-  'MQ-SVC': 129.99,
+  'MQ-SVC': 199.99,   // confirmed from live calendar data
   'MQ-INST': 199.99,
   'MQ-TSHOOT': 79.99,
   'OWN-BG': 10.00,  // per trap
@@ -14,7 +14,8 @@ const SKU_PRICES = {
   TANK1: 89.99,
   TANK2: 159.99,
   TANK3: 249.99,
-  TANK4: 319.99,
+  TANK4: 279.99,   // confirmed from live calendar data
+  TANK6: 399.99,   // confirmed from live calendar data
   TANK10: 889.98,
   ASSESS: 0,
   CHK: 0,
@@ -35,7 +36,7 @@ const SUBSCRIPTION_SKUS = new Set([
   'BG1', 'BG2', 'BG3', 'MQ-RENT', 'MQ-SVC', 'OWN-BG', 'OWN-MQ',
 ])
 
-const TANK_MAP = { 1: 'TANK1', 2: 'TANK2', 3: 'TANK3', 4: 'TANK4', 10: 'TANK10' }
+const TANK_MAP = { 1: 'TANK1', 2: 'TANK2', 3: 'TANK3', 4: 'TANK4', 6: 'TANK6', 10: 'TANK10' }
 
 // Service duration map in minutes
 const DURATION_MAP = {
@@ -153,4 +154,61 @@ function isSubscriptionSKU(sku) {
   return SUBSCRIPTION_SKUS.has(sku)
 }
 
-module.exports = { resolveSKU, resolveServiceDuration, calculateRevenue, isSubscriptionSKU, SKU_PRICES }
+// ─── Title-based resolution (Cal.com event type titles) ───────────────────────
+
+const EVENT_TYPES = require('./cal-event-types.json').eventTypes
+
+/**
+ * Resolve SKUs and visit metadata directly from a Cal.com event type title.
+ * This is the primary resolution path for the webhook handler — more reliable
+ * than parsing custom form fields.
+ *
+ * @param {string} title - Cal.com event type title (e.g. "Two -20 pound CO2 Tank Exchange Delivery Service")
+ * @returns {{ skus: string[], visitType: string, systemType: string, trapCount: number, tankCount: number, durationMin: number } | null}
+ */
+function resolveByTitle(title) {
+  if (!title) return null
+  const normalized = title.trim().replace(/\s+/g, ' ')
+  const match = EVENT_TYPES.find(
+    (et) => et.title.toLowerCase() === normalized.toLowerCase()
+  )
+  if (!match) return null
+  return {
+    skus: match.skus,
+    visitType: match.visitType,
+    systemType: match.systemType,
+    trapCount: match.trapCount || 0,
+    tankCount: match.tankCount || 0,
+    addons: match.addons || [],
+    durationMin: match.durationMin,
+    price: match.price,
+  }
+}
+
+/**
+ * Extract the service title from a Cal.com booking event title.
+ * Cal.com event titles are just the event type name (no "CustomerName: " prefix).
+ * Acuity titles have a "FirstName LastName: " prefix — strip it if present.
+ *
+ * @param {string} rawTitle
+ * @returns {string}
+ */
+function normalizeEventTitle(rawTitle) {
+  if (!rawTitle) return ''
+  // Strip "Name: " prefix (Acuity format) and "(GreenGuard USA)" suffix
+  return rawTitle
+    .replace(/^[^:]+:\s*/, '')
+    .replace(/\s*\(GreenGuard USA\)\s*$/, '')
+    .trim()
+}
+
+module.exports = {
+  resolveSKU,
+  resolveServiceDuration,
+  calculateRevenue,
+  isSubscriptionSKU,
+  resolveByTitle,
+  normalizeEventTitle,
+  SKU_PRICES,
+  EVENT_TYPES,
+}
