@@ -23,6 +23,9 @@
 #gg-shop .gg-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999}
 #gg-shop .gg-overlay.open{display:block}
 
+
+#gg-shop .gg-menu-group { display: block !important; font-size: .92rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: rgba(201,168,76,0.6) !important; padding: 20px 0 4px !important; }
+#gg-shop .gg-nav-tagline{font-size:.7rem !important;letter-spacing:.12em !important;text-transform:uppercase !important;color:#7dffaa !important;font-weight:700 !important;padding:10px 0 14px !important;border-bottom:1px solid rgba(122,171,130,.15) !important;margin-bottom:6px !important;}
 /* ── HERO ── */
 #gg-shop .shop-hero{background:linear-gradient(135deg,#0a1a0d,#1a2e1f 60%,#0e1d12);padding:64px 20px 48px;text-align:center;border-bottom:1px solid rgba(122,171,130,.15)}
 #gg-shop .shop-hero-tag{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c;font-weight:700;display:block;margin-bottom:14px}
@@ -99,42 +102,56 @@
   </nav>
   <div class="gg-overlay" id="gg-overlay"></div>
   <div class="gg-drawer" id="gg-drawer">
-    <button class="gg-drawer-close" id="gg-drawer-close">Close</button>
-    <div class="gg-group" data-group="services">Services <i class="gg-group-arrow">&#9654;</i></div>
-    <div class="gg-group-links" id="grp-services">
-      <a href="https://www.greenguard-usa.com/services">All Services</a>
-      <a href="https://www.greenguard-usa.com/traprental">Outdoor Protection Program</a>
-      <a href="https://www.greenguard-usa.com/co2delivery">CO2 Delivery</a>
-      <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
-    </div>
-    <div class="gg-group" data-group="shop">Shop <i class="gg-group-arrow">&#9654;</i></div>
-    <div class="gg-group-links" id="grp-shop">
-      <a href="https://www.greenguard-usa.com/shop">All Products</a>
-    </div>
-    <div class="gg-group" data-group="learn">Learn <i class="gg-group-arrow">&#9654;</i></div>
-    <div class="gg-group-links" id="grp-learn">
-      <a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work">Why CO2 Traps Work</a>
-      <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
-      <a href="https://www.greenguard-usa.com/co2-traps-vs-mosquito-spraying">vs Spraying</a>
-      <a href="https://www.greenguard-usa.com/blog">Blog</a>
-    </div>
-    <div class="gg-group" data-group="areas">Service Areas <i class="gg-group-arrow">&#9654;</i></div>
-    <div class="gg-group-links" id="grp-areas">
-      <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
-      <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
-      <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
-      <a href="https://www.greenguard-usa.com/mosquito-control-dripping-springs">Dripping Springs</a>
-      <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
-      <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
-      <a href="https://www.greenguard-usa.com/mosquito-control-cedar-park">Cedar Park</a>
-      <a href="https://www.greenguard-usa.com/mosquito-control-steiner-ranch">Steiner Ranch</a>
-    </div>
-    <div class="gg-group" data-group="company">Company <i class="gg-group-arrow">&#9654;</i></div>
-    <div class="gg-group-links" id="grp-company">
-      <a href="https://www.greenguard-usa.com/about">About</a>
-      <a href="https://www.greenguard-usa.com/contact">Contact</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Consultation</a>
-    </div>
+    <button class="gg-drawer-close" id="gg-drawer-close">✕</button>
+    <div class="gg-nav-tagline">Smart. Safe. Effective.</div>
+    <span class="gg-menu-group">Services</span>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+    <span class="gg-menu-group">Service Areas</span>
+    <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-dripping-springs">Dripping Springs</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-steiner-ranch">Steiner Ranch</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-cedar-park">Cedar Park</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-pflugerville">Pflugerville</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-kyle">Kyle</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-buda">Buda</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-leander">Leander</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-liberty-hill">Liberty Hill</a>
+    <span class="gg-menu-group">Learn</span>
+    <a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work">Why CO&#8322; Traps Work</a>
+    <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
+    <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+    <a href="https://www.greenguard-usa.com/case-studies">Results &amp; Case Studies</a>
+    <a href="https://www.greenguard-usa.com/blog">Blog</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+    <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
+    <a href="https://www.greenguard-usa.com/bee-safe-mosquito-control">Bee-Safe Protection</a>
+    <a href="https://www.greenguard-usa.com/pesticide-free-outdoor-living">Pesticide-Free Living</a>
+    <a href="https://www.greenguard-usa.com/outdoor-wellness">Outdoor Wellness</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-without-spraying">No-Spray Protection</a>
+    <span class="gg-menu-group">Shop</span>
+    <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+    <span class="gg-menu-group">Hospitality</span>
+    <a href="https://www.greenguard-usa.com/mosquito-control-luxury-homes">Luxury Homes</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-wedding-venues">Wedding Venues</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-outdoor-restaurants">Outdoor Restaurants</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-wineries">Wineries</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-golf-clubs">Golf Clubs</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-resorts">Resorts</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-country-clubs">Country Clubs</a>
+    <span class="gg-menu-group">Company</span>
+    <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
+    <a href="https://www.greenguard-usa.com/team">Our Team</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact</a>
+    <span class="gg-menu-group">Book</span>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
 
   <!-- HERO -->
@@ -253,7 +270,7 @@
       <span style="font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c;font-weight:700;display:block;margin-bottom:14px">Already own a trap?</span>
       <h2 style="font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px">Let us handle the <span style="color:#7dffaa">CO2 refills.</span></h2>
       <p style="font-size:.95rem;color:rgba(212,230,202,.7);max-width:520px;margin:0 auto 28px;line-height:1.65">Our Outdoor Protection Program includes monthly CO2 delivery, trap maintenance, and seasonal support. Flat monthly pricing, no contracts.</p>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" style="background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.95rem;padding:14px 36px;border-radius:6px;display:inline-block;text-decoration:none;font-family:'Nunito Sans',sans-serif;transition:background .2s" target="_blank">Book a Free Consultation</a>
+      <a href="https://www.greenguard-usa.com/book" style="background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.95rem;padding:14px 36px;border-radius:6px;display:inline-block;text-decoration:none;font-family:'Nunito Sans',sans-serif;transition:background .2s" target="_blank">Book a Free Consultation</a>
     </div>
 
   </div>
@@ -286,7 +303,7 @@
         <a href="https://www.greenguard-usa.com/about">About</a>
         <a href="https://www.greenguard-usa.com/blog">Blog</a>
         <a href="https://www.greenguard-usa.com/contact">Contact</a>
-        <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" target="_blank">Book Consultation</a>
+        <a href="https://www.greenguard-usa.com/book" target="_blank">Book Consultation</a>
       </div>
     </div>
     <div class="gg-footer-bottom">
