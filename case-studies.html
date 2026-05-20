@@ -3,7 +3,9 @@
 #gg-cs h1,#gg-cs h2,#gg-cs h3,#gg-cs h4,#gg-cs p,#gg-cs ul,#gg-cs li,#gg-cs div,#gg-cs span,#gg-cs a,#gg-cs button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-cs ul{list-style:none}#gg-cs a{text-decoration:none}
 #gg-cs{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-cs .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-cs .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-cs .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-cs .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
 #gg-cs .gg-logo span{color:#7dffaa}
@@ -257,6 +259,19 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free Service</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-cs .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-cs');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>
 <!-- TIDIO CHAT: replace 2oaqyblfyjn6xy86vutzzvr1ykg9twav with your key from Tidio dashboard Settings > Integrations > Website -->
 <script>
