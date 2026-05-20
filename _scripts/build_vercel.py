@@ -94,6 +94,143 @@ SEO = {
         'title': 'GreenGuard USA Franchise — Phoenix | Mosquito Control',
         'desc':  'GreenGuard USA franchise opportunity in Phoenix, AZ. Eco-friendly CO2 mosquito control for the Phoenix metro.',
     },
+    'shop': {
+        'title': 'Shop Mosquito Traps and Equipment | GreenGuard USA',
+        'desc':  'Buy Biogents mosquito traps, CO2 tanks, timers, and accessories. Professional-grade equipment used by GreenGuard USA in Austin, TX.',
+    },
+    'book': {
+        'title': 'Book a Free Property Assessment | GreenGuard USA',
+        'desc':  'Schedule your free on-site mosquito assessment in Austin, TX. A GreenGuard technician visits, maps pressure zones, and recommends the right solution. No obligation.',
+        'slug':  '/book',
+    },
+    'blog-austin-families-reconsidering-spray-programs': {
+        'title': 'Why Austin Families Are Rethinking Mosquito Spray Programs | GreenGuard USA',
+        'desc':  'Austin homeowners are switching from pesticide spray programs to CO2 mosquito trapping. Here\'s why families are making the change.',
+    },
+    'blog-barton-creek-corridor-your-backyard': {
+        'title': 'Barton Creek Corridor Mosquito Control | GreenGuard USA',
+        'desc':  'Properties along the Barton Creek greenbelt face higher mosquito pressure. Learn how CO2 trapping protects your yard year-round.',
+    },
+    'blog-cedar-park-leander-mosquito-guide': {
+        'title': 'Cedar Park & Leander Mosquito Control Guide | GreenGuard USA',
+        'desc':  'A complete mosquito control guide for Cedar Park and Leander homeowners. CO2 trapping, trap placement, and seasonal tips.',
+    },
+    'blog-covered-patios-mosquito-control': {
+        'title': 'Mosquito Control for Covered Patios | GreenGuard USA',
+        'desc':  'How to protect a covered patio from mosquitoes without pesticide sprays. CO2 trap placement and best practices for Austin patios.',
+    },
+    'blog-designing-a-yard-you-will-actually-use': {
+        'title': 'Designing a Yard You\'ll Actually Use | GreenGuard USA',
+        'desc':  'Outdoor design isn\'t just aesthetics — mosquito control is step one. How Austin homeowners create truly usable outdoor spaces.',
+    },
+    'blog-difference-between-repelling-and-eliminating': {
+        'title': 'Repelling vs Eliminating Mosquitoes: What\'s the Difference? | GreenGuard USA',
+        'desc':  'Repellents mask the problem. CO2 traps eliminate it at the source. Understanding the difference and why it matters for your yard.',
+    },
+    'blog-eliminating-standing-water-austin': {
+        'title': 'Eliminating Standing Water in Austin | Mosquito Prevention | GreenGuard USA',
+        'desc':  'Standing water is the top mosquito breeding source in Austin. A practical guide to finding and eliminating it on your property.',
+    },
+    'blog-georgetown-mosquito-season-guide': {
+        'title': 'Georgetown TX Mosquito Season Guide | GreenGuard USA',
+        'desc':  'When mosquito season peaks in Georgetown TX, what drives it, and how CO2 trapping keeps San Gabriel River corridor properties protected.',
+    },
+    'blog-hill-country-mosquito-season-dripping-springs': {
+        'title': 'Hill Country Mosquito Season — Dripping Springs | GreenGuard USA',
+        'desc':  'Dripping Springs and Hill Country mosquito season explained. When to start control, peak months, and how CO2 traps outperform sprays.',
+    },
+    'blog-how-austin-hosts-keep-guests-comfortable': {
+        'title': 'How Austin Hosts Keep Outdoor Guests Comfortable | GreenGuard USA',
+        'desc':  'Austin homeowners who entertain outdoors use CO2 mosquito trapping to make guests comfortable without pesticide spray schedules.',
+    },
+    'blog-how-long-co2-trapping-takes-to-work': {
+        'title': 'How Long Does CO2 Mosquito Trapping Take to Work? | GreenGuard USA',
+        'desc':  'What to expect in weeks 1–8 of CO2 mosquito trapping. Timeline, population reduction data, and how to maximize results.',
+    },
+    'blog-lake-travis-waterfront-mosquito-season': {
+        'title': 'Lake Travis Waterfront Mosquito Season | GreenGuard USA',
+        'desc':  'Waterfront properties on Lake Travis face extreme mosquito pressure. How CO2 trapping protects docks, patios, and shorelines without pesticides.',
+    },
+    'blog-mosquito-control-dog-owners-austin': {
+        'title': 'Mosquito Control for Dog Owners in Austin | GreenGuard USA',
+        'desc':  'Pesticide spray programs can harm pets. Austin dog owners are switching to CO2 mosquito trapping for safe, effective yard protection.',
+    },
+    'blog-mosquito-control-hoa-communities-austin': {
+        'title': 'Mosquito Control for HOA Communities in Austin | GreenGuard USA',
+        'desc':  'CO2 trap mosquito control for Austin HOAs and master-planned communities. Pesticide-free, no spray schedule conflicts.',
+    },
+    'blog-mosquito-control-kyle-buda-south-austin': {
+        'title': 'Mosquito Control for Kyle, Buda & South Austin | GreenGuard USA',
+        'desc':  'CO2 mosquito trapping for the south Austin corridor — Kyle, Buda, and Onion Creek communities. Pesticide-free, effective.',
+    },
+    'blog-mosquito-control-young-children': {
+        'title': 'Mosquito Control for Homes with Young Children | GreenGuard USA',
+        'desc':  'Pesticide sprays around young children carry real risks. CO2 mosquito trapping is the safe, chemical-free alternative for Austin families.',
+    },
+    'blog-outdoor-dining-austin-restaurants-mosquito': {
+        'title': 'Outdoor Dining Mosquito Control for Austin Restaurants | GreenGuard USA',
+        'desc':  'Austin restaurant patios need mosquito control without spray odors or chemical exposure. CO2 trapping is the hospitality-grade solution.',
+    },
+    'blog-outdoor-investment-that-changes-everything': {
+        'title': 'The Outdoor Investment That Changes Everything | GreenGuard USA',
+        'desc':  'Pools and patios go unused without mosquito control. How one investment — CO2 trapping — transforms Austin outdoor living.',
+    },
+    'blog-outdoor-kitchens-austin-mosquito-problem': {
+        'title': 'Austin Outdoor Kitchens Have a Mosquito Problem | GreenGuard USA',
+        'desc':  'Outdoor kitchens create heat, CO2, and moisture — prime mosquito attractants. How to protect your Austin outdoor kitchen.',
+    },
+    'blog-pets-kids-mosquito-control': {
+        'title': 'Safe Mosquito Control for Homes with Pets and Kids | GreenGuard USA',
+        'desc':  'CO2 trapping is the only mosquito control method that is completely safe for kids, dogs, cats, and backyard chickens.',
+    },
+    'blog-pflugerville-northeast-austin-mosquito-season': {
+        'title': 'Pflugerville & Northeast Austin Mosquito Season | GreenGuard USA',
+        'desc':  'Mosquito season guide for Pflugerville and northeast Austin. Lake Pflugerville, Gilleland Creek, and when to start control.',
+    },
+    'blog-protecting-pollinators-mosquito-control': {
+        'title': 'Protecting Pollinators While Controlling Mosquitoes | GreenGuard USA',
+        'desc':  'Mosquito sprays kill bees and butterflies. CO2 trapping targets only mosquitoes, keeping pollinators safe in your Austin garden.',
+    },
+    'blog-taking-back-your-outdoor-space': {
+        'title': 'Taking Back Your Outdoor Space from Mosquitoes | GreenGuard USA',
+        'desc':  'How Austin homeowners reclaim their yards, patios, and pools with CO2 mosquito trapping. Real results, no pesticides.',
+    },
+    'blog-what-happens-when-you-spray-for-mosquitoes': {
+        'title': 'What Actually Happens When You Spray for Mosquitoes | GreenGuard USA',
+        'desc':  'Mosquito spray programs kill more than mosquitoes. What happens to your yard\'s ecosystem, beneficial insects, and soil when you spray.',
+    },
+    'blog-what-is-actually-in-mosquito-spray': {
+        'title': 'What\'s Actually in Mosquito Spray? | GreenGuard USA',
+        'desc':  'Pyrethroids, synthetic fragrances, and surfactants — what mosquito spray programs contain and why CO2 trapping is the pesticide-free alternative.',
+    },
+    'blog-what-to-look-for-mosquito-control-company-austin': {
+        'title': 'What to Look for in a Mosquito Control Company in Austin | GreenGuard USA',
+        'desc':  'How to evaluate a mosquito control company in Austin. Questions to ask, red flags to avoid, and why CO2 trapping is the standard.',
+    },
+    'blog-what-westlake-hills-homeowners-doing-differently': {
+        'title': 'What Westlake Hills Homeowners Are Doing Differently | GreenGuard USA',
+        'desc':  'Westlake Hills properties along the greenbelt face intense mosquito pressure. How the most discerning Austin homeowners are handling it.',
+    },
+    'blog-what-year-round-outdoor-living-looks-like': {
+        'title': 'What Year-Round Outdoor Living Looks Like in Austin | GreenGuard USA',
+        'desc':  'Austin weather allows year-round outdoor living — if you control mosquitoes. What that lifestyle looks like with CO2 trapping in place.',
+    },
+    'blog-when-mosquito-season-actually-starts': {
+        'title': 'When Does Mosquito Season Actually Start in Austin? | GreenGuard USA',
+        'desc':  'Austin mosquito season starts earlier than most people expect. When to start CO2 trapping and how to get ahead of the population curve.',
+    },
+    'blog-why-central-texas-mosquitoes-getting-worse': {
+        'title': 'Why Central Texas Mosquitoes Are Getting Worse | GreenGuard USA',
+        'desc':  'Warming temperatures, more rainfall, and urban growth are driving more mosquitoes in Central Texas. What\'s happening and how to respond.',
+    },
+    'blog-why-your-pool-area-deserves-better': {
+        'title': 'Why Your Pool Area Deserves Better Mosquito Control | GreenGuard USA',
+        'desc':  'Pools attract mosquitoes and spray programs risk contaminating the water. CO2 trapping is the safe, effective solution for Austin pool owners.',
+    },
+    'blog-worst-mosquito-breeding-spots-austin': {
+        'title': 'The Worst Mosquito Breeding Spots in Austin | GreenGuard USA',
+        'desc':  'Austin properties have hidden mosquito breeding sites. A guide to finding and eliminating the worst offenders before they hatch.',
+    },
     'freetrial': {
         'title': 'Free Mosquito Control Trial | GreenGuard USA',
         'desc':  'Try GreenGuard USA risk-free. Book a free property assessment and see CO2 trapping work on your property.',
