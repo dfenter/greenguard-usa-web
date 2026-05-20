@@ -25,9 +25,12 @@ export async function getServerSideProps({ req }) {
   const lastInvoice = invoices[0] || null
   const props = contact?.properties || {}
 
+  const isAdmin = email === 'admin@greenguard-usa.com'
+
   return {
     props: {
       email,
+      isAdmin,
       name: [props.firstname, props.lastname].filter(Boolean).join(' ') || null,
       nextBooking: nextBooking ? {
         startTime: nextBooking.startTime,
@@ -55,11 +58,11 @@ function formatAmount(cents) {
   return `$${(cents / 100).toFixed(2)}`
 }
 
-export default function Dashboard({ email, name, nextBooking, subscription, lastInvoiceStatus, trapCount, systemType }) {
+export default function Dashboard({ email, name, nextBooking, subscription, lastInvoiceStatus, trapCount, systemType, isAdmin }) {
   return (
     <>
       <Head><title>Dashboard · GreenGuard</title></Head>
-      <PortalLayout>
+      <PortalLayout isAdmin={isAdmin}>
         <div style={{ marginBottom: 32 }}>
           <span className="tag">My Account</span>
           <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>

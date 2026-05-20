@@ -83,4 +83,19 @@ async function findContactByEmail(email) {
   return search.results[0] || null
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail }
+/**
+ * Count contacts where a given property equals a value (admin analytics).
+ */
+async function countContactsByProperty(propertyName, value) {
+  try {
+    const result = await client.crm.contacts.searchApi.doSearch({
+      filterGroups: [{ filters: [{ propertyName, operator: 'EQ', value }] }],
+      limit: 1,
+    })
+    return result.total || 0
+  } catch {
+    return 0
+  }
+}
+
+module.exports = { upsertContact, addNote, findContactByEmail, countContactsByProperty }

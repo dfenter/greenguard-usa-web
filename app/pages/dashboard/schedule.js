@@ -12,7 +12,8 @@ export async function getServerSideProps({ req }) {
     getPastBookingsForEmail(session.email, 5).catch(() => []),
   ])
 
-  return { props: { upcoming, past } }
+  const isAdmin = session.email === 'admin@greenguard-usa.com'
+  return { props: { upcoming, past, isAdmin } }
 }
 
 function formatDateTime(iso) {
@@ -41,11 +42,11 @@ function BookingRow({ booking, dim = false }) {
   )
 }
 
-export default function Schedule({ upcoming, past }) {
+export default function Schedule({ upcoming, past, isAdmin }) {
   return (
     <>
       <Head><title>Schedule · GreenGuard</title></Head>
-      <PortalLayout title="Your Schedule">
+      <PortalLayout title="Your Schedule" isAdmin={isAdmin}>
         {upcoming.length === 0 && past.length === 0 && (
           <p style={{ color: 'rgba(212,230,202,0.5)' }}>No appointments found.</p>
         )}

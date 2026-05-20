@@ -278,7 +278,8 @@ def main():
         'days': day_plans,
     }
 
-    output_path = f'route_plan_{week_label}.json'
+    output_path = os.path.join(os.path.dirname(__file__), '..', 'app', 'public', 'data', f'route_plan_{week_label}.json')
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w') as f:
         json.dump(plan, f, indent=2)
 

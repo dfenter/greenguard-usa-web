@@ -18,6 +18,7 @@ export async function getServerSideProps({ req }) {
       hasTimer: p.has_timer === 'true',
       customerType: p.customer_type || null,
       installDate: p.service_start_date || null,
+      isAdmin: session.email === 'admin@greenguard-usa.com',
     },
   }
 }
@@ -32,7 +33,7 @@ function Detail({ label, value }) {
   )
 }
 
-export default function Equipment({ systemType, trapCount, tankCount, hasTimer, customerType, installDate }) {
+export default function Equipment({ systemType, trapCount, tankCount, hasTimer, customerType, installDate, isAdmin }) {
   const typeLabel = {
     'Biogents-CO2': 'Biogents CO₂ Trap',
     'Biogents-NonCO2': 'Biogents (Non-CO₂)',
@@ -43,7 +44,7 @@ export default function Equipment({ systemType, trapCount, tankCount, hasTimer, 
   return (
     <>
       <Head><title>My System · GreenGuard</title></Head>
-      <PortalLayout title="My System">
+      <PortalLayout title="My System" isAdmin={isAdmin}>
         <div className="card" style={{ maxWidth: 520 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
             <div style={{

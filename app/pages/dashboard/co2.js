@@ -38,6 +38,7 @@ export async function getServerSideProps({ req }) {
       tanksPerMonth,
       nextRefillDate,
       usesC02,
+      isAdmin: session.email === 'admin@greenguard-usa.com',
     },
   }
 }
@@ -46,11 +47,11 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
-export default function Co2Status({ systemType, trapCount, tankCount, tanksPerMonth, nextRefillDate, usesC02 }) {
+export default function Co2Status({ systemType, trapCount, tankCount, tanksPerMonth, nextRefillDate, usesC02, isAdmin }) {
   return (
     <>
       <Head><title>CO₂ Status · GreenGuard</title></Head>
-      <PortalLayout title="CO₂ Status">
+      <PortalLayout title="CO₂ Status" isAdmin={isAdmin}>
         {!usesC02 ? (
           <div className="card" style={{ maxWidth: 480 }}>
             <p style={{ color: 'rgba(212,230,202,0.6)', margin: 0 }}>

@@ -1,5 +1,8 @@
 import '../styles/globals.css'
 import Head from 'next/head'
+import Script from 'next/script'
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
 export default function App({ Component, pageProps }) {
   return (
@@ -10,6 +13,17 @@ export default function App({ Component, pageProps }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
+      {GA_ID && (
+        <>
+          <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+          <Script id="ga-init" strategy="afterInteractive">{`
+            window.dataLayer=window.dataLayer||[];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js',new Date());
+            gtag('config','${GA_ID}');
+          `}</Script>
+        </>
+      )}
       <Component {...pageProps} />
     </>
   )

@@ -119,6 +119,40 @@ async function getSubscriptions(customerId) {
   return subs.data
 }
 
+/**
+ * Fetch all active subscriptions across all customers (admin analytics).
+ */
+async function listAllActiveSubscriptions() {
+  const subs = await stripe.subscriptions.list({
+    status: 'active',
+    limit: 100,
+    expand: ['data.items.data.price'],
+  })
+  return subs.data
+}
+
+/**
+ * Fetch all paid invoices since a Unix timestamp (admin analytics).
+ * Expands customer_details for email display.
+ */
+async function listAllInvoicesSince(fromTimestamp) {
+  const invoices = await stripe.invoices.list({
+    status: 'paid',
+    limit: 100,
+    created: { gte: fromTimestamp },
+    expand: ['data.customer_details'],
+  })
+  return invoices.data
+}
+
+/**
+ * Fetch open/unpaid invoices across all customers (admin analytics).
+ */
+async function listOpenInvoices() {
+  const invoices = await stripe.invoices.list({ status: 'open', limit: 50 })
+  return invoices.data
+}
+
 module.exports = {
   stripe,
   findOrCreateCustomer,
@@ -127,4 +161,7 @@ module.exports = {
   createBillingPortalSession,
   getInvoices,
   getSubscriptions,
+  listAllActiveSubscriptions,
+  listAllInvoicesSince,
+  listOpenInvoices,
 }

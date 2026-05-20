@@ -9,7 +9,12 @@ const NAV_LINKS = [
   { href: '/dashboard/co2', label: 'CO₂ Status' },
 ]
 
-export default function PortalLayout({ children, title }) {
+const ADMIN_NAV_LINKS = [
+  { href: '/admin/analytics', label: 'Analytics' },
+  { href: '/admin/route', label: 'Route Plan' },
+]
+
+export default function PortalLayout({ children, title, isAdmin = false }) {
   const router = useRouter()
 
   return (
@@ -30,7 +35,7 @@ export default function PortalLayout({ children, title }) {
             Green<span style={{ color: '#7dffaa' }}>Guard</span>
           </Link>
 
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
             {NAV_LINKS.map(({ href, label }) => (
               <Link
                 key={href}
@@ -48,6 +53,28 @@ export default function PortalLayout({ children, title }) {
                 {label}
               </Link>
             ))}
+            {isAdmin && (
+              <>
+                <span style={{ width: 1, height: 18, background: 'rgba(122,171,130,0.2)', margin: '0 4px' }} />
+                {ADMIN_NAV_LINKS.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      padding: '6px 12px',
+                      borderRadius: 4,
+                      color: router.pathname === href ? '#c9a84c' : 'rgba(201,168,76,0.65)',
+                      background: router.pathname === href ? 'rgba(201,168,76,0.08)' : 'transparent',
+                      transition: 'color 0.15s',
+                    }}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </>
+            )}
             <a
               href="/api/auth/logout"
               style={{

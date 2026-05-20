@@ -59,10 +59,11 @@ export default async function handler(req, res) {
   const rawBody = await readRawBody(req)
   const signature = req.headers['x-cal-signature-256'] || ''
 
-  if (process.env.CALCOM_WEBHOOK_SECRET) {
-    if (!verifySignature(rawBody, signature, process.env.CALCOM_WEBHOOK_SECRET)) {
-      return res.status(401).json({ error: 'Invalid signature' })
-    }
+  if (!process.env.CALCOM_WEBHOOK_SECRET) {
+    return res.status(500).json({ error: 'Webhook not configured' })
+  }
+  if (!verifySignature(rawBody, signature, process.env.CALCOM_WEBHOOK_SECRET)) {
+    return res.status(401).json({ error: 'Invalid signature' })
   }
 
   let payload
@@ -138,6 +139,6 @@ export default async function handler(req, res) {
     res.status(200).json({ received: true, skus, resolvedBy: resolved.resolvedBy, stripeCustomerId: customer.id })
   } catch (err) {
     console.error('Cal.com webhook error:', err)
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: 'Webhook processing failed' })
   }
 }

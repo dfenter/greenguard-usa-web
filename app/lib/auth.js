@@ -1,6 +1,11 @@
 const { SignJWT, jwtVerify } = require('jose')
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
+function getSecret() {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters')
+  }
+  return new TextEncoder().encode(process.env.JWT_SECRET)
+}
 
 const MAGIC_LINK_EXPIRY = '15m'
 const SESSION_EXPIRY = '30d'
@@ -13,7 +18,7 @@ async function createMagicToken(email) {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(MAGIC_LINK_EXPIRY)
-    .sign(SECRET)
+    .sign(getSecret())
 }
 
 /**
@@ -24,7 +29,7 @@ async function createSessionToken(email, stripeCustomerId) {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(SESSION_EXPIRY)
-    .sign(SECRET)
+    .sign(getSecret())
 }
 
 /**
@@ -33,7 +38,7 @@ async function createSessionToken(email, stripeCustomerId) {
  */
 async function verifyToken(token) {
   try {
-    const { payload } = await jwtVerify(token, SECRET)
+    const { payload } = await jwtVerify(token, getSecret())
     return payload
   } catch {
     return null

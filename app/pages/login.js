@@ -2,10 +2,10 @@ import Head from 'next/head'
 import { useState } from 'react'
 import { getSessionFromRequest } from '../lib/auth'
 
-export async function getServerSideProps({ req }) {
+export async function getServerSideProps({ req, query }) {
   const session = await getSessionFromRequest(req)
   if (session) return { redirect: { destination: '/dashboard', permanent: false } }
-  return { props: {} }
+  return { props: { error: query.error || null } }
 }
 
 export default function Login({ error }) {
@@ -113,4 +113,3 @@ export default function Login({ error }) {
   )
 }
 
-Login.getInitialProps = ({ query }) => ({ error: query.error || null })
