@@ -94,6 +94,10 @@ SEO = {
         'title': 'GreenGuard USA Franchise — Phoenix | Mosquito Control',
         'desc':  'GreenGuard USA franchise opportunity in Phoenix, AZ. Eco-friendly CO2 mosquito control for the Phoenix metro.',
     },
+    'shop': {
+        'title': 'Shop Mosquito Traps and Equipment | GreenGuard USA',
+        'desc':  'Buy Biogents mosquito traps, CO2 tanks, timers, and accessories. Professional-grade equipment used by GreenGuard USA in Austin, TX.',
+    },
     'freetrial': {
         'title': 'Free Mosquito Control Trial | GreenGuard USA',
         'desc':  'Try GreenGuard USA risk-free. Book a free property assessment and see CO2 trapping work on your property.',
