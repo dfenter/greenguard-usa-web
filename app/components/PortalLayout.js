@@ -11,6 +11,7 @@ const NAV_LINKS = [
 ]
 
 const ADMIN_NAV_LINKS = [
+  { href: '/admin/booking', label: 'New Booking' },
   { href: '/admin/analytics', label: 'Analytics' },
   { href: '/admin/route', label: 'Route Plan' },
 ]

@@ -25,7 +25,8 @@ export async function getServerSideProps({ req }) {
   const lastInvoice = invoices[0] || null
   const props = contact?.properties || {}
 
-  const isAdmin = email === 'admin@greenguard-usa.com'
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+  const isAdmin = email === ADMIN_EMAIL
 
   return {
     props: {
@@ -58,7 +59,7 @@ function formatAmount(cents) {
   return `$${(cents / 100).toFixed(2)}`
 }
 
-export default function Dashboard({ email, name, nextBooking, subscription, lastInvoiceStatus, trapCount, systemType, isAdmin }) {
+export default function Dashboard({ email, isAdmin, name, nextBooking, subscription, lastInvoiceStatus, trapCount, systemType }) {
   return (
     <>
       <Head><title>Dashboard · GreenGuard</title></Head>
