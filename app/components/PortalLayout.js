@@ -1,0 +1,89 @@
+import Link from 'next/link'
+import { useRouter } from 'next/router'
+
+const NAV_LINKS = [
+  { href: '/dashboard', label: 'Overview' },
+  { href: '/dashboard/schedule', label: 'Schedule' },
+  { href: '/dashboard/equipment', label: 'My System' },
+  { href: '/dashboard/billing', label: 'Billing' },
+  { href: '/dashboard/co2', label: 'CO₂ Status' },
+]
+
+export default function PortalLayout({ children, title }) {
+  const router = useRouter()
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Nav */}
+      <nav style={{
+        position: 'sticky', top: 0, zIndex: 100,
+        background: 'rgba(10,26,13,0.95)', backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid rgba(122,171,130,0.2)',
+        padding: '0 24px',
+      }}>
+        <div style={{
+          maxWidth: 1100, margin: '0 auto',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          height: 56,
+        }}>
+          <Link href="/dashboard" style={{ fontWeight: 900, fontSize: '1rem', letterSpacing: '-0.02em' }}>
+            Green<span style={{ color: '#7dffaa' }}>Guard</span>
+          </Link>
+
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            {NAV_LINKS.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  padding: '6px 12px',
+                  borderRadius: 4,
+                  color: router.pathname === href ? '#7dffaa' : 'rgba(212,230,202,0.7)',
+                  background: router.pathname === href ? 'rgba(125,255,170,0.08)' : 'transparent',
+                  transition: 'color 0.15s',
+                }}
+              >
+                {label}
+              </Link>
+            ))}
+            <a
+              href="/api/auth/logout"
+              style={{
+                marginLeft: 8,
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                padding: '6px 12px',
+                borderRadius: 4,
+                color: 'rgba(212,230,202,0.45)',
+              }}
+            >
+              Sign out
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      {/* Page content */}
+      <main style={{ flex: 1, maxWidth: 1100, margin: '0 auto', padding: '40px 24px', width: '100%' }}>
+        {title && (
+          <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 32 }}>
+            {title}
+          </h1>
+        )}
+        {children}
+      </main>
+
+      <footer style={{
+        borderTop: '1px solid rgba(122,171,130,0.12)',
+        padding: '20px 24px',
+        textAlign: 'center',
+        fontSize: '0.78rem',
+        color: 'rgba(212,230,202,0.35)',
+      }}>
+        © {new Date().getFullYear()} GreenGuard USA · Austin, TX
+      </footer>
+    </div>
+  )
+}

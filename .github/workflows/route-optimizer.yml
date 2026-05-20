@@ -1,0 +1,60 @@
+name: Weekly Route Optimizer
+
+on:
+  schedule:
+    # Monday 9 AM CST = 15:00 UTC (accounting for CST = UTC-6)
+    - cron: '0 15 * * 1'
+  workflow_dispatch:  # allow manual run
+
+jobs:
+  optimize-routes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run route optimizer
+        env:
+          CALCOM_API_KEY: ${{ secrets.CALCOM_API_KEY }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: python _scripts/route_optimizer.py
+
+      - name: Get week label
+        id: week
+        run: echo "label=$(python -c "import datetime; t=datetime.date.today(); m=t-datetime.timedelta(days=t.weekday()); print(f'{m.year}-W{m.isocalendar()[1]:02d}')")" >> $GITHUB_OUTPUT
+
+      - name: Commit route plan
+        run: |
+          git config user.name "GreenGuard Bot"
+          git config user.email "bot@greenguard-usa.com"
+          git add route_plan_*.json
+          git diff --cached --quiet || git commit -m "chore: route plan for ${{ steps.week.outputs.label }} [skip ci]"
+          git push
+
+      - name: Create approval issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const week = '${{ steps.week.outputs.label }}';
+            const fs = require('fs');
+            const plan = JSON.parse(fs.readFileSync(`route_plan_${week}.json`, 'utf8'));
+            const days = plan.days.map(d => {
+              const lines = d.stops.map((s, i) => `  ${i+1}. ${s.attendee} — ${s.address} (${s.duration_min} min)`).join('\n');
+              return `### ${d.date} — ${d.stop_count} stops (~${d.total_service_min} min service)\n${lines}\n[Open in Maps](${d.maps_url})`;
+            }).join('\n\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Route plan for ${week} — review & approve`,
+              body: `## Weekly Route Plan — ${week}\n\n${days}\n\n---\n**To approve**: comment \`approved\` on this issue.\nApproval triggers Cal.com rescheduling in the optimized order.`,
+              labels: ['route-plan'],
+            });
