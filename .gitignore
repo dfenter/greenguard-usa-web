@@ -8,3 +8,5 @@ Cooling_Tower*
 *.zip
 .DS_Store
 **/.DS_Store
+out/
+__pycache__/
