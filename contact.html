@@ -27,8 +27,10 @@
 }
 /* ── NAV ── */
 #gg-contact .gg-nav {
-  position: sticky !important;
-  top: 0 !important;
+  position: fixed !important;
+  top: 0 !important;  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
   z-index: 9999 !important;
   background: rgba(10,26,13,0.95) !important;
   backdrop-filter: blur(10px) !important;
@@ -479,6 +481,19 @@
       <div class="ct-eco-badge"><div class="ct-eco-dot"></div>100% Pesticide-Free Service</div>
     </div>
   </div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-contact .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-contact');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div><!-- end #gg-contact -->
 <script>
 (function() {

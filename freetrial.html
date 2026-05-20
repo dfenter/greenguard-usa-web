@@ -15,7 +15,9 @@
 #gg-trial { width: 100% !important; max-width: 100% !important; overflow-x: hidden !important; background: #1a2e1f !important; }
 
 /* ── NAV ── */
-#gg-trial .gg-nav { position: sticky !important; top: 0 !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
+#gg-trial .gg-nav { position: fixed !important; top: 0 !important;  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
 #gg-trial .gg-nav-inner { max-width: 1100px !important; margin: 0 auto !important; display: flex !important; align-items: center !important; justify-content: space-between !important; }
 #gg-trial .gg-logo { font-weight: 900 !important; color: #fff !important; letter-spacing: -0.02em !important; font-size: 1.1rem !important; }
 #gg-trial .gg-logo span { color: #7dffaa !important; }
@@ -464,6 +466,19 @@
     </div>
   </div>
 
+<script>
+(function(){
+  var nav = document.querySelector('#gg-trial .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-trial');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div><!-- end #gg-trial -->
 
 <script>
