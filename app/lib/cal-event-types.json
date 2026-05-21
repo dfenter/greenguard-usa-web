@@ -25,6 +25,17 @@
       "visitType": "exchange"
     },
     {
+      "title": "3x Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+      "slug": "biogents-triple-rental",
+      "skus": ["BG3"],
+      "price": 399.99,
+      "durationMin": 60,
+      "systemType": "Biogents-CO2",
+      "trapCount": 3,
+      "tankCount": 3,
+      "visitType": "exchange"
+    },
+    {
       "title": "One - 20 pound CO2 Tank Exchange Delivery Service",
       "slug": "one-tank-exchange",
       "skus": ["TANK1"],

@@ -187,11 +187,15 @@ async function computeProjection(rawNotes) {
 
     fullsRunning = fullsEnd
 
-    // At end of each Wednesday, set next delivery = total tanks used in this week
+    // After Wednesday: set next delivery = full week's tank consumption (Mon–Sun)
+    // Uses dailyMap directly so Thu–Sun (not yet iterated) are included correctly
     if (isWed) {
-      const weekDays = days.filter((x) => x.weekOf === wedOfWeek)
-      const weekTanksUsed = weekDays.reduce((s, x) => s + x.tanksNeeded, 0)
-      nextWedDelivery = weekTanksUsed
+      let weekTotal = 0
+      for (let offset = -2; offset <= 4; offset++) {
+        const wdStr = toISODate(addDays(date, offset))
+        weekTotal += (dailyMap[wdStr]?.tanksNeeded || 0)
+      }
+      nextWedDelivery = weekTotal
     }
   }
 
@@ -227,7 +231,6 @@ async function computeProjection(rawNotes) {
 
   // Build alerts: scan for any short/low days in next 14 days
   const alerts = []
-  const cutoffWarn = addDays(now, 7)
   const cutoffError = addDays(now, 14)
   const seen = new Set()
   for (const day of days) {
@@ -284,6 +287,10 @@ export default async function handler(req, res) {
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(week)) {
       return res.status(400).json({ error: 'Invalid week date' })
+    }
+    const weekDate = new Date(week + 'T00:00:00Z')
+    if (weekDate.getUTCDay() !== 3) {
+      return res.status(400).json({ error: 'week must be a Wednesday (YYYY-MM-DD)' })
     }
 
     try {

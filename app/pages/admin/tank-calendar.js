@@ -1,5 +1,5 @@
+import React, { useState, useCallback } from 'react'
 import Head from 'next/head'
-import { useState, useCallback } from 'react'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
 import { findContactByEmail, upsertContact, getNotesForContact } from '../../lib/hubspot'
@@ -134,8 +134,12 @@ async function computeProjection(rawNotes) {
     fullsRunning = fullsEnd
 
     if (isWed) {
-      const weekTanksUsed = days.filter((x) => x.weekOf === wedOfWeek).reduce((s, x) => s + x.tanksNeeded, 0)
-      nextWedDelivery = weekTanksUsed
+      let weekTotal = 0
+      for (let offset = -2; offset <= 4; offset++) {
+        const wdStr = toISODate(addDays(date, offset))
+        weekTotal += (dailyMap[wdStr]?.tanksNeeded || 0)
+      }
+      nextWedDelivery = weekTotal
     }
   }
 
@@ -265,8 +269,8 @@ function AlertsBanner({ alerts }) {
   )
 }
 
-function ExchangeForm({ weekDate, prefillFulls, onSubmit, onCancel, submitting }) {
-  const [form, setForm] = useState({ emptiesPickedUp: '', fullsReceived: String(prefillFulls || ''), damagedTanks: '0', notes: '' })
+function ExchangeForm({ weekDate, onSubmit, onCancel, submitting }) {
+  const [form, setForm] = useState({ emptiesPickedUp: '', fullsReceived: '', damagedTanks: '0', notes: '' })
   const [mode, setMode] = useState('exchange')
   const [overrideFull, setOverrideFull] = useState('')
 
@@ -419,69 +423,64 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
                   const isOpen = expandedWeeks[wk.wednesday]
                   const wkDays = daysByWeek[wk.wednesday] || []
                   const hasIssue = wk.worstStatus !== 'ok'
-                  return [
-                    // Week summary row
-                    <tr
-                      key={`week-${wk.wednesday}`}
-                      onClick={() => toggleWeek(wk.wednesday)}
-                      style={{ cursor: 'pointer', background: hasIssue ? (wk.worstStatus === 'short' ? 'rgba(255,80,80,0.06)' : 'rgba(201,168,76,0.06)') : 'rgba(255,255,255,0.02)' }}
-                    >
-                      <td style={{ ...tdStyle(false), fontWeight: 700, color: '#7dffaa' }}>
-                        {isOpen ? '▾' : '▸'} Week of {fmtWed(wk.wednesday)}
-                      </td>
-                      <td style={tdStyle(false)}>{wk.delivery > 0 ? <span style={{ color: '#7dffaa', fontWeight: 700 }}>+{wk.delivery}</span> : '—'}</td>
-                      <td style={tdStyle(false)}>{wk.startStock}</td>
-                      <td style={tdStyle(false)}>{wk.totalAppts || '—'}</td>
-                      <td style={tdStyle(false)}>{wk.totalTanksNeeded || '—'}</td>
-                      <td style={tdStyle(wk.endStock < 0)}>{wk.endStock}</td>
-                      <td style={tdStyle(wk.totalDeficit > 0)}>{wk.totalDeficit > 0 ? wk.totalDeficit : '—'}</td>
-                      <td style={tdStyle(false)}><span style={S.badge(wk.worstStatus)}>{wk.worstStatus === 'ok' ? '✓ OK' : wk.worstStatus === 'low' ? '⚠ Low' : '🔴 Short'}</span></td>
-                    </tr>,
-
-                    // Expanded day rows
-                    ...(isOpen ? wkDays.map((day) => (
-                      [
-                        <tr
-                          key={`day-${day.date}`}
-                          style={{ background: day.status === 'short' ? 'rgba(255,80,80,0.08)' : day.status === 'low' ? 'rgba(201,168,76,0.05)' : 'transparent' }}
-                        >
-                          <td style={{ ...tdStyle(false), paddingLeft: 28, borderLeft: day.isWednesday ? '3px solid #c9a84c' : '3px solid transparent', color: day.isWednesday ? '#c9a84c' : '#d4e6ca', fontWeight: day.isWednesday ? 700 : 400 }}>
-                            {fmtDate(day.date)}{day.isWednesday ? ' 🚚' : ''}
-                            {day.isOverridden && <span style={{ marginLeft: 6, fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)' }}>override</span>}
-                          </td>
-                          <td style={tdStyle(false)}>{day.delivery > 0 ? <span style={{ color: '#7dffaa', fontWeight: 700 }}>+{day.delivery}</span> : '—'}</td>
-                          <td style={tdStyle(false)}>{day.fullsAvailable}</td>
-                          <td style={tdStyle(false)}>{day.appointments || '—'}</td>
-                          <td style={tdStyle(false)}>{day.tanksNeeded || '—'}</td>
-                          <td style={tdStyle(day.fullsEnd < 0)}>{day.fullsEnd}</td>
-                          <td style={tdStyle(day.deficit > 0)}>{day.deficit > 0 ? <strong>{day.deficit}</strong> : '—'}</td>
-                          <td style={tdStyle(false)}>
-                            {day.isWednesday && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setFormWeek(formWeek === day.date ? null : day.date) }}
-                                style={{ padding: '3px 10px', background: day.logged ? 'rgba(125,255,170,0.1)' : 'rgba(201,168,76,0.15)', border: `1px solid ${day.logged ? 'rgba(125,255,170,0.3)' : 'rgba(201,168,76,0.3)'}`, borderRadius: 4, color: day.logged ? '#7dffaa' : '#c9a84c', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
-                              >
-                                {day.logged ? '✓ Logged' : 'Log'}
-                              </button>
-                            )}
-                          </td>
-                        </tr>,
-                        formWeek === day.date && (
-                          <tr key={`form-${day.date}`}>
-                            <td colSpan={8} style={{ padding: 0 }}>
-                              <ExchangeForm
-                                weekDate={day.date}
-                                prefillFulls={day.tanksNeeded}
-                                onSubmit={handleFormSubmit}
-                                onCancel={() => setFormWeek(null)}
-                                submitting={submitting}
-                              />
+                  return (
+                    <React.Fragment key={`week-${wk.wednesday}`}>
+                      <tr
+                        onClick={() => toggleWeek(wk.wednesday)}
+                        style={{ cursor: 'pointer', background: hasIssue ? (wk.worstStatus === 'short' ? 'rgba(255,80,80,0.06)' : 'rgba(201,168,76,0.06)') : 'rgba(255,255,255,0.02)' }}
+                      >
+                        <td style={{ ...tdStyle(false), fontWeight: 700, color: '#7dffaa' }}>
+                          {isOpen ? '▾' : '▸'} Week of {fmtWed(wk.wednesday)}
+                        </td>
+                        <td style={tdStyle(false)}>{wk.delivery > 0 ? <span style={{ color: '#7dffaa', fontWeight: 700 }}>+{wk.delivery}</span> : '—'}</td>
+                        <td style={tdStyle(false)}>{wk.startStock}</td>
+                        <td style={tdStyle(false)}>{wk.totalAppts || '—'}</td>
+                        <td style={tdStyle(false)}>{wk.totalTanksNeeded || '—'}</td>
+                        <td style={tdStyle(wk.endStock < 0)}>{wk.endStock}</td>
+                        <td style={tdStyle(wk.totalDeficit > 0)}>{wk.totalDeficit > 0 ? wk.totalDeficit : '—'}</td>
+                        <td style={tdStyle(false)}><span style={S.badge(wk.worstStatus)}>{wk.worstStatus === 'ok' ? '✓ OK' : wk.worstStatus === 'low' ? '⚠ Low' : '🔴 Short'}</span></td>
+                      </tr>
+                      {isOpen && wkDays.map((day) => (
+                        <React.Fragment key={`day-${day.date}`}>
+                          <tr style={{ background: day.status === 'short' ? 'rgba(255,80,80,0.08)' : day.status === 'low' ? 'rgba(201,168,76,0.05)' : 'transparent' }}>
+                            <td style={{ ...tdStyle(false), paddingLeft: 28, borderLeft: day.isWednesday ? '3px solid #c9a84c' : '3px solid transparent', color: day.isWednesday ? '#c9a84c' : '#d4e6ca', fontWeight: day.isWednesday ? 700 : 400 }}>
+                              {fmtDate(day.date)}{day.isWednesday ? ' 🚚' : ''}
+                              {day.isOverridden && <span style={{ marginLeft: 6, fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)' }}>override</span>}
+                            </td>
+                            <td style={tdStyle(false)}>{day.delivery > 0 ? <span style={{ color: '#7dffaa', fontWeight: 700 }}>+{day.delivery}</span> : '—'}</td>
+                            <td style={tdStyle(false)}>{day.fullsAvailable}</td>
+                            <td style={tdStyle(false)}>{day.appointments || '—'}</td>
+                            <td style={tdStyle(false)}>{day.tanksNeeded || '—'}</td>
+                            <td style={tdStyle(day.fullsEnd < 0)}>{day.fullsEnd}</td>
+                            <td style={tdStyle(day.deficit > 0)}>{day.deficit > 0 ? <strong>{day.deficit}</strong> : '—'}</td>
+                            <td style={tdStyle(false)}>
+                              {day.isWednesday && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setFormWeek(formWeek === day.date ? null : day.date) }}
+                                  style={{ padding: '3px 10px', background: day.logged ? 'rgba(125,255,170,0.1)' : 'rgba(201,168,76,0.15)', border: `1px solid ${day.logged ? 'rgba(125,255,170,0.3)' : 'rgba(201,168,76,0.3)'}`, borderRadius: 4, color: day.logged ? '#7dffaa' : '#c9a84c', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                >
+                                  {day.logged ? '✓ Logged' : 'Log'}
+                                </button>
+                              )}
                             </td>
                           </tr>
-                        ),
-                      ]
-                    )) : []),
-                  ]
+                          {formWeek === day.date && (
+                            <tr>
+                              <td colSpan={8} style={{ padding: 0 }}>
+                                <ExchangeForm
+                                  key={day.date}
+                                  weekDate={day.date}
+                                  onSubmit={handleFormSubmit}
+                                  onCancel={() => setFormWeek(null)}
+                                  submitting={submitting}
+                                />
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </React.Fragment>
+                  )
                 })}
               </tbody>
             </table>
@@ -501,7 +500,7 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
               {!exchangeHistory?.length && <div style={{ color: 'rgba(212,230,202,0.4)', fontSize: '0.88rem' }}>No exchanges logged yet.</div>}
               {exchangeHistory?.map((r, i) => (
                 <div key={i} style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(122,171,130,0.15)', fontSize: '0.85rem' }}>
-                  <div style={{ fontWeight: 700, color: '#c9a84c', marginBottom: 6 }}>Week of {fmtWed(r.week)}</div>
+                  <div style={{ fontWeight: 700, color: '#c9a84c', marginBottom: 6 }}>{r.week ? `Week of ${fmtWed(r.week)}` : 'Exchange record'}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '4px 16px' }}>
                     <span><span style={{ color: 'rgba(212,230,202,0.5)' }}>Empties out: </span>{r.emptiesPickedUp}</span>
                     <span><span style={{ color: 'rgba(212,230,202,0.5)' }}>Fulls received: </span>{r.fullsReceived}</span>
