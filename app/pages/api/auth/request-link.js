@@ -28,14 +28,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Verify the email belongs to a known Stripe customer before sending a link.
-    // This prevents magic links being sent to arbitrary addresses.
-    const customers = await stripe.customers.search({
-      query: `email:"${email}"`,
-      limit: 1,
-    })
+    const isAdmin = email.toLowerCase() === 'admin@greenguard-usa.com'
+    let shouldSend = isAdmin
 
-    if (customers.data.length > 0) {
+    if (!isAdmin) {
+      const customers = await stripe.customers.search({
+        query: `email:"${email}"`,
+        limit: 1,
+      })
+      shouldSend = customers.data.length > 0
+    }
+
+    if (shouldSend) {
       const token = await createMagicToken(email)
       await sendMagicLink(email, token)
     }
