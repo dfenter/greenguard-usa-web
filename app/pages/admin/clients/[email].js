@@ -51,6 +51,7 @@ export async function getServerSideProps({ req, params }) {
   const custName = [p.firstname, p.lastname].filter(Boolean).join(' ')
 
   // Build per-event-type Cal.com booking URLs with customer info pre-filled
+  const calBase = (process.env.CALCOM_BASE_URL || 'https://cal.com').replace(/\/$/, '')
   const calUsername = process.env.CALCOM_USERNAME || 'greenguard'
   const calParams = new URLSearchParams()
   if (custName) calParams.set('name', custName)
@@ -62,7 +63,7 @@ export async function getServerSideProps({ req, params }) {
     title: et.title,
     slug: et.slug,
     price: et.price,
-    url: `https://cal.com/${calUsername}/${et.slug}?${calQueryString}`,
+    url: `${calBase}/${calUsername}/${et.slug}?${calQueryString}`,
   }))
 
   return {
