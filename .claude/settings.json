@@ -1,0 +1,95 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd app && npm test)",
+      "Bash(cd app && npm run lint)",
+      "Bash(cd app && npm run build)",
+      "Bash(vercel *)",
+      "Bash(stripe *)",
+      "Bash(render *)",
+      "Bash(gh *)",
+      "Bash(git status)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git add *)",
+      "Bash(git commit*)",
+      "Bash(git push)",
+      "Bash(python3 _scripts/*.py)",
+      "Bash(./scripts/env-sync.sh*)",
+      "Bash(./scripts/health-check.sh*)",
+      "Bash(openssl rand -hex 32)",
+      "Bash(curl -s https://portal.greenguard-usa.com/api*)",
+      "Bash(curl -s https://www.greenguard-usa.com*)",
+      "Bash(curl -s https://api.stripe.com*)",
+      "Bash(curl -s https://api.hubapi.com*)",
+      "Bash(curl -s https://api.cal.com*)",
+      "Bash(curl -s https://api.resend.com*)",
+      "Bash(curl -s https://maps.googleapis.com*)"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)"
+    ]
+  },
+  "mcpServers": {
+    "vercel": {
+      "command": "npx",
+      "args": ["-y", "@vercel/mcp"],
+      "env": {
+        "VERCEL_TOKEN": "REPLACE_WITH_VERCEL_TOKEN"
+      }
+    },
+    "stripe": {
+      "command": "npx",
+      "args": ["-y", "@stripe/mcp"],
+      "env": {
+        "STRIPE_SECRET_KEY": "REPLACE_WITH_STRIPE_SECRET_KEY"
+      }
+    },
+    "resend": {
+      "command": "npx",
+      "args": ["-y", "resend-mcp"],
+      "env": {
+        "RESEND_API_KEY": "REPLACE_WITH_RESEND_API_KEY"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "REPLACE_WITH_GITHUB_TOKEN"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/user/greenguard-usa-web"
+      ]
+    },
+    "hubspot": {
+      "type": "http",
+      "url": "https://mcp.hubspot.com",
+      "authType": "oauth"
+    },
+    "calcom": {
+      "type": "http",
+      "url": "https://mcp.cal.com",
+      "authType": "oauth"
+    },
+    "google-calendar": {
+      "type": "http",
+      "url": "https://calendarmcp.googleapis.com",
+      "authType": "oauth"
+    },
+    "render": {
+      "type": "http",
+      "url": "https://mcp.render.com/mcp",
+      "env": {
+        "RENDER_API_KEY": "REPLACE_WITH_RENDER_API_KEY"
+      }
+    }
+  }
+}
