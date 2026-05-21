@@ -5,11 +5,11 @@ Updates only the 'google' section of reviews.json — manual/Nextdoor entries pr
 """
 import json, os, urllib.request, sys
 
-API_KEY  = os.environ.get('GOOGLE_API_KEY', '')
+API_KEY  = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 PLACE_ID = 'ChIJx8wLC4K11wwRbfe7hhZiHXs'
 
 if not API_KEY:
-    print("ERROR: GOOGLE_API_KEY environment variable not set.")
+    print("ERROR: GOOGLE_MAPS_API_KEY environment variable not set.")
     sys.exit(1)
 
 url = (
