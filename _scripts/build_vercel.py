@@ -455,6 +455,7 @@ def convert(fname, fragment):
   <title>{title}</title>
   <meta name="description" content="{desc}">
   <link rel="canonical" href="{canonical}">
+  <style>*{{box-sizing:border-box}}body{{margin:0;padding:0;background:#1a2e1f}}</style>
   {GOOGLE_FONTS_LINK}
   {style_block}
   <script async src="https://www.googletagmanager.com/gtag/js?id={GA4_ID}"></script>
