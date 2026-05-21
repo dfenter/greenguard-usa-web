@@ -10,3 +10,9 @@ Cooling_Tower*
 **/.DS_Store
 out/
 __pycache__/
+
+# Service account keys — never commit
+greenguard-service-account-key.json
+*-service-account-key.json
+app/.env
+app/.env.local
