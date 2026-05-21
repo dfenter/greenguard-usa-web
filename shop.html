@@ -1,0 +1,365 @@
+<style>
+#gg-shop,#gg-shop *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+#gg-shop h1,#gg-shop h2,#gg-shop h3,#gg-shop h4,#gg-shop p,#gg-shop a,#gg-shop div,#gg-shop span,#gg-shop ul,#gg-shop li,#gg-shop button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
+#gg-shop ul{list-style:none}#gg-shop a{text-decoration:none}
+#gg-shop{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif;min-height:100vh}
+
+/* ── NAV ── */
+#gg-shop .gg-nav{position:fixed;top:0;left:0;right:0;width:100%;z-index:9999;background:rgba(10,26,13,.97);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-shop .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+#gg-shop .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem;cursor:pointer}
+#gg-shop .gg-logo span{color:#7dffaa}
+.gg-logo-sse{display:block;font-size:.52rem;letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-top:2px;line-height:1}
+#gg-shop .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:none;border:none;padding:0}
+#gg-shop .gg-hamburger span{height:3px;width:100%;background:#c9a84c;border-radius:2px;display:block}
+#gg-shop .gg-drawer{position:fixed;top:0;right:-100%;width:280px;height:100%;background:#0a1a0d;z-index:10000;padding:60px 26px 26px;display:flex;flex-direction:column;gap:5px;transition:right .28s ease;overflow-y:auto}
+#gg-shop .gg-drawer.open{right:0}
+#gg-shop .gg-drawer-close{position:absolute;top:18px;right:18px;background:none;border:none;color:#7dffaa;font-size:1.1rem;cursor:pointer;font-family:'Nunito Sans',sans-serif}
+#gg-shop .gg-group{font-size:.92rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(201,232,209,.45);margin-top:14px;padding-bottom:4px;border-bottom:1px solid rgba(122,171,130,.1);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+#gg-shop .gg-group-arrow{transition:transform .2s;font-style:normal;font-size:.8rem}
+#gg-shop .gg-group-links{overflow:hidden;max-height:0;transition:max-height .28s ease}
+#gg-shop .gg-drawer a{color:rgba(201,232,209,.8);font-size:.92rem;padding:5px 0;border-bottom:1px solid rgba(122,171,130,.07);transition:color .2s;display:block}
+#gg-shop .gg-drawer a:hover{color:#7dffaa}
+#gg-shop .gg-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999}
+#gg-shop .gg-overlay.open{display:block}
+
+
+#gg-shop .gg-menu-group { display: block !important; font-size: .92rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: rgba(201,168,76,0.6) !important; padding: 20px 0 4px !important; }
+#gg-shop .gg-nav-tagline{font-size:.7rem !important;letter-spacing:.12em !important;text-transform:uppercase !important;color:#7dffaa !important;font-weight:700 !important;padding:10px 0 14px !important;border-bottom:1px solid rgba(122,171,130,.15) !important;margin-bottom:6px !important;}
+/* ── HERO ── */
+#gg-shop .shop-hero{background:linear-gradient(135deg,#0a1a0d,#1a2e1f 60%,#0e1d12);padding:64px 20px 48px;text-align:center;border-bottom:1px solid rgba(122,171,130,.15)}
+#gg-shop .shop-hero-tag{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c;font-weight:700;display:block;margin-bottom:14px}
+#gg-shop .shop-hero h1{font-size:clamp(2rem,5vw,3rem);font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px}
+#gg-shop .shop-hero h1 span{color:#7dffaa}
+#gg-shop .shop-hero p{font-size:1rem;color:rgba(212,230,202,.7);max-width:580px;margin:0 auto;line-height:1.65}
+
+/* ── PRODUCT GRID ── */
+#gg-shop .shop-section{max-width:1100px;margin:0 auto;padding:60px 20px}
+#gg-shop .shop-section-title{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c;font-weight:700;margin-bottom:32px}
+#gg-shop .shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;margin-bottom:64px}
+
+/* ── PRODUCT CARD ── */
+#gg-shop .shop-card{background:rgba(20,42,25,.7);border:1px solid rgba(122,171,130,.18);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,transform .2s}
+#gg-shop .shop-card:hover{border-color:rgba(122,171,130,.45);transform:translateY(-3px)}
+#gg-shop .shop-card-badge{display:inline-block;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;padding:4px 10px;border-radius:4px;margin-bottom:14px}
+#gg-shop .badge-bundle{background:rgba(201,168,76,.15);color:#c9a84c;border:1px solid rgba(201,168,76,.3)}
+#gg-shop .badge-trap{background:rgba(125,255,170,.1);color:#7dffaa;border:1px solid rgba(125,255,170,.25)}
+#gg-shop .badge-supply{background:rgba(122,171,130,.12);color:rgba(201,232,209,.7);border:1px solid rgba(122,171,130,.2)}
+#gg-shop .shop-card-body{padding:28px;flex:1;display:flex;flex-direction:column}
+#gg-shop .shop-card h3{font-size:1.05rem;font-weight:800;color:#fff;margin-bottom:10px;line-height:1.3}
+#gg-shop .shop-card p{font-size:.87rem;color:rgba(212,230,202,.65);line-height:1.6;flex:1;margin-bottom:20px}
+#gg-shop .shop-card-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto}
+#gg-shop .shop-price{font-size:1.25rem;font-weight:900;color:#fff}
+#gg-shop .shop-price sup{font-size:.7rem;font-weight:700;vertical-align:super}
+#gg-shop .shop-btn{background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.88rem;padding:11px 22px;border:none;border-radius:6px;cursor:pointer;font-family:'Nunito Sans',sans-serif;transition:background .2s;white-space:nowrap;text-decoration:none;display:inline-block}
+#gg-shop .shop-btn:hover{background:#e8d08a}
+#gg-shop .shop-btn-lg{width:100%;text-align:center;padding:14px;font-size:.95rem;border-radius:8px;margin-top:16px}
+
+/* ── ORDER COMPLETE BANNER ── */
+#gg-shop .shop-success{display:none;background:rgba(45,74,50,.6);border:1px solid rgba(122,171,130,.4);border-radius:10px;padding:20px 24px;margin-bottom:36px;text-align:center}
+#gg-shop .shop-success.visible{display:block}
+#gg-shop .shop-success p{color:#7dffaa;font-weight:700;font-size:1rem}
+#gg-shop .shop-success span{color:rgba(212,230,202,.7);font-size:.87rem;display:block;margin-top:4px}
+
+/* ── FOOTER ── */
+#gg-shop .gg-footer{background:#080f09;padding:50px 20px 20px;border-top:1px solid rgba(122,171,130,.1)}
+#gg-shop .gg-footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(122,171,130,.1)}
+#gg-shop .gg-footer-logo{font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px}
+#gg-shop .gg-footer-logo span{color:#7dffaa}
+#gg-shop .gg-footer-tag{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-bottom:14px}
+#gg-shop .gg-footer p{font-size:.83rem;color:rgba(201,232,209,.5);line-height:1.6;margin-bottom:14px}
+#gg-shop .gg-footer h4{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(201,168,76,.7);font-weight:700;margin-bottom:12px;margin-top:4px}
+#gg-shop .gg-footer a{color:rgba(201,232,209,.55);font-size:.85rem;display:block;margin-bottom:7px;transition:color .2s}
+#gg-shop .gg-footer a:hover{color:#7dffaa}
+#gg-shop .gg-footer-bottom{max-width:1100px;margin:0 auto;padding-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+#gg-shop .gg-footer-copy{font-size:.78rem;color:rgba(201,232,209,.3)}
+#gg-shop .gg-footer-links{display:flex;gap:18px}
+#gg-shop .gg-footer-links a{font-size:.78rem;color:rgba(201,232,209,.3);transition:color .2s}
+#gg-shop .gg-footer-links a:hover{color:#7dffaa}
+#gg-shop .gg-footer-tagline{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-top:4px}
+
+@media(max-width:860px){
+  #gg-shop .gg-footer-inner{grid-template-columns:1fr 1fr}
+  #gg-shop .shop-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  #gg-shop .gg-footer-inner{grid-template-columns:1fr}
+  #gg-shop .shop-card-footer{flex-direction:column;align-items:flex-start}
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+
+<div id="gg-shop">
+
+  <!-- NAV -->
+  <nav class="gg-nav">
+    <div class="gg-nav-inner">
+      <a href="https://www.greenguard-usa.com" class="gg-logo">Green<span>Guard</span> USA<span class="gg-logo-sse">Smart. Safe. Effective.</span></a>
+      <button class="gg-hamburger" id="gg-menu-btn" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="gg-overlay" id="gg-overlay"></div>
+  <div class="gg-drawer" id="gg-drawer">
+    <button class="gg-drawer-close" id="gg-drawer-close">✕</button>
+    <div class="gg-nav-tagline">Smart. Safe. Effective.</div>
+    <span class="gg-menu-group">Services</span>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+    <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+    <span class="gg-menu-group">Service Areas</span>
+    <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-dripping-springs">Dripping Springs</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-steiner-ranch">Steiner Ranch</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-cedar-park">Cedar Park</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-pflugerville">Pflugerville</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-kyle">Kyle</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-buda">Buda</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-leander">Leander</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-liberty-hill">Liberty Hill</a>
+    <span class="gg-menu-group">Learn</span>
+    <a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work">Why CO&#8322; Traps Work</a>
+    <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
+    <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+    <a href="https://www.greenguard-usa.com/case-studies">Results &amp; Case Studies</a>
+    <a href="https://www.greenguard-usa.com/blog">Blog</a>
+    <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+    <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+    <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
+    <a href="https://www.greenguard-usa.com/bee-safe-mosquito-control">Bee-Safe Protection</a>
+    <a href="https://www.greenguard-usa.com/pesticide-free-outdoor-living">Pesticide-Free Living</a>
+    <a href="https://www.greenguard-usa.com/outdoor-wellness">Outdoor Wellness</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-without-spraying">No-Spray Protection</a>
+    <span class="gg-menu-group">Shop</span>
+    <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+    <span class="gg-menu-group">Hospitality</span>
+    <a href="https://www.greenguard-usa.com/mosquito-control-luxury-homes">Luxury Homes</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-wedding-venues">Wedding Venues</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-outdoor-restaurants">Outdoor Restaurants</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-wineries">Wineries</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-golf-clubs">Golf Clubs</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-resorts">Resorts</a>
+    <a href="https://www.greenguard-usa.com/mosquito-control-country-clubs">Country Clubs</a>
+    <span class="gg-menu-group">Company</span>
+    <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
+    <a href="https://www.greenguard-usa.com/team">Our Team</a>
+    <a href="https://www.greenguard-usa.com/contact">Contact</a>
+    <span class="gg-menu-group">Book</span>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
+  </div>
+
+  <!-- HERO -->
+  <div class="shop-hero">
+    <span class="shop-hero-tag">GreenGuard USA Shop</span>
+    <h1>Mosquito control<br><span>you can count on.</span></h1>
+    <p>Professional-grade Biogents traps, CO2 equipment, and accessories. The same products we install and service across Austin.</p>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div class="shop-section">
+
+    <div class="shop-success" id="shop-success">
+      <p>Order confirmed. Thank you.</p>
+      <span>You'll receive a receipt by email. Questions? Call or text 512-560-4129.</span>
+    </div>
+
+    <!-- FLAGSHIP / BUNDLES -->
+    <div class="shop-section-title">Traps and Bundles</div>
+    <div class="shop-grid">
+
+      <div class="shop-card">
+        <div class="shop-card-body">
+          <span class="shop-card-badge badge-bundle">Best Value</span>
+          <h3>All-in-One Package</h3>
+          <p>Everything you need to get started: Biogents BG-Mosquitaire CO2 trap, empty 20 lb CO2 tank, and timer. Ready to deploy the day it arrives.</p>
+          <div class="shop-card-footer">
+            <div class="shop-price"><sup>$</sup>549.99</div>
+            <a href="https://buy.stripe.com/8x2fZhgLW4rO3c6ehdeEo03" class="shop-btn" target="_blank">Buy Now</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-card-body">
+          <span class="shop-card-badge badge-trap">Outdoor Trap</span>
+          <h3>Biogents BG-Mosquitaire CO2 Trap</h3>
+          <p>The gold standard for outdoor mosquito trapping. Biogents-certified, CO2-powered, and proven effective in mass trapping studies across four continents.</p>
+          <div class="shop-card-footer">
+            <div class="shop-price"><sup>$</sup>279.99</div>
+            <a href="https://buy.stripe.com/cNibJ1gLW0by3c6b51eEo02" class="shop-btn" target="_blank">Buy Now</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-card-body">
+          <span class="shop-card-badge badge-trap">Indoor/Outdoor</span>
+          <h3>Biogents BG-Mosquitaire (No CO2)</h3>
+          <p>The same Biogents trap technology without CO2. Ideal for covered patios, garages, and indoor spaces. Runs on lure alone, no tank required.</p>
+          <div class="shop-card-footer">
+            <div class="shop-price"><sup>$</sup>179.99</div>
+            <a href="https://buy.stripe.com/cNi4gzgLWcYk3c63CzeEo05" class="shop-btn" target="_blank">Buy Now</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-card-body">
+          <span class="shop-card-badge badge-trap">Premium</span>
+          <h3>Mosqitter Grand</h3>
+          <p>Our highest-capacity trap, designed for large properties, acreage, and commercial sites. Covers up to an acre of active trapping area with industrial-grade CO2 output.</p>
+          <div class="shop-card-footer">
+            <div class="shop-price"><sup>$</sup>1,849.99</div>
+            <a href="https://buy.stripe.com/00wbJ167i5vS5ke6OLeEo06" class="shop-btn" target="_blank">Buy Now</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- EQUIPMENT -->
+    <div class="shop-section-title">Equipment and Accessories</div>
+    <div class="shop-grid">
+
+      <div class="shop-card">
+        <div class="shop-card-body">
+          <span class="shop-card-badge badge-supply">Equipment</span>
+          <h3>20 lb CO2 Tank (Empty)</h3>
+          <p>Standard 20 lb aluminum CO2 cylinder compatible with the BG-Mosquitaire and Mosqitter Grand. Exchange-ready at most welding supply and beverage gas retailers in Austin.</p>
+          <div class="shop-card-footer">
+            <div class="shop-price"><sup>$</sup>199.99</div>
+            <a href="https://buy.stripe.com/3cI00j9ju4rOfYS7SPeEo01" class="shop-btn" target="_blank">Buy Now</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-card-body">
+          <span class="shop-card-badge badge-supply">Equipment</span>
+          <h3>CO2 Tank Timer</h3>
+          <p>Programmable timer for your CO2 trap. Set the trap to run during peak mosquito hours, typically dawn and dusk, and extend tank life by 40% or more.</p>
+          <div class="shop-card-footer">
+            <div class="shop-price"><sup>$</sup>89.99</div>
+            <a href="https://buy.stripe.com/bJeaEX8fq9M813Y0qneEo00" class="shop-btn" target="_blank">Buy Now</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-card-body">
+          <span class="shop-card-badge badge-supply">Consumable</span>
+          <h3>Mosquito Bucket of Doom</h3>
+          <p>A powerful larvicide dunk bucket for standing water sources. Kills mosquito larvae before they hatch. Safe for wildlife, birds, and pets once water settles.</p>
+          <div class="shop-card-footer">
+            <div class="shop-price"><sup>$</sup>29.99</div>
+            <a href="https://buy.stripe.com/bJecN5gLW2jG8wqehdeEo04" class="shop-btn" target="_blank">Buy Now</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SERVICE CTA -->
+    <div style="background:linear-gradient(135deg,#0a1a0d,#1a2e1f 50%,#0e1d12);border:1px solid rgba(201,168,76,.15);border-radius:14px;padding:48px 32px;text-align:center;margin-top:20px">
+      <span style="font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:#c9a84c;font-weight:700;display:block;margin-bottom:14px">Already own a trap?</span>
+      <h2 style="font-size:clamp(1.6rem,4vw,2.4rem);font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px">Let us handle the <span style="color:#7dffaa">CO2 refills.</span></h2>
+      <p style="font-size:.95rem;color:rgba(212,230,202,.7);max-width:520px;margin:0 auto 28px;line-height:1.65">Our Outdoor Protection Program includes monthly CO2 delivery, trap maintenance, and seasonal support. Flat monthly pricing, no contracts.</p>
+      <a href="https://www.greenguard-usa.com/book" style="background:#c9a84c;color:#0a1a0d;font-weight:800;font-size:.95rem;padding:14px 36px;border-radius:6px;display:inline-block;text-decoration:none;font-family:'Nunito Sans',sans-serif;transition:background .2s" target="_blank">Book a Free Consultation</a>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="gg-footer">
+    <div class="gg-footer-inner">
+      <div>
+        <div class="gg-footer-logo">Green<span>Guard</span> USA</div>
+        <div class="gg-footer-tag">Smart. Safe. Effective.</div>
+        <p>Pesticide-free mosquito control for Austin and surrounding areas. CO2 trap technology that targets mosquitoes without harming pollinators, pets, or people.</p>
+        <p><a href="tel:5125604129" style="color:#7dffaa;font-weight:700">512-560-4129</a></p>
+      </div>
+      <div>
+        <h4>Services</h4>
+        <a href="https://www.greenguard-usa.com/services">Overview</a>
+        <a href="https://www.greenguard-usa.com/traprental">Outdoor Protection Program</a>
+        <a href="https://www.greenguard-usa.com/co2delivery">CO2 Delivery</a>
+        <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+      </div>
+      <div>
+        <h4>Shop</h4>
+        <a href="https://www.greenguard-usa.com/shop">All Products</a>
+        <a href="https://buy.stripe.com/cNibJ1gLW0by3c6b51eEo02" target="_blank">BG-Mosquitaire Trap</a>
+        <a href="https://buy.stripe.com/8x2fZhgLW4rO3c6ehdeEo03" target="_blank">All-in-One Bundle</a>
+        <a href="https://buy.stripe.com/00wbJ167i5vS5ke6OLeEo06" target="_blank">Mosqitter Grand</a>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a href="https://www.greenguard-usa.com/about">About</a>
+        <a href="https://www.greenguard-usa.com/blog">Blog</a>
+        <a href="https://www.greenguard-usa.com/contact">Contact</a>
+        <a href="https://www.greenguard-usa.com/book" target="_blank">Book Consultation</a>
+      </div>
+    </div>
+    <div class="gg-footer-bottom">
+      <span class="gg-footer-copy">&copy; 2026 GreenGuard USA. All rights reserved.</span>
+      <div class="gg-footer-links">
+        <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+        <a href="https://www.greenguard-usa.com/contact">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+<script>
+(function(){
+  var nav = document.querySelector('#gg-shop .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-shop');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
+</div>
+
+<script>
+(function(){
+  // Nav drawer
+  var btn=document.getElementById('gg-menu-btn');
+  var drawer=document.getElementById('gg-drawer');
+  var overlay=document.getElementById('gg-overlay');
+  var close=document.getElementById('gg-drawer-close');
+  function open(){drawer.classList.add('open');overlay.classList.add('open')}
+  function closeD(){drawer.classList.remove('open');overlay.classList.remove('open')}
+  if(btn)btn.addEventListener('click',open);
+  if(close)close.addEventListener('click',closeD);
+  if(overlay)overlay.addEventListener('click',closeD);
+
+  // Accordion groups
+  document.querySelectorAll('#gg-shop .gg-group').forEach(function(g){
+    var grpId='grp-'+g.getAttribute('data-group');
+    var w=document.getElementById(grpId);
+    var arr=g.querySelector('.gg-group-arrow');
+    if(!w)return;
+    var isOpen=false;
+    function show(){w.style.maxHeight=w.scrollHeight+'px';if(arr)arr.style.transform='rotate(90deg)';isOpen=true}
+    function hide(){w.style.maxHeight='0';if(arr)arr.style.transform='';isOpen=false}
+    g.addEventListener('click',function(){isOpen?hide():show()});
+  });
+
+  // Order complete banner
+  if(window.location.search.indexOf('order=complete')>-1){
+    var s=document.getElementById('shop-success');
+    if(s)s.classList.add('visible');
+    window.history.replaceState({},'',window.location.pathname);
+  }
+})();
+</script>

@@ -4,7 +4,9 @@
 #gg-golf h1,#gg-golf h2,#gg-golf h3,#gg-golf h4,#gg-golf p,#gg-golf ul,#gg-golf li,#gg-golf div,#gg-golf span,#gg-golf a,#gg-golf button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-golf ul{list-style:none}#gg-golf a{text-decoration:none}
 #gg-golf{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-golf .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-golf .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-golf .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-golf .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}#gg-golf .gg-logo span{color:#7dffaa}
 #gg-golf .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
@@ -94,13 +96,13 @@
     <a href="https://www.greenguard-usa.com/about">About Us</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Golf Club Protection</div></div>
     <h1 class="gg-h1">Outdoor Protection for <span>Golf Clubs and Country Clubs</span></h1>
     <p class="gg-hero-p">Member outdoor experiences are the product. GreenGuard USA provides continuous, pesticide-free mosquito protection for golf clubs, country clubs, and private outdoor venues.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
   </div></div>
 
 <div class="gg-sec"><div class="gg-sec-inner"><div class="gg-eye">Protecting the Member Experience</div><h2 class="gg-h2">Why outdoor comfort is the product</h2><p class="gg-body">Golf clubs and country clubs sell outdoor experiences. The terrace dining, the pool deck, the practice green, the 18th hole celebrations, these are the moments that define membership value. Mosquito pressure that diminishes these experiences affects both member satisfaction and the club's competitive positioning.</p><p class="gg-body">GreenGuard USA's outdoor protection program is designed for continuous, professional operation across large outdoor footprints. Multi-unit installations create overlapping coverage zones that protect member-facing areas without visible treatment equipment in aesthetic settings.</p></div></div>
@@ -109,7 +111,7 @@
   <div class="gg-cta"><div class="gg-cta-inner">
     <h2 class="gg-cta-h">Protect Your Member Experience</h2>
     <p class="gg-cta-p">Contact us for a club assessment. We design a multi-unit coverage plan for your full outdoor footprint.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
     <p class="gg-cta-note">Free Assessment &#183; Commercial Rates &#183; Austin Metro Area</p>
   </div></div>
 
@@ -124,7 +126,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
       <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Delivery</a>
       <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Protection Program</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+      <a href="https://www.greenguard-usa.com/book">Free Assessment</a>
     </div>
     <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
       <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
@@ -141,4 +143,17 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-golf .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-golf');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>

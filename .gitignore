@@ -8,6 +8,8 @@ Cooling_Tower*
 *.zip
 .DS_Store
 **/.DS_Store
+out/
+__pycache__/
 
 # Service account keys — never commit
 greenguard-service-account-key.json

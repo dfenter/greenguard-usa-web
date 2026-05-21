@@ -3,7 +3,9 @@
 #gg-about h1,#gg-about h2,#gg-about h3,#gg-about h4,#gg-about p,#gg-about ul,#gg-about li,#gg-about div,#gg-about span,#gg-about a,#gg-about button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-about ul{list-style:none}#gg-about a{text-decoration:none}
 #gg-about{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-about .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-about .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-about .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-about .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
 #gg-about .gg-logo span{color:#7dffaa}
@@ -135,7 +137,7 @@
     <a href="https://www.greenguard-usa.com/team">Our Team</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Austin, Texas</div><div class="gg-badge">Founded 2025</div></div>
@@ -175,7 +177,7 @@
   <div class="gg-cta"><div class="gg-cta-inner">
     <h2 class="gg-cta-h">Meet the Team in Person</h2>
     <p class="gg-cta-p">Book a free property consultation and meet your GreenGuard USA technician face to face. We walk your property, answer every question, and design the right solution for your outdoor space.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
     <p class="gg-cta-note">Free &#183; No Obligation &#183; Austin Area</p>
   </div></div>
 
@@ -190,7 +192,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
       <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
       <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rental Program</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+      <a href="https://www.greenguard-usa.com/book">Free Assessment</a>
     </div>
     <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
       <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
@@ -206,6 +208,19 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free Service</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-about .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-about');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>
 <!-- TIDIO CHAT: replace 2oaqyblfyjn6xy86vutzzvr1ykg9twav with your key from Tidio dashboard Settings > Integrations > Website -->
 <script>

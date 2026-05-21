@@ -820,8 +820,10 @@
 
 /* ── NAVBAR / HAMBURGER ── */
 #gg-rental .gg-nav {
-  position: sticky !important;
-  top: 0 !important;
+  position: fixed !important;
+  top: 0 !important;  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
   z-index: 9999 !important;
   background: rgba(10,26,13,0.95) !important;
   backdrop-filter: blur(10px) !important;
@@ -961,7 +963,7 @@
     <a href="https://www.greenguard-usa.com/team">Our Team</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-menu-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
 </div>
 
   <!-- HERO -->
@@ -1121,7 +1123,7 @@
         <li>All maintenance &amp; repairs covered</li>
         <li>Ideal for standard residential yards</li>
       </ul>
-      <button class="rn-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=77522750','_blank')">Get Started</button>
+      <button class="rn-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Get Started</button>
     </div>
     <div class="rn-price-card popular rn-reveal">
       <div class="rn-popular-badge">Best Value</div>
@@ -1138,8 +1140,7 @@
         <li>All maintenance &amp; repairs covered</li>
         <li>Ideal for larger lots or front &amp; back yard</li>
       </ul>
-      <button class="rn-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=92968235
-','_blank')">Get Started</button>
+      <button class="rn-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Get Started</button>
     </div>
     <div class="rn-price-card rn-reveal">
       <span class="rn-plan-name">Biogents Rental</span>
@@ -1155,7 +1156,7 @@
         <li>All maintenance &amp; repairs covered</li>
         <li>Ideal for large properties </li>
       </ul>
-      <button class="rn-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=92968246','_blank')">Get Started</button>
+      <button class="rn-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Get Started</button>
     </div>
   </div>
   <!-- MOSQITTER GRAND PANEL -->
@@ -1178,7 +1179,7 @@
         <li>All maintenance &amp; repairs covered</li>
         <li>Seasonal placement adjustments</li>
       </ul>
-      <button class="rn-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=92868204','_blank')">Get Started</button>
+      <button class="rn-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Get Started</button>
     </div>
     <div class="rn-grand-info rn-reveal">
       <h3>Why the Mosqitter Grand?</h3>
@@ -1337,7 +1338,7 @@
         <div class="rn-cta-value">Transparent pricing</div>
       </div>
       <div class="rn-cta-btns">
-        <button class="rn-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Book My Free Consultation</button>
+        <button class="rn-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book My Free Consultation</button>
         </div>
       <div class="rn-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
     </div>
@@ -1390,6 +1391,19 @@
       <div class="rn-eco-badge"><div class="rn-eco-dot"></div>100% Pesticide-Free Service</div>
     </div>
   </div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-rental .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-rental');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div><!-- end #gg-rental -->
 <script>
 (function(){

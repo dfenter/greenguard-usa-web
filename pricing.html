@@ -14,7 +14,9 @@
 /* ── WRAPPER ── */
 #gg-pricing { width: 100% !important; max-width: 100% !important; overflow-x: hidden !important; background: #1a2e1f !important; }
 /* ── NAV ── */
-#gg-pricing .gg-nav { position: sticky !important; top: 0 !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
+#gg-pricing .gg-nav { position: fixed !important; top: 0 !important;  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
 #gg-pricing .gg-nav-inner { max-width: 1100px !important; margin: 0 auto !important; display: flex !important; align-items: center !important; justify-content: space-between !important; }
 #gg-pricing .gg-logo { font-weight: 900 !important; color: #fff !important; letter-spacing: -0.02em !important; font-size: 1.1rem !important; }
 #gg-pricing .gg-logo span { color: #7dffaa !important; }
@@ -230,7 +232,7 @@
     <a href="https://www.greenguard-usa.com/team">Our Team</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-menu-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
 </div>
   <!-- HERO -->
   <div class="pr-hero">
@@ -265,7 +267,7 @@
         <div class="pr-free-price">
           <span class="big">$0</span>
           <span class="small">No credit card required</span>
-          <button class="pr-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
+          <button class="pr-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Schedule Free Assessment</button>
         </div>
       </div>
       <!-- RENTAL PLANS -->
@@ -291,7 +293,7 @@
               <div class="pr-feature">Seasonal placement adjustments</div>
               <div class="pr-feature">No upfront equipment cost</div>
             </div>
-            <button class="pr-card-btn gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Book Assessment</button>
+            <button class="pr-card-btn gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book Assessment</button>
           </div>
         </div>
         <div class="pr-card featured pr-reveal">
@@ -310,7 +312,7 @@
               <div class="pr-feature">Seasonal placement adjustments</div>
               <div class="pr-feature">Barrier treatment eligible (CO2 customers)</div>
             </div>
-            <button class="pr-card-btn gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Book Assessment</button>
+            <button class="pr-card-btn gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book Assessment</button>
           </div>
         </div>
         <div class="pr-card pr-reveal">
@@ -329,7 +331,7 @@
               <div class="pr-feature">G20 Summit 2023 certified technology</div>
               <div class="pr-feature">Ideal for commercial properties and large estates</div>
             </div>
-            <button class="pr-card-btn gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Book Assessment</button>
+            <button class="pr-card-btn gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book Assessment</button>
           </div>
         </div>
       </div>
@@ -407,7 +409,7 @@
               <div class="pr-feature">Available to CO2 trap customers only</div>
               <div class="pr-feature">Recurring every 4 weeks available</div>
             </div>
-            <button class="pr-card-btn gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Book Treatment</button>
+            <button class="pr-card-btn gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book Treatment</button>
           </div>
         </div>
         <div class="pr-card pr-reveal">
@@ -424,7 +426,7 @@
               <div class="pr-feature">Service tier recommendation</div>
               <div class="pr-feature">No obligation -- no sales pressure</div>
             </div>
-            <button class="pr-card-btn gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Book Your Free Consultation</button>
+            <button class="pr-card-btn gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book Your Free Consultation</button>
           </div>
         </div>
       </div>
@@ -550,7 +552,7 @@
       <span class="pr-stag" style="display:block;margin-bottom:14px">Start Free -- No Credit Card -- Austin TX</span>
       <h2>Not sure where <span>to start?</span></h2>
       <p>Book a free property assessment. We will walk your yard, recommend the right service tier, and answer every question -- with no obligation to book anything.</p>
-      <div class="pr-cta-btns"><button class="pr-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button></div>
+      <div class="pr-cta-btns"><button class="pr-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Schedule Free Assessment</button></div>
       <div class="pr-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
     </div>
   </div>
@@ -602,6 +604,19 @@
       <div class="pr-eco-badge"><div class="pr-eco-dot"></div>100% Pesticide-Free Service</div>
     </div>
   </div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-pricing .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-pricing');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div><!-- end #gg-pricing -->
 <script>
 (function() {

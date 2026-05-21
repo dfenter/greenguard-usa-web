@@ -4,7 +4,9 @@
 #gg-pfl h1,#gg-pfl h2,#gg-pfl h3,#gg-pfl h4,#gg-pfl p,#gg-pfl ul,#gg-pfl li,#gg-pfl div,#gg-pfl span,#gg-pfl a,#gg-pfl button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-pfl ul{list-style:none}#gg-pfl a{text-decoration:none}
 #gg-pfl{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-pfl .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-pfl .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-pfl .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-pfl .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}#gg-pfl .gg-logo span{color:#7dffaa}
 #gg-pfl .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
@@ -94,13 +96,13 @@
     <a href="https://www.greenguard-usa.com/about">About Us</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Pesticide-Free Living</div></div>
     <h1 class="gg-h1">Outdoor Living Without <span>Pesticide Compromise</span></h1>
     <p class="gg-hero-p">GreenGuard USA delivers the outdoor protection your family deserves, without applying a single pesticide to your lawn, your garden, or any surface your family touches.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
   </div></div>
 
 <div class="gg-sec"><div class="gg-sec-inner"><div class="gg-eye">What Pesticide-Free Really Means</div><h2 class="gg-h2">No residue. No drift. No waiting.</h2><p class="gg-body">Pesticide-free is a term that gets used loosely in the outdoor protection industry. For GreenGuard USA, it means exactly what it says: no pesticide compound is applied to your property at any stage of our service.</p><p class="gg-body">Our CO&#8322; protection technology works through physical capture, not pesticide application. The trap releases CO&#8322; and human scent attractants, draws mosquitoes in, and contains them. Nothing is sprayed, fogged, or applied to vegetation, soil, furniture, or any outdoor surface. Your children can play in the yard during and after service. Your pets can be outside. Your food garden is untouched.</p></div></div>
@@ -109,7 +111,7 @@
   <div class="gg-cta"><div class="gg-cta-inner">
     <h2 class="gg-cta-h">The Fully Pesticide-Free Outdoor Experience</h2>
     <p class="gg-cta-p">Book a free consultation. We design coverage that gives your family complete outdoor comfort with zero pesticide compromise.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
     <p class="gg-cta-note">Free &#183; 100% Pesticide-Free &#183; Serving Austin and Expanding</p>
   </div></div>
 
@@ -124,7 +126,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
       <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Delivery</a>
       <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Protection Program</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+      <a href="https://www.greenguard-usa.com/book">Free Assessment</a>
     </div>
     <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
       <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
@@ -141,4 +143,17 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-pfl .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-pfl');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>

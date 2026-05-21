@@ -3,7 +3,9 @@
 #gg-ft-phx h1,#gg-ft-phx h2,#gg-ft-phx h3,#gg-ft-phx h4,#gg-ft-phx p,#gg-ft-phx ul,#gg-ft-phx li,#gg-ft-phx div,#gg-ft-phx span,#gg-ft-phx a,#gg-ft-phx button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-ft-phx ul{list-style:none}#gg-ft-phx a{text-decoration:none}
 #gg-ft-phx{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-ft-phx .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-ft-phx .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-ft-phx .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-ft-phx .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
 #gg-ft-phx .gg-logo span{color:#7dffaa}
@@ -95,7 +97,7 @@
     <a href="https://www.greenguard-usa.com/about">About Us</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment (Austin)</a>
+    <a href="https://www.greenguard-usa.com/book">Free Assessment (Austin)</a>
   </div>
   <div class="ft-hero"><div class="ft-hero-inner">
     <div class="ft-badge-row"><span class="ft-badge">Franchise Territory</span><span class="ft-badge">Phoenix Metro Area</span><span class="ft-badge">Territory Open</span></div>
@@ -172,6 +174,19 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free Service</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-ft-phx .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-ft-phx');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>
 <!-- TIDIO CHAT: replace 2oaqyblfyjn6xy86vutzzvr1ykg9twav with your key from Tidio dashboard Settings > Integrations > Website -->
 <script>

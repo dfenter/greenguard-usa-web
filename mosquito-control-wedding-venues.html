@@ -4,7 +4,9 @@
 #gg-wed h1,#gg-wed h2,#gg-wed h3,#gg-wed h4,#gg-wed p,#gg-wed ul,#gg-wed li,#gg-wed div,#gg-wed span,#gg-wed a,#gg-wed button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-wed ul{list-style:none}#gg-wed a{text-decoration:none}
 #gg-wed{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-wed .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-wed .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-wed .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-wed .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}#gg-wed .gg-logo span{color:#7dffaa}
 #gg-wed .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
@@ -94,13 +96,13 @@
     <a href="https://www.greenguard-usa.com/about">About Us</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Event Venue Protection</div></div>
     <h1 class="gg-h1">Outdoor Protection for <span>Wedding Venues</span></h1>
     <p class="gg-hero-p">Your guests deserve a flawless outdoor experience. GreenGuard USA provides continuous, pesticide-free mosquito protection for wedding venues and outdoor event spaces, with no spray delays and no residue.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
   </div></div>
 
 <div class="gg-sec"><div class="gg-sec-inner"><div class="gg-eye">The Problem With Spray Programs for Event Venues</div><h2 class="gg-h2">Why they fall short</h2><p class="gg-body">Spray-based mosquito programs require a treatment window before events, typically 24 to 48 hours in advance. This creates scheduling dependencies that conflict with the unpredictable timeline of event preparation. It also leaves pesticide residue on outdoor furniture, linens, and food service surfaces that cannot be eliminated before guests arrive.</p><p class="gg-body">For venues that host multiple events per week, the spray cycle rarely aligns with the event calendar. The result is either over-treatment (spray residue at every event) or under-treatment (insufficient protection when schedules slip).</p></div></div>
@@ -109,7 +111,7 @@
   <div class="gg-cta"><div class="gg-cta-inner">
     <h2 class="gg-cta-h">Protect Your Guest Experience</h2>
     <p class="gg-cta-p">Contact us for a venue assessment. We design a coverage plan for your specific outdoor ceremony and reception areas at no cost.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
     <p class="gg-cta-note">Free &#183; Commercial Rates &#183; Dripping Springs and Austin Area</p>
   </div></div>
 
@@ -124,7 +126,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
       <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Delivery</a>
       <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Protection Program</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+      <a href="https://www.greenguard-usa.com/book">Free Assessment</a>
     </div>
     <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
       <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
@@ -141,4 +143,17 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-wed .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-wed');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>

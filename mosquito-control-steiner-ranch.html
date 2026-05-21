@@ -3,7 +3,9 @@
 #gg-sa h1,#gg-sa h2,#gg-sa h3,#gg-sa h4,#gg-sa p,#gg-sa ul,#gg-sa li,#gg-sa div,#gg-sa span,#gg-sa a,#gg-sa button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-sa ul{list-style:none}#gg-sa a{text-decoration:none}
 #gg-sa{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-sa .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-sa .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-sa .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-sa .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
 #gg-sa .gg-logo span{color:#7dffaa}
@@ -149,14 +151,14 @@
     <a href="https://www.greenguard-usa.com/team">Our Team</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Serving Steiner Ranch, Texas</div></div>
     <h1 class="gg-h1">Mosquito Control in <span>Steiner Ranch</span></h1>
     <p class="gg-hero-p">Steiner Ranch is built around outdoor living, Lake Austin access, greenbelt trails, and community pools. GreenGuard USA protects those spaces with pesticide-free CO&#8322; trapping that works as hard as your outdoor lifestyle demands.</p>
     <div class="gg-btns">
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+      <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
     </div>
     </div></div>
 
@@ -213,7 +215,7 @@
   <div class="gg-cta"><div class="gg-cta-inner">
     <h2 class="gg-cta-h">Ready to Reclaim Your Outdoor Space?</h2>
     <p class="gg-cta-p">Book a complimentary consultation. We visit your Steiner Ranch property, assess mosquito pressure, and design a custom plan, at no cost and no obligation.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
     <p class="gg-cta-note">Free &#183; No Commitment &#183; Steiner Ranch, Travis County</p>
   </div></div>
 
@@ -228,7 +230,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
       <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
       <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rental Program</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+      <a href="https://www.greenguard-usa.com/book">Free Assessment</a>
     </div>
     <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
       <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
@@ -244,6 +246,19 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free Service</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-sa .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-sa');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>
 <!-- TIDIO CHAT: replace 2oaqyblfyjn6xy86vutzzvr1ykg9twav with your key from Tidio dashboard Settings > Integrations > Website -->
 <script>

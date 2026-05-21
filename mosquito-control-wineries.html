@@ -4,7 +4,9 @@
 #gg-win h1,#gg-win h2,#gg-win h3,#gg-win h4,#gg-win p,#gg-win ul,#gg-win li,#gg-win div,#gg-win span,#gg-win a,#gg-win button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-win ul{list-style:none}#gg-win a{text-decoration:none}
 #gg-win{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-win .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-win .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-win .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-win .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}#gg-win .gg-logo span{color:#7dffaa}
 #gg-win .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
@@ -94,13 +96,13 @@
     <a href="https://www.greenguard-usa.com/about">About Us</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Winery and Vineyard Protection</div></div>
     <h1 class="gg-h1">Outdoor Protection for <span>Wineries and Vineyards</span></h1>
     <p class="gg-hero-p">Winery outdoor experiences are built around the environment. GreenGuard USA protects your tasting room patio, event lawn, and vineyard grounds without pesticides that could affect your vines, your bees, or your guests.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
   </div></div>
 
 <div class="gg-sec"><div class="gg-sec-inner"><div class="gg-eye">Why Wineries Cannot Use Conventional Sprays</div><h2 class="gg-h2">The pollinator and food-safety problem</h2><p class="gg-body">Wineries occupy a unique position in the outdoor protection market: they depend on pollinators for their core agricultural product, they serve food and beverages in outdoor settings, and they attract guests specifically to experience the natural environment. Conventional mosquito spray programs conflict with all three of these.</p><p class="gg-body">Synthetic pyrethroids applied to winery grounds land on vine leaves and soil, affect the bee populations that support vineyard health, and leave residue on outdoor tasting and event surfaces. For organically certified and sustainably managed vineyards, conventional spray programs are simply not an option. GreenGuard USA is.</p></div></div>
@@ -109,7 +111,7 @@
   <div class="gg-cta"><div class="gg-cta-inner">
     <h2 class="gg-cta-h">Protect Your Vineyard Experience</h2>
     <p class="gg-cta-p">Contact us for a property assessment. We design coverage for your tasting room patio, event lawn, and vineyard grounds.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
     <p class="gg-cta-note">Free Assessment &#183; Commercial Rates &#183; Hill Country and Austin Area</p>
   </div></div>
 
@@ -124,7 +126,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
       <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Delivery</a>
       <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Protection Program</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+      <a href="https://www.greenguard-usa.com/book">Free Assessment</a>
     </div>
     <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
       <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
@@ -141,4 +143,17 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-win .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-win');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>

@@ -4,7 +4,9 @@
 #gg-res h1,#gg-res h2,#gg-res h3,#gg-res h4,#gg-res p,#gg-res ul,#gg-res li,#gg-res div,#gg-res span,#gg-res a,#gg-res button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-res ul{list-style:none}#gg-res a{text-decoration:none}
 #gg-res{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-res .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-res .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-res .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-res .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}#gg-res .gg-logo span{color:#7dffaa}
 #gg-res .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
@@ -94,13 +96,13 @@
     <a href="https://www.greenguard-usa.com/about">About Us</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Resort Protection</div></div>
     <h1 class="gg-h1">Outdoor Protection for <span>Resorts and Hospitality Properties</span></h1>
     <p class="gg-hero-p">Resort outdoor environments are the product guests pay for. GreenGuard USA provides continuous, hospitality-grade mosquito protection without pesticide applications that conflict with guest safety and environmental commitments.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
   </div></div>
 
 <div class="gg-sec"><div class="gg-sec-inner"><div class="gg-eye">The Hospitality Standard for Outdoor Protection</div><h2 class="gg-h2">What guests expect</h2><p class="gg-body">Resort guests have an expectation of comfort in outdoor spaces, pool areas, dining terraces, garden pathways, and recreation areas. Mosquito pressure that interrupts outdoor enjoyment directly affects guest satisfaction scores, reviews, and return visits. It is a hospitality problem as much as an environmental one.</p><p class="gg-body">The conventional spray approach creates its own hospitality problems: the chemical scent following a treatment, the residue on outdoor furniture and dining surfaces, the need to notify guests of treatment schedules. GreenGuard USA's continuous protection program eliminates all of these concerns.</p></div></div>
@@ -109,7 +111,7 @@
   <div class="gg-cta"><div class="gg-cta-inner">
     <h2 class="gg-cta-h">Protect Your Guest Experience</h2>
     <p class="gg-cta-p">Contact us for a property assessment. We design a hospitality-grade coverage plan for your full outdoor footprint.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
     <p class="gg-cta-note">Free Assessment &#183; Commercial Rates &#183; Texas and Expanding</p>
   </div></div>
 
@@ -124,7 +126,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
       <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Delivery</a>
       <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Protection Program</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+      <a href="https://www.greenguard-usa.com/book">Free Assessment</a>
     </div>
     <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
       <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
@@ -141,4 +143,17 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-res .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-res');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>

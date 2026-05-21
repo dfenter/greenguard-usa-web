@@ -4,7 +4,9 @@
 #gg-ow h1,#gg-ow h2,#gg-ow h3,#gg-ow h4,#gg-ow p,#gg-ow ul,#gg-ow li,#gg-ow div,#gg-ow span,#gg-ow a,#gg-ow button{font-family:'Nunito Sans',sans-serif;margin:0;padding:0;line-height:normal;letter-spacing:normal}
 #gg-ow ul{list-style:none}#gg-ow a{text-decoration:none}
 #gg-ow{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-ow .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-ow .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-ow .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-ow .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}#gg-ow .gg-logo span{color:#7dffaa}
 #gg-ow .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
@@ -94,13 +96,13 @@
     <a href="https://www.greenguard-usa.com/about">About Us</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge-row"><div class="gg-dot"></div><div class="gg-badge">Outdoor Wellness</div></div>
     <h1 class="gg-h1">Reclaim Your <span>Outdoor Wellness</span></h1>
     <p class="gg-hero-p">The outdoor spaces around your home are part of your family's wellbeing. GreenGuard USA exists to make those spaces genuinely comfortable, safe, and usable, season after season.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
   </div></div>
 
 <div class="gg-sec"><div class="gg-sec-inner"><div class="gg-eye">Outdoor Wellness Is Not a Luxury</div><h2 class="gg-h2">It is a baseline worth protecting</h2><p class="gg-body">Research on human wellbeing consistently shows that time outdoors, in natural settings with vegetation, has measurable benefits for mood, stress, and cognitive function. Austin's climate makes this accessible across most of the calendar year.</p><p class="gg-body">The barrier to outdoor wellness for most Austin families is not the weather. It is mosquito pressure. The outdoor dinner that moves inside. The evening walk that gets cut short. The pool that sits unused through summer afternoons. GreenGuard USA was built specifically to remove that barrier, without creating new ones through pesticide exposure.</p></div></div>
@@ -109,7 +111,7 @@
   <div class="gg-cta"><div class="gg-cta-inner">
     <h2 class="gg-cta-h">Invest in Your Outdoor Wellness</h2>
     <p class="gg-cta-p">Book a free property consultation. We design a coverage plan that makes your outdoor spaces a genuine part of your family's daily life.</p>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319" class="gg-btn-gold">Book Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book" class="gg-btn-gold">Book Free Consultation</a>
     <p class="gg-cta-note">Free &#183; No Obligation &#183; Austin Area and Expanding</p>
   </div></div>
 
@@ -124,7 +126,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
       <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Delivery</a>
       <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Protection Program</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+      <a href="https://www.greenguard-usa.com/book">Free Assessment</a>
     </div>
     <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
       <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
@@ -141,4 +143,17 @@
     <span>&#169; 2025 GreenGuard USA &#183; Austin, Texas</span>
     <span class="gg-footer-badge">100% Pesticide-Free</span>
   </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('#gg-ow .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-ow');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
 </div>

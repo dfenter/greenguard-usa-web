@@ -5,7 +5,9 @@
 #gg-blog ul,#gg-post ul{list-style:none}
 #gg-blog a,#gg-post a{text-decoration:none}
 #gg-blog,#gg-post{width:100%;background:#1a2e1f;font-family:'Nunito Sans',sans-serif}
-#gg-blog .gg-nav,#gg-post .gg-nav{position:sticky;top:0;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
+#gg-blog .gg-nav,#gg-post .gg-nav{position: fixed ;top:0;  left: 0 ;
+  right: 0 ;
+  width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-blog .gg-nav-inner,#gg-post .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
 #gg-blog .gg-logo,#gg-post .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
 #gg-blog .gg-logo span,#gg-post .gg-logo span{color:#7dffaa}
@@ -112,7 +114,7 @@
     <a href="https://www.greenguard-usa.com/team">Our Team</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
     <span class="gg-group">Book</span>
-    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Book Your Free Consultation</a>
+    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
     <div class="gg-badge">GreenGuard USA</div>
@@ -141,7 +143,7 @@
     <div class="gg-footer-col"><div class="gg-footer-col-head">Services</div>
       <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
       <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rental Program</a>
-      <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Assessment</a>
+      <a href="https://www.greenguard-usa.com/book">Free Assessment</a>
     </div>
     <div class="gg-footer-col"><div class="gg-footer-col-head">Learn</div>
       <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
@@ -169,7 +171,20 @@
       + '<div class="gg-card-title">'+p.title+'</div>'
       + '<div class="gg-card-excerpt">'+p.excerpt+'</div>'
       + '<div class="gg-card-footer"><span class="gg-card-date">'+p.date_display+'</span>'
-      + '<span class="gg-card-link">Read article</span></div>
+      + '<span class="gg-card-link">Read article</span><script>
+(function(){
+  var nav = document.querySelector('#gg-post .gg-nav');
+  if(!nav) return;
+  var wrapper = document.querySelector('#gg-post');
+  if(!wrapper) return;
+  function applyPad(){
+    wrapper.style.paddingTop = nav.offsetHeight + 'px';
+  }
+  applyPad();
+  window.addEventListener('resize', applyPad);
+})();
+</script>
+</div>
 <!-- TIDIO CHAT: replace 2oaqyblfyjn6xy86vutzzvr1ykg9twav with your key from Tidio dashboard Settings > Integrations > Website -->
 <script>
 /* gg-accordion-v2 */
