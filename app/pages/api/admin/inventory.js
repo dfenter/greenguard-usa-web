@@ -8,6 +8,7 @@ const INVENTORY_EMAIL = 'inventory@greenguard-usa.com'
 const FIELD_LABELS = {
   fullTanks: 'Full CO₂ tanks',
   emptyTanks: 'Empty CO₂ tanks',
+  damagedTanks: 'Damaged CO₂ tanks',
   bgTraps: 'Biogents traps in stock',
   mosqitterUnits: 'Mosqitter units in stock',
   timers: 'Timers in stock',

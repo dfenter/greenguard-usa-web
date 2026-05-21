@@ -35,6 +35,7 @@ export async function getServerSideProps({ req }) {
 const FIELDS = [
   { key: 'fullTanks', label: 'Full CO₂ tanks' },
   { key: 'emptyTanks', label: 'Empty CO₂ tanks' },
+  { key: 'damagedTanks', label: 'Damaged CO₂ tanks' },
   { key: 'bgTraps', label: 'Biogents traps in stock' },
   { key: 'mosqitterUnits', label: 'Mosqitter units in stock' },
   { key: 'timers', label: 'Timers in stock' },

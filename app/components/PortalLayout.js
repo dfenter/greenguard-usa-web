@@ -20,6 +20,7 @@ const ADMIN_NAV_LINKS = [
   { href: '/admin/booking', label: 'New Booking' },
   { href: '/admin/analytics', label: 'Analytics' },
   { href: '/admin/route', label: 'Route Plan' },
+  { href: '/admin/tank-calendar', label: 'Tanks' },
 ]
 
 export default function PortalLayout({ children, title, isAdmin = false }) {
