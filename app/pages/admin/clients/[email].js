@@ -6,6 +6,7 @@ import { getSessionFromRequest } from '../../../lib/auth'
 import { findContactByEmail, getNotesForContact } from '../../../lib/hubspot'
 import { stripe } from '../../../lib/stripe'
 import { getBookingsForEmail } from '../../../lib/calcom'
+import { EVENT_TYPES } from '../../../lib/sku-engine'
 
 export async function getServerSideProps({ req, params }) {
   const session = await getSessionFromRequest(req)
@@ -47,14 +48,22 @@ export async function getServerSideProps({ req, params }) {
     if (p.installation_map) markers = JSON.parse(p.installation_map).markers || []
   } catch { markers = [] }
 
-  // Determine Cal.com booking link with pre-filled params
-  const calBase = process.env.CALCOM_BOOKING_URL || 'https://cal.com/greenguard'
   const custName = [p.firstname, p.lastname].filter(Boolean).join(' ')
+
+  // Build per-event-type Cal.com booking URLs with customer info pre-filled
+  const calUsername = process.env.CALCOM_USERNAME || 'greenguard'
   const calParams = new URLSearchParams()
   if (custName) calParams.set('name', custName)
-  if (email) calParams.set('email', email)
-  if (p.address) calParams.set('location', p.address)
-  const scheduleUrl = `${calBase}?${calParams.toString()}`
+  calParams.set('email', email)
+  if (p.address) calParams.set('notes', p.address)
+  const calQueryString = calParams.toString()
+
+  const eventTypeLinks = EVENT_TYPES.map((et) => ({
+    title: et.title,
+    slug: et.slug,
+    price: et.price,
+    url: `https://cal.com/${calUsername}/${et.slug}?${calQueryString}`,
+  }))
 
   return {
     props: {
@@ -101,7 +110,7 @@ export async function getServerSideProps({ req, params }) {
         timestamp: n.properties?.hs_timestamp,
       })),
       markers,
-      scheduleUrl,
+      eventTypeLinks,
     },
   }
 }
@@ -124,8 +133,9 @@ const STATUS_COLORS = {
   canceled: 'rgba(212,230,202,0.3)', void: 'rgba(212,230,202,0.3)', draft: 'rgba(212,230,202,0.4)',
 }
 
-export default function ClientDetail({ isAdmin, customer, subscriptions, invoices, bookings, notes, markers, scheduleUrl }) {
+export default function ClientDetail({ isAdmin, customer, subscriptions, invoices, bookings, notes, markers, eventTypeLinks }) {
   const [scheduleOpen, setScheduleOpen] = useState(false)
+  const [selectedSlug, setSelectedSlug] = useState(eventTypeLinks[0]?.slug || '')
 
   return (
     <>
@@ -159,13 +169,42 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
         {/* Schedule panel */}
         {scheduleOpen && (
           <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 10, padding: '20px', marginBottom: 28 }}>
-            <div style={{ fontWeight: 700, marginBottom: 10, color: '#c9a84c' }}>Schedule Appointment for {customer.name || customer.email}</div>
-            <p style={{ margin: '0 0 14px', fontSize: '0.88rem', color: 'rgba(212,230,202,0.6)' }}>
-              Opens Cal.com with customer details pre-filled. After booking, the webhook will create Stripe invoice items and update HubSpot automatically.
+            <div style={{ fontWeight: 700, marginBottom: 10, color: '#c9a84c' }}>Schedule for {customer.name || customer.email}</div>
+            <p style={{ margin: '0 0 14px', fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)' }}>
+              Pick a service type — Cal.com opens with name, email, and address pre-filled. The webhook will create Stripe invoice items and update HubSpot automatically after booking.
             </p>
-            <a href={scheduleUrl} target="_blank" rel="noopener noreferrer" className="btn-gold" style={{ fontSize: '0.85rem' }}>
-              Open Cal.com Booking →
-            </a>
+            <div style={{ marginBottom: 14 }}>
+              <select
+                value={selectedSlug}
+                onChange={(e) => setSelectedSlug(e.target.value)}
+                style={{
+                  width: '100%', padding: '10px 12px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(201,168,76,0.3)',
+                  borderRadius: 6, color: '#d4e6ca', fontSize: '0.88rem',
+                }}
+              >
+                {eventTypeLinks.map((et) => (
+                  <option key={et.slug} value={et.slug}>
+                    {et.title}{et.price ? ` — $${et.price.toFixed(2)}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {(() => {
+              const selected = eventTypeLinks.find((et) => et.slug === selectedSlug)
+              return selected ? (
+                <a
+                  href={selected.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-gold"
+                  style={{ fontSize: '0.85rem', display: 'inline-block' }}
+                >
+                  Open Cal.com →
+                </a>
+              ) : null
+            })()}
           </div>
         )}
 
