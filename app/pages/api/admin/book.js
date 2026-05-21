@@ -2,7 +2,7 @@ const { getSessionFromRequest } = require('../../../lib/auth')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 const CALCOM_API_KEY = process.env.CALCOM_API_KEY || ''
-const CALCOM_BASE = 'https://api.cal.com/v2'
+const CALCOM_BASE = `${(process.env.CALCOM_BASE_URL || 'https://cal.com').replace(/\/$/, '')}/api/v2`
 const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 
 export default async function handler(req, res) {

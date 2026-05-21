@@ -8,12 +8,19 @@ const NAV_LINKS = [
   { href: '/dashboard/equipment', label: 'My System' },
   { href: '/dashboard/billing', label: 'Billing' },
   { href: '/dashboard/co2', label: 'CO₂ Status' },
+  { href: '/dashboard/map', label: 'My Map' },
 ]
 
 const ADMIN_NAV_LINKS = [
+  { href: '/admin/clients', label: 'Clients' },
+  { href: '/admin/visit-complete', label: 'Log Visit' },
+  { href: '/admin/quote', label: 'Quote' },
+  { href: '/admin/inventory', label: 'Inventory' },
+  { href: '/admin/map', label: 'Install Map' },
   { href: '/admin/booking', label: 'New Booking' },
   { href: '/admin/analytics', label: 'Analytics' },
   { href: '/admin/route', label: 'Route Plan' },
+  { href: '/admin/tank-calendar', label: 'Tanks' },
 ]
 
 export default function PortalLayout({ children, title, isAdmin = false }) {

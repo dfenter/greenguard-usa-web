@@ -1,4 +1,4 @@
-const BASE = 'https://api.cal.com/v1'
+const BASE = `${(process.env.CALCOM_BASE_URL || 'https://cal.com').replace(/\/$/, '')}/api/v1`
 
 async function calFetch(path, options = {}) {
   const url = `${BASE}${path}${path.includes('?') ? '&' : '?'}apiKey=${process.env.CALCOM_API_KEY}`

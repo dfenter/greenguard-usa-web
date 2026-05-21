@@ -2,6 +2,13 @@ const { Client } = require('@hubspot/api-client')
 
 const client = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN })
 
+// Allowed HubSpot custom properties for upsertContact metadata
+const ALLOWED_METADATA_KEYS = new Set([
+  'system_type', 'trap_count', 'tank_count', 'has_timer',
+  'service_start_date', 'customer_type', 'last_visit_date', 'installation_map',
+  'stripe_customer_id',
+])
+
 /**
  * Create or update a HubSpot contact by email.
  */
@@ -16,7 +23,9 @@ async function upsertContact({ email, name, phone, address, metadata = {} }) {
     phone: phone || '',
     address: address || '',
     ...Object.fromEntries(
-      Object.entries(metadata).map(([k, v]) => [k, String(v)])
+      Object.entries(metadata || {})
+        .filter(([k]) => ALLOWED_METADATA_KEYS.has(k))
+        .map(([k, v]) => [k, String(v)])
     ),
   }
 
@@ -62,6 +71,13 @@ async function addNote(contactId, noteBody) {
   })
 }
 
+const CONTACT_PROPERTIES = [
+  'email', 'firstname', 'lastname', 'phone', 'address',
+  'system_type', 'trap_count', 'tank_count', 'has_timer',
+  'service_start_date', 'customer_type', 'last_visit_date',
+  'installation_map',
+]
+
 /**
  * Find a contact by email and return their HubSpot ID + properties.
  */
@@ -72,11 +88,55 @@ async function findContactByEmail(email) {
         filters: [{ propertyName: 'email', operator: 'EQ', value: email }],
       },
     ],
-    properties: ['email', 'firstname', 'lastname', 'phone', 'address'],
+    properties: CONTACT_PROPERTIES,
     limit: 1,
   })
 
   return search.results[0] || null
+}
+
+/**
+ * List all contacts (used by admin pages for customer dropdowns + client list).
+ */
+async function listAllContacts(limit = 100) {
+  const res = await client.crm.contacts.basicApi.getPage(limit, undefined, undefined, CONTACT_PROPERTIES)
+  return res.results || []
+}
+
+/**
+ * Fetch the last N notes for a contact ID.
+ * Uses two-step approach: get associated note IDs from contact, then batch-read note content.
+ */
+async function getNotesForContact(contactId, limit = 30) {
+  try {
+    // Step 1: get associated note IDs via the contact's associations
+    const contact = await client.crm.contacts.basicApi.getById(
+      String(contactId),
+      [],        // properties (none needed)
+      undefined, // propertiesWithHistory
+      ['notes'], // associations to include
+    )
+
+    const noteIds = (contact.associations?.notes?.results || [])
+      .map((a) => a.id)
+      .slice(0, limit)
+
+    if (noteIds.length === 0) return []
+
+    // Step 2: batch-read the actual note content
+    const batchRes = await client.crm.objects.notes.batchApi.read({
+      inputs: noteIds.map((id) => ({ id: String(id) })),
+      properties: ['hs_note_body', 'hs_timestamp'],
+    })
+
+    const results = batchRes.results || []
+    results.sort((a, b) =>
+      new Date(b.properties?.hs_timestamp) - new Date(a.properties?.hs_timestamp)
+    )
+    return results
+  } catch {
+    return []
+  }
 }
 
 /**
@@ -94,4 +154,4 @@ async function countContactsByProperty(propertyName, value) {
   }
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail, countContactsByProperty }
+module.exports = { upsertContact, addNote, findContactByEmail, listAllContacts, getNotesForContact, countContactsByProperty }

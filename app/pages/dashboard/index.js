@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import Link from 'next/link'
+import { useState } from 'react'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
 import { getSubscriptions, getInvoices } from '../../lib/stripe'
@@ -57,6 +58,73 @@ function formatDate(isoString) {
 
 function formatAmount(cents) {
   return `$${(cents / 100).toFixed(2)}`
+}
+
+function ServiceRequestForm({ email }) {
+  const [open, setOpen] = useState(false)
+  const [message, setMessage] = useState('')
+  const [status, setStatus] = useState(null) // null | 'sending' | 'sent' | 'error'
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!message.trim()) return
+    setStatus('sending')
+    try {
+      const res = await fetch('/api/customer/request-service', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      })
+      setStatus(res.ok ? 'sent' : 'error')
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  if (status === 'sent') {
+    return (
+      <div style={{ marginTop: 32, padding: '14px 20px', background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.2)', borderRadius: 8, fontSize: '0.9rem', color: '#7dffaa', fontWeight: 700 }}>
+        ✓ Request sent — we&apos;ll be in touch within 24 hours.
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="btn-outline" style={{ fontSize: '0.85rem' }}>
+          Request Service
+        </button>
+      ) : (
+        <form onSubmit={handleSubmit} style={{ maxWidth: 480 }}>
+          <div style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 10, color: '#d4e6ca' }}>Describe what you need</div>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={4}
+            placeholder="E.g. I need my CO₂ tanks refilled sooner, or I'd like to add a trap…"
+            style={{
+              width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6,
+              color: '#d4e6ca', fontSize: '0.9rem', fontFamily: 'inherit',
+              resize: 'vertical', boxSizing: 'border-box',
+            }}
+          />
+          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+            <button type="submit" disabled={status === 'sending' || !message.trim()} className="btn-gold" style={{ fontSize: '0.85rem' }}>
+              {status === 'sending' ? 'Sending…' : 'Send Request'}
+            </button>
+            <button type="button" onClick={() => setOpen(false)} className="btn-outline" style={{ fontSize: '0.85rem' }}>
+              Cancel
+            </button>
+          </div>
+          {status === 'error' && (
+            <div style={{ marginTop: 10, color: '#ff8888', fontSize: '0.85rem' }}>Something went wrong — please email hello@greenguard-usa.com directly.</div>
+          )}
+        </form>
+      )}
+    </div>
+  )
 }
 
 export default function Dashboard({ email, isAdmin, name, nextBooking, subscription, lastInvoiceStatus, trapCount, systemType }) {
@@ -135,11 +203,7 @@ export default function Dashboard({ email, isAdmin, name, nextBooking, subscript
           </div>
         </div>
 
-        <div style={{ marginTop: 32 }}>
-          <a href="mailto:hello@greenguard-usa.com" className="btn-outline" style={{ fontSize: '0.85rem' }}>
-            Request a service change
-          </a>
-        </div>
+        <ServiceRequestForm email={email} />
       </PortalLayout>
     </>
   )
