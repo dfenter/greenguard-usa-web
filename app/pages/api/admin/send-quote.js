@@ -13,8 +13,12 @@ export default async function handler(req, res) {
   }
 
   const { email, name, items = [] } = req.body || {}
-  if (!email) return res.status(400).json({ error: 'email required' })
-  if (!items.length) return res.status(400).json({ error: 'items required' })
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Valid email required' })
+  }
+  if (!Array.isArray(items) || !items.length) {
+    return res.status(400).json({ error: 'items required' })
+  }
 
   const monthlyTotal = items.filter((i) => i.recurring).reduce((s, i) => s + (i.price || 0), 0)
   const oneTimeTotal = items.filter((i) => !i.recurring).reduce((s, i) => s + (i.price || 0), 0)

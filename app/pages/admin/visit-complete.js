@@ -96,14 +96,14 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
     )
   }
 
-  // Build effective SKU list (expand trap-maint by count if needed)
+  // Build effective SKU list — always use the trap count dropdown to pick the right maint SKU
   function effectiveSkus() {
-    const skus = [...selectedSkus]
-    // Replace generic trap maint with correct count SKU if selected
-    if (skus.includes('TRAP-MAINT-1') && trapMaintCount === 2) {
-      return skus.map((s) => (s === 'TRAP-MAINT-1' ? 'TRAP-MAINT-2' : s))
-    }
-    return skus
+    return selectedSkus.map((s) => {
+      if (s === 'TRAP-MAINT-1' || s === 'TRAP-MAINT-2') {
+        return trapMaintCount === 2 ? 'TRAP-MAINT-2' : 'TRAP-MAINT-1'
+      }
+      return s
+    })
   }
 
   function totalAmount() {

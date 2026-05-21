@@ -2,6 +2,12 @@ const { Client } = require('@hubspot/api-client')
 
 const client = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN })
 
+// Allowed HubSpot custom properties for upsertContact metadata
+const ALLOWED_METADATA_KEYS = new Set([
+  'system_type', 'trap_count', 'tank_count', 'has_timer',
+  'service_start_date', 'customer_type', 'last_visit_date', 'installation_map',
+])
+
 /**
  * Create or update a HubSpot contact by email.
  */
@@ -16,7 +22,9 @@ async function upsertContact({ email, name, phone, address, metadata = {} }) {
     phone: phone || '',
     address: address || '',
     ...Object.fromEntries(
-      Object.entries(metadata).map(([k, v]) => [k, String(v)])
+      Object.entries(metadata || {})
+        .filter(([k]) => ALLOWED_METADATA_KEYS.has(k))
+        .map(([k, v]) => [k, String(v)])
     ),
   }
 
@@ -96,22 +104,35 @@ async function listAllContacts(limit = 100) {
 
 /**
  * Fetch the last N notes for a contact ID.
+ * Uses two-step approach: get associated note IDs from contact, then batch-read note content.
  */
 async function getNotesForContact(contactId, limit = 30) {
   try {
-    const res = await client.crm.objects.notes.searchApi.doSearch({
-      filterGroups: [{
-        filters: [{
-          propertyName: 'associations.contact',
-          operator: 'EQ',
-          value: String(contactId),
-        }],
-      }],
+    // Step 1: get associated note IDs via the contact's associations
+    const contact = await client.crm.contacts.basicApi.getById(
+      String(contactId),
+      [],        // properties (none needed)
+      undefined, // propertiesWithHistory
+      ['notes'], // associations to include
+    )
+
+    const noteIds = (contact.associations?.notes?.results || [])
+      .map((a) => a.id)
+      .slice(0, limit)
+
+    if (noteIds.length === 0) return []
+
+    // Step 2: batch-read the actual note content
+    const batchRes = await client.crm.objects.notes.batchApi.read({
+      inputs: noteIds.map((id) => ({ id: String(id) })),
       properties: ['hs_note_body', 'hs_timestamp'],
-      sorts: [{ propertyName: 'hs_timestamp', direction: 'DESCENDING' }],
-      limit,
     })
-    return res.results || []
+
+    const results = batchRes.results || []
+    results.sort((a, b) =>
+      new Date(b.properties?.hs_timestamp) - new Date(a.properties?.hs_timestamp)
+    )
+    return results
   } catch {
     return []
   }

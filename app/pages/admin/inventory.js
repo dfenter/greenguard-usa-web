@@ -2,6 +2,18 @@ import Head from 'next/head'
 import { useState } from 'react'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
+import { findContactByEmail, upsertContact, getNotesForContact } from '../../lib/hubspot'
+
+const INVENTORY_EMAIL = 'inventory@greenguard-usa.com'
+
+async function getOrCreateInventoryContact() {
+  let contact = await findContactByEmail(INVENTORY_EMAIL).catch(() => null)
+  if (!contact) {
+    await upsertContact({ email: INVENTORY_EMAIL, name: 'GreenGuard Inventory Tracker', metadata: {} })
+    contact = await findContactByEmail(INVENTORY_EMAIL)
+  }
+  return contact
+}
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -11,11 +23,8 @@ export async function getServerSideProps({ req }) {
 
   let history = []
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const res = await fetch(`${baseUrl}/api/admin/inventory`, {
-      headers: { cookie: req.headers.cookie || '' },
-    })
-    if (res.ok) history = await res.json()
+    const contact = await getOrCreateInventoryContact()
+    history = await getNotesForContact(contact.id, 30)
   } catch {
     // history stays empty
   }

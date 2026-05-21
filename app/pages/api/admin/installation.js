@@ -36,10 +36,35 @@ export default async function handler(req, res) {
     const { email, markers = [] } = req.body || {}
     if (!email) return res.status(400).json({ error: 'email required' })
 
+    if (!Array.isArray(markers)) {
+      return res.status(400).json({ error: 'markers must be an array' })
+    }
+
+    // Validate each marker has sane coordinates and bounded strings
+    for (const m of markers) {
+      if (
+        typeof m.lat !== 'number' || m.lat < -90 || m.lat > 90 ||
+        typeof m.lng !== 'number' || m.lng < -180 || m.lng > 180
+      ) {
+        return res.status(400).json({ error: 'Invalid marker coordinates' })
+      }
+      if (typeof m.label !== 'string' || m.label.length > 100) {
+        return res.status(400).json({ error: 'Marker label too long' })
+      }
+      if (m.notes !== undefined && (typeof m.notes !== 'string' || m.notes.length > 500)) {
+        return res.status(400).json({ error: 'Marker notes too long' })
+      }
+    }
+
     try {
+      const safeMarkers = markers.map(({ lat, lng, label, notes }) => ({
+        lat, lng,
+        label: label.trim(),
+        notes: (notes || '').trim(),
+      }))
       await upsertContact({
         email,
-        metadata: { installation_map: JSON.stringify({ markers }) },
+        metadata: { installation_map: JSON.stringify({ markers: safeMarkers }) },
       })
       return res.status(200).json({ success: true })
     } catch (err) {

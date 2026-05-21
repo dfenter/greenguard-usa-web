@@ -1,6 +1,12 @@
 const { getSessionFromRequest } = require('../../../lib/auth')
 const { findContactByEmail, upsertContact, addNote } = require('../../../lib/hubspot')
 const { addInvoiceItems, stripe } = require('../../../lib/stripe')
+const { SKU_PRICES, isSubscriptionSKU } = require('../../../lib/sku-engine')
+
+// Only non-subscription, non-free SKUs are valid for manual invoice items
+const BILLABLE_SKUS = new Set(
+  Object.keys(SKU_PRICES).filter((sku) => !isSubscriptionSKU(sku) && sku !== 'ASSESS' && sku !== 'CHK')
+)
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -12,8 +18,11 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const { email, skus = [], notes = '' } = req.body || {}
+  const { email, skus: rawSkus = [], notes = '' } = req.body || {}
   if (!email) return res.status(400).json({ error: 'email required' })
+
+  // Whitelist: only allow known non-subscription, non-free SKUs
+  const skus = (Array.isArray(rawSkus) ? rawSkus : []).filter((s) => BILLABLE_SKUS.has(s))
 
   try {
     // Find Stripe customer ID
