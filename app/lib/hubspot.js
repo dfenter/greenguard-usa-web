@@ -6,6 +6,7 @@ const client = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN })
 const ALLOWED_METADATA_KEYS = new Set([
   'system_type', 'trap_count', 'tank_count', 'has_timer',
   'service_start_date', 'customer_type', 'last_visit_date', 'installation_map',
+  'stripe_customer_id',
 ])
 
 /**
