@@ -2,8 +2,15 @@
   "google": {
     "place_id": "ChIJx8wLC4K11wwRbfe7hhZiHXs",
     "rating": 5,
-    "total": 15,
+    "total": 16,
     "reviews": [
+      {
+        "author": "Brendan",
+        "rating": 5,
+        "text": "Very happy with the experience so far with GreenGuard- I was blown away at the amount of mosquitoes that were caught. it was in the thousands. the amount of mosquitoes has gone down considerably, and the guys make it so easy to work with them.",
+        "time": "in the last week",
+        "source": "google"
+      },
       {
         "author": "Betny Townsend",
         "rating": 5,
@@ -29,14 +36,7 @@
         "author": "Roger Anderson",
         "rating": 5,
         "text": "After about 20 years of putting in the patio we are finally able to use it.  Even though our pest control does a great job,  their sprays and crystals never really did the job.  Our neighbors told us about GreenGuard and we couldn't be happier to sit out and not be chased into the house because of the mosquitoes.  Thanks to GreenGuard we are truly enjoying our patio for the first time.",
-        "time": "a week ago",
-        "source": "google"
-      },
-      {
-        "author": "Jake Spencer",
-        "rating": 5,
-        "text": "",
-        "time": "9 months ago",
+        "time": "2 weeks ago",
         "source": "google"
       }
     ]
