@@ -33,32 +33,16 @@
     ]
   },
   "mcpServers": {
-    "vercel": {
-      "command": "npx",
-      "args": ["-y", "@vercel/mcp"],
-      "env": {
-        "VERCEL_TOKEN": "REPLACE_WITH_VERCEL_TOKEN"
-      }
-    },
     "stripe": {
       "command": "npx",
-      "args": ["-y", "@stripe/mcp"],
-      "env": {
-        "STRIPE_SECRET_KEY": "REPLACE_WITH_STRIPE_SECRET_KEY"
-      }
+      "args": ["-y", "@stripe/mcp", "--api-key=REPLACE_WITH_STRIPE_SECRET_KEY"],
+      "env": {}
     },
     "resend": {
       "command": "npx",
       "args": ["-y", "resend-mcp"],
       "env": {
         "RESEND_API_KEY": "REPLACE_WITH_RESEND_API_KEY"
-      }
-    },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_TOKEN": "REPLACE_WITH_GITHUB_TOKEN"
       }
     },
     "filesystem": {
