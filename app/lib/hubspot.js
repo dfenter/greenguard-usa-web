@@ -62,6 +62,13 @@ async function addNote(contactId, noteBody) {
   })
 }
 
+const CONTACT_PROPERTIES = [
+  'email', 'firstname', 'lastname', 'phone', 'address',
+  'system_type', 'trap_count', 'tank_count', 'has_timer',
+  'service_start_date', 'customer_type', 'last_visit_date',
+  'installation_map',
+]
+
 /**
  * Find a contact by email and return their HubSpot ID + properties.
  */
@@ -72,11 +79,42 @@ async function findContactByEmail(email) {
         filters: [{ propertyName: 'email', operator: 'EQ', value: email }],
       },
     ],
-    properties: ['email', 'firstname', 'lastname', 'phone', 'address'],
+    properties: CONTACT_PROPERTIES,
     limit: 1,
   })
 
   return search.results[0] || null
+}
+
+/**
+ * List all contacts (used by admin pages for customer dropdowns + client list).
+ */
+async function listAllContacts(limit = 100) {
+  const res = await client.crm.contacts.basicApi.getPage(limit, undefined, undefined, CONTACT_PROPERTIES)
+  return res.results || []
+}
+
+/**
+ * Fetch the last N notes for a contact ID.
+ */
+async function getNotesForContact(contactId, limit = 30) {
+  try {
+    const res = await client.crm.objects.notes.searchApi.doSearch({
+      filterGroups: [{
+        filters: [{
+          propertyName: 'associations.contact',
+          operator: 'EQ',
+          value: String(contactId),
+        }],
+      }],
+      properties: ['hs_note_body', 'hs_timestamp'],
+      sorts: [{ propertyName: 'hs_timestamp', direction: 'DESCENDING' }],
+      limit,
+    })
+    return res.results || []
+  } catch {
+    return []
+  }
 }
 
 /**
@@ -94,4 +132,4 @@ async function countContactsByProperty(propertyName, value) {
   }
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail, countContactsByProperty }
+module.exports = { upsertContact, addNote, findContactByEmail, listAllContacts, getNotesForContact, countContactsByProperty }
