@@ -1,0 +1,141 @@
+{
+  "source": "Extracted from Google Calendar (Acuity Scheduling sync) — maps appointment titles to Cal.com slugs and SKUs",
+  "note": "Cal.com event type slugs should match these titles exactly, or update the slug field here after creating event types in Cal.com",
+  "eventTypes": [
+    {
+      "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+      "slug": "biogents-single-rental",
+      "skus": ["BG1"],
+      "price": 159.99,
+      "durationMin": 30,
+      "systemType": "Biogents-CO2",
+      "trapCount": 1,
+      "visitType": "exchange"
+    },
+    {
+      "title": "2x Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+      "slug": "biogents-double-rental",
+      "skus": ["BG2"],
+      "price": 266.99,
+      "durationMin": 45,
+      "systemType": "Biogents-CO2",
+      "trapCount": 2,
+      "visitType": "exchange"
+    },
+    {
+      "title": "One - 20 pound CO2 Tank Exchange Delivery Service",
+      "slug": "one-tank-exchange",
+      "skus": ["TANK1"],
+      "price": 89.99,
+      "durationMin": 30,
+      "systemType": "Tank-Only",
+      "tankCount": 1,
+      "visitType": "exchange"
+    },
+    {
+      "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill",
+      "slug": "one-tank-exchange-bait",
+      "skus": ["TANK1", "BAIT"],
+      "price": 99.99,
+      "durationMin": 30,
+      "systemType": "Tank-Only",
+      "tankCount": 1,
+      "visitType": "exchange",
+      "addons": ["BAIT"]
+    },
+    {
+      "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill, Tank hookup and trap maintenance",
+      "slug": "one-tank-exchange-bait-maintenance",
+      "skus": ["TANK1", "BAIT", "TRAP-MAINT-1"],
+      "price": 109.99,
+      "durationMin": 45,
+      "systemType": "Tank-Only",
+      "tankCount": 1,
+      "visitType": "exchange",
+      "addons": ["BAIT", "TRAP-MAINT-1"]
+    },
+    {
+      "title": "Two -20 pound CO2 Tank Exchange Delivery Service",
+      "slug": "two-tank-exchange",
+      "skus": ["TANK2"],
+      "price": 159.99,
+      "durationMin": 45,
+      "systemType": "Tank-Only",
+      "tankCount": 2,
+      "visitType": "exchange"
+    },
+    {
+      "title": "Two -20 pound CO2 Tank Exchange Delivery Service + 2 Generic Mosquito Bait Refills",
+      "slug": "two-tank-exchange-bait",
+      "skus": ["TANK2", "BAIT", "BAIT"],
+      "price": 179.99,
+      "durationMin": 45,
+      "systemType": "Tank-Only",
+      "tankCount": 2,
+      "visitType": "exchange",
+      "addons": ["BAIT", "BAIT"]
+    },
+    {
+      "title": "Two -20 pound CO2 Tank Exchange Delivery Service + 2 Generic Mosquito Bait Refills, Tank hookup and trap maintenance - Two traps",
+      "slug": "two-tank-exchange-bait-maintenance",
+      "skus": ["TANK2", "BAIT", "BAIT", "TRAP-MAINT-2"],
+      "price": 229.97,
+      "durationMin": 60,
+      "systemType": "Tank-Only",
+      "tankCount": 2,
+      "visitType": "exchange",
+      "addons": ["BAIT", "BAIT", "TRAP-MAINT-2"]
+    },
+    {
+      "title": "Four - 20 Pound CO2 Tank Exchange Delivery Service",
+      "slug": "four-tank-exchange",
+      "skus": ["TANK4"],
+      "price": 279.99,
+      "durationMin": 60,
+      "systemType": "Tank-Only",
+      "tankCount": 4,
+      "visitType": "exchange"
+    },
+    {
+      "title": "Four - 20 Pound CO2 Tank Exchange Delivery Service + 4 Generic Mosquito Bait Refills",
+      "slug": "four-tank-exchange-bait",
+      "skus": ["TANK4", "BAIT", "BAIT", "BAIT", "BAIT"],
+      "price": 319.99,
+      "durationMin": 60,
+      "systemType": "Tank-Only",
+      "tankCount": 4,
+      "visitType": "exchange",
+      "addons": ["BAIT", "BAIT", "BAIT", "BAIT"]
+    },
+    {
+      "title": "Six CO2 Tank Exchange Delivery Service",
+      "slug": "six-tank-exchange",
+      "skus": ["TANK6"],
+      "price": 399.99,
+      "durationMin": 75,
+      "systemType": "Tank-Only",
+      "tankCount": 6,
+      "visitType": "exchange"
+    },
+    {
+      "title": "10 Tank Exchange Service + 10 BG SweetScent",
+      "slug": "ten-tank-exchange-sweetscent",
+      "skus": ["TANK10", "BG-SWEETSCENT", "BG-SWEETSCENT", "BG-SWEETSCENT", "BG-SWEETSCENT", "BG-SWEETSCENT", "BG-SWEETSCENT", "BG-SWEETSCENT", "BG-SWEETSCENT", "BG-SWEETSCENT", "BG-SWEETSCENT"],
+      "price": 889.98,
+      "durationMin": 90,
+      "systemType": "Tank-Only",
+      "tankCount": 10,
+      "visitType": "exchange",
+      "addons": ["BG-SWEETSCENT"]
+    },
+    {
+      "title": "Mosqitter Grand Service",
+      "slug": "mosqitter-grand-service",
+      "skus": ["MQ-SVC"],
+      "price": 199.99,
+      "durationMin": 45,
+      "systemType": "Mosqitter",
+      "visitType": "service"
+    }
+  ]
+}
