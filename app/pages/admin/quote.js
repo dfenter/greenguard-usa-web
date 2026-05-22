@@ -3,6 +3,7 @@ import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { listAllCustomers } from '../../lib/stripe'
+import { getAllContacts } from '../../lib/hubspot'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -11,16 +12,37 @@ export async function getServerSideProps({ req }) {
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
-  const raw = await listAllCustomers()
-  const customers = raw.map((c) => ({
+  const [stripeRaw, hsContacts] = await Promise.all([
+    listAllCustomers(),
+    getAllContacts(300).catch(() => []),
+  ])
+
+  const stripeCustomers = stripeRaw.map((c) => ({
     id: c.id,
     name: c.name || '',
     email: c.email || '',
     phone: c.phone || '',
     address: c.address?.line1 || '',
+    source: 'customer',
   })).filter((c) => c.email || c.name)
 
-  return { props: { customers } }
+  const stripeEmails = new Set(stripeCustomers.map((c) => c.email.toLowerCase()).filter(Boolean))
+
+  const prospects = hsContacts
+    .filter((c) => c.properties.email && !stripeEmails.has(c.properties.email.toLowerCase()))
+    .map((c) => ({
+      id: `hs_${c.id}`,
+      name: [c.properties.firstname, c.properties.lastname].filter(Boolean).join(' '),
+      email: c.properties.email || '',
+      phone: c.properties.phone || '',
+      address: c.properties.address || '',
+      source: 'prospect',
+    }))
+    .filter((c) => c.email || c.name)
+
+  const customers = [...stripeCustomers, ...prospects]
+
+  return { props: { customers, mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '' } }
 }
 
 // ── Pricing catalog ────────────────────────────────────────────────────────────
@@ -184,7 +206,7 @@ function CustomerSearch({ customers, onSelect }) {
   return (
     <div ref={ref} style={{ position: 'relative', marginBottom: 14 }}>
       <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.45)', marginBottom: 4 }}>
-        Find Existing Customer
+        Find Customer or Prospect
       </label>
       <input
         type="text"
@@ -202,7 +224,12 @@ function CustomerSearch({ customers, onSelect }) {
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(122,171,130,0.08)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
-              <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{c.name || c.email}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: '0.88rem' }}>
+                {c.name || c.email}
+                {c.source === 'prospect' && (
+                  <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.08em', background: 'rgba(91,196,255,0.15)', color: '#5bc4ff', borderRadius: 4, padding: '1px 5px' }}>PROSPECT</span>
+                )}
+              </div>
               <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.45)' }}>{c.email}{c.address ? ` · ${c.address}` : ''}</div>
             </div>
           ))}
@@ -286,10 +313,14 @@ function ServiceConfigurator({ onChange }) {
       const price = BG_RENTAL_PRICE[trapCount]
       lines.push({ label: `Biogents CO₂ Rental — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${(price / trapCount).toFixed(2)}/trap)`, amount: price, recurring: true })
     }
-    // Biogents CO₂ owned — hookup only if on tank service
+    // Biogents CO₂ owned — hookup + tank delivery when on tank service
     if (system === 'biogents-co2' && plan === 'owned' && onTankService === true) {
-      const price = BG_HOOKUP_PER_TRAP * trapCount
-      lines.push({ label: `Biogents Hookup & Maintenance — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${BG_HOOKUP_PER_TRAP}/trap)`, amount: price, recurring: true })
+      // Tank delivery — 1 tank per trap
+      const tankPrice = TANK_PRICE[trapCount] || (TANK_PRICE[3] + (trapCount - 3) * 49.99)
+      lines.push({ label: `CO₂ Tank Exchange — ${trapCount}× 20lb Tank${trapCount > 1 ? 's' : ''}`, amount: tankPrice, recurring: true })
+      // Hookup & maintenance fee
+      const hookupPrice = BG_HOOKUP_PER_TRAP * trapCount
+      lines.push({ label: `Biogents Hookup & Maintenance — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${BG_HOOKUP_PER_TRAP}/trap)`, amount: hookupPrice, recurring: true })
     }
     // Biogents Non-CO₂ (always owned, per trap)
     if (system === 'biogents-nonco2' && trapCount) {

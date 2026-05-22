@@ -127,7 +127,6 @@ export default async function handler(req, res) {
         ...customerInfo.metadata,
         stripe_customer_id: customer.id,
         customer_type: responses.customerType?.value || 'rental',
-        sku_resolved_by: resolved.resolvedBy,
       },
     })
 

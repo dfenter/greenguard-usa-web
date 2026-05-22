@@ -8,8 +8,6 @@ function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, (c) => map[c])
 }
 
-module.exports.escapeHtml = escapeHtml
-
 function getResend() {
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY is not set')
   return new Resend(process.env.RESEND_API_KEY)
@@ -44,4 +42,4 @@ async function sendMagicLink(email, token) {
   })
 }
 
-module.exports = { sendMagicLink }
+module.exports = { sendMagicLink, escapeHtml }

@@ -60,7 +60,7 @@ export async function getServerSideProps({ req, query }) {
       listAllCustomers().then(cs => cs.forEach(c => {
         if (c.email && c.name) stripeNameByEmail[c.email.toLowerCase()] = c.name
       })).catch(() => {}),
-      // HubSpot names (most complete — includes CSV-imported contacts)
+      // HubSpot names + tank count
       ...uniqueEmails.map(email =>
         findContactByEmail(email).then(c => {
           if (!c) return
@@ -68,6 +68,8 @@ export async function getServerSideProps({ req, query }) {
           const last = c.properties?.lastname || ''
           const full = [first, last].filter(Boolean).join(' ')
           if (full) hubspotNameByEmail[email.toLowerCase()] = full
+          const tanks = parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null
+          if (tanks) hubspotNameByEmail[email.toLowerCase() + '__tanks'] = tanks
         }).catch(() => {})
       ),
     ])
@@ -98,9 +100,10 @@ export async function getServerSideProps({ req, query }) {
         || hubspotNameByEmail[emailKey]
         || stripeNameByEmail[emailKey]
         || stop.customerName
+      const tanks = hubspotNameByEmail[emailKey + '__tanks'] || null
       return match
-        ? { ...stop, calBookingId: match.id, calBookingUid: match.uid, customerName: resolvedName }
-        : { ...stop, customerName: resolvedName }
+        ? { ...stop, calBookingId: match.id, calBookingUid: match.uid, customerName: resolvedName, tanks }
+        : { ...stop, customerName: resolvedName, tanks }
     })
   }
 
@@ -658,7 +661,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: isDone ? 'rgba(125,255,170,0.15)' : isActive ? 'rgba(201,168,76,0.15)' : 'rgba(122,171,130,0.1)', color: isDone ? '#7dffaa' : isActive ? '#c9a84c' : 'rgba(212,230,202,0.5)' }}>
                 {isDone ? '✓' : idx + 1}
               </span>
@@ -667,10 +670,13 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7dffaa' }}>{fmt$(state.grandTotal)}</span>
               )}
             </div>
-            <div style={{ paddingLeft: 36, fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)' }}>
-              {stop.address}
-              {stop.propertySize && <span style={{ marginLeft: 8, color: 'rgba(212,230,202,0.3)', fontSize: '0.75rem' }}>({stop.propertySize})</span>}
-              {stop.startTime && <span style={{ marginLeft: 8 }}>· {fmtTime(stop.startTime)}</span>}
+            <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '2px 16px', fontSize: '0.8rem' }}>
+              {stop.startTime && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{fmtTime(stop.startTime)}</span>}
+              {stop.customerName && stop.title && stop.title !== stop.customerName && (
+                <span style={{ color: '#c9a84c', fontWeight: 700 }}>{stop.title}</span>
+              )}
+              {stop.address && <span style={{ color: 'rgba(212,230,202,0.5)' }}>📍 {stop.address}</span>}
+              {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
             </div>
             {(state.checkIn || state.checkOut) && (
               <div style={{ paddingLeft: 36, marginTop: 3, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', display: 'flex', gap: 14 }}>

@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { listAllCustomers } from '../../lib/stripe'
+import { getAllContacts } from '../../lib/hubspot'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -23,7 +24,11 @@ export async function getServerSideProps({ req }) {
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
-  const raw = await listAllCustomers()
+  const [raw, hubspotContacts] = await Promise.all([
+    listAllCustomers(),
+    getAllContacts(300).catch(() => []),
+  ])
+
   const customers = raw.map((c) => {
     const subs = c.subscriptions?.data || []
     const activeSub = subs.find((s) => s.status === 'active') || subs[0] || null
@@ -44,7 +49,27 @@ export async function getServerSideProps({ req }) {
     return lastName(a.name).localeCompare(lastName(b.name))
   })
 
-  return { props: { customers } }
+  // Prospects = HubSpot contacts not yet in Stripe
+  const stripeEmails = new Set(raw.map((c) => (c.email || '').toLowerCase()).filter(Boolean))
+  const prospects = hubspotContacts
+    .filter((c) => {
+      const email = (c.properties?.email || '').toLowerCase()
+      return email && !stripeEmails.has(email)
+    })
+    .map((c) => ({
+      hsId: c.id,
+      name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
+      email: c.properties?.email || '',
+      phone: c.properties?.phone || '',
+      address: c.properties?.address || '',
+      systemType: c.properties?.system_type || '',
+    }))
+    .sort((a, b) => {
+      const lastName = (name) => name.trim().split(/\s+/).pop() || name
+      return lastName(a.name).localeCompare(lastName(b.name))
+    })
+
+  return { props: { customers, prospects } }
 }
 
 const STATUS_COLORS = {
@@ -463,9 +488,10 @@ const FILTER_TABS = [
   { key: 'inactive', label: 'No Sub' },
 ]
 
-export default function Clients({ customers }) {
+export default function Clients({ customers, prospects = [] }) {
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState('all')
+  const [mainTab, setMainTab] = useState('clients') // 'clients' | 'prospects'
   const [selected, setSelected] = useState(null)
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
@@ -505,7 +531,7 @@ export default function Clients({ customers }) {
             <span className="tag">Admin</span>
             <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Clients</h1>
             <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
-              {customers.length} total · MRR ${(totalMrr / 100).toFixed(0)}
+              {customers.length} clients · {prospects.length} prospects · MRR ${(totalMrr / 100).toFixed(0)}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -524,6 +550,72 @@ export default function Clients({ customers }) {
           </div>
           {importMsg && <p style={{ fontSize: '0.78rem', color: importMsg.includes('failed') ? '#ff8080' : '#7dffaa', margin: '8px 0 0' }}>{importMsg}</p>}
         </div>
+
+        {/* Main tab: Clients / Prospects */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid rgba(122,171,130,0.12)', paddingBottom: 0 }}>
+          {[['clients', `Clients (${customers.length})`], ['prospects', `Prospects (${prospects.length})`]].map(([key, label]) => (
+            <button key={key} onClick={() => { setMainTab(key); setSearch(''); setSelected(null) }}
+              style={{ padding: '9px 20px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', color: mainTab === key ? '#7dffaa' : 'rgba(212,230,202,0.4)', borderBottom: mainTab === key ? '2px solid #7dffaa' : '2px solid transparent', marginBottom: -1 }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Prospects view */}
+        {mainTab === 'prospects' && (
+          <>
+            <input
+              type="search"
+              placeholder="Search name, email or address…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: '100%', maxWidth: 360, padding: '9px 14px', marginBottom: 16, border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+            />
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              {prospects.filter((p) => {
+                const q = search.toLowerCase().trim()
+                if (!q) return true
+                return (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q)
+              }).length === 0 ? (
+                <p style={{ padding: 24, color: 'rgba(212,230,202,0.4)', margin: 0 }}>No prospects match.</p>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
+                      {['Name', 'Email', 'Phone', 'Address', 'System', ''].map((h) => (
+                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {prospects.filter((p) => {
+                      const q = search.toLowerCase().trim()
+                      if (!q) return true
+                      return (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q)
+                    }).map((p) => (
+                      <tr key={p.hsId} style={{ borderBottom: '1px solid rgba(122,171,130,0.08)' }}>
+                        <td style={{ padding: '11px 16px', fontWeight: 700 }}>{p.name || '—'}</td>
+                        <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem' }}>{p.email || '—'}</td>
+                        <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{p.phone ? <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} style={{ color: 'inherit', textDecoration: 'none' }}>{p.phone}</a> : '—'}</td>
+                        <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.45)', fontSize: '0.78rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.address || '—'}</td>
+                        <td style={{ padding: '11px 16px', fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)' }}>{p.systemType || '—'}</td>
+                        <td style={{ padding: '11px 16px' }}>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {p.email && <a href={`mailto:${p.email}`} style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 4, background: 'rgba(201,168,76,0.12)', color: '#c9a84c', fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(201,168,76,0.25)' }}>Email</a>}
+                            {p.phone && <a href={`sms:${p.phone.replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 4, background: 'rgba(91,196,255,0.08)', color: '#5bc4ff', fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(91,196,255,0.18)' }}>Text</a>}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Clients view */}
+        {mainTab === 'clients' && <>
 
         {/* Search + filter */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -600,6 +692,9 @@ export default function Clients({ customers }) {
         <p style={{ marginTop: 10, fontSize: '0.72rem', color: 'rgba(212,230,202,0.25)' }}>
           {filtered.length} of {customers.length} shown · Click a row to open details
         </p>
+
+        </> /* end clients view */}
+
       </PortalLayout>
 
       {/* Docked panel */}

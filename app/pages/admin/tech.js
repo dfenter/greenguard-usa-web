@@ -35,6 +35,7 @@ export async function getServerSideProps({ req }) {
       if (c) contactMap[email.toLowerCase()] = {
         name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
         phone: c.properties?.phone || '',
+        tanks: parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null,
       }
     } catch {}
   }))
@@ -44,11 +45,13 @@ export async function getServerSideProps({ req }) {
     return {
       id: s.id || null,
       title: info.name || s.title || '',
+      serviceType: s.title || '',
       startTime: s.startTime || null,
       endTime: s.endTime || null,
       address: s.address || '',
       email: s.email || '',
       phone: info.phone || '',
+      tanks: info.tanks || null,
     }
   }
 
@@ -102,17 +105,26 @@ function StopCard({ stop, index, dateStr }) {
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 800, fontSize: '1rem', marginBottom: 3 }}>{stop.title || 'Service Visit'}</div>
+        <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 2 }}>{stop.title || 'Service Visit'}</div>
+        {stop.serviceType && (
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c9a84c', marginBottom: 4 }}>{stop.serviceType}</div>
+        )}
 
         {stop.startTime && (
-          <div style={{ fontSize: '0.85rem', color: '#c9a84c', fontWeight: 700, marginBottom: 5 }}>
+          <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.55)', fontWeight: 700, marginBottom: 4 }}>
             {fmtTime(stop.startTime)}{stop.endTime ? ` – ${fmtTime(stop.endTime)}` : ''}
           </div>
         )}
 
         {stop.address && (
-          <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.6)', marginBottom: 10, lineHeight: 1.4 }}>
-            {stop.address}
+          <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.55)', marginBottom: 4, lineHeight: 1.4 }}>
+            📍 {stop.address}
+          </div>
+        )}
+
+        {stop.tanks > 0 && (
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 8 }}>
+            🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required
           </div>
         )}
 

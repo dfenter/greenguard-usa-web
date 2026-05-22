@@ -146,4 +146,17 @@ async function countContactsByProperty(propertyName, value) {
   }
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail, getContactNotes, updateContact, countContactsByProperty }
+async function getAllContacts(limit = 200) {
+  const results = []
+  let after = undefined
+  const properties = ['email', 'firstname', 'lastname', 'phone', 'address', 'system_type', 'plan_type', 'trap_count']
+  do {
+    const page = await client.crm.contacts.basicApi.getPage(limit > 100 ? 100 : limit, after, properties)
+    results.push(...(page.results || []))
+    after = page.paging?.next?.after
+    if (results.length >= limit) break
+  } while (after)
+  return results
+}
+
+module.exports = { upsertContact, addNote, findContactByEmail, getContactNotes, updateContact, countContactsByProperty, getAllContacts }

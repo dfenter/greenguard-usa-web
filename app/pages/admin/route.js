@@ -71,6 +71,8 @@ export async function getServerSideProps({ req }) {
           if (!c) return
           const full = [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ')
           if (full) hubspotNameByEmail[email.toLowerCase()] = full
+          const tanks = parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null
+          if (tanks) hubspotNameByEmail[email.toLowerCase() + '__tanks'] = tanks
         }).catch(() => {})
       ),
     ])
@@ -81,7 +83,8 @@ export async function getServerSideProps({ req }) {
         stops: (day.stops || []).map(stop => {
           const key = stop.email?.toLowerCase()
           const resolvedName = hubspotNameByEmail[key] || stripeNameByEmail[key] || stop.customer_name || stop.name
-          return { ...stop, customer_name: resolvedName }
+          const tanks = hubspotNameByEmail[key + '__tanks'] || null
+          return { ...stop, customer_name: resolvedName, tanks }
         }),
       })),
     }
@@ -210,14 +213,6 @@ export default function RoutePage({ routePlan, today }) {
 
             {day && (
               <>
-                {/* Map */}
-                {embedUrl ? (
-                  <div style={{ marginBottom: 20, borderRadius: 8, overflow: 'hidden' }}>
-                    <iframe src={embedUrl} width="100%" style={{ height: 'min(420px, 55vw)', minHeight: 220, border: 'none', display: 'block' }}
-                      allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Route map" />
-                  </div>
-                ) : null}
-
                 {/* Efficiency */}
                 {efficiencyScore && (() => {
                   const { score, drive, service } = efficiencyScore
@@ -268,8 +263,9 @@ export default function RoutePage({ routePlan, today }) {
                           <div className="stop-body">
                             <div className="stop-name">{name}</div>
                             {time && <div className="stop-time">{time}</div>}
-                            {stop.service_type && <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', marginBottom: 2 }}>{stop.service_type}</div>}
-                            <div className="stop-addr">{stop.address || 'No address'}</div>
+                            {stop.service_type && <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c9a84c', marginBottom: 2 }}>{stop.service_type}</div>}
+                            <div className="stop-addr">📍 {stop.address || 'No address'}</div>
+                            {stop.tanks > 0 && <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 6 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required</div>}
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
                               <a href={roundsUrl} className="nav-btn" style={{ background: 'rgba(201,168,76,0.15)', borderColor: 'rgba(201,168,76,0.3)', color: '#c9a84c' }}>
                                 Open Rounds
@@ -298,6 +294,14 @@ export default function RoutePage({ routePlan, today }) {
                         </div>
                       )
                     })}
+                  </div>
+                )}
+
+                {/* Map — below stop list so address panel doesn't overlap content */}
+                {embedUrl && (
+                  <div style={{ marginTop: 20, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(122,171,130,0.15)' }}>
+                    <iframe src={embedUrl} width="100%" style={{ height: 'min(380px, 60vw)', minHeight: 220, border: 'none', display: 'block' }}
+                      allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Route map" />
                   </div>
                 )}
               </>

@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   if (isAdminEmail(payload.email)) {
     const ownerEmail = (process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com').split(',')[0].trim().toLowerCase()
     const isOwner = payload.email.toLowerCase() === ownerEmail
-    return res.redirect(isOwner ? '/admin/analytics' : '/admin/tech')
+    return res.redirect(isOwner ? '/admin/home' : '/admin/tech')
   }
 
   res.redirect('/dashboard')
