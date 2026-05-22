@@ -1,0 +1,61 @@
+name: Health Check
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # Every 15 minutes — backup to Vercel cron
+  workflow_dispatch:           # Manual trigger from GitHub Actions UI
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check portal health
+        id: portal
+        run: |
+          STATUS=$(curl -s -o /tmp/health.json -w "%{http_code}" \
+            --max-time 20 \
+            "https://portal.greenguard-usa.com/api/health")
+          echo "http_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "body=$(cat /tmp/health.json)" >> $GITHUB_OUTPUT
+          cat /tmp/health.json | python3 -m json.tool || true
+
+      - name: Check marketing site
+        id: website
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "https://greenguard-usa.com")
+          echo "http_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Website returned HTTP $STATUS"
+
+      - name: Check portal login page
+        id: login
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "https://portal.greenguard-usa.com/login")
+          echo "http_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Login page returned HTTP $STATUS"
+
+      - name: Fail if any check degraded
+        run: |
+          PORTAL="${{ steps.portal.outputs.http_status }}"
+          WEBSITE="${{ steps.website.outputs.http_status }}"
+          LOGIN="${{ steps.login.outputs.http_status }}"
+
+          echo "Portal health: $PORTAL"
+          echo "Website: $WEBSITE"
+          echo "Login: $LOGIN"
+
+          HEALTH_STATUS=$(cat /tmp/health.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
+          echo "Health check status: $HEALTH_STATUS"
+
+          if [ "$PORTAL" != "200" ] || [ "$PORTAL" = "503" ] || [ "$WEBSITE" != "200" ] || [ "$LOGIN" != "200" ]; then
+            echo "::error::One or more endpoints are down. Portal: $PORTAL, Website: $WEBSITE, Login: $LOGIN"
+            exit 1
+          fi
+
+          if [ "$HEALTH_STATUS" = "degraded" ]; then
+            echo "::warning::Health check reports degraded status. Check portal.greenguard-usa.com/admin/health"
+            exit 1
+          fi
+
+          echo "All checks passed."
