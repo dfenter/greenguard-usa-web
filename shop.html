@@ -95,9 +95,15 @@
   <nav class="gg-nav">
     <div class="gg-nav-inner">
       <a href="https://www.greenguard-usa.com" class="gg-logo">Green<span>Guard</span> USA<span class="gg-logo-sse">Smart. Safe. Effective.</span></a>
-      <button class="gg-hamburger" id="gg-menu-btn" aria-label="Open menu">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="position:relative;cursor:pointer" onclick="openCartDrawer()" aria-label="Cart">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <div id="gg-cart-badge" style="display:none;position:absolute;top:-6px;right:-8px;width:17px;height:17px;background:#c9a84c;border-radius:50%;color:#0a1a0d;font-size:10px;font-weight:900;align-items:center;justify-content:center;transition:transform 0.2s;font-family:'Nunito Sans',sans-serif">0</div>
+        </div>
+        <button class="gg-hamburger" id="gg-menu-btn" aria-label="Open menu">
         <span></span><span></span><span></span>
-      </button>
+        </button>
+      </div>
     </div>
   </nav>
   <div class="gg-overlay" id="gg-overlay"></div>
@@ -180,7 +186,7 @@
           <p>Everything you need to get started: Biogents BG-Mosquitaire CO2 trap, empty 20 lb CO2 tank, and timer. Ready to deploy the day it arrives.</p>
           <div class="shop-card-footer">
             <div class="shop-price"><sup>$</sup>549.99</div>
-            <a href="https://buy.stripe.com/8x2fZhgLW4rO3c6ehdeEo03" class="shop-btn" target="_blank">Buy Now</a>
+            <button class="shop-btn" onclick="addToCart({id:'all-in-one',name:'All-in-One Package',price_cents:54999,price_id:'price_1TZAjXH565Jg1rIM2SwEBz4H'})">Add to Cart</button>
           </div>
         </div>
       </div>
@@ -192,7 +198,7 @@
           <p>The gold standard for outdoor mosquito trapping. Biogents-certified, CO2-powered, and proven effective in mass trapping studies across four continents.</p>
           <div class="shop-card-footer">
             <div class="shop-price"><sup>$</sup>279.99</div>
-            <a href="https://buy.stripe.com/cNibJ1gLW0by3c6b51eEo02" class="shop-btn" target="_blank">Buy Now</a>
+            <button class="shop-btn" onclick="addToCart({id:'biogents-co2',name:'Biogents BG-Mosquitaire CO2 Trap',price_cents:27999,price_id:'price_1TZAjWH565Jg1rIMSkhFvzHk'})">Add to Cart</button>
           </div>
         </div>
       </div>
@@ -204,7 +210,7 @@
           <p>The same Biogents trap technology without CO2. Ideal for covered patios, garages, and indoor spaces. Runs on lure alone, no tank required.</p>
           <div class="shop-card-footer">
             <div class="shop-price"><sup>$</sup>179.99</div>
-            <a href="https://buy.stripe.com/cNi4gzgLWcYk3c63CzeEo05" class="shop-btn" target="_blank">Buy Now</a>
+            <button class="shop-btn" onclick="addToCart({id:'biogents-no-co2',name:'Biogents BG-Mosquitaire (No CO2)',price_cents:17999,price_id:'price_1TZAjZH565Jg1rIMo03GAVjw'})">Add to Cart</button>
           </div>
         </div>
       </div>
@@ -216,7 +222,7 @@
           <p>Our highest-capacity trap, designed for large properties, acreage, and commercial sites. Covers up to an acre of active trapping area with industrial-grade CO2 output.</p>
           <div class="shop-card-footer">
             <div class="shop-price"><sup>$</sup>1,849.99</div>
-            <a href="https://buy.stripe.com/00wbJ167i5vS5ke6OLeEo06" class="shop-btn" target="_blank">Buy Now</a>
+            <button class="shop-btn" onclick="addToCart({id:'mosqitter-grand',name:'Mosqitter Grand',price_cents:184999,price_id:'price_1TZAjZH565Jg1rIMGxGSt6Pn'})">Add to Cart</button>
           </div>
         </div>
       </div>
@@ -234,7 +240,7 @@
           <p>Standard 20 lb aluminum CO2 cylinder compatible with the BG-Mosquitaire and Mosqitter Grand. Exchange-ready at most welding supply and beverage gas retailers in Austin.</p>
           <div class="shop-card-footer">
             <div class="shop-price"><sup>$</sup>199.99</div>
-            <a href="https://buy.stripe.com/3cI00j9ju4rOfYS7SPeEo01" class="shop-btn" target="_blank">Buy Now</a>
+            <button class="shop-btn" onclick="addToCart({id:'co2-tank',name:'20 lb CO2 Tank (Empty)',price_cents:19999,price_id:'price_1TZAjVH565Jg1rIMIWNgx0O1'})">Add to Cart</button>
           </div>
         </div>
       </div>
@@ -246,7 +252,7 @@
           <p>Programmable timer for your CO2 trap. Set the trap to run during peak mosquito hours, typically dawn and dusk, and extend tank life by 40% or more.</p>
           <div class="shop-card-footer">
             <div class="shop-price"><sup>$</sup>89.99</div>
-            <a href="https://buy.stripe.com/bJeaEX8fq9M813Y0qneEo00" class="shop-btn" target="_blank">Buy Now</a>
+            <button class="shop-btn" onclick="addToCart({id:'co2-timer',name:'Biogents CO2 Tank Timer',price_cents:8999,price_id:'price_1TZAjVH565Jg1rIMy66BYVyl'})">Add to Cart</button>
           </div>
         </div>
       </div>
@@ -258,7 +264,7 @@
           <p>A powerful larvicide dunk bucket for standing water sources. Kills mosquito larvae before they hatch. Safe for wildlife, birds, and pets once water settles.</p>
           <div class="shop-card-footer">
             <div class="shop-price"><sup>$</sup>29.99</div>
-            <a href="https://buy.stripe.com/bJecN5gLW2jG8wqehdeEo04" class="shop-btn" target="_blank">Buy Now</a>
+            <button class="shop-btn" onclick="addToCart({id:'bucket-of-doom',name:'Mosquito Bucket of Doom',price_cents:2999,price_id:'price_1TZAjYH565Jg1rIMEoIbjIRR'})">Add to Cart</button>
           </div>
         </div>
       </div>
@@ -363,3 +369,23 @@
   }
 })();
 </script>
+<!-- Cart overlay -->
+<div id="gg-cart-overlay" onclick="closeCartDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:19998;backdrop-filter:blur(2px)"></div>
+<!-- Cart drawer -->
+<div id="gg-cart-drawer" style="position:fixed;top:0;right:0;width:360px;max-width:100vw;height:100vh;background:#0d1a10;border-left:1px solid rgba(122,171,130,.2);z-index:19999;transform:translateX(100%);transition:transform .3s ease;display:flex;flex-direction:column;font-family:'Nunito Sans','Helvetica Neue',Arial,sans-serif">
+  <div style="padding:20px 20px 16px;border-bottom:1px solid rgba(122,171,130,.15);display:flex;align-items:center;justify-content:space-between">
+    <div style="color:#fff;font-weight:900;font-size:16px">Your Cart</div>
+    <button onclick="closeCartDrawer()" style="background:none;border:none;color:rgba(212,230,202,.4);font-size:22px;cursor:pointer;line-height:1;padding:0">×</button>
+  </div>
+  <div id="gg-cart-body" style="flex:1;overflow-y:auto;padding:8px 20px"></div>
+  <div id="gg-cart-footer" style="padding:16px 20px;border-top:1px solid rgba(122,171,130,.15)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="color:rgba(212,230,202,.6);font-size:13px;font-weight:700">Subtotal</div>
+      <div id="gg-cart-total" style="color:#c9a84c;font-size:18px;font-weight:900">/bin/bash.00</div>
+    </div>
+    <div style="color:rgba(212,230,202,.4);font-size:11px;text-align:center;margin-bottom:10px">Shipping &amp; tax calculated at checkout</div>
+    <button id="gg-checkout-btn" onclick="checkout()" style="width:100%;background:#c9a84c;color:#0a1a0d;font-family:'Nunito Sans',sans-serif;font-weight:900;font-size:14px;padding:15px;border:none;border-radius:6px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase">Checkout</button>
+    <button onclick="closeCartDrawer()" style="width:100%;background:none;border:none;color:rgba(212,230,202,.4);font-size:12px;cursor:pointer;margin-top:10px;font-family:'Nunito Sans',sans-serif">Continue Shopping</button>
+  </div>
+</div>
+<script src="https://greenguard-usa.github.io/greenguard-usa-web/cart.js"></script>
