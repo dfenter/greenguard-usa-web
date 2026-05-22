@@ -11,12 +11,16 @@
   },
   "dependencies": {
     "@hubspot/api-client": "^13.5.0",
+    "@sentry/nextjs": "^10.53.1",
+    "@vercel/blob": "^2.4.0",
+    "@vercel/kv": "^3.0.0",
     "cookie": "^0.7.2",
     "googleapis": "^144.0.0",
     "jose": "^5.9.6",
-    "next": "14.2.29",
+    "next": "^15.5.18",
     "react": "^18",
     "react-dom": "^18",
+    "react-is": "^19.2.6",
     "recharts": "^3.8.1",
     "resend": "^4.0.1",
     "stripe": "^16.12.0"
@@ -24,7 +28,7 @@
   "devDependencies": {
     "@jest/globals": "^30.4.1",
     "eslint": "^8",
-    "eslint-config-next": "14.2.29",
+    "eslint-config-next": "^15.5.18",
     "jest": "^30.4.2",
     "jest-environment-node": "^30.4.1",
     "sharp": "^0.34.5"

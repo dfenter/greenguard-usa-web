@@ -1,12 +1,12 @@
 {
-  "name": "GreenGuard Customer Portal",
+  "name": "GreenGuard USA",
   "short_name": "GreenGuard",
-  "description": "Manage your GreenGuard mosquito control service",
+  "description": "GreenGuard USA — Smart, Safe, Effective mosquito control",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a2e1f",
+  "background_color": "#0d1a10",
   "theme_color": "#1a2e1f",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }

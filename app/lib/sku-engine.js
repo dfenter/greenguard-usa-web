@@ -89,6 +89,8 @@ function resolveSKU(visit) {
     if (trapCount <= 1) skus.push('BG1')
     else if (trapCount === 2) skus.push('BG2')
     else skus.push('BG3')
+  } else if (systemType === 'Tank-Only') {
+    skus.push(TANK_MAP[tankCount] || 'TANK1')
   } else if (systemType === 'Biogents-NonCO2') {
     skus.push('OWN-NONCO2')
   } else if (mqType) {

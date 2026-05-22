@@ -69,6 +69,27 @@ async function checkGA4() {
   }
 }
 
+async function checkPageSSR() {
+  // Smoke-test the data fetches that dashboard getServerSideProps runs.
+  // Catches broken imports, bad destructuring, and missing function exports
+  // before real users hit them.
+  const start = Date.now()
+  try {
+    const { getSubscriptions, getInvoices, getCustomer } = require('../../lib/stripe')
+    const { getUpcomingBookingsForEmail, getPastBookingsForEmail } = require('../../lib/gcal')
+    const { findContactByEmail } = require('../../lib/hubspot')
+
+    // Verify all functions are callable (not undefined)
+    const fns = { getSubscriptions, getInvoices, getCustomer, getUpcomingBookingsForEmail, getPastBookingsForEmail, findContactByEmail }
+    const missing = Object.entries(fns).filter(([, f]) => typeof f !== 'function').map(([k]) => k)
+    if (missing.length) return { ok: false, error: `Missing exports: ${missing.join(', ')}` }
+
+    return { ok: true, latency: Date.now() - start }
+  } catch (e) {
+    return { ok: false, error: e.message, latency: Date.now() - start }
+  }
+}
+
 function checkEnvVars() {
   const missing = REQUIRED_ENV.filter((k) => !process.env[k])
   const jwtOk = (process.env.JWT_SECRET || '').length >= 32
@@ -86,12 +107,13 @@ export default async function handler(req, res) {
   const env = checkEnvVars()
 
   // Run all checks in parallel
-  const [stripeResult, hubspotResult, calResult, resendResult, ga4Result] = await Promise.all([
+  const [stripeResult, hubspotResult, calResult, resendResult, ga4Result, ssrResult] = await Promise.all([
     checkStripe().catch((e) => ({ ok: false, error: e.message })),
     checkHubSpot().catch((e) => ({ ok: false, error: e.message })),
     checkGoogleCalendar().catch((e) => ({ ok: false, error: e.message })),
     checkResend(),
     checkGA4().catch((e) => ({ ok: false, error: e.message })),
+    checkPageSSR().catch((e) => ({ ok: false, error: e.message })),
   ])
 
   // GA4 is non-critical — traffic tab degrades gracefully, mark as warning not failure
@@ -101,6 +123,7 @@ export default async function handler(req, res) {
 
   const checks = {
     env,
+    page_ssr: ssrResult,
     stripe: stripeResult,
     hubspot: hubspotResult,
     google_calendar: calResult,
@@ -109,7 +132,7 @@ export default async function handler(req, res) {
   }
 
   // Critical checks only (GA4 excluded — it's optional)
-  const criticalChecks = { env, stripe: stripeResult, hubspot: hubspotResult, google_calendar: calResult, resend: resendResult }
+  const criticalChecks = { env, page_ssr: ssrResult, stripe: stripeResult, hubspot: hubspotResult, google_calendar: calResult, resend: resendResult }
   const allOk = Object.values(criticalChecks).every((c) => c.ok)
   const degraded = Object.values(criticalChecks).some((c) => !c.ok)
 

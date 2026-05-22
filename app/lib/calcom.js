@@ -40,8 +40,8 @@ async function rescheduleBooking(bookingId, newStartTime) {
   })
 }
 
-async function cancelBooking(bookingId, reason = 'Cancelled by admin') {
-  return calFetch(`/bookings/${bookingId}/cancel`, {
+async function cancelBooking(bookingUid, reason = 'Cancelled by admin') {
+  return calFetch(`/bookings/${bookingUid}/cancel`, {
     method: 'POST',
     body: JSON.stringify({ cancellationReason: reason }),
   })

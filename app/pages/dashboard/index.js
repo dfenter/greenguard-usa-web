@@ -1,21 +1,23 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Head from 'next/head'
 import Image from 'next/image'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
-import { getSubscriptions, getInvoices, stripe } from '../../lib/stripe'
+import { getSubscriptions, getInvoices, getCustomer } from '../../lib/stripe'
 import { getUpcomingBookingsForEmail, getPastBookingsForEmail } from '../../lib/gcal'
 import { findContactByEmail } from '../../lib/hubspot'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
-const TRAP_IMAGES = {
-  'Biogents-CO2': '/images/trap-biogents.jpg',
-  'Biogents-NonCO2': '/images/trap-biogents.jpg',
-  'Mosqitter-Grand': '/images/trap-mosqitter.webp',
-  // legacy values
-  Mosqitter: '/images/trap-mosqitter.webp',
-  'MQ-RENT': '/images/trap-mosqitter.webp',
+function getTrapImage(systemType, trapCount) {
+  if (systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter' || systemType === 'MQ-RENT') return '/images/trap-mosqitter.webp'
+  if (systemType === 'Biogents-NonCO2') return '/images/mosquitairenoco2.webp'
+  if (systemType === 'Biogents-CO2') {
+    if (trapCount >= 3) return '/images/biogentstriple.png'
+    if (trapCount === 2) return '/images/mosquitairedouble.webp'
+    return '/images/mosquitairesingle.jpg'
+  }
+  return null
 }
 
 const SYSTEM_LABELS = {
@@ -27,14 +29,14 @@ const SYSTEM_LABELS = {
   'MQ-RENT': 'Mosqitter Grand',
 }
 
-export async function getServerSideProps({ req }) {
+export async function getServerSideProps({ req, query }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
 
   const { email, stripeCustomerId } = session
   const isAdmin = email === ADMIN_EMAIL
   // Redirect admin to analytics unless previewing the customer view
-  if (isAdmin && !req.query.preview) return { redirect: { destination: '/admin/analytics', permanent: false } }
+  if (isAdmin && !query.preview) return { redirect: { destination: '/admin/analytics', permanent: false } }
 
   const [upcoming, past, subscriptions, invoices, contact, stripeCustomer] = await Promise.all([
     getUpcomingBookingsForEmail(email, 1).catch(() => []),
@@ -42,14 +44,14 @@ export async function getServerSideProps({ req }) {
     stripeCustomerId ? getSubscriptions(stripeCustomerId) : Promise.resolve([]),
     stripeCustomerId ? getInvoices(stripeCustomerId, 24) : Promise.resolve([]),
     findContactByEmail(email).catch(() => null),
-    stripeCustomerId ? stripe.customers.retrieve(stripeCustomerId).catch(() => null) : Promise.resolve(null),
+    stripeCustomerId ? getCustomer(stripeCustomerId).catch(() => null) : Promise.resolve(null),
   ])
 
   const p = contact?.properties || {}
   const m = stripeCustomer?.metadata || {}
-  // Fall back to Stripe metadata when HubSpot custom properties aren't set
-  const trapCount = p.trap_count ? parseInt(p.trap_count, 10) : (m.trap_count ? parseInt(m.trap_count, 10) : 0)
-  const tankCount = p.tank_count ? parseInt(p.tank_count, 10) : (m.tank_count ? parseInt(m.tank_count, 10) : 0)
+  // HubSpot custom properties are source of truth; Stripe metadata is fallback
+  const trapCount = parseInt(p.trap_count || m.trap_count || '0', 10)
+  const tankCount = parseInt(p.tank_count || m.tank_count || '0', 10)
   const planType = p.plan_type || m.plan_type || null
   const systemType = p.system_type || m.system_type || null
   const usesC02 = systemType === 'Biogents-CO2' || systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter' || systemType === 'MQ-RENT'
@@ -82,7 +84,7 @@ export async function getServerSideProps({ req }) {
       hasTimer,
       customerType: p.customer_type || null,
       installDate: p.service_start_date || null,
-      trapImage: TRAP_IMAGES[systemType] || null,
+      trapImage: getTrapImage(systemType, trapCount),
       systemLabel: SYSTEM_LABELS[systemType] || systemType || null,
       // co2
       usesC02,
@@ -111,12 +113,15 @@ export async function getServerSideProps({ req }) {
 
 // ── Formatting helpers ─────────────────────────────────────────────────────────
 
+const TZ = 'America/Chicago'
 function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ })
 }
-
+function fmtTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ })
+}
 function fmtDateShort(unix) {
-  return new Date(unix * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(unix * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: TZ })
 }
 
 function fmtAmount(cents) {
@@ -148,6 +153,65 @@ const DATE_RANGES = [
 ]
 
 // ── Main page ──────────────────────────────────────────────────────────────────
+
+function CustomerMediaUpload({ email }) {
+  const [uploads, setUploads] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [msg, setMsg] = useState(null)
+  const [caption, setCaption] = useState('')
+  const fileRef = useRef(null)
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0]; if (!file) return
+    setUploading(true); setMsg(null)
+    try {
+      const res = await fetch('/api/customer/upload-media', {
+        method: 'POST',
+        headers: { 'Content-Type': file.type, 'x-caption': caption, 'x-email': email },
+        body: file,
+      })
+      if (res.ok) {
+        const { url } = await res.json()
+        setUploads((u) => [...u, { url, type: file.type, caption }])
+        setCaption('')
+        setMsg('Uploaded! Our team will review it.')
+        if (fileRef.current) fileRef.current.value = ''
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setMsg(d.error || 'Upload failed')
+      }
+    } catch (err) { setMsg(err.message) }
+    setUploading(false)
+  }
+
+  const btnStyle = (color) => ({ padding: '10px 18px', borderRadius: 8, border: `1px dashed ${color}40`, background: 'transparent', color, cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 })
+  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', marginBottom: 12 }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)', margin: '0 0 14px', lineHeight: 1.5 }}>
+        Show us your results or report an issue — upload a photo or short video and we&apos;ll follow up.
+      </p>
+      <input style={inp} placeholder="Optional caption or description…" value={caption} onChange={(e) => setCaption(e.target.value)} />
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <input ref={fileRef} type="file" accept="image/*,video/*" capture="environment" style={{ display: 'none' }} onChange={handleFile} />
+        <button onClick={() => { fileRef.current.accept='image/*'; fileRef.current?.click() }} disabled={uploading} style={btnStyle('#7dffaa')}>📷 Photo</button>
+        <button onClick={() => { fileRef.current.accept='video/*'; fileRef.current?.click() }} disabled={uploading} style={btnStyle('#5bc4ff')}>
+          {uploading ? 'Uploading…' : '🎥 Video'}
+        </button>
+      </div>
+      {msg && <p style={{ fontSize: '0.82rem', marginTop: 10, color: msg.includes('failed') || msg.includes('error') ? '#ff8080' : '#7dffaa' }}>{msg}</p>}
+      {uploads.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+          {uploads.map((u, i) => u.type.startsWith('video')
+            ? <video key={i} src={u.url} controls style={{ height: 100, borderRadius: 8 }} />
+            : <img key={i} src={u.url} alt={u.caption} style={{ height: 100, borderRadius: 8, objectFit: 'cover' }} />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function CustomerOverview({
   email, name,
@@ -423,6 +487,12 @@ export default function CustomerOverview({
             </a>
           )}
         </div>
+
+        {DIVIDER}
+
+        {/* ── Share Your Experience ── */}
+        {SECTION_LABEL('Share Your Experience')}
+        <CustomerMediaUpload email={email} />
 
         {DIVIDER}
 

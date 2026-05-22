@@ -1,4 +1,4 @@
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { stripe } = require('../../../lib/stripe')
 const { updateContact } = require('../../../lib/hubspot')
 
@@ -7,7 +7,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden' })
+  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const { customerId, hubspotContactId, name, phone, address, planType, systemType, trapCount, hasTimer } = req.body || {}
   if (!customerId) return res.status(400).json({ error: 'customerId required' })

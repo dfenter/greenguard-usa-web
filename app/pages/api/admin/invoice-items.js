@@ -1,4 +1,4 @@
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { stripe } = require('../../../lib/stripe')
 const { SKU_PRICES } = require('../../../lib/sku-engine')
 
@@ -10,7 +10,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 // POST action=send         — finalize draft invoice and send
 export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden' })
+  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   if (req.method === 'GET') {
     const { email } = req.query

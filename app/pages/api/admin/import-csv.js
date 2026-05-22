@@ -4,7 +4,7 @@
  * 1. Upserts each contact into HubSpot
  * 2. Creates a Stripe customer if they don't already have one (matched by email)
  */
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { Client } = require('@hubspot/api-client')
 const { stripe } = require('../../../lib/stripe')
 const fs = require('fs')
@@ -46,7 +46,7 @@ function extractAddress(notes) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden' })
+  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const csvPath = path.join(process.cwd(), '..', 'list(6).csv')
   if (!fs.existsSync(csvPath)) return res.status(404).json({ error: 'CSV not found at repo root' })

@@ -1,5 +1,6 @@
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { findContactByEmail, addNote } = require('../../../lib/hubspot')
+const { logCompletedStop } = require('../../../lib/gsheets')
 const { Resend } = require('resend')
 const { escapeHtml } = require('../../../lib/email')
 
@@ -17,7 +18,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
   const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden' })
+  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const {
     email, customerName, address, checkIn, checkOut,
@@ -54,7 +55,10 @@ export default async function handler(req, res) {
     }
   }
 
-  // 2. Send post-visit email (use custom message if provided, else skip)
+  // 2. Auto-export to Google Sheets
+  try { await logCompletedStop(req.body) } catch (err) { console.error('complete-stop sheets error:', err.message) }
+
+  // 3. Send post-visit email (use custom message if provided, else skip)
   if (email && customEmailMessage && process.env.RESEND_API_KEY) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)

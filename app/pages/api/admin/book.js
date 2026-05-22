@@ -1,4 +1,4 @@
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 const CALCOM_API_KEY = process.env.CALCOM_API_KEY || ''
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
   const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden' })
+  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const { eventTypeId, firstName, lastName, email, address, startLocal, notes, recurring } = req.body
 

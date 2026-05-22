@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
-import { getSessionFromRequest } from '../../lib/auth'
+import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
-  if (session.email !== ADMIN_EMAIL) return { redirect: { destination: '/dashboard', permanent: false } }
+  if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
   return { props: {} }
 }
 

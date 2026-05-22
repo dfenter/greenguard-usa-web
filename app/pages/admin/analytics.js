@@ -2,11 +2,12 @@ import { useState, useCallback } from 'react'
 import Head from 'next/head'
 import dynamic from 'next/dynamic'
 import PortalLayout from '../../components/PortalLayout'
-import { getSessionFromRequest } from '../../lib/auth'
+import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { listAllActiveSubscriptions, listAllInvoicesSince, listOpenInvoices, getBalance } from '../../lib/stripe'
 import { countContactsByProperty } from '../../lib/hubspot'
 import { getBookingsForWeek, getAllUpcomingBookings } from '../../lib/gcal'
 import { getTrafficOverview } from '../../lib/ga4'
+import { getSearchPerformance } from '../../lib/gsc'
 
 const BarChart       = dynamic(() => import('recharts').then((m) => m.BarChart),        { ssr: false })
 const Bar            = dynamic(() => import('recharts').then((m) => m.Bar),              { ssr: false })
@@ -26,7 +27,7 @@ export async function getServerSideProps({ req, res }) {
   res.setHeader('Cache-Control', 'private, max-age=300, stale-while-revalidate=60')
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
-  if (session.email !== ADMIN_EMAIL) return { redirect: { destination: '/dashboard', permanent: false } }
+  if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
   const now = new Date()
   const oneYearAgo     = Math.floor(new Date(now.getFullYear() - 1, now.getMonth(), 1).getTime() / 1000)
@@ -46,13 +47,14 @@ export async function getServerSideProps({ req, res }) {
   // Cal.com: upcoming bookings count
   const thirtyDaysAheadISO = new Date(now.getTime() + 30 * 86400 * 1000).toISOString()
 
-  const [activeSubs, paidInvoices, openInvoices, weekBookings, balance, traffic, upcomingBookings, ...segCounts] = await Promise.all([
+  const [activeSubs, paidInvoices, openInvoices, weekBookings, balance, traffic, searchPerf, upcomingBookings, ...segCounts] = await Promise.all([
     listAllActiveSubscriptions().catch(() => []),
     listAllInvoicesSince(oneYearAgo).catch(() => []),
     listOpenInvoices().catch(() => []),
     getBookingsForWeek(thisWeekStart.toISOString(), thisWeekEnd.toISOString()).catch(() => []),
     getBalance().catch(() => null),
     getTrafficOverview().catch(() => null),
+    getSearchPerformance(28).catch(() => null),
     getAllUpcomingBookings(100).catch(() => []),
     ...SEGMENT_TYPES.map((t) => countContactsByProperty('system_type', t)),
   ])
@@ -146,6 +148,7 @@ export async function getServerSideProps({ req, res }) {
       // Traffic
       ga4Configured,
       traffic,
+      searchPerf,
     },
   }
 }
@@ -196,7 +199,7 @@ function KPI({ label, value, sub, pct }) {
 // ── Tab buttons ────────────────────────────────────────────────────────────────
 
 function Tabs({ active, onChange }) {
-  const tabs = ['Revenue', 'Traffic', 'Finance', 'Health']
+  const tabs = ['Revenue', 'Traffic', 'Social', 'Finance', 'Accounting', 'Health']
   return (
     <div style={{ display: 'flex', gap: 4, marginBottom: 32, borderBottom: '1px solid rgba(122,171,130,0.15)', paddingBottom: 0 }}>
       {tabs.map((t) => (
@@ -515,6 +518,281 @@ function TrafficTab({ ga4Configured, traffic }) {
   )
 }
 
+// ── Social tab ─────────────────────────────────────────────────────────────────
+
+function SocialTab() {
+  const [insights, setInsights] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [posting, setPosting] = useState(false)
+  const [message, setMessage] = useState('')
+  const [link, setLink] = useState('')
+  const [postResult, setPostResult] = useState(null)
+  const [postError, setPostError] = useState(null)
+
+  const loadInsights = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/meta-insights')
+      setInsights(await res.json())
+    } catch (e) {
+      setInsights({ error: e.message })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const handlePost = useCallback(async () => {
+    if (!message.trim()) return
+    setPosting(true)
+    setPostResult(null)
+    setPostError(null)
+    try {
+      const res = await fetch('/api/admin/meta-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: message.trim(), link: link.trim() || undefined }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setPostResult(data)
+      setMessage('')
+      setLink('')
+    } catch (e) {
+      setPostError(e.message)
+    } finally {
+      setPosting(false)
+    }
+  }, [message, link])
+
+  const notConfigured = insights?.configured === false
+  const pageInfo = insights?.pageInfo
+  const recentPosts = insights?.recentPosts?.data || []
+
+  return (
+    <div>
+      {/* Page info + load button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
+        {pageInfo && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {pageInfo.picture?.data?.url && <img src={pageInfo.picture.data.url} alt="" style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid rgba(122,171,130,0.3)' }} />}
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1rem' }}>{pageInfo.name}</div>
+              <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
+                {pageInfo.followers_count?.toLocaleString()} followers · {pageInfo.fan_count?.toLocaleString()} likes
+                {pageInfo.overall_star_rating && ` · ★ ${pageInfo.overall_star_rating.toFixed(1)}`}
+              </div>
+            </div>
+          </div>
+        )}
+        <button onClick={loadInsights} disabled={loading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: loading ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: loading ? 'rgba(212,230,202,0.4)' : '#0d1a10' }}>
+          {loading ? 'Loading…' : insights ? 'Refresh' : 'Load Facebook Data'}
+        </button>
+      </div>
+
+      {notConfigured && (
+        <div className="card" style={{ maxWidth: 560, marginBottom: 28 }}>
+          <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 12 }}>Connect Facebook Page</div>
+          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.6, margin: '0 0 14px' }}>
+            You need a Facebook Developer App to post and view insights. Takes about 10 minutes:
+          </p>
+          <ol style={{ fontSize: '0.83rem', color: 'rgba(212,230,202,0.7)', lineHeight: 2.2, paddingLeft: 20, margin: '0 0 16px' }}>
+            <li>Go to <strong>developers.facebook.com</strong> → My Apps → Create App → Business type</li>
+            <li>Add <strong>Facebook Login</strong> and <strong>Pages API</strong> products</li>
+            <li>Tools → Graph API Explorer → select your page → generate Page Access Token</li>
+            <li>Extend token to permanent: use the Token Debugger tool → Extend Token</li>
+            <li>Add to Vercel: <code style={{ color: '#c9a84c' }}>META_ACCESS_TOKEN</code> and <code style={{ color: '#c9a84c' }}>META_PAGE_ID</code></li>
+          </ol>
+          <p style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.4)', margin: 0 }}>META_PAGE_ID is the numeric ID from your Facebook Page → About → Page Transparency.</p>
+        </div>
+      )}
+
+      {/* Composer */}
+      <section style={{ marginBottom: 32 }}>
+        <div style={SECTION}>Post to Facebook Page</div>
+        <div className="card" style={{ maxWidth: 560 }}>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Write your Facebook post here…"
+            rows={4}
+            style={{ width: '100%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#d4e6ca', fontFamily: 'Nunito Sans, sans-serif', fontSize: '0.9rem', padding: '10px 12px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
+          />
+          <input
+            type="url"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="Optional link URL (e.g. greenguard-usa.com)"
+            style={{ width: '100%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, color: '#d4e6ca', fontFamily: 'Nunito Sans, sans-serif', fontSize: '0.85rem', padding: '8px 12px', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
+          />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={handlePost} disabled={posting || !message.trim() || notConfigured} style={{ padding: '10px 22px', borderRadius: 6, border: 'none', cursor: (posting || !message.trim() || notConfigured) ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', background: (posting || !message.trim() || notConfigured) ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: (posting || !message.trim() || notConfigured) ? 'rgba(212,230,202,0.3)' : '#0d1a10' }}>
+              {posting ? 'Posting…' : 'Post Now'}
+            </button>
+            <span style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.35)' }}>{message.length} chars</span>
+          </div>
+          {postResult && <div style={{ marginTop: 10, fontSize: '0.82rem', color: '#7dffaa', fontWeight: 700 }}>Posted! ID: {postResult.postId}</div>}
+          {postError && <div style={{ marginTop: 10, fontSize: '0.82rem', color: '#ff8080' }}>{postError}</div>}
+        </div>
+      </section>
+
+      {/* Recent posts */}
+      {recentPosts.length > 0 && (
+        <section style={{ marginBottom: 32 }}>
+          <div style={SECTION}>Recent Posts</div>
+          {recentPosts.map((post) => (
+            <div key={post.id} className="card" style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.85rem', lineHeight: 1.5, marginBottom: 8 }}>{post.message || '(no text)'}</div>
+                  <div style={{ display: 'flex', gap: 16, fontSize: '0.72rem', color: 'rgba(212,230,202,0.45)' }}>
+                    <span>❤ {post.likes?.summary?.total_count || 0}</span>
+                    <span>💬 {post.comments?.summary?.total_count || 0}</span>
+                    <span>{post.created_time ? new Date(post.created_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
+                  </div>
+                </div>
+                {post.permalink_url && <a href={post.permalink_url} target="_blank" rel="noopener noreferrer" style={{ color: '#7aab82', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>View →</a>}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+    </div>
+  )
+}
+
+// ── Accounting tab ─────────────────────────────────────────────────────────────
+
+function AccountingTab() {
+  const [qboData, setQboData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [syncId, setSyncId] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState(null)
+  const [syncError, setSyncError] = useState(null)
+
+  const loadQbo = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/qbo-status')
+      setQboData(await res.json())
+    } catch (e) {
+      setQboData({ error: e.message })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const handleSync = useCallback(async () => {
+    if (!syncId.trim()) return
+    setSyncing(true)
+    setSyncResult(null)
+    setSyncError(null)
+    try {
+      const res = await fetch('/api/admin/qbo-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stripeInvoiceId: syncId.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setSyncResult(data)
+      setSyncId('')
+    } catch (e) {
+      setSyncError(e.message)
+    } finally {
+      setSyncing(false)
+    }
+  }, [syncId])
+
+  const notConfigured = qboData?.configured === false
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+        <button onClick={loadQbo} disabled={loading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: loading ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: loading ? 'rgba(212,230,202,0.4)' : '#0d1a10' }}>
+          {loading ? 'Loading…' : qboData ? 'Refresh' : 'Load QuickBooks Data'}
+        </button>
+      </div>
+
+      {notConfigured && (
+        <div className="card" style={{ maxWidth: 560, marginBottom: 28 }}>
+          <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 12 }}>Connect QuickBooks Online</div>
+          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.6, margin: '0 0 14px' }}>
+            Sync Stripe invoices to QBO automatically and pull P&amp;L reports. Setup:
+          </p>
+          <ol style={{ fontSize: '0.83rem', color: 'rgba(212,230,202,0.7)', lineHeight: 2.2, paddingLeft: 20, margin: '0 0 16px' }}>
+            <li>Go to <strong>developer.intuit.com</strong> → Create App → QuickBooks Online + Payments</li>
+            <li>Copy Client ID and Client Secret → add as <code style={{ color: '#c9a84c' }}>QBO_CLIENT_ID</code> and <code style={{ color: '#c9a84c' }}>QBO_CLIENT_SECRET</code></li>
+            <li>Run: <code style={{ color: '#7dffaa' }}>node _scripts/get-qbo-token.js</code> to get your refresh token</li>
+            <li>Add to Vercel: <code style={{ color: '#c9a84c' }}>QBO_REFRESH_TOKEN</code> and <code style={{ color: '#c9a84c' }}>QBO_REALM_ID</code> (company ID from QBO URL)</li>
+            <li>Optional: <code style={{ color: '#c9a84c' }}>QBO_SANDBOX=true</code> to test against sandbox first</li>
+          </ol>
+        </div>
+      )}
+
+      {/* Manual sync */}
+      <section style={{ marginBottom: 32 }}>
+        <div style={SECTION}>Sync Stripe Invoice → QuickBooks</div>
+        <div className="card" style={{ maxWidth: 480 }}>
+          <p style={{ fontSize: '0.83rem', color: 'rgba(212,230,202,0.55)', marginBottom: 14, lineHeight: 1.6 }}>
+            Paste a Stripe invoice ID (starts with <code style={{ color: '#c9a84c' }}>in_</code>) to create a matching invoice in QuickBooks.
+          </p>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <input
+              type="text"
+              value={syncId}
+              onChange={(e) => setSyncId(e.target.value)}
+              placeholder="in_1ABC123..."
+              style={{ flex: 1, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, color: '#d4e6ca', fontFamily: 'monospace', fontSize: '0.85rem', padding: '9px 12px', outline: 'none' }}
+              onKeyDown={(e) => e.key === 'Enter' && handleSync()}
+            />
+            <button onClick={handleSync} disabled={syncing || !syncId.trim() || notConfigured} style={{ padding: '9px 18px', borderRadius: 6, border: 'none', cursor: (syncing || !syncId.trim() || notConfigured) ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', background: (syncing || !syncId.trim() || notConfigured) ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: (syncing || !syncId.trim() || notConfigured) ? 'rgba(212,230,202,0.3)' : '#0d1a10' }}>
+              {syncing ? 'Syncing…' : 'Sync'}
+            </button>
+          </div>
+          {syncResult && <div style={{ fontSize: '0.82rem', color: '#7dffaa', fontWeight: 700 }}>Synced! QBO Invoice #{syncResult.docNumber}</div>}
+          {syncError && <div style={{ fontSize: '0.82rem', color: '#ff8080' }}>{syncError}</div>}
+        </div>
+      </section>
+
+      {qboData && !notConfigured && (
+        <section style={{ marginBottom: 32 }}>
+          <div style={SECTION}>Recent QuickBooks Invoices</div>
+          {qboData.recentInvoices?.length > 0 ? (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead><tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
+                  {['Date', 'Customer', 'Amount', 'Balance Due', 'Status'].map((h) => (
+                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)' }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {qboData.recentInvoices.map((inv) => (
+                    <tr key={inv.Id} style={{ borderBottom: '1px solid rgba(122,171,130,0.08)' }}>
+                      <td style={TD}>{inv.TxnDate}</td>
+                      <td style={{ ...TD, color: 'rgba(212,230,202,0.65)' }}>{inv.CustomerRef?.name || '—'}</td>
+                      <td style={{ ...TD, fontWeight: 800 }}>{fmt$(inv.TotalAmt || 0)}</td>
+                      <td style={{ ...TD, color: (inv.Balance || 0) > 0 ? '#ffb060' : '#7dffaa', fontWeight: 700 }}>{fmt$(inv.Balance || 0)}</td>
+                      <td style={TD}><span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: (inv.Balance || 0) > 0 ? '#ffb060' : '#7dffaa' }}>{(inv.Balance || 0) > 0 ? 'Unpaid' : 'Paid'}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.4)' }}>No invoices found in QuickBooks.</p>
+          )}
+        </section>
+      )}
+
+      <div className="card" style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.55)', lineHeight: 1.6, maxWidth: 560 }}>
+        <strong>Recommended workflow:</strong> Generate invoice in Customer Rounds → finalize in Stripe → click Sync here to push to QuickBooks.
+        QuickBooks keeps your books; Stripe handles the actual payment collection.
+      </div>
+    </div>
+  )
+}
+
 // ── Finance tab ────────────────────────────────────────────────────────────────
 
 function FinanceTab({ balance, revenueLast30, recentOrders, openInvoiceList }) {
@@ -675,7 +953,9 @@ export default function Analytics(props) {
 
         {tab === 'Revenue' && <RevenueTab {...props} />}
         {tab === 'Traffic' && <TrafficTab ga4Configured={props.ga4Configured} traffic={props.traffic} />}
+        {tab === 'Social' && <SocialTab />}
         {tab === 'Finance' && <FinanceTab balance={props.balance} revenueLast30={props.revenueLast30} recentOrders={props.recentOrders} openInvoiceList={props.openInvoiceList} />}
+        {tab === 'Accounting' && <AccountingTab />}
         {tab === 'Health' && <HealthTab />}
       </PortalLayout>
     </>

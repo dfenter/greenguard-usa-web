@@ -15,7 +15,11 @@
   --text-dim: rgba(212, 230, 202, 0.35);
 }
 
-html, body {
+html {
+  font-size: 18px; /* Base bump — all rem values scale up. Default is 16px. */
+}
+
+body {
   margin: 0;
   padding: 0;
   background: var(--bg);
@@ -128,17 +132,76 @@ button { font-family: inherit; cursor: pointer; }
     background: rgba(10, 26, 13, 0.98);
     border-bottom: 1px solid rgba(122, 171, 130, 0.2);
     padding: 12px 24px 20px;
-    gap: 4px;
+    gap: 2px;
     z-index: 99;
+    max-height: calc(100vh - 56px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .nav-links.open { display: flex; }
+  .nav-links a { padding: 10px 12px !important; min-height: 44px; display: flex; align-items: center; width: 100%; }
 
-  /* Touch-friendly tap targets */
+  /* Touch-friendly tap targets — minimum 44×44px (Apple HIG) */
   .btn-gold, .btn-outline { min-height: 44px; padding: 12px 20px; }
+  button { min-height: 36px; }
 
   /* Tighter card padding on mobile */
   .card { padding: 16px; }
 
   /* Scrollable tables on narrow screens */
   table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Stack 2-column grids */
+  .two-col { grid-template-columns: 1fr !important; }
+
+  /* Docked panel becomes bottom sheet */
+  .docked-panel {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 75vh !important;
+    border-left: none !important;
+    border-top: 1px solid rgba(122,171,130,0.2) !important;
+    border-radius: 16px 16px 0 0 !important;
+  }
+
+  /* Full-width main content when panel is open */
+  .panel-open-shrink { margin-right: 0 !important; }
 }
+
+/* ── Small phones (< 480px) ───────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Even tighter padding */
+  .card { padding: 14px; }
+
+  /* Smaller headings */
+  h1 { font-size: 1.4rem !important; }
+
+  /* Full-width buttons */
+  .btn-gold, .btn-outline { width: 100%; text-align: center; }
+
+  /* Reduce font sizes in tables */
+  table { font-size: 0.75rem; }
+
+  /* Bottom safe area for iPhone notch/home bar */
+  main { padding-bottom: max(32px, env(safe-area-inset-bottom)) !important; }
+}
+
+/* ── iPad landscape (768–1024px) ───────────────────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hamburger { display: none; }
+  .nav-links { display: flex !important; flex-wrap: nowrap; overflow-x: auto; }
+
+  /* Slightly reduce font sizes for more content density */
+  .card { padding: 18px; }
+}
+
+/* ── Field tech utility classes ────────────────────────────────── */
+/* Large tap targets for field use */
+.tap-lg { min-height: 52px !important; font-size: 1rem !important; }
+
+/* Prevent text selection on interactive elements (annoying on touch) */
+button, select, [role="button"] { -webkit-user-select: none; user-select: none; }

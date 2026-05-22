@@ -1,5 +1,5 @@
 const { stripe } = require('../../../lib/stripe')
-const { verifyToken, createSessionToken, SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } = require('../../../lib/auth')
+const { verifyToken, createSessionToken, isAdminEmail, SESSION_COOKIE_NAME, SESSION_COOKIE_OPTIONS } = require('../../../lib/auth')
 const { serialize } = require('cookie')
 
 export default async function handler(req, res) {
@@ -23,5 +23,18 @@ export default async function handler(req, res) {
   const sessionToken = await createSessionToken(payload.email, stripeCustomerId)
   const cookie = serialize(SESSION_COOKIE_NAME, sessionToken, SESSION_COOKIE_OPTIONS)
   res.setHeader('Set-Cookie', cookie)
+
+  // Prospects (not admin, no Stripe customer) → prospect landing page
+  if (!isAdminEmail(payload.email) && !stripeCustomerId) {
+    return res.redirect('/prospect')
+  }
+
+  // Admins: owner goes to analytics, techs go to their route dashboard
+  if (isAdminEmail(payload.email)) {
+    const ownerEmail = (process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com').split(',')[0].trim().toLowerCase()
+    const isOwner = payload.email.toLowerCase() === ownerEmail
+    return res.redirect(isOwner ? '/admin/analytics' : '/admin/tech')
+  }
+
   res.redirect('/dashboard')
 }

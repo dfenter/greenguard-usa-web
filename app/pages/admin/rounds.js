@@ -2,8 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
-import { getSessionFromRequest } from '../../lib/auth'
+import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDate } from '../../lib/gcal'
+import { getBookingsForEmail } from '../../lib/calcom'
+import { listAllCustomers } from '../../lib/stripe'
+import { findContactByEmail } from '../../lib/hubspot'
 import path from 'path'
 import fs from 'fs'
 
@@ -12,7 +15,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 export async function getServerSideProps({ req, query }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
-  if (session.email !== ADMIN_EMAIL) return { redirect: { destination: '/dashboard', permanent: false } }
+  if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
   const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
   const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
@@ -47,9 +50,63 @@ export async function getServerSideProps({ req, query }) {
     } catch {}
   }
 
+  // Build email → customer name maps from Stripe + HubSpot
+  let stripeNameByEmail = {}
+  let hubspotNameByEmail = {}
+  if (stops.length > 0) {
+    const uniqueEmails = [...new Set(stops.map((s) => s.email).filter(Boolean))]
+    await Promise.all([
+      // Stripe names
+      listAllCustomers().then(cs => cs.forEach(c => {
+        if (c.email && c.name) stripeNameByEmail[c.email.toLowerCase()] = c.name
+      })).catch(() => {}),
+      // HubSpot names (most complete — includes CSV-imported contacts)
+      ...uniqueEmails.map(email =>
+        findContactByEmail(email).then(c => {
+          if (!c) return
+          const first = c.properties?.firstname || ''
+          const last = c.properties?.lastname || ''
+          const full = [first, last].filter(Boolean).join(' ')
+          if (full) hubspotNameByEmail[email.toLowerCase()] = full
+        }).catch(() => {})
+      ),
+    ])
+  }
+
+  // Match Cal.com booking IDs to stops by email + time (5-min tolerance)
+  if (stops.length > 0) {
+    const uniqueEmails = [...new Set(stops.map((s) => s.email).filter(Boolean))]
+    const calBookingsByEmail = {}
+    await Promise.all(uniqueEmails.map(async (email) => {
+      try {
+        const result = await getBookingsForEmail(email, new Date(selectedDate + 'T00:00:00').toISOString())
+        calBookingsByEmail[email] = Array.isArray(result) ? result : []
+      } catch {}
+    }))
+    stops = stops.map((stop) => {
+      if (!stop.email || !stop.startTime) return stop
+      const candidates = calBookingsByEmail[stop.email] || []
+      const match = candidates.find((cb) =>
+        Math.abs(new Date(cb.startTime) - new Date(stop.startTime)) < 300000
+      )
+      // Priority: Cal.com name → HubSpot → Stripe → original
+      const emailKey = stop.email?.toLowerCase()
+      const calName = match
+        ? (match.responses?.name || match.title?.match(/and\s+(.+)$/)?.[1]?.trim() || null)
+        : null
+      const resolvedName = calName
+        || hubspotNameByEmail[emailKey]
+        || stripeNameByEmail[emailKey]
+        || stop.customerName
+      return match
+        ? { ...stop, calBookingId: match.id, calBookingUid: match.uid, customerName: resolvedName }
+        : { ...stop, customerName: resolvedName }
+    })
+  }
+
   // Build last-3-days + today date options
   const availableDates = []
-  for (let i = -3; i <= 3; i++) {
+  for (let i = -10; i <= 3; i++) {
     const d = new Date()
     d.setDate(d.getDate() + i)
     availableDates.push(d.toLocaleDateString('en-CA', { timeZone: tz }))
@@ -66,53 +123,61 @@ const SERVICES = [
   { label: 'Biogents CO₂ Service — 2 Traps', sku: 'BG2',      price: 266.99 },
   { label: 'Biogents CO₂ Service — 3 Traps', sku: 'BG3',      price: 399.99 },
   { label: 'Mosqitter Grand Rental',          sku: 'MQ-RENT',  price: 299.99 },
-  { label: 'Mosqitter Grand Service',         sku: 'MQ-SVC',   price: 129.99 },
-  { label: 'Mosqitter Installation',          sku: 'MQ-INST',  price: 199.99 },
+  { label: 'Mosqitter Grand Service',         sku: 'MQ-SVC',   price: 129.99, promptQty: true },
+  { label: 'Mosqitter Installation',          sku: 'MQ-INST',  price: 199.99, promptQty: true },
   { label: 'Mosqitter Troubleshoot',          sku: 'MQ-TSHOOT',price:  79.99 },
-  { label: 'CO₂ Tank Exchange — 1 Tank',     sku: 'TANK1',    price:  89.98 },
-  { label: 'CO₂ Tank Exchange — 2 Tanks',    sku: 'TANK2',    price: 139.97 },
-  { label: 'CO₂ Tank Exchange — 3 Tanks',    sku: 'TANK3',    price: 189.96 },
-  { label: 'CO₂ Tank Exchange — 4 Tanks',    sku: 'TANK4',    price: 239.95 },
-  { label: 'CO₂ Tank Exchange — 6 Tanks',    sku: 'TANK6',    price: 339.93 },
-  { label: 'CO₂ Tank Exchange — 10 Tanks',   sku: 'TANK10',   price: 539.89 },
+  { label: 'CO₂ Tank Exchange — 1 Tank',     sku: 'TANK1',    price:  89.99 },
+  { label: 'CO₂ Tank Exchange — 2 Tanks',    sku: 'TANK2',    price: 139.99 },
+  { label: 'CO₂ Tank Exchange — 3 Tanks',    sku: 'TANK3',    price: 189.99 },
+  { label: 'CO₂ Tank Exchange — 4 Tanks',    sku: 'TANK4',    price: 239.99 },
+  { label: 'CO₂ Tank Exchange — 6 Tanks',    sku: 'TANK6',    price: 339.99 },
+  { label: 'CO₂ Tank Exchange — 10 Tanks',   sku: 'TANK10',   price: 539.99 },
   { label: 'GreenGuard Barrier Treatment',    sku: 'BARRIER',  price:  49.99 },
   { label: 'Free Property Assessment',        sku: 'ASSESS',   price:   0.00 },
 ]
 
 const EQUIPMENT = [
   { label: 'Trap Installation',                        sku: 'TRAP-INSTALL',  price:  80.00 },
-  { label: 'Timer Installation',                        sku: 'TIMER-INSTALL', price:  29.99 },
-  { label: 'Trap Maintenance (1 trap)',                 sku: 'TRAP-MAINT-1',  price:  29.99 },
-  { label: 'Trap Maintenance (2 traps)',                sku: 'TRAP-MAINT-2',  price:  49.99 },
+  { label: 'CO₂ Tank & Timer Rental',                  sku: 'CO2-ADDON',     price: 124.99 },
+  { label: 'Timer Installation',                       sku: 'TIMER-INSTALL', price:  29.99 },
+  { label: 'Trap Maintenance (1 trap)',                sku: 'TRAP-MAINT-1',  price:  10.00 },
+  { label: 'Trap Maintenance (2 traps)',               sku: 'TRAP-MAINT-2',  price:  20.00 },
+  { label: 'Trap Maintenance (3 traps)',               sku: 'TRAP-MAINT-3',  price:  30.00 },
   { label: 'Biogents Tank Hookup & Trap Maintenance',  sku: 'OWN-BG',        price:  10.00 },
   { label: 'Mosqitter Tank Hookup & Trap Maintenance', sku: 'OWN-MQ',        price:  30.00 },
-  { label: 'System Rental',                            sku: null,            price:  null  },
-  { label: 'Replacement Catch Container',              sku: null,            price:  null  },
 ]
 
 const ADDONS = [
-  { label: 'CO₂ Tank Rental',              sku: 'CO2-ADDON',     price: 124.99 },
-  { label: 'BG Sweetscent',                sku: 'BG-SWEETSCENT', price:  18.99 },
-  { label: 'Bait Pack',                    sku: 'BAIT',          price:  10.00 },
-  { label: 'Weekend Surcharge',            sku: 'WKD-SURCH',     price:  25.00 },
-  { label: '50ft Extension Cord',          sku: null,            price:  null  },
-  { label: '100ft Extension Cord',         sku: null,            price:  null  },
-  { label: 'Splitter',                     sku: null,            price:  null  },
-  { label: 'Biogents Power Supply',        sku: null,            price:  null  },
-  { label: 'Biogents PS 30ft Ext Cord',    sku: null,            price:  null  },
-  { label: 'Biogents Trap Net',            sku: null,            price:  null  },
-  { label: 'Biogents Funnel',              sku: null,            price:  null  },
-  { label: 'CO₂ Regulator',               sku: null,            price:  null  },
-  { label: 'CO₂ Tank Washer',             sku: null,            price:  null  },
-  { label: '9V Batteries',               sku: null,            price:  null  },
-  { label: 'Larvicide Tablet',            sku: null,            price:  null  },
+  { label: 'BG Sweetscent',               sku: 'BG-SWEETSCENT', price:  18.99 },
+  { label: 'Bait Pack',                   sku: 'BAIT',          price:  10.00 },
+  { label: 'Larvicide Tablet',            sku: null,            price:   4.00 },
+  { label: 'Weekend Surcharge',           sku: 'WKD-SURCH',     price:  25.00 },
+]
+
+// Equipment sold during visit — one-time purchases
+const PRODUCTS_SOLD = [
+  { label: 'Biogents BG-Mosquitaire',              sku: null, price: 279.99  },
+  { label: 'Mosqitter Grand',                      sku: null, price: 1849.99 },
+  { label: 'Biogents Timer',                       sku: null, price: 179.99  },
+  { label: 'CO₂ Tank — 20lb (empty)',             sku: null, price: 199.99  },
+  { label: 'CO₂ Regulator',                       sku: null, price: 119.99  },
+  { label: 'CO₂ Tank Washer',                     sku: null, price:   5.00  },
+  { label: 'Biogents Power Supply',               sku: null, price:  36.99  },
+  { label: 'Biogents Power Supply 30ft Extension',sku: null, price:  16.99  },
+  { label: 'Biogents Trap Net',                   sku: null, price:   6.99  },
+  { label: 'Biogents Funnel',                     sku: null, price:  10.50  },
+  { label: '9V Batteries',                        sku: null, price:   6.00  },
+  { label: 'Splitter',                            sku: null, price:   8.99  },
+  { label: '50ft Extension Cord',                 sku: null, price:  20.00  },
+  { label: '100ft Extension Cord',               sku: null, price:  40.00  },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function fmt$(n) { return n == null ? '—' : `$${n.toFixed(2)}` }
-function fmtTime(iso) { return iso ? new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : null }
-function nowStr() { return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' }) }
+const TZ = 'America/Chicago'
+function fmtTime(iso) { return iso ? new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ }) : null }
+function nowStr() { return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', timeZone: TZ }) }
 
 function sectionTotal(catalog, qtys) {
   return catalog.reduce((sum, item) => {
@@ -251,19 +316,37 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total })
             const selected = qty > 0
             return (
               <div key={item.label}
-                onClick={() => !selected && onChange(item.label, 1)}
-                style={{ display: 'flex', alignItems: 'center', padding: '11px 14px', borderBottom: '1px solid rgba(122,171,130,0.06)', cursor: selected ? 'default' : 'pointer', background: selected ? 'rgba(125,255,170,0.05)' : 'transparent' }}>
-                <div style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${selected ? '#7dffaa' : 'rgba(122,171,130,0.3)'}`, background: selected ? '#7dffaa' : 'transparent', marginRight: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#0d1a10', fontWeight: 900 }}>
-                  {selected ? '✓' : ''}
-                </div>
+                onClick={() => !selected && !item.promptQty && onChange(item.label, 1)}
+                style={{ display: 'flex', alignItems: 'center', padding: '11px 14px', borderBottom: '1px solid rgba(122,171,130,0.06)', cursor: selected || item.promptQty ? 'default' : 'pointer', background: selected ? 'rgba(125,255,170,0.05)' : 'transparent' }}>
+                {!item.promptQty && (
+                  <div style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${selected ? '#7dffaa' : 'rgba(122,171,130,0.3)'}`, background: selected ? '#7dffaa' : 'transparent', marginRight: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#0d1a10', fontWeight: 900 }}>
+                    {selected ? '✓' : ''}
+                  </div>
+                )}
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.85rem', fontWeight: selected ? 700 : 500, color: selected ? '#d4e6ca' : 'rgba(212,230,202,0.65)' }}>{item.label}</div>
                   <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.3)', marginTop: 1 }}>
                     {item.sku && <span style={{ marginRight: 8, color: 'rgba(201,168,76,0.5)' }}>{item.sku}</span>}
                     <span style={{ color: item.price ? '#7dffaa' : 'rgba(212,230,202,0.2)' }}>{item.price ? fmt$(item.price) : 'no charge'}</span>
+                    {item.promptQty && qty > 0 && <span style={{ marginLeft: 8, color: '#7dffaa', fontWeight: 700 }}>= {fmt$(item.price * qty)}</span>}
                   </div>
                 </div>
-                {selected && (
+                {/* Inline qty input for promptQty items */}
+                {item.promptQty ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                    <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.45)', fontWeight: 700 }}>Qty:</span>
+                    <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
+                      style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>−</button>
+                    <input
+                      type="number" min="0" value={qty || ''}
+                      placeholder="0"
+                      onChange={(e) => onChange(item.label, Math.max(0, parseInt(e.target.value) || 0))}
+                      style={{ width: 44, textAlign: 'center', padding: '4px 6px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.35)', background: qty > 0 ? 'rgba(125,255,170,0.08)' : 'rgba(255,255,255,0.04)', color: qty > 0 ? '#7dffaa' : '#d4e6ca', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }}
+                    />
+                    <button onClick={() => onChange(item.label, qty + 1)}
+                      style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>+</button>
+                  </div>
+                ) : selected && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
                       style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>−</button>
@@ -305,12 +388,34 @@ function EmailModal({ stop, lineItems, grandTotal, onSend, onSkip }) {
   ].join('\n')
 
   const [msg, setMsg] = useState(defaultMsg)
+  const [drafting, setDrafting] = useState(false)
   const inp = { width: '100%', padding: '10px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', resize: 'vertical' }
+
+  async function draftWithAI() {
+    setDrafting(true)
+    try {
+      const services = lineItems.filter(l => l.qty > 0).map(l => l.label)
+      const res = await fetch('/api/admin/ai-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'visit-email', customerName: stop.customerName, address: stop.address, services, notes: '' }),
+      })
+      const data = await res.json()
+      if (data.text) setMsg(data.text)
+    } catch {}
+    setDrafting(false)
+  }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ background: '#0d1a10', border: '1px solid rgba(122,171,130,0.3)', borderRadius: 12, padding: 24, maxWidth: 500, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-        <h3 style={{ margin: '0 0 6px', fontSize: '1rem' }}>Send Post-Visit Email</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <h3 style={{ margin: 0, fontSize: '1rem' }}>Send Post-Visit Email</h3>
+          <button onClick={draftWithAI} disabled={drafting}
+            style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid rgba(91,196,255,0.3)', background: drafting ? 'rgba(91,196,255,0.08)' : 'transparent', color: '#5bc4ff', cursor: drafting ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+            {drafting ? 'Writing…' : '✨ Draft with AI'}
+          </button>
+        </div>
         <p style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.45)', margin: '0 0 14px' }}>To: <strong>{stop.email || '(no email)'}</strong></p>
         <textarea rows={14} style={inp} value={msg} onChange={(e) => setMsg(e.target.value)} />
         <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
@@ -328,19 +433,90 @@ function EmailModal({ stop, lineItems, grandTotal, onSend, onSkip }) {
 
 // ── Stop card ──────────────────────────────────────────────────────────────────
 
-function StopCard({ stop, idx, state, onUpdate, fileInputRef }) {
+function CancelModal({ stop, onConfirm, onClose }) {
+  const [reason, setReason] = useState('')
+  const [sendEmail, setSendEmail] = useState(!!stop.email)
+  const [busy, setBusy] = useState(false)
+
+  async function go() {
+    setBusy(true)
+    try {
+      if (stop.calBookingId) {
+        await fetch('/api/admin/cancel-booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: stop.calBookingId, reason: reason || 'Cancelled by admin', customerEmail: stop.email, action: 'cancel' }),
+        })
+      }
+      if (sendEmail && stop.email) {
+        const msg = reason
+          ? `Hi ${stop.customerName?.split(' ')[0] || 'there'},\n\nYour appointment has been cancelled.\n\nReason: ${reason}\n\nPlease contact us to reschedule.\n\nThank you,\nGreenGuard USA`
+          : `Hi ${stop.customerName?.split(' ')[0] || 'there'},\n\nYour GreenGuard appointment has been cancelled. Please contact us to reschedule.\n\nThank you,\nGreenGuard USA`
+        await fetch('/api/admin/complete-stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: stop.email, customerName: stop.customerName, customEmailMessage: msg }),
+        })
+      }
+      onConfirm()
+    } catch (e) {
+      alert('Cancel failed: ' + e.message)
+    }
+    setBusy(false)
+  }
+
+  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#0d1a10', border: '1px solid rgba(255,100,100,0.3)', borderRadius: 12, padding: 24, maxWidth: 440, width: '100%' }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: '1rem', color: '#ff8080' }}>Cancel Appointment</h3>
+        <p style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.45)', margin: '0 0 16px' }}>{stop.customerName} · {stop.address}</p>
+        {!stop.calBookingId && (
+          <p style={{ fontSize: '0.75rem', color: '#c9a84c', margin: '0 0 12px', padding: '8px 12px', borderRadius: 6, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)' }}>
+            ⚠️ No Cal.com booking matched — cancellation note only, booking not removed from calendar.
+          </p>
+        )}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.45)', display: 'block', marginBottom: 4 }}>Reason (optional)</label>
+          <input style={inp} placeholder="e.g. Customer request, weather, scheduling conflict" value={reason} onChange={(e) => setReason(e.target.value)} />
+        </div>
+        {stop.email && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.85rem', color: 'rgba(212,230,202,0.8)', cursor: 'pointer', marginBottom: 20, userSelect: 'none' }}>
+            <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} style={{ width: 16, height: 16 }} />
+            Send cancellation email to {stop.email}
+          </label>
+        )}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={go} disabled={busy} style={{ flex: 1, padding: 11, borderRadius: 8, border: 'none', cursor: busy ? 'not-allowed' : 'pointer', fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Nunito Sans, sans-serif', background: busy ? 'rgba(255,100,100,0.2)' : '#ff6b6b', color: '#fff' }}>
+            {busy ? 'Cancelling…' : 'Confirm Cancel'}
+          </button>
+          <button onClick={onClose} style={{ padding: '11px 18px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent', color: 'rgba(212,230,202,0.55)' }}>
+            Back
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
   const isDone = state.status === 'done'
   const isActive = state.status === 'active'
+  const [showCancel, setShowCancel] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
-  const svcTotal = sectionTotal(SERVICES, state.serviceQtys)
-  const eqTotal  = sectionTotal(EQUIPMENT, state.equipQtys)
-  const addTotal = sectionTotal(ADDONS, state.addonQtys)
-  const grand    = svcTotal + eqTotal + addTotal
+  const svcTotal  = sectionTotal(SERVICES,      state.serviceQtys)
+  const eqTotal   = sectionTotal(EQUIPMENT,     state.equipQtys)
+  const addTotal  = sectionTotal(ADDONS,        state.addonQtys)
+  const prodTotal = sectionTotal(PRODUCTS_SOLD, state.productQtys)
+  const grand     = svcTotal + eqTotal + addTotal + prodTotal
 
   const allLineItems = [
-    ...buildLineItems(SERVICES, state.serviceQtys),
-    ...buildLineItems(EQUIPMENT, state.equipQtys),
-    ...buildLineItems(ADDONS, state.addonQtys),
+    ...buildLineItems(SERVICES,      state.serviceQtys),
+    ...buildLineItems(EQUIPMENT,     state.equipQtys),
+    ...buildLineItems(ADDONS,        state.addonQtys),
+    ...buildLineItems(PRODUCTS_SOLD, state.productQtys),
   ]
 
   function handlePhoto(e) {
@@ -348,6 +524,28 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef }) {
     const reader = new FileReader()
     reader.onload = (ev) => onUpdate({ photoUrl: ev.target.result })
     reader.readAsDataURL(file)
+  }
+
+  async function handleVideo(e) {
+    const file = e.target.files?.[0]; if (!file) return
+    setUploading(true)
+    try {
+      const res = await fetch('/api/admin/upload-media', {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+      if (res.ok) {
+        const { url } = await res.json()
+        onUpdate({ videoUrl: url })
+      } else {
+        const { error } = await res.json()
+        onUpdate({ error: error || 'Video upload failed' })
+      }
+    } catch (err) {
+      onUpdate({ error: err.message })
+    }
+    setUploading(false)
   }
 
   async function handleComplete() {
@@ -366,9 +564,28 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef }) {
         const invRes = await fetch('/api/admin/generate-invoice', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerEmail: stop.email, customerName: stop.customerName, lineItems: allLineItems }),
+          body: JSON.stringify({ customerEmail: stop.email, customerName: stop.customerName, lineItems: allLineItems, serviceDate: state.date, calBookingUid: stop.calBookingUid }),
         })
-        if (invRes.ok) {
+        if (invRes.status === 409) {
+          // Double-billing warning
+          const warn = await invRes.json()
+          const proceed = window.confirm(`⚠️ ${warn.warning}\n\nClick OK only if this is a new visit that needs a separate invoice.`)
+          if (!proceed) {
+            onUpdate({ submitting: false, showEmailModal: false })
+            return
+          }
+          // Force through — customer confirmed
+          const forceRes = await fetch('/api/admin/generate-invoice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerEmail: stop.email, customerName: stop.customerName, lineItems: allLineItems, serviceDate: state.date, calBookingUid: stop.calBookingUid, force: true }),
+          })
+          if (forceRes.ok) {
+            const fd = await forceRes.json()
+            invoiceId = fd.invoiceId
+            invoiceUrl = fd.invoiceUrl
+          }
+        } else if (invRes.ok) {
           const invData = await invRes.json()
           invoiceId = invData.invoiceId
           invoiceUrl = invData.invoiceUrl
@@ -380,14 +597,18 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef }) {
         date: state.date,
         customerName: stop.customerName,
         address: stop.address,
+        arrivalTime: state.arrivalTime || null,
+        departureTime: state.departureTime || null,
         checkIn: state.checkIn,
         checkOut: nowStr(),
         serviceQtys: state.serviceQtys,
         equipQtys: state.equipQtys,
         addonQtys: state.addonQtys,
-        svcTotal, eqTotal, addTotal, grandTotal: grand,
+        productQtys: state.productQtys,
+        svcTotal, eqTotal, addTotal, prodTotal, grandTotal: grand,
         notes: state.notes,
         photoTaken: !!state.photoUrl,
+        videoUrl: state.videoUrl || null,
         invoiceId,
       }
       if (stop.email) {
@@ -426,7 +647,14 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef }) {
         <EmailModal stop={stop} lineItems={allLineItems} grandTotal={grand}
           onSend={finishStop} onSkip={() => finishStop(null)} />
       )}
-      <div style={card}>
+      {showCancel && (
+        <CancelModal
+          stop={stop}
+          onConfirm={() => { setShowCancel(false); onUpdate({ status: 'cancelled' }) }}
+          onClose={() => setShowCancel(false)}
+        />
+      )}
+      <div style={{ ...card, opacity: state.status === 'cancelled' ? 0.45 : isDone ? 0.7 : 1 }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
           <div>
@@ -453,7 +681,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef }) {
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
             {stop.address && (
-              <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(stop.address)}&travelmode=driving`} target="_blank" rel="noopener noreferrer"
+              <a href={`https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}`} target="_blank" rel="noopener noreferrer"
                 style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid rgba(122,171,130,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#7aab82', textDecoration: 'none' }}>
                 Navigate →
               </a>
@@ -476,6 +704,35 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef }) {
                 Check In
               </button>
             )}
+            {state.status !== 'cancelled' && state.status !== 'done' && (
+              <>
+                {stop.calBookingUid && (
+                  <a
+                    href={`https://cal.com/reschedule/${stop.calBookingUid}`}
+                    target="_blank" rel="noopener noreferrer"
+                    onClick={async () => {
+                      // Mark invoice as draft (keep it) when rescheduling
+                      if (stop.calBookingId && stop.email) {
+                        await fetch('/api/admin/cancel-booking', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ bookingId: stop.calBookingId, customerEmail: stop.email, action: 'reschedule' }),
+                        }).catch(() => {})
+                      }
+                    }}
+                    style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid rgba(91,196,255,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#5bc4ff', textDecoration: 'none' }}>
+                    Reschedule
+                  </a>
+                )}
+                <button onClick={() => setShowCancel(true)}
+                  style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent', color: '#ff8080' }}>
+                  Cancel
+                </button>
+              </>
+            )}
+            {state.status === 'cancelled' && (
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ff8080', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Cancelled</span>
+            )}
           </div>
         </div>
 
@@ -494,10 +751,14 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef }) {
               qtys={state.addonQtys} total={addTotal} disabled={isDone}
               onChange={(label, n) => onUpdate({ addonQtys: { ...state.addonQtys, [label]: n } })} />
 
+            <MultiSelectSection title="Products Sold" catalog={PRODUCTS_SOLD}
+              qtys={state.productQtys} total={prodTotal} disabled={isDone}
+              onChange={(label, n) => onUpdate({ productQtys: { ...state.productQtys, [label]: n } })} />
+
             {/* Grand total */}
             <div style={{ background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.15)', borderRadius: 8, padding: '12px 16px', marginTop: 4, marginBottom: isActive ? 16 : 0 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
-                {[['Services', svcTotal], ['Equipment', eqTotal], ['Add-Ons', addTotal]].map(([lbl, val]) => (
+                {[['Services', svcTotal], ['Equipment', eqTotal], ['Add-Ons', addTotal], ['Products', prodTotal]].map(([lbl, val]) => (
                   <div key={lbl} style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{lbl}</div>
                     <div style={{ fontWeight: 800, fontSize: '0.9rem', color: val > 0 ? '#d4e6ca' : 'rgba(212,230,202,0.25)' }}>{fmt$(val)}</div>
@@ -512,31 +773,62 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef }) {
 
             {isActive && (
               <>
+                {/* Arrival / Departure */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Arrival Time</label>
+                    <input type="time" style={{ ...inp, textAlign: 'center' }} value={state.arrivalTime || ''} onChange={(e) => onUpdate({ arrivalTime: e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Departure Time</label>
+                    <input type="time" style={{ ...inp, textAlign: 'center' }} value={state.departureTime || ''} onChange={(e) => onUpdate({ departureTime: e.target.value })} />
+                  </div>
+                </div>
+
                 {/* Notes */}
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Notes</label>
                   <textarea rows={2} style={{ ...inp, resize: 'vertical' }} placeholder="CO₂ level, observations, follow-up…" value={state.notes} onChange={(e) => onUpdate({ notes: e.target.value })} />
                 </div>
 
-                {/* Photo */}
+                {/* Photo + Video */}
                 <div style={{ marginBottom: 14 }}>
-                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Photo</label>
-                  {state.photoUrl ? (
-                    <div style={{ position: 'relative', display: 'inline-block' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={state.photoUrl} alt="service" style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, display: 'block' }} />
-                      <button onClick={() => { onUpdate({ photoUrl: null }); if (fileInputRef.current) fileInputRef.current.value = '' }}
-                        style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: 4, color: '#fff', padding: '2px 8px', cursor: 'pointer', fontSize: '0.75rem' }}>Remove</button>
-                    </div>
-                  ) : (
-                    <>
-                      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
-                      <button onClick={() => fileInputRef.current?.click()}
-                        style={{ padding: '8px 18px', borderRadius: 8, border: '1px dashed rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.55)', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700 }}>
-                        📷 Take Photo
-                      </button>
-                    </>
-                  )}
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 8 }}>Media</label>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {/* Photo */}
+                    {state.photoUrl ? (
+                      <div style={{ position: 'relative' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={state.photoUrl} alt="service" style={{ height: 100, borderRadius: 8, display: 'block', border: '1px solid rgba(122,171,130,0.2)' }} />
+                        <button onClick={() => { onUpdate({ photoUrl: null }); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                          style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 4, color: '#fff', padding: '2px 6px', cursor: 'pointer', fontSize: '0.7rem' }}>✕</button>
+                      </div>
+                    ) : (
+                      <>
+                        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
+                        <button onClick={() => fileInputRef.current?.click()}
+                          style={{ padding: '10px 16px', borderRadius: 8, border: '1px dashed rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.55)', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700 }}>
+                          📷 Photo
+                        </button>
+                      </>
+                    )}
+                    {/* Video */}
+                    {state.videoUrl ? (
+                      <div style={{ position: 'relative' }}>
+                        <video src={state.videoUrl} style={{ height: 100, borderRadius: 8, border: '1px solid rgba(122,171,130,0.2)' }} controls />
+                        <button onClick={() => { onUpdate({ videoUrl: null }); if (videoInputRef.current) videoInputRef.current.value = '' }}
+                          style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 4, color: '#fff', padding: '2px 6px', cursor: 'pointer', fontSize: '0.7rem' }}>✕</button>
+                      </div>
+                    ) : (
+                      <>
+                        <input ref={videoInputRef} type="file" accept="video/*" capture="environment" style={{ display: 'none' }} onChange={handleVideo} />
+                        <button onClick={() => videoInputRef.current?.click()} disabled={uploading}
+                          style={{ padding: '10px 16px', borderRadius: 8, border: '1px dashed rgba(91,196,255,0.3)', background: 'transparent', color: uploading ? 'rgba(91,196,255,0.3)' : 'rgba(91,196,255,0.7)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700 }}>
+                          {uploading ? 'Uploading…' : '🎥 Video'}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {state.error && <p style={{ color: '#ff8080', fontSize: '0.82rem', margin: '0 0 10px' }}>{state.error}</p>}
@@ -561,12 +853,32 @@ export default function Rounds({ stops, today, selectedDate, availableDates }) {
   const [states, setStates] = useState(() =>
     stops.map(() => ({
       status: 'pending', checkIn: null, checkOut: null, date: selectedDate,
-      serviceQtys: {}, equipQtys: {}, addonQtys: {},
-      notes: '', photoUrl: null, submitting: false, error: null,
+      arrivalTime: '', departureTime: '',
+      serviceQtys: {}, equipQtys: {}, addonQtys: {}, productQtys: {},
+      notes: '', photoUrl: null, videoUrl: null, submitting: false, error: null,
       showEmailModal: false, invoiceId: null, invoiceUrl: null, grandTotal: 0,
     }))
   )
   const fileRefs = useRef(stops.map(() => ({ current: null })))
+  const videoRefs = useRef(stops.map(() => ({ current: null })))
+  const stopRefs = useRef([])
+
+  // Auto-scroll to a specific stop when ?email= is in the URL (from tech dashboard)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const targetEmail = params.get('email')
+    if (!targetEmail) return
+    const idx = stops.findIndex((s) => s.email?.toLowerCase() === targetEmail.toLowerCase())
+    if (idx >= 0 && stopRefs.current[idx]) {
+      setTimeout(() => {
+        stopRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 200)
+    }
+  }, [stops])
+
+  useEffect(() => {
+    videoRefs.current = stops.map((_, i) => videoRefs.current[i] || { current: null })
+  }, [stops])
 
   useEffect(() => {
     fileRefs.current = stops.map((_, i) => fileRefs.current[i] || { current: null })
@@ -613,8 +925,10 @@ export default function Rounds({ stops, today, selectedDate, availableDates }) {
           </div>
         ) : (
           stops.map((stop, idx) => (
-            <StopCard key={`${selectedDate}-${idx}`} stop={stop} idx={idx} state={states[idx]}
-              onUpdate={(patch) => update(idx, patch)} fileInputRef={fileRefs.current[idx]} />
+            <div key={`${selectedDate}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }}>
+              <StopCard stop={stop} idx={idx} state={states[idx]}
+                onUpdate={(patch) => update(idx, patch)} fileInputRef={fileRefs.current[idx]} videoInputRef={videoRefs.current[idx]} />
+            </div>
           ))
         )}
 

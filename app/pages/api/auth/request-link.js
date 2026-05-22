@@ -1,5 +1,5 @@
 const { stripe } = require('../../../lib/stripe')
-const { createMagicToken } = require('../../../lib/auth')
+const { createMagicToken, isAdminEmail } = require('../../../lib/auth')
 const { sendMagicLink } = require('../../../lib/email')
 
 // Rate limiting is handled upstream by middleware.js (Edge Middleware, IP-based, 5 req/15min)
@@ -13,12 +13,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const isAdmin = email.toLowerCase() === 'admin@greenguard-usa.com'
+    const isAdmin = isAdminEmail(email)
     let shouldSend = isAdmin
 
     if (!isAdmin) {
+      // Check Stripe customers and prospect whitelist
       const customers = await stripe.customers.search({ query: `email:"${email}"`, limit: 1 })
-      shouldSend = customers.data.length > 0
+      const isCustomer = customers.data.length > 0
+      const guestEmails = (process.env.GUEST_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+      const isGuest = guestEmails.includes(email.toLowerCase())
+      shouldSend = isCustomer || isGuest
     }
 
     if (shouldSend) {

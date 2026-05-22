@@ -4,7 +4,7 @@
  * and adds the actual line items from the tech's rounds form.
  * Does NOT create a new invoice unless none exists.
  */
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { stripe } = require('../../../lib/stripe')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
@@ -26,9 +26,9 @@ const SKU_TO_ENV = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden' })
+  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-  const { customerEmail, customerName, lineItems } = req.body || {}
+  const { customerEmail, customerName, lineItems, calBookingUid, serviceDate, force } = req.body || {}
   if (!customerEmail) return res.status(400).json({ error: 'customerEmail required' })
   if (!lineItems?.length) return res.status(400).json({ error: 'No line items' })
 
@@ -36,6 +36,25 @@ export default async function handler(req, res) {
   const search = await stripe.customers.search({ query: `email:"${customerEmail}"`, limit: 1 })
   if (!search.data.length) return res.status(404).json({ error: `No Stripe customer for ${customerEmail}` })
   const customer = search.data[0]
+
+  // ── Double-billing protection — one invoice per booking UID ───────────────
+  if (calBookingUid && !force) {
+    // Search all invoices for this customer that already have this booking UID
+    const allInvoices = await stripe.invoices.list({ customer: customer.id, limit: 20 })
+    const duplicate = allInvoices.data.find(inv =>
+      inv.metadata?.cal_booking_uid === calBookingUid &&
+      ['paid', 'open', 'draft'].includes(inv.status)
+    )
+    if (duplicate) {
+      return res.status(409).json({
+        alreadyBilled: true,
+        warning: `An invoice already exists for this appointment (booking ${calBookingUid}). Status: ${duplicate.status}. Click OK to view it or Cancel to abort.`,
+        invoiceId: duplicate.id,
+        invoiceUrl: duplicate.hosted_invoice_url,
+        invoiceStatus: duplicate.status,
+      })
+    }
+  }
 
   // Find existing invoice — prefer draft, fall back to open
   const [drafts, opens] = await Promise.all([
@@ -68,9 +87,17 @@ export default async function handler(req, res) {
   }
 
   // Use existing invoice or create one if none exists
+  // Tag with booking UID so we can prevent future duplicates
+  const invoiceMeta = {}
+  if (calBookingUid) invoiceMeta.cal_booking_uid = calBookingUid
+  if (serviceDate) invoiceMeta.service_date = serviceDate
+
   let invoice = existingInvoice
   if (!invoice) {
-    invoice = await stripe.invoices.create({ customer: customer.id, auto_advance: false })
+    invoice = await stripe.invoices.create({ customer: customer.id, auto_advance: false, metadata: invoiceMeta })
+  } else if (Object.keys(invoiceMeta).length && !existingInvoice.metadata?.cal_booking_uid) {
+    // Tag existing invoice with booking UID if not already tagged
+    await stripe.invoices.update(invoice.id, { metadata: { ...invoice.metadata, ...invoiceMeta } }).catch(() => {})
   }
 
   return res.status(200).json({

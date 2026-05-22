@@ -153,6 +153,10 @@ async function listOpenInvoices() {
   return invoices.data
 }
 
+async function getCustomer(customerId) {
+  return stripe.customers.retrieve(customerId, { expand: ['subscriptions.data.items.data'] })
+}
+
 async function getBalance() {
   const balance = await stripe.balance.retrieve()
   const available = balance.available.reduce((s, b) => s + b.amount, 0)
@@ -177,6 +181,7 @@ async function listAllCustomers() {
 
 module.exports = {
   stripe,
+  getCustomer,
   getBalance,
   listAllCustomers,
   findOrCreateCustomer,

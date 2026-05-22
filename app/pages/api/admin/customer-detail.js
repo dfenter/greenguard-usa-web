@@ -1,4 +1,4 @@
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { stripe } = require('../../../lib/stripe')
 const { findContactByEmail, getContactNotes } = require('../../../lib/hubspot')
 const { getUpcomingBookingsForEmail, getPastBookingsForEmail } = require('../../../lib/gcal')
@@ -8,7 +8,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden' })
+  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const { customerId } = req.query
   if (!customerId) return res.status(400).json({ error: 'customerId required' })
@@ -46,6 +46,7 @@ export default async function handler(req, res) {
 
   const notes = hubspotContact?.id ? await getContactNotes(hubspotContact.id, 5).catch(() => []) : []
   const p = hubspotContact?.properties || {}
+  const m = stripeCustomer.metadata || {}
 
   const subs = stripeCustomer.subscriptions?.data || []
   const activeSub = subs.find((s) => s.status === 'active') || subs[0] || null
@@ -77,12 +78,12 @@ export default async function handler(req, res) {
     // appointments
     nextBooking: nextBooking ? { ...nextBooking, calBookingId: nextCalBooking?.id || null, calBookingUid: nextCalBooking?.uid || null } : null,
     pastBookings: past.map((b) => ({ id: b.id, startTime: b.startTime, title: b.title, address: b.address })),
-    // hubspot
-    planType: p.plan_type || null,
-    systemType: p.system_type || null,
-    trapCount: p.trap_count ? parseInt(p.trap_count, 10) : null,
-    tankCount: p.tank_count ? parseInt(p.tank_count, 10) : null,
-    hasTimer: p.has_timer === 'true' && p.system_type === 'Biogents-CO2',
+    // system info — HubSpot properties with Stripe metadata fallback
+    planType: p.plan_type || m.plan_type || null,
+    systemType: p.system_type || m.system_type || null,
+    trapCount: parseInt(p.trap_count || m.trap_count || '0', 10) || null,
+    tankCount: parseInt(p.tank_count || m.tank_count || '0', 10) || null,
+    hasTimer: (p.has_timer === 'true' || m.has_timer === 'true') && (p.system_type || m.system_type) === 'Biogents-CO2',
     notes,
   })
 }

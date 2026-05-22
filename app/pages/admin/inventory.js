@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
-import { getSessionFromRequest } from '../../lib/auth'
+import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { findContactByEmail } from '../../lib/hubspot'
 import { getBookingsForDateRange } from '../../lib/gcal'
 
@@ -10,7 +10,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
-  if (session.email !== ADMIN_EMAIL) return { redirect: { destination: '/dashboard', permanent: false } }
+  if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
   const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
   const now = new Date()
@@ -93,7 +93,23 @@ export async function getServerSideProps({ req }) {
   })
   const expectedDelivery = lastWedLog?.emptiesPickedUp || 0
 
-  return { props: { history, tankCalendar, scheduleByDate, expectedDelivery, today } }
+  // Total tanks scheduled this week (Mon–Sun) → default for Wednesday emptiesPickedUp
+  // This is the number of empties the tech should collect this Wednesday
+  const todayDate = new Date(today + 'T12:00:00')
+  const dayOfWeek = todayDate.getDay() // 0=Sun, 1=Mon ... 6=Sat
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  const weekMonday = new Date(todayDate)
+  weekMonday.setDate(todayDate.getDate() + mondayOffset)
+  const weekSunday = new Date(weekMonday)
+  weekSunday.setDate(weekMonday.getDate() + 6)
+
+  let weeklyTankTotal = 0
+  for (let d = new Date(weekMonday); d <= weekSunday; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toLocaleDateString('en-CA', { timeZone: tz })
+    weeklyTankTotal += scheduleByDate[dateStr]?.tanks || 0
+  }
+
+  return { props: { history, tankCalendar, scheduleByDate, expectedDelivery, weeklyTankTotal, today } }
 }
 
 // ── Calendar ───────────────────────────────────────────────────────────────────
@@ -197,7 +213,7 @@ function Calendar({ tankCalendar, scheduleByDate, onDayClick, today, currentStoc
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 
-export default function Inventory({ history: initialHistory, tankCalendar: initialCalendar, scheduleByDate, expectedDelivery: initExpectedDelivery, today }) {
+export default function Inventory({ history: initialHistory, tankCalendar: initialCalendar, scheduleByDate, expectedDelivery: initExpectedDelivery, weeklyTankTotal, today }) {
   const tz = 'America/Chicago'
   const todayDow = new Date().toLocaleDateString('en-US', { timeZone: tz, weekday: 'long' })
   const isWednesday = todayDow === 'Wednesday'
@@ -223,12 +239,16 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
     { key: 'tankWashers', label: 'Tank Washers' },
   ]
 
+  // Default emptiesPickedUp to this week's scheduled tank total
+  // (empties collected Wednesday = tanks serviced this week = full tanks needed next week)
+  const defaultEmptiesPickedUp = weeklyTankTotal > 0 ? String(weeklyTankTotal) : ''
+
   const [form, setForm] = useState({
     date: today,
     fullEnd: '',
     emptyEnd: '',
     neededTomorrow: String(tomorrowTanks),
-    emptiesPickedUp: '',
+    emptiesPickedUp: defaultEmptiesPickedUp,
     fullDelivered: '',
     notes: '',
     equipment: Object.fromEntries(EQUIPMENT_ITEMS.map((e) => [e.key, ''])),
@@ -438,7 +458,9 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
                   <div style={{ marginBottom: 12 }}>
                     <label style={{ ...lbl, color: '#c9a84c' }}>Empty tanks picked up today</label>
                     <input style={input} type="number" min="0" placeholder="0" value={form.emptiesPickedUp} onChange={set('emptiesPickedUp')} />
-                    <p style={{ fontSize: '0.7rem', color: 'rgba(201,168,76,0.55)', margin: '4px 0 0' }}>Used as expected delivery count for next week</p>
+                    <p style={{ fontSize: '0.7rem', color: 'rgba(201,168,76,0.55)', margin: '4px 0 0' }}>
+                      Pre-filled from this week&apos;s schedule ({weeklyTankTotal} tanks). Adjust if actual pickups differ. This becomes next week&apos;s expected delivery.
+                    </p>
                   </div>
                   <div>
                     <label style={{ ...lbl, color: '#c9a84c' }}>Full tanks delivered today</label>

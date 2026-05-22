@@ -1,0 +1,173 @@
+---
+import Base from '../layouts/Base.astro'
+
+const tankPlans = [
+  { title: 'Standard', slug: 'tank-exchange-1', price: '$89.99', note: '1 × 20lb tank · monthly', desc: 'One CO₂ tank exchange per month. The essential plan for single-trap owners who want consistent CO₂ service without any hassle.', features: ['1 × 20lb CO₂ cylinder', 'Monthly delivery & exchange', 'Electric fleet delivery', 'Add hookup service +$10/mo'] },
+  { title: 'Premium', slug: 'tank-exchange-2', price: '$139.99', note: '2 × 20lb tanks · monthly', desc: 'Two CO₂ tanks per month. Ideal for two-trap setups or customers who want extended run time between exchanges.', features: ['2 × 20lb CO₂ cylinders', 'Monthly delivery & exchange', 'Electric fleet delivery', 'Add hookup service +$10/trap/mo'] },
+  { title: 'Estate', slug: 'tank-exchange-3', price: '$189.99', note: '3 × 20lb tanks · monthly', desc: 'Three CO₂ tanks per month. Maximum coverage for large properties, multi-trap installations, or commercial applications.', features: ['3 × 20lb CO₂ cylinders', 'Monthly delivery & exchange', 'Electric fleet delivery', 'Add hookup service +$10/trap/mo'] },
+]
+
+const otherServices = [
+  { title: 'Free Property Assessment', slug: 'property-assessment', price: 'Free', desc: 'We evaluate your property, identify mosquito breeding zones, and recommend optimal trap placement — at no charge.', tag: 'Start Here' },
+  { title: 'GreenGuard Barrier Treatment', slug: 'barrier-treatment', price: '$49.99', desc: 'Targeted, pesticide-free barrier treatment for events or high-season protection. Applied around the perimeter of outdoor entertaining areas.', tag: 'Seasonal' },
+  { title: 'Mosqitter Grand Installation', slug: 'mosqitter-installation', price: '$199.99', desc: 'Professional installation of your Mosqitter Grand trap. Includes site selection, mounting, CO₂ hookup, and initial bait setup.', tag: 'One-Time' },
+  { title: 'Mosqitter Grand Troubleshooting', slug: 'mosqitter-troubleshoot', price: '$79.99', desc: 'On-site diagnosis and repair of your Mosqitter Grand system. Covers flow issues, electrical, timer, and catch net problems.', tag: 'On-Demand' },
+  { title: 'Tank Refill Check', slug: 'tank-refill-check', price: 'Included', desc: 'Between scheduled exchanges, we check your CO₂ level and top off if needed to ensure continuous protection.', tag: 'Maintenance' },
+  { title: 'Equipment Pickup', slug: 'equipment-pickup', price: 'Contact Us', desc: 'Schedule pickup of any GreenGuard equipment — tanks, traps, or accessories. Coordinated with your regular service route when possible.', tag: 'Logistics' },
+]
+---
+<Base title="Services — GreenGuard USA" description="CO₂ tank delivery, trap installation, maintenance, barrier treatment, and more. Pesticide-free mosquito control for Austin-area homes.">
+
+<nav id="site-nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">Green<span>Guard</span> USA<small>Smart · Safe · Effective</small></a>
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+    <div class="nav-links" id="nav-links">
+      <a href="/services" class="nav-link active">Services</a>
+      <a href="/traprental" class="nav-link">Trap Rental</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+      <a href="/faq" class="nav-link">FAQ</a>
+      <a href="https://portal.greenguard-usa.com/login" class="nav-link">My Account</a>
+      <a href="/book" class="btn-gold">Book Consultation</a>
+    </div>
+  </div>
+</nav>
+
+<section class="page-hero">
+  <div class="container">
+    <div class="tag reveal" style="margin-bottom:16px;">Pesticide-Free · Austin, TX</div>
+    <h1 class="reveal">Services &amp; <span>Pricing</span></h1>
+    <p class="page-sub reveal">Whether you want to keep your CO₂ tanks full, need a new installation, or want a property assessment — we have a solution that fits your needs.</p>
+  </div>
+</section>
+
+<!-- CO₂ Tank Delivery -->
+<section class="section">
+  <div class="container">
+    <div class="section-label reveal">CO₂ Tank Delivery</div>
+    <h2 class="section-title reveal">Tank Exchange Service</h2>
+    <p class="section-sub reveal">Monthly CO₂ cylinder delivery and swap right to your door. No hauling tanks — delivered on your schedule by our all-electric fleet. 20lb tanks only.</p>
+
+    <div class="plans-grid">
+      {tankPlans.map((plan, i) => (
+        <div class={`plan-card reveal reveal-delay-${i + 1} ${i === 1 ? 'plan-featured' : ''}`}>
+          {i === 1 && <div class="plan-popular">Most Popular</div>}
+          <div class="plan-title">{plan.title}</div>
+          <div class="plan-price">{plan.price}<span>/mo</span></div>
+          <div class="plan-note">{plan.note}</div>
+          <p class="plan-desc">{plan.desc}</p>
+          <ul class="feature-list">
+            {plan.features.map(f => <li>{f}</li>)}
+          </ul>
+          <a href={`https://cal.com/greenguard-usa/${plan.slug}`} class="btn-gold" target="_blank" rel="noopener">Schedule Delivery →</a>
+        </div>
+      ))}
+    </div>
+
+    <div class="card reveal" style="margin-top:28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="flex:1;">
+        <div style="font-weight:800;font-size:0.9rem;margin-bottom:4px;">20 Pound CO₂ Tank Rental</div>
+        <div style="font-size:0.85rem;color:var(--text-dim);">Rent a CO₂ tank from us rather than purchasing. $124.99/mo includes the tank and timer rental. Pairs with any delivery plan.</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:1.3rem;font-weight:900;color:var(--gold);">$124.99<span style="font-size:0.8rem;color:var(--text-faint);font-weight:500;">/mo</span></div>
+        <a href="https://cal.com/greenguard-usa/tank-rental" class="btn-gold" style="margin-top:8px;display:inline-block;" target="_blank" rel="noopener">Schedule →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Other Services -->
+<section class="section section-tinted">
+  <div class="container">
+    <div class="section-label reveal">On-Demand Services</div>
+    <h2 class="section-title reveal">Additional Services</h2>
+    <p class="section-sub reveal">Installations, assessments, troubleshooting, and seasonal treatments — booked on your schedule.</p>
+
+    <div class="services-grid">
+      {otherServices.map((svc, i) => (
+        <div class={`svc-card card reveal reveal-delay-${(i % 3) + 1}`}>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;">
+            <h3 style="font-size:0.98rem;font-weight:900;line-height:1.3;">{svc.title}</h3>
+            <span class="tag" style="flex-shrink:0;font-size:0.65rem;">{svc.tag}</span>
+          </div>
+          <div style="font-size:1.2rem;font-weight:900;color:var(--gold);margin-bottom:10px;">{svc.price}</div>
+          <p style="font-size:0.86rem;color:var(--text-dim);line-height:1.6;flex:1;">{svc.desc}</p>
+          <button class="btn-outline" style="margin-top:16px;width:100%;text-align:center;" disabled>Schedule</button>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container" style="text-align:center;max-width:560px;margin:0 auto;">
+    <div class="section-label reveal" style="margin-bottom:16px;">Not sure where to start?</div>
+    <h2 class="section-title reveal">Book a property assessment.</h2>
+    <p class="section-sub reveal" style="margin:0 auto 32px;">We evaluate your property and recommend the right solution — at no charge. Most assessments take 20–30 minutes.</p>
+    <a href="https://cal.com/greenguard-usa/property-assessment" class="btn-gold reveal" style="font-size:1rem;padding:14px 36px;" target="_blank" rel="noopener">Schedule Property Assessment →</a>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-bottom" style="border-top:1px solid var(--border);padding-top:24px;">
+    <div>© {new Date().getFullYear()} GreenGuard USA · Austin, TX</div>
+    <div>Pesticide-free · Pollinator-safe · Family-owned</div>
+  </div>
+</footer>
+
+<script>
+  const obs = new IntersectionObserver(e => { e.forEach(el => { if (el.isIntersecting) { el.target.classList.add('visible'); obs.unobserve(el.target) } }) }, { threshold: 0.1 })
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el))
+  const ham = document.getElementById('hamburger'); const links = document.getElementById('nav-links')
+  ham.addEventListener('click', () => { links.classList.toggle('open'); ham.classList.toggle('active') })
+  links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => { links.classList.remove('open'); ham.classList.remove('active') }))
+</script>
+
+<style>
+#site-nav { position:sticky;top:0;z-index:100;background:rgba(13,26,16,0.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border); }
+.nav-inner { display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px; }
+.nav-logo { font-weight:900;font-size:1.05rem;letter-spacing:-0.02em;line-height:1.1;flex-shrink:0;text-decoration:none;color:#d4e6ca; }
+.nav-logo span { color:var(--green); }
+.nav-logo small { display:block;font-size:0.5rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(212,230,202,0.35); }
+.nav-links { display:flex;align-items:center;gap:4px; }
+.nav-link { font-size:0.88rem;font-weight:700;color:rgba(212,230,202,0.7);padding:6px 10px;border-radius:4px;transition:color .15s;text-decoration:none; }
+.nav-link:hover,.nav-link.active { color:#d4e6ca; }
+.hamburger { display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px; }
+.hamburger span { display:block;width:24px;height:2px;background:#d4e6ca;transition:all .25s; }
+.hamburger.active span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
+.hamburger.active span:nth-child(2) { opacity:0; }
+.hamburger.active span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
+.btn-gold { display:inline-block;padding:12px 28px;border-radius:4px;background:var(--gold);color:#0d1a10;font-weight:800;font-size:0.88rem;font-family:var(--font);border:none;cursor:pointer;transition:background .2s;text-decoration:none;white-space:nowrap; }
+.btn-gold:hover:not([disabled]) { background:#e8d08a; }
+
+.btn-outline { display:inline-block;padding:10px 20px;border-radius:4px;border:1px solid rgba(212,230,202,0.35);color:var(--text-dim);font-weight:700;font-size:0.85rem;font-family:var(--font);background:transparent;cursor:pointer;transition:border-color .15s;text-decoration:none; }
+.page-hero { background:linear-gradient(160deg,#070f09 0%,#0d1a10 50%,#152318 100%);padding:80px 0 60px;border-bottom:1px solid var(--border); }
+.page-hero h1 { font-size:clamp(2.2rem,4.5vw,3.2rem);font-weight:900;line-height:1.1;letter-spacing:-0.03em;margin-bottom:20px; }
+.page-hero h1 span { color:var(--green); }
+.page-sub { font-size:1.05rem;color:var(--text-dim);line-height:1.75;max-width:580px; }
+.plans-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:44px; }
+.plan-card { background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px;position:relative; }
+.plan-featured { border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.04); }
+.plan-popular { position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#0d1a10;font-size:0.68rem;font-weight:900;padding:4px 14px;border-radius:20px;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap; }
+.plan-title { font-size:0.72rem;font-weight:900;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-faint); }
+.plan-price { font-size:2rem;font-weight:900;color:var(--gold);line-height:1; }
+.plan-price span { font-size:0.9rem;color:var(--text-faint);font-weight:500; }
+.plan-note { font-size:0.78rem;color:var(--text-faint);margin-bottom:4px; }
+.plan-desc { font-size:0.86rem;color:var(--text-dim);line-height:1.6;flex:1; }
+.feature-list { list-style:none;display:flex;flex-direction:column;gap:6px; }
+.feature-list li { font-size:0.83rem;color:var(--text-dim);padding-left:18px;position:relative; }
+.feature-list li::before { content:'✓';position:absolute;left:0;color:var(--gold);font-weight:800; }
+.services-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:44px; }
+.svc-card { display:flex;flex-direction:column; }
+.cta-section { padding:80px 0;background:linear-gradient(160deg,var(--bg2),var(--bg3)); }
+.site-footer { border-top:1px solid var(--border);padding:28px 0; }
+.footer-bottom { display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:0.78rem;color:var(--text-faint); }
+@media (max-width:768px) {
+  .hamburger { display:flex; }
+  .nav-links { display:none;flex-direction:column;align-items:flex-start;gap:4px;position:absolute;top:64px;left:0;right:0;background:rgba(13,26,16,0.98);border-bottom:1px solid var(--border);padding:16px 24px 20px; }
+  .nav-links.open { display:flex; }
+  .plans-grid { grid-template-columns:1fr; }
+}
+</style>
+</Base>

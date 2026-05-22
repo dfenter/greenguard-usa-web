@@ -17,3 +17,6 @@ greenguard-service-account-key.json
 app/.env
 app/.env.local
 .claude/settings.local.json
+.vercel
+app/old.env
+.claude/settings.json

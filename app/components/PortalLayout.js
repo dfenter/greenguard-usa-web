@@ -37,10 +37,10 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
         <div style={{
           maxWidth: 1100, margin: '0 auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          height: 64, position: 'relative',
+          height: 72, position: 'relative',
         }}>
-          <Link href="/dashboard" style={{ textDecoration: 'none', lineHeight: 1.1 }}>
-            <div style={{ fontWeight: 900, fontSize: '1.15rem', letterSpacing: '-0.02em' }}>
+          <Link href="/dashboard" style={{ textDecoration: 'none', lineHeight: 1.1, flexShrink: 0 }}>
+            <div style={{ fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
               Green<span style={{ color: '#7dffaa' }}>Guard</span> USA
             </div>
             <div style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', whiteSpace: 'nowrap' }}>
