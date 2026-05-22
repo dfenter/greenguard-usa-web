@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
 
@@ -13,21 +14,48 @@ export async function getServerSideProps({ req }) {
 }
 
 export default function AdminBooking() {
+  const router = useRouter()
   const [eventTypes, setEventTypes] = useState([])
+  const [etError, setEtError] = useState(null)
+
+  // Pre-fill from query params (e.g. ?email=x&name=x&phone=x&address=x from client panel)
+  const prefill = router.isReady ? router.query : {}
+  const nameParts = (prefill.name || '').split(' ')
+
   const [form, setForm] = useState({
     eventTypeId: '', firstName: '', lastName: '', email: '',
-    phone: '', address: '', startLocal: '', notes: '',
+    address: '', startLocal: '', notes: '', recurring: 'none',
   })
   const [status, setStatus] = useState(null) // null | 'loading' | 'success' | {error}
+
+  // Apply query param pre-fill once router is ready
+  useEffect(() => {
+    if (!router.isReady) return
+    const q = router.query
+    if (q.email || q.name || q.address) {
+      const parts = (q.name || '').split(' ')
+      setForm((f) => ({
+        ...f,
+        email: q.email || f.email,
+        firstName: parts[0] || f.firstName,
+        lastName: parts.slice(1).join(' ') || f.lastName,
+        address: q.address || f.address,
+      }))
+    }
+  }, [router.isReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch('/api/admin/event-types')
       .then(r => r.json())
       .then(data => {
-        setEventTypes(Array.isArray(data) ? data : [])
-        if (data[0]) setForm(f => ({ ...f, eventTypeId: data[0].id }))
+        if (!Array.isArray(data) || data.length === 0) {
+          setEtError('No service types returned from Cal.com. Check CALCOM_API_KEY in Vercel.')
+          return
+        }
+        setEventTypes(data)
+        setForm(f => ({ ...f, eventTypeId: data[0].id }))
       })
-      .catch(() => {})
+      .catch(() => { setEtError('Failed to load service types.') })
   }, [])
 
   function set(field) {
@@ -45,8 +73,9 @@ export default function AdminBooking() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Booking failed')
-      setStatus('success')
-      setForm(f => ({ ...f, firstName: '', lastName: '', email: '', phone: '', address: '', startLocal: '', notes: '' }))
+      const count = data.count || 1
+      setStatus({ success: true, count, recurring: data.recurring })
+      setForm(f => ({ ...f, firstName: '', lastName: '', email: '', address: '', startLocal: '', notes: '', recurring: 'none' }))
     } catch (err) {
       setStatus({ error: err.message })
     }
@@ -70,7 +99,7 @@ export default function AdminBooking() {
   return (
     <>
       <Head><title>New Booking · GreenGuard Admin</title></Head>
-      <PortalLayout>
+      <PortalLayout isAdmin>
         <div style={{ maxWidth: 560 }}>
           <span className="tag">Admin</span>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 8px' }}>
@@ -80,10 +109,12 @@ export default function AdminBooking() {
             Create a booking on behalf of a customer
           </p>
 
-          {status === 'success' && (
+          {status?.success && (
             <div className="card" style={{ marginBottom: 24, borderColor: 'rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.06)' }}>
               <p style={{ color: '#7dffaa', fontWeight: 700, margin: 0 }}>
-                Booking created — draft assessment email will appear in Gmail within 60 seconds.
+                {status.recurring
+                  ? `${status.count} recurring appointments created successfully!`
+                  : 'Booking created!'}
               </p>
             </div>
           )}
@@ -97,11 +128,18 @@ export default function AdminBooking() {
           <form onSubmit={handleSubmit}>
             <div style={field}>
               <label style={label}>Service Type</label>
-              <select value={form.eventTypeId} onChange={set('eventTypeId')} required style={input}>
-                {eventTypes.map(et => (
-                  <option key={et.id} value={et.id}>{et.title}</option>
-                ))}
-              </select>
+              {etError ? (
+                <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.2)', fontSize: '0.82rem', color: '#ff8080' }}>
+                  {etError}
+                </div>
+              ) : (
+                <select value={form.eventTypeId} onChange={set('eventTypeId')} required style={input}>
+                  {eventTypes.length === 0 && <option value="">Loading…</option>}
+                  {eventTypes.map(et => (
+                    <option key={et.id} value={et.id}>{et.title}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 18 }}>
@@ -121,11 +159,6 @@ export default function AdminBooking() {
             </div>
 
             <div style={field}>
-              <label style={label}>Phone</label>
-              <input style={input} type="tel" value={form.phone} onChange={set('phone')} placeholder="(512) 555-1234" />
-            </div>
-
-            <div style={field}>
               <label style={label}>Service Address</label>
               <input style={input} type="text" value={form.address} onChange={set('address')} required placeholder="1234 Oak St, Austin TX 78701" />
             </div>
@@ -133,6 +166,20 @@ export default function AdminBooking() {
             <div style={field}>
               <label style={label}>Date &amp; Time (Central Time)</label>
               <input style={input} type="datetime-local" value={form.startLocal} onChange={set('startLocal')} required />
+            </div>
+
+            <div style={field}>
+              <label style={label}>Recurring Schedule</label>
+              <select style={input} value={form.recurring} onChange={set('recurring')}>
+                <option value="none">One-time appointment</option>
+                <option value="21">Every 21 days (6 appointments)</option>
+                <option value="28">Every 28 days (6 appointments)</option>
+              </select>
+              {form.recurring !== 'none' && (
+                <p style={{ fontSize: '0.78rem', color: '#c9a84c', margin: '6px 0 0' }}>
+                  Will create 6 appointments starting from selected date.
+                </p>
+              )}
             </div>
 
             <div style={field}>
@@ -146,7 +193,7 @@ export default function AdminBooking() {
               disabled={status === 'loading'}
               style={{ width: '100%', justifyContent: 'center', opacity: status === 'loading' ? 0.6 : 1 }}
             >
-              {status === 'loading' ? 'Creating…' : 'Create Booking'}
+              {status === 'loading' ? 'Creating…' : form.recurring !== 'none' ? `Create ${form.recurring}-Day Recurring Series` : 'Create Booking'}
             </button>
           </form>
         </div>

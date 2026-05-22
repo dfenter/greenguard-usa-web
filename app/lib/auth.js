@@ -8,7 +8,7 @@ function getSecret() {
 }
 
 const MAGIC_LINK_EXPIRY = '15m'
-const SESSION_EXPIRY = '30d'
+const SESSION_EXPIRY = '7d'
 
 /**
  * Create a signed JWT for a magic link (short-lived).

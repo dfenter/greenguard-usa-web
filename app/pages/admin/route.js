@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Head from 'next/head'
 import path from 'path'
 import fs from 'fs'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
+import { getTodaysBookings } from '../../lib/gcal'
 
 const ADMIN_EMAIL = 'admin@greenguard-usa.com'
 
@@ -12,6 +13,9 @@ export async function getServerSideProps({ req }) {
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (session.email !== ADMIN_EMAIL) return { redirect: { destination: '/dashboard', permanent: false } }
 
+  const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
+
   const dataDir = path.join(process.cwd(), 'public', 'data')
   let routePlan = null
 
@@ -19,15 +23,41 @@ export async function getServerSideProps({ req }) {
     const files = fs.readdirSync(dataDir).filter((f) => f.startsWith('route_plan_') && f.endsWith('.json'))
     if (files.length > 0) {
       files.sort().reverse()
-      const latest = files[0]
-      const raw = fs.readFileSync(path.join(dataDir, latest), 'utf8')
+      const raw = fs.readFileSync(path.join(dataDir, files[0]), 'utf8')
       routePlan = JSON.parse(raw)
     }
-  } catch {
-    // no route plan yet
+  } catch {}
+
+  // If no route plan or today isn't in the plan, build a live view from Google Calendar
+  const todayInPlan = routePlan?.days?.some((d) => d.date === today)
+  let todayBookings = []
+  if (!todayInPlan) {
+    try {
+      todayBookings = await getTodaysBookings()
+    } catch {}
   }
 
-  return { props: { routePlan } }
+  // If we have today's calendar bookings but no route plan, synthesize a minimal plan
+  if (!routePlan && todayBookings.length > 0) {
+    routePlan = {
+      week: `${today} (live)`,
+      days: [{
+        date: today,
+        stops: todayBookings.map((b) => ({
+          customer_name: b.title,
+          address: b.address || '',
+          email: b.email || '',
+          scheduled_time: b.startTime,
+          duration_min: b.endTime && b.startTime
+            ? Math.round((new Date(b.endTime) - new Date(b.startTime)) / 60000)
+            : null,
+        })),
+      }],
+      source: 'calendar',
+    }
+  }
+
+  return { props: { routePlan, today, todayBookings } }
 }
 
 function buildMapsEmbedUrl(day) {
@@ -44,10 +74,25 @@ function buildMapsEmbedUrl(day) {
   return `https://www.google.com/maps/embed/v1/directions?key=${key}&origin=${encode(depot)}&destination=${encode(last)}${waypoints ? `&waypoints=${waypoints}` : ''}`
 }
 
-export default function RoutePage({ routePlan }) {
+export default function RoutePage({ routePlan, today }) {
   const days = routePlan?.days || []
-  const [selectedDay, setSelectedDay] = useState(0)
+  // Default to today's tab if it exists
+  const todayIdx = days.findIndex((d) => d.date === today)
+  const [selectedDay, setSelectedDay] = useState(todayIdx >= 0 ? todayIdx : 0)
   const day = days[selectedDay]
+  const [triggering, setTriggering] = useState(false)
+  const [triggerMsg, setTriggerMsg] = useState(null)
+
+  const triggerOptimizer = useCallback(async () => {
+    setTriggering(true)
+    setTriggerMsg(null)
+    try {
+      const res = await fetch('/api/admin/trigger-route', { method: 'POST' })
+      const json = await res.json()
+      setTriggerMsg(res.ok ? 'Route optimizer triggered — check back in ~5 minutes.' : `Error: ${json.error}`)
+    } catch { setTriggerMsg('Request failed') }
+    finally { setTriggering(false) }
+  }, [])
 
   const embedUrl = day ? buildMapsEmbedUrl(day) : null
 
@@ -55,10 +100,25 @@ export default function RoutePage({ routePlan }) {
     <>
       <Head><title>Route Plan · GreenGuard Admin</title></Head>
       <PortalLayout title="Route Plan" isAdmin>
+        {/* Trigger button */}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 24, flexWrap: 'wrap' }}>
+          <button onClick={triggerOptimizer} disabled={triggering}
+            style={{ padding: '9px 18px', borderRadius: 6, border: 'none', cursor: triggering ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: triggering ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: triggering ? 'rgba(212,230,202,0.4)' : '#0d1a10' }}>
+            {triggering ? 'Triggering…' : 'Run Route Optimizer Now'}
+          </button>
+          {triggerMsg && <span style={{ fontSize: '0.82rem', color: triggerMsg.startsWith('Error') ? '#ff8080' : '#7dffaa' }}>{triggerMsg}</span>}
+        </div>
+
+        {routePlan?.source === 'calendar' && (
+          <div style={{ padding: '8px 14px', borderRadius: 6, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', fontSize: '0.82rem', color: '#c9a84c', marginBottom: 16 }}>
+            Showing live Google Calendar data — no optimized route plan yet for this week.
+          </div>
+        )}
+
         {!routePlan ? (
           <div className="card" style={{ maxWidth: 480 }}>
             <p style={{ color: 'rgba(212,230,202,0.5)', margin: 0 }}>
-              No route plan for this week yet. The optimizer runs every Monday morning.
+              No appointments found for today and no route plan for this week. The optimizer runs every Monday morning — or trigger it manually above.
             </p>
           </div>
         ) : (

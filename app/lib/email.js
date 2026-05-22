@@ -3,6 +3,13 @@ const { Resend } = require('resend')
 const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
 
+function escapeHtml(str) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }
+  return String(str ?? '').replace(/[&<>"']/g, (c) => map[c])
+}
+
+module.exports.escapeHtml = escapeHtml
+
 function getResend() {
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY is not set')
   return new Resend(process.env.RESEND_API_KEY)

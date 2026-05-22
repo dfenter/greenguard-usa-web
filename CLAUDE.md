@@ -180,8 +180,9 @@ To add a SKU:
 | Run linter | `cd app && npm run lint` |
 | Build portal locally | `cd app && npm run build` |
 | Build static site | `python3 _scripts/build_vercel.py` |
-| Deploy portal | `cd app && vercel --prod` |
-| Deploy static site | `vercel --prod` (repo root) |
+| Deploy portal | `./scripts/deploy.sh portal` |
+| Deploy static site | `./scripts/deploy.sh site` |
+| Deploy both | `./scripts/deploy.sh all` |
 | Sync env vars | `./scripts/env-sync.sh` |
 | Health check | `./scripts/health-check.sh` |
 | New JWT secret | `openssl rand -hex 32` |

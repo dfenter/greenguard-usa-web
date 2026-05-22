@@ -134,7 +134,7 @@
       "skus": ["MQ-SVC"],
       "price": 199.99,
       "durationMin": 45,
-      "systemType": "Mosqitter",
+      "systemType": "Mosqitter-Grand",
       "visitType": "service"
     }
   ]
