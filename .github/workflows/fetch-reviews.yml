@@ -18,7 +18,7 @@ jobs:
 
       - name: Fetch reviews from Google Places API
         env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
         run: python3 _scripts/fetch_reviews.py
 
       - name: Commit updated reviews
