@@ -443,8 +443,9 @@ ACCORDION_INJECT = '''<script>
 # Reveal-on-scroll observer — injected into pages that have *-reveal elements
 # (opacity:0 until .visible is added) but no IntersectionObserver of their own.
 # Without this, the content stays invisible and the page LOOKS BLANK.
-REVEAL_INJECT = '''<script>
-(function(){function init(){var els=document.querySelectorAll('[class*="-reveal"]');if(!els.length)return;if(!('IntersectionObserver' in window)){els.forEach(function(el){el.classList.add('visible')});return;}var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});},{threshold:0.05});els.forEach(function(el){obs.observe(el)});}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();})();
+REVEAL_INJECT = '''<style>[class*="-reveal"]{opacity:1 !important;transform:none !important}</style>
+<script>
+(function(){function init(){var els=document.querySelectorAll('[class*="-reveal"]');if(!els.length)return;els.forEach(function(el){el.classList.add('visible')});}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();})();
 </script>'''
 
 def strip_tags(html):
