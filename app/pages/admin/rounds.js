@@ -748,6 +748,23 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 Cancel
               </button>
             )}
+            {state.status === 'pending' && (stop.email || stop.phone) && (
+              <button onClick={async () => {
+                const eta = window.prompt('ETA in minutes (leave blank for "shortly"):', '15')
+                if (eta === null) return
+                const r = await fetch('/api/admin/notify-eta', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ customerEmail: stop.email, customerPhone: stop.phone, customerName: stop.customerName, etaMinutes: eta ? parseInt(eta, 10) : null }),
+                })
+                const d = await r.json().catch(() => ({}))
+                if (r.ok) alert('✓ SMS sent')
+                else alert('Failed: ' + (d.error || r.status))
+              }}
+                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(125,255,170,0.35)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                📲 On My Way
+              </button>
+            )}
             {state.status === 'pending' && (
               <button onClick={() => onUpdate({ status: 'active', checkIn: nowStr() })}
                 style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: '#c9a84c', color: '#0d1a10', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>

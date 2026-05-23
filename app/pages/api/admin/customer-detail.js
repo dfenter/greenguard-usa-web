@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     if (match) nextCalBooking = { id: match.id, uid: match.uid, title: match.title }
   }
 
-  const notes = hubspotContact?.id ? await getContactNotes(hubspotContact.id, 5).catch(() => []) : []
+  const notes = hubspotContact?.id ? await getContactNotes(hubspotContact.id, 20).catch(() => []) : []
   const p = hubspotContact?.properties || {}
   const m = stripeCustomer.metadata || {}
 

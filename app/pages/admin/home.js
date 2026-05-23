@@ -179,6 +179,60 @@ function StopCard({ stop, dateStr }) {
   )
 }
 
+function VisitsDuePanel() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [opened, setOpened] = useState(false)
+  async function load() {
+    setLoading(true)
+    try {
+      const r = await fetch('/api/admin/visits-due?days=10')
+      const d = await r.json()
+      setData(d)
+      setOpened(true)
+    } catch {}
+    setLoading(false)
+  }
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+        <h2 style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', margin: 0 }}>Customers Due for Service</h2>
+        <button onClick={load} disabled={loading} style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.25)', background: 'transparent', color: '#7dffaa', cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+          {loading ? 'Loading…' : opened ? '↻ Refresh' : 'Show'}
+        </button>
+      </div>
+      {data && (
+        data.due.length === 0 ? (
+          <div className="card" style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)' }}>
+            ✓ No customers due for service in the next {data.horizonDays} days.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {data.due.map((c) => (
+              <div key={c.email} className="card" style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>{c.name}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)' }}>
+                    {c.systemType}{c.hasTimer ? ' (timer)' : ''} · {c.lifetime}-day · last serviced {new Date(c.lastVisit).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: c.overdue ? '#ff8080' : c.daysUntilDue <= 2 ? '#c9a84c' : '#7dffaa' }}>
+                    {c.overdue ? `${Math.abs(c.daysUntilDue)}d overdue` : `due in ${c.daysUntilDue}d`}
+                  </span>
+                  <Link href={`/admin/booking?email=${encodeURIComponent(c.email)}&name=${encodeURIComponent(c.name)}`} style={{ padding: '5px 12px', borderRadius: 5, background: '#c9a84c', color: '#0d1a10', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', fontFamily: 'Nunito Sans, sans-serif' }}>
+                    Book →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+    </section>
+  )
+}
+
 export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData }) {
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
@@ -276,6 +330,8 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
             ))}
           </div>
         </section>
+
+        <VisitsDuePanel />
 
         {/* Tank Calendar */}
         {tankData && (

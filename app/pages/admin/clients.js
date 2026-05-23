@@ -93,6 +93,43 @@ function StatusBadge({ status }) {
 }
 
 const TZ = 'America/Chicago'
+function SmsComposer({ email, phone, onSent }) {
+  const [body, setBody] = useState('')
+  const [sending, setSending] = useState(false)
+  const [msg, setMsg] = useState(null)
+  async function send() {
+    if (!body.trim()) return
+    setSending(true); setMsg(null)
+    try {
+      const r = await fetch('/api/admin/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerEmail: email, customerPhone: phone, body }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (r.ok) { setBody(''); setMsg('✓ Sent'); setTimeout(() => { setMsg(null); onSent && onSent() }, 800) }
+      else setMsg(d.error || 'Failed')
+    } catch (e) { setMsg(e.message) }
+    setSending(false)
+  }
+  return (
+    <div style={{ marginTop: 6 }}>
+      <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} maxLength={320}
+        placeholder={`Text ${phone}…`}
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 8 }}>
+        <span style={{ fontSize: '0.7rem', color: msg?.startsWith('✓') ? '#7dffaa' : msg ? '#ff8080' : 'rgba(212,230,202,0.4)' }}>
+          {msg || `${body.length}/320`}
+        </span>
+        <button onClick={send} disabled={sending || !body.trim()}
+          style={{ padding: '7px 16px', borderRadius: 6, border: 'none', cursor: sending || !body.trim() ? 'not-allowed' : 'pointer', background: sending || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+          {sending ? 'Sending…' : 'Send SMS'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function fmtDate(iso) {
   if (!iso) return null
   return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })
@@ -456,20 +493,43 @@ function CustomerPanel({ customer, onClose }) {
                   )}
                 </div>
 
-                {/* ── Notes ── */}
+                {/* ── SMS composer + thread ── */}
+                {(detail.phone || customer.phone) && (
+                  <div style={{ ...row, borderBottom: 'none' }}>
+                    <div style={lbl}>Send SMS</div>
+                    <SmsComposer
+                      email={detail.email || customer.email}
+                      phone={detail.phone || customer.phone}
+                      onSent={fetchDetail}
+                    />
+                  </div>
+                )}
+
+                {/* ── Notes + SMS thread ── */}
                 <div style={{ ...row, borderBottom: 'none' }}>
-                  <div style={lbl}>Notes</div>
-                  {detail.notes?.length > 0 ? detail.notes.map((note) => (
-                    <div key={note.id} style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(122,171,130,0.04)', borderRadius: 6, borderLeft: '2px solid rgba(122,171,130,0.2)' }}>
-                      <div style={{ fontSize: '0.8rem', whiteSpace: 'pre-wrap', color: 'rgba(212,230,202,0.75)', lineHeight: 1.55 }}>{note.body}</div>
-                      {note.timestamp && (
-                        <div style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.28)', marginTop: 5 }}>
-                          {new Date(note.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: TZ })}
-                        </div>
-                      )}
-                    </div>
-                  )) : (
-                    <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.3)', marginTop: 4 }}>No notes yet</div>
+                  <div style={lbl}>History</div>
+                  {detail.notes?.length > 0 ? detail.notes.map((note) => {
+                    const body = note.body || ''
+                    const isSmsIn = body.startsWith('[SMS-IN')
+                    const isSmsOut = body.startsWith('[SMS-OUT')
+                    const bg = isSmsIn ? 'rgba(91,196,255,0.06)' : isSmsOut ? 'rgba(125,255,170,0.05)' : 'rgba(122,171,130,0.04)'
+                    const bord = isSmsIn ? 'rgba(91,196,255,0.35)' : isSmsOut ? 'rgba(125,255,170,0.35)' : 'rgba(122,171,130,0.2)'
+                    const tag = isSmsIn ? '← Inbound SMS' : isSmsOut ? '→ Outbound SMS' : null
+                    return (
+                      <div key={note.id} style={{ marginTop: 8, padding: '10px 12px', background: bg, borderRadius: 6, borderLeft: `2px solid ${bord}` }}>
+                        {tag && (
+                          <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: isSmsIn ? '#5bc4ff' : '#7dffaa', marginBottom: 4 }}>{tag}</div>
+                        )}
+                        <div style={{ fontSize: '0.8rem', whiteSpace: 'pre-wrap', color: 'rgba(212,230,202,0.75)', lineHeight: 1.55 }}>{body.replace(/^\[SMS-(IN|OUT)[^\]]*\]\s*(\([^)]*\)\s*)?(by [^\n]*:\s*)?/, '').replace(/^From[^\n]*\n/, '')}</div>
+                        {note.timestamp && (
+                          <div style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.28)', marginTop: 5 }}>
+                            {new Date(note.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }) : (
+                    <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.3)', marginTop: 4 }}>No history yet</div>
                   )}
                 </div>
               </>

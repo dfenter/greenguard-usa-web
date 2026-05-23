@@ -106,7 +106,7 @@ export async function getServerSideProps({ req, query }) {
       email,
       name: [p.firstname, p.lastname].filter(Boolean).join(' ') || null,
       // visits
-      nextBooking: upcoming[0] ? { startTime: upcoming[0].startTime, title: upcoming[0].title, address: upcoming[0].address } : null,
+      nextBooking: upcoming[0] ? { startTime: upcoming[0].startTime, title: upcoming[0].title, address: upcoming[0].address, rescheduleUrl: upcoming[0].rescheduleUrl || null } : null,
       prevBooking: past[0] ? { startTime: past[0].startTime, title: past[0].title, address: past[0].address } : null,
       // system
       systemType,
@@ -636,7 +636,9 @@ export default function CustomerOverview({
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
               {nextBooking && (
                 <a
-                  href={`mailto:admin@greenguard-usa.com?subject=Reschedule Request&body=Hi, I'd like to reschedule my upcoming visit on ${fmtDate(nextBooking.startTime)}.%0A%0AAccount: ${encodeURIComponent(email)}`}
+                  href={nextBooking.rescheduleUrl || `mailto:admin@greenguard-usa.com?subject=Reschedule Request&body=Hi, I'd like to reschedule my upcoming visit on ${fmtDate(nextBooking.startTime)}.%0A%0AAccount: ${encodeURIComponent(email)}`}
+                  target={nextBooking.rescheduleUrl ? '_blank' : undefined}
+                  rel={nextBooking.rescheduleUrl ? 'noopener noreferrer' : undefined}
                   style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', color: '#7aab82', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
                 >
                   Reschedule Upcoming Visit
