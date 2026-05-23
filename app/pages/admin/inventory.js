@@ -156,13 +156,13 @@ function Calendar({ tankCalendar, scheduleByDate, onDayClick, today, currentStoc
           style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '1.2rem', fontFamily: 'Nunito Sans, sans-serif' }}>›</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 3 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3, marginBottom: 3 }}>
         {dayLabels.map((l) => (
-          <div key={l} style={{ textAlign: 'center', fontSize: '0.68rem', fontWeight: 800, color: 'rgba(212,230,202,0.35)', letterSpacing: '0.06em', padding: '4px 0' }}>{l}</div>
+          <div key={l} style={{ textAlign: 'center', fontSize: '0.62rem', fontWeight: 800, color: 'rgba(212,230,202,0.35)', letterSpacing: '0.04em', padding: '4px 0' }}>{l}</div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3 }}>
         {cells.map((cell, i) => {
           if (!cell) return <div key={`e${i}`} />
           const { d, dateStr, log, sched } = cell
@@ -184,28 +184,29 @@ function Calendar({ tankCalendar, scheduleByDate, onDayClick, today, currentStoc
 
           return (
             <div key={dateStr} onClick={() => onDayClick(dateStr, log, tanks)}
-              style={{ borderRadius: 8, border: `1px solid ${border}`, background: bg, padding: '8px 6px', cursor: 'pointer', minHeight: 90 }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: isToday ? 900 : 600, color: isToday ? '#c9a84c' : 'rgba(212,230,202,0.75)', marginBottom: 4 }}>{d}</div>
+              style={{ borderRadius: 6, border: `1px solid ${border}`, background: bg, padding: '6px 3px', cursor: 'pointer', minHeight: 72, minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: isToday ? 900 : 600, color: isToday ? '#c9a84c' : 'rgba(212,230,202,0.75)', marginBottom: 2, textAlign: 'center' }}>{d}</div>
               {tanks > 0 && (
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: deficit ? '#ff8080' : '#7dffaa', marginBottom: 2 }}>
-                  {tanks} tank{tanks > 1 ? 's' : ''}
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: deficit ? '#ff8080' : '#7dffaa', textAlign: 'center', lineHeight: 1.15 }}>
+                  {tanks}t
                 </div>
               )}
               {appts > 0 && (
-                <div style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.45)' }}>{appts} visit{appts > 1 ? 's' : ''}</div>
+                <div style={{ fontSize: '0.62rem', color: 'rgba(212,230,202,0.5)', textAlign: 'center', lineHeight: 1.15 }}>{appts}v</div>
               )}
               {hasLog && (
-                <div style={{ fontSize: '0.68rem', color: '#c9a84c', fontWeight: 700, marginTop: 4 }}>✓ logged</div>
+                <div style={{ fontSize: '0.62rem', color: '#c9a84c', fontWeight: 700, marginTop: 2, textAlign: 'center' }}>✓</div>
               )}
             </div>
           )
         })}
       </div>
 
-      <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: '0.72rem', color: 'rgba(212,230,202,0.45)', flexWrap: 'wrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(125,255,170,0.15)', border: '1px solid rgba(125,255,170,0.25)', display: 'inline-block' }} /> On track</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(255,100,100,0.15)', border: '1px solid rgba(255,100,100,0.3)', display: 'inline-block' }} /> Deficit forecast</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)', display: 'inline-block' }} /> Logged</span>
+      <div style={{ display: 'flex', gap: 12, marginTop: 10, fontSize: '0.68rem', color: 'rgba(212,230,202,0.45)', flexWrap: 'wrap' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'rgba(125,255,170,0.15)', border: '1px solid rgba(125,255,170,0.25)', display: 'inline-block' }} /> On track</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'rgba(255,100,100,0.15)', border: '1px solid rgba(255,100,100,0.3)', display: 'inline-block' }} /> Deficit</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)', display: 'inline-block' }} /> Logged</span>
+        <span style={{ color: 'rgba(212,230,202,0.3)' }}>t = tanks · v = visits</span>
       </div>
     </div>
   )
