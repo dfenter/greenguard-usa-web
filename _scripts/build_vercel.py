@@ -419,6 +419,27 @@ TIDIO_BROKEN_RE = re.compile(
     re.IGNORECASE
 )
 
+# ── Nav fixes applied to every page fragment ─────────────────────────────────
+# Correct broken service URLs (Squarespace slugs that don't match actual files)
+NAV_URL_FIXES = [
+    ('/co2-tank-delivery-austin',             '/co2delivery'),
+    ('/co2-trap-rental-austin',               '/traprental'),
+    ('/greenguard-barrier-treatment',         '/barrier'),
+    ('/mosquito-bucket-of-doom-instructions', '/product-bucket-of-doom'),
+    ('/co2-mosquito-trap-placement',          '/trapplacement'),
+]
+# "Shop" menu group stays as-is but its link points to the portal quote builder
+NAV_TEXT_FIXES = [
+    ('href="https://portal.greenguard-usa.com/quote">Shop All Products',
+     'href="https://portal.greenguard-usa.com/admin/quote">Quote Builder'),
+]
+
+# Accordion + outside-click-close JS — injected into pages that have a
+# .gg-menu but are missing the accordion initialisation
+ACCORDION_INJECT = '''<script>
+(function(){function init(){var d=document.querySelector('.gg-drawer')||document.querySelector('.gg-menu');if(!d)return false;d.style.overflowY='auto';var gs=d.querySelectorAll('.gg-group,.gg-menu-group');if(!gs.length)return false;gs.forEach(function(g){if(g.dataset.acc)return;g.dataset.acc='1';var sel='.gg-group,.gg-menu-group,.gg-drawer-close,.gg-menu-close';var links=[],el=g.nextElementSibling;while(el&&!el.matches(sel)){if(el.tagName==='A')links.push(el);el=el.nextElementSibling;}if(!links.length)return;var w=document.createElement('div');w.style.cssText='overflow:hidden;max-height:0;transition:max-height .22s ease;display:flex;flex-direction:column;gap:4px;padding-left:4px';links[0].parentNode.insertBefore(w,links[0]);links.forEach(function(l){w.appendChild(l)});var arr=document.createElement('span');arr.innerHTML='&#9658;';arr.style.cssText='font-size:.5rem;margin-left:auto;transition:transform .2s;line-height:1;flex-shrink:0';g.style.cursor='pointer';g.style.display='flex';g.style.alignItems='center';g.style.userSelect='none';g.appendChild(arr);var open=false;function show(){w.style.maxHeight=w.scrollHeight+'px';arr.style.transform='rotate(90deg)';open=true;}function hide(){w.style.maxHeight='0';arr.style.transform='';open=false;}g.addEventListener('click',function(){open?hide():show();});if(/^Book|^Get a Quote/.test(g.textContent.trim()))setTimeout(show,0);});document.addEventListener('click',function(e){var menu=document.querySelector('.gg-menu');if(menu&&menu.classList.contains('open')&&!menu.contains(e.target)&&!e.target.closest('.gg-hamburger'))menu.classList.remove('open');});return true;}if(!init())setTimeout(init,120);})();
+</script>'''
+
 def strip_tags(html):
     return re.sub(r'<[^>]+>', '', html).strip()
 
@@ -437,6 +458,16 @@ def convert(fname, fragment):
     styles = STYLE_RE.findall(fragment)
     body   = STYLE_RE.sub('', fragment)
     body   = FONT_LINK_RE.sub('', body)
+
+    # Fix broken nav URLs
+    for old_url, new_url in NAV_URL_FIXES:
+        body = body.replace(old_url, new_url)
+    for old_text, new_text in NAV_TEXT_FIXES:
+        body = body.replace(old_text, new_text)
+
+    # Inject accordion + close JS if the page has a nav menu but is missing it
+    needs_accordion = 'gg-menu' in body and 'scrollHeight' not in body
+    accordion_block = ACCORDION_INJECT if needs_accordion else ''
 
     # Generate fallback title/desc from page content if needed
     title = seo.get('title') or (extract_og_text(body, 'h1') + ' | GreenGuard USA')
@@ -464,6 +495,7 @@ def convert(fname, fragment):
 </head>
 <body>
 {body.strip()}
+{accordion_block}
 </body>
 </html>'''
 
