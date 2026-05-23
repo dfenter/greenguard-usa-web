@@ -14,7 +14,7 @@ export async function getServerSideProps({ req }) {
 
   const [stripeRaw, hsContacts] = await Promise.all([
     listAllCustomers(),
-    getAllContacts(300).catch(() => []),
+    getAllContacts(500).catch(() => []),
   ])
 
   const stripeCustomers = stripeRaw.map((c) => ({
@@ -29,7 +29,12 @@ export async function getServerSideProps({ req }) {
   const stripeEmails = new Set(stripeCustomers.map((c) => c.email.toLowerCase()).filter(Boolean))
 
   const prospects = hsContacts
-    .filter((c) => c.properties.email && !stripeEmails.has(c.properties.email.toLowerCase()))
+    .filter((c) => {
+      const email = (c.properties.email || '').toLowerCase()
+      const name = [c.properties.firstname, c.properties.lastname].filter(Boolean).join(' ')
+      if (!name && !email) return false
+      return !email || !stripeEmails.has(email)
+    })
     .map((c) => ({
       id: `hs_${c.id}`,
       name: [c.properties.firstname, c.properties.lastname].filter(Boolean).join(' '),
@@ -38,7 +43,6 @@ export async function getServerSideProps({ req }) {
       address: c.properties.address || '',
       source: 'prospect',
     }))
-    .filter((c) => c.email || c.name)
 
   const customers = [...stripeCustomers, ...prospects]
 
@@ -92,95 +96,114 @@ const SYSTEMS = [
   { label: 'Troubleshoot',      price: 79.99, category: 'Other' },
 ]
 
-// Mosqitter tank hookup removed — already included in Mosqitter pricing
-const ADDONS = [
-  { label: 'CO₂ Tank & Timer Rental',      price: 124.99 },
-  { label: 'BG Sweetscent',                price:  18.99 },
-  { label: 'GreenGuard Barrier Treatment', price:  49.99 },
-  { label: 'Trap Installation',            price:  80.00 },
-  { label: 'Timer Installation',           price:  29.99 },
-  { label: 'Trap Maintenance (1 trap)',    price:  29.99 },
-  { label: 'Trap Maintenance (2 traps)',   price:  49.99 },
-  { label: 'Weekend Surcharge',            price:  25.00 },
-  { label: 'CO₂ Regulator',               price: null },
-  { label: 'CO₂ Tank Washer',             price: null },
-  { label: '50ft Extension Cord',         price: null },
-  { label: '100ft Extension Cord',        price: null },
-  { label: 'Biogents Power Supply',       price: null },
-  { label: 'Biogents Trap Net',           price: null },
-  { label: 'Biogents Funnel',             price: null },
-  { label: '9V Batteries',               price: null },
-]
 
-// ── Multi-select dropdown ──────────────────────────────────────────────────────
+// ── Multi-select section (matches rounds page style) ──────────────────────────
 
 function MultiSelect({ title, catalog, qtys, onChange }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
+  const selectedItems = catalog.filter((item) => (qtys[item.label] || 0) > 0)
+  const categories = [...new Set(catalog.map((i) => i.category).filter(Boolean))]
+  const total = selectedItems.reduce((s, i) => s + ((qtys[i.label] || 0) * (i.price || 0)), 0)
+
   useEffect(() => {
+    if (!open) return
     function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  const selected = catalog.filter((item) => qtys[item.label] > 0)
-  const categories = [...new Set(catalog.map((i) => i.category))]
-  const total = catalog.reduce((s, i) => s + ((qtys[i.label] || 0) * (i.price || 0)), 0)
+    document.addEventListener('touchstart', handler)
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler) }
+  }, [open])
 
   return (
-    <div ref={ref} style={{ marginBottom: 20 }}>
-      {/* Selected items */}
-      {selected.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-          {selected.map((item) => (
-            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.25)', borderRadius: 20, padding: '3px 4px 3px 12px', fontSize: '0.78rem', fontWeight: 700, color: '#7dffaa' }}>
-              <span>{item.label}{item.price ? ` · $${item.price.toFixed(2)}` : ''}</span>
-              <button onClick={() => onChange(item.label, -1)} style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(125,255,170,0.15)', color: '#7dffaa', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-              <span style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.75rem', minWidth: 14, textAlign: 'center' }}>{qtys[item.label]}</span>
-              <button onClick={() => onChange(item.label, 1)} style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(125,255,170,0.15)', color: '#7dffaa', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-            </div>
-          ))}
+    <div ref={ref} style={{ marginBottom: 16, position: 'relative' }}>
+      {/* Section header — same style as rounds CatalogSection */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(122,171,130,0.12)', marginBottom: 8 }}>
+        <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>{title}</span>
+        {total > 0 && <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#7dffaa' }}>${total.toFixed(2)}</span>}
+      </div>
+
+      {/* Selected items — inline rows matching rounds */}
+      {selectedItems.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          {selectedItems.map((item) => {
+            const qty = qtys[item.label] || 0
+            return (
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', marginBottom: 4, borderRadius: 8, background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.15)' }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#d4e6ca' }}>{item.label}</span>
+                  {item.price != null && (
+                    <span style={{ marginLeft: 6, fontSize: '0.75rem', color: '#7dffaa' }}>
+                      ${(item.price * qty).toFixed(2)}{!item.oneTime ? '/mo' : ''}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
+                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>−</button>
+                  <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 900, color: '#7dffaa' }}>{qty}</span>
+                  <button onClick={() => onChange(item.label, qty + 1)}
+                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>+</button>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
       {/* Dropdown trigger */}
-      <div style={{ position: 'relative' }}>
-        <button onClick={() => setOpen((o) => !o)} style={{ width: '100%', padding: '9px 14px', borderRadius: 8, border: '1px dashed rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.5)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>+ Add {title}</span>
-          {total > 0 && <span style={{ color: '#7dffaa', fontWeight: 900 }}>${total.toFixed(2)}</span>}
-        </button>
+      <button onClick={() => setOpen((o) => !o)}
+        style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px dashed rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.55)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{selectedItems.length > 0 ? `+ Add more ${title.toLowerCase()}` : `Select ${title.toLowerCase()}…`}</span>
+        <span style={{ fontSize: '0.7rem' }}>{open ? '▲' : '▼'}</span>
+      </button>
 
-        {open && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, zIndex: 60, maxHeight: 340, overflowY: 'auto', marginTop: 4 }}>
-            {categories.map((cat) => (
-              <div key={cat}>
-                <div style={{ padding: '8px 14px 4px', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', position: 'sticky', top: 0, background: '#0d1a10' }}>{cat}</div>
-                {catalog.filter((i) => i.category === cat).map((item) => {
-                  const qty = qtys[item.label] || 0
-                  const tag = item.oneTime ? '🛒' : item.rental ? '📅' : item.rental === false ? '🔧' : ''
-                  return (
-                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid rgba(122,171,130,0.06)', background: qty > 0 ? 'rgba(125,255,170,0.04)' : 'transparent' }}>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ fontSize: '0.83rem', color: qty > 0 ? '#7dffaa' : 'rgba(212,230,202,0.75)', fontWeight: qty > 0 ? 700 : 500 }}>{tag} {item.label}</span>
+      {/* Dropdown panel */}
+      {open && (
+        <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 60, background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 10, marginTop: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxHeight: 360, overflowY: 'auto' }}>
+          <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid rgba(122,171,130,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{title}</span>
+            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.45)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>×</button>
+          </div>
+          {categories.map((cat) => (
+            <div key={cat}>
+              <div style={{ padding: '8px 14px 4px', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', position: 'sticky', top: 0, background: '#0d1a10' }}>{cat}</div>
+              {catalog.filter((i) => i.category === cat).map((item) => {
+                const qty = qtys[item.label] || 0
+                const selected = qty > 0
+                return (
+                  <div key={item.label} onClick={() => !selected && onChange(item.label, 1)}
+                    style={{ display: 'flex', alignItems: 'center', padding: '11px 14px', borderBottom: '1px solid rgba(122,171,130,0.06)', cursor: selected ? 'default' : 'pointer', background: selected ? 'rgba(125,255,170,0.05)' : 'transparent' }}>
+                    <div style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${selected ? '#7dffaa' : 'rgba(122,171,130,0.3)'}`, background: selected ? '#7dffaa' : 'transparent', marginRight: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#0d1a10', fontWeight: 900 }}>
+                      {selected ? '✓' : ''}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: selected ? 700 : 500, color: selected ? '#d4e6ca' : 'rgba(212,230,202,0.65)' }}>{item.label}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.3)', marginTop: 1 }}>
                         {item.price != null
-                          ? <span style={{ marginLeft: 8, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)' }}>${item.price.toFixed(2)}{!item.oneTime ? '/mo' : ''}</span>
-                          : <span style={{ marginLeft: 8, fontSize: '0.72rem', color: 'rgba(201,168,76,0.5)' }}>price TBD</span>
-                        }
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                        {qty > 0 && <button onClick={() => onChange(item.label, -1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}>−</button>}
-                        {qty > 0 && <span style={{ fontSize: '0.82rem', fontWeight: 700, minWidth: 16, textAlign: 'center', color: '#7dffaa' }}>{qty}</span>}
-                        <button onClick={() => onChange(item.label, 1)} style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.25)', background: qty > 0 ? 'rgba(125,255,170,0.1)' : 'transparent', color: qty > 0 ? '#7dffaa' : 'rgba(212,230,202,0.4)', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}>+</button>
+                          ? <span style={{ color: '#7dffaa' }}>${item.price.toFixed(2)}{!item.oneTime ? '/mo' : ''}</span>
+                          : <span style={{ color: 'rgba(201,168,76,0.5)' }}>price TBD</span>}
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            ))}
+                    {selected && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>−</button>
+                        <span style={{ minWidth: 16, textAlign: 'center', fontWeight: 900, color: '#7dffaa', fontSize: '0.9rem' }}>{qty}</span>
+                        <button onClick={() => onChange(item.label, qty + 1)}
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>+</button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+          <div style={{ padding: '10px 14px', textAlign: 'center' }}>
+            <button onClick={() => setOpen(false)} style={{ padding: '8px 24px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>Done</button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -194,8 +217,12 @@ function CustomerSearch({ customers, onSelect }) {
 
   const filtered = query.length < 2 ? [] : customers.filter((c) => {
     const q = query.toLowerCase()
-    return c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
-  }).slice(0, 8)
+    const phone = (c.phone || '').replace(/\D/g, '')
+    return (c.name || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
+      (c.address || '').toLowerCase().includes(q) ||
+      phone.includes(q.replace(/\D/g, ''))
+  }).slice(0, 12)
 
   useEffect(() => {
     function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
@@ -255,7 +282,7 @@ const PRODUCTS = [
   // Traps
   { label: 'Biogents BG-Mosquitaire',              price:  279.99, category: 'Trap Purchase', oneTime: true },
   { label: 'Mosqitter Grand',                      price: 1849.99, category: 'Trap Purchase', oneTime: true },
-  { label: 'Biogents Timer',                       price:  179.99, category: 'Trap Purchase', oneTime: true },
+  { label: 'Biogents Timer',                       price:   89.99, category: 'Trap Purchase', oneTime: true },
   // Tanks
   { label: 'CO₂ Tank — 20lb (empty)',             price:  199.99, category: 'Tank Purchase', oneTime: true },
   // Accessories — prices match rounds catalog exactly
@@ -479,7 +506,7 @@ function ServiceConfigurator({ onChange }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
-export default function QuoteBuilder({ customers }) {
+export default function QuoteBuilder({ customers, mapsKey }) {
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -491,12 +518,129 @@ export default function QuoteBuilder({ customers }) {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [taxRate, setTaxRate] = useState(8.25)
+  const [includeTax, setIncludeTax] = useState(true)
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const [mapPin, setMapPin] = useState(null)
+  const [machPins, setMachPins] = useState([])
+  const [placingPin, setPlacingPin] = useState(false)
+  const mapRef = useRef(null)
+  const mapObj = useRef(null)
+  const pinRef = useRef(null)
+  const geocodeTimer = useRef(null)
+  const machPinMarkersRef = useRef(new Map())
+  const placingPinRef = useRef(false)
+
+  // Load Maps API script once
+  useEffect(() => {
+    if (!mapsKey) return
+    if (window.google?.maps) { setMapLoaded(true); return }
+    if (document.querySelector('script[data-gg-maps]')) {
+      const poll = setInterval(() => { if (window.google?.maps) { setMapLoaded(true); clearInterval(poll) } }, 100)
+      return () => clearInterval(poll)
+    }
+    const script = document.createElement('script')
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=marker`
+    script.setAttribute('data-gg-maps', '1')
+    script.async = true
+    script.onload = () => setMapLoaded(true)
+    document.head.appendChild(script)
+  }, [mapsKey])
+
+  // Initialize satellite map once script is ready
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || mapObj.current) return
+    mapObj.current = new window.google.maps.Map(mapRef.current, {
+      center: { lat: 30.2672, lng: -97.7431 },
+      zoom: 15,
+      mapTypeId: 'satellite',
+      tilt: 0,
+      disableDefaultUI: true,
+      zoomControl: true,
+      scaleControl: true,
+    })
+    pinRef.current = new window.google.maps.Marker({
+      position: { lat: 30.2672, lng: -97.7431 },
+      map: mapObj.current,
+      draggable: true,
+      visible: false,
+    })
+    mapObj.current.addListener('click', (e) => {
+      if (!placingPinRef.current) return
+      const lat = e.latLng.lat()
+      const lng = e.latLng.lng()
+      setMachPins((prev) => [...prev, { id: Date.now(), lat, lng }])
+      setPlacingPin(false)
+    })
+  }, [mapLoaded])
+
+  // Keep placingPinRef in sync so the map click listener reads current state
+  useEffect(() => { placingPinRef.current = placingPin }, [placingPin])
+
+  // Update map cursor during placement mode
+  useEffect(() => {
+    if (!mapObj.current) return
+    mapObj.current.setOptions({ draggableCursor: placingPin ? 'crosshair' : null })
+  }, [placingPin])
+
+  // Sync machine pin markers to Google Maps
+  useEffect(() => {
+    if (!mapObj.current) return
+    const currentIds = new Set(machPins.map((p) => p.id))
+    machPinMarkersRef.current.forEach((marker, id) => {
+      if (!currentIds.has(id)) { marker.setMap(null); machPinMarkersRef.current.delete(id) }
+    })
+    machPins.forEach((pin, idx) => {
+      if (machPinMarkersRef.current.has(pin.id)) {
+        const m = machPinMarkersRef.current.get(pin.id)
+        m.setPosition({ lat: pin.lat, lng: pin.lng })
+        m.setLabel({ text: String(idx + 1), color: '#0d1a10', fontWeight: 'bold', fontSize: '11px' })
+      } else {
+        const marker = new window.google.maps.Marker({
+          position: { lat: pin.lat, lng: pin.lng },
+          map: mapObj.current,
+          label: { text: String(idx + 1), color: '#0d1a10', fontWeight: 'bold', fontSize: '11px' },
+          icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 13, fillColor: '#7dffaa', fillOpacity: 1, strokeColor: '#1a2e1f', strokeWeight: 2 },
+          title: `Trap ${idx + 1}`,
+          draggable: true,
+        })
+        marker.addListener('dragend', (ev) => {
+          setMachPins((prev) => prev.map((p) => p.id === pin.id ? { ...p, lat: ev.latLng.lat(), lng: ev.latLng.lng() } : p))
+        })
+        machPinMarkersRef.current.set(pin.id, marker)
+      }
+    })
+  }, [machPins])
+
+  // Debounce geocode when address changes
+  useEffect(() => {
+    clearTimeout(geocodeTimer.current)
+    if (!mapLoaded || !customerAddress || customerAddress.length < 6) return
+    geocodeTimer.current = setTimeout(() => {
+      new window.google.maps.Geocoder().geocode({ address: customerAddress }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          const loc = results[0].geometry.location
+          setMapPin({ lat: loc.lat(), lng: loc.lng() })
+        }
+      })
+    }, 700)
+    return () => clearTimeout(geocodeTimer.current)
+  }, [customerAddress, mapLoaded])
+
+  // Pan to pin when geocode resolves
+  useEffect(() => {
+    if (!mapPin || !mapObj.current || !pinRef.current) return
+    pinRef.current.setPosition(mapPin)
+    pinRef.current.setVisible(true)
+    mapObj.current.panTo(mapPin)
+    mapObj.current.setZoom(19)
+  }, [mapPin])
 
   async function copyQuoteLink() {
     const res = await fetch('/api/admin/quote-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: recurringTotal + oneTimeTotal, recurringTotal, oneTimeTotal, notes }),
+      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: includeTax ? taxRate : 0, taxAmount, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })), notes }),
     })
     const { url } = await res.json()
     await navigator.clipboard.writeText(url).catch(() => window.prompt('Copy this link:', url))
@@ -509,11 +653,10 @@ export default function QuoteBuilder({ customers }) {
     setCustomerPhone(c.phone); setCustomerAddress(c.address)
   }
 
-  function changeQty(setter, label, delta) {
+  function setQty(setter, label, n) {
     setter((prev) => {
-      const next = Math.max(0, (prev[label] || 0) + delta)
       const result = { ...prev }
-      if (next === 0) delete result[label]; else result[label] = next
+      if (n <= 0) delete result[label]; else result[label] = n
       return result
     })
   }
@@ -532,6 +675,9 @@ export default function QuoteBuilder({ customers }) {
   const allLines = [...serviceLines, ...productLines, ...addonLines]
   const recurringTotal = allLines.filter((l) => l.recurring).reduce((s, l) => s + (l.amount || 0), 0)
   const oneTimeTotal = allLines.filter((l) => !l.recurring).reduce((s, l) => s + (l.amount || 0), 0)
+  const subtotal = recurringTotal + oneTimeTotal
+  const taxAmount = includeTax && taxRate > 0 ? Math.round(subtotal * taxRate) / 100 : 0
+  const grandTotal = subtotal + taxAmount
   const hasRecurring = serviceLines.some((l) => l.recurring)
   const hasOneTime = allLines.some((l) => !l.recurring)
 
@@ -541,15 +687,14 @@ export default function QuoteBuilder({ customers }) {
     await fetch('/api/admin/send-quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: customerEmail, name: customerName, lineItems: allLines, total: recurringTotal + oneTimeTotal, notes }),
+      body: JSON.stringify({ to: customerEmail, name: customerName, lineItems: allLines, total: subtotal, taxRate: includeTax ? taxRate : 0, taxAmount, notes }),
     })
     setSending(false); setSent(true)
     setTimeout(() => setSent(false), 5000)
   }
 
   const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }
-  const lbl = { display: 'block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.45)', marginBottom: 4 }
-  const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 12, marginTop: 28, paddingTop: 20, borderTop: '1px solid rgba(122,171,130,0.1)' }
+  const lbl = { display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.45)', marginBottom: 4 }
 
   return (
     <>
@@ -569,33 +714,82 @@ export default function QuoteBuilder({ customers }) {
               <div><label style={lbl}>Name</label><input style={input} placeholder="Full name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} /></div>
               <div><label style={lbl}>Email</label><input style={input} type="email" placeholder="customer@email.com" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} /></div>
             </div>
-            <div style={{ marginBottom: 8 }}><label style={lbl}>Property Address</label><input style={input} placeholder="123 Oak St, Austin TX 78701" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} /></div>
+            <div style={{ marginBottom: 8 }}>
+              <label style={lbl}>Property Address</label>
+              <input style={input} placeholder="123 Oak St, Austin TX 78701" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} />
+              {mapsKey && (
+                <>
+                  <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: `1px solid ${placingPin ? 'rgba(201,168,76,0.5)' : 'rgba(122,171,130,0.2)'}`, height: 230, position: 'relative', transition: 'border-color 0.15s' }}>
+                    <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
+                    {!mapPin && (
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(13,26,16,0.88)', color: 'rgba(212,230,202,0.35)', fontSize: '0.8rem', fontWeight: 600, pointerEvents: 'none' }}>
+                        Type an address to see satellite view
+                      </div>
+                    )}
+                    {placingPin && (
+                      <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', background: 'rgba(201,168,76,0.9)', color: '#0d1a10', padding: '5px 14px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 800, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+                        Click map to place trap
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Trap placement controls */}
+                  {mapPin && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {!placingPin ? (
+                          <button onClick={() => setPlacingPin(true)}
+                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+                            + Place Trap Location
+                          </button>
+                        ) : (
+                          <button onClick={() => setPlacingPin(false)}
+                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'transparent', color: 'rgba(212,230,202,0.5)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+                            Cancel
+                          </button>
+                        )}
+                        {machPins.map((pin, idx) => (
+                          <div key={pin.id} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.2)', borderRadius: 20, padding: '4px 10px 4px 6px', fontSize: '0.78rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.68rem', flexShrink: 0 }}>{idx + 1}</span>
+                            <span style={{ color: 'rgba(212,230,202,0.7)', fontWeight: 600 }}>Trap {idx + 1}</span>
+                            <button onClick={() => setMachPins((prev) => prev.filter((p) => p.id !== pin.id))}
+                              style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.35)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: 0, fontFamily: 'Nunito Sans, sans-serif', marginLeft: 2 }}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
 
             {/* Services — guided configurator */}
-            <div style={SECTION}>Services</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(122,171,130,0.12)', marginBottom: 8, marginTop: 20 }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>Services</span>
+            </div>
             <div className="card" style={{ marginBottom: 8 }}>
               <ServiceConfigurator onChange={setServiceLines} />
             </div>
 
-            {/* Service add-ons — grouped chips */}
-            <div style={{ ...SECTION, marginTop: 20 }}>Add-Ons</div>
+            {/* Service add-ons */}
             <MultiSelect
-              title="add-ons"
+              title="Add-Ons"
               catalog={SERVICE_ADDONS}
               qtys={addonQtys}
-              onChange={(label, delta) => changeQty(setAddonQtys, label, delta)}
+              onChange={(label, n) => setQty(setAddonQtys, label, n)}
             />
 
-            {/* Products — multi-select dropdown */}
-            <div style={SECTION}>Products</div>
+            {/* Products */}
             <MultiSelect
-              title="products to purchase"
+              title="Products"
               catalog={PRODUCTS}
               qtys={productQtys}
-              onChange={(label, delta) => changeQty(setProductQtys, label, delta)}
+              onChange={(label, n) => setQty(setProductQtys, label, n)}
             />
 
-            <div style={{ ...SECTION, marginTop: 16 }}>Notes</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(122,171,130,0.12)', marginBottom: 8, marginTop: 20 }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>Notes</span>
+            </div>
             <textarea rows={3} style={{ ...input, resize: 'vertical' }} placeholder="Expiry, discounts, special terms…" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
 
@@ -638,18 +832,49 @@ export default function QuoteBuilder({ customers }) {
                 )}
               </div>
 
+              {/* Tax toggle */}
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: 'rgba(212,230,202,0.5)', fontWeight: 700, userSelect: 'none' }}>
+                  <input type="checkbox" checked={includeTax} onChange={(e) => setIncludeTax(e.target.checked)} style={{ accentColor: '#c9a84c', cursor: 'pointer' }} />
+                  Tax
+                </label>
+                {includeTax && (
+                  <>
+                    <input
+                      type="number" min="0" max="20" step="0.01"
+                      value={taxRate}
+                      onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                      style={{ width: 52, padding: '2px 6px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 4, color: '#d4e6ca', fontSize: '0.8rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }}
+                    />
+                    <span style={{ color: 'rgba(212,230,202,0.3)' }}>%</span>
+                  </>
+                )}
+              </div>
+
               {allLines.length > 0 && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '2px solid rgba(122,171,130,0.2)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {hasRecurring && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', fontWeight: 700 }}>Monthly</span>
+                      <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', fontWeight: 700 }}>Monthly subtotal</span>
                       <span style={{ fontWeight: 900, color: '#7dffaa' }}>${recurringTotal.toFixed(2)}/mo</span>
                     </div>
                   )}
                   {hasOneTime && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', fontWeight: 700 }}>One-time</span>
+                      <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', fontWeight: 700 }}>One-time subtotal</span>
                       <span style={{ fontWeight: 900, color: '#5bc4ff' }}>${oneTimeTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {taxAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', fontWeight: 600 }}>Tax ({taxRate}%)</span>
+                      <span style={{ fontWeight: 700, color: 'rgba(212,230,202,0.7)' }}>${taxAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {taxAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid rgba(122,171,130,0.15)' }}>
+                      <span style={{ fontSize: '0.9rem', color: '#d4e6ca', fontWeight: 800 }}>Total due</span>
+                      <span style={{ fontWeight: 900, fontSize: '1rem', color: '#c9a84c' }}>${grandTotal.toFixed(2)}</span>
                     </div>
                   )}
                 </div>

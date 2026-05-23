@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-  const { to, name, lineItems = [], total, notes } = req.body || {}
+  const { to, name, lineItems = [], total, taxRate = 0, taxAmount = 0, notes } = req.body || {}
   if (!to) return res.status(400).json({ error: 'to required' })
 
   const resend = new Resend(process.env.RESEND_API_KEY)
@@ -31,9 +31,16 @@ export default async function handler(req, res) {
       <h2 style="font-size:1.1rem;margin:0 0 6px;">Service Quote${name ? ` for ${name}` : ''}</h2>
       <p style="color:#777;font-size:0.88rem;margin:0 0 24px;">This quote is valid for 30 days from today.</p>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">${rows}</table>
+      ${taxAmount > 0 ? `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #eee;color:#777;font-size:0.9rem;">
+        <span>Subtotal</span><span>$${parseFloat(total || 0).toFixed(2)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;color:#777;font-size:0.9rem;">
+        <span>Tax (${taxRate}%)</span><span>$${parseFloat(taxAmount).toFixed(2)}</span>
+      </div>` : ''}
       <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:2px solid #1a2e1f;margin-bottom:${notes ? '20px' : '28px'};">
-        <strong style="font-size:1rem;">Total</strong>
-        <strong style="font-size:1.1rem;color:#0d8a3c;">$${total.toFixed(2)}</strong>
+        <strong style="font-size:1rem;">Total due</strong>
+        <strong style="font-size:1.1rem;color:#0d8a3c;">$${(parseFloat(total || 0) + parseFloat(taxAmount || 0)).toFixed(2)}</strong>
       </div>
       ${notes ? `<p style="font-size:0.85rem;color:#777;border-top:1px solid #eee;padding-top:16px;margin-bottom:28px;">${notes}</p>` : ''}
       <a href="${APP_URL}" style="display:inline-block;background:#1a2e1f;color:#7dffaa;font-weight:700;font-size:0.9rem;padding:14px 28px;border-radius:6px;text-decoration:none;">

@@ -54,7 +54,9 @@ export async function getServerSideProps({ req }) {
   const prospects = hubspotContacts
     .filter((c) => {
       const email = (c.properties?.email || '').toLowerCase()
-      return email && !stripeEmails.has(email)
+      const name = [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ')
+      if (!name && !email) return false
+      return !email || !stripeEmails.has(email)
     })
     .map((c) => ({
       hsId: c.id,
