@@ -73,9 +73,21 @@ export async function getServerSideProps({ req, query }) {
   const trapCount = parseInt(p.trap_count || m.trap_count || '0', 10) || (inferredSystem ? inferredTrapCount : 0)
   const tankCount = parseInt(p.tank_count || m.tank_count || '0', 10)
   const planType = p.plan_type || m.plan_type || null
-  const systemType = p.system_type || m.system_type || inferredSystem || null
-  const usesC02 = systemType === 'Biogents-CO2' || systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter' || systemType === 'MQ-RENT'
-  const hasTimer = p.has_timer === 'true' && systemType === 'Biogents-CO2'
+  const rawSysType = p.system_type || m.system_type || inferredSystem || null
+
+  // Parse systems array: system_type may be a JSON array (multi-system) or a single legacy string
+  let systems = []
+  if (rawSysType && typeof rawSysType === 'string' && rawSysType.trim().startsWith('[')) {
+    try { systems = JSON.parse(rawSysType).filter((s) => s && s.type) } catch {}
+  }
+  if (systems.length === 0 && rawSysType) {
+    systems = [{ type: rawSysType, count: trapCount || 1, hasTimer: p.has_timer === 'true' && rawSysType === 'Biogents-CO2' }]
+  }
+
+  // Legacy single-system view: derive from first row
+  const systemType = systems[0]?.type || null
+  const usesC02 = systems.some((s) => s.type === 'Biogents-CO2' || s.type === 'Mosqitter-Grand' || s.type === 'Mosqitter' || s.type === 'MQ-RENT')
+  const hasTimer = !!systems[0]?.hasTimer
 
   let nextRefillDate = null
   if (p.service_start_date && usesC02 && trapCount > 0) {
@@ -111,10 +123,8 @@ export async function getServerSideProps({ req, query }) {
       // co2
       usesC02,
       nextRefillDate,
-      // Tank lifetime in days: Mosqitter 28, Biogents+timer 28, Biogents (no timer) 20
-      tankLifetimeDays: usesC02
-        ? (systemType === 'Biogents-CO2' && !hasTimer ? 20 : 28)
-        : null,
+      // Multi-system configuration (used by editor + tank level cards)
+      systems,
       // billing
       subscription: sub ? {
         status: sub.status,
@@ -180,11 +190,25 @@ const DATE_RANGES = [
 
 // ── System editor ──────────────────────────────────────────────────────────────
 
-function SystemEditor({ systemType, trapCount, hasTimer, onSaved }) {
+const SYSTEM_OPTIONS = [
+  { value: 'Biogents-CO2',    label: 'Biogents CO₂ Trap' },
+  { value: 'Biogents-NonCO2', label: 'Biogents (Non-CO₂)' },
+  { value: 'Mosqitter-Grand', label: 'Mosqitter Grand' },
+]
+
+function SystemEditor({ initialSystems }) {
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ systemType: systemType || 'Biogents-CO2', trapCount: trapCount || 1, hasTimer: !!hasTimer })
+  const [systems, setSystems] = useState(() =>
+    (initialSystems && initialSystems.length > 0)
+      ? initialSystems.map((s) => ({ ...s }))
+      : [{ type: 'Biogents-CO2', count: 1, hasTimer: false }]
+  )
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState(null)
+
+  function updateRow(i, patch) { setSystems((rows) => rows.map((r, idx) => idx === i ? { ...r, ...patch } : r)) }
+  function addRow() { setSystems((rows) => [...rows, { type: 'Biogents-CO2', count: 1, hasTimer: false }]) }
+  function removeRow(i) { setSystems((rows) => rows.filter((_, idx) => idx !== i)) }
 
   async function save() {
     setSaving(true); setMsg(null)
@@ -192,12 +216,11 @@ function SystemEditor({ systemType, trapCount, hasTimer, onSaved }) {
       const res = await fetch('/api/customer/update-system', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ systems }),
       })
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Save failed')
-      setMsg('Saved ✓')
-      setEditing(false)
-      setTimeout(() => { onSaved && onSaved(); window.location.reload() }, 500)
+      setMsg('Saved ✓'); setEditing(false)
+      setTimeout(() => window.location.reload(), 500)
     } catch (e) { setMsg(e.message) }
     setSaving(false)
   }
@@ -214,25 +237,29 @@ function SystemEditor({ systemType, trapCount, hasTimer, onSaved }) {
   return (
     <div style={{ marginTop: 10, padding: 14, borderRadius: 8, background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.18)' }}>
       <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 10 }}>Edit your system</div>
-      <div style={{ display: 'grid', gap: 10 }}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700 }}>
-          Trap type
-          <select value={form.systemType} onChange={(e) => setForm((f) => ({ ...f, systemType: e.target.value }))} style={inp}>
-            <option value="Biogents-CO2">Biogents CO₂ Trap</option>
-            <option value="Biogents-NonCO2">Biogents (Non-CO₂)</option>
-            <option value="Mosqitter-Grand">Mosqitter Grand</option>
-          </select>
-        </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700 }}>
-          Number of traps
-          <input type="number" min="1" max="10" value={form.trapCount} onChange={(e) => setForm((f) => ({ ...f, trapCount: parseInt(e.target.value, 10) || 1 }))} style={inp} />
-        </label>
-        {form.systemType === 'Biogents-CO2' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: 'rgba(212,230,202,0.8)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={form.hasTimer} onChange={(e) => setForm((f) => ({ ...f, hasTimer: e.target.checked }))} style={{ width: 16, height: 16 }} />
-            I have a timer installed
-          </label>
-        )}
+      <div style={{ display: 'grid', gap: 12 }}>
+        {systems.map((row, i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: 8, alignItems: 'end', padding: 10, borderRadius: 6, background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(122,171,130,0.15)' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '0.68rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700 }}>
+              Trap type
+              <select value={row.type} onChange={(e) => updateRow(i, { type: e.target.value })} style={inp}>
+                {SYSTEM_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '0.68rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700 }}>
+              Qty
+              <input type="number" min="1" max="20" value={row.count} onChange={(e) => updateRow(i, { count: parseInt(e.target.value, 10) || 1 })} style={{ ...inp, textAlign: 'center' }} />
+            </label>
+            <button onClick={() => removeRow(i)} disabled={systems.length === 1} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: systems.length === 1 ? 'rgba(255,100,100,0.25)' : '#ff8080', cursor: systems.length === 1 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Nunito Sans, sans-serif' }}>Remove</button>
+            {row.type === 'Biogents-CO2' && (
+              <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'rgba(212,230,202,0.75)', cursor: 'pointer', marginTop: 4 }}>
+                <input type="checkbox" checked={!!row.hasTimer} onChange={(e) => updateRow(i, { hasTimer: e.target.checked })} style={{ width: 16, height: 16 }} />
+                Timer installed (extends tank life from 20 to 28 days)
+              </label>
+            )}
+          </div>
+        ))}
+        <button onClick={addRow} style={{ padding: '8px', borderRadius: 6, border: '1px dashed rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>+ Add another system</button>
         <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', fontStyle: 'italic' }}>
           This updates how we show your tank level only. It will not change your billing or scheduled visits.
         </div>
@@ -315,7 +342,7 @@ export default function CustomerOverview({
   email, name,
   nextBooking, prevBooking,
   systemType, trapCount, tankCount, hasTimer, customerType, installDate, trapImage, systemLabel,
-  usesC02, nextRefillDate, systemFromAppointment, lastAppointmentTitle, tankLifetimeDays,
+  usesC02, nextRefillDate, systemFromAppointment, lastAppointmentTitle, systems = [],
   subscription, invoices,
 }) {
   const [dateRange, setDateRange] = useState(6)
@@ -430,8 +457,13 @@ export default function CustomerOverview({
                 Service since {new Date(installDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </div>
             )}
+            {systems.length > 1 && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(122,171,130,0.12)', fontSize: '0.82rem', color: 'rgba(212,230,202,0.6)' }}>
+                <strong style={{ color: '#d4e6ca' }}>Your systems:</strong> {systems.map((s) => `${s.count}× ${SYSTEM_LABELS[s.type] || s.type}${s.type === 'Biogents-CO2' && s.hasTimer ? ' (timer)' : ''}`).join(' · ')}
+              </div>
+            )}
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
-              <SystemEditor systemType={systemType} trapCount={trapCount} hasTimer={hasTimer} />
+              <SystemEditor initialSystems={systems} />
             </div>
           </div>
         </div>
@@ -448,39 +480,55 @@ export default function CustomerOverview({
           Request Equipment Upgrade →
         </a>
 
-        {/* ── CO₂ Status — current tank level only ── */}
-        {usesC02 && tankLifetimeDays && (() => {
+        {/* ── Current Tank Levels — one card per CO₂ system ── */}
+        {(() => {
+          const co2Systems = systems.filter((s) =>
+            s.type === 'Biogents-CO2' || s.type === 'Mosqitter-Grand' || s.type === 'Mosqitter' || s.type === 'MQ-RENT'
+          )
+          if (co2Systems.length === 0) return null
           const baseDate = prevBooking?.startTime ? new Date(prevBooking.startTime) : (installDate ? new Date(installDate) : null)
           if (!baseDate) return null
           const daysSince = Math.max(0, Math.floor((Date.now() - baseDate.getTime()) / 86400000))
-          const remainingDays = Math.max(0, tankLifetimeDays - daysSince)
-          const pct = Math.max(0, Math.min(100, Math.round((remainingDays / tankLifetimeDays) * 100)))
-          const color = pct > 50 ? '#7dffaa' : pct > 20 ? '#c9a84c' : '#ff8080'
-          const lifetimeNote = systemType === 'Biogents-CO2'
-            ? (hasTimer ? 'Biogents with timer · 28-day tank' : 'Biogents without timer · 20-day tank')
-            : 'Mosqitter Grand · 28-day tank'
           return (
             <>
               {DIVIDER}
-              {SECTION_LABEL('Current Tank Level')}
-              <div className="card" style={{ maxWidth: 600, marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                  <span style={{ fontSize: '2.6rem', fontWeight: 900, lineHeight: 1, color }}>{pct}%</span>
-                  <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)', fontWeight: 700 }}>
-                    ~{remainingDays} day{remainingDays !== 1 ? 's' : ''} left
-                  </span>
-                </div>
-                <div style={{ height: 10, borderRadius: 6, background: 'rgba(212,230,202,0.08)', overflow: 'hidden', marginBottom: 10 }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width 0.4s ease' }} />
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
-                  {lifetimeNote} · last service {fmtDate(baseDate.toISOString())}
-                </div>
-                {pct <= 20 && (
-                  <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 6, background: 'rgba(255,128,128,0.08)', border: '1px solid rgba(255,128,128,0.25)', fontSize: '0.82rem', color: '#ff8080', fontWeight: 700 }}>
-                    Time to schedule your next refill.
-                  </div>
-                )}
+              {SECTION_LABEL(co2Systems.length > 1 ? 'Current Tank Levels' : 'Current Tank Level')}
+              <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', maxWidth: 800 }}>
+                {co2Systems.map((sys, i) => {
+                  const lifetime = sys.type === 'Biogents-CO2' && !sys.hasTimer ? 20 : 28
+                  const remaining = Math.max(0, lifetime - daysSince)
+                  const pct = Math.max(0, Math.min(100, Math.round((remaining / lifetime) * 100)))
+                  const color = pct > 50 ? '#7dffaa' : pct > 20 ? '#c9a84c' : '#ff8080'
+                  const label = SYSTEM_LABELS[sys.type] || sys.type
+                  const lifetimeNote = sys.type === 'Biogents-CO2'
+                    ? (sys.hasTimer ? 'with timer · 28-day tank' : 'without timer · 20-day tank')
+                    : '28-day tank'
+                  return (
+                    <div key={i} className="card" style={{ marginBottom: 0 }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'rgba(212,230,202,0.7)', marginBottom: 6 }}>
+                        {sys.count}× {label}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                        <span style={{ fontSize: '2.2rem', fontWeight: 900, lineHeight: 1, color }}>{pct}%</span>
+                        <span style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.55)', fontWeight: 700 }}>
+                          ~{remaining} day{remaining !== 1 ? 's' : ''} left
+                        </span>
+                      </div>
+                      <div style={{ height: 8, borderRadius: 5, background: 'rgba(212,230,202,0.08)', overflow: 'hidden', marginBottom: 8 }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width 0.4s ease' }} />
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.45)' }}>{lifetimeNote}</div>
+                      {pct <= 20 && (
+                        <div style={{ marginTop: 8, padding: '6px 10px', borderRadius: 5, background: 'rgba(255,128,128,0.08)', border: '1px solid rgba(255,128,128,0.25)', fontSize: '0.76rem', color: '#ff8080', fontWeight: 700 }}>
+                          Time for a refill
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'rgba(212,230,202,0.4)', marginTop: 10 }}>
+                Last service {fmtDate(baseDate.toISOString())}
               </div>
             </>
           )
@@ -580,28 +628,31 @@ export default function CustomerOverview({
           ))
         )}
 
-        {DIVIDER}
-
-        {/* ── Reschedule / Pause ── */}
-        {SECTION_LABEL('Service Options')}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-          {nextBooking && (
-            <a
-              href={`mailto:admin@greenguard-usa.com?subject=Reschedule Request&body=Hi, I'd like to reschedule my upcoming visit on ${fmtDate(nextBooking.startTime)}.%0A%0AAccount: ${encodeURIComponent(email)}`}
-              style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', color: '#7aab82', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
-            >
-              Reschedule Upcoming Visit
-            </a>
-          )}
-          {subscription && (
-            <a
-              href={`mailto:admin@greenguard-usa.com?subject=Service Pause Request&body=Hi, I'd like to pause my GreenGuard service temporarily.%0A%0AAccount: ${encodeURIComponent(email)}`}
-              style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.3)', color: '#c9a84c', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
-            >
-              Pause Service
-            </a>
-          )}
-        </div>
+        {/* ── Reschedule / Pause ── (only shown when at least one option applies) */}
+        {(nextBooking || subscription) && (
+          <>
+            {DIVIDER}
+            {SECTION_LABEL('Service Options')}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+              {nextBooking && (
+                <a
+                  href={`mailto:admin@greenguard-usa.com?subject=Reschedule Request&body=Hi, I'd like to reschedule my upcoming visit on ${fmtDate(nextBooking.startTime)}.%0A%0AAccount: ${encodeURIComponent(email)}`}
+                  style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', color: '#7aab82', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
+                >
+                  Reschedule Upcoming Visit
+                </a>
+              )}
+              {subscription && (
+                <a
+                  href={`mailto:admin@greenguard-usa.com?subject=Service Pause Request&body=Hi, I'd like to pause my GreenGuard service temporarily.%0A%0AAccount: ${encodeURIComponent(email)}`}
+                  style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.3)', color: '#c9a84c', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
+                >
+                  Pause Service
+                </a>
+              )}
+            </div>
+          </>
+        )}
 
         {DIVIDER}
 
