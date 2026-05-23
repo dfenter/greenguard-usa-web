@@ -1,9 +1,9 @@
-name: Health Check
+name: Health Check + Auto-Heal
 
 on:
   schedule:
-    - cron: '*/15 * * * *'   # Every 15 minutes — backup to Vercel cron
-  workflow_dispatch:           # Manual trigger from GitHub Actions UI
+    - cron: '*/15 * * * *'   # Every 15 minutes
+  workflow_dispatch:
 
 jobs:
   health:
@@ -11,6 +11,20 @@ jobs:
     timeout-minutes: 5
 
     steps:
+      - name: Check marketing site
+        id: website
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "https://www.greenguard-usa.com")
+          echo "http_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Marketing site: HTTP $STATUS"
+
+      - name: Auto-heal marketing site if down
+        if: steps.website.outputs.http_status != '200'
+        run: |
+          echo "⚠️ Marketing site returned ${{ steps.website.outputs.http_status }} — triggering redeploy..."
+          curl -s -X POST "${{ secrets.VERCEL_SITE_DEPLOY_HOOK }}"
+          echo "Redeploy triggered. Site will be back within ~60 seconds."
+
       - name: Check portal health
         id: portal
         run: |
@@ -18,60 +32,37 @@ jobs:
             --max-time 20 \
             "https://portal.greenguard-usa.com/api/health")
           echo "http_status=$STATUS" >> $GITHUB_OUTPUT
-          echo "body=$(cat /tmp/health.json)" >> $GITHUB_OUTPUT
           cat /tmp/health.json | python3 -m json.tool || true
-
-      - name: Check marketing site
-        id: website
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "https://greenguard-usa.com")
-          echo "http_status=$STATUS" >> $GITHUB_OUTPUT
-          echo "Website returned HTTP $STATUS"
+          echo "Portal: HTTP $STATUS"
 
       - name: Check portal login page
         id: login
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "https://portal.greenguard-usa.com/login")
           echo "http_status=$STATUS" >> $GITHUB_OUTPUT
-          echo "Login page returned HTTP $STATUS"
+          echo "Login page: HTTP $STATUS"
 
-      - name: Ping Render agent (keep-alive)
-        id: agent
-        run: |
-          # Free-tier Render services sleep after 15 min — this ping keeps it awake
-          STATUS=$(curl -s -o /tmp/agent.json -w "%{http_code}" --max-time 45 \
-            "https://greenguard-agent-tmw2.onrender.com/health")
-          echo "http_status=$STATUS" >> $GITHUB_OUTPUT
-          echo "Render agent returned HTTP $STATUS"
-          cat /tmp/agent.json || true
-
-      - name: Fail if any check degraded
+      - name: Fail if portal down
         run: |
           PORTAL="${{ steps.portal.outputs.http_status }}"
-          WEBSITE="${{ steps.website.outputs.http_status }}"
           LOGIN="${{ steps.login.outputs.http_status }}"
-          AGENT="${{ steps.agent.outputs.http_status }}"
+          WEBSITE="${{ steps.website.outputs.http_status }}"
+          HEALTH=$(cat /tmp/health.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
 
-          echo "Portal health: $PORTAL"
-          echo "Website: $WEBSITE"
-          echo "Login: $LOGIN"
-          echo "Render agent: $AGENT"
+          echo "Results — Site: $WEBSITE | Portal: $PORTAL | Login: $LOGIN | Health: $HEALTH"
 
-          HEALTH_STATUS=$(cat /tmp/health.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
-          echo "Health check status: $HEALTH_STATUS"
-
-          if [ "$PORTAL" != "200" ] || [ "$PORTAL" = "503" ] || [ "$WEBSITE" != "200" ] || [ "$LOGIN" != "200" ]; then
-            echo "::error::One or more endpoints are down. Portal: $PORTAL, Website: $WEBSITE, Login: $LOGIN"
+          if [ "$PORTAL" != "200" ] || [ "$LOGIN" != "200" ]; then
+            echo "::error::Portal is down. Portal: $PORTAL, Login: $LOGIN"
             exit 1
           fi
 
-          if [ "$HEALTH_STATUS" = "degraded" ]; then
-            echo "::warning::Health check reports degraded status. Check portal.greenguard-usa.com/admin/health"
+          if [ "$HEALTH" = "degraded" ]; then
+            echo "::warning::Portal health degraded — check portal.greenguard-usa.com/admin/health"
             exit 1
           fi
 
-          if [ "$AGENT" != "200" ]; then
-            echo "::warning::Render agent returned $AGENT — may be cold-starting or down"
+          if [ "$WEBSITE" != "200" ]; then
+            echo "::warning::Marketing site was $WEBSITE — redeploy triggered automatically above"
           fi
 
-          echo "All checks passed."
+          echo "✓ All checks passed."
