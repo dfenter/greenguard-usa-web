@@ -8,13 +8,11 @@ const NAV_LINKS = [
 
 const ADMIN_NAV_LINKS = [
   { href: '/admin/home',         label: '🏠 Home' },
-  { href: '/admin/analytics',    label: 'Analytics' },
   { href: '/admin/clients',      label: 'Clients' },
   { href: '/admin/rounds',       label: 'Customer Rounds' },
   { href: '/admin/inventory',    label: 'Daily Rounds' },
   { href: '/admin/quote',        label: 'Quote' },
   { href: '/admin/invoice',      label: 'Invoice' },
-  { href: '/admin/route',        label: 'Route Plan' },
   { href: '/admin/tech',         label: 'Tech View' },
   { href: '/dashboard?preview=1', label: 'My Account ↗', customer: true },
 ]
@@ -106,11 +104,11 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
 }
 
 const DOCK_ITEMS = [
+  { href: '/admin/home',      label: 'Home',     icon: '🏠' },
   { href: '/admin/clients',   label: 'Clients',  icon: '👥' },
   { href: '/admin/rounds',    label: 'Rounds',   icon: '🚐' },
   { href: '/admin/inventory', label: 'Daily',    icon: '📋' },
   { href: '/admin/quote',     label: 'Quote',    icon: '📝' },
-  { href: '/admin/route',     label: 'Route',    icon: '🗺️' },
 ]
 
 function AdminBottomDock({ pathname }) {

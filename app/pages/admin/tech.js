@@ -197,6 +197,7 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
               { label: 'Customer Rounds', href: '/admin/rounds', desc: 'Log service stops' },
               { label: 'Daily Inventory', href: '/admin/inventory', desc: 'Tank & equipment counts' },
               { label: 'Client List', href: '/admin/clients', desc: 'Customer details' },
+              { label: 'Route Plan', href: '/admin/route', desc: 'Weekly route map' },
               { label: 'Route Map', href: '/admin/map', desc: 'View all stops' },
             ].map(({ label, href, desc }) => (
               <Link key={href} href={href} style={{
