@@ -11,28 +11,33 @@
 # Add RENDER_SERVICE_ID=<id> to app/.env (local only, never synced).
 
 services:
-  # Background worker — update type/runtime/startCommand to match live service.
-  # Inspect with: render services list && render logs <service-id>
-  - type: worker
-    name: greenguard-background
+  # greenguard-agent — FastAPI billing server deployed from its own repo:
+  #   github.com/greenguard-usa/greenguard-agent
+  # Live URL:  https://greenguard-agent-tmw2.onrender.com
+  # Health:    GET /health → {"status":"ok"}
+  # Render ID: srv-d86foj28qa3s73ffpb00
+  # Note: env vars are managed in the agent repo's render.yaml, not here.
+  #       This entry is for reference only — do not redeploy from this repo.
+  - type: web_service
+    name: greenguard-agent
     runtime: python
-    region: ohio
-    plan: starter
+    region: oregon
+    plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python _scripts/worker.py
+    startCommand: uvicorn webhook_server:app --host 0.0.0.0 --port $PORT
     autoDeploy: false
     envVars:
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      - key: HUBSPOT_ACCESS_TOKEN
-        sync: false
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-      - key: GOOGLE_REFRESH_TOKEN
-        sync: false
       - key: CALCOM_API_KEY
         sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: CALENDAR_TIMEZONE
+        value: America/Chicago
