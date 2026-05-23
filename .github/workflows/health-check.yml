@@ -35,15 +35,27 @@ jobs:
           echo "http_status=$STATUS" >> $GITHUB_OUTPUT
           echo "Login page returned HTTP $STATUS"
 
+      - name: Ping Render agent (keep-alive)
+        id: agent
+        run: |
+          # Free-tier Render services sleep after 15 min — this ping keeps it awake
+          STATUS=$(curl -s -o /tmp/agent.json -w "%{http_code}" --max-time 45 \
+            "https://greenguard-agent-tmw2.onrender.com/health")
+          echo "http_status=$STATUS" >> $GITHUB_OUTPUT
+          echo "Render agent returned HTTP $STATUS"
+          cat /tmp/agent.json || true
+
       - name: Fail if any check degraded
         run: |
           PORTAL="${{ steps.portal.outputs.http_status }}"
           WEBSITE="${{ steps.website.outputs.http_status }}"
           LOGIN="${{ steps.login.outputs.http_status }}"
+          AGENT="${{ steps.agent.outputs.http_status }}"
 
           echo "Portal health: $PORTAL"
           echo "Website: $WEBSITE"
           echo "Login: $LOGIN"
+          echo "Render agent: $AGENT"
 
           HEALTH_STATUS=$(cat /tmp/health.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "unknown")
           echo "Health check status: $HEALTH_STATUS"
@@ -56,6 +68,10 @@ jobs:
           if [ "$HEALTH_STATUS" = "degraded" ]; then
             echo "::warning::Health check reports degraded status. Check portal.greenguard-usa.com/admin/health"
             exit 1
+          fi
+
+          if [ "$AGENT" != "200" ]; then
+            echo "::warning::Render agent returned $AGENT — may be cold-starting or down"
           fi
 
           echo "All checks passed."

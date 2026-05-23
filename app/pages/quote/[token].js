@@ -3,9 +3,11 @@ import Head from 'next/head'
 
 function fmt$(n) { return n != null ? `$${Number(n).toFixed(2)}` : 'TBD' }
 
-export default function QuotePage({ token }) {
+export default function QuotePage({ token, accepted }) {
   const [quote, setQuote] = useState(null)
   const [error, setError] = useState(null)
+  const [paying, setPaying] = useState(false)
+  const [payError, setPayError] = useState(null)
 
   useEffect(() => {
     fetch(`/api/admin/quote-link?token=${token}`)
@@ -13,6 +15,34 @@ export default function QuotePage({ token }) {
       .then(d => { if (d.error) setError(d.error); else setQuote(d) })
       .catch(() => setError('Failed to load quote'))
   }, [token])
+
+  async function handleAcceptPay() {
+    setPaying(true)
+    setPayError(null)
+    try {
+      const res = await fetch('/api/quote/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setPayError(data.error || 'Could not start checkout. Please call us.')
+        setPaying(false)
+      }
+    } catch {
+      setPayError('Network error. Please try again or call 512-560-4129.')
+      setPaying(false)
+    }
+  }
+
+  // Can pay if at least one line item has a known amount
+  function canPay(q) {
+    const lines = [...(q.serviceLines || []), ...(q.addonLines || []), ...(q.productLines || [])]
+    return lines.some(l => l.amount > 0)
+  }
 
   const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: 28, marginBottom: 20 }
   const lbl = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(201,168,76,0.7)', marginBottom: 8, display: 'block' }
@@ -149,16 +179,67 @@ export default function QuotePage({ token }) {
               )}
 
               {/* CTA */}
-              <div style={{ textAlign: 'center', marginTop: 40 }}>
-                <a href="https://cal.com/greenguard-usa/property-assessment" target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-block', padding: '16px 40px', borderRadius: 8, background: '#c9a84c', color: '#0d1a10', fontWeight: 900, fontSize: '1rem', textDecoration: 'none', marginBottom: 16 }}>
-                  Schedule Your Free Consultation →
-                </a>
-                <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.35)', marginTop: 10 }}>
-                  Questions? Call or text <a href="tel:+15125604129" style={{ color: 'rgba(212,230,202,0.5)' }}>512-560-4129</a>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.2)', marginTop: 28 }}>
-                  This quote is valid for 30 days · GreenGuard USA · Austin, TX
+              <div style={{ marginTop: 40 }}>
+
+                {/* Success banner — shown after returning from Stripe */}
+                {accepted && (
+                  <div style={{ marginBottom: 28, padding: '20px 24px', borderRadius: 12, background: 'rgba(125,255,170,0.07)', border: '1px solid rgba(125,255,170,0.3)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>🎉</div>
+                    <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#7dffaa', marginBottom: 6 }}>You&apos;re all set!</div>
+                    <p style={{ margin: 0, fontSize: '0.88rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.6 }}>
+                      Payment confirmed. We&apos;ll reach out within 24 hours to schedule your first service visit. Welcome to GreenGuard!
+                    </p>
+                  </div>
+                )}
+
+                {/* Accept & Pay */}
+                {!accepted && (
+                  <div style={{ marginBottom: 20 }}>
+                    <button
+                      onClick={handleAcceptPay}
+                      disabled={paying || !canPay(quote)}
+                      style={{
+                        width: '100%', padding: '18px', borderRadius: 10, border: 'none',
+                        background: paying || !canPay(quote) ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#7dffaa,#4dd98a)',
+                        color: paying || !canPay(quote) ? 'rgba(212,230,202,0.4)' : '#0d1a10',
+                        fontWeight: 900, fontSize: '1.05rem', fontFamily: "'Nunito Sans', sans-serif",
+                        cursor: paying || !canPay(quote) ? 'not-allowed' : 'pointer',
+                        letterSpacing: '-0.01em',
+                        transition: 'opacity 0.15s',
+                        opacity: paying ? 0.7 : 1,
+                      }}
+                    >
+                      {paying ? 'Redirecting to secure checkout…' : canPay(quote) ? '✓ Accept Quote & Pay Securely' : 'Contact us to finalize pricing'}
+                    </button>
+                    {canPay(quote) && !paying && (
+                      <div style={{ textAlign: 'center', marginTop: 8, fontSize: '0.75rem', color: 'rgba(212,230,202,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        <span>🔒</span> Secured by Stripe · Cancel anytime
+                      </div>
+                    )}
+                    {payError && (
+                      <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.2)', color: '#ff8080', fontSize: '0.85rem', textAlign: 'center' }}>
+                        {payError}
+                      </div>
+                    )}
+                    {quote.recurringTotal > 0 && (quote.oneTimeTotal > 0 || quote.addonLines?.some(l => !l.recurring && l.amount > 0)) && (
+                      <div style={{ marginTop: 10, fontSize: '0.78rem', color: 'rgba(212,230,202,0.35)', textAlign: 'center' }}>
+                        One-time items will be invoiced after your first service visit.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ textAlign: 'center' }}>
+                  <a href="https://cal.com/greenguard-usa/property-assessment" target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'inline-block', padding: '12px 32px', borderRadius: 8, background: 'transparent', border: '1px solid rgba(201,168,76,0.4)', color: '#c9a84c', fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none', marginBottom: 16 }}>
+                    Schedule a Free Consultation First →
+                  </a>
+                  <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.35)' }}>
+                    Questions? Call or text <a href="tel:+15125604129" style={{ color: 'rgba(212,230,202,0.5)' }}>512-560-4129</a>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.2)', marginTop: 20 }}>
+                    This quote is valid for 30 days · GreenGuard USA · Austin, TX
+                  </div>
                 </div>
               </div>
             </>
@@ -169,6 +250,6 @@ export default function QuotePage({ token }) {
   )
 }
 
-export async function getServerSideProps({ params }) {
-  return { props: { token: params.token } }
+export async function getServerSideProps({ params, query }) {
+  return { props: { token: params.token, accepted: query.accepted === '1' } }
 }
