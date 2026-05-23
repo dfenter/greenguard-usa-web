@@ -339,10 +339,17 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
           ['biogents-nonco2', 'Biogents Non-CO₂'],
           ['mosqitter',       'Mosqitter Grand'],
           ['tank',            'CO₂ Tank Delivery Only'],
+          ['none',            '🛒 No Service — Equipment & Add-Ons Only'],
         ].map(([val, label]) => (
           <span key={val} onClick={() => { setSystem(val); setPlan(null); setOnTankService(null); setMqPlan(null); setMqInstall(false); setTankHookup(false) }} style={chip(system === val)}>{label}</span>
         ))}
       </div>
+
+      {system === 'none' && (
+        <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 8, background: 'rgba(91,196,255,0.06)', border: '1px solid rgba(91,196,255,0.2)', fontSize: '0.82rem', color: 'rgba(212,230,202,0.7)', lineHeight: 1.5 }}>
+          No recurring service selected. Use the <strong>Add-Ons</strong> and <strong>Products</strong> sections below to build a one-time equipment-only quote.
+        </div>
+      )}
 
       {/* Q2: Biogents CO₂ — rental or purchase */}
       {system === 'biogents-co2' && (
