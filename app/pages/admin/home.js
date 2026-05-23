@@ -87,6 +87,7 @@ export async function getServerSideProps({ req }) {
       balanceAvailable: balance ? balance.available / 100 : null,
       fullTanksOnHand: tankData?.currentStock ?? null,
       tanksNeededThisWeek: tankData?.weeklyTankTotal ?? null,
+      expectedDeliveryThisWeek: tankData?.expectedDelivery ?? null,
       tankData: tankData ? {
         tankCalendar: tankData.tankCalendar,
         scheduleByDate: tankData.scheduleByDate,
@@ -235,7 +236,7 @@ function VisitsDuePanel() {
   )
 }
 
-export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData, fullTanksOnHand, tanksNeededThisWeek }) {
+export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData, fullTanksOnHand, tanksNeededThisWeek, expectedDeliveryThisWeek }) {
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 
@@ -253,12 +254,25 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
 
         {/* KPI strip: Full Tanks · Tanks Needed This Week · Today's Stops · Open Invoices */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
-          <KPI
-            label="Full Tanks"
-            value={fullTanksOnHand != null ? fullTanksOnHand : '—'}
-            sub={fullTanksOnHand != null ? 'on hand at depot' : 'no log yet'}
-            warn={fullTanksOnHand != null && tanksNeededThisWeek != null && fullTanksOnHand < tanksNeededThisWeek}
-          />
+          {(() => {
+            const onHand = fullTanksOnHand
+            const incoming = expectedDeliveryThisWeek || 0
+            const projectedTotal = (onHand ?? 0) + incoming
+            const need = tanksNeededThisWeek
+            const isShort = onHand != null && need != null && projectedTotal < need
+            return (
+              <KPI
+                label="Full Tanks"
+                value={onHand != null ? onHand : '—'}
+                sub={onHand == null
+                  ? 'no log yet'
+                  : incoming > 0
+                    ? `+${incoming} Wed delivery → ${projectedTotal} projected`
+                    : 'on hand at depot'}
+                warn={isShort}
+              />
+            )
+          })()}
           <KPI
             label="Tanks Needed This Week"
             value={tanksNeededThisWeek != null ? tanksNeededThisWeek : '—'}
