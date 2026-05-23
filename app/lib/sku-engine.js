@@ -45,20 +45,20 @@ const DURATION_MAP = {
   installation: {
     'Biogents-CO2': 45,
     'Biogents-NonCO2': 45,
-    Mosqitter: 90,
-    'Tank-Only': 30,
+    'Mosqitter-Grand': 90,
+    Mosqitter: 90, // legacy
     default: 45,
   },
   exchange: {
-    'Tank-Only': null, // computed from tankCount below
     'Biogents-CO2': 30,
     default: 30,
   },
-  troubleshoot: { Mosqitter: 60, default: 45 },
+  troubleshoot: { 'Mosqitter-Grand': 60, Mosqitter: 60, default: 45 },
   barrier: { default: 30 },
   service: {
     'Biogents-CO2': null, // computed from trapCount below
-    Mosqitter: 45,
+    'Mosqitter-Grand': 45,
+    Mosqitter: 45, // legacy
     default: 30,
   },
 }
@@ -66,34 +66,37 @@ const DURATION_MAP = {
 /**
  * @param {object} visit
  * @param {string} visit.visitType - installation | exchange | assessment | troubleshoot | check | barrier | service
- * @param {string} visit.systemType - Biogents-CO2 | Biogents-NonCO2 | Mosqitter | Tank-Only
+ * @param {string} visit.systemType - Biogents-CO2 | Biogents-NonCO2 | Mosqitter-Grand
+ * @param {string} visit.planType - rent | own
  * @param {number} [visit.trapCount]
  * @param {number} [visit.tankCount]
  * @param {string[]} [visit.addons]
  * @param {boolean} [visit.isWeekend]
- * @param {string} [visit.customerType] - rental | owned
  * @returns {string[]} array of SKU strings
  */
 function resolveSKU(visit) {
-  const { visitType, systemType, trapCount = 1, tankCount = 1, addons = [], isWeekend = false, customerType } = visit
+  const { visitType, systemType, planType, trapCount = 1, tankCount = 1, addons = [], isWeekend = false, customerType } = visit
+  // Support legacy customerType='rental' as planType='rent'
+  const isRental = planType === 'rent' || customerType === 'rental'
 
   if (visitType === 'assessment') return ['ASSESS']
   if (visitType === 'check') return ['CHK']
 
   const skus = []
+  const mqType = systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter'
 
-  if (systemType === 'Tank-Only') {
-    skus.push(TANK_MAP[tankCount] || 'TANK1')
-  } else if (systemType === 'Biogents-CO2') {
+  if (systemType === 'Biogents-CO2') {
     if (trapCount <= 1) skus.push('BG1')
     else if (trapCount === 2) skus.push('BG2')
     else skus.push('BG3')
+  } else if (systemType === 'Tank-Only') {
+    skus.push(TANK_MAP[tankCount] || 'TANK1')
   } else if (systemType === 'Biogents-NonCO2') {
     skus.push('OWN-NONCO2')
-  } else if (systemType === 'Mosqitter') {
+  } else if (mqType) {
     if (visitType === 'installation') skus.push('MQ-INST')
     else if (visitType === 'troubleshoot') skus.push('MQ-TSHOOT')
-    else if (customerType === 'rental') skus.push('MQ-RENT')
+    else if (isRental) skus.push('MQ-RENT')
     else skus.push('MQ-SVC')
   }
 
@@ -122,10 +125,6 @@ function resolveServiceDuration(visit) {
 
   if (specific !== null && specific !== undefined) {
     base = specific
-  } else if (visitType === 'exchange' && systemType === 'Tank-Only') {
-    if (tankCount <= 2) base = 30 + (tankCount - 1) * 15
-    else if (tankCount <= 4) base = 60
-    else base = 90
   } else if (visitType === 'service' && systemType === 'Biogents-CO2') {
     base = trapCount >= 2 ? 45 : 30
   } else {

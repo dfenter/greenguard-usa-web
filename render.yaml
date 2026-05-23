@@ -1,0 +1,38 @@
+# render.yaml — GreenGuard USA Render service definitions
+#
+# This file captures Render services in version control.
+# Before committing changes, verify against live state:
+#   render services list
+#
+# Environment variables use sync: false so secrets stay out of git.
+# Manage env vars with: ./scripts/env-sync.sh --render-only
+#
+# To find your service ID: render services list
+# Add RENDER_SERVICE_ID=<id> to app/.env (local only, never synced).
+
+services:
+  # Background worker — update type/runtime/startCommand to match live service.
+  # Inspect with: render services list && render logs <service-id>
+  - type: worker
+    name: greenguard-background
+    runtime: python
+    region: ohio
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python _scripts/worker.py
+    autoDeploy: false
+    envVars:
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: HUBSPOT_ACCESS_TOKEN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      - key: CALCOM_API_KEY
+        sync: false

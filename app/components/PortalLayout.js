@@ -3,24 +3,20 @@ import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
 
 const NAV_LINKS = [
-  { href: '/dashboard', label: 'Overview' },
-  { href: '/dashboard/schedule', label: 'Schedule' },
-  { href: '/dashboard/equipment', label: 'My System' },
-  { href: '/dashboard/billing', label: 'Billing' },
-  { href: '/dashboard/co2', label: 'CO₂ Status' },
-  { href: '/dashboard/map', label: 'My Map' },
+  { href: '/dashboard', label: 'My Account' },
 ]
 
 const ADMIN_NAV_LINKS = [
-  { href: '/admin/clients', label: 'Clients' },
-  { href: '/admin/visit-complete', label: 'Log Visit' },
-  { href: '/admin/quote', label: 'Quote' },
-  { href: '/admin/inventory', label: 'Inventory' },
-  { href: '/admin/map', label: 'Install Map' },
-  { href: '/admin/booking', label: 'New Booking' },
-  { href: '/admin/analytics', label: 'Analytics' },
-  { href: '/admin/route', label: 'Route Plan' },
-  { href: '/admin/tank-calendar', label: 'Tanks' },
+  { href: '/admin/analytics',    label: 'Analytics' },
+  { href: '/admin/clients',      label: 'Clients' },
+  { href: '/admin/rounds',       label: 'Customer Rounds' },
+  { href: '/admin/inventory',    label: 'Daily Rounds' },
+  { href: '/admin/map',          label: 'Map' },
+  { href: '/admin/quote',        label: 'Quote' },
+  { href: '/admin/invoice',      label: 'Invoice' },
+  { href: '/admin/route',        label: 'Route Plan' },
+  { href: '/admin/booking',      label: 'New Booking' },
+  { href: '/dashboard?preview=1', label: 'My Account ↗', customer: true },
 ]
 
 export default function PortalLayout({ children, title, isAdmin = false }) {
@@ -41,10 +37,15 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
         <div style={{
           maxWidth: 1100, margin: '0 auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          height: 56, position: 'relative',
+          height: 72, position: 'relative',
         }}>
-          <Link href="/dashboard" style={{ fontWeight: 900, fontSize: '1rem', letterSpacing: '-0.02em' }}>
-            Green<span style={{ color: '#7dffaa' }}>Guard</span>
+          <Link href="/dashboard" style={{ textDecoration: 'none', lineHeight: 1.1, flexShrink: 0 }}>
+            <div style={{ fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+              Green<span style={{ color: '#7dffaa' }}>Guard</span> USA
+            </div>
+            <div style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', whiteSpace: 'nowrap' }}>
+              Smart · Safe · Effective
+            </div>
           </Link>
 
           <button
@@ -55,58 +56,23 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
             <span /><span /><span />
           </button>
 
-          <div className={'nav-links' + (menuOpen ? ' open' : '')}>
-            {NAV_LINKS.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  padding: '6px 12px',
-                  borderRadius: 4,
-                  color: router.pathname === href ? '#7dffaa' : 'rgba(212,230,202,0.7)',
-                  background: router.pathname === href ? 'rgba(125,255,170,0.08)' : 'transparent',
-                  transition: 'color 0.15s',
-                }}
-              >
+          <div className={'nav-links' + (menuOpen ? ' open' : '')} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            {/* Customer links — hidden when admin */}
+            {!isAdmin && NAV_LINKS.map(({ href, label }) => (
+              <Link key={href} href={href} style={{ fontSize: '1rem', fontWeight: 700, padding: '6px 14px', borderRadius: 4, whiteSpace: 'nowrap', color: router.pathname === href ? '#7dffaa' : 'rgba(212,230,202,0.85)', background: router.pathname === href ? 'rgba(125,255,170,0.08)' : 'transparent' }}>
                 {label}
               </Link>
             ))}
-            {isAdmin && (
-              <>
-                <span style={{ width: 1, height: 18, background: 'rgba(122,171,130,0.2)', margin: '0 4px' }} />
-                {ADMIN_NAV_LINKS.map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    style={{
-                      fontSize: '0.82rem',
-                      fontWeight: 700,
-                      padding: '6px 12px',
-                      borderRadius: 4,
-                      color: router.pathname === href ? '#c9a84c' : 'rgba(201,168,76,0.65)',
-                      background: router.pathname === href ? 'rgba(201,168,76,0.08)' : 'transparent',
-                      transition: 'color 0.15s',
-                    }}
-                  >
-                    {label}
-                  </Link>
-                ))}
-              </>
-            )}
+
+            {/* Admin links — hidden when customer */}
+            {isAdmin && ADMIN_NAV_LINKS.map(({ href, label, customer }) => (
+              <Link key={href} href={href} style={{ fontSize: '1rem', fontWeight: 700, padding: '6px 10px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0, color: customer ? 'rgba(125,255,170,0.6)' : router.pathname === href ? '#c9a84c' : 'rgba(201,168,76,0.8)', background: router.pathname === href ? 'rgba(201,168,76,0.08)' : 'transparent', borderLeft: customer ? '1px solid rgba(125,255,170,0.15)' : 'none', marginLeft: customer ? 4 : 0 }}>
+                {label}
+              </Link>
+            ))}
+
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a
-              href="/api/auth/logout"
-              style={{
-                marginLeft: 8,
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                padding: '6px 12px',
-                borderRadius: 4,
-                color: 'rgba(212,230,202,0.45)',
-              }}
-            >
+            <a href="/api/auth/logout" style={{ marginLeft: 8, fontSize: '0.9rem', fontWeight: 700, padding: '6px 12px', borderRadius: 4, color: 'rgba(212,230,202,0.5)', whiteSpace: 'nowrap', flexShrink: 0 }}>
               Sign out
             </a>
           </div>

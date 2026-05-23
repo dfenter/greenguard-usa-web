@@ -1,0 +1,102 @@
+---
+import Base from '../layouts/Base.astro'
+---
+<Base title="About · GreenGuard USA" description="GreenGuard USA is Austin's pesticide-free CO₂ mosquito trap service. Learn about our mission and all-electric fleet.">
+<style>
+  .page { padding: 100px 0 80px; }
+  h1 { font-size:clamp(2rem,4vw,3rem);font-weight:900;letter-spacing:-0.02em;margin-bottom:20px; }
+  .lead { font-size:1.15rem;color:var(--text-dim);line-height:1.8;max-width:640px;margin-bottom:56px; }
+  .values { display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin:40px 0 56px; }
+  .value { background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:24px; }
+  .value-icon { font-size:1.8rem;margin-bottom:12px; }
+  .value h3 { font-size:1rem;font-weight:900;margin-bottom:8px; }
+  .value p { font-size:0.85rem;color:var(--text-dim);line-height:1.65; }
+  .stat-row { display:flex;gap:48px;flex-wrap:wrap;margin:48px 0; }
+  .big-stat { text-align:center; }
+  .big-num { font-size:2.8rem;font-weight:900;color:var(--gold);line-height:1; }
+  .big-label { font-size:0.75rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);margin-top:6px; }
+  .divider { width:100%;height:1px;background:var(--border);margin:56px 0; }
+  @media(max-width:768px){ .page{padding:64px 0 60px;} }
+</style>
+
+<nav id="site-nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">Green<span>Guard</span> USA<small>Smart · Safe · Effective</small></a>
+    <button class="hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+    <div class="nav-links" id="nav-links">
+      <a href="/services" class="nav-link">Services</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+      <a href="/faq" class="nav-link">FAQ</a>
+      <a href="/about" class="nav-link">About</a>
+      <a href="https://portal.greenguard-usa.com/login" class="nav-link">My Account</a>
+      <a href="/book" class="btn-gold">Book Consultation</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container" style="max-width:860px;">
+    <div class="section-label reveal">Our Story</div>
+    <h1 class="reveal">Mosquito control <span style="color:var(--green)">that respects</span> your family and the environment.</h1>
+    <p class="lead reveal">
+      GreenGuard USA was built on a simple belief: you shouldn't have to choose between a mosquito-free yard and a pesticide-free home.
+      We deploy scientifically validated CO₂ trap technology — the same approach used in government research programs worldwide — to protect Austin-area families without spraying a single chemical.
+    </p>
+
+    <div class="stat-row reveal">
+      <div class="big-stat"><div class="big-num">100+</div><div class="big-label">Austin Families</div></div>
+      <div class="big-stat"><div class="big-num">93%</div><div class="big-label">Bite Reduction</div></div>
+      <div class="big-stat"><div class="big-num">5★</div><div class="big-label">Google Rating</div></div>
+      <div class="big-stat"><div class="big-num">0</div><div class="big-label">Pesticides Used</div></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-label reveal">What We Stand For</div>
+    <div class="values">
+      <div class="value reveal">
+        <div class="value-icon">🌿</div>
+        <h3>Pesticide-Free, Always</h3>
+        <p>We've never sprayed a single chemical and never will. Our approach is 100% mechanical — traps, CO₂, and science.</p>
+      </div>
+      <div class="value reveal">
+        <div class="value-icon">⚡</div>
+        <h3>All-Electric Fleet</h3>
+        <p>Every service vehicle in our fleet is electric. Protecting your outdoor space without adding to air pollution.</p>
+      </div>
+      <div class="value reveal">
+        <div class="value-icon">🐝</div>
+        <h3>Pollinator Safe</h3>
+        <p>CO₂ traps attract only mosquitoes. Bees, butterflies, and beneficial insects are completely unaffected.</p>
+      </div>
+      <div class="value reveal">
+        <div class="value-icon">🔬</div>
+        <h3>Science-Backed</h3>
+        <p>We use Biogents and Mosqitter traps — the same technology used in independent academic research and government control programs.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-label reveal">Service Area</div>
+    <p class="reveal" style="color:var(--text-dim);line-height:1.8;max-width:600px;margin-bottom:36px;">
+      We serve Austin and surrounding areas including Westlake Hills, Rollingwood, Dripping Springs, Cedar Park, Round Rock, Lakeway, Bee Cave, and more. Not sure if we cover your neighborhood? Book a free consultation and we'll let you know.
+    </p>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap;" class="reveal">
+      <a href="/book" class="btn-gold" style="font-size:0.95rem;padding:14px 32px;">Book Free Consultation</a>
+      <a href="/services" class="btn-outline" style="font-size:0.95rem;padding:13px 28px;">Our Services →</a>
+    </div>
+  </div>
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:40px 24px 28px;text-align:center;font-size:0.8rem;color:var(--text-faint);">
+  © 2025 GreenGuard USA · Austin, TX · <a href="/" style="color:var(--text-faint);">Home</a>
+</footer>
+
+<script>
+  const btn = document.getElementById('hamburger')
+  const nav = document.getElementById('nav-links')
+  btn?.addEventListener('click', () => nav?.classList.toggle('open'))
+</script>
+</Base>

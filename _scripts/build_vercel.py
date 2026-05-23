@@ -14,7 +14,7 @@ OUT  = os.path.join(REPO, 'out')
 BASE_URL   = 'https://www.greenguard-usa.com'
 TIDIO_KEY  = '2oaqyblfyjn6xy86vutzzvr1ykg9twav'
 TIDIO_SRC  = f'https://code.tidio.co/{TIDIO_KEY}.js'
-GA4_ID     = 'G-Y57NH7RC5F'
+GA4_ID     = 'G-K2R5H2Z23X'
 
 GOOGLE_FONTS_LINK = (
     '<link rel="preconnect" href="https://fonts.googleapis.com">'

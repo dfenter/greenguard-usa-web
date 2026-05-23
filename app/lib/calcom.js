@@ -1,53 +1,50 @@
-const BASE = `${(process.env.CALCOM_BASE_URL || 'https://cal.com').replace(/\/$/, '')}/api/v1`
+// Cal.com v1 was decommissioned — all calls now use v2 with Bearer auth
+const BASE_V2 = 'https://api.cal.com/v2'
+const CAL_VERSION = '2024-06-14'
+
+function headers() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${process.env.CALCOM_API_KEY}`,
+    'cal-api-version': CAL_VERSION,
+  }
+}
 
 async function calFetch(path, options = {}) {
-  const url = `${BASE}${path}${path.includes('?') ? '&' : '?'}apiKey=${process.env.CALCOM_API_KEY}`
-  const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
+  const url = `${BASE_V2}${path}`
+  const res = await fetch(url, { headers: headers(), ...options })
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`Cal.com API error ${res.status}: ${text}`)
+    throw new Error(`Cal.com API error ${res.status}: ${text.slice(0, 300)}`)
   }
   return res.json()
 }
 
-/**
- * Fetch bookings for a given email within a date range.
- * @param {string} email
- * @param {string} [afterDate] ISO date string
- * @returns {Promise<object[]>}
- */
 async function getBookingsForEmail(email, afterDate) {
   const params = new URLSearchParams({ attendeeEmail: email })
   if (afterDate) params.set('afterStart', afterDate)
   const data = await calFetch(`/bookings?${params}`)
-  return data.bookings || []
+  return data.data || data.bookings || []
 }
 
-/**
- * Fetch all bookings for a given week (used by route optimizer).
- * @param {string} startDate ISO date string (Monday)
- * @param {string} endDate ISO date string (Saturday)
- * @returns {Promise<object[]>}
- */
 async function getBookingsForWeek(startDate, endDate) {
   const params = new URLSearchParams({ afterStart: startDate, beforeEnd: endDate })
   const data = await calFetch(`/bookings?${params}`)
-  return data.bookings || []
+  return data.data || data.bookings || []
 }
 
-/**
- * Reschedule a booking to a new time (requires Cal.com API support).
- * @param {number} bookingId
- * @param {string} newStartTime ISO datetime string
- */
 async function rescheduleBooking(bookingId, newStartTime) {
-  return calFetch(`/bookings/${bookingId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ startTime: newStartTime }),
+  return calFetch(`/bookings/${bookingId}/reschedule`, {
+    method: 'POST',
+    body: JSON.stringify({ start: newStartTime }),
   })
 }
 
-module.exports = { getBookingsForEmail, getBookingsForWeek, rescheduleBooking }
+async function cancelBooking(bookingUid, reason = 'Cancelled by admin') {
+  return calFetch(`/bookings/${bookingUid}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ cancellationReason: reason }),
+  })
+}
+
+module.exports = { getBookingsForEmail, getBookingsForWeek, rescheduleBooking, cancelBooking }

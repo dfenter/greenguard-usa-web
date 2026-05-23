@@ -1,0 +1,79 @@
+---
+import Base from '../layouts/Base.astro'
+
+const faqs = [
+  { q: 'Is it really pesticide-free?', a: 'Yes — 100%. Our CO₂ traps attract and capture mosquitoes using science, not chemicals. No spraying, no foggers, no residue. Safe around kids, pets, pollinators, and native wildlife.' },
+  { q: 'How does a CO₂ mosquito trap work?', a: 'Mosquitoes locate humans by following CO₂, heat, and humidity. Our traps mimic those signals to attract and capture mosquitoes before they reach you. Independent studies show 93% bite reduction within 6 weeks of continuous use.' },
+  { q: 'How long before I see results?', a: 'Most customers notice a significant reduction within 2–4 weeks. Maximum effectiveness is typically reached at 6–8 weeks as the local mosquito population is drawn down. Consistency is key — the traps run 24/7.' },
+  { q: 'Do I need to be home for service visits?', a: 'No. Our techs handle everything outside. We just need access to the trap locations. You\'ll receive a visit summary and any photos after each stop.' },
+  { q: 'What\'s included in the monthly service?', a: 'Monthly tech visit, CO₂ tank swap, trap inspection and cleaning, bait refresh, and a digital service report. Everything is handled — you just enjoy your backyard.' },
+  { q: 'Can I pause service for travel or winter?', a: 'Yes. You can pause or cancel anytime. Austin\'s mosquito season typically runs March through November, but many customers keep service year-round.' },
+  { q: 'Do the traps work in the rain?', a: 'Yes. All Biogents traps are IP68 waterproof. The Mosqitter Grand is stainless steel and designed for all-weather outdoor use.' },
+  { q: 'How large a yard do I need?', a: 'We serve yards of all sizes, from small urban lots to multi-acre estates. During your free consultation we assess your property and recommend the right number of traps.' },
+  { q: 'What\'s the difference between Biogents and Mosqitter?', a: 'Biogents BG-Mosquitaire traps are pole-mounted and ideal for standard residential lots (up to ⅓–½ acre per trap). Mosqitter Grand is a commercial-grade stainless steel unit designed for larger properties, waterfront homes, and high-pressure mosquito environments.' },
+  { q: 'Is this safe for bees and butterflies?', a: 'Yes. The CO₂ attractant specifically targets mosquitoes. Bees and butterflies don\'t respond to the same cues. Unlike spray services, our traps have no impact on pollinators.' },
+]
+---
+<Base title="FAQ · GreenGuard USA" description="Frequently asked questions about CO₂ mosquito traps, service visits, pricing, and results in Austin, TX.">
+<style>
+  .page { padding: 100px 0 80px; }
+  h1 { font-size:clamp(2rem,4vw,3rem);font-weight:900;letter-spacing:-0.02em;margin-bottom:12px; }
+  .sub { color:var(--text-dim);font-size:1.05rem;line-height:1.7;max-width:560px;margin-bottom:56px; }
+  .faq-list { display:flex;flex-direction:column;gap:0; }
+  .faq-item { border-bottom:1px solid var(--border);padding:24px 0; }
+  .faq-q { font-size:1.05rem;font-weight:800;margin-bottom:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px; }
+  .faq-chevron { color:var(--gold);font-size:1.2rem;flex-shrink:0;transition:transform 0.2s; }
+  .faq-a { font-size:0.92rem;color:var(--text-dim);line-height:1.75; }
+  .cta-row { margin-top:64px;display:flex;gap:16px;flex-wrap:wrap; }
+</style>
+
+<nav id="site-nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">Green<span>Guard</span> USA<small>Smart · Safe · Effective</small></a>
+    <button class="hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+    <div class="nav-links" id="nav-links">
+      <a href="/services" class="nav-link">Services</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+      <a href="/faq" class="nav-link">FAQ</a>
+      <a href="/about" class="nav-link">About</a>
+      <a href="https://portal.greenguard-usa.com/login" class="nav-link">My Account</a>
+      <a href="/book" class="btn-gold">Book Consultation</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container" style="max-width:760px;">
+    <div class="section-label reveal">Questions & Answers</div>
+    <h1 class="reveal">Frequently Asked <span style="color:var(--green)">Questions</span></h1>
+    <p class="sub reveal">Everything you need to know about pesticide-free mosquito control.</p>
+
+    <div class="faq-list">
+      {faqs.map((item, i) => (
+        <div class="faq-item reveal">
+          <div class="faq-q">
+            {item.q}
+            <span class="faq-chevron">›</span>
+          </div>
+          <div class="faq-a">{item.a}</div>
+        </div>
+      ))}
+    </div>
+
+    <div class="cta-row reveal">
+      <a href="/book" class="btn-gold" style="font-size:0.95rem;padding:14px 32px;">Book Free Consultation</a>
+      <a href="/services" class="btn-outline" style="font-size:0.95rem;padding:13px 28px;">See All Services</a>
+    </div>
+  </div>
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:40px 24px 28px;text-align:center;font-size:0.8rem;color:var(--text-faint);">
+  © 2025 GreenGuard USA · Austin, TX · <a href="/" style="color:var(--text-faint);">Home</a>
+</footer>
+
+<script>
+  const btn = document.getElementById('hamburger')
+  const nav = document.getElementById('nav-links')
+  btn?.addEventListener('click', () => nav?.classList.toggle('open'))
+</script>
+</Base>

@@ -1,0 +1,386 @@
+---
+import Base from '../layouts/Base.astro'
+import reviews from '../data/reviews.json'
+
+const customerCount = '100+'
+
+const filteredReviews = reviews.reviews.filter(r => r.rating === 5 && r.name !== 'Lauren Hughes')
+---
+<Base>
+
+<!-- ── Nav ── -->
+<nav id="site-nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">
+      Green<span>Guard</span> USA
+      <small>Smart · Safe · Effective</small>
+    </a>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-links" id="nav-links">
+      <a href="/services" class="nav-link">Services</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+      <a href="/faq" class="nav-link">FAQ</a>
+      <a href="/about" class="nav-link">About</a>
+      <a href="https://portal.greenguard-usa.com/login" class="nav-link">My Account</a>
+      <a href="/book" class="btn-gold">Book Consultation</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="hero-orb"></div>
+  <div class="container hero-inner">
+    <div class="hero-text">
+      <div class="badge reveal"><span class="badge-dot"></span><span>Austin, TX · Pesticide-Free</span></div>
+      <h1 class="reveal">
+        Mosquito control<br/><span>that actually works.</span><br/>Without the chemicals.
+      </h1>
+      <p class="hero-sub reveal">
+        Precision CO₂ trap technology. Scientifically validated. Pesticide-free. Delivered to your home by our all-electric fleet. Protect your family with a smarter approach to mosquito control.
+      </p>
+      <div class="hero-btns reveal">
+        <a href="/book" class="btn-gold">Book Your Free Consultation</a>
+        <a href="/why-co2-mosquito-traps-work" class="btn-outline">See the science</a>
+      </div>
+      <div class="hero-stats reveal">
+        <div class="stat"><div class="stat-num">{customerCount}+</div><div class="stat-label">Austin Families</div></div>
+        <div class="stat-div"></div>
+        <div class="stat"><div class="stat-num">{reviews.rating}★</div><div class="stat-label">{reviews.total} Google Reviews</div></div>
+        <div class="stat-div"></div>
+        <div class="stat"><div class="stat-num">93%</div><div class="stat-label">Bite Reduction</div></div>
+      </div>
+    </div>
+    <div class="hero-img-wrap reveal">
+      <img src="/images/trap-mosqitter.webp" alt="Mosqitter Grand CO₂ mosquito trap installed in Austin yard" loading="eager" class="hero-img" />
+      <div class="hero-badge-float">
+        <div style="font-weight:900;font-size:0.85rem;color:var(--green);">✓ Pesticide-Free</div>
+        <div style="font-size:0.72rem;color:var(--text-faint);margin-top:2px;">Safe for kids & pets</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Trust bar ── -->
+<div class="trust-bar">
+  <div class="container trust-inner">
+    {['100% Pesticide-Free','Safe for Kids & Pets','Bee Safe','Next-Day CO₂ Delivery','Free Assessment'].map(t => (
+      <div class="trust-item"><span style="color:var(--gold)">✓</span> {t}</div>
+    ))}
+  </div>
+</div>
+
+<!-- ── How CO₂ trapping works (original text) ── -->
+<section class="section">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:56px;">
+      <div class="section-label reveal">The Science</div>
+      <h2 class="section-title reveal">How CO₂ trapping <span style="color:var(--green)">works</span></h2>
+      <p class="section-sub reveal" style="margin:0 auto;">Mosquitoes find you by tracking the CO₂ you exhale. We use that against them — silently, continuously, without a single pesticide.</p>
+    </div>
+    <div class="steps-grid">
+      {[
+        { title:'CO₂ Mimics Human Breath', body:'Our CO₂ traps emit a precise stream of carbon dioxide along with a customized scent bait, attracting mosquitoes using the exact signals humans naturally produce.' },
+        { title:'Mosquitoes Enter the Trap', body:'Lured in, mosquitoes are sucked in by a fan and captured in a net. No zapping, no pesticides, no residue — just quiet, targeted control at the source.' },
+        { title:'We Refill. You Relax.', body:'We deliver and swap full CO₂ tanks to your property on a set schedule. Your trap keeps running and your property stays protected — no effort on your part.' },
+        { title:'Results You Can Feel', body:'93% bite reduction backed by independent research. Most Austin customers describe their first mosquito-free summer in years within weeks of installation.' },
+      ].map((s, i) => (
+        <div class={`card reveal reveal-delay-${i + 1}`}>
+          <h3 class="step-title">{s.title}</h3>
+          <p class="step-body">{s.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- ── Reviews ── -->
+<section class="section section-tinted">
+  <div class="container">
+    <div class="reviews-header">
+      <div>
+        <div class="section-label reveal">What Austin families say</div>
+        <h2 class="section-title reveal" style="margin-bottom:0;">{reviews.rating} stars · {reviews.total} Google reviews</h2>
+      </div>
+      <a href="https://search.google.com/local/writereview?placeid=ChIJx8wLC4K11wwRbfe7hhZiHXs" target="_blank" rel="noopener" class="btn-outline reveal">Leave a review ↗</a>
+    </div>
+    <div class="reviews-grid">
+      {filteredReviews.map((r, i) => (
+        <div class={`card reveal reveal-delay-${(i % 3) + 1}`} style="display:flex;flex-direction:column;gap:14px;">
+          <div style="color:#f4c430;font-size:1rem;letter-spacing:2px;">★★★★★</div>
+          <p style="font-size:0.9rem;color:var(--text-dim);line-height:1.7;flex:1;">"{r.text}"</p>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:auto;">
+            <div class="avatar">{r.name[0]}</div>
+            <div>
+              <div style="font-weight:800;font-size:0.85rem;">{r.name}</div>
+              <div style="font-size:0.72rem;color:var(--text-faint);">{r.time} · Google</div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- ── Services ── -->
+<section class="section">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:56px;">
+      <div class="section-label reveal">Our Services</div>
+      <h2 class="section-title reveal">Solutions to protect <span style="color:var(--green)">your home</span></h2>
+      <p class="section-sub reveal" style="margin:0 auto;">Whether you want to purchase a system, rent a trap, or just want to keep your CO₂ tanks full, we have a solution that fits your needs.</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card reveal">
+        <div class="service-top">
+          <span class="tag">Full Service</span>
+          <h3>Trap Rental Program</h3>
+          <div class="service-price">From $159.99<span class="service-price-note">/mo · All-inclusive</span></div>
+        </div>
+        <p>The completely hands-off experience. We own and manage everything — traps, CO₂, maintenance, and seasonal adjustments. No equipment ownership needed.</p>
+        <ul class="feature-list">
+          <li>Biogents CO₂ trap included</li>
+          <li>Full maintenance & tank exchanges</li>
+          <li>Cancel anytime, no contracts</li>
+        </ul>
+        <a href="/book" class="btn-gold">Book Your Free Consultation</a>
+      </div>
+      <div class="service-card reveal reveal-delay-1">
+        <div class="service-top">
+          <span class="tag">CO₂ Delivery</span>
+          <h3>Tank Exchange Service</h3>
+          <div class="service-price">From $89.99<span class="service-price-note">/mo · Multiple tiers</span></div>
+        </div>
+        <p>Monthly CO₂ cylinder delivery and swap right to your door. No hauling tanks — delivered on your schedule by our all-electric fleet.</p>
+        <ul class="feature-list">
+          <li>20lb tanks, professional grade</li>
+          <li>1, 2, or 3 tank options</li>
+          <li>Add hookup & maintenance for $10/trap</li>
+        </ul>
+        <a href="/co2delivery" class="btn-gold">Learn More →</a>
+      </div>
+      <div class="service-card reveal reveal-delay-2">
+        <div class="service-top">
+          <span class="tag">Equipment</span>
+          <h3>Trap Sales & Installation</h3>
+          <div class="service-price">Biogents & Mosqitter<span class="service-price-note"> · CO₂ tanks available</span></div>
+        </div>
+        <p>Own your protection with a professional-grade Biogents BG-Mosquitaire or Mosqitter Grand CO₂ trap. We deliver, install, and provide ongoing service.</p>
+        <ul class="feature-list">
+          <li>Biogents BG-Mosquitaire CO₂</li>
+          <li>Mosqitter Grand</li>
+          <li>Pairs with CO₂ delivery service</li>
+        </ul>
+        <a href="/traprental" class="btn-gold">See Options →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Trap photos ── -->
+<section class="section section-tinted">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:56px;">
+      <div class="section-label reveal">Equipment</div>
+      <h2 class="section-title reveal">Two traps. One proven approach.</h2>
+    </div>
+    <div class="two-col">
+      {[
+        { name:'Biogents BG-Mosquitaire', img:'/images/mosquitairesingle.jpg', badge:'Most popular', desc:'Engineered in Germany. IP68 waterproof, low power, pole-mounted. The gold standard for residential yards up to ⅓ acre. Used in independent studies and government research programs worldwide.' },
+        { name:'Mosqitter Grand', img:'/images/trap-mosqitter.webp', badge:'Large properties', desc:'Stainless steel design built for larger properties and high-pressure environments. Stronger airflow, higher catch rate. Ideal for estates, waterfront homes, and outdoor entertaining spaces.' },
+      ].map((t, i) => (
+        <div class={`card reveal reveal-delay-${i + 1}`} style="overflow:hidden;padding:0;">
+          <div style="position:relative;aspect-ratio:16/9;overflow:hidden;">
+            <img src={t.img} alt={t.name} style="width:100%;height:100%;object-fit:cover;" loading="lazy" />
+            <div style="position:absolute;top:12px;left:12px;" class="tag">{t.badge}</div>
+          </div>
+          <div style="padding:24px;">
+            <h3 style="font-size:1.05rem;font-weight:900;margin-bottom:10px;">{t.name}</h3>
+            <p style="font-size:0.88rem;color:var(--text-dim);line-height:1.65;">{t.desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta-section">
+  <div class="container" style="text-align:center;max-width:620px;margin:0 auto;">
+    <div class="section-label reveal" style="margin-bottom:16px;">Ready to reclaim your yard?</div>
+    <h2 class="section-title reveal" style="font-size:clamp(2rem,4vw,2.8rem);">Smarter Mosquito Control Starts Here.</h2>
+    <p class="section-sub reveal" style="margin:0 auto 36px;">Create a safer, more comfortable outdoor living space for your family. Pesticide-free protection, no contracts, no hassle.</p>
+    <div class="reveal" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <a href="/book" class="btn-gold" style="font-size:1.05rem;padding:16px 40px;">Book Your Free Consultation →</a>
+      <a href="/contact" class="btn-outline">Get in touch</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div style="font-weight:900;font-size:1rem;margin-bottom:12px;">Green<span style="color:var(--green)">Guard</span> USA</div>
+        <p style="font-size:0.85rem;color:var(--text-faint);line-height:1.7;max-width:260px;">Science-based CO₂ mosquito control for Austin-area homes. Pesticide-Free, family-safe, results-guaranteed.</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Services</div>
+        <a href="/traprental" class="footer-link">CO₂ Trap Rental</a>
+        <a href="/co2delivery" class="footer-link">CO₂ Delivery</a>
+        <a href="/barrier" class="footer-link">Barrier Treatment</a>
+        <a href="/book" class="footer-link">Book Consultation</a>
+      </div>
+      <div>
+        <div class="footer-col-title">Service Areas</div>
+        <a href="/mosquito-control-westlake-hills" class="footer-link">Westlake Hills</a>
+        <a href="/mosquito-control-dripping-springs" class="footer-link">Dripping Springs</a>
+        <a href="/mosquito-control-cedar-park" class="footer-link">Cedar Park</a>
+        <a href="/services" class="footer-link">All areas →</a>
+      </div>
+      <div>
+        <div class="footer-col-title">Company</div>
+        <a href="/about" class="footer-link">About</a>
+        <a href="/faq" class="footer-link">FAQ</a>
+        <a href="/blog" class="footer-link">Blog</a>
+        <a href="/contact" class="footer-link">Contact</a>
+        <a href="https://portal.greenguard-usa.com" class="footer-link">Customer Portal</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© {new Date().getFullYear()} GreenGuard USA · Austin, TX</div>
+      <div>Pesticide-Free · Pollinator-safe · Family-owned</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target) } })
+  }, { threshold: 0.1 })
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el))
+
+  // Hamburger
+  const ham = document.getElementById('hamburger')
+  const links = document.getElementById('nav-links')
+  ham.addEventListener('click', () => {
+    links.classList.toggle('open')
+    ham.classList.toggle('active')
+  })
+  // Close on link click
+  links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    links.classList.remove('open')
+    ham.classList.remove('active')
+  }))
+</script>
+
+<style>
+/* ── Nav ── */
+#site-nav { position:sticky;top:0;z-index:100;background:rgba(13,26,16,0.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(122,171,130,0.15); }
+.nav-inner { display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px; }
+.nav-logo { font-weight:900;font-size:1.05rem;letter-spacing:-0.02em;line-height:1.1;flex-shrink:0;text-decoration:none;color:#d4e6ca; }
+.nav-logo span { color:var(--green); }
+.nav-logo small { display:block;font-size:0.5rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(212,230,202,0.35); }
+.nav-links { display:flex;align-items:center;gap:4px;flex-wrap:wrap; }
+.nav-link { font-size:0.88rem;font-weight:700;color:rgba(212,230,202,0.7);padding:6px 10px;border-radius:4px;transition:color .15s;text-decoration:none; }
+.nav-link:hover { color:#d4e6ca; }
+
+/* Hamburger */
+.hamburger { display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px; }
+.hamburger span { display:block;width:24px;height:2px;background:#d4e6ca;transition:all .25s; }
+.hamburger.active span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
+.hamburger.active span:nth-child(2) { opacity:0; }
+.hamburger.active span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
+
+/* Gold button */
+.btn-gold { display:inline-block;padding:12px 28px;border-radius:4px;background:var(--gold);color:#0d1a10;font-weight:800;font-size:0.88rem;font-family:var(--font);border:none;cursor:pointer;transition:background .2s,transform .15s;text-decoration:none;white-space:nowrap; }
+.btn-gold:hover { background:#e8d08a;transform:translateY(-2px); }
+
+/* Override global btn-primary to gold */
+.btn-primary { background:var(--gold) !important;color:#0d1a10 !important; }
+.btn-primary:hover { background:#e8d08a !important;box-shadow:0 8px 32px rgba(201,168,76,0.3) !important; }
+
+/* ── Hero ── */
+.hero { background:linear-gradient(160deg,#070f09 0%,#0d1a10 40%,#152318 100%);padding:100px 0 90px;position:relative;overflow:hidden; }
+.hero-orb { position:absolute;top:-200px;right:-100px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,0.05) 0%,transparent 70%);pointer-events:none; }
+.hero-inner { display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center; }
+.hero h1 { font-size:clamp(2.4rem,5vw,3.6rem);font-weight:900;line-height:1.08;letter-spacing:-0.03em;margin-bottom:24px; }
+.hero h1 span { color:var(--green); }
+.hero-sub { font-size:1.05rem;color:var(--text-dim);line-height:1.75;margin-bottom:36px;max-width:480px; }
+.hero-btns { display:flex;gap:14px;flex-wrap:wrap; }
+.hero-stats { display:flex;gap:28px;margin-top:44px;flex-wrap:wrap;align-items:center; }
+.stat-num { font-size:1.9rem;font-weight:900;color:var(--gold);line-height:1; }
+.stat-label { font-size:0.72rem;color:var(--text-faint);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px; }
+.stat-div { width:1px;height:36px;background:var(--border); }
+.hero-img-wrap { position:relative;display:flex;align-items:center;justify-content:center; }
+.hero-img { border-radius:20px;border:1px solid rgba(201,168,76,0.15);width:100%;max-width:480px;aspect-ratio:1/1;object-fit:contain;background:radial-gradient(ellipse at center,rgba(26,46,31,0.9) 0%,rgba(13,26,16,0.6) 100%);padding:16px; }
+.hero-badge-float { position:absolute;bottom:-20px;left:-20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;backdrop-filter:blur(8px); }
+
+/* Badge */
+.badge { display:inline-flex;align-items:center;gap:8px;background:rgba(122,171,130,0.15);border:1px solid rgba(122,171,130,0.35);border-radius:100px;padding:6px 16px;margin-bottom:20px; }
+.badge span { font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#a8edc0; }
+.badge-dot { width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.75)} }
+
+/* Trust bar */
+.trust-bar { border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:18px 0;background:rgba(255,255,255,0.015); }
+.trust-inner { display:flex;gap:32px;align-items:center;justify-content:center;flex-wrap:wrap; }
+.trust-item { display:flex;align-items:center;gap:8px;font-size:0.82rem;font-weight:700;color:var(--text-dim);white-space:nowrap; }
+
+/* Services */
+.services-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px; }
+.service-card { background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius);padding:28px;display:flex;flex-direction:column;gap:14px; }
+.service-top { display:flex;flex-direction:column;gap:6px;padding-bottom:14px;border-bottom:1px solid var(--border); }
+.service-top h3 { font-size:1.15rem;font-weight:900; }
+.service-price { font-size:1.1rem;font-weight:900;color:var(--gold); }
+.service-price-note { font-size:0.75rem;color:var(--text-faint);font-weight:500;margin-left:4px; }
+.feature-list { list-style:none;display:flex;flex-direction:column;gap:6px;margin:0;flex:1; }
+.feature-list li { font-size:0.85rem;color:var(--text-dim);padding-left:16px;position:relative; }
+.feature-list li::before { content:'✓';position:absolute;left:0;color:var(--gold);font-weight:800; }
+
+/* Reviews */
+.reviews-header { display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px;flex-wrap:wrap;gap:16px; }
+.reviews-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px; }
+.avatar { width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.85rem;color:var(--gold);flex-shrink:0; }
+
+/* Two col */
+.two-col { display:grid;grid-template-columns:1fr 1fr;gap:24px; }
+
+/* CTA */
+.cta-section { padding:100px 0;background:linear-gradient(160deg,var(--bg2),var(--bg3)); }
+
+/* Footer */
+.site-footer { border-top:1px solid var(--border);padding:56px 0 28px; }
+.footer-grid { display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:48px; }
+.footer-col-title { font-size:0.72rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px; }
+.footer-link { display:block;font-size:0.85rem;color:var(--text-dim);margin-bottom:8px;transition:color .15s;text-decoration:none; }
+.footer-link:hover { color:var(--gold); }
+.footer-bottom { border-top:1px solid var(--border);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:0.78rem;color:var(--text-faint); }
+
+/* Mobile */
+@media (max-width:768px) {
+  .hamburger { display:flex; }
+  .nav-links {
+    display:none;flex-direction:column;align-items:flex-start;gap:4px;
+    position:absolute;top:64px;left:0;right:0;
+    background:rgba(13,26,16,0.98);border-bottom:1px solid var(--border);
+    padding:16px 24px 20px;
+  }
+  .nav-links.open { display:flex; }
+  .nav-links .btn-gold { margin-top:8px;align-self:flex-start; }
+  .hero-inner,.two-col { grid-template-columns:1fr !important; }
+  .hero-badge-float { display:none; }
+  .hero { padding:64px 0 60px; }
+  .footer-grid { grid-template-columns:1fr 1fr; }
+  .trust-inner { justify-content:flex-start; }
+}
+@media (max-width:480px) {
+  .footer-grid { grid-template-columns:1fr; }
+}
+</style>
+
+</Base>

@@ -1,19 +1,8 @@
 const { stripe } = require('../../../lib/stripe')
-const { createMagicToken } = require('../../../lib/auth')
+const { createMagicToken, isAdminEmail } = require('../../../lib/auth')
 const { sendMagicLink } = require('../../../lib/email')
 
-const rateLimitMap = new Map()
-function checkRateLimit(email) {
-  const now = Date.now()
-  const entry = rateLimitMap.get(email)
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(email, { count: 1, resetAt: now + 15 * 60 * 1000 })
-    return true
-  }
-  if (entry.count >= 5) return false
-  entry.count++
-  return true
-}
+// Rate limiting is handled upstream by middleware.js (Edge Middleware, IP-based, 5 req/15min)
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -23,20 +12,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Valid email required' })
   }
 
-  if (!checkRateLimit(email)) {
-    return res.status(429).json({ error: 'Too many requests — try again in 15 minutes' })
-  }
-
   try {
-    const isAdmin = email.toLowerCase() === 'admin@greenguard-usa.com'
+    const isAdmin = isAdminEmail(email)
     let shouldSend = isAdmin
 
     if (!isAdmin) {
-      const customers = await stripe.customers.search({
-        query: `email:"${email}"`,
-        limit: 1,
-      })
-      shouldSend = customers.data.length > 0
+      // Check Stripe customers and prospect whitelist
+      const customers = await stripe.customers.search({ query: `email:"${email}"`, limit: 1 })
+      const isCustomer = customers.data.length > 0
+      const guestEmails = (process.env.GUEST_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+      const isGuest = guestEmails.includes(email.toLowerCase())
+      shouldSend = isCustomer || isGuest
     }
 
     if (shouldSend) {

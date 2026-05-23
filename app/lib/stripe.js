@@ -153,8 +153,37 @@ async function listOpenInvoices() {
   return invoices.data
 }
 
+async function getCustomer(customerId) {
+  return stripe.customers.retrieve(customerId, { expand: ['subscriptions.data.items.data'] })
+}
+
+async function getBalance() {
+  const balance = await stripe.balance.retrieve()
+  const available = balance.available.reduce((s, b) => s + b.amount, 0)
+  const pending = balance.pending.reduce((s, b) => s + b.amount, 0)
+  return { available, pending }
+}
+
+async function listAllCustomers() {
+  const all = []
+  let cursor = undefined
+  do {
+    const page = await stripe.customers.list({
+      limit: 100,
+      starting_after: cursor,
+      expand: ['data.subscriptions'],
+    })
+    all.push(...page.data)
+    cursor = page.has_more ? page.data[page.data.length - 1]?.id : undefined
+  } while (cursor)
+  return all
+}
+
 module.exports = {
   stripe,
+  getCustomer,
+  getBalance,
+  listAllCustomers,
   findOrCreateCustomer,
   createSubscription,
   addInvoiceItems,

@@ -10,7 +10,6 @@
       "durationMin": 30,
       "systemType": "Biogents-CO2",
       "trapCount": 1,
-      "tankCount": 1,
       "visitType": "exchange"
     },
     {
@@ -21,18 +20,6 @@
       "durationMin": 45,
       "systemType": "Biogents-CO2",
       "trapCount": 2,
-      "tankCount": 2,
-      "visitType": "exchange"
-    },
-    {
-      "title": "3x Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
-      "slug": "biogents-triple-rental",
-      "skus": ["BG3"],
-      "price": 399.99,
-      "durationMin": 60,
-      "systemType": "Biogents-CO2",
-      "trapCount": 3,
-      "tankCount": 3,
       "visitType": "exchange"
     },
     {
@@ -147,8 +134,7 @@
       "skus": ["MQ-SVC"],
       "price": 199.99,
       "durationMin": 45,
-      "systemType": "Mosqitter",
-      "tankCount": 1,
+      "systemType": "Mosqitter-Grand",
       "visitType": "service"
     }
   ]

@@ -28,7 +28,17 @@ CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 # ─────────────────────────────────────────────────────────────────────────────
 
 REDIRECT_URI = 'http://localhost:8765'
-SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
+
+# Pass --scope analytics to include Google Analytics Data API scope
+if '--scope' in sys.argv and 'analytics' in sys.argv:
+    SCOPE = ' '.join([
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/analytics.readonly',
+    ])
+    print('Requesting scopes: Calendar + Analytics')
+else:
+    SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
+    print('Requesting scope: Calendar only  (run with --scope analytics to include GA4)')
 
 auth_code = None
 

@@ -143,10 +143,131 @@ async function getBookingsForWeek(startISO, endISO) {
     }))
 }
 
+async function getBookingsForDate(dateStr) {
+  const calendar = getCalendar()
+  const startOfDay = new Date(dateStr + 'T00:00:00-05:00').toISOString()
+  const endOfDay = new Date(dateStr + 'T23:59:59-05:00').toISOString()
+  const res = await calendar.events.list({
+    calendarId: CALENDAR_ID,
+    timeMin: startOfDay,
+    timeMax: endOfDay,
+    maxResults: 50,
+    singleEvents: true,
+    orderBy: 'startTime',
+    q: BOOKING_TAG,
+  })
+  return (res.data.items || [])
+    .filter((e) =>
+      (e.description && e.description.includes(BOOKING_TAG)) ||
+      (e.summary && e.summary.includes('GreenGuard USA'))
+    )
+    .map((e) => {
+      const desc = e.description || ''
+      const propMatch = desc.match(/Property\s*[Ss]ize[:\s]+([^\n]+)/i)
+      return {
+        id: e.id,
+        title: parseServiceTitle(e.summary),
+        startTime: e.start?.dateTime || e.start?.date,
+        endTime: e.end?.dateTime || e.end?.date,
+        address: e.location || parseAddressFromDescription(desc),
+        email: parseEmailFromDescription(desc),
+        propertySize: propMatch?.[1]?.trim() || '',
+      }
+    })
+}
+
+async function getTodaysBookings() {
+  const calendar = getCalendar()
+  const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: tz })
+  const startOfDay = new Date(todayStr + 'T00:00:00').toISOString()
+  const endOfDay = new Date(todayStr + 'T23:59:59').toISOString()
+
+  const res = await calendar.events.list({
+    calendarId: CALENDAR_ID,
+    timeMin: startOfDay,
+    timeMax: endOfDay,
+    maxResults: 50,
+    singleEvents: true,
+    orderBy: 'startTime',
+    q: BOOKING_TAG,
+  })
+
+  return (res.data.items || [])
+    .filter((e) =>
+      (e.description && e.description.includes(BOOKING_TAG)) ||
+      (e.summary && e.summary.includes('GreenGuard USA'))
+    )
+    .map((e) => ({
+      id: e.id,
+      title: parseServiceTitle(e.summary),
+      startTime: e.start?.dateTime || e.start?.date,
+      endTime: e.end?.dateTime || e.end?.date,
+      address: e.location || parseAddressFromDescription(e.description),
+      email: parseEmailFromDescription(e.description),
+    }))
+}
+
+async function getAllUpcomingBookings(maxResults = 20) {
+  const calendar = getCalendar()
+
+  const res = await calendar.events.list({
+    calendarId: CALENDAR_ID,
+    timeMin: new Date().toISOString(),
+    maxResults: Math.min(maxResults * 5, 250),
+    singleEvents: true,
+    orderBy: 'startTime',
+    q: BOOKING_TAG,
+  })
+
+  return (res.data.items || [])
+    .filter((e) =>
+      (e.description && e.description.includes(BOOKING_TAG)) ||
+      (e.summary && e.summary.includes('GreenGuard USA'))
+    )
+    .slice(0, maxResults)
+    .map((e) => ({
+      id: e.id,
+      title: parseServiceTitle(e.summary),
+      startTime: e.start?.dateTime || e.start?.date,
+      endTime: e.end?.dateTime || e.end?.date,
+      address: e.location || parseAddressFromDescription(e.description),
+      email: parseEmailFromDescription(e.description),
+    }))
+}
+
+async function getBookingsForDateRange(startISO, endISO) {
+  const calendar = getCalendar()
+  const res = await calendar.events.list({
+    calendarId: CALENDAR_ID,
+    timeMin: startISO,
+    timeMax: endISO,
+    maxResults: 250,
+    singleEvents: true,
+    orderBy: 'startTime',
+    q: BOOKING_TAG,
+  })
+  const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
+  return (res.data.items || [])
+    .filter((e) =>
+      (e.description && e.description.includes(BOOKING_TAG)) ||
+      (e.summary && e.summary.includes('GreenGuard USA'))
+    )
+    .map((e) => {
+      const start = e.start?.dateTime || e.start?.date
+      const dateStr = new Date(start).toLocaleDateString('en-CA', { timeZone: tz })
+      return { dateStr, title: parseServiceTitle(e.summary), email: parseEmailFromDescription(e.description) }
+    })
+}
+
 module.exports = {
   getUpcomingBookingsForEmail,
   getPastBookingsForEmail,
   getBookingsForWeek,
+  getAllUpcomingBookings,
+  getTodaysBookings,
+  getBookingsForDate,
+  getBookingsForDateRange,
   parseServiceTitle,
   parseEmailFromDescription,
 }

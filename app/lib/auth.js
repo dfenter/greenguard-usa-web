@@ -8,7 +8,7 @@ function getSecret() {
 }
 
 const MAGIC_LINK_EXPIRY = '15m'
-const SESSION_EXPIRY = '30d'
+const SESSION_EXPIRY = '90d'
 
 /**
  * Create a signed JWT for a magic link (short-lived).
@@ -57,13 +57,24 @@ async function getSessionFromRequest(req) {
   return payload
 }
 
+/**
+ * Returns true if the given email has admin access.
+ * ADMIN_EMAILS env var is comma-separated; falls back to ADMIN_EMAIL for backwards compat.
+ */
+function isAdminEmail(email) {
+  if (!email) return false
+  const raw = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+  const admins = raw.split(',').map((e) => e.trim().toLowerCase())
+  return admins.includes(email.toLowerCase())
+}
+
 const SESSION_COOKIE_NAME = 'gg_session'
 const SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
   path: '/',
-  maxAge: 60 * 60 * 24 * 30, // 30 days in seconds
+  maxAge: 60 * 60 * 24 * 90, // 90 days in seconds
 }
 
 module.exports = {
@@ -71,6 +82,7 @@ module.exports = {
   createSessionToken,
   verifyToken,
   getSessionFromRequest,
+  isAdminEmail,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_OPTIONS,
 }
