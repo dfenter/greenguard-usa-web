@@ -155,10 +155,10 @@ export async function getServerSideProps({ req, query }) {
 // Every item has: label, sku, price (null = hardware/no charge), section
 
 const SERVICES = [
-  { label: 'Biogents CO₂ Service — 1 Trap',  sku: 'BG1',      price: 159.99 },
-  { label: 'Biogents CO₂ Service — 2 Traps', sku: 'BG2',      price: 266.99 },
-  { label: 'Biogents CO₂ Service — 3 Traps', sku: 'BG3',      price: 399.99 },
-  { label: 'Mosqitter Grand Rental',          sku: 'MQ-RENT',  price: 299.99 },
+  { label: 'Biogents CO₂ Rental — 1 Trap',   sku: 'BG1',      price: 159.99 },
+  { label: 'Biogents CO₂ Rental — 2 Traps',  sku: 'BG2',      price: 266.99 },
+  { label: 'Biogents CO₂ Rental — 3 Traps',  sku: 'BG3',      price: 399.99 },
+  { label: 'Mosqitter Grand Rental',          sku: 'MQ-RENT',  price: 299.99, promptQty: true },
   { label: 'Mosqitter Grand Service',         sku: 'MQ-SVC',   price: 129.99, promptQty: true },
   { label: 'Mosqitter Installation',          sku: 'MQ-INST',  price: 199.99, promptQty: true },
   { label: 'Mosqitter Troubleshoot',          sku: 'MQ-TSHOOT',price:  79.99 },
@@ -174,7 +174,6 @@ const SERVICES = [
 
 const EQUIPMENT = [
   { label: 'Trap Installation',                        sku: 'TRAP-INSTALL',  price:  80.00 },
-  { label: 'CO₂ Tank & Timer Rental',                  sku: 'CO2-ADDON',     price: 124.99 },
   { label: 'Timer Installation',                       sku: 'TIMER-INSTALL', price:  29.99 },
   { label: 'Trap Maintenance (1 trap)',                sku: 'TRAP-MAINT-1',  price:  10.00 },
   { label: 'Trap Maintenance (2 traps)',               sku: 'TRAP-MAINT-2',  price:  20.00 },
@@ -184,6 +183,7 @@ const EQUIPMENT = [
 ]
 
 const ADDONS = [
+  { label: 'CO₂ Tank & Timer Rental',     sku: 'CO2-ADDON',     price: 124.99 },
   { label: 'BG Sweetscent',               sku: 'BG-SWEETSCENT', price:  18.99 },
   { label: 'Bait Pack',                   sku: 'BAIT',          price:  10.00 },
   { label: 'Larvicide Tablet',            sku: null,            price:   4.00 },
@@ -194,7 +194,7 @@ const ADDONS = [
 const PRODUCTS_SOLD = [
   { label: 'Biogents BG-Mosquitaire',              sku: null, price: 279.99  },
   { label: 'Mosqitter Grand',                      sku: null, price: 1849.99 },
-  { label: 'Biogents Timer',                       sku: null, price: 179.99  },
+  { label: 'Biogents Timer',                       sku: null, price:  89.99  },
   { label: 'CO₂ Tank — 20lb (empty)',             sku: null, price: 199.99  },
   { label: 'CO₂ Regulator',                       sku: null, price: 119.99  },
   { label: 'CO₂ Tank Washer',                     sku: null, price:   5.00  },
@@ -779,6 +779,10 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
               qtys={state.serviceQtys} total={svcTotal} disabled={isDone}
               onChange={(label, n) => onUpdate({ serviceQtys: { ...state.serviceQtys, [label]: n } })} />
 
+            <MultiSelectSection title="Products Sold" catalog={PRODUCTS_SOLD}
+              qtys={state.productQtys} total={prodTotal} disabled={isDone}
+              onChange={(label, n) => onUpdate({ productQtys: { ...state.productQtys, [label]: n } })} />
+
             <MultiSelectSection title="Equipment Installed" catalog={EQUIPMENT}
               qtys={state.equipQtys} total={eqTotal} disabled={isDone}
               onChange={(label, n) => onUpdate({ equipQtys: { ...state.equipQtys, [label]: n } })} />
@@ -786,10 +790,6 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
             <MultiSelectSection title="Add-Ons Applied" catalog={ADDONS}
               qtys={state.addonQtys} total={addTotal} disabled={isDone}
               onChange={(label, n) => onUpdate({ addonQtys: { ...state.addonQtys, [label]: n } })} />
-
-            <MultiSelectSection title="Products Sold" catalog={PRODUCTS_SOLD}
-              qtys={state.productQtys} total={prodTotal} disabled={isDone}
-              onChange={(label, n) => onUpdate({ productQtys: { ...state.productQtys, [label]: n } })} />
 
             {/* Grand total */}
             <div style={{ background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.15)', borderRadius: 8, padding: '12px 16px', marginTop: 4, marginBottom: isActive ? 16 : 0 }}>
@@ -813,11 +813,11 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Arrival Time</label>
-                    <input type="time" style={{ ...inp, textAlign: 'center' }} value={state.arrivalTime || ''} onChange={(e) => onUpdate({ arrivalTime: e.target.value })} />
+                    <input type="time" style={{ ...inp, textAlign: 'center', minHeight: 42, WebkitAppearance: 'none', appearance: 'none', display: 'block' }} value={state.arrivalTime || ''} onChange={(e) => onUpdate({ arrivalTime: e.target.value })} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Departure Time</label>
-                    <input type="time" style={{ ...inp, textAlign: 'center' }} value={state.departureTime || ''} onChange={(e) => onUpdate({ departureTime: e.target.value })} />
+                    <input type="time" style={{ ...inp, textAlign: 'center', minHeight: 42, WebkitAppearance: 'none', appearance: 'none', display: 'block' }} value={state.departureTime || ''} onChange={(e) => onUpdate({ departureTime: e.target.value })} />
                   </div>
                 </div>
 
@@ -841,7 +841,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                       </div>
                     ) : (
                       <>
-                        <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
+                        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhoto} />
                         <button onClick={() => fileInputRef.current?.click()}
                           style={{ padding: '10px 16px', borderRadius: 8, border: '1px dashed rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.55)', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700 }}>
                           📷 Photo
@@ -857,7 +857,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                       </div>
                     ) : (
                       <>
-                        <input ref={videoInputRef} type="file" accept="video/*" capture="environment" style={{ display: 'none' }} onChange={handleVideo} />
+                        <input ref={videoInputRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={handleVideo} />
                         <button onClick={() => videoInputRef.current?.click()} disabled={uploading}
                           style={{ padding: '10px 16px', borderRadius: 8, border: '1px dashed rgba(91,196,255,0.3)', background: 'transparent', color: uploading ? 'rgba(91,196,255,0.3)' : 'rgba(91,196,255,0.7)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700 }}>
                           {uploading ? 'Uploading…' : '🎥 Video'}

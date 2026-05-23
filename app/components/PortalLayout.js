@@ -7,15 +7,15 @@ const NAV_LINKS = [
 ]
 
 const ADMIN_NAV_LINKS = [
+  { href: '/admin/home',         label: '🏠 Home' },
   { href: '/admin/analytics',    label: 'Analytics' },
   { href: '/admin/clients',      label: 'Clients' },
   { href: '/admin/rounds',       label: 'Customer Rounds' },
   { href: '/admin/inventory',    label: 'Daily Rounds' },
-  { href: '/admin/map',          label: 'Map' },
   { href: '/admin/quote',        label: 'Quote' },
   { href: '/admin/invoice',      label: 'Invoice' },
   { href: '/admin/route',        label: 'Route Plan' },
-  { href: '/admin/booking',      label: 'New Booking' },
+  { href: '/admin/tech',         label: 'Tech View' },
   { href: '/dashboard?preview=1', label: 'My Account ↗', customer: true },
 ]
 
@@ -91,13 +91,53 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
 
       <footer style={{
         borderTop: '1px solid rgba(122,171,130,0.12)',
-        padding: '20px 24px',
+        padding: isAdmin ? '20px 24px 84px' : '20px 24px',
         textAlign: 'center',
         fontSize: '0.78rem',
         color: 'rgba(212,230,202,0.35)',
       }}>
         © {new Date().getFullYear()} GreenGuard USA · Austin, TX
       </footer>
+
+      {/* Bottom-docked quick access for admin on mobile/tablet */}
+      {isAdmin && <AdminBottomDock pathname={router.pathname} />}
     </div>
+  )
+}
+
+const DOCK_ITEMS = [
+  { href: '/admin/clients',   label: 'Clients',  icon: '👥' },
+  { href: '/admin/rounds',    label: 'Rounds',   icon: '🚐' },
+  { href: '/admin/inventory', label: 'Daily',    icon: '📋' },
+  { href: '/admin/quote',     label: 'Quote',    icon: '📝' },
+  { href: '/admin/route',     label: 'Route',    icon: '🗺️' },
+]
+
+function AdminBottomDock({ pathname }) {
+  return (
+    <nav className="admin-dock" aria-label="Admin quick access" style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 90,
+      background: 'rgba(10,26,13,0.96)', backdropFilter: 'blur(12px)',
+      borderTop: '1px solid rgba(201,168,76,0.25)',
+      display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
+      padding: '6px 8px env(safe-area-inset-bottom, 6px)',
+      boxShadow: '0 -4px 12px rgba(0,0,0,0.25)',
+    }}>
+      {DOCK_ITEMS.map(({ href, label, icon }) => {
+        const active = pathname === href
+        return (
+          <Link key={href} href={href} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 2, padding: '8px 4px', borderRadius: 8, textDecoration: 'none', minWidth: 0,
+            color: active ? '#c9a84c' : 'rgba(212,230,202,0.55)',
+            background: active ? 'rgba(201,168,76,0.10)' : 'transparent',
+            fontWeight: active ? 800 : 600,
+          }}>
+            <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{icon}</span>
+            <span style={{ fontSize: '0.65rem', letterSpacing: '0.04em' }}>{label}</span>
+          </Link>
+        )
+      })}
+    </nav>
   )
 }

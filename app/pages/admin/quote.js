@@ -14,7 +14,7 @@ export async function getServerSideProps({ req }) {
 
   const [stripeRaw, hsContacts] = await Promise.all([
     listAllCustomers(),
-    getAllContacts(500).catch(() => []),
+    getAllContacts(200).catch(() => []),
   ])
 
   const stripeCustomers = stripeRaw.map((c) => ({
@@ -274,46 +274,45 @@ const SERVICE_ADDONS = [
 
 // ── Guided service configurator ────────────────────────────────────────────────
 
-function ServiceConfigurator({ onChange }) {
+function ServiceConfigurator({ onChange, onConfigChange }) {
   const [system, setSystem] = useState(null)        // 'biogents-co2' | 'biogents-nonco2' | 'mosqitter' | 'tank'
-  const [plan, setPlan] = useState(null)            // 'rental' | 'owned'
+  const [plan, setPlan] = useState(null)            // 'rental' | 'purchase'
   const [trapCount, setTrapCount] = useState(1)
-  const [onTankService, setOnTankService] = useState(null) // true | false (Biogents owned)
-  const [mqPlan, setMqPlan] = useState(null)        // 'rental' | 'service'
+  const [onTankService, setOnTankService] = useState(null)
+  const [mqPlan, setMqPlan] = useState(null)        // 'rental' | 'purchase'
+  const [mqCount, setMqCount] = useState(1)
   const [mqInstall, setMqInstall] = useState(false)
   const [tankCount, setTankCount] = useState(2)
-  const [tankHookup, setTankHookup] = useState(false) // tank-only hookup add-on
+  const [tankHookup, setTankHookup] = useState(false)
 
   useEffect(() => {
     const lines = []
 
-    // Biogents CO₂ rental
+    // Biogents CO₂ customer rental
     if (system === 'biogents-co2' && plan === 'rental' && trapCount) {
       const price = BG_RENTAL_PRICE[trapCount]
-      lines.push({ label: `Biogents CO₂ Rental — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${(price / trapCount).toFixed(2)}/trap)`, amount: price, recurring: true })
+      lines.push({ label: `Biogents CO₂ Customer Rental — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${(price / trapCount).toFixed(2)}/trap)`, amount: price, recurring: true })
     }
-    // Biogents CO₂ owned — hookup + tank delivery when on tank service
-    if (system === 'biogents-co2' && plan === 'owned' && onTankService === true) {
-      // Tank delivery — 1 tank per trap
+    // Biogents CO₂ purchase — hookup + tank delivery when on tank service
+    if (system === 'biogents-co2' && plan === 'purchase' && onTankService === true) {
       const tankPrice = TANK_PRICE[trapCount] || (TANK_PRICE[3] + (trapCount - 3) * 49.99)
       lines.push({ label: `CO₂ Tank Exchange — ${trapCount}× 20lb Tank${trapCount > 1 ? 's' : ''}`, amount: tankPrice, recurring: true })
-      // Hookup & maintenance fee
       const hookupPrice = BG_HOOKUP_PER_TRAP * trapCount
       lines.push({ label: `Biogents Hookup & Maintenance — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${BG_HOOKUP_PER_TRAP}/trap)`, amount: hookupPrice, recurring: true })
     }
-    // Biogents Non-CO₂ (always owned, per trap)
+    // Biogents Non-CO₂ (always purchase, per trap)
     if (system === 'biogents-nonco2' && trapCount) {
       const price = BG_NONCO2_PER_TRAP * trapCount
       lines.push({ label: `Biogents Non-CO₂ Maintenance — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${BG_NONCO2_PER_TRAP}/trap)`, amount: price, recurring: true })
     }
-    // Mosqitter — $129.99 all-in (hookup, bait, maintenance included)
+    // Mosqitter
     if (system === 'mosqitter' && mqPlan) {
-      const price = mqPlan === 'rental' ? MQ_PRICE.rental : MQ_PRICE.service
+      const unitPrice = mqPlan === 'rental' ? MQ_PRICE.rental : MQ_PRICE.service
       const label = mqPlan === 'rental'
-        ? 'Mosqitter Grand Rental — trap, hookup, bait & maintenance included'
-        : 'Mosqitter Service — hookup, bait & maintenance included'
-      lines.push({ label, amount: price, recurring: true })
-      if (mqInstall) lines.push({ label: 'Mosqitter Installation', amount: MQ_PRICE.install, recurring: false })
+        ? `Mosqitter Grand Customer Rental ×${mqCount} — trap, hookup, bait & maintenance`
+        : `Mosqitter Service ×${mqCount} — hookup, bait & maintenance included`
+      lines.push({ label, amount: unitPrice * mqCount, recurring: true })
+      if (mqInstall) lines.push({ label: `Mosqitter Installation ×${mqCount}`, amount: MQ_PRICE.install * mqCount, recurring: false })
     }
     // Tank delivery
     if (system === 'tank' && TANK_PRICE[tankCount]) {
@@ -323,6 +322,7 @@ function ServiceConfigurator({ onChange }) {
       }
     }
     onChange(lines)
+    if (onConfigChange) onConfigChange({ system, plan, trapCount, mqPlan, mqCount })
   }, [system, plan, trapCount, onTankService, mqPlan, mqInstall, tankCount, tankHookup])
 
   const Q = { fontSize: '0.82rem', fontWeight: 800, color: 'rgba(212,230,202,0.7)', marginBottom: 8, marginTop: 16 }
@@ -344,13 +344,13 @@ function ServiceConfigurator({ onChange }) {
         ))}
       </div>
 
-      {/* Q2: Biogents CO₂ — rental or owned */}
+      {/* Q2: Biogents CO₂ — rental or purchase */}
       {system === 'biogents-co2' && (
         <>
-          <div style={Q}>Rental or customer-owned trap?</div>
+          <div style={Q}>Customer Rental or Purchase?</div>
           <div>
-            <span onClick={() => { setPlan('rental'); setOnTankService(null) }} style={chip(plan === 'rental')}>📅 Rental — we provide the trap</span>
-            <span onClick={() => setPlan('owned')} style={chip(plan === 'owned')}>🔧 Owned — customer has trap</span>
+            <span onClick={() => { setPlan('rental'); setOnTankService(null) }} style={chip(plan === 'rental')}>📅 Customer Rental — we provide the trap</span>
+            <span onClick={() => setPlan('purchase')} style={chip(plan === 'purchase')}>🛒 Purchase — customer buys the trap</span>
           </div>
         </>
       )}
@@ -376,8 +376,8 @@ function ServiceConfigurator({ onChange }) {
         </>
       )}
 
-      {/* Q4: Biogents CO₂ owned — on tank service? */}
-      {system === 'biogents-co2' && plan === 'owned' && trapCount && (
+      {/* Q4: Biogents CO₂ purchase — on tank service? */}
+      {system === 'biogents-co2' && plan === 'purchase' && trapCount && (
         <>
           <div style={Q}>Are they on CO₂ tank service with us?</div>
           <div>
@@ -411,16 +411,25 @@ function ServiceConfigurator({ onChange }) {
       {/* Mosqitter plan */}
       {system === 'mosqitter' && (
         <>
-          <div style={Q}>Rental or customer-owned?</div>
+          <div style={Q}>Customer Rental or Purchase?</div>
           <div>
-            <span onClick={() => setMqPlan('rental')} style={chip(mqPlan === 'rental')}>📅 Rental — ${MQ_PRICE.rental}/mo · all-in</span>
-            <span onClick={() => setMqPlan('service')} style={chip(mqPlan === 'service')}>🔧 Owned — ${MQ_PRICE.service}/mo · hookup, bait &amp; maintenance included</span>
+            <span onClick={() => setMqPlan('rental')} style={chip(mqPlan === 'rental')}>📅 Customer Rental — ${MQ_PRICE.rental}/mo · all-in</span>
+            <span onClick={() => setMqPlan('purchase')} style={chip(mqPlan === 'purchase')}>🛒 Purchase — ${MQ_PRICE.service}/mo · service only</span>
           </div>
           {mqPlan && (
             <>
+              <div style={Q}>How many units?</div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                {[1, 2, 3].map((n) => (
+                  <button key={n} onClick={() => setMqCount(n)} style={{ ...trapBtn(n), width: 42, height: 42, border: `1px solid ${mqCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: mqCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: mqCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)' }}>{n}</button>
+                ))}
+                <span style={{ fontSize: '0.82rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
+                  ${((mqPlan === 'rental' ? MQ_PRICE.rental : MQ_PRICE.service) * mqCount).toFixed(2)}/mo
+                </span>
+              </div>
               <div style={Q}>Installation needed?</div>
               <div>
-                <span onClick={() => setMqInstall(true)} style={chip(mqInstall)}>Yes — +${MQ_PRICE.install.toFixed(2)} one-time</span>
+                <span onClick={() => setMqInstall(true)} style={chip(mqInstall)}>Yes — +${(MQ_PRICE.install * mqCount).toFixed(2)} one-time</span>
                 <span onClick={() => setMqInstall(false)} style={chip(!mqInstall)}>No</span>
               </div>
             </>
@@ -466,16 +475,21 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   const [serviceLines, setServiceLines] = useState([])
   const [productQtys, setProductQtys] = useState({})
   const [addonQtys, setAddonQtys] = useState({})
+  const [serviceConfig, setServiceConfig] = useState(null)
   const [notes, setNotes] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
-  const [taxRate, setTaxRate] = useState(8.25)
-  const [includeTax, setIncludeTax] = useState(true)
+  const [checkingOut, setCheckingOut] = useState(false)
+  const [checkoutError, setCheckoutError] = useState(null)
+  const taxRate = 8.25
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapPin, setMapPin] = useState(null)
   const [machPins, setMachPins] = useState([])
   const [placingPin, setPlacingPin] = useState(false)
+  const [mapView, setMapView] = useState('satellite') // 'satellite' | 'street'
+  const streetRef = useRef(null)
+  const streetObj = useRef(null)
   const mapRef = useRef(null)
   const mapObj = useRef(null)
   const pinRef = useRef(null)
@@ -528,6 +542,26 @@ export default function QuoteBuilder({ customers, mapsKey }) {
 
   // Keep placingPinRef in sync so the map click listener reads current state
   useEffect(() => { placingPinRef.current = placingPin }, [placingPin])
+
+  // Initialize Street View panorama lazily when user switches to it
+  useEffect(() => {
+    if (!mapLoaded || mapView !== 'street' || !streetRef.current || streetObj.current) return
+    const pos = mapPin || { lat: 30.2672, lng: -97.7431 }
+    streetObj.current = new window.google.maps.StreetViewPanorama(streetRef.current, {
+      position: pos,
+      pov: { heading: 0, pitch: 0 },
+      zoom: 1,
+      addressControl: false,
+      fullscreenControl: false,
+      enableCloseButton: false,
+    })
+  }, [mapLoaded, mapView, mapPin])
+
+  // When the pin moves, sync Street View position too
+  useEffect(() => {
+    if (!mapPin || !streetObj.current) return
+    streetObj.current.setPosition(mapPin)
+  }, [mapPin])
 
   // Update map cursor during placement mode
   useEffect(() => {
@@ -592,12 +626,43 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     const res = await fetch('/api/admin/quote-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: includeTax ? taxRate : 0, taxAmount, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })), notes }),
+      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })), notes }),
     })
     const { url } = await res.json()
     await navigator.clipboard.writeText(url).catch(() => window.prompt('Copy this link:', url))
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 4000)
+  }
+
+  async function payNow() {
+    setCheckingOut(true)
+    setCheckoutError(null)
+    try {
+      // Generate the quote token first
+      const linkRes = await fetch('/api/admin/quote-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate, taxAmount, notes }),
+      })
+      const { token } = await linkRes.json()
+      if (!token) throw new Error('Could not generate quote token')
+      // Send token to checkout
+      const checkRes = await fetch('/api/quote/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      const data = await checkRes.json()
+      if (data.url) {
+        window.open(data.url, '_blank')
+      } else {
+        throw new Error(data.error || 'Checkout failed')
+      }
+    } catch (e) {
+      setCheckoutError(e.message)
+    } finally {
+      setCheckingOut(false)
+    }
   }
 
   function handleSelectCustomer(c) {
@@ -612,6 +677,30 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       return result
     })
   }
+
+  // Auto-populate products when service config changes (quote page only)
+  useEffect(() => {
+    if (!serviceConfig) return
+    const { system, plan, trapCount, mqPlan, mqCount } = serviceConfig
+    setProductQtys((prev) => {
+      const next = { ...prev }
+      // Clear previous auto-adds
+      delete next['Biogents BG-Mosquitaire']
+      delete next['Mosqitter Grand']
+      delete next['CO₂ Tank — 20lb (empty)']
+      // Auto-add traps based on system
+      if ((system === 'biogents-co2' || system === 'biogents-nonco2') && trapCount > 0) {
+        next['Biogents BG-Mosquitaire'] = trapCount
+        // For purchases, also add same number of tanks
+        if (plan === 'purchase') {
+          next['CO₂ Tank — 20lb (empty)'] = trapCount
+        }
+      } else if (system === 'mosqitter' && (mqPlan === 'rental' || mqPlan === 'purchase')) {
+        next['Mosqitter Grand'] = mqCount || 1
+      }
+      return next
+    })
+  }, [serviceConfig])
 
   const productLines = PRODUCTS.filter((p) => productQtys[p.label] > 0).map((p) => ({
     label: productQtys[p.label] > 1 ? `${p.label} ×${productQtys[p.label]}` : p.label,
@@ -628,7 +717,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   const recurringTotal = allLines.filter((l) => l.recurring).reduce((s, l) => s + (l.amount || 0), 0)
   const oneTimeTotal = allLines.filter((l) => !l.recurring).reduce((s, l) => s + (l.amount || 0), 0)
   const subtotal = recurringTotal + oneTimeTotal
-  const taxAmount = includeTax && taxRate > 0 ? Math.round(subtotal * taxRate) / 100 : 0
+  const taxAmount = taxRate > 0 ? Math.round(subtotal * taxRate) / 100 : 0
   const grandTotal = subtotal + taxAmount
   const hasRecurring = serviceLines.some((l) => l.recurring)
   const hasOneTime = allLines.some((l) => !l.recurring)
@@ -639,7 +728,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     await fetch('/api/admin/send-quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: customerEmail, name: customerName, customerAddress, lineItems: allLines, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: includeTax ? taxRate : 0, taxAmount, notes }),
+      body: JSON.stringify({ to: customerEmail, name: customerName, customerAddress, lineItems: allLines, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, notes }),
     })
     setSending(false); setSent(true)
     setTimeout(() => setSent(false), 5000)
@@ -671,16 +760,34 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               <input style={input} placeholder="123 Oak St, Austin TX 78701" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} />
               {mapsKey && (
                 <>
-                  <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: `1px solid ${placingPin ? 'rgba(201,168,76,0.5)' : 'rgba(122,171,130,0.2)'}`, height: 230, position: 'relative', transition: 'border-color 0.15s' }}>
-                    <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
+                  <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: `1px solid ${placingPin ? 'rgba(201,168,76,0.5)' : 'rgba(122,171,130,0.2)'}`, height: 360, position: 'relative', transition: 'border-color 0.15s' }}>
+                    {/* Satellite map — always mounted so it keeps its state */}
+                    <div ref={mapRef} style={{ height: '100%', width: '100%', display: mapView === 'satellite' ? 'block' : 'none' }} />
+                    {/* Street view — mounted on first switch */}
+                    {mapView === 'street' && (
+                      <div ref={streetRef} style={{ height: '100%', width: '100%' }} />
+                    )}
                     {!mapPin && (
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(13,26,16,0.88)', color: 'rgba(212,230,202,0.35)', fontSize: '0.8rem', fontWeight: 600, pointerEvents: 'none' }}>
-                        Type an address to see satellite view
+                        Type an address to see {mapView === 'satellite' ? 'satellite' : 'street'} view
                       </div>
                     )}
-                    {placingPin && (
+                    {placingPin && mapView === 'satellite' && (
                       <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', background: 'rgba(201,168,76,0.9)', color: '#0d1a10', padding: '5px 14px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 800, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
                         Click map to place trap
+                      </div>
+                    )}
+                    {/* Satellite / Street toggle */}
+                    {mapPin && (
+                      <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.3)', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
+                        <button onClick={() => setMapView('satellite')}
+                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'satellite' ? '#c9a84c' : 'rgba(13,26,16,0.85)', color: mapView === 'satellite' ? '#0d1a10' : '#d4e6ca' }}>
+                          Satellite
+                        </button>
+                        <button onClick={() => setMapView('street')}
+                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'street' ? '#c9a84c' : 'rgba(13,26,16,0.85)', color: mapView === 'street' ? '#0d1a10' : '#d4e6ca' }}>
+                          Street
+                        </button>
                       </div>
                     )}
                   </div>
@@ -720,8 +827,16 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>Services</span>
             </div>
             <div className="card" style={{ marginBottom: 8 }}>
-              <ServiceConfigurator onChange={setServiceLines} />
+              <ServiceConfigurator onChange={setServiceLines} onConfigChange={setServiceConfig} />
             </div>
+
+            {/* Products (auto-populated from service config) */}
+            <MultiSelect
+              title="Products to Purchase"
+              catalog={PRODUCTS}
+              qtys={productQtys}
+              onChange={(label, n) => setQty(setProductQtys, label, n)}
+            />
 
             {/* Service add-ons */}
             <MultiSelect
@@ -729,14 +844,6 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               catalog={SERVICE_ADDONS}
               qtys={addonQtys}
               onChange={(label, n) => setQty(setAddonQtys, label, n)}
-            />
-
-            {/* Products */}
-            <MultiSelect
-              title="Products"
-              catalog={PRODUCTS}
-              qtys={productQtys}
-              onChange={(label, n) => setQty(setProductQtys, label, n)}
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(122,171,130,0.12)', marginBottom: 8, marginTop: 20 }}>
@@ -784,23 +891,9 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                 )}
               </div>
 
-              {/* Tax toggle */}
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: 'rgba(212,230,202,0.5)', fontWeight: 700, userSelect: 'none' }}>
-                  <input type="checkbox" checked={includeTax} onChange={(e) => setIncludeTax(e.target.checked)} style={{ accentColor: '#c9a84c', cursor: 'pointer' }} />
-                  Tax
-                </label>
-                {includeTax && (
-                  <>
-                    <input
-                      type="number" min="0" max="20" step="0.01"
-                      value={taxRate}
-                      onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                      style={{ width: 52, padding: '2px 6px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 4, color: '#d4e6ca', fontSize: '0.8rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }}
-                    />
-                    <span style={{ color: 'rgba(212,230,202,0.3)' }}>%</span>
-                  </>
-                )}
+              {/* Tax — fixed 8.25% Austin rate */}
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'rgba(212,230,202,0.4)', fontWeight: 600 }}>
+                Tax: {taxRate}% (Austin, TX)
               </div>
 
               {allLines.length > 0 && (
@@ -835,17 +928,28 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               {notes && <p style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)', marginTop: 12, borderTop: '1px solid rgba(122,171,130,0.1)', paddingTop: 10 }}>{notes}</p>}
 
               <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {sent ? (
-                  <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.2)', color: '#7dffaa', fontSize: '0.85rem', fontWeight: 700, textAlign: 'center' }}>Quote sent ✓</div>
-                ) : (
-                  <button onClick={sendQuote} disabled={sending || !customerEmail}
-                    style={{ padding: '11px', borderRadius: 8, border: 'none', cursor: customerEmail ? 'pointer' : 'not-allowed', fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Nunito Sans, sans-serif', background: customerEmail ? '#c9a84c' : 'rgba(201,168,76,0.2)', color: customerEmail ? '#0d1a10' : 'rgba(212,230,202,0.3)', opacity: sending ? 0.7 : 1 }}>
-                    {sending ? 'Sending…' : 'Email Quote'}
-                  </button>
-                )}
-                <button onClick={copyQuoteLink} style={{ padding: '9px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: linkCopied ? 'rgba(91,196,255,0.1)' : 'transparent', color: linkCopied ? '#5bc4ff' : 'rgba(91,196,255,0.7)' }}>
-                  {linkCopied ? '✓ Link Copied!' : '🔗 Copy Shareable Link'}
+                {/* Pay Now — opens Stripe checkout directly */}
+                <button
+                  onClick={payNow}
+                  disabled={checkingOut || allLines.filter(l => l.amount > 0).length === 0}
+                  style={{ padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Nunito Sans, sans-serif', background: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#7dffaa,#4dd98a)', color: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(212,230,202,0.4)' : '#0d1a10', opacity: checkingOut ? 0.7 : 1 }}>
+                  {checkingOut ? 'Opening checkout…' : '✓ Approve & Pay Now'}
                 </button>
+                {checkoutError && <div style={{ fontSize: '0.78rem', color: '#ff8080', textAlign: 'center' }}>{checkoutError}</div>}
+
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {sent ? (
+                    <div style={{ flex: 1, padding: '9px', borderRadius: 6, background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.2)', color: '#7dffaa', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>Sent ✓</div>
+                  ) : (
+                    <button onClick={sendQuote} disabled={sending || !customerEmail}
+                      style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', cursor: customerEmail ? 'pointer' : 'not-allowed', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: customerEmail ? '#c9a84c' : 'rgba(201,168,76,0.2)', color: customerEmail ? '#0d1a10' : 'rgba(212,230,202,0.3)', opacity: sending ? 0.7 : 1 }}>
+                      {sending ? 'Sending…' : 'Email Quote'}
+                    </button>
+                  )}
+                  <button onClick={copyQuoteLink} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: linkCopied ? 'rgba(91,196,255,0.1)' : 'transparent', color: linkCopied ? '#5bc4ff' : 'rgba(91,196,255,0.7)' }}>
+                    {linkCopied ? '✓ Copied!' : '🔗 Share Link'}
+                  </button>
+                </div>
                 <button onClick={() => window.print()} style={{ padding: '9px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent', color: 'rgba(212,230,202,0.6)' }}>
                   Print / PDF
                 </button>

@@ -199,6 +199,12 @@ button { font-family: inherit; cursor: pointer; }
   .card { padding: 18px; }
 }
 
+/* ── Admin bottom dock — visible on mobile/tablet, hidden on desktop ── */
+.admin-dock { display: flex; }
+@media (min-width: 1025px) {
+  .admin-dock { display: none !important; }
+}
+
 /* ── Field tech utility classes ────────────────────────────────── */
 /* Large tap targets for field use */
 .tap-lg { min-height: 52px !important; font-size: 1rem !important; }
