@@ -59,7 +59,7 @@ export default function LegacyMigration() {
           <span className="tag">Admin · Migration</span>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Legacy Event Migration</h1>
           <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)', margin: 0, lineHeight: 1.6 }}>
-            Upcoming Google Calendar events from Acuity/Squarespace days that don't yet have a Cal.com booking attached. Migrating one creates a matching Cal.com booking and patches the event description so the customer (and admin) can self-reschedule or cancel via Cal.com going forward.
+            Upcoming Google Calendar events from Acuity/Squarespace days that don&apos;t yet have a Cal.com booking attached. Migrating one creates a matching Cal.com booking and patches the event description so the customer (and admin) can self-reschedule or cancel via Cal.com going forward.
           </p>
         </div>
 
