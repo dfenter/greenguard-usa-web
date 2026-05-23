@@ -274,8 +274,15 @@ const SERVICE_ADDONS = [
 
 // ── Guided service configurator ────────────────────────────────────────────────
 
+// Earliest service date allowed = today + 5 days (ISO YYYY-MM-DD in local TZ)
+function minServiceDate() {
+  const d = new Date()
+  d.setDate(d.getDate() + 5)
+  return d.toLocaleDateString('en-CA')
+}
+
 function ServiceConfigurator({ onChange, onConfigChange }) {
-  const [system, setSystem] = useState(null)        // 'biogents-co2' | 'biogents-nonco2' | 'mosqitter' | 'tank'
+  const [system, setSystem] = useState(null)        // 'biogents-co2' | 'biogents-nonco2' | 'mosqitter' | 'tank' | 'none'
   const [plan, setPlan] = useState(null)            // 'rental' | 'purchase'
   const [trapCount, setTrapCount] = useState(1)
   const [onTankService, setOnTankService] = useState(null)
@@ -284,6 +291,8 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
   const [mqInstall, setMqInstall] = useState(false)
   const [tankCount, setTankCount] = useState(2)
   const [tankHookup, setTankHookup] = useState(false)
+  const [serviceDate, setServiceDate] = useState('')
+  const minDate = minServiceDate()
 
   useEffect(() => {
     const lines = []
@@ -322,8 +331,13 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
       }
     }
     onChange(lines)
-    if (onConfigChange) onConfigChange({ system, plan, trapCount, mqPlan, mqCount })
-  }, [system, plan, trapCount, onTankService, mqPlan, mqInstall, tankCount, tankHookup])
+    if (onConfigChange) onConfigChange({ system, plan, trapCount, mqPlan, mqCount, serviceDate })
+  }, [system, plan, trapCount, onTankService, mqPlan, mqInstall, tankCount, tankHookup, serviceDate])
+
+  // Reset date and clamp if user picks earlier than min
+  useEffect(() => {
+    if (serviceDate && serviceDate < minDate) setServiceDate('')
+  }, [serviceDate, minDate])
 
   const Q = { fontSize: '0.82rem', fontWeight: 800, color: 'rgba(212,230,202,0.7)', marginBottom: 8, marginTop: 16 }
   const chip = (active) => ({ display: 'inline-block', padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: active ? 'rgba(125,255,170,0.1)' : 'transparent', color: active ? '#7dffaa' : 'rgba(212,230,202,0.5)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', marginRight: 8, marginBottom: 8, userSelect: 'none', transition: 'all 0.12s' })
@@ -464,6 +478,30 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
           {tankHookup && (
             <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'rgba(201,168,76,0.7)', padding: '8px 12px', borderRadius: 6, background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)' }}>
               $10/tank/mo × {tankCount} tank{tankCount > 1 ? 's' : ''} = ${(BG_HOOKUP_PER_TRAP * tankCount).toFixed(2)}/mo added
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Service date — required for any real service (not for equipment-only) */}
+      {system && system !== 'none' && (
+        <>
+          <div style={{ ...Q, marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(122,171,130,0.12)' }}>Preferred service date</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <input
+              type="date"
+              value={serviceDate}
+              min={minDate}
+              onChange={(e) => setServiceDate(e.target.value)}
+              style={{ padding: '9px 12px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(125,255,170,0.4)' : 'rgba(201,168,76,0.4)'}`, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.9rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', minHeight: 42, WebkitAppearance: 'none', appearance: 'none' }}
+            />
+            <span style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.45)' }}>
+              Earliest available: {new Date(minDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (5-day lead time)
+            </span>
+          </div>
+          {!serviceDate && (
+            <div style={{ marginTop: 6, fontSize: '0.78rem', color: '#c9a84c', fontWeight: 700 }}>
+              ⚠ Pick a service date before sending the quote.
             </div>
           )}
         </>
@@ -633,7 +671,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     const res = await fetch('/api/admin/quote-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })), notes }),
+      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })), serviceDate: serviceConfig?.serviceDate || null, notes }),
     })
     const { url } = await res.json()
     await navigator.clipboard.writeText(url).catch(() => window.prompt('Copy this link:', url))
@@ -731,11 +769,16 @@ export default function QuoteBuilder({ customers, mapsKey }) {
 
   async function sendQuote() {
     if (!customerEmail) return
+    // Service date is required when this quote includes any real service (not equipment-only)
+    if (serviceConfig?.system && serviceConfig.system !== 'none' && !serviceConfig.serviceDate) {
+      alert('Pick a preferred service date (at least 5 days out) before sending the quote.')
+      return
+    }
     setSending(true)
     await fetch('/api/admin/send-quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: customerEmail, name: customerName, customerAddress, lineItems: allLines, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, notes }),
+      body: JSON.stringify({ to: customerEmail, name: customerName, customerAddress, lineItems: allLines, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, serviceDate: serviceConfig?.serviceDate || null, notes }),
     })
     setSending(false); setSent(true)
     setTimeout(() => setSent(false), 5000)
