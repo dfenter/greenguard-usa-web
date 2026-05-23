@@ -71,6 +71,7 @@ export default async function handler(req, res) {
   await resend.emails.send({
     from: `GreenGuard USA <${FROM}>`,
     to,
+    bcc: ['admin@greenguard-usa.com', 'bruce@greenguard-usa.com'],
     subject: `Your GreenGuard Service Quote${name ? ` — ${name}` : ''}`,
     html,
   })

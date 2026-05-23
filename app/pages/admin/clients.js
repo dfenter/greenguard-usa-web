@@ -220,11 +220,11 @@ function CustomerPanel({ customer, onClose }) {
               {detail.trapCount ? ` · ${detail.trapCount} trap${detail.trapCount > 1 ? 's' : ''}` : ''}
               {detail.planType ? ` · ${detail.planType}` : ''}
             </div>
-          ) : (
-            <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)', marginBottom: 4 }}>{customer.plan || customer.status}</div>
-          )}
+          ) : customer.plan ? (
+            <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)', marginBottom: 4 }}>{customer.plan}</div>
+          ) : null}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <StatusBadge status={customer.status} />
+            {customer.status !== 'inactive' && customer.status !== 'canceled' && <StatusBadge status={customer.status} />}
             {detail?.nextBooking && (
               <span style={{ fontSize: '0.7rem', color: '#7dffaa', fontWeight: 700 }}>
                 Next: {fmtDate(detail.nextBooking.startTime)}
@@ -495,20 +495,6 @@ export default function Clients({ customers, prospects = [] }) {
   const [tab, setTab] = useState('all')
   const [mainTab, setMainTab] = useState('clients') // 'clients' | 'prospects'
   const [selected, setSelected] = useState(null)
-  const [importing, setImporting] = useState(false)
-  const [importMsg, setImportMsg] = useState(null)
-
-  async function runImport() {
-    if (!window.confirm('Import 133 contacts from list(6).csv into HubSpot? This will upsert all rows.')) return
-    setImporting(true)
-    setImportMsg(null)
-    try {
-      const res = await fetch('/api/admin/import-csv', { method: 'POST' })
-      const data = await res.json()
-      setImportMsg(`Done: ${data.created} created, ${data.updated} updated, ${data.skipped} skipped${data.errors?.length ? ` — ${data.errors.length} errors` : ''}`)
-    } catch (e) { setImportMsg('Import failed') }
-    finally { setImporting(false) }
-  }
 
   const filtered = customers.filter((c) => {
     const q = search.toLowerCase().trim()
@@ -537,10 +523,6 @@ export default function Clients({ customers, prospects = [] }) {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button onClick={runImport} disabled={importing}
-              style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', background: 'transparent', cursor: importing ? 'not-allowed' : 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}>
-              {importing ? 'Importing…' : 'Import CSV → HubSpot'}
-            </button>
             <a href="/api/admin/export?type=clients" download
               style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#7aab82', textDecoration: 'none' }}>
               Export CSV
@@ -550,7 +532,6 @@ export default function Clients({ customers, prospects = [] }) {
               Revenue CSV
             </a>
           </div>
-          {importMsg && <p style={{ fontSize: '0.78rem', color: importMsg.includes('failed') ? '#ff8080' : '#7dffaa', margin: '8px 0 0' }}>{importMsg}</p>}
         </div>
 
         {/* Main tab: Clients / Prospects */}

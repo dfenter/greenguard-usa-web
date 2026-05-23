@@ -794,7 +794,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
             {/* Grand total */}
             <div style={{ background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.15)', borderRadius: 8, padding: '12px 16px', marginTop: 4, marginBottom: isActive ? 16 : 0 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
-                {[['Services', svcTotal], ['Equipment', eqTotal], ['Add-Ons', addTotal], ['Products', prodTotal]].map(([lbl, val]) => (
+                {[['Services', svcTotal], ['Products', prodTotal], ['Installations', eqTotal], ['Add-Ons', addTotal]].map(([lbl, val]) => (
                   <div key={lbl} style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{lbl}</div>
                     <div style={{ fontWeight: 800, fontSize: '0.9rem', color: val > 0 ? '#d4e6ca' : 'rgba(212,230,202,0.25)' }}>{fmt$(val)}</div>

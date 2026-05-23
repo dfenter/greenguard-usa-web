@@ -28,18 +28,57 @@ function getCalendar() {
 
 function parseEmailFromDescription(description) {
   if (!description) return null
-  const match = description.match(/Email:\s*([^\s\n]+)/i)
+  // Acuity format: "Email: xxx@example.com"
+  const match = description.match(/^Email:\s*([^\s\n]+)/im)
   return match ? match[1].trim().toLowerCase() : null
+}
+
+function parsePhoneFromDescription(description) {
+  if (!description) return null
+  // Cal.com format: "Phone number (Text notifications):\n+1..."
+  const calMatch = description.match(/Phone number[^:]*:\s*\n?\s*(\+?[\d\s\-().]+)/i)
+  if (calMatch) return calMatch[1].trim()
+  // Acuity format: "Phone: xxx"
+  const acuityMatch = description.match(/^Phone:\s*(.+)/im)
+  return acuityMatch ? acuityMatch[1].trim() : null
 }
 
 function parseAddressFromDescription(description) {
   if (!description) return null
+  // Acuity format: Location section
   const locMatch = description.match(/Location\s*={3,}\s*\n(.*)/i)
-  return locMatch ? locMatch[1].trim() : null
+  if (locMatch) return locMatch[1].trim()
+  // Cal.com format: "Where:\nAddress"
+  const whereMatch = description.match(/Where:\s*\n(.+)/i)
+  return whereMatch ? whereMatch[1].trim() : null
+}
+
+function parseAcuityId(description) {
+  if (!description) return null
+  const match = description.match(/AcuityID=(\d+)/i)
+  return match ? match[1] : null
+}
+
+function parseRescheduleUrl(description) {
+  if (!description) return null
+  // Cal.com format: "https://cal.com/booking/UID?changes=true"
+  const calBookingMatch = description.match(/https:\/\/cal\.com\/booking\/([a-zA-Z0-9_-]+)/i)
+  if (calBookingMatch) return `https://cal.com/booking/${calBookingMatch[1]}?changes=true`
+  // Cal.com reschedule format (older): cal.com/reschedule/UID
+  const calRescheduleMatch = description.match(/https:\/\/cal\.com\/reschedule\/([a-zA-Z0-9_-]+)/i)
+  if (calRescheduleMatch) return `https://cal.com/reschedule/${calRescheduleMatch[1]}`
+  // Acuity/Squarespace (legacy — being phased out)
+  const acuityId = parseAcuityId(description)
+  if (acuityId) return `https://app.acuityscheduling.com/schedule.php?action=appt&id%5B%5D=${acuityId}`
+  return null
 }
 
 function parseServiceTitle(summary) {
   if (!summary) return ''
+  // Cal.com format: "ServiceType between GreenGuard USA and CustomerName"
+  const calMatch = summary.match(/^(.+?)\s+between\s+GreenGuard USA\s+and\s+.+$/i)
+  if (calMatch) return calMatch[1].trim()
+  // Acuity format: "CustomerName: ServiceType (GreenGuard USA)"
   return summary
     .replace(/^[^:]+:\s*/, '')
     .replace(/\s*\(GreenGuard USA\)\s*$/, '')
@@ -48,6 +87,12 @@ function parseServiceTitle(summary) {
 
 function parseCustomerName(summary) {
   if (!summary) return ''
+  // Cal.com format: "ServiceType between GreenGuard USA and CustomerName"
+  const calMatch = summary.match(/\band\s+(.+?)(?:\s*\(GreenGuard USA\))?\s*$/i)
+  if (calMatch && summary.toLowerCase().includes('between greenguard usa')) {
+    return calMatch[1].trim()
+  }
+  // Acuity format: "CustomerName: ServiceType"
   return (summary.split(':')[0] || '').trim()
 }
 
@@ -78,6 +123,8 @@ async function getUpcomingBookingsForEmail(customerEmail, maxResults = 20) {
     .slice(0, maxResults)
     .map((e) => ({
       id: e.id,
+      rescheduleUrl: parseRescheduleUrl(e.description),
+      customerName: parseCustomerName(e.summary),
       name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
@@ -90,10 +137,16 @@ async function getPastBookingsForEmail(customerEmail, maxResults = 5) {
   const calendar = getCalendar()
   const email = customerEmail.toLowerCase().trim()
 
+  // Look back 18 months — Google API capped at 250 events per call and orderBy:'startTime'
+  // is ascending, so without timeMin we'd get the OLDEST events and miss recent visits.
+  const eighteenMonthsAgo = new Date()
+  eighteenMonthsAgo.setMonth(eighteenMonthsAgo.getMonth() - 18)
+
   const res = await calendar.events.list({
     calendarId: CALENDAR_ID,
+    timeMin: eighteenMonthsAgo.toISOString(),
     timeMax: new Date().toISOString(),
-    maxResults: 100,
+    maxResults: 250,
     singleEvents: true,
     orderBy: 'startTime',
     q: email,
@@ -114,6 +167,8 @@ async function getPastBookingsForEmail(customerEmail, maxResults = 5) {
     .slice(0, maxResults)
     .map((e) => ({
       id: e.id,
+      rescheduleUrl: parseRescheduleUrl(e.description),
+      customerName: parseCustomerName(e.summary),
       name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
@@ -142,12 +197,15 @@ async function getBookingsForWeek(startISO, endISO) {
     )
     .map((e) => ({
       id: e.id,
+      rescheduleUrl: parseRescheduleUrl(e.description),
+      customerName: parseCustomerName(e.summary),
       name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
       endTime: e.end?.dateTime || e.end?.date,
       address: e.location || parseAddressFromDescription(e.description),
       email: parseEmailFromDescription(e.description),
+      phone: parsePhoneFromDescription(e.description),
     }))
 }
 
@@ -174,12 +232,15 @@ async function getBookingsForDate(dateStr) {
       const propMatch = desc.match(/Property\s*[Ss]ize[:\s]+([^\n]+)/i)
       return {
         id: e.id,
+        rescheduleUrl: parseRescheduleUrl(e.description),
+        customerName: parseCustomerName(e.summary),
         name: parseCustomerName(e.summary),
         title: parseServiceTitle(e.summary),
         startTime: e.start?.dateTime || e.start?.date,
         endTime: e.end?.dateTime || e.end?.date,
         address: e.location || parseAddressFromDescription(desc),
         email: parseEmailFromDescription(desc),
+        phone: parsePhoneFromDescription(desc),
         propertySize: propMatch?.[1]?.trim() || '',
       }
     })
@@ -209,12 +270,15 @@ async function getTodaysBookings() {
     )
     .map((e) => ({
       id: e.id,
+      rescheduleUrl: parseRescheduleUrl(e.description),
+      customerName: parseCustomerName(e.summary),
       name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
       endTime: e.end?.dateTime || e.end?.date,
       address: e.location || parseAddressFromDescription(e.description),
       email: parseEmailFromDescription(e.description),
+      phone: parsePhoneFromDescription(e.description),
     }))
 }
 
@@ -238,12 +302,15 @@ async function getAllUpcomingBookings(maxResults = 20) {
     .slice(0, maxResults)
     .map((e) => ({
       id: e.id,
+      rescheduleUrl: parseRescheduleUrl(e.description),
+      customerName: parseCustomerName(e.summary),
       name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
       endTime: e.end?.dateTime || e.end?.date,
       address: e.location || parseAddressFromDescription(e.description),
       email: parseEmailFromDescription(e.description),
+      phone: parsePhoneFromDescription(e.description),
     }))
 }
 
@@ -280,5 +347,8 @@ module.exports = {
   getBookingsForDate,
   getBookingsForDateRange,
   parseServiceTitle,
+  parseCustomerName,
   parseEmailFromDescription,
+  parsePhoneFromDescription,
+  parseRescheduleUrl,
 }

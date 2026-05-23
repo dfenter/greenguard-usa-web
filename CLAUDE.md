@@ -7,101 +7,132 @@ Two independent Vercel deployments share this repo:
 ```
 /                     → greenguard-usa.com (static marketing site)
   vercel.json         → build: python3 _scripts/build_vercel.py → out/
-  *.html / *.js       → Squarespace-style content fragments (input to build script)
+  *.html / *.js       → static content fragments
 
 app/                  → portal.greenguard-usa.com (Next.js customer portal)
   vercel.json         → framework: nextjs, region: iad1
   pages/              → Pages Router (NOT App Router)
   lib/                → service clients (stripe, hubspot, gcal, calcom, email)
   public/data/        → generated route plans (route_plan_YYYY-WW.json)
+
+site/                 → new.greenguard-usa.com (Astro marketing site)
+  src/pages/          → index, services, traprental, pricing, faq, about, book, why-co2...
 ```
 
-**Stack:** Next.js 14.2.29, React 18, JavaScript only (no TypeScript), no database.
+**Stack:** Next.js 15, React 18, JavaScript only (no TypeScript), no database.
 All persistent state lives in Stripe, HubSpot, and Google Calendar.
+
+---
+
+## Booking & Billing Flow (CURRENT)
+
+```
+Customer books via Cal.com → appointment in Google Calendar
+  ↓
+Tech does service visit → logged in Customer Rounds (/admin/rounds)
+  ↓
+Admin generates invoice from rounds → Stripe invoice sent to customer
+  ↓
+Customer pays invoice → done
+
+OR for new customers:
+Admin builds quote (/admin/quote) → sends shareable link
+  ↓
+Customer approves quote → Stripe one-time checkout (first month + one-time items)
+  ↓
+Customer picks installation time via Cal.com embed at end of quote flow
+```
+
+**No subscriptions are created automatically.** Billing is invoice-based, generated per service visit via Customer Rounds. `createSubscription()` in stripe.js is unused and will be removed.
+
+**Acuity/Squarespace scheduling is discontinued.** All new bookings go through Cal.com. Existing Google Calendar events from Acuity may still reference `AcuityID` in descriptions.
 
 ---
 
 ## Services & Integration Map
 
 ### Stripe — `app/lib/stripe.js`
-- Billing source of truth: subscriptions, invoices, customers
-- 23 price IDs mapped in `PRICE_ID_MAP` (env vars `STRIPE_PRICE_*`)
-- Webhook: `POST /api/webhooks/stripe` — handles `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.deleted`
-- Subscription SKUs: BG1, BG2, BG3, MQ-RENT, MQ-SVC, OWN-BG, OWN-MQ
-- One-time SKUs (invoice items): TANK*, ASSESS, CHK, TRAP-INSTALL, TRAP-MAINT-*, TIMER-INSTALL, BARRIER, BAIT, BG-SWEETSCENT, CO2-ADDON, WKD-SURCH
+- Invoices are the billing unit — created per service visit from Customer Rounds
+- Double-billing guard: `cal_booking_uid` stored in invoice metadata
+- Webhook: `POST /api/webhooks/stripe` — handles `invoice.payment_succeeded`, `invoice.payment_failed`
+- One-time SKUs (invoice items): TANK*, ASSESS, TRAP-INSTALL, TRAP-MAINT-*, TIMER-INSTALL, BARRIER, BAIT, BG-SWEETSCENT, CO2-ADDON, WKD-SURCH
+- Quote checkout: `mode: 'payment'` only — no subscriptions
 
 **Env vars:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, 23× `STRIPE_PRICE_*`
-**MCP:** Stripe MCP (configured in `.claude/settings.json`)
 
 ### HubSpot — `app/lib/hubspot.js`
-- CRM: every booking and payment creates/updates a contact
-- Custom properties: `system_type`, `trap_count`, `tank_count`, `stripe_customer_id`, `calcom_booking_uid`, `payment_status`, `customer_status`
-- `upsertContact()`, `addNote()`, `findContactByEmail()`, `countContactsByProperty()`
+- CRM: contacts created/updated when customers are added or invoice paid
+- Custom properties: `system_type`, `trap_count`, `tank_count`, `payment_status`, `customer_status`
+- `upsertContact()`, `addNote()`, `findContactByEmail()`, `getAllContacts()`, `countContactsByProperty()`
 
 **Env vars:** `HUBSPOT_ACCESS_TOKEN`
-**MCP:** HubSpot MCP at `https://mcp.hubspot.com` (OAuth)
 
 ### Cal.com — `app/lib/calcom.js`
-- 13 event types defined in `app/lib/cal-event-types.json`
-- Admin booking: `POST /api/admin/book` (uses Cal.com v2 API — requires `CALCOM_API_KEY` in Vercel)
-- Route optimizer also uses `CALCOM_API_KEY` (GitHub Actions secret)
-- **Note:** Cal.com webhook handler was removed — no webhook integration active
+- All new customer bookings go through Cal.com
+- Cal.com v2 API: `https://api.cal.com/v2`, header `cal-api-version: 2024-06-14`
+- `getBookingsForEmail()` — note: API key only has event-type scope, returns 0 bookings
+- Reschedule links: extracted from Google Calendar event description (`cal.com/reschedule/UID`)
+- **Cal.com webhook was removed** — bookings flow through Google Calendar sync instead
 
 **Env vars:** `CALCOM_API_KEY` (Vercel + GitHub)
-**MCP:** Cal.com MCP at `https://mcp.cal.com` (OAuth)
 
 ### Google Calendar — `app/lib/gcal.js`
 - Calendar ID: `admin@greenguard-usa.com`
-- Auth: OAuth2 refresh token (one-time setup via `_scripts/get-google-refresh-token.py`)
-- `getUpcomingBookingsForEmail()`, `getPastBookingsForEmail()`, `getBookingsForWeek()`
+- Source of truth for all appointments (Cal.com syncs here automatically)
+- Event title format: `"CustomerName: ServiceType (GreenGuard USA)"`
+- `customerName` parsed from title prefix, `serviceType` from title suffix
+- `rescheduleUrl` parsed from event description (Cal.com UID or legacy Acuity ID)
+- `getBookingsForDate()`, `getTodaysBookings()`, `getAllUpcomingBookings()`
 
-**Env vars:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` (Vercel + GitHub)
-**MCP:** Google Calendar MCP at `https://calendarmcp.googleapis.com` (OAuth)
+**Env vars:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`
 
 ### Google Places — `_scripts/fetch_reviews.py` (GitHub Actions)
 - Place ID: `ChIJx8wLC4K11wwRbfe7hhZiHXs`
-- Local env var: `GOOGLE_API_KEY` → GitHub secret name: `GOOGLE_PLACES_API_KEY` (different names — handled in env-sync.sh)
 - Runs daily at 03:00 CST, commits `reviews.json`
 
-**Env vars:** `GOOGLE_API_KEY` (local/Vercel) → `GOOGLE_PLACES_API_KEY` (GitHub secret name)
+**Env vars:** `GOOGLE_API_KEY` (local) → `GOOGLE_PLACES_API_KEY` (GitHub secret — different names)
 
 ### Google Maps
-- **Public embed key** `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` → Vercel only, restricted to `portal.greenguard-usa.com/*`
-- **Server-side Distance Matrix key** `GOOGLE_MAPS_API_KEY` → GitHub Actions secret only (route optimizer)
+- **Public embed key** `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` → Vercel only
+- **Server-side Distance Matrix key** `GOOGLE_MAPS_API_KEY` → GitHub Actions only
 
 ### Resend — `app/lib/email.js`
-- Magic link auth email only: `sendMagicLink()`
-- From: `PORTAL_FROM_EMAIL` (default: `noreply@greenguard-usa.com`)
+- Magic link auth + admin send-message (`/api/admin/send-message`)
 
 **Env vars:** `RESEND_API_KEY`, `PORTAL_FROM_EMAIL`
-**MCP:** Resend MCP (`resend-mcp` npm package)
 
 ### Auth — `app/lib/auth.js`
-- Magic link + JWT session cookie (`gg_session`, 30-day, httpOnly, SameSite=Lax)
-- Admin check: `session.email === process.env.ADMIN_EMAIL` (default: `admin@greenguard-usa.com`)
-- Magic tokens: 15-min expiry; session tokens: 30-day expiry, HS256
-- Generate secret: `openssl rand -hex 32`
+- Magic link + JWT session cookie (`gg_session`, 90-day, httpOnly, SameSite=Lax)
+- Multi-admin: `ADMIN_EMAILS` env var (comma-separated)
+- Owner (`admin@greenguard-usa.com`) → lands on `/admin/home`
+- Tech (`bruce@greenguard-usa.com`) → lands on `/admin/tech`
+- Customers → `/dashboard`
+- Prospects (no Stripe record) → `/prospect`
 
-**Env vars:** `JWT_SECRET` (min 32 chars), `ADMIN_EMAIL`, `NEXT_PUBLIC_APP_URL`
+**Env vars:** `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_EMAILS`, `NEXT_PUBLIC_APP_URL`
 
 ### GitHub Actions
-- `.github/workflows/fetch-reviews.yml` — daily 03:00 CST, runs `_scripts/fetch_reviews.py`, commits `reviews.json`
-- `.github/workflows/route-optimizer.yml` — Monday 09:00 CST, runs `_scripts/route_optimizer.py`, commits `app/public/data/route_plan_YYYY-WW.json`, opens GitHub issue for route approval
+- `fetch-reviews.yml` — daily 03:00 CST
+- `route-optimizer.yml` — Monday 09:00 CST, commits route plan JSON, opens issue
 
-### Render
-- Already in use — run `render services list` or use Render MCP to inspect
-- Config: `render.yaml` (repo root) — update based on live service state
-- Access token for Claude Code: `RENDER_API_KEY` (local `.env` only, never synced to Vercel/GitHub)
+### GitHub Token
+- `GITHUB_TOKEN` — needed in Vercel for "Run Route Optimizer Now" button in Route Plan
 
-**MCP:** Render MCP at `https://mcp.render.com/mcp` (API token)
+---
 
-### Tidio (Chat Widget)
-- Hardcoded key in `_scripts/build_vercel.py`: `2oaqyblfyjn6xy86vutzzvr1ykg9twav`
-- Static marketing site only — not in portal
-- Not a secret (public widget key)
+## Admin Portal Pages
 
-### Google Analytics 4
-- `NEXT_PUBLIC_GA_MEASUREMENT_ID` injected in `app/pages/_app.js`
+| Page | Route | Purpose |
+|------|-------|---------|
+| Home | `/admin/home` | Owner landing — today's stops, KPIs, open invoices |
+| Tech Dashboard | `/admin/tech` | Bruce's view — today's route, navigate, text |
+| Customer Rounds | `/admin/rounds` | Log service visits, generate invoices |
+| Daily Rounds | `/admin/inventory` | Tank & equipment inventory |
+| Clients | `/admin/clients` | Customer list + prospect list (HubSpot) |
+| Quote Builder | `/admin/quote` | Build quotes, approve & pay, share link |
+| Invoice | `/admin/invoice` | Search by name, manage Stripe invoices |
+| Route Plan | `/admin/route` | Calendar view of weekly route |
+| Analytics | `/admin/analytics` | Revenue, Traffic, Map, Social, Finance, Accounting, Health |
 
 ---
 
@@ -110,106 +141,60 @@ All persistent state lives in Stripe, HubSpot, and Google Calendar.
 ### Vercel (portal.greenguard-usa.com)
 ```
 STRIPE_SECRET_KEY          STRIPE_WEBHOOK_SECRET
-STRIPE_PRICE_BG1           STRIPE_PRICE_BG2          STRIPE_PRICE_BG3
-STRIPE_PRICE_MQ_RENT       STRIPE_PRICE_MQ_SVC        STRIPE_PRICE_OWN_BG
-STRIPE_PRICE_OWN_MQ        STRIPE_PRICE_MQ_INST       STRIPE_PRICE_MQ_TSHOOT
-STRIPE_PRICE_TANK1         STRIPE_PRICE_TANK2         STRIPE_PRICE_TANK3
-STRIPE_PRICE_TANK4         STRIPE_PRICE_TANK6         STRIPE_PRICE_TANK10
-STRIPE_PRICE_BARRIER       STRIPE_PRICE_BAIT          STRIPE_PRICE_BG_SWEETSCENT
-STRIPE_PRICE_CO2_ADDON     STRIPE_PRICE_TRAP_INSTALL  STRIPE_PRICE_TRAP_MAINT_1
-STRIPE_PRICE_TRAP_MAINT_2  STRIPE_PRICE_TIMER_INSTALL STRIPE_PRICE_WKD_SURCH
+STRIPE_PRICE_BG1 … STRIPE_PRICE_WKD_SURCH  (23 price vars)
 HUBSPOT_ACCESS_TOKEN
 CALCOM_API_KEY
 GOOGLE_CLIENT_ID           GOOGLE_CLIENT_SECRET       GOOGLE_REFRESH_TOKEN
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-JWT_SECRET                 ADMIN_EMAIL                CALENDAR_TIMEZONE
-RESEND_API_KEY             PORTAL_FROM_EMAIL
+JWT_SECRET                 ADMIN_EMAIL                ADMIN_EMAILS
+CALENDAR_TIMEZONE          RESEND_API_KEY             PORTAL_FROM_EMAIL
 NEXT_PUBLIC_APP_URL        NEXT_PUBLIC_GA_MEASUREMENT_ID
+GITHUB_TOKEN               (for route optimizer trigger)
 ```
 
-### GitHub Secrets (Actions workflows)
+### GitHub Secrets
 ```
 GOOGLE_CLIENT_ID  GOOGLE_CLIENT_SECRET  GOOGLE_REFRESH_TOKEN
-GOOGLE_MAPS_API_KEY    (Distance Matrix — route optimizer)
-GOOGLE_PLACES_API_KEY  (Places API — fetch reviews; local name is GOOGLE_API_KEY)
+GOOGLE_MAPS_API_KEY    (Distance Matrix)
+GOOGLE_PLACES_API_KEY  (Places API — local name is GOOGLE_API_KEY)
 CALCOM_API_KEY
 ```
-
-### Render (via env-sync.sh --render-only)
-Inspect live service first (`render services list`), then sync relevant vars.
-Minimum: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `HUBSPOT_ACCESS_TOKEN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`
-
-### Local-only (never synced)
-```
-RENDER_API_KEY   (Render CLI/MCP access)
-VERCEL_TOKEN     (Vercel CLI/MCP access)
-GITHUB_TOKEN     (GitHub CLI/MCP access — use `gh auth token`)
-STRIPE_SECRET_KEY can be reused directly by Stripe MCP
-```
-
----
-
-## SKU System
-
-**SKU resolution order** (`app/lib/sku-engine.js`):
-1. `resolveByTitle(title)` — matches Cal.com event title against `app/lib/cal-event-types.json`
-2. `resolveSKU(visit)` — fallback using `visitType`, `systemType`, `trapCount` fields
-
-**`isSubscriptionSKU(sku)`** determines Stripe subscription vs invoice item.
-
-To add a SKU:
-1. Add price ID entry to `PRICE_ID_MAP` in `app/lib/stripe.js`
-2. Add pricing to `SKU_PRICES` in `app/lib/sku-engine.js`
-3. Add env var `STRIPE_PRICE_NEWSKU` to `app/.env.example`
-4. Add event type to `app/lib/cal-event-types.json` if booking-driven
-
----
-
-## Webhook Endpoints (configure in each service dashboard)
-- **Stripe:** `https://portal.greenguard-usa.com/api/webhooks/stripe`
 
 ---
 
 ## Common Tasks
 
-| Task | Command / File |
-|------|---------------|
-| Run tests | `cd app && npm test` |
-| Run linter | `cd app && npm run lint` |
-| Build portal locally | `cd app && npm run build` |
-| Build static site | `python3 _scripts/build_vercel.py` |
+| Task | Command |
+|------|---------|
 | Deploy portal | `./scripts/deploy.sh portal` |
 | Deploy static site | `./scripts/deploy.sh site` |
 | Deploy both | `./scripts/deploy.sh all` |
-| Sync env vars | `./scripts/env-sync.sh` |
-| Health check | `./scripts/health-check.sh` |
-| New JWT secret | `openssl rand -hex 32` |
+| Build portal locally | `cd app && npm run build` |
 | Trigger route optimizer | `gh workflow run route-optimizer.yml` |
-| Trigger review fetch | `gh workflow run fetch-reviews.yml` |
-| List Render services | `render services list` |
+| Add HubSpot contact | Use Clients → manual or via cal.com booking |
 
 ---
 
 ## Rules — Don't Break These
 
-- **Pages Router only** — all pages live in `app/pages/`. Never use `app/app/`.
-- **JavaScript only** — no TypeScript, no `.ts`/`.tsx` files.
-- **`CALCOM_API_KEY` goes in Vercel** — `app/.env.example` has an incorrect comment; the admin booking route reads it.
-- **Google secret name mismatch** — local `GOOGLE_API_KEY` must be named `GOOGLE_PLACES_API_KEY` in GitHub Secrets (handled by `env-sync.sh`).
-- **Depot address** in `_scripts/route_optimizer.py` line ~19: `1519 Parkway, Austin, TX 78703` — update here if depot moves.
+- **Pages Router only** — all pages in `app/pages/`. Never use `app/app/`.
+- **JavaScript only** — no TypeScript.
+- **No subscription creation** — billing is invoice-based via Customer Rounds.
+- **No Acuity/Squarespace** — all scheduling via Cal.com going forward.
+- **Cal.com UID matching** — use same-day date matching (not 5-min tolerance) since GCal and Cal.com times may differ.
+- **Depot address** in `_scripts/route_optimizer.py` line ~19: `1519 Parkway, Austin, TX 78703`.
 
 ---
 
 ## Data Flow
 
 ```
-Stripe payment event → invoice.payment_succeeded webhook
-  → HubSpot: addNote() with payment details
+Cal.com booking → Google Calendar (auto-synced)
+  → Customer Rounds reads GCal for today's stops
+  → Tech logs visit → invoice generated → customer pays
 
-GitHub Actions (Monday) → route_optimizer.py
-  → Google Calendar: read week's bookings
-  → Google Maps: optimize route
-  → Cal.com API: reschedule if needed
-  → Commit route_plan_YYYY-WW.json
-  → Open GitHub issue for approval
+Quote flow:
+  Admin builds quote → shares link → customer approves
+  → Stripe one-time payment (first month + setup fees)
+  → Customer books installation via Cal.com embed
 ```

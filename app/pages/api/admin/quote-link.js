@@ -11,12 +11,12 @@ export default async function handler(req, res) {
     const session = await getSessionFromRequest(req)
     if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-    const { customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total, recurringTotal, oneTimeTotal, notes } = req.body || {}
+    const { customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total, recurringTotal, oneTimeTotal, taxRate, taxAmount, notes } = req.body || {}
 
     const token = await new SignJWT({
       customerName, customerEmail, customerAddress,
       serviceLines, addonLines, productLines,
-      total, recurringTotal, oneTimeTotal, notes,
+      total, recurringTotal, oneTimeTotal, taxRate, taxAmount, notes,
       type: 'quote',
     })
       .setProtectedHeader({ alg: 'HS256' })
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       .sign(getSecret())
 
     const url = `${process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'}/quote/${token}`
-    return res.status(200).json({ url })
+    return res.status(200).json({ url, token })
   }
 
   if (req.method === 'GET') {

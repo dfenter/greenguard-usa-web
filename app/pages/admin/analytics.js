@@ -1,10 +1,10 @@
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import Head from 'next/head'
 import dynamic from 'next/dynamic'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { listAllActiveSubscriptions, listAllInvoicesSince, listOpenInvoices, getBalance } from '../../lib/stripe'
-import { countContactsByProperty } from '../../lib/hubspot'
+import { listAllActiveSubscriptions, listAllInvoicesSince, listOpenInvoices, getBalance, listAllCustomers } from '../../lib/stripe'
+import { countContactsByProperty, getAllContacts } from '../../lib/hubspot'
 import { getBookingsForWeek, getAllUpcomingBookings } from '../../lib/gcal'
 import { getTrafficOverview } from '../../lib/ga4'
 import { getSearchPerformance } from '../../lib/gsc'
@@ -47,7 +47,7 @@ export async function getServerSideProps({ req, res }) {
   // Cal.com: upcoming bookings count
   const thirtyDaysAheadISO = new Date(now.getTime() + 30 * 86400 * 1000).toISOString()
 
-  const [activeSubs, paidInvoices, openInvoices, weekBookings, balance, traffic, searchPerf, upcomingBookings, ...segCounts] = await Promise.all([
+  const [activeSubs, paidInvoices, openInvoices, weekBookings, balance, traffic, searchPerf, upcomingBookings, allCustomers, hubspotContacts, ...segCounts] = await Promise.all([
     listAllActiveSubscriptions().catch(() => []),
     listAllInvoicesSince(oneYearAgo).catch(() => []),
     listOpenInvoices().catch(() => []),
@@ -56,6 +56,8 @@ export async function getServerSideProps({ req, res }) {
     getTrafficOverview().catch(() => null),
     getSearchPerformance(28).catch(() => null),
     getAllUpcomingBookings(100).catch(() => []),
+    listAllCustomers().catch(() => []),
+    getAllContacts(300).catch(() => []),
     ...SEGMENT_TYPES.map((t) => countContactsByProperty('system_type', t)),
   ])
 
@@ -129,12 +131,21 @@ export async function getServerSideProps({ req, res }) {
       revenueYTD: Math.round(revenueYTD * 100) / 100,
       servicesThisWeek: weekBookings.length,
       upcomingCount: upcomingBookings.length,
-      upcomingBookings: upcomingBookings.slice(0, 20).map((b) => ({
-        startTime: b.startTime,
-        title: b.title,
-        address: b.address,
-        email: b.email,
-      })),
+      upcomingBookings: upcomingBookings.slice(0, 20).map((b) => {
+        // Resolve name: HubSpot first, then parse from Cal.com title "... and CustomerName"
+        const hsContacts_local = hubspotContacts
+        const hsMatch = hsContacts_local.find(c => (c.properties?.email || '').toLowerCase() === (b.email || '').toLowerCase())
+        const hsName = hsMatch ? [hsMatch.properties?.firstname, hsMatch.properties?.lastname].filter(Boolean).join(' ') : null
+        const titleName = b.title?.match(/and\s+(.+)$/i)?.[1]?.trim() || null
+        const stripeMatch = allCustomers.find(c => (c.email || '').toLowerCase() === (b.email || '').toLowerCase())
+        return {
+          startTime: b.startTime,
+          title: b.title,
+          name: hsName || stripeMatch?.name || titleName || b.email || '—',
+          address: b.address,
+          email: b.email,
+        }
+      }),
       openInvoiceCount: openInvoices.length,
       monthlyRevenue,
       dailyRevenue,
@@ -149,6 +160,29 @@ export async function getServerSideProps({ req, res }) {
       ga4Configured,
       traffic,
       searchPerf,
+      // Map — merge Stripe billing addresses + HubSpot addresses (from CSV import)
+      mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+      customerLocations: (() => {
+        const seen = new Set()
+        const locs = []
+        // Stripe customers with billing addresses
+        for (const c of allCustomers) {
+          if (c.address?.line1) {
+            const addr = [c.address.line1, c.address.city, c.address.state].filter(Boolean).join(', ')
+            if (!seen.has(addr)) { seen.add(addr); locs.push({ name: c.name || c.email || '', address: addr }) }
+          }
+        }
+        // HubSpot contacts with addresses (includes CSV imports)
+        for (const c of hubspotContacts) {
+          const addr = c.properties?.address || ''
+          if (addr && !seen.has(addr)) {
+            seen.add(addr)
+            const name = [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ')
+            locs.push({ name, address: addr })
+          }
+        }
+        return locs
+      })(),
     },
   }
 }
@@ -199,17 +233,17 @@ function KPI({ label, value, sub, pct }) {
 // ── Tab buttons ────────────────────────────────────────────────────────────────
 
 function Tabs({ active, onChange }) {
-  const tabs = ['Revenue', 'Traffic', 'Social', 'Finance', 'Accounting', 'Health']
+  const tabs = ['Revenue', 'Traffic', 'Map', 'Social', 'Finance', 'Accounting', 'Health']
   return (
-    <div style={{ display: 'flex', gap: 4, marginBottom: 32, borderBottom: '1px solid rgba(122,171,130,0.15)', paddingBottom: 0 }}>
+    <div style={{ display: 'flex', gap: 4, marginBottom: 32, borderBottom: '1px solid rgba(122,171,130,0.15)', paddingBottom: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
       {tabs.map((t) => (
         <button
           key={t}
           onClick={() => onChange(t)}
           style={{
-            padding: '10px 20px', border: 'none', cursor: 'pointer',
+            padding: '10px 16px', border: 'none', cursor: 'pointer',
             fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif',
-            background: 'none',
+            background: 'none', whiteSpace: 'nowrap', flexShrink: 0,
             color: active === t ? '#7dffaa' : 'rgba(212,230,202,0.45)',
             borderBottom: active === t ? '2px solid #7dffaa' : '2px solid transparent',
             marginBottom: -1,
@@ -245,7 +279,7 @@ function RevenueTab({ activeCount, mrr, revenueToday, revenueThisMonth, revenueY
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
               <thead><tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
-                {['Date', 'Service', 'Customer', 'Address'].map((h) => (
+                {['Date', 'Customer', 'Service', 'Address'].map((h) => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)' }}>{h}</th>
                 ))}
               </tr></thead>
@@ -255,8 +289,8 @@ function RevenueTab({ activeCount, mrr, revenueToday, revenueThisMonth, revenueY
                     <td style={{ padding: '10px 14px', whiteSpace: 'nowrap', color: '#c9a84c', fontWeight: 700 }}>
                       {b.startTime ? new Date(b.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                     </td>
-                    <td style={{ padding: '10px 14px' }}>{b.title || '—'}</td>
-                    <td style={{ padding: '10px 14px', color: 'rgba(212,230,202,0.55)', fontSize: '0.78rem' }}>{b.email || '—'}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 700 }}>{b.name || '—'}</td>
+                    <td style={{ padding: '10px 14px', color: 'rgba(212,230,202,0.55)', fontSize: '0.78rem' }}>{b.title?.replace(/.*between GreenGuard USA and /i, '') || '—'}</td>
                     <td style={{ padding: '10px 14px', color: 'rgba(212,230,202,0.45)', fontSize: '0.75rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.address || '—'}</td>
                   </tr>
                 ))}
@@ -660,6 +694,96 @@ function SocialTab() {
   )
 }
 
+// ── Map tab ────────────────────────────────────────────────────────────────────
+
+function MapTab({ mapsKey, customerLocations }) {
+  const mapRef = React.useRef(null)
+  const mapObj = React.useRef(null)
+  const [loaded, setLoaded] = React.useState(false)
+  const [geocoded, setGeocoded] = React.useState(0)
+  const [total, setTotal] = React.useState(0)
+
+  React.useEffect(() => {
+    if (!mapsKey || mapObj.current) return
+    if (window.google?.maps) { initMap(); return }
+    const s = document.createElement('script')
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=marker`
+    s.onload = initMap
+    document.head.appendChild(s)
+  }, [mapsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function initMap() {
+    if (!mapRef.current) return
+    mapObj.current = new window.google.maps.Map(mapRef.current, {
+      center: { lat: 30.2672, lng: -97.7431 }, // Austin TX
+      zoom: 11,
+      mapTypeId: 'roadmap',
+      styles: [
+        { elementType: 'geometry', stylers: [{ color: '#1a2e1f' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#7aab82' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#0d1a10' }] },
+        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#243627' }] },
+        { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a2e1f' }] },
+        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1a10' }] },
+        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+        { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+      ],
+    })
+    setLoaded(true)
+    geocodeAll()
+  }
+
+  async function geocodeAll() {
+    if (!window.google?.maps) return
+    const geocoder = new window.google.maps.Geocoder()
+    setTotal(customerLocations.length)
+    let done = 0
+    const bounds = new window.google.maps.LatLngBounds()
+    for (const loc of customerLocations) {
+      try {
+        const res = await geocoder.geocode({ address: loc.address + ', Austin TX' })
+        if (res.results?.[0]?.geometry?.location) {
+          const pos = res.results[0].geometry.location
+          bounds.extend(pos)
+          new window.google.maps.Marker({
+            position: pos,
+            map: mapObj.current,
+            title: loc.name,
+            icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 7, fillColor: '#7dffaa', fillOpacity: 0.9, strokeColor: '#0d1a10', strokeWeight: 1.5 },
+          })
+        }
+      } catch {}
+      done++
+      setGeocoded(done)
+      await new Promise(r => setTimeout(r, 80)) // respect geocoding rate limit
+    }
+    if (!bounds.isEmpty()) mapObj.current.fitBounds(bounds)
+  }
+
+  if (!mapsKey) {
+    return <div className="card" style={{ maxWidth: 480 }}><p style={{ color: 'rgba(212,230,202,0.4)' }}>Set <code style={{ color: '#c9a84c' }}>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> in Vercel to enable the customer map.</p></div>
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#7dffaa' }}>
+          {customerLocations.length} customer locations
+        </div>
+        {loaded && total > 0 && geocoded < total && (
+          <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)' }}>Plotting {geocoded}/{total}…</div>
+        )}
+      </div>
+      <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(122,171,130,0.2)', height: 560 }}>
+        <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      </div>
+      <p style={{ marginTop: 8, fontSize: '0.75rem', color: 'rgba(212,230,202,0.3)' }}>
+        Green dots = active Stripe customers with addresses. Sourced from Stripe billing addresses.
+      </p>
+    </div>
+  )
+}
+
 // ── Accounting tab ─────────────────────────────────────────────────────────────
 
 function AccountingTab() {
@@ -953,6 +1077,7 @@ export default function Analytics(props) {
 
         {tab === 'Revenue' && <RevenueTab {...props} />}
         {tab === 'Traffic' && <TrafficTab ga4Configured={props.ga4Configured} traffic={props.traffic} />}
+        {tab === 'Map' && <MapTab mapsKey={props.mapsKey} customerLocations={props.customerLocations} />}
         {tab === 'Social' && <SocialTab />}
         {tab === 'Finance' && <FinanceTab balance={props.balance} revenueLast30={props.revenueLast30} recentOrders={props.recentOrders} openInvoiceList={props.openInvoiceList} />}
         {tab === 'Accounting' && <AccountingTab />}

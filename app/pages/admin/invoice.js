@@ -1,16 +1,45 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+import { listAllCustomers } from '../../lib/stripe'
+import { getAllContacts } from '../../lib/hubspot'
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
-  return { props: {} }
+  const [raw, hsContacts] = await Promise.all([
+    listAllCustomers().catch(() => []),
+    getAllContacts(200).catch(() => []),
+  ])
+
+  const stripeEmails = new Set(raw.map(c => (c.email || '').toLowerCase()).filter(Boolean))
+
+  // Merge Stripe customers + HubSpot-only contacts (prospects)
+  const stripeList = raw.map((c) => ({ id: c.id, name: c.name || '', email: c.email || '', source: 'stripe' }))
+
+  const hsList = hsContacts
+    .filter(c => {
+      const email = (c.properties?.email || '').toLowerCase()
+      return email && !stripeEmails.has(email)
+    })
+    .map(c => ({
+      id: `hs_${c.id}`,
+      name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
+      email: c.properties?.email || '',
+      source: 'hubspot',
+    }))
+
+  const customers = [...stripeList, ...hsList]
+    .filter((c) => c.name || c.email)
+    .sort((a, b) => {
+      const ln = (n) => n.trim().split(/\s+/).pop() || n
+      return ln(a.name || a.email).localeCompare(ln(b.name || b.email))
+    })
+
+  return { props: { customers } }
 }
 
 function fmt$(cents) { return `$${(cents / 100).toFixed(2)}` }
@@ -18,9 +47,11 @@ function fmtDate(unix) { return new Date(unix * 1000).toLocaleDateString('en-US'
 
 const STATUS_COLOR = { paid: '#7dffaa', open: '#ffb060', draft: '#c9a84c', void: 'rgba(212,230,202,0.35)' }
 
-export default function InvoiceEditor() {
+export default function InvoiceEditor({ customers = [] }) {
   const router = useRouter()
+  const [search, setSearch] = useState('')
   const [email, setEmail] = useState('')
+  const [showDropdown, setShowDropdown] = useState(false)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -28,13 +59,32 @@ export default function InvoiceEditor() {
   const [selectedSku, setSelectedSku] = useState('')
   const [sending, setSending] = useState(false)
   const [msg, setMsg] = useState(null)
+  const [expandedInv, setExpandedInv] = useState(null)
+  const searchRef = useRef(null)
+
+  const filtered = search.length >= 1
+    ? customers.filter((c) => {
+        const q = search.toLowerCase()
+        return (c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)
+      }).slice(0, 10)
+    : []
 
   useEffect(() => {
     if (router.isReady && router.query.email) {
-      setEmail(router.query.email)
-      loadCustomer(router.query.email)
+      const e = router.query.email
+      const match = customers.find((c) => c.email === e)
+      setSearch(match?.name || e)
+      setEmail(e)
+      loadCustomer(e)
     }
   }, [router.isReady]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function selectCustomer(c) {
+    setSearch(c.name || c.email)
+    setEmail(c.email)
+    setShowDropdown(false)
+    loadCustomer(c.email)
+  }
 
   async function loadCustomer(e) {
     const target = e || email
@@ -72,6 +122,26 @@ export default function InvoiceEditor() {
     if (res.ok) { setMsg('Item removed'); loadCustomer() }
   }
 
+  async function deleteLineItem(invoiceId, itemId) {
+    if (!window.confirm('Remove this line item from the invoice?')) return
+    const res = await fetch('/api/admin/invoice-items', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete-line', invoiceId, itemId }),
+    })
+    if (res.ok) { setMsg('Line item removed'); loadCustomer() }
+    else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+  }
+
+  async function voidInvoice(invoiceId) {
+    if (!window.confirm('Void this invoice? This cannot be undone.')) return
+    const res = await fetch('/api/admin/invoice-items', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'void', invoiceId }),
+    })
+    if (res.ok) { setMsg('Invoice voided'); loadCustomer() }
+    else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+  }
+
   async function sendInvoice(invoiceId) {
     setSending(true)
     const res = await fetch('/api/admin/invoice-items', {
@@ -97,11 +167,33 @@ export default function InvoiceEditor() {
           <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>Find a customer and manage their invoices</p>
         </div>
 
-        {/* Customer lookup */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
-          <input style={{ ...input, flex: '1 1 280px' }} type="email" placeholder="customer@email.com" value={email} onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && loadCustomer()} />
-          <button style={btn('gold')} onClick={() => loadCustomer()} disabled={loading}>{loading ? 'Loading…' : 'Load Customer'}</button>
+        {/* Customer lookup — name search with dropdown */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div ref={searchRef} style={{ position: 'relative', flex: '1 1 280px' }}>
+            <input
+              style={{ ...input, width: '100%', boxSizing: 'border-box' }}
+              placeholder="Search by name or email…"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setShowDropdown(true) }}
+              onFocus={() => setShowDropdown(true)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && email) loadCustomer(); if (e.key === 'Escape') setShowDropdown(false) }}
+            />
+            {showDropdown && filtered.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, zIndex: 50, maxHeight: 280, overflowY: 'auto', marginTop: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+                {filtered.map((c) => (
+                  <div key={c.id} onClick={() => selectCustomer(c)}
+                    style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(122,171,130,0.08)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(122,171,130,0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{c.name || c.email}</div>
+                    {c.name && <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.45)' }}>{c.email}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <button style={btn('gold')} onClick={() => loadCustomer()} disabled={loading || !email}>{loading ? 'Loading…' : 'Load'}</button>
         </div>
 
         {error && <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.2)', color: '#ff8080', fontSize: '0.85rem', marginBottom: 20 }}>{error}</div>}
@@ -175,39 +267,56 @@ export default function InvoiceEditor() {
             {data.invoices?.length > 0 && (
               <>
                 <div style={SECTION}>Invoice History</div>
-                {data.invoices.map((inv) => (
-                  <div key={inv.id} className="card" style={{ marginBottom: 10 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                          <span style={{ fontWeight: 800 }}>{inv.number}</span>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: STATUS_COLOR[inv.status] || 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{inv.status}</span>
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.45)' }}>{fmtDate(inv.created)}</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                        <span style={{ fontWeight: 900, fontSize: '1rem' }}>
-                          {fmt$(inv.status === 'open' ? inv.amountDue : inv.amountPaid || inv.amountDue)}
-                        </span>
-                        {inv.status === 'draft' && (
-                          <button style={btn('gold')} onClick={() => sendInvoice(inv.id)} disabled={sending}>{sending ? 'Sending…' : 'Finalize & Send'}</button>
-                        )}
-                        {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }}>View</a>}
-                        {inv.pdfUrl && <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#7aab82', fontWeight: 700 }}>PDF</a>}
-                      </div>
-                    </div>
-                    {inv.items?.length > 0 && (
-                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(122,171,130,0.1)' }}>
-                        {inv.items.map((line) => (
-                          <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'rgba(212,230,202,0.55)', padding: '2px 0' }}>
-                            <span>{line.description}</span>
-                            <span>{fmt$(line.amount)}</span>
+                {data.invoices.map((inv) => {
+                  const isExpanded = expandedInv === inv.id
+                  const isDraft = inv.status === 'draft'
+                  const isOpen = inv.status === 'open'
+                  const amount = fmt$(inv.status === 'open' ? inv.amountDue : inv.amountPaid || inv.amountDue)
+                  return (
+                    <div key={inv.id} className="card" style={{ marginBottom: 10 }}>
+                      {/* Header row */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                        <div style={{ cursor: 'pointer', flex: 1 }} onClick={() => setExpandedInv(isExpanded ? null : inv.id)}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                            <span style={{ fontWeight: 800 }}>{inv.number || inv.id.slice(-8)}</span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: STATUS_COLOR[inv.status] || 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{inv.status}</span>
+                            <span style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.3)' }}>{isExpanded ? '▲' : '▼'}</span>
                           </div>
-                        ))}
+                          <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.45)' }}>{fmtDate(inv.created)} · {amount}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                          {isDraft && <button style={btn('gold')} onClick={() => sendInvoice(inv.id)} disabled={sending}>{sending ? 'Sending…' : 'Finalize & Send'}</button>}
+                          {isOpen && <button style={btn('red')} onClick={() => voidInvoice(inv.id)}>Void</button>}
+                          {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }}>Open ↗</a>}
+                          {inv.pdfUrl && <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#7aab82', fontWeight: 700 }}>PDF</a>}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {/* Expanded line items */}
+                      {isExpanded && inv.items?.length > 0 && (
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 8 }}>Line Items</div>
+                          {inv.items.map((line) => (
+                            <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '7px 0', borderBottom: '1px solid rgba(122,171,130,0.06)' }}>
+                              <span style={{ color: 'rgba(212,230,202,0.75)', flex: 1 }}>{line.description}</span>
+                              <span style={{ fontWeight: 700, marginLeft: 16 }}>{fmt$(line.amount)}</span>
+                              {isDraft && (
+                                <button
+                                  onClick={() => deleteLineItem(inv.id, line.id)}
+                                  style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8, fontWeight: 900, color: isDraft ? '#c9a84c' : inv.status === 'paid' ? '#7dffaa' : '#ffb060' }}>
+                            Total: {amount}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </>
             )}
           </>

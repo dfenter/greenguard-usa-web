@@ -2,10 +2,12 @@ import { useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
+import TankCalendar from '../../components/TankCalendar'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
 import { findContactByEmail } from '../../lib/hubspot'
 import { listAllActiveSubscriptions, listOpenInvoices, getBalance } from '../../lib/stripe'
+import { buildTankCalendarData } from '../../lib/tank-data'
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -22,12 +24,13 @@ export async function getServerSideProps({ req }) {
   const tomorrowStart = new Date(tomorrowStr + 'T00:00:00-05:00').toISOString()
   const tomorrowEnd = new Date(tomorrowStr + 'T23:59:59-05:00').toISOString()
 
-  const [todayStops, tomorrowStops, activeSubs, openInvoices, balance] = await Promise.all([
+  const [todayStops, tomorrowStops, activeSubs, openInvoices, balance, tankData] = await Promise.all([
     getTodaysBookings().catch(() => []),
     getBookingsForDateRange(tomorrowStart, tomorrowEnd).catch(() => []),
     listAllActiveSubscriptions().catch(() => []),
     listOpenInvoices().catch(() => []),
     getBalance().catch(() => null),
+    buildTankCalendarData(tz).catch(() => null),
   ])
 
   // Resolve customer name + phone from HubSpot for all stops
@@ -82,6 +85,13 @@ export async function getServerSideProps({ req }) {
         hostedUrl: inv.hosted_invoice_url || null,
       })),
       balanceAvailable: balance ? balance.available / 100 : null,
+      tankData: tankData ? {
+        tankCalendar: tankData.tankCalendar,
+        scheduleByDate: tankData.scheduleByDate,
+        expectedDelivery: tankData.expectedDelivery,
+        currentStock: tankData.currentStock,
+        today: tankData.today,
+      } : null,
     },
   }
 }
@@ -169,7 +179,7 @@ function StopCard({ stop, dateStr }) {
   )
 }
 
-export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable }) {
+export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData }) {
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 
@@ -266,6 +276,28 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
             ))}
           </div>
         </section>
+
+        {/* Tank Calendar */}
+        {tankData && (
+          <section style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 14 }}>
+              Tank Calendar
+            </h2>
+            <div className="card">
+              <TankCalendar
+                tankCalendar={tankData.tankCalendar}
+                scheduleByDate={tankData.scheduleByDate}
+                today={tankData.today}
+                currentStock={tankData.currentStock}
+                expectedDelivery={tankData.expectedDelivery}
+                onDayClick={() => { window.location.href = '/admin/inventory' }}
+              />
+              <div style={{ marginTop: 10, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', textAlign: 'right' }}>
+                Click a day to log tanks →
+              </div>
+            </div>
+          </section>
+        )}
 
       </PortalLayout>
     </>

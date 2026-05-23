@@ -213,7 +213,7 @@ export default function QuotePage({ token, accepted }) {
                     </button>
                     {canPay(quote) && !paying && (
                       <div style={{ textAlign: 'center', marginTop: 8, fontSize: '0.75rem', color: 'rgba(212,230,202,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                        <span>🔒</span> Secured by Stripe · Cancel anytime
+                        <span>🔒</span> Secured by Stripe
                       </div>
                     )}
                     {payError && (
@@ -221,9 +221,9 @@ export default function QuotePage({ token, accepted }) {
                         {payError}
                       </div>
                     )}
-                    {quote.recurringTotal > 0 && (quote.oneTimeTotal > 0 || quote.addonLines?.some(l => !l.recurring && l.amount > 0)) && (
+                    {quote.recurringTotal > 0 && (
                       <div style={{ marginTop: 10, fontSize: '0.78rem', color: 'rgba(212,230,202,0.35)', textAlign: 'center' }}>
-                        One-time items will be invoiced after your first service visit.
+                        Monthly recurring items are billed as your first month&apos;s payment. Ongoing invoices are sent after each service visit.
                       </div>
                     )}
                   </div>

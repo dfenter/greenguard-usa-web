@@ -87,8 +87,23 @@ export default async function handler(req, res) {
     }
 
     if (action === 'remove') {
+      // Remove a pending invoice item (not yet on any invoice)
       if (!itemId) return res.status(400).json({ error: 'itemId required' })
       await stripe.invoiceItems.del(itemId)
+      return res.status(200).json({ ok: true })
+    }
+
+    if (action === 'delete-line') {
+      // Remove a line item from a draft invoice
+      if (!invoiceId || !itemId) return res.status(400).json({ error: 'invoiceId and itemId required' })
+      await stripe.invoices.deleteLineItem(invoiceId, itemId)
+      return res.status(200).json({ ok: true })
+    }
+
+    if (action === 'void') {
+      // Void an open invoice
+      if (!invoiceId) return res.status(400).json({ error: 'invoiceId required' })
+      await stripe.invoices.voidInvoice(invoiceId)
       return res.status(200).json({ ok: true })
     }
 

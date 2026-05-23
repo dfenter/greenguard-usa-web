@@ -47,81 +47,42 @@ export default async function handler(req, res) {
   }
 
   try {
-    let sessionConfig
+    // All lines collected as a single payment — no subscriptions.
+    // Ongoing billing is handled manually via the Customer Rounds invoice flow.
+    const allBillableLines = [...recurringLines, ...oneTimeLines]
 
-    if (hasRecurring) {
-      // Subscription mode — sets up monthly billing
-      // If there are also one-time items, they will be invoiced separately on the first service visit
-      const lineItems = recurringLines.map(l => ({
+    const lineItems = allBillableLines.map(l => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: l.label + (l.recurring ? ' (first month)' : ''),
+        },
+        unit_amount: Math.round(l.amount * 100),
+      },
+      quantity: 1,
+    }))
+
+    if (taxAmount > 0) {
+      lineItems.push({
         price_data: {
           currency: 'usd',
-          product_data: { name: l.label },
-          recurring: { interval: 'month' },
-          unit_amount: Math.round(l.amount * 100),
+          product_data: { name: `Tax (${taxRate}%)` },
+          unit_amount: Math.round(taxAmount * 100),
         },
         quantity: 1,
-      }))
+      })
+    }
 
-      // Include tax as a recurring line if present (applies to monthly total)
-      if (taxAmount > 0 && recurringTotal > 0) {
-        const recurringTax = Math.round((recurringTotal / (recurringTotal + oneTimeTotal)) * taxAmount * 100)
-        if (recurringTax > 0) {
-          lineItems.push({
-            price_data: {
-              currency: 'usd',
-              product_data: { name: `Tax (${taxRate}%)` },
-              recurring: { interval: 'month' },
-              unit_amount: recurringTax,
-            },
-            quantity: 1,
-          })
-        }
-      }
-
-      sessionConfig = {
-        mode: 'subscription',
-        line_items: lineItems,
-        subscription_data: {
-          metadata: {
-            source: 'quote',
-            customerAddress: customerAddress || '',
-          },
-        },
-        metadata: {
-          source: 'quote',
-          has_one_time_items: hasOneTime ? 'true' : 'false',
-        },
-        allow_promotion_codes: true,
-        billing_address_collection: 'auto',
-      }
-    } else {
-      // Payment mode — one-time only quote
-      const lineItems = oneTimeLines.map(l => ({
-        price_data: {
-          currency: 'usd',
-          product_data: { name: l.label },
-          unit_amount: Math.round(l.amount * 100),
-        },
-        quantity: 1,
-      }))
-
-      if (taxAmount > 0) {
-        lineItems.push({
-          price_data: {
-            currency: 'usd',
-            product_data: { name: `Tax (${taxRate}%)` },
-            unit_amount: Math.round(taxAmount * 100),
-          },
-          quantity: 1,
-        })
-      }
-
-      sessionConfig = {
-        mode: 'payment',
-        line_items: lineItems,
-        metadata: { source: 'quote' },
-        billing_address_collection: 'auto',
-      }
+    const sessionConfig = {
+      mode: 'payment',
+      line_items: lineItems,
+      metadata: {
+        source: 'quote',
+        customerAddress: customerAddress || '',
+        customerName: customerName || '',
+      },
+      billing_address_collection: 'auto',
+      allow_promotion_codes: true,
     }
 
     // Pre-fill customer email if we have it

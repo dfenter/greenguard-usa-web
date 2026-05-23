@@ -49,11 +49,31 @@ export async function getServerSideProps({ req, query }) {
 
   const p = contact?.properties || {}
   const m = stripeCustomer?.metadata || {}
-  // HubSpot custom properties are source of truth; Stripe metadata is fallback
-  const trapCount = parseInt(p.trap_count || m.trap_count || '0', 10)
+
+  // Infer system type from most recent appointment title when HubSpot property is missing
+  function inferSystemFromTitle(title) {
+    if (!title) return null
+    const t = title.toLowerCase()
+    if (t.includes('mosqitter')) return 'Mosqitter-Grand'
+    if (t.includes('biogents') && t.includes('co2')) return 'Biogents-CO2'
+    if (t.includes('biogents')) return 'Biogents-CO2'
+    return null
+  }
+  function inferTrapCountFromTitle(title) {
+    if (!title) return 0
+    const m = title.match(/(\d+)\s*(trap|unit|mosquitaire)/i)
+    return m ? parseInt(m[1], 10) : 1
+  }
+
+  const lastTitle = past[0]?.title || upcoming[0]?.title || ''
+  const inferredSystem = inferSystemFromTitle(lastTitle)
+  const inferredTrapCount = inferTrapCountFromTitle(lastTitle)
+
+  // HubSpot custom properties are source of truth; appointment title is fallback; Stripe metadata is fallback
+  const trapCount = parseInt(p.trap_count || m.trap_count || '0', 10) || (inferredSystem ? inferredTrapCount : 0)
   const tankCount = parseInt(p.tank_count || m.tank_count || '0', 10)
   const planType = p.plan_type || m.plan_type || null
-  const systemType = p.system_type || m.system_type || null
+  const systemType = p.system_type || m.system_type || inferredSystem || null
   const usesC02 = systemType === 'Biogents-CO2' || systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter' || systemType === 'MQ-RENT'
   const hasTimer = p.has_timer === 'true' && systemType === 'Biogents-CO2'
 
@@ -86,9 +106,15 @@ export async function getServerSideProps({ req, query }) {
       installDate: p.service_start_date || null,
       trapImage: getTrapImage(systemType, trapCount),
       systemLabel: SYSTEM_LABELS[systemType] || systemType || null,
+      systemFromAppointment: !p.system_type && !m.system_type && !!inferredSystem,
+      lastAppointmentTitle: lastTitle || null,
       // co2
       usesC02,
       nextRefillDate,
+      // Tank lifetime in days: Mosqitter 28, Biogents+timer 28, Biogents (no timer) 20
+      tankLifetimeDays: usesC02
+        ? (systemType === 'Biogents-CO2' && !hasTimer ? 20 : 28)
+        : null,
       // billing
       subscription: sub ? {
         status: sub.status,
@@ -152,6 +178,78 @@ const DATE_RANGES = [
   { label: 'All time', months: null },
 ]
 
+// ── System editor ──────────────────────────────────────────────────────────────
+
+function SystemEditor({ systemType, trapCount, hasTimer, onSaved }) {
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ systemType: systemType || 'Biogents-CO2', trapCount: trapCount || 1, hasTimer: !!hasTimer })
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  async function save() {
+    setSaving(true); setMsg(null)
+    try {
+      const res = await fetch('/api/customer/update-system', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Save failed')
+      setMsg('Saved ✓')
+      setEditing(false)
+      setTimeout(() => { onSaved && onSaved(); window.location.reload() }, 500)
+    } catch (e) { setMsg(e.message) }
+    setSaving(false)
+  }
+
+  if (!editing) {
+    return (
+      <button onClick={() => setEditing(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(125,255,170,0.7)', fontSize: '0.75rem', fontWeight: 700, padding: '4px 0', fontFamily: 'Nunito Sans, sans-serif' }}>
+        ✎ Edit my system
+      </button>
+    )
+  }
+
+  const inp = { padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }
+  return (
+    <div style={{ marginTop: 10, padding: 14, borderRadius: 8, background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.18)' }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 10 }}>Edit your system</div>
+      <div style={{ display: 'grid', gap: 10 }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700 }}>
+          Trap type
+          <select value={form.systemType} onChange={(e) => setForm((f) => ({ ...f, systemType: e.target.value }))} style={inp}>
+            <option value="Biogents-CO2">Biogents CO₂ Trap</option>
+            <option value="Biogents-NonCO2">Biogents (Non-CO₂)</option>
+            <option value="Mosqitter-Grand">Mosqitter Grand</option>
+          </select>
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700 }}>
+          Number of traps
+          <input type="number" min="1" max="10" value={form.trapCount} onChange={(e) => setForm((f) => ({ ...f, trapCount: parseInt(e.target.value, 10) || 1 }))} style={inp} />
+        </label>
+        {form.systemType === 'Biogents-CO2' && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: 'rgba(212,230,202,0.8)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.hasTimer} onChange={(e) => setForm((f) => ({ ...f, hasTimer: e.target.checked }))} style={{ width: 16, height: 16 }} />
+            I have a timer installed
+          </label>
+        )}
+        <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', fontStyle: 'italic' }}>
+          This updates how we show your tank level only. It will not change your billing or scheduled visits.
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={save} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 6, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          <button onClick={() => { setEditing(false); setMsg(null) }} style={{ padding: '9px 16px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', cursor: 'pointer', background: 'transparent', color: 'rgba(212,230,202,0.6)', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+            Cancel
+          </button>
+        </div>
+        {msg && <div style={{ fontSize: '0.78rem', color: msg.startsWith('Saved') ? '#7dffaa' : '#ff8080', fontWeight: 700 }}>{msg}</div>}
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 function CustomerMediaUpload({ email }) {
@@ -194,7 +292,7 @@ function CustomerMediaUpload({ email }) {
       </p>
       <input style={inp} placeholder="Optional caption or description…" value={caption} onChange={(e) => setCaption(e.target.value)} />
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <input ref={fileRef} type="file" accept="image/*,video/*" capture="environment" style={{ display: 'none' }} onChange={handleFile} />
+        <input ref={fileRef} type="file" accept="image/*,video/*"  style={{ display: 'none' }} onChange={handleFile} />
         <button onClick={() => { fileRef.current.accept='image/*'; fileRef.current?.click() }} disabled={uploading} style={btnStyle('#7dffaa')}>📷 Photo</button>
         <button onClick={() => { fileRef.current.accept='video/*'; fileRef.current?.click() }} disabled={uploading} style={btnStyle('#5bc4ff')}>
           {uploading ? 'Uploading…' : '🎥 Video'}
@@ -217,7 +315,7 @@ export default function CustomerOverview({
   email, name,
   nextBooking, prevBooking,
   systemType, trapCount, tankCount, hasTimer, customerType, installDate, trapImage, systemLabel,
-  usesC02, nextRefillDate,
+  usesC02, nextRefillDate, systemFromAppointment, lastAppointmentTitle, tankLifetimeDays,
   subscription, invoices,
 }) {
   const [dateRange, setDateRange] = useState(6)
@@ -277,7 +375,7 @@ export default function CustomerOverview({
         </div>
 
         <a
-          href={`mailto:hello@greenguard-usa.com?subject=Service Visit Request&body=Hi GreenGuard team,%0A%0AI'd like to request a service visit.%0A%0AAccount email: ${encodeURIComponent(email)}`}
+          href={`mailto:admin@greenguard-usa.com?subject=Service Visit Request&body=Hi GreenGuard team,%0A%0AI'd like to request a service visit.%0A%0AAccount email: ${encodeURIComponent(email)}`}
           style={{
             display: 'inline-block', marginBottom: 8,
             padding: '10px 22px', borderRadius: 6,
@@ -306,9 +404,14 @@ export default function CustomerOverview({
             </div>
           )}
           <div className="card" style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 12 }}>
+            <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 6 }}>
               {systemLabel || 'System details loading'}
             </div>
+            {systemFromAppointment && lastAppointmentTitle && (
+              <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', marginBottom: 10, lineHeight: 1.4 }}>
+                Based on your last appointment: {lastAppointmentTitle}
+              </div>
+            )}
             {customerType && (
               <div style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, background: 'rgba(125,255,170,0.1)', color: '#7dffaa', fontSize: '0.72rem', fontWeight: 800, marginBottom: 14 }}>
                 {customerType === 'rental' ? 'Rental' : 'Owned'}
@@ -327,10 +430,13 @@ export default function CustomerOverview({
                 Service since {new Date(installDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </div>
             )}
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
+              <SystemEditor systemType={systemType} trapCount={trapCount} hasTimer={hasTimer} />
+            </div>
           </div>
         </div>
         <a
-          href={`mailto:hello@greenguard-usa.com?subject=Equipment Upgrade Request&body=Hi GreenGuard team,%0A%0AI'd like to request additional equipment or an upgrade to my system.%0A%0AAccount email: ${encodeURIComponent(email)}`}
+          href={`mailto:admin@greenguard-usa.com?subject=Equipment Upgrade Request&body=Hi GreenGuard team,%0A%0AI'd like to request additional equipment or an upgrade to my system.%0A%0AAccount email: ${encodeURIComponent(email)}`}
           style={{
             display: 'inline-block', marginBottom: 8,
             padding: '10px 22px', borderRadius: 6,
@@ -342,34 +448,43 @@ export default function CustomerOverview({
           Request Equipment Upgrade →
         </a>
 
-        {/* ── CO₂ Status ── */}
-        {usesC02 && (
-          <>
-            {DIVIDER}
-            {SECTION_LABEL('CO₂ Status: Current Tank Level')}
-            <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', maxWidth: 600, marginBottom: 8 }}>
-              <div className="card">
-                <span className="tag">Tanks in Field</span>
-                <div style={{ fontSize: '2.2rem', fontWeight: 900, lineHeight: 1 }}>{tankCount}</div>
-                <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.45)', marginTop: 6 }}>× 20 lb canisters</div>
-              </div>
-              <div className="card">
-                <span className="tag">Monthly Usage</span>
-                <div style={{ fontSize: '2.2rem', fontWeight: 900, lineHeight: 1 }}>{trapCount}</div>
-                <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.45)', marginTop: 6 }}>
-                  tank{trapCount !== 1 ? 's' : ''}/month
+        {/* ── CO₂ Status — current tank level only ── */}
+        {usesC02 && tankLifetimeDays && (() => {
+          const baseDate = prevBooking?.startTime ? new Date(prevBooking.startTime) : (installDate ? new Date(installDate) : null)
+          if (!baseDate) return null
+          const daysSince = Math.max(0, Math.floor((Date.now() - baseDate.getTime()) / 86400000))
+          const remainingDays = Math.max(0, tankLifetimeDays - daysSince)
+          const pct = Math.max(0, Math.min(100, Math.round((remainingDays / tankLifetimeDays) * 100)))
+          const color = pct > 50 ? '#7dffaa' : pct > 20 ? '#c9a84c' : '#ff8080'
+          const lifetimeNote = systemType === 'Biogents-CO2'
+            ? (hasTimer ? 'Biogents with timer · 28-day tank' : 'Biogents without timer · 20-day tank')
+            : 'Mosqitter Grand · 28-day tank'
+          return (
+            <>
+              {DIVIDER}
+              {SECTION_LABEL('Current Tank Level')}
+              <div className="card" style={{ maxWidth: 600, marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                  <span style={{ fontSize: '2.6rem', fontWeight: 900, lineHeight: 1, color }}>{pct}%</span>
+                  <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)', fontWeight: 700 }}>
+                    ~{remainingDays} day{remainingDays !== 1 ? 's' : ''} left
+                  </span>
                 </div>
-              </div>
-              {nextRefillDate && (
-                <div className="card">
-                  <span className="tag">Est. Next Refill</span>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800 }}>{fmtDate(nextRefillDate)}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', marginTop: 6 }}>Approximate</div>
+                <div style={{ height: 10, borderRadius: 6, background: 'rgba(212,230,202,0.08)', overflow: 'hidden', marginBottom: 10 }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width 0.4s ease' }} />
                 </div>
-              )}
-            </div>
-          </>
-        )}
+                <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
+                  {lifetimeNote} · last service {fmtDate(baseDate.toISOString())}
+                </div>
+                {pct <= 20 && (
+                  <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 6, background: 'rgba(255,128,128,0.08)', border: '1px solid rgba(255,128,128,0.25)', fontSize: '0.82rem', color: '#ff8080', fontWeight: 700 }}>
+                    Time to schedule your next refill.
+                  </div>
+                )}
+              </div>
+            </>
+          )
+        })()}
 
         {DIVIDER}
 
@@ -472,7 +587,7 @@ export default function CustomerOverview({
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
           {nextBooking && (
             <a
-              href={`mailto:hello@greenguard-usa.com?subject=Reschedule Request&body=Hi, I'd like to reschedule my upcoming visit on ${fmtDate(nextBooking.startTime)}.%0A%0AAccount: ${encodeURIComponent(email)}`}
+              href={`mailto:admin@greenguard-usa.com?subject=Reschedule Request&body=Hi, I'd like to reschedule my upcoming visit on ${fmtDate(nextBooking.startTime)}.%0A%0AAccount: ${encodeURIComponent(email)}`}
               style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', color: '#7aab82', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
             >
               Reschedule Upcoming Visit
@@ -480,7 +595,7 @@ export default function CustomerOverview({
           )}
           {subscription && (
             <a
-              href={`mailto:hello@greenguard-usa.com?subject=Service Pause Request&body=Hi, I'd like to pause my GreenGuard service temporarily.%0A%0AAccount: ${encodeURIComponent(email)}`}
+              href={`mailto:admin@greenguard-usa.com?subject=Service Pause Request&body=Hi, I'd like to pause my GreenGuard service temporarily.%0A%0AAccount: ${encodeURIComponent(email)}`}
               style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.3)', color: '#c9a84c', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
             >
               Pause Service
@@ -514,8 +629,8 @@ export default function CustomerOverview({
         </div>
 
         <div style={{ marginTop: 24 }}>
-          <a href="mailto:hello@greenguard-usa.com" style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.4)' }}>
-            Questions? Email hello@greenguard-usa.com
+          <a href="mailto:admin@greenguard-usa.com" style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.4)' }}>
+            Questions? Email admin@greenguard-usa.com
           </a>
         </div>
       </PortalLayout>

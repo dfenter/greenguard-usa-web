@@ -150,10 +150,17 @@ async function getAllContacts(limit = 200) {
   const results = []
   let after = undefined
   const properties = ['email', 'firstname', 'lastname', 'phone', 'address', 'system_type', 'plan_type', 'trap_count']
+  const pageSize = Math.min(100, limit)
   do {
-    const page = await client.crm.contacts.basicApi.getPage(limit > 100 ? 100 : limit, after, properties)
-    results.push(...(page.results || []))
-    after = page.paging?.next?.after
+    const params = new URLSearchParams({ limit: pageSize, properties: properties.join(',') })
+    if (after) params.set('after', after)
+    const res = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts?${params}`, {
+      headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` },
+    })
+    if (!res.ok) break
+    const data = await res.json()
+    results.push(...(data.results || []))
+    after = data.paging?.next?.after
     if (results.length >= limit) break
   } while (after)
   return results

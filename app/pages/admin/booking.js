@@ -7,6 +7,7 @@ import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 export async function getServerSideProps({ req }) {
+  return { redirect: { destination: '/admin/quote', permanent: false } }
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }

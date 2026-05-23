@@ -7,6 +7,7 @@ import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings } from '../../lib/gcal'
 import { findContactByEmail } from '../../lib/hubspot'
 import { listAllCustomers } from '../../lib/stripe'
+import { getBookingsForEmail } from '../../lib/calcom'
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -55,13 +56,22 @@ export async function getServerSideProps({ req }) {
     }
   }
 
-  // Resolve customer names from HubSpot + Stripe for all stops
+  // Resolve names, tanks, and Cal.com UIDs for all stops
   if (routePlan) {
     const allEmails = [...new Set(
       (routePlan.days || []).flatMap(d => (d.stops || []).map(s => s.email).filter(Boolean))
     )]
+    const allDates = [...new Set(
+      (routePlan.days || []).map(d => d.date).filter(Boolean)
+    )]
+
     const hubspotNameByEmail = {}
     const stripeNameByEmail = {}
+
+    // Fetch Cal.com bookings for each email — one call covers all upcoming dates
+    const calBookingsByEmail = {}
+    const earliestDate = allDates.sort()[0] || today
+
     await Promise.all([
       listAllCustomers().then(cs => cs.forEach(c => {
         if (c.email && c.name) stripeNameByEmail[c.email.toLowerCase()] = c.name
@@ -73,9 +83,15 @@ export async function getServerSideProps({ req }) {
           if (full) hubspotNameByEmail[email.toLowerCase()] = full
           const tanks = parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null
           if (tanks) hubspotNameByEmail[email.toLowerCase() + '__tanks'] = tanks
-        }).catch(() => {})
+        }).catch(() => {}),
+      ),
+      ...allEmails.map(email =>
+        getBookingsForEmail(email, new Date(earliestDate + 'T00:00:00-06:00').toISOString())
+          .then(bookings => { calBookingsByEmail[email.toLowerCase()] = Array.isArray(bookings) ? bookings : [] })
+          .catch(() => { calBookingsByEmail[email.toLowerCase()] = [] })
       ),
     ])
+
     routePlan = {
       ...routePlan,
       days: (routePlan.days || []).map(day => ({
@@ -84,7 +100,24 @@ export async function getServerSideProps({ req }) {
           const key = stop.email?.toLowerCase()
           const resolvedName = hubspotNameByEmail[key] || stripeNameByEmail[key] || stop.customer_name || stop.name
           const tanks = hubspotNameByEmail[key + '__tanks'] || null
-          return { ...stop, customer_name: resolvedName, tanks }
+
+          // Match Cal.com booking by same date (CT), pick closest time
+          let calBookingUid = stop.cal_booking_uid || null
+          let calBookingId = stop.cal_booking_id || null
+          if (!calBookingUid && key) {
+            const candidates = (calBookingsByEmail[key] || []).filter(cb => {
+              if (cb.status === 'CANCELLED' || cb.status === 'cancelled') return false
+              const cbDate = new Date(cb.startTime).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+              return cbDate === day.date
+            })
+            const match = candidates.sort((a, b) =>
+              Math.abs(new Date(a.startTime) - new Date(stop.scheduled_time || a.startTime)) -
+              Math.abs(new Date(b.startTime) - new Date(stop.scheduled_time || b.startTime))
+            )[0]
+            if (match) { calBookingUid = match.uid; calBookingId = match.id }
+          }
+
+          return { ...stop, customer_name: resolvedName, tanks, cal_booking_uid: calBookingUid, cal_booking_id: calBookingId }
         }),
       })),
     }
@@ -114,6 +147,76 @@ function formatTime(iso) {
   try {
     return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' })
   } catch { return null }
+}
+
+function RouteCalendar({ days, selectedDay, setSelectedDay, today }) {
+  const [viewMonth, setViewMonth] = useState(() => {
+    const ref = days[selectedDay]?.date || today
+    const d = new Date(ref + 'T12:00:00')
+    return { year: d.getFullYear(), month: d.getMonth() }
+  })
+
+  const { year, month } = viewMonth
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const monthLabel = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+  // Map date strings to day indices
+  const dateToIdx = {}
+  days.forEach((d, i) => { dateToIdx[d.date] = i })
+
+  const cells = []
+  for (let i = 0; i < firstDay; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+
+  const pad = (n) => String(n).padStart(2, '0')
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      {/* Month nav */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+        <button onClick={() => setViewMonth(({ year, month }) => month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 })}
+          style={{ background: 'none', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#7aab82', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Nunito Sans, sans-serif', fontSize: '1rem' }}>‹</button>
+        <div style={{ fontWeight: 800, fontSize: '0.95rem', flex: 1, textAlign: 'center' }}>{monthLabel}</div>
+        <button onClick={() => setViewMonth(({ year, month }) => month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 })}
+          style={{ background: 'none', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#7aab82', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Nunito Sans, sans-serif', fontSize: '1rem' }}>›</button>
+      </div>
+
+      {/* Day labels */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3, marginBottom: 3 }}>
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: '0.68rem', fontWeight: 800, color: 'rgba(212,230,202,0.35)', padding: '4px 0' }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3 }}>
+        {cells.map((d, i) => {
+          if (!d) return <div key={`e${i}`} />
+          const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`
+          const hasStops = dateStr in dateToIdx
+          const isSelected = hasStops && dateToIdx[dateStr] === selectedDay
+          const isToday = dateStr === today
+          const stopCount = hasStops ? (days[dateToIdx[dateStr]].stops?.length || 0) : 0
+          return (
+            <div key={dateStr}
+              onClick={() => hasStops && setSelectedDay(dateToIdx[dateStr])}
+              style={{
+                borderRadius: 8, padding: '8px 4px 6px', textAlign: 'center',
+                cursor: hasStops ? 'pointer' : 'default',
+                background: isSelected ? '#7dffaa' : hasStops ? 'rgba(125,255,170,0.08)' : 'transparent',
+                border: isToday ? '2px solid rgba(201,168,76,0.5)' : `1px solid ${hasStops ? 'rgba(125,255,170,0.2)' : 'rgba(122,171,130,0.08)'}`,
+                transition: 'all 0.12s',
+              }}
+            >
+              <div style={{ fontWeight: isSelected ? 900 : 700, fontSize: '0.88rem', color: isSelected ? '#0d1a10' : hasStops ? '#d4e6ca' : 'rgba(212,230,202,0.3)' }}>{d}</div>
+              {hasStops && <div style={{ fontSize: '0.62rem', fontWeight: 800, marginTop: 2, color: isSelected ? '#0d1a10' : '#7dffaa' }}>{stopCount} stop{stopCount !== 1 ? 's' : ''}</div>}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export default function RoutePage({ routePlan, today }) {
@@ -200,16 +303,8 @@ export default function RoutePage({ routePlan, today }) {
               </span>
             </div>
 
-            {/* Day tabs */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-              {days.map((d, i) => (
-                <button key={d.date} onClick={() => setSelectedDay(i)} className="day-tab"
-                  style={{ background: selectedDay === i ? '#7dffaa' : 'rgba(122,171,130,0.1)', color: selectedDay === i ? '#0d1a10' : 'rgba(212,230,202,0.7)' }}>
-                  {new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  {d.date === today && <span style={{ marginLeft: 6, fontSize: '0.7rem', opacity: 0.7 }}>TODAY</span>}
-                </button>
-              ))}
-            </div>
+            {/* Calendar date picker */}
+            <RouteCalendar days={days} selectedDay={selectedDay} setSelectedDay={setSelectedDay} today={today} />
 
             {day && (
               <>

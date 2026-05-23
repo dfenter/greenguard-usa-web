@@ -26,7 +26,7 @@ export async function getServerSideProps({ req }) {
     getBookingsForDateRange(tomorrowStart, tomorrowEnd).catch(() => []),
   ])
 
-  // Look up phone + customer name from HubSpot for today's stops
+  // Look up name/phone/email/tanks from HubSpot — use GCal phone/name as primary for Cal.com events
   const allEmails = [...new Set([...todayStops, ...tomorrowStops].map(s => s.email).filter(Boolean))]
   const contactMap = {}
   await Promise.all(allEmails.map(async (email) => {
@@ -42,16 +42,20 @@ export async function getServerSideProps({ req }) {
 
   function serializeStop(s) {
     const info = contactMap[s.email?.toLowerCase()] || {}
+    // Cal.com events have customerName and phone in the GCal event; Acuity has email in description
+    const resolvedName = info.name || s.customerName || s.name || s.title || ''
+    const resolvedPhone = info.phone || s.phone || ''
     return {
       id: s.id || null,
-      title: info.name || s.title || '',
+      title: resolvedName,
       serviceType: s.title || '',
       startTime: s.startTime || null,
       endTime: s.endTime || null,
       address: s.address || '',
       email: s.email || '',
-      phone: info.phone || '',
+      phone: resolvedPhone,
       tanks: info.tanks || null,
+      rescheduleUrl: s.rescheduleUrl || null,
     }
   }
 
@@ -77,95 +81,37 @@ function fmtDayLabel(dateStr) {
 }
 
 function StopCard({ stop, index, dateStr }) {
-  const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email)}`
-  const mapsUrl = stop.address
-    ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}`
-    : null
+  const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email || '')}`
+  const mapsUrl = stop.address ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}` : null
+  const B = (bg, fg, border) => ({
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 96, padding: '8px 0', borderRadius: 6, fontWeight: 800,
+    fontSize: '0.8rem', textDecoration: 'none', minHeight: 38,
+    background: bg, color: fg, border: border || 'none',
+  })
 
   return (
-    <div style={{
-      background: 'rgba(26,46,31,0.7)',
-      border: '1px solid rgba(122,171,130,0.2)',
-      borderRadius: 12,
-      padding: '18px 20px',
-      marginBottom: 12,
-      display: 'flex',
-      gap: 16,
-      alignItems: 'flex-start',
-    }}>
+    <div style={{ background: 'rgba(26,46,31,0.7)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 12, padding: '16px 18px', marginBottom: 12, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
       {/* Stop number */}
-      <div style={{
-        width: 36, height: 36, borderRadius: '50%',
-        background: 'rgba(201,168,76,0.18)', border: '2px solid rgba(201,168,76,0.4)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontWeight: 900, fontSize: '0.95rem', color: '#c9a84c', flexShrink: 0,
-      }}>
+      <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(201,168,76,0.18)', border: '2px solid rgba(201,168,76,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', color: '#c9a84c', flexShrink: 0, marginTop: 2 }}>
         {index + 1}
       </div>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 2 }}>{stop.title || 'Service Visit'}</div>
-        {stop.serviceType && (
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c9a84c', marginBottom: 4 }}>{stop.serviceType}</div>
-        )}
+        {stop.serviceType && <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#c9a84c', marginBottom: 3 }}>{stop.serviceType}</div>}
+        {stop.startTime && <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.55)', fontWeight: 700, marginBottom: 3 }}>{fmtTime(stop.startTime)}{stop.endTime ? ` – ${fmtTime(stop.endTime)}` : ''}</div>}
+        {stop.address && <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.5)', marginBottom: 3, lineHeight: 1.4 }}>📍 {stop.address}</div>}
+        {stop.tanks > 0 && <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#7dffaa' }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</div>}
+      </div>
 
-        {stop.startTime && (
-          <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.55)', fontWeight: 700, marginBottom: 4 }}>
-            {fmtTime(stop.startTime)}{stop.endTime ? ` – ${fmtTime(stop.endTime)}` : ''}
-          </div>
-        )}
-
-        {stop.address && (
-          <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.55)', marginBottom: 4, lineHeight: 1.4 }}>
-            📍 {stop.address}
-          </div>
-        )}
-
-        {stop.tanks > 0 && (
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 8 }}>
-            🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {stop.email && (
-            <Link href={roundsUrl} style={{
-              display: 'inline-flex', alignItems: 'center',
-              padding: '9px 16px', borderRadius: 6,
-              background: '#c9a84c', color: '#0d1a10',
-              fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none',
-              minHeight: 44,
-            }}>
-              Open Rounds
-            </Link>
-          )}
-
-          {mapsUrl && (
-            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{
-              display: 'inline-flex', alignItems: 'center',
-              padding: '9px 16px', borderRadius: 6,
-              background: 'rgba(125,255,170,0.12)', border: '1px solid rgba(125,255,170,0.25)',
-              color: '#7dffaa', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none',
-              minHeight: 44,
-            }}>
-              Navigate
-            </a>
-          )}
-
-          {stop.phone && (
-            <a href={`sms:${stop.phone.replace(/[^\d+]/g, '')}`} style={{
-              display: 'inline-flex', alignItems: 'center',
-              padding: '9px 16px', borderRadius: 6,
-              background: 'rgba(91,196,255,0.1)', border: '1px solid rgba(91,196,255,0.2)',
-              color: '#5bc4ff', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none',
-              minHeight: 44,
-            }}>
-              💬 Text
-            </a>
-          )}
-        </div>
+      {/* Buttons — docked right, uniform width */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+        {stop.email && <Link href={roundsUrl} style={B('#c9a84c', '#0d1a10')}>Rounds</Link>}
+        {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={B('rgba(125,255,170,0.12)', '#7dffaa', '1px solid rgba(125,255,170,0.25)')}>Navigate</a>}
+        {stop.phone && <a href={`sms:${stop.phone.replace(/[^\d+]/g, '')}`} style={B('rgba(91,196,255,0.1)', '#5bc4ff', '1px solid rgba(91,196,255,0.2)')}>💬 Text</a>}
+        {stop.rescheduleUrl && <a href={stop.rescheduleUrl} target="_blank" rel="noopener noreferrer" style={B('rgba(125,170,255,0.1)', '#7aabff', '1px solid rgba(125,170,255,0.2)')}>Reschedule</a>}
       </div>
     </div>
   )

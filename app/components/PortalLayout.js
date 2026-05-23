@@ -79,8 +79,8 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
         </div>
       </nav>
 
-      {/* Page content */}
-      <main style={{ flex: 1, maxWidth: 1100, margin: '0 auto', padding: '40px 24px', width: '100%' }}>
+      {/* Page content — extra bottom padding when admin so dock doesn't overlap */}
+      <main style={{ flex: 1, maxWidth: 1100, margin: '0 auto', padding: isAdmin ? '40px 24px 100px' : '40px 24px', width: '100%' }}>
         {title && (
           <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 32 }}>
             {title}

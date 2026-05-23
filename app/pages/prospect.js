@@ -84,7 +84,7 @@ export default function ProspectPage({ email, name }) {
             </p>
             <a href="tel:+15125604129" style={{ fontWeight: 900, fontSize: '1.1rem', color: '#7dffaa', textDecoration: 'none' }}>512-560-4129</a>
             <div style={{ marginTop: 6, fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>
-              <a href="mailto:hello@greenguard-usa.com" style={{ color: 'rgba(212,230,202,0.35)', textDecoration: 'none' }}>hello@greenguard-usa.com</a>
+              <a href="mailto:admin@greenguard-usa.com" style={{ color: 'rgba(212,230,202,0.35)', textDecoration: 'none' }}>admin@greenguard-usa.com</a>
             </div>
           </div>
         </div>
