@@ -114,12 +114,14 @@ else
   fi
 fi
 
-# Cal.com webhook endpoint must reject GET (returns 405)
-STATUS=$(http_status "https://portal.greenguard-usa.com/api/webhooks/calcom")
-if [[ "$STATUS" == "405" ]]; then
-  ok "Cal.com webhook endpoint rejects GET → $STATUS"
+# Cal.com webhook endpoint was removed — bookings sync via Google Calendar.
+# Twilio webhook accepts POST and returns 200 even on empty bodies.
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+  -X POST "https://portal.greenguard-usa.com/api/webhooks/twilio" -d "From=ping&Body=ping")
+if [[ "$STATUS" == "200" ]]; then
+  ok "Twilio inbound webhook reachable → $STATUS"
 else
-  fail "Cal.com webhook endpoint → $STATUS (expected 405)"
+  fail "Twilio inbound webhook → $STATUS (expected 200)"
 fi
 
 # ── 5. HubSpot ────────────────────────────────────────────────────────────────
