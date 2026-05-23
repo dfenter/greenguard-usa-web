@@ -45,9 +45,24 @@ export async function getServerSideProps({ req, query }) {
     try {
       const bookings = selectedDate === today ? await getTodaysBookings() : await getBookingsForDate(selectedDate)
       stops = bookings.map((b) => ({
-        customerName: b.name || 'Customer', serviceType: b.title || '',
+        customerName: b.customerName || b.name || 'Customer',
+        serviceType: b.title || '',
         address: b.address || '', email: b.email || '',
         startTime: b.startTime, durationMin: null, propertySize: b.propertySize || '',
+        rescheduleUrl: b.rescheduleUrl || null,
+      }))
+    } catch {}
+  } else {
+    // Route plan stops don't carry rescheduleUrl — fetch GCal to back-fill it
+    try {
+      const bookings = selectedDate === today ? await getTodaysBookings() : await getBookingsForDate(selectedDate)
+      const gcalRescheduleByEmail = {}
+      bookings.forEach((b) => {
+        if (b.email && b.rescheduleUrl) gcalRescheduleByEmail[b.email.toLowerCase()] = b.rescheduleUrl
+      })
+      stops = stops.map((s) => ({
+        ...s,
+        rescheduleUrl: s.rescheduleUrl || gcalRescheduleByEmail[s.email?.toLowerCase()] || null,
       }))
     } catch {}
   }
@@ -77,36 +92,51 @@ export async function getServerSideProps({ req, query }) {
     ])
   }
 
-  // Match Cal.com booking IDs to stops by email + time (5-min tolerance)
+  // Match Cal.com booking UIDs to stops — match by same date (not exact time)
+  // Cal.com and Google Calendar can differ by hours due to timezone handling
   if (stops.length > 0) {
     const uniqueEmails = [...new Set(stops.map((s) => s.email).filter(Boolean))]
     const calBookingsByEmail = {}
     await Promise.all(uniqueEmails.map(async (email) => {
       try {
-        const result = await getBookingsForEmail(email, new Date(selectedDate + 'T00:00:00').toISOString())
+        // Fetch from start of the selected date
+        const afterStart = new Date(selectedDate + 'T00:00:00-06:00').toISOString()
+        const result = await getBookingsForEmail(email, afterStart)
         calBookingsByEmail[email] = Array.isArray(result) ? result : []
       } catch {}
     }))
     stops = stops.map((stop) => {
-      if (!stop.email || !stop.startTime) return stop
-      const candidates = calBookingsByEmail[stop.email] || []
-      const match = candidates.find((cb) =>
-        Math.abs(new Date(cb.startTime) - new Date(stop.startTime)) < 300000
-      )
-      // Priority: Cal.com name → HubSpot → Stripe → original
       const emailKey = stop.email?.toLowerCase()
+      const candidates = calBookingsByEmail[stop.email] || []
+
+      // Match: same date in CT, status not cancelled — closest time wins
+      const sameDay = candidates.filter((cb) => {
+        if (cb.status === 'CANCELLED' || cb.status === 'cancelled') return false
+        const cbDate = new Date(cb.startTime).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+        return cbDate === selectedDate
+      })
+      const match = sameDay.length === 1
+        ? sameDay[0]
+        : sameDay.sort((a, b) =>
+            Math.abs(new Date(a.startTime) - new Date(stop.startTime || a.startTime)) -
+            Math.abs(new Date(b.startTime) - new Date(stop.startTime || b.startTime))
+          )[0] || null
+
       const calName = match
         ? (match.responses?.name || match.title?.match(/and\s+(.+)$/)?.[1]?.trim() || null)
         : null
-      const resolvedName = calName
-        || hubspotNameByEmail[emailKey]
-        || stripeNameByEmail[emailKey]
-        || stop.customerName
+      const resolvedName = calName || hubspotNameByEmail[emailKey] || stripeNameByEmail[emailKey] || stop.customerName
       const tanks = hubspotNameByEmail[emailKey + '__tanks'] || null
       const serviceType = stop.serviceType || stop.customerName || ''
-      return match
-        ? { ...stop, calBookingId: match.id, calBookingUid: match.uid, customerName: resolvedName, serviceType, tanks }
-        : { ...stop, customerName: resolvedName, serviceType, tanks }
+
+      return {
+        ...stop,
+        customerName: resolvedName,
+        serviceType,
+        tanks,
+        rescheduleUrl: stop.rescheduleUrl || null,
+        ...(match ? { calBookingId: match.id, calBookingUid: match.uid } : {}),
+      }
     })
   }
 
@@ -662,39 +692,39 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
       )}
       <div style={{ ...card, opacity: state.status === 'cancelled' ? 0.45 : isDone ? 0.7 : 1 }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: isDone ? 'rgba(125,255,170,0.15)' : isActive ? 'rgba(201,168,76,0.15)' : 'rgba(122,171,130,0.1)', color: isDone ? '#7dffaa' : isActive ? '#c9a84c' : 'rgba(212,230,202,0.5)' }}>
-                {isDone ? '✓' : idx + 1}
-              </span>
-              <span style={{ fontWeight: 900, fontSize: '1rem' }}>{stop.customerName}</span>
-              {isDone && state.grandTotal > 0 && (
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7dffaa' }}>{fmt$(state.grandTotal)}</span>
-              )}
-            </div>
-            <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 14px', fontSize: '0.8rem' }}>
-              {stop.startTime && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{fmtTime(stop.startTime)}</span>}
-              {stop.serviceType && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{stop.serviceType}</span>}
-              {stop.address && <span style={{ color: 'rgba(212,230,202,0.5)' }}>📍 {stop.address}</span>}
-              {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
-            </div>
-            {(state.checkIn || state.checkOut) && (
-              <div style={{ paddingLeft: 36, marginTop: 3, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', display: 'flex', gap: 14 }}>
-                {state.checkIn && <span>In: <strong>{state.checkIn}</strong></span>}
-                {state.checkOut && <span>Out: <strong style={{ color: '#7dffaa' }}>{state.checkOut}</strong></span>}
-              </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: isDone ? 'rgba(125,255,170,0.15)' : isActive ? 'rgba(201,168,76,0.15)' : 'rgba(122,171,130,0.1)', color: isDone ? '#7dffaa' : isActive ? '#c9a84c' : 'rgba(212,230,202,0.5)', flexShrink: 0 }}>
+              {isDone ? '✓' : idx + 1}
+            </span>
+            <span style={{ fontWeight: 900, fontSize: '1rem' }}>{stop.customerName}</span>
+            {isDone && state.grandTotal > 0 && (
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7dffaa' }}>{fmt$(state.grandTotal)}</span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 14px', fontSize: '0.8rem', marginBottom: 4 }}>
+            {stop.startTime && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{fmtTime(stop.startTime)}</span>}
+            {stop.serviceType && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{stop.serviceType}</span>}
+            {stop.address && <span style={{ color: 'rgba(212,230,202,0.5)' }}>📍 {stop.address}</span>}
+            {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
+          </div>
+          {(state.checkIn || state.checkOut) && (
+            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', display: 'flex', gap: 14 }}>
+              {state.checkIn && <span>In: <strong>{state.checkIn}</strong></span>}
+              {state.checkOut && <span>Out: <strong style={{ color: '#7dffaa' }}>{state.checkOut}</strong></span>}
+            </div>
+          )}
+
+          {/* Button row — full width, wraps on narrow screens */}
+          <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
             {stop.address && (
               <a href={`https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}`} target="_blank" rel="noopener noreferrer"
-                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(122,171,130,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#7aab82', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(122,171,130,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#7aab82', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Navigate
               </a>
             )}
-            {state.status !== 'cancelled' && state.status !== 'done' && stop.calBookingUid && (
-              <a href={`https://cal.com/reschedule/${stop.calBookingUid}`} target="_blank" rel="noopener noreferrer"
+            {state.status !== 'cancelled' && state.status !== 'done' && (stop.rescheduleUrl || stop.calBookingUid) ? (
+              <a href={stop.rescheduleUrl || `https://cal.com/reschedule/${stop.calBookingUid}`} target="_blank" rel="noopener noreferrer"
                 onClick={async () => {
                   if (stop.calBookingId && stop.email) {
                     await fetch('/api/admin/cancel-booking', {
@@ -704,36 +734,40 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                     }).catch(() => {})
                   }
                 }}
-                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(91,196,255,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#5bc4ff', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(91,196,255,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#5bc4ff', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Reschedule
               </a>
-            )}
+            ) : state.status !== 'cancelled' && state.status !== 'done' ? (
+              <button disabled style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(91,196,255,0.15)', fontSize: '0.78rem', fontWeight: 700, color: 'rgba(91,196,255,0.4)', cursor: 'not-allowed', minHeight: 34, display: 'inline-flex', alignItems: 'center', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent' }}>
+                Reschedule
+              </button>
+            ) : null}
             {state.status !== 'cancelled' && state.status !== 'done' && (
               <button onClick={() => setShowCancel(true)}
-                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(255,100,100,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent', color: '#ff8080', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(255,100,100,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent', color: '#ff8080', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Cancel
               </button>
             )}
             {state.status === 'pending' && (
               <button onClick={() => onUpdate({ status: 'active', checkIn: nowStr() })}
-                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: '#c9a84c', color: '#0d1a10', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: '#c9a84c', color: '#0d1a10', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Check In
               </button>
             )}
             {isDone && state.invoiceUrl && (
               <a href={state.invoiceUrl} target="_blank" rel="noopener noreferrer"
-                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Invoice
               </a>
             )}
             {isDone && !state.invoiceUrl && stop.email && (
               <Link href={`/admin/invoice?email=${encodeURIComponent(stop.email)}`}
-                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Invoice
               </Link>
             )}
             {state.status === 'cancelled' && (
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ff8080', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Cancelled</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ff8080', textTransform: 'uppercase', letterSpacing: '0.08em', alignSelf: 'center' }}>Cancelled</span>
             )}
           </div>
         </div>
