@@ -239,11 +239,11 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
               )}
 
               <div style={section}>Equipment Counts</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px', marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 12px', marginBottom: 14 }}>
                 {EQUIPMENT_ITEMS.map((item) => (
-                  <div key={item.key}>
-                    <label style={{ ...lbl, fontSize: '0.65rem' }}>{item.label}</label>
-                    <input style={{ ...input, padding: '7px 10px' }} type="number" min="0" placeholder="0" value={form.equipment[item.key]} onChange={setEquip(item.key)} />
+                  <div key={item.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                    <label style={{ ...lbl, fontSize: '0.65rem', minHeight: 28, lineHeight: 1.25, display: 'flex', alignItems: 'flex-end', marginBottom: 6 }}>{item.label}</label>
+                    <input style={{ ...input, padding: '7px 10px', marginTop: 'auto' }} type="number" min="0" placeholder="0" value={form.equipment[item.key]} onChange={setEquip(item.key)} />
                   </div>
                 ))}
               </div>
