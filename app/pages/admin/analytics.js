@@ -980,7 +980,7 @@ function FinanceTab({ balance, revenueLast30, recentOrders, openInvoiceList }) {
       )}
 
       <div style={{ padding: '14px 0', fontSize: '0.78rem', color: 'rgba(212,230,202,0.3)' }}>
-        Subscription invoices via Stripe · Shop orders (Squarespace) available via Squarespace API
+        Subscription invoices and shop orders via Stripe
       </div>
     </>
   )

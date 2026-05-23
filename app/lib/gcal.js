@@ -28,7 +28,7 @@ function getCalendar() {
 
 function parseEmailFromDescription(description) {
   if (!description) return null
-  // Acuity format: "Email: xxx@example.com"
+  // Legacy event description format: "Email: xxx@example.com"
   const match = description.match(/^Email:\s*([^\s\n]+)/im)
   return match ? match[1].trim().toLowerCase() : null
 }
@@ -38,25 +38,19 @@ function parsePhoneFromDescription(description) {
   // Cal.com format: "Phone number (Text notifications):\n+1..."
   const calMatch = description.match(/Phone number[^:]*:\s*\n?\s*(\+?[\d\s\-().]+)/i)
   if (calMatch) return calMatch[1].trim()
-  // Acuity format: "Phone: xxx"
-  const acuityMatch = description.match(/^Phone:\s*(.+)/im)
-  return acuityMatch ? acuityMatch[1].trim() : null
+  // Legacy event description format: "Phone: xxx"
+  const legacyMatch = description.match(/^Phone:\s*(.+)/im)
+  return legacyMatch ? legacyMatch[1].trim() : null
 }
 
 function parseAddressFromDescription(description) {
   if (!description) return null
-  // Acuity format: Location section
+  // Legacy event description format: Location section
   const locMatch = description.match(/Location\s*={3,}\s*\n(.*)/i)
   if (locMatch) return locMatch[1].trim()
   // Cal.com format: "Where:\nAddress"
   const whereMatch = description.match(/Where:\s*\n(.+)/i)
   return whereMatch ? whereMatch[1].trim() : null
-}
-
-function parseAcuityId(description) {
-  if (!description) return null
-  const match = description.match(/AcuityID=(\d+)/i)
-  return match ? match[1] : null
 }
 
 function parseRescheduleUrl(description) {
@@ -67,9 +61,6 @@ function parseRescheduleUrl(description) {
   // Cal.com reschedule format (older): cal.com/reschedule/UID
   const calRescheduleMatch = description.match(/https:\/\/cal\.com\/reschedule\/([a-zA-Z0-9_-]+)/i)
   if (calRescheduleMatch) return `https://cal.com/reschedule/${calRescheduleMatch[1]}`
-  // Acuity/Squarespace (legacy — being phased out)
-  const acuityId = parseAcuityId(description)
-  if (acuityId) return `https://app.acuityscheduling.com/schedule.php?action=appt&id%5B%5D=${acuityId}`
   return null
 }
 
@@ -78,7 +69,7 @@ function parseServiceTitle(summary) {
   // Cal.com format: "ServiceType between GreenGuard USA and CustomerName"
   const calMatch = summary.match(/^(.+?)\s+between\s+GreenGuard USA\s+and\s+.+$/i)
   if (calMatch) return calMatch[1].trim()
-  // Acuity format: "CustomerName: ServiceType (GreenGuard USA)"
+  // Legacy event title format: "CustomerName: ServiceType (GreenGuard USA)"
   return summary
     .replace(/^[^:]+:\s*/, '')
     .replace(/\s*\(GreenGuard USA\)\s*$/, '')
@@ -92,7 +83,7 @@ function parseCustomerName(summary) {
   if (calMatch && summary.toLowerCase().includes('between greenguard usa')) {
     return calMatch[1].trim()
   }
-  // Acuity format: "CustomerName: ServiceType"
+  // Legacy event title format: "CustomerName: ServiceType"
   return (summary.split(':')[0] || '').trim()
 }
 

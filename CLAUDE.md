@@ -45,7 +45,7 @@ Customer picks installation time via Cal.com embed at end of quote flow
 
 **No subscriptions are created automatically.** Billing is invoice-based, generated per service visit via Customer Rounds. `createSubscription()` in stripe.js is unused and will be removed.
 
-**Acuity/Squarespace scheduling is discontinued.** All new bookings go through Cal.com. Existing Google Calendar events from Acuity may still reference `AcuityID` in descriptions.
+**All scheduling goes through Cal.com.** Older Google Calendar events may still use the legacy description format (Email:/Phone:/Location:) — gcal.js parses both formats.
 
 ---
 
@@ -81,7 +81,7 @@ Customer picks installation time via Cal.com embed at end of quote flow
 - Source of truth for all appointments (Cal.com syncs here automatically)
 - Event title format: `"CustomerName: ServiceType (GreenGuard USA)"`
 - `customerName` parsed from title prefix, `serviceType` from title suffix
-- `rescheduleUrl` parsed from event description (Cal.com UID or legacy Acuity ID)
+- `rescheduleUrl` parsed from event description (Cal.com booking/reschedule URLs)
 - `getBookingsForDate()`, `getTodaysBookings()`, `getAllUpcomingBookings()`
 
 **Env vars:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`
@@ -180,7 +180,7 @@ CALCOM_API_KEY
 - **Pages Router only** — all pages in `app/pages/`. Never use `app/app/`.
 - **JavaScript only** — no TypeScript.
 - **No subscription creation** — billing is invoice-based via Customer Rounds.
-- **No Acuity/Squarespace** — all scheduling via Cal.com going forward.
+- **All scheduling via Cal.com.**
 - **Cal.com UID matching** — use same-day date matching (not 5-min tolerance) since GCal and Cal.com times may differ.
 - **Depot address** in `_scripts/route_optimizer.py` line ~19: `1519 Parkway, Austin, TX 78703`.
 

@@ -187,14 +187,14 @@ function resolveByTitle(title) {
 /**
  * Extract the service title from a Cal.com booking event title.
  * Cal.com event titles are just the event type name (no "CustomerName: " prefix).
- * Acuity titles have a "FirstName LastName: " prefix — strip it if present.
+ * Legacy event titles have a "FirstName LastName: " prefix — strip it if present.
  *
  * @param {string} rawTitle
  * @returns {string}
  */
 function normalizeEventTitle(rawTitle) {
   if (!rawTitle) return ''
-  // Strip "Name: " prefix (Acuity format) and "(GreenGuard USA)" suffix
+  // Strip "Name: " prefix (legacy format) and "(GreenGuard USA)" suffix
   return rawTitle
     .replace(/^[^:]+:\s*/, '')
     .replace(/\s*\(GreenGuard USA\)\s*$/, '')

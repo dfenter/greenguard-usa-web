@@ -2,9 +2,9 @@
 """
 Vercel build script: wraps HTML fragments into full standalone HTML documents.
 
-Fragments are source-controlled as injection payloads for the Squarespace/GitHub Pages
-pattern. This script converts them into proper HTML documents served by Vercel directly.
-Output goes to out/ (gitignored). Squarespace source files remain untouched.
+Fragments are static HTML content blocks. The build script wraps them with a
+complete HTML shell (head, scripts, fonts) for Vercel to serve directly.
+Output goes to out/ (gitignored).
 """
 import os, re, shutil
 
@@ -420,7 +420,7 @@ TIDIO_BROKEN_RE = re.compile(
 )
 
 # ── Nav fixes applied to every page fragment ─────────────────────────────────
-# Correct broken service URLs (Squarespace slugs that don't match actual files)
+# Correct broken service URLs (legacy slugs that do not match actual files)
 NAV_URL_FIXES = [
     ('/co2-tank-delivery-austin',             '/co2delivery'),
     ('/co2-trap-rental-austin',               '/traprental'),
@@ -451,7 +451,7 @@ def convert(fname, fragment):
     slug = fname[:-5]  # strip .html
     seo  = SEO.get(slug) or slug_to_seo(slug)
 
-    # Fix broken Tidio tag (artifact from Squarespace code injection stripping)
+    # Fix broken Tidio tag (artifact from old code injection)
     fragment = TIDIO_BROKEN_RE.sub(r'\1', fragment)
 
     # Extract styles (will go in <head>)

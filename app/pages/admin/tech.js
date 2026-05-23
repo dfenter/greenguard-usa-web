@@ -42,7 +42,7 @@ export async function getServerSideProps({ req }) {
 
   function serializeStop(s) {
     const info = contactMap[s.email?.toLowerCase()] || {}
-    // Cal.com events have customerName and phone in the GCal event; Acuity has email in description
+    // Cal.com events have customerName and phone in the GCal event; older events have email in description
     const resolvedName = info.name || s.customerName || s.name || s.title || ''
     const resolvedPhone = info.phone || s.phone || ''
     return {

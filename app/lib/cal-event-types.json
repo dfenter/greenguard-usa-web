@@ -1,5 +1,5 @@
 {
-  "source": "Extracted from Google Calendar (Acuity Scheduling sync) — maps appointment titles to Cal.com slugs and SKUs",
+  "source": "Maps appointment titles from Google Calendar / Cal.com to SKUs",
   "note": "Cal.com event type slugs should match these titles exactly, or update the slug field here after creating event types in Cal.com",
   "eventTypes": [
     {

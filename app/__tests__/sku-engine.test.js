@@ -22,7 +22,7 @@ describe('isSubscriptionSKU', () => {
 // ── normalizeEventTitle ───────────────────────────────────────────────────────
 
 describe('normalizeEventTitle', () => {
-  test('strips Acuity "Name: " prefix', () => {
+  test('strips legacy "Name: " prefix', () => {
     expect(normalizeEventTitle('John Smith: One CO2 Trap Rental')).toBe('One CO2 Trap Rental')
   })
   test('strips "(GreenGuard USA)" suffix', () => {
