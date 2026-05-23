@@ -12,7 +12,9 @@
     { "source": "/co2-trap-rental-austin",               "destination": "/traprental",             "permanent": true },
     { "source": "/greenguard-barrier-treatment",         "destination": "/barrier",                "permanent": true },
     { "source": "/mosquito-bucket-of-doom-instructions", "destination": "/product-bucket-of-doom", "permanent": true },
-    { "source": "/co2-mosquito-trap-placement",          "destination": "/trapplacement",          "permanent": true }
+    { "source": "/co2-mosquito-trap-placement",          "destination": "/trapplacement",          "permanent": true },
+
+    { "source": "/shop",                                 "destination": "https://portal.greenguard-usa.com/admin/quote", "permanent": true }
   ],
   "headers": [
     {
