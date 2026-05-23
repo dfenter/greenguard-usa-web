@@ -41,14 +41,13 @@ All persistent state lives in Stripe, HubSpot, and Google Calendar.
 **Env vars:** `HUBSPOT_ACCESS_TOKEN`
 **MCP:** HubSpot MCP at `https://mcp.hubspot.com` (OAuth)
 
-### Cal.com — `app/lib/calcom.js` + `app/pages/api/webhooks/calcom.js`
+### Cal.com — `app/lib/calcom.js`
 - 13 event types defined in `app/lib/cal-event-types.json`
-- Webhook: `POST /api/webhooks/calcom` — fires on `BOOKING_CREATED`, resolves SKUs, creates Stripe subscription/invoice, upserts HubSpot contact
 - Admin booking: `POST /api/admin/book` (uses Cal.com v2 API — requires `CALCOM_API_KEY` in Vercel)
 - Route optimizer also uses `CALCOM_API_KEY` (GitHub Actions secret)
-- **IMPORTANT:** `app/.env.example` incorrectly says CALCOM_API_KEY is GitHub-only — it must be in Vercel too
+- **Note:** Cal.com webhook handler was removed — no webhook integration active
 
-**Env vars:** `CALCOM_API_KEY` (Vercel + GitHub), `CALCOM_WEBHOOK_SECRET` (Vercel only)
+**Env vars:** `CALCOM_API_KEY` (Vercel + GitHub)
 **MCP:** Cal.com MCP at `https://mcp.cal.com` (OAuth)
 
 ### Google Calendar — `app/lib/gcal.js`
@@ -120,7 +119,7 @@ STRIPE_PRICE_BARRIER       STRIPE_PRICE_BAIT          STRIPE_PRICE_BG_SWEETSCENT
 STRIPE_PRICE_CO2_ADDON     STRIPE_PRICE_TRAP_INSTALL  STRIPE_PRICE_TRAP_MAINT_1
 STRIPE_PRICE_TRAP_MAINT_2  STRIPE_PRICE_TIMER_INSTALL STRIPE_PRICE_WKD_SURCH
 HUBSPOT_ACCESS_TOKEN
-CALCOM_WEBHOOK_SECRET      CALCOM_API_KEY
+CALCOM_API_KEY
 GOOGLE_CLIENT_ID           GOOGLE_CLIENT_SECRET       GOOGLE_REFRESH_TOKEN
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 JWT_SECRET                 ADMIN_EMAIL                CALENDAR_TIMEZONE
@@ -168,7 +167,6 @@ To add a SKU:
 
 ## Webhook Endpoints (configure in each service dashboard)
 - **Stripe:** `https://portal.greenguard-usa.com/api/webhooks/stripe`
-- **Cal.com:** `https://portal.greenguard-usa.com/api/webhooks/calcom`
 
 ---
 
@@ -196,7 +194,6 @@ To add a SKU:
 
 - **Pages Router only** — all pages live in `app/pages/`. Never use `app/app/`.
 - **JavaScript only** — no TypeScript, no `.ts`/`.tsx` files.
-- **Keep `bodyParser: false`** in `app/pages/api/webhooks/calcom.js` — raw body needed for HMAC verification.
 - **`CALCOM_API_KEY` goes in Vercel** — `app/.env.example` has an incorrect comment; the admin booking route reads it.
 - **Google secret name mismatch** — local `GOOGLE_API_KEY` must be named `GOOGLE_PLACES_API_KEY` in GitHub Secrets (handled by `env-sync.sh`).
 - **Depot address** in `_scripts/route_optimizer.py` line ~19: `1519 Parkway, Austin, TX 78703` — update here if depot moves.
@@ -206,12 +203,6 @@ To add a SKU:
 ## Data Flow
 
 ```
-Cal.com booking → BOOKING_CREATED webhook
-  → SKU resolution (cal-event-types.json + sku-engine.js)
-  → Stripe: createSubscription() or addInvoiceItems()
-  → HubSpot: upsertContact() + addNote()
-  → Google Calendar: event already synced by Cal.com
-
 Stripe payment event → invoice.payment_succeeded webhook
   → HubSpot: addNote() with payment details
 
