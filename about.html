@@ -7,16 +7,16 @@
   right: 0 ;
   width: 100% ;z-index:9999;background:rgba(10,26,13,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(122,171,130,.2);padding:14px 20px}
 #gg-about .gg-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
-#gg-about .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em;font-size:1.1rem}
+#gg-about .gg-logo{font-weight:900;color:#fff;letter-spacing:-.02em}
 #gg-about .gg-logo span{color:#7dffaa}
 #gg-about .gg-hamburger{width:34px;height:28px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
 #gg-about .gg-hamburger span{height:3px;width:100%;background:#c9a84c;border-radius:2px}
-#gg-about .gg-drawer{position:fixed;top:0;right:-100%;width:280px;height:100%;background:#0a1a0d;z-index:10000;padding:60px 26px 26px;display:flex;flex-direction:column;gap:5px;transition:right .28s ease;overflow-y:auto}
-#gg-about .gg-drawer.open{right:0}
-#gg-about .gg-drawer-close{position:absolute;top:18px;right:18px;background:none;border:none;color:#7dffaa;font-size:1.1rem;cursor:pointer}
-#gg-about .gg-group{font-size:.92rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(201,232,209,.45);margin-top:14px;padding-bottom:4px;border-bottom:1px solid rgba(122,171,130,.1)}
-#gg-about .gg-drawer a{color:rgba(201,232,209,.8);font-size:.92rem;padding:5px 0;border-bottom:1px solid rgba(122,171,130,.07);transition:color .2s}
-#gg-about .gg-drawer a:hover{color:#7dffaa}
+#gg-about .gg-menu{position:fixed;top:0;right:-100%;width:260px;height:100vh;background:#0d1a10;border-left:1px solid rgba(122,171,130,.2);padding:80px 24px;transition:right .3s ease;z-index:10000;overflow-y:auto}
+#gg-about .gg-menu.open{right:0}
+#gg-about .gg-menu-close{position:absolute;top:18px;right:18px;font-size:22px;color:#c9a84c;cursor:pointer;background:none;border:none}
+#gg-about .gg-menu-group{display:block;font-size:.92rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:rgba(201,168,76,.6);padding:20px 0 4px;margin-top:4px}
+#gg-about .gg-menu a{display:block;padding:14px 0;color:#d4e6ca;font-weight:700;border-bottom:1px solid rgba(122,171,130,.15);font-size:.95rem}
+#gg-about .gg-menu a:hover{color:#7dffaa}
 #gg-about .gg-footer{background:#080f09;padding:50px 20px 20px}
 #gg-about .gg-footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(122,171,130,.1)}
 #gg-about .gg-footer-logo{font-size:1.15rem;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:6px}
@@ -86,15 +86,15 @@
 <div id="gg-about">
   <div class="gg-nav"><div class="gg-nav-inner">
     <a href="https://www.greenguard-usa.com/" class="gg-logo">Green<span>Guard</span> USA<span class="gg-logo-sse">Smart. Safe. Effective.</span></a>
-    <div class="gg-hamburger" onclick="document.querySelector('#gg-about .gg-drawer').classList.add('open')"><span></span><span></span><span></span></div>
+    <div class="gg-hamburger" onclick="document.querySelector('#gg-about .gg-menu').classList.add('open')"><span></span><span></span><span></span></div>
   </div></div>
-  <div class="gg-drawer">
-    <button class="gg-drawer-close" onclick="document.querySelector('#gg-about .gg-drawer').classList.remove('open')">&#10005;</button>
-    <span class="gg-group">Services</span>
+  <div class="gg-menu">
+    <button class="gg-menu-close" onclick="document.querySelector('#gg-about .gg-menu').classList.remove('open')">&#10005;</button>
+    <span class="gg-menu-group">Services</span>
     <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
     <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
     <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
-    <span class="gg-group">Service Areas</span>
+    <span class="gg-menu-group">Service Areas</span>
     <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
@@ -108,7 +108,7 @@
     <a href="https://www.greenguard-usa.com/mosquito-control-buda">Buda</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-leander">Leander</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-liberty-hill">Liberty Hill</a>
-    <span class="gg-group">Learn</span>
+    <span class="gg-menu-group">Learn</span>
     <a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work">Why CO&#8322; Traps Work</a>
     <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
     <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
@@ -121,9 +121,9 @@
     <a href="https://www.greenguard-usa.com/pesticide-free-outdoor-living">Pesticide-Free Living</a>
     <a href="https://www.greenguard-usa.com/outdoor-wellness">Outdoor Wellness</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-without-spraying">No-Spray Protection</a>
-    <span class="gg-group">Shop</span>
+    <span class="gg-menu-group">Shop</span>
     <a href="https://portal.greenguard-usa.com/quote">Shop All Products</a>
-        <span class="gg-group">Hospitality</span>
+        <span class="gg-menu-group">Hospitality</span>
     <a href="https://www.greenguard-usa.com/mosquito-control-luxury-homes">Luxury Homes</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-wedding-venues">Wedding Venues</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-outdoor-restaurants">Outdoor Restaurants</a>
@@ -131,11 +131,11 @@
     <a href="https://www.greenguard-usa.com/mosquito-control-golf-clubs">Golf Clubs</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-resorts">Resorts</a>
     <a href="https://www.greenguard-usa.com/mosquito-control-country-clubs">Country Clubs</a>
-    <span class="gg-group">Company</span>
+    <span class="gg-menu-group">Company</span>
     <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
     <a href="https://www.greenguard-usa.com/team">Our Team</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
-    <span class="gg-group">Book</span>
+    <span class="gg-menu-group">Book</span>
     <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
   </div>
   <div class="gg-hero"><div class="gg-hero-inner">
@@ -148,7 +148,7 @@
     <div class="gg-eye">Our Founder</div>
     <h2 class="gg-h2">Why <span>GreenGuard USA</span> Exists</h2>
     <div class="gg-about-bio">
-      <img src="https://greenguard-usa.github.io/greenguard-usa-web/founderPhoto-web.jpg" alt="GreenGuard USA Founder" style="width:100%;border-radius:14px;border:1px solid rgba(122,171,130,.2);display:block;object-fit:cover;aspect-ratio:3/4">
+      <img src="/founderPhoto.jpg" alt="GreenGuard USA Founder" style="width:100%;border-radius:14px;border:1px solid rgba(122,171,130,.2);display:block;object-fit:cover;aspect-ratio:3/4">
       <div>
         <p class="gg-body">Lauren Hughes founded GreenGuard USA in 2025 after experiencing the limitations of conventional mosquito control on their own property, and seeing the failure of mosquito sprays.</p>
         <p class="gg-body">The company was built around a conviction: that the best mosquito control is the kind that targets only mosquitoes, leaves no residue in the environment, and works better over time rather than requiring constant re-application. CO&#8322; trapping met every criterion. The rest followed from there.</p>
@@ -226,15 +226,15 @@
 /* gg-accordion-v2 */
 (function(){
   function init(){
-    var d=document.querySelector('.gg-drawer')||document.querySelector('.gg-menu');
+    var d=document.querySelector('.gg-menu')||document.querySelector('.gg-menu');
     if(!d)return false;
-    var gs=d.querySelectorAll('.gg-group,.gg-menu-group');
+    var gs=d.querySelectorAll('.gg-menu-group,.gg-menu-group');
     if(!gs.length)return false;
     d.style.overflowY='auto';
     gs.forEach(function(g){
       if(g.dataset.acc)return;
       g.dataset.acc='1';
-      var sel='.gg-group,.gg-menu-group,.gg-drawer-close,.gg-menu-close';
+      var sel='.gg-menu-group,.gg-menu-group,.gg-menu-close,.gg-drawer-close';
       var links=[],el=g.nextElementSibling;
       while(el&&!el.matches(sel)){
         if(el.tagName==='A')links.push(el);
