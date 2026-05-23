@@ -6,7 +6,13 @@
   "redirects": [
     { "source": "/home",     "destination": "/",         "permanent": true },
     { "source": "/index",    "destination": "/",         "permanent": true },
-    { "source": "/services-v2", "destination": "/services", "permanent": false }
+    { "source": "/services-v2", "destination": "/services", "permanent": false },
+
+    { "source": "/co2-tank-delivery-austin",             "destination": "/co2delivery",            "permanent": true },
+    { "source": "/co2-trap-rental-austin",               "destination": "/traprental",             "permanent": true },
+    { "source": "/greenguard-barrier-treatment",         "destination": "/barrier",                "permanent": true },
+    { "source": "/mosquito-bucket-of-doom-instructions", "destination": "/product-bucket-of-doom", "permanent": true },
+    { "source": "/co2-mosquito-trap-placement",          "destination": "/trapplacement",          "permanent": true }
   ],
   "headers": [
     {
@@ -21,6 +27,12 @@
       "source": "/reviews.json",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
+      "source": "/:path((?!_next).*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     }
   ]
