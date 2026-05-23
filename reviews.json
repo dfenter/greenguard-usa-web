@@ -2,8 +2,22 @@
   "google": {
     "place_id": "ChIJx8wLC4K11wwRbfe7hhZiHXs",
     "rating": 5,
-    "total": 16,
+    "total": 18,
     "reviews": [
+      {
+        "author": "Fredrick Lewcock",
+        "rating": 5,
+        "text": "Great communication and customer service!",
+        "time": "in the last week",
+        "source": "google"
+      },
+      {
+        "author": "David Allison",
+        "rating": 5,
+        "text": "GreenGuard has changed my life.  GreenGuard has turned my back yard into the sanctuary that I have always wanted.  They maintain our mosquito traps on a monthly basis and the result is that my family is able to fully use the backyard anytime of year, anytime of day.  Effective mosquito control is not a myth.  With the right traps and the right maintenance plan, mosquitos can be completely controlled.",
+        "time": "in the last week",
+        "source": "google"
+      },
       {
         "author": "Brendan",
         "rating": 5,
@@ -22,21 +36,7 @@
         "author": "Jim S",
         "rating": 5,
         "text": "Great service, really hammers the mosquitos.",
-        "time": "in the last week",
-        "source": "google"
-      },
-      {
-        "author": "Michael Gorski",
-        "rating": 5,
-        "text": "These guys are the real deal! If you have a mosquito machine, they are a must have and it won\u2019t cost you any more money going on getting the CO2 yourself. Excellent service! I cannot tell you how much anxiety they relieve me of lol",
         "time": "a week ago",
-        "source": "google"
-      },
-      {
-        "author": "Roger Anderson",
-        "rating": 5,
-        "text": "After about 20 years of putting in the patio we are finally able to use it.  Even though our pest control does a great job,  their sprays and crystals never really did the job.  Our neighbors told us about GreenGuard and we couldn't be happier to sit out and not be chased into the house because of the mosquitoes.  Thanks to GreenGuard we are truly enjoying our patio for the first time.",
-        "time": "2 weeks ago",
         "source": "google"
       }
     ]
