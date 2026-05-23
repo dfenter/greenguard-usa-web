@@ -31,9 +31,7 @@
 }
 
 /* ── NAV ── */
-#gg-co2 .gg-nav { position: fixed !important; top: 0 !important;  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
+#gg-co2 .gg-nav { position: sticky !important; top: 0 !important; z-index: 9999 !important; background: rgba(10,26,13,0.95) !important; backdrop-filter: blur(10px) !important; border-bottom: 1px solid rgba(122,171,130,0.2) !important; padding: 14px 20px !important; }
 #gg-co2 .gg-nav-inner { max-width: 1100px !important; margin: 0 auto !important; display: flex !important; align-items: center !important; justify-content: space-between !important; }
 #gg-co2 .gg-logo { font-weight: 900 !important; color: #fff !important; letter-spacing: -0.02em !important; font-size: 1.1rem !important; }
 #gg-co2 .gg-logo span { color: #7dffaa !important; }
@@ -41,7 +39,7 @@
 #gg-co2 .gg-hamburger span { height: 3px !important; width: 100% !important; background: #c9a84c !important; border-radius: 2px !important; }
 #gg-co2 .gg-menu { position: fixed !important; top: 0 !important; right: -100% !important; width: 260px !important; height: 100vh !important; background: #0d1a10 !important; border-left: 1px solid rgba(122,171,130,0.2) !important; padding: 80px 24px !important; transition: right 0.3s ease !important; z-index: 10000 !important; overflow-y: auto !important; }
 #gg-co2 .gg-menu.open { right: 0 !important; }
-#gg-co2 .gg-menu-group { display: block !important; font-size:.92rem; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: rgba(201,168,76,0.6) !important; padding: 20px 0 4px !important; margin-top: 4px !important; }
+#gg-co2 .gg-menu-group { display: block !important; font-size: 0.62rem !important; font-weight: 800 !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: rgba(201,168,76,0.6) !important; padding: 20px 0 4px !important; margin-top: 4px !important; }
 #gg-co2 .gg-menu a { display: block !important; padding: 14px 0 !important; color: #d4e6ca !important; font-weight: 700 !important; border-bottom: 1px solid rgba(122,171,130,0.15) !important; font-size: 0.95rem !important; }
 #gg-co2 .gg-menu a:hover { color: #7dffaa !important; }
 #gg-co2 .gg-menu-close { position: absolute !important; top: 18px !important; right: 18px !important; font-size: 22px !important; color: #c9a84c !important; cursor: pointer !important; }
@@ -194,20 +192,16 @@
   #gg-co2 .co-footer { padding: 48px 20px 28px !important; }
   #gg-co2 .co-footer-top { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
 }
-
-.gg-logo-sse{display:block;font-size:.52rem;letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-top:2px;line-height:1}
-
-#gg-co2 .gg-nav-tagline{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#7dffaa;font-weight:700;padding:10px 0 14px;border-bottom:1px solid rgba(122,171,130,.15);margin-bottom:6px}
 </style>
 
-<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
 <div id="gg-co2">
 
   <!-- NAV -->
   <div class="gg-nav">
     <div class="gg-nav-inner">
-      <div class="gg-logo">Green<span>Guard</span> USA<span class="gg-logo-sse">Smart. Safe. Effective.</span></div>
+      <div class="gg-logo">Green<span>Guard</span> USA</div>
       <div class="gg-hamburger" onclick="document.querySelector('#gg-co2 .gg-menu').classList.add('open')">
         <span></span><span></span><span></span>
       </div>
@@ -216,46 +210,24 @@
   <div class="gg-menu">
     <div class="gg-menu-close" onclick="document.querySelector('#gg-co2 .gg-menu').classList.remove('open')">X</div>
     <span class="gg-menu-group">Services</span>
-    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
+    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a>
     <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
     <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
-    <span class="gg-menu-group">Service Areas</span>
-    <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-dripping-springs">Dripping Springs</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-steiner-ranch">Steiner Ranch</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
+    <!-- <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a> -->
+    <span class="gg-menu-group">Shop</span>
+    <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
     <span class="gg-menu-group">Learn</span>
-    <a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work">Why CO&#8322; Traps Work</a>
-    <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
     <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
-    <a href="https://www.greenguard-usa.com/case-studies">Results &amp; Case Studies</a>
+    <a href="https://www.greenguard-usa.com/results">Results</a>
     <a href="https://www.greenguard-usa.com/blog">Blog</a>
     <a href="https://www.greenguard-usa.com/faq">FAQ</a>
     <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
-    <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
-    <a href="https://www.greenguard-usa.com/bee-safe-mosquito-control">Bee-Safe Protection</a>
-    <a href="https://www.greenguard-usa.com/pesticide-free-outdoor-living">Pesticide-Free Living</a>
-    <a href="https://www.greenguard-usa.com/outdoor-wellness">Outdoor Wellness</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-without-spraying">No-Spray Protection</a>
-    <span class="gg-menu-group">Shop</span>
-    <a href="https://portal.greenguard-usa.com/quote">Shop All Products</a>
-        <span class="gg-menu-group">Hospitality</span>
-    <a href="https://www.greenguard-usa.com/mosquito-control-luxury-homes">Luxury Homes</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-wedding-venues">Wedding Venues</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-outdoor-restaurants">Outdoor Restaurants</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-wineries">Wineries</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-golf-clubs">Golf Clubs</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-resorts">Resorts</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-country-clubs">Country Clubs</a>
     <span class="gg-menu-group">Company</span>
-    <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
-    <a href="https://www.greenguard-usa.com/team">Our Team</a>
+    <a href="https://www.greenguard-usa.com/about">About Us</a>
     <a href="https://www.greenguard-usa.com/contact">Contact</a>
+    <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
     <span class="gg-menu-group">Book</span>
-    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
+    <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
   </div>
 
   <!-- HERO -->
@@ -282,7 +254,7 @@
           <span class="lbl">Pesticides</span>
         </div>
       </div>
-      <button class="co-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Schedule Free Assessment</button>
+      <button class="co-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
     </div>
   </div>
 
@@ -355,7 +327,7 @@
               <div class="co-price-feature">Regulator adjustment as needed</div>
               <div class="co-price-feature">Empty tank removed</div>
             </div>
-            <button class="co-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Schedule Free Assessment</button>
+            <button class="co-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
           </div>
         </div>
         <div class="co-price-card popular co-reveal">
@@ -377,7 +349,7 @@
               <div class="co-price-feature">Priority scheduling window</div>
               <div class="co-price-feature">Suitable for two-trap systems</div>
             </div>
-            <button class="co-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Schedule Free Assessment</button>
+            <button class="co-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
           </div>
         </div>
         <div class="co-price-card co-reveal">
@@ -398,7 +370,7 @@
               <div class="co-price-feature">Priority scheduling -- first available window</div>
               <div class="co-price-feature">Ideal for multi-trap and Mosqitter Grand systems</div>
             </div>
-            <button class="co-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Schedule Free Assessment</button>
+            <button class="co-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
           </div>
         </div>
       </div>
@@ -514,7 +486,7 @@
       <span class="co-stag" style="display:block;margin-bottom:16px">Month to Month -- No Contracts -- Austin TX</span>
       <h2>Keep your trap<span> running all season.</span></h2>
       <p>Book a free property assessment and we will walk your yard, recommend the right delivery tier for your trap and property, and get your first delivery scheduled the same week.</p>
-      <button class="co-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Schedule Free Assessment</button>
+      <button class="co-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319','_blank')">Schedule Free Assessment</button>
       <div class="co-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
     </div>
   </div>
@@ -537,7 +509,7 @@
           <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a></li>
           <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a></li>
           <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
-          <li><a href="https://portal.greenguard-usa.com/quote">Shop All Products</a></li>
+          <li><a href="https://www.greenguard-usa.com/shop">Shop All Products</a></li>
         </ul>
       </div>
       <div class="co-footer-col">
@@ -555,7 +527,7 @@
         <ul>
           <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
           <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
-          <li></li>
+          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
           <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
           <li><a href="https://www.instagram.com/greenguardusa/">Instagram</a></li>
         </ul>
@@ -567,53 +539,31 @@
     </div>
   </div>
 
-<script>
-(function(){
-  var nav = document.querySelector('#gg-co2 .gg-nav');
-  if(!nav) return;
-  var wrapper = document.querySelector('#gg-co2');
-  if(!wrapper) return;
-  function applyPad(){
-    wrapper.style.paddingTop = nav.offsetHeight + 'px';
-  }
-  applyPad();
-  window.addEventListener('resize', applyPad);
-})();
-</script>
-</div>
-<script>
-/* gg-accordion-v2 */
-(function(){
-  function init(){
-    var d=document.querySelector('.gg-drawer')||document.querySelector('.gg-menu');
-    if(!d)return false;
-    var gs=d.querySelectorAll('.gg-group,.gg-menu-group');
-    if(!gs.length)return false;
-    d.style.overflowY='auto';
-    gs.forEach(function(g){
-      if(g.dataset.acc)return;g.dataset.acc='1';
-      var sel='.gg-group,.gg-menu-group,.gg-drawer-close,.gg-menu-close';
-      var links=[],el=g.nextElementSibling;
-      while(el&&!el.matches(sel)){if(el.tagName==='A')links.push(el);el=el.nextElementSibling;}
-      if(!links.length)return;
-      var w=document.createElement('div');
-      w.style.cssText='overflow:hidden;max-height:0;transition:max-height .22s ease;display:flex;flex-direction:column;gap:4px;padding-left:4px';
-      links[0].parentNode.insertBefore(w,links[0]);links.forEach(function(l){w.appendChild(l)});
-      var arr=document.createElement('span');arr.innerHTML='&#9658;';
-      arr.style.cssText='font-size:.5rem;margin-left:auto;transition:transform .2s;line-height:1;flex-shrink:0';
-      g.style.cursor='pointer';g.style.display='flex';g.style.alignItems='center';g.style.userSelect='none';
-      g.appendChild(arr);
-      var open=false;
-      function show(){w.style.maxHeight=w.scrollHeight+'px';arr.style.transform='rotate(90deg)';open=true}
-      function hide(){w.style.maxHeight='0';arr.style.transform='';open=false}
-      g.addEventListener('click',function(){open?hide():show()});
-      if(/^Book/.test(g.textContent.trim()))setTimeout(show,0);
-    });return true;
-  }
-  if(!init())setTimeout(init,120);
-})();
-</script>
-<script src="//code.tidio.co/2oaqyblfyjn6xy86vutzzvr1ykg9twav.js" async></script><!-- end #gg-co2 -->
+</div><!-- end #gg-co2 -->
 
 <script>
-
+(function() {
+  window.coToggle = function(btn) {
+    var item = btn.closest('.co-faq-item');
+    var isOpen = item.classList.contains('open');
+    document.querySelectorAll('#gg-co2 .co-faq-item.open').forEach(function(el) { el.classList.remove('open'); });
+    if (!isOpen) item.classList.add('open');
+  };
+  var reveals = document.querySelectorAll('#gg-co2 .co-reveal');
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e, i) {
+      if (e.isIntersecting) {
+        setTimeout(function() { e.target.classList.add('visible'); }, i * 70);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  reveals.forEach(function(el) { obs.observe(el); });
+  document.addEventListener('click', function(e) {
+    var menu = document.querySelector('#gg-co2 .gg-menu');
+    if (menu && menu.classList.contains('open') && !menu.contains(e.target) && !e.target.closest('.gg-hamburger')) {
+      menu.classList.remove('open');
+    }
+  });
+})();
+</script>

@@ -427,8 +427,13 @@ NAV_URL_FIXES = [
     ('/greenguard-barrier-treatment',         '/barrier'),
     ('/mosquito-bucket-of-doom-instructions', '/product-bucket-of-doom'),
     ('/co2-mosquito-trap-placement',          '/trapplacement'),
+    # Any shop link (Shop, Shop Now, Shop All Products, etc.) goes to the
+    # portal Quote Builder — there is no local shop page anymore.
+    ('https://www.greenguard-usa.com/shop',   'https://portal.greenguard-usa.com/admin/quote'),
+    ('https://greenguard-usa.com/shop',       'https://portal.greenguard-usa.com/admin/quote'),
+    ('href="/shop"',                          'href="https://portal.greenguard-usa.com/admin/quote"'),
 ]
-# "Shop" menu group stays as-is but its link points to the portal quote builder
+# Optional text-level renames for clarity
 NAV_TEXT_FIXES = [
     ('href="https://portal.greenguard-usa.com/quote">Shop All Products',
      'href="https://portal.greenguard-usa.com/admin/quote">Quote Builder'),
@@ -477,9 +482,10 @@ def convert(fname, fragment):
     needs_accordion = 'gg-menu' in body and 'scrollHeight' not in body
     accordion_block = ACCORDION_INJECT if needs_accordion else ''
 
-    # Inject reveal observer if the page uses *-reveal classes but lacks one
-    needs_reveal = '-reveal' in body and 'IntersectionObserver' not in body
-    reveal_block = REVEAL_INJECT if needs_reveal else ''
+    # Safety net for *-reveal pages: always force opacity:1 so content shows
+    # even if the page's own IntersectionObserver fails/runs late (had multiple
+    # bugs with blank co2delivery hero). Harmless when observers work.
+    reveal_block = REVEAL_INJECT if '-reveal' in body else ''
 
     # Generate fallback title/desc from page content if needed
     title = seo.get('title') or (extract_og_text(body, 'h1') + ' | GreenGuard USA')
