@@ -10,7 +10,7 @@ const ADMIN_NAV_LINKS = [
   { href: '/admin/home',         label: '🏠 Home' },
   { href: '/admin/clients',      label: 'Clients' },
   { href: '/admin/rounds',       label: 'Customer Rounds' },
-  { href: '/admin/inventory',    label: 'Daily Rounds' },
+  { href: '/admin/inventory',    label: 'Inventory' },
   { href: '/admin/quote',        label: 'Quote' },
   { href: '/admin/invoice',      label: 'Invoice' },
   { href: '/admin/tech',         label: 'Tech View' },
@@ -107,7 +107,7 @@ const DOCK_ITEMS = [
   { href: '/admin/home',      label: 'Home',     icon: '🏠' },
   { href: '/admin/clients',   label: 'Clients',  icon: '👥' },
   { href: '/admin/rounds',    label: 'Rounds',   icon: '🚐' },
-  { href: '/admin/inventory', label: 'Daily',    icon: '📋' },
+  { href: '/admin/inventory', label: 'Inventory', icon: '📋' },
   { href: '/admin/quote',     label: 'Quote',    icon: '📝' },
 ]
 

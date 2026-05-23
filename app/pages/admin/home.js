@@ -85,6 +85,8 @@ export async function getServerSideProps({ req }) {
         hostedUrl: inv.hosted_invoice_url || null,
       })),
       balanceAvailable: balance ? balance.available / 100 : null,
+      fullTanksOnHand: tankData?.currentStock ?? null,
+      tanksNeededThisWeek: tankData?.weeklyTankTotal ?? null,
       tankData: tankData ? {
         tankCalendar: tankData.tankCalendar,
         scheduleByDate: tankData.scheduleByDate,
@@ -233,7 +235,7 @@ function VisitsDuePanel() {
   )
 }
 
-export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData }) {
+export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData, fullTanksOnHand, tanksNeededThisWeek }) {
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 
@@ -249,12 +251,30 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
           <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)' }}>{fmtDayLabel(todayStr)}</div>
         </div>
 
-        {/* KPI strip */}
+        {/* KPI strip: Full Tanks · Tanks Needed This Week · Today's Stops · Open Invoices */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
-          <KPI label="MRR" value={fmt$(mrr)} sub={`${activeCount} active`} />
-          <KPI label="Today's Stops" value={todayStops.length} sub={todayStops.length === 0 ? 'none scheduled' : 'appointments'} />
-          <KPI label="Open Invoices" value={openInvoiceCount} sub={openInvoiceCount > 0 ? fmt$(openInvoiceTotal) + ' due' : 'all clear'} warn={openInvoiceCount > 0} />
-          {balanceAvailable !== null && <KPI label="Stripe Balance" value={fmt$(balanceAvailable)} sub="available" />}
+          <KPI
+            label="Full Tanks"
+            value={fullTanksOnHand != null ? fullTanksOnHand : '—'}
+            sub={fullTanksOnHand != null ? 'on hand at depot' : 'no log yet'}
+            warn={fullTanksOnHand != null && tanksNeededThisWeek != null && fullTanksOnHand < tanksNeededThisWeek}
+          />
+          <KPI
+            label="Tanks Needed This Week"
+            value={tanksNeededThisWeek != null ? tanksNeededThisWeek : '—'}
+            sub="Mon–Sun from schedule"
+          />
+          <KPI
+            label="Today's Stops"
+            value={todayStops.length}
+            sub={todayStops.length === 0 ? 'none scheduled' : 'appointments'}
+          />
+          <KPI
+            label="Open Invoices"
+            value={openInvoiceCount}
+            sub={openInvoiceCount > 0 ? fmt$(openInvoiceTotal) + ' due' : 'all clear'}
+            warn={openInvoiceCount > 0}
+          />
         </div>
 
         {/* Open invoices alert */}
@@ -333,13 +353,13 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
 
         <VisitsDuePanel />
 
-        {/* Tank Calendar */}
+        {/* Tank Calendar — compact widget; full view lives on /admin/inventory */}
         {tankData && (
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 14 }}>
+          <section style={{ marginBottom: 32, maxWidth: 520 }}>
+            <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 10 }}>
               Tank Calendar
             </h2>
-            <div className="card">
+            <div className="card" style={{ padding: 14 }}>
               <TankCalendar
                 tankCalendar={tankData.tankCalendar}
                 scheduleByDate={tankData.scheduleByDate}
@@ -348,7 +368,7 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
                 expectedDelivery={tankData.expectedDelivery}
                 onDayClick={() => { window.location.href = '/admin/inventory' }}
               />
-              <div style={{ marginTop: 10, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', textAlign: 'right' }}>
+              <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', textAlign: 'right' }}>
                 Click a day to log tanks →
               </div>
             </div>

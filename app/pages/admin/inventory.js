@@ -160,11 +160,11 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
 
   return (
     <>
-      <Head><title>Daily Rounds · GreenGuard Admin</title></Head>
+      <Head><title>Inventory · GreenGuard Admin</title></Head>
       <PortalLayout isAdmin>
         <div style={{ marginBottom: 24 }}>
           <span className="tag">Admin</span>
-          <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Daily Rounds</h1>
+          <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Inventory</h1>
           <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
             CO₂ tank tracking · Depot stock: <strong style={{ color: '#7dffaa', fontSize: '1.05rem' }}>{stockDisplay}</strong> full tanks
             {expectedDelivery > 0 && <span style={{ marginLeft: 12, color: 'rgba(201,168,76,0.7)' }}>· Next delivery est. {expectedDelivery} tanks</span>}
@@ -172,6 +172,21 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
         </div>
 
         <div style={{ maxWidth: 540, margin: '0 auto' }}>
+          {/* Tomorrow indicator (read-only, auto-calculated from schedule) */}
+          <div style={{ marginBottom: 18, padding: '14px 18px', borderRadius: 10, background: tomorrowTanks > 0 ? 'rgba(201,168,76,0.08)' : 'rgba(125,255,170,0.05)', border: `1px solid ${tomorrowTanks > 0 ? 'rgba(201,168,76,0.3)' : 'rgba(125,255,170,0.18)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: tomorrowTanks > 0 ? '#c9a84c' : 'rgba(212,230,202,0.4)', marginBottom: 4 }}>
+                Tanks Needed Tomorrow
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.55)' }}>
+                {tomorrowTanks > 0 ? `From ${scheduleByDate[tomorrow]?.appts || 0} scheduled visit${(scheduleByDate[tomorrow]?.appts || 0) !== 1 ? 's' : ''}` : 'No visits scheduled for tomorrow'}
+              </div>
+            </div>
+            <div style={{ fontSize: '2.4rem', fontWeight: 900, lineHeight: 1, color: tomorrowTanks > 0 ? '#c9a84c' : 'rgba(125,255,170,0.6)' }}>
+              {tomorrowTanks}
+            </div>
+          </div>
+
           {/* Log form — full Tank Calendar lives on /admin/home */}
           <div style={{ fontWeight: 800, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 12 }}>
             {selectedDay ? `Log for ${selectedDay}` : 'Daily Log Entry'}
@@ -200,14 +215,8 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
                 <input style={input} type="number" min="0" placeholder="0" value={form.emptyEnd} onChange={set('emptyEnd')} />
               </div>
 
-              <div style={section}>Tomorrow</div>
-
-              <div style={{ marginBottom: 14 }}>
-                <label style={lbl}>Tanks needed tomorrow {tomorrowTanks > 0 && !selectedDay ? <span style={{ color: 'rgba(201,168,76,0.7)', fontWeight: 700 }}>({tomorrowTanks} from schedule)</span> : ''}</label>
-                <input style={input} type="number" min="0" placeholder="0" value={form.neededTomorrow} onChange={set('neededTomorrow')} />
-              </div>
-
-              {/* Tomorrow forecast */}
+              {/* Tomorrow forecast — Tanks Needed Tomorrow is auto-calculated and shown
+                  as a banner at the top of the page; no form input needed */}
               {forecastTomorrow != null && (
                 <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 8, background: forecastTomorrow < 0 ? 'rgba(255,100,100,0.08)' : 'rgba(125,255,170,0.05)', border: `1px solid ${forecastTomorrow < 0 ? 'rgba(255,100,100,0.25)' : 'rgba(125,255,170,0.15)'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
