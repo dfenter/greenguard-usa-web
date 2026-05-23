@@ -49,54 +49,6 @@ export async function getServerSideProps({ req }) {
   return { props: { customers, mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '' } }
 }
 
-// ── Pricing catalog ────────────────────────────────────────────────────────────
-
-const SYSTEMS = [
-  // Biogents Rental — trap + service included in monthly price
-  { label: 'Biogents CO₂ Rental — 1 Trap',  price: 159.99, category: 'Biogents CO₂ — Rental', rental: true },
-  { label: 'Biogents CO₂ Rental — 2 Traps', price: 266.99, category: 'Biogents CO₂ — Rental', rental: true },
-  { label: 'Biogents CO₂ Rental — 3 Traps', price: 399.99, category: 'Biogents CO₂ — Rental', rental: true },
-  // Biogents Owned — customer owns trap, hookup + maintenance only
-  { label: 'Biogents Owned — Hookup & Maintenance (1 Trap)',  price: 10.00, category: 'Biogents CO₂ — Owned', rental: false },
-  { label: 'Biogents Owned — Hookup & Maintenance (2 Traps)', price: 20.00, category: 'Biogents CO₂ — Owned', rental: false },
-  { label: 'Biogents Owned — Hookup & Maintenance (3 Traps)', price: 30.00, category: 'Biogents CO₂ — Owned', rental: false },
-  // Mosqitter — hookup included in pricing
-  { label: 'Mosqitter Grand Rental',   price: 299.99, category: 'Mosqitter Grand', rental: true },
-  { label: 'Mosqitter Service (Owned)', price: 199.99, category: 'Mosqitter Grand', rental: false },
-  { label: 'Mosqitter Installation',   price: 199.99, category: 'Mosqitter Grand', rental: false },
-  // CO₂ Tanks
-  { label: 'CO₂ Tank Delivery — 1 Tank',  price:  89.99, category: 'CO₂ Tank Delivery' },
-  { label: 'CO₂ Tank Delivery — 2 Tanks', price: 159.99, category: 'CO₂ Tank Delivery' },
-  { label: 'CO₂ Tank Delivery — 3 Tanks', price: 249.99, category: 'CO₂ Tank Delivery' },
-  { label: 'CO₂ Tank Delivery — 4 Tanks', price: 279.99, category: 'CO₂ Tank Delivery' },
-  { label: 'CO₂ Tank Delivery — 6 Tanks', price: 399.99, category: 'CO₂ Tank Delivery' },
-  { label: 'CO₂ Tank Delivery — 10 Tanks',price: 889.98, category: 'CO₂ Tank Delivery' },
-  // Trap purchases (one-time) — confirm prices before quoting
-  { label: 'Biogents BG-Mosquitaire — Purchase',    price: null,   category: 'Trap Purchase', oneTime: true },
-  { label: 'Mosqitter Grand — Purchase',            price: null,   category: 'Trap Purchase', oneTime: true },
-  // Tank purchases (one-time)
-  { label: 'CO₂ Tank — Purchase',  price: 179.99, category: 'Tank Purchase', oneTime: true },
-  { label: 'CO₂ Tank Purchase — 10lb',  price: 139.99, category: 'Tank Purchase', oneTime: true },
-  { label: 'CO₂ Tank Purchase — 20lb',  price: 189.99, category: 'Tank Purchase', oneTime: true },
-  { label: 'CO₂ Tank Purchase — 50lb',  price: 299.99, category: 'Tank Purchase', oneTime: true },
-  // Accessories (one-time)
-  { label: 'CO₂ Regulator',                        price: null,   category: 'Accessories', oneTime: true },
-  { label: 'CO₂ Tank Washer',                      price: null,   category: 'Accessories', oneTime: true },
-  { label: 'Biogents Power Supply',                price: null,   category: 'Accessories', oneTime: true },
-  { label: 'Biogents Power Supply 30ft Extension', price: null,   category: 'Accessories', oneTime: true },
-  { label: 'Biogents Trap Net',                    price: null,   category: 'Accessories', oneTime: true },
-  { label: 'Biogents Funnel',                      price: null,   category: 'Accessories', oneTime: true },
-  { label: 'BG Sweetscent Bait Pack',              price:  18.99, category: 'Accessories', oneTime: true },
-  { label: '50ft Extension Cord',                  price: null,   category: 'Accessories', oneTime: true },
-  { label: '100ft Extension Cord',                 price: null,   category: 'Accessories', oneTime: true },
-  { label: 'Splitter',                             price: null,   category: 'Accessories', oneTime: true },
-  { label: '9V Batteries (4-pack)',                price: null,   category: 'Accessories', oneTime: true },
-  // Other
-  { label: 'Assessment (Free)', price: 0.00, category: 'Other' },
-  { label: 'Troubleshoot',      price: 79.99, category: 'Other' },
-]
-
-
 // ── Multi-select section (matches rounds page style) ──────────────────────────
 
 function MultiSelect({ title, catalog, qtys, onChange }) {
@@ -687,7 +639,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     await fetch('/api/admin/send-quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: customerEmail, name: customerName, lineItems: allLines, total: subtotal, taxRate: includeTax ? taxRate : 0, taxAmount, notes }),
+      body: JSON.stringify({ to: customerEmail, name: customerName, customerAddress, lineItems: allLines, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: includeTax ? taxRate : 0, taxAmount, notes }),
     })
     setSending(false); setSent(true)
     setTimeout(() => setSent(false), 5000)

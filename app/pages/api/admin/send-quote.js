@@ -1,20 +1,39 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { SignJWT } = require('jose')
 const { Resend } = require('resend')
 const { escapeHtml } = require('../../../lib/email')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+
+function getSecret() {
+  return new TextEncoder().encode(process.env.JWT_SECRET)
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await getSessionFromRequest(req)
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-  const { to, name, lineItems = [], total, taxRate = 0, taxAmount = 0, notes } = req.body || {}
+  const { to, name, lineItems = [], total, taxRate = 0, taxAmount = 0, notes,
+          customerAddress, serviceLines, addonLines, productLines, recurringTotal, oneTimeTotal } = req.body || {}
   if (!to) return res.status(400).json({ error: 'to required' })
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
+
+  // Generate a shareable quote token so the email links to the branded quote page
+  const token = await new SignJWT({
+    customerName: name, customerEmail: to, customerAddress,
+    serviceLines, addonLines, productLines,
+    total, recurringTotal, oneTimeTotal, taxRate, taxAmount, notes,
+    type: 'quote',
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(getSecret())
+  const quoteUrl = `${APP_URL}/quote/${token}`
 
   const rows = lineItems.map((l) => `
     <tr>
@@ -24,7 +43,7 @@ export default async function handler(req, res) {
 
   const html = `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;border-radius:12px;color:#1a2e1f;">
-      <div style="background:#0d1a10;borderRadius:8px;padding:18px 20px;marginBottom:28px;">
+      <div style="background:#0d1a10;border-radius:8px;padding:18px 20px;margin-bottom:28px;">
         <h1 style="color:#7dffaa;font-size:1.2rem;margin:0;letter-spacing:-0.01em;">GreenGuard USA</h1>
         <p style="color:rgba(212,230,202,0.5);font-size:0.78rem;margin:4px 0 0;letter-spacing:0.1em;text-transform:uppercase;">Smart · Safe · Effective</p>
       </div>
@@ -42,11 +61,11 @@ export default async function handler(req, res) {
         <strong style="font-size:1rem;">Total due</strong>
         <strong style="font-size:1.1rem;color:#0d8a3c;">$${(parseFloat(total || 0) + parseFloat(taxAmount || 0)).toFixed(2)}</strong>
       </div>
-      ${notes ? `<p style="font-size:0.85rem;color:#777;border-top:1px solid #eee;padding-top:16px;margin-bottom:28px;">${notes}</p>` : ''}
-      <a href="${APP_URL}" style="display:inline-block;background:#1a2e1f;color:#7dffaa;font-weight:700;font-size:0.9rem;padding:14px 28px;border-radius:6px;text-decoration:none;">
-        View My Account
+      ${notes ? `<p style="font-size:0.85rem;color:#777;border-top:1px solid #eee;padding-top:16px;margin-bottom:28px;">${escapeHtml(notes)}</p>` : ''}
+      <a href="${quoteUrl}" style="display:inline-block;background:#c9a84c;color:#0d1a10;font-weight:700;font-size:0.95rem;padding:14px 28px;border-radius:6px;text-decoration:none;">
+        View Your Full Quote →
       </a>
-      <p style="font-size:0.78rem;color:#bbb;margin-top:28px;">Questions? Reply to this email or call us — GreenGuard USA, Austin TX</p>
+      <p style="font-size:0.78rem;color:#bbb;margin-top:28px;">This quote is valid for 30 days · Questions? Reply to this email or call <a href="tel:+15125604129" style="color:#bbb;">512-560-4129</a> — GreenGuard USA, Austin TX</p>
     </div>`
 
   await resend.emails.send({
