@@ -440,6 +440,13 @@ ACCORDION_INJECT = '''<script>
 (function(){function init(){var d=document.querySelector('.gg-drawer')||document.querySelector('.gg-menu');if(!d)return false;d.style.overflowY='auto';var gs=d.querySelectorAll('.gg-group,.gg-menu-group');if(!gs.length)return false;gs.forEach(function(g){if(g.dataset.acc)return;g.dataset.acc='1';var sel='.gg-group,.gg-menu-group,.gg-drawer-close,.gg-menu-close';var links=[],el=g.nextElementSibling;while(el&&!el.matches(sel)){if(el.tagName==='A')links.push(el);el=el.nextElementSibling;}if(!links.length)return;var w=document.createElement('div');w.style.cssText='overflow:hidden;max-height:0;transition:max-height .22s ease;display:flex;flex-direction:column;gap:4px;padding-left:4px';links[0].parentNode.insertBefore(w,links[0]);links.forEach(function(l){w.appendChild(l)});var arr=document.createElement('span');arr.innerHTML='&#9658;';arr.style.cssText='font-size:.5rem;margin-left:auto;transition:transform .2s;line-height:1;flex-shrink:0';g.style.cursor='pointer';g.style.display='flex';g.style.alignItems='center';g.style.userSelect='none';g.appendChild(arr);var open=false;function show(){w.style.maxHeight=w.scrollHeight+'px';arr.style.transform='rotate(90deg)';open=true;}function hide(){w.style.maxHeight='0';arr.style.transform='';open=false;}g.addEventListener('click',function(){open?hide():show();});if(/^Book|^Get a Quote/.test(g.textContent.trim()))setTimeout(show,0);});document.addEventListener('click',function(e){var menu=document.querySelector('.gg-menu');if(menu&&menu.classList.contains('open')&&!menu.contains(e.target)&&!e.target.closest('.gg-hamburger'))menu.classList.remove('open');});return true;}if(!init())setTimeout(init,120);})();
 </script>'''
 
+# Reveal-on-scroll observer — injected into pages that have *-reveal elements
+# (opacity:0 until .visible is added) but no IntersectionObserver of their own.
+# Without this, the content stays invisible and the page LOOKS BLANK.
+REVEAL_INJECT = '''<script>
+(function(){function init(){var els=document.querySelectorAll('[class*="-reveal"]');if(!els.length)return;if(!('IntersectionObserver' in window)){els.forEach(function(el){el.classList.add('visible')});return;}var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});},{threshold:0.05});els.forEach(function(el){obs.observe(el)});}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();})();
+</script>'''
+
 def strip_tags(html):
     return re.sub(r'<[^>]+>', '', html).strip()
 
@@ -469,6 +476,10 @@ def convert(fname, fragment):
     needs_accordion = 'gg-menu' in body and 'scrollHeight' not in body
     accordion_block = ACCORDION_INJECT if needs_accordion else ''
 
+    # Inject reveal observer if the page uses *-reveal classes but lacks one
+    needs_reveal = '-reveal' in body and 'IntersectionObserver' not in body
+    reveal_block = REVEAL_INJECT if needs_reveal else ''
+
     # Generate fallback title/desc from page content if needed
     title = seo.get('title') or (extract_og_text(body, 'h1') + ' | GreenGuard USA')
     desc  = seo.get('desc')  or extract_og_text(body, 'p')  or 'GreenGuard USA provides eco-friendly CO2 mosquito control in Austin, TX.'
@@ -496,6 +507,7 @@ def convert(fname, fragment):
 <body>
 {body.strip()}
 {accordion_block}
+{reveal_block}
 </body>
 </html>'''
 
