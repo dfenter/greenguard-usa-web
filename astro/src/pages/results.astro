@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+import Reviews from '../components/Reviews.astro';
+---
+
+<Base
+  title="Mosquito Control Results | GreenGuard USA"
+  description="Real results from Austin homeowners using CO₂ mosquito traps. 93% bite reduction documented in peer-reviewed studies."
+>
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-2">Results</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        Does it actually <span class="text-accent">work?</span>
+      </h1>
+      <p class="text-cream/80 text-base md:text-lg">
+        Short answer: yes, and we have the data to back it up.
+      </p>
+    </div>
+  </section>
+
+  <!-- BIG NUMBER -->
+  <section class="py-16 px-5">
+    <div class="max-w-2xl mx-auto text-center">
+      <div class="text-6xl md:text-8xl font-black text-accent mb-4">93%</div>
+      <p class="text-cream/85 text-lg leading-relaxed">
+        Reduction in mosquito bites documented in field studies with continuous CO₂ trap operation
+        over 6+ weeks.
+      </p>
+    </div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Timeline</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Your results week by week</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-2">Week 1–2</div>
+          <div class="text-white font-bold mb-2">Visible catches</div>
+          <p class="text-cream/65 text-sm">The trap fills with mosquitoes — usually thousands in the first net change.</p>
+        </div>
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-2">Week 3–4</div>
+          <div class="text-white font-bold mb-2">Fewer bites</div>
+          <p class="text-cream/65 text-sm">You'll notice noticeably less biting pressure when outside.</p>
+        </div>
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-2">Week 5–6</div>
+          <div class="text-white font-bold mb-2">Breeding cycle breaks</div>
+          <p class="text-cream/65 text-sm">Gravid females removed before they lay eggs. Population drops sharply.</p>
+        </div>
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-2">Week 7+</div>
+          <div class="text-white font-bold mb-2">Maintenance mode</div>
+          <p class="text-cream/65 text-sm">Steady-state. Outdoor use feels normal again. Quarterly tuning keeps it there.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCIENCE -->
+  <section class="py-16 px-5">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-8">
+        <div class="eyebrow mb-2">The Science</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Why CO₂ trapping outperforms sprays</h2>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-accent/20">
+              <th class="text-left text-cream/40 font-bold uppercase tracking-wider text-xs py-3"></th>
+              <th class="text-left text-accent font-extrabold py-3 px-3">CO₂ Trapping</th>
+              <th class="text-left text-cream/60 font-bold py-3 px-3">Spraying</th>
+            </tr>
+          </thead>
+          <tbody class="text-cream/80">
+            <tr class="border-b border-accent/10">
+              <td class="py-3 font-bold text-white">Targets only mosquitoes</td>
+              <td class="py-3 px-3">✓ Yes</td>
+              <td class="py-3 px-3 text-cream/55">✗ Also kills pollinators</td>
+            </tr>
+            <tr class="border-b border-accent/10">
+              <td class="py-3 font-bold text-white">Continuous (24/7)</td>
+              <td class="py-3 px-3">✓ Yes</td>
+              <td class="py-3 px-3 text-cream/55">✗ Wears off in 2–4 weeks</td>
+            </tr>
+            <tr class="border-b border-accent/10">
+              <td class="py-3 font-bold text-white">Breaks breeding cycle</td>
+              <td class="py-3 px-3">✓ Removes gravid females</td>
+              <td class="py-3 px-3 text-cream/55">✗ Kills adults; eggs survive</td>
+            </tr>
+            <tr class="border-b border-accent/10">
+              <td class="py-3 font-bold text-white">Safe around kids/pets</td>
+              <td class="py-3 px-3">✓ No residue</td>
+              <td class="py-3 px-3 text-cream/55">⚠ Re-entry interval</td>
+            </tr>
+            <tr>
+              <td class="py-3 font-bold text-white">Peer-reviewed efficacy</td>
+              <td class="py-3 px-3">✓ Biogents studies</td>
+              <td class="py-3 px-3 text-cream/55">Varies by chemical</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVIEWS -->
+  <Reviews />
+
+  <!-- CTA -->
+  <section class="py-16 px-5 text-center">
+    <div class="max-w-xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-4">See it work in your yard</h2>
+      <p class="text-cream/75 mb-6">Free property assessment. We'll show you exactly what to expect.</p>
+      <a href="/book" class="btn-gold">Book Free Assessment</a>
+    </div>
+  </section>
+</Base>

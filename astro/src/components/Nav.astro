@@ -1,0 +1,69 @@
+---
+const links = [
+  { href: '/services', label: 'Services' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/results', label: 'Results' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<header class="fixed top-0 left-0 right-0 w-full z-50 bg-bg-dark/95 backdrop-blur border-b border-accent/20">
+  <div class="container-x flex items-center justify-between py-3.5">
+    <a href="/" class="font-black text-white tracking-tight text-lg">
+      Green<span class="text-accent">Guard</span> USA
+      <div class="block text-[0.52rem] tracking-[0.16em] uppercase text-accent font-bold leading-none mt-0.5">
+        Smart. Safe. Effective.
+      </div>
+    </a>
+
+    <nav class="hidden md:flex items-center gap-5">
+      {links.map((l) => (
+        <a href={l.href} class="text-cream/80 hover:text-accent text-sm font-semibold">
+          {l.label}
+        </a>
+      ))}
+      <a href="/book" class="btn-gold !py-2 !px-4 !text-xs">Book Free Assessment</a>
+    </nav>
+
+    <button
+      id="nav-toggle"
+      type="button"
+      aria-label="Open menu"
+      class="md:hidden w-8 h-7 flex flex-col justify-between"
+    >
+      <span class="h-0.5 w-full bg-gold rounded"></span>
+      <span class="h-0.5 w-full bg-gold rounded"></span>
+      <span class="h-0.5 w-full bg-gold rounded"></span>
+    </button>
+  </div>
+
+  <div
+    id="nav-drawer"
+    class="fixed top-0 right-[-100%] w-72 h-full bg-bg-dark z-50 pt-16 px-6 pb-6 flex flex-col gap-1 transition-[right] duration-300 overflow-y-auto"
+  >
+    <button
+      id="nav-close"
+      type="button"
+      class="absolute top-4 right-4 text-accent text-xl"
+      aria-label="Close menu"
+    >✕</button>
+    {links.map((l) => (
+      <a href={l.href} class="text-cream/80 hover:text-accent py-2.5 border-b border-accent/10 text-sm">
+        {l.label}
+      </a>
+    ))}
+    <a href="/book" class="btn-gold mt-4 text-center">Book Free Assessment</a>
+  </div>
+</header>
+
+<div class="h-16"></div>
+
+<script>
+  const toggle = document.getElementById('nav-toggle');
+  const drawer = document.getElementById('nav-drawer');
+  const close = document.getElementById('nav-close');
+  toggle?.addEventListener('click', () => drawer?.style.setProperty('right', '0'));
+  close?.addEventListener('click', () => drawer?.style.setProperty('right', '-100%'));
+</script>

@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-bg text-cream font-sans antialiased;
+  }
+  body {
+    @apply min-h-screen;
+  }
+  a {
+    @apply transition-colors duration-150;
+  }
+}
+
+@layer components {
+  .btn-gold {
+    @apply inline-block bg-gold text-bg-dark font-extrabold text-sm px-7 py-3 rounded-lg hover:bg-gold-light transition-transform hover:-translate-y-0.5;
+  }
+  .btn-outline {
+    @apply inline-block bg-transparent text-accent font-bold text-sm px-6 py-3 rounded-lg border border-accent/40 hover:border-accent hover:text-white;
+  }
+  .container-x {
+    @apply max-w-container mx-auto px-5;
+  }
+  .eyebrow {
+    @apply text-[0.7rem] tracking-[0.14em] uppercase text-accent font-bold;
+  }
+  .card {
+    @apply bg-bg-card/60 border border-accent/15 rounded-xl p-6;
+  }
+}

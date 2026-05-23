@@ -1,0 +1,76 @@
+---
+import Base from '../layouts/Base.astro';
+
+// Cal.com inline embed — the public booking page is at /greenguard-usa
+const CAL_USERNAME = 'greenguard-usa';
+const CAL_EVENT = 'property-assessment';
+---
+
+<Base
+  title="Book Your Free Mosquito Assessment | GreenGuard USA"
+  description="Schedule a free in-person property assessment with GreenGuard USA. No pressure, no obligation."
+>
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-2xl mx-auto">
+      <div class="eyebrow mb-2">Free Assessment</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        Book your <span class="text-accent">free assessment</span>
+      </h1>
+      <p class="text-cream/80 text-base md:text-lg">
+        We come out, walk your property, and show you exactly where traps would go and what to expect.
+        No pressure, no obligation.
+      </p>
+    </div>
+  </section>
+
+  <!-- BOOKING EMBED -->
+  <section class="py-12 px-5">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-black text-white text-center mb-6">Pick a time that works for you</h2>
+      <div class="card !p-2 min-h-[640px]">
+        <iframe
+          src={`https://cal.com/${CAL_USERNAME}/${CAL_EVENT}?embed=true&theme=dark`}
+          width="100%"
+          height="640"
+          frameborder="0"
+          title="Book a Free Property Assessment"
+          loading="lazy"
+        ></iframe>
+      </div>
+      <div class="text-center text-cream/50 text-xs mt-4">
+        Prefer to talk first? <a href="tel:5125604129" class="text-accent underline">Call 512-560-4129</a>
+        &nbsp;·&nbsp;
+        <a href="mailto:admin@greenguard-usa.com" class="text-accent underline">admin@greenguard-usa.com</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT TO EXPECT -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">What to Expect</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Simple process. No surprises.</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-2">Step 1 · Visit</div>
+          <div class="text-white font-bold mb-2">~30 minute walkthrough</div>
+          <p class="text-cream/65 text-sm">We look at vegetation, water sources, and how you use the yard. Identify the right trap spots.</p>
+        </div>
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-2">Step 2 · Recommendation</div>
+          <div class="text-white font-bold mb-2">Honest assessment</div>
+          <p class="text-cream/65 text-sm">We'll tell you if CO₂ trapping is right for your property — or honestly say it's not the best fit.</p>
+        </div>
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-2">Step 3 · No Pressure</div>
+          <div class="text-white font-bold mb-2">Decide on your own time</div>
+          <p class="text-cream/65 text-sm">Take a day, a week, or pass entirely. No follow-up sales calls.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>

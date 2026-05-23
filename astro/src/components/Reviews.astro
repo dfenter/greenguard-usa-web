@@ -1,0 +1,48 @@
+---
+import { getLatestReviews, getReviewMeta } from '../lib/reviews';
+
+const reviews = getLatestReviews(3);
+const meta = getReviewMeta();
+const reviewUrl = 'https://g.page/r/CW33u4YWYh17EAE/review';
+---
+
+<section class="py-16 px-5 bg-bg-panel">
+  <div class="max-w-container mx-auto">
+    <div class="text-center mb-10">
+      <div class="eyebrow mb-2">What Customers Say</div>
+      <h2 class="text-3xl md:text-4xl font-black text-white mb-3 leading-tight">
+        <span class="text-accent">{meta.averageRating}★</span> on Google
+      </h2>
+      <p class="text-cream/70 text-sm md:text-base">
+        Real reviews from Austin homeowners reclaiming their backyards.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      {reviews.map((r) => (
+        <article class="card flex flex-col">
+          <div class="text-gold text-sm tracking-widest mb-3">
+            {'★'.repeat(r.rating)}
+            <span class="text-cream/20">{'★'.repeat(Math.max(0, 5 - r.rating))}</span>
+          </div>
+          <p class="text-cream/85 text-sm leading-relaxed flex-1 mb-4">
+            "{r.text.length > 240 ? r.text.slice(0, 240).trim() + '…' : r.text}"
+          </p>
+          <div class="border-t border-accent/15 pt-3 flex justify-between items-center">
+            <div>
+              <div class="text-white font-bold text-sm">{r.author}</div>
+              <div class="text-cream/45 text-xs">{r.time}</div>
+            </div>
+            <div class="text-[0.65rem] text-accent/70 tracking-widest uppercase">Google</div>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <div class="text-center mt-8">
+      <a href={reviewUrl} class="btn-outline" target="_blank" rel="noopener">
+        Read all {meta.totalReviews} reviews
+      </a>
+    </div>
+  </div>
+</section>

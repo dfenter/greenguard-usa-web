@@ -1,0 +1,94 @@
+---
+import Base from '../layouts/Base.astro';
+
+const areas = [
+  'Austin', 'Westlake Hills', 'Lakeway', 'Bee Cave', 'Dripping Springs',
+  'Steiner Ranch', 'Round Rock', 'Cedar Park', 'Pflugerville', 'Leander',
+  'Liberty Hill', 'Georgetown', 'Kyle', 'Buda',
+];
+---
+
+<Base
+  title="Contact GreenGuard USA | Austin Mosquito Control"
+  description="Get in touch with GreenGuard USA. Book a free consultation or ask about our Outdoor Protection Program in Austin, TX."
+>
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-2xl mx-auto">
+      <div class="eyebrow mb-2">Contact</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        Let's get rid of <span class="text-accent">the mosquitoes</span>
+      </h1>
+      <p class="text-cream/80 text-base md:text-lg">
+        Text, call, or book online. We respond within one business day.
+      </p>
+    </div>
+  </section>
+
+  <!-- CONTACT METHODS -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="card text-center">
+        <div class="text-3xl mb-3">📱</div>
+        <div class="text-white font-bold mb-1">Text or Call</div>
+        <a href="tel:5125604129" class="text-accent font-extrabold text-lg block mb-2">512-560-4129</a>
+        <div class="text-cream/55 text-xs">Fastest way to reach us</div>
+      </div>
+      <div class="card text-center">
+        <div class="text-3xl mb-3">✉️</div>
+        <div class="text-white font-bold mb-1">Email</div>
+        <a href="mailto:admin@greenguard-usa.com" class="text-accent font-extrabold text-sm block mb-2 break-all">
+          admin@greenguard-usa.com
+        </a>
+        <div class="text-cream/55 text-xs">Reply within 1 business day</div>
+      </div>
+      <div class="card text-center">
+        <div class="text-3xl mb-3">📅</div>
+        <div class="text-white font-bold mb-1">Book Online</div>
+        <a href="/book" class="text-accent font-extrabold text-sm block mb-2">Free Property Assessment</a>
+        <div class="text-cream/55 text-xs">Instantly confirmed</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOOK SECTION -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Book an Appointment</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white mb-3">Four ways we can help</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <a href="/book" class="card hover:border-accent/40 block">
+          <div class="text-white font-bold mb-2 text-sm">Free Assessment</div>
+          <div class="text-cream/65 text-xs">No-obligation property walkthrough</div>
+        </a>
+        <a href="/book" class="card hover:border-accent/40 block">
+          <div class="text-white font-bold mb-2 text-sm">CO₂ Consultation</div>
+          <div class="text-cream/65 text-xs">Talk through the right trap setup</div>
+        </a>
+        <a href="/book" class="card hover:border-accent/40 block">
+          <div class="text-white font-bold mb-2 text-sm">Trap Installation</div>
+          <div class="text-cream/65 text-xs">For existing customers ready to install</div>
+        </a>
+        <a href="/book" class="card hover:border-accent/40 block">
+          <div class="text-white font-bold mb-2 text-sm">CO₂ Tank Delivery</div>
+          <div class="text-cream/65 text-xs">Refill or replacement service</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICE AREAS -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto text-center">
+      <div class="eyebrow mb-2">Coverage</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-6">Serving Austin and surrounding communities</h2>
+      <div class="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto">
+        {areas.map((a) => (
+          <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-xs text-cream/75">{a}</span>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
