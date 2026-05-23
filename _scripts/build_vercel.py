@@ -478,6 +478,21 @@ def convert(fname, fragment):
     for old_text, new_text in NAV_TEXT_FIXES:
         body = body.replace(old_text, new_text)
 
+    # Ensure every logo carries the SMART.SAFE.EFFECTIVE. tagline. Some pages
+    # (eg the one extracted from a docx) ship the logo without the span.
+    SSE_SPAN = '<span class="gg-logo-sse">Smart. Safe. Effective.</span>'
+    # Anchor-based logo: <a ... class="gg-logo" ...>...GreenGuard USA</a>
+    anchor_logo_re = re.compile(
+        r'(<a[^>]*class="gg-logo"[^>]*>(?:(?!</a>).)*?)(</a>)',
+        re.DOTALL,
+    )
+    def _inject_sse(m):
+        inner, close = m.group(1), m.group(2)
+        if 'gg-logo-sse' in inner:
+            return m.group(0)
+        return inner + SSE_SPAN + close
+    body = anchor_logo_re.sub(_inject_sse, body)
+
     # Inject accordion + close JS if the page has a nav menu but is missing it
     needs_accordion = 'gg-menu' in body and 'scrollHeight' not in body
     accordion_block = ACCORDION_INJECT if needs_accordion else ''
