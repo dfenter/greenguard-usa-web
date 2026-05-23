@@ -179,6 +179,21 @@ async function listAllCustomers() {
   return all
 }
 
+function getTaxRateId() {
+  const id = process.env.STRIPE_TAX_RATE_ID
+  if (!id) throw new Error('STRIPE_TAX_RATE_ID not set in env')
+  return id
+}
+
+async function listAllDraftInvoices() {
+  const result = await stripe.invoices.list({
+    status: 'draft',
+    limit: 100,
+    expand: ['data.customer'],
+  })
+  return result.data
+}
+
 module.exports = {
   stripe,
   getCustomer,
@@ -193,4 +208,6 @@ module.exports = {
   listAllActiveSubscriptions,
   listAllInvoicesSince,
   listOpenInvoices,
+  getTaxRateId,
+  listAllDraftInvoices,
 }

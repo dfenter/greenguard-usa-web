@@ -1,5 +1,5 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
-const { stripe } = require('../../../lib/stripe')
+const { stripe, getTaxRateId } = require('../../../lib/stripe')
 const { SKU_PRICES } = require('../../../lib/sku-engine')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
@@ -118,6 +118,12 @@ export default async function handler(req, res) {
         inv = await stripe.invoices.create({ customer: customerId, auto_advance: false })
       }
       if (inv.status === 'draft') {
+        // Guard: don't send $0 invoices
+        if (!inv.lines?.data?.length || inv.amount_due === 0) {
+          return res.status(400).json({ error: 'Cannot send an invoice with no billable items' })
+        }
+        // Ensure tax is set before finalizing
+        await stripe.invoices.update(inv.id, { default_tax_rates: [getTaxRateId()] })
         await stripe.invoices.finalizeInvoice(inv.id)
         await stripe.invoices.sendInvoice(inv.id)
       }

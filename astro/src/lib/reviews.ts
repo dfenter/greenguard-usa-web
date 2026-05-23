@@ -1,17 +1,21 @@
-// Read reviews.json from the repo root (one level above /astro)
-// fetch_reviews.py keeps this fresh daily via GitHub Actions
+// Reviews are sourced from reviews.json which is kept fresh by the
+// fetch-reviews.yml GitHub Action (daily at 3am CT). The file is at the
+// repo root, but Vercel's rootDirectory=astro doesn't include parent-dir
+// files in the build, so we fetch it over HTTPS from the live site at
+// build time. Local dev falls back to the filesystem.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REVIEWS_PATH = path.resolve(__dirname, '../../../reviews.json');
+const LOCAL_PATH = path.resolve(__dirname, '../../../reviews.json');
+const REMOTE_URL = 'https://www.greenguard-usa.com/reviews.json';
 
 export interface Review {
   author: string;
   rating: number;
   text: string;
-  time: string;       // relative time string from Places API
+  time: string;
   source: string;
   location?: string;
 }
@@ -21,42 +25,63 @@ interface ReviewsFile {
   manual?: Review[];
 }
 
-function loadFile(): ReviewsFile {
+let cache: ReviewsFile | null = null;
+
+async function load(): Promise<ReviewsFile> {
+  if (cache) return cache;
+  // Try local file first (faster for local dev)
   try {
-    return JSON.parse(fs.readFileSync(REVIEWS_PATH, 'utf8'));
+    if (fs.existsSync(LOCAL_PATH)) {
+      cache = JSON.parse(fs.readFileSync(LOCAL_PATH, 'utf8'));
+      return cache!;
+    }
   } catch {
-    return {};
+    // fall through to remote
   }
+  // Fall back to fetching from live site (Vercel build context)
+  try {
+    const res = await fetch(REMOTE_URL, { cache: 'no-store' as any });
+    if (res.ok) {
+      cache = await res.json();
+      return cache!;
+    }
+  } catch {
+    // ignore
+  }
+  cache = {};
+  return cache;
 }
 
-// Newest reviews appear first in the Places API response by default.
-// "in the last week" / "a week ago" / "2 weeks ago" / "a month ago" / etc.
-// We rank by parsing that string into an approximate day count.
 function relativeToDays(s: string): number {
   if (!s) return 9999;
   const lower = s.toLowerCase();
-  if (lower.includes('hour') || lower.includes('day ago') || lower.includes('today')) return 1;
-  if (lower.includes('in the last week') || lower.includes('week ago') && !lower.match(/\d/)) return 7;
+  if (lower.includes('hour') || lower.includes('today')) return 0.5;
+  if (lower.match(/\bday(s)?\s+ago/)) {
+    const m = lower.match(/(\d+)\s*day/);
+    return m ? parseInt(m[1]!) : 1;
+  }
+  if (lower.includes('in the last week')) return 5;
+  if (lower.includes('a week ago')) return 7;
   const wkMatch = lower.match(/(\d+)\s*week/);
-  if (wkMatch) return parseInt(wkMatch[1]) * 7;
+  if (wkMatch) return parseInt(wkMatch[1]!) * 7;
+  if (lower.includes('a month ago')) return 30;
   const moMatch = lower.match(/(\d+)\s*month/);
-  if (moMatch) return parseInt(moMatch[1]) * 30;
-  if (lower.includes('a month')) return 30;
+  if (moMatch) return parseInt(moMatch[1]!) * 30;
+  if (lower.includes('a year ago')) return 365;
   const yrMatch = lower.match(/(\d+)\s*year/);
-  if (yrMatch) return parseInt(yrMatch[1]) * 365;
-  if (lower.includes('a year')) return 365;
+  if (yrMatch) return parseInt(yrMatch[1]!) * 365;
   return 100;
 }
 
-export function getLatestReviews(count = 3): Review[] {
-  const file = loadFile();
+export async function getLatestReviews(count = 3): Promise<Review[]> {
+  const file = await load();
   const all: Review[] = [...(file.google?.reviews ?? [])];
   all.sort((a, b) => relativeToDays(a.time) - relativeToDays(b.time));
   return all.slice(0, count);
 }
 
-export function getReviewMeta() {
-  const file = loadFile();
+export async function getReviewMeta() {
+  const file = await load();
   return {
     averageRating: file.google?.rating ?? 5,
     totalReviews: file.google?.total ?? 0,

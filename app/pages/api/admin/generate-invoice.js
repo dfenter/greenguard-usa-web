@@ -5,7 +5,7 @@
  * Does NOT create a new invoice unless none exists.
  */
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
-const { stripe } = require('../../../lib/stripe')
+const { stripe, getTaxRateId } = require('../../../lib/stripe')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   // ── Double-billing protection — one invoice per booking UID ───────────────
   if (calBookingUid && !force) {
     // Search all invoices for this customer that already have this booking UID
-    const allInvoices = await stripe.invoices.list({ customer: customer.id, limit: 20 })
+    const allInvoices = await stripe.invoices.list({ customer: customer.id, limit: 100 })
     const duplicate = allInvoices.data.find(inv =>
       inv.metadata?.cal_booking_uid === calBookingUid &&
       ['paid', 'open', 'draft'].includes(inv.status)
@@ -52,6 +52,23 @@ export default async function handler(req, res) {
         invoiceId: duplicate.id,
         invoiceUrl: duplicate.hosted_invoice_url,
         invoiceStatus: duplicate.status,
+      })
+    }
+  }
+
+  // Fallback dedup when no Cal.com UID (manual GCal entries / Acuity appointments)
+  if (!calBookingUid && serviceDate && !force) {
+    const allForDate = await stripe.invoices.list({ customer: customer.id, limit: 100 })
+    const sameDayDuplicate = allForDate.data.find(inv =>
+      inv.metadata?.service_date === serviceDate &&
+      ['paid', 'open', 'draft'].includes(inv.status)
+    )
+    if (sameDayDuplicate) {
+      return res.status(409).json({
+        alreadyBilled: true,
+        warning: `An invoice already exists for this date (${serviceDate}). Status: ${sameDayDuplicate.status}.`,
+        invoiceId: sameDayDuplicate.id,
+        invoiceStatus: sameDayDuplicate.status,
       })
     }
   }
@@ -94,7 +111,12 @@ export default async function handler(req, res) {
 
   let invoice = existingInvoice
   if (!invoice) {
-    invoice = await stripe.invoices.create({ customer: customer.id, auto_advance: false, metadata: invoiceMeta })
+    invoice = await stripe.invoices.create({
+      customer: customer.id,
+      auto_advance: false,
+      metadata: invoiceMeta,
+      default_tax_rates: [getTaxRateId()],
+    })
   } else if (Object.keys(invoiceMeta).length && !existingInvoice.metadata?.cal_booking_uid) {
     // Tag existing invoice with booking UID if not already tagged
     await stripe.invoices.update(invoice.id, { metadata: { ...invoice.metadata, ...invoiceMeta } }).catch(() => {})

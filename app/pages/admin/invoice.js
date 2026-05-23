@@ -60,6 +60,9 @@ export default function InvoiceEditor({ customers = [] }) {
   const [sending, setSending] = useState(false)
   const [msg, setMsg] = useState(null)
   const [expandedInv, setExpandedInv] = useState(null)
+  const [pending, setPending] = useState(null)
+  const [pendingLoading, setPendingLoading] = useState(false)
+  const [approvingAll, setApprovingAll] = useState(false)
   const searchRef = useRef(null)
 
   const filtered = search.length >= 1
@@ -70,6 +73,10 @@ export default function InvoiceEditor({ customers = [] }) {
     : []
 
   useEffect(() => {
+    loadPending()
+  }, [])
+
+  useEffect(() => {
     if (router.isReady && router.query.email) {
       const e = router.query.email
       const match = customers.find((c) => c.email === e)
@@ -78,6 +85,20 @@ export default function InvoiceEditor({ customers = [] }) {
       loadCustomer(e)
     }
   }, [router.isReady]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadPending() {
+    setPendingLoading(true)
+    try {
+      const res = await fetch('/api/admin/pending-invoices')
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setPending(json)
+    } catch (e) {
+      console.error('Failed to load pending invoices:', e)
+    } finally {
+      setPendingLoading(false)
+    }
+  }
 
   function selectCustomer(c) {
     setSearch(c.name || c.email)
@@ -146,11 +167,38 @@ export default function InvoiceEditor({ customers = [] }) {
     setSending(true)
     const res = await fetch('/api/admin/invoice-items', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'send', customerId: data.customer.id, invoiceId }),
+      body: JSON.stringify({ action: 'send', customerId: data?.customer.id, invoiceId }),
     })
     setSending(false)
-    if (res.ok) { setMsg('Invoice sent to customer'); loadCustomer() }
+    if (res.ok) { setMsg('Invoice sent to customer'); loadCustomer(); await loadPending() }
     else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+  }
+
+  async function approveAll() {
+    if (!pending?.drafts?.length) return
+    setApprovingAll(true)
+    const errors = []
+    for (const draft of pending.drafts) {
+      try {
+        const res = await fetch('/api/admin/invoice-items', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'send', invoiceId: draft.id }),
+        })
+        if (!res.ok) {
+          const j = await res.json()
+          errors.push(`${draft.customerEmail}: ${j.error}`)
+        }
+      } catch (e) {
+        errors.push(`${draft.customerEmail}: ${e.message}`)
+      }
+    }
+    setApprovingAll(false)
+    if (errors.length) {
+      setMsg(`Sent ${pending.drafts.length - errors.length}/${pending.drafts.length}. Errors: ${errors.join('; ')}`)
+    } else {
+      setMsg(`Approved and sent all ${pending.drafts.length} draft invoices`)
+    }
+    await loadPending()
   }
 
   const input = { padding: '9px 12px', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }
@@ -166,6 +214,123 @@ export default function InvoiceEditor({ customers = [] }) {
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Invoice Editor</h1>
           <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>Find a customer and manage their invoices</p>
         </div>
+
+        {/* Pending Approvals */}
+        {pending && (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={SECTION}>Pending Approvals</div>
+              <button
+                onClick={loadPending}
+                disabled={pendingLoading}
+                style={{ ...btn('gold'), marginTop: 28, fontSize: '0.75rem', padding: '6px 12px' }}
+              >
+                {pendingLoading ? 'Loading…' : '↻ Refresh'}
+              </button>
+            </div>
+
+            {/* KPI strip */}
+            <div className="card" style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap', fontSize: '0.85rem' }}>
+              <div>
+                <div style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Drafts Ready</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#c9a84c' }}>{pending.drafts?.length || 0}</div>
+              </div>
+              <div>
+                <div style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Unbilled</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffb060' }}>{pending.needsInvoice?.length || 0}</div>
+              </div>
+              <div>
+                <div style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Outstanding</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#7dffaa' }}>
+                  {fmt$(pending.drafts?.reduce((s, d) => s + d.amountDue, 0) || 0)}
+                </div>
+              </div>
+            </div>
+
+            {/* Draft invoices */}
+            {pending.drafts?.length > 0 && (
+              <div className="card" style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 12 }}>Draft Invoices (ready to send)</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {pending.drafts.map((draft) => (
+                    <div
+                      key={draft.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '12px',
+                        border: '1px solid rgba(122,171,130,0.15)',
+                        borderRadius: 6,
+                        gap: 12,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{draft.customerName || draft.customerEmail}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>
+                          {draft.serviceDate} · {draft.lineCount} item{draft.lineCount !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#c9a84c' }}>{fmt$(draft.amountDue)}</div>
+                      <button style={btn('gold')} onClick={() => sendInvoice(draft.id)} disabled={sending}>
+                        {sending ? 'Sending…' : 'Send'}
+                      </button>
+                      {draft.hostedUrl && (
+                        <a href={draft.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }}>
+                          ↗
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {pending.drafts.length > 1 && (
+                  <button
+                    onClick={approveAll}
+                    disabled={approvingAll}
+                    style={{ ...btn('green'), marginTop: 12, width: '100%' }}
+                  >
+                    {approvingAll ? 'Approving…' : `Approve All ${pending.drafts.length} Drafts`}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Appointments without invoices */}
+            {pending.needsInvoice?.length > 0 && (
+              <div className="card" style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 12 }}>Appointments without invoices (past 7 days)</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {pending.needsInvoice.map((apt, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '12px',
+                        border: '1px solid rgba(122,171,130,0.15)',
+                        borderRadius: 6,
+                        gap: 12,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{apt.customerName}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>
+                          {apt.date} · {apt.serviceType}
+                        </div>
+                      </div>
+                      <a href={`/admin/rounds?date=${apt.date}`} style={{ ...btn('ghost'), textDecoration: 'none', fontSize: '0.75rem' }}>
+                        → Rounds
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Customer lookup — name search with dropdown */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>

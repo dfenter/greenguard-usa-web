@@ -1,4 +1,4 @@
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { findContactByEmail, upsertContact, addNote } = require('../../../lib/hubspot')
 const { addInvoiceItems, stripe } = require('../../../lib/stripe')
 const { SKU_PRICES, isSubscriptionSKU } = require('../../../lib/sku-engine')
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
   const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) {
+  if (!session || !isAdminEmail(session.email)) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
