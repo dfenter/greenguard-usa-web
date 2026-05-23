@@ -35,6 +35,7 @@ export async function getServerSideProps({ req, query }) {
           address: s.address || '', email: s.email || '',
           startTime: s.scheduled_time || null, durationMin: s.duration_min || null,
           propertySize: s.property_size || '',
+          serviceType: s.service_type || '',
         }))
       }
     }
@@ -44,8 +45,9 @@ export async function getServerSideProps({ req, query }) {
     try {
       const bookings = selectedDate === today ? await getTodaysBookings() : await getBookingsForDate(selectedDate)
       stops = bookings.map((b) => ({
-        customerName: b.title || 'Customer', address: b.address || '',
-        email: b.email || '', startTime: b.startTime, durationMin: null, propertySize: b.propertySize || '',
+        customerName: b.name || 'Customer', serviceType: b.title || '',
+        address: b.address || '', email: b.email || '',
+        startTime: b.startTime, durationMin: null, propertySize: b.propertySize || '',
       }))
     } catch {}
   }
@@ -101,9 +103,10 @@ export async function getServerSideProps({ req, query }) {
         || stripeNameByEmail[emailKey]
         || stop.customerName
       const tanks = hubspotNameByEmail[emailKey + '__tanks'] || null
+      const serviceType = stop.serviceType || stop.customerName || ''
       return match
-        ? { ...stop, calBookingId: match.id, calBookingUid: match.uid, customerName: resolvedName, tanks }
-        : { ...stop, customerName: resolvedName, tanks }
+        ? { ...stop, calBookingId: match.id, calBookingUid: match.uid, customerName: resolvedName, serviceType, tanks }
+        : { ...stop, customerName: resolvedName, serviceType, tanks }
     })
   }
 
@@ -670,11 +673,9 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7dffaa' }}>{fmt$(state.grandTotal)}</span>
               )}
             </div>
-            <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '2px 16px', fontSize: '0.8rem' }}>
+            <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 14px', fontSize: '0.8rem' }}>
               {stop.startTime && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{fmtTime(stop.startTime)}</span>}
-              {stop.customerName && stop.title && stop.title !== stop.customerName && (
-                <span style={{ color: '#c9a84c', fontWeight: 700 }}>{stop.title}</span>
-              )}
+              {stop.serviceType && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{stop.serviceType}</span>}
               {stop.address && <span style={{ color: 'rgba(212,230,202,0.5)' }}>📍 {stop.address}</span>}
               {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
             </div>
@@ -685,56 +686,51 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {stop.address && (
               <a href={`https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}`} target="_blank" rel="noopener noreferrer"
-                style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid rgba(122,171,130,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#7aab82', textDecoration: 'none' }}>
-                Navigate →
+                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(122,171,130,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#7aab82', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                Navigate
               </a>
+            )}
+            {state.status !== 'cancelled' && state.status !== 'done' && stop.calBookingUid && (
+              <a href={`https://cal.com/reschedule/${stop.calBookingUid}`} target="_blank" rel="noopener noreferrer"
+                onClick={async () => {
+                  if (stop.calBookingId && stop.email) {
+                    await fetch('/api/admin/cancel-booking', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ bookingId: stop.calBookingId, customerEmail: stop.email, action: 'reschedule' }),
+                    }).catch(() => {})
+                  }
+                }}
+                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(91,196,255,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#5bc4ff', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                Reschedule
+              </a>
+            )}
+            {state.status !== 'cancelled' && state.status !== 'done' && (
+              <button onClick={() => setShowCancel(true)}
+                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(255,100,100,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent', color: '#ff8080', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                Cancel
+              </button>
+            )}
+            {state.status === 'pending' && (
+              <button onClick={() => onUpdate({ status: 'active', checkIn: nowStr() })}
+                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: '#c9a84c', color: '#0d1a10', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                Check In
+              </button>
             )}
             {isDone && state.invoiceUrl && (
               <a href={state.invoiceUrl} target="_blank" rel="noopener noreferrer"
-                style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none' }}>
-                View Invoice →
+                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                Invoice
               </a>
             )}
             {isDone && !state.invoiceUrl && stop.email && (
               <Link href={`/admin/invoice?email=${encodeURIComponent(stop.email)}`}
-                style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none' }}>
-                Invoice →
+                style={{ padding: '7px 0', borderRadius: 6, width: 90, justifyContent: 'center', border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                Invoice
               </Link>
-            )}
-            {state.status === 'pending' && (
-              <button onClick={() => onUpdate({ status: 'active', checkIn: nowStr() })}
-                style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: '#c9a84c', color: '#0d1a10' }}>
-                Check In
-              </button>
-            )}
-            {state.status !== 'cancelled' && state.status !== 'done' && (
-              <>
-                {stop.calBookingUid && (
-                  <a
-                    href={`https://cal.com/reschedule/${stop.calBookingUid}`}
-                    target="_blank" rel="noopener noreferrer"
-                    onClick={async () => {
-                      // Mark invoice as draft (keep it) when rescheduling
-                      if (stop.calBookingId && stop.email) {
-                        await fetch('/api/admin/cancel-booking', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ bookingId: stop.calBookingId, customerEmail: stop.email, action: 'reschedule' }),
-                        }).catch(() => {})
-                      }
-                    }}
-                    style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid rgba(91,196,255,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#5bc4ff', textDecoration: 'none' }}>
-                    Reschedule
-                  </a>
-                )}
-                <button onClick={() => setShowCancel(true)}
-                  style={{ padding: '6px 12px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent', color: '#ff8080' }}>
-                  Cancel
-                </button>
-              </>
             )}
             {state.status === 'cancelled' && (
               <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ff8080', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Cancelled</span>

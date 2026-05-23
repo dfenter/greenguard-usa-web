@@ -46,6 +46,11 @@ function parseServiceTitle(summary) {
     .trim()
 }
 
+function parseCustomerName(summary) {
+  if (!summary) return ''
+  return (summary.split(':')[0] || '').trim()
+}
+
 async function getUpcomingBookingsForEmail(customerEmail, maxResults = 20) {
   const calendar = getCalendar()
   const email = customerEmail.toLowerCase().trim()
@@ -73,6 +78,7 @@ async function getUpcomingBookingsForEmail(customerEmail, maxResults = 20) {
     .slice(0, maxResults)
     .map((e) => ({
       id: e.id,
+      name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
       endTime: e.end?.dateTime || e.end?.date,
@@ -108,6 +114,7 @@ async function getPastBookingsForEmail(customerEmail, maxResults = 5) {
     .slice(0, maxResults)
     .map((e) => ({
       id: e.id,
+      name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
       endTime: e.end?.dateTime || e.end?.date,
@@ -135,6 +142,7 @@ async function getBookingsForWeek(startISO, endISO) {
     )
     .map((e) => ({
       id: e.id,
+      name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
       endTime: e.end?.dateTime || e.end?.date,
@@ -166,6 +174,7 @@ async function getBookingsForDate(dateStr) {
       const propMatch = desc.match(/Property\s*[Ss]ize[:\s]+([^\n]+)/i)
       return {
         id: e.id,
+        name: parseCustomerName(e.summary),
         title: parseServiceTitle(e.summary),
         startTime: e.start?.dateTime || e.start?.date,
         endTime: e.end?.dateTime || e.end?.date,
@@ -200,6 +209,7 @@ async function getTodaysBookings() {
     )
     .map((e) => ({
       id: e.id,
+      name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
       endTime: e.end?.dateTime || e.end?.date,
@@ -228,6 +238,7 @@ async function getAllUpcomingBookings(maxResults = 20) {
     .slice(0, maxResults)
     .map((e) => ({
       id: e.id,
+      name: parseCustomerName(e.summary),
       title: parseServiceTitle(e.summary),
       startTime: e.start?.dateTime || e.start?.date,
       endTime: e.end?.dateTime || e.end?.date,
@@ -256,7 +267,7 @@ async function getBookingsForDateRange(startISO, endISO) {
     .map((e) => {
       const start = e.start?.dateTime || e.start?.date
       const dateStr = new Date(start).toLocaleDateString('en-CA', { timeZone: tz })
-      return { dateStr, title: parseServiceTitle(e.summary), email: parseEmailFromDescription(e.description) }
+      return { dateStr, name: parseCustomerName(e.summary), title: parseServiceTitle(e.summary), email: parseEmailFromDescription(e.description) }
     })
 }
 

@@ -49,7 +49,7 @@ export async function getServerSideProps({ req }) {
     const info = contactMap[s.email?.toLowerCase()] || {}
     return {
       id: s.id || null,
-      title: info.name || s.title || '',
+      title: info.name || s.name || '',
       serviceType: s.title || '',
       startTime: s.startTime || null,
       endTime: s.endTime || null,
