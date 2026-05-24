@@ -1,0 +1,31 @@
+name: Cron - Acuity Leak Detector
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # every hour on the hour
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        working-directory: app
+        run: npm ci --omit=dev --ignore-scripts
+
+      - name: Run detector
+        working-directory: app
+        env:
+          GOOGLE_CLIENT_ID:       ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET:   ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN:   ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          RESEND_API_KEY:         ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL:            admin@greenguard-usa.com
+        run: node _scripts/acuity-leak-detector.js
