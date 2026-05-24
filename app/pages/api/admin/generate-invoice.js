@@ -16,6 +16,7 @@ const SKU_TO_ENV = {
   'OWN-BG': 'STRIPE_PRICE_OWN_BG', 'OWN-MQ': 'STRIPE_PRICE_OWN_MQ',
   TANK1: 'STRIPE_PRICE_TANK1', TANK2: 'STRIPE_PRICE_TANK2', TANK3: 'STRIPE_PRICE_TANK3',
   TANK4: 'STRIPE_PRICE_TANK4', TANK6: 'STRIPE_PRICE_TANK6', TANK10: 'STRIPE_PRICE_TANK10',
+  'TANK-DELIVERY-FEE': 'STRIPE_PRICE_TANK_DELIVERY_FEE', 'TANK-REFILL': 'STRIPE_PRICE_TANK_REFILL',
   BARRIER: 'STRIPE_PRICE_BARRIER', BAIT: 'STRIPE_PRICE_BAIT', 'TANK-STRAPS': 'STRIPE_PRICE_TANK_STRAPS',
   'BG-SWEETSCENT': 'STRIPE_PRICE_BG_SWEETSCENT', 'CO2-ADDON': 'STRIPE_PRICE_CO2_ADDON',
   'TRAP-INSTALL': 'STRIPE_PRICE_TRAP_INSTALL',
@@ -117,10 +118,30 @@ export default async function handler(req, res) {
       metadata: invoiceMeta,
       default_tax_rates: [getTaxRateId()],
     })
-  } else if (Object.keys(invoiceMeta).length && !existingInvoice.metadata?.cal_booking_uid) {
-    // Tag existing invoice with booking UID if not already tagged
-    await stripe.invoices.update(invoice.id, { metadata: { ...invoice.metadata, ...invoiceMeta } }).catch(() => {})
+  } else if (Object.keys(invoiceMeta).length) {
+    // Always ensure metadata (cal_booking_uid + service_date) is present on existing invoices
+    const mergedMeta = { ...invoice.metadata, ...invoiceMeta }
+    const needsUpdate =
+      (invoiceMeta.cal_booking_uid && !invoice.metadata?.cal_booking_uid) ||
+      (invoiceMeta.service_date && !invoice.metadata?.service_date)
+    if (needsUpdate) {
+      await stripe.invoices.update(invoice.id, { metadata: mergedMeta }).catch(() => {})
+    }
   }
+
+  // Save line items as a template on the customer for next-time auto-populate
+  try {
+    const skuTemplate = billableItems.map(i => ({ sku: i.sku || null, label: i.label, qty: i.qty }))
+    if (skuTemplate.length > 0) {
+      await stripe.customers.update(customer.id, {
+        metadata: {
+          ...customer.metadata,
+          last_invoice_skus: JSON.stringify(skuTemplate).slice(0, 500), // Stripe metadata 500-char limit
+          last_invoice_date: serviceDate || new Date().toISOString().slice(0, 10),
+        },
+      }).catch(() => {})
+    }
+  } catch {} // non-blocking
 
   return res.status(200).json({
     ok: true,

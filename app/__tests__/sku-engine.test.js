@@ -162,3 +162,81 @@ describe('resolveByTitle', () => {
     expect(result).not.toBeNull()
   })
 })
+
+// ── prefillFromBooking ────────────────────────────────────────────────────────
+
+const { prefillFromBooking } = require('../lib/sku-engine')
+
+describe('prefillFromBooking', () => {
+  const mqOwned = { properties: { system_type: 'Mosqitter-Owned', trap_count: '2' } }
+  const mqRental = { properties: { system_type: 'Mosqitter-Rental', trap_count: '2' } }
+  const bgOwned = { properties: { system_type: 'Biogents-Owned', trap_count: '2' } }
+  const bgRental = { properties: { system_type: 'Biogents-Rental', trap_count: '2' } }
+
+  test('biogents-co2-2 rental → BG2 only', () => {
+    expect(prefillFromBooking({ slug: 'biogents-co2-2' }, bgRental)).toEqual([{ sku: 'BG2', qty: 1 }])
+  })
+
+  test('biogents-co2-2 owned → BG2 + BAIT × trap_count', () => {
+    expect(prefillFromBooking({ slug: 'biogents-co2-2' }, bgOwned)).toEqual([
+      { sku: 'BG2', qty: 1 },
+      { sku: 'BAIT', qty: 2 },
+    ])
+  })
+
+  test('tank-exchange-5 → delivery fee + 5 refills', () => {
+    expect(prefillFromBooking({ slug: 'tank-exchange-5' }, null)).toEqual([
+      { sku: 'TANK-DELIVERY-FEE', qty: 1 },
+      { sku: 'TANK-REFILL', qty: 5 },
+    ])
+  })
+
+  test('tank-exchange-10 → delivery fee + 10 refills', () => {
+    expect(prefillFromBooking({ slug: 'tank-exchange-10' }, null)).toEqual([
+      { sku: 'TANK-DELIVERY-FEE', qty: 1 },
+      { sku: 'TANK-REFILL', qty: 10 },
+    ])
+  })
+
+  test('mosqitter-installation, rental customer → no line items', () => {
+    expect(prefillFromBooking({ slug: 'mosqitter-installation' }, mqRental)).toEqual([])
+  })
+
+  test('mosqitter-installation, owner with 2 traps → MQ-INST × 2 (Archambo case)', () => {
+    expect(prefillFromBooking({ slug: 'mosqitter-installation' }, mqOwned)).toEqual([
+      { sku: 'MQ-INST', qty: 2 },
+    ])
+  })
+
+  test('mosqitter-rental → MQ-RENT × trap_count regardless of system_type', () => {
+    expect(prefillFromBooking({ slug: 'mosqitter-rental' }, mqRental)).toEqual([{ sku: 'MQ-RENT', qty: 2 }])
+  })
+
+  test('mosqitter-troubleshoot owned → qty 1', () => {
+    expect(prefillFromBooking({ slug: 'mosqitter-troubleshoot' }, mqOwned)).toEqual([{ sku: 'MQ-TSHOOT', qty: 1 }])
+  })
+
+  test('mosqitter-troubleshoot rental → empty', () => {
+    expect(prefillFromBooking({ slug: 'mosqitter-troubleshoot' }, mqRental)).toEqual([])
+  })
+
+  test('barrier-treatment → BARRIER × 1', () => {
+    expect(prefillFromBooking({ slug: 'barrier-treatment' }, null)).toEqual([{ sku: 'BARRIER', qty: 1 }])
+  })
+
+  test('property-assessment → no charge', () => {
+    expect(prefillFromBooking({ slug: 'property-assessment' }, mqOwned)).toEqual([])
+  })
+
+  test('equipment-pickup → no charge', () => {
+    expect(prefillFromBooking({ slug: 'equipment-pickup' }, mqOwned)).toEqual([])
+  })
+
+  test('missing trap_count defaults to 1', () => {
+    expect(prefillFromBooking({ slug: 'mosqitter-rental' }, { properties: {} })).toEqual([{ sku: 'MQ-RENT', qty: 1 }])
+  })
+
+  test('unknown slug → empty', () => {
+    expect(prefillFromBooking({ slug: 'gibberish-event' }, mqOwned)).toEqual([])
+  })
+})

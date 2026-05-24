@@ -11,6 +11,10 @@ const SKU_PRICES = {
   'OWN-BG': 10.00,  // per trap
   'OWN-MQ': 30.00,  // per trap
   'OWN-NONCO2': 10.00,
+  // Tank pricing: $39 flat delivery + $49 per tank (qty-based).
+  // Legacy TANK1-10 retained for historical invoices; new bookings use these two.
+  'TANK-DELIVERY-FEE': 39.00,
+  'TANK-REFILL': 49.00,
   TANK1: 89.99,
   TANK2: 159.99,
   TANK3: 249.99,
@@ -201,6 +205,81 @@ function normalizeEventTitle(rawTitle) {
     .trim()
 }
 
+// ─── Slug-based prefill (current Cal.com event-type slugs) ────────────────────
+// Returns line items [{sku, qty}] for an invoice given a Cal.com booking and
+// the customer's HubSpot contact. Designed to prefill /admin/rounds; admin
+// can override any qty before generating the invoice.
+//
+// Rules (confirmed with owner 2026-05-23):
+//  · biogents-co2-N           → BG{N} × 1; if system_type=Biogents-Owned add BAIT × trap_count
+//  · tank-exchange-N          → TANK-DELIVERY-FEE × 1 + TANK-REFILL × N
+//  · tank-rental              → TANK-DELIVERY-FEE × 1 + TANK-REFILL × 1
+//  · mosqitter-rental         → MQ-RENT × trap_count
+//  · mosqitter-installation   → MQ-INST × trap_count, only if system_type=Mosqitter-Owned
+//  · mosqitter-service        → MQ-SVC  × trap_count, only if system_type=Mosqitter-Owned
+//  · mosqitter-troubleshoot   → MQ-TSHOOT × 1, only if system_type=Mosqitter-Owned
+//  · barrier-treatment        → BARRIER × 1
+//  · tank-refill-check / equipment-pickup / property-assessment → [] (no charge)
+
+function parseTrailingNumber(slug, prefix) {
+  if (!slug?.startsWith(prefix)) return null
+  const n = parseInt(slug.slice(prefix.length), 10)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+/**
+ * @param {object} booking
+ * @param {string} booking.slug - Cal.com event-type slug
+ * @param {object} [contact] - HubSpot contact with .properties
+ * @returns {{sku: string, qty: number}[]}
+ */
+function prefillFromBooking(booking, contact) {
+  const slug = (booking?.slug || '').trim()
+  if (!slug) return []
+
+  const props = contact?.properties || {}
+  const systemType = props.system_type || ''
+  const trapCount = Math.max(1, parseInt(props.trap_count || '1', 10) || 1)
+  const isMqOwned = systemType === 'Mosqitter-Owned'
+  const isBgOwned = systemType === 'Biogents-Owned'
+
+  // biogents-co2-{1,2,3}
+  const bgN = parseTrailingNumber(slug, 'biogents-co2-')
+  if (bgN) {
+    const lines = [{ sku: `BG${bgN}`, qty: 1 }]
+    if (isBgOwned) lines.push({ sku: 'BAIT', qty: trapCount })
+    return lines
+  }
+
+  // tank-exchange-{N}
+  const tankN = parseTrailingNumber(slug, 'tank-exchange-')
+  if (tankN) {
+    return [
+      { sku: 'TANK-DELIVERY-FEE', qty: 1 },
+      { sku: 'TANK-REFILL', qty: tankN },
+    ]
+  }
+
+  if (slug === 'tank-rental') {
+    return [
+      { sku: 'TANK-DELIVERY-FEE', qty: 1 },
+      { sku: 'TANK-REFILL', qty: 1 },
+    ]
+  }
+
+  if (slug === 'mosqitter-rental') return [{ sku: 'MQ-RENT', qty: trapCount }]
+  if (slug === 'mosqitter-installation') return isMqOwned ? [{ sku: 'MQ-INST', qty: trapCount }] : []
+  if (slug === 'mosqitter-service') return isMqOwned ? [{ sku: 'MQ-SVC', qty: trapCount }] : []
+  if (slug === 'mosqitter-troubleshoot') return isMqOwned ? [{ sku: 'MQ-TSHOOT', qty: 1 }] : []
+
+  if (slug === 'barrier-treatment') return [{ sku: 'BARRIER', qty: 1 }]
+
+  // No-charge events
+  if (['tank-refill-check', 'equipment-pickup', 'property-assessment'].includes(slug)) return []
+
+  return []
+}
+
 module.exports = {
   resolveSKU,
   resolveServiceDuration,
@@ -208,6 +287,7 @@ module.exports = {
   isSubscriptionSKU,
   resolveByTitle,
   normalizeEventTitle,
+  prefillFromBooking,
   SKU_PRICES,
   EVENT_TYPES,
 }
