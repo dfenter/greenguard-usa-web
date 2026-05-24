@@ -15,6 +15,7 @@
     "@upstash/redis": "^1.38.0",
     "@vercel/blob": "^2.4.0",
     "@vercel/kv": "^3.0.0",
+    "@vercel/speed-insights": "^2.0.0",
     "cookie": "^0.7.2",
     "googleapis": "^144.0.0",
     "jose": "^5.9.6",

@@ -1,6 +1,7 @@
 import '../styles/globals.css'
 import Head from 'next/head'
 import Script from 'next/script'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
@@ -22,6 +23,7 @@ export default function App({ Component, pageProps }) {
         </>
       )}
       <Component {...pageProps} />
+      <SpeedInsights />
     </>
   )
 }

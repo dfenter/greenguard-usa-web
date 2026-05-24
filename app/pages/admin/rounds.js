@@ -562,11 +562,29 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
     ...buildLineItems(PRODUCTS_SOLD, state.productQtys),
   ]
 
-  function handlePhoto(e) {
+  async function handlePhoto(e) {
     const file = e.target.files?.[0]; if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => onUpdate({ photoUrl: ev.target.result })
-    reader.readAsDataURL(file)
+    // Upload immediately so we keep only the URL in state — base64 data URLs
+    // hold the entire image (often 3-8MB) in React state, ballooning re-renders
+    // and SSR/JSON payloads. Same pattern as handleVideo.
+    setUploading(true)
+    try {
+      const res = await fetch('/api/admin/upload-media', {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+      if (res.ok) {
+        const { url } = await res.json()
+        onUpdate({ photoUrl: url })
+      } else {
+        const { error } = await res.json().catch(() => ({}))
+        onUpdate({ error: error || 'Photo upload failed' })
+      }
+    } catch (err) {
+      onUpdate({ error: err.message })
+    }
+    setUploading(false)
   }
 
   async function handleVideo(e) {

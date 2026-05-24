@@ -8,3 +8,6 @@ Sentry.init({
   replaysSessionSampleRate: 0.05,
   integrations: [Sentry.replayIntegration()],
 })
+
+// Required by Sentry to capture client-side route transitions.
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
