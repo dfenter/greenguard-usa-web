@@ -602,9 +602,16 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
   async function finishStop(customMsg) {
     onUpdate({ showEmailModal: false, submitting: true, error: null })
     try {
-      // 1. Generate Stripe draft invoice
+      // 1. Generate Stripe draft invoice. Create one whenever the customer
+      // has an email and at least one line item is selected, even if every
+      // item happens to be $0 — gives admin a paper trail to finalize/edit.
       let invoiceId = null, invoiceUrl = null
-      if (stop.email && allLineItems.some((l) => l.price && l.price > 0)) {
+      let invoiceSkipped = null
+      if (!stop.email) {
+        invoiceSkipped = 'No email on file for this customer — invoice was not created.'
+      } else if (allLineItems.length === 0) {
+        invoiceSkipped = 'No services selected — invoice was not created.'
+      } else {
         const invRes = await fetch('/api/admin/generate-invoice', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -633,6 +640,9 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
           const invData = await invRes.json()
           invoiceId = invData.invoiceId
           invoiceUrl = invData.invoiceUrl
+        } else {
+          const errData = await invRes.json().catch(() => ({}))
+          invoiceSkipped = `Invoice failed: ${errData.error || invRes.status}`
         }
       }
 
@@ -672,7 +682,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
         })
       }
 
-      onUpdate({ status: 'done', checkOut: visitData.checkOut, invoiceId, invoiceUrl, grandTotal: grand, submitting: false })
+      onUpdate({ status: 'done', checkOut: visitData.checkOut, invoiceId, invoiceUrl, grandTotal: grand, invoiceSkipped, submitting: false })
     } catch (err) {
       onUpdate({ submitting: false, error: err.message, showEmailModal: false })
     }
@@ -810,6 +820,11 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Invoice
               </Link>
+            )}
+            {isDone && state.invoiceSkipped && (
+              <div style={{ flex: '1 1 100%', marginTop: 6, padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,160,80,0.3)', background: 'rgba(255,160,80,0.07)', color: '#ffb060', fontSize: '0.78rem' }}>
+                ⚠️ {state.invoiceSkipped}
+              </div>
             )}
             {state.status === 'cancelled' && (
               <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ff8080', textTransform: 'uppercase', letterSpacing: '0.08em', alignSelf: 'center' }}>Cancelled</span>
