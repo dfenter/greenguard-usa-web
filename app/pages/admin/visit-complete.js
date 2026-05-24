@@ -23,9 +23,10 @@ const SKU_LABELS = {
   'TIMER-INSTALL': 'Timer Installation',
   'CO2-ADDON': 'CO₂ Add-on',
   'WKD-SURCH': 'Weekend Surcharge',
-  BAIT: 'Mosquito Attractant (Bait)',
+  BAIT: 'Generic Bait Pack',
   'BG-SWEETSCENT': 'BG Sweet Scent',
   BARRIER: 'Barrier Treatment',
+  'TANK-STRAPS': 'Tank Straps',
   'MQ-INST': 'Mosqitter Installation',
   'MQ-TSHOOT': 'Mosqitter Troubleshoot',
   'NONCO2-UNIT': 'Non-CO₂ Unit',
@@ -51,7 +52,7 @@ const SKU_GROUPS = [
   },
   {
     label: 'Add-ons',
-    skus: ['TIMER-INSTALL', 'CO2-ADDON', 'BAIT', 'BG-SWEETSCENT', 'BARRIER', 'WKD-SURCH'],
+    skus: ['TIMER-INSTALL', 'CO2-ADDON', 'BAIT', 'BG-SWEETSCENT', 'BARRIER', 'TANK-STRAPS', 'WKD-SURCH'],
   },
   {
     label: 'Service',

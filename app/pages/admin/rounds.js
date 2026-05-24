@@ -185,7 +185,8 @@ const EQUIPMENT = [
 const ADDONS = [
   { label: 'CO₂ Tank & Timer Rental',     sku: 'CO2-ADDON',     price: 124.99 },
   { label: 'BG Sweetscent',               sku: 'BG-SWEETSCENT', price:  18.99 },
-  { label: 'Bait Pack',                   sku: 'BAIT',          price:  10.00 },
+  { label: 'Generic Bait Pack',           sku: 'BAIT',          price:  10.00 },
+  { label: 'Tank Straps',                 sku: 'TANK-STRAPS',   price:  12.99 },
   { label: 'Larvicide Tablet',            sku: null,            price:   4.00 },
   { label: 'Weekend Surcharge',           sku: 'WKD-SURCH',     price:  25.00 },
 ]

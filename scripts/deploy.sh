@@ -3,7 +3,8 @@
 # Usage:
 #   ./scripts/deploy.sh portal     → deploys portal.greenguard-usa.com (Next.js app)
 #   ./scripts/deploy.sh site       → deploys greenguard-usa.com (static marketing site)
-#   ./scripts/deploy.sh all        → deploys both in sequence
+#   ./scripts/deploy.sh astro      → deploys new.greenguard-usa.com (Astro rebuild)
+#   ./scripts/deploy.sh all        → deploys all three in sequence
 
 set -euo pipefail
 
@@ -29,13 +30,23 @@ deploy_site() {
   echo -e "${GREEN}✓ Site deployed → https://greenguard-usa.com${NC}"
 }
 
+deploy_astro() {
+  echo -e "${CYAN}▲ Deploying new.greenguard-usa.com ...${NC}"
+  cd "$REPO_ROOT/astro"
+  vercel --prod --scope "$SCOPE"
+  echo -e "${GREEN}✓ Astro site deployed → https://new.greenguard-usa.com${NC}"
+}
+
 case "${1:-all}" in
   portal) deploy_portal ;;
   site)   deploy_site ;;
+  astro)  deploy_astro ;;
   all)
     deploy_site
     echo ""
     deploy_portal
+    echo ""
+    deploy_astro
     ;;
   *)
     echo -e "${RED}Usage: $0 [portal|site|all]${NC}"
