@@ -137,6 +137,7 @@ export async function getServerSideProps({ req, query, res }) {
       const slug = match?.eventType?.slug || match?.eventTypeSlug || slugFromTitle(serviceType)
       const contact = hubspotContactByEmail[emailKey] || null
       const prefill = slug ? prefillFromBooking({ slug }, contact) : []
+      const billingContactName = contact?.properties?.billing_contact_name || null
 
       return {
         ...stop,
@@ -145,6 +146,7 @@ export async function getServerSideProps({ req, query, res }) {
         tanks,
         eventTypeSlug: slug || null,
         prefill,
+        billingContactName,
         rescheduleUrl: stop.rescheduleUrl || null,
         ...(match ? { calBookingId: match.id, calBookingUid: match.uid } : {}),
       }
@@ -734,6 +736,11 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
               {isDone ? '✓' : idx + 1}
             </span>
             <span style={{ fontWeight: 900, fontSize: '1rem' }}>{stop.customerName}</span>
+            {stop.billingContactName && (
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#c9a84c', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.25)', padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em' }}>
+                Bill to: {stop.billingContactName}
+              </span>
+            )}
             {isDone && state.grandTotal > 0 && (
               <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7dffaa' }}>{fmt$(state.grandTotal)}</span>
             )}

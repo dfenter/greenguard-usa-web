@@ -70,6 +70,7 @@ const CONTACT_PROPERTIES = [
   'plan_type', 'system_type', 'trap_count', 'tank_count', 'has_timer',
   'customer_type', 'service_start_date', 'stripe_customer_id',
   'payment_status', 'customer_status',
+  'billing_contact_name', 'mq_installed', 'mq_installed_at',
 ]
 
 async function findContactByEmail(email) {
