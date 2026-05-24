@@ -143,8 +143,38 @@ def maps_distance_matrix(origins: list, destinations: list) -> list:
     ]
 
 
+def compute_optimized_times(depot: str, ordered_stops: list, day_str: str, day_start_hour: int = 9) -> list:
+    """Given a route in optimized order, compute new start/end times.
+    Day starts at `day_start_hour` AM CT at the depot. For each stop:
+      new_start = depot_departure + drive_to_first  (or prev_end + drive_to_next)
+      new_end   = new_start + service_duration
+    Returns the same stops list with `optimized_start_time` and `optimized_end_time` added."""
+    if not ordered_stops:
+        return ordered_stops
+    # Use CST (-06:00) — matches existing TZ assumption in event handling
+    locs = [depot] + [s['address'] for s in ordered_stops]
+    try:
+        matrix = maps_distance_matrix(locs, locs)
+    except Exception:
+        return ordered_stops
+    cursor = datetime.datetime.fromisoformat(f'{day_str}T{day_start_hour:02d}:00:00-06:00')
+    prev_idx = 0
+    for i, stop in enumerate(ordered_stops):
+        drive_sec = matrix[prev_idx][i + 1]
+        cursor += datetime.timedelta(seconds=drive_sec)
+        stop['optimized_start_time'] = cursor.isoformat()
+        stop['drive_min_from_prev'] = round(drive_sec / 60)
+        cursor += datetime.timedelta(minutes=stop['duration_min'])
+        stop['optimized_end_time'] = cursor.isoformat()
+        prev_idx = i + 1
+    return ordered_stops
+
+
 def nearest_neighbor(depot: str, stops: list) -> list:
-    """Simple nearest-neighbor TSP from depot. Returns reordered stops."""
+    """Farthest-first routing: start at the depot, hit the farthest stop first
+    (so the tech tackles the long drive when fresh), then nearest-neighbor back
+    toward the depot for the remaining stops. Ends with the closest stop to
+    depot so the tech has the shortest drive home."""
     if not stops:
         return []
     if len(stops) == 1:
@@ -160,20 +190,33 @@ def nearest_neighbor(depot: str, stops: list) -> list:
         return stops
 
     visited = [False] * n
-    route = [0]
     visited[0] = True
 
-    for _ in range(len(stops)):
+    # Step 1: pick the farthest stop from depot as the first visit
+    farthest = max(
+        (j for j in range(1, n)),
+        key=lambda j: matrix[0][j],
+        default=None,
+    )
+    if farthest is None:
+        return stops
+    route = [farthest]
+    visited[farthest] = True
+
+    # Step 2: nearest-neighbor from there, biased toward the depot
+    # (each step prefers stops that are both close to current AND closer to depot than current)
+    for _ in range(len(stops) - 1):
         curr = route[-1]
-        nearest = min(
-            (j for j in range(1, n) if not visited[j]),
-            key=lambda j: matrix[curr][j],
-            default=None,
-        )
-        if nearest is None:
+        curr_dist_to_depot = matrix[curr][0]
+        candidates = [j for j in range(1, n) if not visited[j]]
+        if not candidates:
             break
-        route.append(nearest)
-        visited[nearest] = True
+        # Primary: closest to current. Tiebreak: closer to depot than current.
+        def score(j):
+            return (matrix[curr][j], matrix[j][0] - curr_dist_to_depot)
+        nxt = min(candidates, key=score)
+        route.append(nxt)
+        visited[nxt] = True
 
     return [stops[i - 1] for i in route if i > 0]
 
@@ -193,8 +236,8 @@ def build_maps_url(depot: str, stops: list) -> str:
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
-def get_week_dates():
-    today = datetime.date.today()
+def get_week_dates(anchor: datetime.date | None = None):
+    today = anchor or datetime.date.today()
     monday = today - datetime.timedelta(days=today.weekday())
     saturday = monday + datetime.timedelta(days=5)
     week_num = monday.isocalendar()[1]
@@ -202,6 +245,12 @@ def get_week_dates():
 
 
 def main():
+    # Optional --week-start YYYY-MM-DD to override anchor (script auto-rounds to Monday)
+    anchor = None
+    for i, arg in enumerate(sys.argv):
+        if arg == '--week-start' and i + 1 < len(sys.argv):
+            anchor = datetime.date.fromisoformat(sys.argv[i + 1])
+            break
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REFRESH_TOKEN:
         print('ERROR: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN must be set')
         sys.exit(1)
@@ -209,7 +258,7 @@ def main():
         print('ERROR: GOOGLE_MAPS_API_KEY not set')
         sys.exit(1)
 
-    monday, saturday, week_label = get_week_dates()
+    monday, saturday, week_label = get_week_dates(anchor)
     print(f'Building route plan for {week_label} ({monday} – {saturday})')
 
     access_token = get_google_access_token(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN)
@@ -259,6 +308,7 @@ def main():
             continue
 
         optimized = nearest_neighbor(DEPOT, stops)
+        optimized = compute_optimized_times(DEPOT, optimized, day_str)
         maps_url = build_maps_url(DEPOT, optimized)
 
         day_plans.append({

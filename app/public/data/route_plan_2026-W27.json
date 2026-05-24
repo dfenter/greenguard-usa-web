@@ -1,0 +1,164 @@
+{
+  "week": "2026-W27",
+  "generated_at": "2026-05-24T15:51:02.776017Z",
+  "depot": "1519 Parkway, Austin, TX 78703",
+  "source": "google-calendar",
+  "days": [
+    {
+      "date": "2026-06-30",
+      "stop_count": 1,
+      "total_service_min": 30,
+      "maps_url": "https://www.google.com/maps/dir/1519%20Parkway%2C%20Austin%2C%20TX%2078703/613%20Hammack%20Drive%20Austin%20TX",
+      "approved": false,
+      "stops": [
+        {
+          "gcal_event_id": "plbsmmnsvco3v67gtj6padj288",
+          "customer": "Stuart Keast",
+          "email": "ben.keast324@gmail.com",
+          "address": "613 Hammack Drive Austin TX",
+          "start_time": "2026-06-30T09:15:28-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-06-30T09:14:28-06:00",
+          "drive_min_from_prev": 14,
+          "optimized_end_time": "2026-06-30T09:44:28-06:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "stop_count": 3,
+      "total_service_min": 135,
+      "maps_url": "https://www.google.com/maps/dir/1519%20Parkway%2C%20Austin%2C%20TX%2078703/840%20Premier%20Park%20Loop%2C%20Dripping%20Springs%20TX%2078620/2102%20east%2021st%20street%20%232%20Austin%20TX%2078722/3406%20Cambridge%20Ct%2C%20Austin%2C%20TX%2078723%2C%20USA",
+      "approved": false,
+      "stops": [
+        {
+          "gcal_event_id": "lr2nias6qfmaperdnc4sgnvils",
+          "customer": "Michael Gorski",
+          "email": "magorski57@gmail.com",
+          "address": "840 Premier Park Loop, Dripping Springs TX 78620",
+          "start_time": "2026-07-01T10:00:00-05:00",
+          "title": "Mosqitter Grand Service",
+          "duration_min": 45,
+          "optimized_start_time": "2026-07-01T09:36:12-06:00",
+          "drive_min_from_prev": 36,
+          "optimized_end_time": "2026-07-01T10:21:12-06:00"
+        },
+        {
+          "gcal_event_id": "j7fkvkurdgk7ofehf5autdiabs",
+          "customer": "Alex Fredell",
+          "email": "Alex@fredell.com",
+          "address": "2102 east 21st street #2 Austin TX 78722",
+          "start_time": "2026-07-01T13:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill, Tank hookup and trap maintenance",
+          "duration_min": 45,
+          "optimized_start_time": "2026-07-01T11:00:39-06:00",
+          "drive_min_from_prev": 39,
+          "optimized_end_time": "2026-07-01T11:45:39-06:00"
+        },
+        {
+          "gcal_event_id": "e2h7irtr60lntrg8fo6g49igq0",
+          "customer": "Gerald Flynn",
+          "email": "GeraldJohnflynn@gmail.com",
+          "address": "3406 Cambridge Ct, Austin, TX 78723, USA",
+          "start_time": "2026-07-01T11:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill, Tank hookup and trap maintenance",
+          "duration_min": 45,
+          "optimized_start_time": "2026-07-01T11:50:18-06:00",
+          "drive_min_from_prev": 5,
+          "optimized_end_time": "2026-07-01T12:35:18-06:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "stop_count": 4,
+      "total_service_min": 165,
+      "maps_url": "https://www.google.com/maps/dir/1519%20Parkway%2C%20Austin%2C%20TX%2078703/13401%20Moscow%20Trail%20Austin%2078729/1508%20Alguno%20Rd%20Austin%20TX%2078757/2810%20Pickwick%20Lane%20Austin%20TX%2078746/Austin%2C%20TX",
+      "approved": false,
+      "stops": [
+        {
+          "gcal_event_id": "l6vfpldujdou7g0i2m69pn0e88",
+          "customer": "Carolina Martinez",
+          "email": "k.rito1009@gmail.com",
+          "address": "13401 Moscow Trail Austin 78729",
+          "start_time": "2026-07-02T15:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill, Tank hookup and trap maintenance",
+          "duration_min": 45,
+          "optimized_start_time": "2026-07-02T09:20:55-06:00",
+          "drive_min_from_prev": 21,
+          "optimized_end_time": "2026-07-02T10:05:55-06:00"
+        },
+        {
+          "gcal_event_id": "qtsvimqa0f13e373mtet88aoe4",
+          "customer": "Edgar Aguillon",
+          "email": "pelaguillon@icloud.com",
+          "address": "1508 Alguno Rd Austin TX 78757",
+          "start_time": "2026-07-02T10:00:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-07-02T10:24:57-06:00",
+          "drive_min_from_prev": 19,
+          "optimized_end_time": "2026-07-02T10:54:57-06:00"
+        },
+        {
+          "gcal_event_id": "3ndurgm07scumk8ivpui97rgn0",
+          "customer": "Danielle Hasso",
+          "email": "daniellehasso@gmail.com",
+          "address": "2810 Pickwick Lane Austin TX 78746",
+          "start_time": "2026-07-02T14:00:00-05:00",
+          "title": "Mosqitter Grand Service",
+          "duration_min": 45,
+          "optimized_start_time": "2026-07-02T11:09:55-06:00",
+          "drive_min_from_prev": 15,
+          "optimized_end_time": "2026-07-02T11:54:55-06:00"
+        },
+        {
+          "gcal_event_id": "t13on5hok6c77spc35m4a9qois",
+          "customer": "Kelli Pyle",
+          "email": "kellipyle@austin.rr.com",
+          "address": "Austin, TX",
+          "start_time": "2026-07-02T13:00:00-05:00",
+          "title": "Two -20 pound CO2 Tank Exchange Delivery Service + 2 Generic Mosquito Bait Refills",
+          "duration_min": 45,
+          "optimized_start_time": "2026-07-02T12:06:22-06:00",
+          "drive_min_from_prev": 11,
+          "optimized_end_time": "2026-07-02T12:51:22-06:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "stop_count": 2,
+      "total_service_min": 75,
+      "maps_url": "https://www.google.com/maps/dir/1519%20Parkway%2C%20Austin%2C%20TX%2078703/9402%20Towana%20Trail%20Austin%20TX%2078736/Austin%2C%20TX",
+      "approved": false,
+      "stops": [
+        {
+          "gcal_event_id": "mobkc1g0jbqg7oh0englcvjft4",
+          "customer": "Matt Buckley",
+          "email": "Cpk_dc@protonmail.com",
+          "address": "9402 Towana Trail Austin TX 78736",
+          "start_time": "2026-07-03T10:30:00-05:00",
+          "title": "Two -20 pound CO2 Tank Exchange Delivery Service + 2 Generic Mosquito Bait Refills",
+          "duration_min": 45,
+          "optimized_start_time": "2026-07-03T09:17:32-06:00",
+          "drive_min_from_prev": 18,
+          "optimized_end_time": "2026-07-03T10:02:32-06:00"
+        },
+        {
+          "gcal_event_id": "r5lcp341qeklf1ejjifjqjag6s",
+          "customer": "Oleg Zholgo",
+          "email": "oleg.zhoglo@gmail.com",
+          "address": "Austin, TX",
+          "start_time": "2026-07-03T12:30:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill",
+          "duration_min": 30,
+          "optimized_start_time": "2026-07-03T10:22:17-06:00",
+          "drive_min_from_prev": 20,
+          "optimized_end_time": "2026-07-03T10:52:17-06:00"
+        }
+      ]
+    }
+  ]
+}
