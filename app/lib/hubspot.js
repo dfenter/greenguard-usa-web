@@ -90,11 +90,29 @@ async function findContactByEmail(email) {
  * Batch lookup contacts by email — one HubSpot call instead of N.
  * Returns a Map keyed by lowercased email → contact (or undefined if missing).
  * Empty input returns an empty Map without hitting the API.
+ *
+ * Cached 20s in Upstash keyed by the sorted email set, so multiple components
+ * in the same render (and back-to-back page loads) share one fetch. Result
+ * is serialized as an array of [email, contact] pairs since Upstash can't
+ * round-trip a Map directly.
  */
+const { cached: _cachedH } = require('./cache')
 async function findContactsByEmails(emails) {
   const out = new Map()
   const cleaned = [...new Set((emails || []).filter(Boolean).map((e) => e.trim().toLowerCase()))]
   if (cleaned.length === 0) return out
+
+  const sorted = [...cleaned].sort()
+  const cacheKey = `hs:contacts:${sorted.join(',')}`.slice(0, 250)
+  const pairs = await _cachedH(cacheKey, 20, async () => {
+    return await _fetchContactsByEmails(sorted)
+  })
+  for (const [k, v] of pairs) out.set(k, v)
+  return out
+}
+
+async function _fetchContactsByEmails(cleaned) {
+  const pairs = []
 
   // HubSpot search supports IN against up to 100 values per filter; chunk to be safe.
   const CHUNK = 100
@@ -108,13 +126,13 @@ async function findContactsByEmails(emails) {
       })
       for (const c of (search.results || [])) {
         const k = (c.properties?.email || '').toLowerCase()
-        if (k) out.set(k, c)
+        if (k) pairs.push([k, c])
       }
     } catch {
-      // Fail-soft — leave missing contacts undefined in the map.
+      // Fail-soft — leave missing contacts out of the result.
     }
   }
-  return out
+  return pairs
 }
 
 async function getContactNotes(contactId, limit = 5) {

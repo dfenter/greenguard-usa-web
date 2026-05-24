@@ -13,7 +13,8 @@ import fs from 'fs'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
-export async function getServerSideProps({ req, query }) {
+export async function getServerSideProps({ req, query, res }) {
+  res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }

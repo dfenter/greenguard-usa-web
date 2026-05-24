@@ -9,7 +9,8 @@ import { findContactsByEmails } from '../../lib/hubspot'
 import { listAllCustomers } from '../../lib/stripe'
 import { getBookingsForEmail } from '../../lib/calcom'
 
-export async function getServerSideProps({ req }) {
+export async function getServerSideProps({ req, res }) {
+  res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }

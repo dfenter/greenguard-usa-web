@@ -7,6 +7,7 @@
  *   GOOGLE_REFRESH_TOKEN   (one-time: run _scripts/get-google-refresh-token.py)
  */
 const { google } = require('googleapis')
+const { cached } = require('./cache')
 
 const CALENDAR_ID = 'admin@greenguard-usa.com'
 const BOOKING_TAG = 'GreenGuard USA'
@@ -323,18 +324,22 @@ async function getAllUpcomingBookings(maxResults = 20) {
 }
 
 async function getBookingsForDateRange(startISO, endISO) {
-  const calendar = getCalendar()
-  const res = await calendar.events.list({
-    calendarId: CALENDAR_ID,
-    timeMin: startISO,
-    timeMax: endISO,
-    maxResults: 250,
-    singleEvents: true,
-    orderBy: 'startTime',
-    q: BOOKING_TAG,
-  })
-  const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
-  return (res.data.items || [])
+  // Cache 30s. Bookings change rarely vs. how often /admin/home and tank-data
+  // re-fetch the same 60-day window. Key by exact range so different callers
+  // share the cache when they request the same window.
+  return cached(`gcal:bookings:${startISO}:${endISO}`, 30, async () => {
+    const calendar = getCalendar()
+    const res = await calendar.events.list({
+      calendarId: CALENDAR_ID,
+      timeMin: startISO,
+      timeMax: endISO,
+      maxResults: 250,
+      singleEvents: true,
+      orderBy: 'startTime',
+      q: BOOKING_TAG,
+    })
+    const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
+    return (res.data.items || [])
     .filter((e) =>
       (e.description && e.description.includes(BOOKING_TAG)) ||
       (e.summary && e.summary.includes('GreenGuard USA'))
@@ -358,6 +363,7 @@ async function getBookingsForDateRange(startISO, endISO) {
         startTime: start,
       }
     })
+  })
 }
 
 module.exports = {
