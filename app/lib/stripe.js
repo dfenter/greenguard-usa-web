@@ -44,13 +44,15 @@ async function findOrCreateCustomer({ email, name, phone, address, metadata = {}
 
   if (existing.data.length > 0) return existing.data[0]
 
-  return stripe.customers.create({
+  const created = await stripe.customers.create({
     email,
     name,
     phone,
     address: address ? { line1: address } : undefined,
     metadata,
   })
+  await invalidate('stripe:customers:all')
+  return created
 }
 
 /**
@@ -65,13 +67,15 @@ async function createSubscription(customerId, subscriptionSkus) {
 
   if (items.length === 0) return null
 
-  return stripe.subscriptions.create({
+  const sub = await stripe.subscriptions.create({
     customer: customerId,
     items,
     payment_behavior: 'default_incomplete',
     payment_settings: { save_default_payment_method: 'on_subscription' },
     expand: ['latest_invoice.payment_intent'],
   })
+  await invalidate('stripe:subs:active')
+  return sub
 }
 
 /**
@@ -123,13 +127,19 @@ async function getSubscriptions(customerId) {
 /**
  * Fetch all active subscriptions across all customers (admin analytics).
  */
+const { cached, invalidate } = require('./cache')
+
+// Cached for 60s. Active subs only change when admin creates/cancels — page
+// loads should not pay a full Stripe round-trip for read-heavy widgets.
 async function listAllActiveSubscriptions() {
-  const subs = await stripe.subscriptions.list({
-    status: 'active',
-    limit: 100,
-    expand: ['data.items.data.price'],
+  return cached('stripe:subs:active', 60, async () => {
+    const subs = await stripe.subscriptions.list({
+      status: 'active',
+      limit: 100,
+      expand: ['data.items.data.price'],
+    })
+    return subs.data
   })
-  return subs.data
 }
 
 /**
@@ -165,19 +175,22 @@ async function getBalance() {
   return { available, pending }
 }
 
+// Cached for 60s. Pages all customers (~5+ Stripe calls at scale).
 async function listAllCustomers() {
-  const all = []
-  let cursor = undefined
-  do {
-    const page = await stripe.customers.list({
-      limit: 100,
-      starting_after: cursor,
-      expand: ['data.subscriptions'],
-    })
-    all.push(...page.data)
-    cursor = page.has_more ? page.data[page.data.length - 1]?.id : undefined
-  } while (cursor)
-  return all
+  return cached('stripe:customers:all', 60, async () => {
+    const all = []
+    let cursor = undefined
+    do {
+      const page = await stripe.customers.list({
+        limit: 100,
+        starting_after: cursor,
+        expand: ['data.subscriptions'],
+      })
+      all.push(...page.data)
+      cursor = page.has_more ? page.data[page.data.length - 1]?.id : undefined
+    } while (cursor)
+    return all
+  })
 }
 
 function getTaxRateId() {
