@@ -6,6 +6,7 @@
  */
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { stripe, getTaxRateId } = require('../../../lib/stripe')
+const { findContactByEmail, updateContact } = require('../../../lib/hubspot')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -127,6 +128,22 @@ export default async function handler(req, res) {
     if (needsUpdate) {
       await stripe.invoices.update(invoice.id, { metadata: mergedMeta }).catch(() => {})
     }
+  }
+
+  // If MQ-INST was billed, mark the HubSpot contact as installed so future
+  // mosqitter-installation bookings prefill as MQ-SVC instead of MQ-INST.
+  if (billableItems.some(i => i.sku === 'MQ-INST')) {
+    try {
+      const contact = await findContactByEmail(customerEmail)
+      if (contact?.id && contact.properties?.mq_installed !== 'true') {
+        await updateContact(contact.id, {
+          properties: {
+            mq_installed: 'true',
+            mq_installed_at: serviceDate || new Date().toISOString().slice(0, 10),
+          },
+        }).catch(() => {})
+      }
+    } catch {}
   }
 
   // Save line items as a template on the customer for next-time auto-populate

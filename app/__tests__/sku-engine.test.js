@@ -202,9 +202,16 @@ describe('prefillFromBooking', () => {
     expect(prefillFromBooking({ slug: 'mosqitter-installation' }, mqRental)).toEqual([])
   })
 
-  test('mosqitter-installation, owner with 2 traps → MQ-INST × 2 (Archambo case)', () => {
+  test('mosqitter-installation, owner with 2 traps, NOT yet installed → MQ-INST × 2', () => {
     expect(prefillFromBooking({ slug: 'mosqitter-installation' }, mqOwned)).toEqual([
       { sku: 'MQ-INST', qty: 2 },
+    ])
+  })
+
+  test('mosqitter-installation, owner already installed → MQ-SVC × trap_count (no second install fee)', () => {
+    const installed = { properties: { ...mqOwned.properties, mq_installed: 'true' } }
+    expect(prefillFromBooking({ slug: 'mosqitter-installation' }, installed)).toEqual([
+      { sku: 'MQ-SVC', qty: 2 },
     ])
   })
 

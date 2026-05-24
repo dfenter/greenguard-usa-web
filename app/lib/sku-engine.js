@@ -270,8 +270,14 @@ function prefillFromBooking(booking, contact) {
   const props = contact?.properties || {}
   const systemType = props.system_type || ''
   const trapCount = Math.max(1, parseInt(props.trap_count || '1', 10) || 1)
-  const isMqOwned = systemType === 'Mosqitter-Owned'
+  // Treat unknown system_type as owner for Mosqitter (renters book the
+  // 'mosqitter-rental' event, not installation/service/troubleshoot).
+  // Only an explicit 'Mosqitter-Rental' label suppresses owner-side fees.
+  const isMqOwned = systemType !== 'Mosqitter-Rental'
   const isBgOwned = systemType === 'Biogents-Owned'
+  // Installation is a one-time event. Once a customer's mq_installed flag is
+  // true, treat any future "mosqitter-installation" booking as a service visit.
+  const mqInstalled = props.mq_installed === 'true' || props.mq_installed === true
 
   // biogents-co2-{1,2,3}
   const bgN = parseTrailingNumber(slug, 'biogents-co2-')
@@ -298,7 +304,12 @@ function prefillFromBooking(booking, contact) {
   }
 
   if (slug === 'mosqitter-rental') return [{ sku: 'MQ-RENT', qty: trapCount }]
-  if (slug === 'mosqitter-installation') return isMqOwned ? [{ sku: 'MQ-INST', qty: trapCount }] : []
+  if (slug === 'mosqitter-installation') {
+    if (!isMqOwned) return []
+    return mqInstalled
+      ? [{ sku: 'MQ-SVC', qty: trapCount }]
+      : [{ sku: 'MQ-INST', qty: trapCount }]
+  }
   if (slug === 'mosqitter-service') return isMqOwned ? [{ sku: 'MQ-SVC', qty: trapCount }] : []
   if (slug === 'mosqitter-troubleshoot') return isMqOwned ? [{ sku: 'MQ-TSHOOT', qty: 1 }] : []
 

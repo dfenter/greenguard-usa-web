@@ -120,7 +120,7 @@ async function getContactNotes(contactId, limit = 5) {
 }
 
 async function updateContact(contactId, updates) {
-  const props = {}
+  const props = { ...(updates.properties || {}) }
   if (updates.name !== undefined) {
     const [firstname, ...rest] = (updates.name || '').split(' ')
     props.firstname = firstname || ''

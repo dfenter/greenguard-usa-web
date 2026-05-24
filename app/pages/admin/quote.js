@@ -762,9 +762,13 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   }
 
   // Auto-populate products when service config changes (quote page only)
+  // Rentals include everything in the monthly fee — never auto-add equipment or addons for them
   useEffect(() => {
     if (!serviceConfig) return
     const { system, plan, trapCount, mqPlan, mqCount } = serviceConfig
+    const isBiogentsPurchase = (system === 'biogents-co2' && plan === 'purchase') || system === 'biogents-nonco2'
+    const isMosqitterPurchase = system === 'mosqitter' && mqPlan === 'purchase'
+
     setProductQtys((prev) => {
       const next = { ...prev }
       // Clear previous auto-adds
@@ -772,24 +776,24 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       delete next['Biogents Timer']
       delete next['Mosqitter Grand']
       delete next['CO₂ Tank — 20lb (empty)']
-      // Auto-add traps + timers for Biogents systems
-      if ((system === 'biogents-co2' || system === 'biogents-nonco2') && trapCount > 0) {
+      // Only auto-add purchased equipment — rentals include hardware in monthly fee
+      if (isBiogentsPurchase && trapCount > 0) {
         next['Biogents BG-Mosquitaire'] = trapCount
-        next['Biogents Timer'] = trapCount
-        // For purchases, also add same number of tanks
-        if (plan === 'purchase') {
+        if (system === 'biogents-co2') {
+          // Timer + tank only apply to CO₂ systems; Non-CO₂ traps never use a timer
+          next['Biogents Timer'] = trapCount
           next['CO₂ Tank — 20lb (empty)'] = trapCount
         }
-      } else if (system === 'mosqitter' && (mqPlan === 'rental' || mqPlan === 'purchase')) {
+      } else if (isMosqitterPurchase) {
         next['Mosqitter Grand'] = mqCount || 1
       }
       return next
     })
-    // Auto-populate add-ons (bait packs per trap for Biogents)
+    // Auto-populate add-ons (bait packs per trap) — only for purchased Biogents systems
     setAddonQtys((prev) => {
       const next = { ...prev }
       delete next['Generic Bait Pack']
-      if ((system === 'biogents-co2' || system === 'biogents-nonco2') && trapCount > 0) {
+      if (isBiogentsPurchase && trapCount > 0) {
         next['Generic Bait Pack'] = trapCount
       }
       return next
