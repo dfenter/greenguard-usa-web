@@ -6,7 +6,7 @@ import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDate } from '../../lib/gcal'
 import { getBookingsForEmail } from '../../lib/calcom'
 import { listAllCustomers } from '../../lib/stripe'
-import { findContactByEmail } from '../../lib/hubspot'
+import { findContactsByEmails } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import path from 'path'
 import fs from 'fs'
@@ -79,19 +79,18 @@ export async function getServerSideProps({ req, query }) {
       listAllCustomers().then(cs => cs.forEach(c => {
         if (c.email && c.name) stripeNameByEmail[c.email.toLowerCase()] = c.name
       })).catch(() => {}),
-      // HubSpot names + tank count + full contact (for prefill)
-      ...uniqueEmails.map(email =>
-        findContactByEmail(email).then(c => {
-          if (!c) return
-          hubspotContactByEmail[email.toLowerCase()] = c
+      // HubSpot names + tank count + full contact (for prefill) — single batched call
+      findContactsByEmails(uniqueEmails).then((contactMap) => {
+        for (const [email, c] of contactMap.entries()) {
+          hubspotContactByEmail[email] = c
           const first = c.properties?.firstname || ''
           const last = c.properties?.lastname || ''
           const full = [first, last].filter(Boolean).join(' ')
-          if (full) hubspotNameByEmail[email.toLowerCase()] = full
+          if (full) hubspotNameByEmail[email] = full
           const tanks = parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null
-          if (tanks) hubspotNameByEmail[email.toLowerCase() + '__tanks'] = tanks
-        }).catch(() => {})
-      ),
+          if (tanks) hubspotNameByEmail[email + '__tanks'] = tanks
+        }
+      }).catch(() => {}),
     ])
   }
 

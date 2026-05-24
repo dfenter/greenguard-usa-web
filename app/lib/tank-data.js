@@ -1,4 +1,4 @@
-const { findContactByEmail } = require('./hubspot')
+const { findContactByEmail, findContactsByEmails } = require('./hubspot')
 const { getBookingsForDateRange } = require('./gcal')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
@@ -18,15 +18,12 @@ async function buildTankCalendarData(tz = 'America/Chicago') {
   try {
     const bookings = await getBookingsForDateRange(now.toISOString(), rangeEnd.toISOString())
     const uniqueEmails = [...new Set(bookings.map((b) => b.email).filter(Boolean))]
+    const contactMap = await findContactsByEmails(uniqueEmails).catch(() => new Map())
     const trapCountMap = {}
-    await Promise.all(
-      uniqueEmails.map(async (email) => {
-        try {
-          const contact = await findContactByEmail(email)
-          trapCountMap[email] = parseInt(contact?.properties?.trap_count || '2', 10) || 2
-        } catch { trapCountMap[email] = 2 }
-      })
-    )
+    for (const email of uniqueEmails) {
+      const c = contactMap.get(email.toLowerCase())
+      trapCountMap[email] = parseInt(c?.properties?.trap_count || '2', 10) || 2
+    }
     bookings.forEach(({ dateStr, email }) => {
       const tanks = trapCountMap[email] || 2
       if (!scheduleByDate[dateStr]) scheduleByDate[dateStr] = { tanks: 0, appts: 0 }

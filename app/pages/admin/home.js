@@ -6,7 +6,7 @@ import TankCalendar from '../../components/TankCalendar'
 import CustomerMap from '../../components/CustomerMap'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
-import { findContactByEmail } from '../../lib/hubspot'
+import { findContactsByEmails } from '../../lib/hubspot'
 import { listAllActiveSubscriptions, listOpenInvoices, getBalance, listAllCustomers } from '../../lib/stripe'
 import { buildTankCalendarData } from '../../lib/tank-data'
 
@@ -55,17 +55,15 @@ export async function getServerSideProps({ req }) {
   // Resolve customer name + phone from HubSpot for all stops
   const allEmails = [...new Set([...todayStops, ...tomorrowStops].map(s => s.email).filter(Boolean))]
   const contactMap = {}
-  await Promise.all(allEmails.map(async (email) => {
-    try {
-      const c = await findContactByEmail(email)
-      if (c) contactMap[email.toLowerCase()] = {
-        name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
-        phone: c.properties?.phone || '',
-        address: c.properties?.address || '',
-        tanks: parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null,
-      }
-    } catch {}
-  }))
+  const hsContacts = await findContactsByEmails(allEmails).catch(() => new Map())
+  for (const [email, c] of hsContacts.entries()) {
+    contactMap[email] = {
+      name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
+      phone: c.properties?.phone || '',
+      address: c.properties?.address || '',
+      tanks: parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null,
+    }
+  }
 
   function serializeStop(s) {
     const info = contactMap[s.email?.toLowerCase()] || {}

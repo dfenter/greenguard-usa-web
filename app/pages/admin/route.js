@@ -5,7 +5,7 @@ import fs from 'fs'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings } from '../../lib/gcal'
-import { findContactByEmail } from '../../lib/hubspot'
+import { findContactsByEmails } from '../../lib/hubspot'
 import { listAllCustomers } from '../../lib/stripe'
 import { getBookingsForEmail } from '../../lib/calcom'
 
@@ -76,15 +76,14 @@ export async function getServerSideProps({ req }) {
       listAllCustomers().then(cs => cs.forEach(c => {
         if (c.email && c.name) stripeNameByEmail[c.email.toLowerCase()] = c.name
       })).catch(() => {}),
-      ...allEmails.map(email =>
-        findContactByEmail(email).then(c => {
-          if (!c) return
+      findContactsByEmails(allEmails).then((m) => {
+        for (const [email, c] of m.entries()) {
           const full = [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ')
-          if (full) hubspotNameByEmail[email.toLowerCase()] = full
+          if (full) hubspotNameByEmail[email] = full
           const tanks = parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null
-          if (tanks) hubspotNameByEmail[email.toLowerCase() + '__tanks'] = tanks
-        }).catch(() => {}),
-      ),
+          if (tanks) hubspotNameByEmail[email + '__tanks'] = tanks
+        }
+      }).catch(() => {}),
       ...allEmails.map(email =>
         getBookingsForEmail(email, new Date(earliestDate + 'T00:00:00-06:00').toISOString())
           .then(bookings => { calBookingsByEmail[email.toLowerCase()] = Array.isArray(bookings) ? bookings : [] })

@@ -86,6 +86,37 @@ async function findContactByEmail(email) {
   return search.results[0] || null
 }
 
+/**
+ * Batch lookup contacts by email — one HubSpot call instead of N.
+ * Returns a Map keyed by lowercased email → contact (or undefined if missing).
+ * Empty input returns an empty Map without hitting the API.
+ */
+async function findContactsByEmails(emails) {
+  const out = new Map()
+  const cleaned = [...new Set((emails || []).filter(Boolean).map((e) => e.trim().toLowerCase()))]
+  if (cleaned.length === 0) return out
+
+  // HubSpot search supports IN against up to 100 values per filter; chunk to be safe.
+  const CHUNK = 100
+  for (let i = 0; i < cleaned.length; i += CHUNK) {
+    const batch = cleaned.slice(i, i + CHUNK)
+    try {
+      const search = await client.crm.contacts.searchApi.doSearch({
+        filterGroups: [{ filters: [{ propertyName: 'email', operator: 'IN', values: batch }] }],
+        properties: CONTACT_PROPERTIES,
+        limit: CHUNK,
+      })
+      for (const c of (search.results || [])) {
+        const k = (c.properties?.email || '').toLowerCase()
+        if (k) out.set(k, c)
+      }
+    } catch {
+      // Fail-soft — leave missing contacts undefined in the map.
+    }
+  }
+  return out
+}
+
 async function getContactNotes(contactId, limit = 5) {
   const assocResp = await fetch(
     `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}/associations/notes?limit=20`,
@@ -166,4 +197,4 @@ async function getAllContacts(limit = 200) {
   return results
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail, getContactNotes, updateContact, countContactsByProperty, getAllContacts }
+module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, getContactNotes, updateContact, countContactsByProperty, getAllContacts }
