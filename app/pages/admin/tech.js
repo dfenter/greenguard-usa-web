@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
+import CustomerMap from '../../components/CustomerMap'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
 import { findContactByEmail } from '../../lib/hubspot'
@@ -66,6 +67,7 @@ export async function getServerSideProps({ req }) {
       tomorrowStr,
       todayStops: todayStops.map(serializeStop),
       tomorrowStops: tomorrowStops.map(serializeStop),
+      mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     },
   }
 }
@@ -117,7 +119,10 @@ function StopCard({ stop, index, dateStr }) {
   )
 }
 
-export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops }) {
+export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops, mapsKey = '' }) {
+  const routeMapData = todayStops
+    .filter(s => s.address)
+    .map((s, i) => ({ id: `stop_${i}`, name: `${i + 1}. ${s.title}`, address: s.address, status: 'active' }))
   const greeting = (() => {
     const h = new Date().getHours()
     if (h < 12) return 'Good morning'
@@ -141,6 +146,16 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
           </h1>
           <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)' }}>{fmtDayLabel(todayStr)}</div>
         </div>
+
+        {/* Route map — today's stops */}
+        {routeMapData.length > 0 && (
+          <section style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 10 }}>
+              Today&apos;s Route
+            </div>
+            <CustomerMap customers={routeMapData} mapsKey={mapsKey} height={320} compact />
+          </section>
+        )}
 
         {/* Today's stops */}
         <section style={{ marginBottom: 36 }}>
@@ -196,7 +211,6 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
             {[
               { label: 'Customer Rounds', href: '/admin/rounds', desc: 'Log service stops' },
               { label: 'Daily Inventory', href: '/admin/inventory', desc: 'Tank & equipment counts' },
-              { label: 'Client List', href: '/admin/clients', desc: 'Customer details' },
               { label: 'Route Plan', href: '/admin/route', desc: 'Weekly route map' },
               { label: 'Route Map', href: '/admin/map', desc: 'View all stops' },
             ].map(({ label, href, desc }) => (

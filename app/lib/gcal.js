@@ -29,8 +29,19 @@ function getCalendar() {
 function parseEmailFromDescription(description) {
   if (!description) return null
   // Legacy event description format: "Email: xxx@example.com"
-  const match = description.match(/^Email:\s*([^\s\n]+)/im)
-  return match ? match[1].trim().toLowerCase() : null
+  const legacyMatch = description.match(/^Email:\s*([^\s\n]+)/im)
+  if (legacyMatch) return legacyMatch[1].trim().toLowerCase()
+  // Cal.com format: emails appear under "Who:" section, one per line
+  // Match any email that's NOT admin@greenguard-usa.com
+  const allEmails = description.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g) || []
+  const customerEmail = allEmails.find(e => e.toLowerCase() !== 'admin@greenguard-usa.com')
+  return customerEmail ? customerEmail.toLowerCase() : null
+}
+
+function parseEmailFromAttendees(attendees) {
+  if (!Array.isArray(attendees)) return null
+  const customer = attendees.find(a => a.email && a.email.toLowerCase() !== 'admin@greenguard-usa.com' && !a.organizer)
+  return customer ? customer.email.toLowerCase() : null
 }
 
 function parsePhoneFromDescription(description) {
@@ -61,6 +72,12 @@ function parseRescheduleUrl(description) {
   // Cal.com reschedule format (older): cal.com/reschedule/UID
   const calRescheduleMatch = description.match(/https:\/\/cal\.com\/reschedule\/([a-zA-Z0-9_-]+)/i)
   if (calRescheduleMatch) return `https://cal.com/reschedule/${calRescheduleMatch[1]}`
+  // Acuity legacy bookings — admin reschedule URL
+  const acuityMatch = description.match(/(https:\/\/[^\s]*?(?:squarespace|acuityscheduling)[^\s]*?appointments\/view\/\d+)/i)
+  if (acuityMatch) return acuityMatch[1]
+  // AcuityID fallback — construct admin URL
+  const acuityIdMatch = description.match(/AcuityID=(\d+)/i)
+  if (acuityIdMatch) return `https://swordfish-triangle-c6yr.squarespace.com/config/scheduling/appointments/view/${acuityIdMatch[1]}`
   return null
 }
 
@@ -325,7 +342,21 @@ async function getBookingsForDateRange(startISO, endISO) {
     .map((e) => {
       const start = e.start?.dateTime || e.start?.date
       const dateStr = new Date(start).toLocaleDateString('en-CA', { timeZone: tz })
-      return { dateStr, name: parseCustomerName(e.summary), title: parseServiceTitle(e.summary), email: parseEmailFromDescription(e.description) }
+      // Extract Cal.com booking UID from reschedule URL or booking URL in description
+      let calBookingUid = null
+      const desc = e.description || ''
+      const uidMatch = desc.match(/cal\.com\/(?:booking|reschedule)\/([a-zA-Z0-9_-]+)/i)
+      if (uidMatch) calBookingUid = uidMatch[1]
+      // Email: try description first, then attendees list
+      const email = parseEmailFromDescription(e.description) || parseEmailFromAttendees(e.attendees)
+      return {
+        dateStr,
+        name: parseCustomerName(e.summary),
+        title: parseServiceTitle(e.summary),
+        email,
+        calBookingUid,
+        startTime: start,
+      }
     })
 }
 

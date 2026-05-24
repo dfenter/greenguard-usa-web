@@ -33,6 +33,7 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
     { key: 'bgTimers', label: 'Biogents Timers' },
     { key: 'regulators', label: 'CO₂ Regulators' },
     { key: 'bgSweetscent', label: 'BG Sweetscent Bait' },
+    { key: 'genericBaits', label: 'Generic Bait Packs' },
     { key: 'bgFunnels', label: 'BG Funnels' },
     { key: 'bgNets', label: 'BG Trap Nets' },
     { key: 'bgPowerSupply', label: 'BG Power Supplies' },
@@ -194,7 +195,7 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
           <div className="card">
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>Date</label>
-              <input style={{ ...input, textAlign: 'left', maxWidth: 200, WebkitAppearance: 'none', appearance: 'none', minHeight: 42 }} type="date" value={form.date} onChange={set('date')} />
+              <input style={{ ...input, textAlign: 'left', width: '100%', WebkitAppearance: 'none', appearance: 'none', minHeight: 48, boxSizing: 'border-box' }} type="date" value={form.date} onChange={set('date')} />
             </div>
 
               {todayTanks > 0 && (

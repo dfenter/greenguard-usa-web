@@ -221,6 +221,36 @@ function normalizeEventTitle(rawTitle) {
 //  · barrier-treatment        → BARRIER × 1
 //  · tank-refill-check / equipment-pickup / property-assessment → [] (no charge)
 
+// Title → slug for current Cal.com event types (as of 2026-05). Used to derive
+// the slug when only the event title is available (e.g. from Google Calendar).
+const TITLE_TO_SLUG = {
+  'GreenGuard Barrier Treatment': 'barrier-treatment',
+  'Biogents CO2 Service - 1 Trap': 'biogents-co2-1',
+  'Biogents CO2 Service - 2 Traps': 'biogents-co2-2',
+  'Biogents CO2 Service - 3 Traps': 'biogents-co2-3',
+  'Equipment Pickup': 'equipment-pickup',
+  'Mosqitter Grand Installation': 'mosqitter-installation',
+  'Mosqitter Grand Rental': 'mosqitter-rental',
+  'Mosqitter Grand Service': 'mosqitter-service',
+  'Mosqitter Grand Troubleshooting': 'mosqitter-troubleshoot',
+  'Free Property Assessment': 'property-assessment',
+  'CO2 Tank Exchange - 1 Tank': 'tank-exchange-1',
+  'CO2 Tank Exchange - 2 Tanks': 'tank-exchange-2',
+  'CO2 Tank Exchange - 3 Tanks': 'tank-exchange-3',
+  'CO2 Tank Exchange - 4 Tanks': 'tank-exchange-4',
+  'CO2 Tank Exchange - 5 Tanks': 'tank-exchange-5',
+  'CO2 Tank Exchange - 6 Tanks': 'tank-exchange-6',
+  'CO2 Tank Exchange - 10 Tanks': 'tank-exchange-10',
+  'Tank Refill Check': 'tank-refill-check',
+  '20 Pound CO2 Tank Rental': 'tank-rental',
+}
+
+function slugFromTitle(title) {
+  if (!title) return null
+  const cleaned = normalizeEventTitle(title)
+  return TITLE_TO_SLUG[cleaned] || null
+}
+
 function parseTrailingNumber(slug, prefix) {
   if (!slug?.startsWith(prefix)) return null
   const n = parseInt(slug.slice(prefix.length), 10)
@@ -288,6 +318,8 @@ module.exports = {
   resolveByTitle,
   normalizeEventTitle,
   prefillFromBooking,
+  slugFromTitle,
+  TITLE_TO_SLUG,
   SKU_PRICES,
   EVENT_TYPES,
 }

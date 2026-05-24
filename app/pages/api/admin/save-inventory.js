@@ -1,5 +1,5 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
-const { findContactByEmail, addNote } = require('../../../lib/hubspot')
+const { findContactByEmail, addNote, upsertContact } = require('../../../lib/hubspot')
 const { logTankInventory } = require('../../../lib/gsheets')
 const { Resend } = require('resend')
 
@@ -13,11 +13,29 @@ export default async function handler(req, res) {
 
   const { date, fullStart, needed, delivered, fullEnd, deliveryTime, confirmed, notes } = req.body || {}
 
-  const contact = await findContactByEmail(ADMIN_EMAIL)
-  if (!contact?.id) return res.status(500).json({ error: 'Admin HubSpot contact not found' })
+  // Tank logs are stored as Notes on the admin HubSpot contact. Auto-create if missing
+  // so a fresh HubSpot instance / deleted admin contact doesn't break inventory saves.
+  let contact = await findContactByEmail(ADMIN_EMAIL)
+  if (!contact?.id) {
+    try {
+      const created = await upsertContact({
+        email: ADMIN_EMAIL,
+        name: 'GreenGuard Admin',
+      })
+      contact = { id: created.id }
+    } catch (err) {
+      console.error('save-inventory: failed to create admin HubSpot contact:', err.message)
+      return res.status(500).json({ error: `Could not create admin HubSpot contact: ${err.message}` })
+    }
+  }
 
   const noteBody = `[TANK-LOG]${JSON.stringify({ date, fullStart, needed, delivered, fullEnd, deliveryTime, confirmed, notes })}`
-  await addNote(contact.id, noteBody)
+  try {
+    await addNote(contact.id, noteBody)
+  } catch (err) {
+    console.error('save-inventory: addNote failed:', err.message)
+    return res.status(502).json({ error: `HubSpot note failed: ${err.message}` })
+  }
 
   const lowStock = typeof fullEnd === 'number' && fullEnd < LOW_TANK_THRESHOLD
   const deficit = typeof needed === 'number' && typeof fullEnd === 'number' && needed > 0 && fullEnd < needed

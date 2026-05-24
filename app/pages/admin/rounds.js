@@ -7,6 +7,7 @@ import { getTodaysBookings, getBookingsForDate } from '../../lib/gcal'
 import { getBookingsForEmail } from '../../lib/calcom'
 import { listAllCustomers } from '../../lib/stripe'
 import { findContactByEmail } from '../../lib/hubspot'
+import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import path from 'path'
 import fs from 'fs'
 
@@ -70,6 +71,7 @@ export async function getServerSideProps({ req, query }) {
   // Build email → customer name maps from Stripe + HubSpot
   let stripeNameByEmail = {}
   let hubspotNameByEmail = {}
+  const hubspotContactByEmail = {}
   if (stops.length > 0) {
     const uniqueEmails = [...new Set(stops.map((s) => s.email).filter(Boolean))]
     await Promise.all([
@@ -77,10 +79,11 @@ export async function getServerSideProps({ req, query }) {
       listAllCustomers().then(cs => cs.forEach(c => {
         if (c.email && c.name) stripeNameByEmail[c.email.toLowerCase()] = c.name
       })).catch(() => {}),
-      // HubSpot names + tank count
+      // HubSpot names + tank count + full contact (for prefill)
       ...uniqueEmails.map(email =>
         findContactByEmail(email).then(c => {
           if (!c) return
+          hubspotContactByEmail[email.toLowerCase()] = c
           const first = c.properties?.firstname || ''
           const last = c.properties?.lastname || ''
           const full = [first, last].filter(Boolean).join(' ')
@@ -129,11 +132,19 @@ export async function getServerSideProps({ req, query }) {
       const tanks = hubspotNameByEmail[emailKey + '__tanks'] || null
       const serviceType = stop.serviceType || stop.customerName || ''
 
+      // Compute prefill line items from Cal.com event-type + HubSpot contact.
+      // Slug source priority: explicit booking.eventTypeSlug → derived from event title.
+      const slug = match?.eventType?.slug || match?.eventTypeSlug || slugFromTitle(serviceType)
+      const contact = hubspotContactByEmail[emailKey] || null
+      const prefill = slug ? prefillFromBooking({ slug }, contact) : []
+
       return {
         ...stop,
         customerName: resolvedName,
         serviceType,
         tanks,
+        eventTypeSlug: slug || null,
+        prefill,
         rescheduleUrl: stop.rescheduleUrl || null,
         ...(match ? { calBookingId: match.id, calBookingUid: match.uid } : {}),
       }
@@ -162,12 +173,8 @@ const SERVICES = [
   { label: 'Mosqitter Grand Service',         sku: 'MQ-SVC',   price: 129.99, promptQty: true },
   { label: 'Mosqitter Installation',          sku: 'MQ-INST',  price: 199.99, promptQty: true },
   { label: 'Mosqitter Troubleshoot',          sku: 'MQ-TSHOOT',price:  79.99 },
-  { label: 'CO₂ Tank Exchange — 1 Tank',     sku: 'TANK1',    price:  89.99 },
-  { label: 'CO₂ Tank Exchange — 2 Tanks',    sku: 'TANK2',    price: 139.99 },
-  { label: 'CO₂ Tank Exchange — 3 Tanks',    sku: 'TANK3',    price: 189.99 },
-  { label: 'CO₂ Tank Exchange — 4 Tanks',    sku: 'TANK4',    price: 239.99 },
-  { label: 'CO₂ Tank Exchange — 6 Tanks',    sku: 'TANK6',    price: 339.99 },
-  { label: 'CO₂ Tank Exchange — 10 Tanks',   sku: 'TANK10',   price: 539.99 },
+  { label: 'CO₂ Tank Delivery Fee',           sku: 'TANK-DELIVERY-FEE', price: 39.00 },
+  { label: 'CO₂ Tank Refill (per tank)',      sku: 'TANK-REFILL',       price: 49.00, promptQty: true },
   { label: 'GreenGuard Barrier Treatment',    sku: 'BARRIER',  price:  49.99 },
   { label: 'Free Property Assessment',        sku: 'ASSESS',   price:   0.00 },
 ]
@@ -749,23 +756,43 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 Cancel
               </button>
             )}
-            {state.status === 'pending' && (stop.email || stop.phone) && (
-              <button onClick={async () => {
-                const eta = window.prompt('ETA in minutes (leave blank for "shortly"):', '15')
-                if (eta === null) return
-                const r = await fetch('/api/admin/notify-eta', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ customerEmail: stop.email, customerPhone: stop.phone, customerName: stop.customerName, etaMinutes: eta ? parseInt(eta, 10) : null }),
-                })
-                const d = await r.json().catch(() => ({}))
-                if (r.ok) alert('✓ SMS sent')
-                else alert('Failed: ' + (d.error || r.status))
-              }}
-                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(125,255,170,0.35)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
-                📲 On My Way
-              </button>
-            )}
+            {state.status === 'pending' && (() => {
+              const canNotify = !!(stop.email || stop.phone)
+              return (
+                <button
+                  disabled={!canNotify}
+                  title={canNotify ? 'Send arrival SMS' : 'No phone or email on file'}
+                  onClick={async () => {
+                    const eta = window.prompt('ETA in minutes (leave blank for "shortly"):', '15')
+                    if (eta === null) return
+                    const send = async (force) => fetch('/api/admin/notify-eta', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ customerEmail: stop.email, customerPhone: stop.phone, customerName: stop.customerName, etaMinutes: eta ? parseInt(eta, 10) : null, force }),
+                    })
+                    let r = await send(false)
+                    let d = await r.json().catch(() => ({}))
+                    if (r.status === 409 && d.duplicate) {
+                      if (!window.confirm(d.error + '\n\nSend again anyway?')) return
+                      r = await send(true)
+                      d = await r.json().catch(() => ({}))
+                    }
+                    if (r.ok) alert('✓ SMS sent')
+                    else alert('Failed: ' + (d.error || r.status))
+                  }}
+                  style={{
+                    flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center',
+                    border: canNotify ? '1px solid rgba(125,255,170,0.35)' : '1px solid rgba(125,255,170,0.15)',
+                    cursor: canNotify ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: '0.78rem',
+                    fontFamily: 'Nunito Sans, sans-serif',
+                    background: canNotify ? 'rgba(125,255,170,0.08)' : 'transparent',
+                    color: canNotify ? '#7dffaa' : 'rgba(125,255,170,0.4)',
+                    minHeight: 34, display: 'inline-flex', alignItems: 'center',
+                  }}>
+                  📲 On My Way
+                </button>
+              )
+            })()}
             {state.status === 'pending' && (
               <button onClick={() => onUpdate({ status: 'active', checkIn: nowStr() })}
                 style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: '#c9a84c', color: '#0d1a10', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
@@ -902,13 +929,37 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
+// Map a SKU to (sectionField, catalogLabel) so prefill can write into the
+// right qty map. Built once from the four catalogs.
+const SKU_TO_SECTION = (() => {
+  const m = {}
+  const add = (catalog, field) => catalog.forEach((item) => {
+    if (item.sku) m[item.sku] = { field, label: item.label }
+  })
+  add(SERVICES, 'serviceQtys')
+  add(EQUIPMENT, 'equipQtys')
+  add(ADDONS, 'addonQtys')
+  add(PRODUCTS_SOLD, 'productQtys')
+  return m
+})()
+
+function applyPrefill(prefill) {
+  const next = { serviceQtys: {}, equipQtys: {}, addonQtys: {}, productQtys: {} }
+  for (const { sku, qty } of (prefill || [])) {
+    const target = SKU_TO_SECTION[sku]
+    if (!target || !qty) continue
+    next[target.field][target.label] = (next[target.field][target.label] || 0) + qty
+  }
+  return next
+}
+
 export default function Rounds({ stops, today, selectedDate, availableDates }) {
   const [date, setDate] = useState(selectedDate)
   const [states, setStates] = useState(() =>
-    stops.map(() => ({
+    stops.map((stop) => ({
       status: 'pending', checkIn: null, checkOut: null, date: selectedDate,
       arrivalTime: '', departureTime: '',
-      serviceQtys: {}, equipQtys: {}, addonQtys: {}, productQtys: {},
+      ...applyPrefill(stop.prefill),
       notes: '', photoUrl: null, videoUrl: null, submitting: false, error: null,
       showEmailModal: false, invoiceId: null, invoiceUrl: null, grandTotal: 0,
     }))

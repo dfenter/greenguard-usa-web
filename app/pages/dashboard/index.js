@@ -338,6 +338,96 @@ function CustomerMediaUpload({ email }) {
   )
 }
 
+function ReferralProgram({ email, name }) {
+  const [copied, setCopied] = useState(false)
+  // Generate stable referral code from email (first 8 alphanumeric chars of email + hash)
+  const refCode = (() => {
+    const base = (email || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)
+    // Simple stable hash for the suffix
+    let h = 0
+    for (let i = 0; i < (email || '').length; i++) h = ((h << 5) - h) + (email || '').charCodeAt(i)
+    const suffix = Math.abs(h).toString(36).slice(0, 4).toUpperCase()
+    return (base + suffix).toUpperCase()
+  })()
+  const refUrl = `https://greenguard-usa.com/?ref=${refCode}`
+
+  function copy() {
+    navigator.clipboard?.writeText(refUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  function share() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'GreenGuard USA — Chemical-free mosquito control',
+        text: `${name?.split(' ')[0] || 'I'} love GreenGuard's chemical-free mosquito traps. Use my link and we both get $25 off!`,
+        url: refUrl,
+      }).catch(() => {})
+    } else {
+      copy()
+    }
+  }
+
+  return (
+    <>
+      <div style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 10 }}>
+        Refer a Neighbor · Earn $25
+      </div>
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '2rem' }}>🎁</div>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontWeight: 900, fontSize: '1.05rem', marginBottom: 4 }}>
+              Get $25 for every neighbor who signs up
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', margin: '0 0 14px', lineHeight: 1.5 }}>
+              Share your link with friends. When they become a customer, you both get $25 off your next invoice.
+            </p>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+              <input
+                type="text"
+                value={refUrl}
+                readOnly
+                onFocus={(e) => e.target.select()}
+                style={{ flex: '1 1 220px', padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'monospace' }}
+              />
+              <button
+                onClick={copy}
+                style={{ padding: '10px 20px', borderRadius: 6, border: 'none', background: copied ? '#7dffaa' : '#c9a84c', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}
+              >
+                {copied ? '✓ Copied' : 'Copy Link'}
+              </button>
+              <button
+                onClick={share}
+                style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#7aab82', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}
+              >
+                Share
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.82rem' }}>
+              <div>
+                <span style={{ color: 'rgba(212,230,202,0.4)' }}>Your code:</span>{' '}
+                <strong style={{ color: '#c9a84c' }}>{refCode}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'rgba(212,230,202,0.4)' }}>Referrals:</span>{' '}
+                <strong>0</strong>
+              </div>
+              <div>
+                <span style={{ color: 'rgba(212,230,202,0.4)' }}>Earned:</span>{' '}
+                <strong style={{ color: '#7dffaa' }}>$0</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 export default function CustomerOverview({
   email, name,
   nextBooking, prevBooking,
@@ -468,7 +558,9 @@ export default function CustomerOverview({
           </div>
         </div>
         <a
-          href={`mailto:admin@greenguard-usa.com?subject=Equipment Upgrade Request&body=Hi GreenGuard team,%0A%0AI'd like to request additional equipment or an upgrade to my system.%0A%0AAccount email: ${encodeURIComponent(email)}`}
+          href="https://greenguard-usa.com/book"
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
             display: 'inline-block', marginBottom: 8,
             padding: '10px 22px', borderRadius: 6,
@@ -539,15 +631,39 @@ export default function CustomerOverview({
         {/* ── Billing ── */}
         {SECTION_LABEL('Billing')}
 
-        {hasOpenInvoice && (
-          <div style={{
-            background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)',
-            borderRadius: 6, padding: '12px 16px', marginBottom: 20,
-            fontSize: '0.88rem', color: '#c9a84c',
-          }}>
-            <strong>Payment due</strong> — click <strong>Pay Now</strong> on the invoice below.
-          </div>
-        )}
+        {hasOpenInvoice && (() => {
+          const openInvoices = invoices.filter(i => i.status === 'open')
+          const totalDue = openInvoices.reduce((s, i) => s + (i.amountDue || 0), 0)
+          const firstOpen = openInvoices[0]
+          return (
+            <div style={{
+              background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.35)',
+              borderRadius: 8, padding: '16px 20px', marginBottom: 20,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              flexWrap: 'wrap', gap: 12,
+            }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 4 }}>
+                  Payment Due
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffb060' }}>
+                  {fmtAmount(totalDue)}
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.6)', marginTop: 2 }}>
+                  {openInvoices.length} unpaid invoice{openInvoices.length > 1 ? 's' : ''}
+                </div>
+              </div>
+              {firstOpen?.hostedUrl && (
+                <a href={firstOpen.hostedUrl} target="_blank" rel="noopener noreferrer" style={{
+                  padding: '12px 24px', borderRadius: 6, background: '#7dffaa', color: '#0d1a10',
+                  fontWeight: 900, fontSize: '0.95rem', textDecoration: 'none',
+                }}>
+                  Pay Now →
+                </a>
+              )}
+            </div>
+          )
+        })()}
 
         {subscription && (
           <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
@@ -655,6 +771,11 @@ export default function CustomerOverview({
             </div>
           </>
         )}
+
+        {DIVIDER}
+
+        {/* ── Referral Program ── */}
+        <ReferralProgram email={email} name={name} />
 
         {DIVIDER}
 

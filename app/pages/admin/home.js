@@ -3,10 +3,11 @@ import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import TankCalendar from '../../components/TankCalendar'
+import CustomerMap from '../../components/CustomerMap'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
 import { findContactByEmail } from '../../lib/hubspot'
-import { listAllActiveSubscriptions, listOpenInvoices, getBalance } from '../../lib/stripe'
+import { listAllActiveSubscriptions, listOpenInvoices, getBalance, listAllCustomers } from '../../lib/stripe'
 import { buildTankCalendarData } from '../../lib/tank-data'
 
 export async function getServerSideProps({ req }) {
@@ -24,14 +25,32 @@ export async function getServerSideProps({ req }) {
   const tomorrowStart = new Date(tomorrowStr + 'T00:00:00-05:00').toISOString()
   const tomorrowEnd = new Date(tomorrowStr + 'T23:59:59-05:00').toISOString()
 
-  const [todayStops, tomorrowStops, activeSubs, openInvoices, balance, tankData] = await Promise.all([
+  const [todayStops, tomorrowStops, activeSubs, openInvoices, balance, tankData, allCustomers] = await Promise.all([
     getTodaysBookings().catch(() => []),
     getBookingsForDateRange(tomorrowStart, tomorrowEnd).catch(() => []),
     listAllActiveSubscriptions().catch(() => []),
     listOpenInvoices().catch(() => []),
     getBalance().catch(() => null),
     buildTankCalendarData(tz).catch(() => null),
+    listAllCustomers().catch(() => []),
   ])
+
+  const customerMapData = allCustomers
+    .filter((c) => c.address?.line1 || c.metadata?.address)
+    .map((c) => {
+      const subs = c.subscriptions?.data || []
+      const activeSub = subs.find((s) => s.status === 'active') || subs[0] || null
+      return {
+        id: c.id,
+        name: c.name || c.email || 'Unknown',
+        email: c.email || '',
+        address: c.address?.line1
+          ? [c.address.line1, c.address.city, c.address.state].filter(Boolean).join(', ')
+          : '',
+        status: activeSub?.status || 'inactive',
+      }
+    })
+    .filter((c) => c.address)
 
   // Resolve customer name + phone from HubSpot for all stops
   const allEmails = [...new Set([...todayStops, ...tomorrowStops].map(s => s.email).filter(Boolean))]
@@ -95,6 +114,8 @@ export async function getServerSideProps({ req }) {
         currentStock: tankData.currentStock,
         today: tankData.today,
       } : null,
+      customerMapData,
+      mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     },
   }
 }
@@ -236,7 +257,7 @@ function VisitsDuePanel() {
   )
 }
 
-export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData, fullTanksOnHand, tanksNeededThisWeek, expectedDeliveryThisWeek }) {
+export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData, fullTanksOnHand, tanksNeededThisWeek, expectedDeliveryThisWeek, customerMapData = [], mapsKey = '' }) {
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 
@@ -290,6 +311,19 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
             warn={openInvoiceCount > 0}
           />
         </div>
+
+        {/* Customer map */}
+        {customerMapData.length > 0 && (
+          <section style={{ marginBottom: 28 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', margin: 0 }}>
+                Customer Map ({customerMapData.length})
+              </h2>
+              <Link href="/admin/map" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>Full map →</Link>
+            </div>
+            <CustomerMap customers={customerMapData} mapsKey={mapsKey} height={360} compact />
+          </section>
+        )}
 
         {/* Open invoices alert */}
         {openInvoiceList.length > 0 && (

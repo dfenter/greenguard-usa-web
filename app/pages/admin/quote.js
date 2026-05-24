@@ -302,12 +302,16 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
       const price = BG_RENTAL_PRICE[trapCount]
       lines.push({ label: `Biogents CO₂ Customer Rental — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${(price / trapCount).toFixed(2)}/trap)`, amount: price, recurring: true })
     }
-    // Biogents CO₂ purchase — hookup + tank delivery when on tank service
+    // Biogents CO₂ purchase — combine tank delivery + hookup into one line
     if (system === 'biogents-co2' && plan === 'purchase' && onTankService === true) {
       const tankPrice = TANK_PRICE[trapCount] || (TANK_PRICE[3] + (trapCount - 3) * 49.99)
-      lines.push({ label: `CO₂ Tank Exchange — ${trapCount}× 20lb Tank${trapCount > 1 ? 's' : ''}`, amount: tankPrice, recurring: true })
       const hookupPrice = BG_HOOKUP_PER_TRAP * trapCount
-      lines.push({ label: `Biogents Hookup & Maintenance — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${BG_HOOKUP_PER_TRAP}/trap)`, amount: hookupPrice, recurring: true })
+      const combinedPrice = tankPrice + hookupPrice
+      lines.push({
+        label: `CO₂ Tank Exchange — ${trapCount}× 20lb Tank${trapCount > 1 ? 's' : ''} (includes hookup & maintenance)`,
+        amount: combinedPrice,
+        recurring: true,
+      })
     }
     // Biogents Non-CO₂ (always purchase, per trap)
     if (system === 'biogents-nonco2' && trapCount) {
@@ -323,12 +327,17 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
       lines.push({ label, amount: unitPrice * mqCount, recurring: true })
       if (mqInstall) lines.push({ label: `Mosqitter Installation ×${mqCount}`, amount: MQ_PRICE.install * mqCount, recurring: false })
     }
-    // Tank delivery
+    // Tank delivery — combine tank exchange + hookup into one line
     if (system === 'tank' && TANK_PRICE[tankCount]) {
-      lines.push({ label: `CO₂ Tank Exchange — ${tankCount}× 20lb Tank${tankCount > 1 ? 's' : ''} ($39 delivery + $49.99/tank)`, amount: TANK_PRICE[tankCount], recurring: true })
-      if (tankHookup) {
-        lines.push({ label: `Tank Hookup & Maintenance — ${tankCount} Tank${tankCount > 1 ? 's' : ''} ($${BG_HOOKUP_PER_TRAP}/trap)`, amount: BG_HOOKUP_PER_TRAP * tankCount, recurring: true })
-      }
+      const tankPrice = TANK_PRICE[tankCount]
+      const hookupPrice = tankHookup ? (BG_HOOKUP_PER_TRAP * tankCount) : 0
+      lines.push({
+        label: tankHookup
+          ? `CO₂ Tank Exchange — ${tankCount}× 20lb Tank${tankCount > 1 ? 's' : ''} (includes hookup & maintenance)`
+          : `CO₂ Tank Exchange — ${tankCount}× 20lb Tank${tankCount > 1 ? 's' : ''} ($39 delivery + $49.99/tank)`,
+        amount: tankPrice + hookupPrice,
+        recurring: true,
+      })
     }
     onChange(lines)
     if (onConfigChange) onConfigChange({ system, plan, trapCount, mqPlan, mqCount, serviceDate })
@@ -346,17 +355,46 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
   return (
     <div>
       {/* Q1: System */}
-      <div style={Q}>What system?</div>
-      <div>
+      <div style={Q}>What system for service?</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {[
-          ['biogents-co2',    'Biogents CO₂'],
-          ['biogents-nonco2', 'Biogents Non-CO₂'],
-          ['mosqitter',       'Mosqitter Grand'],
-          ['tank',            'CO₂ Tank Delivery Only'],
-          ['none',            '🛒 No Service — Equipment & Add-Ons Only'],
-        ].map(([val, label]) => (
-          <span key={val} onClick={() => { setSystem(val); setPlan(null); setOnTankService(null); setMqPlan(null); setMqInstall(false); setTankHookup(false) }} style={chip(system === val)}>{label}</span>
-        ))}
+          { val: 'biogents-co2',    label: 'Biogents CO₂',                              icon: '/system-icons/biogents-co2.png',    emoji: '🦟' },
+          { val: 'biogents-nonco2', label: 'Biogents Non-CO₂',                          icon: '/system-icons/biogents-nonco2.png', emoji: '🪤' },
+          { val: 'mosqitter',       label: 'Mosqitter Grand',                           icon: '/system-icons/mosqitter.png',       emoji: '⚙️' },
+          { val: 'tank',            label: 'CO₂ Tank Delivery Only',                    icon: '/system-icons/tank.png',            emoji: '🛢️' },
+          { val: 'none',            label: 'No Service — Equipment & Add-Ons Only',     icon: null,                                emoji: '🛒' },
+        ].map(({ val, label, icon, emoji }) => {
+          const active = system === val
+          return (
+            <div
+              key={val}
+              onClick={() => { setSystem(val); setPlan(null); setOnTankService(null); setMqPlan(null); setMqInstall(false); setTankHookup(false) }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                padding: '14px 18px', borderRadius: 10,
+                border: `1px solid ${active ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`,
+                background: active ? 'rgba(125,255,170,0.08)' : 'rgba(255,255,255,0.02)',
+                color: active ? '#7dffaa' : 'rgba(212,230,202,0.75)',
+                fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer',
+                userSelect: 'none', transition: 'all 0.12s', width: '100%', boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                {icon ? (
+                  <img
+                    src={icon}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'block' }}
+                  />
+                ) : null}
+                <span style={{ fontSize: '1.6rem', display: icon ? 'none' : 'block' }}>{emoji}</span>
+              </div>
+              <span style={{ flex: 1 }}>{label}</span>
+              {active && <span style={{ fontSize: '1.2rem' }}>✓</span>}
+            </div>
+          )
+        })}
       </div>
 
       {system === 'none' && (
@@ -487,15 +525,15 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
       {system && system !== 'none' && (
         <>
           <div style={{ ...Q, marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(122,171,130,0.12)' }}>Preferred service date</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
             <input
               type="date"
               value={serviceDate}
               min={minDate}
               onChange={(e) => setServiceDate(e.target.value)}
-              style={{ padding: '9px 12px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(125,255,170,0.4)' : 'rgba(201,168,76,0.4)'}`, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.9rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', minHeight: 42, WebkitAppearance: 'none', appearance: 'none' }}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(125,255,170,0.4)' : 'rgba(201,168,76,0.4)'}`, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
             />
-            <span style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.45)' }}>
+            <span style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
               Earliest available: {new Date(minDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (5-day lead time)
             </span>
           </div>
@@ -731,17 +769,28 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       const next = { ...prev }
       // Clear previous auto-adds
       delete next['Biogents BG-Mosquitaire']
+      delete next['Biogents Timer']
       delete next['Mosqitter Grand']
       delete next['CO₂ Tank — 20lb (empty)']
-      // Auto-add traps based on system
+      // Auto-add traps + timers for Biogents systems
       if ((system === 'biogents-co2' || system === 'biogents-nonco2') && trapCount > 0) {
         next['Biogents BG-Mosquitaire'] = trapCount
+        next['Biogents Timer'] = trapCount
         // For purchases, also add same number of tanks
         if (plan === 'purchase') {
           next['CO₂ Tank — 20lb (empty)'] = trapCount
         }
       } else if (system === 'mosqitter' && (mqPlan === 'rental' || mqPlan === 'purchase')) {
         next['Mosqitter Grand'] = mqCount || 1
+      }
+      return next
+    })
+    // Auto-populate add-ons (bait packs per trap for Biogents)
+    setAddonQtys((prev) => {
+      const next = { ...prev }
+      delete next['Generic Bait Pack']
+      if ((system === 'biogents-co2' || system === 'biogents-nonco2') && trapCount > 0) {
+        next['Generic Bait Pack'] = trapCount
       }
       return next
     })

@@ -309,7 +309,7 @@ export default function InvoiceEditor({ customers = [] }) {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: '12px',
-                        border: '1px solid rgba(122,171,130,0.15)',
+                        border: `1px solid ${apt.needsEmail ? 'rgba(255,160,80,0.3)' : 'rgba(122,171,130,0.15)'}`,
                         borderRadius: 6,
                         gap: 12,
                         flexWrap: 'wrap',
@@ -320,8 +320,18 @@ export default function InvoiceEditor({ customers = [] }) {
                         <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>
                           {apt.date} · {apt.serviceType}
                         </div>
+                        {apt.needsEmail && (
+                          <div style={{ fontSize: '0.72rem', color: '#ffb060', marginTop: 4, fontWeight: 700 }}>
+                            ⚠ No email in calendar event — manual lookup needed
+                          </div>
+                        )}
+                        {apt.email && (
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', marginTop: 2 }}>
+                            {apt.email}
+                          </div>
+                        )}
                       </div>
-                      <a href={`/admin/rounds?date=${apt.date}`} style={{ ...btn('ghost'), textDecoration: 'none', fontSize: '0.75rem' }}>
+                      <a href={`/admin/rounds?date=${apt.date}${apt.email ? `&email=${encodeURIComponent(apt.email)}` : ''}`} style={{ ...btn('ghost'), textDecoration: 'none', fontSize: '0.75rem' }}>
                         → Rounds
                       </a>
                     </div>

@@ -49,7 +49,7 @@ export async function getServerSideProps({ req }) {
     return lastName(a.name).localeCompare(lastName(b.name))
   })
 
-  // Prospects = HubSpot contacts not yet in Stripe
+  // Prospects = HubSpot contacts not yet in Stripe — merged into customers with status='prospect'
   const stripeEmails = new Set(raw.map((c) => (c.email || '').toLowerCase()).filter(Boolean))
   const prospects = hubspotContacts
     .filter((c) => {
@@ -59,19 +59,24 @@ export async function getServerSideProps({ req }) {
       return !email || !stripeEmails.has(email)
     })
     .map((c) => ({
+      id: `hs_${c.id}`,
       hsId: c.id,
       name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
       email: c.properties?.email || '',
       phone: c.properties?.phone || '',
       address: c.properties?.address || '',
       systemType: c.properties?.system_type || '',
+      status: 'prospect',
+      plan: null,
+      mrr: 0,
     }))
-    .sort((a, b) => {
-      const lastName = (name) => name.trim().split(/\s+/).pop() || name
-      return lastName(a.name).localeCompare(lastName(b.name))
-    })
 
-  return { props: { customers, prospects } }
+  const combined = [...customers, ...prospects].sort((a, b) => {
+    const lastName = (name) => (name || '').trim().split(/\s+/).pop() || name
+    return lastName(a.name).localeCompare(lastName(b.name))
+  })
+
+  return { props: { customers: combined, prospects } }
 }
 
 const STATUS_COLORS = {
@@ -81,6 +86,7 @@ const STATUS_COLORS = {
   unpaid:   { bg: 'rgba(255,100,100,0.12)', color: '#ff8080',              label: 'Unpaid' },
   canceled: { bg: 'rgba(212,230,202,0.06)', color: 'rgba(212,230,202,0.35)', label: 'Canceled' },
   inactive: { bg: 'rgba(212,230,202,0.06)', color: 'rgba(212,230,202,0.35)', label: 'No Sub' },
+  prospect: { bg: 'rgba(201,168,76,0.12)',  color: '#c9a84c',              label: 'Prospect' },
 }
 
 function StatusBadge({ status }) {
@@ -548,26 +554,33 @@ const FILTER_TABS = [
   { key: 'active', label: 'Active' },
   { key: 'past_due', label: 'Past Due' },
   { key: 'inactive', label: 'No Sub' },
+  { key: 'prospect', label: 'Prospects' },
 ]
 
 export default function Clients({ customers, prospects = [] }) {
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState('all')
-  const [mainTab, setMainTab] = useState('clients') // 'clients' | 'prospects'
   const [selected, setSelected] = useState(null)
+
+  const realClients = customers.filter(c => c.status !== 'prospect')
+  const allProspects = customers.filter(c => c.status === 'prospect')
 
   const filtered = customers.filter((c) => {
     const q = search.toLowerCase().trim()
-    if (!q) return tab === 'all' || (tab === 'inactive' ? ['inactive', 'canceled'].includes(c.status) : c.status === tab)
-    const name = (c.name || '').toLowerCase()
-    const email = (c.email || '').toLowerCase()
-    const phone = (c.phone || '').replace(/\D/g, '')
-    const matchSearch = name.includes(q) || email.includes(q) || phone.includes(q.replace(/\D/g, ''))
-    const matchTab = tab === 'all' || (tab === 'inactive' ? ['inactive', 'canceled'].includes(c.status) : c.status === tab)
+    const matchSearch = !q || (
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
+      (c.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, ''))
+    )
+    const matchTab = tab === 'all'
+      ? true
+      : tab === 'inactive'
+        ? ['inactive', 'canceled'].includes(c.status)
+        : c.status === tab
     return matchSearch && matchTab
   })
 
-  const totalMrr = customers.filter((c) => ['active', 'trialing'].includes(c.status)).reduce((s, c) => s + c.mrr, 0)
+  const totalMrr = realClients.filter((c) => ['active', 'trialing'].includes(c.status)).reduce((s, c) => s + c.mrr, 0)
   const panelOpen = !!selected
 
   return (
@@ -579,7 +592,7 @@ export default function Clients({ customers, prospects = [] }) {
             <span className="tag">Admin</span>
             <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Clients</h1>
             <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
-              {customers.length} clients · {prospects.length} prospects · MRR ${(totalMrr / 100).toFixed(0)}
+              {realClients.length} clients · {allProspects.length} prospects · MRR ${(totalMrr / 100).toFixed(0)}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -594,18 +607,8 @@ export default function Clients({ customers, prospects = [] }) {
           </div>
         </div>
 
-        {/* Main tab: Clients / Prospects */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid rgba(122,171,130,0.12)', paddingBottom: 0 }}>
-          {[['clients', `Clients (${customers.length})`], ['prospects', `Prospects (${prospects.length})`]].map(([key, label]) => (
-            <button key={key} onClick={() => { setMainTab(key); setSearch(''); setSelected(null) }}
-              style={{ padding: '9px 20px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', color: mainTab === key ? '#7dffaa' : 'rgba(212,230,202,0.4)', borderBottom: mainTab === key ? '2px solid #7dffaa' : '2px solid transparent', marginBottom: -1 }}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Prospects view */}
-        {mainTab === 'prospects' && (
+        {/* Prospects view (legacy, no longer used — kept hidden) */}
+        {false && (
           <>
             <input
               type="search"
@@ -657,8 +660,8 @@ export default function Clients({ customers, prospects = [] }) {
           </>
         )}
 
-        {/* Clients view */}
-        {mainTab === 'clients' && <>
+        {/* Clients view (always shown) */}
+        {true && <>
 
         {/* Search + filter */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -708,10 +711,14 @@ export default function Clients({ customers, prospects = [] }) {
                 {filtered.map((c) => (
                   <tr
                     key={c.id}
-                    onClick={() => setSelected(selected?.id === c.id ? null : c)}
+                    onClick={() => {
+                      // Prospects don't have Stripe details — skip detail panel for them
+                      if (c.status === 'prospect') return
+                      setSelected(selected?.id === c.id ? null : c)
+                    }}
                     style={{
                       borderBottom: '1px solid rgba(122,171,130,0.08)',
-                      cursor: 'pointer',
+                      cursor: c.status === 'prospect' ? 'default' : 'pointer',
                       background: selected?.id === c.id ? 'rgba(201,168,76,0.06)' : 'transparent',
                     }}
                   >

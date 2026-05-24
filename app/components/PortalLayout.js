@@ -37,11 +37,11 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           height: 72, position: 'relative',
         }}>
-          <Link href="/dashboard" style={{ textDecoration: 'none', lineHeight: 1.1, flexShrink: 0 }}>
-            <div style={{ fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+          <Link href={isAdmin ? '/admin/home' : '/dashboard'} style={{ textDecoration: 'none', lineHeight: 1.1, flexShrink: 0 }}>
+            <div style={{ fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
               Green<span style={{ color: '#7dffaa' }}>Guard</span> USA
             </div>
-            <div style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', whiteSpace: 'nowrap' }}>
               Smart · Safe · Effective
             </div>
           </Link>
@@ -57,20 +57,20 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
           <div className={'nav-links' + (menuOpen ? ' open' : '')} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             {/* Customer links — hidden when admin */}
             {!isAdmin && NAV_LINKS.map(({ href, label }) => (
-              <Link key={href} href={href} style={{ fontSize: '1rem', fontWeight: 700, padding: '6px 14px', borderRadius: 4, whiteSpace: 'nowrap', color: router.pathname === href ? '#7dffaa' : 'rgba(212,230,202,0.85)', background: router.pathname === href ? 'rgba(125,255,170,0.08)' : 'transparent' }}>
+              <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: 700, padding: '8px 16px', borderRadius: 4, whiteSpace: 'nowrap', color: router.pathname === href ? '#7dffaa' : 'rgba(212,230,202,0.85)', background: router.pathname === href ? 'rgba(125,255,170,0.08)' : 'transparent' }}>
                 {label}
               </Link>
             ))}
 
             {/* Admin links — hidden when customer */}
             {isAdmin && ADMIN_NAV_LINKS.map(({ href, label, customer }) => (
-              <Link key={href} href={href} style={{ fontSize: '1rem', fontWeight: 700, padding: '6px 10px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0, color: customer ? 'rgba(125,255,170,0.6)' : router.pathname === href ? '#c9a84c' : 'rgba(201,168,76,0.8)', background: router.pathname === href ? 'rgba(201,168,76,0.08)' : 'transparent', borderLeft: customer ? '1px solid rgba(125,255,170,0.15)' : 'none', marginLeft: customer ? 4 : 0 }}>
+              <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: 700, padding: '8px 12px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0, color: customer ? 'rgba(125,255,170,0.6)' : router.pathname === href ? '#c9a84c' : 'rgba(201,168,76,0.8)', background: router.pathname === href ? 'rgba(201,168,76,0.08)' : 'transparent', borderLeft: customer ? '1px solid rgba(125,255,170,0.15)' : 'none', marginLeft: customer ? 4 : 0 }}>
                 {label}
               </Link>
             ))}
 
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/api/auth/logout" style={{ marginLeft: 8, fontSize: '0.9rem', fontWeight: 700, padding: '6px 12px', borderRadius: 4, color: 'rgba(212,230,202,0.5)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <a href="/api/auth/logout" style={{ marginLeft: 8, fontSize: '1rem', fontWeight: 700, padding: '8px 14px', borderRadius: 4, color: 'rgba(212,230,202,0.6)', whiteSpace: 'nowrap', flexShrink: 0 }}>
               Sign out
             </a>
           </div>
@@ -131,8 +131,8 @@ function AdminBottomDock({ pathname }) {
             background: active ? 'rgba(201,168,76,0.10)' : 'transparent',
             fontWeight: active ? 800 : 600,
           }}>
-            <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{icon}</span>
-            <span style={{ fontSize: '0.65rem', letterSpacing: '0.04em' }}>{label}</span>
+            <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>{icon}</span>
+            <span style={{ fontSize: '0.78rem', letterSpacing: '0.04em' }}>{label}</span>
           </Link>
         )
       })}

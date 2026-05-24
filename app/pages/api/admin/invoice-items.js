@@ -100,6 +100,18 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true })
     }
 
+    if (action === 'update-line') {
+      // Edit a line item in a draft invoice (description, amount)
+      if (!invoiceId || !itemId) return res.status(400).json({ error: 'invoiceId and itemId required' })
+      const { description, unitAmount } = req.body
+      const updates = {}
+      if (description) updates.description = description
+      if (unitAmount !== undefined) updates.unit_amount = unitAmount
+      if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No fields to update' })
+      await stripe.invoiceItems.update(itemId, updates)
+      return res.status(200).json({ ok: true })
+    }
+
     if (action === 'void') {
       // Void an open invoice
       if (!invoiceId) return res.status(400).json({ error: 'invoiceId required' })

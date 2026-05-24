@@ -1,8 +1,10 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
-const { findContactByEmail, addNote } = require('../../../lib/hubspot')
+const { findContactByEmail, addNote, getContactNotes } = require('../../../lib/hubspot')
 const { logCompletedStop } = require('../../../lib/gsheets')
 const { Resend } = require('resend')
 const { escapeHtml } = require('../../../lib/email')
+
+const POST_VISIT_DEDUP_MS = 6 * 60 * 60 * 1000 // 6 hours — covers re-saves on same visit
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -60,7 +62,22 @@ export default async function handler(req, res) {
 
   // 3. Send post-visit email (use custom message if provided, else skip)
   if (email && customEmailMessage && process.env.RESEND_API_KEY) {
+    // Dedup: skip if a post-visit email was already sent in the last 6 hours
+    let alreadySent = false
     try {
+      const contact = await findContactByEmail(email).catch(() => null)
+      if (contact?.id) {
+        const notes = await getContactNotes(contact.id, 10).catch(() => [])
+        alreadySent = notes.some(n =>
+          /\[EMAIL-OUT\]\s*Post-visit/i.test(n.body || '') &&
+          (Date.now() - new Date(n.timestamp).getTime()) < POST_VISIT_DEDUP_MS
+        )
+      }
+    } catch {}
+
+    if (alreadySent) {
+      console.log('complete-stop: post-visit email already sent within 6h, skipping')
+    } else try {
       const resend = new Resend(process.env.RESEND_API_KEY)
       const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
       const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
@@ -81,6 +98,11 @@ export default async function handler(req, res) {
             </div>
           </div>`,
       })
+      // Mark sent so re-saves of same stop don't re-send for 6 hours
+      try {
+        const contact = await findContactByEmail(email).catch(() => null)
+        if (contact?.id) await addNote(contact.id, `[EMAIL-OUT] Post-visit email sent on ${today} by ${session.email}`)
+      } catch {}
     } catch (err) {
       console.error('complete-stop email error:', err.message)
     }
