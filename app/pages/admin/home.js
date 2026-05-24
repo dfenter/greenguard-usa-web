@@ -274,9 +274,9 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
             )
           })()}
           <KPI
-            label="Tanks Needed This Week"
+            label="Tanks Needed (Next 7 Days)"
             value={tanksNeededThisWeek != null ? tanksNeededThisWeek : '—'}
-            sub="Mon–Sun from schedule"
+            sub="rolling from today"
           />
           <KPI
             label="Today's Stops"
@@ -345,26 +345,6 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
           </section>
         )}
 
-        {/* Quick links */}
-        <section>
-          <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', marginBottom: 12 }}>Quick Access</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {[
-              { label: 'Clients', href: '/admin/clients', desc: 'Customer profiles' },
-              { label: 'Analytics', href: '/admin/analytics', desc: 'Revenue & traffic' },
-              { label: 'Daily Inventory', href: '/admin/inventory', desc: 'Tank counts' },
-              { label: 'Route Plan', href: '/admin/route', desc: 'Weekly map' },
-              { label: 'New Booking', href: '/admin/booking', desc: 'Schedule a visit' },
-              { label: 'Quote Builder', href: '/admin/quote', desc: 'Build & send a quote' },
-            ].map(({ label, href, desc }) => (
-              <Link key={href} href={href} style={{ display: 'block', padding: '14px 16px', borderRadius: 10, background: 'rgba(26,46,31,0.5)', border: '1px solid rgba(122,171,130,0.12)', textDecoration: 'none' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.88rem', marginBottom: 2 }}>{label}</div>
-                <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>{desc}</div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
         <VisitsDuePanel />
 
         {/* Tank Calendar — compact widget; full view lives on /admin/inventory */}
@@ -388,6 +368,27 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
             </div>
           </section>
         )}
+
+        {/* Quick links */}
+        <section>
+          <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', marginBottom: 12 }}>Quick Access</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {[
+              { label: 'Invoice Editor', href: '/admin/invoice', desc: 'Manage invoices' },
+              { label: 'Clients', href: '/admin/clients', desc: 'Customer profiles' },
+              { label: 'Analytics', href: '/admin/analytics', desc: 'Revenue & traffic' },
+              { label: 'Daily Inventory', href: '/admin/inventory', desc: 'Tank counts' },
+              { label: 'Route Plan', href: '/admin/route', desc: 'Weekly map' },
+              { label: 'New Booking', href: '/admin/booking', desc: 'Schedule a visit' },
+              { label: 'Quote Builder', href: '/admin/quote', desc: 'Build & send a quote' },
+            ].map(({ label, href, desc }) => (
+              <Link key={href} href={href} style={{ display: 'block', padding: '14px 16px', borderRadius: 10, background: 'rgba(26,46,31,0.5)', border: '1px solid rgba(122,171,130,0.12)', textDecoration: 'none' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.88rem', marginBottom: 2 }}>{label}</div>
+                <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>{desc}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
 
       </PortalLayout>
     </>

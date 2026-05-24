@@ -79,16 +79,12 @@ async function buildTankCalendarData(tz = 'America/Chicago') {
   })
   const expectedDelivery = lastWedLog?.emptiesPickedUp || 0
 
-  // Match TankCalendar's Sun→Sat week so the KPI equals the visible row sum.
+  // Rolling next 7 days (today + 6) so the KPI tracks upcoming demand.
   const todayDate = new Date(today + 'T12:00:00')
-  const dayOfWeek = todayDate.getDay()
-  const weekSunday = new Date(todayDate)
-  weekSunday.setDate(todayDate.getDate() - dayOfWeek)
-  const weekSaturday = new Date(weekSunday)
-  weekSaturday.setDate(weekSunday.getDate() + 6)
-
   let weeklyTankTotal = 0
-  for (let d = new Date(weekSunday); d <= weekSaturday; d.setDate(d.getDate() + 1)) {
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(todayDate)
+    d.setDate(todayDate.getDate() + i)
     const dateStr = d.toLocaleDateString('en-CA', { timeZone: tz })
     weeklyTankTotal += scheduleByDate[dateStr]?.tanks || 0
   }

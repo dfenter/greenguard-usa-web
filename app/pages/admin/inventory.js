@@ -237,7 +237,7 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
                     <label style={{ ...lbl, color: '#c9a84c' }}>Empty tanks picked up today</label>
                     <input style={input} type="number" min="0" placeholder="0" value={form.emptiesPickedUp} onChange={set('emptiesPickedUp')} />
                     <p style={{ fontSize: '0.7rem', color: 'rgba(201,168,76,0.55)', margin: '4px 0 0' }}>
-                      Pre-filled from this week&apos;s schedule ({weeklyTankTotal} tanks). Adjust if actual pickups differ. This becomes next week&apos;s expected delivery.
+                      Pre-filled from the next 7 days&apos; schedule ({weeklyTankTotal} tanks). Adjust if actual pickups differ. This becomes next week&apos;s expected delivery.
                     </p>
                   </div>
                   <div>
