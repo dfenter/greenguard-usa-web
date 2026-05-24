@@ -85,13 +85,8 @@ def _build_email(name: str) -> tuple[str, str]:
 # ── Send ──────────────────────────────────────────────────────────────────────
 
 def _send(gmail_service, to: str, subject: str, html: str):
-    msg = MIMEMultipart("alternative")
-    msg["To"]      = to
-    msg["From"]    = "admin@greenguard-usa.com"
-    msg["Subject"] = subject
-    msg.attach(MIMEText(html, "html"))
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-    gmail_service.users().messages().send(userId="me", body={"raw": raw}).execute()
+    from resend_client import send_email
+    send_email(to=to, subject=subject, html=html)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────

@@ -143,7 +143,11 @@ def maybe_send_digest(gmail_service, calendar_service) -> None:
 
     subject, body = build_digest(stats, high_urgency, route, CALENDAR_TIMEZONE)
     try:
-        send_email(gmail_service, SENDER_EMAIL, subject, body)
+        from resend_client import send_email as resend_send
+        # Digest is plain-text only; wrap in <pre> so Resend renders it readably.
+        resend_send(to=SENDER_EMAIL, subject=subject,
+                    html=f"<pre style='font:13px/1.45 monospace'>{body}</pre>",
+                    plain=body)
         db.set_state("last_digest_sent", str(time.time()))
         log.info("Daily digest sent: %s", subject)
     except Exception as exc:

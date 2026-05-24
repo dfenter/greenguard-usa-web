@@ -30,6 +30,7 @@ jobs:
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
           ADMIN_SMS_NUMBER: ${{ secrets.ADMIN_SMS_NUMBER }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           CALENDAR_TIMEZONE: America/Chicago
           POLL_INTERVAL_SECONDS: 300
           PROCESSED_LABEL: Greenguard-Processed

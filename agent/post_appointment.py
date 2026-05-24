@@ -96,14 +96,10 @@ Smart. Safe. Effective."""
 # ── Send ──────────────────────────────────────────────────────────────────────
 
 def _send(gmail_service, to: str, subject: str, html: str, plain: str):
-    msg = MIMEMultipart("alternative")
-    msg["To"]      = to
-    msg["From"]    = "admin@greenguard-usa.com"
-    msg["Subject"] = subject
-    msg.attach(MIMEText(plain, "plain"))
-    msg.attach(MIMEText(html, "html"))
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-    gmail_service.users().messages().send(userId="me", body={"raw": raw}).execute()
+    # gmail_service kept in signature for backward compatibility, but unified
+    # email goes through Resend (one sender, one voice across the system).
+    from resend_client import send_email
+    send_email(to=to, subject=subject, html=html, plain=plain)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
