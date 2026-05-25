@@ -8,6 +8,7 @@ const NAV_LINKS = [
 
 const ADMIN_NAV_LINKS = [
   { href: '/admin/home',         label: '🏠 Home' },
+  { href: '/admin/calendar',     label: 'Calendar' },
   { href: '/admin/clients',      label: 'Clients' },
   { href: '/admin/rounds',       label: 'Customer Rounds' },
   { href: '/admin/inventory',    label: 'Inventory' },
@@ -69,10 +70,16 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
               </Link>
             ))}
 
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/api/auth/logout" style={{ marginLeft: 8, fontSize: '1rem', fontWeight: 700, padding: '8px 14px', borderRadius: 4, color: 'rgba(212,230,202,0.6)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={async () => {
+                try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }) } catch {}
+                window.location.href = '/login'
+              }}
+              style={{ marginLeft: 8, fontSize: '1rem', fontWeight: 700, padding: '8px 14px', borderRadius: 4, color: 'rgba(212,230,202,0.6)', whiteSpace: 'nowrap', flexShrink: 0, background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
               Sign out
-            </a>
+            </button>
           </div>
         </div>
       </nav>
@@ -104,11 +111,11 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
 }
 
 const DOCK_ITEMS = [
-  { href: '/admin/home',      label: 'Home',     icon: '🏠' },
-  { href: '/admin/clients',   label: 'Clients',  icon: '👥' },
-  { href: '/admin/rounds',    label: 'Rounds',   icon: '🚐' },
-  { href: '/admin/inventory', label: 'Inventory', icon: '📋' },
-  { href: '/admin/quote',     label: 'Quote',    icon: '📝' },
+  { href: '/admin/inventory', label: 'Inventory', icon: '📦' },
+  { href: '/admin/calendar',  label: 'Calendar',  icon: '📅' },
+  { href: '/admin/clients',   label: 'Clients',   icon: '👥' },
+  { href: '/admin/rounds',    label: 'Rounds',    icon: '🚐' },
+  { href: '/admin/quote',     label: 'Quote',     icon: '📝' },
 ]
 
 function AdminBottomDock({ pathname }) {
