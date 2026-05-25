@@ -238,12 +238,11 @@ const SERVICES = [
   { label: 'Mosqitter Grand Service',         sku: 'MQ-SVC',   price: 129.99, promptQty: true },
   { label: 'Mosqitter Installation',          sku: 'MQ-INST',  price: 199.99, promptQty: true },
   { label: 'Mosqitter Troubleshoot',          sku: 'MQ-TSHOOT',price:  79.99 },
-  // CO2 tank refill: $49/tank. The $39 delivery fee is auto-bundled once
-  // per appointment when refill qty > 0 (see DELIVERY_FEE constant + the
-  // post-processor in allLineItems below). Don't list TANK-DELIVERY-FEE as
-  // a separately selectable row — bundling guarantees it's charged exactly
-  // once regardless of tank count.
-  { label: 'CO₂ Tank Refill (per tank)',      sku: 'TANK-REFILL',       price: 49.00, promptQty: true },
+  // CO2 tank refill: $49.99/tank. The $39.99 delivery fee is auto-bundled
+  // once per appointment when refill qty > 0 (see the post-processor in
+  // allLineItems below) and shows as a sub-row in the catalog UI. Hookup
+  // & maintenance ($10/tank) is opt-in via a checkbox under the refill row.
+  { label: 'CO₂ Tank Refill (per tank)',      sku: 'TANK-REFILL',       price: 49.99, promptQty: true },
   { label: 'GreenGuard Barrier Treatment',    sku: 'BARRIER',  price:  49.99 },
   { label: 'Free Property Assessment',        sku: 'ASSESS',   price:   0.00 },
 ]
@@ -362,7 +361,7 @@ function CatalogSection({ title, catalog, qtys, onChange, disabled, total }) {
 
 // ── Multi-select dropdown (Equipment & Add-ons) ────────────────────────────────
 
-function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total }) {
+function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total, onOptionalToggle }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const selectedItems = catalog.filter((item) => (qtys[item.label] || 0) > 0)
@@ -477,7 +476,22 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total })
                 <div key={item.label + '__delivery'}
                   style={{ display: 'flex', alignItems: 'center', padding: '6px 14px 8px 48px', borderBottom: '1px solid rgba(122,171,130,0.06)', background: 'rgba(125,255,170,0.03)', fontSize: '0.78rem', color: 'rgba(212,230,202,0.6)' }}>
                   <span style={{ flex: 1 }}>+ CO₂ Tank Delivery Fee <span style={{ color: 'rgba(212,230,202,0.35)', fontSize: '0.7rem', marginLeft: 6 }}>(once per visit)</span></span>
-                  <span style={{ color: '#7dffaa', fontWeight: 700 }}>{fmt$(39.00)}</span>
+                  <span style={{ color: '#7dffaa', fontWeight: 700 }}>{fmt$(39.99)}</span>
+                </div>
+              )
+              // Opt-in hookup & maintenance — $10 per tank. Toggled via the
+              // showOptionalRow callback so this catalog widget can write
+              // tankHookupOptIn back to the parent state.
+              const optedIn = onOptionalToggle?.value === true
+              rows.push(
+                <div key={item.label + '__hookup'}
+                  onClick={() => onOptionalToggle && onOptionalToggle.set(!optedIn)}
+                  style={{ display: 'flex', alignItems: 'center', padding: '8px 14px 8px 48px', borderBottom: '1px solid rgba(122,171,130,0.06)', background: optedIn ? 'rgba(201,168,76,0.07)' : 'rgba(255,255,255,0.02)', fontSize: '0.78rem', color: 'rgba(212,230,202,0.75)', cursor: 'pointer' }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${optedIn ? '#c9a84c' : 'rgba(201,168,76,0.4)'}`, background: optedIn ? '#c9a84c' : 'transparent', marginRight: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#0d1a10', fontWeight: 900 }}>
+                    {optedIn ? '✓' : ''}
+                  </div>
+                  <span style={{ flex: 1 }}>+ Tank Hookup &amp; Maintenance <span style={{ color: 'rgba(212,230,202,0.35)', fontSize: '0.7rem', marginLeft: 6 }}>($10/tank · optional)</span></span>
+                  <span style={{ color: optedIn ? '#c9a84c' : 'rgba(212,230,202,0.35)', fontWeight: 700 }}>{fmt$(10.00 * qty)}</span>
                 </div>
               )
             }
@@ -641,18 +655,25 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
   const addTotal  = sectionTotal(ADDONS,        state.addonQtys)
   const prodTotal = sectionTotal(PRODUCTS_SOLD, state.productQtys)
 
-  // CO2 tank refill auto-bundles a single delivery fee per appointment.
+  // CO2 tank refill auto-bundles a single $39.99 delivery fee per appointment.
+  // Hookup & maintenance ($10/tank) is opt-in via state.tankHookupOptIn.
   const tankRefillQty = state.serviceQtys['CO₂ Tank Refill (per tank)'] || 0
-  const deliveryFee = tankRefillQty > 0 ? 39.00 : 0
+  const deliveryFee = tankRefillQty > 0 ? 39.99 : 0
+  const hookupTotal = (tankRefillQty > 0 && state.tankHookupOptIn) ? 10.00 * tankRefillQty : 0
 
-  const grand     = svcTotal + eqTotal + addTotal + prodTotal + deliveryFee
+  // Delivery fee + hookup are conceptually service charges — include in
+  // svcTotal so the Services KPI on the rounds card reflects the actual
+  // amount, not just the line items the admin clicked.
+  const svcTotalWithBundle = svcTotal + deliveryFee + hookupTotal
+  const grand     = svcTotalWithBundle + eqTotal + addTotal + prodTotal
 
   const allLineItems = [
     ...buildLineItems(SERVICES,      state.serviceQtys),
     ...buildLineItems(EQUIPMENT,     state.equipQtys),
     ...buildLineItems(ADDONS,        state.addonQtys),
     ...buildLineItems(PRODUCTS_SOLD, state.productQtys),
-    ...(tankRefillQty > 0 ? [{ label: 'CO₂ Tank Delivery Fee', sku: 'TANK-DELIVERY-FEE', price: 39.00, qty: 1 }] : []),
+    ...(tankRefillQty > 0 ? [{ label: 'CO₂ Tank Delivery Fee', sku: 'TANK-DELIVERY-FEE', price: 39.99, qty: 1 }] : []),
+    ...(tankRefillQty > 0 && state.tankHookupOptIn ? [{ label: 'Tank Hookup & Maintenance (per tank)', sku: 'TANK-HOOKUP-MAINT', price: 10.00, qty: tankRefillQty }] : []),
   ]
 
   async function handlePhoto(e) {
@@ -990,8 +1011,9 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
         {(isActive || isDone) && (
           <div style={{ borderTop: '1px solid rgba(122,171,130,0.1)', paddingTop: 14 }}>
             <MultiSelectSection title="Services Performed" catalog={SERVICES}
-              qtys={state.serviceQtys} total={svcTotal} disabled={isDone}
-              onChange={(label, n) => onUpdate({ serviceQtys: { ...state.serviceQtys, [label]: n } })} />
+              qtys={state.serviceQtys} total={svcTotalWithBundle} disabled={isDone}
+              onChange={(label, n) => onUpdate({ serviceQtys: { ...state.serviceQtys, [label]: n } })}
+              onOptionalToggle={{ value: !!state.tankHookupOptIn, set: (v) => onUpdate({ tankHookupOptIn: v }) }} />
 
             <MultiSelectSection title="Products Sold" catalog={PRODUCTS_SOLD}
               qtys={state.productQtys} total={prodTotal} disabled={isDone}
@@ -1008,7 +1030,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
             {/* Grand total */}
             <div style={{ background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.15)', borderRadius: 8, padding: '12px 16px', marginTop: 4, marginBottom: isActive ? 16 : 0 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
-                {[['Services', svcTotal], ['Products', prodTotal], ['Installations', eqTotal], ['Add-Ons', addTotal]].map(([lbl, val]) => (
+                {[['Services', svcTotalWithBundle], ['Products', prodTotal], ['Installations', eqTotal], ['Add-Ons', addTotal]].map(([lbl, val]) => (
                   <div key={lbl} style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{lbl}</div>
                     <div style={{ fontWeight: 800, fontSize: '0.9rem', color: val > 0 ? '#d4e6ca' : 'rgba(212,230,202,0.25)' }}>{fmt$(val)}</div>
@@ -1132,6 +1154,7 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
       date: stop.bookingDate || (stop.startTime ? new Date(stop.startTime).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }) : selectedDate) || today,
       arrivalTime: '', departureTime: '',
       ...applyPrefill(stop.prefill),
+      tankHookupOptIn: false,
       notes: '', photoUrl: null, videoUrl: null, submitting: false, error: null,
       showEmailModal: false, invoiceId: null, invoiceUrl: null, grandTotal: 0,
     }))
