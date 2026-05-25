@@ -134,9 +134,41 @@ const STATUS_COLORS = {
   canceled: 'rgba(212,230,202,0.3)', void: 'rgba(212,230,202,0.3)', draft: 'rgba(212,230,202,0.4)',
 }
 
+const SERVICE_PLANS = [
+  { id: 'bg1-rental',     label: 'Biogents Rental — 1 Trap',  monthly: 159.99, perUnit: false },
+  { id: 'bg2-rental',     label: 'Biogents Rental — 2 Traps', monthly: 266.99, perUnit: false },
+  { id: 'bg3-rental',     label: 'Biogents Rental — 3 Traps', monthly: 399.99, perUnit: false },
+  { id: 'mq-rental',      label: 'Mosqitter Grand Rental',    monthly: 299.99, perUnit: true, unitLabel: 'Mosqitters' },
+  { id: 'co2-tank-rental',label: 'CO₂ Tank & Timer Rental',   monthly: 124.99, perUnit: false },
+]
+
 export default function ClientDetail({ isAdmin, customer, subscriptions, invoices, bookings, notes, markers, eventTypeLinks }) {
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [selectedSlug, setSelectedSlug] = useState(eventTypeLinks[0]?.slug || '')
+  const [planId, setPlanId] = useState('')
+  const [planQty, setPlanQty] = useState(1)
+  const [startingPlan, setStartingPlan] = useState(false)
+
+  const selectedPlan = SERVICE_PLANS.find((p) => p.id === planId)
+
+  async function startPlan() {
+    if (!planId) return
+    const monthly = (selectedPlan?.monthly || 0) * (selectedPlan?.perUnit ? planQty : 1)
+    if (!window.confirm(`Start ${selectedPlan.label}${selectedPlan.perUnit ? ` × ${planQty}` : ''} for ${customer.name || customer.email}?\n\nMonthly charge: $${monthly.toFixed(2)}\n\nIf they have a card on file Stripe auto-charges monthly. Otherwise emails the hosted invoice link.`)) return
+    setStartingPlan(true)
+    const res = await fetch('/api/admin/start-plan', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerEmail: customer.email, customerName: customer.name, planId, quantity: planQty }),
+    })
+    const j = await res.json().catch(() => ({}))
+    setStartingPlan(false)
+    if (res.ok) {
+      alert(`✓ Plan started\nSubscription ${j.subscriptionId}\nStatus: ${j.status}\nCollection: ${j.collectionMethod}`)
+      window.location.reload()
+    } else {
+      alert(`Failed: ${j.error || 'HTTP ' + res.status}`)
+    }
+  }
 
   return (
     <>
@@ -241,7 +273,35 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
           <div className="card">
             <span className="tag">Subscription</span>
             {subscriptions.length === 0 ? (
-              <div style={{ marginTop: 12, color: 'rgba(212,230,202,0.4)', fontSize: '0.88rem' }}>No Stripe subscription</div>
+              <>
+                <div style={{ marginTop: 12, color: 'rgba(212,230,202,0.4)', fontSize: '0.88rem', marginBottom: 14 }}>No Stripe subscription</div>
+                <div style={{ background: 'rgba(125,255,170,0.05)', border: '1px solid rgba(125,255,170,0.2)', borderRadius: 8, padding: 14 }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 10 }}>Start a Service Plan</div>
+                  <select value={planId} onChange={(e) => setPlanId(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', marginBottom: 10 }}>
+                    <option value="">— Pick a plan —</option>
+                    {SERVICE_PLANS.map((p) => (
+                      <option key={p.id} value={p.id}>{p.label} — ${p.monthly.toFixed(2)}/mo{p.perUnit ? ' · per unit' : ''}</option>
+                    ))}
+                  </select>
+                  {selectedPlan?.perUnit && (
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700, marginRight: 8 }}>
+                        {selectedPlan.unitLabel || 'Units'}:
+                      </label>
+                      <input type="number" min="1" value={planQty} onChange={(e) => setPlanQty(Math.max(1, parseInt(e.target.value) || 1))}
+                        style={{ width: 70, padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontWeight: 700 }} />
+                      <span style={{ marginLeft: 10, fontSize: '0.85rem', color: '#7dffaa', fontWeight: 700 }}>
+                        = ${(selectedPlan.monthly * planQty).toFixed(2)}/mo
+                      </span>
+                    </div>
+                  )}
+                  <button onClick={startPlan} disabled={!planId || startingPlan}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 6, border: 'none', background: planId ? '#7dffaa' : 'rgba(125,255,170,0.2)', color: '#0d1a10', fontWeight: 900, cursor: planId ? 'pointer' : 'not-allowed', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+                    {startingPlan ? 'Starting…' : 'Start Plan'}
+                  </button>
+                </div>
+              </>
             ) : subscriptions.map((s) => (
               <div key={s.id} style={{ marginTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
