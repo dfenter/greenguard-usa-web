@@ -143,7 +143,8 @@ export default async function handler(req, res) {
 
     if (action === 'send') {
       if (!customerId) return res.status(400).json({ error: 'customerId required' })
-      // Find or create a draft invoice, then finalize and send
+      // Find or create a draft invoice, then finalize and either auto-charge
+      // (charge_automatically) or email the hosted invoice link (send_invoice).
       let inv = invoiceId
         ? await stripe.invoices.retrieve(invoiceId)
         : (await stripe.invoices.list({ customer: customerId, status: 'draft', limit: 1 })).data[0]
@@ -152,11 +153,9 @@ export default async function handler(req, res) {
         inv = await stripe.invoices.create({ customer: customerId, auto_advance: false })
       }
       if (inv.status === 'draft') {
-        // Guard: don't send $0 invoices
         if (!inv.lines?.data?.length || inv.amount_due === 0) {
           return res.status(400).json({ error: 'Cannot send an invoice with no billable items' })
         }
-        // Ensure tax is set before finalizing (skip if not configured or invalid)
         const taxRateId = getTaxRateId()
         if (taxRateId) {
           try {
@@ -166,10 +165,42 @@ export default async function handler(req, res) {
             console.error(`Stripe tax rate ${taxRateId} not found — sending without tax`)
           }
         }
+        // Repair common case: card on file but no default_payment_method set.
+        // We need the default to be set for charge_automatically to actually
+        // pull funds. If still no PMs at all, switch to send_invoice instead.
+        if (inv.collection_method === 'charge_automatically') {
+          const cust = await stripe.customers.retrieve(customerId)
+          if (!cust.invoice_settings?.default_payment_method) {
+            const pms = await stripe.paymentMethods.list({ customer: customerId, limit: 5 })
+            if (pms.data.length > 0) {
+              await stripe.customers.update(customerId, {
+                invoice_settings: { default_payment_method: pms.data[0].id },
+              })
+            } else {
+              await stripe.invoices.update(inv.id, {
+                collection_method: 'send_invoice', days_until_due: 14,
+              })
+              inv.collection_method = 'send_invoice'
+            }
+          }
+        }
         await stripe.invoices.finalizeInvoice(inv.id)
-        await stripe.invoices.sendInvoice(inv.id)
+        if (inv.collection_method === 'send_invoice') {
+          // Emails the hosted invoice link to the customer.
+          await stripe.invoices.sendInvoice(inv.id)
+        } else {
+          // charge_automatically — attempt the charge now on the default PM.
+          // payInvoice throws on failure; that's fine, surface as 500.
+          await stripe.invoices.pay(inv.id)
+        }
       }
-      return res.status(200).json({ ok: true, invoiceId: inv.id })
+      const refreshed = await stripe.invoices.retrieve(inv.id)
+      return res.status(200).json({
+        ok: true,
+        invoiceId: inv.id,
+        status: refreshed.status,
+        collectionMethod: refreshed.collection_method,
+      })
     }
 
     return res.status(400).json({ error: 'Unknown action' })

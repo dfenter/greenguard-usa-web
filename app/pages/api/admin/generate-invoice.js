@@ -95,9 +95,33 @@ export default async function handler(req, res) {
   let invoice = existingInvoice
   if (!invoice) {
     const taxRateId = getTaxRateId()
+    // Pick collection method based on whether the customer has a card on
+    // file. With a card → auto-charge (charge_automatically). Without →
+    // email the hosted invoice link (send_invoice + 14-day terms).
+    // If a card exists but no default_payment_method is set, promote the
+    // most recent one — Stripe requires a default to auto-charge.
+    let collectionMethod = 'send_invoice'
+    let daysUntilDue = 14
+    try {
+      const pms = await stripe.paymentMethods.list({ customer: customer.id, limit: 5 })
+      if (pms.data.length > 0) {
+        if (!customer.invoice_settings?.default_payment_method) {
+          await stripe.customers.update(customer.id, {
+            invoice_settings: { default_payment_method: pms.data[0].id },
+          })
+        }
+        collectionMethod = 'charge_automatically'
+        daysUntilDue = undefined
+      }
+    } catch (e) {
+      console.error('Payment-method lookup failed; falling back to send_invoice:', e.message)
+    }
+
     const createPayload = {
       customer: customer.id,
       auto_advance: false,
+      collection_method: collectionMethod,
+      ...(daysUntilDue !== undefined ? { days_until_due: daysUntilDue } : {}),
       metadata: invoiceMeta,
       ...(taxRateId ? { default_tax_rates: [taxRateId] } : {}),
     }

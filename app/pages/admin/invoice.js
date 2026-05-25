@@ -66,6 +66,8 @@ export default function InvoiceEditor({ customers = [] }) {
   const [expandedDraft, setExpandedDraft] = useState(null)
   const [draftAddSku, setDraftAddSku] = useState({})  // { invoiceId: sku }
   const [draftAdding, setDraftAdding] = useState(null)  // invoiceId currently adding
+  const [sentDrafts, setSentDrafts] = useState({})  // { invoiceId: { status, collectionMethod } }
+  const [sendingDraft, setSendingDraft] = useState(null)  // invoiceId currently submitting
   const searchRef = useRef(null)
 
   const filtered = search.length >= 1
@@ -293,10 +295,43 @@ export default function InvoiceEditor({ customers = [] }) {
                           </div>
                         </div>
                         <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#c9a84c' }}>{fmt$(draft.amountDue)}</div>
-                        <button style={btn('gold')} onClick={() => sendInvoice(draft.id)} disabled={sending || draft.lineCount === 0}
-                                title={draft.lineCount === 0 ? 'Add at least one line item before sending' : ''}>
-                          {sending ? 'Sending…' : 'Send'}
-                        </button>
+                        {(() => {
+                          const submitted = sentDrafts[draft.id]
+                          const isSubmitting = sendingDraft === draft.id
+                          if (submitted) {
+                            const isPaid = submitted.status === 'paid'
+                            const verb = submitted.collectionMethod === 'send_invoice' ? 'Emailed' : (isPaid ? 'Paid' : 'Submitted')
+                            return (
+                              <button disabled style={{ ...btn('gold'), opacity: 0.55, cursor: 'not-allowed', background: 'rgba(125,255,170,0.12)', color: '#7dffaa', border: '1px solid rgba(125,255,170,0.3)' }}>
+                                ✓ {verb}
+                              </button>
+                            )
+                          }
+                          return (
+                            <button style={btn('gold')}
+                              onClick={async () => {
+                                if (sendingDraft) return
+                                setSendingDraft(draft.id)
+                                const r = await fetch('/api/admin/invoice-items', {
+                                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ action: 'send', customerId: draft.customerId, invoiceId: draft.id }),
+                                })
+                                const j = await r.json().catch(() => ({}))
+                                setSendingDraft(null)
+                                if (r.ok) {
+                                  setSentDrafts((p) => ({ ...p, [draft.id]: { status: j.status, collectionMethod: j.collectionMethod } }))
+                                  setMsg('Invoice submitted')
+                                  loadPending()
+                                } else {
+                                  alert('Failed: ' + (j.error || r.status))
+                                }
+                              }}
+                              disabled={isSubmitting || draft.lineCount === 0 || !!sendingDraft}
+                              title={draft.lineCount === 0 ? 'Add at least one line item before sending' : ''}>
+                              {isSubmitting ? 'Submitting…' : 'Send'}
+                            </button>
+                          )
+                        })()}
                         <button onClick={async () => {
                           if (!window.confirm(`Delete this draft invoice for ${draft.customerName || draft.customerEmail}? This permanently removes it.`)) return
                           const r = await fetch('/api/admin/invoice-items', {
