@@ -166,6 +166,16 @@ export default function InvoiceEditor({ customers = [] }) {
     else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
   }
 
+  async function deleteDraft(invoiceId) {
+    if (!window.confirm('Delete this draft invoice? Removes it permanently.')) return
+    const res = await fetch('/api/admin/invoice-items', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete-draft', invoiceId }),
+    })
+    if (res.ok) { setMsg('Draft deleted'); loadCustomer(); loadPending() }
+    else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+  }
+
   async function sendInvoice(invoiceId) {
     setSending(true)
     const res = await fetch('/api/admin/invoice-items', {
@@ -286,6 +296,18 @@ export default function InvoiceEditor({ customers = [] }) {
                         <button style={btn('gold')} onClick={() => sendInvoice(draft.id)} disabled={sending || draft.lineCount === 0}
                                 title={draft.lineCount === 0 ? 'Add at least one line item before sending' : ''}>
                           {sending ? 'Sending…' : 'Send'}
+                        </button>
+                        <button onClick={async () => {
+                          if (!window.confirm(`Delete this draft invoice for ${draft.customerName || draft.customerEmail}? This permanently removes it.`)) return
+                          const r = await fetch('/api/admin/invoice-items', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'delete-draft', invoiceId: draft.id }),
+                          })
+                          if (r.ok) { setMsg('Draft deleted'); loadPending() }
+                          else { const j = await r.json().catch(() => ({})); alert('Failed: ' + (j.error || r.status)) }
+                        }}
+                          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.3)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
+                          Cancel
                         </button>
                         {draft.hostedUrl && (
                           <a href={draft.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }}>
@@ -534,6 +556,7 @@ export default function InvoiceEditor({ customers = [] }) {
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                           {isDraft && <button style={btn('gold')} onClick={() => sendInvoice(inv.id)} disabled={sending}>{sending ? 'Sending…' : 'Finalize & Send'}</button>}
+                          {isDraft && <button style={btn('red')} onClick={() => deleteDraft(inv.id)}>Delete</button>}
                           {isOpen && <button style={btn('red')} onClick={() => voidInvoice(inv.id)}>Void</button>}
                           {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }}>Open ↗</a>}
                           {inv.pdfUrl && <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#7aab82', fontWeight: 700 }}>PDF</a>}

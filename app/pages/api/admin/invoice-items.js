@@ -123,9 +123,21 @@ export default async function handler(req, res) {
     }
 
     if (action === 'void') {
-      // Void an open invoice
+      // Void an open invoice (irreversible — invoice number stays on record)
       if (!invoiceId) return res.status(400).json({ error: 'invoiceId required' })
       await stripe.invoices.voidInvoice(invoiceId)
+      return res.status(200).json({ ok: true })
+    }
+
+    if (action === 'delete-draft') {
+      // Permanently delete a draft invoice. Only works on drafts; open/paid
+      // invoices must be voided. Drafts have no invoice number yet.
+      if (!invoiceId) return res.status(400).json({ error: 'invoiceId required' })
+      const inv = await stripe.invoices.retrieve(invoiceId)
+      if (inv.status !== 'draft') {
+        return res.status(400).json({ error: `Cannot delete invoice in status '${inv.status}' — use void instead` })
+      }
+      await stripe.invoices.del(invoiceId)
       return res.status(200).json({ ok: true })
     }
 
