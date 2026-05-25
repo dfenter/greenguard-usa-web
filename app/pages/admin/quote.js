@@ -220,7 +220,8 @@ function CustomerSearch({ customers, onSelect }) {
 }
 
 // Per-trap pricing for Biogents CO₂ rental
-const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99 }
+// Biogents CO₂ rental packages — 1–6 traps. Volume discount kicks in at 4.
+const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750 }
 // Hookup fee per trap for Biogents owned on tank service, or tank-only customers
 const BG_HOOKUP_PER_TRAP = 10.00
 // Biogents Non-CO₂ (customer owns trap)
@@ -429,7 +430,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         <>
           <div style={Q}>How many traps?</div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {[1, 2, 3].map((n) => (
+            {[1, 2, 3, 4, 5, 6].map((n) => (
               <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
             ))}
             {plan === 'rental' && BG_RENTAL_PRICE[trapCount] && (
@@ -466,7 +467,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         <>
           <div style={Q}>How many traps?</div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {[1, 2, 3].map((n) => (
+            {[1, 2, 3, 4, 5, 6].map((n) => (
               <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
             ))}
             <span style={{ fontSize: '0.85rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
@@ -489,7 +490,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
             <>
               <div style={Q}>How many units?</div>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                {[1, 2, 3].map((n) => (
+                {[1, 2, 3, 4, 5, 6].map((n) => (
                   <button key={n} onClick={() => setMqCount(n)} style={{ ...trapBtn(n), width: 42, height: 42, border: `1px solid ${mqCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: mqCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: mqCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)' }}>{n}</button>
                 ))}
                 <span style={{ fontSize: '0.82rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
