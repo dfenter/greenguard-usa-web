@@ -171,14 +171,22 @@ export default function CalendarPage({ today, initialBookings }) {
           .fab { position:fixed; right:24px; bottom:96px; width:56px; height:56px; border-radius:50%; background:#0d1a10; color:#7dffaa; font-size:1.6rem; border:1px solid rgba(125,255,170,0.4); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(0,0,0,0.4); cursor:pointer; z-index:10; text-decoration:none; }
         `}</style>
 
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8 }}>
           <button onClick={() => setPicker(!picker)} style={{ background:'transparent', border:'none', padding:0 }} className="hdr-month">
             <span>{fmtMonth(date)}</span>
             <span style={{ fontSize:'0.9rem', opacity:0.7 }}>▾</span>
           </button>
-          <button onClick={() => setDate(today_)} style={{ background:'transparent', border:'1px solid rgba(125,255,170,0.3)', color:'#7dffaa', padding:'6px 14px', borderRadius:6, fontWeight:800, fontSize:'0.78rem', cursor:'pointer' }}>
-            Today
-          </button>
+          <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+            <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() - 7); setDate(d.toLocaleDateString('en-CA')) }}
+              aria-label="Previous week"
+              style={{ background:'transparent', border:'1px solid rgba(122,171,130,0.25)', color:'rgba(212,230,202,0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer', minWidth:32 }}>‹</button>
+            <button onClick={() => setDate(today_)} style={{ background:'transparent', border:'1px solid rgba(125,255,170,0.3)', color:'#7dffaa', padding:'6px 14px', borderRadius:6, fontWeight:800, fontSize:'0.78rem', cursor:'pointer' }}>
+              Today
+            </button>
+            <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + 7); setDate(d.toLocaleDateString('en-CA')) }}
+              aria-label="Next week"
+              style={{ background:'transparent', border:'1px solid rgba(122,171,130,0.25)', color:'rgba(212,230,202,0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer', minWidth:32 }}>›</button>
+          </div>
         </div>
 
         {picker && (
@@ -245,7 +253,9 @@ export default function CalendarPage({ today, initialBookings }) {
           </div>
         )}
 
-        <Link href="/admin/quote" className="fab" title="New booking via quote">+</Link>
+        {date >= today_ && (
+          <Link href="/admin/quote" className="fab" title="New booking via quote">+</Link>
+        )}
         {selectedEventId && (
           <DetailDock details={details} loading={detailsLoading}
             onClose={() => setSelectedEventId(null)} />
@@ -349,6 +359,33 @@ function DetailDock({ details, loading, onClose }) {
                 {p.tank_count && <div>Tanks: <strong>{p.tank_count}</strong></div>}
                 {p.recurring_addons && <div>Recurring: <strong>{p.recurring_addons}</strong></div>}
               </div>
+            </div>
+          )}
+
+          {/* Property notes — gate code, pets, access, special instructions */}
+          {(p.gate_code || p.access_notes || p.pets_on_property || p.special_instructions) && (
+            <div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 2 }}>Property Notes</div>
+              {p.pets_on_property && (
+                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(255,160,80,0.08)', border: '1px solid rgba(255,160,80,0.3)', borderRadius: 6, color: '#ffb060' }}>
+                  🐕 <strong>Pets:</strong> {p.pets_on_property}
+                </div>
+              )}
+              {p.gate_code && (
+                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 6, color: '#c9a84c' }}>
+                  🔑 <strong>Gate code:</strong> {p.gate_code}
+                </div>
+              )}
+              {p.access_notes && (
+                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(91,196,255,0.07)', border: '1px solid rgba(91,196,255,0.25)', borderRadius: 6, color: '#5bc4ff' }}>
+                  🚪 <strong>Access:</strong> {p.access_notes}
+                </div>
+              )}
+              {p.special_instructions && (
+                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.25)', borderRadius: 6, color: '#7dffaa' }}>
+                  📝 <strong>Notes:</strong> {p.special_instructions}
+                </div>
+              )}
             </div>
           )}
 

@@ -177,6 +177,12 @@ export async function getServerSideProps({ req, query, res }) {
       const contact = hubspotContactByEmail[emailKey] || null
       const prefill = slug ? prefillFromBooking({ slug }, contact) : []
       const billingContactName = contact?.properties?.billing_contact_name || null
+      const propertyNotes = contact ? {
+        gateCode: contact.properties?.gate_code || '',
+        accessNotes: contact.properties?.access_notes || '',
+        petsOnProperty: contact.properties?.pets_on_property || '',
+        specialInstructions: contact.properties?.special_instructions || '',
+      } : null
 
       return {
         ...stop,
@@ -186,6 +192,7 @@ export async function getServerSideProps({ req, query, res }) {
         eventTypeSlug: slug || null,
         prefill,
         billingContactName,
+        propertyNotes,
         rescheduleUrl: stop.rescheduleUrl || null,
         ...(match ? { calBookingId: match.id, calBookingUid: match.uid } : {}),
       }
@@ -866,6 +873,32 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
             {stop.address && <span style={{ color: 'rgba(212,230,202,0.5)' }}>📍 {stop.address}</span>}
             {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
           </div>
+
+          {/* Property notes badges — shown to tech before arrival */}
+          {stop.propertyNotes && Object.values(stop.propertyNotes).some(Boolean) && (
+            <div style={{ paddingLeft: 36, marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {stop.propertyNotes.petsOnProperty && (
+                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(255,160,80,0.08)', border: '1px solid rgba(255,160,80,0.3)', borderRadius: 6, color: '#ffb060' }}>
+                  🐕 <strong>Pets:</strong> {stop.propertyNotes.petsOnProperty}
+                </div>
+              )}
+              {stop.propertyNotes.gateCode && (
+                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 6, color: '#c9a84c' }}>
+                  🔑 <strong>Gate code:</strong> {stop.propertyNotes.gateCode}
+                </div>
+              )}
+              {stop.propertyNotes.accessNotes && (
+                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(91,196,255,0.07)', border: '1px solid rgba(91,196,255,0.25)', borderRadius: 6, color: '#5bc4ff' }}>
+                  🚪 <strong>Access:</strong> {stop.propertyNotes.accessNotes}
+                </div>
+              )}
+              {stop.propertyNotes.specialInstructions && (
+                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.25)', borderRadius: 6, color: '#7dffaa' }}>
+                  📝 <strong>Notes:</strong> {stop.propertyNotes.specialInstructions}
+                </div>
+              )}
+            </div>
+          )}
           {(state.checkIn || state.checkOut) && (
             <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', display: 'flex', gap: 14 }}>
               {state.checkIn && <span>In: <strong>{state.checkIn}</strong></span>}
