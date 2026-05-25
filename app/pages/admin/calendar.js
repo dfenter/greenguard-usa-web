@@ -111,8 +111,8 @@ export default function CalendarPage({ today, initialBookings }) {
   const [details, setDetails] = useState(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [viewMode, setViewMode] = useState(() => {
-    if (typeof window === 'undefined') return 'day'
-    return window.localStorage.getItem('gg.calendar.viewMode') || 'day'
+    if (typeof window === 'undefined') return 'agenda'
+    return window.localStorage.getItem('gg.calendar.viewMode') || 'agenda'
   })
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem('gg.calendar.viewMode', viewMode)
