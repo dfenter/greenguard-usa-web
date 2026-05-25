@@ -83,7 +83,41 @@ export default async function handler(req, res) {
 
   const existingInvoice = drafts.data[0] || opens.data[0] || null
 
-  // Add the actual line items from rounds
+  // CRITICAL ORDERING: resolve/create the target invoice BEFORE creating
+  // invoice items, then attach each item directly via the `invoice` param.
+  // If we create items without invoice= and a draft already exists, Stripe
+  // makes them "pending" and they DON'T pull into the existing draft —
+  // the draft stays at $0. This was the Keith Yeung bug.
+  const invoiceMeta = {}
+  if (calBookingUid) invoiceMeta.cal_booking_uid = calBookingUid
+  if (serviceDate) invoiceMeta.service_date = serviceDate
+
+  let invoice = existingInvoice
+  if (!invoice) {
+    const taxRateId = getTaxRateId()
+    const createPayload = {
+      customer: customer.id,
+      auto_advance: false,
+      metadata: invoiceMeta,
+      ...(taxRateId ? { default_tax_rates: [taxRateId] } : {}),
+    }
+    try {
+      invoice = await stripe.invoices.create(createPayload)
+    } catch (err) {
+      // If the configured tax rate doesn't exist in this Stripe env, retry without it
+      // rather than failing the whole invoice (common when test/live keys mismatch
+      // or a stale STRIPE_TAX_RATE_ID is set).
+      if (taxRateId && err?.code === 'resource_missing' && err?.param?.startsWith('default_tax_rates')) {
+        console.error(`Stripe tax rate ${taxRateId} not found — retrying without tax`)
+        delete createPayload.default_tax_rates
+        invoice = await stripe.invoices.create(createPayload)
+      } else {
+        throw err
+      }
+    }
+  }
+
+  // Add the actual line items from rounds, attached directly to invoice.id.
   const errors = []
   const billableItems = lineItems.filter((i) => i.qty > 0 && i.price > 0)
 
@@ -91,10 +125,13 @@ export default async function handler(req, res) {
     const priceId = item.sku ? process.env[SKU_TO_ENV[item.sku]] : null
     try {
       if (priceId) {
-        await stripe.invoiceItems.create({ customer: customer.id, price: priceId, quantity: item.qty })
+        await stripe.invoiceItems.create({
+          customer: customer.id, invoice: invoice.id,
+          price: priceId, quantity: item.qty,
+        })
       } else {
         await stripe.invoiceItems.create({
-          customer: customer.id,
+          customer: customer.id, invoice: invoice.id,
           amount: Math.round(item.price * item.qty * 100),
           currency: 'usd',
           description: item.qty > 1 ? `${item.label} ×${item.qty}` : item.label,
@@ -105,21 +142,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // Use existing invoice or create one if none exists
-  // Tag with booking UID so we can prevent future duplicates
-  const invoiceMeta = {}
-  if (calBookingUid) invoiceMeta.cal_booking_uid = calBookingUid
-  if (serviceDate) invoiceMeta.service_date = serviceDate
-
-  let invoice = existingInvoice
-  if (!invoice) {
-    invoice = await stripe.invoices.create({
-      customer: customer.id,
-      auto_advance: false,
-      metadata: invoiceMeta,
-      default_tax_rates: [getTaxRateId()],
-    })
-  } else if (Object.keys(invoiceMeta).length) {
+  if (existingInvoice && Object.keys(invoiceMeta).length) {
     // Always ensure metadata (cal_booking_uid + service_date) is present on existing invoices
     const mergedMeta = { ...invoice.metadata, ...invoiceMeta }
     const needsUpdate =
