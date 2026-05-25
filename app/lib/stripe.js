@@ -164,6 +164,47 @@ async function listOpenInvoices() {
   return invoices.data
 }
 
+/**
+ * Find a draft/open/paid invoice already created for a given booking.
+ * Mirrors the dedup filter inside generate-invoice.js so /admin/rounds
+ * surfaces the same invoice that would have blocked a re-bill.
+ *
+ * @param {string} customerEmail
+ * @param {{ calBookingUid?: string, serviceDate?: string }} opts
+ * @returns {Promise<{ id: string, status: string, amountDue: number, hostedUrl: string|null } | null>}
+ */
+async function findInvoiceForBooking(customerEmail, { calBookingUid, serviceDate } = {}) {
+  if (!customerEmail || (!calBookingUid && !serviceDate)) return null
+
+  // 30s cache — repeat rounds-page loads share one Stripe scan per customer.
+  const key = `stripe:invlookup:${customerEmail}:${calBookingUid || ''}:${serviceDate || ''}`
+  return cached(key, 30, async () => {
+    const search = await stripe.customers.search({
+      query: `email:"${customerEmail}"`, limit: 1,
+    })
+    const customer = search.data[0]
+    if (!customer) return null
+
+    const invs = await stripe.invoices.list({ customer: customer.id, limit: 100 })
+    const ACTIVE = ['paid', 'open', 'draft']
+
+    const match = invs.data.find((inv) =>
+      ACTIVE.includes(inv.status) && (
+        (calBookingUid && inv.metadata?.cal_booking_uid === calBookingUid) ||
+        (!calBookingUid && serviceDate && inv.metadata?.service_date === serviceDate)
+      )
+    )
+    if (!match) return null
+    return {
+      id: match.id,
+      status: match.status,
+      amountDue: (match.amount_due || 0) / 100,
+      amountPaid: (match.amount_paid || 0) / 100,
+      hostedUrl: match.hosted_invoice_url || null,
+    }
+  })
+}
+
 async function getCustomer(customerId) {
   return stripe.customers.retrieve(customerId, { expand: ['subscriptions.data.items.data'] })
 }
@@ -193,10 +234,10 @@ async function listAllCustomers() {
   })
 }
 
+// Returns the configured Texas tax rate ID, or null if not configured.
+// Callers should treat null as "skip tax" rather than fail the whole invoice.
 function getTaxRateId() {
-  const id = process.env.STRIPE_TAX_RATE_ID
-  if (!id) throw new Error('STRIPE_TAX_RATE_ID not set in env')
-  return id
+  return process.env.STRIPE_TAX_RATE_ID || null
 }
 
 async function listAllDraftInvoices() {
@@ -222,6 +263,7 @@ module.exports = {
   listAllActiveSubscriptions,
   listAllInvoicesSince,
   listOpenInvoices,
+  findInvoiceForBooking,
   getTaxRateId,
   listAllDraftInvoices,
 }

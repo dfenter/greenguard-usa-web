@@ -5,8 +5,8 @@ import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDate } from '../../lib/gcal'
 import { getBookingsForEmail } from '../../lib/calcom'
-import { listAllCustomers } from '../../lib/stripe'
-import { findContactsByEmails } from '../../lib/hubspot'
+import { listAllCustomers, findInvoiceForBooking } from '../../lib/stripe'
+import { findContactsByEmails, findContactsByNames } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import path from 'path'
 import fs from 'fs'
@@ -67,6 +67,25 @@ export async function getServerSideProps({ req, query, res }) {
         rescheduleUrl: s.rescheduleUrl || gcalRescheduleByEmail[s.email?.toLowerCase()] || null,
       }))
     } catch {}
+  }
+
+  // Back-fill emails for stops whose GCal event description didn't include one,
+  // by matching the customer name (and address as tiebreaker) against HubSpot.
+  if (stops.length > 0) {
+    const missingEmail = stops.filter((s) => !s.email && s.customerName)
+    if (missingEmail.length > 0) {
+      try {
+        const nameMap = await findContactsByNames(
+          missingEmail.map((s) => ({ name: s.customerName, address: s.address }))
+        )
+        stops = stops.map((s) => {
+          if (s.email || !s.customerName) return s
+          const hit = nameMap.get(s.customerName.trim().toLowerCase())
+          const e = hit?.properties?.email
+          return e ? { ...s, email: e, emailSource: 'hubspot-name-match' } : s
+        })
+      } catch {}
+    }
   }
 
   // Build email → customer name maps from Stripe + HubSpot
@@ -151,6 +170,22 @@ export async function getServerSideProps({ req, query, res }) {
         ...(match ? { calBookingId: match.id, calBookingUid: match.uid } : {}),
       }
     })
+
+    // Enrich each stop with any existing invoice already attached to this
+    // booking (by cal_booking_uid, or service_date fallback). Done after
+    // the synchronous map so we can await Stripe lookups in parallel.
+    stops = await Promise.all(stops.map(async (s) => {
+      if (!s.email) return s
+      try {
+        const existingInvoice = await findInvoiceForBooking(s.email, {
+          calBookingUid: s.calBookingUid,
+          serviceDate: selectedDate,
+        })
+        return { ...s, existingInvoice: existingInvoice || null }
+      } catch {
+        return { ...s, existingInvoice: null }
+      }
+    }))
   }
 
   // Build last-3-days + today date options
@@ -549,6 +584,11 @@ function CancelModal({ stop, onConfirm, onClose }) {
 function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
   const isDone = state.status === 'done'
   const isActive = state.status === 'active'
+  // SSR detected an existing Stripe invoice for this booking. Suppress
+  // action buttons unless the admin has already acted in-session (state.invoiceId).
+  const alreadyInvoiced = !!stop.existingInvoice && !state.invoiceId
+  const [allowOverride, setAllowOverride] = useState(false)
+  const showInvoicedPanel = alreadyInvoiced && !allowOverride
   const [showCancel, setShowCancel] = useState(false)
   const [uploading, setUploading] = useState(false)
 
@@ -758,6 +798,40 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
             </div>
           )}
 
+          {/* Already-invoiced banner — replaces the action buttons when SSR
+              detected an existing invoice on this booking. */}
+          {showInvoicedPanel && (() => {
+            const inv = stop.existingInvoice
+            const colorByStatus = {
+              paid:  { fg: '#7dffaa', bg: 'rgba(125,255,170,0.08)', bd: 'rgba(125,255,170,0.3)', label: 'Invoice paid' },
+              open:  { fg: '#c9a84c', bg: 'rgba(201,168,76,0.08)',  bd: 'rgba(201,168,76,0.3)',  label: 'Invoice sent — awaiting payment' },
+              draft: { fg: 'rgba(212,230,202,0.7)', bg: 'rgba(212,230,202,0.05)', bd: 'rgba(212,230,202,0.2)', label: 'Invoice draft — finalize when ready' },
+            }
+            const c = colorByStatus[inv.status] || colorByStatus.draft
+            const amount = inv.status === 'paid' ? inv.amountPaid || inv.amountDue : inv.amountDue
+            const fallbackUrl = `/admin/invoice?email=${encodeURIComponent(stop.email || '')}`
+            return (
+              <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.bd}`, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: c.fg }}>✓ {c.label}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.6)', marginTop: 2 }}>
+                    {fmt$(amount)} · {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <a href={inv.hostedUrl || fallbackUrl} target="_blank" rel="noopener noreferrer"
+                    style={{ padding: '7px 14px', borderRadius: 6, border: `1px solid ${c.bd}`, fontSize: '0.78rem', fontWeight: 700, color: c.fg, textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                    View invoice
+                  </a>
+                  <button onClick={() => setAllowOverride(true)}
+                    style={{ padding: '4px 8px', border: 'none', background: 'transparent', fontSize: '0.7rem', color: 'rgba(212,230,202,0.5)', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif', textDecoration: 'underline' }}>
+                    Re-complete
+                  </button>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Button row — full width, wraps on narrow screens */}
           <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
             {stop.address && (
@@ -766,7 +840,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 Navigate
               </a>
             )}
-            {state.status !== 'cancelled' && state.status !== 'done' && (stop.rescheduleUrl || stop.calBookingUid) ? (
+            {!showInvoicedPanel && state.status !== 'cancelled' && state.status !== 'done' && (stop.rescheduleUrl || stop.calBookingUid) ? (
               <a href={stop.rescheduleUrl || `https://cal.com/reschedule/${stop.calBookingUid}`} target="_blank" rel="noopener noreferrer"
                 onClick={async () => {
                   if (stop.calBookingId && stop.email) {
@@ -780,18 +854,18 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(91,196,255,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#5bc4ff', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Reschedule
               </a>
-            ) : state.status !== 'cancelled' && state.status !== 'done' ? (
+            ) : !showInvoicedPanel && state.status !== 'cancelled' && state.status !== 'done' ? (
               <button disabled style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(91,196,255,0.15)', fontSize: '0.78rem', fontWeight: 700, color: 'rgba(91,196,255,0.4)', cursor: 'not-allowed', minHeight: 34, display: 'inline-flex', alignItems: 'center', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent' }}>
                 Reschedule
               </button>
             ) : null}
-            {state.status !== 'cancelled' && state.status !== 'done' && (
+            {!showInvoicedPanel && state.status !== 'cancelled' && state.status !== 'done' && (
               <button onClick={() => setShowCancel(true)}
                 style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(255,100,100,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent', color: '#ff8080', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Cancel
               </button>
             )}
-            {state.status === 'pending' && (() => {
+            {!showInvoicedPanel && state.status === 'pending' && (() => {
               const canNotify = !!(stop.email || stop.phone)
               return (
                 <button
@@ -828,7 +902,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 </button>
               )
             })()}
-            {state.status === 'pending' && (
+            {!showInvoicedPanel && state.status === 'pending' && (
               <button onClick={() => onUpdate({ status: 'active', checkIn: nowStr() })}
                 style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: '#c9a84c', color: '#0d1a10', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
                 Check In
