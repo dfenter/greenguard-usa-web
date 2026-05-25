@@ -1,0 +1,413 @@
+{
+  "week": "2026-W22",
+  "generated_at": "2026-05-25T20:15:59.905908Z",
+  "depot": "1519 Parkway, Austin, TX 78703",
+  "source": "google-calendar",
+  "days": [
+    {
+      "date": "2026-05-25",
+      "stop_count": 7,
+      "total_service_min": 260,
+      "maps_url": "https://www.google.com/maps/dir/1519%20Parkway%2C%20Austin%2C%20TX%2078703/6502%20Halsey%20Ct%2C%20Austin%2C%20TX%2078739%2C%20USA/6705%20Tanaqua%20Cove%20Austin%20TX%2078739/9033%20Tanak%20Lane%20austin%20tx%2078749/9029%20Tanak%20Ln%2C%20Austin%2C%20TX%2078749%2C%20USA/7510%20Robert%20Kleburg%20Lane%20Austin%20TX%2078749/3305%20Westland%20Dr.%20Austin%2C%20Tx%2C%2078704/Austin%2C%20TX",
+      "approved": false,
+      "stops": [
+        {
+          "gcal_event_id": "g0oilqg81kk8miugnpmum16kgc",
+          "customer": "Courtney Paul",
+          "email": "courtney.e.paul@gmail.com",
+          "address": "6502 Halsey Ct, Austin, TX 78739, USA",
+          "start_time": "2026-05-25T11:00:00-05:00",
+          "title": "Two -20 pound CO2 Tank Exchange Delivery Service + 2 Generic Mosquito Bait Refills, Tank hookup and trap maintenance - Two traps",
+          "duration_min": 60,
+          "optimized_start_time": "2026-05-25T09:18:15-06:00",
+          "drive_min_from_prev": 18,
+          "optimized_end_time": "2026-05-25T10:18:15-06:00"
+        },
+        {
+          "gcal_event_id": "gfgof5sdgnom0t64bvhaekr23k",
+          "customer": "Vera James",
+          "email": "lizbjames8@gmail.com",
+          "address": "6705 Tanaqua Cove Austin TX 78739",
+          "start_time": "2026-05-25T10:00:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-25T10:21:00-06:00",
+          "drive_min_from_prev": 3,
+          "optimized_end_time": "2026-05-25T10:51:00-06:00"
+        },
+        {
+          "gcal_event_id": "gfefn53kcjiqm3s9q7jvk5a5fo",
+          "customer": "Robert Kennedy",
+          "email": "deadish42@yahoo.com",
+          "address": "9033 Tanak Lane austin tx 78749",
+          "start_time": "2026-05-25T13:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill, Tank hookup and trap maintenance",
+          "duration_min": 45,
+          "optimized_start_time": "2026-05-25T10:58:02-06:00",
+          "drive_min_from_prev": 7,
+          "optimized_end_time": "2026-05-25T11:43:02-06:00"
+        },
+        {
+          "gcal_event_id": "seeau75n7uneevjr94dkvk5omc",
+          "customer": "Roger Anderson",
+          "email": "rogeranderson1945@yahoo.com",
+          "address": "9029 Tanak Ln, Austin, TX 78749, USA",
+          "start_time": "2026-05-25T12:00:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-25T11:43:06-06:00",
+          "drive_min_from_prev": 0,
+          "optimized_end_time": "2026-05-25T12:13:06-06:00"
+        },
+        {
+          "gcal_event_id": "nlu2l2v0a9fbflqm9vpg75s5m4",
+          "customer": "Drew Williamson",
+          "email": "andrewjwilliamson@comcast.net",
+          "address": "7510 Robert Kleburg Lane Austin TX 78749",
+          "start_time": "2026-05-25T12:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service (Weekend)",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-25T12:16:39-06:00",
+          "drive_min_from_prev": 4,
+          "optimized_end_time": "2026-05-25T12:46:39-06:00"
+        },
+        {
+          "gcal_event_id": "ulrucd7bc56o1pn6uemc8l45sc",
+          "customer": "Chad Wallis",
+          "email": "chadwallis10@yahoo.com",
+          "address": "3305 Westland Dr. Austin, Tx, 78704",
+          "start_time": "2026-05-25T14:00:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-25T12:57:09-06:00",
+          "drive_min_from_prev": 10,
+          "optimized_end_time": "2026-05-25T13:27:09-06:00"
+        },
+        {
+          "gcal_event_id": "bd642pc5dg04f85s3dtu3lf614",
+          "customer": "Christopher Ballard",
+          "email": "CTBallard@gmail.com",
+          "address": "Austin, TX",
+          "start_time": "2026-05-25T15:00:00-05:00",
+          "title": "Tank Refill Check with client",
+          "duration_min": 35,
+          "optimized_start_time": "2026-05-25T13:40:08-06:00",
+          "drive_min_from_prev": 13,
+          "optimized_end_time": "2026-05-25T14:15:08-06:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-26",
+      "stop_count": 5,
+      "total_service_min": 225,
+      "maps_url": "https://www.google.com/maps/dir/1519%20Parkway%2C%20Austin%2C%20TX%2078703/3707%20WeatherHill%20Cova%20Austin%20TX%2078730/8109%20Crabtree%20Cove%20Austin%20TX%2078750/3505%20Sacred%20Moon%20Cove%20Austin%20TX%2078746/5009%20Rollingwood%20Dr%2C%20West%20Lake%20Hills%2C%20TX%2078746/2606%20Rockingham%20Dr%2C%2078704",
+      "approved": false,
+      "stops": [
+        {
+          "gcal_event_id": "nuoolid1qurl1sae9p3eqllsfg",
+          "customer": "David Board",
+          "email": "dboardmd@yahoo.com",
+          "address": "3707 WeatherHill Cova Austin TX 78730",
+          "start_time": "2026-05-26T15:30:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Tank hookup and trap maintenance",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-26T09:23:09-06:00",
+          "drive_min_from_prev": 23,
+          "optimized_end_time": "2026-05-26T09:53:09-06:00"
+        },
+        {
+          "gcal_event_id": "cdcvjo8j3l1271fq42cg9jkm9k",
+          "customer": "Susan Lee",
+          "email": "Sushijung@gmail.com",
+          "address": "8109 Crabtree Cove Austin TX 78750",
+          "start_time": "2026-05-26T10:30:00-05:00",
+          "title": "Two -20 pound CO2 Tank Exchange Delivery Service + 2 Generic Mosquito Bait Refills, GreenGuard Barrier Treatment, Tank hookup and trap maintenance - Two traps",
+          "duration_min": 45,
+          "optimized_start_time": "2026-05-26T10:06:27-06:00",
+          "drive_min_from_prev": 13,
+          "optimized_end_time": "2026-05-26T10:51:27-06:00"
+        },
+        {
+          "gcal_event_id": "ac6l2ccsa7fic9tcilu8441isg",
+          "customer": "Lisa Seale",
+          "email": "lisaseale27@gmail.com",
+          "address": "3505 Sacred Moon Cove Austin TX 78746",
+          "start_time": "2026-05-26T09:00:00-05:00",
+          "title": "10 Tank Exchange Service + 10 BG SweetScent",
+          "duration_min": 90,
+          "optimized_start_time": "2026-05-26T11:06:47-06:00",
+          "drive_min_from_prev": 15,
+          "optimized_end_time": "2026-05-26T12:36:47-06:00"
+        },
+        {
+          "gcal_event_id": "avdjdpjjh80rhtplcijtgdmuvo",
+          "customer": "Moneeza Maredia",
+          "email": "moneezam@gmail.com",
+          "address": "5009 Rollingwood Dr, West Lake Hills, TX 78746",
+          "start_time": "2026-05-26T13:00:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-26T12:51:49-06:00",
+          "drive_min_from_prev": 15,
+          "optimized_end_time": "2026-05-26T13:21:49-06:00"
+        },
+        {
+          "gcal_event_id": "dtcduu8p1d86gujsu4luhmjse0",
+          "customer": "Amy Patton",
+          "email": "amywpatton@gmail.com",
+          "address": "2606 Rockingham Dr, 78704",
+          "start_time": "2026-05-26T12:00:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-26T13:31:52-06:00",
+          "drive_min_from_prev": 10,
+          "optimized_end_time": "2026-05-26T14:01:52-06:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-27",
+      "stop_count": 5,
+      "total_service_min": 160,
+      "maps_url": "https://www.google.com/maps/dir/1519%20Parkway%2C%20Austin%2C%20TX%2078703/1325%20Anna%20Court%20Cedar%20Park%20Texas%2078613/4109%20Hyridge%20Dr%20Austin%20TX%2078759/4107%20Paint%20Rock%20Drive%20Austn%20TX%2078731/5405%20Highland%20Crest%20Austin%20TX/3108%20Dancy%20Street%20Austin%20TX%2078722",
+      "approved": false,
+      "stops": [
+        {
+          "gcal_event_id": "u5kp9l30ovhiedtr5at19pq980",
+          "customer": "Jd Plant",
+          "email": "jd.plant@gmail.com",
+          "address": "1325 Anna Court Cedar Park Texas 78613",
+          "start_time": "2026-05-27T14:30:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-27T09:26:45-06:00",
+          "drive_min_from_prev": 27,
+          "optimized_end_time": "2026-05-27T09:56:45-06:00"
+        },
+        {
+          "gcal_event_id": "k9n665opevc870tdajksh7al50",
+          "customer": "Emily Travis",
+          "email": "eherren29@yahoo.com",
+          "address": "4109 Hyridge Dr Austin TX 78759",
+          "start_time": "2026-05-27T13:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-27T10:14:38-06:00",
+          "drive_min_from_prev": 18,
+          "optimized_end_time": "2026-05-27T10:44:38-06:00"
+        },
+        {
+          "gcal_event_id": "416hd8rnds6hu0k1p5touit3a0",
+          "customer": "Stephen Lento",
+          "email": "stephen.lento@gmail.com",
+          "address": "4107 Paint Rock Drive Austn TX 78731",
+          "start_time": "2026-05-27T10:30:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service + Generic Mosquito Bait Refill",
+          "duration_min": 35,
+          "optimized_start_time": "2026-05-27T10:48:35-06:00",
+          "drive_min_from_prev": 4,
+          "optimized_end_time": "2026-05-27T11:23:35-06:00"
+        },
+        {
+          "gcal_event_id": "um2efbv3gjsvl6mot14iqe0vh4",
+          "customer": "John Mattingly",
+          "email": "johnjmattingly@gmail.com",
+          "address": "5405 Highland Crest Austin TX",
+          "start_time": "2026-05-27T12:00:00-05:00",
+          "title": "Three - 20 pound CO2 Tank Exchange Delivery Service + 3 Generic Mosquito Bait Refills",
+          "duration_min": 35,
+          "optimized_start_time": "2026-05-27T11:32:06-06:00",
+          "drive_min_from_prev": 9,
+          "optimized_end_time": "2026-05-27T12:07:06-06:00"
+        },
+        {
+          "gcal_event_id": "lvtl2bsqoq5iu8vt967srurrj4",
+          "customer": "Drew Streich",
+          "email": "andrew.streich@gmail.com",
+          "address": "3108 Dancy Street Austin TX 78722",
+          "start_time": "2026-05-27T14:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-27T12:22:38-06:00",
+          "drive_min_from_prev": 16,
+          "optimized_end_time": "2026-05-27T12:52:38-06:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-28",
+      "stop_count": 6,
+      "total_service_min": 205,
+      "maps_url": "https://www.google.com/maps/dir/1519%20Parkway%2C%20Austin%2C%20TX%2078703/1914%20Flint%20Rock%20Loop%20Driftwood%20Texas%2078619/9011%20San%20Diego%20Road%20Austin%20TX%2078737/4928%20Calhoun%20Canyon%20Loop%20Austin%20TX%2078735/Austin%2C%20TX/910%20West%20Monroe%20Street%20Austin%20TX/739%20Cherico%20Street%20%231%20Austin%20TX%2078702",
+      "approved": false,
+      "stops": [
+        {
+          "gcal_event_id": "15fijlss561sldgq0onr85rtdg",
+          "customer": "Lindsey Detwiler",
+          "email": "lhdetwiler@gmail.com",
+          "address": "1914 Flint Rock Loop Driftwood Texas 78619",
+          "start_time": "2026-05-28T11:00:00-05:00",
+          "title": "Mosqitter Grand Rental",
+          "duration_min": 45,
+          "optimized_start_time": "2026-05-28T09:28:06-06:00",
+          "drive_min_from_prev": 28,
+          "optimized_end_time": "2026-05-28T10:13:06-06:00"
+        },
+        {
+          "gcal_event_id": "nlj56rrbb7m2mthulpl91bn6eo",
+          "customer": "Daniel Raynaud",
+          "email": "daniel@sharpninth.com",
+          "address": "9011 San Diego Road Austin TX 78737",
+          "start_time": "2026-05-28T13:00:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-28T10:30:51-06:00",
+          "drive_min_from_prev": 18,
+          "optimized_end_time": "2026-05-28T11:00:51-06:00"
+        },
+        {
+          "gcal_event_id": "bhj8g2cbs7nk89rkkgo1t3delc",
+          "customer": "Joshua Pena",
+          "email": "joshua.a.pena@gmail.com",
+          "address": "4928 Calhoun Canyon Loop Austin TX 78735",
+          "start_time": "2026-05-28T12:00:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-28T11:14:46-06:00",
+          "drive_min_from_prev": 14,
+          "optimized_end_time": "2026-05-28T11:44:46-06:00"
+        },
+        {
+          "gcal_event_id": "mpqqta73eopees671882f0sjcs",
+          "customer": "Scott Lawson",
+          "email": "srl78704@gmail.com",
+          "address": "Austin, TX",
+          "start_time": "2026-05-28T15:00:00-05:00",
+          "title": "Tank Refill Check with client",
+          "duration_min": 35,
+          "optimized_start_time": "2026-05-28T12:00:38-06:00",
+          "drive_min_from_prev": 16,
+          "optimized_end_time": "2026-05-28T12:35:38-06:00"
+        },
+        {
+          "gcal_event_id": "6m7g92grki5u1sagqk0usrttc4",
+          "customer": "Zachary. Katancik",
+          "email": "zkatancik@gmail.com",
+          "address": "910 West Monroe Street Austin TX",
+          "start_time": "2026-05-28T10:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Generic Mosquito Bait Refill",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-28T12:45:43-06:00",
+          "drive_min_from_prev": 10,
+          "optimized_end_time": "2026-05-28T13:15:43-06:00"
+        },
+        {
+          "gcal_event_id": "lv5fbejdun2t16ra6gf5m9eas8",
+          "customer": "Kevin Smith",
+          "email": "kevosmith@gmail.com",
+          "address": "739 Cherico Street #1 Austin TX 78702",
+          "start_time": "2026-05-28T14:00:00-05:00",
+          "title": "Tank Refill Check with client",
+          "duration_min": 35,
+          "optimized_start_time": "2026-05-28T13:33:21-06:00",
+          "drive_min_from_prev": 18,
+          "optimized_end_time": "2026-05-28T14:08:21-06:00"
+        }
+      ]
+    },
+    {
+      "date": "2026-05-29",
+      "stop_count": 7,
+      "total_service_min": 255,
+      "maps_url": "https://www.google.com/maps/dir/1519%20Parkway%2C%20Austin%2C%20TX%2078703/3404%20Socorro%20Circle%20Austin%20TX%2078739/2503%20Broken%20Oak%20Austin%20TX%2078745/6429%20clay%20allison%20pass%20austin%20tx%2078749/6701%20Tanaqua%20Cove%20Austin%20TX%2078739/1619%20South%202nd%20Street%20Austin%20TX%2078704/Austin%2C%20TX/1503%20Silverado%20Cir%2C%20Austin%2C%20TX%2078746%2C%20USA",
+      "approved": false,
+      "stops": [
+        {
+          "gcal_event_id": "dv7np5s2th0sok41ktk6e7af9k",
+          "customer": "David Crumley",
+          "email": "dgcrumley@gmail.com",
+          "address": "3404 Socorro Circle Austin TX 78739",
+          "start_time": "2026-05-29T14:00:00-05:00",
+          "title": "Two -20 pound CO2 Tank Exchange Delivery Service + 2 Generic Mosquito Bait Refills",
+          "duration_min": 45,
+          "optimized_start_time": "2026-05-29T09:20:07-06:00",
+          "drive_min_from_prev": 20,
+          "optimized_end_time": "2026-05-29T10:05:07-06:00"
+        },
+        {
+          "gcal_event_id": "o6qbnhd1frf1f689cdutd7gtn4",
+          "customer": "Sally Duncan",
+          "email": "sallyirene@gmail.com",
+          "address": "2503 Broken Oak Austin TX 78745",
+          "start_time": "2026-05-29T11:30:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-29T10:15:55-06:00",
+          "drive_min_from_prev": 11,
+          "optimized_end_time": "2026-05-29T10:45:55-06:00"
+        },
+        {
+          "gcal_event_id": "ipfocuj6tcn2e0v2lf4ptehi68",
+          "customer": "Paul Kalka",
+          "email": "Prkalka@gmail.com",
+          "address": "6429 clay allison pass austin tx 78749",
+          "start_time": "2026-05-29T11:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-29T10:57:23-06:00",
+          "drive_min_from_prev": 11,
+          "optimized_end_time": "2026-05-29T11:27:23-06:00"
+        },
+        {
+          "gcal_event_id": "abtm3ciiu5nhcp29hn1fiuiog4",
+          "customer": "Christina DeShera",
+          "email": "desheramoultrie@gmail.com",
+          "address": "6701 Tanaqua Cove Austin TX 78739",
+          "start_time": "2026-05-29T12:30:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-29T11:35:58-06:00",
+          "drive_min_from_prev": 9,
+          "optimized_end_time": "2026-05-29T12:05:58-06:00"
+        },
+        {
+          "gcal_event_id": "2933hok9c110l480rcmp8o65u8",
+          "customer": "Chris Howell",
+          "email": "Ktcehowell@gmail.com",
+          "address": "1619 South 2nd Street Austin TX 78704",
+          "start_time": "2026-05-29T10:00:00-05:00",
+          "title": "Two -20 pound CO2 Tank Exchange Delivery Service + 2 Generic Mosquito Bait Refills",
+          "duration_min": 45,
+          "optimized_start_time": "2026-05-29T12:25:07-06:00",
+          "drive_min_from_prev": 19,
+          "optimized_end_time": "2026-05-29T13:10:07-06:00"
+        },
+        {
+          "gcal_event_id": "esekqvfnh9uutngdlk9rcd7o3o",
+          "customer": "Jeff Helfgott",
+          "email": "jeff.helfgott@gmail.com",
+          "address": "Austin, TX",
+          "start_time": "2026-05-29T14:00:00-05:00",
+          "title": "Two -20 pound CO2 Tank Exchange Delivery Service + 2 Generic Mosquito Bait Refills",
+          "duration_min": 45,
+          "optimized_start_time": "2026-05-29T13:21:05-06:00",
+          "drive_min_from_prev": 11,
+          "optimized_end_time": "2026-05-29T14:06:05-06:00"
+        },
+        {
+          "gcal_event_id": "pamoc63oisgql4k8o82gcgumi4",
+          "customer": "Michael Green",
+          "email": "mgreen360@gmail.com",
+          "address": "1503 Silverado Cir, Austin, TX 78746, USA",
+          "start_time": "2026-05-29T15:00:00-05:00",
+          "title": "Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-29T14:28:32-06:00",
+          "drive_min_from_prev": 22,
+          "optimized_end_time": "2026-05-29T14:58:32-06:00"
+        }
+      ]
+    }
+  ]
+}
