@@ -169,12 +169,13 @@ function CustomerSearch({ customers, onSelect }) {
 
   const filtered = query.length < 2 ? [] : customers.filter((c) => {
     const q = query.toLowerCase()
+    const qDigits = q.replace(/\D/g, '')
     const phone = (c.phone || '').replace(/\D/g, '')
     return (c.name || '').toLowerCase().includes(q) ||
       (c.email || '').toLowerCase().includes(q) ||
       (c.address || '').toLowerCase().includes(q) ||
-      phone.includes(q.replace(/\D/g, ''))
-  }).slice(0, 12)
+      (qDigits.length >= 3 && phone.includes(qDigits))
+  }).slice(0, 25)
 
   useEffect(() => {
     function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
@@ -281,6 +282,25 @@ function minServiceDate() {
   return d.toLocaleDateString('en-CA')
 }
 
+function SystemIcon({ iconPath, emoji }) {
+  const [failed, setFailed] = useState(false)
+  const showEmoji = !iconPath || failed
+  return (
+    <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+      {showEmoji ? (
+        <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>{emoji}</span>
+      ) : (
+        <img
+          src={iconPath}
+          alt=""
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          onError={() => setFailed(true)}
+        />
+      )}
+    </div>
+  )
+}
+
 function ServiceConfigurator({ onChange, onConfigChange }) {
   const [system, setSystem] = useState(null)        // 'biogents-co2' | 'biogents-nonco2' | 'mosqitter' | 'tank' | 'none'
   const [plan, setPlan] = useState(null)            // 'rental' | 'purchase'
@@ -379,17 +399,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
                 userSelect: 'none', transition: 'all 0.12s', width: '100%', boxSizing: 'border-box',
               }}
             >
-              <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                {icon ? (
-                  <img
-                    src={icon}
-                    alt=""
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'block' }}
-                  />
-                ) : null}
-                <span style={{ fontSize: '1.6rem', display: icon ? 'none' : 'block' }}>{emoji}</span>
-              </div>
+              <SystemIcon iconPath={icon} emoji={emoji} />
               <span style={{ flex: 1 }}>{label}</span>
               {active && <span style={{ fontSize: '1.2rem' }}>✓</span>}
             </div>
@@ -408,7 +418,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         <>
           <div style={Q}>Customer Rental or Purchase?</div>
           <div>
-            <span onClick={() => { setPlan('rental'); setOnTankService(null) }} style={chip(plan === 'rental')}>📅 Customer Rental — we provide the trap</span>
+            <span onClick={() => { setPlan('rental'); setOnTankService(null) }} style={chip(plan === 'rental')}>📅 Customer Rental — we provide the trap, tank, timer, bait pack, and CO₂ refill</span>
             <span onClick={() => setPlan('purchase')} style={chip(plan === 'purchase')}>🛒 Purchase — customer buys the trap</span>
           </div>
         </>

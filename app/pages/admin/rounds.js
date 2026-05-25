@@ -3,7 +3,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { getTodaysBookings, getBookingsForDate } from '../../lib/gcal'
+import { getTodaysBookings, getBookingsForDate, getBookingsForDateRange } from '../../lib/gcal'
 import { getBookingsForEmail } from '../../lib/calcom'
 import { listAllCustomers, findInvoiceForBooking } from '../../lib/stripe'
 import { findContactsByEmails, findContactsByNames } from '../../lib/hubspot'
@@ -21,10 +21,26 @@ export async function getServerSideProps({ req, query, res }) {
 
   const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
   const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
-  const selectedDate = query.date || today
+  const mode = query.mode === 'open' ? 'open' : 'date'
+  const selectedDate = mode === 'open' ? null : (query.date || today)
 
   let stops = []
-  try {
+  if (mode === 'open') {
+    // Pull GCal events from the last 30 days. Filtering to "open" (no
+    // existing invoice) happens later, after we've matched contacts/Cal.com.
+    try {
+      const startISO = new Date(Date.now() - 30 * 86400 * 1000).toISOString()
+      const endISO = new Date().toISOString()
+      const bookings = await getBookingsForDateRange(startISO, endISO)
+      stops = bookings.map((b) => ({
+        customerName: b.customerName || b.name || 'Customer',
+        serviceType: b.title || '',
+        address: b.address || '', email: b.email || '',
+        startTime: b.startTime, durationMin: null,
+        bookingDate: b.dateStr,
+      }))
+    } catch {}
+  } else { try {
     const dataDir = path.join(process.cwd(), 'public', 'data')
     const files = fs.readdirSync(dataDir).filter((f) => f.startsWith('route_plan_') && f.endsWith('.json'))
     if (files.length > 0) {
@@ -41,9 +57,9 @@ export async function getServerSideProps({ req, query, res }) {
         }))
       }
     }
-  } catch {}
+  } catch {} }
 
-  if (stops.length === 0) {
+  if (stops.length === 0 && mode === 'date') {
     try {
       const bookings = selectedDate === today ? await getTodaysBookings() : await getBookingsForDate(selectedDate)
       stops = bookings.map((b) => ({
@@ -121,8 +137,10 @@ export async function getServerSideProps({ req, query, res }) {
     const calBookingsByEmail = {}
     await Promise.all(uniqueEmails.map(async (email) => {
       try {
-        // Fetch from start of the selected date
-        const afterStart = new Date(selectedDate + 'T00:00:00-06:00').toISOString()
+        // In date mode, scope to selectedDate; in open mode, the last 30 days.
+        const afterStart = selectedDate
+          ? new Date(selectedDate + 'T00:00:00-06:00').toISOString()
+          : new Date(Date.now() - 30 * 86400 * 1000).toISOString()
         const result = await getBookingsForEmail(email, afterStart)
         calBookingsByEmail[email] = Array.isArray(result) ? result : []
       } catch {}
@@ -130,12 +148,14 @@ export async function getServerSideProps({ req, query, res }) {
     stops = stops.map((stop) => {
       const emailKey = stop.email?.toLowerCase()
       const candidates = calBookingsByEmail[stop.email] || []
+      // In open mode each stop has its own date; in date mode all share selectedDate.
+      const stopDate = stop.bookingDate || selectedDate
 
       // Match: same date in CT, status not cancelled — closest time wins
       const sameDay = candidates.filter((cb) => {
         if (cb.status === 'CANCELLED' || cb.status === 'cancelled') return false
         const cbDate = new Date(cb.startTime).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
-        return cbDate === selectedDate
+        return cbDate === stopDate
       })
       const match = sameDay.length === 1
         ? sameDay[0]
@@ -179,13 +199,21 @@ export async function getServerSideProps({ req, query, res }) {
       try {
         const existingInvoice = await findInvoiceForBooking(s.email, {
           calBookingUid: s.calBookingUid,
-          serviceDate: selectedDate,
+          serviceDate: s.bookingDate || selectedDate,
         })
         return { ...s, existingInvoice: existingInvoice || null }
       } catch {
         return { ...s, existingInvoice: null }
       }
     }))
+  }
+
+  if (mode === 'open') {
+    // "Open" = no Stripe invoice yet attached to this booking. Sort oldest
+    // first by default; client can re-sort.
+    stops = stops
+      .filter((s) => !s.existingInvoice)
+      .sort((a, b) => new Date(a.startTime || 0) - new Date(b.startTime || 0))
   }
 
   // Build last-3-days + today date options
@@ -196,7 +224,7 @@ export async function getServerSideProps({ req, query, res }) {
     availableDates.push(d.toLocaleDateString('en-CA', { timeZone: tz }))
   }
 
-  return { props: { stops, today, selectedDate, availableDates } }
+  return { props: { stops, today, selectedDate, availableDates, mode } }
 }
 
 // ── Service Catalog ────────────────────────────────────────────────────────────
@@ -926,8 +954,9 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
             })()}
             {!showInvoicedPanel && state.status === 'pending' && (
               <button onClick={() => onUpdate({ status: 'active', checkIn: nowStr() })}
+                title="Mark visit started and open service entry"
                 style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: '#c9a84c', color: '#0d1a10', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
-                Check In
+                Finalize Visit
               </button>
             )}
             {isDone && state.invoiceUrl && (
@@ -1089,11 +1118,14 @@ function applyPrefill(prefill) {
   return next
 }
 
-export default function Rounds({ stops, today, selectedDate, availableDates }) {
-  const [date, setDate] = useState(selectedDate)
+export default function Rounds({ stops, today, selectedDate, availableDates, mode = 'date' }) {
+  const [date, setDate] = useState(selectedDate || today)
+  const [sortKey, setSortKey] = useState('date-asc')
   const [states, setStates] = useState(() =>
     stops.map((stop) => ({
-      status: 'pending', checkIn: null, checkOut: null, date: selectedDate,
+      status: 'pending', checkIn: null, checkOut: null,
+      // Per-stop date so 'All Open' mode (multi-day) invoices the right service_date.
+      date: stop.bookingDate || (stop.startTime ? new Date(stop.startTime).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }) : selectedDate) || today,
       arrivalTime: '', departureTime: '',
       ...applyPrefill(stop.prefill),
       notes: '', photoUrl: null, videoUrl: null, submitting: false, error: null,
@@ -1135,7 +1167,25 @@ export default function Rounds({ stops, today, selectedDate, availableDates }) {
   }
 
   const doneCount = states.filter((s) => s.status === 'done').length
-  const dateFmt = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const dateFmt = selectedDate ? new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : ''
+
+  // Client-side sort indices for open mode. We keep `states` aligned by
+  // original index so sort only reorders presentation.
+  const displayOrder = (() => {
+    if (mode !== 'open') return stops.map((_, i) => i)
+    const idxs = stops.map((_, i) => i)
+    idxs.sort((a, b) => {
+      const sa = stops[a], sb = stops[b]
+      switch (sortKey) {
+        case 'date-desc': return new Date(sb.startTime || 0) - new Date(sa.startTime || 0)
+        case 'name-asc':  return (sa.customerName || '').localeCompare(sb.customerName || '')
+        case 'name-desc': return (sb.customerName || '').localeCompare(sa.customerName || '')
+        case 'date-asc':
+        default:          return new Date(sa.startTime || 0) - new Date(sb.startTime || 0)
+      }
+    })
+    return idxs
+  })()
 
   return (
     <>
@@ -1146,31 +1196,69 @@ export default function Rounds({ stops, today, selectedDate, availableDates }) {
             <span className="tag">Admin</span>
             <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Rounds</h1>
             <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
-              {dateFmt} · {doneCount}/{stops.length} complete
+              {mode === 'open'
+                ? `${stops.length} open round${stops.length === 1 ? '' : 's'} from the last 30 days`
+                : `${dateFmt} · ${doneCount}/${stops.length} complete`}
             </p>
           </div>
-          <select value={date} onChange={handleDateChange}
-            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>
-            {availableDates.map((d) => {
-              const isToday = d === today
-              const isPast = d < today
-              const label = isToday ? `Today (${d})` : new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + (isPast ? ' — history' : '')
-              return <option key={d} value={d}>{label}</option>
-            })}
-          </select>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Mode tabs */}
+            <div style={{ display: 'flex', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, overflow: 'hidden' }}>
+              <a href={`/admin/rounds?date=${today}`}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', fontWeight: 700, textDecoration: 'none',
+                  background: mode === 'date' ? '#7dffaa' : 'transparent',
+                  color: mode === 'date' ? '#0d1a10' : 'rgba(212,230,202,0.7)' }}>
+                Today
+              </a>
+              <a href={`/admin/rounds?mode=open`}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', fontWeight: 700, textDecoration: 'none',
+                  background: mode === 'open' ? '#7dffaa' : 'transparent',
+                  color: mode === 'open' ? '#0d1a10' : 'rgba(212,230,202,0.7)',
+                  borderLeft: '1px solid rgba(122,171,130,0.25)' }}>
+                All Open
+              </a>
+            </div>
+            {mode === 'date' && (
+              <select value={date} onChange={handleDateChange}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>
+                {availableDates.map((d) => {
+                  const isToday = d === today
+                  const isPast = d < today
+                  const label = isToday ? `Today (${d})` : new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + (isPast ? ' — history' : '')
+                  return <option key={d} value={d}>{label}</option>
+                })}
+              </select>
+            )}
+            {mode === 'open' && (
+              <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>
+                <option value="date-asc">Oldest first</option>
+                <option value="date-desc">Newest first</option>
+                <option value="name-asc">Name A→Z</option>
+                <option value="name-desc">Name Z→A</option>
+              </select>
+            )}
+          </div>
         </div>
 
         {stops.length === 0 ? (
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 12, padding: 24 }}>
-            <p style={{ color: 'rgba(212,230,202,0.45)', margin: 0 }}>No appointments for {dateFmt}. Try a different date.</p>
+            <p style={{ color: 'rgba(212,230,202,0.45)', margin: 0 }}>
+              {mode === 'open'
+                ? 'No open rounds in the last 30 days — everything is invoiced.'
+                : `No appointments for ${dateFmt}. Try a different date.`}
+            </p>
           </div>
         ) : (
-          stops.map((stop, idx) => (
-            <div key={`${selectedDate}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }}>
-              <StopCard stop={stop} idx={idx} state={states[idx]}
-                onUpdate={(patch) => update(idx, patch)} fileInputRef={fileRefs.current[idx]} videoInputRef={videoRefs.current[idx]} />
-            </div>
-          ))
+          displayOrder.map((idx) => {
+            const stop = stops[idx]
+            return (
+              <div key={`${selectedDate || 'open'}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }}>
+                <StopCard stop={stop} idx={idx} state={states[idx]}
+                  onUpdate={(patch) => update(idx, patch)} fileInputRef={fileRefs.current[idx]} videoInputRef={videoRefs.current[idx]} />
+              </div>
+            )
+          })
         )}
 
         {doneCount === stops.length && stops.length > 0 && (

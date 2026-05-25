@@ -51,7 +51,8 @@ export default async function handler(req, res) {
       items: (inv.lines?.data || []).map(l => ({
         id: l.id,
         description: l.description || '',
-        amount: (l.amount || 0) / 100,
+        // fmt$ in the UI expects cents — pass raw, don't pre-divide.
+        amount: l.amount || 0,
       })),
       hostedUrl: inv.hosted_invoice_url,
       calBookingUid: inv.metadata?.cal_booking_uid || '',
