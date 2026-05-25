@@ -836,7 +836,11 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
             )}
           </div>
           <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 14px', fontSize: '0.8rem', marginBottom: 4 }}>
-            {stop.startTime && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{fmtTime(stop.startTime)}</span>}
+            {stop.startTime && (
+              <span style={{ color: '#c9a84c', fontWeight: 700 }}>
+                📅 {new Date(stop.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · {fmtTime(stop.startTime)}
+              </span>
+            )}
             {stop.serviceType && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{stop.serviceType}</span>}
             {stop.address && <span style={{ color: 'rgba(212,230,202,0.5)' }}>📍 {stop.address}</span>}
             {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
