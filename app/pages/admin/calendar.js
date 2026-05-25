@@ -110,6 +110,13 @@ export default function CalendarPage({ today, initialBookings }) {
   const [selectedEventId, setSelectedEventId] = useState(null)
   const [details, setDetails] = useState(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
+  const [viewMode, setViewMode] = useState(() => {
+    if (typeof window === 'undefined') return 'day'
+    return window.localStorage.getItem('gg.calendar.viewMode') || 'day'
+  })
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.localStorage.setItem('gg.calendar.viewMode', viewMode)
+  }, [viewMode])
 
   useEffect(() => {
     if (!selectedEventId) { setDetails(null); return }
@@ -183,6 +190,18 @@ export default function CalendarPage({ today, initialBookings }) {
             <button onClick={() => setDate(today_)} style={{ background:'transparent', border:'1px solid rgba(125,255,170,0.3)', color:'#7dffaa', padding:'6px 14px', borderRadius:6, fontWeight:800, fontSize:'0.78rem', cursor:'pointer' }}>
               Today
             </button>
+            <div style={{ display: 'flex', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, overflow: 'hidden' }}>
+              <button onClick={() => setViewMode('day')}
+                title="Day grid"
+                style={{ background: viewMode === 'day' ? '#7dffaa' : 'transparent', color: viewMode === 'day' ? '#0d1a10' : 'rgba(212,230,202,0.6)', border: 'none', padding: '6px 10px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}>
+                Day
+              </button>
+              <button onClick={() => setViewMode('agenda')}
+                title="Agenda list"
+                style={{ background: viewMode === 'agenda' ? '#7dffaa' : 'transparent', color: viewMode === 'agenda' ? '#0d1a10' : 'rgba(212,230,202,0.6)', border: 'none', borderLeft: '1px solid rgba(122,171,130,0.25)', padding: '6px 10px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}>
+                Agenda
+              </button>
+            </div>
             <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + 7); setDate(d.toLocaleDateString('en-CA')) }}
               aria-label="Next week"
               style={{ background:'transparent', border:'1px solid rgba(122,171,130,0.25)', color:'rgba(212,230,202,0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer', minWidth:32 }}>›</button>
@@ -217,7 +236,42 @@ export default function CalendarPage({ today, initialBookings }) {
           <div className="empty">No appointments scheduled.</div>
         )}
 
-        {bookings.length > 0 && (
+        {bookings.length > 0 && viewMode === 'agenda' && (
+          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[...bookings].sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).map((ev) => {
+              const isSelected = selectedEventId === ev.id
+              return (
+                <div key={ev.id} onClick={() => setSelectedEventId(ev.id)}
+                  style={{
+                    cursor: 'pointer',
+                    padding: '14px 16px',
+                    borderRadius: 12,
+                    background: 'rgba(189,154,255,0.14)',
+                    border: `1px solid ${isSelected ? '#c9a84c' : 'rgba(189,154,255,0.35)'}`,
+                    color: '#e6dcff',
+                    transition: 'transform 0.08s',
+                  }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+                    {ev.customerName || 'Customer'}
+                  </div>
+                  <div style={{ fontSize: '0.88rem', color: 'rgba(230,220,255,0.85)', lineHeight: 1.4, marginBottom: 4 }}>
+                    {ev.title}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'rgba(230,220,255,0.7)', marginBottom: 4 }}>
+                    {fmtTime(ev.startTime)}{ev.endTime ? `–${fmtTime(ev.endTime)}` : ''} · GreenGuard USA
+                  </div>
+                  {ev.address && (
+                    <div style={{ fontSize: '0.82rem', color: 'rgba(230,220,255,0.65)' }}>
+                      📍 {ev.address}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {bookings.length > 0 && viewMode === 'day' && (
           <div className="grid-wrap" style={{ height: gridHeight }}>
             {hours.map((h) => {
               const top = (h - DAY_START_HOUR) * 60 * PX_PER_MIN
