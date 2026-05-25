@@ -6,7 +6,7 @@ import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDate, getBookingsForDateRange } from '../../lib/gcal'
 import { getBookingsForEmail } from '../../lib/calcom'
 import { listAllCustomers, findInvoiceForBooking } from '../../lib/stripe'
-import { findContactsByEmails, findContactsByNames } from '../../lib/hubspot'
+import { findContactsByEmails, findContactsByNames, tanksForCustomer } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import path from 'path'
 import fs from 'fs'
@@ -123,7 +123,7 @@ export async function getServerSideProps({ req, query, res }) {
           const last = c.properties?.lastname || ''
           const full = [first, last].filter(Boolean).join(' ')
           if (full) hubspotNameByEmail[email] = full
-          const tanks = parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null
+          const tanks = tanksForCustomer(c.properties) || null
           if (tanks) hubspotNameByEmail[email + '__tanks'] = tanks
         }
       }).catch(() => {}),
@@ -613,7 +613,7 @@ function CancelModal({ stop, onConfirm, onClose }) {
         <p style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.45)', margin: '0 0 16px' }}>{stop.customerName} · {stop.address}</p>
         {!stop.calBookingId && (
           <p style={{ fontSize: '0.75rem', color: '#c9a84c', margin: '0 0 12px', padding: '8px 12px', borderRadius: 6, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)' }}>
-            ⚠️ No Cal.com booking matched — cancellation note only, booking not removed from calendar.
+            ⚠️ This appointment isn&apos;t linked to a Cal.com booking (likely a legacy Acuity or manually-created Google Calendar event). Cancelling here only logs a HubSpot note — you&apos;ll need to remove the calendar event yourself.
           </p>
         )}
         <div style={{ marginBottom: 14 }}>
@@ -1269,12 +1269,22 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
         </div>
 
         {stops.length === 0 ? (
-          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 12, padding: 24 }}>
-            <p style={{ color: 'rgba(212,230,202,0.45)', margin: 0 }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 12, padding: 24, textAlign: 'center' }}>
+            <p style={{ color: 'rgba(212,230,202,0.55)', margin: '0 0 14px', fontSize: '0.95rem', fontWeight: 700 }}>
               {mode === 'open'
-                ? 'No open rounds in the last 30 days — everything is invoiced.'
-                : `No appointments for ${dateFmt}. Try a different date.`}
+                ? '✓ No open rounds in the last 30 days — everything is invoiced.'
+                : `No appointments scheduled for ${dateFmt}.`}
             </p>
+            {mode !== 'open' && (
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link href="/admin/calendar" style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', color: '#7dffaa', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700 }}>
+                  Open Calendar →
+                </Link>
+                <Link href="/admin/quote" style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.3)', color: '#c9a84c', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700 }}>
+                  Build a Quote →
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           displayOrder.map((idx) => {

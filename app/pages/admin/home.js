@@ -6,7 +6,7 @@ import TankCalendar from '../../components/TankCalendar'
 import CustomerMap from '../../components/CustomerMap'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
-import { findContactsByEmails } from '../../lib/hubspot'
+import { findContactsByEmails, getAllContacts, tanksForCustomer } from '../../lib/hubspot'
 import { listAllActiveSubscriptions, listOpenInvoices, getBalance, listAllCustomers } from '../../lib/stripe'
 import { buildTankCalendarData } from '../../lib/tank-data'
 
@@ -27,7 +27,7 @@ export async function getServerSideProps({ req, res }) {
   const tomorrowStart = new Date(tomorrowStr + 'T00:00:00-05:00').toISOString()
   const tomorrowEnd = new Date(tomorrowStr + 'T23:59:59-05:00').toISOString()
 
-  const [todayStops, tomorrowStops, activeSubs, openInvoices, balance, tankData, allCustomers] = await Promise.all([
+  const [todayStops, tomorrowStops, activeSubs, openInvoices, balance, tankData, allCustomers, allContacts] = await Promise.all([
     getTodaysBookings().catch(() => []),
     getBookingsForDateRange(tomorrowStart, tomorrowEnd).catch(() => []),
     listAllActiveSubscriptions().catch(() => []),
@@ -35,24 +35,34 @@ export async function getServerSideProps({ req, res }) {
     getBalance().catch(() => null),
     buildTankCalendarData(tz).catch(() => null),
     listAllCustomers().catch(() => []),
+    getAllContacts(500).catch(() => []),
   ])
 
-  const customerMapData = allCustomers
-    .filter((c) => c.address?.line1 || c.metadata?.address)
-    .map((c) => {
-      const subs = c.subscriptions?.data || []
-      const activeSub = subs.find((s) => s.status === 'active') || subs[0] || null
-      return {
-        id: c.id,
-        name: c.name || c.email || 'Unknown',
-        email: c.email || '',
-        address: c.address?.line1
-          ? [c.address.line1, c.address.city, c.address.state].filter(Boolean).join(', ')
-          : '',
-        status: activeSub?.status || 'inactive',
-      }
+  // Subscription status by email (for marker color)
+  const statusByEmail = new Map()
+  for (const c of allCustomers) {
+    const email = (c.email || '').toLowerCase()
+    if (!email) continue
+    const subs = c.subscriptions?.data || []
+    const activeSub = subs.find((s) => s.status === 'active') || subs[0] || null
+    statusByEmail.set(email, activeSub?.status || 'inactive')
+  }
+
+  // Addresses live in HubSpot; Stripe rarely has them. Build map from HubSpot
+  // contacts that have an address, merge subscription status from Stripe.
+  const customerMapData = []
+  for (const contact of allContacts) {
+    const p = contact.properties || {}
+    if (!p.address) continue
+    const email = (p.email || '').toLowerCase()
+    customerMapData.push({
+      id: contact.id,
+      name: [p.firstname, p.lastname].filter(Boolean).join(' ') || p.email || 'Unknown',
+      email: p.email || '',
+      address: p.address,
+      status: statusByEmail.get(email) || 'inactive',
     })
-    .filter((c) => c.address)
+  }
 
   // Resolve customer name + phone from HubSpot for all stops
   const allEmails = [...new Set([...todayStops, ...tomorrowStops].map(s => s.email).filter(Boolean))]
@@ -63,7 +73,7 @@ export async function getServerSideProps({ req, res }) {
       name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
       phone: c.properties?.phone || '',
       address: c.properties?.address || '',
-      tanks: parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null,
+      tanks: tanksForCustomer(c.properties) || null,
     }
   }
 

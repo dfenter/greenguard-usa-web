@@ -4,8 +4,8 @@ import path from 'path'
 import fs from 'fs'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { getTodaysBookings } from '../../lib/gcal'
-import { findContactsByEmails } from '../../lib/hubspot'
+import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
+import { findContactsByEmails, tanksForCustomer } from '../../lib/hubspot'
 import { listAllCustomers } from '../../lib/stripe'
 import { getBookingsForEmail } from '../../lib/calcom'
 
@@ -20,13 +20,16 @@ export async function getServerSideProps({ req, res }) {
 
   const dataDir = path.join(process.cwd(), 'public', 'data')
   let routePlan = null
+  let planGeneratedAt = null
 
   try {
     const files = fs.readdirSync(dataDir).filter((f) => f.startsWith('route_plan_') && f.endsWith('.json'))
     if (files.length > 0) {
       files.sort().reverse()
-      const raw = fs.readFileSync(path.join(dataDir, files[0]), 'utf8')
+      const fp = path.join(dataDir, files[0])
+      const raw = fs.readFileSync(fp, 'utf8')
       routePlan = JSON.parse(raw)
+      planGeneratedAt = fs.statSync(fp).mtime.toISOString()
     }
   } catch {}
 
@@ -81,7 +84,7 @@ export async function getServerSideProps({ req, res }) {
         for (const [email, c] of m.entries()) {
           const full = [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ')
           if (full) hubspotNameByEmail[email] = full
-          const tanks = parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null
+          const tanks = tanksForCustomer(c.properties) || null
           if (tanks) hubspotNameByEmail[email + '__tanks'] = tanks
         }
       }).catch(() => {}),
@@ -121,9 +124,47 @@ export async function getServerSideProps({ req, res }) {
         }),
       })),
     }
+
+    // Live hydration: for any day within the next 7 days, override scheduled
+    // times from live Google Calendar so silent reschedules don't show stale
+    // times in the route view.
+    const todayMs = new Date(today + 'T00:00:00-06:00').getTime()
+    const cutoffMs = todayMs + 8 * 86400 * 1000
+    const liveDays = (routePlan.days || []).filter((d) => {
+      const dMs = new Date(d.date + 'T00:00:00-06:00').getTime()
+      return dMs >= todayMs && dMs < cutoffMs
+    })
+    if (liveDays.length > 0) {
+      const minDate = liveDays[0].date
+      const maxDate = liveDays[liveDays.length - 1].date
+      const winStart = new Date(minDate + 'T00:00:00-06:00').toISOString()
+      const winEnd   = new Date(maxDate + 'T23:59:59-06:00').toISOString()
+      try {
+        const liveBookings = await getBookingsForDateRange(winStart, winEnd)
+        // Key: dateStr|email → { startTime }
+        const liveByKey = new Map()
+        for (const b of liveBookings) {
+          if (!b.dateStr || !b.email) continue
+          liveByKey.set(`${b.dateStr}|${b.email.toLowerCase()}`, b)
+        }
+        routePlan = {
+          ...routePlan,
+          days: (routePlan.days || []).map((day) => ({
+            ...day,
+            stops: (day.stops || []).map((s) => {
+              const k = s.email ? `${day.date}|${s.email.toLowerCase()}` : null
+              const live = k && liveByKey.get(k)
+              if (!live || !live.startTime) return s
+              if (live.startTime === s.scheduled_time) return s
+              return { ...s, scheduled_time: live.startTime, hydrated_from_gcal: true }
+            }),
+          })),
+        }
+      } catch {}
+    }
   }
 
-  return { props: { routePlan, today } }
+  return { props: { routePlan, today, planGeneratedAt } }
 }
 
 function mapsEmbedUrl(day) {
@@ -219,7 +260,15 @@ function RouteCalendar({ days, selectedDay, setSelectedDay, today }) {
   )
 }
 
-export default function RoutePage({ routePlan, today }) {
+function fmtPlanFreshness(iso) {
+  if (!iso) return null
+  const ageH = (Date.now() - new Date(iso).getTime()) / 3600000
+  if (ageH < 1) return 'updated just now'
+  if (ageH < 24) return `updated ${Math.round(ageH)}h ago`
+  return `updated ${Math.round(ageH / 24)}d ago`
+}
+
+export default function RoutePage({ routePlan, today, planGeneratedAt }) {
   const days = routePlan?.days || []
   const todayIdx = days.findIndex((d) => d.date === today)
   const [selectedDay, setSelectedDay] = useState(todayIdx >= 0 ? todayIdx : 0)
@@ -300,6 +349,10 @@ export default function RoutePage({ routePlan, today }) {
               <span className="tag">Week {routePlan.week}</span>
               <span style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.4)' }}>
                 {days.length} day{days.length !== 1 ? 's' : ''} · {days.reduce((s, d) => s + (d.stops?.length || 0), 0)} total stops
+                {planGeneratedAt && <span style={{ marginLeft: 8 }}>· plan {fmtPlanFreshness(planGeneratedAt)}</span>}
+                {day?.stops?.some((s) => s.hydrated_from_gcal) && (
+                  <span style={{ marginLeft: 8, color: '#7dffaa' }}>· live GCal times</span>
+                )}
               </span>
             </div>
 

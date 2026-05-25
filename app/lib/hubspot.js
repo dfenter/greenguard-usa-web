@@ -236,42 +236,86 @@ async function findContactsByNames(items) {
     .map((x) => ({ name: x.name.trim(), address: (x.address || '').trim() }))
   if (cleaned.length === 0) return result
 
-  // De-dupe by name
-  const byName = new Map()
+  // De-dupe by name; split into first+last; skip single-token names.
+  const entries = []
+  const seen = new Set()
   for (const it of cleaned) {
     const key = it.name.toLowerCase()
-    if (!byName.has(key)) byName.set(key, it)
-  }
-
-  for (const [key, it] of byName.entries()) {
+    if (seen.has(key)) continue
+    seen.add(key)
     const parts = it.name.split(/\s+/)
     if (parts.length < 2) continue
-    const first = parts[0]
-    const last = parts.slice(1).join(' ')
+    entries.push({ key, first: parts[0], last: parts.slice(1).join(' '), address: it.address })
+  }
+  if (entries.length === 0) return result
+
+  // HubSpot CRM Search lets each request carry up to 5 filterGroups; each
+  // group is OR-combined. We pack one name per group (AND firstname+lastname).
+  const PER_REQUEST = 5
+  for (let i = 0; i < entries.length; i += PER_REQUEST) {
+    const batch = entries.slice(i, i + PER_REQUEST)
     try {
       const search = await client.crm.contacts.searchApi.doSearch({
-        filterGroups: [
-          { filters: [
-            { propertyName: 'firstname', operator: 'EQ', value: first },
-            { propertyName: 'lastname',  operator: 'EQ', value: last },
-          ]},
-        ],
+        filterGroups: batch.map((e) => ({
+          filters: [
+            { propertyName: 'firstname', operator: 'EQ', value: e.first },
+            { propertyName: 'lastname',  operator: 'EQ', value: e.last },
+          ],
+        })),
         properties: CONTACT_PROPERTIES,
         sorts: [{ propertyName: 'lastmodifieddate', direction: 'DESCENDING' }],
-        limit: 5,
+        limit: 100,
       })
-      const results = search.results || []
-      if (!results.length) continue
-      let best = results[0]
-      if (results.length > 1 && it.address) {
-        const needle = it.address.toLowerCase().slice(0, 8)
-        const addrMatch = results.find((c) => (c.properties?.address || '').toLowerCase().includes(needle))
-        if (addrMatch) best = addrMatch
+      const all = search.results || []
+      // Group results back by name
+      for (const e of batch) {
+        const matches = all.filter((c) =>
+          (c.properties?.firstname || '').toLowerCase() === e.first.toLowerCase() &&
+          (c.properties?.lastname  || '').toLowerCase() === e.last.toLowerCase()
+        )
+        if (!matches.length) continue
+        let best = matches[0]
+        if (matches.length > 1 && e.address) {
+          const needle = e.address.toLowerCase().slice(0, 8)
+          const addrMatch = matches.find((c) => (c.properties?.address || '').toLowerCase().includes(needle))
+          if (addrMatch) best = addrMatch
+        }
+        result.set(e.key, best)
       }
-      result.set(key, best)
     } catch {}
   }
   return result
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, findContactsByNames, getContactNotes, updateContact, countContactsByProperty, getAllContacts }
+/**
+ * Canonical "how many CO₂ tanks does this customer need per service visit?"
+ *
+ * Always returns an integer ≥ 0. Single source of truth across every
+ * dashboard so the daily route, weekly forecast, inventory, calendar,
+ * and rounds all agree on tank demand.
+ *
+ * Rules:
+ *   1. If tank_count is explicitly set (any value, including 0) → use it.
+ *   2. Else fall back to trap_count (legacy: Biogents-CO2 customers
+ *      created before we added the tank_count field).
+ *   3. Else 0 (never the old "default to 2" bug).
+ *
+ * Mosqitter customers DO use CO₂ tanks (service includes tank exchange);
+ * their tank_count should equal their trap_count and is now backfilled.
+ */
+function tanksForCustomer(props) {
+  if (!props) return 0
+  const tankRaw = props.tank_count
+  if (tankRaw !== null && tankRaw !== undefined && tankRaw !== '') {
+    const n = parseInt(tankRaw, 10)
+    return Number.isFinite(n) && n >= 0 ? n : 0
+  }
+  const trapRaw = props.trap_count
+  if (trapRaw !== null && trapRaw !== undefined && trapRaw !== '') {
+    const n = parseInt(trapRaw, 10)
+    return Number.isFinite(n) && n >= 0 ? n : 0
+  }
+  return 0
+}
+
+module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, findContactsByNames, getContactNotes, updateContact, countContactsByProperty, getAllContacts, tanksForCustomer }
