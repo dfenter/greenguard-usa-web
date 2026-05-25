@@ -244,12 +244,55 @@ const TITLE_TO_SLUG = {
   'CO2 Tank Exchange - 10 Tanks': 'tank-exchange-10',
   'Tank Refill Check': 'tank-refill-check',
   '20 Pound CO2 Tank Rental': 'tank-rental',
+
+  // Legacy Acuity titles — same SKUs, different wording.
+  'Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service': 'biogents-co2-1',
+  '2x Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service': 'biogents-co2-2',
+  '3x Biogents Mosquitaire CO2 Trap and 20 Pound CO2 Tank Rental and Refill Delivery Service': 'biogents-co2-3',
+  'One - 20 pound CO2 Tank Exchange Delivery Service': 'tank-exchange-1',
+  'Two -20 pound CO2 Tank Exchange Delivery Service': 'tank-exchange-2',
+  'Three - 20 pound CO2 Tank Exchange Delivery Service': 'tank-exchange-3',
+  'Four - 20 Pound CO2 Tank Exchange Delivery Service': 'tank-exchange-4',
+  'Six CO2 Tank Exchange Delivery Service': 'tank-exchange-6',
+  // Mosqitter Acuity-era titles
+  'Mosqitter Grand Service': 'mosqitter-service',
+  'Mosqitter Grand Rental': 'mosqitter-rental',
+  'Mosqitter installation and initial tank refill': 'mosqitter-installation',
 }
+
+// Loose-match patterns for variants we haven't catalogued explicitly. Each
+// pattern returns the canonical slug. Run after exact-match misses.
+const SLUG_PATTERNS = [
+  // "Two -20 pound CO2 Tank Exchange Delivery Service + ..." (Acuity bundled with addons)
+  [/^one\s*-?\s*20\s*pound\s*co2\s*tank\s*exchange/i,    'tank-exchange-1'],
+  [/^two\s*-?\s*20\s*pound\s*co2\s*tank\s*exchange/i,    'tank-exchange-2'],
+  [/^three\s*-?\s*20\s*pound\s*co2\s*tank\s*exchange/i,  'tank-exchange-3'],
+  [/^four\s*-?\s*20\s*pound\s*co2\s*tank\s*exchange/i,   'tank-exchange-4'],
+  [/^five\s*-?\s*20\s*pound\s*co2\s*tank\s*exchange/i,   'tank-exchange-5'],
+  [/^six\s*-?\s*20?\s*pound?\s*co2\s*tank\s*exchange/i,  'tank-exchange-6'],
+  [/^ten\s*-?\s*20?\s*pound?\s*co2\s*tank\s*exchange/i,  'tank-exchange-10'],
+  [/biogents.*co2.*1\s*trap/i,                            'biogents-co2-1'],
+  [/2x\s*biogents.*co2/i,                                 'biogents-co2-2'],
+  [/3x\s*biogents.*co2/i,                                 'biogents-co2-3'],
+  [/^biogents.*co2.*(?:rental|refill)/i,                  'biogents-co2-1'],
+  [/mosqitter.*(?:install|installation)/i,                'mosqitter-installation'],
+  [/mosqitter.*service/i,                                 'mosqitter-service'],
+  [/mosqitter.*rental/i,                                  'mosqitter-rental'],
+  [/mosqitter.*troubleshoot/i,                            'mosqitter-troubleshoot'],
+  [/barrier\s*treatment/i,                                'barrier-treatment'],
+  [/property\s*assessment/i,                              'property-assessment'],
+  [/tank\s*refill\s*check/i,                              'tank-refill-check'],
+  [/equipment\s*pickup/i,                                 'equipment-pickup'],
+]
 
 function slugFromTitle(title) {
   if (!title) return null
   const cleaned = normalizeEventTitle(title)
-  return TITLE_TO_SLUG[cleaned] || null
+  if (TITLE_TO_SLUG[cleaned]) return TITLE_TO_SLUG[cleaned]
+  for (const [re, slug] of SLUG_PATTERNS) {
+    if (re.test(cleaned)) return slug
+  }
+  return null
 }
 
 function parseTrailingNumber(slug, prefix) {
