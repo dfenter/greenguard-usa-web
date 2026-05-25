@@ -191,27 +191,46 @@ export default function InvoiceEditor({ customers = [] }) {
 
   async function approveAll() {
     if (!pending?.drafts?.length) return
+    const total = pending.drafts.reduce((s, d) => s + (d.amountDue || 0), 0)
+    const eligible = pending.drafts.filter((d) => (d.lineCount || 0) > 0)
+    const empties = pending.drafts.length - eligible.length
+    let msg = `Submit ${eligible.length} draft invoice${eligible.length === 1 ? '' : 's'} totaling ${fmt$(total)}?\n\n`
+    msg += `Customers with a card on file will be charged now.\nCustomers without a card will receive an email with a payment link.\n\nThis is irreversible.`
+    if (empties > 0) msg += `\n\n(${empties} empty draft${empties === 1 ? '' : 's'} will be skipped.)`
+    if (!window.confirm(msg)) return
+
     setApprovingAll(true)
     const errors = []
-    for (const draft of pending.drafts) {
+    const successes = []
+    for (const draft of eligible) {
       try {
         const res = await fetch('/api/admin/invoice-items', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'send', invoiceId: draft.id }),
+          body: JSON.stringify({ action: 'send', customerId: draft.customerId, invoiceId: draft.id }),
         })
-        if (!res.ok) {
-          const j = await res.json()
-          errors.push(`${draft.customerEmail}: ${j.error}`)
+        const j = await res.json().catch(() => ({}))
+        if (res.ok) {
+          successes.push({ id: draft.id, status: j.status, collectionMethod: j.collectionMethod })
+        } else {
+          errors.push(`${draft.customerName || draft.customerEmail}: ${j.error || 'HTTP ' + res.status}`)
         }
       } catch (e) {
-        errors.push(`${draft.customerEmail}: ${e.message}`)
+        errors.push(`${draft.customerName || draft.customerEmail}: ${e.message}`)
       }
     }
     setApprovingAll(false)
+    // Mark in-session sent state for the successes so buttons lock immediately.
+    if (successes.length) {
+      setSentDrafts((prev) => {
+        const next = { ...prev }
+        for (const s of successes) next[s.id] = { status: s.status, collectionMethod: s.collectionMethod }
+        return next
+      })
+    }
     if (errors.length) {
-      setMsg(`Sent ${pending.drafts.length - errors.length}/${pending.drafts.length}. Errors: ${errors.join('; ')}`)
+      alert(`Submitted ${successes.length}/${eligible.length}.\n\nErrors:\n${errors.join('\n')}`)
     } else {
-      setMsg(`Approved and sent all ${pending.drafts.length} draft invoices`)
+      alert(`✓ Submitted all ${successes.length} drafts`)
     }
     await loadPending()
   }
@@ -311,6 +330,9 @@ export default function InvoiceEditor({ customers = [] }) {
                             <button style={btn('gold')}
                               onClick={async () => {
                                 if (sendingDraft) return
+                                const who = draft.customerName || draft.customerEmail
+                                const amt = fmt$(draft.amountDue)
+                                if (!window.confirm(`Submit invoice for ${who} — ${amt}?\n\nIf they have a card on file, it will be charged now. Otherwise Stripe emails a hosted invoice link.\n\nThis is irreversible.`)) return
                                 setSendingDraft(draft.id)
                                 const r = await fetch('/api/admin/invoice-items', {
                                   method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -320,10 +342,11 @@ export default function InvoiceEditor({ customers = [] }) {
                                 setSendingDraft(null)
                                 if (r.ok) {
                                   setSentDrafts((p) => ({ ...p, [draft.id]: { status: j.status, collectionMethod: j.collectionMethod } }))
-                                  setMsg('Invoice submitted')
+                                  const verb = j.collectionMethod === 'send_invoice' ? `emailed to ${who}` : (j.status === 'paid' ? `charged ${amt} on card` : 'submitted')
+                                  alert(`✓ Invoice ${verb}`)
                                   loadPending()
                                 } else {
-                                  alert('Failed: ' + (j.error || r.status))
+                                  alert(`Failed to submit invoice for ${who}:\n\n${j.error || ('HTTP ' + r.status)}`)
                                 }
                               }}
                               disabled={isSubmitting || draft.lineCount === 0 || !!sendingDraft}
