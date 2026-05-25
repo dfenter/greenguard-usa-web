@@ -139,13 +139,34 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
       <PortalLayout isAdmin>
 
         {/* Header */}
-        <div style={{ marginBottom: 28 }}>
+        <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 4 }}>Field Tech</div>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
             {greeting}, {displayName}
           </h1>
           <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)' }}>{fmtDayLabel(todayStr)}</div>
         </div>
+
+        {/* KPI strip — what Bruce needs at a glance */}
+        {(() => {
+          const tanksToday = todayStops.reduce((s, st) => s + (st.tanks || 0), 0)
+          const tanksTomorrow = tomorrowStops.reduce((s, st) => s + (st.tanks || 0), 0)
+          const stopsToday = todayStops.length
+          const KPI = ({ label, value, sub, color = '#7dffaa' }) => (
+            <div style={{ flex: '1 1 130px', minWidth: 130, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 10, padding: '14px 16px' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>{label}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, lineHeight: 1, color }}>{value}</div>
+              {sub && <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', marginTop: 4 }}>{sub}</div>}
+            </div>
+          )
+          return (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
+              <KPI label="Tanks needed today" value={tanksToday} sub={`${stopsToday} stop${stopsToday === 1 ? '' : 's'}`} color="#7dffaa" />
+              <KPI label="Tanks needed tomorrow" value={tanksTomorrow} sub={`${tomorrowStops.length} stop${tomorrowStops.length === 1 ? '' : 's'}`} color="#c9a84c" />
+              <KPI label="Stops complete" value={`0 / ${stopsToday}`} sub="tap a stop to begin" color="rgba(212,230,202,0.6)" />
+            </div>
+          )
+        })()}
 
         {/* Route map — today's stops */}
         {routeMapData.length > 0 && (
