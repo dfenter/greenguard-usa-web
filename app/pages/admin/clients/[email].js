@@ -193,6 +193,9 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
             <Link href={`/admin/visit-complete?email=${encodeURIComponent(customer.email)}`} className="btn-outline" style={{ fontSize: '0.82rem' }}>
               Log Visit
             </Link>
+            <Link href={`/admin/upgrade?email=${encodeURIComponent(customer.email)}`} style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.35)', color: '#7dffaa', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700 }}>
+              ↑ Upgrade
+            </Link>
             <button onClick={() => setScheduleOpen((o) => !o)} className="btn-gold" style={{ fontSize: '0.82rem' }}>
               Schedule Appointment
             </button>
