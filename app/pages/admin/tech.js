@@ -3,9 +3,11 @@ import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import CustomerMap from '../../components/CustomerMap'
+import TankCalendar from '../../components/TankCalendar'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
 import { findContactByEmail } from '../../lib/hubspot'
+import { buildTankCalendarData } from '../../lib/tank-data'
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -22,9 +24,10 @@ export async function getServerSideProps({ req }) {
   const tomorrowStart = new Date(tomorrowStr + 'T00:00:00-05:00').toISOString()
   const tomorrowEnd = new Date(tomorrowStr + 'T23:59:59-05:00').toISOString()
 
-  const [todayStops, tomorrowStops] = await Promise.all([
+  const [todayStops, tomorrowStops, tankData] = await Promise.all([
     getTodaysBookings().catch(() => []),
     getBookingsForDateRange(tomorrowStart, tomorrowEnd).catch(() => []),
+    buildTankCalendarData(tz).catch(() => null),
   ])
 
   // Look up name/phone/email/tanks from HubSpot — use GCal phone/name as primary for Cal.com events
@@ -68,6 +71,13 @@ export async function getServerSideProps({ req }) {
       todayStops: todayStops.map(serializeStop),
       tomorrowStops: tomorrowStops.map(serializeStop),
       mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+      tankData: tankData ? {
+        tankCalendar: tankData.tankCalendar,
+        scheduleByDate: tankData.scheduleByDate,
+        today: tankData.today,
+        currentStock: tankData.currentStock,
+        expectedDelivery: tankData.expectedDelivery,
+      } : null,
     },
   }
 }
@@ -119,7 +129,7 @@ function StopCard({ stop, index, dateStr }) {
   )
 }
 
-export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops, mapsKey = '' }) {
+export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops, mapsKey = '', tankData = null }) {
   const routeMapData = todayStops
     .filter(s => s.address)
     .map((s, i) => ({ id: `stop_${i}`, name: `${i + 1}. ${s.title}`, address: s.address, status: 'active' }))
@@ -167,6 +177,25 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
             </div>
           )
         })()}
+
+        {/* Tank Calendar — above the route map per Bruce's prep flow */}
+        {tankData && (
+          <section style={{ marginBottom: 28, maxWidth: 520 }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 10 }}>
+              Tank Calendar
+            </div>
+            <div className="card" style={{ padding: 14 }}>
+              <TankCalendar
+                tankCalendar={tankData.tankCalendar}
+                scheduleByDate={tankData.scheduleByDate}
+                today={tankData.today}
+                currentStock={tankData.currentStock}
+                expectedDelivery={tankData.expectedDelivery}
+                onDayClick={() => { window.location.href = '/admin/inventory' }}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Route map — today's stops */}
         {routeMapData.length > 0 && (

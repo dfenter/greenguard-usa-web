@@ -283,55 +283,72 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
           <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)' }}>{fmtDayLabel(todayStr)}</div>
         </div>
 
-        {/* KPI strip: Full Tanks · Tanks Needed This Week · Today's Stops · Open Invoices */}
+        {/* KPI strip: Today's Tanks · Tomorrow's Tanks · Tanks at Depot · Tanks Needed This Week */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
           {(() => {
+            const tanksToday = todayStops.reduce((s, x) => s + (x.tanks || 0), 0)
+            const tanksTomorrow = tomorrowStops.reduce((s, x) => s + (x.tanks || 0), 0)
             const onHand = fullTanksOnHand
             const incoming = expectedDeliveryThisWeek || 0
             const projectedTotal = (onHand ?? 0) + incoming
-            const need = tanksNeededThisWeek
-            const isShort = onHand != null && need != null && projectedTotal < need
+            const weekNeed = tanksNeededThisWeek
+            const depotShort = onHand != null && weekNeed != null && projectedTotal < weekNeed
             return (
-              <KPI
-                label="Full Tanks"
-                value={onHand != null ? onHand : '—'}
-                sub={onHand == null
-                  ? 'no log yet'
-                  : incoming > 0
-                    ? `+${incoming} Wed delivery → ${projectedTotal} projected`
-                    : 'on hand at depot'}
-                warn={isShort}
-              />
+              <>
+                <KPI
+                  label="Tanks Needed Today"
+                  value={tanksToday}
+                  sub={todayStops.length === 0
+                    ? 'no stops'
+                    : `across ${todayStops.length} stop${todayStops.length === 1 ? '' : 's'}`}
+                  warn={onHand != null && tanksToday > onHand}
+                />
+                <KPI
+                  label="Tanks Needed Tomorrow"
+                  value={tanksTomorrow}
+                  sub={tomorrowStops.length === 0
+                    ? 'no stops'
+                    : `across ${tomorrowStops.length} stop${tomorrowStops.length === 1 ? '' : 's'}`}
+                />
+                <KPI
+                  label="Tanks at Depot"
+                  value={onHand != null ? onHand : '—'}
+                  sub={onHand == null
+                    ? 'no log yet'
+                    : incoming > 0
+                      ? `+${incoming} Wed delivery → ${projectedTotal} projected`
+                      : 'on hand'}
+                  warn={depotShort}
+                />
+                <KPI
+                  label="Tanks Needed This Week"
+                  value={weekNeed != null ? weekNeed : '—'}
+                  sub="rolling next 7 days"
+                />
+              </>
             )
           })()}
-          <KPI
-            label="Tanks Needed (Next 7 Days)"
-            value={tanksNeededThisWeek != null ? tanksNeededThisWeek : '—'}
-            sub="rolling from today"
-          />
-          <KPI
-            label="Today's Stops"
-            value={todayStops.length}
-            sub={todayStops.length === 0 ? 'none scheduled' : 'appointments'}
-          />
-          <KPI
-            label="Open Invoices"
-            value={openInvoiceCount}
-            sub={openInvoiceCount > 0 ? fmt$(openInvoiceTotal) + ' due' : 'all clear'}
-            warn={openInvoiceCount > 0}
-          />
         </div>
 
-        {/* Customer map */}
-        {customerMapData.length > 0 && (
-          <section style={{ marginBottom: 28 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', margin: 0 }}>
-                Customer Map ({customerMapData.length})
-              </h2>
-              <Link href="/admin/map" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>Full map →</Link>
+        {/* Tank Calendar — moved up; full view lives on /admin/inventory */}
+        {tankData && (
+          <section style={{ marginBottom: 28, maxWidth: 520 }}>
+            <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 10 }}>
+              Tank Calendar
+            </h2>
+            <div className="card" style={{ padding: 14 }}>
+              <TankCalendar
+                tankCalendar={tankData.tankCalendar}
+                scheduleByDate={tankData.scheduleByDate}
+                today={tankData.today}
+                currentStock={tankData.currentStock}
+                expectedDelivery={tankData.expectedDelivery}
+                onDayClick={() => { window.location.href = '/admin/inventory' }}
+              />
+              <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', textAlign: 'right' }}>
+                Click a day to log tanks →
+              </div>
             </div>
-            <CustomerMap customers={customerMapData} mapsKey={mapsKey} height={360} compact />
           </section>
         )}
 
@@ -391,25 +408,16 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
 
         <VisitsDuePanel />
 
-        {/* Tank Calendar — compact widget; full view lives on /admin/inventory */}
-        {tankData && (
-          <section style={{ marginBottom: 32, maxWidth: 520 }}>
-            <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 10 }}>
-              Tank Calendar
-            </h2>
-            <div className="card" style={{ padding: 14 }}>
-              <TankCalendar
-                tankCalendar={tankData.tankCalendar}
-                scheduleByDate={tankData.scheduleByDate}
-                today={tankData.today}
-                currentStock={tankData.currentStock}
-                expectedDelivery={tankData.expectedDelivery}
-                onDayClick={() => { window.location.href = '/admin/inventory' }}
-              />
-              <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', textAlign: 'right' }}>
-                Click a day to log tanks →
-              </div>
+        {/* Customer map — moved down */}
+        {customerMapData.length > 0 && (
+          <section style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', margin: 0 }}>
+                Customer Map ({customerMapData.length})
+              </h2>
+              <Link href="/admin/map" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>Full map →</Link>
             </div>
+            <CustomerMap customers={customerMapData} mapsKey={mapsKey} height={360} compact />
           </section>
         )}
 
