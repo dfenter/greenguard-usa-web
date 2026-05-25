@@ -177,23 +177,25 @@ describe('prefillFromBooking', () => {
     expect(prefillFromBooking({ slug: 'biogents-co2-2' }, bgRental)).toEqual([{ sku: 'BG2', qty: 1 }])
   })
 
-  test('biogents-co2-2 owned → BG2 + BAIT × trap_count', () => {
-    expect(prefillFromBooking({ slug: 'biogents-co2-2' }, bgOwned)).toEqual([
-      { sku: 'BG2', qty: 1 },
-      { sku: 'BAIT', qty: 2 },
+  test('biogents-co2-2 owned trap → no BG2 (recurring_addons handles billing)', () => {
+    expect(prefillFromBooking({ slug: 'biogents-co2-2' }, bgOwned)).toEqual([])
+  })
+
+  test('biogents-co2-1 owned trap with CO2-ADDON recurring → just CO2-ADDON (Keith case)', () => {
+    const keith = { properties: { system_type: 'Biogents-Owned', trap_count: '1', recurring_addons: 'CO2-ADDON' } }
+    expect(prefillFromBooking({ slug: 'biogents-co2-1' }, keith)).toEqual([
+      { sku: 'CO2-ADDON', qty: 1 },
     ])
   })
 
-  test('tank-exchange-5 → delivery fee + 5 refills', () => {
+  test('tank-exchange-5 → 5 refills (delivery fee auto-bundled in rounds UI)', () => {
     expect(prefillFromBooking({ slug: 'tank-exchange-5' }, null)).toEqual([
-      { sku: 'TANK-DELIVERY-FEE', qty: 1 },
       { sku: 'TANK-REFILL', qty: 5 },
     ])
   })
 
-  test('tank-exchange-10 → delivery fee + 10 refills', () => {
+  test('tank-exchange-10 → 10 refills (delivery fee auto-bundled in rounds UI)', () => {
     expect(prefillFromBooking({ slug: 'tank-exchange-10' }, null)).toEqual([
-      { sku: 'TANK-DELIVERY-FEE', qty: 1 },
       { sku: 'TANK-REFILL', qty: 10 },
     ])
   })

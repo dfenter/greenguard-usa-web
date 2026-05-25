@@ -291,28 +291,29 @@ function prefillFromBooking(booking, contact) {
   let baseLines = null
 
   // biogents-co2-{1,2,3}
+  // Owned-trap customers don't pay BG{N} (that's the trap+CO2 rental
+  // package). Their per-visit charges come from recurring_addons —
+  // typically CO2-ADDON for the tank rental, plus BAIT if they want bait
+  // packs. Renters get BG{N}.
   const bgN = parseTrailingNumber(slug, 'biogents-co2-')
   if (bgN) {
-    baseLines = [{ sku: `BG${bgN}`, qty: 1 }]
-    if (isBgOwned) baseLines.push({ sku: 'BAIT', qty: trapCount })
+    baseLines = isBgOwned ? [] : [{ sku: `BG${bgN}`, qty: 1 }]
   }
 
   // tank-exchange-{N}
+  // NOTE: TANK-DELIVERY-FEE is auto-bundled in the rounds form whenever
+  // TANK-REFILL qty > 0 (once per appointment, regardless of tank count).
+  // Engine intentionally returns only TANK-REFILL here so the bundling
+  // stays single-source-of-truth in the UI layer.
   if (!baseLines) {
     const tankN = parseTrailingNumber(slug, 'tank-exchange-')
     if (tankN) {
-      baseLines = [
-        { sku: 'TANK-DELIVERY-FEE', qty: 1 },
-        { sku: 'TANK-REFILL', qty: tankN },
-      ]
+      baseLines = [{ sku: 'TANK-REFILL', qty: tankN }]
     }
   }
 
   if (!baseLines && slug === 'tank-rental') {
-    baseLines = [
-      { sku: 'TANK-DELIVERY-FEE', qty: 1 },
-      { sku: 'TANK-REFILL', qty: 1 },
-    ]
+    baseLines = [{ sku: 'TANK-REFILL', qty: 1 }]
   }
 
   if (!baseLines && slug === 'mosqitter-rental') baseLines = [{ sku: 'MQ-RENT', qty: trapCount }]

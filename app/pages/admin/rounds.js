@@ -210,7 +210,11 @@ const SERVICES = [
   { label: 'Mosqitter Grand Service',         sku: 'MQ-SVC',   price: 129.99, promptQty: true },
   { label: 'Mosqitter Installation',          sku: 'MQ-INST',  price: 199.99, promptQty: true },
   { label: 'Mosqitter Troubleshoot',          sku: 'MQ-TSHOOT',price:  79.99 },
-  { label: 'CO₂ Tank Delivery Fee',           sku: 'TANK-DELIVERY-FEE', price: 39.00 },
+  // CO2 tank refill: $49/tank. The $39 delivery fee is auto-bundled once
+  // per appointment when refill qty > 0 (see DELIVERY_FEE constant + the
+  // post-processor in allLineItems below). Don't list TANK-DELIVERY-FEE as
+  // a separately selectable row — bundling guarantees it's charged exactly
+  // once regardless of tank count.
   { label: 'CO₂ Tank Refill (per tank)',      sku: 'TANK-REFILL',       price: 49.00, promptQty: true },
   { label: 'GreenGuard Barrier Treatment',    sku: 'BARRIER',  price:  49.99 },
   { label: 'Free Property Assessment',        sku: 'ASSESS',   price:   0.00 },
@@ -392,10 +396,11 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total })
             <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{title}</span>
             <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.45)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>×</button>
           </div>
-          {catalog.map((item) => {
+          {catalog.flatMap((item) => {
             const qty = qtys[item.label] || 0
             const selected = qty > 0
-            return (
+            const rows = []
+            rows.push(
               <div key={item.label}
                 onClick={() => !selected && !item.promptQty && onChange(item.label, 1)}
                 style={{ display: 'flex', alignItems: 'center', padding: '11px 14px', borderBottom: '1px solid rgba(122,171,130,0.06)', cursor: selected || item.promptQty ? 'default' : 'pointer', background: selected ? 'rgba(125,255,170,0.05)' : 'transparent' }}>
@@ -438,6 +443,17 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total })
                 )}
               </div>
             )
+            // Auto-bundled sub-cost: tank delivery fee shows under refill once per appointment.
+            if (item.sku === 'TANK-REFILL' && qty > 0) {
+              rows.push(
+                <div key={item.label + '__delivery'}
+                  style={{ display: 'flex', alignItems: 'center', padding: '6px 14px 8px 48px', borderBottom: '1px solid rgba(122,171,130,0.06)', background: 'rgba(125,255,170,0.03)', fontSize: '0.78rem', color: 'rgba(212,230,202,0.6)' }}>
+                  <span style={{ flex: 1 }}>+ CO₂ Tank Delivery Fee <span style={{ color: 'rgba(212,230,202,0.35)', fontSize: '0.7rem', marginLeft: 6 }}>(once per visit)</span></span>
+                  <span style={{ color: '#7dffaa', fontWeight: 700 }}>{fmt$(39.00)}</span>
+                </div>
+              )
+            }
+            return rows
           })}
           <div style={{ padding: '10px 14px', textAlign: 'center' }}>
             <button onClick={() => setOpen(false)}
@@ -596,13 +612,19 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
   const eqTotal   = sectionTotal(EQUIPMENT,     state.equipQtys)
   const addTotal  = sectionTotal(ADDONS,        state.addonQtys)
   const prodTotal = sectionTotal(PRODUCTS_SOLD, state.productQtys)
-  const grand     = svcTotal + eqTotal + addTotal + prodTotal
+
+  // CO2 tank refill auto-bundles a single delivery fee per appointment.
+  const tankRefillQty = state.serviceQtys['CO₂ Tank Refill (per tank)'] || 0
+  const deliveryFee = tankRefillQty > 0 ? 39.00 : 0
+
+  const grand     = svcTotal + eqTotal + addTotal + prodTotal + deliveryFee
 
   const allLineItems = [
     ...buildLineItems(SERVICES,      state.serviceQtys),
     ...buildLineItems(EQUIPMENT,     state.equipQtys),
     ...buildLineItems(ADDONS,        state.addonQtys),
     ...buildLineItems(PRODUCTS_SOLD, state.productQtys),
+    ...(tankRefillQty > 0 ? [{ label: 'CO₂ Tank Delivery Fee', sku: 'TANK-DELIVERY-FEE', price: 39.00, qty: 1 }] : []),
   ]
 
   async function handlePhoto(e) {
