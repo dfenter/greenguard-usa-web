@@ -8,6 +8,7 @@ import { getBookingsForEmail } from '../../lib/calcom'
 import { listAllCustomers, findInvoiceForBooking } from '../../lib/stripe'
 import { findContactsByEmails, findContactsByNames, tanksForCustomer } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
+import SignaturePad from '../../components/SignaturePad'
 import path from 'path'
 import fs from 'fs'
 
@@ -753,7 +754,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
         const invRes = await fetch('/api/admin/generate-invoice', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerEmail: stop.email, customerName: stop.customerName, lineItems: allLineItems, serviceDate: state.date, calBookingUid: stop.calBookingUid }),
+          body: JSON.stringify({ customerEmail: stop.email, customerName: stop.customerName, lineItems: allLineItems, serviceDate: state.date, calBookingUid: stop.calBookingUid, signatureUrl: state.signatureUrl || null }),
         })
         if (invRes.status === 409) {
           // Double-billing warning
@@ -1134,6 +1135,41 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                       </>
                     )}
                   </div>
+                </div>
+
+                {/* Customer signature — optional, captured before completion */}
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 8 }}>
+                    Customer signature {state.signatureUrl ? '✓' : '(optional)'}
+                  </label>
+                  {state.signatureUrl ? (
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={state.signatureUrl} alt="signature" style={{ height: 80, borderRadius: 6, background: '#fff', display: 'block', border: '1px solid rgba(125,255,170,0.3)' }} />
+                      <button onClick={() => onUpdate({ signatureUrl: null })}
+                        style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 4, color: '#fff', padding: '2px 6px', cursor: 'pointer', fontSize: '0.7rem' }}>✕</button>
+                    </div>
+                  ) : state.showSignaturePad ? (
+                    <SignaturePad
+                      onSave={async (dataUrl) => {
+                        // Upload to Vercel Blob, store URL only in state.
+                        const blob = await fetch(dataUrl).then((r) => r.blob())
+                        const res = await fetch('/api/admin/upload-media', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: blob })
+                        if (res.ok) {
+                          const { url } = await res.json()
+                          onUpdate({ signatureUrl: url, showSignaturePad: false })
+                        } else {
+                          onUpdate({ error: 'Signature upload failed' })
+                        }
+                      }}
+                      onCancel={() => onUpdate({ showSignaturePad: false })}
+                    />
+                  ) : (
+                    <button onClick={() => onUpdate({ showSignaturePad: true })}
+                      style={{ padding: '10px 16px', borderRadius: 8, border: '1px dashed rgba(125,255,170,0.3)', background: 'transparent', color: 'rgba(125,255,170,0.7)', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700 }}>
+                      ✍ Capture signature
+                    </button>
+                  )}
                 </div>
 
                 {state.error && <p style={{ color: '#ff8080', fontSize: '0.82rem', margin: '0 0 10px' }}>{state.error}</p>}
