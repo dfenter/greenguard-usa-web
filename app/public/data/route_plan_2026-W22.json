@@ -105,18 +105,6 @@
       "approved": false,
       "stops": [
         {
-          "gcal_event_id": "nuoolid1qurl1sae9p3eqllsfg",
-          "customer": "David Board",
-          "email": "dboardmd@yahoo.com",
-          "address": "3707 WeatherHill Cova Austin TX 78730",
-          "start_time": "2026-05-26T15:00:00-05:00",
-          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Tank hookup and trap maintenance",
-          "duration_min": 30,
-          "optimized_start_time": "2026-05-26T09:23:09-06:00",
-          "drive_min_from_prev": 23,
-          "optimized_end_time": "2026-05-26T09:53:09-06:00"
-        },
-        {
           "gcal_event_id": "cdcvjo8j3l1271fq42cg9jkm9k",
           "customer": "Susan Lee",
           "email": "Sushijung@gmail.com",
@@ -163,8 +151,21 @@
           "optimized_start_time": "2026-05-26T13:31:52-06:00",
           "drive_min_from_prev": 10,
           "optimized_end_time": "2026-05-26T14:01:52-06:00"
+        },
+        {
+          "gcal_event_id": "nuoolid1qurl1sae9p3eqllsfg",
+          "customer": "David Board",
+          "email": "dboardmd@yahoo.com",
+          "address": "3707 WeatherHill Cova Austin TX 78730",
+          "start_time": "2026-05-26T15:00:00-05:00",
+          "title": "One - 20 pound CO2 Tank Exchange Delivery Service + Tank hookup and trap maintenance",
+          "duration_min": 30,
+          "optimized_start_time": "2026-05-26T15:00:00-05:00",
+          "drive_min_from_prev": 30,
+          "optimized_end_time": "2026-05-26T15:30:00-05:00"
         }
-      ]
+      ],
+      "rebuilt": "2026-05-25 \u2014 David Board manually pinned to 3:00 PM (after optimizer)"
     },
     {
       "date": "2026-05-27",
