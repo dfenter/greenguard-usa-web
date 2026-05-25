@@ -77,11 +77,21 @@ export default async function handler(req, res) {
       }
       const priceId = process.env[`STRIPE_PRICE_${sku.replace(/-/g, '_')}`]
       const price = SKU_PRICES[sku]
+      const qty = Math.max(1, parseInt(req.body?.qty || 1, 10) || 1)
 
+      // If invoiceId is provided, attach line item directly to that draft.
+      // Otherwise create a pending item that lands on the customer's next invoice.
+      const params = { customer: customerId }
+      if (invoiceId) params.invoice = invoiceId
       if (priceId) {
-        await stripe.invoiceItems.create({ customer: customerId, price: priceId })
+        await stripe.invoiceItems.create({ ...params, price: priceId, quantity: qty })
       } else {
-        await stripe.invoiceItems.create({ customer: customerId, amount: Math.round(price * 100), currency: 'usd', description: sku })
+        await stripe.invoiceItems.create({
+          ...params,
+          amount: Math.round(price * 100 * qty),
+          currency: 'usd',
+          description: qty > 1 ? `${sku} ×${qty}` : sku,
+        })
       }
       return res.status(200).json({ ok: true })
     }
@@ -134,8 +144,16 @@ export default async function handler(req, res) {
         if (!inv.lines?.data?.length || inv.amount_due === 0) {
           return res.status(400).json({ error: 'Cannot send an invoice with no billable items' })
         }
-        // Ensure tax is set before finalizing
-        await stripe.invoices.update(inv.id, { default_tax_rates: [getTaxRateId()] })
+        // Ensure tax is set before finalizing (skip if not configured or invalid)
+        const taxRateId = getTaxRateId()
+        if (taxRateId) {
+          try {
+            await stripe.invoices.update(inv.id, { default_tax_rates: [taxRateId] })
+          } catch (err) {
+            if (err?.code !== 'resource_missing') throw err
+            console.error(`Stripe tax rate ${taxRateId} not found — sending without tax`)
+          }
+        }
         await stripe.invoices.finalizeInvoice(inv.id)
         await stripe.invoices.sendInvoice(inv.id)
       }

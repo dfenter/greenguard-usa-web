@@ -63,6 +63,9 @@ export default function InvoiceEditor({ customers = [] }) {
   const [pending, setPending] = useState(null)
   const [pendingLoading, setPendingLoading] = useState(false)
   const [approvingAll, setApprovingAll] = useState(false)
+  const [expandedDraft, setExpandedDraft] = useState(null)
+  const [draftAddSku, setDraftAddSku] = useState({})  // { invoiceId: sku }
+  const [draftAdding, setDraftAdding] = useState(null)  // invoiceId currently adding
   const searchRef = useRef(null)
 
   const filtered = search.length >= 1
@@ -256,30 +259,100 @@ export default function InvoiceEditor({ customers = [] }) {
                     <div
                       key={draft.id}
                       style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
                         padding: '12px',
                         border: '1px solid rgba(122,171,130,0.15)',
                         borderRadius: 6,
-                        gap: 12,
-                        flexWrap: 'wrap',
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: 200 }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{draft.customerName || draft.customerEmail}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>
-                          {draft.serviceDate} · {draft.lineCount} item{draft.lineCount !== 1 ? 's' : ''}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: 200, cursor: 'pointer' }}
+                             onClick={() => setExpandedDraft(expandedDraft === draft.id ? null : draft.id)}>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.3)' }}>
+                              {expandedDraft === draft.id ? '▲' : '▼'}
+                            </span>
+                            {draft.customerName || draft.customerEmail}
+                            {draft.lineCount === 0 && (
+                              <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: 3, background: 'rgba(255,160,80,0.15)', border: '1px solid rgba(255,160,80,0.3)', color: '#ffb060', fontWeight: 800 }}>
+                                ⚠ EMPTY
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>
+                            {draft.serviceDate} · {draft.lineCount} item{draft.lineCount !== 1 ? 's' : ''}
+                          </div>
                         </div>
+                        <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#c9a84c' }}>{fmt$(draft.amountDue)}</div>
+                        <button style={btn('gold')} onClick={() => sendInvoice(draft.id)} disabled={sending || draft.lineCount === 0}
+                                title={draft.lineCount === 0 ? 'Add at least one line item before sending' : ''}>
+                          {sending ? 'Sending…' : 'Send'}
+                        </button>
+                        {draft.hostedUrl && (
+                          <a href={draft.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }}>
+                            ↗
+                          </a>
+                        )}
                       </div>
-                      <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#c9a84c' }}>{fmt$(draft.amountDue)}</div>
-                      <button style={btn('gold')} onClick={() => sendInvoice(draft.id)} disabled={sending}>
-                        {sending ? 'Sending…' : 'Send'}
-                      </button>
-                      {draft.hostedUrl && (
-                        <a href={draft.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }}>
-                          ↗
-                        </a>
+
+                      {expandedDraft === draft.id && (
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
+                          {/* Existing line items */}
+                          {draft.items?.length > 0 ? (
+                            draft.items.map(line => (
+                              <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '7px 0', borderBottom: '1px solid rgba(122,171,130,0.06)' }}>
+                                <span style={{ color: 'rgba(212,230,202,0.75)', flex: 1 }}>{line.description}</span>
+                                <span style={{ fontWeight: 700, marginLeft: 16 }}>{fmt$(line.amount)}</span>
+                                <button onClick={async () => {
+                                  if (!window.confirm('Remove this line item?')) return
+                                  await fetch('/api/admin/invoice-items', {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ action: 'delete-line', invoiceId: draft.id, itemId: line.id }),
+                                  })
+                                  loadPending()
+                                }} style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
+                                  ✕
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ fontSize: '0.78rem', color: 'rgba(255,160,80,0.7)', padding: '6px 0' }}>
+                              No line items yet. Add at least one before sending.
+                            </div>
+                          )}
+
+                          {/* Add line item */}
+                          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                            <select value={draftAddSku[draft.id] || ''}
+                                    onChange={(e) => setDraftAddSku({ ...draftAddSku, [draft.id]: e.target.value })}
+                                    style={{ ...input, flex: '1 1 220px' }}>
+                              <option value="">— Add line item —</option>
+                              {(pending.skuList || []).map(({ sku, price }) => (
+                                <option key={sku} value={sku}>{sku} — ${price.toFixed(2)}</option>
+                              ))}
+                            </select>
+                            <button style={btn('green')}
+                                    disabled={!draftAddSku[draft.id] || draftAdding === draft.id}
+                                    onClick={async () => {
+                                      const sku = draftAddSku[draft.id]
+                                      if (!sku) return
+                                      setDraftAdding(draft.id)
+                                      const r = await fetch('/api/admin/invoice-items', {
+                                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ action: 'add', customerId: draft.customerId, invoiceId: draft.id, sku }),
+                                      })
+                                      setDraftAdding(null)
+                                      if (r.ok) {
+                                        setDraftAddSku({ ...draftAddSku, [draft.id]: '' })
+                                        loadPending()
+                                      } else {
+                                        const j = await r.json().catch(() => ({}))
+                                        alert('Failed: ' + (j.error || r.status))
+                                      }
+                                    }}>
+                              {draftAdding === draft.id ? 'Adding…' : '+ Add'}
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}

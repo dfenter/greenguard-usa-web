@@ -1,6 +1,7 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { listAllDraftInvoices, stripe } = require('../../../lib/stripe')
 const { getBookingsForDateRange } = require('../../../lib/gcal')
+const { SKU_PRICES } = require('../../../lib/sku-engine')
 
 // Returns start-of-Monday ISO for the current week in the configured timezone.
 function getThisMonday(tz) {
@@ -41,11 +42,17 @@ export default async function handler(req, res) {
 
     const drafts = rawDrafts.map(inv => ({
       id: inv.id,
+      customerId: typeof inv.customer === 'object' ? inv.customer?.id : inv.customer,
       customerName: inv.customer?.name || '',
       customerEmail: inv.customer?.email || inv.customer_email || '',
       amountDue: inv.amount_due,
       serviceDate: inv.metadata?.service_date || '',
       lineCount: inv.lines?.data?.length || 0,
+      items: (inv.lines?.data || []).map(l => ({
+        id: l.id,
+        description: l.description || '',
+        amount: (l.amount || 0) / 100,
+      })),
       hostedUrl: inv.hosted_invoice_url,
       calBookingUid: inv.metadata?.cal_booking_uid || '',
     }))
@@ -78,9 +85,14 @@ export default async function handler(req, res) {
       needsEmail: !b.email,
     }))
 
+    const skuList = Object.entries(SKU_PRICES)
+      .map(([sku, price]) => ({ sku, price }))
+      .sort((a, b) => a.sku.localeCompare(b.sku))
+
     return res.status(200).json({
       drafts,
       needsInvoice,
+      skuList,
       dateRange: { start: startISO, end: endISO },
     })
   } catch (err) {
