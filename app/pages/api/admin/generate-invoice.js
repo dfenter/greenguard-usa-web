@@ -91,6 +91,13 @@ export default async function handler(req, res) {
   const invoiceMeta = {}
   if (calBookingUid) invoiceMeta.cal_booking_uid = calBookingUid
   if (serviceDate) invoiceMeta.service_date = serviceDate
+  // 5-day auto-approve safety net. The /api/cron/billing-run job finalizes
+  // drafts whose billing_date is today or earlier, so a forgotten draft
+  // still goes out (and either auto-charges the card on file or gets
+  // emailed to the customer). Manually clicking Send bypasses the wait.
+  const base = serviceDate ? new Date(serviceDate + 'T12:00:00') : new Date()
+  base.setDate(base.getDate() + 5)
+  invoiceMeta.billing_date = base.toISOString().slice(0, 10)
 
   let invoice = existingInvoice
   if (!invoice) {

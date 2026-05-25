@@ -1,0 +1,45 @@
+name: Cron - Billing Run (5-day auto-approve)
+
+on:
+  schedule:
+    - cron: '0 11 * * *'   # 11 UTC = 6am CT — warn pass (T-1 day)
+    - cron: '0 12 * * *'   # 12 UTC = 7am CT — finalize pass (T+5 day)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'warn or run'
+        required: true
+        default: 'run'
+        type: choice
+        options: [warn, run]
+
+jobs:
+  billing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Determine mode
+        id: mode
+        run: |
+          # 11 UTC → warn, 12 UTC → run. workflow_dispatch uses input.
+          if [ -n "${{ inputs.mode }}" ]; then
+            echo "mode=${{ inputs.mode }}" >> $GITHUB_OUTPUT
+          else
+            hour=$(date -u +%H)
+            if [ "$hour" = "11" ]; then echo "mode=warn" >> $GITHUB_OUTPUT
+            else echo "mode=run" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Hit /api/cron/billing-run
+        run: |
+          MODE="${{ steps.mode.outputs.mode }}"
+          echo "Mode: $MODE"
+          RESP=$(curl -sS -X POST "https://portal.greenguard-usa.com/api/cron/billing-run?mode=$MODE" \
+            -H "x-cron-key: ${{ secrets.CRON_SECRET }}" \
+            -w "\n%{http_code}")
+          BODY=$(echo "$RESP" | head -n -1)
+          CODE=$(echo "$RESP" | tail -n 1)
+          echo "HTTP $CODE"
+          echo "$BODY"
+          if [ "$CODE" != "200" ]; then exit 1; fi
