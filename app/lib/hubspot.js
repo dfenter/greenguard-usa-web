@@ -71,6 +71,7 @@ const CONTACT_PROPERTIES = [
   'customer_type', 'service_start_date', 'stripe_customer_id',
   'payment_status', 'customer_status',
   'billing_contact_name', 'mq_installed', 'mq_installed_at',
+  'recurring_addons',
 ]
 
 async function findContactByEmail(email) {
@@ -216,4 +217,61 @@ async function getAllContacts(limit = 200) {
   return results
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, getContactNotes, updateContact, countContactsByProperty, getAllContacts }
+/**
+ * Bulk lookup contacts by full name (and optionally address). Used as a fallback
+ * when GCal events lack an email in the description but we have a customer name.
+ *
+ * Input: array of { name, address? } objects.
+ * Output: Map keyed by lowercased trimmed name → contact (best match).
+ *
+ * Matching: name → split into firstname + lastname, exact match on both.
+ * If multiple contacts match a name, address is used as a tiebreaker (first
+ * 8 chars of the street, case-insensitive). Otherwise the most-recently-modified
+ * contact wins.
+ */
+async function findContactsByNames(items) {
+  const result = new Map()
+  const cleaned = (items || [])
+    .filter((x) => x && x.name && x.name.trim())
+    .map((x) => ({ name: x.name.trim(), address: (x.address || '').trim() }))
+  if (cleaned.length === 0) return result
+
+  // De-dupe by name
+  const byName = new Map()
+  for (const it of cleaned) {
+    const key = it.name.toLowerCase()
+    if (!byName.has(key)) byName.set(key, it)
+  }
+
+  for (const [key, it] of byName.entries()) {
+    const parts = it.name.split(/\s+/)
+    if (parts.length < 2) continue
+    const first = parts[0]
+    const last = parts.slice(1).join(' ')
+    try {
+      const search = await client.crm.contacts.searchApi.doSearch({
+        filterGroups: [
+          { filters: [
+            { propertyName: 'firstname', operator: 'EQ', value: first },
+            { propertyName: 'lastname',  operator: 'EQ', value: last },
+          ]},
+        ],
+        properties: CONTACT_PROPERTIES,
+        sorts: [{ propertyName: 'lastmodifieddate', direction: 'DESCENDING' }],
+        limit: 5,
+      })
+      const results = search.results || []
+      if (!results.length) continue
+      let best = results[0]
+      if (results.length > 1 && it.address) {
+        const needle = it.address.toLowerCase().slice(0, 8)
+        const addrMatch = results.find((c) => (c.properties?.address || '').toLowerCase().includes(needle))
+        if (addrMatch) best = addrMatch
+      }
+      result.set(key, best)
+    } catch {}
+  }
+  return result
+}
+
+module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, findContactsByNames, getContactNotes, updateContact, countContactsByProperty, getAllContacts }

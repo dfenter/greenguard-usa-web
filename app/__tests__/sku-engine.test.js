@@ -246,4 +246,25 @@ describe('prefillFromBooking', () => {
   test('unknown slug → empty', () => {
     expect(prefillFromBooking({ slug: 'gibberish-event' }, mqOwned)).toEqual([])
   })
+
+  test('recurring_addons appended to billable visit (Keith case)', () => {
+    const keith = { properties: { system_type: 'Biogents-CO2', trap_count: '1', recurring_addons: 'CO2-ADDON' } }
+    expect(prefillFromBooking({ slug: 'biogents-co2-1' }, keith)).toEqual([
+      { sku: 'BG1', qty: 1 },
+      { sku: 'CO2-ADDON', qty: 1 },
+    ])
+  })
+
+  test('recurring_addons NOT appended to no-charge events', () => {
+    const c = { properties: { recurring_addons: 'CO2-ADDON,BARRIER' } }
+    expect(prefillFromBooking({ slug: 'property-assessment' }, c)).toEqual([])
+    expect(prefillFromBooking({ slug: 'equipment-pickup' }, c)).toEqual([])
+  })
+
+  test('recurring_addons skips SKUs already present in base', () => {
+    const c = { properties: { recurring_addons: 'BARRIER' } }
+    expect(prefillFromBooking({ slug: 'barrier-treatment' }, c)).toEqual([
+      { sku: 'BARRIER', qty: 1 },
+    ])
+  })
 })

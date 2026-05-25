@@ -279,46 +279,63 @@ function prefillFromBooking(booking, contact) {
   // true, treat any future "mosqitter-installation" booking as a service visit.
   const mqInstalled = props.mq_installed === 'true' || props.mq_installed === true
 
+  // Customer-specific recurring addons applied to every service-style visit
+  // (CO2 tank+timer rental, monthly barrier, etc.). Stored in HubSpot as a
+  // comma-separated SKU list. Skipped for no-charge/diagnostic events.
+  const recurringAddons = String(props.recurring_addons || '')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+
+  // Compute the slug-driven base lines, then append any customer-level
+  // recurring addons (skipped on no-charge events). Items already present
+  // from the base are not duplicated.
+  let baseLines = null
+
   // biogents-co2-{1,2,3}
   const bgN = parseTrailingNumber(slug, 'biogents-co2-')
   if (bgN) {
-    const lines = [{ sku: `BG${bgN}`, qty: 1 }]
-    if (isBgOwned) lines.push({ sku: 'BAIT', qty: trapCount })
-    return lines
+    baseLines = [{ sku: `BG${bgN}`, qty: 1 }]
+    if (isBgOwned) baseLines.push({ sku: 'BAIT', qty: trapCount })
   }
 
   // tank-exchange-{N}
-  const tankN = parseTrailingNumber(slug, 'tank-exchange-')
-  if (tankN) {
-    return [
-      { sku: 'TANK-DELIVERY-FEE', qty: 1 },
-      { sku: 'TANK-REFILL', qty: tankN },
-    ]
+  if (!baseLines) {
+    const tankN = parseTrailingNumber(slug, 'tank-exchange-')
+    if (tankN) {
+      baseLines = [
+        { sku: 'TANK-DELIVERY-FEE', qty: 1 },
+        { sku: 'TANK-REFILL', qty: tankN },
+      ]
+    }
   }
 
-  if (slug === 'tank-rental') {
-    return [
+  if (!baseLines && slug === 'tank-rental') {
+    baseLines = [
       { sku: 'TANK-DELIVERY-FEE', qty: 1 },
       { sku: 'TANK-REFILL', qty: 1 },
     ]
   }
 
-  if (slug === 'mosqitter-rental') return [{ sku: 'MQ-RENT', qty: trapCount }]
-  if (slug === 'mosqitter-installation') {
-    if (!isMqOwned) return []
-    return mqInstalled
+  if (!baseLines && slug === 'mosqitter-rental') baseLines = [{ sku: 'MQ-RENT', qty: trapCount }]
+  if (!baseLines && slug === 'mosqitter-installation') {
+    if (!isMqOwned) baseLines = []
+    else baseLines = mqInstalled
       ? [{ sku: 'MQ-SVC', qty: trapCount }]
       : [{ sku: 'MQ-INST', qty: trapCount }]
   }
-  if (slug === 'mosqitter-service') return isMqOwned ? [{ sku: 'MQ-SVC', qty: trapCount }] : []
-  if (slug === 'mosqitter-troubleshoot') return isMqOwned ? [{ sku: 'MQ-TSHOOT', qty: 1 }] : []
+  if (!baseLines && slug === 'mosqitter-service') baseLines = isMqOwned ? [{ sku: 'MQ-SVC', qty: trapCount }] : []
+  if (!baseLines && slug === 'mosqitter-troubleshoot') baseLines = isMqOwned ? [{ sku: 'MQ-TSHOOT', qty: 1 }] : []
+  if (!baseLines && slug === 'barrier-treatment') baseLines = [{ sku: 'BARRIER', qty: 1 }]
 
-  if (slug === 'barrier-treatment') return [{ sku: 'BARRIER', qty: 1 }]
+  // No-charge / unknown events: return nothing, skip addons too.
+  const noChargeSlugs = ['tank-refill-check', 'equipment-pickup', 'property-assessment']
+  if (baseLines === null || noChargeSlugs.includes(slug)) return baseLines || []
 
-  // No-charge events
-  if (['tank-refill-check', 'equipment-pickup', 'property-assessment'].includes(slug)) return []
-
-  return []
+  // Append recurring addons that aren't already present in the base.
+  const haveSku = new Set(baseLines.map((l) => l.sku))
+  for (const sku of recurringAddons) {
+    if (!haveSku.has(sku)) baseLines.push({ sku, qty: 1 })
+  }
+  return baseLines
 }
 
 module.exports = {
