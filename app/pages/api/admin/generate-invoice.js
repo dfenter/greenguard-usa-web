@@ -35,10 +35,18 @@ export default async function handler(req, res) {
   if (!customerEmail) return res.status(400).json({ error: 'customerEmail required' })
   if (!lineItems?.length) return res.status(400).json({ error: 'No line items' })
 
-  // Find Stripe customer
+  // Find or auto-create the Stripe customer. New customers obviously have
+  // no card on file, so the downstream branch will route to send_invoice
+  // (Stripe emails the hosted invoice link).
   const search = await stripe.customers.search({ query: `email:"${customerEmail}"`, limit: 1 })
-  if (!search.data.length) return res.status(404).json({ error: `No Stripe customer for ${customerEmail}` })
-  const customer = search.data[0]
+  let customer = search.data[0]
+  if (!customer) {
+    customer = await stripe.customers.create({
+      email: customerEmail,
+      ...(customerName ? { name: customerName } : {}),
+      metadata: { source: 'auto-created-from-rounds', service_date: serviceDate || '' },
+    })
+  }
 
   // ── Double-billing protection — one invoice per booking UID ───────────────
   if (calBookingUid && !force) {
