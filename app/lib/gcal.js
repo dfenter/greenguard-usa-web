@@ -73,12 +73,9 @@ function parseRescheduleUrl(description) {
   // Cal.com reschedule format (older): cal.com/reschedule/UID
   const calRescheduleMatch = description.match(/https:\/\/cal\.com\/reschedule\/([a-zA-Z0-9_-]+)/i)
   if (calRescheduleMatch) return `https://cal.com/reschedule/${calRescheduleMatch[1]}`
-  // Acuity legacy bookings — admin reschedule URL
-  const acuityMatch = description.match(/(https:\/\/[^\s]*?(?:squarespace|acuityscheduling)[^\s]*?appointments\/view\/\d+)/i)
-  if (acuityMatch) return acuityMatch[1]
-  // AcuityID fallback — construct admin URL
-  const acuityIdMatch = description.match(/AcuityID=(\d+)/i)
-  if (acuityIdMatch) return `https://swordfish-triangle-c6yr.squarespace.com/config/scheduling/appointments/view/${acuityIdMatch[1]}`
+  // Acuity / Squarespace fallback removed 2026-05-26: those URLs point to the
+  // legacy admin panel we're migrating away from. Returning null hides the
+  // Reschedule button for legacy events so we don't send anyone back there.
   return null
 }
 
