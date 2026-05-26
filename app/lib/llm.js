@@ -62,15 +62,21 @@ async function callGroq({ system, user, model = 'llama-3.3-70b-versatile', json 
  * error (5xx), fall back to Groq. Throws on both failures.
  */
 async function complete(opts) {
-  try {
-    return await callGemini(opts)
-  } catch (e) {
-    if (e.status === 429 || (e.status >= 500 && e.status < 600)) {
-      console.warn('Gemini failed, falling back to Groq:', e.message)
-      return await callGroq(opts)
+  // Skip Gemini entirely when the key is missing or known-bad.
+  if (process.env.GOOGLE_GEMINI_API_KEY) {
+    try {
+      return await callGemini(opts)
+    } catch (e) {
+      // Fall back to Groq on rate-limit, server error, or any auth issue.
+      const fallback = e.status === 429
+        || (e.status >= 500 && e.status < 600)
+        || e.status === 400  // includes "API key not valid"
+        || e.status === 401 || e.status === 403
+      if (!fallback) throw e
+      console.warn('Gemini failed, falling back to Groq:', e.message.slice(0, 120))
     }
-    throw e
   }
+  return await callGroq(opts)
 }
 
 module.exports = { complete, callGemini, callGroq }
