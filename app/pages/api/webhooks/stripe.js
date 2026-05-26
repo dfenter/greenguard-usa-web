@@ -1,5 +1,6 @@
 const { stripe } = require('../../../lib/stripe')
 const { upsertContact, addNote, findContactByEmail } = require('../../../lib/hubspot')
+const { sendT0Email, markStage, clearStages } = require('../../../lib/payment-resurrection')
 
 export const config = { api: { bodyParser: false } }
 
@@ -39,6 +40,8 @@ export default async function handler(req, res) {
             )
           }
         }
+        // Wipe any payment-resurrection state so a future failure restarts the clock
+        await clearStages(invoice.id).catch(() => {})
         break
       }
 
@@ -50,13 +53,22 @@ export default async function handler(req, res) {
           if (contact) {
             await addNote(
               contact.id,
-              `Payment FAILED: $${(invoice.amount_due / 100).toFixed(2)} — Invoice ${invoice.id} — Follow up needed`
+              `Payment FAILED: $${(invoice.amount_due / 100).toFixed(2)} — Invoice ${invoice.id} — auto-resurrection T+0 email sent`
             )
             await upsertContact({
               email: customer.email,
               name: customer.name || '',
               metadata: { payment_status: 'failed' },
             })
+          }
+        }
+        // Skip if we've already sent T+0 (Stripe retries trigger duplicate webhooks)
+        if (!invoice.metadata?.payfail_t0_at) {
+          try {
+            await sendT0Email(invoice, customer)
+            await markStage(invoice.id, 't0')
+          } catch (e) {
+            console.error('payment-resurrection T0 send failed:', e.message)
           }
         }
         break
