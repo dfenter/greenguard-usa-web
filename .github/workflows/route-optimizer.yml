@@ -35,8 +35,8 @@ jobs:
 
       - name: Commit route plan
         run: |
-          git config user.name "GreenGuard Bot"
-          git config user.email "bot@greenguard-usa.com"
+          git config user.name "GreenGuard CI"
+          git config user.email "ci@greenguard-usa.com"
           git add app/public/data/route_plan_*.json
           git diff --cached --quiet || git commit -m "chore: route plan for ${{ steps.week.outputs.label }} [skip ci]"
           git push
