@@ -55,16 +55,19 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
   // Prefill from the LAST KNOWN value for each field across history (not just
   // the most recent log entry — admin may have skipped fields on the latest).
   // Scans entries newest-first; first non-null value wins.
+  // Skip null/empty AND zero — saves serialize empty-fields as 0, so a long
+  // tail of zeros in history would otherwise lock the prefill at 0 forever.
   function lastKnown(field) {
     for (const entry of initialHistory) {
-      if (entry?.[field] != null && entry[field] !== '') return entry[field]
+      const v = entry?.[field]
+      if (v != null && v !== '' && Number(v) !== 0) return v
     }
     return null
   }
   function lastKnownEquip(key) {
     for (const entry of initialHistory) {
       const v = entry?.equipment?.[key]
-      if (v != null && v !== '') return v
+      if (v != null && v !== '' && Number(v) !== 0) return v
     }
     return null
   }
