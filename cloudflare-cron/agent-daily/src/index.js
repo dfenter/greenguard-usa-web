@@ -7,6 +7,7 @@ const JOBS = {
   '0 13 * * *':    [{ name: 'post-appointment',      url: `${AGENT}/cron/post-appointment` }],
   '15 14 * * *':   [{ name: 'review-followup',       url: `${AGENT}/cron/review-followup` }],
   '0 18 * * *':    [{ name: 'appointment-reminders', url: `${AGENT}/cron/appointment-reminders` }],
+  '0 15 * * 1':    [{ name: 'route-optimizer',       url: `${AGENT}/cron/route-optimizer` }],
 }
 
 async function runJob(job, env) {

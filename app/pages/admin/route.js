@@ -1,13 +1,12 @@
 import { useState, useCallback } from 'react'
 import Head from 'next/head'
-import path from 'path'
-import fs from 'fs'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
 import { findContactsByEmails, tanksForCustomer } from '../../lib/hubspot'
 import { listAllCustomers } from '../../lib/stripe'
 import { getBookingsForEmail } from '../../lib/calcom'
+import { getLatestRoutePlan } from '../../lib/route-plan'
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
@@ -18,20 +17,9 @@ export async function getServerSideProps({ req, res }) {
   const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
   const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
 
-  const dataDir = path.join(process.cwd(), 'public', 'data')
-  let routePlan = null
-  let planGeneratedAt = null
-
-  try {
-    const files = fs.readdirSync(dataDir).filter((f) => f.startsWith('route_plan_') && f.endsWith('.json'))
-    if (files.length > 0) {
-      files.sort().reverse()
-      const fp = path.join(dataDir, files[0])
-      const raw = fs.readFileSync(fp, 'utf8')
-      routePlan = JSON.parse(raw)
-      planGeneratedAt = fs.statSync(fp).mtime.toISOString()
-    }
-  } catch {}
+  const { plan: routePlanLoaded, generatedAt } = await getLatestRoutePlan()
+  let routePlan = routePlanLoaded
+  let planGeneratedAt = generatedAt
 
   const todayInPlan = routePlan?.days?.some((d) => d.date === today)
   let todayBookings = []

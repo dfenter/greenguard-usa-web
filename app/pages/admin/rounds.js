@@ -9,8 +9,7 @@ import { listAllCustomers, findInvoiceForBooking } from '../../lib/stripe'
 import { findContactsByEmails, findContactsByNames, tanksForCustomer } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import SignaturePad from '../../components/SignaturePad'
-import path from 'path'
-import fs from 'fs'
+import { getLatestRoutePlan } from '../../lib/route-plan'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -42,21 +41,16 @@ export async function getServerSideProps({ req, query, res }) {
       }))
     } catch {}
   } else { try {
-    const dataDir = path.join(process.cwd(), 'public', 'data')
-    const files = fs.readdirSync(dataDir).filter((f) => f.startsWith('route_plan_') && f.endsWith('.json'))
-    if (files.length > 0) {
-      files.sort().reverse()
-      const plan = JSON.parse(fs.readFileSync(path.join(dataDir, files[0]), 'utf8'))
-      const dayPlan = (plan.days || []).find((d) => d.date === selectedDate)
-      if (dayPlan?.stops?.length) {
-        stops = dayPlan.stops.map((s) => ({
-          customerName: s.customer_name || s.name || 'Customer',
-          address: s.address || '', email: s.email || '',
-          startTime: s.scheduled_time || null, durationMin: s.duration_min || null,
-          propertySize: s.property_size || '',
-          serviceType: s.service_type || '',
-        }))
-      }
+    const { plan } = await getLatestRoutePlan()
+    const dayPlan = plan && (plan.days || []).find((d) => d.date === selectedDate)
+    if (dayPlan?.stops?.length) {
+      stops = dayPlan.stops.map((s) => ({
+        customerName: s.customer_name || s.name || 'Customer',
+        address: s.address || '', email: s.email || '',
+        startTime: s.scheduled_time || null, durationMin: s.duration_min || null,
+        propertySize: s.property_size || '',
+        serviceType: s.service_type || '',
+      }))
     }
   } catch {} }
 
