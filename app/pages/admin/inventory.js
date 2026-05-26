@@ -48,16 +48,55 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
   // (empties collected Wednesday = tanks serviced this week = full tanks needed next week)
   const defaultEmptiesPickedUp = weeklyTankTotal > 0 ? String(weeklyTankTotal) : ''
 
+  // Prefill from the LAST KNOWN value for each field across history (not just
+  // the most recent log entry — admin may have skipped fields on the latest).
+  // Scans entries newest-first; first non-null value wins.
+  function lastKnown(field) {
+    for (const entry of initialHistory) {
+      if (entry?.[field] != null && entry[field] !== '') return entry[field]
+    }
+    return null
+  }
+  function lastKnownEquip(key) {
+    for (const entry of initialHistory) {
+      const v = entry?.equipment?.[key]
+      if (v != null && v !== '') return v
+    }
+    return null
+  }
+  const lastFullEnd       = lastKnown('fullEnd')
+  const lastEmptyEnd      = lastKnown('emptyEnd')
+  const lastEmptiesPickup = lastKnown('emptiesPickedUp')
+  const lastFullDelivered = lastKnown('fullDelivered')
+
   const [form, setForm] = useState({
     date: today,
-    fullEnd: '',
-    emptyEnd: '',
+    fullEnd: lastFullEnd != null ? String(lastFullEnd) : '',
+    emptyEnd: lastEmptyEnd != null ? String(lastEmptyEnd) : '',
     neededTomorrow: String(tomorrowTanks),
-    emptiesPickedUp: defaultEmptiesPickedUp,
-    fullDelivered: '',
+    // Pre-populate with the scheduled total when available; if not, fall back
+    // to whatever was last actually picked up.
+    emptiesPickedUp: defaultEmptiesPickedUp || (lastEmptiesPickup != null ? String(lastEmptiesPickup) : ''),
+    fullDelivered: lastFullDelivered != null ? String(lastFullDelivered) : '',
     notes: '',
-    equipment: Object.fromEntries(EQUIPMENT_ITEMS.map((e) => [e.key, ''])),
+    equipment: Object.fromEntries(EQUIPMENT_ITEMS.map((e) => {
+      const v = lastKnownEquip(e.key)
+      return [e.key, v != null ? String(v) : '']
+    })),
   })
+
+  // Placeholders showing the last known value — visible when the field is
+  // cleared so the admin always sees what last time looked like.
+  const placeholders = {
+    fullEnd: lastFullEnd != null ? `last: ${lastFullEnd}` : '0',
+    emptyEnd: lastEmptyEnd != null ? `last: ${lastEmptyEnd}` : '0',
+    emptiesPickedUp: lastEmptiesPickup != null ? `last: ${lastEmptiesPickup}` : '0',
+    fullDelivered: lastFullDelivered != null ? `last: ${lastFullDelivered}` : '0',
+    equipment: Object.fromEntries(EQUIPMENT_ITEMS.map((e) => {
+      const v = lastKnownEquip(e.key)
+      return [e.key, v != null ? `last: ${v}` : '0']
+    })),
+  }
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState(null)
   const [history, setHistory] = useState(initialHistory)
@@ -208,12 +247,12 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
 
               <div style={{ marginBottom: 14 }}>
                 <label style={lbl}>Full tanks at end of day</label>
-                <input style={input} type="number" min="0" placeholder="0" value={form.fullEnd} onChange={set('fullEnd')} />
+                <input style={input} type="number" min="0" placeholder={placeholders.fullEnd} value={form.fullEnd} onChange={set('fullEnd')} />
               </div>
 
               <div style={{ marginBottom: 14 }}>
                 <label style={lbl}>Empty tanks at end of day</label>
-                <input style={input} type="number" min="0" placeholder="0" value={form.emptyEnd} onChange={set('emptyEnd')} />
+                <input style={input} type="number" min="0" placeholder={placeholders.emptyEnd} value={form.emptyEnd} onChange={set('emptyEnd')} />
               </div>
 
               {/* Tomorrow forecast — Tanks Needed Tomorrow is auto-calculated and shown
@@ -236,14 +275,14 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
                   <div style={{ ...section, marginTop: 0, color: '#c9a84c', borderColor: 'rgba(201,168,76,0.2)' }}>Wednesday Exchange</div>
                   <div style={{ marginBottom: 12 }}>
                     <label style={{ ...lbl, color: '#c9a84c' }}>Empty tanks picked up today</label>
-                    <input style={input} type="number" min="0" placeholder="0" value={form.emptiesPickedUp} onChange={set('emptiesPickedUp')} />
+                    <input style={input} type="number" min="0" placeholder={placeholders.emptiesPickedUp} value={form.emptiesPickedUp} onChange={set('emptiesPickedUp')} />
                     <p style={{ fontSize: '0.7rem', color: 'rgba(201,168,76,0.55)', margin: '4px 0 0' }}>
                       Pre-filled from the next 7 days&apos; schedule ({weeklyTankTotal} tanks). Adjust if actual pickups differ. This becomes next week&apos;s expected delivery.
                     </p>
                   </div>
                   <div>
                     <label style={{ ...lbl, color: '#c9a84c' }}>Full tanks delivered today</label>
-                    <input style={input} type="number" min="0" placeholder="0" value={form.fullDelivered} onChange={set('fullDelivered')} />
+                    <input style={input} type="number" min="0" placeholder={placeholders.fullDelivered} value={form.fullDelivered} onChange={set('fullDelivered')} />
                   </div>
                 </div>
               )}
@@ -253,7 +292,7 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
                 {EQUIPMENT_ITEMS.map((item) => (
                   <div key={item.key} style={{ display: 'flex', flexDirection: 'column' }}>
                     <label style={{ ...lbl, fontSize: '0.65rem', minHeight: 28, lineHeight: 1.25, display: 'flex', alignItems: 'flex-end', marginBottom: 6 }}>{item.label}</label>
-                    <input style={{ ...input, padding: '7px 10px', marginTop: 'auto' }} type="number" min="0" placeholder="0" value={form.equipment[item.key]} onChange={setEquip(item.key)} />
+                    <input style={{ ...input, padding: '7px 10px', marginTop: 'auto' }} type="number" min="0" placeholder={placeholders.equipment[item.key]} value={form.equipment[item.key]} onChange={setEquip(item.key)} />
                   </div>
                 ))}
               </div>
