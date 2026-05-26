@@ -93,6 +93,18 @@ CREATE TABLE IF NOT EXISTS ingest_runs (
   error       TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_ingest_started ON ingest_runs(started_at DESC);
+
+-- Per-appointment admin notes. Keyed by Google Calendar event ID since that's
+-- our canonical event identifier across Cal.com + legacy Acuity bookings.
+CREATE TABLE IF NOT EXISTS event_notes (
+  id           SERIAL PRIMARY KEY,
+  event_id     TEXT NOT NULL,
+  customer_email TEXT,
+  author_email TEXT NOT NULL,
+  body         TEXT NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_event_notes_event ON event_notes(event_id, created_at DESC);
 `
 
 const SEED_CATEGORIES = [

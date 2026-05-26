@@ -442,6 +442,80 @@ export default function CalendarPage({ today, initialBookings }) {
   )
 }
 
+function EventNotesSection({ eventId, customerEmail }) {
+  const [notes, setNotes] = useState([])
+  const [body, setBody] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  async function load() {
+    try {
+      const res = await fetch(`/api/admin/event-notes?eventId=${encodeURIComponent(eventId)}`)
+      const j = await res.json()
+      if (res.ok) setNotes(j.notes || [])
+    } catch { /* silent */ }
+  }
+  useEffect(() => { load() }, [eventId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function save() {
+    if (!body.trim()) return
+    setBusy(true); setMsg(null)
+    try {
+      const res = await fetch('/api/admin/event-notes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, customerEmail, body }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`)
+      setBody(''); setMsg({ ok: true, text: 'Saved.' })
+      load()
+      setTimeout(() => setMsg(null), 2000)
+    } catch (err) {
+      setMsg({ ok: false, text: err.message })
+    } finally { setBusy(false) }
+  }
+
+  async function del(id) {
+    if (!window.confirm('Delete this note?')) return
+    await fetch(`/api/admin/event-notes?id=${id}`, { method: 'DELETE' })
+    load()
+  }
+
+  return (
+    <div style={{ marginBottom: 14, padding: 12, background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.18)', borderRadius: 6 }}>
+      <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 8 }}>
+        This appointment&apos;s notes
+      </div>
+      {notes.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {notes.map((n) => (
+            <div key={n.id} style={{ padding: '7px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 4, fontSize: '0.78rem', color: 'rgba(212,230,202,0.85)', position: 'relative' }}>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{n.body}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                <span style={{ fontSize: '0.66rem', color: 'rgba(212,230,202,0.4)' }}>
+                  {n.author_email?.split('@')[0]} · {new Date(n.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ })}
+                </span>
+                <button onClick={() => del(n.id)} title="Delete"
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,128,128,0.55)', cursor: 'pointer', fontSize: '0.72rem', padding: 0, fontFamily: 'inherit' }}>×</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)}
+        placeholder="Gate code today, side gate only, customer requested AM…"
+        style={{ width: '100%', padding: '7px 9px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+      <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+        <button onClick={save} disabled={busy || !body.trim()}
+          style={{ padding: '5px 12px', borderRadius: 4, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.76rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Nunito Sans, sans-serif' }}>
+          {busy ? 'Saving…' : 'Add'}
+        </button>
+        {msg && <span style={{ fontSize: '0.74rem', color: msg.ok ? '#7dffaa' : '#ff8080' }}>{msg.text}</span>}
+      </div>
+    </div>
+  )
+}
+
 function DockNoteComposer({ email, hsContactId }) {
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
@@ -663,8 +737,10 @@ function DetailDock({ details, loading, onClose }) {
             </div>
           )}
 
+          <EventNotesSection eventId={ev.id} customerEmail={email} />
+
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Add note</div>
+            <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Customer note (HubSpot timeline)</div>
             <DockNoteComposer email={email} hsContactId={d.contact?.id} />
           </div>
 
