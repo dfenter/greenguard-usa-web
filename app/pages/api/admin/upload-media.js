@@ -1,31 +1,54 @@
 import { put } from '@vercel/blob'
-import { getSessionFromRequest, isAdminEmail } from '../../../lib/auth'
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+import { requireAdmin } from '../../../lib/auth'
+import { extFor, readLimitedBody } from '../../../lib/upload-guard'
+import { assessPhoto } from '../../../lib/photo-qa'
 
 export const config = { api: { bodyParser: false } }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
-  const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
+  const session = await requireAdmin(req, res)
+  if (!session) return
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return res.status(503).json({ error: 'Media storage not configured' })
   }
 
+  const contentType = req.headers['content-type'] || ''
+  const ext = extFor(contentType)
+  if (!ext) {
+    return res.status(415).json({ error: `Unsupported file type: ${contentType.split(';')[0]}` })
+  }
+
+  let buffer
   try {
-    const chunks = []
-    for await (const chunk of req) chunks.push(chunk)
-    const buffer = Buffer.concat(chunks)
-
-    const contentType = req.headers['content-type'] || 'application/octet-stream'
-    const ext = contentType.includes('video') ? 'mp4' : contentType.includes('webm') ? 'webm' : 'jpg'
-    const filename = `visits/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-
-    const blob = await put(filename, buffer, { access: 'public', contentType })
-    res.status(200).json({ url: blob.url })
+    buffer = await readLimitedBody(req)
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    return res.status(e.status || 400).json({ error: e.message })
+  }
+
+  try {
+    const filename = `visits/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const blob = await put(filename, buffer, { access: 'public', contentType })
+
+    // Optional x-customer-email header lets Rounds attach the QA note to the
+    // right customer. x-skip-qa=1 disables (e.g. equipment-only photos).
+    const customerEmail = req.headers['x-customer-email'] || null
+    const caption = req.headers['x-caption'] || ''
+    const skipQA = req.headers['x-skip-qa'] === '1'
+    const isImage = ext === 'jpg' || ext === 'png' || ext === 'webp' || ext === 'heic'
+
+    let qa = null
+    if (isImage && !skipQA && process.env.GOOGLE_GEMINI_API_KEY) {
+      // Fire-and-forget: don't block the upload response on the AI roundtrip.
+      assessPhoto({ imageUrl: blob.url, customerEmail, caption }).catch((e) =>
+        console.error('photo-qa:', e.message)
+      )
+      qa = { queued: true }
+    }
+
+    res.status(200).json({ url: blob.url, qa })
+  } catch (e) {
+    res.status(500).json({ error: 'Upload failed' })
   }
 }

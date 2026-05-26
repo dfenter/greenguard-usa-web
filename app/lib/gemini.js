@@ -85,4 +85,83 @@ Keep it to 2-3 sentences. No pressure. Focus on their benefit. Do not mention fr
   )
 }
 
-module.exports = { generate, draftVisitEmail, analyzeReviewSentiment, draftBusinessPost, draftUpsellMessage }
+// ── JSON output helper ───────────────────────────────────────────────────────
+async function generateJSON({ system, user, maxTokens = 1024 }) {
+  const key = process.env.GOOGLE_GEMINI_API_KEY
+  if (!key) throw new Error('GOOGLE_GEMINI_API_KEY not set')
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: user }] }],
+    generationConfig: {
+      temperature: 0.2, maxOutputTokens: maxTokens,
+      responseMimeType: 'application/json',
+    },
+  }
+  if (system) body.systemInstruction = { parts: [{ text: system }] }
+  const res = await fetch(`${BASE}/models/${MODEL}:generateContent?key=${key}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Gemini error')
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+  return JSON.parse(text)
+}
+
+// ── Vision helper ────────────────────────────────────────────────────────────
+async function visionJSON({ system, imageUrl, prompt, maxTokens = 1024 }) {
+  const key = process.env.GOOGLE_GEMINI_API_KEY
+  if (!key) throw new Error('GOOGLE_GEMINI_API_KEY not set')
+  const r = await fetch(imageUrl)
+  if (!r.ok) throw new Error(`image fetch ${r.status}`)
+  const buf = Buffer.from(await r.arrayBuffer())
+  const mimeType = (r.headers.get('content-type') || 'image/jpeg').split(';')[0]
+  const data = buf.toString('base64')
+
+  const body = {
+    contents: [{
+      role: 'user',
+      parts: [
+        { inlineData: { mimeType, data } },
+        { text: prompt },
+      ],
+    }],
+    generationConfig: {
+      temperature: 0.1, maxOutputTokens: maxTokens,
+      responseMimeType: 'application/json',
+    },
+  }
+  if (system) body.systemInstruction = { parts: [{ text: system }] }
+  const res = await fetch(`${BASE}/models/${MODEL}:generateContent?key=${key}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const d = await res.json()
+  if (!res.ok) throw new Error(d.error?.message || 'Gemini vision error')
+  const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+  return JSON.parse(text)
+}
+
+// ── Conversational chat (multi-turn, optional tools via prompt-engineering) ──
+async function chat({ system, history = [], userMessage, maxTokens = 1024, temperature = 0.5 }) {
+  const key = process.env.GOOGLE_GEMINI_API_KEY
+  if (!key) throw new Error('GOOGLE_GEMINI_API_KEY not set')
+  const contents = []
+  for (const m of history) {
+    contents.push({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })
+  }
+  contents.push({ role: 'user', parts: [{ text: userMessage }] })
+  const body = {
+    contents,
+    generationConfig: { temperature, maxOutputTokens: maxTokens },
+  }
+  if (system) body.systemInstruction = { parts: [{ text: system }] }
+  const res = await fetch(`${BASE}/models/${MODEL}:generateContent?key=${key}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const d = await res.json()
+  if (!res.ok) throw new Error(d.error?.message || 'Gemini chat error')
+  return d.candidates?.[0]?.content?.parts?.[0]?.text || ''
+}
+
+module.exports = { generate, generateJSON, visionJSON, chat, draftVisitEmail, analyzeReviewSentiment, draftBusinessPost, draftUpsellMessage }

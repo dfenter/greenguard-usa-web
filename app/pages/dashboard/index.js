@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import Head from 'next/head'
 import Image from 'next/image'
 import PortalLayout from '../../components/PortalLayout'
+import CustomerChat from '../../components/CustomerChat'
 import { getSessionFromRequest } from '../../lib/auth'
 import { getSubscriptions, getInvoices, getCustomer } from '../../lib/stripe'
 import { getUpcomingBookingsForEmail, getPastBookingsForEmail } from '../../lib/gcal'
@@ -808,6 +809,7 @@ export default function CustomerOverview({
           </a>
         </div>
       </PortalLayout>
+      <CustomerChat />
     </>
   )
 }
