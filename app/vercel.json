@@ -3,5 +3,15 @@
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "crons": [
+    {
+      "path": "/api/cron/payment-resurrection",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/quote-followup",
+      "schedule": "0 14 * * *"
+    }
+  ]
 }

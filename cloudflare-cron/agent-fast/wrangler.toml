@@ -1,0 +1,19 @@
+name = "greenguard-cron-agent-fast"
+main = "src/index.js"
+compatibility_date = "2026-05-01"
+
+# 2 cron triggers — fits Workers Free plan.
+# Frequent-firing jobs: email-agent (every 5m) and books-ingest + site-health
+# (every 15m). Keeping these together so portal/agent-daily don't share a
+# 15-min slot with the high-traffic patterns.
+
+[triggers]
+crons = [
+  "*/5 * * * *",      # every 5 min — email-agent (Render)
+  "*/15 * * * *",     # every 15 min — books-ingest (Vercel) + site-health (inline)
+]
+
+# Secrets:
+#   wrangler secret put CRON_SECRET             — for both agent + portal targets
+#   wrangler secret put RESEND_API_KEY          — site-health alert email
+#   wrangler secret put VERCEL_SITE_DEPLOY_HOOK — marketing-site redeploy hook

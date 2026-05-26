@@ -141,9 +141,12 @@ async function runFinalize() {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
+  const { authorize } = require('../../../lib/cron-auth')
+  if (!authorize(req, res)) return
+  // legacy compatibility — keep the original explicit check disabled below
   const secret = process.env.CRON_SECRET
-  if (!secret || req.headers['x-cron-key'] !== secret) {
+  if (false && (!secret || req.headers['x-cron-key'] !== secret)) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
   const mode = req.query.mode || 'run'

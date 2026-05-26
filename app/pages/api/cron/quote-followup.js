@@ -12,6 +12,7 @@
 
 const { addNote } = require('../../../lib/hubspot')
 const { sendT48Email, sendT7dAdminAlert, buildPaidJtiSet } = require('../../../lib/quote-followup')
+const { authorize } = require('../../../lib/cron-auth')
 
 const HUBSPOT_TOKEN = process.env.HUBSPOT_ACCESS_TOKEN
 const T48 = 48 * 3600 * 1000
@@ -93,11 +94,8 @@ function hasDeadFlag(noteBodies, jti) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
-  const secret = process.env.CRON_SECRET
-  if (!secret || req.headers['x-cron-key'] !== secret) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
+  if (!authorize(req, res)) return
   if (!HUBSPOT_TOKEN) return res.status(503).json({ error: 'HUBSPOT_ACCESS_TOKEN not set' })
 
   const now = Date.now()

@@ -8,6 +8,7 @@
 
 const { stripe } = require('../../../lib/stripe')
 const { sendT48hReminder, sendT7dAdminAlert, markStage } = require('../../../lib/payment-resurrection')
+const { authorize } = require('../../../lib/cron-auth')
 
 const HOURS = 3600 * 1000
 const STAGE_T48_AFTER_MS = 48 * HOURS
@@ -33,11 +34,9 @@ async function listOpenInvoicesNeedingFollowup() {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
-  const secret = process.env.CRON_SECRET
-  if (!secret || req.headers['x-cron-key'] !== secret) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  // Accept both Vercel Cron (GET + Bearer auth) and manual POST + x-cron-key.
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
+  if (!authorize(req, res)) return
 
   const now = Date.now()
   const results = { scanned: 0, t48_sent: 0, t7d_sent: 0, errors: [] }

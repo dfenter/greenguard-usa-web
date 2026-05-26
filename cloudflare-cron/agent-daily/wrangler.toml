@@ -1,0 +1,17 @@
+name = "greenguard-cron-agent-daily"
+main = "src/index.js"
+compatibility_date = "2026-05-01"
+
+# 4 cron triggers — fits Workers Free plan.
+# All targets are webhook_server.py HTTP endpoints on Render.
+
+[triggers]
+crons = [
+  "30 12 * * 1-6",    # 07:30 CT Mon–Sat — daily-route email
+  "0 13 * * *",       # 08:00 CT — post-appointment thank-yous
+  "15 14 * * *",      # 09:15 CT — review-followup
+  "0 18 * * *",       # 13:00 CT — appointment-reminders (T-2)
+  # cron-winback is disabled; re-add "30 14 * * 1" if re-enabled.
+]
+
+# Secrets: wrangler secret put CRON_SECRET
