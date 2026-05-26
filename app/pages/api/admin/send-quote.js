@@ -1,7 +1,8 @@
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail, newJti } = require('../../../lib/auth')
 const { SignJWT } = require('jose')
 const { Resend } = require('resend')
 const { escapeHtml } = require('../../../lib/email')
+const { findContactByEmail, upsertContact, addNote } = require('../../../lib/hubspot')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -62,7 +63,9 @@ export default async function handler(req, res) {
   const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
 
-  // Signed JWT for the public quote page
+  // Signed JWT for the public quote page; jti uniquely tags this quote version
+  // so the follow-up agent can track engagement and skip after checkout.
+  const jti = newJti()
   const token = await new SignJWT({
     customerName: name, customerEmail: to, customerAddress,
     serviceLines, addonLines, productLines,
@@ -71,6 +74,7 @@ export default async function handler(req, res) {
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
+    .setJti(jti)
     .setExpirationTime('30d')
     .sign(getSecret())
   const quoteUrl = `${APP_URL}/quote/${token}`
@@ -168,5 +172,22 @@ export default async function handler(req, res) {
     html,
   })
 
-  res.status(200).json({ ok: true })
+  // Tag the customer's HubSpot contact so the follow-up cron can track this quote.
+  // Auto-create the contact if it doesn't exist yet (new prospect from quote flow).
+  try {
+    let contact = await findContactByEmail(to).catch(() => null)
+    if (!contact?.id) {
+      const created = await upsertContact({ email: to, name: name || '', address: customerAddress })
+      contact = { id: created.id }
+    }
+    const amount = (oneTimeTotal || 0) + (taxAmount || 0)
+    await addNote(
+      contact.id,
+      `[QUOTE-SENT] jti=${jti} email=${to} amount=${amount.toFixed(2)} monthly=${(recurringTotal || 0).toFixed(2)} url=${quoteUrl} sent=${new Date().toISOString()}`
+    )
+  } catch (err) {
+    console.error('send-quote HubSpot logging failed:', err.message)
+  }
+
+  res.status(200).json({ ok: true, jti })
 }

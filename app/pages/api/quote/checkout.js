@@ -1,5 +1,6 @@
 const { jwtVerify } = require('jose')
 const Stripe = require('stripe')
+const { isJtiRevoked } = require('../../../lib/auth')
 
 function getSecret() {
   return new TextEncoder().encode(process.env.JWT_SECRET)
@@ -23,6 +24,11 @@ export default async function handler(req, res) {
     quote = payload
   } catch {
     return res.status(400).json({ error: 'Invalid or expired quote link' })
+  }
+
+  // Admin can revoke a leaked / superseded quote without waiting for expiry.
+  if (quote.jti && await isJtiRevoked(quote.jti)) {
+    return res.status(410).json({ error: 'This quote has been revoked. Ask for an updated one.' })
   }
 
   const {
@@ -51,26 +57,52 @@ export default async function handler(req, res) {
     // Ongoing billing is handled manually via the Customer Rounds invoice flow.
     const allBillableLines = [...recurringLines, ...oneTimeLines]
 
-    const lineItems = allBillableLines.map(l => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: l.label + (l.recurring ? ' (first month)' : ''),
-        },
-        unit_amount: Math.round(l.amount * 100),
-      },
-      quantity: 1,
-    }))
+    // Defense in depth: even though the quote JWT is signed, bound every amount
+    // so a leaked JWT_SECRET can't drain a card to an arbitrary total.
+    const MAX_LINE_CENTS = 1_000_000  // $10,000 per line
+    const MAX_TOTAL_CENTS = 5_000_000 // $50,000 per checkout
 
-    if (taxAmount > 0) {
+    const lineItems = []
+    let runningCents = 0
+    for (const l of allBillableLines) {
+      const cents = Math.round(Number(l.amount) * 100)
+      if (!Number.isFinite(cents) || cents <= 0) {
+        return res.status(400).json({ error: `Invalid line amount: ${l.label}` })
+      }
+      if (cents > MAX_LINE_CENTS) {
+        console.error('Quote line exceeds cap:', { label: l.label, cents })
+        return res.status(400).json({ error: 'Line amount exceeds maximum allowed' })
+      }
+      runningCents += cents
       lineItems.push({
         price_data: {
           currency: 'usd',
-          product_data: { name: `Tax (${taxRate}%)` },
-          unit_amount: Math.round(taxAmount * 100),
+          product_data: { name: String(l.label).slice(0, 250) + (l.recurring ? ' (first month)' : '') },
+          unit_amount: cents,
         },
         quantity: 1,
       })
+    }
+
+    if (taxAmount > 0) {
+      const taxCents = Math.round(Number(taxAmount) * 100)
+      if (!Number.isFinite(taxCents) || taxCents < 0 || taxCents > MAX_LINE_CENTS) {
+        return res.status(400).json({ error: 'Invalid tax amount' })
+      }
+      runningCents += taxCents
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: { name: `Tax (${Number(taxRate).toFixed(2)}%)` },
+          unit_amount: taxCents,
+        },
+        quantity: 1,
+      })
+    }
+
+    if (runningCents > MAX_TOTAL_CENTS) {
+      console.error('Quote total exceeds cap:', runningCents)
+      return res.status(400).json({ error: 'Quote total exceeds maximum allowed' })
     }
 
     const sessionConfig = {
@@ -78,6 +110,7 @@ export default async function handler(req, res) {
       line_items: lineItems,
       metadata: {
         source: 'quote',
+        quote_jti: quote.jti || '',
         customerAddress: customerAddress || '',
         customerName: customerName || '',
       },
