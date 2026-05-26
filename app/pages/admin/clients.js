@@ -100,6 +100,44 @@ function StatusBadge({ status }) {
 }
 
 const TZ = 'America/Chicago'
+
+function NoteComposer({ email, hsContactId, onSaved }) {
+  const [body, setBody] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+  async function save() {
+    if (!body.trim()) return
+    setBusy(true); setMsg(null)
+    try {
+      const res = await fetch('/api/admin/add-note', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, contactId: hsContactId, body }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`)
+      setBody(''); setMsg({ ok: true, text: 'Saved.' })
+      onSaved?.()
+      setTimeout(() => setMsg(null), 2500)
+    } catch (err) {
+      setMsg({ ok: false, text: err.message })
+    } finally { setBusy(false) }
+  }
+  return (
+    <div style={{ marginTop: 4 }}>
+      <textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)}
+        placeholder="What did you observe / arrange / promise?"
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+      <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+        <button onClick={save} disabled={busy || !body.trim()}
+          style={{ padding: '6px 14px', borderRadius: 5, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Nunito Sans, sans-serif' }}>
+          {busy ? 'Saving…' : 'Save note'}
+        </button>
+        {msg && <span style={{ fontSize: '0.78rem', color: msg.ok ? '#7dffaa' : '#ff8080' }}>{msg.text}</span>}
+      </div>
+    </div>
+  )
+}
+
 function SmsComposer({ email, phone, onSent }) {
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
@@ -511,6 +549,12 @@ function CustomerPanel({ customer, onClose }) {
                     />
                   </div>
                 )}
+
+                {/* ── Add note ── */}
+                <div style={{ ...row }}>
+                  <div style={lbl}>Add note</div>
+                  <NoteComposer email={detail.email} hsContactId={detail.hubspotContactId} onSaved={fetchDetail} />
+                </div>
 
                 {/* ── Notes + SMS thread ── */}
                 <div style={{ ...row, borderBottom: 'none' }}>

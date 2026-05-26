@@ -442,6 +442,43 @@ export default function CalendarPage({ today, initialBookings }) {
   )
 }
 
+function DockNoteComposer({ email, hsContactId }) {
+  const [body, setBody] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+  async function save() {
+    if (!body.trim()) return
+    setBusy(true); setMsg(null)
+    try {
+      const res = await fetch('/api/admin/add-note', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, contactId: hsContactId, body }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`)
+      setBody(''); setMsg({ ok: true, text: 'Saved to HubSpot.' })
+      setTimeout(() => setMsg(null), 2500)
+    } catch (err) {
+      setMsg({ ok: false, text: err.message })
+    } finally { setBusy(false) }
+  }
+  return (
+    <div>
+      <textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)}
+        placeholder="Quick note about this customer…"
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+      <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+        <button onClick={save} disabled={busy || !body.trim() || (!email && !hsContactId)}
+          style={{ padding: '6px 14px', borderRadius: 5, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Nunito Sans, sans-serif' }}>
+          {busy ? 'Saving…' : 'Save note'}
+        </button>
+        {!email && !hsContactId && <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>No HubSpot contact found</span>}
+        {msg && <span style={{ fontSize: '0.78rem', color: msg.ok ? '#7dffaa' : '#ff8080' }}>{msg.text}</span>}
+      </div>
+    </div>
+  )
+}
+
 function NowLine({ date, today, dayStartHour, dayEndHour, pxPerMin }) {
   const [tick, setTick] = useState(0)
   useEffect(() => {
@@ -625,6 +662,11 @@ function DetailDock({ details, loading, onClose }) {
               <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.7)', whiteSpace: 'pre-wrap' }}>{notes}</div>
             </div>
           )}
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Add note</div>
+            <DockNoteComposer email={email} hsContactId={d.contact?.id} />
+          </div>
 
           {ev.isLegacyAcuity && (
             <div style={{ marginBottom: 12, padding: '8px 10px', background: 'rgba(255,160,80,0.08)', border: '1px solid rgba(255,160,80,0.25)', borderRadius: 6, fontSize: '0.72rem', color: '#ffb060' }}>
