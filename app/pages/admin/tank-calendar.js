@@ -226,10 +226,11 @@ const S = {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function SummaryBar({ summary }) {
+function SummaryBar({ summary, todayLoad }) {
   if (!summary) return null
   const { fullTanks, emptyTanks, damagedTotal, totalPool, nextDelivery, nextWednesday } = summary
   const stats = [
+    ...(todayLoad ? [{ label: `Today's load (${todayLoad.appts || 0} appts)`, value: todayLoad.tanks, color: todayLoad.tanks > fullTanks ? '#ff8080' : '#7dffaa', note: todayLoad.tanks > fullTanks ? `short ${todayLoad.tanks - fullTanks}` : 'tanks needed' }] : []),
     { label: 'Full Tanks', value: fullTanks, color: '#7dffaa' },
     { label: 'Empty Tanks', value: emptyTanks, color: '#d4e6ca' },
     { label: 'Damaged (out)', value: damagedTotal, color: '#c9a84c' },
@@ -376,6 +377,11 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
 
   const { summary, days, weeks, alerts, exchangeHistory } = data
 
+  // Today's load: lookup today's row in the projected days list.
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const todayRow = days.find((d) => d.date === todayIso) || days[0]
+  const todayLoad = todayRow ? { tanks: todayRow.tanksNeeded || 0, appts: todayRow.appointments || 0 } : null
+
   // Group days by weekOf for rendering
   const daysByWeek = {}
   for (const day of days) {
@@ -396,7 +402,7 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
           </div>
         )}
 
-        <SummaryBar summary={summary} />
+        <SummaryBar summary={summary} todayLoad={todayLoad} />
         <AlertsBanner alerts={alerts} />
 
         {/* Projection table */}

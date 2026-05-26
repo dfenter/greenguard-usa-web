@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { listAllCustomers } from '../../lib/stripe'
-import { findContactByEmail } from '../../lib/hubspot'
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+// Heavy server-only deps (Stripe SDK, HubSpot client) are dynamically imported
+// inside getServerSideProps so they're tree-shaken out of the client bundle.
+// This route was 722kB first-load JS until we moved the imports server-side.
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
+  const { listAllCustomers } = await import('../../lib/stripe')
   const raw = await listAllCustomers()
   const customers = raw
     .filter((c) => c.address?.line1 || c.metadata?.address)

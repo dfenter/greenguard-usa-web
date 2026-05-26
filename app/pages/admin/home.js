@@ -426,7 +426,9 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
           <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', marginBottom: 12 }}>Quick Access</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
-              { label: 'Invoice Editor', href: '/admin/invoice', desc: 'Manage invoices' },
+              { label: 'All Invoices', href: '/admin/invoices', desc: 'Browse + filter history' },
+              { label: 'Invoice Editor', href: '/admin/invoice', desc: 'Create or edit per customer' },
+              { label: 'Reports', href: '/admin/reports', desc: 'Appointments, revenue, add-ons' },
               { label: 'Clients', href: '/admin/clients', desc: 'Customer profiles' },
               { label: 'Analytics', href: '/admin/analytics', desc: 'Revenue & traffic' },
               { label: 'Daily Inventory', href: '/admin/inventory', desc: 'Tank counts' },

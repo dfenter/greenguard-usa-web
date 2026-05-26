@@ -102,6 +102,37 @@ function buildWeek(dateStr) {
   })
 }
 
+// Build a 6-row × 7-col month grid starting from the Sunday on/before the 1st.
+function buildMonthGrid(dateStr) {
+  const ref = new Date(dateStr + 'T12:00:00')
+  const first = new Date(ref.getFullYear(), ref.getMonth(), 1)
+  const startDow = first.getDay()
+  const start = new Date(first)
+  start.setDate(first.getDate() - startDow)
+  return Array.from({ length: 42 }, (_, i) => {
+    const x = new Date(start)
+    x.setDate(start.getDate() + i)
+    return x.toLocaleDateString('en-CA')
+  })
+}
+
+// Extract a tank count from event titles like "Two -20 pound CO2 Tank Exchange"
+// or "CO2 Tank Exchange - 4 Tanks". Returns null if not a tank exchange.
+function tankCountFromTitle(title) {
+  if (!title) return null
+  const t = title.toLowerCase()
+  if (!/tank.*exchange|exchange.*tank|tank.*refill/.test(t)) return null
+  // Digit form: "- 4 tanks", "10 tank"
+  const dm = t.match(/(\d+)\s*(?:-|−)?\s*(?:20\s*pound\s*)?(?:co2\s*)?tank/)
+  if (dm) return parseInt(dm[1], 10)
+  // Word form
+  const words = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 }
+  for (const [w, n] of Object.entries(words)) {
+    if (new RegExp(`\\b${w}\\b.*tank`).test(t)) return n
+  }
+  return 1
+}
+
 export default function CalendarPage({ today, initialBookings }) {
   const [date, setDate] = useState(today)
   const [bookings, setBookings] = useState(initialBookings)
@@ -128,17 +159,34 @@ export default function CalendarPage({ today, initialBookings }) {
       .finally(() => setDetailsLoading(false))
   }, [selectedEventId])
 
-  useEffect(() => {
-    if (date === today) return // initial load
-    setLoading(true)
-    fetch(`/api/admin/bookings?date=${date}`)
-      .then((r) => r.json())
-      .then((d) => setBookings(d.bookings || []))
-      .catch(() => setBookings([]))
-      .finally(() => setLoading(false))
-  }, [date, today])
-
+  // Multi-day fetch buffer for week/month views: { 'YYYY-MM-DD': bookings[] }
+  const [rangeBookings, setRangeBookings] = useState({})
   const week = useMemo(() => buildWeek(date), [date])
+  const monthGrid = useMemo(() => buildMonthGrid(date), [date])
+
+  useEffect(() => {
+    if (viewMode === 'agenda' || viewMode === 'day') {
+      if (date === today && bookings === initialBookings) return // initial
+      setLoading(true)
+      fetch(`/api/admin/bookings?date=${date}`)
+        .then((r) => r.json())
+        .then((d) => setBookings(d.bookings || []))
+        .catch(() => setBookings([]))
+        .finally(() => setLoading(false))
+      return
+    }
+    // Week / Month: fetch all days in the visible range in parallel.
+    const days = viewMode === 'week' ? week : monthGrid
+    setLoading(true)
+    Promise.all(days.map((d) =>
+      fetch(`/api/admin/bookings?date=${d}`).then((r) => r.json()).then((j) => [d, j.bookings || []]).catch(() => [d, []])
+    )).then((pairs) => {
+      const map = {}
+      for (const [d, b] of pairs) map[d] = b
+      setRangeBookings(map)
+    }).finally(() => setLoading(false))
+  }, [date, viewMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const positioned = useMemo(() => layoutEvents(bookings), [bookings])
 
   const totalMin = (DAY_END_HOUR - DAY_START_HOUR) * 60
@@ -191,16 +239,13 @@ export default function CalendarPage({ today, initialBookings }) {
               Today
             </button>
             <div style={{ display: 'flex', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, overflow: 'hidden' }}>
-              <button onClick={() => setViewMode('day')}
-                title="Day grid"
-                style={{ background: viewMode === 'day' ? '#7dffaa' : 'transparent', color: viewMode === 'day' ? '#0d1a10' : 'rgba(212,230,202,0.6)', border: 'none', padding: '6px 10px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}>
-                Day
-              </button>
-              <button onClick={() => setViewMode('agenda')}
-                title="Agenda list"
-                style={{ background: viewMode === 'agenda' ? '#7dffaa' : 'transparent', color: viewMode === 'agenda' ? '#0d1a10' : 'rgba(212,230,202,0.6)', border: 'none', borderLeft: '1px solid rgba(122,171,130,0.25)', padding: '6px 10px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}>
-                Agenda
-              </button>
+              {['day', 'agenda', 'week', 'month'].map((v, i) => (
+                <button key={v} onClick={() => setViewMode(v)}
+                  title={v[0].toUpperCase() + v.slice(1)}
+                  style={{ background: viewMode === v ? '#7dffaa' : 'transparent', color: viewMode === v ? '#0d1a10' : 'rgba(212,230,202,0.6)', border: 'none', borderLeft: i === 0 ? 'none' : '1px solid rgba(122,171,130,0.25)', padding: '6px 10px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif', textTransform: 'capitalize' }}>
+                  {v}
+                </button>
+              ))}
             </div>
             <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + 7); setDate(d.toLocaleDateString('en-CA')) }}
               aria-label="Next week"
@@ -232,14 +277,15 @@ export default function CalendarPage({ today, initialBookings }) {
           <div className="day-title-sub">{loading ? 'Loading…' : `${bookings.length} appointment${bookings.length === 1 ? '' : 's'}`}</div>
         </div>
 
-        {!loading && bookings.length === 0 && (
+        {!loading && bookings.length === 0 && (viewMode === 'day' || viewMode === 'agenda') && (
           <div className="empty">No appointments scheduled.</div>
         )}
 
-        {bookings.length > 0 && viewMode === 'agenda' && (
+        {bookings.length > 0 && (viewMode === 'agenda') && (
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[...bookings].sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).map((ev) => {
               const isSelected = selectedEventId === ev.id
+              const tanks = tankCountFromTitle(ev.title)
               return (
                 <div key={ev.id} onClick={() => setSelectedEventId(ev.id)}
                   style={{
@@ -251,8 +297,13 @@ export default function CalendarPage({ today, initialBookings }) {
                     color: '#e6dcff',
                     transition: 'transform 0.08s',
                   }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                     {ev.customerName || 'Customer'}
+                    {tanks != null && (
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#7dffaa', background: 'rgba(125,255,170,0.12)', border: '1px solid rgba(125,255,170,0.3)', padding: '2px 7px', borderRadius: 4 }}>
+                        🛢 {tanks} tank{tanks === 1 ? '' : 's'}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.88rem', color: 'rgba(230,220,255,0.85)', lineHeight: 1.4, marginBottom: 4 }}>
                     {ev.title}
@@ -292,12 +343,16 @@ export default function CalendarPage({ today, initialBookings }) {
                 const height = Math.max(28, (ev.endMin - ev.startMin) * PX_PER_MIN - 2)
                 const colWidth = `calc((100% - ${(ev._cols - 1) * 4}px) / ${ev._cols})`
                 const left = `calc((${colWidth} + 4px) * ${ev._col})`
+                const tanks = tankCountFromTitle(ev.title)
                 return (
                   <div key={ev.id} className="event"
                     style={{ top, left, width: colWidth, height, ...(selectedEventId === ev.id ? { outline: '2px solid #c9a84c', outlineOffset: 1 } : {}) }}
                     title={`${ev.customerName} · ${ev.title}\n${fmtTime(ev.startTime)}–${fmtTime(ev.endTime)}\n${ev.address || ''}`}
                     onClick={() => setSelectedEventId(ev.id)}>
-                    <div className="event-name">{ev.customerName || 'Customer'}</div>
+                    <div className="event-name">
+                      {ev.customerName || 'Customer'}
+                      {tanks != null && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: '#7dffaa' }}>🛢{tanks}</span>}
+                    </div>
                     <div className="event-title">{ev.title}</div>
                     <div className="event-time">{fmtTime(ev.startTime)}–{fmtTime(ev.endTime)}</div>
                   </div>
@@ -307,8 +362,76 @@ export default function CalendarPage({ today, initialBookings }) {
           </div>
         )}
 
+        {viewMode === 'week' && (
+          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+            {week.map((d) => {
+              const dd = new Date(d + 'T12:00:00')
+              const dayBookings = (rangeBookings[d] || []).slice().sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+              const dayTanks = dayBookings.reduce((s, ev) => s + (tankCountFromTitle(ev.title) || 0), 0)
+              const isToday = d === today_
+              return (
+                <div key={d} style={{ minHeight: 200, padding: 8, borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: `1px solid ${isToday ? 'rgba(125,255,170,0.4)' : 'rgba(122,171,130,0.12)'}`, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isToday ? '#7dffaa' : 'rgba(212,230,202,0.55)' }}>
+                      {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dd.getDay()]} {dd.getDate()}
+                    </div>
+                    {dayTanks > 0 && <span style={{ fontSize: '0.62rem', color: '#7dffaa', fontWeight: 800 }}>🛢{dayTanks}</span>}
+                  </div>
+                  {dayBookings.length === 0 && <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.2)', textAlign: 'center', padding: '20px 0' }}>—</div>}
+                  {dayBookings.map((ev) => {
+                    const tanks = tankCountFromTitle(ev.title)
+                    return (
+                      <div key={ev.id} onClick={() => setSelectedEventId(ev.id)}
+                        style={{ padding: '4px 6px', borderRadius: 4, background: 'rgba(189,154,255,0.16)', border: '1px solid rgba(189,154,255,0.3)', color: '#e6dcff', fontSize: '0.7rem', cursor: 'pointer', lineHeight: 1.3 }}>
+                        <div style={{ fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {fmtTime(ev.startTime)} {ev.customerName?.split(' ')[0] || '?'}
+                          {tanks != null && <span style={{ marginLeft: 4, color: '#7dffaa' }}>🛢{tanks}</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {viewMode === 'month' && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, fontSize: '0.7rem', fontWeight: 800, color: 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => <div key={d} style={{ textAlign: 'center', padding: '4px 0' }}>{d}</div>)}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+              {monthGrid.map((d) => {
+                const dd = new Date(d + 'T12:00:00')
+                const inMonth = dd.getMonth() === new Date(date + 'T12:00:00').getMonth()
+                const isToday = d === today_
+                const dayBookings = rangeBookings[d] || []
+                const dayTanks = dayBookings.reduce((s, ev) => s + (tankCountFromTitle(ev.title) || 0), 0)
+                return (
+                  <div key={d} onClick={() => { setDate(d); setViewMode('day') }}
+                    style={{ minHeight: 78, padding: 5, borderRadius: 5, background: inMonth ? 'rgba(255,255,255,0.02)' : 'transparent', border: `1px solid ${isToday ? 'rgba(125,255,170,0.45)' : 'rgba(122,171,130,0.08)'}`, cursor: 'pointer', opacity: inMonth ? 1 : 0.35 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: isToday ? 900 : 700, color: isToday ? '#7dffaa' : 'rgba(212,230,202,0.7)' }}>{dd.getDate()}</div>
+                      {dayTanks > 0 && <span style={{ fontSize: '0.6rem', color: '#7dffaa', fontWeight: 800 }}>🛢{dayTanks}</span>}
+                    </div>
+                    {dayBookings.slice(0, 3).map((ev) => (
+                      <div key={ev.id} style={{ fontSize: '0.62rem', color: '#e6dcff', background: 'rgba(189,154,255,0.16)', borderRadius: 3, padding: '1px 4px', marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {fmtTime(ev.startTime)} {ev.customerName?.split(' ')[0] || '?'}
+                      </div>
+                    ))}
+                    {dayBookings.length > 3 && (
+                      <div style={{ fontSize: '0.6rem', color: 'rgba(212,230,202,0.45)', textAlign: 'center', marginTop: 1 }}>+{dayBookings.length - 3} more</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {date >= today_ && (
-          <Link href="/admin/quote" className="fab" title="New booking via quote">+</Link>
+          <Link href="/admin/booking" className="fab" title="New booking">+</Link>
         )}
         {selectedEventId && (
           <DetailDock details={details} loading={detailsLoading}
@@ -362,6 +485,50 @@ function DetailDock({ details, loading, onClose }) {
   const email = d.email || p.email || ''
   const notes = cleanDescription(ev.description)
   const billingContact = p.billing_contact_name
+  // Parse Cal.com booking UID from reschedule URL (last path segment).
+  const bookingUid = (ev.rescheduleUrl || '').match(/\/(?:reschedule|booking)\/([^/?#]+)/)?.[1] || null
+
+  const [editMode, setEditMode] = useState(false)
+  const [newStart, setNewStart] = useState(ev.start ? new Date(ev.start).toISOString().slice(0, 16) : '')
+  const [editBusy, setEditBusy] = useState(false)
+  const [editMsg, setEditMsg] = useState(null)
+
+  async function saveReschedule() {
+    if (!newStart) return
+    setEditBusy(true); setEditMsg(null)
+    try {
+      const res = await fetch('/api/admin/reschedule-booking', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingUid, eventId: ev.id, newStartIso: new Date(newStart).toISOString() }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'Reschedule failed')
+      setEditMsg({ kind: 'ok', text: 'Rescheduled. Refresh to see updated times.' })
+      setEditMode(false)
+    } catch (err) {
+      setEditMsg({ kind: 'err', text: err.message })
+    } finally { setEditBusy(false) }
+  }
+
+  async function doCancel() {
+    if (!bookingUid) {
+      window.alert('Legacy Acuity event — cancel manually in Google Calendar.')
+      return
+    }
+    if (!window.confirm(`Cancel ${customerName}'s appointment?`)) return
+    setEditBusy(true); setEditMsg(null)
+    try {
+      const res = await fetch('/api/admin/cancel-booking', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: bookingUid, customerEmail: email, reason: 'Cancelled by admin', action: 'cancel' }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'Cancel failed')
+      setEditMsg({ kind: 'ok', text: 'Cancelled. Refresh to update.' })
+    } catch (err) {
+      setEditMsg({ kind: 'err', text: err.message })
+    } finally { setEditBusy(false) }
+  }
 
   return (
     <div style={{
@@ -466,6 +633,38 @@ function DetailDock({ details, loading, onClose }) {
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+            {!editMode && (
+              <button onClick={() => setEditMode(true)} disabled={editBusy}
+                style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.08)', color: '#c9a84c', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Nunito Sans, sans-serif' }}>
+                ✎ Edit appointment time
+              </button>
+            )}
+            {editMode && (
+              <div style={{ padding: 10, borderRadius: 6, border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.05)' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c9a84c', marginBottom: 6 }}>New start time (Central)</div>
+                <input type="datetime-local" value={newStart} onChange={(e) => setNewStart(e.target.value)}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', marginBottom: 8 }} />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={saveReschedule} disabled={editBusy || !newStart}
+                    style={{ flex: 1, padding: '7px 10px', borderRadius: 5, border: 'none', background: '#c9a84c', color: '#0d1a10', cursor: editBusy ? 'wait' : 'pointer', fontWeight: 900, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+                    {editBusy ? 'Saving…' : 'Save'}
+                  </button>
+                  <button onClick={() => { setEditMode(false); setEditMsg(null) }} disabled={editBusy}
+                    style={{ padding: '7px 12px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            <button onClick={doCancel} disabled={editBusy}
+              style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(255,128,128,0.35)', background: 'rgba(255,128,128,0.05)', color: '#ff8080', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Nunito Sans, sans-serif' }}>
+              ✕ Cancel appointment
+            </button>
+            {editMsg && (
+              <div style={{ padding: '6px 10px', borderRadius: 4, fontSize: '0.78rem', color: editMsg.kind === 'ok' ? '#7dffaa' : '#ff8080', background: editMsg.kind === 'ok' ? 'rgba(125,255,170,0.08)' : 'rgba(255,128,128,0.08)' }}>
+                {editMsg.text}
+              </div>
+            )}
             {ev.htmlLink && (
               <a href={ev.htmlLink} target="_blank" rel="noopener noreferrer"
                 style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(91,196,255,0.3)', color: '#5bc4ff', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>
@@ -475,7 +674,7 @@ function DetailDock({ details, loading, onClose }) {
             {ev.rescheduleUrl && !ev.isLegacyAcuity && (
               <a href={ev.rescheduleUrl} target="_blank" rel="noopener noreferrer"
                 style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', color: '#7dffaa', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>
-                Reschedule via Cal.com ↗
+                Customer self-reschedule link ↗
               </a>
             )}
             {email && (

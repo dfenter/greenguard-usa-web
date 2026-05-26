@@ -568,10 +568,14 @@ export default function Clients({ customers, prospects = [] }) {
 
   const filtered = customers.filter((c) => {
     const q = search.toLowerCase().trim()
+    const qDigits = q.replace(/\D/g, '')
     const matchSearch = !q || (
       (c.name || '').toLowerCase().includes(q) ||
       (c.email || '').toLowerCase().includes(q) ||
-      (c.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, ''))
+      (c.address || '').toLowerCase().includes(q) ||
+      // Only match phone when the query has digits — otherwise a text query
+      // like "carolyn" reduces to "" and matches every row.
+      (qDigits && (c.phone || '').replace(/\D/g, '').includes(qDigits))
     )
     const matchTab = tab === 'all'
       ? true

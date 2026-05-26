@@ -169,7 +169,14 @@ export async function getServerSideProps({ req, query, res }) {
         ? (match.responses?.name || match.title?.match(/and\s+(.+)$/)?.[1]?.trim() || null)
         : null
       const resolvedName = calName || hubspotNameByEmail[emailKey] || stripeNameByEmail[emailKey] || stop.customerName
-      const tanks = hubspotNameByEmail[emailKey + '__tanks'] || null
+      // Tanks: prefer the precomputed lookup, fall back to a fresh
+      // tanksForCustomer() call from the cached contact. This guards against
+      // any timing/cache quirk in the parallel Promise.all above.
+      let tanks = hubspotNameByEmail[emailKey + '__tanks'] || null
+      if (!tanks && hubspotContactByEmail[emailKey]) {
+        const t = tanksForCustomer(hubspotContactByEmail[emailKey].properties)
+        if (t > 0) tanks = t
+      }
       const serviceType = stop.serviceType || stop.customerName || ''
 
       // Compute prefill line items from Cal.com event-type + HubSpot contact.
@@ -695,9 +702,13 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
     // and SSR/JSON payloads. Same pattern as handleVideo.
     setUploading(true)
     try {
+      const headers = { 'Content-Type': file.type }
+      // Pass customer email so the photo-QA agent attaches its assessment
+      // note to the right HubSpot contact.
+      if (stop.email) headers['x-customer-email'] = stop.email
       const res = await fetch('/api/admin/upload-media', {
         method: 'POST',
-        headers: { 'Content-Type': file.type },
+        headers,
         body: file,
       })
       if (res.ok) {
@@ -717,9 +728,13 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
     const file = e.target.files?.[0]; if (!file) return
     setUploading(true)
     try {
+      const headers = { 'Content-Type': file.type }
+      if (stop.email) headers['x-customer-email'] = stop.email
+      // Video can't be vision-QA'd cheaply; skip the AI call
+      headers['x-skip-qa'] = '1'
       const res = await fetch('/api/admin/upload-media', {
         method: 'POST',
-        headers: { 'Content-Type': file.type },
+        headers,
         body: file,
       })
       if (res.ok) {

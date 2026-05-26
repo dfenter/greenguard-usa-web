@@ -1,6 +1,8 @@
-// Thin, fail-open Redis cache. If UPSTASH_REDIS_REST_URL/TOKEN aren't set
-// (local dev, missing config), every call passes through to the source
-// function — no errors, no behavior change, just no caching.
+// Thin, fail-open Redis cache. Works with either:
+//   · Vercel KV integration       → KV_REST_API_URL / KV_REST_API_TOKEN
+//   · Direct Upstash provisioning → UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
+// If neither set, every call passes through to the source function — no
+// errors, no behavior change, just no caching.
 //
 // Usage:
 //   const customers = await cached('stripe:customers:all', 60, () => listAllCustomers())
@@ -16,8 +18,8 @@ const { Redis } = require('@upstash/redis')
 let client = null
 function getClient() {
   if (client !== null) return client
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url || !token) {
     client = false
     return null
