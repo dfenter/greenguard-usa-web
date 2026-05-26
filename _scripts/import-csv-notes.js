@@ -42,7 +42,7 @@ const CONTACTS = [
   { first: 'Paige',     last: 'Carpenter',     phone: '+19167479564',  email: 'Paige@rossfamilyoffice.com',       address: '' },
   { first: 'Joaquin',   last: 'Casares',       phone: '',              email: 'Filename.exe@gmail.com',           address: '1728 Strobel Lane, Austin, TX 78748' },
   { first: 'Dan',       last: 'Case',          phone: '+17372307006',  email: 'dcase999@gmail.com',               address: '6106 Cary Dr, Austin, TX 78757' },
-  { first: 'Carolyn',   last: 'Cavanagh',      phone: '(985) 276-2056',email: 'alaina@atxfs.com',                 address: '3 Pleasant Cove, Austin, TX 78746' },
+  { first: 'Carolyn',   last: 'Kavanagh',      phone: '(985) 276-2056',email: 'alaina@atxfs.com',                 address: '3 Pleasant Cove, Austin, TX 78746' },
   { first: 'Louis',     last: 'Coldwell',      phone: '+12812358278',  email: 'andiandlouis@gmail.com',           address: '505 W Esparada Dr, Georgetown, TX 78628' },
   { first: 'Simon',     last: 'Corsin',        phone: '+16467322088',  email: 'simon@corsin.me',                  address: '1704 Mistywood Drive, Austin, TX 78745' },
   { first: 'Kyle',      last: 'Counselman',    phone: '+18639442001',  email: 'kylecounselman@gmail.com',         address: '' },

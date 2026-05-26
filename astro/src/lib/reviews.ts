@@ -41,7 +41,7 @@ function relativeToDays(s: string): number {
 }
 
 export function getLatestReviews(count = 3): Review[] {
-  const all: Review[] = [...(file.google?.reviews ?? [])];
+  const all: Review[] = [...(file.google?.reviews ?? [])].reverse();
   all.sort((a, b) => relativeToDays(a.time) - relativeToDays(b.time));
   return all.slice(0, count);
 }

@@ -41,14 +41,14 @@ const links = [
 
   <div
     id="nav-drawer"
-    class="fixed top-0 right-[-100%] w-72 h-full bg-bg-dark z-50 pt-16 px-6 pb-6 flex flex-col gap-1 transition-[right] duration-300 overflow-y-auto"
+    class="fixed top-0 right-0 w-72 h-full bg-bg-dark z-50 pt-16 px-6 pb-6 flex flex-col gap-1 translate-x-full transition-transform duration-300 overflow-y-auto"
   >
     <button
       id="nav-close"
       type="button"
-      class="absolute top-4 right-4 text-accent text-xl"
+      class="absolute top-4 right-4 text-accent text-xl leading-none"
       aria-label="Close menu"
-    >✕</button>
+    >&#x2715;</button>
     {links.map((l) => (
       <a href={l.href} class="text-cream/80 hover:text-accent py-2.5 border-b border-accent/10 text-sm">
         {l.label}
@@ -63,7 +63,20 @@ const links = [
 <script>
   const toggle = document.getElementById('nav-toggle');
   const drawer = document.getElementById('nav-drawer');
-  const close = document.getElementById('nav-close');
-  toggle?.addEventListener('click', () => drawer?.style.setProperty('right', '0'));
-  close?.addEventListener('click', () => drawer?.style.setProperty('right', '-100%'));
+  const close  = document.getElementById('nav-close');
+
+  function openDrawer()  { drawer?.classList.remove('translate-x-full'); }
+  function closeDrawer() { drawer?.classList.add('translate-x-full'); }
+
+  toggle?.addEventListener('click', openDrawer);
+  close?.addEventListener('click', closeDrawer);
+
+  // Close on backdrop click (anywhere outside the drawer)
+  document.addEventListener('click', (e) => {
+    if (!drawer?.classList.contains('translate-x-full') &&
+        !drawer?.contains(e.target as Node) &&
+        e.target !== toggle) {
+      closeDrawer();
+    }
+  });
 </script>

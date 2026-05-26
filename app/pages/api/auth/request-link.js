@@ -1,5 +1,5 @@
 const { stripe } = require('../../../lib/stripe')
-const { createMagicToken, isAdminEmail } = require('../../../lib/auth')
+const { createMagicToken, isAdminEmail, escapeStripeSearch } = require('../../../lib/auth')
 const { sendMagicLink } = require('../../../lib/email')
 
 // Rate limiting is handled upstream by middleware.js (Edge Middleware, IP-based, 5 req/15min)
@@ -8,7 +8,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
   const { email } = req.body || {}
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  // Strict RFC-ish email check; rejects quotes/backslashes/control chars
+  if (!email || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
     return res.status(400).json({ error: 'Valid email required' })
   }
 
@@ -17,8 +18,7 @@ export default async function handler(req, res) {
     let shouldSend = isAdmin
 
     if (!isAdmin) {
-      // Check Stripe customers and prospect whitelist
-      const customers = await stripe.customers.search({ query: `email:"${email}"`, limit: 1 })
+      const customers = await stripe.customers.search({ query: `email:"${escapeStripeSearch(email)}"`, limit: 1 })
       const isCustomer = customers.data.length > 0
       const guestEmails = (process.env.GUEST_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
       const isGuest = guestEmails.includes(email.toLowerCase())
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       await sendMagicLink(email, token)
     }
   } catch (err) {
-    console.error('request-link error:', err)
+    console.error('request-link error:', err.message)
   }
 
   // Always return 200 — avoids enumeration of customers or infrastructure state

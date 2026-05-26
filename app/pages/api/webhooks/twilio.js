@@ -1,38 +1,57 @@
-const { findContactByEmail, addNote, upsertContact } = require('../../../lib/hubspot')
+const { findContactByEmail, addNote } = require('../../../lib/hubspot')
 const { Client } = require('@hubspot/api-client')
+const twilio = require('twilio')
 
 /**
  * POST /api/webhooks/twilio
  * Inbound SMS receiver. Twilio posts application/x-www-form-urlencoded.
  *
- * We:
- *  1. Look up the HubSpot contact by phone number
- *  2. Append the message as a note tagged [SMS-IN] so it threads with [SMS-OUT]
- *  3. Reply with empty TwiML (no auto-reply); admin handles in portal
- *
- * Configure in Twilio console:
- *   Phone number > Messaging > A message comes in:
- *     POST https://portal.greenguard-usa.com/api/webhooks/twilio
+ * Verifies X-Twilio-Signature so attackers can't forge inbound SMS
+ * and pollute HubSpot timelines.
  */
 export const config = { api: { bodyParser: { type: 'application/x-www-form-urlencoded' } } }
+
+function publicUrl(req) {
+  // Twilio computes the signature over the EXACT URL it posted to.
+  // Prefer the env var; fall back to host header for local dev.
+  const base = process.env.TWILIO_WEBHOOK_URL
+    || `${(req.headers['x-forwarded-proto'] || 'https')}://${req.headers['x-forwarded-host'] || req.headers.host}`
+  return `${base.replace(/\/$/, '')}/api/webhooks/twilio`
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
-  // Parse form-urlencoded body
   const params = typeof req.body === 'string'
     ? Object.fromEntries(new URLSearchParams(req.body))
     : req.body || {}
+
+  // ── Signature verification ────────────────────────────────────────────
+  const authToken = process.env.TWILIO_AUTH_TOKEN
+  const signature = req.headers['x-twilio-signature']
+  if (!authToken) {
+    console.error('Twilio webhook: TWILIO_AUTH_TOKEN not configured')
+    return res.status(503).end()
+  }
+  if (!signature) {
+    return res.status(401).end()
+  }
+  const url = publicUrl(req)
+  const valid = twilio.validateRequest(authToken, signature, url, params)
+  if (!valid) {
+    console.warn('Twilio webhook: invalid signature for', url)
+    return res.status(401).end()
+  }
+  // ──────────────────────────────────────────────────────────────────────
+
   const from = params.From || ''
   const body = (params.Body || '').trim()
   const to = params.To || ''
   if (!from || !body) return reply(res, '')
 
-  // Find contact by phone
   let contact = null
   try {
     const client = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN })
-    // HubSpot phones often store as "(512) 555-1234" — normalise both sides to digits and match suffix
     const digits = from.replace(/\D/g, '')
     const tail = digits.slice(-10)
     const search = await client.crm.contacts.searchApi.doSearch({
@@ -45,7 +64,6 @@ export default async function handler(req, res) {
     console.error('Twilio webhook HubSpot lookup error:', e.message)
   }
 
-  // Record the inbound message as a tagged note for whoever owns the customer
   try {
     if (contact?.id) {
       await addNote(
@@ -53,7 +71,6 @@ export default async function handler(req, res) {
         `[SMS-IN] (${new Date().toISOString()}) From ${from} → ${to}:\n${body}`
       )
     } else {
-      // Unknown sender — still capture against admin contact so it's not lost
       const admin = await findContactByEmail(process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com').catch(() => null)
       if (admin?.id) {
         await addNote(admin.id, `[SMS-IN UNKNOWN] From ${from} → ${to}:\n${body}`)
@@ -63,7 +80,6 @@ export default async function handler(req, res) {
     console.error('Twilio webhook note error:', e.message)
   }
 
-  // Twilio expects valid TwiML; empty response = no auto-reply
   return reply(res, '<?xml version="1.0" encoding="UTF-8"?><Response></Response>')
 }
 

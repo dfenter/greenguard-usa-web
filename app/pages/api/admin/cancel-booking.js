@@ -1,4 +1,4 @@
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../../../lib/auth')
 const { cancelBooking } = require('../../../lib/calcom')
 const { stripe } = require('../../../lib/stripe')
 
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   let invoiceAction = null
   if (customerEmail) {
     try {
-      const search = await stripe.customers.search({ query: `email:"${customerEmail}"`, limit: 1 })
+      const search = await stripe.customers.search({ query: `email:"${escapeStripeSearch(customerEmail)}"`, limit: 1 })
       const customer = search.data[0]
       if (customer) {
         const [drafts, opens] = await Promise.all([

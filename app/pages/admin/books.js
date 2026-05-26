@@ -86,6 +86,10 @@ export default function BooksPage({ days, search, category, txs, summary, catego
               style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(91,196,255,0.35)', color: '#5bc4ff', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
               💬 Ask the Books
             </Link>
+            <Link href="/admin/books/upload"
+              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.35)', color: '#7dffaa', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
+              ⬆ Upload CSV
+            </Link>
             <button onClick={async () => {
               if (!window.confirm('Run Gemini categorizer on the next 25 Unknown transactions?')) return
               const res = await fetch('/api/admin/books-categorize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: 25 }) })

@@ -1,47 +1,56 @@
 ---
 import Base from '../layouts/Base.astro';
 
-const tiers = [
+const rentalTiers = [
   {
-    name: 'Standard',
-    price: 89.99,
-    note: '1 trap, ¼ acre',
+    name: 'Biogents · 1 Trap',
+    price: '159.99',
+    note: '¼ acre coverage',
     features: [
-      'Biogents Mosquitaire (rented)',
+      'Biogents BG-Mosquitaire (we own it)',
+      'Professional installation',
       'Monthly CO₂ tank exchange',
-      'Quarterly trap maintenance',
+      'All maintenance and repairs covered',
       'Month-to-month, no contract',
     ],
   },
   {
-    name: 'Premium',
-    price: 139.99,
-    note: '2 traps, ½ acre',
+    name: 'Biogents · 2 Traps',
+    price: '266.99',
+    note: '½ acre coverage · Best value',
     highlight: true,
     features: [
-      'Two Biogents traps (rented)',
-      'Monthly CO₂ delivery (both tanks)',
-      'Quarterly maintenance + BG Sweetscent',
-      'Priority scheduling',
+      '2 × Biogents BG-Mosquitaire (we own them)',
+      'Professional installation of both',
+      'Monthly CO₂ exchange for both tanks',
+      'All maintenance and repairs covered',
+      'Month-to-month, no contract',
     ],
   },
   {
-    name: 'Estate',
-    price: 189.99,
-    note: '1+ acre',
+    name: 'Mosqitter Grand',
+    price: '299.99',
+    note: 'Up to 1 acre per unit',
     features: [
-      'Mosqitter Grand trap (rented)',
-      'Monthly CO₂ delivery',
-      'Quarterly maintenance + tuning',
-      'Custom placement consultation',
+      'Mosqitter Grand stainless steel trap',
+      'Professional installation',
+      'Monthly CO₂ exchange included',
+      'Monthly attractant replacement',
+      'App setup, support, and all maintenance',
     ],
   },
+];
+
+const deliveryTiers = [
+  { name: 'Standard', price: '$89.99', note: '1 tank/mo', desc: 'Single CO₂ cylinder exchange, trap inspection, empty tank removed.' },
+  { name: 'Premium', price: '$139.99', note: '2 tanks/mo', desc: 'Mid-size cylinder, priority scheduling, suitable for two-trap systems.' },
+  { name: 'Estate', price: '$189.99', note: '3 tanks/mo', desc: 'Largest cylinder, first-available priority, ideal for Mosqitter Grand and multi-trap setups.' },
 ];
 ---
 
 <Base
   title="Mosquito Control Pricing Austin TX | GreenGuard USA"
-  description="Transparent monthly pricing for CO₂ mosquito trap rental and service in Austin. No contracts, no hidden fees."
+  description="Transparent monthly pricing for CO₂ mosquito trap rental and CO₂ delivery service in Austin. No contracts, no hidden fees."
 >
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
@@ -56,75 +65,129 @@ const tiers = [
     </div>
   </section>
 
-  <!-- TIERS -->
-  <section class="py-16 px-5">
-    <div class="max-w-container mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-      {tiers.map((t) => (
-        <div class={`card ${t.highlight ? 'border-gold/40 relative' : ''}`}>
-          {t.highlight && (
-            <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-bg-dark text-xs font-extrabold px-3 py-1 rounded-full tracking-widest uppercase">
-              Most Popular
-            </div>
-          )}
-          <div class="eyebrow mb-2">{t.name}</div>
-          <div class="text-4xl font-black text-white mb-1">
-            ${t.price}<span class="text-base text-cream/50 font-normal">/mo</span>
-          </div>
-          <div class="text-cream/55 text-sm mb-5">{t.note}</div>
-          <ul class="space-y-2.5 text-sm text-cream/80 mb-6">
-            {t.features.map((f) => (
-              <li class="flex items-start gap-2">
-                <span class="text-accent font-bold">✓</span>
-                <span>{f}</span>
-              </li>
-            ))}
-          </ul>
-          <a href="/book" class={t.highlight ? 'btn-gold w-full text-center' : 'btn-outline w-full text-center'}>
-            Get Started
-          </a>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <!-- TRY BEFORE -->
-  <section class="py-16 px-5 bg-bg-panel">
-    <div class="max-w-container mx-auto text-center">
-      <div class="eyebrow mb-2">Risk-Free</div>
-      <h2 class="text-2xl md:text-3xl font-black text-white mb-4">Try it before you commit</h2>
-      <p class="text-cream/75 max-w-2xl mx-auto mb-6">
-        We start with a free in-person property assessment. You'll see exactly where traps go,
-        how the CO₂ delivery works, and what to expect month-by-month. No pressure to sign up.
-      </p>
-      <a href="/book" class="btn-gold">Book Free Assessment</a>
-    </div>
-  </section>
-
-  <!-- WHAT'S INCLUDED -->
+  <!-- FULL-SERVICE RENTAL -->
   <section class="py-16 px-5">
     <div class="max-w-container mx-auto">
       <div class="text-center mb-10">
-        <div class="eyebrow mb-2">Everything Included</div>
-        <h2 class="text-2xl md:text-3xl font-black text-white">No surprise fees</h2>
+        <div class="eyebrow mb-2">Full-Service Trap Rental</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">We own it, maintain it, deliver CO₂.</h2>
+        <p class="text-cream/70 mt-3 max-w-2xl mx-auto">
+          No equipment to buy. Everything included: trap, CO₂, installation, and all maintenance.
+        </p>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {rentalTiers.map((t) => (
+          <div class={`card relative ${t.highlight ? 'border-gold/40' : ''}`}>
+            {t.highlight && (
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-bg-dark text-xs font-extrabold px-3 py-1 rounded-full tracking-widest uppercase">
+                Best Value
+              </div>
+            )}
+            <div class="eyebrow mb-2">{t.name}</div>
+            <div class="text-4xl font-black text-white mb-1">
+              ${t.price}<span class="text-base text-cream/50 font-normal">/mo</span>
+            </div>
+            <div class="text-cream/55 text-sm mb-5">{t.note}</div>
+            <ul class="space-y-2.5 text-sm text-cream/80 mb-6">
+              {t.features.map((f) => (
+                <li class="flex items-start gap-2">
+                  <span class="text-accent font-bold">✓</span>
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="/traprental" class={t.highlight ? 'btn-gold w-full text-center' : 'btn-outline w-full text-center'}>
+              See Full Details
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CO2 DELIVERY ONLY -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">CO₂ Delivery Only</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Already own a trap?</h2>
+        <p class="text-cream/70 mt-3 max-w-2xl mx-auto">
+          Monthly CO₂ cylinder exchange, trap inspection, and empty tank removal. For customers who
+          own their Biogents or Mosqitter Grand trap.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        {deliveryTiers.map((t) => (
+          <div class="card">
+            <div class="eyebrow mb-2">{t.name}</div>
+            <div class="text-3xl font-black text-white mb-1">
+              {t.price}<span class="text-base text-cream/50 font-normal">/mo</span>
+            </div>
+            <div class="text-cream/55 text-xs mb-4">{t.note}</div>
+            <p class="text-cream/65 text-sm leading-relaxed">{t.desc}</p>
+          </div>
+        ))}
+      </div>
+      <div class="text-center">
+        <a href="/co2delivery" class="btn-outline">CO₂ Delivery Details</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADD-ONS -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Add-Ons</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Optional enhancements</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto">
         <div class="card">
-          <div class="text-white font-bold mb-2">✓ Trap rental</div>
-          <p class="text-cream/65 text-sm">No upfront equipment cost. We own and maintain the trap.</p>
+          <div class="text-white font-bold mb-1">Barrier Treatment</div>
+          <div class="text-gold font-black text-xl mb-2">$49.99 <span class="text-sm text-cream/50 font-normal">per treatment</span></div>
+          <p class="text-cream/65 text-sm leading-relaxed">Plant-based scent-masking formula that amplifies your CO₂ trap. Available exclusively to GreenGuard USA CO₂ trap customers.</p>
+          <a href="/barrier" class="text-accent text-xs underline mt-3 inline-block">Learn more</a>
         </div>
         <div class="card">
-          <div class="text-white font-bold mb-2">✓ Monthly CO₂ tank exchange</div>
-          <p class="text-cream/65 text-sm">Fresh tank dropped off every month. We take the empty.</p>
-        </div>
-        <div class="card">
-          <div class="text-white font-bold mb-2">✓ Quarterly maintenance</div>
-          <p class="text-cream/65 text-sm">Net cleaning, lure refresh, and placement tuning.</p>
-        </div>
-        <div class="card">
-          <div class="text-white font-bold mb-2">✓ Tax included on invoice</div>
-          <p class="text-cream/65 text-sm">8.25% Texas tax is shown clearly. No hidden line items.</p>
+          <div class="text-white font-bold mb-1">Free Property Assessment</div>
+          <div class="text-gold font-black text-xl mb-2">$0</div>
+          <p class="text-cream/65 text-sm leading-relaxed">In-person property walkthrough, trap placement recommendation, and custom coverage plan. No obligation to sign up.</p>
+          <a href="/book" class="text-accent text-xs underline mt-3 inline-block">Book now</a>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- WHAT'S ALWAYS INCLUDED -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-container mx-auto text-center">
+      <div class="eyebrow mb-2">No Surprise Fees</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-4">What is always included</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mt-8">
+        {[
+          { title: 'No upfront equipment cost', body: 'We own and maintain the trap on rental plans.' },
+          { title: 'Monthly CO₂ tank exchange', body: 'Fresh tank delivered every month. We take the empty.' },
+          { title: 'All maintenance and repairs', body: 'Our equipment, our responsibility.' },
+          { title: 'Tax shown on every invoice', body: '8.25% Texas sales tax. No hidden line items.' },
+        ].map((item) => (
+          <div class="card text-left">
+            <div class="text-white font-bold mb-2 text-sm">✓ {item.title}</div>
+            <p class="text-cream/65 text-sm">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 px-5 text-center">
+    <div class="max-w-xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-4">Try it before you commit</h2>
+      <p class="text-cream/75 max-w-2xl mx-auto mb-6">
+        We start with a free in-person property assessment. You will see exactly where traps go,
+        how the CO₂ delivery works, and what to expect month by month. No pressure to sign up.
+      </p>
+      <a href="/book" class="btn-gold">Book Free Assessment</a>
     </div>
   </section>
 </Base>

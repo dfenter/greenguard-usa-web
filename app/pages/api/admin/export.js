@@ -1,7 +1,5 @@
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { requireOwner } = require('../../../lib/auth')
 const { listAllCustomers, listAllInvoicesSince } = require('../../../lib/stripe')
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 function toCSV(rows, headers) {
   const escape = (v) => {
@@ -12,8 +10,8 @@ function toCSV(rows, headers) {
 }
 
 export default async function handler(req, res) {
-  const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(403).end()
+  const session = await requireOwner(req, res)
+  if (!session) return
 
   const { type } = req.query
 

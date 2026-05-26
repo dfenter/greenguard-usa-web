@@ -269,6 +269,10 @@ const ADDONS = [
   { label: 'CO₂ Tank & Timer Rental',     sku: 'CO2-ADDON',     price: 124.99 },
   { label: 'BG Sweetscent',               sku: 'BG-SWEETSCENT', price:  18.99 },
   { label: 'Generic Bait Pack',           sku: 'BAIT',          price:  10.00 },
+  { label: 'Bucket of Doom',              sku: 'BUCKET-OF-DOOM',price:  29.99 },
+  { label: 'Inner Trap',                  sku: 'INNER-TRAP',    price:   5.00 },
+  { label: 'Biogents 30ft Extension',     sku: 'BG-EXT-30',     price:  18.99 },
+  { label: 'White Trap Mesh',             sku: 'TRAP-MESH-WHITE', price: 7.00 },
   { label: 'Tank Straps',                 sku: 'TANK-STRAPS',   price:  12.99 },
   { label: 'Larvicide Tablet',            sku: null,            price:   4.00 },
   { label: 'Weekend Surcharge',           sku: 'WKD-SURCH',     price:  25.00 },
@@ -283,7 +287,7 @@ const PRODUCTS_SOLD = [
   { label: 'CO₂ Regulator',                       sku: null, price: 119.99  },
   { label: 'CO₂ Tank Washer',                     sku: null, price:   5.00  },
   { label: 'Biogents Power Supply',               sku: null, price:  36.99  },
-  { label: 'Biogents Power Supply 30ft Extension',sku: null, price:  16.99  },
+  { label: 'Biogents Power Supply 30ft Extension',sku: null, price:  18.99  },
   { label: 'Biogents Trap Net',                   sku: null, price:   6.99  },
   { label: 'Biogents Funnel',                     sku: null, price:  10.50  },
   { label: '9V Batteries',                        sku: null, price:   6.00  },
@@ -1046,20 +1050,20 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
           <div style={{ borderTop: '1px solid rgba(122,171,130,0.1)', paddingTop: 14 }}>
             <MultiSelectSection title="Services Performed" catalog={SERVICES}
               qtys={state.serviceQtys} total={svcTotalWithBundle} disabled={isDone}
-              onChange={(label, n) => onUpdate({ serviceQtys: { ...state.serviceQtys, [label]: n } })}
+              onChange={(label, n) => onUpdate((s) => ({ serviceQtys: { ...s.serviceQtys, [label]: n } }))}
               onOptionalToggle={{ value: !!state.tankHookupOptIn, set: (v) => onUpdate({ tankHookupOptIn: v }) }} />
 
             <MultiSelectSection title="Products Sold" catalog={PRODUCTS_SOLD}
               qtys={state.productQtys} total={prodTotal} disabled={isDone}
-              onChange={(label, n) => onUpdate({ productQtys: { ...state.productQtys, [label]: n } })} />
+              onChange={(label, n) => onUpdate((s) => ({ productQtys: { ...s.productQtys, [label]: n } }))} />
 
             <MultiSelectSection title="Equipment Installed" catalog={EQUIPMENT}
               qtys={state.equipQtys} total={eqTotal} disabled={isDone}
-              onChange={(label, n) => onUpdate({ equipQtys: { ...state.equipQtys, [label]: n } })} />
+              onChange={(label, n) => onUpdate((s) => ({ equipQtys: { ...s.equipQtys, [label]: n } }))} />
 
             <MultiSelectSection title="Add-Ons Applied" catalog={ADDONS}
               qtys={state.addonQtys} total={addTotal} disabled={isDone}
-              onChange={(label, n) => onUpdate({ addonQtys: { ...state.addonQtys, [label]: n } })} />
+              onChange={(label, n) => onUpdate((s) => ({ addonQtys: { ...s.addonQtys, [label]: n } }))} />
 
             {/* Grand total */}
             <div style={{ background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.15)', borderRadius: 8, padding: '12px 16px', marginTop: 4, marginBottom: isActive ? 16 : 0 }}>
@@ -1204,8 +1208,11 @@ const SKU_TO_SECTION = (() => {
 })()
 
 function applyPrefill(prefill) {
-  const next = { serviceQtys: {}, equipQtys: {}, addonQtys: {}, productQtys: {} }
+  const next = { serviceQtys: {}, equipQtys: {}, addonQtys: {}, productQtys: {}, tankHookupOptIn: false }
   for (const { sku, qty } of (prefill || [])) {
+    // TANK-HOOKUP-MAINT has no catalog row — it's a checkbox under the tank
+    // refill line. Treat its presence as the opt-in signal.
+    if (sku === 'TANK-HOOKUP-MAINT') { next.tankHookupOptIn = true; continue }
     const target = SKU_TO_SECTION[sku]
     if (!target || !qty) continue
     next[target.field][target.label] = (next[target.field][target.label] || 0) + qty
@@ -1223,7 +1230,6 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
       date: stop.bookingDate || (stop.startTime ? new Date(stop.startTime).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }) : selectedDate) || today,
       arrivalTime: '', departureTime: '',
       ...applyPrefill(stop.prefill),
-      tankHookupOptIn: false,
       notes: '', photoUrl: null, videoUrl: null, submitting: false, error: null,
       showEmailModal: false, invoiceId: null, invoiceUrl: null, grandTotal: 0,
     }))
@@ -1254,7 +1260,15 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
   }, [stops])
 
   function update(idx, patch) {
-    setStates((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)))
+    // patch can be a partial object or a functional updater (prev) => partial.
+    // Functional form lets callers compute the patch from the freshest state
+    // and avoids the stale-closure trap that otherwise loses sibling fields
+    // (e.g. selecting Barrier dropping tankHookupOptIn=true on the floor).
+    setStates((prev) => prev.map((s, i) => {
+      if (i !== idx) return s
+      const p = typeof patch === 'function' ? patch(s) : patch
+      return { ...s, ...p }
+    }))
   }
 
   function handleDateChange(e) {

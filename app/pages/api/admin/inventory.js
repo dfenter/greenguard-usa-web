@@ -1,8 +1,7 @@
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { requireAdmin } = require('../../../lib/auth')
 const { upsertContact, addNote, findContactByEmail, getNotesForContact } = require('../../../lib/hubspot')
 const { sendInventoryReport } = require('../../../lib/email')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 const INVENTORY_EMAIL = 'inventory@greenguard-usa.com'
 
 const FIELD_LABELS = {
@@ -25,10 +24,8 @@ async function getOrCreateInventoryContact() {
 }
 
 export default async function handler(req, res) {
-  const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  const session = await requireAdmin(req, res)
+  if (!session) return
 
   if (req.method === 'GET') {
     try {

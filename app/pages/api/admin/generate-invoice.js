@@ -103,11 +103,18 @@ export default async function handler(req, res) {
   if (signatureUrl) invoiceMeta.signature_url = signatureUrl
   // 5-day auto-approve safety net. The /api/cron/billing-run job finalizes
   // drafts whose billing_date is today or earlier, so a forgotten draft
-  // still goes out (and either auto-charges the card on file or gets
-  // emailed to the customer). Manually clicking Send bypasses the wait.
-  const base = serviceDate ? new Date(serviceDate + 'T12:00:00') : new Date()
-  base.setDate(base.getDate() + 5)
-  invoiceMeta.billing_date = base.toISOString().slice(0, 10)
+  // still goes out (auto-charge card on file, or email hosted link).
+  // Manually clicking Send bypasses the wait.
+  //
+  // Anchor: service_date + 5 days. Floor: tomorrow — prevents an old
+  // service_date (logging a visit weeks late) from triggering same-day
+  // auto-billing because billing_date computed to a date in the past.
+  const fiveAfterService = serviceDate ? new Date(serviceDate + 'T12:00:00') : new Date()
+  fiveAfterService.setDate(fiveAfterService.getDate() + 5)
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const billDate = fiveAfterService > tomorrow ? fiveAfterService : tomorrow
+  invoiceMeta.billing_date = billDate.toISOString().slice(0, 10)
 
   let invoice = existingInvoice
   if (!invoice) {
@@ -159,17 +166,38 @@ export default async function handler(req, res) {
   }
 
   // Add the actual line items from rounds, attached directly to invoice.id.
+  // Filter rule: keep items with qty>0 AND (price>0 OR a SKU that maps to a
+  // Stripe price). SKU-priced items (e.g. BG1 monthly rental at $159.99) come
+  // through from Rounds with price=0 because the dollar value lives in Stripe;
+  // we still want them on the invoice.
   const errors = []
-  const billableItems = lineItems.filter((i) => i.qty > 0 && i.price > 0)
+  const billableItems = lineItems.filter(
+    (i) => i.qty > 0 && (i.price > 0 || (i.sku && process.env[SKU_TO_ENV[i.sku]]))
+  )
 
   for (const item of billableItems) {
     const priceId = item.sku ? process.env[SKU_TO_ENV[item.sku]] : null
     try {
       if (priceId) {
-        await stripe.invoiceItems.create({
-          customer: customer.id, invoice: invoice.id,
-          price: priceId, quantity: item.qty,
-        })
+        // The env-mapped Stripe price may be either one-time or recurring.
+        // Recurring prices belong to subscriptions and can't be attached as
+        // invoice items. Detect and convert: charge unit_amount as a one-time
+        // ad-hoc item with the price's product name as description.
+        const price = await stripe.prices.retrieve(priceId, { expand: ['product'] })
+        if (price.type === 'recurring') {
+          const productName = price.product?.name || item.label || item.sku
+          await stripe.invoiceItems.create({
+            customer: customer.id, invoice: invoice.id,
+            amount: (price.unit_amount || 0) * item.qty,
+            currency: price.currency || 'usd',
+            description: item.qty > 1 ? `${productName} ×${item.qty}` : productName,
+          })
+        } else {
+          await stripe.invoiceItems.create({
+            customer: customer.id, invoice: invoice.id,
+            price: priceId, quantity: item.qty,
+          })
+        }
       } else {
         await stripe.invoiceItems.create({
           customer: customer.id, invoice: invoice.id,

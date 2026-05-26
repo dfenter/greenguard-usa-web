@@ -1,6 +1,7 @@
 const { stripe } = require('../../../lib/stripe')
 const { upsertContact, addNote, findContactByEmail } = require('../../../lib/hubspot')
 const { sendT0Email, markStage, clearStages } = require('../../../lib/payment-resurrection')
+const { notifyAdmin } = require('../../../lib/purchase-notify')
 
 export const config = { api: { bodyParser: false } }
 
@@ -12,6 +13,8 @@ async function readRawBody(req) {
     req.on('error', reject)
   })
 }
+
+const DASH = 'https://dashboard.stripe.com'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -40,6 +43,21 @@ export default async function handler(req, res) {
             )
           }
         }
+        // Admin notification (email + SMS)
+        await notifyAdmin({
+          source: 'Invoice payment',
+          customerName: customer.name,
+          customerEmail: customer.email,
+          customerPhone: customer.phone,
+          amount: invoice.amount_paid,
+          currency: invoice.currency,
+          items: (invoice.lines?.data || []).map((l) => ({
+            description: l.description || '',
+            amount: l.amount,
+          })),
+          stripeUrl: `${DASH}/invoices/${invoice.id}`,
+          ref: invoice.id,
+        }).catch((e) => console.error('notify invoice paid:', e.message))
         // Wipe any payment-resurrection state so a future failure restarts the clock
         await clearStages(invoice.id).catch(() => {})
         break
@@ -62,7 +80,6 @@ export default async function handler(req, res) {
             })
           }
         }
-        // Skip if we've already sent T+0 (Stripe retries trigger duplicate webhooks)
         if (!invoice.metadata?.payfail_t0_at) {
           try {
             await sendT0Email(invoice, customer)
@@ -71,6 +88,54 @@ export default async function handler(req, res) {
             console.error('payment-resurrection T0 send failed:', e.message)
           }
         }
+        break
+      }
+
+      case 'checkout.session.completed': {
+        // Fires for Payment Links, /api/quote/checkout, and Stripe-Dashboard
+        // ad-hoc checkouts. Only notify if it actually resulted in payment
+        // (Stripe still fires this for $0 sessions etc.).
+        const session = event.data.object
+        if (session.payment_status !== 'paid') break
+
+        // Expand line items for the email
+        let items = []
+        try {
+          const li = await stripe.checkout.sessions.listLineItems(session.id, { limit: 20 })
+          items = (li.data || []).map((l) => ({ description: l.description, amount: l.amount_total }))
+        } catch {}
+
+        const customerName = session.customer_details?.name || ''
+        const customerEmail = session.customer_details?.email || session.customer_email || ''
+        const customerPhone = session.customer_details?.phone || ''
+
+        // HubSpot note (auto-create contact if it's a new buyer via Payment Link)
+        if (customerEmail) {
+          try {
+            let contact = await findContactByEmail(customerEmail).catch(() => null)
+            if (!contact?.id) {
+              const created = await upsertContact({ email: customerEmail, name: customerName })
+              contact = { id: created.id }
+            }
+            await addNote(
+              contact.id,
+              `[PURCHASE] $${(session.amount_total / 100).toFixed(2)} via ${session.payment_link ? 'Payment Link ' + session.payment_link : 'Checkout'} — session ${session.id}`
+            )
+          } catch (e) { console.error('checkout HubSpot note:', e.message) }
+        }
+
+        // Admin notification (this is the new bit)
+        await notifyAdmin({
+          source: session.payment_link ? 'Payment Link' : (session.metadata?.source === 'quote' ? 'Quote checkout' : 'Stripe Checkout'),
+          customerName,
+          customerEmail,
+          customerPhone,
+          amount: session.amount_total,
+          currency: session.currency,
+          items,
+          stripeUrl: `${DASH}/payments/${session.payment_intent}`,
+          ref: session.id,
+        }).catch((e) => console.error('notify checkout completed:', e.message))
         break
       }
 

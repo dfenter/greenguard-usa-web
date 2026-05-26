@@ -1,0 +1,308 @@
+---
+import Base from '../layouts/Base.astro';
+
+const biogensTiers = [
+  {
+    name: 'Biogents Rental · 1 Trap',
+    price: '159.99',
+    note: '1 × Biogents BG-Mosquitaire CO₂ trap',
+    features: [
+      'Professional installation included',
+      'Monthly CO₂ tank exchange',
+      'All maintenance and repairs covered',
+      'Ideal for standard residential yards',
+    ],
+  },
+  {
+    name: 'Biogents Rental · 2 Traps',
+    price: '266.99',
+    note: '$133.50 per trap · Save $52.99/mo vs. two singles',
+    highlight: true,
+    features: [
+      '2 × Biogents BG-Mosquitaire CO₂ traps',
+      'Professional installation of both traps',
+      'Monthly CO₂ exchange for both tanks',
+      'All maintenance and repairs covered',
+      'Ideal for larger lots or front and back yard',
+    ],
+  },
+  {
+    name: 'Biogents Rental · 3 Traps',
+    price: '399.99',
+    note: '$133.33 per trap · Maximum residential coverage',
+    features: [
+      '3 × Biogents BG-Mosquitaire CO₂ traps',
+      'Professional installation of all 3 traps',
+      'Monthly CO₂ exchange for all tanks',
+      'All maintenance and repairs covered',
+      'Ideal for large properties',
+    ],
+  },
+];
+
+const included = [
+  {
+    title: 'Professional Trap and Installation',
+    body: 'We supply and professionally install your Biogents or Mosqitter Grand trap in the optimal location for maximum coverage. No tools, no effort on your part.',
+  },
+  {
+    title: 'Monthly CO₂ Delivery',
+    body: 'Fresh CO₂ tanks delivered to your door every month by our all-electric EV fleet. We swap the empty, you never run out, the trap never stops.',
+  },
+  {
+    title: 'All Maintenance and Repairs',
+    body: 'If anything needs attention, a worn catch net, a component issue, seasonal repositioning, we handle it. Equipment is our responsibility, not yours.',
+  },
+  {
+    title: 'Attractant Refills',
+    body: 'For Mosqitter Grand rentals, monthly Mosqilure scent attractant replacements are included. The four-way attraction system stays at peak performance all season.',
+  },
+  {
+    title: 'App Setup and Support',
+    body: 'For Mosqitter Grand rentals, we configure the app, walk you through the controls, and provide ongoing support. You will always be able to reach us.',
+  },
+  {
+    title: 'Seasonal Adjustments',
+    body: "Mosquito pressure shifts with Austin's seasons. We adjust trap placement and settings to keep coverage optimal year-round at no extra charge.",
+  },
+];
+
+const steps = [
+  {
+    num: '1',
+    title: 'Free Consultation',
+    body: 'We visit your property, assess mosquito pressure zones, and recommend the right trap and coverage plan at no cost.',
+  },
+  {
+    num: '2',
+    title: 'We Install Everything',
+    body: 'Our team installs your trap in the optimal spot, connects the CO₂ supply, and configures the app if applicable. Under an hour.',
+  },
+  {
+    num: '3',
+    title: 'Monthly CO₂ Delivery',
+    body: 'Fresh CO₂ arrives every month via our EV fleet. We swap the empty tank and you never run out. Trap runs 24/7.',
+  },
+  {
+    num: '4',
+    title: 'Enjoy Your Yard',
+    body: 'Fewer bites within days. Breeding cycle breaks within two to three weeks. We handle everything else from here.',
+  },
+];
+
+const objections = [
+  {
+    q: 'Will it actually work on my property?',
+    a: 'CO₂ trapping has been scientifically validated across millions of deployments worldwide, with up to 93% bite reduction in independent studies. If our free consultation determines your property is not a good fit for a trap, we will tell you. We would rather be honest than sign you up for something that will not perform.',
+  },
+  {
+    q: 'How long before I notice a difference?',
+    a: 'Most customers notice significantly fewer bites within the first 7 to 10 days. Within two to three weeks, the mosquito breeding cycle begins to collapse, meaning you are not just repelling mosquitoes, you are reducing the total population around your property.',
+  },
+  {
+    q: 'What if I want to cancel?',
+    a: 'We operate month-to-month with no long-term contracts. If you want to stop, just let us know. We will come collect the equipment with no penalty or hassle. We keep customers because the service works, not because they are locked in.',
+  },
+  {
+    q: 'Is it safe around my kids, dogs, and garden?',
+    a: 'Completely. CO₂ traps use zero pesticides or sprays. They target only blood-seeking female mosquitoes. Bees, butterflies, pets, and children are entirely safe around both the Biogents and Mosqitter Grand traps at all times.',
+  },
+  {
+    q: 'What happens if the trap breaks or needs service?',
+    a: 'It is our equipment, our problem. Any maintenance, repairs, or replacements are covered as part of your rental. You will never pay extra for a service visit. Just contact us and we handle it, typically within 24 to 48 hours.',
+  },
+  {
+    q: 'Do I need to do anything day-to-day?',
+    a: 'Nothing. The trap runs continuously and silently. Your CO₂ arrives monthly. The only thing you might do is check the catch net occasionally, or opt into the full-service rental where we handle that too.',
+  },
+];
+---
+
+<Base
+  title="CO₂ Mosquito Trap Rental Austin TX | GreenGuard USA"
+  description="Rent a professional CO₂ mosquito trap from GreenGuard USA. We own it, maintain it, and deliver CO₂ monthly. Pesticide-free, month-to-month, no contracts."
+>
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-2">Trap Rental Program · Austin, TX</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        We own it. <span class="text-accent">You enjoy it.</span>
+      </h1>
+      <p class="text-cream/80 text-base md:text-lg leading-relaxed mb-6">
+        Rent a professional CO₂ mosquito trap from GreenGuard USA. We handle the equipment, CO₂ refills,
+        maintenance, and service. You get a mosquito-free yard with zero hassle and zero pesticides.
+      </p>
+      <a href="/book" class="btn-gold">Book Free Consultation</a>
+      <div class="flex gap-2 justify-center flex-wrap mt-5 text-xs">
+        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">No long-term contracts</span>
+        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">No equipment to buy</span>
+        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">CO₂ included</span>
+        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">Month-to-month</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT'S INCLUDED -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">What is Included</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Everything done for you.</h2>
+        <p class="text-cream/70 mt-3 max-w-2xl mx-auto">
+          Every rental plan covers the full service, not just the hardware. You should not have to worry about anything.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {included.map((item) => (
+          <div class="card">
+            <div class="text-white font-bold mb-2">{item.title}</div>
+            <p class="text-cream/70 text-sm leading-relaxed">{item.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- BIOGENTS PRICING -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Rental Plans</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Biogents BG-Mosquitaire</h2>
+        <p class="text-cream/70 mt-3 max-w-2xl mx-auto">
+          Covers up to one quarter acre per trap. Best for standard suburban properties. Most customers
+          start with one or two.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {biogensTiers.map((t) => (
+          <div class={`card relative ${t.highlight ? 'border-gold/40' : ''}`}>
+            {t.highlight && (
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-bg-dark text-xs font-extrabold px-3 py-1 rounded-full tracking-widest uppercase">
+                Best Value
+              </div>
+            )}
+            <div class="eyebrow mb-2">{t.name}</div>
+            <div class="text-4xl font-black text-white mb-1">
+              ${t.price}<span class="text-base text-cream/50 font-normal">/mo</span>
+            </div>
+            <div class="text-cream/55 text-xs mb-5">{t.note}</div>
+            <ul class="space-y-2.5 text-sm text-cream/80 mb-6">
+              {t.features.map((f) => (
+                <li class="flex items-start gap-2">
+                  <span class="text-accent font-bold">✓</span>
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="/book" class={t.highlight ? 'btn-gold w-full text-center' : 'btn-outline w-full text-center'}>
+              Get Started
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- MOSQITTER GRAND -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2 text-gold">Mosqitter Grand</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Maximum Coverage</h2>
+        <p class="text-cream/70 mt-3 max-w-2xl mx-auto">
+          Engineered for serious mosquito problems on large properties, commercial patios, and estates.
+          Covers up to one acre per unit.
+        </p>
+      </div>
+      <div class="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <div class="card border-gold/30">
+          <div class="eyebrow mb-2 text-gold">Mosqitter Grand Rental</div>
+          <div class="text-4xl font-black text-white mb-1">
+            $299.99<span class="text-base text-cream/50 font-normal">/mo per unit</span>
+          </div>
+          <div class="text-cream/55 text-xs mb-5">Covers up to 1 acre · Add units for larger properties</div>
+          <ul class="space-y-2.5 text-sm text-cream/80 mb-6">
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>1 × Mosqitter Grand (stainless steel)</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>Professional installation and placement</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>Monthly CO₂ tank exchange included</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>Monthly Mosqilure attractant replacement</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>Catch net replacement as needed</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>App setup, configuration and support</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>All maintenance and repairs covered</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>Seasonal placement adjustments</span></li>
+          </ul>
+          <a href="/book" class="btn-gold w-full text-center">Reserve a Grand</a>
+        </div>
+        <div class="card">
+          <div class="eyebrow mb-3">Why the Mosqitter Grand?</div>
+          <ul class="space-y-2.5 text-sm text-cream/80">
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>Four-way attraction: CO₂, heat, UV, and scent bait</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>93% bite reduction in independent testing</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>Covers up to 1 acre per unit</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>Stainless steel built for permanent outdoor use</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>App-controlled with scheduling and modes</span></li>
+            <li class="flex items-start gap-2"><span class="text-accent font-bold">✓</span><span>Breaks the mosquito lifecycle</span></li>
+          </ul>
+          <p class="text-cream/55 text-xs mt-5 leading-relaxed">
+            Need more than one acre covered? We can install multiple Grand units at the per-unit rate.
+            Contact us for a multi-unit property assessment.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">The Process</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Up and running in four steps</h2>
+        <p class="text-cream/70 mt-3">From first call to mosquito-free yard in as little as a few days.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+        {steps.map((s) => (
+          <div class="card">
+            <div class="text-gold font-extrabold text-sm mb-2">Step {s.num}</div>
+            <div class="text-white font-bold mb-2">{s.title}</div>
+            <p class="text-cream/65 text-sm leading-relaxed">{s.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- OBJECTIONS -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Common Questions</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">We have heard every concern.</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {objections.map((o) => (
+          <div class="card">
+            <div class="text-white font-bold mb-2 text-sm">"{o.q}"</div>
+            <p class="text-cream/70 text-sm leading-relaxed">{o.a}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 px-5 text-center">
+    <div class="max-w-xl mx-auto">
+      <div class="eyebrow mb-3">Free · No Commitment · Austin Area</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-4">Book your free consultation.</h2>
+      <p class="text-cream/75 mb-6">
+        Tell us about your property and we will recommend the right trap, plan, and coverage, in person,
+        at no cost. Most consultations take under 30 minutes.
+      </p>
+      <a href="/book" class="btn-gold">Book My Free Consultation</a>
+      <div class="text-cream/45 text-xs mt-4">or call or text 512-560-4129</div>
+    </div>
+  </section>
+</Base>

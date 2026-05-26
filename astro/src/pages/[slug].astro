@@ -1,0 +1,160 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const areas = await getCollection('areas');
+  return areas.map((entry) => ({
+    params: { slug: `mosquito-control-${entry.slug}` },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const { title, city, county, description, localDetail } = entry.data;
+---
+
+<Base
+  title={`${title} | GreenGuard USA`}
+  description={`Pesticide-free CO₂ mosquito control in ${city}, ${county}. GreenGuard USA. No contracts, all-electric fleet.`}
+>
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-2">Serving {city}, {county}</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        {title}
+      </h1>
+      <p class="text-cream/80 text-base md:text-lg leading-relaxed mb-6">
+        {description}
+      </p>
+      <a href="/book" class="btn-gold">Book Free Consultation</a>
+    </div>
+  </section>
+
+  <!-- TRUST PILLS -->
+  <section class="py-6 px-5 bg-bg-panel border-b border-accent/10">
+    <div class="max-w-container mx-auto flex gap-3 justify-center flex-wrap text-xs">
+      <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">93% Proven bite reduction</span>
+      <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">Zero pesticides</span>
+      <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">24/7 silent protection</span>
+      <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">All-electric EV fleet</span>
+    </div>
+  </section>
+
+  <!-- LOCAL CONDITIONS -->
+  <section class="py-16 px-5">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3">Local Mosquito Conditions</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-6">
+        Why {city} has serious mosquito pressure
+      </h2>
+      <p class="text-cream/80 leading-relaxed text-base">{localDetail}</p>
+    </div>
+  </section>
+
+  <!-- WHY GREENGUARD -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3">Why GreenGuard USA</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-6">
+        A smarter solution for <span class="text-accent">{city} homeowners</span>
+      </h2>
+      <div class="space-y-4 text-cream/80 leading-relaxed mb-8">
+        <p>
+          Conventional spray treatments use broad-spectrum insecticides that drift, coat foliage, and
+          kill non-target insects including bees and beneficial predators. CO₂ trapping is fundamentally
+          different. It targets only blood-seeking female mosquitoes using the same CO₂ signal they
+          rely on to locate hosts. Nothing is released into your environment.
+        </p>
+      </div>
+      <ul class="space-y-3">
+        {[
+          'Targets only blood-seeking female mosquitoes. Bees and butterflies are completely unaffected.',
+          'No spray drift onto native plants, garden beds, or vegetable gardens.',
+          'All-electric EV fleet delivery, zero emissions to your door.',
+          'Month-to-month service, no long-term contracts.',
+          'Professional placement consultation included at no cost.',
+        ].map((item) => (
+          <li class="flex items-start gap-3 text-cream/80 text-sm">
+            <span class="text-accent font-bold flex-shrink-0">✓</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- SERVICES IN THIS AREA -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Our Services</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">
+          What we offer in <span class="text-accent">{city}</span>
+        </h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="card">
+          <div class="eyebrow mb-2">CO₂ Delivery</div>
+          <div class="text-white font-bold mb-2">CO₂ Tank Delivery</div>
+          <p class="text-cream/70 text-sm leading-relaxed mb-4">
+            Monthly CO₂ cylinder exchange delivered to your door by our all-electric fleet. We swap
+            the empty, you never run dry. From $89.99/mo.
+          </p>
+          <a href="/co2delivery" class="btn-outline text-sm">Learn More</a>
+        </div>
+        <div class="card border-gold/20">
+          <div class="eyebrow mb-2">Full Service</div>
+          <div class="text-white font-bold mb-2">Full-Service Trap Rental</div>
+          <p class="text-cream/70 text-sm leading-relaxed mb-4">
+            We own the trap, handle CO₂, maintenance, and seasonal adjustments. The completely
+            hands-off experience. From $159.99/mo.
+          </p>
+          <a href="/traprental" class="btn-gold text-sm">See Rental Plans</a>
+        </div>
+        <div class="card">
+          <div class="eyebrow mb-2">Consultation</div>
+          <div class="text-white font-bold mb-2">Free Property Consultation</div>
+          <p class="text-cream/70 text-sm leading-relaxed mb-4">
+            We walk your property, map mosquito pressure zones, and design the right coverage plan.
+            No cost, no obligation.
+          </p>
+          <a href="/book" class="btn-outline text-sm">Book Now</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICE AREA DETAIL -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3">Service Area</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-6">
+        Serving <span class="text-accent">{city}</span> and surrounding areas
+      </h2>
+      <div class="text-cream/80 leading-relaxed prose-custom">
+        <Content />
+      </div>
+      <p class="text-cream/55 text-sm mt-5">
+        Not sure if we cover your specific address? Call or text us at{' '}
+        <a href="tel:5125604129" class="text-accent underline">512-560-4129</a>{' '}
+        and we will confirm service availability and schedule your free consultation.
+      </p>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 px-5 text-center">
+    <div class="max-w-xl mx-auto">
+      <div class="eyebrow mb-3">Free · No Commitment · {city}</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-4">Ready to reclaim your outdoor space?</h2>
+      <p class="text-cream/75 mb-6">
+        Book a complimentary consultation. We visit your {city} property, assess mosquito pressure,
+        and design a custom plan, at no cost and no obligation.
+      </p>
+      <a href="/book" class="btn-gold">Book Free Consultation</a>
+    </div>
+  </section>
+</Base>

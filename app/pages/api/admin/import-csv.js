@@ -4,13 +4,11 @@
  * 1. Upserts each contact into HubSpot
  * 2. Creates a Stripe customer if they don't already have one (matched by email)
  */
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { requireOwner, escapeStripeSearch } = require('../../../lib/auth')
 const { Client } = require('@hubspot/api-client')
 const { stripe } = require('../../../lib/stripe')
 const fs = require('fs')
 const path = require('path')
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 function parseCSV(content) {
   const lines = content.split('\n').filter((l) => l.trim())
@@ -45,8 +43,8 @@ function extractAddress(notes) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
-  const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
+  const session = await requireOwner(req, res)
+  if (!session) return
 
   const csvPath = path.join(process.cwd(), '..', 'list(6).csv')
   if (!fs.existsSync(csvPath)) return res.status(404).json({ error: 'CSV not found at repo root' })
@@ -97,7 +95,7 @@ export default async function handler(req, res) {
     // ── Stripe update only — fill in missing fields, never create ──
     if (email) {
       try {
-        const existing = await stripe.customers.search({ query: `email:"${email}"`, limit: 1 })
+        const existing = await stripe.customers.search({ query: `email:"${escapeStripeSearch(email)}"`, limit: 1 })
         if (existing.data.length > 0) {
           const cust = existing.data[0]
           const updates = {}

@@ -1,13 +1,9 @@
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { requireAdmin } = require('../../../lib/auth')
 const { findContactByEmail, upsertContact } = require('../../../lib/hubspot')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
-
 export default async function handler(req, res) {
-  const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  const session = await requireAdmin(req, res)
+  if (!session) return
 
   if (req.method === 'GET') {
     const { email } = req.query

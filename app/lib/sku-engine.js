@@ -5,7 +5,7 @@ const SKU_PRICES = {
   BG2: 266.99,
   BG3: 399.99,
   'MQ-RENT': 299.99,
-  'MQ-SVC': 199.99,   // confirmed from live calendar data
+  'MQ-SVC': 129.99,
   'MQ-INST': 199.99,
   'MQ-TSHOOT': 79.99,
   'OWN-BG': 10.00,  // per trap
@@ -34,6 +34,10 @@ const SKU_PRICES = {
   'TRAP-MAINT-2': 49.99,
   'TIMER-INSTALL': 29.99,
   'NONCO2-UNIT': 79.99,
+  'BUCKET-OF-DOOM': 29.99,
+  'INNER-TRAP': 5.00,
+  'BG-EXT-30': 18.99,
+  'TRAP-MESH-WHITE': 7.00,
 }
 
 // Subscription SKUs (monthly recurring in Stripe)
@@ -318,7 +322,12 @@ function prefillFromBooking(booking, contact) {
   // 'mosqitter-rental' event, not installation/service/troubleshoot).
   // Only an explicit 'Mosqitter-Rental' label suppresses owner-side fees.
   const isMqOwned = systemType !== 'Mosqitter-Rental'
+  // Match either the explicit system_type label or the older plan_type='own'
+  // marker. Same rule used by upgrade-paths.js classifier.
+  const planType = String(props.plan_type || '').toLowerCase()
   const isBgOwned = systemType === 'Biogents-Owned'
+    || /biogents.*own/i.test(systemType)
+    || planType === 'own'
   // Installation is a one-time event. Once a customer's mq_installed flag is
   // true, treat any future "mosqitter-installation" booking as a service visit.
   const mqInstalled = props.mq_installed === 'true' || props.mq_installed === true
@@ -349,10 +358,18 @@ function prefillFromBooking(booking, contact) {
   // TANK-REFILL qty > 0 (once per appointment, regardless of tank count).
   // Engine intentionally returns only TANK-REFILL here so the bundling
   // stays single-source-of-truth in the UI layer.
+  //
+  // Biogents owners: also default the hookup & maintenance fee on, and
+  // include one bait pack per tank (rule confirmed with owner 2026-05-25).
+  // The hookup signal is consumed by the rounds UI to flip tankHookupOptIn.
   if (!baseLines) {
     const tankN = parseTrailingNumber(slug, 'tank-exchange-')
     if (tankN) {
       baseLines = [{ sku: 'TANK-REFILL', qty: tankN }]
+      if (isBgOwned) {
+        baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
+        baseLines.push({ sku: 'BAIT', qty: tankN })
+      }
     }
   }
 

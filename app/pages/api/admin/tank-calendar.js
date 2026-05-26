@@ -1,9 +1,8 @@
-const { getSessionFromRequest } = require('../../../lib/auth')
+const { requireAdmin } = require('../../../lib/auth')
 const { addNote, findContactByEmail, upsertContact, getNotesForContact } = require('../../../lib/hubspot')
 const { getBookingsForWeek } = require('../../../lib/gcal')
 const { resolveByTitle, normalizeEventTitle } = require('../../../lib/sku-engine')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 const INVENTORY_EMAIL = 'inventory@greenguard-usa.com'
 const SAFETY_STOCK = 3
 const PROJECTION_DAYS = 56
@@ -263,10 +262,8 @@ async function computeProjection(rawNotes) {
 }
 
 export default async function handler(req, res) {
-  const session = await getSessionFromRequest(req)
-  if (!session || session.email !== ADMIN_EMAIL) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  const session = await requireAdmin(req, res)
+  if (!session) return
 
   const contact = await getOrCreateInventoryContact().catch(() => null)
   if (!contact) return res.status(500).json({ error: 'Inventory contact unavailable' })

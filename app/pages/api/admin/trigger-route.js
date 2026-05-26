@@ -1,12 +1,11 @@
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { requireOwner } = require('../../../lib/auth')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 const GITHUB_REPO = 'greenguard-usa/greenguard-usa-web'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
-  const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
+  const session = await requireOwner(req, res)
+  if (!session) return
 
   const token = process.env.GITHUB_TOKEN
   if (!token) return res.status(500).json({ error: 'GITHUB_TOKEN not configured in Vercel' })

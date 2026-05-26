@@ -114,7 +114,10 @@ export default async function handler(req, res) {
         customerAddress: customerAddress || '',
         customerName: customerName || '',
       },
-      billing_address_collection: 'auto',
+      // Require billing address so Stripe Tax can compute the right rate.
+      billing_address_collection: 'required',
+      // Stripe Automatic Tax applies the Texas TaxRate based on billing address.
+      automatic_tax: { enabled: true },
       allow_promotion_codes: true,
     }
 

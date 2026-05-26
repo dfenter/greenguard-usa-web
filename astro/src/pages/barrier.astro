@@ -1,0 +1,208 @@
+---
+import Base from '../layouts/Base.astro';
+
+const steps = [
+  {
+    num: '1',
+    title: 'Property Inspection',
+    body: 'Our technician maps mosquito pressure zones across your property, identifies resting areas and vegetation corridors, and confirms your CO₂ trap placement. This determines exactly where to apply the barrier for maximum effect.',
+  },
+  {
+    num: '2',
+    title: 'Scent Masking Application',
+    body: 'We apply our plant-based essential oil formula around the perimeter of your property and key resting zones. The formula masks the human scent compounds mosquitoes rely on to locate hosts, effectively cloaking your outdoor living areas.',
+  },
+  {
+    num: '3',
+    title: 'Mosquitoes Redirected to the Trap',
+    body: 'With human scent masked across the property, your CO₂ trap becomes the strongest attractant signal in the area. Mosquitoes that would otherwise target people are drawn toward the trap, captured, and removed from the breeding population continuously.',
+  },
+];
+
+const faqs = [
+  {
+    q: 'Is the treatment safe for kids, pets, and bees?',
+    a: 'Yes. The formula is entirely plant-based and free of synthetic pesticides. Children and pets can access treated areas on the same day as application with no waiting period required. The formula does not affect bees or pollinators. It is specifically designed to target the scent signals mosquitoes use to locate hosts, which bees and other beneficial insects do not respond to.',
+  },
+  {
+    q: 'Why is the barrier only available to CO₂ trap customers?',
+    a: 'The barrier masks human scent to redirect mosquitoes toward your CO₂ trap. Without a trap present, the barrier disperses mosquitoes around the property rather than eliminating them. The two systems are designed to work together. The barrier removes the competing signal, and the trap captures the mosquitoes that get redirected. Offering the barrier without a trap in place would not produce meaningful results for the customer.',
+  },
+  {
+    q: 'How long does each treatment last?',
+    a: "Each treatment provides up to 28 days of protection under normal conditions. Heavy rain can reduce the effective window. We recommend scheduling recurring treatments every four weeks during Austin's mosquito season, which typically runs from March through November.",
+  },
+  {
+    q: 'How is this different from a traditional mosquito spray service?',
+    a: 'Traditional spray services apply synthetic insecticides across your entire yard. These leave residue on surfaces, carry re-entry waiting periods, and are harmful to bees and pollinators. Our treatment uses only plant-derived essential oils applied to targeted zones, with no residue, no pollinator risk, and no waiting period before your family can use the yard.',
+  },
+  {
+    q: 'Do I need to be home for the treatment?',
+    a: 'No. As long as your yard is accessible, our technician can complete the treatment without you being present. We will notify you when the service is complete. Most customers leave a gate unlocked on treatment day and resume normal use of the yard the same afternoon.',
+  },
+  {
+    q: 'Is there a contract for recurring barrier treatment?',
+    a: 'No. Like all GreenGuard USA services, the barrier treatment is month-to-month with no long-term commitment. You can book a single treatment or set up a recurring schedule and cancel or pause at any time with 48 hours notice.',
+  },
+];
+---
+
+<Base
+  title="Plant-Based Barrier Treatment Austin TX | GreenGuard USA"
+  description="A plant-based scent-masking treatment that amplifies your CO₂ trap by redirecting mosquitoes away from people and into capture. Available exclusively to GreenGuard USA CO₂ trap customers."
+>
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-2">CO₂ Trap Customers Only · Austin, TX</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        The barrier that works <span class="text-accent">with your trap.</span>
+      </h1>
+      <p class="text-cream/80 text-base md:text-lg leading-relaxed mb-6">
+        Our plant-based barrier treatment masks the human scent signals mosquitoes use to locate people.
+        With those signals removed, your CO₂ trap becomes the dominant attractant in the area, driving
+        mosquitoes into capture rather than into your yard.
+      </p>
+      <p class="text-cream/55 text-sm mb-6">
+        Available exclusively to GreenGuard USA CO₂ trap customers. $49.99 per treatment. No contracts.
+      </p>
+      <a href="/book" class="btn-gold">Schedule Free Assessment</a>
+      <div class="flex gap-2 justify-center flex-wrap mt-5 text-xs">
+        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">100% pesticide-free</span>
+        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">Safe for kids, pets, and bees</span>
+        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">Plant-based formula</span>
+        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">No contracts</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">The Mechanism</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">How the barrier and trap work as one system</h2>
+        <p class="text-cream/70 mt-3 max-w-2xl mx-auto">
+          The barrier treatment is not a standalone product. It is engineered to amplify the performance
+          of your CO₂ trap by removing the competing signal that draws mosquitoes toward people.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {steps.map((s) => (
+          <div class="card">
+            <div class="text-gold font-extrabold text-sm mb-2">Step {s.num}</div>
+            <div class="text-white font-bold mb-2">{s.title}</div>
+            <p class="text-cream/65 text-sm leading-relaxed">{s.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY IT WORKS -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3 text-center">Why Human Scent Masking Changes Everything</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white text-center mb-8">A CO₂ trap competes with the people in your yard.</h2>
+      <div class="space-y-5 text-cream/80 leading-relaxed">
+        <p>
+          Both you and your trap emit CO₂. Both emit heat and scent compounds. Mosquitoes respond to
+          whichever signal is strongest, and a person standing nearby often wins that competition.
+        </p>
+        <p>
+          The barrier removes your scent from the equation entirely. Your CO₂ trap is no longer
+          competing. It is the only game in town. Every mosquito that enters your property follows the
+          CO₂ plume directly into capture rather than toward your family.
+        </p>
+        <p>
+          The result is a measurably higher capture rate from your existing trap, and significantly less
+          biting activity in the areas where you actually spend time.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY CO2 CUSTOMERS ONLY -->
+  <section class="py-16 px-5">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3">Why CO₂ Trap Customers Only</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-6">The barrier needs a trap to work</h2>
+      <div class="space-y-5 text-cream/80 leading-relaxed">
+        <p>
+          The barrier treatment works by redirecting mosquitoes. It does not eliminate them on its own.
+          Without a CO₂ trap present, masking human scent simply disperses mosquitoes around the property
+          rather than capturing them. The treatment is only effective as part of a complete system.
+        </p>
+        <p>
+          If you do not yet have a CO₂ trap installed, the right first step is a free property assessment.
+          We will walk your yard, recommend the right trap for your property size, and discuss how the
+          barrier treatment fits into your complete mosquito control plan.
+        </p>
+        <p>
+          Existing GreenGuard USA CO₂ trap customers can add the barrier treatment to their service at
+          any time by booking through the assessment link below.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING CARD -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-md mx-auto">
+      <div class="card border-gold/30">
+        <div class="eyebrow mb-2 text-gold">CO₂ Trap Add-On</div>
+        <h3 class="text-2xl font-black text-white mb-1">Barrier Treatment</h3>
+        <p class="text-cream/55 text-sm mb-5">
+          Available to GreenGuard USA CO₂ trap customers.
+        </p>
+        <div class="text-4xl font-black text-white mb-1">
+          $49.99<span class="text-base text-cream/50 font-normal"> per treatment</span>
+        </div>
+        <div class="border-t border-accent/15 my-5"></div>
+        <ul class="space-y-2.5 text-sm text-cream/80 mb-6">
+          <li class="flex justify-between"><span class="text-cream/55">Protection duration</span><span>Up to 28 days</span></li>
+          <li class="flex justify-between"><span class="text-cream/55">Recurring option</span><span>Every 4 weeks</span></li>
+          <li class="flex justify-between"><span class="text-cream/55">Formula</span><span>Plant-based essential oils</span></li>
+          <li class="flex justify-between"><span class="text-cream/55">Contract required</span><span>None</span></li>
+          <li class="flex justify-between"><span class="text-cream/55">CO₂ trap required</span><span>Yes</span></li>
+        </ul>
+        <a href="/book" class="btn-gold w-full text-center">Schedule Free Assessment</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="py-16 px-5">
+    <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Common Questions</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white">Barrier treatment FAQ</h2>
+      </div>
+      <div class="space-y-3">
+        {faqs.map((f) => (
+          <details class="card group">
+            <summary class="cursor-pointer font-bold text-white flex justify-between items-start gap-3">
+              <span>{f.q}</span>
+              <span class="text-accent text-xl group-open:rotate-45 transition-transform flex-shrink-0">+</span>
+            </summary>
+            <p class="text-cream/75 mt-3 leading-relaxed text-sm">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 px-5 text-center">
+    <div class="max-w-xl mx-auto">
+      <div class="eyebrow mb-3">CO₂ Trap Customers · Austin TX · No Contracts</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-4">Ready to amplify your trap?</h2>
+      <p class="text-cream/75 mb-6">
+        Book a free property assessment and we will walk your yard, confirm your trap placement, and
+        discuss adding the barrier treatment to your service plan.
+      </p>
+      <a href="/book" class="btn-gold">Schedule Free Assessment</a>
+      <div class="text-cream/45 text-xs mt-4">or call or text 512-560-4129</div>
+    </div>
+  </section>
+</Base>

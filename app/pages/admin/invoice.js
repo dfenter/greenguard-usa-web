@@ -97,7 +97,7 @@ export default function InvoiceEditor({ customers = [] }) {
       const res = await fetch('/api/admin/pending-invoices')
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
-      setPending(json)
+      setPending({ ...json, _refreshedAt: new Date().toISOString() })
     } catch (e) {
       console.error('Failed to load pending invoices:', e)
     } finally {
@@ -252,15 +252,22 @@ export default function InvoiceEditor({ customers = [] }) {
         {/* Pending Approvals */}
         {pending && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12 }}>
               <div style={SECTION}>Pending Approvals</div>
-              <button
-                onClick={loadPending}
-                disabled={pendingLoading}
-                style={{ ...btn('gold'), marginTop: 28, fontSize: '0.75rem', padding: '6px 12px' }}
-              >
-                {pendingLoading ? 'Loading…' : '↻ Refresh'}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 28 }}>
+                {pending._refreshedAt && (
+                  <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>
+                    Updated {new Date(pending._refreshedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                )}
+                <button
+                  onClick={loadPending}
+                  disabled={pendingLoading}
+                  style={{ ...btn('gold'), fontSize: '0.75rem', padding: '6px 12px' }}
+                >
+                  {pendingLoading ? 'Loading…' : '↻ Refresh'}
+                </button>
+              </div>
             </div>
 
             {/* KPI strip */}

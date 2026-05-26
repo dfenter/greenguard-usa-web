@@ -5,9 +5,10 @@
 // Query: ?eventId=<gcal-event-id>  (preferred — looks up event + parses email)
 //   or:  ?email=<customer-email>   (lighter fallback)
 
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { requireAdmin } = require('../../../lib/auth')
 const { google } = require('googleapis')
 const { findContactByEmail } = require('../../../lib/hubspot')
+const { cached } = require('../../../lib/cache')
 
 const CALENDAR_ID = 'admin@greenguard-usa.com'
 
@@ -67,8 +68,8 @@ function slim(event) {
 }
 
 export default async function handler(req, res) {
-  const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
+  const session = await requireAdmin(req, res)
+  if (!session) return
 
   const { eventId, email: queryEmail } = req.query
   if (!eventId && !queryEmail) return res.status(400).json({ error: 'eventId or email required' })
@@ -79,8 +80,11 @@ export default async function handler(req, res) {
   let email = queryEmail || null
   if (eventId) {
     try {
-      const r = await cal.events.get({ calendarId: CALENDAR_ID, eventId })
-      event = r.data
+      // Cache the raw event for 60s — clicks on the same event rehit
+      const r = await cached(`gcal:event:${eventId}`, 60, () =>
+        cal.events.get({ calendarId: CALENDAR_ID, eventId }).then((rr) => rr.data)
+      )
+      event = r
       if (!email) email = parseEmailFromDescription(event.description)
     } catch (e) {
       return res.status(404).json({ error: `Event ${eventId} not found` })
@@ -88,10 +92,11 @@ export default async function handler(req, res) {
   }
 
   const [contact, adjacent] = await Promise.all([
-    email ? findContactByEmail(email).catch(() => null) : Promise.resolve(null),
-    email ? fetchAdjacentBookings(cal, email, new Date().toISOString()).catch(() => ({ last: null, next: null, total: 0 })) : Promise.resolve({ last: null, next: null, total: 0 }),
+    email ? cached(`hs:contact:${email}`, 60, () => findContactByEmail(email)).catch(() => null) : Promise.resolve(null),
+    email ? cached(`gcal:adjacent:${email}`, 60, () => fetchAdjacentBookings(cal, email, new Date().toISOString())).catch(() => ({ last: null, next: null, total: 0 })) : Promise.resolve({ last: null, next: null, total: 0 }),
   ])
 
+  res.setHeader('Cache-Control', 'private, max-age=15, stale-while-revalidate=60')
   return res.status(200).json({
     event: event ? {
       ...slim(event),

@@ -3,14 +3,14 @@
  * Sync a paid Stripe invoice to QuickBooks Online
  * Body: { stripeInvoiceId } OR { customerEmail, customerName, lines, serviceDate }
  */
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { requireOwner } = require('../../../lib/auth')
 const { stripe } = require('../../../lib/stripe')
 const qbo = require('../../../lib/qbo')
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
-  const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
+  const session = await requireOwner(req, res)
+  if (!session) return
 
   if (!process.env.QBO_CLIENT_ID || !process.env.QBO_REFRESH_TOKEN || !process.env.QBO_REALM_ID) {
     return res.status(503).json({ error: 'QuickBooks not configured — see CLAUDE.md for setup instructions' })

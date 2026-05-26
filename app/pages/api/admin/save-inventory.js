@@ -11,7 +11,10 @@ export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-  const { date, fullStart, needed, delivered, fullEnd, deliveryTime, confirmed, notes } = req.body || {}
+  // Persist the entire body so equipment counts, emptyEnd, emptiesPickedUp, etc.
+  // are available for next-day prefill. Older readers only need the tank fields.
+  const body = req.body || {}
+  const { date, fullEnd, needed, notes } = body
 
   // Tank logs are stored as Notes on the admin HubSpot contact. Auto-create if missing
   // so a fresh HubSpot instance / deleted admin contact doesn't break inventory saves.
@@ -29,7 +32,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const noteBody = `[TANK-LOG]${JSON.stringify({ date, fullStart, needed, delivered, fullEnd, deliveryTime, confirmed, notes })}`
+  const noteBody = `[TANK-LOG]${JSON.stringify(body)}`
   try {
     await addNote(contact.id, noteBody)
   } catch (err) {
