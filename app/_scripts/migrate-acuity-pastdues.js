@@ -79,12 +79,10 @@ async function createInvoiceFor(row, customer) {
   const desc = `Mosquito-control service performed ${fmtDate(row.serviceDate)} (originally Acuity invoice #${row.acuityId}).`
   const footer = "Note: We've moved billing from Acuity to Stripe. This invoice replaces the original Acuity invoice and supersedes any past-due notices you received from Acuity. Thank you!"
 
-  await stripe.invoiceItems.create({
-    customer: customer.id,
-    amount: Math.round(row.amount * 100),
-    currency: 'usd',
-    description: desc,
-  })
+  // Create invoice FIRST (empty draft), then attach the item to it explicitly.
+  // Earlier versions of this script relied on the "pending items attach to next
+  // invoice" behavior, but Stripe's newer default `pending_invoice_items_behavior`
+  // is 'exclude', which silently produced empty $0 invoices.
   const invoice = await stripe.invoices.create({
     customer: customer.id,
     collection_method: 'send_invoice',
@@ -96,6 +94,13 @@ async function createInvoiceFor(row, customer) {
       acuity_id: String(row.acuityId),
       service_date: row.serviceDate,
     },
+  })
+  await stripe.invoiceItems.create({
+    customer: customer.id,
+    invoice: invoice.id,
+    amount: Math.round(row.amount * 100),
+    currency: 'usd',
+    description: desc,
   })
   return invoice
 }
