@@ -81,6 +81,26 @@ export default function BooksPage({ days, search, category, txs, summary, catego
               {lastRun && <> · last ingest {fmtDateTime(lastRun.started_at)} ({lastRun.rows_added || 0} rows{lastRun.ok ? '' : ' · failed'})</>}
             </p>
           </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Link href="/admin/books/chat"
+              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(91,196,255,0.35)', color: '#5bc4ff', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
+              💬 Ask the Books
+            </Link>
+            <button onClick={async () => {
+              if (!window.confirm('Run Gemini categorizer on the next 25 Unknown transactions?')) return
+              const res = await fetch('/api/admin/books-categorize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: 25 }) })
+              const j = await res.json()
+              if (res.ok) {
+                alert(`✓ Categorized ${j.processed} transactions (${j.model || ''}).`)
+                window.location.reload()
+              } else {
+                alert('Failed: ' + (j.error || res.status))
+              }
+            }}
+              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.35)', color: '#c9a84c', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Nunito Sans, sans-serif' }}>
+              🤖 Recategorize Unknown (25)
+            </button>
+          </div>
           <form method="GET" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <input name="q" defaultValue={search} placeholder="Search description / email"
               style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', minWidth: 200 }} />
@@ -167,7 +187,7 @@ export default function BooksPage({ days, search, category, txs, summary, catego
         </div>
 
         <p style={{ marginTop: 16, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)' }}>
-          Showing up to 200 transactions. Phase 2 will add LLM categorization (drops "Unknown" count), natural-language chat, and exports.
+          Showing up to 200 transactions. Phase 2 adds LLM categorization, natural-language chat, and exports.
         </p>
       </PortalLayout>
     </>
