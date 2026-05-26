@@ -1,0 +1,24 @@
+name: Cron - Monthly Books Close
+
+on:
+  schedule:
+    - cron: '0 11 1 * *'   # 1st of every month, 6am CT — close prior month
+  workflow_dispatch:
+    inputs:
+      month:
+        description: 'Month to close (YYYY-MM), default = prior month'
+        required: false
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Hit /api/cron/books-close
+        run: |
+          MONTH="${{ inputs.month }}"
+          URL="https://portal.greenguard-usa.com/api/cron/books-close"
+          if [ -n "$MONTH" ]; then URL="$URL?month=$MONTH"; fi
+          RESP=$(curl -sS -X POST "$URL" -H "x-cron-key: ${{ secrets.CRON_SECRET }}" -w "\n%{http_code}")
+          BODY=$(echo "$RESP" | head -n -1); CODE=$(echo "$RESP" | tail -n 1)
+          echo "HTTP $CODE"; echo "$BODY"; [ "$CODE" = "200" ] || exit 1

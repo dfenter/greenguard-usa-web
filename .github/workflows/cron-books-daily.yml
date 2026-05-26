@@ -1,0 +1,18 @@
+name: Cron - Books Daily Brief
+
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 7am CT daily
+  workflow_dispatch:
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Hit /api/cron/books-daily
+        run: |
+          RESP=$(curl -sS -X POST "https://portal.greenguard-usa.com/api/cron/books-daily" \
+            -H "x-cron-key: ${{ secrets.CRON_SECRET }}" -w "\n%{http_code}")
+          BODY=$(echo "$RESP" | head -n -1); CODE=$(echo "$RESP" | tail -n 1)
+          echo "HTTP $CODE"; echo "$BODY"; [ "$CODE" = "200" ] || exit 1
