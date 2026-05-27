@@ -31,9 +31,16 @@ export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-  const { customerEmail, customerName, lineItems, calBookingUid, serviceDate, force, signatureUrl } = req.body || {}
-  if (!customerEmail) return res.status(400).json({ error: 'customerEmail required' })
+  const { customerEmail: rawEmail, customerName, lineItems, calBookingUid, serviceDate, force, signatureUrl } = req.body || {}
+  if (!rawEmail) return res.status(400).json({ error: 'customerEmail required' })
   if (!lineItems?.length) return res.status(400).json({ error: 'No line items' })
+
+  // Sanitize email — GCal/HubSpot/manual entries sometimes have trailing
+  // commas, semicolons, or whitespace that Stripe rejects as email_invalid.
+  const customerEmail = String(rawEmail).trim().replace(/[,;\s]+$/, '').toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+    return res.status(400).json({ error: `Invalid email address: ${rawEmail}` })
+  }
 
   // Find or auto-create the Stripe customer. New customers obviously have
   // no card on file, so the downstream branch will route to send_invoice
