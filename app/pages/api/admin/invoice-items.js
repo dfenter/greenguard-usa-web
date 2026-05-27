@@ -48,6 +48,7 @@ export default async function handler(req, res) {
         created: inv.created,
         hostedUrl: inv.hosted_invoice_url,
         pdfUrl: inv.invoice_pdf,
+        collectionMethod: inv.collection_method,
         items: (inv.lines?.data || []).map((l) => ({
           id: l.id,
           description: l.description,
@@ -204,6 +205,32 @@ export default async function handler(req, res) {
         } catch (e) {
           console.error('admin invoice-sent notify (pre-fetch):', e.message)
         }
+      } else if (inv.status === 'open') {
+        // Already-finalized invoice — admin is requesting a resend or a
+        // force-charge. send_invoice path resends the email; auto-charge
+        // path tries to pull funds again. Previously this branch silently
+        // did nothing, so the Send button on unpaid invoices appeared
+        // broken (and the "Open" link sent admin to the Stripe page).
+        if (inv.collection_method === 'send_invoice') {
+          await stripe.invoices.sendInvoice(inv.id)
+        } else {
+          // charge_automatically — attempt the charge now.
+          try {
+            await stripe.invoices.pay(inv.id)
+          } catch (e) {
+            // Charge failed (declined / no PM). Fall back to emailing the
+            // hosted link so the customer can still pay.
+            await stripe.invoices.update(inv.id, { collection_method: 'send_invoice', days_until_due: 14 })
+            await stripe.invoices.sendInvoice(inv.id)
+            console.warn(`Charge retry failed for ${inv.id}: ${e.message} — emailed link instead`)
+          }
+        }
+        try {
+          const finalInv = await stripe.invoices.retrieve(inv.id)
+          const cust = await stripe.customers.retrieve(customerId)
+          notifyAdminInvoiceSent({ invoice: finalInv, customer: cust })
+            .catch((e) => console.error('admin invoice-resent notify:', e.message))
+        } catch {}
       }
       const refreshed = await stripe.invoices.retrieve(inv.id)
       return res.status(200).json({

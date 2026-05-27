@@ -622,8 +622,14 @@ export default function InvoiceEditor({ customers = [] }) {
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                           {isDraft && <button style={btn('gold')} onClick={() => sendInvoice(inv.id)} disabled={sending}>{sending ? 'Sending…' : 'Finalize & Send'}</button>}
                           {isDraft && <button style={btn('red')} onClick={() => deleteDraft(inv.id)}>Delete</button>}
+                          {isOpen && (
+                            <button style={btn('gold')} onClick={() => sendInvoice(inv.id)} disabled={sending}
+                              title={inv.collectionMethod === 'charge_automatically' ? 'Re-attempt charge on card on file' : 'Resend the hosted invoice email to the customer'}>
+                              {sending ? 'Sending…' : (inv.collectionMethod === 'charge_automatically' ? 'Charge Now' : 'Resend Email')}
+                            </button>
+                          )}
                           {isOpen && <button style={btn('red')} onClick={() => voidInvoice(inv.id)}>Void</button>}
-                          {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }}>Open ↗</a>}
+                          {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }} title="Preview the page the customer sees">Preview ↗</a>}
                           {inv.pdfUrl && <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#7aab82', fontWeight: 700 }}>PDF</a>}
                         </div>
                       </div>
