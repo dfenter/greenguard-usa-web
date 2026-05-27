@@ -232,51 +232,22 @@ const MQ_PRICE = { rental: 299.99, service: 129.99, install: 199.99 }
 const TANK_PRICE = { 1: 89.99, 2: 139.99, 3: 189.99 }
 
 // Products catalog (one-time purchases only)
-const PRODUCTS = [
-  // Traps
-  { label: 'Biogents BG-Mosquitaire',              price:  279.99, category: 'Trap Purchase', oneTime: true },
-  { label: 'Mosqitter Grand',                      price: 1849.99, category: 'Trap Purchase', oneTime: true },
-  { label: 'Biogents Timer',                       price:   89.99, category: 'Trap Purchase', oneTime: true },
-  // Tanks
-  { label: 'CO₂ Tank — 20lb (empty)',             price:  199.99, category: 'Tank Purchase', oneTime: true },
-  // Accessories — prices match rounds catalog exactly
-  { label: 'CO₂ Regulator',                       price:  119.99, category: 'Accessories',   oneTime: true },
-  { label: 'CO₂ Tank Washer',                     price:    5.00, category: 'Accessories',   oneTime: true },
-  { label: 'Biogents Power Supply',               price:   36.99, category: 'Accessories',   oneTime: true },
-  { label: 'Biogents Power Supply 30ft Extension',price:   18.99, category: 'Accessories',   oneTime: true },
-  { label: 'Biogents Trap Net',                   price:    6.99, category: 'Accessories',   oneTime: true },
-  { label: 'Biogents Funnel',                     price:   10.50, category: 'Accessories',   oneTime: true },
-  { label: '9V Batteries',                        price:    6.00, category: 'Accessories',   oneTime: true },
-  { label: 'Splitter',                            price:    8.99, category: 'Accessories',   oneTime: true },
-  { label: '50ft Extension Cord',                 price:   20.00, category: 'Accessories',   oneTime: true },
-  { label: '100ft Extension Cord',               price:   40.00, category: 'Accessories',   oneTime: true },
-  // Consumables
-  { label: 'BG Sweetscent Bait Pack',             price:   18.99, category: 'Consumables',   oneTime: true },
-  { label: 'Generic Bait Pack',                   price:   10.00, category: 'Consumables',   oneTime: true },
-  { label: 'Larvicide Tablet',                    price:    4.00, category: 'Consumables',   oneTime: true },
-]
-
-// Service add-ons — now as multi-select dropdown
-const SERVICE_ADDONS = [
-  { label: 'CO₂ Tank & Timer Rental',      price: 124.99, category: 'Recurring Add-Ons' },
-  { label: 'Tank Hookup & Maintenance',   price:  10.00, category: 'Recurring Add-Ons' },
-  { label: 'GreenGuard Barrier Treatment', price:  49.99, category: 'Recurring Add-Ons' },
-  { label: 'BG Sweetscent',               price:  18.99, category: 'Recurring Add-Ons' },
-  { label: 'Generic Bait Pack',           price:  10.00, category: 'Recurring Add-Ons' },
-  { label: 'Bucket of Doom',              price:  29.99, category: 'Recurring Add-Ons' },
-  { label: 'Inner Trap',                  price:   5.00, category: 'Recurring Add-Ons' },
-  { label: 'Biogents 30ft Extension',     price:  18.99, category: 'Recurring Add-Ons' },
-  { label: 'White Trap Mesh',             price:   7.00, category: 'Recurring Add-Ons' },
-  { label: 'Larvicide Tablet',            price:   4.00, category: 'Recurring Add-Ons' },
+// Products + service-addon catalog pulled from the shared lib/catalog so
+// rounds + inventory stay aligned. Service-specific one-time entries
+// (installs, maintenance, troubleshoot) stay local to quote since they
+// aren't surfaced elsewhere.
+const { productsForQuote, addonsForQuote } = require('../../lib/catalog')
+const PRODUCTS = productsForQuote()
+const QUOTE_LOCAL_SERVICES = [
   { label: 'Trap Installation',           price:  80.00, category: 'One-Time Services' },
   { label: 'Timer Installation',          price:  29.99, category: 'One-Time Services' },
   { label: 'Trap Maintenance (1 trap)',   price:  10.00, category: 'One-Time Services' },
   { label: 'Trap Maintenance (2 traps)', price:  20.00, category: 'One-Time Services' },
   { label: 'Trap Maintenance (3 traps)', price:  30.00, category: 'One-Time Services' },
-  { label: 'Weekend Surcharge',           price:  25.00, category: 'One-Time Services' },
   { label: 'Assessment',                  price:   0.00, category: 'One-Time Services' },
   { label: 'Troubleshoot',               price:  79.99, category: 'One-Time Services' },
 ]
+const SERVICE_ADDONS = [...addonsForQuote(), ...QUOTE_LOCAL_SERVICES]
 
 // ── Guided service configurator ────────────────────────────────────────────────
 

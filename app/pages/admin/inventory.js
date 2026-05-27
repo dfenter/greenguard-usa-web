@@ -27,26 +27,12 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
   const tomorrow = tomorrowObj.toLocaleDateString('en-CA')
   const tomorrowTanks = scheduleByDate[tomorrow]?.tanks || 0
 
-  const EQUIPMENT_ITEMS = [
-    { key: 'bgTraps', label: 'Biogents Traps' },
-    { key: 'mqTraps', label: 'Mosqitter Traps' },
-    { key: 'bgTimers', label: 'Biogents Timers' },
-    { key: 'regulators', label: 'CO₂ Regulators' },
-    { key: 'bgSweetscent', label: 'BG Sweetscent Bait' },
-    { key: 'genericBaits', label: 'Generic Bait Packs' },
-    { key: 'bucketOfDoom', label: 'Bucket of Doom' },
-    { key: 'innerTraps', label: 'Inner Traps' },
-    { key: 'bgFunnels', label: 'BG Funnels' },
-    { key: 'bgNets', label: 'BG Trap Nets' },
-    { key: 'whiteTrapMesh', label: 'White Trap Mesh' },
-    { key: 'bgPowerSupply', label: 'BG Power Supplies' },
-    { key: 'bgExt30', label: 'BG 30ft Extensions' },
-    { key: 'extensions50', label: '50ft Extension Cords' },
-    { key: 'extensions100', label: '100ft Extension Cords' },
-    { key: 'splitters', label: 'Splitters' },
-    { key: 'batteries9v', label: '9V Batteries' },
-    { key: 'tankWashers', label: 'Tank Washers' },
-  ]
+  // Pulled from shared lib/catalog so adding a new inventory-tracked item in
+  // catalog.js shows up here automatically. Existing keys preserved so the
+  // historical HubSpot tank-log notes still match by key (don't rename in
+  // catalog.js without a migration).
+  const { inventoryItems } = require('../../lib/catalog')
+  const EQUIPMENT_ITEMS = inventoryItems()
 
   // Default emptiesPickedUp to this week's scheduled tank total
   // (empties collected Wednesday = tanks serviced this week = full tanks needed next week)
