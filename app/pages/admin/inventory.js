@@ -130,18 +130,23 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
   async function save() {
     setSaving(true)
     setMsg(null)
+    // Only include fields the admin actually filled in. Previously a blank
+    // field became `parseInt('' || 0) = 0` and got persisted, which poisoned
+    // every future prefill — the "last entry" would have zeros for whatever
+    // was left blank that day, and the read side could no longer distinguish
+    // "intentional zero" from "I didn't touch this field".
+    const num = (v) => (v === '' || v == null ? undefined : parseInt(v))
+    const equipmentEntries = Object.entries(form.equipment)
+      .map(([k, v]) => [k, num(v)])
+      .filter(([, v]) => v !== undefined)
     const payload = {
       date: form.date,
-      fullEnd: parseInt(form.fullEnd || 0),
-      emptyEnd: parseInt(form.emptyEnd || 0),
-      neededTomorrow: parseInt(form.neededTomorrow || 0),
-      ...(isFormWednesday && {
-        emptiesPickedUp: parseInt(form.emptiesPickedUp || 0),
-        fullDelivered: parseInt(form.fullDelivered || 0),
-      }),
-      equipment: Object.fromEntries(
-        Object.entries(form.equipment).map(([k, v]) => [k, parseInt(v || 0)])
-      ),
+      ...(num(form.fullEnd) !== undefined        && { fullEnd: num(form.fullEnd) }),
+      ...(num(form.emptyEnd) !== undefined       && { emptyEnd: num(form.emptyEnd) }),
+      ...(num(form.neededTomorrow) !== undefined && { neededTomorrow: num(form.neededTomorrow) }),
+      ...(isFormWednesday && num(form.emptiesPickedUp) !== undefined && { emptiesPickedUp: num(form.emptiesPickedUp) }),
+      ...(isFormWednesday && num(form.fullDelivered)  !== undefined && { fullDelivered:  num(form.fullDelivered) }),
+      ...(equipmentEntries.length > 0 && { equipment: Object.fromEntries(equipmentEntries) }),
       notes: form.notes,
     }
     const res = await fetch('/api/admin/save-inventory', {
