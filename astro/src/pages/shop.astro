@@ -1,0 +1,336 @@
+---
+import Base from '../layouts/Base.astro';
+
+const products = [
+  {
+    id: 'biogents-co2-trap',
+    name: 'Biogents BG-Mosquitaire CO2 Outdoor Mosquito Trap',
+    price: 279.99,
+    image: '/images/prod-biogents-co2.jpg',
+    description: 'The Biogents BG-Mosquitaire CO2 trap is the gold standard in scientific mosquito trapping. Uses CO2 to mimic human breath, attracting and capturing host-seeking mosquitoes 24 hours a day without pesticides or sprays. Ideal for outdoor use on properties up to a quarter acre.',
+    features: [
+      'CO2-powered attraction mimics human breath',
+      'Captures host-seeking mosquitoes 24/7',
+      'No pesticides, safe for kids, pets, and pollinators',
+      'Weatherproof outdoor design',
+      'Requires 20lb CO2 tank and regulator (sold separately)',
+    ],
+  },
+  {
+    id: 'biogents-non-co2-trap',
+    name: 'Biogents BG-Mosquitaire Indoor/Outdoor Trap (No CO2)',
+    price: 179.99,
+    image: '/images/mosquitairenoco2.webp',
+    description: 'The Biogents BG-Mosquitaire without CO2 uses heat, water vapor, and scent-based attractants to capture mosquitoes indoors and in sheltered outdoor areas. An effective, low-maintenance option that does not require a CO2 tank.',
+    features: [
+      'No CO2 tank required',
+      'Heat and scent-based attractant system',
+      'Indoor and sheltered outdoor use',
+      'No pesticides, no sprays',
+      'Compatible with BG-Sweetscent bait',
+    ],
+  },
+  {
+    id: 'mosqitter-grand',
+    name: 'Mosqitter Grand CO2 Mosquito Trap',
+    price: 1849.99,
+    image: '/images/prod-mosqitter-grand.jpg',
+    description: 'The Mosqitter Grand is a premium stainless steel CO2 mosquito trap engineered for large properties up to one acre per unit. App-connected for remote monitoring and scheduling. Built to last with restaurant-grade materials and professional-grade CO2 delivery.',
+    features: [
+      'Stainless steel construction, built for years of use',
+      'Up to 1 acre coverage per unit',
+      'App connectivity for remote monitoring',
+      'CO2 + heat + scent attractant system',
+      'Professional installation recommended',
+    ],
+  },
+  {
+    id: 'biogents-timer',
+    name: 'Biogents CO2 Tank Timer',
+    price: 89.99,
+    image: '/images/prod-co2-timer.png',
+    description: 'The Biogents CO2 tank timer automatically controls CO2 flow to your trap, reducing tank consumption by up to 50% by running the trap only during peak mosquito activity hours. Fully programmable with customizable on/off schedules.',
+    features: [
+      'Reduces CO2 consumption by up to 50%',
+      'Programmable on/off schedule',
+      'Compatible with all Biogents BG-Mosquitaire traps',
+      'Simple installation, no tools required',
+      'Extends tank life significantly',
+    ],
+  },
+  {
+    id: 'co2-tank-20lb',
+    name: 'CO2 Tank 20lb (Empty)',
+    price: 199.99,
+    image: '/images/prod-co2-tank.svg',
+    description: 'DOT-certified 20-pound CO2 cylinder compatible with all Biogents BG-Mosquitaire traps. Sold empty for local filling. GreenGuard USA customers on a CO2 delivery plan receive monthly exchanges; this purchase option is for customers who prefer to own and refill their own tank.',
+    features: [
+      'DOT-certified 20lb aluminum cylinder',
+      'Compatible with all Biogents traps',
+      'Sold empty, refill locally',
+      'Lasts approximately 4-6 weeks per trap with timer',
+      'CGA-320 valve fitting standard',
+    ],
+  },
+  {
+    id: 'all-in-one-bundle',
+    name: 'All-in-One Starter Bundle',
+    price: 549.99,
+    image: '/images/prod-all-in-one-bundle.jpg',
+    description: 'Everything you need to start trapping mosquitoes the same day. Includes the Biogents BG-Mosquitaire CO2 trap, CO2 tank timer, empty 20lb CO2 tank, and a BG-Sweetscent bait pack. Add a CO2 fill and you are ready to go.',
+    features: [
+      'Biogents BG-Mosquitaire CO2 trap',
+      'Biogents CO2 tank timer',
+      'Empty 20lb CO2 tank',
+      'BG-Sweetscent bait pack included',
+      'Save vs. buying components individually',
+    ],
+  },
+  {
+    id: 'bucket-of-doom',
+    name: 'Mosquito Bucket of Doom',
+    price: 24.99,
+    image: '/images/prod-bucket-of-doom.svg',
+    description: 'The Bucket of Doom is a simple, low-tech ovitrap that attracts egg-laying mosquitoes with stagnant water and a black interior. Traps eggs before they hatch, reducing the next generation of mosquitoes on your property. An effective complement to any CO2 trap program.',
+    features: [
+      'Passive ovitrap, no power required',
+      'Interrupts mosquito breeding cycle',
+      'Works alongside CO2 traps',
+      'Reusable, minimal maintenance',
+      'Place near standing water sources',
+    ],
+  },
+];
+---
+
+<Base
+  title="Shop Mosquito Traps and CO2 Equipment | GreenGuard USA"
+  description="Buy Biogents BG-Mosquitaire traps, Mosqitter Grand, CO2 tanks, timers, and accessories. Professional mosquito control equipment for Austin homeowners."
+>
+  <!-- CART DRAWER -->
+  <div id="cart-overlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
+  <div id="cart-drawer" class="fixed top-0 right-0 h-full w-full max-w-sm bg-bg-card border-l border-accent/20 z-50 translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-accent/20">
+      <h2 class="text-white font-black text-lg">Your Cart</h2>
+      <button id="cart-close" class="text-cream/60 hover:text-white text-2xl leading-none">&times;</button>
+    </div>
+    <div id="cart-items" class="flex-1 overflow-y-auto px-5 py-4 space-y-4"></div>
+    <div class="px-5 py-4 border-t border-accent/20">
+      <div class="flex justify-between text-cream/70 text-sm mb-1">
+        <span>Subtotal</span>
+        <span id="cart-subtotal">$0.00</span>
+      </div>
+      <p class="text-cream/40 text-xs mb-4">Shipping and tax calculated at checkout.</p>
+      <button id="checkout-btn" class="btn-gold w-full text-center cursor-pointer">Proceed to Checkout</button>
+      <p id="checkout-error" class="text-red-400 text-xs mt-2 hidden"></p>
+    </div>
+  </div>
+
+  <!-- FLOATING CART BUTTON -->
+  <button id="cart-toggle" class="fixed bottom-6 right-6 z-30 flex items-center gap-2 px-4 py-3 rounded-full font-bold text-sm shadow-lg transition-transform hover:scale-105" style="background: #c9a84c; color: #0d1a10;">
+    Cart
+    <span id="cart-badge" class="bg-bg text-white text-xs font-black rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+  </button>
+
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-2xl mx-auto">
+      <div class="eyebrow mb-2">Shop</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        Mosquito control <span class="text-accent">equipment</span>
+      </h1>
+      <p class="text-cream/80 text-base md:text-lg">
+        Professional-grade CO2 traps, timers, tanks, and accessories. The same equipment GreenGuard USA installs and maintains for customers across Austin.
+      </p>
+    </div>
+  </section>
+
+  <!-- SUCCESS BANNER -->
+  <div id="order-success" class="hidden bg-accent/10 border border-accent/30 text-accent text-center py-4 px-5 font-semibold">
+    Order placed. Check your email for confirmation and shipping details.
+  </div>
+
+  <!-- PRODUCTS -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto">
+      <div class="grid grid-cols-1 gap-10">
+        {products.map((p) => (
+          <div id={p.id} class="card flex flex-col md:flex-row gap-8 scroll-mt-24">
+            <div class="md:w-64 flex-shrink-0">
+              <img
+                src={p.image}
+                alt={p.name}
+                class="w-full h-48 md:h-full object-cover rounded-lg"
+                loading="lazy"
+              />
+            </div>
+            <div class="flex-1">
+              <div class="eyebrow mb-2">In Stock</div>
+              <h2 class="text-xl md:text-2xl font-black text-white mb-2 leading-tight">{p.name}</h2>
+              <div class="text-3xl font-black text-gold mb-4">${p.price.toFixed(2)}</div>
+              <p class="text-cream/75 text-sm leading-relaxed mb-5">{p.description}</p>
+              <ul class="space-y-1.5 text-sm text-cream/70 mb-6">
+                {p.features.map((f) => (
+                  <li class="flex items-start gap-2">
+                    <span class="text-accent font-bold mt-0.5">✓</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                class="btn-gold add-to-cart"
+                data-id={p.id}
+                data-name={p.name}
+                data-price={p.price}
+              >
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CUSTOM SYSTEM CTA -->
+  <section class="py-14 px-5 bg-bg-panel text-center">
+    <div class="max-w-xl mx-auto">
+      <div class="eyebrow mb-3">Custom Systems</div>
+      <h2 class="text-2xl font-black text-white mb-3">Multi-trap setup or large property?</h2>
+      <p class="text-cream/65 text-sm leading-relaxed mb-6">
+        Mosqitter Grands, multi-zone Biogents arrays, and commercial properties need a custom coverage plan.
+        We'll build you a detailed quote with trap placement, CO2 sizing, and monthly service pricing.
+      </p>
+      <a href="/book" class="btn-gold inline-block">Get a Custom Quote</a>
+    </div>
+  </section>
+
+  <!-- RENTAL NOTE -->
+  <section class="py-10 px-5 text-center border-t border-accent/10">
+    <div class="max-w-xl mx-auto">
+      <p class="text-cream/50 text-sm leading-relaxed">
+        Prefer to have us handle everything? Our full-service rental plans include the trap, CO2, installation, and maintenance for one flat monthly fee.
+        <a href="/traprental" class="text-accent underline ml-1">See rental plans</a>
+      </p>
+    </div>
+  </section>
+
+  <script>
+  // ── Cart state ────────────────────────────────────────────────────────────
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem('gg_cart') || '[]'); } catch { return []; }
+  }
+  function saveCart(cart) {
+    localStorage.setItem('gg_cart', JSON.stringify(cart));
+    renderCart();
+  }
+  function addToCart(id, name, price) {
+    const cart = getCart();
+    const existing = cart.find((i) => i.id === id);
+    if (existing) { existing.qty++; } else { cart.push({ id, name, price: parseFloat(price), qty: 1 }); }
+    saveCart(cart);
+    openCart();
+  }
+  function removeFromCart(id) { saveCart(getCart().filter((i) => i.id !== id)); }
+  function setQty(id, qty) {
+    if (qty < 1) { removeFromCart(id); return; }
+    const cart = getCart();
+    const item = cart.find((i) => i.id === id);
+    if (item) { item.qty = qty; saveCart(cart); }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function renderCart() {
+    const cart = getCart();
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    const count = cart.reduce((s, i) => s + i.qty, 0);
+
+    const badge = document.getElementById('cart-badge');
+    if (badge) { badge.textContent = String(count); badge.classList.toggle('hidden', count === 0); }
+
+    const subtotalEl = document.getElementById('cart-subtotal');
+    if (subtotalEl) subtotalEl.textContent = `$${total.toFixed(2)}`;
+
+    const itemsEl = document.getElementById('cart-items');
+    if (!itemsEl) return;
+
+    if (cart.length === 0) {
+      itemsEl.innerHTML = '<p class="text-cream/40 text-sm text-center py-8">Your cart is empty.</p>';
+      return;
+    }
+
+    itemsEl.innerHTML = cart.map((item) => `
+      <div class="flex gap-3 items-start py-3 border-b border-accent/10">
+        <div class="flex-1 min-w-0">
+          <div class="text-white text-sm font-semibold leading-snug mb-1">${item.name}</div>
+          <div class="text-gold text-sm font-bold">$${(item.price * item.qty).toFixed(2)}</div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button onclick="setQty('${item.id}', ${item.qty - 1})" class="text-cream/50 hover:text-white w-6 h-6 flex items-center justify-center border border-accent/20 rounded text-sm">-</button>
+          <span class="text-cream text-sm w-4 text-center">${item.qty}</span>
+          <button onclick="setQty('${item.id}', ${item.qty + 1})" class="text-cream/50 hover:text-white w-6 h-6 flex items-center justify-center border border-accent/20 rounded text-sm">+</button>
+          <button onclick="removeFromCart('${item.id}')" class="text-cream/30 hover:text-red-400 ml-1 text-lg leading-none">&times;</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── Drawer ────────────────────────────────────────────────────────────────
+  function openCart() {
+    document.getElementById('cart-drawer')?.classList.remove('translate-x-full');
+    document.getElementById('cart-overlay')?.classList.remove('hidden');
+  }
+  function closeCart() {
+    document.getElementById('cart-drawer')?.classList.add('translate-x-full');
+    document.getElementById('cart-overlay')?.classList.add('hidden');
+  }
+
+  // ── Checkout ──────────────────────────────────────────────────────────────
+  async function checkout() {
+    const cart = getCart();
+    if (!cart.length) return;
+    const btn = document.getElementById('checkout-btn');
+    const errEl = document.getElementById('checkout-error');
+    if (btn) { btn.textContent = 'Redirecting...'; btn.setAttribute('disabled', 'true'); }
+    if (errEl) errEl.classList.add('hidden');
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: cart }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        localStorage.removeItem('gg_cart');
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Checkout failed');
+      }
+    } catch (e) {
+      if (btn) { btn.textContent = 'Proceed to Checkout'; btn.removeAttribute('disabled'); }
+      if (errEl) { errEl.textContent = 'Something went wrong. Please try again or call us at 512-560-4129.'; errEl.classList.remove('hidden'); }
+    }
+  }
+
+  // ── Wire up ───────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    renderCart();
+
+    if (new URLSearchParams(window.location.search).get('order') === 'success') {
+      document.getElementById('order-success')?.classList.remove('hidden');
+      localStorage.removeItem('gg_cart');
+    }
+
+    document.getElementById('cart-toggle')?.addEventListener('click', openCart);
+    document.getElementById('cart-close')?.addEventListener('click', closeCart);
+    document.getElementById('cart-overlay')?.addEventListener('click', closeCart);
+    document.getElementById('checkout-btn')?.addEventListener('click', checkout);
+
+    document.querySelectorAll('.add-to-cart').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        addToCart(btn.dataset.id, btn.dataset.name, btn.dataset.price);
+      });
+    });
+  });
+  </script>
+</Base>
