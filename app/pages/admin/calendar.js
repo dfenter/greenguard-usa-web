@@ -116,20 +116,25 @@ function buildMonthGrid(dateStr) {
   })
 }
 
-// Extract a tank count from event titles like "Two -20 pound CO2 Tank Exchange"
+// Extract a tank count from event titles like "One - 20 pound CO2 Tank Exchange"
 // or "CO2 Tank Exchange - 4 Tanks". Returns null if not a tank exchange.
+//
+// Word form is checked BEFORE digit form because Cal.com titles like
+// "One - 20 pound CO2 Tank Exchange" contain a digit ("20") that refers to
+// the tank weight, not the count — matching the digit form first gave us 20.
 function tankCountFromTitle(title) {
   if (!title) return null
   const t = title.toLowerCase()
   if (!/tank.*exchange|exchange.*tank|tank.*refill/.test(t)) return null
-  // Digit form: "- 4 tanks", "10 tank"
-  const dm = t.match(/(\d+)\s*(?:-|−)?\s*(?:20\s*pound\s*)?(?:co2\s*)?tank/)
-  if (dm) return parseInt(dm[1], 10)
-  // Word form
+
+  // Word form first: "Two -20 pound...", "Ten Tank Service"
   const words = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 }
   for (const [w, n] of Object.entries(words)) {
     if (new RegExp(`\\b${w}\\b.*tank`).test(t)) return n
   }
+  // Digit form: must be adjacent to "tank", not separated by "pound" etc.
+  const dm = t.match(/(\d+)\s*(?:-|−)?\s*(?:co2\s*)?tanks?\b/)
+  if (dm) return parseInt(dm[1], 10)
   return 1
 }
 
