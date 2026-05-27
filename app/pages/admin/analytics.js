@@ -233,7 +233,7 @@ function KPI({ label, value, sub, pct }) {
 // ── Tab buttons ────────────────────────────────────────────────────────────────
 
 function Tabs({ active, onChange }) {
-  const tabs = ['Revenue', 'Traffic', 'Map', 'Social', 'Finance', 'Accounting', 'Health']
+  const tabs = ['Revenue', 'Traffic', 'Business', 'Map', 'Social', 'Finance', 'Accounting', 'Health']
   return (
     <div style={{ display: 'flex', gap: 4, marginBottom: 32, borderBottom: '1px solid rgba(122,171,130,0.15)', paddingBottom: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
       {tabs.map((t) => (
@@ -549,6 +549,116 @@ function TrafficTab({ ga4Configured, traffic }) {
         </div>
       </section>
     </>
+  )
+}
+
+// ── Business (GBP) tab ─────────────────────────────────────────────────────────
+
+function BusinessTab() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/gbp-data')
+      setData(await res.json())
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  if (loading) return <div style={{ color: 'rgba(212,230,202,0.5)', padding: 40, textAlign: 'center' }}>Loading Business Profile data…</div>
+
+  if (!data || !data.configured) return (
+    <div style={{ ...CARD, textAlign: 'center', maxWidth: 520, margin: '40px auto' }}>
+      <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 8 }}>Google Business Profile not connected</div>
+      <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)', margin: 0 }}>Ensure the Google OAuth token includes the Business Profile scope.</p>
+    </div>
+  )
+
+  const reviews = data.reviews || []
+  const insights = data.insights
+
+  // Parse insights timeseries into daily totals
+  const metricsMap = {}
+  if (insights?.timeSeries) {
+    for (const series of insights.timeSeries) {
+      const metric = series.dailyMetric
+      for (const pt of (series.dailySubEntityData?.[0]?.datedValues || series.datedValues || [])) {
+        const date = `${pt.date?.year}-${String(pt.date?.month).padStart(2,'0')}-${String(pt.date?.day).padStart(2,'0')}`
+        if (!metricsMap[date]) metricsMap[date] = {}
+        metricsMap[date][metric] = parseInt(pt.value || '0')
+      }
+    }
+  }
+  const totals = Object.values(metricsMap).reduce((acc, d) => {
+    for (const [k, v] of Object.entries(d)) acc[k] = (acc[k] || 0) + v
+    return acc
+  }, {})
+
+  const kpis = [
+    { label: 'Map Impressions (Desktop)', value: (totals['BUSINESS_IMPRESSIONS_DESKTOP_MAPS'] || 0).toLocaleString() },
+    { label: 'Map Impressions (Mobile)', value: (totals['BUSINESS_IMPRESSIONS_MOBILE_MAPS'] || 0).toLocaleString() },
+    { label: 'Call Clicks', value: (totals['CALL_CLICKS'] || 0).toLocaleString() },
+    { label: 'Website Clicks', value: (totals['WEBSITE_CLICKS'] || 0).toLocaleString() },
+    { label: 'Direction Requests', value: (totals['DIRECTION_REQUESTS'] || 0).toLocaleString() },
+  ]
+
+  return (
+    <div>
+      <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', marginBottom: 20 }}>
+        {data.location?.name} · Last 28 days
+        <button onClick={load} style={{ marginLeft: 12, background: 'none', border: '1px solid rgba(122,171,130,0.3)', color: '#7dffaa', borderRadius: 6, padding: '2px 10px', fontSize: '0.72rem', cursor: 'pointer' }}>Refresh</button>
+      </div>
+
+      {/* KPI row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>
+        {kpis.map((k) => (
+          <div key={k.label} style={CARD}>
+            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#7dffaa' }}>{k.value}</div>
+            <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)', marginTop: 4 }}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Reviews */}
+      <div style={SECTION}>Recent Reviews</div>
+      {reviews.length === 0 ? (
+        <div style={{ color: 'rgba(212,230,202,0.4)', fontSize: '0.85rem' }}>No reviews found.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {reviews.map((r, i) => {
+            const rating = r.starRating
+            const stars = { 'ONE': 1, 'TWO': 2, 'THREE': 3, 'FOUR': 4, 'FIVE': 5 }[rating] || 0
+            const hasReply = !!r.reviewReply
+            const date = r.createTime ? new Date(r.createTime).toLocaleDateString() : ''
+            return (
+              <div key={i} style={{ ...CARD, borderColor: hasReply ? 'rgba(122,171,130,0.15)' : 'rgba(255,180,0,0.25)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{r.reviewer?.displayName || 'Anonymous'}</div>
+                    <div style={{ color: '#c9a84c', fontSize: '0.85rem', letterSpacing: 2 }}>{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</div>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>{date}</div>
+                </div>
+                {r.comment && <p style={{ margin: '8px 0 0', fontSize: '0.83rem', color: 'rgba(212,230,202,0.7)', lineHeight: 1.6 }}>{r.comment}</p>}
+                {hasReply && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(122,171,130,0.15)', fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
+                    <span style={{ color: '#7dffaa', fontWeight: 700 }}>Your reply: </span>{r.reviewReply.comment}
+                  </div>
+                )}
+                {!hasReply && (
+                  <div style={{ marginTop: 8, fontSize: '0.75rem', color: 'rgba(255,180,0,0.7)', fontWeight: 600 }}>No reply yet</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1077,6 +1187,7 @@ export default function Analytics(props) {
 
         {tab === 'Revenue' && <RevenueTab {...props} />}
         {tab === 'Traffic' && <TrafficTab ga4Configured={props.ga4Configured} traffic={props.traffic} />}
+        {tab === 'Business' && <BusinessTab />}
         {tab === 'Map' && <MapTab mapsKey={props.mapsKey} customerLocations={props.customerLocations} />}
         {tab === 'Social' && <SocialTab />}
         {tab === 'Finance' && <FinanceTab balance={props.balance} revenueLast30={props.revenueLast30} recentOrders={props.recentOrders} openInvoiceList={props.openInvoiceList} />}

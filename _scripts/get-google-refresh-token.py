@@ -29,7 +29,8 @@ CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 
 REDIRECT_URI = 'http://localhost:8765'
 
-# Default: full calendar write access (needed for apply_route_times.py) + analytics.
+# Default: full calendar write access (needed for apply_route_times.py) + analytics
+# + Google Business Profile.
 # Pass --readonly to request only calendar.readonly (legacy behavior).
 if '--readonly' in sys.argv:
     SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
@@ -39,8 +40,9 @@ else:
         'https://www.googleapis.com/auth/calendar.events',
         'https://www.googleapis.com/auth/calendar.readonly',
         'https://www.googleapis.com/auth/analytics.readonly',
+        'https://www.googleapis.com/auth/business.manage',
     ])
-    print('Requesting scopes: Calendar events (read+write) + Analytics')
+    print('Requesting scopes: Calendar events (read+write) + Analytics + Google Business Profile')
     print('(Run with --readonly to limit to read-only calendar access)')
 
 auth_code = None
@@ -186,36 +188,11 @@ Then run:
             mark = '✓' if r.returncode == 0 else '⚠'
             print(f'  {mark} Vercel {k}')
 
-    # ── 4. Push to GitHub Secrets ──────────────────────────────────────────────
-    web_repo = 'greenguard-usa/greenguard-usa-web'
-    import base64
-    for k, v in [('GOOGLE_REFRESH_TOKEN', refresh_token),
-                 ('GOOGLE_CLIENT_ID', CLIENT_ID),
-                 ('GOOGLE_CLIENT_SECRET', CLIENT_SECRET)]:
-        r = subprocess.run(['gh', 'secret', 'set', k, '-R', web_repo],
-                           input=v.encode(), capture_output=True)
-        mark = '✓' if r.returncode == 0 else '⚠'
-        print(f'  {mark} GitHub {k}')
-
-    # Encode token.json as base64 for GH (used by cron workflows that need the full JSON)
-    token_json_b64 = base64.b64encode(json.dumps({
-        'token': tokens.get('access_token'),
-        'refresh_token': refresh_token,
-        'token_uri': 'https://oauth2.googleapis.com/token',
-        'client_id': CLIENT_ID,
-        'client_secret': CLIENT_SECRET,
-        'scopes': SCOPE.split(),
-    }).encode()).decode()
-    r = subprocess.run(['gh', 'secret', 'set', 'GOOGLE_TOKEN_JSON', '-R', web_repo],
-                       input=token_json_b64.encode(), capture_output=True)
-    print(f"  {'✓' if r.returncode == 0 else '⚠'} GitHub GOOGLE_TOKEN_JSON (base64)")
-
     print()
-    print('All four locations updated. The refresh token is now persistent across:')
+    print('All three locations updated. The refresh token is now persistent across:')
     print('  • macOS Keychain → read by future helper scripts via lib/oauth_keychain.py')
     print('  • Local agent/token.json → for direct googleapiclient use')
     print('  • Vercel production env → portal API routes')
-    print('  • GitHub Secrets → cron workflows')
     print()
     print('Don\'t commit any of these files — they\'re already in .gitignore.')
 
