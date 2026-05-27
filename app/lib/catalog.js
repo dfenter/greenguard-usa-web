@@ -47,7 +47,7 @@ const ADDONS = [
   {
     sku: 'BUCKET-OF-DOOM',
     label: 'Bucket of Doom',
-    price: 29.99,
+    price: 24.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bucketOfDoom',
     quoteCategory: 'Recurring Add-Ons',
