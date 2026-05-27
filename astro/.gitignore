@@ -6,3 +6,8 @@ dist
 .env.local
 .DS_Store
 .vercel
+
+# Browser screenshots that admins occasionally drop into images/ as
+# reference material — they aren't real product assets and shouldn't
+# bloat the deploy.
+public/images/Screenshot*.png
