@@ -364,6 +364,7 @@ async function getBookingsForDateRange(startISO, endISO) {
 }
 
 module.exports = {
+  getCalendar,
   getUpcomingBookingsForEmail,
   getPastBookingsForEmail,
   getBookingsForWeek,
