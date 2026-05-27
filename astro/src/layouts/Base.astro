@@ -17,6 +17,7 @@ const {
 
 const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
 const GA_ID = 'G-K2R5H2Z23X';
+const AW_ID = 'AW-16913987571';
 ---
 
 <!DOCTYPE html>
@@ -42,16 +43,52 @@ const GA_ID = 'G-K2R5H2Z23X';
       rel="stylesheet"
     />
 
-    <!-- GA4 -->
+    <!-- LocalBusiness structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "GreenGuard USA",
+      "description": "CO2 trap-based mosquito control for Austin, TX. No pesticides, safe for kids, pets, and pollinators.",
+      "url": "https://greenguard-usa.com",
+      "telephone": "+1-512-560-4129",
+      "email": "admin@greenguard-usa.com",
+      "areaServed": [
+        "Austin, TX", "Westlake Hills, TX", "Lakeway, TX", "Bee Cave, TX",
+        "Cedar Park, TX", "Round Rock, TX", "Dripping Springs, TX",
+        "Steiner Ranch, TX", "Pflugerville, TX", "Georgetown, TX", "Kyle, TX"
+      ],
+      "serviceType": "Mosquito Control",
+      "priceRange": "$$",
+      "openingHours": "Mo-Sa 08:00-18:00",
+      "sameAs": [
+        "https://new.greenguard-usa.com"
+      ]
+    }
+    </script>
+
+    <!-- GA4 + Google Ads -->
     <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
-    <script is:inline define:vars={{ GA_ID }}>
+    <script is:inline define:vars={{ GA_ID, AW_ID }}>
       window.dataLayer = window.dataLayer || [];
       function gtag() { dataLayer.push(arguments); }
       gtag('js', new Date());
       gtag('config', GA_ID);
+      gtag('config', AW_ID);
     </script>
   </head>
   <body>
+    <script>
+      document.addEventListener('click', (e) => {
+        const a = (e.target as HTMLElement).closest('a[href^="tel:"]');
+        if (a && typeof window.gtag === 'function') {
+          window.gtag('event', 'phone_call_click', {
+            event_category: 'contact',
+            event_label: (a as HTMLAnchorElement).href.replace('tel:', ''),
+          });
+        }
+      });
+    </script>
     <Nav />
     <main>
       <slot />

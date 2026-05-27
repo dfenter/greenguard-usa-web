@@ -15,6 +15,7 @@ BASE_URL   = 'https://www.greenguard-usa.com'
 TIDIO_KEY  = '2oaqyblfyjn6xy86vutzzvr1ykg9twav'
 TIDIO_SRC  = f'https://code.tidio.co/{TIDIO_KEY}.js'
 GA4_ID     = 'G-K2R5H2Z23X'
+AW_ID      = 'AW-16913987571'
 
 GOOGLE_FONTS_LINK = (
     '<link rel="preconnect" href="https://fonts.googleapis.com">'
@@ -523,7 +524,7 @@ def convert(fname, fragment):
   {GOOGLE_FONTS_LINK}
   {style_block}
   <script async src="https://www.googletagmanager.com/gtag/js?id={GA4_ID}"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag('js',new Date());gtag('config','{GA4_ID}');</script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag('js',new Date());gtag('config','{GA4_ID}');gtag('config','{AW_ID}');</script>
   <script src="{TIDIO_SRC}" async></script>
 </head>
 <body>

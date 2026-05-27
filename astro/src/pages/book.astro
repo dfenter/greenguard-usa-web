@@ -46,6 +46,17 @@ const CAL_EVENT = 'property-assessment';
     </div>
   </section>
 
+  <script>
+    // Cal.com fires a postMessage when a booking is confirmed
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === 'bookingSuccessful' || e.data?.action === 'bookingSuccessful') {
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'generate_lead', { event_category: 'booking', event_label: 'property_assessment' });
+        }
+      }
+    });
+  </script>
+
   <!-- WHAT TO EXPECT -->
   <section class="py-16 px-5 bg-bg-panel">
     <div class="max-w-container mx-auto">

@@ -16,6 +16,16 @@ export default function QuotePage({ token, accepted }) {
       .catch(() => setError('Failed to load quote'))
   }, [token])
 
+  useEffect(() => {
+    if (!accepted || !quote) return
+    if (typeof window.gtag !== 'function') return
+    window.gtag('event', 'purchase', {
+      transaction_id: token,
+      value: quote.total ?? 0,
+      currency: 'USD',
+    })
+  }, [accepted, quote])
+
   async function handleAcceptPay() {
     setPaying(true)
     setPayError(null)
