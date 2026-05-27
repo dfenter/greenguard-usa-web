@@ -121,4 +121,47 @@ async function sendCustomerReceipt({ invoice, customer, receiptUrl, hostedInvoic
   }
 }
 
-module.exports = { notifyAdmin, sendCustomerReceipt }
+// Admin notification when an invoice is finalized + sent to a customer.
+// Mirrors what the customer just received so admin has a copy without
+// configuring Stripe's BCC setting (which is global and noisy).
+async function notifyAdminInvoiceSent({ invoice, customer }) {
+  if (!process.env.RESEND_API_KEY) return { ok: false, reason: 'no RESEND_API_KEY' }
+
+  const amount = invoice.amount_due || invoice.total || 0
+  const lines = (invoice.lines?.data || []).map((l) =>
+    `<tr>
+      <td style="padding:6px 0;color:#444;">${esc(l.description || 'Service')}</td>
+      <td style="padding:6px 0;text-align:right;font-weight:700;">${fmt$(l.amount)}</td>
+    </tr>`
+  ).join('')
+
+  const html = `
+    <div style="font-family:-apple-system,sans-serif;max-width:560px;padding:24px;color:#1a2e1f;">
+      <div style="background:#0d1a10;border-radius:10px;padding:18px 22px;margin-bottom:20px;">
+        <div style="color:rgba(212,230,202,0.55);font-size:0.72rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:4px;">Invoice sent</div>
+        <h1 style="color:#7dffaa;font-size:1.6rem;margin:0;">${fmt$(amount)}</h1>
+      </div>
+      <p><strong>${esc(customer.name || customer.email || 'Customer')}</strong></p>
+      <p style="color:#555;margin:4px 0;">${esc(customer.email || '')}${customer.phone ? ' · ' + esc(customer.phone) : ''}</p>
+      ${lines ? `<table style="width:100%;border-collapse:collapse;margin:18px 0;border-top:1px solid #eee;">${lines}</table>` : ''}
+      <p style="margin-top:18px;">
+        <a href="${esc(invoice.hosted_invoice_url || '#')}" style="display:inline-block;padding:10px 18px;background:#7dffaa;color:#0d1a10;font-weight:800;border-radius:6px;text-decoration:none;margin-right:8px;">View what customer sees →</a>
+        <a href="https://dashboard.stripe.com/invoices/${esc(invoice.id)}" style="color:#1a2e1f;font-weight:700;text-decoration:underline;">Open in Stripe</a>
+      </p>
+      <p style="font-size:0.72rem;color:#888;margin-top:18px;">Ref: ${esc(invoice.id)} · ${esc(invoice.collection_method)}</p>
+    </div>`
+  try {
+    await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: `GreenGuard Billing <${FROM}>`,
+      to: ADMIN_EMAIL,
+      subject: `📤 Invoice sent: ${customer.name || customer.email} ${fmt$(amount)}`,
+      html,
+    })
+    return { ok: true }
+  } catch (e) {
+    console.error('admin invoice-sent notify:', e.message)
+    return { ok: false, reason: e.message }
+  }
+}
+
+module.exports = { notifyAdmin, sendCustomerReceipt, notifyAdminInvoiceSent }

@@ -15,6 +15,7 @@
 // (not random internet traffic) can invoke this.
 
 const { stripe, getTaxRateId } = require('../../../lib/stripe')
+const { notifyAdminInvoiceSent } = require('../../../lib/purchase-notify')
 const { Resend } = require('resend')
 
 const ALERT_EMAIL = 'admin@greenguard-usa.com'
@@ -114,6 +115,15 @@ async function runFinalize() {
         }
       }
       results.processed++
+      // Send admin a copy of what the customer just got. Best-effort.
+      try {
+        const finalInv = await stripe.invoices.retrieve(inv.id)
+        const cust = typeof inv.customer === 'object'
+          ? inv.customer
+          : await stripe.customers.retrieve(inv.customer)
+        notifyAdminInvoiceSent({ invoice: finalInv, customer: cust })
+          .catch(() => {})
+      } catch {}
     } catch (e) {
       results.errors.push({ id: inv.id, customer: customerLabel(inv), error: e.message })
     }

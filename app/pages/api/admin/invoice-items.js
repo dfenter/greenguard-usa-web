@@ -1,6 +1,7 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { stripe, getTaxRateId } = require('../../../lib/stripe')
 const { SKU_PRICES } = require('../../../lib/sku-engine')
+const { notifyAdminInvoiceSent } = require('../../../lib/purchase-notify')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -192,6 +193,16 @@ export default async function handler(req, res) {
           // charge_automatically — attempt the charge now on the default PM.
           // payInvoice throws on failure; that's fine, surface as 500.
           await stripe.invoices.pay(inv.id)
+        }
+        // Notify admin with a copy of what the customer received (hosted
+        // invoice URL + line items). Fire-and-forget; don't block response.
+        try {
+          const finalInv = await stripe.invoices.retrieve(inv.id)
+          const cust = await stripe.customers.retrieve(customerId)
+          notifyAdminInvoiceSent({ invoice: finalInv, customer: cust })
+            .catch((e) => console.error('admin invoice-sent notify:', e.message))
+        } catch (e) {
+          console.error('admin invoice-sent notify (pre-fetch):', e.message)
         }
       }
       const refreshed = await stripe.invoices.retrieve(inv.id)
