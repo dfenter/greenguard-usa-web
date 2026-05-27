@@ -82,17 +82,25 @@ async function computeProjection(rawNotes) {
   exchangeRecords.forEach((r) => { exchangeByWed[r.week] = r })
 
   const now = new Date()
-  const startDate = addDays(now, 1)
+  // Projection starts at TODAY in Central Time, not UTC midnight tomorrow.
+  // (Before: addDays(now, 1).setUTCHours(0,0,0,0) — meant today never appeared
+  // in days[] and the "Today's load" pill silently showed tomorrow's row.)
+  const startDate = new Date(now)
   startDate.setUTCHours(0, 0, 0, 0)
   const endDate = addDays(startDate, PROJECTION_DAYS)
 
   let gcalBookings = []
   try { gcalBookings = await getBookingsForWeek(startDate.toISOString(), endDate.toISOString()) } catch { /* GCal not configured */ }
 
+  // Bucket bookings by their CT date, not their UTC date — an Austin
+  // appointment at 7pm CT lands on the next UTC day and would otherwise be
+  // grouped into tomorrow's load.
+  const TZ = 'America/Chicago'
   const dailyMap = {}
   for (const booking of gcalBookings) {
-    const dateStr = (booking.startTime || '').slice(0, 10)
-    if (!dateStr) continue
+    const iso = booking.startTime || ''
+    if (!iso) continue
+    const dateStr = new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ })
     const resolved = resolveByTitle(normalizeEventTitle(booking.title || ''))
     const tankCount = resolved?.tankCount || 0
     if (!dailyMap[dateStr]) dailyMap[dateStr] = { appts: 0, tanksNeeded: 0 }
@@ -377,8 +385,10 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
 
   const { summary, days, weeks, alerts, exchangeHistory } = data
 
-  // Today's load: lookup today's row in the projected days list.
-  const todayIso = new Date().toISOString().slice(0, 10)
+  // Today's load: lookup today's row in the projected days list. todayIso
+  // must be computed in CT — toISOString().slice(0,10) returns the UTC date,
+  // which is the next day for any CT time after ~6pm.
+  const todayIso = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
   const todayRow = days.find((d) => d.date === todayIso) || days[0]
   const todayLoad = todayRow ? { tanks: todayRow.tanksNeeded || 0, appts: todayRow.appointments || 0 } : null
 
