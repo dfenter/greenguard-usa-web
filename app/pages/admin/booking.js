@@ -28,11 +28,13 @@ export default function AdminBooking() {
   })
   const [status, setStatus] = useState(null) // null | 'loading' | 'success' | {error}
 
-  // Apply query param pre-fill once router is ready
+  // Apply query param pre-fill once router is ready. `start` is the
+  // datetime-local value from a click on the calendar grid; expected format
+  // is YYYY-MM-DDTHH:mm (what <input type=datetime-local> wants).
   useEffect(() => {
     if (!router.isReady) return
     const q = router.query
-    if (q.email || q.name || q.address) {
+    if (q.email || q.name || q.address || q.start) {
       const parts = (q.name || '').split(' ')
       setForm((f) => ({
         ...f,
@@ -40,6 +42,7 @@ export default function AdminBooking() {
         firstName: parts[0] || f.firstName,
         lastName: parts.slice(1).join(' ') || f.lastName,
         address: q.address || f.address,
+        startLocal: q.start || f.startLocal,
       }))
     }
   }, [router.isReady]) // eslint-disable-line react-hooks/exhaustive-deps

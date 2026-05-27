@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
@@ -139,9 +140,29 @@ function tankCountFromTitle(title) {
 }
 
 export default function CalendarPage({ today, initialBookings }) {
+  const router = useRouter()
   const [date, setDate] = useState(today)
   const [bookings, setBookings] = useState(initialBookings)
   const [loading, setLoading] = useState(false)
+
+  // Translate a click on the empty day-grid background into a YYYY-MM-DDTHH:mm
+  // value and hand off to /admin/booking with the time prefilled. Rounds to
+  // the nearest 15 minutes so dropdowns aren't full of weird offsets.
+  function handleGridClick(e) {
+    // Ignore clicks that originated on an event (they have their own handler).
+    if (e.target.closest('.event')) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const yPx = e.clientY - rect.top
+    const totalMin = yPx / PX_PER_MIN
+    const minutesFromDayStart = Math.max(0, Math.round(totalMin / 15) * 15)
+    const hour = DAY_START_HOUR + Math.floor(minutesFromDayStart / 60)
+    const minute = minutesFromDayStart % 60
+    if (hour < DAY_START_HOUR || hour >= DAY_END_HOUR + 1) return
+    const hh = String(hour).padStart(2, '0')
+    const mm = String(minute).padStart(2, '0')
+    const startLocal = `${date}T${hh}:${mm}`
+    router.push(`/admin/booking?start=${encodeURIComponent(startLocal)}`)
+  }
   const [picker, setPicker] = useState(false)
   const [selectedEventId, setSelectedEventId] = useState(null)
   const [details, setDetails] = useState(null)
@@ -282,7 +303,7 @@ export default function CalendarPage({ today, initialBookings }) {
           <div className="day-title-sub">{loading ? 'Loading…' : `${bookings.length} appointment${bookings.length === 1 ? '' : 's'}`}</div>
         </div>
 
-        {!loading && bookings.length === 0 && (viewMode === 'day' || viewMode === 'agenda') && (
+        {!loading && bookings.length === 0 && viewMode === 'agenda' && (
           <div className="empty">No appointments scheduled.</div>
         )}
 
@@ -327,7 +348,7 @@ export default function CalendarPage({ today, initialBookings }) {
           </div>
         )}
 
-        {bookings.length > 0 && viewMode === 'day' && (
+        {viewMode === 'day' && (
           <div className="grid-wrap" style={{ height: gridHeight }}>
             {hours.map((h) => {
               const top = (h - DAY_START_HOUR) * 60 * PX_PER_MIN
@@ -342,7 +363,9 @@ export default function CalendarPage({ today, initialBookings }) {
 
             <NowLine date={date} today={today_} dayStartHour={DAY_START_HOUR} pxPerMin={PX_PER_MIN} dayEndHour={DAY_END_HOUR} />
 
-            <div className="event-area" style={{ position:'absolute', left:0, right:0, top:0, bottom:0 }}>
+            <div className="event-area" onClick={handleGridClick}
+                 style={{ position:'absolute', left:0, right:0, top:0, bottom:0, cursor:'crosshair' }}
+                 title="Click an empty time slot to start a new booking">
               {positioned.map((ev) => {
                 const top = (ev.startMin - DAY_START_HOUR * 60) * PX_PER_MIN
                 const height = Math.max(28, (ev.endMin - ev.startMin) * PX_PER_MIN - 2)
