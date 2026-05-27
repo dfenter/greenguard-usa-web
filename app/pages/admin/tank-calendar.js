@@ -81,21 +81,28 @@ async function computeProjection(rawNotes) {
   const exchangeByWed = {}
   exchangeRecords.forEach((r) => { exchangeByWed[r.week] = r })
 
+  // Anchor everything to Central Time. The previous UTC-based math broke
+  // two ways: (1) for any user check after ~6pm CT, startDate.setUTCHours(0)
+  // landed on tomorrow UTC, so today never appeared in days[]. (2) Bookings
+  // were grouped by UTC date, so an 8am CT appointment was sometimes counted
+  // on the wrong day.
+  const TZ = 'America/Chicago'
   const now = new Date()
-  // Projection starts at TODAY in Central Time, not UTC midnight tomorrow.
-  // (Before: addDays(now, 1).setUTCHours(0,0,0,0) — meant today never appeared
-  // in days[] and the "Today's load" pill silently showed tomorrow's row.)
-  const startDate = new Date(now)
-  startDate.setUTCHours(0, 0, 0, 0)
-  const endDate = addDays(startDate, PROJECTION_DAYS)
+  const todayCt = now.toLocaleDateString('en-CA', { timeZone: TZ })  // YYYY-MM-DD in CT
+  const [ty, tm, td] = todayCt.split('-').map(Number)
+  // startDate sits at noon UTC of today's CT date. Using noon (rather than
+  // 00:00) keeps every downstream toISOString().slice(0,10) call returning
+  // the same calendar date regardless of any TZ offset wobble.
+  const startDate = new Date(Date.UTC(ty, tm - 1, td, 12, 0, 0))
+  // Fetch range starts a day earlier and ends a day later so any CT-edge
+  // bookings near the projection bounds are still included.
+  const fetchStart = addDays(startDate, -1)
+  const fetchEnd = addDays(startDate, PROJECTION_DAYS + 1)
 
   let gcalBookings = []
-  try { gcalBookings = await getBookingsForWeek(startDate.toISOString(), endDate.toISOString()) } catch { /* GCal not configured */ }
+  try { gcalBookings = await getBookingsForWeek(fetchStart.toISOString(), fetchEnd.toISOString()) } catch { /* GCal not configured */ }
 
-  // Bucket bookings by their CT date, not their UTC date — an Austin
-  // appointment at 7pm CT lands on the next UTC day and would otherwise be
-  // grouped into tomorrow's load.
-  const TZ = 'America/Chicago'
+  // Bucket bookings by CT date, not UTC date.
   const dailyMap = {}
   for (const booking of gcalBookings) {
     const iso = booking.startTime || ''
