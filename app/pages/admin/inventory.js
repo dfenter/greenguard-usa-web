@@ -52,22 +52,22 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
   // (empties collected Wednesday = tanks serviced this week = full tanks needed next week)
   const defaultEmptiesPickedUp = weeklyTankTotal > 0 ? String(weeklyTankTotal) : ''
 
-  // Prefill from the LAST KNOWN value for each field across history (not just
-  // the most recent log entry — admin may have skipped fields on the latest).
-  // Scans entries newest-first; first non-null value wins.
-  // Skip null/empty AND zero — saves serialize empty-fields as 0, so a long
-  // tail of zeros in history would otherwise lock the prefill at 0 forever.
+  // Prefill from the most recent history entry that actually has a value for
+  // this field. 0 IS a valid value (e.g. "we used every empty tank this week")
+  // and should round-trip — the previous skip-zero logic caused the form to
+  // show blank with a "0" placeholder whenever the latest save included 0 or
+  // a blank-defaulted-to-0 field, which felt like prefill was broken.
   function lastKnown(field) {
     for (const entry of initialHistory) {
       const v = entry?.[field]
-      if (v != null && v !== '' && Number(v) !== 0) return v
+      if (v != null && v !== '') return v
     }
     return null
   }
   function lastKnownEquip(key) {
     for (const entry of initialHistory) {
       const v = entry?.equipment?.[key]
-      if (v != null && v !== '' && Number(v) !== 0) return v
+      if (v != null && v !== '') return v
     }
     return null
   }
