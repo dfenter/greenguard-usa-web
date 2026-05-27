@@ -1,38 +1,68 @@
 ---
 import Base from '../layouts/Base.astro';
 import Reviews from '../components/Reviews.astro';
-import CustomerCount from '../components/CustomerCount.astro';
 ---
 
 <Base title="Eco-Friendly Mosquito Control Austin TX | GreenGuard USA">
   <!-- HERO -->
-  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 pt-20 pb-16 px-5">
-    <div class="max-w-container mx-auto text-center">
-      <CustomerCount />
+  <section style="background: linear-gradient(135deg, #0d1a10 0%, #1a2e1f 45%, #2d4a32 100%); padding: 80px 48px 90px; border-bottom: 1px solid rgba(122,171,130,0.2);">
+    <div class="max-w-container mx-auto">
+      <div class="flex justify-between items-center gap-12 flex-col md:flex-row">
+        <!-- Left column -->
+        <div style="max-width: 560px;">
+          <!-- Animated badge -->
+          <div class="flex items-center gap-2 mb-6" style="display: inline-flex; align-items: center; gap: 10px; background: rgba(45,74,50,0.8); border: 1px solid rgba(122,171,130,0.3); border-radius: 20px; padding: 7px 16px;">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background: #7dffaa;"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5" style="background: #4ade80;"></span>
+            </span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: #a8edc0; letter-spacing: 0.04em;">Now Serving Austin, TX</span>
+          </div>
 
-      <h1 class="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1] mt-6 mb-5">
-        Take your yard back from mosquitoes,
-        <span class="text-accent block mt-2">without pesticides.</span>
-      </h1>
+          <h1 style="font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 900; color: #fff; line-height: 1.1; margin: 20px 0 24px; letter-spacing: -0.02em;">
+            Reclaim Your Sanctuary.<span style="display: block; color: #7dffaa;">Start Trapping Mosquitoes.</span>
+          </h1>
 
-      <p class="text-cream/80 text-base md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
-        We use CO₂-baited traps that catch only blood-seeking mosquitoes. Safe for kids, pets, bees,
-        and butterflies. Set up by an all-electric Austin team.
-      </p>
+          <p style="font-size: 1.1rem; line-height: 1.75; color: rgba(212,230,202,0.85); margin-bottom: 36px; max-width: 480px;">
+            Precision CO₂ trap technology. Scientifically validated. Pesticide-free. Delivered to your home by our all-electric fleet. Protect your family with a smarter approach to mosquito control.
+          </p>
 
-      <div class="flex gap-3 justify-center flex-wrap mb-8">
-        <a href="/book" class="btn-gold">Book Free Assessment</a>
-        <a href="tel:5125604129" class="btn-outline">Call 512-560-4129</a>
-      </div>
+          <div class="flex gap-3 flex-wrap">
+            <a href="/book" class="btn-gold">Book Your Free Consultation</a>
+            <a href="tel:5125604129" class="btn-outline">Call 512-560-4129</a>
+          </div>
+        </div>
 
-      <div class="flex gap-2 justify-center flex-wrap text-xs">
-        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">No pesticides</span>
-        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">Bee-safe</span>
-        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">Month-to-month</span>
-        <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-cream/70">EV fleet</span>
+        <!-- Right column: hero image -->
+        <div class="hidden md:block flex-shrink-0" style="width: 420px; max-width: 45%;">
+          <img
+            src="/images/mosqitterGrand1.webp"
+            alt="Mosqitter Grand CO₂ mosquito trap, GreenGuard USA Austin Texas"
+            style="width: 100%; height: auto; object-fit: contain; border-radius: 12px; border: 1px solid rgba(122,171,130,0.15); display: block; box-shadow: 0 24px 64px rgba(0,0,0,0.45);"
+          />
+        </div>
       </div>
     </div>
   </section>
+
+  <!-- TRUST BAR -->
+  <div style="background: #2d4a32; border-bottom: 1px solid rgba(122,171,130,0.2); padding: 16px 48px; display: flex; align-items: center; justify-content: center; gap: 32px; flex-wrap: wrap;">
+    <div class="flex items-center gap-2" style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #a8edc0;">
+      <span style="color: #c9a84c; font-weight: 900;">✓</span> 100% Pesticide-Free
+    </div>
+    <div class="flex items-center gap-2" style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #a8edc0;">
+      <span style="color: #c9a84c; font-weight: 900;">✓</span> Safe for Kids &amp; Pets
+    </div>
+    <div class="flex items-center gap-2" style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #a8edc0;">
+      <span style="color: #c9a84c; font-weight: 900;">✓</span> Bee Safe
+    </div>
+    <div class="flex items-center gap-2" style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #a8edc0;">
+      <span style="color: #c9a84c; font-weight: 900;">✓</span> Next-Day CO₂ Delivery
+    </div>
+    <div class="flex items-center gap-2" style="font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #a8edc0;">
+      <span style="color: #c9a84c; font-weight: 900;">✓</span> Free Assessment
+    </div>
+  </div>
 
   <!-- THE SCIENCE -->
   <section class="py-16 px-5">

@@ -2,6 +2,7 @@
 const links = [
   { href: '/services', label: 'Services' },
   { href: '/pricing', label: 'Pricing' },
+  { href: '/shop', label: 'Shop' },
   { href: '/results', label: 'Results' },
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
@@ -38,25 +39,26 @@ const links = [
       <span class="h-0.5 w-full bg-gold rounded"></span>
     </button>
   </div>
-
-  <div
-    id="nav-drawer"
-    class="fixed top-0 right-0 w-72 h-full bg-bg-dark z-50 pt-16 px-6 pb-6 flex flex-col gap-1 translate-x-full transition-transform duration-300 overflow-y-auto"
-  >
-    <button
-      id="nav-close"
-      type="button"
-      class="absolute top-4 right-4 text-accent text-xl leading-none"
-      aria-label="Close menu"
-    >&#x2715;</button>
-    {links.map((l) => (
-      <a href={l.href} class="text-cream/80 hover:text-accent py-2.5 border-b border-accent/10 text-sm">
-        {l.label}
-      </a>
-    ))}
-    <a href="/book" class="btn-gold mt-4 text-center">Book Free Assessment</a>
-  </div>
 </header>
+
+<!-- Drawer lives outside <header> so backdrop-filter doesn't trap it -->
+<div
+  id="nav-drawer"
+  class="fixed top-0 right-0 w-72 h-full bg-bg-dark z-[60] pt-16 px-6 pb-6 flex flex-col gap-1 translate-x-full transition-transform duration-300 overflow-y-auto"
+>
+  <button
+    id="nav-close"
+    type="button"
+    class="absolute top-4 right-4 text-accent text-xl leading-none"
+    aria-label="Close menu"
+  >&#x2715;</button>
+  {links.map((l) => (
+    <a href={l.href} class="text-cream/80 hover:text-accent py-2.5 border-b border-accent/10 text-sm">
+      {l.label}
+    </a>
+  ))}
+  <a href="/book" class="btn-gold mt-4 text-center">Book Free Assessment</a>
+</div>
 
 <div class="h-16"></div>
 
@@ -71,7 +73,6 @@ const links = [
   toggle?.addEventListener('click', openDrawer);
   close?.addEventListener('click', closeDrawer);
 
-  // Close on backdrop click (anywhere outside the drawer)
   document.addEventListener('click', (e) => {
     if (!drawer?.classList.contains('translate-x-full') &&
         !drawer?.contains(e.target as Node) &&

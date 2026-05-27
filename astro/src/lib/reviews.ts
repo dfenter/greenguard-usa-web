@@ -1,18 +1,8 @@
-// Reviews are fetched from Google Places API at build time. Cloudflare
-// Workers Cron pings the Vercel astro deploy hook daily to keep the bundled
-// data fresh. No on-disk JSON; no GitHub Actions sync.
-//
-// If the Places API call fails (rate limit, missing key during local dev),
-// the loader returns empty arrays / default 5-star metadata so builds never
-// break.
+// Reviews are pre-fetched daily by the fetch-reviews GitHub Action and stored
+// in src/data/reviews.json. The build reads that file so no API key is needed
+// at build time and results are always current.
 
-const PLACE_ID = 'ChIJx8wLC4K11wwRbfe7hhZiHXs';
-const API_KEY =
-  import.meta.env.GOOGLE_PLACES_API_KEY ||
-  import.meta.env.GOOGLE_MAPS_API_KEY ||
-  process.env.GOOGLE_PLACES_API_KEY ||
-  process.env.GOOGLE_MAPS_API_KEY ||
-  '';
+import reviewsData from '../data/reviews.json';
 
 export interface Review {
   author: string;
@@ -23,62 +13,17 @@ export interface Review {
   location?: string;
 }
 
-interface PlacesResponse {
-  id?: string;
-  rating?: number;
-  userRatingCount?: number;
-  reviews?: Array<{
-    authorAttribution?: { displayName?: string };
-    rating?: number;
-    text?: { text?: string };
-    relativePublishTimeDescription?: string;
-  }>;
+interface ReviewsFile {
+  google: {
+    place_id: string;
+    rating: number;
+    total: number;
+    reviews: Review[];
+  };
+  manual: Review[];
 }
 
-interface CachedReviews {
-  reviews: Review[];
-  rating: number;
-  total: number;
-  placeId: string;
-}
-
-let cached: CachedReviews | null = null;
-
-async function loadFromPlaces(): Promise<CachedReviews> {
-  if (cached) return cached;
-  if (!API_KEY) {
-    cached = { reviews: [], rating: 5, total: 0, placeId: PLACE_ID };
-    return cached;
-  }
-  try {
-    const res = await fetch(`https://places.googleapis.com/v1/places/${PLACE_ID}`, {
-      headers: {
-        'X-Goog-Api-Key': API_KEY,
-        'X-Goog-FieldMask': 'id,rating,userRatingCount,reviews',
-      },
-    });
-    if (!res.ok) throw new Error(`Places API ${res.status}`);
-    const data = (await res.json()) as PlacesResponse;
-    const reviews: Review[] = (data.reviews ?? []).map((r) => ({
-      author: r.authorAttribution?.displayName ?? '',
-      rating: r.rating ?? 5,
-      text: r.text?.text ?? '',
-      time: r.relativePublishTimeDescription ?? '',
-      source: 'google',
-    }));
-    cached = {
-      reviews,
-      rating: data.rating ?? 5,
-      total: data.userRatingCount ?? 0,
-      placeId: data.id ?? PLACE_ID,
-    };
-    return cached;
-  } catch (e) {
-    console.warn('[reviews] Places fetch failed, using fallback:', (e as Error).message);
-    cached = { reviews: [], rating: 5, total: 0, placeId: PLACE_ID };
-    return cached;
-  }
-}
+const file = reviewsData as unknown as ReviewsFile;
 
 function relativeToDays(s: string): number {
   if (!s) return 9999;
@@ -100,18 +45,16 @@ function relativeToDays(s: string): number {
   return 100;
 }
 
-export async function getLatestReviews(count = 3): Promise<Review[]> {
-  const data = await loadFromPlaces();
-  const all = [...data.reviews].reverse();
+export function getLatestReviews(count = 3): Review[] {
+  const all: Review[] = [...(file.google?.reviews ?? [])];
   all.sort((a, b) => relativeToDays(a.time) - relativeToDays(b.time));
   return all.slice(0, count);
 }
 
-export async function getReviewMeta() {
-  const data = await loadFromPlaces();
+export function getReviewMeta() {
   return {
-    averageRating: data.rating,
-    totalReviews: data.total,
-    placeId: data.placeId,
+    averageRating: file.google?.rating ?? 5,
+    totalReviews: file.google?.total ?? 0,
+    placeId: file.google?.place_id ?? '',
   };
 }
