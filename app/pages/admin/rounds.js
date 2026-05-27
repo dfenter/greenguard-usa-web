@@ -282,6 +282,7 @@ const ADDONS = [
 // Equipment sold during visit — one-time purchases
 const PRODUCTS_SOLD = [
   { label: 'Biogents BG-Mosquitaire',              sku: null, price: 279.99  },
+  { label: 'Biogents Non-CO₂ Trap',                sku: 'BG-NONCO2-UNIT', price: 179.99 },
   { label: 'Mosqitter Grand',                      sku: null, price: 1849.99 },
   { label: 'Biogents Timer',                       sku: null, price:  89.99  },
   { label: 'CO₂ Tank — 20lb (empty)',             sku: null, price: 199.99  },
