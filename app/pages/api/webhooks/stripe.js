@@ -1,7 +1,7 @@
 const { stripe } = require('../../../lib/stripe')
 const { upsertContact, addNote, findContactByEmail } = require('../../../lib/hubspot')
 const { sendT0Email, markStage, clearStages } = require('../../../lib/payment-resurrection')
-const { notifyAdmin } = require('../../../lib/purchase-notify')
+const { notifyAdmin, sendCustomerReceipt } = require('../../../lib/purchase-notify')
 
 export const config = { api: { bodyParser: false } }
 
@@ -58,6 +58,15 @@ export default async function handler(req, res) {
           stripeUrl: `${DASH}/invoices/${invoice.id}`,
           ref: invoice.id,
         }).catch((e) => console.error('notify invoice paid:', e.message))
+        // Send customer their own branded receipt — Stripe's auto-receipt is
+        // unreliable (account toggle + charge.receipt_email both have to line
+        // up). This guarantees delivery regardless of Stripe settings.
+        await sendCustomerReceipt({
+          invoice,
+          customer,
+          receiptUrl: invoice.charge ? `https://pay.stripe.com/receipts/invoices/${invoice.id}` : null,
+          hostedInvoiceUrl: invoice.hosted_invoice_url,
+        }).catch((e) => console.error('customer receipt:', e.message))
         // Wipe any payment-resurrection state so a future failure restarts the clock
         await clearStages(invoice.id).catch(() => {})
         break
