@@ -84,8 +84,15 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
         </div>
       </nav>
 
-      {/* Page content — extra bottom padding when admin so dock doesn't overlap */}
-      <main style={{ flex: 1, maxWidth: 1100, margin: '0 auto', padding: isAdmin ? '40px 24px 100px' : '40px 24px', width: '100%' }}>
+      {/* Page content — clear the fixed admin dock (~70px tall + iOS home
+          indicator safe-area). Previous 100px barely cleared the dock and
+          on iPhones with safe-area the last card got overlapped. */}
+      <main style={{
+        flex: 1, maxWidth: 1100, margin: '0 auto', width: '100%',
+        padding: isAdmin
+          ? '40px 24px calc(120px + env(safe-area-inset-bottom, 0px))'
+          : '40px 24px',
+      }}>
         {title && (
           <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 32 }}>
             {title}
@@ -96,7 +103,9 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
 
       <footer style={{
         borderTop: '1px solid rgba(122,171,130,0.12)',
-        padding: isAdmin ? '20px 24px 84px' : '20px 24px',
+        padding: isAdmin
+          ? '20px 24px calc(100px + env(safe-area-inset-bottom, 0px))'
+          : '20px 24px',
         textAlign: 'center',
         fontSize: '0.78rem',
         color: 'rgba(212,230,202,0.35)',
