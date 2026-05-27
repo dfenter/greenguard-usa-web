@@ -12,11 +12,19 @@ async function buildTankCalendarData(tz = 'America/Chicago') {
   const now = new Date()
   const today = now.toLocaleDateString('en-CA', { timeZone: tz })
 
-  // Next 60 days of appointments → tanks per day
+  // Next 60 days of appointments → tanks per day.
+  //
+  // GCal's timeMin is exclusive on END time: any event that has already
+  // ended is filtered out. Using new Date() as timeMin meant today's count
+  // silently eroded through the day as each appointment completed. Anchor
+  // to the start of today in CT so the full day's bookings stay in scope
+  // until the day actually rolls over.
+  const [ty, tm, td] = today.split('-').map(Number)
+  const dayStartUtc = new Date(Date.UTC(ty, tm - 1, td, 0, 0, 0))
   const rangeEnd = new Date(now.getTime() + 60 * 86400 * 1000)
   let scheduleByDate = {}
   try {
-    const bookings = await getBookingsForDateRange(now.toISOString(), rangeEnd.toISOString())
+    const bookings = await getBookingsForDateRange(dayStartUtc.toISOString(), rangeEnd.toISOString())
     const uniqueEmails = [...new Set(bookings.map((b) => b.email).filter(Boolean))]
     const contactMap = await findContactsByEmails(uniqueEmails).catch(() => new Map())
     const tankCountMap = {}
