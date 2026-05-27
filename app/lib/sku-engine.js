@@ -258,6 +258,7 @@ const TITLE_TO_SLUG = {
   'Two -20 pound CO2 Tank Exchange Delivery Service': 'tank-exchange-2',
   'Three - 20 pound CO2 Tank Exchange Delivery Service': 'tank-exchange-3',
   'Four - 20 Pound CO2 Tank Exchange Delivery Service': 'tank-exchange-4',
+  'Five - 20 Pound CO2 Tank Exchange Delivery Service': 'tank-exchange-5',
   'Six CO2 Tank Exchange Delivery Service': 'tank-exchange-6',
   // Mosqitter Acuity-era titles
   'Mosqitter Grand Service': 'mosqitter-service',
