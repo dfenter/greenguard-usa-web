@@ -5,6 +5,7 @@ import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getBookingsForDate } from '../../lib/gcal'
+import { findContactsByEmails, tanksForCustomer } from '../../lib/hubspot'
 
 const TZ = 'America/Chicago'
 const DAY_START_HOUR = 8   // 8 AM
@@ -20,7 +21,28 @@ export async function getServerSideProps({ req }) {
   const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
 
   let bookings = []
-  try { bookings = await getBookingsForDate(today) } catch {}
+  try {
+    bookings = await getBookingsForDate(today)
+    // Enrich with canonical HubSpot tank counts so the initial render
+    // matches what rounds shows (no flash of incorrect title-derived counts).
+    const emails = [...new Set(bookings.map((b) => b.email).filter(Boolean).map((e) => e.toLowerCase()))]
+    if (emails.length > 0) {
+      try {
+        const contactMap = await findContactsByEmails(emails)
+        const tanksByEmail = {}
+        for (const email of emails) {
+          const c = contactMap.get(email)
+          if (!c) continue
+          const t = tanksForCustomer(c.properties)
+          if (t > 0) tanksByEmail[email] = t
+        }
+        bookings = bookings.map((b) => ({
+          ...b,
+          hubspotTanks: b.email ? (tanksByEmail[b.email.toLowerCase()] || null) : null,
+        }))
+      } catch {}
+    }
+  } catch {}
 
   return { props: { today, initialBookings: bookings } }
 }
@@ -139,6 +161,15 @@ function tankCountFromTitle(title) {
   const dm = t.match(/(?:^|\s)(\d+)\s*(?:-|−)?\s*(?:co2\s*)?tanks?\b/)
   if (dm) return parseInt(dm[1], 10)
   return 1
+}
+
+// Canonical tank count for a booking — prefers HubSpot tank_count (same
+// source rounds uses via tanksForCustomer), falls back to the title regex
+// only when the booking has no HubSpot match. Keeps calendar / rounds /
+// tank-calendar / daily-route email in agreement.
+function tanksFor(ev) {
+  if (ev?.hubspotTanks > 0) return ev.hubspotTanks
+  return tankCountFromTitle(ev?.title)
 }
 
 export default function CalendarPage({ today, initialBookings }) {
@@ -313,7 +344,7 @@ export default function CalendarPage({ today, initialBookings }) {
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[...bookings].sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).map((ev) => {
               const isSelected = selectedEventId === ev.id
-              const tanks = tankCountFromTitle(ev.title)
+              const tanks = tanksFor(ev)
               return (
                 <div key={ev.id} onClick={() => setSelectedEventId(ev.id)}
                   style={{
@@ -373,7 +404,7 @@ export default function CalendarPage({ today, initialBookings }) {
                 const height = Math.max(28, (ev.endMin - ev.startMin) * PX_PER_MIN - 2)
                 const colWidth = `calc((100% - ${(ev._cols - 1) * 4}px) / ${ev._cols})`
                 const left = `calc((${colWidth} + 4px) * ${ev._col})`
-                const tanks = tankCountFromTitle(ev.title)
+                const tanks = tanksFor(ev)
                 return (
                   <div key={ev.id} className="event"
                     style={{ top, left, width: colWidth, height, ...(selectedEventId === ev.id ? { outline: '2px solid #c9a84c', outlineOffset: 1 } : {}) }}
@@ -397,7 +428,7 @@ export default function CalendarPage({ today, initialBookings }) {
             {week.map((d) => {
               const dd = new Date(d + 'T12:00:00')
               const dayBookings = (rangeBookings[d] || []).slice().sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-              const dayTanks = dayBookings.reduce((s, ev) => s + (tankCountFromTitle(ev.title) || 0), 0)
+              const dayTanks = dayBookings.reduce((s, ev) => s + (tanksFor(ev) || 0), 0)
               const isToday = d === today_
               return (
                 <div key={d} style={{ minHeight: 200, padding: 8, borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: `1px solid ${isToday ? 'rgba(125,255,170,0.4)' : 'rgba(122,171,130,0.12)'}`, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -409,7 +440,7 @@ export default function CalendarPage({ today, initialBookings }) {
                   </div>
                   {dayBookings.length === 0 && <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.2)', textAlign: 'center', padding: '20px 0' }}>—</div>}
                   {dayBookings.map((ev) => {
-                    const tanks = tankCountFromTitle(ev.title)
+                    const tanks = tanksFor(ev)
                     return (
                       <div key={ev.id} onClick={() => setSelectedEventId(ev.id)}
                         style={{ padding: '4px 6px', borderRadius: 4, background: 'rgba(189,154,255,0.16)', border: '1px solid rgba(189,154,255,0.3)', color: '#e6dcff', fontSize: '0.7rem', cursor: 'pointer', lineHeight: 1.3 }}>
@@ -437,7 +468,7 @@ export default function CalendarPage({ today, initialBookings }) {
                 const inMonth = dd.getMonth() === new Date(date + 'T12:00:00').getMonth()
                 const isToday = d === today_
                 const dayBookings = rangeBookings[d] || []
-                const dayTanks = dayBookings.reduce((s, ev) => s + (tankCountFromTitle(ev.title) || 0), 0)
+                const dayTanks = dayBookings.reduce((s, ev) => s + (tanksFor(ev) || 0), 0)
                 return (
                   <div key={d} onClick={() => { setDate(d); setViewMode('day') }}
                     style={{ minHeight: 78, padding: 5, borderRadius: 5, background: inMonth ? 'rgba(255,255,255,0.02)' : 'transparent', border: `1px solid ${isToday ? 'rgba(125,255,170,0.45)' : 'rgba(122,171,130,0.08)'}`, cursor: 'pointer', opacity: inMonth ? 1 : 0.35 }}>
