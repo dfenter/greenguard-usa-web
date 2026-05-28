@@ -1,27 +1,52 @@
 // GET /api/geocode/lot-size?address=... → { acres, sqft, parcelnumb, owner }
 //
-// Calls Regrid (https://regrid.com) to look up parcel data for a residential
-// address. Returns null fields when no match is found so the caller can
-// fall back to a manual trap-count picker.
+// Two-step Regrid v2 lookup:
+//   1. /parcels/typeahead?query=ADDRESS → top hit's ll_uuid + path
+//   2. /parcels/{ll_uuid}                → full parcel with ll_gisacre
 //
-// Set REGRID_API_KEY in Vercel env. Free tier is ~1,000 lookups/month.
+// Why two calls: the /parcels/address and /parcels.json?query=... endpoints
+// return 0 features on this token tier (free trial). typeahead returns the
+// best match for any address, and the individual /parcels/{uuid} fetch
+// always returns the full record including acreage.
+//
+// Returns null fields when no parcel is found so the UI can degrade to
+// a manual trap picker.
 
 const REGRID_BASE = 'https://app.regrid.com/api/v2'
 
-async function lookupRegrid(address) {
-  if (!process.env.REGRID_API_KEY) return { error: 'REGRID_API_KEY not configured' }
-
-  const url = `${REGRID_BASE}/parcels/address?query=${encodeURIComponent(address)}&limit=1&token=${encodeURIComponent(process.env.REGRID_API_KEY)}`
+async function fetchJson(url) {
   const r = await fetch(url, { headers: { Accept: 'application/json' } })
-  if (!r.ok) return { error: `Regrid HTTP ${r.status}` }
   const j = await r.json().catch(() => null)
-  const feature = j?.parcels?.features?.[0] || j?.features?.[0]
-  if (!feature) return { acres: null, sqft: null, parcelnumb: null, owner: null }
+  return { ok: r.ok, status: r.status, body: j }
+}
 
-  // Regrid feature shape: properties.fields has the structured parcel data.
-  // gisacre is the GIS-computed area; ll_gisacre is the legal-lot acreage
-  // they prefer for residential lookups. Prefer ll_ when present.
-  const f = feature.properties?.fields || feature.properties || {}
+async function lookupRegrid(address) {
+  const token = process.env.REGRID_API_KEY
+  if (!token) return { error: 'REGRID_API_KEY not configured' }
+
+  // Step 1: typeahead for the best matching parcel UUID.
+  const typeUrl = `${REGRID_BASE}/parcels/typeahead?query=${encodeURIComponent(address)}&token=${encodeURIComponent(token)}`
+  const t = await fetchJson(typeUrl)
+  if (!t.ok) return { error: `Regrid typeahead HTTP ${t.status}` }
+  const feats = t.body?.parcel_centroids?.features || []
+  if (feats.length === 0) {
+    return { acres: null, sqft: null, parcelnumb: null, owner: null, matchedAddress: null }
+  }
+
+  const hit = feats[0].properties || {}
+  const uuid = hit.ll_uuid
+  if (!uuid) return { acres: null, sqft: null, parcelnumb: null, owner: null, matchedAddress: hit.address || null }
+
+  // Step 2: full parcel fetch.
+  const detailUrl = `${REGRID_BASE}/parcels/${encodeURIComponent(uuid)}?token=${encodeURIComponent(token)}`
+  const d = await fetchJson(detailUrl)
+  if (!d.ok) return { error: `Regrid parcel HTTP ${d.status}` }
+  const detailFeats = d.body?.parcels?.features || []
+  if (detailFeats.length === 0) {
+    return { acres: null, sqft: null, parcelnumb: null, owner: null, matchedAddress: hit.address || null }
+  }
+
+  const f = detailFeats[0].properties?.fields || {}
   const acresRaw = f.ll_gisacre ?? f.gisacre ?? f.acreage ?? f.calcacre ?? null
   const acres = acresRaw != null ? Number(acresRaw) : null
   const sqft = acres != null && !Number.isNaN(acres) ? Math.round(acres * 43560) : null
@@ -31,7 +56,7 @@ async function lookupRegrid(address) {
     sqft,
     parcelnumb: f.parcelnumb || f.parcelid || null,
     owner: f.owner || null,
-    matchedAddress: f.address || f.saddress || null,
+    matchedAddress: f.address || hit.address || null,
   }
 }
 
@@ -44,7 +69,6 @@ export default async function handler(req, res) {
   try {
     const result = await lookupRegrid(address)
     if (result.error) return res.status(502).json(result)
-    // Cache for an hour so the same address doesn't burn lookups.
     res.setHeader('Cache-Control', 'private, max-age=3600, stale-while-revalidate=86400')
     return res.status(200).json(result)
   } catch (e) {
