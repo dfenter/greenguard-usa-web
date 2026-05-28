@@ -6,12 +6,25 @@ const CALCOM_API_KEY = process.env.CALCOM_API_KEY || ''
 const CALCOM_BASE = `${(process.env.CALCOM_BASE_URL || 'https://cal.com').replace(/\/$/, '')}/api/v2`
 const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 
-async function createOneBooking(eventTypeId, firstName, lastName, email, address, utcIso, notes) {
+async function createOneBooking(eventTypeId, firstName, lastName, email, phone, address, utcIso, notes) {
+  // Cal.com schema (api-version 2024-08-13) requires:
+  //   attendee.{name,email,timeZone,language,phoneNumber}
+  //   top-level metadata: {}
+  // The 2024-06-14 schema we used previously silently 400'd with three
+  // validation errors (timeZone, language, metadata). Most of our hidden
+  // event types also require a phone number — Cal.com 400s without it.
   const body = {
     eventTypeId: Number(eventTypeId),
     start: utcIso,
-    attendee: { name: `${firstName} ${lastName}`.trim(), email, timeZone: TZ },
+    attendee: {
+      name: `${firstName} ${lastName}`.trim(),
+      email,
+      timeZone: TZ,
+      language: 'en',
+      ...(phone ? { phoneNumber: phone } : {}),
+    },
     location: address,
+    metadata: {},
   }
   if (notes) body.bookingFieldsResponses = { notes }
 
@@ -19,13 +32,17 @@ async function createOneBooking(eventTypeId, firstName, lastName, email, address
     method: 'POST',
     headers: {
       Authorization: `Bearer ${CALCOM_API_KEY}`,
-      'cal-api-version': '2024-06-14',
+      'cal-api-version': '2024-08-13',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
   })
   const data = await resp.json()
-  if (!resp.ok) throw new Error(data?.error?.message || data?.message || 'Cal.com booking failed')
+  if (!resp.ok) {
+    // Surface the full error so the client sees a useful message
+    const detail = data?.error?.details?.message || data?.error?.message || data?.message || 'Cal.com booking failed'
+    throw new Error(detail)
+  }
   return data.data
 }
 
@@ -51,7 +68,7 @@ export default async function handler(req, res) {
   const session = await requireAdmin(req, res)
   if (!session) return
 
-  const { eventTypeId, firstName, lastName, email, address, startLocal, notes, recurring } = req.body
+  const { eventTypeId, firstName, lastName, email, phone, address, startLocal, notes, recurring } = req.body
   if (!eventTypeId || !firstName || !email || !address || !startLocal) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
@@ -80,7 +97,7 @@ export default async function handler(req, res) {
       continue
     }
     try {
-      const result = await createOneBooking(eventTypeId, firstName, lastName, email, address, start, notes)
+      const result = await createOneBooking(eventTypeId, firstName, lastName, email, phone, address, start, notes)
       bookings.push(result)
     } catch (err) {
       errors.push(`Occurrence ${i + 1}: ${err.message}`)

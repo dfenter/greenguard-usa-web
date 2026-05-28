@@ -23,7 +23,7 @@ export default function AdminBooking() {
   const nameParts = (prefill.name || '').split(' ')
 
   const [form, setForm] = useState({
-    eventTypeId: '', firstName: '', lastName: '', email: '',
+    eventTypeId: '', firstName: '', lastName: '', email: '', phone: '',
     address: '', startLocal: '', notes: '', recurring: 'none',
   })
   const [status, setStatus] = useState(null) // null | 'loading' | 'success' | {error}
@@ -34,11 +34,12 @@ export default function AdminBooking() {
   useEffect(() => {
     if (!router.isReady) return
     const q = router.query
-    if (q.email || q.name || q.address || q.start) {
+    if (q.email || q.name || q.address || q.start || q.phone) {
       const parts = (q.name || '').split(' ')
       setForm((f) => ({
         ...f,
         email: q.email || f.email,
+        phone: q.phone || f.phone,
         firstName: parts[0] || f.firstName,
         lastName: parts.slice(1).join(' ') || f.lastName,
         address: q.address || f.address,
@@ -78,7 +79,7 @@ export default function AdminBooking() {
       if (!res.ok) throw new Error(data.error || 'Booking failed')
       const count = data.count || 1
       setStatus({ success: true, count, recurring: data.recurring })
-      setForm(f => ({ ...f, firstName: '', lastName: '', email: '', address: '', startLocal: '', notes: '', recurring: 'none' }))
+      setForm(f => ({ ...f, firstName: '', lastName: '', email: '', phone: '', address: '', startLocal: '', notes: '', recurring: 'none' }))
     } catch (err) {
       setStatus({ error: err.message })
     }
@@ -156,9 +157,15 @@ export default function AdminBooking() {
               </div>
             </div>
 
-            <div style={field}>
-              <label style={label}>Email</label>
-              <input style={input} type="email" value={form.email} onChange={set('email')} required placeholder="jane@example.com" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 18 }}>
+              <div>
+                <label style={label}>Email</label>
+                <input style={input} type="email" value={form.email} onChange={set('email')} required placeholder="jane@example.com" />
+              </div>
+              <div>
+                <label style={label}>Phone <span style={{ color: 'rgba(212,230,202,0.4)', fontWeight: 600 }}>(required by Cal.com)</span></label>
+                <input style={input} type="tel" value={form.phone} onChange={set('phone')} required placeholder="+15125551234" />
+              </div>
             </div>
 
             <div style={field}>
