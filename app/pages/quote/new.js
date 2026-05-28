@@ -229,44 +229,6 @@ function minServiceDate() {
   return d.toLocaleDateString('en-CA')
 }
 
-// Trap-count recommendation by lot acreage (from the owner spec, May 2026):
-//
-//   Biogents BG-Mosquitaire:
-//     < 1/4 acre         → 1–2 traps
-//     1/4 to 1/2 acre    → 2–3 traps
-//     1/2 to 1 acre      → 3–5 traps
-//     over 1 acre        → push to Mosqitter
-//
-//   Mosqitter Grand:
-//     up to 1 acre       → 1 unit
-//     over 1 acre        → 1–2 units
-//
-// Returns ranges so the UI can show "2–3 traps" rather than picking a
-// single number for the customer. The auto-apply path takes the low end
-// of the range so we don't over-recommend.
-function recommendTrapsForAcres(acres) {
-  if (acres == null || Number.isNaN(acres) || acres <= 0) return null
-  const a = Number(acres)
-
-  let bgLow = null, bgHigh = null
-  if (a < 0.25)      { bgLow = 1; bgHigh = 2 }
-  else if (a < 0.5)  { bgLow = 2; bgHigh = 3 }
-  else if (a < 1.0)  { bgLow = 3; bgHigh = 5 }
-  // > 1 acre: Biogents isn't the recommended path — leave bg null and
-  // surface a Mosqitter suggestion instead.
-
-  let mqLow, mqHigh
-  if (a <= 1.0) { mqLow = 1; mqHigh = 1 }
-  else          { mqLow = 1; mqHigh = 2 }
-
-  return {
-    bgLow, bgHigh,
-    mqLow, mqHigh,
-    suggestMosqitter: a >= 1.0,
-    isLargeProperty: a > 1.0,
-  }
-}
-
 function SystemIcon({ iconPath, emoji }) {
   const [failed, setFailed] = useState(false)
   const showEmoji = !iconPath || failed
@@ -286,35 +248,10 @@ function SystemIcon({ iconPath, emoji }) {
   )
 }
 
-function ServiceConfigurator({ onChange, onConfigChange, lotRec, lotAcres, lotLookupState }) {
+function ServiceConfigurator({ onChange, onConfigChange }) {
   const [system, setSystem] = useState(null)        // 'biogents-co2' | 'biogents-nonco2' | 'mosqitter' | 'tank' | 'none'
   const [plan, setPlan] = useState(null)            // 'rental' | 'purchase'
   const [trapCount, setTrapCount] = useState(1)
-  // Pull the range that matches the currently-selected system. Biogents
-  // shows the BG range; Mosqitter shows the MQ range. Before a system is
-  // picked we default to the BG range (more typical first selection).
-  const range = system === 'mosqitter'
-    ? (lotRec ? { low: lotRec.mqLow, high: lotRec.mqHigh } : null)
-    : (lotRec ? { low: lotRec.bgLow, high: lotRec.bgHigh } : null)
-
-  // Auto-apply the LOW end of the range the first time we get one,
-  // unless the user has already nudged the count manually. Set both
-  // trapCount and mqCount so switching system after lookup still picks
-  // up the right number.
-  const [userTouchedTraps, setUserTouchedTraps] = useState(false)
-  useEffect(() => {
-    if (userTouchedTraps) return
-    if (!range || range.low == null) return
-    if (system === 'mosqitter') {
-      if (range.low !== mqCount) setMqCount(range.low)
-    } else if (range.low !== trapCount) {
-      setTrapCount(range.low)
-    }
-  }, [range?.low, range?.high, system, userTouchedTraps]) // eslint-disable-line react-hooks/exhaustive-deps
-  function pickTraps(n) {
-    setTrapCount(n)
-    setUserTouchedTraps(true)
-  }
   // Default to Yes for the public quote builder — virtually every Biogents
   // purchase customer pairs it with our CO₂ tank delivery (it's how the
   // trap stays running). Admin builders can flip to No if needed.
@@ -451,36 +388,9 @@ function ServiceConfigurator({ onChange, onConfigChange, lotRec, lotAcres, lotLo
       {system === 'biogents-co2' && plan && (
         <>
           <div style={Q}>How many traps?</div>
-          {lotLookupState === 'loading' && (
-            <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.55)', marginBottom: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, display: 'inline-block' }}>
-              Looking up your property size…
-            </div>
-          )}
-          {lotLookupState === 'found' && lotRec && range && lotAcres != null && (
-            <div style={{ fontSize: '0.78rem', color: '#7dffaa', marginBottom: 8, padding: '8px 12px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.25)', borderRadius: 6, lineHeight: 1.6 }}>
-              📍 Your lot is <strong>{lotAcres} acre{lotAcres === 1 ? '' : 's'}</strong> ({Math.round(lotAcres * 43560).toLocaleString()} sq ft).
-              {system === 'mosqitter' ? (
-                <> Recommended: <strong>{range.low === range.high ? `${range.low} unit` : `${range.low}–${range.high} units`}</strong>.</>
-              ) : range.low == null ? (
-                <> Lot is over 1 acre — we recommend the <strong>Mosqitter Grand</strong> instead of Biogents (better coverage at this size).</>
-              ) : (
-                <> Recommended: <strong>{range.low === range.high ? `${range.low} trap` : `${range.low}–${range.high} traps`}</strong>.</>
-              )}
-              {lotRec.suggestMosqitter && system !== 'mosqitter' && (
-                <div style={{ marginTop: 4, color: '#c9a84c' }}>
-                  At this size the <strong>Mosqitter Grand</strong> may be a better fit ({lotRec.mqLow === lotRec.mqHigh ? `${lotRec.mqLow} unit` : `${lotRec.mqLow}–${lotRec.mqHigh} units`} would cover it).
-                </div>
-              )}
-            </div>
-          )}
-          {(lotLookupState === 'not-found' || lotLookupState === 'error') && (
-            <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', marginBottom: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, display: 'inline-block' }}>
-              Couldn&apos;t auto-lookup your lot size — pick a trap count below or get a free consultation and we&apos;ll measure on-site.
-            </div>
-          )}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <button key={n} onClick={() => pickTraps(n)} style={trapBtn(n)}>{n}</button>
+              <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
             ))}
             {plan === 'rental' && BG_RENTAL_PRICE[trapCount] && (
               <span style={{ fontSize: '0.85rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
@@ -517,14 +427,9 @@ function ServiceConfigurator({ onChange, onConfigChange, lotRec, lotAcres, lotLo
       {system === 'biogents-nonco2' && (
         <>
           <div style={Q}>How many traps?</div>
-          {lotLookupState === 'found' && range?.low != null && lotAcres != null && (
-            <div style={{ fontSize: '0.78rem', color: '#7dffaa', marginBottom: 8, padding: '7px 12px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.25)', borderRadius: 6, lineHeight: 1.55, display: 'inline-block' }}>
-              📍 Your lot is <strong>{lotAcres} acre{lotAcres === 1 ? '' : 's'}</strong> — recommended <strong>{range.low === range.high ? `${range.low} trap` : `${range.low}–${range.high} traps`}</strong>.
-            </div>
-          )}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <button key={n} onClick={() => pickTraps(n)} style={trapBtn(n)}>{n}</button>
+              <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
             ))}
             <span style={{ fontSize: '0.85rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
               ${(BG_NONCO2_PER_TRAP * trapCount).toFixed(2)}/mo
@@ -545,14 +450,9 @@ function ServiceConfigurator({ onChange, onConfigChange, lotRec, lotAcres, lotLo
           {mqPlan && (
             <>
               <div style={Q}>How many units?</div>
-              {lotLookupState === 'found' && range?.low != null && lotAcres != null && (
-                <div style={{ fontSize: '0.78rem', color: '#7dffaa', marginBottom: 8, padding: '7px 12px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.25)', borderRadius: 6, lineHeight: 1.55, display: 'inline-block' }}>
-                  📍 Your lot is <strong>{lotAcres} acre{lotAcres === 1 ? '' : 's'}</strong> — recommended <strong>{range.low === range.high ? `${range.low} unit` : `${range.low}–${range.high} units`}</strong>.
-                </div>
-              )}
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <button key={n} onClick={() => { setMqCount(n); setUserTouchedTraps(true) }} style={{ ...trapBtn(n), width: 42, height: 42, border: `1px solid ${mqCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: mqCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: mqCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)' }}>{n}</button>
+                  <button key={n} onClick={() => setMqCount(n)} style={{ ...trapBtn(n), width: 42, height: 42, border: `1px solid ${mqCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: mqCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: mqCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)' }}>{n}</button>
                 ))}
                 <span style={{ fontSize: '0.82rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
                   ${((mqPlan === 'rental' ? MQ_PRICE.rental : MQ_PRICE.service) * mqCount).toFixed(2)}/mo
@@ -640,12 +540,6 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   const taxRate = 8.25
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapPin, setMapPin] = useState(null)
-  // `lotRec` is the full recommendation object: { bgLow, bgHigh, mqLow, mqHigh,
-  // suggestMosqitter, isLargeProperty }. Configurator picks the range for the
-  // currently-selected system.
-  const [lotRec, setLotRec] = useState(null)
-  const [lotAcres, setLotAcres] = useState(null)
-  const [lotLookupState, setLotLookupState] = useState('idle') // idle | loading | found | not-found | error
   const [machPins, setMachPins] = useState([])
   const [placingPin, setPlacingPin] = useState(false)
   const [mapView, setMapView] = useState('satellite') // 'satellite' | 'street'
@@ -768,27 +662,6 @@ export default function QuoteBuilder({ customers, mapsKey }) {
         if (status === 'OK' && results[0]) {
           const loc = results[0].geometry.location
           setMapPin({ lat: loc.lat(), lng: loc.lng() })
-          // Look up the real parcel area via Regrid (our /api wrapper). Use
-          // the geocoder's formatted address so misspellings/abbreviations
-          // are normalized before we hit Regrid.
-          const lookupAddress = results[0].formatted_address || customerAddress
-          setLotLookupState('loading')
-          fetch(`/api/geocode/lot-size?address=${encodeURIComponent(lookupAddress)}`)
-            .then((r) => r.json())
-            .then((d) => {
-              if (d.error || d.acres == null) {
-                setLotLookupState('not-found')
-                setLotAcres(null)
-                setLotRec(null)
-                return
-              }
-              setLotAcres(d.acres)
-              setLotRec(recommendTrapsForAcres(d.acres))
-              setLotLookupState('found')
-            })
-            .catch(() => {
-              setLotLookupState('error')
-            })
         }
       })
     }, 700)
@@ -1032,7 +905,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>Services</span>
             </div>
             <div className="card" style={{ marginBottom: 8 }}>
-              <ServiceConfigurator onChange={setServiceLines} onConfigChange={setServiceConfig} lotRec={lotRec} lotAcres={lotAcres} lotLookupState={lotLookupState} />
+              <ServiceConfigurator onChange={setServiceLines} onConfigChange={setServiceConfig} />
             </div>
 
             {/* Products (auto-populated from service config) */}
