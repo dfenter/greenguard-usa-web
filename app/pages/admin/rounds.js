@@ -202,21 +202,26 @@ export async function getServerSideProps({ req, query, res }) {
       }
     })
 
-    // Enrich each stop with any existing invoice already attached to this
-    // booking (by cal_booking_uid, or service_date fallback). Done after
-    // the synchronous map so we can await Stripe lookups in parallel.
-    stops = await Promise.all(stops.map(async (s) => {
-      if (!s.email) return s
-      try {
-        const existingInvoice = await findInvoiceForBooking(s.email, {
-          calBookingUid: s.calBookingUid,
-          serviceDate: s.bookingDate || selectedDate,
-        })
-        return { ...s, existingInvoice: existingInvoice || null }
-      } catch {
-        return { ...s, existingInvoice: null }
-      }
-    }))
+    // Invoice enrichment (existingInvoice) is the slowest part of this page
+    // — N parallel Stripe lookups. In the common `date` mode we DON'T do it
+    // here; the page ships immediately and the client fetches invoice badges
+    // after render via /api/admin/stop-invoices. We only enrich server-side
+    // in `open` mode because that mode filters stops by whether an invoice
+    // exists, which has to happen before the list is built.
+    if (mode === 'open') {
+      stops = await Promise.all(stops.map(async (s) => {
+        if (!s.email) return s
+        try {
+          const existingInvoice = await findInvoiceForBooking(s.email, {
+            calBookingUid: s.calBookingUid,
+            serviceDate: s.bookingDate || selectedDate,
+          })
+          return { ...s, existingInvoice: existingInvoice || null }
+        } catch {
+          return { ...s, existingInvoice: null }
+        }
+      }))
+    }
   }
 
   if (mode === 'open') {
@@ -1271,6 +1276,29 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
     fileRefs.current = stops.map((_, i) => fileRefs.current[i] || { current: null })
   }, [stops])
 
+  // Client-side invoice enrichment. In `date` mode the SSR skips the slow
+  // per-stop Stripe lookups; we fetch them here after first paint so the
+  // 🧾 invoice badges + "already invoiced" panel populate a beat later
+  // without blocking the page. `open` mode already has existingInvoice from
+  // SSR (it needs it to filter), so we skip the fetch there.
+  const [invoiceByIdx, setInvoiceByIdx] = useState({})
+  useEffect(() => {
+    if (mode === 'open') return
+    const payload = stops
+      .map((s, i) => ({ key: String(i), email: s.email, calBookingUid: s.calBookingUid, serviceDate: s.bookingDate || selectedDate }))
+      .filter((s) => s.email)
+    if (payload.length === 0) return
+    let cancelled = false
+    fetch('/api/admin/stop-invoices', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stops: payload }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d?.invoices) setInvoiceByIdx(d.invoices) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [stops, mode, selectedDate])
+
   function update(idx, patch) {
     // patch can be a partial object or a functional updater (prev) => partial.
     // Functional form lets callers compute the patch from the freshest state
@@ -1389,7 +1417,12 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
           </div>
         ) : (
           displayOrder.map((idx) => {
-            const stop = stops[idx]
+            // Merge client-fetched invoice (date mode) onto the stop. SSR
+            // already set existingInvoice in open mode; prefer whichever exists.
+            const baseStop = stops[idx]
+            const stop = baseStop.existingInvoice !== undefined
+              ? baseStop
+              : { ...baseStop, existingInvoice: invoiceByIdx[String(idx)] ?? null }
             return (
               <div key={`${selectedDate || 'open'}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }}>
                 <StopCard stop={stop} idx={idx} state={states[idx]}
