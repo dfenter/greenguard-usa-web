@@ -423,7 +423,7 @@ TIDIO_BROKEN_RE = re.compile(
 # ── Nav fixes applied to every page fragment ─────────────────────────────────
 # Correct broken service URLs (legacy slugs that do not match actual files)
 NAV_URL_FIXES = [
-    ('/co2-tank-delivery-austin',             '/co2delivery'),
+    ('/co2-tank-delivery-austin',             '/services'),
     ('/co2-trap-rental-austin',               '/traprental'),
     ('/greenguard-barrier-treatment',         '/barrier'),
     ('/mosquito-bucket-of-doom-instructions', '/product-bucket-of-doom'),
