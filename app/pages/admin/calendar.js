@@ -134,7 +134,9 @@ function tankCountFromTitle(title) {
     if (new RegExp(`\\b${w}\\b.*tank`).test(t)) return n
   }
   // Digit form: must be adjacent to "tank", not separated by "pound" etc.
-  const dm = t.match(/(\d+)\s*(?:-|−)?\s*(?:co2\s*)?tanks?\b/)
+  // Also require a space or string-start BEFORE the digit so we don't grab
+  // the 2 out of "co2 tank" (which was matching "2 tank" as 2 tanks).
+  const dm = t.match(/(?:^|\s)(\d+)\s*(?:-|−)?\s*(?:co2\s*)?tanks?\b/)
   if (dm) return parseInt(dm[1], 10)
   return 1
 }
