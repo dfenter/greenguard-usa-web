@@ -315,7 +315,10 @@ function ServiceConfigurator({ onChange, onConfigChange, lotRec, lotAcres, lotLo
     setTrapCount(n)
     setUserTouchedTraps(true)
   }
-  const [onTankService, setOnTankService] = useState(null)
+  // Default to Yes for the public quote builder — virtually every Biogents
+  // purchase customer pairs it with our CO₂ tank delivery (it's how the
+  // trap stays running). Admin builders can flip to No if needed.
+  const [onTankService, setOnTankService] = useState(true)
   const [mqPlan, setMqPlan] = useState(null)        // 'rental' | 'purchase'
   const [mqCount, setMqCount] = useState(1)
   const [mqInstall, setMqInstall] = useState(false)
