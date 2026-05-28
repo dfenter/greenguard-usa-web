@@ -1,51 +1,32 @@
+// Triggers the weekly route optimizer on the Render agent
+// (greenguard-agent-tmw2.onrender.com /cron/route-optimizer). Replaces the
+// retired GitHub Actions workflow dispatch. The agent runs the optimizer in
+// the background and persists the plan, which /admin/route reads back via
+// lib/route-plan.js → /route-plans/latest.
+
 const { requireOwner } = require('../../../lib/auth')
 
-const GITHUB_REPO = 'greenguard-usa/greenguard-usa-web'
+const AGENT_URL = process.env.WEBHOOK_AGENT_URL || 'https://greenguard-agent-tmw2.onrender.com'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await requireOwner(req, res)
   if (!session) return
 
-  const token = process.env.GITHUB_TOKEN
-  if (!token) return res.status(500).json({ error: 'GITHUB_TOKEN not configured in Vercel' })
+  const secret = process.env.CRON_SECRET
+  if (!secret) return res.status(500).json({ error: 'CRON_SECRET not configured in Vercel' })
 
-  // First verify token has access by checking workflow exists
-  const checkResp = await fetch(
-    `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/route-optimizer.yml`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-      },
-    }
-  )
-
-  if (checkResp.status === 401) {
-    return res.status(502).json({ error: 'GITHUB_TOKEN is invalid or expired. Regenerate in GitHub > Settings > Tokens and update in Vercel.' })
-  }
-  if (checkResp.status === 404) {
-    return res.status(502).json({ error: `Workflow not found at ${GITHUB_REPO}/route-optimizer.yml — verify token has access to private repo.` })
-  }
-
-  const resp = await fetch(
-    `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/route-optimizer.yml/dispatches`,
-    {
+  try {
+    const resp = await fetch(`${AGENT_URL}/cron/route-optimizer`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ref: 'main' }),
+      headers: { Authorization: `Bearer ${secret}` },
+    })
+    if (resp.ok) {
+      return res.status(200).json({ ok: true, queued: true, note: 'Optimizer running on agent — plan refreshes in ~1-2 min.' })
     }
-  )
-
-  if (resp.status === 204) return res.status(200).json({ ok: true })
-  const text = await resp.text()
-  let detail = text
-  if (resp.status === 403) {
-    detail = `Token missing "workflow" scope. Token must be a Fine-grained PAT with Actions: Write, OR a Classic PAT with "workflow" scope. ${text}`
+    const text = await resp.text()
+    return res.status(502).json({ error: `Agent returned ${resp.status}: ${text.slice(0, 200)}` })
+  } catch (e) {
+    return res.status(502).json({ error: `Could not reach route agent: ${e.message}` })
   }
-  return res.status(502).json({ error: `GitHub API error ${resp.status}: ${detail}` })
 }
