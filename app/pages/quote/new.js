@@ -229,31 +229,21 @@ function minServiceDate() {
   return d.toLocaleDateString('en-CA')
 }
 
-// Rough Austin-metro ZIP → recommended trap count, based on typical lot size
-// in that area. A BG-Mosquitaire covers up to ~⅓ acre; Mosqitter Grand up to
-// ~2 acres. We're approximating, so this is intentionally on the
-// conservative side — admin can always nudge it up after a property tour.
-const TRAPS_BY_ZIP = {
-  // Urban core / dense neighborhoods (≤¼ acre) — 1 trap
-  '78701': 1, '78702': 1, '78703': 1, '78704': 1, '78705': 1, '78712': 1,
-  '78721': 1, '78722': 1, '78723': 1, '78751': 1, '78752': 1, '78756': 1,
-  '78757': 1, '78758': 1, '78759': 1, '78731': 1,
-  // South Austin / suburban (¼–⅓ acre) — 1 trap
-  '78704': 1, '78745': 1, '78748': 1, '78749': 1, '78735': 1, '78736': 1,
-  '78737': 1, '78739': 1, '78744': 1, '78747': 1, '78753': 1, '78754': 1,
-  // Outer suburbs (mostly ⅛–¼ acre) — 1 trap
-  '78613': 1, '78630': 1, '78641': 1, '78642': 1, '78645': 1, '78646': 1,
-  '78660': 1, '78664': 1, '78665': 1, '78681': 1, '78626': 1, '78628': 1,
-  '78633': 1, '78634': 1, '78640': 1, '78610': 1,
-  // Hill Country / larger lots (½–1 acre) — 2 traps
-  '78732': 2, '78733': 2, '78734': 2, '78738': 2, '78746': 2, '78750': 2,
-  '78720': 2, '78730': 2, '78610': 2, '78676': 2, '78652': 2,
-  // Estate / acreage (1+ acre) — 3 traps
-  '78620': 3, '78669': 3, '78645': 3, '78617': 3, '78610': 3,
-}
-function recommendTrapsForZip(zip) {
-  if (!zip) return null
-  return TRAPS_BY_ZIP[String(zip).slice(0, 5)] || 1
+// Coverage parameters (from /services and the docx that drives it):
+//   BG-Mosquitaire: up to ⅓ acre per trap
+//   Mosqitter Grand: up to 2 acres per unit
+// Returns { traps, suggestMosqitter } where:
+//   - acres ≤ ⅓ → 1 BG trap
+//   - acres ≤ ⅔ → 2 BG traps
+//   - acres ≤ 1.0 → 3 BG traps
+//   - acres ≤ 2.0 → 4–6 BG traps (capped), suggestMosqitter=true above 1 ac
+//   - acres > 2.0 → Mosqitter Grand recommended (still return ceil trap count)
+function recommendTrapsForAcres(acres) {
+  if (acres == null || Number.isNaN(acres) || acres <= 0) return null
+  const a = Number(acres)
+  // Round up to the next ⅓-acre block, cap at 6.
+  const traps = Math.min(6, Math.max(1, Math.ceil(a / (1 / 3))))
+  return { traps, suggestMosqitter: a > 1.0, isLargeProperty: a > 2.0 }
 }
 
 function SystemIcon({ iconPath, emoji }) {
@@ -275,7 +265,7 @@ function SystemIcon({ iconPath, emoji }) {
   )
 }
 
-function ServiceConfigurator({ onChange, onConfigChange, recommendedTraps, recommendedZip }) {
+function ServiceConfigurator({ onChange, onConfigChange, recommendedTraps, lotAcres, suggestMosqitter, lotLookupState }) {
   const [system, setSystem] = useState(null)        // 'biogents-co2' | 'biogents-nonco2' | 'mosqitter' | 'tank' | 'none'
   const [plan, setPlan] = useState(null)            // 'rental' | 'purchase'
   const [trapCount, setTrapCount] = useState(1)
@@ -414,9 +404,20 @@ function ServiceConfigurator({ onChange, onConfigChange, recommendedTraps, recom
       {system === 'biogents-co2' && plan && (
         <>
           <div style={Q}>How many traps?</div>
-          {recommendedTraps && (
-            <div style={{ fontSize: '0.78rem', color: '#7dffaa', marginBottom: 8, padding: '6px 10px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.2)', borderRadius: 6, display: 'inline-block' }}>
-              📍 Estimated <strong>{recommendedTraps} trap{recommendedTraps > 1 ? 's' : ''}</strong> for typical lots in {recommendedZip || 'your area'}. Adjust below if your property is bigger or smaller.
+          {lotLookupState === 'loading' && (
+            <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.55)', marginBottom: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, display: 'inline-block' }}>
+              Looking up your property size…
+            </div>
+          )}
+          {lotLookupState === 'found' && recommendedTraps && lotAcres != null && (
+            <div style={{ fontSize: '0.78rem', color: '#7dffaa', marginBottom: 8, padding: '7px 12px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.25)', borderRadius: 6, display: 'inline-block', lineHeight: 1.55 }}>
+              📍 Your lot is <strong>{lotAcres} acre{lotAcres === 1 ? '' : 's'}</strong> ({Math.round(lotAcres * 43560).toLocaleString()} sq ft) — at ⅓ acre coverage per BG-Mosquitaire, we recommend <strong>{recommendedTraps} trap{recommendedTraps > 1 ? 's' : ''}</strong>.
+              {suggestMosqitter && <div style={{ marginTop: 4, color: '#c9a84c' }}>Properties over 1 acre may prefer the <strong>Mosqitter Grand</strong> (2-acre coverage per unit).</div>}
+            </div>
+          )}
+          {(lotLookupState === 'not-found' || lotLookupState === 'error') && (
+            <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', marginBottom: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, display: 'inline-block' }}>
+              Couldn&apos;t auto-lookup your lot size — pick a trap count below or get a free consultation and we&apos;ll measure on-site.
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -570,7 +571,9 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapPin, setMapPin] = useState(null)
   const [recommendedTraps, setRecommendedTraps] = useState(null)
-  const [recommendedZip, setRecommendedZip] = useState(null)
+  const [lotAcres, setLotAcres] = useState(null)
+  const [lotLookupState, setLotLookupState] = useState('idle') // idle | loading | found | not-found | error
+  const [suggestMosqitter, setSuggestMosqitter] = useState(false)
   const [machPins, setMachPins] = useState([])
   const [placingPin, setPlacingPin] = useState(false)
   const [mapView, setMapView] = useState('satellite') // 'satellite' | 'street'
@@ -592,7 +595,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       return () => clearInterval(poll)
     }
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=marker`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=marker,drawing,geometry`
     script.setAttribute('data-gg-maps', '1')
     script.async = true
     script.onload = () => setMapLoaded(true)
@@ -693,14 +696,32 @@ export default function QuoteBuilder({ customers, mapsKey }) {
         if (status === 'OK' && results[0]) {
           const loc = results[0].geometry.location
           setMapPin({ lat: loc.lat(), lng: loc.lng() })
-          // Pull ZIP from address_components and translate to a recommended
-          // trap count via the Austin-metro lot-size lookup.
-          const zipComp = (results[0].address_components || []).find((c) => c.types?.includes('postal_code'))
-          const zip = zipComp?.short_name || zipComp?.long_name || null
-          if (zip) {
-            setRecommendedZip(zip)
-            setRecommendedTraps(recommendTrapsForZip(zip))
-          }
+          // Look up the real parcel area via Regrid (our /api wrapper). Use
+          // the geocoder's formatted address so misspellings/abbreviations
+          // are normalized before we hit Regrid.
+          const lookupAddress = results[0].formatted_address || customerAddress
+          setLotLookupState('loading')
+          fetch(`/api/geocode/lot-size?address=${encodeURIComponent(lookupAddress)}`)
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.error || d.acres == null) {
+                setLotLookupState('not-found')
+                setLotAcres(null)
+                setRecommendedTraps(null)
+                setSuggestMosqitter(false)
+                return
+              }
+              setLotAcres(d.acres)
+              const rec = recommendTrapsForAcres(d.acres)
+              if (rec) {
+                setRecommendedTraps(rec.traps)
+                setSuggestMosqitter(rec.suggestMosqitter)
+              }
+              setLotLookupState('found')
+            })
+            .catch(() => {
+              setLotLookupState('error')
+            })
         }
       })
     }, 700)
@@ -944,7 +965,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>Services</span>
             </div>
             <div className="card" style={{ marginBottom: 8 }}>
-              <ServiceConfigurator onChange={setServiceLines} onConfigChange={setServiceConfig} recommendedTraps={recommendedTraps} recommendedZip={recommendedZip} />
+              <ServiceConfigurator onChange={setServiceLines} onConfigChange={setServiceConfig} recommendedTraps={recommendedTraps} lotAcres={lotAcres} suggestMosqitter={suggestMosqitter} lotLookupState={lotLookupState} />
             </div>
 
             {/* Products (auto-populated from service config) */}
