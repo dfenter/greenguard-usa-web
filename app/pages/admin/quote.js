@@ -354,10 +354,10 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
       <div style={Q}>What system for service?</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {[
-          { val: 'biogents-co2',    label: 'Biogents CO₂',                              icon: '/system-icons/biogents-co2.png',    emoji: '🦟' },
-          { val: 'biogents-nonco2', label: 'Biogents Non-CO₂',                          icon: '/system-icons/biogents-nonco2.png', emoji: '🪤' },
-          { val: 'mosqitter',       label: 'Mosqitter Grand',                           icon: '/system-icons/mosqitter.png',       emoji: '⚙️' },
-          { val: 'tank',            label: 'CO₂ Tank Delivery Only',                    icon: '/system-icons/tank.png',            emoji: '🛢️' },
+          { val: 'biogents-co2',    label: 'Biogents CO₂',                              icon: '/system-icons/biogents-co2.jpg',    emoji: '🦟' },
+          { val: 'biogents-nonco2', label: 'Biogents Non-CO₂',                          icon: '/system-icons/biogents-nonco2.webp', emoji: '🪤' },
+          { val: 'mosqitter',       label: 'Mosqitter Grand',                           icon: '/system-icons/mosqitter.jpg',       emoji: '⚙️' },
+          { val: 'tank',            label: 'CO₂ Tank Delivery Only',                    icon: '/system-icons/tank.jpeg',            emoji: '🛢️' },
           { val: 'none',            label: 'No Service — Equipment & Add-Ons Only',     icon: null,                                emoji: '🛒' },
         ].map(({ val, label, icon, emoji }) => {
           const active = system === val

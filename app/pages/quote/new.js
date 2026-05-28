@@ -229,6 +229,33 @@ function minServiceDate() {
   return d.toLocaleDateString('en-CA')
 }
 
+// Rough Austin-metro ZIP → recommended trap count, based on typical lot size
+// in that area. A BG-Mosquitaire covers up to ~⅓ acre; Mosqitter Grand up to
+// ~2 acres. We're approximating, so this is intentionally on the
+// conservative side — admin can always nudge it up after a property tour.
+const TRAPS_BY_ZIP = {
+  // Urban core / dense neighborhoods (≤¼ acre) — 1 trap
+  '78701': 1, '78702': 1, '78703': 1, '78704': 1, '78705': 1, '78712': 1,
+  '78721': 1, '78722': 1, '78723': 1, '78751': 1, '78752': 1, '78756': 1,
+  '78757': 1, '78758': 1, '78759': 1, '78731': 1,
+  // South Austin / suburban (¼–⅓ acre) — 1 trap
+  '78704': 1, '78745': 1, '78748': 1, '78749': 1, '78735': 1, '78736': 1,
+  '78737': 1, '78739': 1, '78744': 1, '78747': 1, '78753': 1, '78754': 1,
+  // Outer suburbs (mostly ⅛–¼ acre) — 1 trap
+  '78613': 1, '78630': 1, '78641': 1, '78642': 1, '78645': 1, '78646': 1,
+  '78660': 1, '78664': 1, '78665': 1, '78681': 1, '78626': 1, '78628': 1,
+  '78633': 1, '78634': 1, '78640': 1, '78610': 1,
+  // Hill Country / larger lots (½–1 acre) — 2 traps
+  '78732': 2, '78733': 2, '78734': 2, '78738': 2, '78746': 2, '78750': 2,
+  '78720': 2, '78730': 2, '78610': 2, '78676': 2, '78652': 2,
+  // Estate / acreage (1+ acre) — 3 traps
+  '78620': 3, '78669': 3, '78645': 3, '78617': 3, '78610': 3,
+}
+function recommendTrapsForZip(zip) {
+  if (!zip) return null
+  return TRAPS_BY_ZIP[String(zip).slice(0, 5)] || 1
+}
+
 function SystemIcon({ iconPath, emoji }) {
   const [failed, setFailed] = useState(false)
   const showEmoji = !iconPath || failed
@@ -248,10 +275,22 @@ function SystemIcon({ iconPath, emoji }) {
   )
 }
 
-function ServiceConfigurator({ onChange, onConfigChange }) {
+function ServiceConfigurator({ onChange, onConfigChange, recommendedTraps, recommendedZip }) {
   const [system, setSystem] = useState(null)        // 'biogents-co2' | 'biogents-nonco2' | 'mosqitter' | 'tank' | 'none'
   const [plan, setPlan] = useState(null)            // 'rental' | 'purchase'
   const [trapCount, setTrapCount] = useState(1)
+  // Auto-apply the address-derived recommendation the first time we hear
+  // it, unless the user has already nudged the trap count manually.
+  const [userTouchedTraps, setUserTouchedTraps] = useState(false)
+  useEffect(() => {
+    if (!userTouchedTraps && recommendedTraps && recommendedTraps !== trapCount) {
+      setTrapCount(recommendedTraps)
+    }
+  }, [recommendedTraps, userTouchedTraps]) // eslint-disable-line react-hooks/exhaustive-deps
+  function pickTraps(n) {
+    setTrapCount(n)
+    setUserTouchedTraps(true)
+  }
   const [onTankService, setOnTankService] = useState(null)
   const [mqPlan, setMqPlan] = useState(null)        // 'rental' | 'purchase'
   const [mqCount, setMqCount] = useState(1)
@@ -325,10 +364,10 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
       <div style={Q}>What system for service?</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {[
-          { val: 'biogents-co2',    label: 'Biogents CO₂',                              icon: '/system-icons/biogents-co2.png',    emoji: '🦟' },
-          { val: 'biogents-nonco2', label: 'Biogents Non-CO₂',                          icon: '/system-icons/biogents-nonco2.png', emoji: '🪤' },
-          { val: 'mosqitter',       label: 'Mosqitter Grand',                           icon: '/system-icons/mosqitter.png',       emoji: '⚙️' },
-          { val: 'tank',            label: 'CO₂ Tank Delivery Only',                    icon: '/system-icons/tank.png',            emoji: '🛢️' },
+          { val: 'biogents-co2',    label: 'Biogents CO₂',                              icon: '/system-icons/biogents-co2.jpg',    emoji: '🦟' },
+          { val: 'biogents-nonco2', label: 'Biogents Non-CO₂',                          icon: '/system-icons/biogents-nonco2.webp', emoji: '🪤' },
+          { val: 'mosqitter',       label: 'Mosqitter Grand',                           icon: '/system-icons/mosqitter.jpg',       emoji: '⚙️' },
+          { val: 'tank',            label: 'CO₂ Tank Delivery Only',                    icon: '/system-icons/tank.jpeg',            emoji: '🛢️' },
           { val: 'none',            label: 'No Service — Equipment & Add-Ons Only',     icon: null,                                emoji: '🛒' },
         ].map(({ val, label, icon, emoji }) => {
           const active = system === val
@@ -375,9 +414,14 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
       {system === 'biogents-co2' && plan && (
         <>
           <div style={Q}>How many traps?</div>
+          {recommendedTraps && (
+            <div style={{ fontSize: '0.78rem', color: '#7dffaa', marginBottom: 8, padding: '6px 10px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.2)', borderRadius: 6, display: 'inline-block' }}>
+              📍 Estimated <strong>{recommendedTraps} trap{recommendedTraps > 1 ? 's' : ''}</strong> for typical lots in {recommendedZip || 'your area'}. Adjust below if your property is bigger or smaller.
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
+              <button key={n} onClick={() => pickTraps(n)} style={trapBtn(n)}>{n}</button>
             ))}
             {plan === 'rental' && BG_RENTAL_PRICE[trapCount] && (
               <span style={{ fontSize: '0.85rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
@@ -414,7 +458,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
           <div style={Q}>How many traps?</div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
+              <button key={n} onClick={() => pickTraps(n)} style={trapBtn(n)}>{n}</button>
             ))}
             <span style={{ fontSize: '0.85rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
               ${(BG_NONCO2_PER_TRAP * trapCount).toFixed(2)}/mo
@@ -525,6 +569,8 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   const taxRate = 8.25
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapPin, setMapPin] = useState(null)
+  const [recommendedTraps, setRecommendedTraps] = useState(null)
+  const [recommendedZip, setRecommendedZip] = useState(null)
   const [machPins, setMachPins] = useState([])
   const [placingPin, setPlacingPin] = useState(false)
   const [mapView, setMapView] = useState('satellite') // 'satellite' | 'street'
@@ -647,6 +693,14 @@ export default function QuoteBuilder({ customers, mapsKey }) {
         if (status === 'OK' && results[0]) {
           const loc = results[0].geometry.location
           setMapPin({ lat: loc.lat(), lng: loc.lng() })
+          // Pull ZIP from address_components and translate to a recommended
+          // trap count via the Austin-metro lot-size lookup.
+          const zipComp = (results[0].address_components || []).find((c) => c.types?.includes('postal_code'))
+          const zip = zipComp?.short_name || zipComp?.long_name || null
+          if (zip) {
+            setRecommendedZip(zip)
+            setRecommendedTraps(recommendTrapsForZip(zip))
+          }
         }
       })
     }, 700)
@@ -803,11 +857,10 @@ export default function QuoteBuilder({ customers, mapsKey }) {
         <title>Get a Quote · GreenGuard USA</title>
         <meta name="description" content="Build your own mosquito control quote and pay online — pesticide-free CO2 traps and monthly delivery for the Austin area." />
       </Head>
-      <PortalLayout title="Get Your Quote">
+      <PortalLayout>
         <div style={{ marginBottom: 24 }}>
-          <span className="tag">Admin</span>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Quote Builder</h1>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>Build and email a service quote to a customer</p>
+          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)', margin: 0 }}>Input your address to estimate the number of traps required for your property.</p>
         </div>
 
         <div className="two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 28, alignItems: 'start' }}>
@@ -891,7 +944,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>Services</span>
             </div>
             <div className="card" style={{ marginBottom: 8 }}>
-              <ServiceConfigurator onChange={setServiceLines} onConfigChange={setServiceConfig} />
+              <ServiceConfigurator onChange={setServiceLines} onConfigChange={setServiceConfig} recommendedTraps={recommendedTraps} recommendedZip={recommendedZip} />
             </div>
 
             {/* Products (auto-populated from service config) */}
