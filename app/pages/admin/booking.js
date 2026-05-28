@@ -26,6 +26,7 @@ export default function AdminBooking() {
     eventTypeId: '', firstName: '', lastName: '', email: '', phone: '',
     address: '', startLocal: '', notes: '', recurring: 'none',
     allowDoubleBook: false,
+    skipNotification: false,
   })
   const [status, setStatus] = useState(null) // null | 'loading' | 'success' | {error}
 
@@ -211,6 +212,22 @@ export default function AdminBooking() {
                 <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: '#c9a84c', marginBottom: 2 }}>Allow double-booking</span>
                 <span style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.5 }}>
                   If a slot is unavailable in Cal.com, drop the appointment directly onto Google Calendar instead. Use for overrides — customer gets no Cal.com confirmation email.
+                </span>
+              </label>
+            </div>
+
+            <div style={{ ...field, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 8, background: 'rgba(91,196,255,0.06)', border: '1px solid rgba(91,196,255,0.2)' }}>
+              <input
+                type="checkbox"
+                id="skip-notification"
+                checked={form.skipNotification}
+                onChange={(e) => setForm((f) => ({ ...f, skipNotification: e.target.checked }))}
+                style={{ marginTop: 3, width: 16, height: 16, accentColor: '#5bc4ff', cursor: 'pointer' }}
+              />
+              <label htmlFor="skip-notification" style={{ cursor: 'pointer', flex: 1 }}>
+                <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: '#5bc4ff', marginBottom: 2 }}>Skip customer notification</span>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.5 }}>
+                  Drop the appointment directly onto Google Calendar with no Cal.com confirmation email or invite to the customer. Useful for internal placeholders or pre-arranged visits.
                 </span>
               </label>
             </div>

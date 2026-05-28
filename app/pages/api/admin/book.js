@@ -1,7 +1,6 @@
-const { requireAdmin, consumeJti } = require('../../../lib/auth')
+const { requireAdmin } = require('../../../lib/auth')
 const { getBookingsForEmail } = require('../../../lib/calcom')
 const { getCalendar } = require('../../../lib/gcal')
-const crypto = require('crypto')
 
 const CALCOM_API_KEY = process.env.CALCOM_API_KEY || ''
 const CALCOM_BASE = `${(process.env.CALCOM_BASE_URL || 'https://cal.com').replace(/\/$/, '')}/api/v2`
@@ -106,16 +105,13 @@ export default async function handler(req, res) {
   const session = await requireAdmin(req, res)
   if (!session) return
 
-  const { eventTypeId, firstName, lastName, email, phone, address, startLocal, notes, recurring, allowDoubleBook, eventTypeTitle } = req.body
+  const { eventTypeId, firstName, lastName, email, phone, address, startLocal, notes, recurring, allowDoubleBook, skipNotification, eventTypeTitle } = req.body
   if (!eventTypeId || !firstName || !email || !address || !startLocal) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
 
-  // Idempotency: same (email, eventTypeId, startLocal) submitted twice within
-  // 5 min is rejected. Survives lambda warm restarts via Vercel KV when set.
-  const fp = crypto.createHash('sha256').update(`${email}|${eventTypeId}|${startLocal}`).digest('hex').slice(0, 16)
-  const fresh = await consumeJti(`book:${fp}`, 300)
-  if (!fresh) return res.status(409).json({ error: 'Duplicate booking submission — try again in a few minutes.' })
+  // Admin booking is intentionally unblockable — no idempotency rejection,
+  // no availability gate. Owner asked for full override authority here.
 
   const localDate = new Date(startLocal)
   const utcIso = localDate.toISOString()
@@ -132,8 +128,23 @@ export default async function handler(req, res) {
   const skipped = []
   for (let i = 0; i < occurrences; i++) {
     const start = new Date(localDate.getTime() + i * intervalDays * 24 * 60 * 60 * 1000).toISOString()
-    if (!allowDoubleBook && await hasOverlappingBooking(email, start)) {
+    if (!allowDoubleBook && !skipNotification && await hasOverlappingBooking(email, start)) {
       skipped.push(`Occurrence ${i + 1} (${start.slice(0, 16)}): already booked`)
+      continue
+    }
+    // When `skipNotification` is checked, admin wants the appointment on
+    // the calendar without any customer-facing email. Cal.com always sends
+    // a confirmation when it creates a booking, so we bypass Cal.com
+    // entirely and write directly to Google Calendar with sendUpdates=none.
+    if (skipNotification) {
+      try {
+        const direct = await createDirectGCalEvent({
+          firstName, lastName, email, phone, address, utcIso: start, notes, eventTypeTitle,
+        })
+        bookings.push(direct)
+      } catch (e) {
+        errors.push(`Occurrence ${i + 1}: GCal create failed: ${e.message}`)
+      }
       continue
     }
     try {
