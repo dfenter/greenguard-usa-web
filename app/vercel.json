@@ -5,13 +5,16 @@
   "framework": "nextjs",
   "regions": ["iad1"],
   "crons": [
-    {
-      "path": "/api/cron/payment-resurrection",
-      "schedule": "0 15 * * *"
-    },
-    {
-      "path": "/api/cron/quote-followup",
-      "schedule": "0 14 * * *"
-    }
+    { "path": "/api/cron/payment-resurrection", "schedule": "0 15 * * *" },
+    { "path": "/api/cron/quote-followup",       "schedule": "0 14 * * *" },
+    { "path": "/api/cron/books-ingest",         "schedule": "0 11 * * *" },
+    { "path": "/api/cron/books-daily",          "schedule": "30 11 * * *" },
+    { "path": "/api/cron/books-close",          "schedule": "0 11 1 * *" },
+    { "path": "/api/cron/billing-run?mode=warn","schedule": "0 22 * * *" },
+    { "path": "/api/cron/billing-run?mode=run", "schedule": "0 14 * * *" },
+    { "path": "/api/cron/annual-review",        "schedule": "0 15 * * 1" },
+    { "path": "/api/cron/acuity-leak",          "schedule": "0 16 * * *" },
+    { "path": "/api/cron/daily-route",          "schedule": "0 5 * * *" },
+    { "path": "/api/cron/daily-summary",        "schedule": "0 22 * * *" }
   ]
 }
