@@ -324,8 +324,10 @@ function ServiceConfigurator({ onChange, onConfigChange, lotRec, lotAcres, lotLo
   const [mqInstall, setMqInstall] = useState(false)
   const [tankCount, setTankCount] = useState(2)
   const [tankHookup, setTankHookup] = useState(false)
-  const [serviceDate, setServiceDate] = useState('')
   const minDate = minServiceDate()
+  // Default to the earliest available date (today + 5 days). Customer can
+  // still pick something later; the date input min= prevents earlier picks.
+  const [serviceDate, setServiceDate] = useState(minDate)
 
   useEffect(() => {
     const lines = []
@@ -335,16 +337,24 @@ function ServiceConfigurator({ onChange, onConfigChange, lotRec, lotAcres, lotLo
       const price = BG_RENTAL_PRICE[trapCount]
       lines.push({ label: `Biogents CO₂ Customer Rental — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${(price / trapCount).toFixed(2)}/trap)`, amount: price, recurring: true })
     }
-    // Biogents CO₂ purchase — combine tank delivery + hookup into one line
-    if (system === 'biogents-co2' && plan === 'purchase' && onTankService === true) {
+    // Biogents CO₂ purchase — recurring monthly tank exchange always shows
+    // for the trap count. The hookup & maintenance fee is a separate
+    // opt-in line (defaults to Yes via onTankService state).
+    if (system === 'biogents-co2' && plan === 'purchase' && trapCount) {
       const tankPrice = TANK_PRICE[trapCount] || (TANK_PRICE[3] + (trapCount - 3) * 49.99)
-      const hookupPrice = BG_HOOKUP_PER_TRAP * trapCount
-      const combinedPrice = tankPrice + hookupPrice
       lines.push({
-        label: `CO₂ Tank Exchange — ${trapCount}× 20lb Tank${trapCount > 1 ? 's' : ''} (includes hookup & maintenance)`,
-        amount: combinedPrice,
+        label: `Monthly CO₂ Tank Exchange — ${trapCount}× 20lb Tank${trapCount > 1 ? 's' : ''}`,
+        amount: tankPrice,
         recurring: true,
       })
+      if (onTankService === true) {
+        const hookupPrice = BG_HOOKUP_PER_TRAP * trapCount
+        lines.push({
+          label: `Tank Hookup & Maintenance — ${trapCount} trap${trapCount > 1 ? 's' : ''}`,
+          amount: hookupPrice,
+          recurring: true,
+        })
+      }
     }
     // Biogents Non-CO₂ (always purchase, per trap)
     if (system === 'biogents-nonco2' && trapCount) {
@@ -485,12 +495,14 @@ function ServiceConfigurator({ onChange, onConfigChange, lotRec, lotAcres, lotLo
         </>
       )}
 
-      {/* Q4: Biogents CO₂ purchase — on tank service? */}
+      {/* Q4: Biogents CO₂ purchase — add hookup & maintenance fee? The
+          monthly CO₂ tank exchange line shows regardless of this answer;
+          this just adds the per-trap hookup fee on top. */}
       {system === 'biogents-co2' && plan === 'purchase' && trapCount && (
         <>
-          <div style={Q}>Are they on CO₂ tank service with us?</div>
+          <div style={Q}>Add tank hookup &amp; maintenance?</div>
           <div>
-            <span onClick={() => setOnTankService(true)} style={chip(onTankService === true)}>Yes — add hookup &amp; maintenance fee</span>
+            <span onClick={() => setOnTankService(true)} style={chip(onTankService === true)}>Yes — we hook up &amp; maintain (recommended)</span>
             <span onClick={() => setOnTankService(false)} style={chip(onTankService === false)}>No — customer self-manages</span>
           </div>
           {onTankService === true && (
