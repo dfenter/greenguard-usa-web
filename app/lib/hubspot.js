@@ -107,7 +107,10 @@ async function findContactsByEmails(emails) {
 
   const sorted = [...cleaned].sort()
   const cacheKey = `hs:contacts:${sorted.join(',')}`.slice(0, 250)
-  const pairs = await _cachedH(cacheKey, 20, async () => {
+  // 60s cache — contact name/phone/tank_count rarely change within a minute,
+  // and rounds/home/calendar all re-request the same email set on reload.
+  // Was 20s, which expired before a tech's repeat loads benefited.
+  const pairs = await _cachedH(cacheKey, 60, async () => {
     return await _fetchContactsByEmails(sorted)
   })
   for (const [k, v] of pairs) out.set(k, v)
