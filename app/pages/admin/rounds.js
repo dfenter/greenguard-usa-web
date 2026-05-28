@@ -850,6 +850,23 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 Bill to: {stop.billingContactName}
               </span>
             )}
+            {stop.existingInvoice && (() => {
+              const inv = stop.existingInvoice
+              const colors = {
+                paid:  { fg: '#7dffaa', bg: 'rgba(125,255,170,0.12)', bd: 'rgba(125,255,170,0.3)' },
+                open:  { fg: '#c9a84c', bg: 'rgba(201,168,76,0.12)',  bd: 'rgba(201,168,76,0.3)'  },
+                draft: { fg: 'rgba(212,230,202,0.85)', bg: 'rgba(212,230,202,0.08)', bd: 'rgba(212,230,202,0.25)' },
+              }
+              const c = colors[inv.status] || colors.draft
+              const labelText = inv.status === 'paid' ? `Paid · ${fmt$(inv.amountPaid || inv.amountDue)}`
+                : inv.status === 'open' ? `Invoice sent · ${fmt$(inv.amountDue)}`
+                : `Draft invoice · ${fmt$(inv.amountDue || 0)}`
+              return (
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em' }}>
+                  🧾 {labelText}
+                </span>
+              )
+            })()}
             {isDone && state.grandTotal > 0 && (
               <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7dffaa' }}>{fmt$(state.grandTotal)}</span>
             )}
@@ -1324,15 +1341,21 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
               </a>
             </div>
             {mode === 'date' && (
-              <select value={date} onChange={handleDateChange}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>
-                {availableDates.map((d) => {
-                  const isToday = d === today
-                  const isPast = d < today
-                  const label = isToday ? `Today (${d})` : new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + (isPast ? ' — history' : '')
-                  return <option key={d} value={d}>{label}</option>
-                })}
-              </select>
+              <>
+                <select value={availableDates.includes(date) ? date : ''} onChange={handleDateChange}
+                  style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>
+                  <option value="" disabled>Quick pick…</option>
+                  {availableDates.map((d) => {
+                    const isToday = d === today
+                    const isPast = d < today
+                    const label = isToday ? `Today (${d})` : new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + (isPast ? ' — history' : '')
+                    return <option key={d} value={d}>{label}</option>
+                  })}
+                </select>
+                <input type="date" value={date} onChange={handleDateChange}
+                  style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer', colorScheme: 'dark' }}
+                />
+              </>
             )}
             {mode === 'open' && (
               <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}
