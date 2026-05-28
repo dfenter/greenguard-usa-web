@@ -494,6 +494,18 @@ def convert(fname, fragment):
         return inner + SSE_SPAN + close
     body = anchor_logo_re.sub(_inject_sse, body)
 
+    # Inject a fallback CSS rule for `.gg-logo-sse` if the page injects the
+    # span but never styled it — without this the tagline renders inline
+    # next to "GreenGuard USA" instead of stacked underneath.
+    styles_joined = '\n'.join(styles)
+    if 'gg-logo-sse' in body and 'gg-logo-sse{' not in styles_joined and 'gg-logo-sse {' not in styles_joined:
+        fallback_sse = (
+            '<style>.gg-logo-sse{display:block;font-size:.52rem;'
+            'letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;'
+            'font-weight:700;margin-top:2px;line-height:1}</style>'
+        )
+        body = fallback_sse + body
+
     # Inject accordion + close JS if the page has a nav menu but is missing it
     needs_accordion = 'gg-menu' in body and 'scrollHeight' not in body
     accordion_block = ACCORDION_INJECT if needs_accordion else ''
