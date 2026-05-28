@@ -837,10 +837,8 @@
 }
 /* ── NAVBAR / HAMBURGER ── */
 #gg-services .gg-nav {
-  position: fixed !important;
-  top: 0 !important;  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
+  position: sticky !important;
+  top: 0 !important;
   z-index: 9999 !important;
   background: rgba(10,26,13,0.95) !important;
   backdrop-filter: blur(10px) !important;
@@ -898,7 +896,7 @@
 
 #gg-services .gg-menu-group {
   display: block !important;
-  font-size:.92rem !important;
+  font-size: 0.62rem !important;
   font-weight: 800 !important;
   letter-spacing: 0.15em !important;
   text-transform: uppercase !important;
@@ -915,16 +913,89 @@
   cursor: pointer !important;
 }
 
-.gg-logo-sse{display:block;font-size:.52rem;letter-spacing:.16em;text-transform:uppercase;color:#7dffaa;font-weight:700;margin-top:2px;line-height:1}
-
-#gg-services .gg-nav-tagline{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#7dffaa;font-weight:700;padding:10px 0 14px;border-bottom:1px solid rgba(122,171,130,.15);margin-bottom:6px}
+/* ── GOOGLE REVIEWS ── */
+#gg-services .sv-reviews-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3,1fr) !important;
+  gap: 18px !important;
+  margin-top: 44px !important;
+}
+#gg-services .sv-review-card {
+  background: rgba(45,74,50,0.35) !important;
+  border: 1px solid rgba(122,171,130,0.2) !important;
+  border-radius: 10px !important;
+  padding: 24px 22px !important;
+  transition: border-color 0.25s, transform 0.25s !important;
+}
+#gg-services .sv-review-card:hover {
+  border-color: rgba(201,168,76,0.4) !important;
+  transform: translateY(-3px) !important;
+}
+#gg-services .sv-review-stars {
+  color: #c9a84c !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.08em !important;
+  margin-bottom: 12px !important;
+  display: block !important;
+}
+#gg-services .sv-review-text {
+  font-size: 0.92rem !important;
+  line-height: 1.7 !important;
+  color: rgba(212,230,202,0.8) !important;
+  margin-bottom: 16px !important;
+  font-style: italic !important;
+}
+#gg-services .sv-review-author {
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+}
+#gg-services .sv-review-meta {
+  font-size: 0.7rem !important;
+  color: rgba(212,230,202,0.45) !important;
+  margin-top: 2px !important;
+}
+#gg-services .sv-reviews-summary {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  margin-top: 18px !important;
+  margin-bottom: 8px !important;
+  justify-content: center !important;
+}
+#gg-services .sv-reviews-rating-num {
+  font-size: 2.2rem !important;
+  font-weight: 900 !important;
+  color: #c9a84c !important;
+  letter-spacing: -0.02em !important;
+}
+#gg-services .sv-reviews-rating-label {
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  color: rgba(212,230,202,0.72) !important;
+}
+#gg-services .sv-reviews-cta {
+  text-align: center !important;
+  margin-top: 36px !important;
+}
+#gg-services .sv-reviews-cta a {
+  color: #c9a84c !important;
+  font-weight: 800 !important;
+  font-size: 0.92rem !important;
+  border-bottom: 1px solid rgba(201,168,76,0.35) !important;
+  padding-bottom: 2px !important;
+}
+#gg-services .sv-reviews-cta a:hover { color: #e8d08a !important; border-color: #e8d08a !important; }
+@media (max-width: 900px) {
+  #gg-services .sv-reviews-grid { grid-template-columns: 1fr !important; }
+}
 </style>
-<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <div id="gg-services">
 <!-- NAV -->
   <div class="gg-nav">
     <div class="gg-nav-inner">
-      <a href="https://www.greenguard-usa.com/" class="gg-logo" style="text-decoration:none">Green<span>Guard</span> USA<span class="gg-logo-sse">Smart. Safe. Effective.</span></a>
+      <div class="gg-logo">Green<span>Guard</span> USA</div>
       <div class="gg-hamburger" onclick="document.querySelector('#gg-services .gg-menu').classList.add('open')">
         <span></span><span></span><span></span>
       </div>
@@ -933,52 +1004,25 @@
   <div class="gg-menu">
   <div class="gg-menu-close" onclick="document.querySelector('#gg-services .gg-menu').classList.remove('open')">X</div>
   <span class="gg-menu-group">Services</span>
-    <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO&#8322; Tank Delivery</a>
-    <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
-    <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
-    <span class="gg-menu-group">Service Areas</span>
-    <a href="https://www.greenguard-usa.com/mosquito-control-westlake-hills">Westlake Hills</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-lakeway">Lakeway</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-bee-cave">Bee Cave</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-dripping-springs">Dripping Springs</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-steiner-ranch">Steiner Ranch</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-round-rock">Round Rock</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-georgetown">Georgetown</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-cedar-park">Cedar Park</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-pflugerville">Pflugerville</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-kyle">Kyle</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-buda">Buda</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-leander">Leander</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-liberty-hill">Liberty Hill</a>
-    <span class="gg-menu-group">Learn</span>
-    <a href="https://www.greenguard-usa.com/why-co2-mosquito-traps-work">Why CO&#8322; Traps Work</a>
-    <a href="https://www.greenguard-usa.com/mosquito-science">Mosquito Science</a>
-    <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
-    <a href="https://www.greenguard-usa.com/case-studies">Results &amp; Case Studies</a>
-    <a href="https://www.greenguard-usa.com/blog">Blog</a>
-    <a href="https://www.greenguard-usa.com/faq">FAQ</a>
-    <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
-    <a href="https://www.greenguard-usa.com/eco-friendly-mosquito-control">Eco-Friendly Control</a>
-    <a href="https://www.greenguard-usa.com/bee-safe-mosquito-control">Bee-Safe Protection</a>
-    <a href="https://www.greenguard-usa.com/pesticide-free-outdoor-living">Pesticide-Free Living</a>
-    <a href="https://www.greenguard-usa.com/outdoor-wellness">Outdoor Wellness</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-without-spraying">No-Spray Protection</a>
-    <span class="gg-menu-group">Shop</span>
-    <a href="https://portal.greenguard-usa.com/quote">Shop All Products</a>
-        <span class="gg-group">Hospitality</span>
-    <a href="https://www.greenguard-usa.com/mosquito-control-luxury-homes">Luxury Homes</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-wedding-venues">Wedding Venues</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-outdoor-restaurants">Outdoor Restaurants</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-wineries">Wineries</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-golf-clubs">Golf Clubs</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-resorts">Resorts</a>
-    <a href="https://www.greenguard-usa.com/mosquito-control-country-clubs">Country Clubs</a>
-    <span class="gg-menu-group">Company</span>
-    <a href="https://www.greenguard-usa.com/about">About &amp; Founder</a>
-    <a href="https://www.greenguard-usa.com/team">Our Team</a>
-    <a href="https://www.greenguard-usa.com/contact">Contact</a>
-    <span class="gg-menu-group">Book</span>
-    <a href="https://www.greenguard-usa.com/book">Book Your Free Consultation</a>
+  <a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a>
+  <a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a>
+  <a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a>
+  <a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a>
+  <!-- <a href="https://www.greenguard-usa.com/free-trial">7 Day Free Trial</a> -->
+  <span class="gg-menu-group">Shop</span>
+  <a href="https://www.greenguard-usa.com/shop">Shop All Products</a>
+  <span class="gg-menu-group">Learn</span>
+  <a href="https://www.greenguard-usa.com/co2-mosquito-trap-placement">Trap Placement Guide</a>
+  <a href="https://www.greenguard-usa.com/results">Results</a>
+  <a href="https://www.greenguard-usa.com/blog">Blog</a>
+  <a href="https://www.greenguard-usa.com/faq">FAQ</a>
+  <a href="https://www.greenguard-usa.com/pricing">Pricing</a>
+  <span class="gg-menu-group">Company</span>
+  <a href="https://www.greenguard-usa.com/about">About Us</a>
+  <a href="https://www.greenguard-usa.com/contact">Contact</a>
+  <a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a>
+  <span class="gg-menu-group">Book</span>
+  <a href="https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=88858319">Free Property Assessment</a>
 </div>
   <!-- PAGE HERO -->
   <div class="sv-hero">
@@ -986,7 +1030,7 @@
       <span class="sv-tag">GreenGuard USA · Austin, Texas</span>
       <h1 class="sv-h1">Pesticide-free protection.<br><span>Two powerful options.</span></h1>
       <p class="sv-hero-sub">Choose the trap that fits your property, then let us handle everything else. CO₂ delivery, maintenance, and service managed by our all-electric Austin fleet.</p>
-      <button class="sv-hero-cta" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book a Free Consultation</button>
+      <button class="sv-hero-cta" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=78836741','_blank')">Book a Free Consultation</button>
       <div class="sv-hero-note">Free · No commitment · Austin area only</div>
     </div>
   </div>
@@ -996,7 +1040,7 @@
     <div class="sv-trust-item"><span class="sv-check">✓</span> Safe for Kids, Pets &amp; Bees</div>
     <div class="sv-trust-item"><span class="sv-check">✓</span> EV Fleet CO₂ Delivery</div>
     <div class="sv-trust-item"><span class="sv-check">✓</span> No Long-Term Contracts</div>
-    <div class="sv-trust-item"><span class="sv-check">✓</span> Book Your Free Consultation Available</div>
+    <div class="sv-trust-item"><span class="sv-check">✓</span> Free Property Assessment Available</div>
   </div>
   <!-- TRAP COMPARISON -->
   <div class="sv-section" id="sv-traps">
@@ -1038,8 +1082,8 @@
           <li>Pairs with GreenGuard USA CO₂ delivery service</li>
         </ul>
         <div class="sv-trap-footer">
-          <button class="sv-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book a Free Consultation</button>
-          <button class="sv-btn-ghost" onclick="window.open('https://portal.greenguard-usa.com/quote','_blank')">Shop Now</button>
+          <button class="sv-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=78836741','_blank')">Book a Free Consultation</button>
+          <button class="sv-btn-ghost" onclick="window.open('https://www.greenguard-usa.com/shop','_blank')">Shop Now</button>
         </div>
       </div>
     </div>
@@ -1076,14 +1120,14 @@
           <li>Selected for G20 Summit protection, New Delhi 2023</li>
         </ul>
         <div class="sv-trap-footer">
-          <button class="sv-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book a Free Consultation</button>
+          <button class="sv-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=78836741','_blank')">Book a Free Consultation</button>
           <button class="sv-btn-ghost" onclick="window.open('https://www.greenguard-usa.com/mosqitter-grand','_blank')">Shop Now</button>
         </div>
       </div>
     </div>
   </div>
 </div>
-```
+
   </div>
   <!-- WHICH IS RIGHT FOR ME -->
   <div class="sv-section sv-section-alt">
@@ -1100,7 +1144,7 @@
           <span class="sv-picker-rec">→ Recommended: Biogents BG-Mosquitaire</span>
         </div>
         <div class="sv-picker-card sv-reveal">          
-          <h3>Large Property (1, 2 acres)</h3>
+          <h3>Large Property (1–2 acres)</h3>
           <p>Expansive yard, pool plus entertaining area, or you've had mosquito problems that standard traps haven't solved. You want maximum coverage.</p>
           <span class="sv-picker-rec">→ Recommended: Mosqitter Grand</span>
         </div>
@@ -1153,7 +1197,7 @@
               <li>Full installation &amp; app setup</li>
               <li>Pairs with monthly CO₂ delivery</li>
             </ul>
-            <button class="sv-btn-gold" onclick="window.open('https://portal.greenguard-usa.com/quote’,'_blank')">Shop Now</button>
+            <button class="sv-btn-gold" onclick="window.open('https://www.greenguard-usa.com/shop’,'_blank')">Shop Now</button>
           </div>
         </div>
         <div class="sv-delivery-card sv-reveal">
@@ -1171,7 +1215,7 @@
               <li>All-electric EV fleet delivery</li>
               <li>Next-day delivery available</li>
             </ul>
-            <button class="sv-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Schedule Service</button>
+            <button class="sv-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=category:Delivery%20Services','_blank')">Schedule Service</button>
           </div>
         </div>
         <div class="sv-delivery-card sv-reveal">
@@ -1189,7 +1233,7 @@
               <li>Catch net &amp; maintenance included</li>
               <li>Seasonal adjustments &amp; support</li>
             </ul>
-            <button class="sv-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Get Your Rental Trap</button>
+            <button class="sv-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=category:Rentals','_blank')">Get Your Rental Trap</button>
           </div>
         </div>
       </div>
@@ -1215,7 +1259,7 @@
             <li>Smaller property coverage</li>
             <li>Delivered to your door</li>
           </ul>
-          <button class="sv-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Get Started</button>
+          <button class="sv-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=70202771','_blank')">Get Started</button>
         </div>
         <div class="sv-tier popular sv-reveal">
           <div class="sv-popular-badge">Most Popular</div>
@@ -1229,7 +1273,7 @@
             <li>Expanded property coverage</li>
             <li>Priority scheduling</li>
           </ul>
-          <button class="sv-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Get Started</button>
+          <button class="sv-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=70202790')">Get Started</button>
         </div>
         <div class="sv-tier sv-reveal">
           <span class="sv-tier-name">Estate</span>
@@ -1242,7 +1286,7 @@
             <li>Maximum coverage area</li>
             <li>Priority scheduling</li>
           </ul>
-          <button class="sv-btn-gold" onclick="window.location.href='https://www.greenguard-usa.com/book'">Get Started</button>
+          <button class="sv-btn-gold" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=70202797','_blank')">Get Started</button>
         </div>
       </div>
     </div>
@@ -1274,7 +1318,7 @@
         <div class="sv-process-step">
           <div class="sv-process-num">4</div>
           <h4>Enjoy Your Yard</h4>
-          <p>Within days, fewer bites. Within 2, 3 months, the breeding cycle breaks. Continuous protection all season long.</p>
+          <p>Within days, fewer bites. Within 2–3 months, the breeding cycle breaks. Continuous protection all season long.</p>
         </div>
       </div>
     </div>
@@ -1289,11 +1333,11 @@
       <div class="sv-faq-grid">
         <div class="sv-faq-item sv-reveal">
           <h4>How quickly does it start working?</h4>
-          <p>Both traps start catching mosquitoes immediately. You'll notice a meaningful reduction in bites within a few days, and within 2, 3 weeks the breeding cycle breaks, giving you lasting suppression, not just temporary relief.</p>
+          <p>Both traps start catching mosquitoes immediately. You'll notice a meaningful reduction in bites within a few days, and within 2–3 weeks the breeding cycle breaks, giving you lasting suppression, not just temporary relief.</p>
         </div>
         <div class="sv-faq-item sv-reveal">
           <h4>Which trap should I choose, Biogents or Mosqitter Grand?</h4>
-          <p>For most Austin residential yards up to 1/3 acre, the Biogents BG-Mosquitaire is excellent and proven. For larger properties (1, 2 acres), commercial spaces, or if you want the most advanced system available, the Mosqitter Grand is the right choice.</p>
+          <p>For most Austin residential yards up to 1/3 acre, the Biogents BG-Mosquitaire is excellent and proven. For larger properties (1–2 acres), commercial spaces, or if you want the most advanced system available, the Mosqitter Grand is the right choice.</p>
         </div>
         <div class="sv-faq-item sv-reveal">
           <h4>Are these traps safe for my kids, dogs, and garden?</h4>
@@ -1311,6 +1355,54 @@
           <h4>Can the traps handle Austin's mosquito season year-round?</h4>
           <p>Austin's warm climate means mosquitoes are active nearly year-round. Both traps are designed for continuous outdoor operation and we keep your CO₂ supply flowing so protection never lapses, even in peak summer heat.</p>
         </div>
+      </div>
+    </div>
+  </div>
+    <!-- GOOGLE REVIEWS -->
+  <div class="sv-section" id="sv-reviews">
+    <div class="sv-inner">
+      <div class="sv-reveal" style="text-align:center">
+        <span class="sv-section-tag">Reviews</span>
+        <h2 class="sv-h2" style="margin-left:auto;margin-right:auto">What Austin homeowners <span>are saying</span></h2>
+        <div class="sv-reviews-summary">
+          <span class="sv-reviews-rating-num">5.0★</span>
+          <span class="sv-reviews-rating-label">Based on 18 Google reviews</span>
+        </div>
+      </div>
+      <div class="sv-reviews-grid">
+      <div class="sv-review-card sv-reveal">
+        <span class="sv-review-stars">★★★★★</span>
+        <p class="sv-review-text">“Great communication and customer service!”</p>
+        <div class="sv-review-author">Fredrick Lewcock</div>
+        <div class="sv-review-meta">Google · in the last week</div>
+      </div>
+      <div class="sv-review-card sv-reveal">
+        <span class="sv-review-stars">★★★★★</span>
+        <p class="sv-review-text">“GreenGuard has changed my life.  GreenGuard has turned my back yard into the sanctuary that I have always wanted.  They maintain our mosquito traps on a monthly basis and the result is that my family is able to fully…”</p>
+        <div class="sv-review-author">David Allison</div>
+        <div class="sv-review-meta">Google · in the last week</div>
+      </div>
+      <div class="sv-review-card sv-reveal">
+        <span class="sv-review-stars">★★★★★</span>
+        <p class="sv-review-text">“Very happy with the experience so far with GreenGuard- I was blown away at the amount of mosquitoes that were caught. it was in the thousands. the amount of mosquitoes has gone down considerably, and the guys make it…”</p>
+        <div class="sv-review-author">Brendan</div>
+        <div class="sv-review-meta">Google · in the last week</div>
+      </div>
+      <div class="sv-review-card sv-reveal">
+        <span class="sv-review-stars">★★★★★</span>
+        <p class="sv-review-text">“We love GreenGuard’s service. We’ve gotten so many of our neighbors to sign up you’d think we were on the payroll. For a lot of folks in our circle, anything that harms pollinators is a non-starter, and this has been…”</p>
+        <div class="sv-review-author">Betny Townsend</div>
+        <div class="sv-review-meta">Google · in the last week</div>
+      </div>
+      <div class="sv-review-card sv-reveal">
+        <span class="sv-review-stars">★★★★★</span>
+        <p class="sv-review-text">“Great service, really hammers the mosquitos.”</p>
+        <div class="sv-review-author">Jim S</div>
+        <div class="sv-review-meta">Google · a week ago</div>
+      </div>
+      </div>
+      <div class="sv-reviews-cta sv-reveal">
+        <a href="https://g.page/r/CW33u4YWYh17EAE/review" target="_blank" rel="noopener">Read all 18 reviews on Google →</a>
       </div>
     </div>
   </div>
@@ -1336,7 +1428,7 @@
         </div>
       </div>
       <div class="sv-cta-btns">
-        <button class="sv-cta-primary" onclick="window.location.href='https://www.greenguard-usa.com/book'">Book My Free Consultation</button>
+        <button class="sv-cta-primary" onclick="window.open('https://app.acuityscheduling.com/schedule.php?owner=33796808&appointmentType=78836741','_blank')">Book My Free Consultation</button>
               </div>
       <div class="sv-cta-note">Call or text <a href="tel:5125604129">512-560-4129</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></div>
     </div>
@@ -1359,7 +1451,8 @@
           <li><a href="https://www.greenguard-usa.com/co2-tank-delivery-austin">CO2 Tank Delivery</a></li>
           <li><a href="https://www.greenguard-usa.com/co2-trap-rental-austin">Trap Rentals</a></li>
           <li><a href="https://www.greenguard-usa.com/greenguard-barrier-treatment">Barrier Treatment</a></li>
-          <li><a href="https://portal.greenguard-usa.com/quote">Shop All Products</a></li>
+          <li><a href="https://www.greenguard-usa.com/mosquito-bucket-of-doom-instructions">Bucket of Doom</a></li>
+          <li><a href="https://www.greenguard-usa.com/shop">Shop All Products</a></li>
         </ul>
       </div>
       <div class="sv-footer-col">
@@ -1377,7 +1470,7 @@
         <ul>
           <li><a href="https://www.greenguard-usa.com/about">About Us</a></li>
           <li><a href="https://www.greenguard-usa.com/contact">Contact</a></li>
-          <li></li>
+          <li><a href="https://www.greenguard-usa.com/franchise-opportunities">Franchise</a></li>
           <li><a href="https://facebook.com/greenguardusa">Facebook</a></li>
           <li><a href="https://www.instagram.com/greenguardusa/">Instagram</a></li>
         </ul>
@@ -1388,19 +1481,6 @@
       <div class="sv-eco-badge"><div class="sv-eco-dot"></div>100% Pesticide-Free Service</div>
     </div>
   </div>
-<script>
-(function(){
-  var nav = document.querySelector('#gg-services .gg-nav');
-  if(!nav) return;
-  var wrapper = document.querySelector('#gg-services');
-  if(!wrapper) return;
-  function applyPad(){
-    wrapper.style.paddingTop = nav.offsetHeight + 'px';
-  }
-  applyPad();
-  window.addEventListener('resize', applyPad);
-})();
-</script>
 </div><!-- end #gg-services -->
 <script>
 (function(){
