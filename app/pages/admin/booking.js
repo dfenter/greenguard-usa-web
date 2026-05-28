@@ -25,6 +25,7 @@ export default function AdminBooking() {
   const [form, setForm] = useState({
     eventTypeId: '', firstName: '', lastName: '', email: '', phone: '',
     address: '', startLocal: '', notes: '', recurring: 'none',
+    allowDoubleBook: false,
   })
   const [status, setStatus] = useState(null) // null | 'loading' | 'success' | {error}
 
@@ -70,10 +71,11 @@ export default function AdminBooking() {
     e.preventDefault()
     setStatus('loading')
     try {
+      const eventTypeTitle = eventTypes.find((et) => String(et.id) === String(form.eventTypeId))?.title || ''
       const res = await fetch('/api/admin/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, eventTypeTitle }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Booking failed')
@@ -195,6 +197,22 @@ export default function AdminBooking() {
             <div style={field}>
               <label style={label}>Notes (optional)</label>
               <textarea style={{ ...input, resize: 'vertical' }} rows={3} value={form.notes} onChange={set('notes')} placeholder="Any special requests…" />
+            </div>
+
+            <div style={{ ...field, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 8, background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)' }}>
+              <input
+                type="checkbox"
+                id="allow-double-book"
+                checked={form.allowDoubleBook}
+                onChange={(e) => setForm((f) => ({ ...f, allowDoubleBook: e.target.checked }))}
+                style={{ marginTop: 3, width: 16, height: 16, accentColor: '#c9a84c', cursor: 'pointer' }}
+              />
+              <label htmlFor="allow-double-book" style={{ cursor: 'pointer', flex: 1 }}>
+                <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: '#c9a84c', marginBottom: 2 }}>Allow double-booking</span>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.5 }}>
+                  If a slot is unavailable in Cal.com, drop the appointment directly onto Google Calendar instead. Use for overrides — customer gets no Cal.com confirmation email.
+                </span>
+              </label>
             </div>
 
             <button
