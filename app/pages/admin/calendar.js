@@ -12,10 +12,17 @@ const DAY_START_HOUR = 8   // 8 AM
 const DAY_END_HOUR = 19    // 7 PM
 const PX_PER_MIN = 1.4     // grid scale: 1 hour = 84px
 
-export async function getServerSideProps({ req }) {
+export async function getServerSideProps({ req, res }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
+
+  // Browser-cache the rendered calendar for 15 min so repeat visits load
+  // instantly and the page only re-fetches from the server every ~15 min.
+  // Private (per-browser, not a shared CDN) since it's behind admin auth.
+  // stale-while-revalidate lets it serve the cached copy while quietly
+  // refreshing in the background once the window passes.
+  res?.setHeader('Cache-Control', 'private, max-age=900, stale-while-revalidate=300')
 
   const tz = process.env.CALENDAR_TIMEZONE || TZ
   const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })

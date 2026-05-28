@@ -1,5 +1,6 @@
 const { findContactByEmail, findContactsByEmails, tanksForCustomer } = require('./hubspot')
 const { getBookingsForDateRange } = require('./gcal')
+const { cached } = require('./cache')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -7,8 +8,16 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
  * Builds the data the Tank Calendar needs: scheduled tanks/day, history,
  * tankCalendar map, expectedDelivery, weeklyTankTotal, today.
  * Shared between /admin/inventory (form) and /admin/home (calendar widget).
+ *
+ * 60s cache — this is the heaviest home-page call (GCal range + HubSpot
+ * batch + a notes fetch). 60s is short enough that a just-saved inventory
+ * log surfaces quickly while still turning repeat home loads into cache hits.
  */
 async function buildTankCalendarData(tz = 'America/Chicago') {
+  return cached(`tankcal:${tz}`, 60, () => _buildTankCalendarData(tz))
+}
+
+async function _buildTankCalendarData(tz = 'America/Chicago') {
   const now = new Date()
   const today = now.toLocaleDateString('en-CA', { timeZone: tz })
 
