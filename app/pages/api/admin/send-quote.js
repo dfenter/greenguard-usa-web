@@ -47,6 +47,19 @@ function lineRows(lines, color) {
     </tr>`).join('')
 }
 
+// Two-column "label … amount" row. Flexbox doesn't render in most email
+// clients (Outlook, Gmail mobile, iOS Mail), which is why labels and totals
+// were smushing together. Use a <table> so the right column stays right.
+function spreadRow({ label, amount, color = '#1a2e1f', weight = 400, borderTop = false, size = '0.9rem', pad = '4px 0' }) {
+  const borderStyle = borderTop ? `border-top:2px solid ${color};margin-top:6px;` : ''
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;${borderStyle}border-collapse:collapse;font-size:${size};color:${color};font-weight:${weight};">
+    <tr>
+      <td style="padding:${pad};text-align:left;">${escapeHtml(label)}</td>
+      <td style="padding:${pad};text-align:right;white-space:nowrap;">${escapeHtml(amount)}</td>
+    </tr>
+  </table>`
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await getSessionFromRequest(req)
@@ -98,22 +111,15 @@ export default async function handler(req, res) {
     <div style="${sectionStyle}">
       <div style="${sectionTitle('#0d8a3c')}">Monthly Recurring</div>
       <table style="width:100%;border-collapse:collapse;">${lineRows(recurringLines, '#0d8a3c')}</table>
-      <div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid #0d8a3c;margin-top:6px;font-weight:800;color:#0d8a3c;">
-        <span>Total per month</span><span>${fmt$(monthlyAfter)}/mo</span>
-      </div>
+      ${spreadRow({ label: 'Total per month', amount: `${fmt$(monthlyAfter)}/mo`, color: '#0d8a3c', weight: 800, borderTop: true, pad: '10px 0 0' })}
     </div>` : ''
 
   const oneTimeHtml = oneTimeLines.length > 0 ? `
     <div style="${sectionStyle}background:#f6f9fb;border-color:#dde6ed;">
       <div style="${sectionTitle('#1565c0')}">One-Time Charges (Due With First Visit)</div>
       <table style="width:100%;border-collapse:collapse;">${lineRows(oneTimeLines, '#1565c0')}</table>
-      ${taxAmount > 0 ? `
-      <div style="display:flex;justify-content:space-between;padding:6px 0;color:#666;font-size:0.85rem;">
-        <span>Tax (${taxRate}%)</span><span>${fmt$(taxAmount)}</span>
-      </div>` : ''}
-      <div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid #1565c0;margin-top:6px;font-weight:800;color:#1565c0;">
-        <span>Total due with first visit</span><span>${fmt$(dueToday)}</span>
-      </div>
+      ${taxAmount > 0 ? spreadRow({ label: `Tax (${taxRate}%)`, amount: fmt$(taxAmount), color: '#666', size: '0.85rem', pad: '6px 0' }) : ''}
+      ${spreadRow({ label: 'Total due with first visit', amount: fmt$(dueToday), color: '#1565c0', weight: 800, borderTop: true, pad: '10px 0 0' })}
     </div>` : ''
 
   const mapHtml = mapUrl ? `
@@ -148,8 +154,12 @@ export default async function handler(req, res) {
 
       <div style="background:#1a2e1f;color:#fff;border-radius:10px;padding:18px 22px;margin:0 0 24px;">
         <div style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:#7dffaa;margin-bottom:8px;">Summary</div>
-        ${oneTimeLines.length > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Due with first visit</span><strong>${fmt$(dueToday)}</strong></div>` : ''}
-        ${recurringLines.length > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Then monthly</span><strong>${fmt$(monthlyAfter)}/mo</strong></div>` : ''}
+        ${oneTimeLines.length > 0 ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;color:#fff;font-size:0.95rem;">
+          <tr><td style="padding:4px 0;text-align:left;">Due with first visit</td><td style="padding:4px 0;text-align:right;font-weight:800;white-space:nowrap;">${fmt$(dueToday)}</td></tr>
+        </table>` : ''}
+        ${recurringLines.length > 0 ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;color:#fff;font-size:0.95rem;">
+          <tr><td style="padding:4px 0;text-align:left;">Then monthly</td><td style="padding:4px 0;text-align:right;font-weight:800;white-space:nowrap;">${fmt$(monthlyAfter)}/mo</td></tr>
+        </table>` : ''}
       </div>
 
       ${notes ? `<div style="background:#fdfaee;border:1px solid #f0e3c1;border-radius:8px;padding:14px 16px;margin:0 0 24px;"><div style="font-size:0.7rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#c9a84c;margin-bottom:6px;">Notes</div><p style="margin:0;font-size:0.88rem;color:#3a2e0f;">${escapeHtml(notes)}</p></div>` : ''}
