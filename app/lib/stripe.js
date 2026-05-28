@@ -162,8 +162,12 @@ async function listAllInvoicesSince(fromTimestamp) {
  * Fetch open/unpaid invoices across all customers (admin analytics).
  */
 async function listOpenInvoices() {
-  const invoices = await stripe.invoices.list({ status: 'open', limit: 50 })
-  return invoices.data
+  // 30s cache — the home dashboard + analytics both read this; the open-
+  // invoice set rarely changes within a 30s window.
+  return cached('stripe:invoices:open', 30, async () => {
+    const invoices = await stripe.invoices.list({ status: 'open', limit: 50 })
+    return invoices.data
+  })
 }
 
 /**
@@ -212,10 +216,14 @@ async function getCustomer(customerId) {
 }
 
 async function getBalance() {
-  const balance = await stripe.balance.retrieve()
-  const available = balance.available.reduce((s, b) => s + b.amount, 0)
-  const pending = balance.pending.reduce((s, b) => s + b.amount, 0)
-  return { available, pending }
+  // 60s cache — the Stripe balance widget on the home dashboard doesn't
+  // need to be real-time to the second.
+  return cached('stripe:balance', 60, async () => {
+    const balance = await stripe.balance.retrieve()
+    const available = balance.available.reduce((s, b) => s + b.amount, 0)
+    const pending = balance.pending.reduce((s, b) => s + b.amount, 0)
+    return { available, pending }
+  })
 }
 
 // Cached for 60s. Pages all customers (~5+ Stripe calls at scale).

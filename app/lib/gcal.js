@@ -233,27 +233,71 @@ async function getBookingsForWeek(startISO, endISO) {
 }
 
 async function getBookingsForDate(dateStr) {
-  const calendar = getCalendar()
-  const startOfDay = new Date(dateStr + 'T00:00:00-05:00').toISOString()
-  const endOfDay = new Date(dateStr + 'T23:59:59-05:00').toISOString()
-  const res = await calendar.events.list({
-    calendarId: CALENDAR_ID,
-    timeMin: startOfDay,
-    timeMax: endOfDay,
-    maxResults: 50,
-    singleEvents: true,
-    orderBy: 'startTime',
-    q: BOOKING_TAG,
+  // 30s cache — /admin/rounds reloads hit the same day repeatedly while the
+  // tech works through stops. Matches getBookingsForDateRange's TTL.
+  return cached(`gcal:bookings:date:${dateStr}`, 30, async () => {
+    const calendar = getCalendar()
+    const startOfDay = new Date(dateStr + 'T00:00:00-05:00').toISOString()
+    const endOfDay = new Date(dateStr + 'T23:59:59-05:00').toISOString()
+    const res = await calendar.events.list({
+      calendarId: CALENDAR_ID,
+      timeMin: startOfDay,
+      timeMax: endOfDay,
+      maxResults: 50,
+      singleEvents: true,
+      orderBy: 'startTime',
+      q: BOOKING_TAG,
+    })
+    return (res.data.items || [])
+      .filter((e) =>
+        (e.description && e.description.includes(BOOKING_TAG)) ||
+        (e.summary && e.summary.includes('GreenGuard USA'))
+      )
+      .map((e) => {
+        const desc = e.description || ''
+        const propMatch = desc.match(/Property\s*[Ss]ize[:\s]+([^\n]+)/i)
+        return {
+          id: e.id,
+          rescheduleUrl: parseRescheduleUrl(e.description),
+          customerName: parseCustomerName(e.summary),
+          name: parseCustomerName(e.summary),
+          title: parseServiceTitle(e.summary),
+          startTime: e.start?.dateTime || e.start?.date,
+          endTime: e.end?.dateTime || e.end?.date,
+          address: e.location || parseAddressFromDescription(desc),
+          email: parseEmailFromDescription(desc),
+          phone: parsePhoneFromDescription(desc),
+          propertySize: propMatch?.[1]?.trim() || '',
+        }
+      })
   })
-  return (res.data.items || [])
-    .filter((e) =>
-      (e.description && e.description.includes(BOOKING_TAG)) ||
-      (e.summary && e.summary.includes('GreenGuard USA'))
-    )
-    .map((e) => {
-      const desc = e.description || ''
-      const propMatch = desc.match(/Property\s*[Ss]ize[:\s]+([^\n]+)/i)
-      return {
+}
+
+async function getTodaysBookings() {
+  const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: tz })
+  // 30s cache keyed on today's CT date — home + rounds + tech all call this.
+  return cached(`gcal:bookings:today:${todayStr}`, 30, async () => {
+    const calendar = getCalendar()
+    const startOfDay = new Date(todayStr + 'T00:00:00').toISOString()
+    const endOfDay = new Date(todayStr + 'T23:59:59').toISOString()
+
+    const res = await calendar.events.list({
+      calendarId: CALENDAR_ID,
+      timeMin: startOfDay,
+      timeMax: endOfDay,
+      maxResults: 50,
+      singleEvents: true,
+      orderBy: 'startTime',
+      q: BOOKING_TAG,
+    })
+
+    return (res.data.items || [])
+      .filter((e) =>
+        (e.description && e.description.includes(BOOKING_TAG)) ||
+        (e.summary && e.summary.includes('GreenGuard USA'))
+      )
+      .map((e) => ({
         id: e.id,
         rescheduleUrl: parseRescheduleUrl(e.description),
         customerName: parseCustomerName(e.summary),
@@ -261,49 +305,12 @@ async function getBookingsForDate(dateStr) {
         title: parseServiceTitle(e.summary),
         startTime: e.start?.dateTime || e.start?.date,
         endTime: e.end?.dateTime || e.end?.date,
-        address: e.location || parseAddressFromDescription(desc),
-        email: parseEmailFromDescription(desc),
-        phone: parsePhoneFromDescription(desc),
-        propertySize: propMatch?.[1]?.trim() || '',
-      }
-    })
-}
-
-async function getTodaysBookings() {
-  const calendar = getCalendar()
-  const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: tz })
-  const startOfDay = new Date(todayStr + 'T00:00:00').toISOString()
-  const endOfDay = new Date(todayStr + 'T23:59:59').toISOString()
-
-  const res = await calendar.events.list({
-    calendarId: CALENDAR_ID,
-    timeMin: startOfDay,
-    timeMax: endOfDay,
-    maxResults: 50,
-    singleEvents: true,
-    orderBy: 'startTime',
-    q: BOOKING_TAG,
+        address: e.location || parseAddressFromDescription(e.description),
+        email: parseEmailFromDescription(e.description),
+        phone: parsePhoneFromDescription(e.description),
+        appointmentNotes: parseAppointmentNotes(e.description),
+      }))
   })
-
-  return (res.data.items || [])
-    .filter((e) =>
-      (e.description && e.description.includes(BOOKING_TAG)) ||
-      (e.summary && e.summary.includes('GreenGuard USA'))
-    )
-    .map((e) => ({
-      id: e.id,
-      rescheduleUrl: parseRescheduleUrl(e.description),
-      customerName: parseCustomerName(e.summary),
-      name: parseCustomerName(e.summary),
-      title: parseServiceTitle(e.summary),
-      startTime: e.start?.dateTime || e.start?.date,
-      endTime: e.end?.dateTime || e.end?.date,
-      address: e.location || parseAddressFromDescription(e.description),
-      email: parseEmailFromDescription(e.description),
-      phone: parsePhoneFromDescription(e.description),
-      appointmentNotes: parseAppointmentNotes(e.description),
-    }))
 }
 
 async function getAllUpcomingBookings(maxResults = 20) {

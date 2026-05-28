@@ -199,23 +199,29 @@ async function countContactsByProperty(propertyName, value) {
 }
 
 async function getAllContacts(limit = 200) {
-  const results = []
-  let after = undefined
-  const properties = ['email', 'firstname', 'lastname', 'phone', 'address', 'system_type', 'plan_type', 'trap_count']
-  const pageSize = Math.min(100, limit)
-  do {
-    const params = new URLSearchParams({ limit: pageSize, properties: properties.join(',') })
-    if (after) params.set('after', after)
-    const res = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts?${params}`, {
-      headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` },
-    })
-    if (!res.ok) break
-    const data = await res.json()
-    results.push(...(data.results || []))
-    after = data.paging?.next?.after
-    if (results.length >= limit) break
-  } while (after)
-  return results
+  // 90s cache — this paginates up to `limit` contacts (5 sequential HubSpot
+  // calls at limit=500), the single biggest cost on the home dashboard. The
+  // contact list barely changes minute-to-minute, so a short cache turns
+  // repeat admin loads from ~1s into a cache hit.
+  return _cachedH(`hubspot:allcontacts:${limit}`, 90, async () => {
+    const results = []
+    let after = undefined
+    const properties = ['email', 'firstname', 'lastname', 'phone', 'address', 'system_type', 'plan_type', 'trap_count']
+    const pageSize = Math.min(100, limit)
+    do {
+      const params = new URLSearchParams({ limit: pageSize, properties: properties.join(',') })
+      if (after) params.set('after', after)
+      const res = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts?${params}`, {
+        headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` },
+      })
+      if (!res.ok) break
+      const data = await res.json()
+      results.push(...(data.results || []))
+      after = data.paging?.next?.after
+      if (results.length >= limit) break
+    } while (after)
+    return results
+  })
 }
 
 /**
