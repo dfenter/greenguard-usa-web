@@ -65,6 +65,22 @@ function parseAddressFromDescription(description) {
   return whereMatch ? whereMatch[1].trim() : null
 }
 
+// Pull the booker's "Notes" / "Additional notes" out of a Cal.com event
+// description. Cal.com formats them as "Additional notes:\n<text>" right
+// above the booking-management links; legacy Acuity/manual events used
+// "Notes:" or just placed the note in a "Notes" line.
+function parseAppointmentNotes(description) {
+  if (!description) return null
+  // Cal.com format. The notes block is followed by a blank line + reschedule URL
+  // or the Cal.com footer; capture everything until either of those.
+  const calMatch = description.match(/Additional notes(?:[^:]*)?:\s*\n([\s\S]+?)(?=\n\s*\n|\nNeed to (?:cancel|reschedule)|\nhttps?:\/\/cal\.com|$)/i)
+  if (calMatch) return calMatch[1].trim() || null
+  // Legacy: "Notes:" line
+  const legacyMatch = description.match(/^\s*Notes:\s*(.+(?:\n(?!\s*$).+)*)/im)
+  if (legacyMatch) return legacyMatch[1].trim() || null
+  return null
+}
+
 function parseRescheduleUrl(description) {
   if (!description) return null
   // Cal.com format: "https://cal.com/booking/UID?changes=true"
@@ -212,6 +228,7 @@ async function getBookingsForWeek(startISO, endISO) {
       address: e.location || parseAddressFromDescription(e.description),
       email: parseEmailFromDescription(e.description),
       phone: parsePhoneFromDescription(e.description),
+      appointmentNotes: parseAppointmentNotes(e.description),
     }))
 }
 
@@ -285,6 +302,7 @@ async function getTodaysBookings() {
       address: e.location || parseAddressFromDescription(e.description),
       email: parseEmailFromDescription(e.description),
       phone: parsePhoneFromDescription(e.description),
+      appointmentNotes: parseAppointmentNotes(e.description),
     }))
 }
 
@@ -317,6 +335,7 @@ async function getAllUpcomingBookings(maxResults = 20) {
       address: e.location || parseAddressFromDescription(e.description),
       email: parseEmailFromDescription(e.description),
       phone: parsePhoneFromDescription(e.description),
+      appointmentNotes: parseAppointmentNotes(e.description),
     }))
 }
 
@@ -376,5 +395,6 @@ module.exports = {
   parseCustomerName,
   parseEmailFromDescription,
   parsePhoneFromDescription,
+  parseAppointmentNotes,
   parseRescheduleUrl,
 }

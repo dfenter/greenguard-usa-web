@@ -38,6 +38,7 @@ export async function getServerSideProps({ req, query, res }) {
         address: b.address || '', email: b.email || '',
         startTime: b.startTime, durationMin: null,
         bookingDate: b.dateStr,
+        appointmentNotes: b.appointmentNotes || null,
       }))
     } catch {}
   } else { try {
@@ -63,6 +64,7 @@ export async function getServerSideProps({ req, query, res }) {
         address: b.address || '', email: b.email || '',
         startTime: b.startTime, durationMin: null, propertySize: b.propertySize || '',
         rescheduleUrl: b.rescheduleUrl || null,
+        appointmentNotes: b.appointmentNotes || null,
       }))
     } catch {}
   } else {
@@ -883,9 +885,18 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
               )}
               {stop.propertyNotes.specialInstructions && (
                 <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.25)', borderRadius: 6, color: '#7dffaa' }}>
-                  📝 <strong>Notes:</strong> {stop.propertyNotes.specialInstructions}
+                  📝 <strong>Property:</strong> {stop.propertyNotes.specialInstructions}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Appointment-specific notes from the booking (Cal.com / admin entry) */}
+          {stop.appointmentNotes && (
+            <div style={{ paddingLeft: 36, marginBottom: 8 }}>
+              <div style={{ fontSize: '0.8rem', padding: '8px 12px', background: 'rgba(201,168,76,0.09)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 6, color: '#e8d08a', whiteSpace: 'pre-wrap' }}>
+                📋 <strong>Appointment:</strong> {stop.appointmentNotes}
+              </div>
             </div>
           )}
           {(state.checkIn || state.checkOut) && (
