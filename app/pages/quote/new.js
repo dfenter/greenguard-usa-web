@@ -500,10 +500,10 @@ function ServiceConfigurator({ onChange, onConfigChange, lotRec, lotAcres, lotLo
           this just adds the per-trap hookup fee on top. */}
       {system === 'biogents-co2' && plan === 'purchase' && trapCount && (
         <>
-          <div style={Q}>Add tank hookup &amp; maintenance?</div>
+          <div style={Q}>Include tank hookup and trap maintenance</div>
           <div>
             <span onClick={() => setOnTankService(true)} style={chip(onTankService === true)}>Yes — we hook up &amp; maintain (recommended)</span>
-            <span onClick={() => setOnTankService(false)} style={chip(onTankService === false)}>No — customer self-manages</span>
+            <span onClick={() => setOnTankService(false)} style={chip(onTankService === false)}>No — tank exchange drop off only</span>
           </div>
           {onTankService === true && (
             <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'rgba(201,168,76,0.7)', padding: '8px 12px', borderRadius: 6, background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)' }}>
