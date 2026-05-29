@@ -15,6 +15,13 @@ const ADDONS = [
     quoteCategory: 'Recurring Add-Ons',
   },
   {
+    sku: 'BG-NONCO2-RENT',
+    label: 'Biogents Non-CO₂ Trap Rental',
+    price: 40.00,
+    surfaces: { rounds: true, quote: true },
+    quoteCategory: 'Recurring Add-Ons',
+  },
+  {
     sku: 'OWN-BG',
     label: 'Tank Hookup & Maintenance',
     price: 10.00,
