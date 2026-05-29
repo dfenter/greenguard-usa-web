@@ -81,9 +81,21 @@ export default async function handler(req, res) {
       if (!Object.prototype.hasOwnProperty.call(SKU_PRICES, sku)) {
         return res.status(400).json({ error: `Unknown SKU: ${sku}` })
       }
-      const priceId = process.env[`STRIPE_PRICE_${sku.replace(/-/g, '_')}`]
+      let priceId = process.env[`STRIPE_PRICE_${sku.replace(/-/g, '_')}`]
       const price = SKU_PRICES[sku]
       const qty = Math.max(1, parseInt(req.body?.qty || 1, 10) || 1)
+
+      // Invoice line items only accept one-time prices. Many SKUs (BG1, MQ-RENT,
+      // etc.) map to RECURRING subscription prices — using those throws
+      // "price ... type=recurring but this field only accepts type=one_time".
+      // If the mapped price is recurring, ignore it and bill an amount-based
+      // one-time line from SKU_PRICES instead.
+      if (priceId) {
+        try {
+          const p = await stripe.prices.retrieve(priceId)
+          if (p.recurring) priceId = null
+        } catch { priceId = null }
+      }
 
       // Attach to the given draft, else the customer's most recent draft, else
       // leave pending (lands on next invoice). Without this, a plain "add"
