@@ -51,6 +51,9 @@ export default async function handler(req, res) {
         collectionMethod: inv.collection_method,
         items: (inv.lines?.data || []).map((l) => ({
           id: l.id,
+          // The underlying invoice-item id (ii_…) is what we delete/update;
+          // l.id is the line id (il_…) which the SDK can't delete directly.
+          invoiceItem: l.invoice_item || null,
           description: l.description,
           amount: l.amount,
           quantity: l.quantity,
@@ -81,10 +84,16 @@ export default async function handler(req, res) {
       const price = SKU_PRICES[sku]
       const qty = Math.max(1, parseInt(req.body?.qty || 1, 10) || 1)
 
-      // If invoiceId is provided, attach line item directly to that draft.
-      // Otherwise create a pending item that lands on the customer's next invoice.
+      // Attach to the given draft, else the customer's most recent draft, else
+      // leave pending (lands on next invoice). Without this, a plain "add"
+      // silently created a pending item the admin never saw on the open draft.
+      let targetInvoice = invoiceId
+      if (!targetInvoice) {
+        const drafts = await stripe.invoices.list({ customer: customerId, status: 'draft', limit: 1 })
+        targetInvoice = drafts.data[0]?.id
+      }
       const params = { customer: customerId }
-      if (invoiceId) params.invoice = invoiceId
+      if (targetInvoice) params.invoice = targetInvoice
       if (priceId) {
         await stripe.invoiceItems.create({ ...params, price: priceId, quantity: qty })
       } else {
@@ -106,9 +115,20 @@ export default async function handler(req, res) {
     }
 
     if (action === 'delete-line') {
-      // Remove a line item from a draft invoice
-      if (!invoiceId || !itemId) return res.status(400).json({ error: 'invoiceId and itemId required' })
-      await stripe.invoices.deleteLineItem(invoiceId, itemId)
+      // Remove a line item from a draft invoice. Stripe has no
+      // invoices.deleteLineItem — you delete the backing invoice item.
+      // Accept either an invoice-item id (ii_…) directly, or a line id
+      // (il_…) which we resolve to its invoice_item.
+      if (!itemId) return res.status(400).json({ error: 'itemId required' })
+      let invoiceItemId = itemId
+      if (itemId.startsWith('il_')) {
+        if (!invoiceId) return res.status(400).json({ error: 'invoiceId required to resolve line' })
+        const inv = await stripe.invoices.retrieve(invoiceId)
+        const line = (inv.lines?.data || []).find((l) => l.id === itemId)
+        invoiceItemId = line?.invoice_item
+        if (!invoiceItemId) return res.status(400).json({ error: 'This line is not a removable invoice item (e.g. a subscription line).' })
+      }
+      await stripe.invoiceItems.del(invoiceItemId)
       return res.status(200).json({ ok: true })
     }
 

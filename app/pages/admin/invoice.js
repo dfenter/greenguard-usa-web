@@ -644,7 +644,7 @@ export default function InvoiceEditor({ customers = [] }) {
                               <span style={{ fontWeight: 700, marginLeft: 16 }}>{fmt$(line.amount)}</span>
                               {isDraft && (
                                 <button
-                                  onClick={() => deleteLineItem(inv.id, line.id)}
+                                  onClick={() => deleteLineItem(inv.id, line.invoiceItem || line.id)}
                                   style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
                                   ✕
                                 </button>
