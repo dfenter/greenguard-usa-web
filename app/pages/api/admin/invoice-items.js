@@ -72,6 +72,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+   try {
     const { action, customerId, sku, itemId, invoiceId } = req.body || {}
 
     if (action === 'add') {
@@ -262,6 +263,10 @@ export default async function handler(req, res) {
     }
 
     return res.status(400).json({ error: 'Unknown action' })
+   } catch (e) {
+     console.error('invoice-items POST error:', e)
+     return res.status(502).json({ error: e.message || 'Stripe request failed' })
+   }
   }
 
   res.status(405).end()
