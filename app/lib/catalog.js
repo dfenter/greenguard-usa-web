@@ -122,7 +122,7 @@ const PRODUCTS = [
     inventoryKey: 'mqTraps', quoteCategory: 'Trap Purchase',
   },
   {
-    sku: null, label: 'Biogents Timer', price: 89.99,
+    sku: 'BG-TIMER', label: 'Biogents Timer', price: 89.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bgTimers', quoteCategory: 'Trap Purchase',
   },
