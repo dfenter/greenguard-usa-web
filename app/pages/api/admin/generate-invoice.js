@@ -91,13 +91,13 @@ export default async function handler(req, res) {
     }
   }
 
-  // Find existing invoice — prefer draft, fall back to open
-  const [drafts, opens] = await Promise.all([
-    stripe.invoices.list({ customer: customer.id, status: 'draft', limit: 1 }),
-    stripe.invoices.list({ customer: customer.id, status: 'open', limit: 1 }),
-  ])
-
-  const existingInvoice = drafts.data[0] || opens.data[0] || null
+  // Reuse only an existing DRAFT. Never attach to an open/finalized invoice —
+  // Stripe locks finalized invoices, so adding line items silently fails and
+  // the new charges vanish. (Daniel Raynaud bug: a migrated past-due invoice
+  // was 'open', got picked as the target, and the new visit's items never
+  // landed.) If no draft exists, fall through and create a fresh invoice.
+  const drafts = await stripe.invoices.list({ customer: customer.id, status: 'draft', limit: 1 })
+  const existingInvoice = drafts.data[0] || null
 
   // CRITICAL ORDERING: resolve/create the target invoice BEFORE creating
   // invoice items, then attach each item directly via the `invoice` param.
