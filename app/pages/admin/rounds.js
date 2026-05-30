@@ -645,6 +645,22 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
   const [showCancel, setShowCancel] = useState(false)
   const [uploading, setUploading] = useState(false)
 
+  // Once an invoice exists for this stop, pull the saved visit log so the
+  // owner can review the tech's notes without bouncing to HubSpot.
+  const [visitLog, setVisitLog] = useState(null)
+  const [visitLogLoaded, setVisitLogLoaded] = useState(false)
+  const serviceDate = stop.bookingDate || (stop.startTime ? stop.startTime.slice(0, 10) : null) || state.date
+  useEffect(() => {
+    if (!showInvoicedPanel || !stop.email || visitLogLoaded) return
+    setVisitLogLoaded(true)
+    const qs = new URLSearchParams({ email: stop.email })
+    if (serviceDate) qs.set('date', serviceDate)
+    fetch(`/api/admin/visit-log?${qs}`)
+      .then((r) => r.json())
+      .then((d) => setVisitLog(d.log || null))
+      .catch(() => {})
+  }, [showInvoicedPanel, stop.email, visitLogLoaded, serviceDate])
+
   const svcTotal  = sectionTotal(SERVICES,      state.serviceQtys)
   const eqTotal   = sectionTotal(EQUIPMENT,     state.equipQtys)
   const addTotal  = sectionTotal(ADDONS,        state.addonQtys)
@@ -958,6 +974,34 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                     Re-complete
                   </button>
                 </div>
+              </div>
+            )
+          })()}
+
+          {/* Visit notes — the tech's logged notes + service summary for the
+              completed visit, shown alongside the existing invoice. */}
+          {showInvoicedPanel && visitLog && (() => {
+            const allQtys = { ...visitLog.serviceQtys, ...visitLog.equipQtys, ...visitLog.addonQtys, ...visitLog.productQtys }
+            const itemsStr = Object.entries(allQtys).filter(([, q]) => q > 0).map(([k, q]) => (q > 1 ? `${k} ×${q}` : k)).join(', ')
+            return (
+              <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(255,255,255,0.02)' }}>
+                <div style={{ fontSize: '0.66rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>
+                  📝 Visit Notes{visitLog.date ? ` · ${visitLog.date}` : ''}
+                </div>
+                {visitLog.notes
+                  ? <div style={{ fontSize: '0.85rem', color: '#d4e6ca', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{visitLog.notes}</div>
+                  : <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.35)' }}>No notes were entered for this visit.</div>}
+                {itemsStr && (
+                  <div style={{ fontSize: '0.74rem', color: 'rgba(212,230,202,0.5)', marginTop: 8 }}>
+                    <strong style={{ color: 'rgba(212,230,202,0.65)' }}>Items:</strong> {itemsStr}
+                  </div>
+                )}
+                {(visitLog.checkIn || visitLog.checkOut) && (
+                  <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', marginTop: 4, display: 'flex', gap: 14 }}>
+                    {visitLog.checkIn && <span>In: <strong>{visitLog.checkIn}</strong></span>}
+                    {visitLog.checkOut && <span>Out: <strong style={{ color: '#7dffaa' }}>{visitLog.checkOut}</strong></span>}
+                  </div>
+                )}
               </div>
             )
           })()}

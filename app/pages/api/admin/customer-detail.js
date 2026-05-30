@@ -25,8 +25,8 @@ export default async function handler(req, res) {
   // All email-dependent lookups — skip safely if no email on file
   const [hubspotContact, upcoming, past] = await Promise.all([
     email ? findContactByEmail(email).catch(() => null) : Promise.resolve(null),
-    email ? getUpcomingBookingsForEmail(email, 5).catch(() => []) : Promise.resolve([]),
-    email ? getPastBookingsForEmail(email, 5).catch(() => []) : Promise.resolve([]),
+    email ? getUpcomingBookingsForEmail(email, 50).catch(() => []) : Promise.resolve([]),
+    email ? getPastBookingsForEmail(email, 50).catch(() => []) : Promise.resolve([]),
   ])
 
   let calBookings = []
@@ -77,6 +77,7 @@ export default async function handler(req, res) {
       })),
     // appointments
     nextBooking: nextBooking ? { ...nextBooking, calBookingId: nextCalBooking?.id || null, calBookingUid: nextCalBooking?.uid || null } : null,
+    upcomingBookings: upcoming.map((b) => ({ id: b.id, startTime: b.startTime, title: b.title, address: b.address, rescheduleUrl: b.rescheduleUrl })),
     pastBookings: past.map((b) => ({ id: b.id, startTime: b.startTime, title: b.title, address: b.address })),
     // system info — HubSpot properties with Stripe metadata fallback
     planType: p.plan_type || m.plan_type || null,

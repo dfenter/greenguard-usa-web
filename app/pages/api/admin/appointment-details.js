@@ -53,7 +53,7 @@ async function fetchAdjacentBookings(cal, email, nowISO) {
   const future = eventsForEmail.filter((e) => (e.start?.dateTime || e.start?.date) >= now)
   const last = past[past.length - 1] || null
   const next = future[0] || null
-  return { last, next, total: eventsForEmail.length }
+  return { last, next, total: eventsForEmail.length, past, future }
 }
 
 function slim(event) {
@@ -114,5 +114,8 @@ export default async function handler(req, res) {
     last: slim(adjacent.last),
     next: slim(adjacent.next),
     totalAppointments: adjacent.total,
+    // Full lists for the History tab — past newest-first, upcoming soonest-first
+    pastBookings: (adjacent.past || []).slice().reverse().map(slim),
+    upcomingBookings: (adjacent.future || []).map(slim),
   })
 }

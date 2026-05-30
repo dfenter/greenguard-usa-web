@@ -189,6 +189,43 @@ function fmtDateShort(unix) {
 
 function fmtAmt(cents) { return `$${(cents / 100).toFixed(2)}` }
 
+// ── Appointment History (shared between Details panel tabs) ─────────────────────
+
+function ApptRow({ b, accent }) {
+  return (
+    <div style={{ padding: '9px 0', borderBottom: '1px solid rgba(122,171,130,0.07)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: '0.83rem', fontWeight: 800, color: accent }}>{fmtDate(b.startTime)}</span>
+        <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', whiteSpace: 'nowrap' }}>{fmtTime(b.startTime)}</span>
+      </div>
+      {b.title && <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{b.title}</div>}
+    </div>
+  )
+}
+
+function AppointmentHistoryPanel({ detail, onSchedule, scheduleBtn }) {
+  const upcoming = detail.upcomingBookings && detail.upcomingBookings.length
+    ? detail.upcomingBookings
+    : (detail.nextBooking ? [detail.nextBooking] : [])
+  const past = detail.pastBookings || []
+  const lbl = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', margin: '16px 0 6px' }
+  return (
+    <div style={{ paddingTop: 8 }}>
+      <button style={scheduleBtn} onClick={onSchedule}>+ Schedule appointment</button>
+
+      <div style={lbl}>Upcoming ({upcoming.length})</div>
+      {upcoming.length === 0
+        ? <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>None scheduled</div>
+        : upcoming.map((b, i) => <ApptRow key={b.id || i} b={b} accent="#c9a84c" />)}
+
+      <div style={lbl}>Past ({past.length})</div>
+      {past.length === 0
+        ? <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>No past visits</div>
+        : past.map((b, i) => <ApptRow key={b.id || i} b={b} accent="#7dffaa" />)}
+    </div>
+  )
+}
+
 // ── Docked Detail Panel ────────────────────────────────────────────────────────
 
 function CustomerPanel({ customer, onClose }) {
@@ -197,6 +234,7 @@ function CustomerPanel({ customer, onClose }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(false)
+  const [tab, setTab] = useState('details')
   const [editForm, setEditForm] = useState({ name: '', phone: '', address: '', planType: '', systemType: '', trapCount: '', hasTimer: false })
   const [saving, setSaving] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -389,12 +427,27 @@ function CustomerPanel({ customer, onClose }) {
         </div>
       )}
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0' }}>
+        {[{ k: 'details', l: 'Details' }, { k: 'history', l: 'History' }].map((t) => (
+          <button key={t.k} onClick={() => setTab(t.k)}
+            style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem', fontFamily: 'Nunito Sans, sans-serif',
+              background: tab === t.k ? '#c9a84c' : 'rgba(201,168,76,0.1)', color: tab === t.k ? '#0d1a10' : 'rgba(201,168,76,0.7)' }}>
+            {t.l}
+          </button>
+        ))}
+      </div>
+
       {/* Body */}
       <div style={{ padding: '0 20px 32px', flex: 1 }}>
         {loading && <p style={{ color: 'rgba(212,230,202,0.4)', marginTop: 24 }}>Loading…</p>}
         {error && <p style={{ color: '#ff8080', marginTop: 24 }}>{error}</p>}
 
-        {detail && !loading && (
+        {detail && !loading && tab === 'history' && (
+          <AppointmentHistoryPanel detail={detail} onSchedule={scheduleForCustomer} scheduleBtn={{ ...btn('gold'), width: '100%', padding: '10px 14px', fontSize: '0.85rem' }} />
+        )}
+
+        {detail && !loading && tab === 'details' && (
           <>
             {editing ? (
               <div style={row}>

@@ -654,6 +654,40 @@ function cleanDescription(desc) {
     .trim()
 }
 
+function CalApptRow({ b, accent }) {
+  return (
+    <div style={{ padding: '9px 0', borderBottom: '1px solid rgba(122,171,130,0.07)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: '0.83rem', fontWeight: 800, color: accent }}>{fmtDockDate(b.start)}</span>
+        <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', whiteSpace: 'nowrap' }}>{fmtDockTime(b.start)}</span>
+      </div>
+      {b.summary && <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{b.summary.replace(/\s*\(GreenGuard USA\)\s*$/, '')}</div>}
+    </div>
+  )
+}
+
+function CalAppointmentHistory({ d, scheduleHref }) {
+  const upcoming = d.upcomingBookings || (d.next ? [d.next] : [])
+  const past = d.pastBookings || (d.last ? [d.last] : [])
+  const lbl = { fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', margin: '16px 0 6px' }
+  return (
+    <div style={{ paddingTop: 4 }}>
+      <Link href={scheduleHref}
+        style={{ display: 'block', textAlign: 'center', padding: '10px 14px', borderRadius: 6, background: '#c9a84c', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', textDecoration: 'none' }}>
+        + Schedule appointment
+      </Link>
+      <div style={lbl}>Upcoming ({upcoming.length})</div>
+      {upcoming.length === 0
+        ? <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>None scheduled</div>
+        : upcoming.map((b, i) => <CalApptRow key={b.id || i} b={b} accent="#c9a84c" />)}
+      <div style={lbl}>Past ({past.length})</div>
+      {past.length === 0
+        ? <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>No past visits</div>
+        : past.map((b, i) => <CalApptRow key={b.id || i} b={b} accent="#7dffaa" />)}
+    </div>
+  )
+}
+
 function DetailDock({ details, loading, onClose }) {
   const d = details || {}
   const ev = d.event || {}
@@ -666,6 +700,9 @@ function DetailDock({ details, loading, onClose }) {
   const billingContact = p.billing_contact_name
   // Parse Cal.com booking UID from reschedule URL (last path segment).
   const bookingUid = (ev.rescheduleUrl || '').match(/\/(?:reschedule|booking)\/([^/?#]+)/)?.[1] || null
+
+  const [tab, setTab] = useState('details')
+  const scheduleHref = '/admin/booking?' + new URLSearchParams({ email: email || '', name: customerName || '', phone: phone || '', address: address || '' }).toString()
 
   const [editMode, setEditMode] = useState(false)
   const [newStart, setNewStart] = useState(ev.start ? new Date(ev.start).toISOString().slice(0, 16) : '')
@@ -732,6 +769,20 @@ function DetailDock({ details, loading, onClose }) {
             </div>
           )}
 
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: 6, margin: '12px 0 4px' }}>
+            {[{ k: 'details', l: 'Details' }, { k: 'history', l: 'History' }].map((t) => (
+              <button key={t.k} onClick={() => setTab(t.k)}
+                style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem', fontFamily: 'Nunito Sans, sans-serif',
+                  background: tab === t.k ? '#c9a84c' : 'rgba(201,168,76,0.1)', color: tab === t.k ? '#0d1a10' : 'rgba(201,168,76,0.7)' }}>
+                {t.l}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'history' && <CalAppointmentHistory d={d} scheduleHref={scheduleHref} />}
+
+          {tab === 'details' && (<>
           <div style={{ marginTop: 10, marginBottom: 14, padding: '10px 12px', background: 'rgba(125,255,170,0.05)', border: '1px solid rgba(125,255,170,0.15)', borderRadius: 6 }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: 4 }}>{ev.summary?.replace(/\s*\(GreenGuard USA\)\s*$/, '') || '—'}</div>
             <div style={{ fontSize: '0.78rem', color: '#7dffaa', fontWeight: 700 }}>{fmtDockDate(ev.start)} · {fmtDockTime(ev.start)}{ev.end ? ` – ${fmtDockTime(ev.end)}` : ''}</div>
@@ -876,6 +927,7 @@ function DetailDock({ details, loading, onClose }) {
               </a>
             )}
           </div>
+          </>)}
         </div>
       )}
     </div>
