@@ -5,6 +5,7 @@ import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { listAllCustomers } from '../../lib/stripe'
 import { getAllContacts } from '../../lib/hubspot'
+import { getBookingsForDateRange } from '../../lib/gcal'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -25,16 +26,45 @@ export async function getServerSideProps({ req, res }) {
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
-  const [raw, hubspotContacts] = await Promise.all([
+  const now = new Date()
+  const sixMonthsAgo = new Date(now); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+  const twelveMonthsOut = new Date(now); twelveMonthsOut.setMonth(twelveMonthsOut.getMonth() + 12)
+
+  const [raw, hubspotContacts, upcomingBookings, recentBookings] = await Promise.all([
     listAllCustomers(),
     getAllContacts(300).catch(() => []),
+    getBookingsForDateRange(now.toISOString(), twelveMonthsOut.toISOString()).catch(() => []),
+    getBookingsForDateRange(sixMonthsAgo.toISOString(), now.toISOString()).catch(() => []),
   ])
+
+  const hsAddressByEmail = {}
+  hubspotContacts.forEach((c) => {
+    const email = (c.properties?.email || '').toLowerCase()
+    if (email && c.properties?.address) hsAddressByEmail[email] = c.properties.address
+  })
+
+  const nextVisitByEmail = {}
+  upcomingBookings.forEach((b) => {
+    const email = (b.email || '').toLowerCase()
+    if (email && !nextVisitByEmail[email]) nextVisitByEmail[email] = b.startTime
+  })
+
+  const lastVisitByEmail = {}
+  recentBookings.forEach((b) => {
+    const email = (b.email || '').toLowerCase()
+    if (email) {
+      if (!lastVisitByEmail[email] || new Date(b.startTime) > new Date(lastVisitByEmail[email])) {
+        lastVisitByEmail[email] = b.startTime
+      }
+    }
+  })
 
   const customers = raw.map((c) => {
     const subs = c.subscriptions?.data || []
     const activeSub = subs.find((s) => s.status === 'active') || subs[0] || null
     const mrr = activeSub ? activeSub.items.data.reduce((sum, i) => sum + (i.price.unit_amount || 0), 0) : 0
     const planLabel = activeSub ? activeSub.items.data.map((i) => i.price.nickname || i.price.id).filter(Boolean).join(' + ') : null
+    const email = (c.email || '').toLowerCase()
     return {
       id: c.id,
       name: c.name || '',
@@ -43,6 +73,9 @@ export async function getServerSideProps({ req, res }) {
       status: activeSub?.status || 'inactive',
       plan: planLabel,
       mrr,
+      address: hsAddressByEmail[email] || '',
+      nextVisit: nextVisitByEmail[email] || null,
+      lastVisit: lastVisitByEmail[email] || null,
     }
   }).sort((a, b) => {
     // Sort by last name (last word of name), fall back to full name
@@ -812,15 +845,15 @@ export default function Clients({ customers, prospects = [] }) {
         </div>
 
         {/* Table */}
-        <div className={`card panel-open-shrink`} style={{ padding: 0, overflow: 'hidden', marginRight: panelOpen ? 420 : 0, transition: 'margin-right 0.2s' }}>
+        <div className={`card panel-open-shrink`} style={{ padding: 0, overflow: 'auto', marginRight: panelOpen ? 420 : 0, transition: 'margin-right 0.2s' }}>
           {filtered.length === 0 ? (
             <p style={{ padding: 24, color: 'rgba(212,230,202,0.4)', margin: 0 }}>No customers match.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
-                  {['Name', 'Email', 'Phone', 'Status', 'Plan', 'MRR'].map((h) => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)' }}>{h}</th>
+                  {['Name', 'Email', 'Phone', 'Address', 'Last Visit', 'Next Visit'].map((h) => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -842,13 +875,9 @@ export default function Clients({ customers, prospects = [] }) {
                     <td style={{ padding: '11px 16px', fontWeight: 700 }}>{c.name || '—'}</td>
                     <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem' }}>{c.email || <span style={{ color: 'rgba(212,230,202,0.25)' }}>—</span>}</td>
                     <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{c.phone || <span style={{ color: 'rgba(212,230,202,0.25)' }}>—</span>}</td>
-                    <td style={{ padding: '11px 16px' }}><StatusBadge status={c.status} /></td>
-                    <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.5)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.plan || '—'}
-                    </td>
-                    <td style={{ padding: '11px 16px', fontWeight: 700, color: c.mrr ? '#7dffaa' : 'rgba(212,230,202,0.3)' }}>
-                      {c.mrr ? `$${(c.mrr / 100).toFixed(0)}` : '—'}
-                    </td>
+                    <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.45)', fontSize: '0.78rem', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.address || <span style={{ color: 'rgba(212,230,202,0.2)' }}>—</span>}</td>
+                    <td style={{ padding: '11px 16px', fontSize: '0.78rem', whiteSpace: 'nowrap', color: c.lastVisit ? '#7dffaa' : 'rgba(212,230,202,0.2)' }}>{c.lastVisit ? fmtDate(c.lastVisit) : '—'}</td>
+                    <td style={{ padding: '11px 16px', fontSize: '0.78rem', whiteSpace: 'nowrap', color: c.nextVisit ? '#c9a84c' : 'rgba(212,230,202,0.2)' }}>{c.nextVisit ? fmtDate(c.nextVisit) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

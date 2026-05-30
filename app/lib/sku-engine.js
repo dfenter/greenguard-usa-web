@@ -11,10 +11,10 @@ const SKU_PRICES = {
   'OWN-BG': 10.00,  // per trap
   'OWN-MQ': 30.00,  // per trap
   'OWN-NONCO2': 10.00,
-  // Tank pricing: $39 flat delivery + $49 per tank (qty-based).
+  // Tank pricing: $39 flat delivery + $50 per tank (qty-based).
   // Legacy TANK1-10 retained for historical invoices; new bookings use these two.
-  'TANK-DELIVERY-FEE': 39.99,
-  'TANK-REFILL': 49.99,
+  'TANK-DELIVERY-FEE': 39.00,
+  'TANK-REFILL': 50.00,
   'TANK-HOOKUP-MAINT': 10.00,
   TANK1: 89.99,
   TANK2: 159.99,

@@ -258,7 +258,7 @@ const SERVICES = [
   // once per appointment when refill qty > 0 (see the post-processor in
   // allLineItems below) and shows as a sub-row in the catalog UI. Hookup
   // & maintenance ($10/tank) is opt-in via a checkbox under the refill row.
-  { label: 'CO₂ Tank Refill (per tank)',      sku: 'TANK-REFILL',       price: 49.99, promptQty: true },
+  { label: 'CO₂ Tank Refill (per tank)',      sku: 'TANK-REFILL',       price: 50.00, promptQty: true },
   { label: 'GreenGuard Barrier Treatment',    sku: 'BARRIER',  price:  49.99 },
   { label: 'Free Property Assessment',        sku: 'ASSESS',   price:   0.00 },
 ]
@@ -683,7 +683,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
     ...buildLineItems(EQUIPMENT,     state.equipQtys),
     ...buildLineItems(ADDONS,        state.addonQtys),
     ...buildLineItems(PRODUCTS_SOLD, state.productQtys),
-    ...(tankRefillQty > 0 ? [{ label: 'CO₂ Tank Delivery Fee', sku: 'TANK-DELIVERY-FEE', price: 39.99, qty: 1 }] : []),
+    ...(tankRefillQty > 0 ? [{ label: 'CO₂ Tank Delivery Fee', sku: 'TANK-DELIVERY-FEE', price: 39.00, qty: 1 }] : []),
     ...(tankRefillQty > 0 && state.tankHookupOptIn ? [{ label: 'Tank Hookup & Maintenance (per tank)', sku: 'TANK-HOOKUP-MAINT', price: 10.00, qty: tankRefillQty }] : []),
   ]
 
