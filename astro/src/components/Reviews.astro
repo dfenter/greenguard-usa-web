@@ -1,12 +1,17 @@
 ---
 import { getLatestReviews, getReviewMeta } from '../lib/reviews';
 
+interface Props {
+  bg?: string;
+}
+const { bg = 'bg-bg-panel' } = Astro.props;
+
 const reviews = getLatestReviews(3);
 const meta = getReviewMeta();
 const reviewUrl = 'https://g.page/r/CW33u4YWYh17EAE/review';
 ---
 
-<section class="py-16 px-5 bg-bg-panel">
+<section class={`py-16 px-5 ${bg}`}>
   <div class="max-w-container mx-auto">
     <div class="text-center mb-10">
       <div class="eyebrow mb-2">What Customers Say</div>
