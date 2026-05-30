@@ -497,34 +497,33 @@ def _build_jsonld(slug):
 
 
 def _build_merchant_feed():
-    """Return a Google Merchant Center Atom XML feed string for all products."""
+    """Return a Google Merchant Center RSS 2.0 feed string for all products."""
     items = []
     for slug, p in PRODUCT_DATA.items():
         url = f'{BASE_URL}/{slug}'
-        items.append(f'''  <entry>
-    <g:id>{slug}</g:id>
-    <g:title><![CDATA[{p['name']}]]></g:title>
-    <g:description><![CDATA[{p['description']}]]></g:description>
-    <g:link>{url}</g:link>
-    <g:image_link>{p['image']}</g:image_link>
-    <g:price>{p['price']} USD</g:price>
-    <g:availability>in stock</g:availability>
-    <g:condition>new</g:condition>
-    <g:brand>GreenGuard USA</g:brand>
-    <g:google_product_category>{p['category']}</g:google_product_category>
-    <g:mpn>{p.get('mpn', slug)}</g:mpn>
-    <g:identifier_exists>no</g:identifier_exists>
-  </entry>''')
+        items.append(f'''    <item>
+      <g:id>{slug}</g:id>
+      <title><![CDATA[{p['name']}]]></title>
+      <link>{url}</link>
+      <description><![CDATA[{p['description']}]]></description>
+      <g:image_link>{p['image']}</g:image_link>
+      <g:price>{p['price']} USD</g:price>
+      <g:availability>in stock</g:availability>
+      <g:condition>new</g:condition>
+      <g:brand>GreenGuard USA</g:brand>
+      <g:google_product_category>{p['category']}</g:google_product_category>
+      <g:mpn>{p.get('mpn', slug)}</g:mpn>
+      <g:identifier_exists>no</g:identifier_exists>
+    </item>''')
     return '''<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom" xmlns:g="http://base.google.com/ns/1.0">
-  <title>GreenGuard USA Products</title>
-  <link href="https://www.greenguard-usa.com/products-feed.xml" rel="self"/>
-  <updated>{}</updated>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>GreenGuard USA Products</title>
+    <link>https://www.greenguard-usa.com</link>
+    <description>Mosquito control equipment from GreenGuard USA, Austin TX</description>
 {}
-</feed>'''.format(
-        __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-        '\n'.join(items)
-    )
+  </channel>
+</rss>'''.format('\n'.join(items))
 
 
 # Build pattern for service area and blog pages not in the explicit table
