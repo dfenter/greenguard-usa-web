@@ -6,7 +6,7 @@ Fragments are static HTML content blocks. The build script wraps them with a
 complete HTML shell (head, scripts, fonts) for Vercel to serve directly.
 Output goes to out/ (gitignored).
 """
-import os, re, shutil
+import os, re, shutil, json
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT  = os.path.join(REPO, 'out')
@@ -98,6 +98,30 @@ SEO = {
     'shop': {
         'title': 'Shop Mosquito Traps and Equipment | GreenGuard USA',
         'desc':  'Buy Biogents mosquito traps, CO2 tanks, timers, and accessories. Professional-grade equipment used by GreenGuard USA in Austin, TX.',
+    },
+    'product-biogents-co2': {
+        'title': 'Biogents BG-Mosquitaire CO2 Trap | Buy Online | GreenGuard USA',
+        'desc':  'Buy the Biogents BG-Mosquitaire CO2 outdoor mosquito trap. $279.99. No pesticides, 24/7 capture, up to quarter-acre coverage. Ships from Austin, TX.',
+    },
+    'product-biogents-no-co2': {
+        'title': 'Biogents BG-Mosquitaire Non-CO2 Mosquito Trap | GreenGuard USA',
+        'desc':  'Buy the Biogents BG-Mosquitaire indoor/outdoor mosquito trap without CO2. $179.99. Heat and scent attractant, no tank required.',
+    },
+    'product-all-in-one': {
+        'title': 'Biogents Mosquito Trap All-in-One Bundle | GreenGuard USA',
+        'desc':  'Buy the complete Biogents mosquito control starter bundle. $549.99. Includes CO2 trap, timer, 20 lb tank, and bait pack. Everything to start trapping day one.',
+    },
+    'product-co2-tank': {
+        'title': 'CO2 Tank 20 lb Empty Cylinder for Mosquito Traps | GreenGuard USA',
+        'desc':  'Buy a DOT-certified 20 lb CO2 cylinder for Biogents mosquito traps. $199.99. Sold empty for local refill. CGA-320 fitting.',
+    },
+    'product-co2-timer': {
+        'title': 'Biogents CO2 Tank Timer | Reduce CO2 Use 50% | GreenGuard USA',
+        'desc':  'Buy the Biogents CO2 tank timer. $89.99. Cut CO2 consumption by up to 50%. Programmable schedule, fits all BG-Mosquitaire traps.',
+    },
+    'product-mosqitter-grand': {
+        'title': 'Mosqitter Grand CO2 Mosquito Trap | GreenGuard USA',
+        'desc':  'Buy the Mosqitter Grand premium stainless steel CO2 mosquito trap. $1,849.99. App-connected, 1-acre coverage, built for years of service.',
     },
     'book': {
         'title': 'Book a Free Property Assessment | GreenGuard USA',
@@ -386,6 +410,123 @@ SEO = {
     },
 }
 
+# ── Product data for JSON-LD and Merchant Center feed ───────────────────────
+PRODUCT_DATA = {
+    'product-biogents-co2': {
+        'name':        'Biogents BG-Mosquitaire CO2 Outdoor Mosquito Trap',
+        'price':       '279.99',
+        'description': 'The Biogents BG-Mosquitaire CO2 trap uses CO2 to mimic human breath, attracting and capturing host-seeking mosquitoes 24 hours a day without pesticides. Ideal for outdoor properties up to a quarter acre. Requires 20 lb CO2 tank and regulator.',
+        'image':       f'{BASE_URL}/prod-biogents-co2.jpg',
+        'gtin':        '',
+        'mpn':         'BG-MOSQUITAIRE-CO2',
+        'category':    'Home & Garden > Pest Control',
+    },
+    'product-biogents-no-co2': {
+        'name':        'Biogents BG-Mosquitaire Indoor/Outdoor Mosquito Trap (No CO2)',
+        'price':       '179.99',
+        'description': 'The Biogents BG-Mosquitaire without CO2 uses heat, water vapor, and scent attractants to capture mosquitoes indoors and in sheltered outdoor areas. No CO2 tank required. Compatible with BG-Sweetscent bait.',
+        'image':       f'{BASE_URL}/mosquitairenoco2.webp',
+        'gtin':        '',
+        'mpn':         'BG-MOSQUITAIRE-NCO2',
+        'category':    'Home & Garden > Pest Control',
+    },
+    'product-all-in-one': {
+        'name':        'Biogents Mosquito Trap All-in-One Starter Bundle',
+        'price':       '549.99',
+        'description': 'Complete mosquito control starter kit. Includes Biogents BG-Mosquitaire CO2 trap, CO2 tank timer, empty 20 lb CO2 tank, and BG-Sweetscent bait pack. Everything you need to start trapping mosquitoes the same day.',
+        'image':       f'{BASE_URL}/prod-all-in-one-bundle.jpg',
+        'gtin':        '',
+        'mpn':         'BG-BUNDLE-ALL-IN-ONE',
+        'category':    'Home & Garden > Pest Control',
+    },
+    'product-co2-tank': {
+        'name':        'CO2 Tank 20 lb Empty Cylinder for Mosquito Traps',
+        'price':       '199.99',
+        'description': 'DOT-certified 20-pound CO2 aluminum cylinder compatible with all Biogents BG-Mosquitaire traps. Sold empty for local refill. CGA-320 valve fitting. Lasts approximately 20-27 days per trap.',
+        'image':       f'{BASE_URL}/tank.jpeg',
+        'gtin':        '',
+        'mpn':         'CO2-TANK-20LB',
+        'category':    'Home & Garden > Pest Control',
+    },
+    'product-co2-timer': {
+        'name':        'Biogents CO2 Tank Timer for Mosquito Traps',
+        'price':       '89.99',
+        'description': 'Programmable CO2 tank timer for Biogents BG-Mosquitaire traps. Reduces CO2 consumption by up to 50% by running the trap only during peak mosquito activity hours. Simple installation, no tools required.',
+        'image':       f'{BASE_URL}/prod-co2-timer.png',
+        'gtin':        '',
+        'mpn':         'BG-CO2-TIMER',
+        'category':    'Home & Garden > Pest Control',
+    },
+    'product-mosqitter-grand': {
+        'name':        'Mosqitter Grand CO2 Mosquito Trap',
+        'price':       '1849.99',
+        'description': 'Premium stainless steel CO2 mosquito trap with app connectivity. Covers up to 1 acre per unit. Restaurant-grade materials, remote monitoring and scheduling via smartphone app. Professional installation recommended.',
+        'image':       f'{BASE_URL}/prod-mosqitter-grand.jpg',
+        'gtin':        '',
+        'mpn':         'MOSQITTER-GRAND',
+        'category':    'Home & Garden > Pest Control',
+    },
+}
+
+def _build_jsonld(slug):
+    """Return a <script type="application/ld+json"> block for a product page."""
+    p = PRODUCT_DATA.get(slug)
+    if not p:
+        return ''
+    url = f'{BASE_URL}/{slug}'
+    data = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        'name': p['name'],
+        'description': p['description'],
+        'image': p['image'],
+        'brand': {'@type': 'Brand', 'name': 'GreenGuard USA'},
+        'offers': {
+            '@type': 'Offer',
+            'url': url,
+            'priceCurrency': 'USD',
+            'price': p['price'],
+            'availability': 'https://schema.org/InStock',
+            'itemCondition': 'https://schema.org/NewCondition',
+            'seller': {'@type': 'Organization', 'name': 'GreenGuard USA'},
+        },
+    }
+    if p.get('mpn'):
+        data['mpn'] = p['mpn']
+    return f'<script type="application/ld+json">{json.dumps(data, separators=(",", ":"))}</script>'
+
+
+def _build_merchant_feed():
+    """Return a Google Merchant Center Atom XML feed string for all products."""
+    items = []
+    for slug, p in PRODUCT_DATA.items():
+        url = f'{BASE_URL}/{slug}'
+        items.append(f'''  <entry>
+    <g:id>{slug}</g:id>
+    <g:title><![CDATA[{p['name']}]]></g:title>
+    <g:description><![CDATA[{p['description']}]]></g:description>
+    <g:link>{url}</g:link>
+    <g:image_link>{p['image']}</g:image_link>
+    <g:price>{p['price']} USD</g:price>
+    <g:availability>in stock</g:availability>
+    <g:condition>new</g:condition>
+    <g:brand>GreenGuard USA</g:brand>
+    <g:google_product_category>{p['category']}</g:google_product_category>
+    <g:mpn>{p.get('mpn', slug)}</g:mpn>
+    <g:identifier_exists>no</g:identifier_exists>
+  </entry>''')
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:g="http://base.google.com/ns/1.0">
+  <title>GreenGuard USA Products</title>
+  <link href="https://www.greenguard-usa.com/products-feed.xml" rel="self"/>
+  <updated>{}</updated>
+{}
+</feed>'''.format(
+        __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+        '\n'.join(items)
+    )
+
+
 # Build pattern for service area and blog pages not in the explicit table
 SERVICE_AREA_RE = re.compile(r'^mosquito-control-(.+)$')
 BLOG_RE         = re.compile(r'^blog-(.+)$')
@@ -521,6 +662,7 @@ def convert(fname, fragment):
 
     canonical_path = seo.get('slug', f'/{slug}')
     canonical      = BASE_URL + canonical_path
+    jsonld_block   = _build_jsonld(slug)
 
     style_block = '\n  '.join(styles)
 
@@ -535,6 +677,7 @@ def convert(fname, fragment):
   <style>*{{box-sizing:border-box}}body{{margin:0;padding:0;background:#1a2e1f}}</style>
   {GOOGLE_FONTS_LINK}
   {style_block}
+  {jsonld_block}
   <script async src="https://www.googletagmanager.com/gtag/js?id={GA4_ID}"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}gtag('js',new Date());gtag('config','{GA4_ID}');gtag('config','{AW_ID}');</script>
   <script src="{TIDIO_SRC}" async></script>
@@ -590,6 +733,11 @@ def main():
             dst = os.path.join(OUT, fname)
             if os.path.isfile(src):
                 shutil.copy(src, dst)
+
+    # Generate Google Merchant Center product feed
+    feed_path = os.path.join(OUT, 'products-feed.xml')
+    open(feed_path, 'w', encoding='utf-8').write(_build_merchant_feed())
+    print('  BUILD products-feed.xml (Google Merchant Center feed)')
 
     print(f'\nBuilt {converted} pages -> out/')
     if skipped:

@@ -32,6 +32,13 @@
       ]
     },
     {
+      "source": "/products-feed.xml",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" },
+        { "key": "Content-Type", "value": "application/atom+xml; charset=UTF-8" }
+      ]
+    },
+    {
       "source": "/:path((?!_next).*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
