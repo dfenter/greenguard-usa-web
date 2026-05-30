@@ -419,7 +419,7 @@ PRODUCT_DATA = {
         'image':       f'{BASE_URL}/prod-biogents-co2.jpg',
         'gtin':        '',
         'mpn':         'BG-MOSQUITAIRE-CO2',
-        'category':    'Home & Garden > Pest Control',
+        'category':    'Home &amp; Garden &gt; Pest Control',
     },
     'product-biogents-no-co2': {
         'name':        'Biogents BG-Mosquitaire Indoor/Outdoor Mosquito Trap (No CO2)',
@@ -428,7 +428,7 @@ PRODUCT_DATA = {
         'image':       f'{BASE_URL}/mosquitairenoco2.webp',
         'gtin':        '',
         'mpn':         'BG-MOSQUITAIRE-NCO2',
-        'category':    'Home & Garden > Pest Control',
+        'category':    'Home &amp; Garden &gt; Pest Control',
     },
     'product-all-in-one': {
         'name':        'Biogents Mosquito Trap All-in-One Starter Bundle',
@@ -437,7 +437,7 @@ PRODUCT_DATA = {
         'image':       f'{BASE_URL}/prod-all-in-one-bundle.jpg',
         'gtin':        '',
         'mpn':         'BG-BUNDLE-ALL-IN-ONE',
-        'category':    'Home & Garden > Pest Control',
+        'category':    'Home &amp; Garden &gt; Pest Control',
     },
     'product-co2-tank': {
         'name':        'CO2 Tank 20 lb Empty Cylinder for Mosquito Traps',
@@ -446,7 +446,7 @@ PRODUCT_DATA = {
         'image':       f'{BASE_URL}/tank.jpeg',
         'gtin':        '',
         'mpn':         'CO2-TANK-20LB',
-        'category':    'Home & Garden > Pest Control',
+        'category':    'Home &amp; Garden &gt; Pest Control',
     },
     'product-co2-timer': {
         'name':        'Biogents CO2 Tank Timer for Mosquito Traps',
@@ -455,7 +455,7 @@ PRODUCT_DATA = {
         'image':       f'{BASE_URL}/prod-co2-timer.png',
         'gtin':        '',
         'mpn':         'BG-CO2-TIMER',
-        'category':    'Home & Garden > Pest Control',
+        'category':    'Home &amp; Garden &gt; Pest Control',
     },
     'product-mosqitter-grand': {
         'name':        'Mosqitter Grand CO2 Mosquito Trap',
@@ -464,7 +464,7 @@ PRODUCT_DATA = {
         'image':       f'{BASE_URL}/prod-mosqitter-grand.jpg',
         'gtin':        '',
         'mpn':         'MOSQITTER-GRAND',
-        'category':    'Home & Garden > Pest Control',
+        'category':    'Home &amp; Garden &gt; Pest Control',
     },
 }
 
