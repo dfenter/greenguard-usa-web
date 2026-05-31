@@ -11,7 +11,7 @@ import os, re, shutil, json
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT  = os.path.join(REPO, 'out')
 
-BASE_URL   = 'https://www.greenguard-usa.com'
+BASE_URL   = 'https://new.greenguard-usa.com'
 TIDIO_KEY  = '2oaqyblfyjn6xy86vutzzvr1ykg9twav'
 TIDIO_SRC  = f'https://code.tidio.co/{TIDIO_KEY}.js'
 GA4_ID     = 'G-K2R5H2Z23X'
@@ -519,7 +519,7 @@ def _build_merchant_feed():
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
     <title>GreenGuard USA Products</title>
-    <link>https://www.greenguard-usa.com</link>
+    <link>https://new.greenguard-usa.com</link>
     <description>Mosquito control equipment from GreenGuard USA, Austin TX</description>
 {}
   </channel>

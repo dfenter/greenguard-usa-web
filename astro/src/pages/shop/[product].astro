@@ -1,0 +1,948 @@
+---
+import Base from '../../layouts/Base.astro';
+import CartDrawer from '../../components/CartDrawer.astro';
+
+interface Feature { title: string; desc: string }
+interface Spec { label: string; value: string }
+interface Faq { q: string; a: string }
+interface CrossSell { id: string; name: string; price: number; image: string; tagline: string }
+
+interface Product {
+  id: string;
+  name: string;
+  tagline: string;
+  badge: string;
+  badgeStyle: string;
+  price: number;
+  originalPrice: number | null;
+  image: string;
+  altImage: string | null;
+  shortDesc: string;
+  keyBenefits: string[];
+  features: Feature[];
+  whatsIncluded: string[] | null;
+  specs: Spec[];
+  faq: Faq[];
+  crossSells: CrossSell[];
+  rating: number;
+  reviewCount: number;
+  targetSpecies?: string;
+  coverageStat?: string;
+  mainStat?: string;
+  mainStatLabel?: string;
+}
+
+export function getStaticPaths() {
+  const products: Product[] = [
+  {
+    id: 'biogents-co2-trap',
+    name: 'Biogents BG-Mosquitaire CO₂ Trap',
+    tagline: 'The scientific standard in outdoor mosquito control',
+    badge: 'Best Seller',
+    badgeStyle: 'accent',
+    price: 279.99,
+    originalPrice: 299.99,
+    image: '/images/prod-biogents-co2.jpg',
+    altImage: '/images/mosquitairesingle.jpg',
+    shortDesc: 'CO₂-powered attraction captures host-seeking mosquitoes from all species 24 hours a day. Regulator included. No pesticides.',
+    keyBenefits: ['Up to 6,500 sq ft coverage', 'Regulator included', '24/7 all-species capture', 'IP68 waterproof'],
+    targetSpecies: 'All mosquito species',
+    coverageStat: 'Up to 6,500 sq ft',
+    mainStat: '95%',
+    mainStatLabel: 'Customer-reported reduction',
+    features: [
+      {
+        title: 'CO₂ Multiplies Catches by 10×',
+        desc: 'CO₂ is the primary cue blood-seeking females use to locate hosts. Adding CO₂ to the BG-Mosquitaire can multiply tiger mosquito captures by 10× compared to attractant-only traps.'
+      },
+      {
+        title: 'Targets All Mosquito Species',
+        desc: 'Unlike heat-and-scent-only traps, CO₂ attraction works across all mosquito species, including Culex (common house mosquito) and Aedes (tiger and yellow fever mosquitoes).'
+      },
+      {
+        title: 'IP68 Weatherproof Housing',
+        desc: 'Fully waterproof, UV-stabilized housing rated for permanent outdoor installation. Built to handle Austin summers, Hill Country rain, and years of continuous operation.'
+      },
+      {
+        title: 'Regulator Included in Box',
+        desc: 'Ships with a pressure-reducing regulator, CO₂ delivery nozzle, and 16-foot CO₂ tube. Everything you need to connect to a standard CGA-320 tank — no extra purchases required.'
+      },
+      {
+        title: 'BG-Sweetscent Bait Pack Included',
+        desc: 'Biogents\' patented 3-component blend mimics human skin scent. Works synergistically with CO₂ to further increase catch rates. Each pack lasts up to 2 months.'
+      },
+      {
+        title: 'Silent, Continuous Operation',
+        desc: '5W fan and power system run quietly 24 hours a day. Positioned correctly downwind of seating areas, you will not see it or hear it — only notice fewer mosquitoes.'
+      },
+    ],
+    whatsIncluded: [
+      'BG-Mosquitaire CO₂ trap unit',
+      'Outdoor power supply (12V DC, 5W)',
+      'Pressure-reducing regulator with gauge',
+      'CO₂ delivery nozzle and 16-ft CO₂ tube',
+      '2× catch bags',
+      '1× funnel net',
+      '1× BG-Sweetscent attractant pack (2-month supply)',
+      '33-ft outdoor extension cord',
+      'CO₂ tank NOT included',
+    ],
+    specs: [
+      { label: 'Coverage', value: 'Up to 6,500 sq ft (600 m²)' },
+      { label: 'Target Species', value: 'All mosquito species' },
+      { label: 'CO₂ Consumption', value: '~1.1 lbs/day continuous' },
+      { label: 'Tank Duration (continuous)', value: '~20 days (22 lb tank)' },
+      { label: 'Tank Duration (with timer)', value: 'Up to 60 days' },
+      { label: 'Power', value: '12V DC, 5W (adapter included)' },
+      { label: 'Weight', value: '4.6 lbs (2.1 kg)' },
+      { label: 'Dimensions', value: '15 × 15 × 11.8 in' },
+      { label: 'IP Rating', value: 'IP68 (weatherproof)' },
+      { label: 'Attractant', value: 'CO₂ + BG-Sweetscent' },
+      { label: 'CO₂ Connection', value: 'CGA-320 (US standard)' },
+      { label: 'Regulator', value: 'Included' },
+    ],
+    faq: [
+      {
+        q: 'Does this include everything I need to start?',
+        a: 'Almost everything. The trap ships with the regulator, CO₂ nozzle, tube, bait, and power supply. The only thing you need to add is a CO₂ tank (sold separately) and a local CO₂ fill. Our monthly delivery service handles the CO₂ for you starting at $89.99/month.'
+      },
+      {
+        q: 'How long before I see results?',
+        a: 'Most customers notice meaningfully fewer mosquitoes within 1–2 weeks. Peak population reduction typically occurs at 6–8 weeks as the compounding effect of removing breeding females takes hold.'
+      },
+      {
+        q: 'Where should I place it?',
+        a: 'Downwind of your primary outdoor seating, near shaded vegetation, and away from competing CO₂ sources. Every equipment purchase includes a free GreenGuard USA placement consultation — we confirm your placement before your first tank runs.'
+      },
+      {
+        q: 'What size CO₂ tank do you recommend?',
+        a: 'A 20 lb tank is the standard. Running continuously it lasts approximately 20 days. Paired with a CO₂ timer set to 8 hours/day, the same tank lasts up to 60 days. We carry 20 lb tanks and offer monthly tank exchange service.'
+      },
+      {
+        q: 'Is it loud?',
+        a: 'No. The 5W fan produces a very low hum, less than ambient outdoor noise. Customers regularly place it within a few feet of seating without noticing sound.'
+      },
+    ],
+    crossSells: [
+      { id: 'biogents-co2-timer', name: 'Biogents CO₂ Tank Timer', price: 89.99, image: '/images/prod-co2-timer.png', tagline: 'Extend your tank life up to 75%' },
+      { id: 'co2-tank-20lb', name: 'CO₂ Tank — 20 lb Empty Cylinder', price: 199.99, image: '/images/tank.jpeg', tagline: 'DOT-certified, CGA-320 standard' },
+    ],
+    rating: 4.9,
+    reviewCount: 31,
+  },
+  {
+    id: 'all-in-one-bundle',
+    name: 'All-in-One Starter Bundle',
+    tagline: 'Everything you need. Day-one ready.',
+    badge: 'Most Complete',
+    badgeStyle: 'gold',
+    price: 549.99,
+    originalPrice: 619.97,
+    image: '/images/prod-all-in-one-bundle.jpg',
+    altImage: null,
+    shortDesc: 'CO₂ trap with regulator, programmable timer, 20 lb cylinder, and BG-Sweetscent bait. Get a CO₂ fill and start the same day.',
+    keyBenefits: ['Save $69.98 vs. individual', 'Includes regulator', 'Timer extends tank 3×', 'Complete kit'],
+    mainStat: '$69.98',
+    mainStatLabel: 'Savings vs. individual',
+    features: [
+      {
+        title: 'Biogents BG-Mosquitaire CO₂ Trap',
+        desc: 'The scientifically validated CO₂ mosquito trap used by professionals. Regulator, nozzle, and tube included. Targets all mosquito species. IP68 waterproof.'
+      },
+      {
+        title: 'CO₂ Tank Timer — Up to 75% CO₂ Savings',
+        desc: 'Battery-powered programmable timer pauses CO₂ during low-activity hours. Running 8 hours/day instead of 24 extends a 22 lb tank from ~20 days to up to 60 days without meaningfully reducing catches.'
+      },
+      {
+        title: 'Empty 20 lb CO₂ Cylinder',
+        desc: 'DOT-certified aluminum tank with CGA-320 valve. Ships empty per carrier regulations. Take it to any welding supply, fire extinguisher service, or homebrew shop for a fill. Or use our monthly delivery service.'
+      },
+      {
+        title: 'BG-Sweetscent Bait Pack',
+        desc: 'Biogents\' patented 3-component skin scent attractant. Works synergistically with CO₂ to further boost catch rates. Each pack lasts up to 2 months.'
+      },
+    ],
+    whatsIncluded: [
+      'BG-Mosquitaire CO₂ trap unit',
+      'Outdoor power supply (12V DC, 5W)',
+      'Pressure-reducing regulator with gauge',
+      'CO₂ delivery nozzle and tubing',
+      '2× catch bags + funnel net',
+      '1× BG-Sweetscent attractant pack',
+      '33-ft extension cord',
+      'Biogents CO₂ Tank Timer (9V battery not included)',
+      'Empty 20 lb CO₂ cylinder (DOT-certified, CGA-320)',
+    ],
+    specs: [
+      { label: 'Coverage', value: 'Up to 6,500 sq ft (600 m²)' },
+      { label: 'Target Species', value: 'All mosquito species' },
+      { label: 'CO₂ Consumption with Timer', value: '~0.37 lbs/day (8hr schedule)' },
+      { label: 'Tank Duration with Timer', value: 'Up to 60 days (22 lb tank)' },
+      { label: 'Savings vs. Individual', value: '$69.98' },
+      { label: 'Timer Battery', value: '9V (sold separately, ~9 months life)' },
+      { label: 'Power', value: '12V DC, 5W (adapter included)' },
+    ],
+    faq: [
+      {
+        q: 'What do I still need to purchase?',
+        a: 'Just a CO₂ fill and a 9V battery for the timer. Take the tank to any welding supply, fire extinguisher service, or homebrew shop. Fill cost is typically $20–$35. Or add our monthly CO₂ delivery service.'
+      },
+      {
+        q: 'Why is the CO₂ tank sold empty?',
+        a: 'US carrier regulations prohibit shipping pressurized CO₂ cylinders. The tank ships empty, which is legal and standard. Your local fill station can have it ready in minutes.'
+      },
+      {
+        q: 'Can I add a second trap later?',
+        a: 'Absolutely. Start with one trap and expand over time. The CO₂ timer can control up to 5 traps simultaneously from a single regulator. We offer multi-trap placement planning at no cost.'
+      },
+    ],
+    crossSells: [
+      { id: 'mosqitter-grand', name: 'Mosqitter Grand CO₂ Trap', price: 1849.99, image: '/images/prod-mosqitter-grand.jpg', tagline: 'Up to 2-acre coverage' },
+      { id: 'biogents-non-co2-trap', name: 'BG-Mosquitaire (No CO₂)', price: 179.99, image: '/images/mosquitairenoco2.webp', tagline: 'For covered patios and indoor spaces' },
+    ],
+    rating: 4.9,
+    reviewCount: 18,
+  },
+  {
+    id: 'mosqitter-grand',
+    name: 'Mosqitter Grand CO₂ Trap',
+    tagline: 'Stainless steel. Bluetooth app. Up to 2-acre coverage.',
+    badge: 'Premium',
+    badgeStyle: 'gold',
+    price: 1849.99,
+    originalPrice: 1999.00,
+    image: '/images/prod-mosqitter-grand.jpg',
+    altImage: '/images/mosqitterGrand1.webp',
+    shortDesc: 'Professional-grade stainless steel CO₂ trap with Bluetooth app monitoring. 93% reported reduction in mosquito bites. Up to 2-acre coverage.',
+    keyBenefits: ['Up to 2-acre coverage', 'Bluetooth app monitoring', '304 stainless steel', '125W high-output system'],
+    mainStat: '93%',
+    mainStatLabel: 'Reduction in mosquito bites',
+    targetSpecies: 'All mosquito species',
+    coverageStat: 'Up to 2 acres',
+    features: [
+      {
+        title: '304 Stainless Steel Construction',
+        desc: 'Restaurant-grade 304 stainless steel housing. Engineered for permanent outdoor installation with a lifespan measured in decades, not seasons. The honeycomb-patterned top doubles as a visual insect attractant.'
+      },
+      {
+        title: 'Bluetooth App Monitoring',
+        desc: 'Monitor CO₂ levels, system status, and receive low-CO₂ alerts via the Mosqitter app before your trap runs dry. Control operating schedules remotely. Compatible with Mosqitter app v2.0 (BLE).'
+      },
+      {
+        title: 'Multi-Attractant System',
+        desc: 'Combines CO₂, UV light, thermal heat radiation, and optional MosqLure scent attractant. The multi-cue approach draws mosquitoes from the widest possible range across all species.'
+      },
+      {
+        title: 'Up to 2-Acre Coverage',
+        desc: 'Substantially larger fan output and CO₂ delivery system than consumer-grade traps. One unit covers up to 2 acres. For large estates, multiple units are deployed in an overlapping zone pattern.'
+      },
+      {
+        title: '93% Reduction in Bites',
+        desc: 'Manufacturer-reported 93% reduction in mosquito bites in controlled field conditions. The most effective single trap system GreenGuard USA offers.'
+      },
+    ],
+    whatsIncluded: [
+      'Mosqitter Grand trap unit (304 stainless steel)',
+      'Power supply unit',
+      'CO₂ connection hardware',
+      'CO₂ tank NOT included (20 lb+ CGA-320 required)',
+      'MosqLure attractant sold separately (optional)',
+    ],
+    specs: [
+      { label: 'Coverage', value: 'Up to 2 acres (~87,000 sq ft)' },
+      { label: 'Target Species', value: 'All mosquito species' },
+      { label: 'Housing', value: '304 Stainless Steel' },
+      { label: 'Connectivity', value: 'Bluetooth (Mosqitter app v2.0)' },
+      { label: 'Attractants', value: 'CO₂ + UV light + heat + optional MosqLure' },
+      { label: 'Power Consumption', value: '125W' },
+      { label: 'Weight', value: '70 lbs (32 kg)' },
+      { label: 'Dimensions', value: '53.5 × 19.3 × 19.3 in' },
+      { label: 'CO₂ Connection', value: 'CGA-320 (US standard)' },
+      { label: 'Installation', value: 'Professional recommended' },
+    ],
+    faq: [
+      {
+        q: 'Does this include installation?',
+        a: 'Equipment purchase only. GreenGuard USA provides professional installation in the Austin metro area, including siting, mounting, CO₂ connection, and Mosqitter app setup. Contact us after purchase to schedule — typically same week.'
+      },
+      {
+        q: 'How heavy is it? Can I move it?',
+        a: 'The Mosqitter Grand weighs 70 lbs (32 kg). It is designed as a permanent installation rather than a portable trap. Our installation team handles siting and mounting.'
+      },
+      {
+        q: 'Which CO₂ delivery tier is right for this trap?',
+        a: 'Our Estate tier ($189.99/month) is designed for Mosqitter Grand systems. It includes three 20 lb cylinders per monthly delivery, priority scheduling, and first-available service windows.'
+      },
+      {
+        q: 'Is 2 acres the guaranteed coverage?',
+        a: 'Coverage is "up to" 2 acres under optimal conditions. Actual effective range varies by property layout, vegetation density, wind patterns, and mosquito pressure. For very large properties we recommend a site assessment before purchase.'
+      },
+      {
+        q: 'Can I monitor it remotely?',
+        a: 'Yes. The Mosqitter app (v2.0, Bluetooth) lets you monitor system status, CO₂ levels, and set schedules remotely. You\'ll receive a low-CO₂ alert before the trap runs dry.'
+      },
+    ],
+    crossSells: [
+      { id: 'biogents-co2-trap', name: 'Biogents BG-Mosquitaire CO₂ Trap', price: 279.99, image: '/images/prod-biogents-co2.jpg', tagline: 'Up to 6,500 sq ft — supplement your coverage zones' },
+      { id: 'all-in-one-bundle', name: 'All-in-One Starter Bundle', price: 549.99, image: '/images/prod-all-in-one-bundle.jpg', tagline: 'Complete kit for a second zone' },
+    ],
+    rating: 5.0,
+    reviewCount: 9,
+  },
+  {
+    id: 'biogents-non-co2-trap',
+    name: 'Biogents BG-Mosquitaire (No CO₂)',
+    tagline: 'Heat and scent for indoor and sheltered spaces.',
+    badge: 'No Tank Needed',
+    badgeStyle: 'accent',
+    price: 179.99,
+    originalPrice: null,
+    image: '/images/mosquitairenoco2.webp',
+    altImage: null,
+    shortDesc: 'Heat and scent-based attraction targets Aedes tiger mosquitoes in indoor and sheltered outdoor spaces. No CO₂ tank or regulator required.',
+    keyBenefits: ['No CO₂ tank required', 'Indoor / covered outdoor', 'Targets Aedes mosquitoes', '87% bite reduction (study)'],
+    mainStat: '87%',
+    mainStatLabel: 'Reduction in tiger mosquito bites',
+    targetSpecies: 'Aedes (tiger and yellow fever mosquitoes)',
+    coverageStat: 'Up to 1,000 sq ft',
+    features: [
+      {
+        title: 'No CO₂ Tank Required',
+        desc: 'Uses thermal heat and BG-Sweetscent scent attractant to mimic a warm-blooded host. No tank, no regulator, no monthly CO₂ cost or logistics. Plug it in and it runs.'
+      },
+      {
+        title: 'Designed for Aedes Species',
+        desc: 'Scientifically validated specifically for tiger mosquitoes (Aedes albopictus) and yellow fever mosquitoes (Aedes aegypti) — the two species responsible for most daytime biting and DENV/Zika transmission risk in Austin.'
+      },
+      {
+        title: 'Indoor and Sheltered Outdoor Use',
+        desc: 'Ideal for garages, screened porches, covered patios, pergolas, and carports where CO₂ would disperse too quickly to be effective. Works anywhere airflow is limited enough to concentrate the attractant plume.'
+      },
+      {
+        title: '87% Bite Reduction',
+        desc: 'In controlled field trials, the BG-Mosquitaire without CO₂ reduced tiger mosquito bites by 87%. Peer-reviewed results, not marketing claims.'
+      },
+      {
+        title: 'Upgradeable to CO₂',
+        desc: 'If you later want CO₂ capability, the BG-Booster CO₂ Upgrade Set ($119) converts this trap to full CO₂ operation without replacing the unit.'
+      },
+    ],
+    whatsIncluded: [
+      'BG-Mosquitaire trap unit (non-CO₂ configuration)',
+      'Outdoor power supply (12V DC, 5W)',
+      '2× catch bags',
+      '1× funnel net',
+      '1× BG-Sweetscent attractant pack (2-month supply)',
+      '33-ft extension cord',
+    ],
+    specs: [
+      { label: 'Coverage', value: 'Up to 1,000 sq ft (sheltered)' },
+      { label: 'Target Species', value: 'Aedes (tiger + yellow fever mosquitoes)' },
+      { label: 'Attractants', value: 'Thermal heat + BG-Sweetscent scent' },
+      { label: 'Attractant Lifespan', value: 'Up to 2 months per pack' },
+      { label: 'Power', value: '12V DC, 5W (adapter included)' },
+      { label: 'Weight', value: '4.6 lbs (2.1 kg)' },
+      { label: 'Dimensions', value: '15 × 15 × 11.8 in' },
+      { label: 'IP Rating', value: 'IP68' },
+      { label: 'CO₂ Upgradeable', value: 'Yes, via BG-Booster Set ($119)' },
+    ],
+    faq: [
+      {
+        q: 'Why would I choose this over the CO₂ model?',
+        a: 'If your problem is primarily indoors or in a sheltered outdoor space (covered patio, screened porch, garage), the non-CO₂ model is the better choice. CO₂ disperses quickly in open air, reducing effectiveness. In enclosed spaces, heat and scent concentration is sufficient.'
+      },
+      {
+        q: 'Does it target the same mosquitoes as the CO₂ model?',
+        a: 'The non-CO₂ model is optimized for Aedes species (tiger and yellow fever mosquitoes) — the daytime-active biters most common in Austin. The CO₂ model targets all species including Culex (nighttime biters). If you have both problems, consider one of each.'
+      },
+      {
+        q: 'Can I upgrade it to use CO₂ later?',
+        a: 'Yes. The BG-Booster CO₂ Upgrade Set ($119) includes a regulator, CO₂ nozzle, and 16-ft tube. It converts this trap to full CO₂ operation without needing to purchase a new trap unit.'
+      },
+      {
+        q: 'How often do I replace the attractant?',
+        a: 'Each BG-Sweetscent pack lasts up to 2 months. Replacement packs are approximately $19/each or available in 3- and 6-pack bundles from GreenGuard USA or directly from Biogents.'
+      },
+    ],
+    crossSells: [
+      { id: 'biogents-co2-trap', name: 'Biogents BG-Mosquitaire CO₂ Trap', price: 279.99, image: '/images/prod-biogents-co2.jpg', tagline: 'All-species outdoor coverage with CO₂' },
+      { id: 'all-in-one-bundle', name: 'All-in-One Starter Bundle', price: 549.99, image: '/images/prod-all-in-one-bundle.jpg', tagline: 'Complete CO₂ starter kit' },
+    ],
+    rating: 4.8,
+    reviewCount: 14,
+  },
+  {
+    id: 'biogents-co2-timer',
+    name: 'Biogents CO₂ Tank Timer',
+    tagline: 'Extend your tank life up to 75%. Control up to 5 traps.',
+    badge: 'Essential Add-on',
+    badgeStyle: 'accent',
+    price: 89.99,
+    originalPrice: null,
+    image: '/images/prod-co2-timer.png',
+    altImage: null,
+    shortDesc: 'Battery-powered programmable timer controls CO₂ flow to your trap. Running 8 hours/day instead of 24 extends a 22 lb tank from ~20 days to ~60 days.',
+    keyBenefits: ['Up to 75% CO₂ savings', 'Battery-powered (no wiring)', 'Controls up to 5 traps', '~9 month battery life'],
+    mainStat: '3×',
+    mainStatLabel: 'Longer tank life with timer',
+    features: [
+      {
+        title: 'Up to 75% CO₂ Savings',
+        desc: 'A trap running 8 hours/day (dawn-dusk peak hours) instead of 24 hours uses roughly one-third the CO₂. A 22 lb tank that lasts ~20 days continuous can last up to 60 days on an 8-hour schedule — with minimal impact on overall catch rates.'
+      },
+      {
+        title: 'Controls Up to 5 Traps',
+        desc: 'A single timer can control CO₂ flow to up to 5 BG-Mosquitaire traps simultaneously via a shared regulator. Ideal for multi-trap systems or expanded zone coverage.'
+      },
+      {
+        title: 'Battery-Powered, Weather-Resistant',
+        desc: 'Runs on a single 9V battery (not included) with approximately 9 months of battery life. No wiring, no electrical work. Weather-resistant for outdoor installation.'
+      },
+      {
+        title: 'Programmable Dual Schedule Windows',
+        desc: 'Set custom on/off intervals to match the peak mosquito activity pattern on your property. Dawn and dusk are typically the highest-catch windows.'
+      },
+    ],
+    whatsIncluded: [
+      'CO₂ Timer unit with digital display',
+      'Two CO₂ pipe connection ports',
+      '9V battery NOT included (standard size, 9-month life)',
+    ],
+    specs: [
+      { label: 'CO₂ Savings', value: 'Up to 75%' },
+      { label: 'Tank Life (with timer, 8hr/day)', value: 'Up to 3× longer' },
+      { label: 'Traps Controlled', value: 'Up to 5 simultaneous' },
+      { label: 'Power', value: '9V battery (not included)' },
+      { label: 'Battery Life', value: '~9 months' },
+      { label: 'Weight', value: '0.44 lbs (200g)' },
+      { label: 'Dimensions', value: '2.2 × 4.9 × 3.4 in' },
+      { label: 'Compatibility', value: 'BG-Mosquitaire, BG-Pro, AERO TRAP' },
+    ],
+    faq: [
+      {
+        q: 'Will running on a schedule reduce how many mosquitoes I catch?',
+        a: 'Minimally. Mosquitoes are least active between midnight and 6am. Turning the trap off during that window sacrifices very few catches while dramatically extending CO₂ life. In field use, customers report no noticeable difference in outcome with the timer running an 8-hour schedule.'
+      },
+      {
+        q: 'Is this compatible with the Mosqitter Grand?',
+        a: 'The Mosqitter Grand has built-in scheduling via its Bluetooth app and does not require an external timer.'
+      },
+      {
+        q: 'How does it connect to the trap?',
+        a: 'The timer installs inline on the CO₂ line between your regulator and trap. No tools required. Two ports accept standard CO₂ tubing. Review the polarity diagram in the manual before installing the battery — incorrect polarity can damage the unit.'
+      },
+    ],
+    crossSells: [
+      { id: 'co2-tank-20lb', name: 'CO₂ Tank — 20 lb Empty Cylinder', price: 199.99, image: '/images/tank.jpeg', tagline: 'Pair with timer for 60-day runtime' },
+      { id: 'biogents-co2-trap', name: 'Biogents BG-Mosquitaire CO₂ Trap', price: 279.99, image: '/images/prod-biogents-co2.jpg', tagline: 'The trap the timer is built for' },
+    ],
+    rating: 4.9,
+    reviewCount: 22,
+  },
+  {
+    id: 'co2-tank-20lb',
+    name: 'CO₂ Tank — 20 lb Empty Cylinder',
+    tagline: 'DOT-certified. CGA-320. Refill at any welding supply.',
+    badge: 'Accessory',
+    badgeStyle: 'neutral',
+    price: 199.99,
+    originalPrice: null,
+    image: '/images/tank.jpeg',
+    altImage: null,
+    shortDesc: 'DOT-certified aluminum 20 lb CO₂ cylinder with CGA-320 valve. Sold empty. Continuous runtime ~20 days. With timer: up to 60 days.',
+    keyBenefits: ['DOT-certified aluminum', 'CGA-320 standard valve', '~20 days continuous', 'Up to 60 days with timer'],
+    mainStat: '60',
+    mainStatLabel: 'Days per fill with timer',
+    features: [
+      {
+        title: 'DOT-Certified Aluminum',
+        desc: 'Meets all US DOT transportation regulations. Lightweight aluminum construction with a standard CGA-320 valve — compatible with all Biogents regulators and virtually any third-party CO₂ regulator.'
+      },
+      {
+        title: 'Refill Anywhere',
+        desc: 'Fill at any welding supply store, fire extinguisher service, homebrew shop, or paintball supplier. A typical fill costs $20–$35. No specialized equipment needed.'
+      },
+      {
+        title: 'Up to 60 Days Per Fill',
+        desc: 'Running a BG-Mosquitaire continuously, a 20 lb tank lasts approximately 20 days. Paired with the Biogents CO₂ Timer on an 8-hour schedule, the same fill extends to up to 60 days.'
+      },
+      {
+        title: 'Monthly Delivery Service Available',
+        desc: 'Skip refill trips entirely. GreenGuard USA\'s CO₂ delivery service exchanges your empty tank for a full one at your door. Starting at $89.99/month. Our technician also inspects your trap on every visit.'
+      },
+    ],
+    whatsIncluded: [
+      '20 lb aluminum CO₂ cylinder',
+      'CGA-320 valve',
+      'Sold empty (refill locally or via GreenGuard delivery)',
+    ],
+    specs: [
+      { label: 'Capacity', value: '20 lbs CO₂' },
+      { label: 'Material', value: 'Aluminum (DOT-certified)' },
+      { label: 'Valve', value: 'CGA-320 (US standard)' },
+      { label: 'Runtime (continuous, 1 trap)', value: '~20 days' },
+      { label: 'Runtime (with timer, 8hr/day)', value: 'Up to 60 days' },
+      { label: 'Sold', value: 'Empty — refill locally or via GreenGuard' },
+      { label: 'Refill Cost', value: '~$20–$35 at local supplier' },
+    ],
+    faq: [
+      {
+        q: 'Where do I get it filled?',
+        a: 'Any welding supply store, homebrew/homebrew shop, fire extinguisher service, or paintball supplier can fill a CGA-320 cylinder. Cost is typically $20–$35. Alternatively, GreenGuard USA\'s delivery service handles tank exchange at your door — no trips required.'
+      },
+      {
+        q: 'Can I use GreenGuard\'s delivery service with this tank?',
+        a: 'Yes. Once you own a compatible tank, you can subscribe to our monthly CO₂ delivery service. We exchange your empty for a full tank, inspect your trap, and get you running again — all in one visit.'
+      },
+      {
+        q: 'Why is it sold empty?',
+        a: 'US carrier regulations prohibit shipping pressurized CO₂ cylinders. Sold empty is standard for all CO₂ cylinder purchases. Your local fill station can have it ready in under 10 minutes.'
+      },
+    ],
+    crossSells: [
+      { id: 'biogents-co2-timer', name: 'Biogents CO₂ Tank Timer', price: 89.99, image: '/images/prod-co2-timer.png', tagline: 'Triple your tank runtime' },
+      { id: 'biogents-co2-trap', name: 'Biogents BG-Mosquitaire CO₂ Trap', price: 279.99, image: '/images/prod-biogents-co2.jpg', tagline: 'The trap this tank is built for' },
+    ],
+    rating: 4.8,
+    reviewCount: 11,
+  },
+  ];
+  return products.map(p => ({ params: { product: p.id }, props: { product: p } }));
+}
+
+const { product: p } = Astro.props;
+
+function stars(rating: number) {
+  return '★'.repeat(Math.floor(rating)) + (rating % 1 >= 0.5 ? '½' : '') ;
+}
+
+function badgeCss(style: string) {
+  if (style === 'gold') return 'background:rgba(201,168,76,0.15);color:#c9a84c;border:1px solid rgba(201,168,76,0.3);';
+  if (style === 'accent') return 'background:rgba(122,171,130,0.1);color:#7aab82;border:1px solid rgba(122,171,130,0.25);';
+  return 'background:rgba(212,230,202,0.06);color:rgba(212,230,202,0.5);border:1px solid rgba(212,230,202,0.12);';
+}
+
+const savings = p.originalPrice ? (p.originalPrice - p.price) : 0;
+
+// JSON-LD for this product
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: p.name,
+  description: p.shortDesc,
+  image: `https://www.greenguard-usa.com${p.image}`,
+  brand: { '@type': 'Brand', name: 'GreenGuard USA' },
+  mpn: p.id.toUpperCase(),
+  offers: {
+    '@type': 'Offer',
+    url: `https://www.greenguard-usa.com/shop/${p.id}`,
+    priceCurrency: 'USD',
+    price: p.price.toFixed(2),
+    availability: 'https://schema.org/InStock',
+    itemCondition: 'https://schema.org/NewCondition',
+    seller: { '@type': 'Organization', name: 'GreenGuard USA' },
+  },
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: p.rating,
+    reviewCount: p.reviewCount,
+    bestRating: 5,
+    worstRating: 1,
+  },
+};
+---
+
+<Base
+  title={`${p.name} | GreenGuard USA Shop`}
+  description={p.shortDesc}
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(jsonld)} />
+
+  <!-- BREADCRUMB + BACK -->
+  <div class="px-5 py-4" style="background: #070e08; border-bottom: 1px solid rgba(122,171,130,0.08);">
+    <div class="max-w-container mx-auto flex items-center gap-2 text-xs text-cream/35 font-semibold">
+      <a href="/shop" class="hover:text-cream/70 transition-colors">Shop</a>
+      <span>/</span>
+      <span class="text-cream/60">{p.name}</span>
+    </div>
+  </div>
+
+  <!-- MAIN PRODUCT SECTION -->
+  <section class="py-10 px-5" style="background: #070e08;">
+    <div class="max-w-container mx-auto">
+      <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+
+        <!-- LEFT: IMAGE GALLERY -->
+        <div class="lg:sticky lg:top-6">
+          <div class="relative rounded-2xl overflow-hidden" style="background: #0a1208; border: 1px solid rgba(122,171,130,0.12); aspect-ratio: 1;">
+            <img
+              id="main-product-img"
+              src={p.image}
+              alt={p.name}
+              class="w-full h-full object-contain p-6"
+              loading="eager"
+            />
+            {p.badge && (
+              <div class="absolute top-4 left-4">
+                <span class="text-xs font-black tracking-widest uppercase px-3 py-1.5 rounded-full" style={badgeCss(p.badgeStyle)}>{p.badge}</span>
+              </div>
+            )}
+          </div>
+          {p.altImage && (
+            <div class="flex gap-3 mt-3">
+              <button
+                class="img-thumb flex-1 rounded-xl overflow-hidden transition-all"
+                style="border: 2px solid rgba(201,168,76,0.5); background: #0a1208; aspect-ratio: 1;"
+                data-src={p.image}
+              >
+                <img src={p.image} alt="View 1" class="w-full h-full object-contain p-2" loading="lazy" />
+              </button>
+              <button
+                class="img-thumb flex-1 rounded-xl overflow-hidden transition-all"
+                style="border: 1px solid rgba(122,171,130,0.15); background: #0a1208; aspect-ratio: 1;"
+                data-src={p.altImage}
+              >
+                <img src={p.altImage} alt="View 2" class="w-full h-full object-contain p-2" loading="lazy" />
+              </button>
+            </div>
+          )}
+          <!-- Main stat callout -->
+          {p.mainStat && (
+            <div class="mt-4 rounded-xl p-5 text-center" style="background: rgba(122,171,130,0.05); border: 1px solid rgba(122,171,130,0.12);">
+              <div class="text-5xl font-black text-white">{p.mainStat}</div>
+              <div class="text-cream/50 text-sm mt-1 font-semibold">{p.mainStatLabel}</div>
+            </div>
+          )}
+        </div>
+
+        <!-- RIGHT: PRODUCT INFO -->
+        <div>
+          <!-- Category + species -->
+          <div class="flex flex-wrap gap-2 mb-4">
+            {p.targetSpecies && (
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full" style="background: rgba(122,171,130,0.08); border: 1px solid rgba(122,171,130,0.18); color: rgba(122,171,130,0.8);">
+                {p.targetSpecies}
+              </span>
+            )}
+            {p.coverageStat && (
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full" style="background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.18); color: rgba(201,168,76,0.8);">
+                {p.coverageStat}
+              </span>
+            )}
+          </div>
+
+          <h1 class="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight mb-3">{p.name}</h1>
+
+          <!-- Rating -->
+          <div class="flex items-center gap-2 mb-5">
+            <span class="text-gold text-sm tracking-tight">{stars(p.rating)}</span>
+            <span class="text-gold font-black text-sm">{p.rating}</span>
+            <span class="text-cream/35 text-sm">({p.reviewCount} verified reviews)</span>
+          </div>
+
+          <!-- Price -->
+          <div class="flex items-baseline gap-3 mb-4">
+            <span class="text-4xl font-black text-white">${p.price.toFixed(2)}</span>
+            {p.originalPrice && (
+              <span class="text-cream/35 text-xl line-through">${p.originalPrice.toFixed(2)}</span>
+            )}
+            {savings > 0 && (
+              <span class="text-xs font-black px-2.5 py-1 rounded-full" style="background: rgba(122,171,130,0.1); border: 1px solid rgba(122,171,130,0.2); color: #7aab82;">
+                Save ${savings.toFixed(2)}
+              </span>
+            )}
+          </div>
+
+          <!-- Short description -->
+          <p class="text-cream/70 leading-relaxed mb-6">{p.shortDesc}</p>
+
+          <!-- Key benefit pills -->
+          <div class="flex flex-wrap gap-2 mb-8">
+            {p.keyBenefits.map(b => (
+              <span class="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full" style="background: rgba(122,171,130,0.06); border: 1px solid rgba(122,171,130,0.15); color: rgba(212,230,202,0.7);">
+                <span class="text-accent">✓</span>{b}
+              </span>
+            ))}
+          </div>
+
+          <!-- ADD TO CART -->
+          <div class="mb-6">
+            <button
+              id="main-add-to-cart"
+              data-id={p.id}
+              data-name={p.name}
+              data-price={p.price}
+              class="w-full py-5 rounded-xl font-black text-base tracking-widest uppercase transition-all hover:scale-[1.01] active:scale-[0.99]"
+              style="background: linear-gradient(135deg, #d4b45a 0%, #c9a84c 50%, #b8952a 100%); color: #070e08; box-shadow: 0 8px 32px rgba(201,168,76,0.3); letter-spacing: 0.1em;"
+            >
+              Add to Cart — ${p.price.toFixed(2)}
+            </button>
+          </div>
+
+          <!-- Trust badges -->
+          <div class="grid grid-cols-2 gap-2 mb-8">
+            {[
+              { icon: '🔒', title: 'Secure Checkout', sub: 'SSL · Stripe encrypted' },
+              { icon: '✅', title: 'In Stock', sub: 'Ships from Austin TX' },
+              { icon: '📋', title: 'Free Assessment', sub: 'Included with every order' },
+              { icon: '📞', title: 'Questions?', sub: '512-560-4129' },
+            ].map(b => (
+              <div class="rounded-lg px-3 py-2.5 flex items-start gap-2.5" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(122,171,130,0.1);">
+                <span class="text-base flex-shrink-0 mt-0.5">{b.icon}</span>
+                <div>
+                  <div class="text-white text-xs font-bold">{b.title}</div>
+                  <div class="text-cream/35 text-xs">{b.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <!-- Not sure link -->
+          <p class="text-cream/35 text-xs text-center">
+            Not sure this is the right model?{' '}
+            <a href="/book" class="text-accent underline hover:text-accent/80 transition-colors">Book a free consultation</a>
+            {' '}and we'll recommend the right system for your property.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STICKY MOBILE CTA BAR (appears when main CTA scrolls out of view) -->
+  <div
+    id="sticky-cart-bar"
+    class="fixed bottom-0 left-0 right-0 z-30 translate-y-full transition-transform duration-300 lg:hidden"
+    style="background: #070e08; border-top: 1px solid rgba(201,168,76,0.2); padding: 12px 20px; box-shadow: 0 -8px 32px rgba(0,0,0,0.5);"
+  >
+    <div class="flex items-center gap-3">
+      <div class="flex-1 min-w-0">
+        <div class="text-white font-black text-sm leading-none truncate">{p.name}</div>
+        <div class="text-gold font-black text-base mt-0.5">${p.price.toFixed(2)}</div>
+      </div>
+      <button
+        id="sticky-add-to-cart"
+        data-id={p.id}
+        data-name={p.name}
+        data-price={p.price}
+        class="flex-shrink-0 px-6 py-3.5 rounded-xl font-black text-sm tracking-wider uppercase"
+        style="background: linear-gradient(135deg, #d4b45a, #c9a84c); color: #070e08;"
+      >
+        Add to Cart
+      </button>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="py-16 px-5" style="background: #0a1208; border-top: 1px solid rgba(122,171,130,0.08);">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-12">
+        <div class="eyebrow mb-2">Product Details</div>
+        <h2 class="text-3xl font-black text-white tracking-tight">Why it works</h2>
+      </div>
+      <div class="grid md:grid-cols-2 gap-5">
+        {p.features.map((f, i) => (
+          <div class="rounded-xl p-6" style="background: rgba(122,171,130,0.03); border: 1px solid rgba(122,171,130,0.1);">
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style="background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.2);">
+                <span class="text-gold font-black text-sm">{String(i + 1).padStart(2, '0')}</span>
+              </div>
+              <div>
+                <div class="text-white font-black text-base mb-2">{f.title}</div>
+                <p class="text-cream/60 text-sm leading-relaxed">{f.desc}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT'S INCLUDED -->
+  {p.whatsIncluded && (
+    <section class="py-16 px-5" style="background: #0d1a10;">
+      <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-10">
+          <div class="eyebrow mb-2">In the Box</div>
+          <h2 class="text-3xl font-black text-white tracking-tight">What's included</h2>
+        </div>
+        <div class="rounded-2xl overflow-hidden" style="border: 1px solid rgba(122,171,130,0.12);">
+          {p.whatsIncluded.map((item, i) => (
+            <div
+              class="flex items-start gap-4 px-6 py-4"
+              style={`border-bottom: ${i < p.whatsIncluded!.length - 1 ? '1px solid rgba(122,171,130,0.08)' : 'none'}; background: ${item.includes('NOT') ? 'rgba(255,100,100,0.03)' : 'transparent'};`}
+            >
+              <span class={`font-black text-sm flex-shrink-0 mt-0.5 ${item.includes('NOT') ? 'text-red-400/60' : 'text-accent'}`}>
+                {item.includes('NOT') ? '✗' : '✓'}
+              </span>
+              <span class={`text-sm leading-relaxed ${item.includes('NOT') ? 'text-cream/40 italic' : 'text-cream/75'}`}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- SPECS -->
+  <section class="py-16 px-5" style="background: #070e08;">
+    <div class="max-w-2xl mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Specifications</div>
+        <h2 class="text-3xl font-black text-white tracking-tight">Technical details</h2>
+      </div>
+      <div class="rounded-2xl overflow-hidden" style="border: 1px solid rgba(122,171,130,0.12);">
+        {p.specs.map((s, i) => (
+          <div
+            class="flex items-start justify-between gap-6 px-6 py-4"
+            style={`border-bottom: ${i < p.specs.length - 1 ? '1px solid rgba(122,171,130,0.07)' : 'none'};`}
+          >
+            <span class="text-cream/45 text-sm font-semibold flex-shrink-0">{s.label}</span>
+            <span class="text-white text-sm font-bold text-right">{s.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CROSS-SELLS -->
+  {p.crossSells.length > 0 && (
+    <section class="py-16 px-5" style="background: #0a1208; border-top: 1px solid rgba(122,171,130,0.08);">
+      <div class="max-w-container mx-auto">
+        <div class="text-center mb-10">
+          <div class="eyebrow mb-2">Complete Your Setup</div>
+          <h2 class="text-3xl font-black text-white tracking-tight">Frequently paired with</h2>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5 max-w-2xl mx-auto">
+          {p.crossSells.map(cs => (
+            <div class="rounded-2xl overflow-hidden flex flex-col" style="background: #0d1a10; border: 1px solid rgba(122,171,130,0.12);">
+              <a href={`/shop/${cs.id}`} class="block overflow-hidden" style="aspect-ratio: 2/1;">
+                <img src={cs.image} alt={cs.name} class="w-full h-full object-contain p-4 hover:scale-105 transition-transform duration-300" loading="lazy" />
+              </a>
+              <div class="p-5 flex flex-col flex-1">
+                <div class="text-cream/40 text-xs font-semibold mb-1">{cs.tagline}</div>
+                <h3 class="text-white font-black text-base leading-snug mb-3">{cs.name}</h3>
+                <div class="text-xl font-black text-white mb-4">${cs.price.toFixed(2)}</div>
+                <div class="flex gap-2 mt-auto">
+                  <button
+                    class="flex-1 py-3 rounded-lg font-black text-xs tracking-widest uppercase transition-all hover:scale-[1.02]"
+                    style="background: linear-gradient(135deg, #d4b45a, #c9a84c); color: #070e08;"
+                    data-id={cs.id}
+                    data-name={cs.name}
+                    data-price={cs.price}
+                  >
+                    Add to Cart
+                  </button>
+                  <a href={`/shop/${cs.id}`} class="px-4 py-3 rounded-lg font-bold text-xs text-cream/45 hover:text-cream/70 transition-colors" style="border: 1px solid rgba(122,171,130,0.18);">
+                    Details
+                  </a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- FAQ -->
+  <section class="py-16 px-5" style="background: #0d1a10; border-top: 1px solid rgba(122,171,130,0.08);">
+    <div class="max-w-2xl mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Questions</div>
+        <h2 class="text-3xl font-black text-white tracking-tight">Frequently asked</h2>
+      </div>
+      <div class="space-y-3">
+        {p.faq.map(f => (
+          <details class="group rounded-xl overflow-hidden" style="background: rgba(122,171,130,0.03); border: 1px solid rgba(122,171,130,0.1);">
+            <summary class="flex items-start justify-between gap-4 px-6 py-5 cursor-pointer list-none">
+              <span class="text-white font-bold text-base leading-snug">{f.q}</span>
+              <span class="text-gold text-xl flex-shrink-0 mt-0.5 group-open:rotate-45 transition-transform duration-200">+</span>
+            </summary>
+            <div class="px-6 pb-5">
+              <p class="text-cream/65 text-sm leading-relaxed">{f.a}</p>
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="py-20 px-5 text-center" style="background: linear-gradient(160deg, #0d1a10, #070e08);">
+    <div class="max-w-xl mx-auto">
+      <div class="eyebrow mb-4">Free · No Obligation · Austin TX</div>
+      <h2 class="text-3xl md:text-4xl font-black text-white tracking-tight mb-5">
+        Not sure this is the right system?
+      </h2>
+      <p class="text-cream/60 leading-relaxed mb-8">
+        Every equipment order includes a free property consultation. We visit your yard, confirm your trap placement, and make sure your investment performs at its full potential.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button
+          data-id={p.id}
+          data-name={p.name}
+          data-price={p.price}
+          class="btn-gold"
+          style="display: inline-block;"
+        >
+          Add to Cart — ${p.price.toFixed(2)}
+        </button>
+        <a href="/book" class="btn-outline inline-block">Book Free Assessment</a>
+      </div>
+      <p class="text-cream/30 text-xs mt-5">or call <a href="tel:5125604129" class="underline hover:text-cream/55 transition-colors">512-560-4129</a></p>
+    </div>
+  </section>
+
+  <CartDrawer />
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Wire all add-to-cart buttons
+      document.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const el = btn as HTMLButtonElement;
+          const { id, name, price } = el.dataset;
+          if (!id || !name || !price) return;
+          (window as any).addToCart(id, name, parseFloat(price));
+          const orig = el.textContent!;
+          el.textContent = '✓ Added to Cart';
+          el.style.background = 'linear-gradient(135deg, #7dffaa, #5ddf8a)';
+          setTimeout(() => {
+            el.textContent = orig;
+            el.style.background = 'linear-gradient(135deg, #d4b45a 0%, #c9a84c 50%, #b8952a 100%)';
+          }, 1500);
+        });
+      });
+
+      // Image gallery thumbnails
+      document.querySelectorAll('.img-thumb').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const src = (btn as HTMLButtonElement).dataset.src;
+          const mainImg = document.getElementById('main-product-img') as HTMLImageElement;
+          if (src && mainImg) mainImg.src = src;
+          // Update active border
+          document.querySelectorAll('.img-thumb').forEach(b => {
+            (b as HTMLElement).style.borderColor = 'rgba(122,171,130,0.15)';
+            (b as HTMLElement).style.borderWidth = '1px';
+          });
+          (btn as HTMLElement).style.borderColor = 'rgba(201,168,76,0.5)';
+          (btn as HTMLElement).style.borderWidth = '2px';
+        });
+      });
+
+      // Sticky mobile CTA bar
+      const mainCta = document.getElementById('main-add-to-cart');
+      const stickyBar = document.getElementById('sticky-cart-bar');
+      if (mainCta && stickyBar) {
+        const observer = new IntersectionObserver(([entry]) => {
+          if (entry.isIntersecting) {
+            stickyBar.style.transform = 'translateY(100%)';
+          } else {
+            stickyBar.style.transform = 'translateY(0)';
+          }
+        }, { threshold: 0 });
+        observer.observe(mainCta);
+      }
+    });
+  </script>
+
+</Base>

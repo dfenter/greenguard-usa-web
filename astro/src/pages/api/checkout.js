@@ -24,8 +24,8 @@ export const POST = async ({ request }) => {
       },
       quantity: item.qty,
     })),
-    success_url: 'https://new.greenguard-usa.com/shop?order=success',
-    cancel_url: 'https://new.greenguard-usa.com/shop',
+    success_url: 'https://www.greenguard-usa.com/shop?order=success',
+    cancel_url: 'https://www.greenguard-usa.com/shop',
     shipping_address_collection: { allowed_countries: ['US'] },
   });
 

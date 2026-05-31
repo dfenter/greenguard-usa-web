@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import Head from 'next/head'
 import Image from 'next/image'
+import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import CustomerChat from '../../components/CustomerChat'
 import { getSessionFromRequest } from '../../lib/auth'
@@ -558,10 +559,8 @@ export default function CustomerOverview({
             </div>
           </div>
         </div>
-        <a
-          href="https://greenguard-usa.com/book"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/dashboard/upgrade"
           style={{
             display: 'inline-block', marginBottom: 8,
             padding: '10px 22px', borderRadius: 6,
@@ -570,8 +569,8 @@ export default function CustomerOverview({
             textDecoration: 'none',
           }}
         >
-          Request Equipment Upgrade →
-        </a>
+          Upgrade My Service →
+        </Link>
 
         {/* ── Current Tank Levels — one card per CO₂ system ── */}
         {(() => {
