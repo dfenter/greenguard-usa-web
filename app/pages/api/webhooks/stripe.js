@@ -1,7 +1,7 @@
 const { stripe } = require('../../../lib/stripe')
 const { upsertContact, addNote, findContactByEmail } = require('../../../lib/hubspot')
 const { sendT0Email, markStage, clearStages } = require('../../../lib/payment-resurrection')
-const { notifyAdmin, sendCustomerReceipt } = require('../../../lib/purchase-notify')
+const { notifyAdmin, sendCustomerReceipt, sendCheckoutReceipt } = require('../../../lib/purchase-notify')
 
 export const config = { api: { bodyParser: false } }
 
@@ -133,7 +133,7 @@ export default async function handler(req, res) {
           } catch (e) { console.error('checkout HubSpot note:', e.message) }
         }
 
-        // Admin notification (this is the new bit)
+        // Admin notification
         await notifyAdmin({
           source: session.payment_link ? 'Payment Link' : (session.metadata?.source === 'quote' ? 'Quote checkout' : 'Stripe Checkout'),
           customerName,
@@ -145,6 +145,17 @@ export default async function handler(req, res) {
           stripeUrl: `${DASH}/payments/${session.payment_intent}`,
           ref: session.id,
         }).catch((e) => console.error('notify checkout completed:', e.message))
+
+        // Customer receipt — fetch receipt URL from the payment intent charge
+        if (customerEmail) {
+          let receiptUrl = null
+          try {
+            const pi = await stripe.paymentIntents.retrieve(session.payment_intent, { expand: ['latest_charge'] })
+            receiptUrl = pi.latest_charge?.receipt_url || null
+          } catch {}
+          await sendCheckoutReceipt({ session, items, receiptUrl })
+            .catch((e) => console.error('checkout customer receipt:', e.message))
+        }
         break
       }
 

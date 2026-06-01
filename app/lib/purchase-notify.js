@@ -121,6 +121,53 @@ async function sendCustomerReceipt({ invoice, customer, receiptUrl, hostedInvoic
   }
 }
 
+// Customer-facing receipt for a Stripe Checkout Session (quote flow).
+// Checkout sessions don't produce an invoice object, so this mirrors
+// sendCustomerReceipt but takes the session + pre-fetched line items.
+async function sendCheckoutReceipt({ session, items, receiptUrl }) {
+  if (!process.env.RESEND_API_KEY) return { ok: false, reason: 'no RESEND_API_KEY' }
+  const email = session.customer_details?.email || session.customer_email || ''
+  if (!email) return { ok: false, reason: 'no customer email' }
+
+  const firstName = (session.customer_details?.name || '').split(' ')[0] || 'there'
+  const amount = session.amount_total || 0
+
+  const rows = (items || []).map((l) =>
+    `<tr>
+      <td style="padding:8px 0;color:#444;border-bottom:1px solid #eee;">${esc(l.description || 'Item')}</td>
+      <td style="padding:8px 0;text-align:right;font-weight:700;border-bottom:1px solid #eee;">${fmt$(l.amount_total ?? l.amount)}</td>
+    </tr>`
+  ).join('')
+
+  const html = `
+    <div style="font-family:-apple-system,sans-serif;max-width:560px;padding:24px;color:#1a2e1f;">
+      <h1 style="color:#1a2e1f;font-size:1.6rem;margin:0 0 8px;">Payment received — thank you!</h1>
+      <p style="color:#555;margin:0 0 18px;">Hi ${esc(firstName)}, this confirms your payment for GreenGuard USA mosquito control service.</p>
+      <div style="background:#f4f8f4;border-radius:10px;padding:18px 22px;margin-bottom:20px;">
+        <div style="color:#1a2e1f;font-size:0.72rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:4px;">Amount paid</div>
+        <h2 style="color:#1a2e1f;font-size:2rem;margin:0;font-weight:900;">${fmt$(amount)}</h2>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin:0 0 18px;border-top:1px solid #eee;">${rows}</table>
+      ${receiptUrl ? `<p style="margin:18px 0;"><a href="${esc(receiptUrl)}" style="display:inline-block;padding:10px 18px;background:#1a2e1f;color:#7dffaa;font-weight:800;border-radius:6px;text-decoration:none;">View receipt →</a></p>` : ''}
+      <p style="font-size:0.85rem;color:#555;margin-top:24px;border-top:1px solid #eee;padding-top:16px;">Questions about your service? Reply to this email or text us at <a href="tel:+15125604129" style="color:#1a2e1f;">512-560-4129</a>.</p>
+      <p style="font-size:0.72rem;color:#888;margin-top:12px;">GreenGuard USA — Smart, Safe, Effective mosquito control. Ref: ${esc(session.id)}</p>
+    </div>`
+
+  try {
+    await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: `GreenGuard USA <${FROM}>`,
+      to: email,
+      bcc: ADMIN_EMAIL,
+      subject: `Receipt — ${fmt$(amount)} paid to GreenGuard USA`,
+      html,
+    })
+    return { ok: true }
+  } catch (e) {
+    console.error('checkout receipt send failed:', e.message)
+    return { ok: false, reason: e.message }
+  }
+}
+
 // Admin notification when an invoice is finalized + sent to a customer.
 // Mirrors what the customer just received so admin has a copy without
 // configuring Stripe's BCC setting (which is global and noisy).
@@ -164,4 +211,4 @@ async function notifyAdminInvoiceSent({ invoice, customer }) {
   }
 }
 
-module.exports = { notifyAdmin, sendCustomerReceipt, notifyAdminInvoiceSent }
+module.exports = { notifyAdmin, sendCustomerReceipt, sendCheckoutReceipt, notifyAdminInvoiceSent }
