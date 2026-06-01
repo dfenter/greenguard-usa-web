@@ -166,17 +166,23 @@ export default function QuotePage({ token, accepted }) {
                     <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#5bc4ff' }}>{fmt$(quote.oneTimeTotal)}</span>
                   </div>
                 )}
+                {quote.shippingTotal > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ fontWeight: 600, color: 'rgba(212,230,202,0.5)' }}>🚚 Shipping</span>
+                    <span style={{ fontWeight: 700, color: 'rgba(212,230,202,0.7)' }}>{fmt$(quote.shippingTotal)}</span>
+                  </div>
+                )}
                 {quote.taxAmount > 0 && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, paddingTop: 8, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
-                      <span style={{ fontWeight: 600, color: 'rgba(212,230,202,0.5)' }}>Tax ({quote.taxRate}%)</span>
-                      <span style={{ fontWeight: 700, color: 'rgba(212,230,202,0.7)' }}>{fmt$(quote.taxAmount)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid rgba(201,168,76,0.25)' }}>
-                      <span style={{ fontWeight: 800, color: '#d4e6ca' }}>Total due</span>
-                      <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#c9a84c' }}>{fmt$((quote.recurringTotal || 0) + (quote.oneTimeTotal || 0) + quote.taxAmount)}</span>
-                    </div>
-                  </>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ fontWeight: 600, color: 'rgba(212,230,202,0.5)' }}>Tax ({quote.taxRate}%)</span>
+                    <span style={{ fontWeight: 700, color: 'rgba(212,230,202,0.7)' }}>{fmt$(quote.taxAmount)}</span>
+                  </div>
+                )}
+                {(quote.shippingTotal > 0 || quote.taxAmount > 0) && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid rgba(201,168,76,0.25)' }}>
+                    <span style={{ fontWeight: 800, color: '#d4e6ca' }}>Total due</span>
+                    <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#c9a84c' }}>{fmt$((quote.recurringTotal || 0) + (quote.oneTimeTotal || 0) + (quote.taxAmount || 0) + (quote.shippingTotal || 0))}</span>
+                  </div>
                 )}
               </div>
 

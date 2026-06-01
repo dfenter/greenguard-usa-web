@@ -11,18 +11,17 @@ export default async function handler(req, res) {
     const session = await requireAdmin(req, res)
     if (!session) return
 
-    const { customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total, recurringTotal, oneTimeTotal, taxRate, taxAmount, notes } = req.body || {}
+    const { customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total, recurringTotal, oneTimeTotal, taxRate, taxAmount, shippingTotal, serviceDate, notes } = req.body || {}
 
-    // jti uniquely identifies this quote version. If admin re-issues a quote
-    // for the same customer, the old jti is still valid until expiry — that's
-    // fine since the new one has different amounts. Checkout consumes the jti
-    // so a paid quote can't be replayed.
     const jti = newJti()
 
     const token = await new SignJWT({
       customerName, customerEmail, customerAddress,
       serviceLines, addonLines, productLines,
-      total, recurringTotal, oneTimeTotal, taxRate, taxAmount, notes,
+      total, recurringTotal, oneTimeTotal, taxRate, taxAmount,
+      shippingTotal: shippingTotal || 0,
+      serviceDate: serviceDate || null,
+      notes,
       type: 'quote',
     })
       .setProtectedHeader({ alg: 'HS256' })

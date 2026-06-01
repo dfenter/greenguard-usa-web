@@ -117,16 +117,19 @@ const PRODUCTS = [
     sku: null, label: 'Biogents BG-Mosquitaire', price: 279.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bgTraps', quoteCategory: 'Trap Purchase',
+    shipping: 10.00,  // per unit
   },
   {
     sku: 'BG-NONCO2-UNIT', label: 'Biogents Non-CO₂ Trap', price: 179.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bgNonCo2', quoteCategory: 'Trap Purchase',
+    shipping: 10.00,  // per unit
   },
   {
     sku: null, label: 'Mosqitter Grand', price: 1849.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'mqTraps', quoteCategory: 'Trap Purchase',
+    shipping: 170.00, // per unit
   },
   {
     sku: 'BG-TIMER', label: 'Biogents Timer', price: 89.99,
@@ -137,6 +140,7 @@ const PRODUCTS = [
     sku: null, label: 'CO₂ Tank — 20lb (empty)', price: 199.99,
     surfaces: { rounds: true, quote: true },
     quoteCategory: 'Tank Purchase',
+    shipping: 50.00,  // per unit (hazmat/freight)
   },
   {
     sku: null, label: 'CO₂ Regulator', price: 119.99,

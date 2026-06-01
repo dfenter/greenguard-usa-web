@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     customerEmail, customerName, customerAddress,
     serviceLines = [], addonLines = [], productLines = [],
     recurringTotal = 0, oneTimeTotal = 0, taxRate = 0, taxAmount = 0,
+    shippingTotal = 0,
   } = quote
 
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
@@ -84,8 +85,18 @@ export default async function handler(req, res) {
       })
     }
 
-    // Always apply Texas 8.25% sales tax server-side — do NOT trust the
-    // client-provided taxAmount (can be 0 from admin builder or stale JWTs).
+    // Add shipping — server-validated, max $1,000
+    const shippingCents = Math.round(Number(shippingTotal || 0) * 100)
+    if (shippingCents > 0) {
+      if (shippingCents > 100_000) return res.status(400).json({ error: 'Shipping amount exceeds maximum' })
+      runningCents += shippingCents
+      lineItems.push({
+        price_data: { currency: 'usd', product_data: { name: 'Shipping' }, unit_amount: shippingCents },
+        quantity: 1,
+      })
+    }
+
+    // Always apply Texas 8.25% sales tax server-side
     const TX_TAX_RATE = 0.0825
     const taxCents = Math.round(runningCents * TX_TAX_RATE)
     runningCents += taxCents
@@ -112,6 +123,8 @@ export default async function handler(req, res) {
         customerAddress: customerAddress || '',
         customerName: customerName || '',
       },
+      // Collect shipping address when shippable items are in the quote
+      ...(shippingCents > 0 && { shipping_address_collection: { allowed_countries: ['US'] } }),
       billing_address_collection: 'required',
       allow_promotion_codes: true,
     }

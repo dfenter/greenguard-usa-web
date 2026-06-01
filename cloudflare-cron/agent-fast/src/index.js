@@ -4,11 +4,12 @@
 // 15-min: books-ingest (Stripe ledger sync) + inline site-health check
 
 const PORTAL = 'https://portal.greenguard-usa.com'
-const AGENT  = 'https://greenguard-agent-tmw2.onrender.com'
+const AGENT  = 'https://greenguard-agent-new.onrender.com'
 
 const JOBS = {
   '*/5 * * * *': [
     { name: 'email-agent', url: `${AGENT}/cron/email-agent` },
+    { name: 'keep-alive',  url: `${AGENT}/health`, method: 'GET' },
   ],
   '*/15 * * * *': [
     { name: 'books-ingest', url: `${PORTAL}/api/cron/books-ingest?days=2` },
@@ -18,7 +19,7 @@ const JOBS = {
 
 async function runHttp(job, env) {
   const res = await fetch(job.url, {
-    method: 'POST',
+    method: job.method || 'POST',
     headers: {
       Authorization: `Bearer ${env.CRON_SECRET}`,
       'x-cron-key': env.CRON_SECRET,

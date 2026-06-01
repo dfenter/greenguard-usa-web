@@ -66,7 +66,7 @@ export default async function handler(req, res) {
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const {
-    to, name, lineItems = [], total, taxRate = 0, taxAmount = 0, notes,
+    to, name, lineItems = [], total, taxRate = 0, taxAmount = 0, shippingTotal = 0, notes,
     customerAddress, serviceLines = [], addonLines = [], productLines = [],
     recurringTotal = 0, oneTimeTotal = 0, serviceDate, machPins = [],
   } = req.body || {}
@@ -82,8 +82,8 @@ export default async function handler(req, res) {
   const token = await new SignJWT({
     customerName: name, customerEmail: to, customerAddress,
     serviceLines, addonLines, productLines,
-    total, recurringTotal, oneTimeTotal, taxRate, taxAmount, notes,
-    serviceDate, machPins, type: 'quote',
+    total, recurringTotal, oneTimeTotal, taxRate, taxAmount,
+    shippingTotal: shippingTotal || 0, serviceDate, machPins, type: 'quote',
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
   ]
 
   const mapUrl = buildMapUrl({ address: customerAddress, machPins })
-  const dueToday = oneTimeTotal + taxAmount
+  const dueToday = oneTimeTotal + taxAmount + parseFloat(shippingTotal || 0)
   const monthlyAfter = recurringTotal
 
   const sectionStyle = 'margin:0 0 24px;padding:16px 18px;background:#f7fbf6;border-radius:10px;border:1px solid #e3eedb;'
@@ -118,6 +118,7 @@ export default async function handler(req, res) {
     <div style="${sectionStyle}background:#f6f9fb;border-color:#dde6ed;">
       <div style="${sectionTitle('#1565c0')}">One-Time Charges (Due With First Visit)</div>
       <table style="width:100%;border-collapse:collapse;">${lineRows(oneTimeLines, '#1565c0')}</table>
+      ${parseFloat(shippingTotal || 0) > 0 ? spreadRow({ label: '🚚 Shipping', amount: fmt$(shippingTotal), color: '#666', size: '0.85rem', pad: '6px 0' }) : ''}
       ${taxAmount > 0 ? spreadRow({ label: `Tax (${taxRate}%)`, amount: fmt$(taxAmount), color: '#666', size: '0.85rem', pad: '6px 0' }) : ''}
       ${spreadRow({ label: 'Total due with first visit', amount: fmt$(dueToday), color: '#1565c0', weight: 800, borderTop: true, pad: '10px 0 0' })}
     </div>` : ''

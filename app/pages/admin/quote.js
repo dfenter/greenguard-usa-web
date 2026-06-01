@@ -552,6 +552,8 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
   const taxRate = 8.25
+  // 'auto' = auto-calculate per-item rates, 'free' = local delivery (waive shipping), 'none' = no shippable items
+  const [shippingMode, setShippingMode] = useState('auto')
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapPin, setMapPin] = useState(null)
   const [machPins, setMachPins] = useState([])
@@ -695,7 +697,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     const res = await fetch('/api/admin/quote-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })), serviceDate: serviceConfig?.serviceDate || null, notes }),
+      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, shippingTotal, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })), serviceDate: serviceConfig?.serviceDate || null, notes }),
     })
     const { url } = await res.json()
     await navigator.clipboard.writeText(url).catch(() => window.prompt('Copy this link:', url))
@@ -711,7 +713,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       const linkRes = await fetch('/api/admin/quote-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate, taxAmount, notes }),
+        body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate, taxAmount, shippingTotal, notes }),
       })
       const { token } = await linkRes.json()
       if (!token) throw new Error('Could not generate quote token')
@@ -797,12 +799,19 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     recurring: a.category === 'Recurring Add-Ons',
   }))
 
+  // Shipping — per-unit cost on shippable products only (Biogents traps, Mosqitter, CO₂ tank)
+  const rawShipping = PRODUCTS
+    .filter((p) => p.shipping > 0 && productQtys[p.label] > 0)
+    .reduce((sum, p) => sum + p.shipping * productQtys[p.label], 0)
+  // 'auto' uses per-item rates; 'free' waives shipping (local delivery); 'none' or no items = 0
+  const shippingTotal = shippingMode === 'auto' ? rawShipping : 0
+
   const allLines = [...serviceLines, ...productLines, ...addonLines]
   const recurringTotal = allLines.filter((l) => l.recurring).reduce((s, l) => s + (l.amount || 0), 0)
   const oneTimeTotal = allLines.filter((l) => !l.recurring).reduce((s, l) => s + (l.amount || 0), 0)
   const subtotal = recurringTotal + oneTimeTotal
   const taxAmount = taxRate > 0 ? Math.round(subtotal * taxRate) / 100 : 0
-  const grandTotal = subtotal + taxAmount
+  const grandTotal = subtotal + taxAmount + shippingTotal
   const hasRecurring = serviceLines.some((l) => l.recurring)
   const hasOneTime = allLines.some((l) => !l.recurring)
 
@@ -980,6 +989,23 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                 )}
               </div>
 
+              {/* Shipping toggle — shown when quote has shippable products */}
+              {rawShipping > 0 && (
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none', color: shippingMode === 'free' ? '#7dffaa' : '#5bc4ff', fontWeight: 700 }}>
+                    <input
+                      type="checkbox"
+                      checked={shippingMode === 'free'}
+                      onChange={(e) => setShippingMode(e.target.checked ? 'free' : 'auto')}
+                      style={{ accentColor: '#7dffaa', cursor: 'pointer', width: 15, height: 15 }}
+                    />
+                    {shippingMode === 'free'
+                      ? '🏠 Local delivery (free)'
+                      : `🚚 Shipping — $${rawShipping.toFixed(2)}`}
+                  </label>
+                </div>
+              )}
+
               {/* Tax — fixed 8.25% Austin rate */}
               <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'rgba(212,230,202,0.4)', fontWeight: 600 }}>
                 Tax: {taxRate}% (Austin, TX)
@@ -999,13 +1025,19 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                       <span style={{ fontWeight: 900, color: '#5bc4ff' }}>${oneTimeTotal.toFixed(2)}</span>
                     </div>
                   )}
+                  {shippingTotal > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', fontWeight: 600 }}>🚚 Shipping</span>
+                      <span style={{ fontWeight: 700, color: 'rgba(212,230,202,0.7)' }}>${shippingTotal.toFixed(2)}</span>
+                    </div>
+                  )}
                   {taxAmount > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', fontWeight: 600 }}>Tax ({taxRate}%)</span>
                       <span style={{ fontWeight: 700, color: 'rgba(212,230,202,0.7)' }}>${taxAmount.toFixed(2)}</span>
                     </div>
                   )}
-                  {taxAmount > 0 && (
+                  {(shippingTotal > 0 || taxAmount > 0) && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid rgba(122,171,130,0.15)' }}>
                       <span style={{ fontSize: '0.9rem', color: '#d4e6ca', fontWeight: 800 }}>Total due</span>
                       <span style={{ fontWeight: 900, fontSize: '1rem', color: '#c9a84c' }}>${grandTotal.toFixed(2)}</span>

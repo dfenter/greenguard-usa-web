@@ -36,7 +36,7 @@ const products = [
     badgeStyle: 'gold',
     price: 1849.99,
     originalPrice: null,
-    image: '/images/prod-mosqitter-grand.jpg',
+    image: '/images/mosqitterGrand1.webp',
     desc: 'Professional-grade stainless steel with smartphone monitoring and one-acre coverage per unit.',
     pills: ['Up to 2-acre coverage', 'Bluetooth app', 'Stainless steel'],
   },
@@ -124,6 +124,23 @@ function badgeClasses(style: string) {
           <span>{t.icon}</span>{t.text}
         </span>
       ))}
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE BUILDER BANNER -->
+<section class="py-12 px-5" style="background: #070e08; border-top: 1px solid rgba(122,171,130,0.1); border-bottom: 1px solid rgba(122,171,130,0.1);">
+  <div class="max-w-container mx-auto">
+    <div class="rounded-2xl px-8 py-10 md:px-14 md:py-12 flex flex-col md:flex-row items-center justify-between gap-6" style="background: linear-gradient(135deg, #0d1a10, #111e12); border: 1px solid rgba(201,168,76,0.2);">
+      <div>
+        <div class="eyebrow mb-2">Already a GreenGuard customer?</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight mb-2">See what an upgrade would cost</h2>
+        <p class="text-cream/60 text-sm leading-relaxed max-w-md">Add a second system, expand your coverage, or upgrade to Mosqitter Grand. See the exact monthly and one-time costs before you commit.</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3 flex-shrink-0">
+        <a href="https://portal.greenguard-usa.com/quote/new" class="btn-gold whitespace-nowrap">Quote Builder</a>
+        <a href="https://portal.greenguard-usa.com/dashboard/upgrade" class="btn-outline whitespace-nowrap">Upgrade Calculator</a>
+      </div>
     </div>
   </div>
 </section>

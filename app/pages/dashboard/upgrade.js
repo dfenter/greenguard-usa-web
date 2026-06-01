@@ -7,7 +7,7 @@ import { findContactByEmail } from '../../lib/hubspot'
 function fmt$(n) { return `$${Number(n).toFixed(2)}` }
 
 // ── Pricing constants (mirrors quote builder) ──────────────────────────────────
-const BG_RENTAL = { 1: 159.99, 2: 266.99, 3: 399.99 }
+const BG_RENTAL = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750 }
 const MQ_RENTAL = 299.99
 const BARRIER    = 49.99
 const BG_INSTALL = 80.00
@@ -26,18 +26,29 @@ function buildUpgrades({ pathKey, trapCount, systemType }) {
 
   const upgrades = []
 
-  // ── Biogents rental customers ─────────────────────────────────────────────
-  if ((isBG || isBGOwned) && tc < 3) {
+  // ── Biogents rental customers — add one trap at a time up to 6 ─────────────
+  if ((isBG || isBGOwned) && tc < 6) {
     const currentMonthly = isBGOwned ? 124.99 : (BG_RENTAL[tc] || BG_RENTAL[1])
     const nextCount = tc + 1
     const newMonthly = BG_RENTAL[nextCount]
+    const ordinals = ['', 'First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth']
+    const title = `Add a ${ordinals[nextCount] || nextCount + 'th'} Biogents CO₂ Trap`
+    const taglines = {
+      2: 'Double your coverage. Ideal for ½-acre+ lots or multiple outdoor zones.',
+      3: 'Three-zone coverage at the best per-trap rate.',
+      4: 'Four traps for large properties or full perimeter coverage.',
+      5: 'Five-trap setup for large estates and heavily wooded lots.',
+      6: 'Maximum coverage — six traps for the largest properties.',
+    }
+    const images = {
+      2: '/images/mosquitairedouble.webp',
+      3: '/images/biogentstriple.png',
+    }
     upgrades.push({
       id: 'add-biogents-trap',
-      title: `Add a ${nextCount === 2 ? 'Second' : 'Third'} Biogents CO₂ Trap`,
-      tagline: nextCount === 2
-        ? 'Double your coverage. Ideal for ½-acre+ lots or multiple outdoor zones.'
-        : 'Three-zone coverage at the best per-trap rate.',
-      image: nextCount === 2 ? '/images/mosquitairedouble.webp' : '/images/biogentstriple.png',
+      title,
+      tagline: taglines[nextCount] || `Expand to ${nextCount} traps for greater coverage.`,
+      image: images[nextCount] || '/images/biogentstriple.png',
       currentMonthly,
       newMonthly,
       monthlyDelta: newMonthly - currentMonthly,
@@ -147,7 +158,7 @@ function currentPlanLabel(systemType, trapCount) {
     return { label: 'CO₂ Tank & Service (owned trap)', monthly: 124.99 }
   }
   if (systemType === 'Biogents-CO2' || systemType === 'Biogents') {
-    return { label: `Biogents CO₂ Rental — ${tc} Trap${tc > 1 ? 's' : ''}`, monthly: BG_RENTAL[tc] || BG_RENTAL[1] }
+    return { label: `Biogents CO₂ Rental — ${tc} Trap${tc > 1 ? 's' : ''}`, monthly: BG_RENTAL[tc] || null }
   }
   return { label: 'Current Service Plan', monthly: null }
 }
