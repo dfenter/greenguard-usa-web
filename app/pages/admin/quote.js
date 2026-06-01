@@ -684,13 +684,24 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     return () => clearTimeout(geocodeTimer.current)
   }, [customerAddress, mapLoaded])
 
-  // Pan to pin when geocode resolves
+  // Pan to pin when geocode resolves + auto-select shipping mode by distance
   useEffect(() => {
     if (!mapPin || !mapObj.current || !pinRef.current) return
     pinRef.current.setPosition(mapPin)
     pinRef.current.setVisible(true)
     mapObj.current.panTo(mapPin)
     mapObj.current.setZoom(19)
+
+    // Haversine distance from depot (1519 Parkway, Austin TX 78703)
+    const DEPOT = { lat: 30.2872, lng: -97.7557 }
+    const R = 3958.8
+    const dLat = (mapPin.lat - DEPOT.lat) * Math.PI / 180
+    const dLng = (mapPin.lng - DEPOT.lng) * Math.PI / 180
+    const a = Math.sin(dLat / 2) ** 2
+      + Math.cos(DEPOT.lat * Math.PI / 180) * Math.cos(mapPin.lat * Math.PI / 180)
+      * Math.sin(dLng / 2) ** 2
+    const miles = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    setShippingMode(miles <= 50 ? 'free' : 'auto')
   }, [mapPin])
 
   async function copyQuoteLink() {
