@@ -84,21 +84,19 @@ export default async function handler(req, res) {
       })
     }
 
-    if (taxAmount > 0) {
-      const taxCents = Math.round(Number(taxAmount) * 100)
-      if (!Number.isFinite(taxCents) || taxCents < 0 || taxCents > MAX_LINE_CENTS) {
-        return res.status(400).json({ error: 'Invalid tax amount' })
-      }
-      runningCents += taxCents
-      lineItems.push({
-        price_data: {
-          currency: 'usd',
-          product_data: { name: `Tax (${Number(taxRate).toFixed(2)}%)` },
-          unit_amount: taxCents,
-        },
-        quantity: 1,
-      })
-    }
+    // Always apply Texas 8.25% sales tax server-side — do NOT trust the
+    // client-provided taxAmount (can be 0 from admin builder or stale JWTs).
+    const TX_TAX_RATE = 0.0825
+    const taxCents = Math.round(runningCents * TX_TAX_RATE)
+    runningCents += taxCents
+    lineItems.push({
+      price_data: {
+        currency: 'usd',
+        product_data: { name: 'Tax (8.25% TX)' },
+        unit_amount: taxCents,
+      },
+      quantity: 1,
+    })
 
     if (runningCents > MAX_TOTAL_CENTS) {
       console.error('Quote total exceeds cap:', runningCents)
@@ -114,10 +112,7 @@ export default async function handler(req, res) {
         customerAddress: customerAddress || '',
         customerName: customerName || '',
       },
-      // Require billing address so Stripe Tax can compute the right rate.
       billing_address_collection: 'required',
-      // Stripe Automatic Tax applies the Texas TaxRate based on billing address.
-      automatic_tax: { enabled: true },
       allow_promotion_codes: true,
     }
 
