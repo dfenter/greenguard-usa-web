@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import PortalLayout from '../../../components/PortalLayout'
 import { getSessionFromRequest } from '../../../lib/auth'
-import { findContactByEmail, getNotesForContact } from '../../../lib/hubspot'
+import { findContactByEmail, getContactNotes } from '../../../lib/hubspot'
 import { stripe } from '../../../lib/stripe'
 import { EVENT_TYPES } from '../../../lib/sku-engine'
 
@@ -37,7 +37,7 @@ export async function getServerSideProps({ req, params }) {
 
   const bookings = []
 
-  const notes = await getNotesForContact(contact.id, 10)
+  const notes = await getContactNotes(contact.id, 10)
 
   let markers = []
   try {
