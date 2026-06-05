@@ -186,7 +186,13 @@ export default function AdminBooking() {
 
             <div style={field}>
               <label style={label}>Date &amp; Time (Central Time)</label>
-              <input style={input} type="datetime-local" value={form.startLocal} onChange={set('startLocal')} required />
+              <input style={input} type="datetime-local" value={form.startLocal} onChange={set('startLocal')} required
+                min={(() => { const d = new Date(Date.now() + 24*3600*1000); return d.toISOString().slice(0,16) })()} />
+              {form.startLocal && new Date(form.startLocal) - Date.now() < 24*3600*1000 && !form.allowDoubleBook && (
+                <p style={{ fontSize: '0.78rem', color: '#e57373', margin: '4px 0 0' }}>
+                  ⚠ Less than 24 hours away. Enable &quot;Allow override&quot; below to book anyway.
+                </p>
+              )}
             </div>
 
             <div style={field}>
