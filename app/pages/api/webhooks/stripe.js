@@ -87,7 +87,12 @@ const DASH = 'https://dashboard.stripe.com'
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
 
-  const rawBody = await readRawBody(req)
+  let rawBody
+  try {
+    rawBody = await readRawBody(req)
+  } catch {
+    return res.status(400).end()
+  }
   const sig = req.headers['stripe-signature']
 
   let event
