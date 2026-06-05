@@ -1,6 +1,6 @@
 ---
-title: How Long CO₂ Trapping Takes to Work
-description: The most common question from new CO₂ trap customers is how quickly they will see results. The honest answer requires understanding how population suppression works, because the improvement curve is not linear.
+title: "How Long Does a CO₂ Mosquito Trap Take to Work? Week-by-Week Results"
+description: "Most customers notice fewer mosquito bites within 1-2 weeks. Here is the realistic week-by-week timeline for CO₂ trap results — and why 6-8 weeks is when the full effect kicks in."
 pubDate: 2025-04-20
 category: Mosquito Science
 ---

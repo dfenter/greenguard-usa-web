@@ -34,5 +34,10 @@ const nextConfig = {
 module.exports = withSentryConfig(nextConfig, {
   org: 'greenguard-usa',
   project: 'portal',
-  silent: true,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  webpack: {
+    automaticVercelMonitors: true,
+    treeshake: { removeDebugLogging: true },
+  },
 })

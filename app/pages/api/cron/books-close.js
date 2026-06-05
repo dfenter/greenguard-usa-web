@@ -15,10 +15,9 @@ function priorMonth() {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
-  if (req.headers['x-cron-key'] !== process.env.CRON_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
+  const { authorize } = require('../../../lib/cron-auth')
+  if (!authorize(req, res)) return
 
   const month = req.query.month || priorMonth()
   if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'month must be YYYY-MM' })

@@ -12,7 +12,7 @@ export async function getServerSideProps({ req }) {
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
   const { listAllCustomers } = await import('../../lib/stripe')
-  const raw = await listAllCustomers()
+  const raw = await listAllCustomers().catch(() => [])
   const customers = raw
     .filter((c) => c.address?.line1 || c.metadata?.address)
     .map((c) => {

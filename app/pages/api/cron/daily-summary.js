@@ -32,49 +32,111 @@ async function fetchTodaysInvoices() {
 }
 
 function renderHtml({ date, completedVisits, invoices, cancellations, tomorrow, totals }) {
-  const invRows = invoices.slice(0, 12).map((inv) => `
-    <tr style="border-top:1px solid #e7e7e7">
-      <td style="padding:7px 8px;color:#1a2e1f;font-weight:700">${escapeHtml(typeof inv.customer === 'object' ? (inv.customer?.name || inv.customer_email || '—') : (inv.customer_email || '—'))}</td>
-      <td style="padding:7px 8px;color:#666;font-size:12px">${escapeHtml(inv.status)}</td>
-      <td style="padding:7px 8px;text-align:right;font-weight:700;color:#0d8a3c;white-space:nowrap">${fmt$(inv.total)}</td>
-    </tr>`).join('')
+  const invRows = invoices.slice(0, 12).map((inv) => {
+    const custName = typeof inv.customer === 'object'
+      ? (inv.customer?.name || inv.customer_email || '—')
+      : (inv.customer_email || '—')
+    const statusColor = inv.status === 'paid' ? '#7dffaa' : inv.status === 'open' ? '#c9a84c' : 'rgba(212,230,202,0.45)'
+    return `
+    <tr>
+      <td style="padding:9px 0;color:rgba(212,230,202,0.88);font-weight:700;border-bottom:1px solid rgba(122,171,130,0.1);font-size:13px">${escapeHtml(custName)}</td>
+      <td style="padding:9px 0;border-bottom:1px solid rgba(122,171,130,0.1)"><span style="color:${statusColor};font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase">${escapeHtml(inv.status)}</span></td>
+      <td style="padding:9px 0;text-align:right;font-weight:800;color:#7dffaa;border-bottom:1px solid rgba(122,171,130,0.1);white-space:nowrap;font-size:13px">${fmt$(inv.total)}</td>
+    </tr>`
+  }).join('')
 
-  return `<div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:640px;margin:0 auto;color:#1a2e1f">
-    <div style="background:#0d1a10;color:#7dffaa;padding:14px 18px;border-radius:8px 8px 0 0">
-      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700">GreenGuard USA · End of day</div>
-      <div style="font-size:20px;font-weight:900;margin-top:2px;color:#fff">${escapeHtml(fmtLongDate(date))}</div>
-    </div>
-    <div style="border:1px solid #ddd;border-top:none;padding:18px;background:#fff">
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">
-        ${[
-          ['Visits done', completedVisits],
-          ['Revenue', fmt$(totals.revenueCents)],
-          ['Invoices', invoices.length],
-          ['Cancels', cancellations],
-        ].map(([k, v]) => `
-          <div style="flex:1;min-width:120px;padding:12px;background:#f6f9f7;border-radius:6px">
-            <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888;font-weight:700">${k}</div>
-            <div style="font-size:18px;font-weight:900;color:#1a2e1f;margin-top:4px">${v}</div>
-          </div>`).join('')}
-      </div>
+  return `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#0a1a0d;font-family:'Helvetica Neue',Arial,sans-serif">
+<div style="max-width:560px;margin:0 auto;padding:20px 16px">
 
-      ${invoices.length > 0 ? `
-        <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#888;font-weight:700;margin-bottom:6px">Invoices today</div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px"><tbody>${invRows}</tbody></table>
-      ` : ''}
+  <!-- Logo bar -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px">
+    <tr>
+      <td style="padding:0 4px">
+        <span style="font-size:15px;font-weight:900;color:#ffffff;letter-spacing:-0.02em">Green<span style="color:#7dffaa">Guard</span> USA</span>
+        <span style="color:rgba(122,171,130,0.4);font-size:13px;margin-left:10px">&middot; End of Day</span>
+      </td>
+    </tr>
+  </table>
 
-      <div style="background:#0d1a1015;padding:14px;border-radius:6px">
-        <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#888;font-weight:700;margin-bottom:4px">Tomorrow</div>
-        <div style="font-size:14px;color:#1a2e1f">
-          <strong>${tomorrow.count}</strong> stop${tomorrow.count === 1 ? '' : 's'}
-          · <strong>${tomorrow.tanks}</strong> tank${tomorrow.tanks === 1 ? '' : 's'} needed
-          · ${escapeHtml(fmtLongDate(tomorrow.date))}
+  <!-- Hero card -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 50%,#2d4a32 100%);border:1px solid rgba(122,171,130,0.2);border-radius:12px;margin-bottom:10px">
+    <tr>
+      <td style="padding:22px 24px 20px">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px">Daily Summary</div>
+        <div style="color:#ffffff;font-size:26px;font-weight:900;letter-spacing:-0.03em">${escapeHtml(fmtLongDate(date))}</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Stats row (4-col table) -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#111c13;border:1px solid rgba(122,171,130,0.15);border-radius:12px;margin-bottom:10px">
+    <tr>
+      <td style="padding:16px 14px;border-right:1px solid rgba(122,171,130,0.1);text-align:center;vertical-align:top">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px">Visits</div>
+        <div style="color:#a8edc0;font-size:22px;font-weight:900">${completedVisits}</div>
+      </td>
+      <td style="padding:16px 14px;border-right:1px solid rgba(122,171,130,0.1);text-align:center;vertical-align:top">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px">Revenue</div>
+        <div style="color:#7dffaa;font-size:22px;font-weight:900">${fmt$(totals.revenueCents)}</div>
+      </td>
+      <td style="padding:16px 14px;border-right:1px solid rgba(122,171,130,0.1);text-align:center;vertical-align:top">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px">Invoices</div>
+        <div style="color:#a8edc0;font-size:22px;font-weight:900">${invoices.length}</div>
+      </td>
+      <td style="padding:16px 14px;text-align:center;vertical-align:top">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px">Cancels</div>
+        <div style="color:${cancellations > 0 ? '#ff8888' : 'rgba(212,230,202,0.35)'};font-size:22px;font-weight:900">${cancellations}</div>
+      </td>
+    </tr>
+  </table>
+
+  ${invoices.length > 0 ? `
+  <!-- Invoices table -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#111c13;border:1px solid rgba(122,171,130,0.15);border-radius:12px;margin-bottom:10px">
+    <tr>
+      <td colspan="3" style="padding:14px 18px 10px;border-bottom:1px solid rgba(122,171,130,0.1)">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase">Invoices Today</div>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="3" style="padding:4px 18px 10px">
+        <table width="100%" cellpadding="0" cellspacing="0">${invRows}</table>
+      </td>
+    </tr>
+  </table>` : ''}
+
+  <!-- Tomorrow preview -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#111c13;border:1px solid rgba(122,171,130,0.15);border-radius:12px;margin-bottom:12px">
+    <tr>
+      <td style="padding:16px 18px">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px">Tomorrow</div>
+        <div style="color:rgba(212,230,202,0.8);font-size:14px;line-height:1.6">
+          <span style="color:#a8edc0;font-weight:800">${tomorrow.count}</span> stop${tomorrow.count === 1 ? '' : 's'}
+          &nbsp;&middot;&nbsp;
+          <span style="color:#a8edc0;font-weight:800">${tomorrow.tanks}</span> tank${tomorrow.tanks === 1 ? '' : 's'} needed
+          &nbsp;&middot;&nbsp; ${escapeHtml(fmtLongDate(tomorrow.date))}
         </div>
-      </div>
+      </td>
+    </tr>
+  </table>
 
-      <p style="margin:14px 0 0;font-size:11px;color:#aaa">Full detail on portal.greenguard-usa.com — /admin/rounds for visits, /admin/invoices for billing.</p>
-    </div>
-  </div>`
+  <!-- Portal links -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
+    <tr>
+      <td style="padding:4px 0">
+        <a href="https://portal.greenguard-usa.com/admin/rounds" style="display:inline-block;background:rgba(122,171,130,0.12);border:1px solid rgba(122,171,130,0.3);color:#7dffaa;font-weight:700;font-size:12px;padding:9px 20px;border-radius:6px;text-decoration:none;letter-spacing:0.04em;margin-right:8px">Rounds</a>
+        <a href="https://portal.greenguard-usa.com/admin/invoice" style="display:inline-block;background:rgba(122,171,130,0.12);border:1px solid rgba(122,171,130,0.3);color:#7dffaa;font-weight:700;font-size:12px;padding:9px 20px;border-radius:6px;text-decoration:none;letter-spacing:0.04em">Invoices</a>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Footer -->
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; portal.greenguard-usa.com</div>
+</div>
+</body>
+</html>`
 }
 
 export default async function handler(req, res) {
@@ -93,8 +155,11 @@ export default async function handler(req, res) {
     fetchTodaysInvoices().catch(() => []),
   ])
 
-  const cancellations = todayBookings.filter((b) => b.status === 'cancelled').length
-  const completedVisits = todayBookings.filter((b) => b.status !== 'cancelled').length
+  // GCal events don't carry a status field in our parsed shape — cancelled events
+  // are excluded by the GCal API query itself (singleEvents + no showDeleted).
+  // All returned bookings are active/completed for the day.
+  const completedVisits = todayBookings.length
+  const cancellations = 0  // tracked separately via GCal cancellation webhooks if needed
   const tomorrowTanks = tomorrowBookings.reduce((s, b) => s + (resolveByTitle(normalizeEventTitle(b.title || ''))?.tankCount || 0), 0)
   const revenueCents = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.amount_paid, 0)
 

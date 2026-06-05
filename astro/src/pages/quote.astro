@@ -1,0 +1,99 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Get a Free Mosquito Control Quote | GreenGuard USA Austin TX"
+  description="Get transparent, instant pricing for your Austin property. Build a custom mosquito control plan online — no sales calls, no pressure, no commitment required."
+>
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-2xl mx-auto">
+      <div class="eyebrow mb-2">Online Quote</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        See exact pricing <span class="text-accent">for your property.</span>
+      </h1>
+      <p class="text-cream/75 text-base max-w-lg mx-auto">
+        Our quote builder lets you customize your service plan, see a line-by-line price breakdown, and book installation before you ever talk to anyone.
+      </p>
+      <div class="mt-8 flex gap-3 justify-center flex-wrap">
+        <a href="https://portal.greenguard-usa.com/quote/new" class="btn-gold">Open Quote Builder</a>
+        <a href="/book" class="btn-outline">Prefer a call? Book Free Assessment</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="py-12 px-5 bg-bg-panel">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl font-black text-white text-center mb-8">How the quote process works</h2>
+      <div class="grid md:grid-cols-4 gap-5">
+        {[
+          { step: '1', title: 'Build your quote', body: 'Choose your service plan, trap type, and any add-ons. Pricing updates as you configure.' },
+          { step: '2', title: 'Review the breakdown', body: 'See a full itemized price: monthly service, any one-time fees, and the first month total.' },
+          { step: '3', title: 'Approve and pay', body: 'Approve online and pay the first month via secure Stripe checkout. No commitment beyond that.' },
+          { step: '4', title: 'Book your installation', body: 'Choose your installation time directly from available slots. We confirm and show up.' },
+        ].map(s => (
+          <div class="card flex flex-col gap-2.5">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black" style="background: rgba(201,168,76,0.15); color: #c9a84c; border: 1px solid rgba(201,168,76,0.3);">{s.step}</div>
+            <div class="font-black text-white text-sm">{s.title}</div>
+            <div class="text-cream/60 text-xs leading-relaxed">{s.body}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT YOU'LL NEED -->
+  <section class="py-12 px-5">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-xl font-black text-white text-center mb-2">What you'll need</h2>
+      <p class="text-cream/60 text-sm text-center mb-6">The quote builder takes about 3 minutes. Have these handy:</p>
+      <div class="grid sm:grid-cols-2 gap-4">
+        {[
+          { icon: '📍', label: 'Your address', desc: 'So we can confirm we service your area and estimate property size.' },
+          { icon: '📐', label: 'Rough yard size', desc: 'Quarter acre, half acre, or larger. Helps us recommend the right number of traps.' },
+          { icon: '💳', label: 'Payment method', desc: 'Credit or debit card for the first month. Charged only after you approve the quote.' },
+          { icon: '📅', label: 'Preferred install window', desc: 'A general idea of when you\'re available. We\'ll show you real available slots at the end.' },
+        ].map(item => (
+          <div class="card flex gap-3 items-start">
+            <span class="text-xl flex-shrink-0">{item.icon}</span>
+            <div>
+              <div class="font-bold text-white text-sm">{item.label}</div>
+              <div class="text-cream/55 text-xs mt-0.5">{item.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST -->
+  <section class="py-10 px-5 bg-bg-panel">
+    <div class="max-w-3xl mx-auto grid sm:grid-cols-3 gap-5 text-center">
+      {[
+        { stat: 'Month-to-month', label: 'No long-term contract required' },
+        { stat: 'Secure checkout', label: 'Powered by Stripe. We never store card data.' },
+        { stat: 'Cancel anytime', label: 'No cancellation fees, ever' },
+      ].map(t => (
+        <div class="card">
+          <div class="font-black text-gold text-base mb-1">{t.stat}</div>
+          <div class="text-cream/55 text-xs">{t.label}</div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="py-16 px-5 text-center">
+    <div class="max-w-xl mx-auto">
+      <h2 class="text-2xl font-black text-white mb-3">Ready to see your price?</h2>
+      <p class="text-cream/65 text-sm mb-6">Takes about 3 minutes. No account needed.</p>
+      <a href="https://portal.greenguard-usa.com/quote/new" class="btn-gold">Open Quote Builder</a>
+      <p class="text-cream/35 text-xs mt-4">
+        Rather talk it through first? <a href="tel:5125604129" class="text-cream/55 hover:text-accent underline">Call 512-560-4129</a>
+      </p>
+    </div>
+  </section>
+
+</Base>

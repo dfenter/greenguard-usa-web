@@ -2,14 +2,14 @@ name = "greenguard-cron-agent-fast"
 main = "src/index.js"
 compatibility_date = "2026-05-01"
 
-# 2 cron triggers — fits Workers Free plan.
-# Frequent-firing jobs: email-agent (every 5m) and books-ingest + site-health
-# (every 15m). Keeping these together so portal/agent-daily don't share a
-# 15-min slot with the high-traffic patterns.
+# 3 cron triggers — fits Workers Free plan (max 3).
+# email-agent moved to once daily at 8am CT (13:00 UTC) — no longer geocodes,
+# no need for frequent polling. books-ingest + site-health stay at 15-min.
 
 [triggers]
 crons = [
-  "*/5 * * * *",      # every 5 min — email-agent (Render)
+  "0 13 * * *",       # 8am CT daily — email-agent (Render)
+  "*/5 * * * *",      # every 5 min — keep-alive ping to Render (prevents free-tier spin-down)
   "*/15 * * * *",     # every 15 min — books-ingest (Vercel) + site-health (inline)
 ]
 

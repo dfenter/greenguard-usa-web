@@ -18,6 +18,7 @@ const { Resend } = require('resend')
 const { findContactByEmail, addNote, upsertContact } = require('../../../lib/hubspot')
 const { sendSms } = require('../../../lib/sms')
 const { generateJSON } = require('../../../lib/gemini')
+const { postToOps } = require('../../../lib/slack')
 
 const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 const ADMIN_SMS = process.env.ADMIN_SMS_NUMBER || ''
@@ -128,10 +129,11 @@ export default async function handler(req, res) {
     await addNote(targetContactId, noteBody).catch((e) => console.error('voicemail addNote:', e.message))
   }
 
-  // High-urgency → SMS admin
-  if (cls.urgency === 'high' && ADMIN_SMS) {
+  // High-urgency → SMS + Slack admin
+  if (cls.urgency === 'high') {
     const msgBody = `📞 URGENT voicemail from ${callerName || from}: ${cls.summary || transcript.slice(0, 100)}`
-    await sendSms({ to: ADMIN_SMS, body: msgBody.slice(0, 320) }).catch(() => {})
+    if (ADMIN_SMS) await sendSms({ to: ADMIN_SMS, body: msgBody.slice(0, 320) }).catch(() => {})
+    await postToOps(`*URGENT voicemail* from ${callerName || from} (${from}): ${cls.summary || transcript.slice(0, 160)}`).catch(() => {})
   }
 
   // new_lead / followup / unclear → admin email draft via Resend

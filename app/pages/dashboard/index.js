@@ -15,7 +15,7 @@ function getTrapImage(systemType, trapCount) {
   if (systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter' || systemType === 'MQ-RENT') return '/images/trap-mosqitter.webp'
   if (systemType === 'Biogents-NonCO2') return '/images/mosquitairenoco2.webp'
   if (systemType === 'Biogents-CO2') {
-    if (trapCount >= 3) return '/images/biogentstriple.png'
+    if (trapCount >= 3) return '/images/biogentstriple.webp'
     if (trapCount === 2) return '/images/mosquitairedouble.webp'
     return '/images/mosquitairesingle.jpg'
   }
@@ -40,13 +40,29 @@ export async function getServerSideProps({ req, query }) {
   // Redirect admin to analytics unless previewing the customer view
   if (isAdmin && !query.preview) return { redirect: { destination: '/admin/analytics', permanent: false } }
 
-  const [upcoming, past, subscriptions, invoices, contact, stripeCustomer] = await Promise.all([
+  // Compute stable referral code (same algorithm as ReferralProgram component)
+  const _refBase = email.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)
+  let _h = 0
+  for (let i = 0; i < email.length; i++) _h = ((_h << 5) - _h) + email.charCodeAt(i)
+  const refCode = (_refBase + Math.abs(_h).toString(36).slice(0, 4)).toUpperCase()
+
+  const [upcoming, past, subscriptions, invoices, contact, stripeCustomer, referralContacts] = await Promise.all([
     getUpcomingBookingsForEmail(email, 1).catch(() => []),
     getPastBookingsForEmail(email, 1).catch(() => []),
-    stripeCustomerId ? getSubscriptions(stripeCustomerId) : Promise.resolve([]),
-    stripeCustomerId ? getInvoices(stripeCustomerId, 24) : Promise.resolve([]),
+    stripeCustomerId ? getSubscriptions(stripeCustomerId).catch(() => []) : Promise.resolve([]),
+    stripeCustomerId ? getInvoices(stripeCustomerId, 24).catch(() => []) : Promise.resolve([]),
     findContactByEmail(email).catch(() => null),
     stripeCustomerId ? getCustomer(stripeCustomerId).catch(() => null) : Promise.resolve(null),
+    // Count contacts referred by this customer's code
+    fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filterGroups: [{ filters: [{ propertyName: 'referred_by', operator: 'EQ', value: refCode }] }],
+        properties: ['email', 'customer_status'],
+        limit: 100,
+      }),
+    }).then(r => r.json()).then(d => d.results || []).catch(() => []),
   ])
 
   const p = contact?.properties || {}
@@ -145,6 +161,10 @@ export async function getServerSideProps({ req, query }) {
         hostedUrl: inv.hosted_invoice_url,
         pdfUrl: inv.invoice_pdf,
       })),
+      // Referrals: count of contacts who used this customer's referral code
+      referralCount: referralContacts.filter(c =>
+        c.properties?.customer_status === 'customer' || c.properties?.customer_status === 'active'
+      ).length,
     },
   }
 }
@@ -340,7 +360,7 @@ function CustomerMediaUpload({ email }) {
   )
 }
 
-function ReferralProgram({ email, name }) {
+function ReferralProgram({ email, name, referralCount = 0 }) {
   const [copied, setCopied] = useState(false)
   // Generate stable referral code from email (first 8 alphanumeric chars of email + hash)
   const refCode = (() => {
@@ -416,11 +436,11 @@ function ReferralProgram({ email, name }) {
               </div>
               <div>
                 <span style={{ color: 'rgba(212,230,202,0.4)' }}>Referrals:</span>{' '}
-                <strong>0</strong>
+                <strong style={{ color: referralCount > 0 ? '#7dffaa' : '#d4e6ca' }}>{referralCount}</strong>
               </div>
               <div>
                 <span style={{ color: 'rgba(212,230,202,0.4)' }}>Earned:</span>{' '}
-                <strong style={{ color: '#7dffaa' }}>$0</strong>
+                <strong style={{ color: referralCount > 0 ? '#7dffaa' : 'rgba(212,230,202,0.6)' }}>${referralCount * 25}</strong>
               </div>
             </div>
           </div>
@@ -435,7 +455,7 @@ export default function CustomerOverview({
   nextBooking, prevBooking,
   systemType, trapCount, tankCount, hasTimer, customerType, installDate, trapImage, systemLabel,
   usesC02, nextRefillDate, systemFromAppointment, lastAppointmentTitle, systems = [],
-  subscription, invoices,
+  subscription, invoices, referralCount = 0,
 }) {
   const [dateRange, setDateRange] = useState(6)
 
@@ -610,6 +630,11 @@ export default function CustomerOverview({
                         <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width 0.4s ease' }} />
                       </div>
                       <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.45)' }}>{lifetimeNote}</div>
+                      {nextRefillDate && (
+                        <div style={{ marginTop: 6, fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)' }}>
+                          Next delivery: <strong style={{ color: pct <= 20 ? '#ff8080' : 'rgba(212,230,202,0.75)' }}>{fmtDate(nextRefillDate)}</strong>
+                        </div>
+                      )}
                       {pct <= 20 && (
                         <div style={{ marginTop: 8, padding: '6px 10px', borderRadius: 5, background: 'rgba(255,128,128,0.08)', border: '1px solid rgba(255,128,128,0.25)', fontSize: '0.76rem', color: '#ff8080', fontWeight: 700 }}>
                           Time for a refill
@@ -671,7 +696,7 @@ export default function CustomerOverview({
               <span className="tag">Active Plan</span>
               <div style={{ fontWeight: 900, fontSize: '1.2rem' }}>{fmtAmount(subscription.amount)}/{subscription.interval}</div>
               <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>
-                {subscription.label && `${subscription.label} · `}renews {fmtDate(new Date(subscription.currentPeriodEnd * 1000).toISOString())}
+                {subscription.label && `${subscription.label} · `}Next invoice: <strong style={{ color: 'rgba(212,230,202,0.75)' }}>{fmtDate(new Date(subscription.currentPeriodEnd * 1000).toISOString())}</strong>
               </div>
             </div>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
@@ -775,7 +800,7 @@ export default function CustomerOverview({
         {DIVIDER}
 
         {/* ── Referral Program ── */}
-        <ReferralProgram email={email} name={name} />
+        <ReferralProgram email={email} name={name} referralCount={referralCount} />
 
         {DIVIDER}
 

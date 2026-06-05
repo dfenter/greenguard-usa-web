@@ -13,9 +13,6 @@ const JOBS = {
     { name: 'billing-run',  url: `${PORTAL}/api/cron/billing-run?mode=run` },
     { name: 'books-daily',  url: `${PORTAL}/api/cron/books-daily` },
   ],
-  '0 14 * * 1': [
-    { name: 'annual-review', url: `${PORTAL}/api/cron/annual-review` },
-  ],
   '0 11 1 * *': [
     { name: 'books-close', url: `${PORTAL}/api/cron/books-close` },
   ],

@@ -43,12 +43,24 @@ const faqs = [
     a: 'Trap rental, monthly CO₂ tank exchange, quarterly maintenance, lure replacement, and seasonal placement tuning. Texas sales tax (8.25%) is shown on every invoice.',
   },
 ];
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqs.map(f => ({
+    "@type": "Question",
+    "name": f.q,
+    "acceptedAnswer": { "@type": "Answer", "text": f.a }
+  }))
+};
 ---
 
 <Base
-  title="Mosquito Control FAQ | GreenGuard USA"
-  description="Answers to common questions about CO₂ mosquito traps, service areas, and how trap-based control works."
+  title="Mosquito Control FAQ Austin TX | GreenGuard USA"
+  description="Everything Austin homeowners ask about CO₂ mosquito trapping: how it works, what it costs, how long results take, and how it compares to spray treatments."
 >
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
     <div class="max-w-2xl mx-auto">
@@ -65,7 +77,7 @@ const faqs = [
   <!-- FAQ LIST -->
   <section class="py-12 px-5">
     <div class="max-w-3xl mx-auto space-y-3">
-      {faqs.map((f, i) => (
+      {faqs.map((f) => (
         <details class="card group">
           <summary class="cursor-pointer font-bold text-white flex justify-between items-start gap-3">
             <span>{f.q}</span>

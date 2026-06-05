@@ -5,7 +5,6 @@ import PortalLayout from '../../../components/PortalLayout'
 import { getSessionFromRequest } from '../../../lib/auth'
 import { findContactByEmail, getNotesForContact } from '../../../lib/hubspot'
 import { stripe } from '../../../lib/stripe'
-import { getBookingsForEmail } from '../../../lib/calcom'
 import { EVENT_TYPES } from '../../../lib/sku-engine'
 
 export async function getServerSideProps({ req, params }) {
@@ -36,10 +35,7 @@ export async function getServerSideProps({ req, params }) {
     }
   } catch { /* no Stripe customer */ }
 
-  let bookings = []
-  try {
-    bookings = await getBookingsForEmail(email)
-  } catch { /* Cal.com not configured */ }
+  const bookings = []
 
   const notes = await getNotesForContact(contact.id, 10)
 

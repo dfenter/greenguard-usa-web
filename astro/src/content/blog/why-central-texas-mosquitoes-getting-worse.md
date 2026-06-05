@@ -1,6 +1,6 @@
 ---
-title: Why Central Texas Mosquitoes Are Getting Harder to Ignore
-description: Most Austin homeowners who have lived here for a decade or more have noticed that mosquito pressure feels higher than it used to. That perception is backed by real data, and the reasons are structural rather than simply cyclical bad luck.
+title: "Why Are Mosquitoes So Bad in Austin? The Real Reasons (And What to Do)"
+description: "Mosquitoes in Austin are objectively worse than they were 10 years ago. Climate patterns, urban development, and invasive species explain why — and what actually works to control them."
 pubDate: 2025-05-03
 category: Mosquito Science
 ---

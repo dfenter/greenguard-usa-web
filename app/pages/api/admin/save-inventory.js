@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   // Persist the entire body so equipment counts, emptyEnd, emptiesPickedUp, etc.
   // are available for next-day prefill. Older readers only need the tank fields.
   const body = req.body || {}
-  const { date, fullEnd, needed, notes } = body
+  const { date, fullEnd, needed, notes, delivered } = body
 
   // Tank logs are stored as Notes on the admin HubSpot contact. Auto-create if missing
   // so a fresh HubSpot instance / deleted admin contact doesn't break inventory saves.

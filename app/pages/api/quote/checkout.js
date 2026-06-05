@@ -38,6 +38,9 @@ export default async function handler(req, res) {
     shippingTotal = 0,
   } = quote
 
+  // Attribution data passed from the browser's sessionStorage
+  const attribution = req.body?.attribution || {}
+
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
   const stripe = getStripe()
 
@@ -85,7 +88,22 @@ export default async function handler(req, res) {
       })
     }
 
-    // Add shipping — server-validated, max $1,000
+    // Apply Texas 8.25% sales tax to services/products only (before shipping — TX delivery charges are exempt)
+    const TX_TAX_RATE = 0.0825
+    const taxCents = Math.round(runningCents * TX_TAX_RATE)
+    if (taxCents > 0) {
+      runningCents += taxCents
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: { name: 'Tax (8.25% TX)' },
+          unit_amount: taxCents,
+        },
+        quantity: 1,
+      })
+    }
+
+    // Add shipping after tax — delivery charges are not subject to TX sales tax
     const shippingCents = Math.round(Number(shippingTotal || 0) * 100)
     if (shippingCents > 0) {
       if (shippingCents > 100_000) return res.status(400).json({ error: 'Shipping amount exceeds maximum' })
@@ -95,19 +113,6 @@ export default async function handler(req, res) {
         quantity: 1,
       })
     }
-
-    // Always apply Texas 8.25% sales tax server-side
-    const TX_TAX_RATE = 0.0825
-    const taxCents = Math.round(runningCents * TX_TAX_RATE)
-    runningCents += taxCents
-    lineItems.push({
-      price_data: {
-        currency: 'usd',
-        product_data: { name: 'Tax (8.25% TX)' },
-        unit_amount: taxCents,
-      },
-      quantity: 1,
-    })
 
     if (runningCents > MAX_TOTAL_CENTS) {
       console.error('Quote total exceeds cap:', runningCents)
@@ -122,6 +127,12 @@ export default async function handler(req, res) {
         quote_jti: quote.jti || '',
         customerAddress: customerAddress || '',
         customerName: customerName || '',
+        gclid: String(attribution.gclid || '').slice(0, 100),
+        fbclid: String(attribution.fbclid || '').slice(0, 100),
+        utm_source: String(attribution.utm_source || '').slice(0, 100),
+        utm_medium: String(attribution.utm_medium || '').slice(0, 100),
+        utm_campaign: String(attribution.utm_campaign || '').slice(0, 100),
+        ref: String(attribution.ref || '').slice(0, 20),
       },
       // Collect shipping address when shippable items are in the quote
       ...(shippingCents > 0 && { shipping_address_collection: { allowed_countries: ['US'] } }),
@@ -135,10 +146,16 @@ export default async function handler(req, res) {
     sessionConfig.success_url = `${APP_URL}/quote/${token}?accepted=1`
     sessionConfig.cancel_url = `${APP_URL}/quote/${token}`
 
-    const session = await stripe.checkout.sessions.create(sessionConfig)
+    // Idempotency key: same JTI + email always returns the same session
+    const crypto = require('crypto')
+    const idempotencyKey = crypto.createHash('sha256')
+      .update(`quote-checkout:${quote.jti}:${customerEmail || ''}`)
+      .digest('hex')
+
+    const session = await stripe.checkout.sessions.create(sessionConfig, { idempotencyKey })
     return res.status(200).json({ url: session.url })
   } catch (e) {
-    console.error('Stripe checkout error:', e.message)
-    return res.status(500).json({ error: 'Failed to create checkout session' })
+    console.error('[quote-checkout] error:', e.message)
+    return res.status(500).json({ error: 'Failed to create checkout session. Please try again.' })
   }
 }

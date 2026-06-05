@@ -63,10 +63,11 @@ const products = [
     image: '/images/prod-co2-timer.png',
     desc: 'Programmable timer pauses CO₂ during low-activity hours. Reduces tank consumption by up to 50%.',
     pills: ['Up to 75% CO₂ savings', 'Battery-powered', 'Controls up to 5 traps'],
+    outOfStock: true,
   },
   {
     id: 'co2-tank-20lb',
-    name: 'CO₂ Tank — 20 lb Empty Cylinder',
+    name: 'CO₂ Tank (20 lb Empty Cylinder)',
     tagline: 'DOT-certified. CGA-320 valve. Refill anywhere.',
     badge: 'Accessory',
     badgeStyle: 'neutral',
@@ -247,15 +248,25 @@ function badgeClasses(style: string) {
               )}
             </div>
             <div class="flex gap-2">
-              <button
-                class="flex-1 py-3 rounded-lg font-black text-xs tracking-widest uppercase transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style="background: linear-gradient(135deg, #d4b45a, #c9a84c); color: #070e08;"
-                data-id={p.id}
-                data-name={p.name}
-                data-price={p.price}
-              >
-                Add to Cart
-              </button>
+              {p.outOfStock ? (
+                <button
+                  disabled
+                  class="flex-1 py-3 rounded-lg font-black text-xs tracking-widest uppercase cursor-not-allowed"
+                  style="background: rgba(122,171,130,0.08); color: rgba(212,230,202,0.3); border: 1px solid rgba(122,171,130,0.15);"
+                >
+                  Out of Stock
+                </button>
+              ) : (
+                <button
+                  class="flex-1 py-3 rounded-lg font-black text-xs tracking-widest uppercase transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style="background: linear-gradient(135deg, #d4b45a, #c9a84c); color: #070e08;"
+                  data-id={p.id}
+                  data-name={p.name}
+                  data-price={p.price}
+                >
+                  Add to Cart
+                </button>
+              )}
               <a
                 href={`/shop/${p.id}`}
                 class="px-4 py-3 rounded-lg font-bold text-xs text-cream/50 hover:text-cream/80 transition-colors"
@@ -267,6 +278,54 @@ function badgeClasses(style: string) {
           </div>
         </article>
       ))}
+    </div>
+  </div>
+</section>
+
+<!-- TRAP COMPARISON TABLE -->
+<section class="py-14 px-5 bg-bg-panel">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-8">
+      <div class="eyebrow mb-2">Quick Comparison</div>
+      <h2 class="text-2xl font-black text-white tracking-tight">Trap models side by side</h2>
+    </div>
+    <div class="overflow-x-auto rounded-xl" style="border: 1px solid rgba(122,171,130,0.15);">
+      <table class="w-full text-sm" style="border-collapse: collapse;">
+        <thead>
+          <tr style="background: rgba(122,171,130,0.08); border-bottom: 1px solid rgba(122,171,130,0.15);">
+            <th class="text-left px-4 py-3 text-cream/50 font-bold w-[22%]">Feature</th>
+            <th class="px-3 py-3 text-center text-cream/80 font-black text-xs">BG-Mosquitaire CO₂</th>
+            <th class="px-3 py-3 text-center font-black text-xs" style="color: #c9a84c;">All-in-One Bundle</th>
+            <th class="px-3 py-3 text-center text-cream/80 font-black text-xs">Mosqitter Grand</th>
+            <th class="px-3 py-3 text-center text-cream/80 font-black text-xs">BG No-CO₂</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            { label: 'Price', bg: '$279.99', bundle: '$549.99', grand: '$1,849.99', noco2: '$179.99' },
+            { label: 'Coverage', bg: 'Up to 6,500 sq ft', bundle: 'Up to 6,500 sq ft', grand: 'Up to 2 acres', noco2: 'Indoor/covered areas' },
+            { label: 'CO₂ required', bg: 'Yes', bundle: 'Yes (tank included)', grand: 'Yes', noco2: 'No' },
+            { label: 'App/Bluetooth', bg: 'No', bundle: 'No', grand: 'Yes', noco2: 'No' },
+            { label: 'Best use', bg: 'Standard yard', bundle: 'Complete starter kit', grand: 'Large/premium property', noco2: 'Patio/porch/garage' },
+            { label: 'Works with GG delivery', bg: 'Yes', bundle: 'Yes', grand: 'Yes', noco2: 'N/A (no CO₂ needed)' },
+          ].map((row, i) => (
+            <tr style={`border-bottom: 1px solid rgba(122,171,130,0.08); background: ${i % 2 === 0 ? 'transparent' : 'rgba(122,171,130,0.03)'};`}>
+              <td class="px-4 py-3 text-cream/60 font-semibold text-xs">{row.label}</td>
+              <td class="px-3 py-3 text-center text-cream/70 text-xs">{row.bg}</td>
+              <td class="px-3 py-3 text-center text-cream/90 font-semibold text-xs">{row.bundle}</td>
+              <td class="px-3 py-3 text-center text-cream/70 text-xs">{row.grand}</td>
+              <td class="px-3 py-3 text-center text-cream/70 text-xs">{row.noco2}</td>
+            </tr>
+          ))}
+          <tr style="background: rgba(122,171,130,0.04); border-top: 1px solid rgba(122,171,130,0.15);">
+            <td class="px-4 py-3"></td>
+            <td class="px-3 py-3 text-center"><a href="/shop/biogents-co2-trap" class="text-accent text-xs font-bold hover:underline">View →</a></td>
+            <td class="px-3 py-3 text-center"><a href="/shop/all-in-one-bundle" class="text-gold text-xs font-bold hover:underline">View →</a></td>
+            <td class="px-3 py-3 text-center"><a href="/shop/mosqitter-grand" class="text-accent text-xs font-bold hover:underline">View →</a></td>
+            <td class="px-3 py-3 text-center"><a href="/shop/biogents-non-co2-trap" class="text-accent text-xs font-bold hover:underline">View →</a></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
@@ -285,7 +344,7 @@ function badgeClasses(style: string) {
           scenario: 'I want a proven system and I\'m ready to manage CO₂.',
           rec: 'All-in-One Bundle',
           link: '/shop/all-in-one-bundle',
-          why: 'The complete starter kit. Everything arrives together — trap, timer, tank, and bait. Add a CO₂ fill and you\'re running the same day.',
+          why: 'The complete starter kit. Everything arrives together: trap, timer, tank, and bait. Add a CO₂ fill and you\'re running the same day.',
           price: '$549.99',
         },
         {
@@ -343,6 +402,22 @@ function badgeClasses(style: string) {
     // Success banner
     if (new URLSearchParams(window.location.search).get('order') === 'success') {
       document.getElementById('order-success')?.classList.remove('hidden');
+      // Recover cart value for revenue tracking before clearing
+      let cartValue = 0;
+      try {
+        const cart = JSON.parse(localStorage.getItem('gg_cart') || '[]');
+        cartValue = cart.reduce((s: number, i: {price?: number, qty?: number}) => s + ((i.price || 0) * (i.qty || 1)), 0);
+      } catch {}
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'purchase', {
+          currency: 'USD',
+          value: cartValue,
+          transaction_id: Date.now().toString(),
+        });
+      }
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', 'Purchase', { currency: 'USD', value: cartValue });
+      }
       localStorage.removeItem('gg_cart');
     }
 

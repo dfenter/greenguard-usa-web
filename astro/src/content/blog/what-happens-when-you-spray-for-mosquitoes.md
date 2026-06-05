@@ -1,6 +1,6 @@
 ---
-title: What Happens to Your Garden When You Spray for Mosquitoes
-description: Residential mosquito spray programs are designed to kill mosquitoes. They are also effective at killing a broad range of other insects, and the effects on a garden ecosystem are worth understanding before you sign up for a spray subscription.
+title: "What Happens When You Spray for Mosquitoes? The Hidden Costs to Your Garden"
+description: "Mosquito spray kills more than mosquitoes. Before signing up for a spray program, here is what the research says about the impact on your garden, bees, and beneficial insects."
 pubDate: 2025-03-28
 category: Environment
 ---

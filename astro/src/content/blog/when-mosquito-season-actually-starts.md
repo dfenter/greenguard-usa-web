@@ -1,6 +1,6 @@
 ---
-title: When Mosquito Season Actually Starts in Austin
-description: Most Austin homeowners treat mosquito season as something that begins when it becomes unbearable, usually sometime in late May or June. The mosquitoes operate on a different calendar, and understanding it changes how effective any control program will be.
+title: "When Does Mosquito Season Start in Austin? (Month-by-Month Guide)"
+description: "Austin mosquito season starts in March — weeks before most homeowners notice. Here is the month-by-month breakdown of what to expect and when to start trapping for best results."
 pubDate: 2025-03-12
 category: Mosquito Science
 ---

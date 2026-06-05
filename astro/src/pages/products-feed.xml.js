@@ -28,11 +28,13 @@ const products = [
   {
     id:          'product-all-in-one',
     shopSlug:    'all-in-one-bundle',
-    name:        'Biogents Mosquito Trap All-in-One Starter Bundle',
+    name:        'Biogents Mosquito Trap All-in-One Starter Bundle — Trap + Timer + Tank + Bait',
     price:       '549.99',
+    salePrice:   null,
+    originalPrice: '619.97',
     image:       `${BASE}/images/prod-all-in-one-bundle.jpg`,
     mpn:         'BG-BUNDLE-ALL-IN-ONE',
-    description: 'Complete mosquito control starter kit. Includes Biogents BG-Mosquitaire CO2 trap, CO2 tank timer, empty 20 lb CO2 tank, and BG-Sweetscent bait pack. Everything you need to start trapping mosquitoes the same day.',
+    description: 'Complete mosquito control starter kit. Includes Biogents BG-Mosquitaire CO2 trap, CO2 tank timer, empty 20 lb CO2 tank, and BG-Sweetscent bait pack. Save $69.98 vs buying individually. Everything to start trapping mosquitoes the same day.',
   },
   {
     id:          'product-co2-tank',
@@ -48,6 +50,7 @@ const products = [
     shopSlug:    'biogents-co2-timer',
     name:        'Biogents CO2 Tank Timer for Mosquito Traps',
     price:       '89.99',
+    availability: 'out of stock',
     image:       `${BASE}/images/prod-co2-timer.png`,
     mpn:         'BG-CO2-TIMER',
     description: 'Programmable CO2 tank timer for Biogents BG-Mosquitaire traps. Reduces CO2 consumption by up to 75% by running the trap only during peak mosquito activity hours. Controls up to 5 traps. 9V battery powered.',
@@ -78,12 +81,24 @@ export async function GET() {
       <description><![CDATA[${p.description}]]></description>
       <g:image_link>${p.image}</g:image_link>
       <g:price>${p.price} USD</g:price>
-      <g:availability>in stock</g:availability>
+      ${p.originalPrice ? `<g:sale_price>${p.price} USD</g:sale_price>` : ''}
+      <g:availability>${p.availability || 'in stock'}</g:availability>
       <g:condition>new</g:condition>
-      <g:brand>GreenGuard USA</g:brand>
-      <g:google_product_category>Home &amp; Garden &gt; Pest Control</g:google_product_category>
+      <g:brand>Biogents</g:brand>
+      <g:google_product_category>2870</g:google_product_category>
+      <g:product_type>Pest Control &gt; Mosquito Traps &gt; CO2 Mosquito Traps</g:product_type>
       <g:mpn>${p.mpn}</g:mpn>
       <g:identifier_exists>no</g:identifier_exists>
+      <g:shipping>
+        <g:country>US</g:country>
+        <g:service>Standard Shipping</g:service>
+        <g:price>0 USD</g:price>
+      </g:shipping>
+      <g:tax>
+        <g:country>US</g:country>
+        <g:rate>8.25</g:rate>
+        <g:tax_ship>no</g:tax_ship>
+      </g:tax>
     </item>`).join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

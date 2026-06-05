@@ -337,7 +337,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
     }
     onChange(lines)
     if (onConfigChange) onConfigChange({ system, plan, trapCount, mqPlan, mqCount, serviceDate })
-  }, [system, plan, trapCount, onTankService, mqPlan, mqInstall, tankCount, tankHookup, serviceDate])
+  }, [system, plan, trapCount, onTankService, mqPlan, mqCount, mqInstall, tankCount, tankHookup, serviceDate])
 
   // Reset date and clamp if user picks earlier than min
   useEffect(() => {
@@ -591,16 +591,15 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       center: { lat: 30.2672, lng: -97.7431 },
       zoom: 15,
       mapTypeId: 'satellite',
+      mapId: 'DEMO_MAP_ID',
       tilt: 0,
       disableDefaultUI: true,
       zoomControl: true,
       scaleControl: true,
     })
-    pinRef.current = new window.google.maps.Marker({
+    pinRef.current = new window.google.maps.marker.AdvancedMarkerElement({
       position: { lat: 30.2672, lng: -97.7431 },
-      map: mapObj.current,
-      draggable: true,
-      visible: false,
+      gmpDraggable: true,
     })
     mapObj.current.addListener('click', (e) => {
       if (!placingPinRef.current) return
@@ -643,29 +642,28 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   // Sync machine pin markers to Google Maps
   useEffect(() => {
     if (!mapObj.current) return
-    const currentIds = new Set(machPins.map((p) => p.id))
-    machPinMarkersRef.current.forEach((marker, id) => {
-      if (!currentIds.has(id)) { marker.setMap(null); machPinMarkersRef.current.delete(id) }
-    })
+    machPinMarkersRef.current.forEach((marker) => { marker.map = null })
+    machPinMarkersRef.current.clear()
     machPins.forEach((pin, idx) => {
-      if (machPinMarkersRef.current.has(pin.id)) {
-        const m = machPinMarkersRef.current.get(pin.id)
-        m.setPosition({ lat: pin.lat, lng: pin.lng })
-        m.setLabel({ text: String(idx + 1), color: '#0d1a10', fontWeight: 'bold', fontSize: '11px' })
-      } else {
-        const marker = new window.google.maps.Marker({
-          position: { lat: pin.lat, lng: pin.lng },
-          map: mapObj.current,
-          label: { text: String(idx + 1), color: '#0d1a10', fontWeight: 'bold', fontSize: '11px' },
-          icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 13, fillColor: '#7dffaa', fillOpacity: 1, strokeColor: '#1a2e1f', strokeWeight: 2 },
-          title: `Trap ${idx + 1}`,
-          draggable: true,
-        })
-        marker.addListener('dragend', (ev) => {
-          setMachPins((prev) => prev.map((p) => p.id === pin.id ? { ...p, lat: ev.latLng.lat(), lng: ev.latLng.lng() } : p))
-        })
-        machPinMarkersRef.current.set(pin.id, marker)
-      }
+      const pinEl = new window.google.maps.marker.PinElement({
+        background: '#7dffaa',
+        borderColor: '#1a2e1f',
+        glyphColor: '#0d1a10',
+        glyph: String(idx + 1),
+        scale: 1.1,
+      })
+      const marker = new window.google.maps.marker.AdvancedMarkerElement({
+        position: { lat: pin.lat, lng: pin.lng },
+        map: mapObj.current,
+        title: `Trap ${idx + 1}`,
+        gmpDraggable: true,
+        content: pinEl.element,
+      })
+      marker.addListener('gmpDragend', () => {
+        const pos = marker.position
+        setMachPins((prev) => prev.map((p) => p.id === pin.id ? { ...p, lat: pos.lat, lng: pos.lng } : p))
+      })
+      machPinMarkersRef.current.set(pin.id, marker)
     })
   }, [machPins])
 
@@ -687,8 +685,8 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   // Pan to pin when geocode resolves + auto-select shipping mode by distance
   useEffect(() => {
     if (!mapPin || !mapObj.current || !pinRef.current) return
-    pinRef.current.setPosition(mapPin)
-    pinRef.current.setVisible(true)
+    pinRef.current.position = mapPin
+    pinRef.current.map = mapObj.current
     mapObj.current.panTo(mapPin)
     mapObj.current.setZoom(19)
 

@@ -24,6 +24,19 @@ const CAL_EVENT = 'property-assessment';
     </div>
   </section>
 
+  <!-- ZIP CHECKER -->
+  <section class="py-8 px-5">
+    <div class="max-w-md mx-auto text-center">
+      <p class="text-cream/60 text-sm font-bold uppercase tracking-widest mb-3">Check if we serve your area</p>
+      <div class="flex gap-2">
+        <input id="zip-input" type="text" inputmode="numeric" maxlength="5" placeholder="Your ZIP code"
+          class="flex-1 bg-bg-card border border-accent/20 text-cream rounded-lg px-4 py-3 text-center text-base font-bold tracking-widest outline-none focus:border-gold/60" />
+        <button id="zip-btn" class="btn-gold whitespace-nowrap">Check</button>
+      </div>
+      <div id="zip-result" class="mt-3 text-sm font-bold min-h-[20px]"></div>
+    </div>
+  </section>
+
   <!-- BOOKING EMBED -->
   <section class="py-12 px-5">
     <div class="max-w-3xl mx-auto">
@@ -47,11 +60,65 @@ const CAL_EVENT = 'property-assessment';
   </section>
 
   <script>
+    // ZIP checker — 45-mile radius from 78703 (Austin depot)
+    const DEPOT = { lat: 30.2741, lng: -97.7602 };
+    function haversine(lat1, lng1, lat2, lng2) {
+      const R = 3958.8, d2r = Math.PI / 180;
+      const dLat = (lat2 - lat1) * d2r, dLng = (lng2 - lng1) * d2r;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*d2r)*Math.cos(lat2*d2r)*Math.sin(dLng/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+    async function checkZip() {
+      const zip = (document.getElementById('zip-input') as HTMLInputElement)?.value?.trim();
+      const result = document.getElementById('zip-result')!;
+      if (!zip || zip.length !== 5 || !/^\d+$/.test(zip)) {
+        result.style.color = '#ffb060'; result.textContent = 'Enter a valid 5-digit ZIP code.'; return;
+      }
+      result.style.color = 'rgba(212,230,202,0.5)'; result.textContent = 'Checking…';
+      try {
+        const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const place = data.places?.[0];
+        const miles = haversine(DEPOT.lat, DEPOT.lng, parseFloat(place.latitude), parseFloat(place.longitude));
+        if (miles <= 45) {
+          result.style.color = '#7dffaa';
+          result.textContent = `✓ We serve ${place['place name']}, TX — ${Math.round(miles)} miles away. Go ahead and book!`;
+          if (window.gtag) window.gtag('event', 'zip_check', { zip, in_service_area: true });
+        } else {
+          result.style.color = '#ffb060';
+          result.textContent = `We don't currently serve ${zip} (${Math.round(miles)} mi away). We're expanding — check back soon.`;
+          if (window.gtag) window.gtag('event', 'zip_check', { zip, in_service_area: false });
+        }
+      } catch { result.style.color = '#ffb060'; result.textContent = "Could not look up that ZIP — book anyway and we'll confirm your area."; }
+    }
+    document.getElementById('zip-btn')?.addEventListener('click', checkZip);
+    (document.getElementById('zip-input') as HTMLInputElement)?.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') checkZip(); });
+
     // Cal.com fires a postMessage when a booking is confirmed
-    window.addEventListener('message', (e) => {
+    window.addEventListener('message', async (e) => {
       if (e.data?.type === 'bookingSuccessful' || e.data?.action === 'bookingSuccessful') {
         if (typeof window.gtag === 'function') {
           window.gtag('event', 'generate_lead', { event_category: 'booking', event_label: 'property_assessment' });
+          window.gtag('event', 'qualify_lead', { event_category: 'booking', event_label: 'property_assessment' });
+        }
+        if (typeof window.fbq === 'function') {
+          window.fbq('track', 'Lead', { content_name: 'Property Assessment Booking', value: 25, currency: 'USD' });
+        }
+        // Always save to HubSpot — regardless of ad attribution source
+        const bookerEmail = e.data?.booking?.attendees?.[0]?.email || e.data?.attendee?.email || null;
+        if (bookerEmail) {
+          const payload: Record<string, string> = { email: bookerEmail, source: 'booking' };
+          // Attach any attribution data from sessionStorage
+          ['gclid','fbclid','utm_source','utm_medium','utm_campaign','utm_content','ref'].forEach(k => {
+            const v = sessionStorage.getItem('gg_' + k);
+            if (v) payload[k === 'ref' ? 'referredBy' : k] = v;
+          });
+          await fetch('/api/lead-capture', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          }).catch(() => {});
         }
       }
     });

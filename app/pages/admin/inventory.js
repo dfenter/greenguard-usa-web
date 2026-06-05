@@ -10,8 +10,11 @@ export async function getServerSideProps({ req }) {
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
   const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
-  const { history, tankCalendar, scheduleByDate, expectedDelivery, weeklyTankTotal, today } = await buildTankCalendarData(tz)
-  return { props: { history, tankCalendar, scheduleByDate, expectedDelivery, weeklyTankTotal, today } }
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
+  let tankData = { history: [], tankCalendar: [], scheduleByDate: {}, expectedDelivery: null, weeklyTankTotal: 0, today }
+  try { tankData = await buildTankCalendarData(tz) } catch {}
+  const { history, tankCalendar, scheduleByDate, expectedDelivery, weeklyTankTotal } = tankData
+  return { props: { history, tankCalendar, scheduleByDate, expectedDelivery, weeklyTankTotal, today: tankData.today } }
 }
 
 

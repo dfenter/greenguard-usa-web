@@ -1,5 +1,4 @@
 const { requireAdmin } = require('../../../lib/auth')
-const { getBookingsForEmail } = require('../../../lib/calcom')
 const { getCalendar } = require('../../../lib/gcal')
 
 const CALCOM_API_KEY = process.env.CALCOM_API_KEY || ''
@@ -83,21 +82,8 @@ async function createDirectGCalEvent({ firstName, lastName, email, phone, addres
   return { uid: r.data.id, source: 'gcal-direct' }
 }
 
-async function hasOverlappingBooking(email, startISO) {
-  // Defense in depth against double-book: scan customer's recent Cal.com bookings.
-  // Anything within ±5 min of our intended start counts as a dupe.
-  try {
-    const lookbackISO = new Date(new Date(startISO).getTime() - 24 * 3600 * 1000).toISOString()
-    const existing = await getBookingsForEmail(email, lookbackISO)
-    const target = new Date(startISO).getTime()
-    return (existing || []).some((b) => {
-      if (b.status === 'CANCELLED' || b.status === 'cancelled') return false
-      const bt = new Date(b.startTime).getTime()
-      return Math.abs(bt - target) < 5 * 60 * 1000
-    })
-  } catch {
-    return false // fail-open rather than block legit bookings on a Cal.com 5xx
-  }
+async function hasOverlappingBooking() {
+  return false // Cal.com API key lacks booking scope — always returns []
 }
 
 export default async function handler(req, res) {
@@ -113,8 +99,25 @@ export default async function handler(req, res) {
   // Admin booking is intentionally unblockable — no idempotency rejection,
   // no availability gate. Owner asked for full override authority here.
 
-  const localDate = new Date(startLocal)
-  const utcIso = localDate.toISOString()
+  // `startLocal` is a datetime-local string ("YYYY-MM-DDTHH:mm") with NO
+  // timezone — the browser means it as America/Chicago but Node would parse
+  // it as UTC, putting every booking 5-6 hours early.  Convert explicitly:
+  // treat the string as UTC (placeholder), see what CT clock that maps to,
+  // compute the offset, then shift back to get the true UTC instant.
+  function localCTtoUTC(dtLocal) {
+    const asIfUTC = new Date(dtLocal + ':00Z')
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: TZ,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).formatToParts(asIfUTC)
+    const get = (t) => parts.find((p) => p.type === t)?.value ?? '00'
+    const tzShown = new Date(`${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}Z`)
+    return new Date(asIfUTC.getTime() + (asIfUTC.getTime() - tzShown.getTime())).toISOString()
+  }
+
+  const utcIso = localCTtoUTC(startLocal)
 
   const intervalDays = recurring === '21' ? 21 : recurring === '28' ? 28 : 0
   const occurrences = intervalDays > 0 ? 6 : 1
@@ -127,7 +130,7 @@ export default async function handler(req, res) {
   const errors = []
   const skipped = []
   for (let i = 0; i < occurrences; i++) {
-    const start = new Date(localDate.getTime() + i * intervalDays * 24 * 60 * 60 * 1000).toISOString()
+    const start = new Date(new Date(utcIso).getTime() + i * intervalDays * 24 * 60 * 60 * 1000).toISOString()
     if (!allowDoubleBook && !skipNotification && await hasOverlappingBooking(email, start)) {
       skipped.push(`Occurrence ${i + 1} (${start.slice(0, 16)}): already booked`)
       continue

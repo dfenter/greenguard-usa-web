@@ -1,6 +1,6 @@
 ---
-title: Protecting Pollinators While Controlling Mosquitoes
-description: Austin has a large and engaged community of native plant gardeners and pollinator advocates. For most of the history of residential mosquito control, effective treatment and pollinator protection were genuinely in conflict. CO₂ trapping has resolved that conflict.
+title: "Does Mosquito Control Kill Bees and Butterflies? How to Protect Pollinators"
+description: "Mosquito sprays kill bees and beneficial insects. CO₂ traps do not. Here is exactly how CO₂ trapping protects your pollinators while still eliminating mosquitoes."
 pubDate: 2025-05-05
 category: Environment
 ---

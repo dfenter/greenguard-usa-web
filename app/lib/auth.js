@@ -32,9 +32,21 @@ function getKV() {
 }
 
 const _memJtis = new Map() // jti → expiresAt(ms)
+const _MAX_MEM_JTIS = 5000  // cap memory use — LRU evict oldest when exceeded
+
 function _memPrune() {
   const now = Date.now()
   for (const [k, exp] of _memJtis) if (exp < now) _memJtis.delete(k)
+  // LRU eviction if still over limit
+  if (_memJtis.size > _MAX_MEM_JTIS) {
+    const sorted = [..._memJtis.entries()].sort((a, b) => a[1] - b[1])
+    sorted.slice(0, Math.floor(_MAX_MEM_JTIS / 5)).forEach(([k]) => _memJtis.delete(k))
+  }
+}
+
+// Proactive cleanup every 5 minutes to prevent unbounded growth
+if (typeof setInterval !== 'undefined') {
+  setInterval(_memPrune, 5 * 60 * 1000)
 }
 
 async function consumeJti(jti, ttlSeconds = 900) {
@@ -101,7 +113,7 @@ async function verifyToken(token) {
   }
 }
 
-async function getSessionFromRequest(req) {
+async function getSessionFromRequest(req, res) {
   const cookie = req.cookies?.gg_session
   if (!cookie) return null
   const payload = await verifyToken(cookie)
@@ -109,6 +121,13 @@ async function getSessionFromRequest(req) {
   // Backfill role for sessions issued before the role field existed
   if (!payload.role) {
     payload.role = isOwnerEmail(payload.email) ? 'owner' : isAdminEmail(payload.email) ? 'tech' : payload.stripeCustomerId ? 'customer' : 'prospect'
+  }
+  // Sliding session — refresh cookie if it was issued more than 1 day ago
+  // Keeps iOS PWA sessions alive as long as Bruce uses the app at least weekly
+  if (res && payload.iat && (Date.now() / 1000 - payload.iat) > 86400) {
+    const { serialize } = require('cookie')
+    const fresh = await createSessionToken(payload.email, payload.stripeCustomerId)
+    res.setHeader('Set-Cookie', serialize(SESSION_COOKIE_NAME, fresh, SESSION_COOKIE_OPTIONS))
   }
   return payload
 }
@@ -131,7 +150,7 @@ function isOwnerEmail(email) {
 // Usage:
 //   const session = await requireOwner(req, res); if (!session) return
 async function _gate(req, res, predicate, errorStatus = 403) {
-  const session = await getSessionFromRequest(req)
+  const session = await getSessionFromRequest(req, res)
   if (!session) { res.status(401).json({ error: 'Unauthorized' }); return null }
   if (!predicate(session)) { res.status(errorStatus).json({ error: 'Forbidden' }); return null }
   return session
@@ -148,8 +167,8 @@ function escapeStripeSearch(v) {
 const SESSION_COOKIE_NAME = 'gg_session'
 const SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  secure: true,          // Always HTTPS (portal is always on Vercel/HTTPS)
+  sameSite: 'lax',      // Lax allows magic link redirects from email clients
   path: '/',
   maxAge: 60 * 60 * 24 * 90, // 90 days in seconds
 }

@@ -122,6 +122,30 @@ const objections = [
   title="CO₂ Mosquito Trap Rental Austin TX | GreenGuard USA"
   description="Rent a professional CO₂ mosquito trap from GreenGuard USA. We own it, maintain it, and deliver CO₂ monthly. Pesticide-free, month-to-month, no contracts."
 >
+  <script type="application/ld+json" slot="head">{JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": objections.map(o => ({
+      "@type": "Question",
+      "name": o.q,
+      "acceptedAnswer": { "@type": "Answer", "text": o.a }
+    }))
+  })}</script>
+  <script type="application/ld+json" slot="head">{JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "CO₂ Mosquito Trap Rental",
+    "description": "Professional CO₂ mosquito trap rental service for Austin TX homeowners. We install, maintain, and service Biogents traps monthly. No pesticides, no contracts.",
+    "provider": { "@type": "LocalBusiness", "name": "GreenGuard USA", "telephone": "+1-512-560-4129", "url": "https://www.greenguard-usa.com" },
+    "areaServed": { "@type": "City", "name": "Austin", "addressRegion": "TX" },
+    "offers": [
+      { "@type": "Offer", "name": "1 Trap Rental", "price": "159.99", "priceCurrency": "USD", "priceSpecification": { "@type": "UnitPriceSpecification", "billingDuration": "P1M" } },
+      { "@type": "Offer", "name": "2 Trap Rental", "price": "266.99", "priceCurrency": "USD", "priceSpecification": { "@type": "UnitPriceSpecification", "billingDuration": "P1M" } },
+      { "@type": "Offer", "name": "3 Trap Rental", "price": "399.99", "priceCurrency": "USD", "priceSpecification": { "@type": "UnitPriceSpecification", "billingDuration": "P1M" } }
+    ],
+    "serviceType": "Mosquito Control",
+    "url": "https://www.greenguard-usa.com/traprental"
+  })}</script>
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
     <div class="max-w-3xl mx-auto">

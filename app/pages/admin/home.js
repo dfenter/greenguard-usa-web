@@ -6,14 +6,14 @@ import TankCalendar from '../../components/TankCalendar'
 import CustomerMap from '../../components/CustomerMap'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
-import { findContactsByEmails, getAllContacts, tanksForCustomer } from '../../lib/hubspot'
+import { findContactsByEmails, getAllContacts, tanksForCustomer, getContactNotes } from '../../lib/hubspot'
 import { listAllActiveSubscriptions, listOpenInvoices, getBalance, listAllCustomers } from '../../lib/stripe'
 import { buildTankCalendarData } from '../../lib/tank-data'
 
 export async function getServerSideProps({ req, res }) {
   // Repeat loads within 60s serve the cached SSR HTML while revalidating.
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
-  const session = await getSessionFromRequest(req)
+  const session = await getSessionFromRequest(req, res)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
@@ -74,8 +74,22 @@ export async function getServerSideProps({ req, res }) {
       phone: c.properties?.phone || '',
       address: c.properties?.address || '',
       tanks: tanksForCustomer(c.properties) || null,
+      _contactId: c.id,
     }
   }
+  const ADMIN_NOTE_RE = /^\[ADMIN-NOTE[^\]]*\]\s*/
+  await Promise.all(Object.entries(contactMap).map(async ([email, info]) => {
+    if (!info._contactId) return
+    try {
+      const notes = await getContactNotes(info._contactId, 20)
+      const client = notes
+        .filter(n => ADMIN_NOTE_RE.test((n.body || '').trim()))
+        .slice(0, 3)
+        .map(n => n.body.trim().replace(ADMIN_NOTE_RE, ''))
+        .filter(Boolean)
+      if (client.length) contactMap[email].clientNotes = client
+    } catch {}
+  }))
 
   function serializeStop(s) {
     const info = contactMap[s.email?.toLowerCase()] || {}
@@ -89,6 +103,8 @@ export async function getServerSideProps({ req, res }) {
       email: s.email || '',
       phone: info.phone || '',
       tanks: info.tanks || null,
+      appointmentNotes: s.appointmentNotes || null,
+      clientNotes: info.clientNotes || [],
     }
   }
 
@@ -153,63 +169,93 @@ function KPI({ label, value, sub, warn }) {
   )
 }
 
+function ApptDetailModal({ stop, onClose }) {
+  const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }
+  const box = { background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 14, padding: 24, maxWidth: 440, width: '100%', fontFamily: 'Nunito Sans, sans-serif', color: '#d4e6ca', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }
+  const row = (label, value) => value ? (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(212,230,202,0.4)', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: '0.9rem', color: '#d4e6ca' }}>{value}</div>
+    </div>
+  ) : null
+  const fmtFull = (iso) => { try { return new Date(iso).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' }) } catch { return iso } }
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={box} onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: 'rgba(212,230,202,0.4)', fontSize: '1.3rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+        <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 18, paddingRight: 24 }}>{stop.title || 'Service Visit'}</div>
+        {row('Appointment time', stop.startTime ? fmtFull(stop.startTime) : null)}
+        {row('Service', stop.serviceType)}
+        {row('Address', stop.address)}
+        {row('Email', stop.email)}
+        {row('Phone', stop.phone)}
+        {row('Tanks', stop.tanks > 0 ? `${stop.tanks} tank${stop.tanks > 1 ? 's' : ''}` : null)}
+        {(stop.clientNotes || []).map((n, i) => row(i === 0 ? 'Notes' : '', n))}
+      </div>
+    </div>
+  )
+}
+
 function StopCard({ stop, dateStr }) {
-  const [invoicing, setInvoicing] = useState(false)
+  const [showDetail, setShowDetail] = useState(false)
   const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email)}`
   const mapsUrl = stop.address ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}` : null
+  const btn = { display: 'inline-flex', alignItems: 'center', padding: '8px 14px', borderRadius: 6, fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none', minHeight: 36 }
 
   return (
-    <div style={{ background: 'rgba(26,46,31,0.6)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: '16px 18px', marginBottom: 10 }}>
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-        {/* Time column */}
-        <div style={{ minWidth: 52, textAlign: 'center', paddingTop: 2 }}>
-          {stop.startTime && (
-            <>
-              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#c9a84c', lineHeight: 1 }}>{fmtTime(stop.startTime).split(' ')[0]}</div>
-              <div style={{ fontSize: '0.62rem', color: 'rgba(212,230,202,0.4)', marginTop: 1 }}>{fmtTime(stop.startTime).split(' ')[1]}</div>
-            </>
-          )}
-        </div>
+    <>
+      {showDetail && <ApptDetailModal stop={stop} onClose={() => setShowDetail(false)} />}
+      <div
+        style={{ background: 'rgba(26,46,31,0.6)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: '16px 18px', marginBottom: 10, cursor: 'pointer' }}
+        onClick={() => setShowDetail(true)}
+      >
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+          {/* Time column */}
+          <div style={{ minWidth: 52, textAlign: 'center', paddingTop: 2 }}>
+            {stop.startTime && (
+              <>
+                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#c9a84c', lineHeight: 1 }}>{fmtTime(stop.startTime).split(' ')[0]}</div>
+                <div style={{ fontSize: '0.62rem', color: 'rgba(212,230,202,0.4)', marginTop: 1 }}>{fmtTime(stop.startTime).split(' ')[1]}</div>
+              </>
+            )}
+          </div>
 
-        {/* Main content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 2 }}>{stop.title || 'Service Visit'}</div>
-          {stop.serviceType && (
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c9a84c', marginBottom: 4 }}>{stop.serviceType}</div>
-          )}
-          {stop.address && (
-            <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.5)', marginBottom: 6, lineHeight: 1.4 }}>📍 {stop.address}</div>
-          )}
-          {stop.tanks > 0 && (
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 8 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required</div>
-          )}
+          {/* Main content */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <a
+              href={stop.email ? `/admin/clients/${encodeURIComponent(stop.email)}` : '#'}
+              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', textDecoration: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', display: 'inline-block', marginBottom: 2 }}
+              onClick={e => e.stopPropagation()}
+            >{stop.title || 'Service Visit'}</a>
+            {stop.serviceType && (
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c9a84c', marginBottom: 4 }}>{stop.serviceType}</div>
+            )}
+            {stop.address && (
+              <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.5)', marginBottom: 4, lineHeight: 1.4 }}>📍 {stop.address}</div>
+            )}
+            {stop.tanks > 0 && (
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 4 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required</div>
+            )}
+            {(stop.clientNotes || []).map((note, i) => (
+              <div key={i} style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5, marginBottom: 2 }}>{note}</div>
+            ))}
 
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            {stop.email && (
-              <Link href={roundsUrl} style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 14px', borderRadius: 6, background: '#c9a84c', color: '#0d1a10', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none', minHeight: 36 }}>
-                Rounds
-              </Link>
-            )}
-            {mapsUrl && (
-              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 14px', borderRadius: 6, background: 'rgba(125,255,170,0.1)', border: '1px solid rgba(125,255,170,0.2)', color: '#7dffaa', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none', minHeight: 36 }}>
-                Navigate
-              </a>
-            )}
-            {stop.phone && (
-              <a href={`sms:${stop.phone.replace(/[^\d+]/g, '')}`} style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 14px', borderRadius: 6, background: 'rgba(91,196,255,0.08)', border: '1px solid rgba(91,196,255,0.18)', color: '#5bc4ff', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none', minHeight: 36 }}>
-                💬 Text
-              </a>
-            )}
-            {stop.email && (
-              <Link href={`/admin/clients?email=${encodeURIComponent(stop.email)}`} style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 14px', borderRadius: 6, background: 'rgba(122,171,130,0.08)', border: '1px solid rgba(122,171,130,0.15)', color: 'rgba(212,230,202,0.6)', fontWeight: 700, fontSize: '0.8rem', textDecoration: 'none', minHeight: 36 }}>
-                Profile
-              </Link>
-            )}
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 8 }} onClick={e => e.stopPropagation()}>
+              {stop.email && (
+                <Link href={roundsUrl} style={{ ...btn, background: '#c9a84c', color: '#0d1a10' }}>Rounds</Link>
+              )}
+              {mapsUrl && (
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn, background: 'rgba(125,255,170,0.1)', border: '1px solid rgba(125,255,170,0.2)', color: '#7dffaa' }}>Navigate</a>
+              )}
+              {stop.phone && (
+                <a href={`sms:${stop.phone.replace(/[^\d+]/g, '')}`} style={{ ...btn, background: 'rgba(91,196,255,0.08)', border: '1px solid rgba(91,196,255,0.18)', color: '#5bc4ff' }}>💬 Text</a>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

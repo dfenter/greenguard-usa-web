@@ -42,7 +42,7 @@ function buildUpgrades({ pathKey, trapCount, systemType }) {
     }
     const images = {
       2: '/images/mosquitairedouble.webp',
-      3: '/images/biogentstriple.png',
+      3: '/images/biogentstriple.webp',
     }
     upgrades.push({
       id: 'add-biogents-trap',

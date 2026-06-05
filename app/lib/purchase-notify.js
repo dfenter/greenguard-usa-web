@@ -7,13 +7,17 @@
 
 const { Resend } = require('resend')
 const { sendSms } = require('./sms')
+const { postToOps } = require('./slack')
 
 const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
 const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 const ADMIN_SMS = process.env.ADMIN_SMS_NUMBER || ''
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
 
-function fmt$(cents) { return `$${(cents / 100).toFixed(2)}` }
+function fmt$(cents) {
+  const n = Number(cents)
+  return Number.isFinite(n) ? `$${(n / 100).toFixed(2)}` : '$0.00'
+}
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c]))
 }
@@ -57,13 +61,16 @@ async function notifyAdmin(purchase) {
     } catch (e) { console.error('purchase notify email:', e.message) }
   }
 
+  const alertText = `💰 *${purchase.customerName || purchase.customerEmail || 'Customer'}* paid ${fmt$(purchase.amount)} (${purchase.source || 'Stripe'})${purchase.stripeUrl ? ` — ${purchase.stripeUrl}` : ''}`
+
   if (ADMIN_SMS && process.env.TWILIO_AUTH_TOKEN) {
-    const smsBody = `💰 ${purchase.customerName || purchase.customerEmail || 'Customer'} paid ${fmt$(purchase.amount)} (${purchase.source || 'Stripe'})`
     try {
-      const r = await sendSms({ to: ADMIN_SMS, body: smsBody.slice(0, 320) })
+      const r = await sendSms({ to: ADMIN_SMS, body: alertText.replace(/\*/g, '').slice(0, 320) })
       results.sms = r.ok
     } catch (e) { console.error('purchase notify sms:', e.message) }
   }
+
+  await postToOps(alertText).catch(() => {})
 
   return results
 }
@@ -78,34 +85,75 @@ async function sendCustomerReceipt({ invoice, customer, receiptUrl, hostedInvoic
   if (!customer?.email) return { ok: false, reason: 'no customer email' }
 
   const amount = invoice.amount_paid || invoice.total || 0
-  const lines = (invoice.lines?.data || []).map((l) =>
-    `<tr>
-      <td style="padding:8px 0;color:#444;border-bottom:1px solid #eee;">${esc(l.description || 'Service')}</td>
-      <td style="padding:8px 0;text-align:right;font-weight:700;border-bottom:1px solid #eee;">${fmt$(l.amount)}</td>
-    </tr>`
-  ).join('')
-
   const taxAmount = invoice.tax || 0
   const subtotal = invoice.subtotal || 0
   const firstName = (customer.name || '').split(' ')[0] || 'there'
 
-  const html = `
-    <div style="font-family:-apple-system,sans-serif;max-width:560px;padding:24px;color:#1a2e1f;">
-      <h1 style="color:#1a2e1f;font-size:1.6rem;margin:0 0 8px;">Payment received — thank you!</h1>
-      <p style="color:#555;margin:0 0 18px;">Hi ${esc(firstName)}, this confirms your payment for GreenGuard USA mosquito control service.</p>
-      <div style="background:#f4f8f4;border-radius:10px;padding:18px 22px;margin-bottom:20px;">
-        <div style="color:#1a2e1f;font-size:0.72rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:4px;">Amount paid</div>
-        <h2 style="color:#1a2e1f;font-size:2rem;margin:0;font-weight:900;">${fmt$(amount)}</h2>
-      </div>
-      <table style="width:100%;border-collapse:collapse;margin:0 0 12px;border-top:1px solid #eee;">${lines}</table>
-      ${taxAmount > 0 ? `<p style="color:#555;margin:4px 0;display:flex;justify-content:space-between;"><span>Subtotal</span><span>${fmt$(subtotal)}</span></p>
-      <p style="color:#555;margin:4px 0;display:flex;justify-content:space-between;"><span>Sales tax</span><span>${fmt$(taxAmount)}</span></p>` : ''}
-      <p style="color:#1a2e1f;margin:8px 0 18px;display:flex;justify-content:space-between;font-weight:800;border-top:1px solid #1a2e1f;padding-top:8px;"><span>Total paid</span><span>${fmt$(amount)}</span></p>
-      ${receiptUrl ? `<p style="margin:18px 0;"><a href="${esc(receiptUrl)}" style="display:inline-block;padding:10px 18px;background:#1a2e1f;color:#7dffaa;font-weight:800;border-radius:6px;text-decoration:none;">View Stripe receipt →</a>` : ''}
-      ${hostedInvoiceUrl ? ` &nbsp; <a href="${esc(hostedInvoiceUrl)}" style="color:#1a2e1f;font-weight:700;text-decoration:underline;">View invoice</a></p>` : '</p>'}
-      <p style="font-size:0.85rem;color:#555;margin-top:24px;border-top:1px solid #eee;padding-top:16px;">Questions about your service? Reply to this email or text us at <a href="tel:+15125604129" style="color:#1a2e1f;">512-560-4129</a>.</p>
-      <p style="font-size:0.72rem;color:#888;margin-top:12px;">GreenGuard USA — Smart, Safe, Effective mosquito control. Ref: ${esc(invoice.id)}</p>
-    </div>`
+  const lineRows = (invoice.lines?.data || []).map((l) =>
+    `<tr>
+      <td style="padding:10px 20px;color:rgba(212,230,202,0.8);border-bottom:1px solid rgba(122,171,130,0.08);font-size:13px">${esc(l.description || 'Service')}</td>
+      <td style="padding:10px 20px;text-align:right;font-weight:700;color:rgba(212,230,202,0.9);border-bottom:1px solid rgba(122,171,130,0.08);font-size:13px;white-space:nowrap">${fmt$(l.amount)}</td>
+    </tr>`
+  ).join('')
+
+  const taxRows = taxAmount > 0 ? `
+    <tr>
+      <td style="padding:8px 20px;color:rgba(122,171,130,0.5);font-size:12px">Subtotal</td>
+      <td style="padding:8px 20px;text-align:right;color:rgba(122,171,130,0.5);font-size:12px">${fmt$(subtotal)}</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 20px;color:rgba(122,171,130,0.5);font-size:12px">Sales tax (8.25%)</td>
+      <td style="padding:8px 20px;text-align:right;color:rgba(122,171,130,0.5);font-size:12px">${fmt$(taxAmount)}</td>
+    </tr>` : ''
+
+  const html = `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#0a1a0d;font-family:'Helvetica Neue',Arial,sans-serif">
+<div style="max-width:520px;margin:0 auto;padding:24px 16px">
+
+  <!-- Receipt card -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 100%);border:1px solid rgba(122,171,130,0.2);border-radius:12px;margin-bottom:12px">
+    <tr>
+      <td style="padding:28px 28px 18px">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">GreenGuard USA &nbsp;&middot;&nbsp; Payment Receipt</div>
+        <div style="color:#7dffaa;font-size:36px;font-weight:900;letter-spacing:-0.03em;line-height:1">${fmt$(amount)}</div>
+        <div style="color:rgba(212,230,202,0.6);font-size:14px;margin-top:8px">Payment received. Thank you, ${esc(firstName)}.</div>
+      </td>
+    </tr>
+    ${lineRows ? `
+    <tr>
+      <td style="padding:0 28px 20px">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(0,0,0,0.22);border:1px solid rgba(122,171,130,0.12);border-radius:8px">
+          ${lineRows}
+          ${taxRows}
+          <tr>
+            <td style="padding:12px 20px;border-top:1px solid rgba(122,171,130,0.18);color:#ffffff;font-weight:800;font-size:14px">Total paid</td>
+            <td style="padding:12px 20px;border-top:1px solid rgba(122,171,130,0.18);text-align:right;color:#7dffaa;font-weight:900;font-size:16px;white-space:nowrap">${fmt$(amount)}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>` : ''}
+    <tr>
+      <td style="padding:0 28px 22px">
+        <table cellpadding="0" cellspacing="0">
+          <tr>
+            ${receiptUrl ? `<td style="padding-right:10px"><a href="${esc(receiptUrl)}" style="display:inline-block;background:#c9a84c;color:#0a1a0d;font-weight:900;font-size:13px;padding:12px 24px;border-radius:6px;text-decoration:none;letter-spacing:0.06em;text-transform:uppercase">View Receipt</a></td>` : ''}
+            ${hostedInvoiceUrl ? `<td><a href="${esc(hostedInvoiceUrl)}" style="display:inline-block;background:rgba(122,171,130,0.12);border:1px solid rgba(122,171,130,0.3);color:#7dffaa;font-weight:700;font-size:13px;padding:10px 22px;border-radius:6px;text-decoration:none;letter-spacing:0.04em">View Invoice</a></td>` : ''}
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 28px 22px;border-top:1px solid rgba(122,171,130,0.1)">
+        <div style="color:rgba(122,171,130,0.45);font-size:12px;line-height:1.6;padding-top:16px">Questions? Reply to this email or text <a href="tel:+15125604129" style="color:rgba(122,171,130,0.6);text-decoration:none">512-560-4129</a>. Ref: ${esc(invoice.id)}</div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; Smart, Safe, Effective mosquito control</div>
+</div>
+</body>
+</html>`
 
   try {
     await new Resend(process.env.RESEND_API_KEY).emails.send({
@@ -132,26 +180,56 @@ async function sendCheckoutReceipt({ session, items, receiptUrl }) {
   const firstName = (session.customer_details?.name || '').split(' ')[0] || 'there'
   const amount = session.amount_total || 0
 
-  const rows = (items || []).map((l) =>
+  const lineRows = (items || []).map((l) =>
     `<tr>
-      <td style="padding:8px 0;color:#444;border-bottom:1px solid #eee;">${esc(l.description || 'Item')}</td>
-      <td style="padding:8px 0;text-align:right;font-weight:700;border-bottom:1px solid #eee;">${fmt$(l.amount_total ?? l.amount)}</td>
+      <td style="padding:10px 20px;color:rgba(212,230,202,0.8);border-bottom:1px solid rgba(122,171,130,0.08);font-size:13px">${esc(l.description || 'Item')}</td>
+      <td style="padding:10px 20px;text-align:right;font-weight:700;color:rgba(212,230,202,0.9);border-bottom:1px solid rgba(122,171,130,0.08);font-size:13px;white-space:nowrap">${fmt$(l.amount_total ?? l.amount)}</td>
     </tr>`
   ).join('')
 
-  const html = `
-    <div style="font-family:-apple-system,sans-serif;max-width:560px;padding:24px;color:#1a2e1f;">
-      <h1 style="color:#1a2e1f;font-size:1.6rem;margin:0 0 8px;">Payment received — thank you!</h1>
-      <p style="color:#555;margin:0 0 18px;">Hi ${esc(firstName)}, this confirms your payment for GreenGuard USA mosquito control service.</p>
-      <div style="background:#f4f8f4;border-radius:10px;padding:18px 22px;margin-bottom:20px;">
-        <div style="color:#1a2e1f;font-size:0.72rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:4px;">Amount paid</div>
-        <h2 style="color:#1a2e1f;font-size:2rem;margin:0;font-weight:900;">${fmt$(amount)}</h2>
-      </div>
-      <table style="width:100%;border-collapse:collapse;margin:0 0 18px;border-top:1px solid #eee;">${rows}</table>
-      ${receiptUrl ? `<p style="margin:18px 0;"><a href="${esc(receiptUrl)}" style="display:inline-block;padding:10px 18px;background:#1a2e1f;color:#7dffaa;font-weight:800;border-radius:6px;text-decoration:none;">View receipt →</a></p>` : ''}
-      <p style="font-size:0.85rem;color:#555;margin-top:24px;border-top:1px solid #eee;padding-top:16px;">Questions about your service? Reply to this email or text us at <a href="tel:+15125604129" style="color:#1a2e1f;">512-560-4129</a>.</p>
-      <p style="font-size:0.72rem;color:#888;margin-top:12px;">GreenGuard USA — Smart, Safe, Effective mosquito control. Ref: ${esc(session.id)}</p>
-    </div>`
+  const html = `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#0a1a0d;font-family:'Helvetica Neue',Arial,sans-serif">
+<div style="max-width:520px;margin:0 auto;padding:24px 16px">
+
+  <!-- Receipt card -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 100%);border:1px solid rgba(122,171,130,0.2);border-radius:12px;margin-bottom:12px">
+    <tr>
+      <td style="padding:28px 28px 18px">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">GreenGuard USA &nbsp;&middot;&nbsp; Payment Receipt</div>
+        <div style="color:#7dffaa;font-size:36px;font-weight:900;letter-spacing:-0.03em;line-height:1">${fmt$(amount)}</div>
+        <div style="color:rgba(212,230,202,0.6);font-size:14px;margin-top:8px">Payment received. Thank you, ${esc(firstName)}.</div>
+      </td>
+    </tr>
+    ${lineRows ? `
+    <tr>
+      <td style="padding:0 28px 20px">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(0,0,0,0.22);border:1px solid rgba(122,171,130,0.12);border-radius:8px">
+          ${lineRows}
+          <tr>
+            <td style="padding:12px 20px;border-top:1px solid rgba(122,171,130,0.18);color:#ffffff;font-weight:800;font-size:14px">Total paid</td>
+            <td style="padding:12px 20px;border-top:1px solid rgba(122,171,130,0.18);text-align:right;color:#7dffaa;font-weight:900;font-size:16px;white-space:nowrap">${fmt$(amount)}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>` : ''}
+    ${receiptUrl ? `
+    <tr>
+      <td style="padding:0 28px 20px">
+        <a href="${esc(receiptUrl)}" style="display:inline-block;background:#c9a84c;color:#0a1a0d;font-weight:900;font-size:13px;padding:12px 24px;border-radius:6px;text-decoration:none;letter-spacing:0.06em;text-transform:uppercase">View Receipt</a>
+      </td>
+    </tr>` : ''}
+    <tr>
+      <td style="padding:0 28px 22px;border-top:1px solid rgba(122,171,130,0.1)">
+        <div style="color:rgba(122,171,130,0.45);font-size:12px;line-height:1.6;padding-top:16px">Questions? Reply to this email or text <a href="tel:+15125604129" style="color:rgba(122,171,130,0.6);text-decoration:none">512-560-4129</a>. Ref: ${esc(session.id)}</div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; Smart, Safe, Effective mosquito control</div>
+</div>
+</body>
+</html>`
 
   try {
     await new Resend(process.env.RESEND_API_KEY).emails.send({

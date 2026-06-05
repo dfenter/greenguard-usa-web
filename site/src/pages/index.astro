@@ -219,6 +219,24 @@ const filteredReviews = reviews.reviews.filter(r => r.rating === 5 && r.name !==
   </div>
 </section>
 
+<!-- ── Email capture ── -->
+<section style="padding:80px 0;background:linear-gradient(160deg,var(--bg2),var(--bg3));border-top:1px solid var(--border);">
+  <div class="container" style="max-width:560px;text-align:center;">
+    <div class="section-label reveal">Stay Ahead of Mosquito Season</div>
+    <h2 class="section-title reveal" style="font-size:clamp(1.6rem,3vw,2.2rem);">Get seasonal tips & early access to <span style="color:var(--green)">new service areas</span></h2>
+    <p style="color:var(--text-dim);font-size:0.95rem;line-height:1.7;margin-bottom:32px;" class="reveal">No spam. Just practical mosquito control advice for Austin homeowners, sent a few times a year.</p>
+    <form id="email-capture" class="reveal" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <input type="email" id="capture-email" placeholder="your@email.com" required
+        style="flex:1;min-width:220px;padding:13px 18px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--text);font-size:0.95rem;font-family:var(--font);outline:none;" />
+      <button type="submit"
+        style="padding:13px 28px;border-radius:8px;background:var(--gold);color:#0d1a10;font-weight:800;font-size:0.9rem;border:none;cursor:pointer;font-family:var(--font);white-space:nowrap;">
+        Get Updates
+      </button>
+    </form>
+    <div id="capture-msg" style="display:none;margin-top:16px;font-size:0.88rem;color:var(--green);font-weight:700;">✓ You're on the list!</div>
+  </div>
+</section>
+
 <!-- ── Footer ── -->
 <footer class="site-footer">
   <div class="container">
@@ -276,6 +294,32 @@ const filteredReviews = reviews.reviews.filter(r => r.rating === 5 && r.name !==
     links.classList.remove('open')
     ham.classList.remove('active')
   }))
+
+  // Email capture
+  document.getElementById('email-capture')?.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const email = document.getElementById('capture-email')?.value
+    const btn = e.target.querySelector('button[type="submit"]')
+    if (!email) return
+    btn.disabled = true
+    btn.textContent = 'Saving…'
+    try {
+      await fetch('https://portal.greenguard-usa.com/api/leads/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'homepage_capture' })
+      })
+      document.getElementById('capture-msg').style.display = 'block'
+      e.target.style.display = 'none'
+      if (window.gtag) gtag('event', 'generate_lead', { currency: 'USD', value: 0, method: 'email_capture' })
+    } catch { btn.disabled = false; btn.textContent = 'Get Updates' }
+  })
+
+  // CTA click tracking
+  document.querySelectorAll('a[href="/book"], a[href="/get-started"], .btn-gold').forEach(el => {
+    el.addEventListener('click', () => {
+      if (window.gtag) gtag('event', 'cta_click', { cta_text: el.textContent?.trim(), page: 'home' })
+    })
+  })
 </script>
 
 <style>

@@ -5,7 +5,6 @@ import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
 import { findContactsByEmails, tanksForCustomer } from '../../lib/hubspot'
 import { listAllCustomers } from '../../lib/stripe'
-import { getBookingsForEmail } from '../../lib/calcom'
 import { getLatestRoutePlan } from '../../lib/route-plan'
 
 export async function getServerSideProps({ req, res }) {
@@ -17,7 +16,7 @@ export async function getServerSideProps({ req, res }) {
   const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
   const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
 
-  const { plan: routePlanLoaded, generatedAt } = await getLatestRoutePlan()
+  const { plan: routePlanLoaded, generatedAt } = await getLatestRoutePlan().catch(() => ({ plan: null, generatedAt: null }))
   let routePlan = routePlanLoaded
   let planGeneratedAt = generatedAt
 
@@ -60,9 +59,22 @@ export async function getServerSideProps({ req, res }) {
     const hubspotNameByEmail = {}
     const stripeNameByEmail = {}
 
-    // Fetch Cal.com bookings for each email — one call covers all upcoming dates
-    const calBookingsByEmail = {}
-    const earliestDate = allDates.sort()[0] || today
+    // Pre-compute live-hydration date window — needed before Promise.all so we can
+    // fire the GCal call in parallel with Stripe/HubSpot instead of sequentially after.
+    const todayMs = new Date(today + 'T00:00:00-06:00').getTime()
+    const cutoffMs = todayMs + 8 * 86400 * 1000
+    const liveDays = (routePlan.days || []).filter((d) => {
+      const dMs = new Date(d.date + 'T00:00:00-06:00').getTime()
+      return dMs >= todayMs && dMs < cutoffMs
+    })
+    const liveWindow = liveDays.length > 0 ? {
+      start: new Date(liveDays[0].date + 'T00:00:00-06:00').toISOString(),
+      end:   new Date(liveDays[liveDays.length - 1].date + 'T23:59:59-06:00').toISOString(),
+    } : null
+
+    // Cal.com API key only has event-type scope — getBookingsForEmail always returns [].
+    // Removed that fan-out entirely (was N dead calls per page load with zero results).
+    let liveByKey = new Map()
 
     await Promise.all([
       listAllCustomers().then(cs => cs.forEach(c => {
@@ -76,11 +88,16 @@ export async function getServerSideProps({ req, res }) {
           if (tanks) hubspotNameByEmail[email + '__tanks'] = tanks
         }
       }).catch(() => {}),
-      ...allEmails.map(email =>
-        getBookingsForEmail(email, new Date(earliestDate + 'T00:00:00-06:00').toISOString())
-          .then(bookings => { calBookingsByEmail[email.toLowerCase()] = Array.isArray(bookings) ? bookings : [] })
-          .catch(() => { calBookingsByEmail[email.toLowerCase()] = [] })
-      ),
+      // GCal live-hydration fired in parallel — eliminates one sequential round-trip
+      liveWindow
+        ? getBookingsForDateRange(liveWindow.start, liveWindow.end)
+            .then(bookings => {
+              for (const b of bookings) {
+                if (!b.dateStr || !b.email) continue
+                liveByKey.set(`${b.dateStr}|${b.email.toLowerCase()}`, b)
+              }
+            }).catch(() => {})
+        : Promise.resolve(),
     ])
 
     routePlan = {
@@ -92,63 +109,23 @@ export async function getServerSideProps({ req, res }) {
           const resolvedName = hubspotNameByEmail[key] || stripeNameByEmail[key] || stop.customer_name || stop.name
           const tanks = hubspotNameByEmail[key + '__tanks'] || null
 
-          // Match Cal.com booking by same date (CT), pick closest time
-          let calBookingUid = stop.cal_booking_uid || null
-          let calBookingId = stop.cal_booking_id || null
-          if (!calBookingUid && key) {
-            const candidates = (calBookingsByEmail[key] || []).filter(cb => {
-              if (cb.status === 'CANCELLED' || cb.status === 'cancelled') return false
-              const cbDate = new Date(cb.startTime).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
-              return cbDate === day.date
-            })
-            const match = candidates.sort((a, b) =>
-              Math.abs(new Date(a.startTime) - new Date(stop.scheduled_time || a.startTime)) -
-              Math.abs(new Date(b.startTime) - new Date(stop.scheduled_time || b.startTime))
-            )[0]
-            if (match) { calBookingUid = match.uid; calBookingId = match.id }
-          }
+          // Apply live GCal time if available
+          const liveEntry = key ? liveByKey.get(`${day.date}|${key}`) : null
+          const scheduledTime = (liveEntry?.startTime && liveEntry.startTime !== stop.scheduled_time)
+            ? liveEntry.startTime : stop.scheduled_time
+          const hydratedFromGcal = !!(liveEntry?.startTime && liveEntry.startTime !== stop.scheduled_time)
 
-          return { ...stop, customer_name: resolvedName, tanks, cal_booking_uid: calBookingUid, cal_booking_id: calBookingId }
+          return {
+            ...stop,
+            customer_name: resolvedName,
+            tanks,
+            cal_booking_uid: stop.cal_booking_uid || null,
+            cal_booking_id: stop.cal_booking_id || null,
+            scheduled_time: scheduledTime,
+            ...(hydratedFromGcal && { hydrated_from_gcal: true }),
+          }
         }),
       })),
-    }
-
-    // Live hydration: for any day within the next 7 days, override scheduled
-    // times from live Google Calendar so silent reschedules don't show stale
-    // times in the route view.
-    const todayMs = new Date(today + 'T00:00:00-06:00').getTime()
-    const cutoffMs = todayMs + 8 * 86400 * 1000
-    const liveDays = (routePlan.days || []).filter((d) => {
-      const dMs = new Date(d.date + 'T00:00:00-06:00').getTime()
-      return dMs >= todayMs && dMs < cutoffMs
-    })
-    if (liveDays.length > 0) {
-      const minDate = liveDays[0].date
-      const maxDate = liveDays[liveDays.length - 1].date
-      const winStart = new Date(minDate + 'T00:00:00-06:00').toISOString()
-      const winEnd   = new Date(maxDate + 'T23:59:59-06:00').toISOString()
-      try {
-        const liveBookings = await getBookingsForDateRange(winStart, winEnd)
-        // Key: dateStr|email → { startTime }
-        const liveByKey = new Map()
-        for (const b of liveBookings) {
-          if (!b.dateStr || !b.email) continue
-          liveByKey.set(`${b.dateStr}|${b.email.toLowerCase()}`, b)
-        }
-        routePlan = {
-          ...routePlan,
-          days: (routePlan.days || []).map((day) => ({
-            ...day,
-            stops: (day.stops || []).map((s) => {
-              const k = s.email ? `${day.date}|${s.email.toLowerCase()}` : null
-              const live = k && liveByKey.get(k)
-              if (!live || !live.startTime) return s
-              if (live.startTime === s.scheduled_time) return s
-              return { ...s, scheduled_time: live.startTime, hydrated_from_gcal: true }
-            }),
-          })),
-        }
-      } catch {}
     }
   }
 
@@ -397,11 +374,16 @@ export default function RoutePage({ routePlan, today, planGeneratedAt }) {
                         <div key={idx} className="stop-card">
                           <div className="stop-num">{idx + 1}</div>
                           <div className="stop-body">
-                            <div className="stop-name">{name}</div>
+                            <div className="stop-name">
+                              {name}
+                              {stop.booking_source === 'legacy' && (
+                                <span style={{ marginLeft: 8, fontSize: '0.62rem', fontWeight: 800, color: '#c9a84c', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 4, padding: '1px 5px', verticalAlign: 'middle', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Legacy</span>
+                              )}
+                            </div>
                             {time && <div className="stop-time">{time}</div>}
                             {stop.service_type && <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c9a84c', marginBottom: 2 }}>{stop.service_type}</div>}
                             <div className="stop-addr">📍 {stop.address || 'No address'}</div>
-                            {stop.tanks > 0 && <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 6 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required</div>}
+                            {stop.tanks > 0 && <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 6 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required</div>}
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
                               <a href={roundsUrl} className="nav-btn" style={{ background: 'rgba(201,168,76,0.15)', borderColor: 'rgba(201,168,76,0.3)', color: '#c9a84c' }}>
                                 Open Rounds
@@ -411,16 +393,20 @@ export default function RoutePage({ routePlan, today, planGeneratedAt }) {
                                   ↗ Navigate
                                 </a>
                               )}
-                              {stop.cal_booking_uid && (
-                                <a
-                                  href={`https://cal.com/reschedule/${stop.cal_booking_uid}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="nav-btn"
-                                  style={{ background: 'rgba(91,196,255,0.08)', borderColor: 'rgba(91,196,255,0.2)', color: '#5bc4ff' }}
-                                >
-                                  Reschedule
-                                </a>
+                              {stop.booking_source === 'legacy' ? (
+                                stop.gcal_event_link && (
+                                  <a href={stop.gcal_event_link} target="_blank" rel="noopener noreferrer" className="nav-btn"
+                                    style={{ background: 'rgba(201,168,76,0.08)', borderColor: 'rgba(201,168,76,0.2)', color: '#c9a84c' }}>
+                                    Edit in GCal
+                                  </a>
+                                )
+                              ) : (
+                                stop.cal_booking_uid && (
+                                  <a href={`https://cal.com/reschedule/${stop.cal_booking_uid}`} target="_blank" rel="noopener noreferrer" className="nav-btn"
+                                    style={{ background: 'rgba(91,196,255,0.08)', borderColor: 'rgba(91,196,255,0.2)', color: '#5bc4ff' }}>
+                                    Reschedule
+                                  </a>
+                                )
                               )}
                               {stop.duration_min && (
                                 <span className="stop-meta">{stop.duration_min} min</span>

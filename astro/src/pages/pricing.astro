@@ -52,6 +52,24 @@ const deliveryTiers = [
   title="Mosquito Control Pricing Austin TX | GreenGuard USA"
   description="Transparent monthly pricing for CO₂ mosquito trap rental and CO₂ delivery service in Austin. No contracts, no hidden fees."
 >
+  <script type="application/ld+json" slot="head">{JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "Mosquito Control Service",
+    "description": "Pesticide-free CO₂ mosquito control for Austin TX homeowners. Trap rental from $159.99/mo, CO₂ delivery from $89.99/mo. No contracts.",
+    "provider": { "@type": "LocalBusiness", "name": "GreenGuard USA", "telephone": "+1-512-560-4129", "url": "https://www.greenguard-usa.com" },
+    "areaServed": [
+      "Austin TX", "Cedar Park TX", "Round Rock TX", "Westlake Hills TX", "Lakeway TX",
+      "Bee Cave TX", "Dripping Springs TX", "Georgetown TX", "Pflugerville TX", "Leander TX"
+    ],
+    "offers": [
+      { "@type": "Offer", "name": "CO₂ Trap Rental — 1 Trap", "price": "159.99", "priceCurrency": "USD" },
+      { "@type": "Offer", "name": "CO₂ Trap Rental — 2 Traps", "price": "266.99", "priceCurrency": "USD" },
+      { "@type": "Offer", "name": "CO₂ Tank Delivery", "price": "89.99", "priceCurrency": "USD" }
+    ],
+    "serviceType": "Mosquito Control",
+    "url": "https://www.greenguard-usa.com/pricing"
+  })}</script>
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
     <div class="max-w-2xl mx-auto">
@@ -174,6 +192,51 @@ const deliveryTiers = [
   </section>
 
   <!-- CTA -->
+  <!-- PLAN COMPARISON TABLE -->
+  <section class="py-12 px-5">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-black text-white text-center mb-2">Plan comparison</h2>
+      <p class="text-cream/60 text-center text-sm mb-8">All plans include monthly tech visit, CO₂ tank service, and no contract.</p>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-accent/20">
+              <th class="text-left py-3 px-4 text-cream/40 font-bold text-xs uppercase tracking-widest">Feature</th>
+              <th class="py-3 px-4 text-white font-black text-center">1 Trap<br/><span class="text-gold font-bold text-base">$159.99</span></th>
+              <th class="py-3 px-4 text-gold font-black text-center bg-gold/5 border-x border-gold/20">2 Traps ⭐<br/><span class="text-gold font-bold text-base">$266.99</span></th>
+              <th class="py-3 px-4 text-white font-black text-center">Mosqitter<br/><span class="text-gold font-bold text-base">$299.99</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ['Yard size', 'Up to ⅓ acre', 'Up to ½ acre', 'Large / waterfront'],
+              ['Trap type', 'Biogents', 'Biogents', 'Mosqitter Grand (stainless)'],
+              ['CO₂ tank service', '✓', '✓', '✓'],
+              ['Monthly tech visit', '✓', '✓', '✓'],
+              ['Pesticide-free', '✓', '✓', '✓'],
+              ['No contract', '✓', '✓', '✓'],
+              ['Best for', 'Patios, urban lots', 'Standard Austin yards', 'Estates, lakefront'],
+            ].map(([label, t1, t2, mq]) => (
+              <tr class="border-b border-accent/10">
+                <td class="py-3 px-4 text-cream/50 font-bold">{label}</td>
+                <td class={`py-3 px-4 text-center ${t1 === '✓' ? 'text-accent font-black' : 'text-cream/70'}`}>{t1}</td>
+                <td class={`py-3 px-4 text-center bg-gold/5 border-x border-gold/20 ${t2 === '✓' ? 'text-accent font-black' : 'text-cream/70'}`}>{t2}</td>
+                <td class={`py-3 px-4 text-center ${mq === '✓' ? 'text-accent font-black' : 'text-cream/70'}`}>{mq}</td>
+              </tr>
+            ))}
+            <tr>
+              <td class="py-4 px-4"></td>
+              <td class="py-4 px-4 text-center"><a href="/book" class="btn-outline text-xs px-4 py-2">Get Started</a></td>
+              <td class="py-4 px-4 text-center bg-gold/5 border-x border-gold/20"><a href="/book" class="btn-gold text-xs px-4 py-2">Get Started</a></td>
+              <td class="py-4 px-4 text-center"><a href="/book" class="btn-outline text-xs px-4 py-2">Get Started</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-cream/40 text-xs text-right mt-3"><a href="/compare" class="underline hover:text-cream/60">Full comparison including vs. chemical sprays →</a></p>
+    </div>
+  </section>
+
   <section class="py-16 px-5 text-center">
     <div class="max-w-xl mx-auto">
       <h2 class="text-2xl md:text-3xl font-black text-white mb-4">Try it before you commit</h2>
@@ -181,7 +244,10 @@ const deliveryTiers = [
         We start with a free in-person property assessment. You will see exactly where traps go,
         how the CO₂ delivery works, and what to expect month by month. No pressure to sign up.
       </p>
-      <a href="/book" class="btn-gold">Book Free Assessment</a>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <a href="/book" class="btn-gold">Book Free Assessment</a>
+        <a href="/compare" class="btn-outline">Compare All Options</a>
+      </div>
     </div>
   </section>
 </Base>

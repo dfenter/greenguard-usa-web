@@ -18,22 +18,44 @@ export default function QuotePage({ token, accepted }) {
 
   useEffect(() => {
     if (!accepted || !quote) return
-    if (typeof window.gtag !== 'function') return
-    window.gtag('event', 'purchase', {
-      transaction_id: token,
-      value: quote.total ?? 0,
-      currency: 'USD',
-    })
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'purchase', {
+        transaction_id: token,
+        value: quote.total ?? 0,
+        currency: 'USD',
+      })
+      // Google Ads conversion
+      window.gtag('event', 'conversion', {
+        send_to: 'AW-16913987571',
+        value: quote.total ?? 0,
+        currency: 'USD',
+        transaction_id: token,
+      })
+    }
+    if (typeof window.fbq === 'function') {
+      window.fbq('track', 'Purchase', {
+        value: quote.total ?? 0,
+        currency: 'USD',
+        content_name: 'GreenGuard Quote',
+      })
+    }
   }, [accepted, quote])
 
   async function handleAcceptPay() {
     setPaying(true)
     setPayError(null)
+    // Collect attribution from sessionStorage so webhook can fire proper conversions
+    const attrKeys = ['gclid','fbclid','utm_source','utm_medium','utm_campaign','utm_content','ref']
+    const attribution = {}
+    attrKeys.forEach(k => {
+      const v = typeof window !== 'undefined' ? sessionStorage.getItem('gg_' + k) : null
+      if (v) attribution[k] = v
+    })
     try {
       const res = await fetch('/api/quote/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, attribution }),
       })
       const data = await res.json()
       if (data.url) {
@@ -199,12 +221,19 @@ export default function QuotePage({ token, accepted }) {
 
                 {/* Success banner — shown after returning from Stripe */}
                 {accepted && (
-                  <div style={{ marginBottom: 28, padding: '20px 24px', borderRadius: 12, background: 'rgba(125,255,170,0.07)', border: '1px solid rgba(125,255,170,0.3)', textAlign: 'center' }}>
+                  <div style={{ marginBottom: 28, padding: '24px 28px', borderRadius: 12, background: 'rgba(125,255,170,0.07)', border: '1px solid rgba(125,255,170,0.3)', textAlign: 'center' }}>
                     <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>🎉</div>
-                    <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#7dffaa', marginBottom: 6 }}>You&apos;re all set!</div>
-                    <p style={{ margin: 0, fontSize: '0.88rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.6 }}>
-                      Payment confirmed. We&apos;ll reach out within 24 hours to schedule your first service visit. Welcome to GreenGuard!
+                    <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#7dffaa', marginBottom: 10 }}>Payment confirmed. Welcome to GreenGuard!</div>
+                    <p style={{ margin: '0 0 16px', fontSize: '0.88rem', color: 'rgba(212,230,202,0.7)', lineHeight: 1.6 }}>
+                      Check your email — we&apos;ve sent you a sign-in link to access your customer account and book your installation time.
                     </p>
+                    <a href="https://cal.com/greenguard-usa/property-assessment" target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 8, background: '#c9a84c', color: '#0d1a10', fontWeight: 800, fontSize: '0.9rem', textDecoration: 'none' }}>
+                      Book Your Installation Time →
+                    </a>
+                    <div style={{ marginTop: 12, fontSize: '0.8rem', color: 'rgba(212,230,202,0.35)' }}>
+                      Questions? Call <a href="tel:+15125604129" style={{ color: 'rgba(212,230,202,0.45)' }}>512-560-4129</a>
+                    </div>
                   </div>
                 )}
 

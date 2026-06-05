@@ -19,9 +19,36 @@ const formattedDate = pubDate.toLocaleDateString('en-US', {
   day: 'numeric',
   year: 'numeric',
 });
+
+const blogSchema = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": title,
+  "description": description,
+  "datePublished": pubDate.toISOString(),
+  "dateModified": pubDate.toISOString(),
+  "author": {
+    "@type": "Organization",
+    "name": "GreenGuard USA",
+    "url": "https://www.greenguard-usa.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "GreenGuard USA",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://www.greenguard-usa.com/og-image.jpg"
+    }
+  },
+  "url": `https://www.greenguard-usa.com/blog/${entry.slug}`,
+  "mainEntityOfPage": `https://www.greenguard-usa.com/blog/${entry.slug}`,
+  "articleSection": category,
+  "keywords": `mosquito control Austin TX, ${category}, GreenGuard USA`
+};
 ---
 
 <Base title={`${title} | GreenGuard USA`} description={description}>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(blogSchema)} />
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
     <div class="max-w-3xl mx-auto">

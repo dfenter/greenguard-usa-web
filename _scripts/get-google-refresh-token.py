@@ -35,6 +35,24 @@ REDIRECT_URI = 'http://localhost:8765'
 if '--readonly' in sys.argv:
     SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
     print('Requesting scope: Calendar (READ-ONLY)')
+elif '--search-console' in sys.argv:
+    SCOPE = ' '.join([
+        'https://www.googleapis.com/auth/calendar.events',
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/analytics',
+        'https://www.googleapis.com/auth/analytics.edit',
+        'https://www.googleapis.com/auth/analytics.readonly',
+        'https://www.googleapis.com/auth/business.manage',
+        'https://www.googleapis.com/auth/webmasters',
+        'https://www.googleapis.com/auth/indexing',
+        'https://www.googleapis.com/auth/cloud-platform',
+        'https://www.googleapis.com/auth/cloudplatformprojects.readonly',
+        'https://www.googleapis.com/auth/cloud-billing.readonly',
+        'https://www.googleapis.com/auth/monitoring.read',
+        'https://www.googleapis.com/auth/servicecontrol',
+        'https://www.googleapis.com/auth/adwords',
+    ])
+    print('Requesting scopes: Full Google Cloud + Google Ads access')
 else:
     SCOPE = ' '.join([
         'https://www.googleapis.com/auth/calendar.events',

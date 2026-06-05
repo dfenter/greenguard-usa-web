@@ -6,6 +6,7 @@ const { Resend } = require('resend')
 const { getBookingsForDate } = require('../../../lib/gcal')
 const { findContactsByEmails } = require('../../../lib/hubspot')
 const { resolveByTitle, normalizeEventTitle } = require('../../../lib/sku-engine')
+const { getDayForecast, formatForecastLine, isBadWeather } = require('../../../lib/weather')
 
 const TZ = 'America/Chicago'
 const SENDER = 'GreenGuard USA <admin@greenguard-usa.com>'
@@ -30,37 +31,99 @@ function escapeHtml(s) {
   return String(s || '').replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]))
 }
 
-function renderHtml(date, stops) {
+function renderHtml(date, stops, forecast) {
   const tankTotal = stops.reduce((s, x) => s + (x.tankCount || 0), 0)
-  const rows = stops.map((s, i) => `
-    <tr style="border-top:1px solid #e7e7e7">
-      <td style="padding:10px 8px;vertical-align:top;color:#666;font-size:12px;width:38px">${i + 1}</td>
-      <td style="padding:10px 8px;vertical-align:top">
-        <div style="font-weight:700;color:#1a2e1f">${escapeHtml(s.customerName || 'Customer')}</div>
-        <div style="color:#666;font-size:13px">${escapeHtml(s.title || '')}</div>
-        ${s.address ? `<div style="color:#888;font-size:12px;margin-top:2px"><a href="https://maps.apple.com/?daddr=${encodeURIComponent(s.address)}" style="color:#3d7a4a;text-decoration:none">${escapeHtml(s.address)}</a></div>` : ''}
-        ${s.phone ? `<div style="color:#888;font-size:12px"><a href="tel:${s.phone.replace(/[^\d+]/g, '')}" style="color:#3d7a4a;text-decoration:none">${escapeHtml(s.phone)}</a></div>` : ''}
-      </td>
-      <td style="padding:10px 8px;vertical-align:top;text-align:right;white-space:nowrap;color:#1a2e1f;font-weight:700;font-size:14px">${fmtTime(s.startTime)}</td>
-      <td style="padding:10px 8px;vertical-align:top;text-align:right;white-space:nowrap;color:${s.tankCount > 0 ? '#0d8a3c' : '#bbb'};font-weight:700">${s.tankCount > 0 ? `${s.tankCount} tank${s.tankCount === 1 ? '' : 's'}` : '—'}</td>
-    </tr>`).join('')
+  const forecastLine = forecast ? formatForecastLine(forecast) : null
+  const bad = forecast && isBadWeather(forecast)
 
-  return `<div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:640px;margin:0 auto;color:#1a2e1f">
-    <div style="background:#0d1a10;color:#7dffaa;padding:14px 18px;border-radius:8px 8px 0 0">
-      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700">GreenGuard USA · Route</div>
-      <div style="font-size:20px;font-weight:900;margin-top:2px;color:#fff">${escapeHtml(fmtLongDate(date))}</div>
-    </div>
-    <div style="border:1px solid #ddd;border-top:none;padding:18px;background:#fff">
-      <div style="display:flex;gap:18px;font-size:13px;color:#555;margin-bottom:14px;flex-wrap:wrap">
-        <span><strong>${stops.length}</strong> stop${stops.length === 1 ? '' : 's'}</span>
-        <span><strong>${tankTotal}</strong> tank${tankTotal === 1 ? '' : 's'} needed</span>
-      </div>
-      ${stops.length === 0
-        ? '<div style="padding:20px;text-align:center;color:#888">No appointments today.</div>'
-        : `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="color:#888;text-transform:uppercase;letter-spacing:.06em;font-size:10px"><th style="padding:6px 8px;text-align:left">#</th><th style="padding:6px 8px;text-align:left">Customer</th><th style="padding:6px 8px;text-align:right">Time</th><th style="padding:6px 8px;text-align:right">Tanks</th></tr></thead><tbody>${rows}</tbody></table>`}
-      <p style="margin:18px 0 0;font-size:11px;color:#aaa">Open the full route on portal.greenguard-usa.com/admin/rounds for check-in + photos.</p>
-    </div>
-  </div>`
+  const weatherBanner = bad ? `
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#3d0e0e;border:1px solid rgba(255,100,100,0.25);border-radius:8px;margin-bottom:10px">
+    <tr>
+      <td style="padding:12px 18px">
+        <div style="color:#ffaaaa;font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px">Weather Alert</div>
+        <div style="color:#ffd5d5;font-size:13px">${forecast.rainProbability > 60 ? `${forecast.rainProbability}% rain` : ''}${forecast.rainProbability > 60 && forecast.windSpeedMph > 20 ? ' + ' : ''}${forecast.windSpeedMph > 20 ? `${Math.round(forecast.windSpeedMph)} mph winds` : ''}. Consider rescheduling barrier spray stops.</div>
+      </td>
+    </tr>
+  </table>` : ''
+
+  const rows = stops.map((s, i) => {
+    const isLast = i === stops.length - 1
+    const border = isLast ? '' : 'border-bottom:1px solid rgba(122,171,130,0.1);'
+    return `
+    <tr>
+      <td style="padding:14px 8px 14px 18px;${border}vertical-align:middle;width:36px">
+        <div style="width:26px;height:26px;line-height:26px;text-align:center;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);border-radius:6px;color:#c9a84c;font-size:12px;font-weight:900">${i + 1}</div>
+      </td>
+      <td style="padding:14px 12px;${border}vertical-align:middle">
+        <div style="color:#ffffff;font-weight:800;font-size:14px;letter-spacing:-0.01em">${escapeHtml(s.customerName || 'Customer')}</div>
+        ${s.title ? `<div style="color:#c9a84c;font-size:11px;font-weight:700;margin-top:2px;letter-spacing:0.02em">${escapeHtml(s.title)}</div>` : ''}
+        ${s.address ? `<div style="margin-top:3px"><a href="https://maps.apple.com/?daddr=${encodeURIComponent(s.address)}" style="color:rgba(122,171,130,0.55);font-size:11px;text-decoration:none">${escapeHtml(s.address)}</a></div>` : ''}
+        ${s.phone ? `<div style="margin-top:1px"><a href="tel:${s.phone.replace(/[^\d+]/g, '')}" style="color:rgba(122,171,130,0.45);font-size:11px;text-decoration:none">${escapeHtml(s.phone)}</a></div>` : ''}
+      </td>
+      <td style="padding:14px 18px 14px 8px;${border}vertical-align:middle;text-align:right;white-space:nowrap">
+        <div style="color:#a8edc0;font-weight:800;font-size:13px">${fmtTime(s.startTime)}</div>
+        ${s.tankCount > 0 ? `<div style="margin-top:5px"><span style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.4);border-radius:4px;padding:3px 8px;color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase">${s.tankCount} Tank${s.tankCount === 1 ? '' : 's'}</span></div>` : ''}
+      </td>
+    </tr>`
+  }).join('')
+
+  return `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#0a1a0d;font-family:'Helvetica Neue',Arial,sans-serif">
+<div style="max-width:560px;margin:0 auto;padding:20px 16px">
+
+  <!-- Logo bar -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px">
+    <tr>
+      <td style="padding:0 4px">
+        <span style="font-size:15px;font-weight:900;color:#ffffff;letter-spacing:-0.02em">Green<span style="color:#7dffaa">Guard</span> USA</span>
+        <span style="color:rgba(122,171,130,0.4);font-size:13px;margin-left:10px">&middot; Daily Route</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Hero card -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 50%,#2d4a32 100%);border:1px solid rgba(122,171,130,0.2);border-radius:12px;margin-bottom:10px">
+    <tr>
+      <td style="padding:22px 24px 10px">
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px">Today's Schedule</div>
+        <div style="color:#ffffff;font-size:26px;font-weight:900;letter-spacing:-0.03em;line-height:1.1">${escapeHtml(fmtLongDate(date))}${forecastLine && !bad ? `<span style="color:rgba(122,171,130,0.5);font-size:12px;font-weight:600;letter-spacing:0;display:block;margin-top:4px">${escapeHtml(forecastLine)}</span>` : ''}</div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:12px 24px 20px">
+        <table cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding-right:8px"><span style="background:rgba(13,26,16,0.6);border:1px solid rgba(122,171,130,0.2);border-radius:6px;padding:6px 14px;color:#a8edc0;font-size:12px;font-weight:800;letter-spacing:0.04em;display:inline-block">${stops.length} Stop${stops.length === 1 ? '' : 's'}</span></td>
+            <td><span style="background:rgba(13,26,16,0.6);border:1px solid rgba(122,171,130,0.2);border-radius:6px;padding:6px 14px;color:#a8edc0;font-size:12px;font-weight:800;letter-spacing:0.04em;display:inline-block">${tankTotal} Tank${tankTotal === 1 ? '' : 's'}</span></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  ${weatherBanner}
+
+  <!-- Stop list -->
+  ${stops.length === 0
+    ? `<table width="100%" cellpadding="0" cellspacing="0" style="background:#111c13;border:1px solid rgba(122,171,130,0.15);border-radius:12px;margin-bottom:12px"><tr><td style="padding:28px;text-align:center;color:rgba(122,171,130,0.4);font-size:14px">No appointments today.</td></tr></table>`
+    : `<table width="100%" cellpadding="0" cellspacing="0" style="background:#111c13;border:1px solid rgba(122,171,130,0.15);border-radius:12px;overflow:hidden;margin-bottom:12px">${rows}</table>`
+  }
+
+  <!-- CTA -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px">
+    <tr>
+      <td style="text-align:center;padding:4px 0">
+        <a href="https://portal.greenguard-usa.com/admin/rounds" style="display:inline-block;background:#c9a84c;color:#0a1a0d;font-weight:900;font-size:13px;padding:13px 36px;border-radius:6px;text-decoration:none;letter-spacing:0.08em;text-transform:uppercase">Open Rounds in Portal</a>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Footer -->
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; 1519 Parkway, Austin TX 78703</div>
+</div>
+</body>
+</html>`
 }
 
 export default async function handler(req, res) {
@@ -70,7 +133,10 @@ export default async function handler(req, res) {
   }
 
   const date = req.query.date || todayCT()
-  const bookings = await getBookingsForDate(date)
+  const [bookings, forecast] = await Promise.all([
+    getBookingsForDate(date).catch(() => []),
+    getDayForecast(date).catch(() => null),
+  ])
   const sorted = bookings.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
 
   const emails = [...new Set(sorted.map((b) => b.email).filter(Boolean))]
@@ -93,11 +159,13 @@ export default async function handler(req, res) {
   if (!process.env.RESEND_API_KEY) return res.status(200).json({ ok: true, sent: false, reason: 'RESEND_API_KEY missing', stops: stops.length })
 
   const resend = new Resend(process.env.RESEND_API_KEY)
+  const forecastSummary = forecast ? formatForecastLine(forecast) : null
+  const weatherFlag = forecast && isBadWeather(forecast) ? ' ⚠️ weather' : ''
   await resend.emails.send({
     from: SENDER, to: RECIPIENTS,
-    subject: `Today's route — ${stops.length} stop${stops.length === 1 ? '' : 's'} (${fmtLongDate(date)})`,
-    html: renderHtml(date, stops),
+    subject: `Today's route — ${stops.length} stop${stops.length === 1 ? '' : 's'} (${fmtLongDate(date)})${forecastSummary ? ` · ${forecastSummary}` : ''}${weatherFlag}`,
+    html: renderHtml(date, stops, forecast),
   })
 
-  return res.status(200).json({ ok: true, sent: true, stops: stops.length, date })
+  return res.status(200).json({ ok: true, sent: true, stops: stops.length, date, forecast: forecastSummary })
 }

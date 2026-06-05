@@ -82,9 +82,17 @@ function saveCart(cart: ReturnType<typeof getCart>) {
 (window as any).addToCart = function(id: string, name: string, price: number | string) {
   const cart = getCart();
   const existing = cart.find(i => i.id === id);
-  if (existing) { existing.qty++; } else { cart.push({ id, name, price: parseFloat(String(price)), qty: 1 }); }
+  const numPrice = parseFloat(String(price));
+  if (existing) { existing.qty++; } else { cart.push({ id, name, price: numPrice, qty: 1 }); }
   saveCart(cart);
   openCart();
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'add_to_cart', {
+      currency: 'USD',
+      value: numPrice,
+      items: [{ item_id: id, item_name: name, price: numPrice, quantity: 1 }],
+    });
+  }
 };
 
 (window as any).removeFromCart = function(id: string) {
@@ -156,6 +164,16 @@ async function checkout() {
   const errEl = document.getElementById('checkout-error');
   if (btn) { btn.textContent = 'Redirecting…'; btn.disabled = true; btn.style.opacity = '0.65'; }
   if (errEl) errEl.classList.add('hidden');
+
+  if (typeof window.gtag === 'function') {
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    window.gtag('event', 'begin_checkout', {
+      currency: 'USD',
+      value: total,
+      items: cart.map(i => ({ item_id: i.id, item_name: i.name, price: i.price, quantity: i.qty })),
+    });
+  }
+
   try {
     const res = await fetch('/api/checkout', {
       method: 'POST',

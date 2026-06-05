@@ -4,10 +4,9 @@ const { buildDailyBrief } = require('../../../lib/books-daily')
 const { Resend } = require('resend')
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
-  if (req.headers['x-cron-key'] !== process.env.CRON_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
+  const { authorize } = require('../../../lib/cron-auth')
+  if (!authorize(req, res)) return
   try {
     const brief = await buildDailyBrief()
     if (process.env.RESEND_API_KEY) {

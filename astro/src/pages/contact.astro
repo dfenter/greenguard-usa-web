@@ -9,8 +9,8 @@ const areas = [
 ---
 
 <Base
-  title="Contact GreenGuard USA | Austin Mosquito Control"
-  description="Get in touch with GreenGuard USA. Book a free consultation or ask about our Outdoor Protection Program in Austin, TX."
+  title="Contact GreenGuard USA | Mosquito Control Austin TX · 512-560-4129"
+  description="Contact GreenGuard USA for pesticide-free mosquito control in Austin TX. Call 512-560-4129, text, or book a free property assessment online."
 >
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
@@ -84,11 +84,24 @@ const areas = [
     <div class="max-w-container mx-auto text-center">
       <div class="eyebrow mb-2">Coverage</div>
       <h2 class="text-2xl md:text-3xl font-black text-white mb-6">Serving Austin and surrounding communities</h2>
-      <div class="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto">
+      <div class="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto mb-8">
         {areas.map((a) => (
           <span class="bg-bg-card/50 border border-accent/20 rounded-full px-3 py-1 text-xs text-cream/75">{a}</span>
         ))}
       </div>
+      <!-- Google Maps Embed — Austin metro service area -->
+      <div class="rounded-2xl overflow-hidden mx-auto max-w-3xl" style="border: 1px solid rgba(122,171,130,0.2); height: 380px;">
+        <iframe
+          title="GreenGuard USA service area map"
+          width="100%"
+          height="100%"
+          style="border:0;"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d220000!2d-97.9!3d30.35!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus"
+        ></iframe>
+      </div>
+      <p class="text-cream/35 text-xs mt-3">Don't see your city? <a href="tel:5125604129" class="underline hover:text-cream/60">Call us</a>. We may still be able to help.</p>
     </div>
   </section>
 </Base>

@@ -1,0 +1,92 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Biogents Mosquito Trap Discount & Promo Codes | GreenGuard USA Austin"
+  description="Looking for a Biogents mosquito trap discount or promo code? GreenGuard USA offers the best prices on Biogents BG-Mosquitaire traps in Austin, TX — plus free property consultation with every purchase."
+>
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-2xl mx-auto">
+      <div class="eyebrow mb-2">Best Prices on Biogents</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        Biogents Trap Pricing <span class="text-accent">and Discounts</span>
+      </h1>
+      <p class="text-cream/75 text-base max-w-lg mx-auto">
+        GreenGuard USA is an authorized Biogents dealer in Austin, TX. We offer the same professional-grade traps at competitive prices — plus a free property consultation that Biogents.com can't give you.
+      </p>
+    </div>
+  </section>
+
+  <!-- CURRENT PRICING -->
+  <section class="py-12 px-5 bg-bg-panel">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl font-black text-white text-center mb-8">Current Pricing</h2>
+      <div class="grid md:grid-cols-3 gap-5">
+        {[
+          { name: 'BG-Mosquitaire CO₂ Trap', price: '$279.99', orig: '$299.99', savings: 'Save $20', href: '/shop/biogents-co2-trap', badge: 'Best Seller' },
+          { name: 'All-in-One Starter Bundle', price: '$549.99', orig: '$619.97', savings: 'Save $69.98', href: '/shop/all-in-one-bundle', badge: 'Best Value' },
+          { name: 'BG-Mosquitaire (No CO₂)', price: '$179.99', orig: null, savings: null, href: '/shop/biogents-non-co2-trap', badge: 'Indoor/Patio' },
+        ].map(p => (
+          <div class="card flex flex-col gap-3">
+            <div class="eyebrow text-xs">{p.badge}</div>
+            <div class="font-black text-white">{p.name}</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-black text-gold">{p.price}</span>
+              {p.orig && <span class="text-cream/40 text-sm line-through">{p.orig}</span>}
+            </div>
+            {p.savings && <div class="text-accent text-sm font-bold">{p.savings}</div>}
+            <a href={p.href} class="btn-gold text-center text-sm mt-auto">View Product</a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY BUY FROM US -->
+  <section class="py-12 px-5">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-xl font-black text-white text-center mb-6">Why buy from GreenGuard USA instead of directly from Biogents?</h2>
+      <div class="grid sm:grid-cols-2 gap-4">
+        {[
+          { icon: '🔍', title: 'Free property consultation', desc: 'Every order includes a free site visit to confirm optimal trap placement. Biogents.com ships a box. We make sure it works.' },
+          { icon: '🪣', title: 'Monthly CO₂ service', desc: 'Add our $89.99/month CO₂ delivery service — we swap your tank, inspect the trap, and keep it running. No trips to a fill station.' },
+          { icon: '📍', title: 'Local Austin expertise', desc: 'We know Central Texas mosquito species, seasonal patterns, and the specific pressure zones around Lake Travis, Barton Creek, and the Hill Country.' },
+          { icon: '🚚', title: 'Ships from Austin, TX', desc: 'No international shipping delays. Products ship from Austin within 1-2 business days.' },
+        ].map(item => (
+          <div class="card flex gap-3 items-start">
+            <span class="text-2xl flex-shrink-0">{item.icon}</span>
+            <div>
+              <div class="font-bold text-white text-sm">{item.title}</div>
+              <div class="text-cream/55 text-xs mt-1">{item.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- RENTAL ALTERNATIVE -->
+  <section class="py-10 px-5 bg-bg-panel">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="text-xl font-black text-white mb-3">Don't want to pay upfront? Rent instead.</h2>
+      <p class="text-cream/65 text-sm mb-6">Our full-service rental starts at $159.99/month — trap included, CO₂ delivered monthly, all maintenance covered. No equipment cost, no contracts.</p>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <a href="/traprental" class="btn-gold">See Rental Plans</a>
+        <a href="/compare" class="btn-outline">Compare All Options</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-12 px-5 text-center">
+    <div class="max-w-xl mx-auto">
+      <h2 class="text-2xl font-black text-white mb-3">Ready to get started?</h2>
+      <p class="text-cream/65 text-sm mb-6">Book a free property assessment. We walk your yard, confirm your trap placement, and you only pay once you're satisfied with the plan.</p>
+      <a href="/book" class="btn-gold">Book Free Assessment</a>
+      <p class="text-cream/35 text-xs mt-4">Or call <a href="tel:5125604129" class="underline hover:text-cream/60">512-560-4129</a></p>
+    </div>
+  </section>
+
+</Base>

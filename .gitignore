@@ -11,12 +11,20 @@ Cooling_Tower*
 out/
 __pycache__/
 
-# Service account keys — never commit
+# Secrets — never commit ANY env or credential files
 greenguard-service-account-key.json
 *-service-account-key.json
 app/.env
 app/.env.local
+app/.env.*
+app/old.env
+astro/.env
+astro/.env.*
+greenguard-ops.env
+*.env
+.env.*
+token.json
+credentials.json
 .claude/settings.local.json
 .vercel
-app/old.env
 .claude/settings.json

@@ -85,6 +85,43 @@ export default async function handler(req, res) {
     console.error('request-upgrade email error:', e.message)
   }
 
+  // ── Customer confirmation email ───────────────────────────────────────────
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const firstName = customerName.split(' ')[0] || 'there'
+    await resend.emails.send({
+      from: `GreenGuard USA <${FROM}>`,
+      to: session.email,
+      subject: `Your upgrade request is confirmed — ${upgradeTitle}`,
+      html: `
+        <div style="font-family:'Nunito Sans',sans-serif;max-width:520px;margin:0 auto;background:#0d1a10;color:#d4e6ca;border-radius:12px;overflow:hidden;">
+          <div style="background:#0a1a0d;padding:20px 28px;border-bottom:1px solid rgba(122,171,130,0.2);">
+            <div style="font-weight:900;font-size:1.05rem;">Green<span style="color:#7dffaa;">Guard</span> USA</div>
+          </div>
+          <div style="padding:28px;">
+            <h2 style="color:#d4e6ca;margin:0 0 8px;font-size:1.2rem;">Hi ${firstName}, we got your request!</h2>
+            <p style="color:rgba(212,230,202,0.6);margin:0 0 20px;font-size:0.9rem;">
+              We've received your upgrade request and will reach out within 1 business day to schedule and confirm.
+            </p>
+            <div style="background:rgba(125,255,170,0.06);border:1px solid rgba(125,255,170,0.2);border-radius:8px;padding:16px 20px;margin-bottom:20px;">
+              <div style="font-size:0.7rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:rgba(212,230,202,0.4);margin-bottom:8px;">Requested upgrade</div>
+              <div style="font-weight:900;font-size:1rem;margin-bottom:4px;">${upgradeTitle}</div>
+              <div style="font-size:0.88rem;color:rgba(212,230,202,0.6);">+${fmt$(monthlyDelta)}/month${totalOneTime > 0 ? ` · ${fmt$(totalOneTime)} one-time at first visit` : ''}</div>
+            </div>
+            <p style="color:rgba(212,230,202,0.45);font-size:0.82rem;margin:0;">
+              No charges until your upgrade is installed. Questions? Reply to this email or call <a href="tel:5125604129" style="color:#7dffaa;">512-560-4129</a>.
+            </p>
+          </div>
+          <div style="padding:14px 28px;border-top:1px solid rgba(122,171,130,0.12);font-size:0.72rem;color:rgba(212,230,202,0.25);">
+            GreenGuard USA · Austin TX
+          </div>
+        </div>
+      `,
+    })
+  } catch (e) {
+    console.error('upgrade confirmation email error:', e.message)
+  }
+
   // ── HubSpot note ─────────────────────────────────────────────────────────
   if (contact?.id) {
     await addNote(

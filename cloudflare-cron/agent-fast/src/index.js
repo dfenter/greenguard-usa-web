@@ -1,15 +1,17 @@
-// greenguard-cron-agent-fast — high-frequency cron dispatcher.
+// greenguard-cron-agent-fast — cron dispatcher.
 //
-// 5-min: email-agent (RUN_ONCE poll of Gmail)
-// 15-min: books-ingest (Stripe ledger sync) + inline site-health check
+// daily 8am CT: email-agent (Gmail draft processing, once per day)
+// 15-min:       books-ingest (Stripe ledger sync) + inline site-health check
 
 const PORTAL = 'https://portal.greenguard-usa.com'
 const AGENT  = 'https://greenguard-agent-new.onrender.com'
 
 const JOBS = {
-  '*/5 * * * *': [
+  '0 13 * * *': [
     { name: 'email-agent', url: `${AGENT}/cron/email-agent` },
-    { name: 'keep-alive',  url: `${AGENT}/health`, method: 'GET' },
+  ],
+  '*/5 * * * *': [
+    { name: 'keep-alive', url: `${AGENT}/health`, method: 'GET' },
   ],
   '*/15 * * * *': [
     { name: 'books-ingest', url: `${PORTAL}/api/cron/books-ingest?days=2` },

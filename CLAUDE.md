@@ -183,6 +183,8 @@ CALCOM_API_KEY
 - **All scheduling via Cal.com.**
 - **Cal.com UID matching** — use same-day date matching (not 5-min tolerance) since GCal and Cal.com times may differ.
 - **Depot address** in `_scripts/route_optimizer.py` line ~19: `1519 Parkway, Austin, TX 78703`.
+- **Always deploy after portal changes** — run `./scripts/deploy.sh portal` after any edit to `app/`. Changes are not live until deployed; never assume a code change took effect without deploying.
+- **Rounds reads live GCal only** — `/admin/rounds` must never read from the route plan cache. The route plan (`getLatestRoutePlan`) is for `/admin/route` only. Rounds always calls `getTodaysBookings()` / `getBookingsForDate()` directly so new appointments are never missed.
 
 ---
 

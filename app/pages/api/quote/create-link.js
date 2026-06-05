@@ -54,8 +54,24 @@ export default async function handler(req, res) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
     return res.status(400).json({ error: 'Invalid email address' })
   }
-  if (!Array.isArray(serviceLines) && !Array.isArray(productLines)) {
+  const sLines = Array.isArray(serviceLines) ? serviceLines : []
+  const aLines = Array.isArray(addonLines) ? addonLines : []
+  const pLines = Array.isArray(productLines) ? productLines : []
+  if (sLines.length === 0 && pLines.length === 0) {
     return res.status(400).json({ error: 'No quote contents' })
+  }
+  const allLines = [...sLines, ...aLines, ...pLines]
+  if (allLines.length > 50) return res.status(400).json({ error: 'Too many line items' })
+  for (const l of allLines) {
+    const amt = Number(l.amount)
+    if (l.amount !== undefined && (!Number.isFinite(amt) || amt < 0 || amt > 100000)) {
+      return res.status(400).json({ error: `Invalid amount on line: ${l.label || '?'}` })
+    }
+  }
+  if (notes && String(notes).length > 5000) return res.status(400).json({ error: 'Notes too long' })
+  const totals = [total, recurringTotal, oneTimeTotal, taxAmount].filter(v => v !== undefined)
+  if (totals.some(v => !Number.isFinite(Number(v)) || Number(v) < 0)) {
+    return res.status(400).json({ error: 'Invalid total value' })
   }
 
   const jti = newJti()

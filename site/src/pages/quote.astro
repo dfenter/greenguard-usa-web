@@ -1,0 +1,94 @@
+---
+import Base from '../layouts/Base.astro'
+---
+<Base title="Get a Quote · GreenGuard USA" description="Get a custom mosquito control quote for your Austin-area property. Choose your plan and get started online." canonical="https://www.greenguard-usa.com/quote">
+<style>
+  .page { padding: 100px 0 80px; }
+  h1 { font-size:clamp(2rem,4vw,3rem);font-weight:900;letter-spacing:-0.02em;margin-bottom:12px; }
+  .sub { color:var(--text-dim);font-size:1.05rem;line-height:1.7;max-width:600px;margin-bottom:48px; }
+  .plans { display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:40px; }
+  .plan { background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:border-color .15s,background .15s; }
+  .plan:hover, .plan.selected { border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.05); }
+  .plan-name { font-size:1rem;font-weight:900; }
+  .plan-price { font-size:1.6rem;font-weight:900;color:var(--gold); }
+  .plan-desc { font-size:0.82rem;color:var(--text-dim);line-height:1.6; }
+  .plan-badge { display:inline-block;font-size:0.65rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:rgba(201,168,76,0.15);color:var(--gold);margin-bottom:4px; }
+  .cta-wrap { display:flex;gap:12px;align-items:center;flex-wrap:wrap; }
+  .note { font-size:0.82rem;color:var(--text-faint);margin-top:24px;line-height:1.6; }
+  @media(max-width:768px){ .page{padding:64px 0 60px;} }
+</style>
+
+<nav id="site-nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">Green<span>Guard</span> USA<small>Smart · Safe · Effective</small></a>
+    <button class="hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+    <div class="nav-links" id="nav-links">
+      <a href="/services" class="nav-link">Services</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+      <a href="/faq" class="nav-link">FAQ</a>
+      <a href="/about" class="nav-link">About</a>
+      <a href="https://portal.greenguard-usa.com/login" class="nav-link">My Account</a>
+      <a href="/book" class="btn-gold">Book Consultation</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container" style="max-width:900px;">
+    <div class="section-label reveal" style="margin-top:0;">Get a Quote</div>
+    <h1 class="reveal">Choose your <span style="color:var(--green)">plan</span></h1>
+    <p class="sub reveal">Select the plan that fits your yard. We'll build a custom quote and you can approve and schedule online — no calls required.</p>
+
+    <div class="plans reveal" id="plan-grid">
+      {[
+        { id: 'BG-1', name: '1 Trap', price: '$159.99/mo', desc: 'Ideal for smaller yards up to ⅓ acre. Includes trap rental, CO₂ tank service, and monthly tech visit.', badge: null },
+        { id: 'BG-2', name: '2 Traps', price: '$266.99/mo', desc: 'Best coverage for standard Austin lots up to ½ acre. Most popular for outdoor entertaining areas.', badge: 'Most Popular' },
+        { id: 'BG-3', name: '3 Traps', price: '$399.99/mo', desc: 'Full-yard coverage for larger properties and high-pressure mosquito environments.', badge: null },
+        { id: 'MQ-1', name: 'Mosqitter Grand', price: '$299.99/mo', desc: 'Commercial-grade stainless steel trap for large yards, waterfront homes, and high-pressure environments.', badge: 'Premium' },
+      ].map(p => (
+        <div class="plan" data-plan={p.id}>
+          {p.badge && <div class="plan-badge">{p.badge}</div>}
+          <div class="plan-name">{p.name}</div>
+          <div class="plan-price">{p.price}</div>
+          <div class="plan-desc">{p.desc}</div>
+        </div>
+      ))}
+    </div>
+
+    <div class="cta-wrap reveal">
+      <a id="quote-btn" href="https://portal.greenguard-usa.com/quote/new" class="btn-gold" style="font-size:1rem;padding:16px 36px;">
+        Build My Quote →
+      </a>
+      <a href="/compare" style="font-size:0.88rem;color:var(--text-dim);">Compare all plans →</a>
+    </div>
+
+    <p class="note reveal">
+      Not sure which plan is right? <a href="/book" style="color:var(--gold);">Book a free property assessment</a> and we'll recommend the right setup for your yard — no commitment required.
+    </p>
+  </div>
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:40px 24px 28px;text-align:center;font-size:0.8rem;color:var(--text-faint);">
+  © 2025 GreenGuard USA · Austin, TX · <a href="/" style="color:var(--text-faint);">Home</a>
+</footer>
+
+<script>
+  const btn = document.getElementById('hamburger')
+  const nav = document.getElementById('nav-links')
+  btn?.addEventListener('click', () => nav?.classList.toggle('open'))
+
+  let selectedPlan = null
+  document.querySelectorAll('.plan').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.plan').forEach(p => p.classList.remove('selected'))
+      el.classList.add('selected')
+      selectedPlan = el.dataset.plan
+      const quoteBtn = document.getElementById('quote-btn')
+      if (quoteBtn) quoteBtn.href = `https://portal.greenguard-usa.com/quote/new?plan=${selectedPlan}`
+      if (window.gtag) gtag('event', 'select_item', { item_list_name: 'Quote Plans', items: [{ item_id: selectedPlan, item_name: el.querySelector('.plan-name')?.textContent }] })
+    })
+  })
+
+  if (window.gtag) gtag('event', 'view_item_list', { item_list_id: 'quote_plans', item_list_name: 'Quote Plans' })
+</script>
+</Base>

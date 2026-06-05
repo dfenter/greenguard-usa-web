@@ -75,8 +75,8 @@ function parseAppointmentNotes(description) {
   // or the Cal.com footer; capture everything until either of those.
   const calMatch = description.match(/Additional notes(?:[^:]*)?:\s*\n([\s\S]+?)(?=\n\s*\n|\nNeed to (?:cancel|reschedule)|\nhttps?:\/\/cal\.com|$)/i)
   if (calMatch) return calMatch[1].trim() || null
-  // Legacy: "Notes:" line
-  const legacyMatch = description.match(/^\s*Notes:\s*(.+(?:\n(?!\s*$).+)*)/im)
+  // Legacy Acuity format: stop before "Change Appointment:" line or bare URLs
+  const legacyMatch = description.match(/^\s*Notes:\s*(.+(?:\n(?!\s*$|Change Appointment:|https?:\/\/).+)*)/im)
   if (legacyMatch) return legacyMatch[1].trim() || null
   return null
 }
@@ -99,11 +99,12 @@ function parseServiceTitle(summary) {
   if (!summary) return ''
   // Cal.com format: "ServiceType between GreenGuard USA and CustomerName"
   const calMatch = summary.match(/^(.+?)\s+between\s+GreenGuard USA\s+and\s+.+$/i)
-  if (calMatch) return calMatch[1].trim()
+  if (calMatch) return calMatch[1].replace(/\s*\(hidden\)\s*/gi, '').trim()
   // Legacy event title format: "CustomerName: ServiceType (GreenGuard USA)"
   return summary
     .replace(/^[^:]+:\s*/, '')
     .replace(/\s*\(GreenGuard USA\)\s*$/, '')
+    .replace(/\s*\(hidden\)\s*/gi, '')
     .trim()
 }
 
@@ -232,13 +233,24 @@ async function getBookingsForWeek(startISO, endISO) {
     }))
 }
 
+function _tzDayBounds(dateStr, tz) {
+  // Compute UTC start/end for a calendar date in the given IANA timezone.
+  // Handles DST transitions correctly by deriving the actual offset for that date.
+  const ref = new Date(dateStr + 'T12:00:00Z')
+  const localRef = new Date(ref.toLocaleString('en-US', { timeZone: tz }))
+  const offsetMs = ref - localRef
+  const start = new Date(new Date(dateStr + 'T00:00:00Z').getTime() + offsetMs)
+  const end   = new Date(new Date(dateStr + 'T23:59:59Z').getTime() + offsetMs)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
 async function getBookingsForDate(dateStr) {
   // 30s cache — /admin/rounds reloads hit the same day repeatedly while the
   // tech works through stops. Matches getBookingsForDateRange's TTL.
   return cached(`gcal:bookings:date:${dateStr}`, 30, async () => {
+    const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
     const calendar = getCalendar()
-    const startOfDay = new Date(dateStr + 'T00:00:00-05:00').toISOString()
-    const endOfDay = new Date(dateStr + 'T23:59:59-05:00').toISOString()
+    const { start: startOfDay, end: endOfDay } = _tzDayBounds(dateStr, tz)
     const res = await calendar.events.list({
       calendarId: CALENDAR_ID,
       timeMin: startOfDay,
@@ -268,6 +280,9 @@ async function getBookingsForDate(dateStr) {
           email: parseEmailFromDescription(desc),
           phone: parsePhoneFromDescription(desc),
           propertySize: propMatch?.[1]?.trim() || '',
+          appointmentNotes: parseAppointmentNotes(desc),
+          booking_source: desc.includes('AcuityID') ? 'legacy' : (desc.includes('cal.com') ? 'calcom' : 'manual'),
+          gcal_event_link: `https://calendar.google.com/calendar/event?eid=${Buffer.from(e.id + ' ' + CALENDAR_ID).toString('base64')}`,
         }
       })
   })
@@ -279,8 +294,7 @@ async function getTodaysBookings() {
   // 30s cache keyed on today's CT date — home + rounds + tech all call this.
   return cached(`gcal:bookings:today:${todayStr}`, 30, async () => {
     const calendar = getCalendar()
-    const startOfDay = new Date(todayStr + 'T00:00:00').toISOString()
-    const endOfDay = new Date(todayStr + 'T23:59:59').toISOString()
+    const { start: startOfDay, end: endOfDay } = _tzDayBounds(todayStr, tz)
 
     const res = await calendar.events.list({
       calendarId: CALENDAR_ID,

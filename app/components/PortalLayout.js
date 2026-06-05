@@ -3,7 +3,9 @@ import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
 
 const NAV_LINKS = [
-  { href: '/dashboard', label: 'My Account' },
+  { href: '/dashboard',          label: 'My Account' },
+  { href: '/dashboard/history',  label: 'History' },
+  { href: '/dashboard/settings', label: 'Settings' },
 ]
 
 const ADMIN_NAV_LINKS = [

@@ -1,36 +1,44 @@
 {
-  "rating": 5,
-  "total": 18,
-  "reviews": [
-    {
-      "name": "Patrick Pearsall",
-      "rating": 5,
-      "text": "So far so good with my BioGents system set up from GreenGuard. Dan was easy to work with on billing and info. And Bruce was quick with the delivery of my C02. Looking forward to fewer mosquitoes this summer.",
-      "time": "a year ago"
-    },
-    {
-      "name": "Ricky",
-      "rating": 5,
-      "text": "If there’s one thing I can’t stand on God’s green earth, it’s those disease-spreading, blood-sucking mosquitoes. My backyard’s full of water features—basically a mosquito resort—so I needed serious backup. Enter GreenGuard. I got the All-in-One package, and it’s been a game-changer. Highly recommend if you’re ready to evict those useless flying vampires for good.",
-      "time": "a year ago"
-    },
-    {
-      "name": "Zachary Goss",
-      "rating": 5,
-      "text": "My neighbors got their yard covered first and it was a huge relief over there. We have a mosquito factory basically…a pool and lots of low decking etc…We finally got ours a month ago and have been really enjoying the difference.",
-      "time": "a year ago"
-    },
-    {
-      "name": "Lauren Hughes",
-      "rating": 5,
-      "text": "I have been running my Biogents CO2 mosquito trap for 2 years, and I cannot go outside without it running.  GreenGuard keeps my tank full without worry.",
-      "time": "a year ago"
-    },
-    {
-      "name": "Sam",
-      "rating": 5,
-      "text": "Solid operation. I just bought the machine and the Co2 monthly service. With all the rain we’ve just it’s already worth the money.",
-      "time": "a year ago"
-    }
-  ]
+  "google": {
+    "place_id": "ChIJx8wLC4K11wwRbfe7hhZiHXs",
+    "rating": 5,
+    "total": 18,
+    "reviews": [
+      {
+        "author": "Fredrick Lewcock",
+        "rating": 5,
+        "text": "Great communication and customer service!",
+        "time": "in the last week",
+        "source": "google"
+      },
+      {
+        "author": "David Allison",
+        "rating": 5,
+        "text": "GreenGuard has changed my life. GreenGuard has turned my back yard into the sanctuary that I have always wanted. They maintain our mosquito traps on a monthly basis and the result is that my family is able to fully use the backyard anytime of year, anytime of day. Effective mosquito control is not a myth. With the right traps and the right maintenance plan, mosquitos can be completely controlled.",
+        "time": "in the last week",
+        "source": "google"
+      },
+      {
+        "author": "Brendan",
+        "rating": 5,
+        "text": "Very happy with the experience so far with GreenGuard — I was blown away at the amount of mosquitoes that were caught. It was in the thousands. The amount of mosquitoes has gone down considerably, and the guys make it so easy to work with them.",
+        "time": "in the last week",
+        "source": "google"
+      },
+      {
+        "author": "Betny Townsend",
+        "rating": 5,
+        "text": "We love GreenGuard's service. We've gotten so many of our neighbors to sign up you'd think we were on the payroll. For a lot of folks in our circle, anything that harms pollinators is a non-starter, and this has been the best thing we've tried by far for mosquitos. It's sooo satisfying to look at the bag of trapped mosquitoes after it's rained. Highly recommend!",
+        "time": "in the last week",
+        "source": "google"
+      },
+      {
+        "author": "Jim S",
+        "rating": 5,
+        "text": "Great service, really hammers the mosquitos.",
+        "time": "a week ago",
+        "source": "google"
+      }
+    ]
+  }
 }

@@ -1,12 +1,6 @@
 /**
- * Meta Graph API — Facebook Page posts, insights, and reviews
- * Requires: META_ACCESS_TOKEN (Page Access Token), META_PAGE_ID
- *
- * Setup:
- * 1. developers.facebook.com → My Apps → Create App → Business type
- * 2. Add Facebook Login + Pages API products
- * 3. Generate a long-lived Page Access Token (never expires if refreshed annually)
- * 4. Add META_ACCESS_TOKEN + META_PAGE_ID to Vercel env vars
+ * Meta Graph API — ads management, page posts, insights
+ * Uses META_SYSTEM_USER_TOKEN (permanent, never expires)
  */
 
 const BASE = 'https://graph.facebook.com/v21.0'
@@ -15,8 +9,12 @@ function pageId() {
   return process.env.META_PAGE_ID || ''
 }
 
+function adAccountId() {
+  return process.env.META_AD_ACCOUNT_ID || ''
+}
+
 function token() {
-  return process.env.META_ACCESS_TOKEN || ''
+  return process.env.META_SYSTEM_USER_TOKEN || process.env.META_ACCESS_TOKEN || ''
 }
 
 async function graphGet(path, params = {}) {
@@ -109,6 +107,31 @@ async function schedulePost({ message, scheduledTime, link } = {}) {
   return graphPost(`/${pageId()}/feed`, body)
 }
 
+// ── Ads Management ────────────────────────────────────────────────────────────
+
+async function getCampaigns() {
+  return graphGet(`/${adAccountId()}/campaigns`, {
+    fields: 'id,name,status,daily_budget,lifetime_budget,objective,effective_status',
+    effective_status: '["ACTIVE","PAUSED"]',
+  })
+}
+
+async function getCampaignStats(since, until) {
+  return graphGet(`/${adAccountId()}/insights`, {
+    fields: 'campaign_name,impressions,clicks,spend,cpc,ctr,actions,reach',
+    level: 'campaign',
+    time_range: JSON.stringify({ since, until }),
+  })
+}
+
+async function setCampaignStatus(campaignId, status) {
+  return graphPost(`/${campaignId}`, { status })
+}
+
+async function setCampaignBudget(campaignId, dailyBudgetCents) {
+  return graphPost(`/${campaignId}`, { daily_budget: String(dailyBudgetCents) })
+}
+
 module.exports = {
   postToPage,
   postPhotoToPage,
@@ -118,4 +141,8 @@ module.exports = {
   replyToComment,
   getPageInfo,
   schedulePost,
+  getCampaigns,
+  getCampaignStats,
+  setCampaignStatus,
+  setCampaignBudget,
 }

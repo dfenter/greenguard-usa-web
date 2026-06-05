@@ -1,0 +1,214 @@
+---
+import Base from '../layouts/Base.astro';
+
+const rows = [
+  {
+    label: 'Monthly cost',
+    delivery: '$89 – $190/mo',
+    rental: '$160 – $300/mo',
+    own: '$90 – $190/mo (delivery only)',
+  },
+  {
+    label: 'Equipment cost',
+    delivery: 'You already own a trap',
+    rental: '$0 upfront (we own it)',
+    own: '$180 – $1,850 (one-time purchase)',
+  },
+  {
+    label: 'Who owns the trap',
+    delivery: 'You',
+    rental: 'GreenGuard USA',
+    own: 'You',
+  },
+  {
+    label: 'Installation',
+    delivery: 'Self-install',
+    rental: 'Included, we do it',
+    own: 'Included with purchase',
+  },
+  {
+    label: 'CO₂ tank exchange',
+    delivery: 'Yes, monthly',
+    rental: 'Yes, monthly',
+    own: 'Yes, monthly',
+  },
+  {
+    label: 'Repairs',
+    delivery: 'We come out and fix it. Parts and labor billed separately.',
+    rental: 'Fully covered. No extra charge, ever.',
+    own: 'We come out and fix it. Parts and labor billed separately.',
+  },
+  {
+    label: 'Routine maintenance',
+    delivery: 'Included with each CO₂ visit',
+    rental: 'Included, fully covered',
+    own: 'Included with each CO₂ visit',
+  },
+  {
+    label: 'Barrier treatment add-on',
+    delivery: '+$49.99/treatment',
+    rental: '+$49.99/treatment',
+    own: '+$49.99/treatment',
+  },
+  {
+    label: 'Contract required',
+    delivery: 'None. Cancel anytime.',
+    rental: 'None. Cancel anytime.',
+    own: 'None. Cancel anytime.',
+  },
+  {
+    label: 'Best for',
+    delivery: 'Existing trap owners who want professional CO₂ service',
+    rental: 'Homeowners who want zero hassle',
+    own: 'Buyers who want to own their equipment long-term',
+  },
+];
+
+const faqs = [
+  {
+    q: 'What happens if my trap needs a repair?',
+    a: 'It depends on your plan. Rental customers pay nothing. We own the equipment, so we cover all parts and labor. CO₂ Delivery and Buy customers own their trap, so repairs are handled by us but billed separately for parts and labor.',
+  },
+  {
+    q: 'Can I switch plans later?',
+    a: 'Yes. If you start with CO₂ delivery and decide you want to upgrade to a rental, just let us know. We will swap out your equipment at the next scheduled visit.',
+  },
+  {
+    q: 'Does the shop equipment work with your delivery service?',
+    a: 'Yes. If you purchase a trap from our shop, we can enroll you in CO₂ Delivery service right away. The traps we sell are the same models we install for rental customers.',
+  },
+  {
+    q: 'Is the barrier treatment available on its own?',
+    a: 'No. Barrier treatment is an add-on for active CO₂ trap customers only. It works by masking human scent and redirecting mosquitoes toward your trap, so a running trap is required.',
+  },
+];
+---
+
+<Base
+  title="CO₂ Trap vs Spray: Compare Mosquito Control Options Austin TX"
+  description="Side-by-side comparison of CO₂ trapping vs pesticide spray vs DIY mosquito control for Austin homeowners. Honest assessment of costs, effectiveness, and safety."
+>
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-2xl mx-auto">
+      <div class="eyebrow mb-2">Compare Options</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        Which service is <span class="text-accent">right for you?</span>
+      </h1>
+      <p class="text-cream/75 text-base max-w-lg mx-auto">
+        Three ways to protect your yard. All pesticide-free. All month-to-month. Here is how they differ.
+      </p>
+    </div>
+  </section>
+
+  <!-- QUICK CARDS -->
+  <section class="py-12 px-5 bg-bg-panel">
+    <div class="max-w-5xl mx-auto grid md:grid-cols-3 gap-5">
+
+      <div class="card flex flex-col gap-3">
+        <div class="eyebrow text-xs">Already own a trap</div>
+        <h2 class="text-lg font-black text-white">CO₂ Delivery Only</h2>
+        <p class="text-cream/65 text-sm flex-1">You own the trap. We show up monthly to swap the CO₂ tank, inspect, and clean. Starting at <strong class="text-gold">$89.99/mo.</strong></p>
+        <div class="space-y-1.5 text-sm">
+          <div class="flex gap-2 text-accent"><span>✓</span><span>Monthly CO₂ tank swap</span></div>
+          <div class="flex gap-2 text-accent"><span>✓</span><span>Inspection and cleaning every visit</span></div>
+          <div class="flex gap-2 text-cream/40"><span>✗</span><span>Trap not included</span></div>
+          <div class="flex gap-2 text-cream/40"><span>✗</span><span>Repairs billed separately when needed</span></div>
+        </div>
+        <a href="/co2delivery" class="btn-outline text-center text-sm mt-2">CO₂ Delivery Details</a>
+      </div>
+
+      <div class="card flex flex-col gap-3 relative" style="border-color: rgba(201,168,76,0.4);">
+        <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span class="bg-gold text-bg text-xs font-black px-3 py-0.5 rounded-full tracking-wide uppercase">Most Popular</span>
+        </div>
+        <div class="eyebrow text-xs mt-2">Completely hands-off</div>
+        <h2 class="text-lg font-black text-white">Full-Service Rental</h2>
+        <p class="text-cream/65 text-sm flex-1">We own the trap. We install it, maintain it, and cover all repairs at no extra charge. You just enjoy your yard. Starting at <strong class="text-gold">$159.99/mo.</strong></p>
+        <div class="space-y-1.5 text-sm">
+          <div class="flex gap-2 text-accent"><span>✓</span><span>Professional trap included</span></div>
+          <div class="flex gap-2 text-accent"><span>✓</span><span>Monthly CO₂ tank swap</span></div>
+          <div class="flex gap-2 text-accent"><span>✓</span><span>All repairs covered, no extra charge</span></div>
+          <div class="flex gap-2 text-accent"><span>✓</span><span>No upfront equipment cost</span></div>
+        </div>
+        <a href="/traprental" class="btn-gold text-center text-sm mt-2">Rental Details</a>
+      </div>
+
+      <div class="card flex flex-col gap-3">
+        <div class="eyebrow text-xs">Want to own your equipment</div>
+        <h2 class="text-lg font-black text-white">Buy + CO₂ Delivery</h2>
+        <p class="text-cream/65 text-sm flex-1">Purchase a trap from our shop, then add monthly CO₂ delivery. Higher upfront cost, lower monthly rate. You own the hardware.</p>
+        <div class="space-y-1.5 text-sm">
+          <div class="flex gap-2 text-accent"><span>✓</span><span>Equipment is yours to keep</span></div>
+          <div class="flex gap-2 text-accent"><span>✓</span><span>Monthly CO₂ delivery available</span></div>
+          <div class="flex gap-2 text-cream/40"><span>✗</span><span>One-time equipment cost ($180 – $1,850)</span></div>
+          <div class="flex gap-2 text-cream/40"><span>✗</span><span>Repairs billed separately when needed</span></div>
+        </div>
+        <a href="/shop" class="btn-outline text-center text-sm mt-2">Shop Equipment</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FULL COMPARISON TABLE -->
+  <section class="py-12 px-5">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl font-black text-white mb-6 text-center">Side-by-side breakdown</h2>
+
+      <div class="overflow-x-auto rounded-xl" style="border: 1px solid rgba(122,171,130,0.15);">
+        <table class="w-full text-sm" style="border-collapse: collapse;">
+          <thead>
+            <tr style="background: rgba(122,171,130,0.08); border-bottom: 1px solid rgba(122,171,130,0.15);">
+              <th class="text-left px-4 py-3 text-cream/50 font-bold w-[28%]">Feature</th>
+              <th class="px-4 py-3 text-center text-cream/80 font-black">CO₂ Delivery</th>
+              <th class="px-4 py-3 text-center font-black" style="color: #c9a84c;">Full-Service Rental</th>
+              <th class="px-4 py-3 text-center text-cream/80 font-black">Buy + Delivery</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr style={`border-bottom: 1px solid rgba(122,171,130,0.08); background: ${i % 2 === 0 ? 'transparent' : 'rgba(122,171,130,0.03)'};`}>
+                <td class="px-4 py-3 text-cream/60 font-semibold">{row.label}</td>
+                <td class="px-4 py-3 text-center text-cream/75">{row.delivery}</td>
+                <td class="px-4 py-3 text-center text-cream/90 font-semibold">{row.rental}</td>
+                <td class="px-4 py-3 text-center text-cream/75">{row.own}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-cream/35 text-xs mt-3 text-center">All plans are month-to-month. Texas sales tax (8.25%) added to invoices.</p>
+    </div>
+  </section>
+
+  <!-- STILL UNSURE -->
+  <section class="py-10 px-5 bg-bg-panel">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="text-xl md:text-2xl font-black text-white mb-3">Still not sure?</h2>
+      <p class="text-cream/65 text-sm mb-6">Book a free property assessment. We will walk your yard, tell you which service fits your property and budget, and give you an honest recommendation.</p>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <a href="/book" class="btn-gold">Book Free Assessment</a>
+        <a href="tel:5125604129" class="btn-outline">Call 512-560-4129</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="py-12 px-5">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-xl font-black text-white mb-6 text-center">Common questions</h2>
+      <div class="space-y-3">
+        {faqs.map((f) => (
+          <details class="card group">
+            <summary class="cursor-pointer font-bold text-white flex justify-between items-start gap-3">
+              <span>{f.q}</span>
+              <span class="text-accent text-xl group-open:rotate-45 transition-transform flex-shrink-0">+</span>
+            </summary>
+            <p class="text-cream/75 mt-3 leading-relaxed text-sm">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+</Base>

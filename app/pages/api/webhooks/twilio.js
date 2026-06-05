@@ -12,11 +12,17 @@ const twilio = require('twilio')
 export const config = { api: { bodyParser: { type: 'application/x-www-form-urlencoded' } } }
 
 function publicUrl(req) {
-  // Twilio computes the signature over the EXACT URL it posted to.
-  // Prefer the env var; fall back to host header for local dev.
-  const base = process.env.TWILIO_WEBHOOK_URL
-    || `${(req.headers['x-forwarded-proto'] || 'https')}://${req.headers['x-forwarded-host'] || req.headers.host}`
-  return `${base.replace(/\/$/, '')}/api/webhooks/twilio`
+  // Always prefer TWILIO_WEBHOOK_URL env var — x-forwarded-host can be spoofed.
+  if (process.env.TWILIO_WEBHOOK_URL) {
+    return `${process.env.TWILIO_WEBHOOK_URL.replace(/\/$/, '')}/api/webhooks/twilio`
+  }
+  // Local dev fallback only — never rely on spoofable headers in production
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[twilio-webhook] TWILIO_WEBHOOK_URL not set in production — signature will fail')
+  }
+  const proto = req.headers['x-forwarded-proto'] || 'https'
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000'
+  return `${proto}://${host}/api/webhooks/twilio`
 }
 
 export default async function handler(req, res) {

@@ -142,36 +142,43 @@ async function _fetchContactsByEmails(cleaned) {
 }
 
 async function getContactNotes(contactId, limit = 5) {
-  const assocResp = await fetch(
-    `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}/associations/notes?limit=20`,
-    { headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` } }
-  )
-  if (!assocResp.ok) return []
-  const assocData = await assocResp.json()
-  const noteIds = (assocData.results || []).map((r) => r.id).slice(0, limit)
-  if (noteIds.length === 0) return []
+  return _cachedH(`hs:notes:${contactId}`, 60, async () => {
+    // Fetch up to 50 association IDs — do NOT slice before batch-reading because HubSpot
+    // returns association IDs in an arbitrary order (often oldest-first), so slicing early
+    // would return stale notes instead of the most recent ones.
+    const assocResp = await fetch(
+      `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}/associations/notes?limit=50`,
+      { headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` } }
+    )
+    if (!assocResp.ok) return []
+    const assocData = await assocResp.json()
+    const allIds = (assocData.results || []).map((r) => r.id)
+    if (allIds.length === 0) return []
 
-  const batchResp = await fetch('https://api.hubapi.com/crm/v3/objects/notes/batch/read', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      inputs: noteIds.map((id) => ({ id: String(id) })),
-      properties: ['hs_note_body', 'hs_timestamp'],
-    }),
+    const batchResp = await fetch('https://api.hubapi.com/crm/v3/objects/notes/batch/read', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: allIds.map((id) => ({ id: String(id) })),
+        properties: ['hs_note_body', 'hs_timestamp'],
+      }),
+    })
+    if (!batchResp.ok) return []
+    const batchData = await batchResp.json()
+
+    // Sort newest-first, then return the requested limit
+    return (batchData.results || [])
+      .sort((a, b) => new Date(b.properties.hs_timestamp) - new Date(a.properties.hs_timestamp))
+      .slice(0, limit)
+      .map((n) => ({
+        id: n.id,
+        body: n.properties.hs_note_body || '',
+        timestamp: n.properties.hs_timestamp,
+      }))
   })
-  if (!batchResp.ok) return []
-  const batchData = await batchResp.json()
-
-  return (batchData.results || [])
-    .sort((a, b) => new Date(b.properties.hs_timestamp) - new Date(a.properties.hs_timestamp))
-    .map((n) => ({
-      id: n.id,
-      body: n.properties.hs_note_body || '',
-      timestamp: n.properties.hs_timestamp,
-    }))
 }
 
 async function updateContact(contactId, updates) {

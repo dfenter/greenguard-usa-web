@@ -4,6 +4,7 @@
 #   ./scripts/deploy.sh portal     → deploys portal.greenguard-usa.com (Next.js app)
 #   ./scripts/deploy.sh site       → deploys greenguard-usa.com (static marketing site)
 #   ./scripts/deploy.sh astro      → deploys www.greenguard-usa.com (Astro rebuild)
+#   ./scripts/deploy.sh photos     → deploys photos.greenguard-usa.com (family photo gallery)
 #   ./scripts/deploy.sh all        → deploys all three in sequence
 
 set -euo pipefail
@@ -19,6 +20,11 @@ NC='\033[0m'
 deploy_portal() {
   echo -e "${CYAN}▲ Deploying portal.greenguard-usa.com ...${NC}"
   cd "$REPO_ROOT/app"
+  echo -e "${CYAN}  Running lint check...${NC}"
+  if ! npx next lint --quiet 2>&1; then
+    echo -e "${RED}✗ Lint errors found — fix before deploying${NC}"
+    exit 1
+  fi
   vercel --prod --scope "$SCOPE"
   echo -e "${GREEN}✓ Portal deployed → https://portal.greenguard-usa.com${NC}"
 }
@@ -37,10 +43,18 @@ deploy_astro() {
   echo -e "${GREEN}✓ Astro site deployed → https://www.greenguard-usa.com${NC}"
 }
 
+deploy_photos() {
+  echo -e "${CYAN}▲ Deploying photos.greenguard-usa.com ...${NC}"
+  cd "$REPO_ROOT/photos"
+  vercel --prod --scope "$SCOPE"
+  echo -e "${GREEN}✓ Photos deployed → https://photos.greenguard-usa.com${NC}"
+}
+
 case "${1:-all}" in
   portal) deploy_portal ;;
   site)   deploy_site ;;
   astro)  deploy_astro ;;
+  photos) deploy_photos ;;
   all)
     deploy_site
     echo ""

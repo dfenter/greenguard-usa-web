@@ -57,6 +57,35 @@ async function checkResend() {
   return { ok, error: ok ? undefined : 'RESEND_API_KEY missing or malformed' }
 }
 
+async function checkMetaToken() {
+  const token = process.env.META_SYSTEM_USER_TOKEN
+  if (!token) return { ok: true, warning: 'META_SYSTEM_USER_TOKEN not set — ads attribution disabled' }
+  const start = Date.now()
+  try {
+    const r = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${token}`)
+    const d = await r.json()
+    if (d.error) return { ok: false, error: `Meta token invalid: ${d.error.message}`, latency: Date.now() - start }
+    return { ok: true, latency: Date.now() - start }
+  } catch (e) {
+    return { ok: false, error: e.message, latency: Date.now() - start }
+  }
+}
+
+async function checkCalcom() {
+  const key = process.env.CALCOM_API_KEY
+  if (!key) return { ok: false, error: 'CALCOM_API_KEY not set' }
+  const start = Date.now()
+  try {
+    const r = await fetch('https://api.cal.com/v2/event-types', {
+      headers: { Authorization: `Bearer ${key}`, 'cal-api-version': '2024-06-14' },
+    })
+    if (!r.ok) return { ok: false, error: `Cal.com API returned ${r.status}`, latency: Date.now() - start }
+    return { ok: true, latency: Date.now() - start }
+  } catch (e) {
+    return { ok: false, error: e.message, latency: Date.now() - start }
+  }
+}
+
 async function checkGA4() {
   const configured = !!(process.env.GOOGLE_ANALYTICS_PROPERTY_ID)
   if (!configured) return { ok: true, warning: 'GA4 property ID not set — Traffic tab disabled' }
@@ -107,13 +136,15 @@ export default async function handler(req, res) {
   const env = checkEnvVars()
 
   // Run all checks in parallel
-  const [stripeResult, hubspotResult, calResult, resendResult, ga4Result, ssrResult] = await Promise.all([
+  const [stripeResult, hubspotResult, calResult, resendResult, ga4Result, ssrResult, metaResult, calcomResult] = await Promise.all([
     checkStripe().catch((e) => ({ ok: false, error: e.message })),
     checkHubSpot().catch((e) => ({ ok: false, error: e.message })),
     checkGoogleCalendar().catch((e) => ({ ok: false, error: e.message })),
     checkResend(),
     checkGA4().catch((e) => ({ ok: false, error: e.message })),
     checkPageSSR().catch((e) => ({ ok: false, error: e.message })),
+    checkMetaToken().catch((e) => ({ ok: false, error: e.message })),
+    checkCalcom().catch((e) => ({ ok: false, error: e.message })),
   ])
 
   // GA4 is non-critical — traffic tab degrades gracefully, mark as warning not failure
@@ -129,10 +160,12 @@ export default async function handler(req, res) {
     google_calendar: calResult,
     resend: resendResult,
     ga4: ga4Warning,
+    meta_token: metaResult,
+    calcom: calcomResult,
   }
 
-  // Critical checks only (GA4 excluded — it's optional)
-  const criticalChecks = { env, page_ssr: ssrResult, stripe: stripeResult, hubspot: hubspotResult, google_calendar: calResult, resend: resendResult }
+  // Critical checks only (GA4 and Meta excluded — they degrade gracefully)
+  const criticalChecks = { env, page_ssr: ssrResult, stripe: stripeResult, hubspot: hubspotResult, google_calendar: calResult, resend: resendResult, calcom: calcomResult }
   const allOk = Object.values(criticalChecks).every((c) => c.ok)
   const degraded = Object.values(criticalChecks).some((c) => !c.ok)
 

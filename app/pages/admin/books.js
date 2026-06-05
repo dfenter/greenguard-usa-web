@@ -25,17 +25,22 @@ export async function getServerSideProps({ req, res, query }) {
     where += ` AND category_label = $${args.length}`
   }
 
-  const [txs, summary, cats, lastRun] = await Promise.all([
-    q(`SELECT id, occurred_at, amount_cents, type, description, customer_email, customer_name, sku, category_label
-       FROM transactions WHERE ${where} ORDER BY occurred_at DESC LIMIT 200`, args),
-    q(`SELECT category_label,
-              SUM(CASE WHEN amount_cents > 0 THEN amount_cents ELSE 0 END)/100.0 AS inflow,
-              SUM(CASE WHEN amount_cents < 0 THEN amount_cents ELSE 0 END)/100.0 AS outflow,
-              COUNT(*) AS n
-       FROM transactions WHERE ${where} GROUP BY category_label ORDER BY ABS(SUM(amount_cents)) DESC`, args),
-    q(`SELECT label, type FROM categories ORDER BY type, label`),
-    q(`SELECT started_at, finished_at, rows_added, ok, error FROM ingest_runs ORDER BY started_at DESC LIMIT 1`),
-  ])
+  let txs, summary, cats, lastRun
+  try {
+    ;[txs, summary, cats, lastRun] = await Promise.all([
+      q(`SELECT id, occurred_at, amount_cents, type, description, customer_email, customer_name, sku, category_label
+         FROM transactions WHERE ${where} ORDER BY occurred_at DESC LIMIT 200`, args),
+      q(`SELECT category_label,
+                SUM(CASE WHEN amount_cents > 0 THEN amount_cents ELSE 0 END)/100.0 AS inflow,
+                SUM(CASE WHEN amount_cents < 0 THEN amount_cents ELSE 0 END)/100.0 AS outflow,
+                COUNT(*) AS n
+         FROM transactions WHERE ${where} GROUP BY category_label ORDER BY ABS(SUM(amount_cents)) DESC`, args),
+      q(`SELECT label, type FROM categories ORDER BY type, label`),
+      q(`SELECT started_at, finished_at, rows_added, ok, error FROM ingest_runs ORDER BY started_at DESC LIMIT 1`),
+    ])
+  } catch (err) {
+    return { props: { days, search, category, txs: [], summary: [], categories: [], lastRun: null, dbError: err.message || 'Database unavailable' } }
+  }
 
   return {
     props: {
@@ -46,6 +51,7 @@ export async function getServerSideProps({ req, res, query }) {
       summary: summary.rows,
       categories: cats.rows,
       lastRun: lastRun.rows[0] ? { ...lastRun.rows[0], started_at: lastRun.rows[0].started_at.toISOString(), finished_at: lastRun.rows[0].finished_at?.toISOString() || null } : null,
+      dbError: null,
     },
   }
 }

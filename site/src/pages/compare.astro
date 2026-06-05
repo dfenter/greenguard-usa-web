@@ -1,0 +1,171 @@
+---
+import Base from '../layouts/Base.astro'
+---
+<Base title="Compare Mosquito Control Options · GreenGuard USA" description="Compare CO₂ traps vs chemical sprays, and see which GreenGuard plan fits your yard. Transparent side-by-side comparison." canonical="https://www.greenguard-usa.com/compare">
+
+<style>
+  .page { padding: 100px 0 80px; }
+  h1 { font-size:clamp(2rem,4vw,3rem);font-weight:900;letter-spacing:-0.02em;margin-bottom:12px; }
+  .sub { color:var(--text-dim);font-size:1.05rem;line-height:1.7;max-width:600px;margin-bottom:56px; }
+
+  /* Method comparison */
+  .method-table { width:100%;border-collapse:collapse;margin-bottom:64px; }
+  .method-table th { text-align:left;padding:14px 20px;font-size:0.72rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-faint);border-bottom:1px solid var(--border); }
+  .method-table th:not(:first-child) { text-align:center; }
+  .method-table td { padding:14px 20px;font-size:0.88rem;border-bottom:1px solid rgba(122,171,130,0.08);color:var(--text-dim); }
+  .method-table td:not(:first-child) { text-align:center;font-weight:700; }
+  .method-table tr:last-child td { border-bottom:none; }
+  .method-table .col-gg { background:rgba(125,255,170,0.04); }
+  .yes { color:var(--green); }
+  .no { color:rgba(212,230,202,0.3); }
+  .warn { color:#ffb060; }
+  .col-head { font-weight:900;font-size:0.95rem;color:var(--text); }
+  .col-head.featured { color:var(--green); }
+  .section-label { font-size:0.72rem;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;margin-top:56px; }
+
+  /* Plan comparison */
+  .plan-table { width:100%;border-collapse:collapse;margin-bottom:48px; }
+  .plan-table th { padding:16px 20px;font-size:0.82rem;font-weight:900;border-bottom:1px solid var(--border);color:var(--text); }
+  .plan-table th:first-child { text-align:left;color:var(--text-faint);font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em; }
+  .plan-table th:not(:first-child) { text-align:center; }
+  .plan-table td { padding:13px 20px;font-size:0.85rem;border-bottom:1px solid rgba(122,171,130,0.07);color:var(--text-dim); }
+  .plan-table td:first-child { font-weight:700;color:var(--text-dim);font-size:0.82rem; }
+  .plan-table td:not(:first-child) { text-align:center; }
+  .plan-table tr:last-child td { border-bottom:none; }
+  .plan-table .price-row td { font-size:1.1rem;font-weight:900;color:var(--gold); }
+  .plan-table .price-row td:first-child { font-size:0.82rem;font-weight:700;color:var(--text-faint); }
+  .plan-table .featured-col { background:rgba(201,168,76,0.04); }
+  .note { font-size:0.8rem;color:var(--text-faint);margin-top:-32px;margin-bottom:48px; }
+
+  @media(max-width:768px) {
+    .method-table th, .method-table td,
+    .plan-table th, .plan-table td { padding:10px 12px;font-size:0.8rem; }
+    .page { padding:64px 0 60px; }
+  }
+</style>
+
+<nav id="site-nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">Green<span>Guard</span> USA<small>Smart · Safe · Effective</small></a>
+    <button class="hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+    <div class="nav-links" id="nav-links">
+      <a href="/services" class="nav-link">Services</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+      <a href="/faq" class="nav-link">FAQ</a>
+      <a href="/about" class="nav-link">About</a>
+      <a href="https://portal.greenguard-usa.com/login" class="nav-link">My Account</a>
+      <a href="/book" class="btn-gold">Book Consultation</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container">
+    <div class="section-label reveal" style="margin-top:0;">Compare Options</div>
+    <h1 class="reveal">Which mosquito control is <span style="color:var(--green)">right for you?</span></h1>
+    <p class="sub reveal">Not all mosquito control is equal. Here's how the options stack up — and how GreenGuard's plans compare to each other.</p>
+
+    <!-- Method comparison -->
+    <div class="section-label reveal">CO₂ Traps vs. the Alternatives</div>
+    <div style="overflow-x:auto;" class="reveal">
+      <table class="method-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="col-head featured col-gg">GreenGuard CO₂ Traps</th>
+            <th class="col-head">Chemical Spray Service</th>
+            <th class="col-head">DIY Repellents</th>
+            <th class="col-head">Backyard Foggers</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ['Pesticide-free', '✓ Yes', '✗ No', '✗ No', '✗ No', true],
+            ['Safe for kids & pets', '✓ Always', '⚠ Re-entry wait', '⚠ Limited', '✗ No', true],
+            ['Safe for bees & pollinators', '✓ Yes', '✗ No', '⚠ Varies', '✗ No', true],
+            ['Reduces population over time', '✓ Yes', '✗ Temporary only', '✗ No', '✗ No', true],
+            ['Works 24/7 unattended', '✓ Yes', '✗ No', '✗ No', '✗ No', true],
+            ['No odor or residue', '✓ Yes', '✗ Strong odor', '✗ Yes', '✗ Heavy smoke', true],
+            ['Monthly service included', '✓ Yes', '✓ Yes', '✗ DIY only', '✗ DIY only', false],
+            ['No contracts required', '✓ Yes', '⚠ Often required', '✓ Yes', '✓ Yes', false],
+          ].map(([label, gg, spray, diy, fogger, isGGwin]) => (
+            <tr>
+              <td>{label}</td>
+              <td class={`col-gg ${isGGwin ? 'yes' : ''}`}>{gg}</td>
+              <td class={spray.startsWith('✗') ? 'no' : spray.startsWith('⚠') ? 'warn' : 'yes'}>{spray}</td>
+              <td class={diy.startsWith('✗') ? 'no' : diy.startsWith('⚠') ? 'warn' : 'yes'}>{diy}</td>
+              <td class={fogger.startsWith('✗') ? 'no' : fogger.startsWith('⚠') ? 'warn' : 'yes'}>{fogger}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Plan comparison -->
+    <div class="section-label reveal">GreenGuard Plan Comparison</div>
+    <div style="overflow-x:auto;" class="reveal">
+      <table class="plan-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>1 Trap</th>
+            <th class="featured-col">2 Traps ⭐ Most Popular</th>
+            <th>3 Traps</th>
+            <th>Mosqitter Grand</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="price-row">
+            <td>Monthly price</td>
+            <td>$159.99</td>
+            <td class="featured-col">$266.99</td>
+            <td>$399.99</td>
+            <td>$299.99 + $129.99 svc</td>
+          </tr>
+          {[
+            ['Yard size', 'Up to ⅓ acre', 'Up to ½ acre', '½–1+ acre', 'Large / waterfront'],
+            ['Number of traps', '1', '2', '3', '1 (commercial-grade)'],
+            ['Trap type', 'Biogents BG-Mosquitaire', 'Biogents BG-Mosquitaire', 'Biogents BG-Mosquitaire', 'Mosqitter Grand (stainless)'],
+            ['CO₂ tank service', '✓ Included', '✓ Included', '✓ Included', '✓ Included'],
+            ['Monthly tech visit', '✓', '✓', '✓', '✓'],
+            ['Catch rate', 'Standard', 'High', 'Maximum', 'Highest — commercial-grade'],
+            ['Best for', 'Urban lots, patios', 'Standard Austin yards', 'Large yards, entertaining', 'Lakefront, estate, ranch'],
+            ['No contract', '✓', '✓', '✓', '✓'],
+          ].map(([label, t1, t2, t3, mq]) => (
+            <tr>
+              <td>{label}</td>
+              <td>{t1}</td>
+              <td class="featured-col">{t2}</td>
+              <td>{t3}</td>
+              <td>{mq}</td>
+            </tr>
+          ))}
+          <tr>
+            <td></td>
+            <td><a href="/book" class="btn-outline" style="font-size:0.8rem;padding:9px 18px;">Get Started</a></td>
+            <td class="featured-col"><a href="/book" class="btn-gold" style="font-size:0.8rem;padding:9px 18px;">Get Started</a></td>
+            <td><a href="/book" class="btn-outline" style="font-size:0.8rem;padding:9px 18px;">Get Started</a></td>
+            <td><a href="/book" class="btn-outline" style="font-size:0.8rem;padding:9px 18px;">Get Started</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Not sure which plan fits your yard? Book a free assessment — we'll walk the property and recommend the right setup.</p>
+
+    <div style="text-align:center;margin-top:48px;" class="reveal">
+      <a href="/book" class="btn-gold" style="font-size:1rem;padding:16px 40px;">Book Your Free Property Assessment</a>
+    </div>
+  </div>
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:40px 24px 28px;text-align:center;font-size:0.8rem;color:var(--text-faint);">
+  © 2025 GreenGuard USA · Austin, TX · <a href="/" style="color:var(--text-faint);">Home</a> · <a href="/pricing" style="color:var(--text-faint);">Pricing</a>
+</footer>
+
+<script>
+  const btn = document.getElementById('hamburger')
+  const nav = document.getElementById('nav-links')
+  btn?.addEventListener('click', () => nav?.classList.toggle('open'))
+  if (window.gtag) gtag('event', 'cta_click', { cta_text: 'compare_page_view', page: 'compare' })
+</script>
+</Base>

@@ -5,10 +5,9 @@
 const { ingestStripeBalanceTransactions } = require('../../../lib/books-ingest')
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
-  if (req.headers['x-cron-key'] !== process.env.CRON_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
+  const { authorize } = require('../../../lib/cron-auth')
+  if (!authorize(req, res)) return
   const days = Math.min(parseInt(req.query.days || '7', 10) || 7, 730)
   try {
     const r = await ingestStripeBalanceTransactions({ daysBack: days })

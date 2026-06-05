@@ -3,6 +3,7 @@ const { upsertContact, addNote, findContactByEmail, getNotesForContact } = requi
 const { sendInventoryReport } = require('../../../lib/email')
 
 const INVENTORY_EMAIL = 'inventory@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 const FIELD_LABELS = {
   fullTanks: 'Full CO₂ tanks',

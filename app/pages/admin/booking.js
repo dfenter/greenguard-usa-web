@@ -26,7 +26,7 @@ export default function AdminBooking() {
     eventTypeId: '', firstName: '', lastName: '', email: '', phone: '',
     address: '', startLocal: '', notes: '', recurring: 'none',
     allowDoubleBook: false,
-    skipNotification: false,
+    skipNotification: true,
   })
   const [status, setStatus] = useState(null) // null | 'loading' | 'success' | {error}
 
@@ -41,7 +41,7 @@ export default function AdminBooking() {
       setForm((f) => ({
         ...f,
         email: q.email || f.email,
-        phone: q.phone || f.phone,
+        phone: q.phone ? normalizePhone(q.phone) : f.phone,
         firstName: parts[0] || f.firstName,
         lastName: parts.slice(1).join(' ') || f.lastName,
         address: q.address || f.address,
@@ -68,6 +68,14 @@ export default function AdminBooking() {
     return e => setForm(f => ({ ...f, [field]: e.target.value }))
   }
 
+  function normalizePhone(raw) {
+    const digits = raw.replace(/\D/g, '')
+    if (digits.length === 10) return '+1' + digits           // 5125551234 → +15125551234
+    if (digits.length === 11 && digits[0] === '1') return '+' + digits  // 15125551234 → +15125551234
+    if (raw.startsWith('+')) return raw                       // already E.164
+    return raw                                                // pass through, Cal.com will validate
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setStatus('loading')
@@ -76,7 +84,7 @@ export default function AdminBooking() {
       const res = await fetch('/api/admin/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, eventTypeTitle }),
+        body: JSON.stringify({ ...form, phone: normalizePhone(form.phone), eventTypeTitle }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Booking failed')
@@ -166,8 +174,8 @@ export default function AdminBooking() {
                 <input style={input} type="email" value={form.email} onChange={set('email')} required placeholder="jane@example.com" />
               </div>
               <div>
-                <label style={label}>Phone <span style={{ color: 'rgba(212,230,202,0.4)', fontWeight: 600 }}>(required by Cal.com)</span></label>
-                <input style={input} type="tel" value={form.phone} onChange={set('phone')} required placeholder="+15125551234" />
+                <label style={label}>Phone</label>
+                <input style={input} type="tel" value={form.phone} onChange={set('phone')} required placeholder="5125551234" />
               </div>
             </div>
 

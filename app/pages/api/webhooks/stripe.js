@@ -2,6 +2,74 @@ const { stripe } = require('../../../lib/stripe')
 const { upsertContact, addNote, findContactByEmail } = require('../../../lib/hubspot')
 const { sendT0Email, markStage, clearStages } = require('../../../lib/payment-resurrection')
 const { notifyAdmin, sendCustomerReceipt, sendCheckoutReceipt } = require('../../../lib/purchase-notify')
+const { sendWelcomeEmail } = require('../../../lib/email')
+const { createMagicToken } = require('../../../lib/auth')
+const crypto = require('crypto')
+
+const PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || '2225826221565752'
+const META_GRAPH_URL = `https://graph.facebook.com/v21.0/${PIXEL_ID}/events`
+
+function sha256hex(str) {
+  return crypto.createHash('sha256').update((str || '').trim().toLowerCase()).digest('hex')
+}
+
+async function fireMetaPurchase({ email, phone, amountUsd, orderId }) {
+  const metaToken = process.env.META_SYSTEM_USER_TOKEN
+  if (!metaToken || !email) return
+  const userData = { em: [sha256hex(email)] }
+  if (phone) userData.ph = [sha256hex(phone.replace(/\D/g, ''))]
+  const body = {
+    data: [{
+      event_name: 'Purchase',
+      event_time: Math.floor(Date.now() / 1000),
+      action_source: 'system_generated',
+      event_id: `stripe_${orderId}`,
+      user_data: userData,
+      custom_data: { value: amountUsd, currency: 'USD' },
+    }],
+  }
+  try {
+    const r = await fetch(`${META_GRAPH_URL}?access_token=${metaToken}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+    const data = await r.json()
+    if (!r.ok) console.error('[stripe-webhook] Meta CAPI error:', data)
+    else console.log(`[stripe-webhook] Meta CAPI Purchase ok — events_received: ${data.events_received}`)
+  } catch (e) {
+    console.error('[stripe-webhook] Meta CAPI failed:', e.message)
+  }
+}
+
+async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid }) {
+  if (!gclid) return
+  const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN
+  const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID
+  if (!devToken || !customerId) return
+  try {
+    const { google } = require('googleapis')
+    const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
+    auth.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN })
+    const { token } = await auth.getAccessToken()
+    const body = {
+      conversions: [{
+        gclid,
+        conversion_action: `customers/${customerId}/conversionActions/${process.env.GOOGLE_ADS_CONVERSION_ID}`,
+        conversion_date_time: new Date(conversionTime).toISOString().replace('T', ' ').replace('Z', '+00:00'),
+        conversion_value: amountUsd,
+        currency_code: 'USD',
+      }]
+    }
+    const r = await fetch(
+      `https://googleads.googleapis.com/v17/customers/${customerId}:uploadClickConversions`,
+      { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'developer-token': devToken, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    )
+    const data = await r.json()
+    if (data.partialFailureError) console.error('[stripe-webhook] Google Ads conversion error:', data.partialFailureError)
+    else console.log('[stripe-webhook] Google Ads conversion uploaded')
+  } catch (e) {
+    console.error('[stripe-webhook] Google Ads conversion failed:', e.message)
+  }
+}
 
 export const config = { api: { bodyParser: false } }
 
@@ -26,8 +94,20 @@ export default async function handler(req, res) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET)
   } catch (err) {
-    return res.status(400).json({ error: `Webhook signature failed: ${err.message}` })
+    console.warn(`[stripe-webhook] Invalid signature from ${req.headers['x-forwarded-for'] || 'unknown'}`)
+    return res.status(401).end()  // Don't leak error details
   }
+
+  // Idempotency: skip if we've already processed this event (Stripe retries on non-200)
+  const { isWebhookProcessed, recordWebhook } = require('../../../lib/db-webhook-log')
+  if (await isWebhookProcessed(event.id)) {
+    return res.status(200).json({ received: true, duplicate: true })
+  }
+  await recordWebhook(event.id, event.type)
+
+  // Respond to Stripe immediately — processing happens below
+  // This prevents Stripe from retrying due to slow HubSpot/Resend calls
+  res.status(200).json({ received: true })
 
   try {
     switch (event.type) {
@@ -67,6 +147,13 @@ export default async function handler(req, res) {
           receiptUrl: invoice.charge ? `https://pay.stripe.com/receipts/invoices/${invoice.id}` : null,
           hostedInvoiceUrl: invoice.hosted_invoice_url,
         }).catch((e) => console.error('customer receipt:', e.message))
+        // Fire Meta CAPI Purchase + Google Ads offline conversion
+        const amountUsd = invoice.amount_paid / 100
+        await fireMetaPurchase({ email: customer.email, phone: customer.phone, amountUsd, orderId: invoice.id })
+        const contact = customer.email ? await findContactByEmail(customer.email).catch(() => null) : null
+        const gclid = contact?.properties?.gclid || null
+        await fireGoogleAdsConversion({ email: customer.email, amountUsd, conversionTime: invoice.created * 1000, gclid })
+
         // Wipe any payment-resurrection state so a future failure restarts the clock
         await clearStages(invoice.id).catch(() => {})
         break
@@ -156,6 +243,43 @@ export default async function handler(req, res) {
           await sendCheckoutReceipt({ session, items, receiptUrl })
             .catch((e) => console.error('checkout customer receipt:', e.message))
         }
+
+        // Mark quote as paid in HubSpot so quote-followup cron stops following up
+        if (session.metadata?.source === 'quote' && session.metadata?.quote_jti && customerEmail) {
+          try {
+            const contact = await findContactByEmail(customerEmail).catch(() => null)
+            if (contact?.id) {
+              await addNote(contact.id, `[QUOTE-PAID] jti=${session.metadata.quote_jti} session=${session.id} confirmed=${new Date().toISOString()}`)
+            }
+          } catch (e) { console.error('quote-paid marker failed:', e.message) }
+        }
+
+        // For quote checkouts: send welcome email with magic login link + installation CTA
+        if (session.metadata?.source === 'quote' && customerEmail) {
+          try {
+            const magicToken = await createMagicToken(customerEmail)
+            const APP_URL_WH = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
+            const magicLink = `${APP_URL_WH}/auth/verify?token=${encodeURIComponent(magicToken)}`
+            await sendWelcomeEmail({
+              email: customerEmail,
+              customerName: customerName,
+              magicLink,
+              calLink: 'https://cal.com/greenguard-usa/property-assessment',
+            })
+          } catch (e) { console.error('welcome email failed:', e.message) }
+
+          // Store gclid/UTMs from session metadata in HubSpot for offline conversion attribution
+          const gclid = session.metadata?.gclid
+          if (gclid && customerEmail) {
+            try {
+              const contact = await findContactByEmail(customerEmail).catch(() => null)
+              if (contact?.id) {
+                const { updateContact } = require('../../../lib/hubspot')
+                await updateContact(contact.id, { gclid }).catch(() => {})
+              }
+            } catch {}
+          }
+        }
         break
       }
 
@@ -180,9 +304,9 @@ export default async function handler(req, res) {
         break
     }
 
-    res.status(200).json({ received: true })
+    // Response already sent above
   } catch (err) {
-    console.error('Stripe webhook error:', err)
-    res.status(500).json({ error: 'Webhook processing failed' })
+    console.error('[stripe-webhook] Processing error:', err.message)
+    // Response already sent — just log, don't try to respond again
   }
 }

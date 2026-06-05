@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import Head from 'next/head'
 import dynamic from 'next/dynamic'
 import PortalLayout from '../../components/PortalLayout'
@@ -58,7 +58,7 @@ export async function getServerSideProps({ req, res }) {
     getAllUpcomingBookings(100).catch(() => []),
     listAllCustomers().catch(() => []),
     getAllContacts(300).catch(() => []),
-    ...SEGMENT_TYPES.map((t) => countContactsByProperty('system_type', t)),
+    ...SEGMENT_TYPES.map((t) => countContactsByProperty('system_type', t).catch(() => 0)),
   ])
 
   // ── Revenue calcs ────────────────────────────────────────────────────────────
@@ -208,6 +208,7 @@ const TOOLTIP_STYLE = { background: '#1a2e1f', border: '1px solid rgba(122,171,1
 const TICK = { fill: 'rgba(212,230,202,0.4)', fontSize: 10 }
 
 const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 14 }
+const CARD = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 10, padding: '14px 16px' }
 const TD = { padding: '10px 16px', verticalAlign: 'middle' }
 
 const SEGMENT_COLORS = { 'Biogents-CO2': '#7dffaa', 'Biogents-NonCO2': '#c9a84c', 'Mosqitter-Grand': '#5bc4ff' }

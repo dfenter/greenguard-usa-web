@@ -2,6 +2,8 @@ const Stripe = require('stripe')
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-11-20.acacia',
+  timeout: 10000,        // 10s timeout — prevents hanging requests
+  maxNetworkRetries: 2,  // Auto-retry on transient 5xx/network errors
 })
 
 // Maps SKU strings to Stripe price IDs (set in env)
@@ -9,6 +11,7 @@ const PRICE_ID_MAP = {
   BG1: process.env.STRIPE_PRICE_BG1,
   BG2: process.env.STRIPE_PRICE_BG2,
   BG3: process.env.STRIPE_PRICE_BG3,
+  BG4: process.env.STRIPE_PRICE_BG4,
   'MQ-RENT': process.env.STRIPE_PRICE_MQ_RENT,
   'MQ-SVC': process.env.STRIPE_PRICE_MQ_SVC,
   'OWN-BG': process.env.STRIPE_PRICE_OWN_BG,
@@ -61,24 +64,6 @@ async function findOrCreateCustomer({ email, name, phone, address, metadata = {}
  * Create a monthly subscription for a new customer.
  * subscriptionSkus: SKUs that map to recurring price IDs.
  */
-async function createSubscription(customerId, subscriptionSkus) {
-  const items = subscriptionSkus
-    .map((sku) => PRICE_ID_MAP[sku])
-    .filter(Boolean)
-    .map((priceId) => ({ price: priceId }))
-
-  if (items.length === 0) return null
-
-  const sub = await stripe.subscriptions.create({
-    customer: customerId,
-    items,
-    payment_behavior: 'default_incomplete',
-    payment_settings: { save_default_payment_method: 'on_subscription' },
-    expand: ['latest_invoice.payment_intent'],
-  })
-  await invalidate('stripe:subs:active')
-  return sub
-}
 
 /**
  * Add one-time add-on line items to the customer's next invoice.
@@ -211,6 +196,56 @@ async function findInvoiceForBooking(customerEmail, { calBookingUid, serviceDate
   })
 }
 
+// Batch version of findInvoiceForBooking — one Stripe call instead of N.
+// Takes an array of {email, calBookingUid?, serviceDate?} and returns a Map<email, invoice>.
+async function findInvoicesForBookings(stops, lookbackDays = 45) {
+  const emails = [...new Set(stops.map(s => s.email).filter(Boolean))]
+  if (!emails.length) return new Map()
+
+  const cacheKey = `stripe:batch-invoices:${lookbackDays}:${emails.sort().join(',')}`
+  return cached(cacheKey, 60, async () => {
+    const since = Math.floor(Date.now() / 1000) - lookbackDays * 86400
+    const allInvoices = []
+
+    // Fetch invoices created in the last lookbackDays days
+    for await (const inv of stripe.invoices.list({
+      created: { gte: since }, limit: 100, status: 'draft',
+    })) { allInvoices.push(inv) }
+    for await (const inv of stripe.invoices.list({
+      created: { gte: since }, limit: 100, status: 'open',
+    })) { allInvoices.push(inv) }
+    for await (const inv of stripe.invoices.list({
+      created: { gte: since }, limit: 100, status: 'paid',
+    })) { allInvoices.push(inv) }
+
+    // Get customer emails for all invoices
+    const customerIds = [...new Set(allInvoices.map(i => i.customer).filter(Boolean))]
+    const emailById = new Map()
+    await Promise.all(customerIds.map(async (cid) => {
+      try {
+        const c = await stripe.customers.retrieve(cid)
+        if (c.email) emailById.set(cid, c.email.toLowerCase())
+      } catch {}
+    }))
+
+    // Build email → invoice map
+    const result = new Map()
+    for (const inv of allInvoices) {
+      const email = emailById.get(inv.customer)
+      if (!email || !emails.includes(email)) continue
+      if (result.has(email)) continue  // keep first (most recent due to API order)
+      result.set(email, {
+        id: inv.id,
+        status: inv.status,
+        amountDue: (inv.amount_due || 0) / 100,
+        amountPaid: (inv.amount_paid || 0) / 100,
+        hostedUrl: inv.hosted_invoice_url || null,
+      })
+    }
+    return result
+  })
+}
+
 async function getCustomer(customerId) {
   return stripe.customers.retrieve(customerId, { expand: ['subscriptions.data.items.data'] })
 }
@@ -251,12 +286,14 @@ function getTaxRateId() {
 }
 
 async function listAllDraftInvoices() {
-  const result = await stripe.invoices.list({
-    status: 'draft',
-    limit: 100,
-    expand: ['data.customer'],
+  return cached('stripe:invoices:draft', 30, async () => {
+    const result = await stripe.invoices.list({
+      status: 'draft',
+      limit: 100,
+      expand: ['data.customer'],
+    })
+    return result.data
   })
-  return result.data
 }
 
 module.exports = {
@@ -265,7 +302,6 @@ module.exports = {
   getBalance,
   listAllCustomers,
   findOrCreateCustomer,
-  createSubscription,
   addInvoiceItems,
   createBillingPortalSession,
   getInvoices,
@@ -274,6 +310,7 @@ module.exports = {
   listAllInvoicesSince,
   listOpenInvoices,
   findInvoiceForBooking,
+  findInvoicesForBookings,
   getTaxRateId,
   listAllDraftInvoices,
 }

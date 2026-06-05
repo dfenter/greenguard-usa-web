@@ -14,7 +14,18 @@ const faqs = [
   { q: 'Is this safe for bees and butterflies?', a: 'Yes. The CO₂ attractant specifically targets mosquitoes. Bees and butterflies don\'t respond to the same cues. Unlike spray services, our traps have no impact on pollinators.' },
 ]
 ---
-<Base title="FAQ · GreenGuard USA" description="Frequently asked questions about CO₂ mosquito traps, service visits, pricing, and results in Austin, TX.">
+<Base title="FAQ · GreenGuard USA" description="Frequently asked questions about CO₂ mosquito traps, service visits, pricing, and results in Austin, TX." canonical="https://www.greenguard-usa.com/faq">
+<Fragment slot="head">
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqs.map(f => ({
+    "@type": "Question",
+    "name": f.q,
+    "acceptedAnswer": { "@type": "Answer", "text": f.a }
+  }))
+})} />
+</Fragment>
 <style>
   .page { padding: 100px 0 80px; }
   h1 { font-size:clamp(2rem,4vw,3rem);font-weight:900;letter-spacing:-0.02em;margin-bottom:12px; }

@@ -1,0 +1,151 @@
+---
+// Email capture popup. Shown after 30s or 50% scroll. Suppressed once dismissed or submitted.
+---
+
+<!-- Overlay -->
+<div id="lc-overlay" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm hidden"></div>
+
+<!-- Modal -->
+<div
+  id="lc-modal"
+  class="fixed z-[80] hidden"
+  style="top:50%;left:50%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 2rem));"
+>
+  <div class="rounded-2xl p-7 md:p-9 relative" style="background:#0d1a10;border:1px solid rgba(201,168,76,0.3);box-shadow:0 24px 80px rgba(0,0,0,0.7);">
+    <button id="lc-close" aria-label="Close" class="absolute top-4 right-4 text-cream/30 hover:text-cream/70 text-2xl leading-none" style="background:none;border:none;cursor:pointer;">×</button>
+
+    <div class="text-center mb-6">
+      <div class="inline-block text-3xl mb-3">🦟</div>
+      <h2 class="text-xl md:text-2xl font-black text-white tracking-tight leading-tight mb-2">
+        Free: Austin Mosquito Season Guide
+      </h2>
+      <p class="text-cream/65 text-sm leading-relaxed">
+        When mosquito season actually starts, where to place traps for maximum catch, and what to expect in weeks 1–8.
+      </p>
+    </div>
+
+    <form id="lc-form" novalidate>
+      <div class="flex flex-col sm:flex-row gap-2.5">
+        <input
+          id="lc-email"
+          type="email"
+          placeholder="your@email.com"
+          autocomplete="email"
+          required
+          class="flex-1 rounded-lg px-4 py-3 text-sm font-semibold text-white outline-none"
+          style="background:rgba(255,255,255,0.06);border:1px solid rgba(122,171,130,0.25);color:#d4e6ca;"
+        />
+        <button
+          type="submit"
+          id="lc-submit"
+          class="btn-gold !py-3 !px-5 !text-sm whitespace-nowrap"
+        >
+          Send Me the Guide
+        </button>
+      </div>
+      <p id="lc-error" class="text-red-400 text-xs mt-2 hidden">Please enter a valid email address.</p>
+    </form>
+
+    <p id="lc-success" class="hidden text-center text-accent font-bold text-sm mt-2">
+      Sent! Check your inbox.
+    </p>
+
+    <p class="text-cream/25 text-xs text-center mt-4">No spam. Unsubscribe anytime.</p>
+  </div>
+</div>
+
+<script>
+(function() {
+  const STORAGE_KEY = 'gg_lead_captured';
+  if (localStorage.getItem(STORAGE_KEY)) return;
+
+  function show() {
+    document.getElementById('lc-overlay')?.classList.remove('hidden');
+    document.getElementById('lc-modal')?.classList.remove('hidden');
+  }
+  function hide() {
+    document.getElementById('lc-overlay')?.classList.add('hidden');
+    document.getElementById('lc-modal')?.classList.add('hidden');
+  }
+
+  // Show after 30s or 50% scroll, whichever comes first
+  // Set shown = true before calling show() to prevent race between timer and scroll
+  let shown = false;
+  function trigger() {
+    if (shown) return;
+    shown = true;  // guard set before show() so concurrent calls from timer + scroll are dropped
+    show();
+  }
+
+  const timer = setTimeout(trigger, 30000);
+
+  const onScroll = () => {
+    const scrolled = window.scrollY + window.innerHeight;
+    const total = document.documentElement.scrollHeight;
+    if (scrolled / total >= 0.5) {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', onScroll);
+      trigger();
+    }
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  document.getElementById('lc-close')?.addEventListener('click', () => {
+    hide();
+    localStorage.setItem(STORAGE_KEY, 'dismissed');
+  });
+  document.getElementById('lc-overlay')?.addEventListener('click', () => {
+    hide();
+    localStorage.setItem(STORAGE_KEY, 'dismissed');
+  });
+
+  document.getElementById('lc-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const emailEl = document.getElementById('lc-email') as HTMLInputElement | null;
+    const errEl = document.getElementById('lc-error');
+    const successEl = document.getElementById('lc-success');
+    const submitBtn = document.getElementById('lc-submit') as HTMLButtonElement | null;
+    const formEl = document.getElementById('lc-form');
+
+    const email = emailEl?.value?.trim() || '';
+    if (!email || !email.includes('@')) {
+      errEl?.classList.remove('hidden');
+      return;
+    }
+    errEl?.classList.add('hidden');
+    if (submitBtn) { submitBtn.textContent = 'Sending…'; submitBtn.disabled = true; }
+
+    let saved = false;
+    try {
+      const res = await fetch('/api/lead-capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      saved = res.ok || res.status === 409;
+    } catch (err) {
+      console.warn('Lead capture request failed:', err);
+    }
+
+    if (!saved) {
+      if (submitBtn) { submitBtn.textContent = 'Send Me the Guide'; submitBtn.disabled = false; }
+      if (errEl) { errEl.textContent = 'Something went wrong. Try again.'; errEl.classList.remove('hidden'); }
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, 'submitted');
+    if (formEl) (formEl as HTMLElement).style.display = 'none';
+    successEl?.classList.remove('hidden');
+
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'lead_magnet_signup', { event_category: 'lead', event_label: email });
+      window.gtag('event', 'generate_lead', { event_category: 'lead_magnet', value: 1 });
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', 'Lead', { content_name: 'Lead Magnet Signup' });
+      }
+    }
+
+    setTimeout(hide, 2500);
+  });
+})();
+</script>

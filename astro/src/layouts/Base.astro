@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import LeadCapture from '../components/LeadCapture.astro';
 
 interface Props {
   title: string;
@@ -16,8 +17,9 @@ const {
 } = Astro.props;
 
 const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
-const GA_ID = 'G-K2R5H2Z23X';
-const AW_ID = 'AW-16913987571';
+const GA_ID = import.meta.env.PUBLIC_GA_MEASUREMENT_ID ?? 'G-K2R5H2Z23X';
+const AW_ID = import.meta.env.PUBLIC_GOOGLE_ADS_CONVERSION_ID ?? 'AW-16913987571';
+const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
 ---
 
 <!DOCTYPE html>
@@ -33,6 +35,15 @@ const AW_ID = 'AW-16913987571';
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content="https://www.greenguard-usa.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="GreenGuard USA" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="https://www.greenguard-usa.com/og-image.jpg" />
+    <meta name="apple-domain-verification" content="yGPgvAZrsQaBuZQN" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
@@ -50,22 +61,71 @@ const AW_ID = 'AW-16913987571';
       "@type": "LocalBusiness",
       "name": "GreenGuard USA",
       "description": "CO2 trap-based mosquito control for Austin, TX. No pesticides, safe for kids, pets, and pollinators.",
-      "url": "https://greenguard-usa.com",
+      "url": "https://www.greenguard-usa.com",
       "telephone": "+1-512-560-4129",
       "email": "admin@greenguard-usa.com",
+      "foundingDate": "2025",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 30.2672,
+        "longitude": -97.7431
+      },
+      "hasMap": "https://maps.google.com/?cid=10961706131427714923",
       "areaServed": [
         "Austin, TX", "Westlake Hills, TX", "Lakeway, TX", "Bee Cave, TX",
         "Cedar Park, TX", "Round Rock, TX", "Dripping Springs, TX",
-        "Steiner Ranch, TX", "Pflugerville, TX", "Georgetown, TX", "Kyle, TX"
+        "Steiner Ranch, TX", "Pflugerville, TX", "Leander, TX",
+        "Liberty Hill, TX", "Georgetown, TX", "Kyle, TX", "Buda, TX"
       ],
       "serviceType": "Mosquito Control",
       "priceRange": "$$",
       "openingHours": "Mo-Sa 08:00-18:00",
+      "paymentAccepted": "Credit Card, Debit Card",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "5.0",
+        "reviewCount": "21",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "sameAs": [
+        "https://www.facebook.com/GreenGuardUSA",
         "https://www.greenguard-usa.com"
       ]
     }
     </script>
+
+    <!-- BreadcrumbList schema -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": (() => {
+        const parts = Astro.url.pathname.replace(/\/$/, '').split('/').filter(Boolean);
+        const crumbs = [{ "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.greenguard-usa.com" }];
+        let path = '';
+        parts.forEach((part, i) => {
+          path += '/' + part;
+          const name = part.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          crumbs.push({ "@type": "ListItem", "position": i + 2, "name": name, "item": `https://www.greenguard-usa.com${path}` });
+        });
+        return crumbs;
+      })()
+    })}></script>
+
+    <slot name="head" />
+
+    <!-- Meta Pixel -->
+    <script is:inline define:vars={{ FB_PIXEL_ID }}>
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+      document,'script','https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', FB_PIXEL_ID);
+      fbq('track','PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+      src={`https://www.facebook.com/tr?id=${FB_PIXEL_ID}&ev=PageView&noscript=1`}/></noscript>
 
     <!-- GA4 + Google Ads -->
     <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
@@ -79,12 +139,32 @@ const AW_ID = 'AW-16913987571';
   </head>
   <body>
     <script>
+      // Capture UTM params + gclid + fbclid on every page load, persist to sessionStorage
+      // so they survive navigation and are available on the booking/checkout page.
+      (function() {
+        const p = new URLSearchParams(window.location.search);
+        const keys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','fbclid','ref'];
+        keys.forEach(k => { const v = p.get(k); if (v) sessionStorage.setItem('gg_' + k, v.slice(0, 200)); });
+      })();
+    </script>
+    <script>
       document.addEventListener('click', (e) => {
-        const a = (e.target as HTMLElement).closest('a[href^="tel:"]');
-        if (a && typeof window.gtag === 'function') {
+        const target = e.target as HTMLElement;
+
+        const tel = target.closest('a[href^="tel:"]');
+        if (tel && typeof window.gtag === 'function') {
           window.gtag('event', 'phone_call_click', {
             event_category: 'contact',
-            event_label: (a as HTMLAnchorElement).href.replace('tel:', ''),
+            event_label: (tel as HTMLAnchorElement).href.replace('tel:', ''),
+          });
+        }
+
+        const cta = target.closest('a.btn-gold, a.btn-outline');
+        if (cta && typeof window.gtag === 'function') {
+          window.gtag('event', 'cta_click', {
+            event_category: 'cta',
+            event_label: (cta as HTMLAnchorElement).textContent?.trim(),
+            event_destination: (cta as HTMLAnchorElement).href,
           });
         }
       });
@@ -94,5 +174,6 @@ const AW_ID = 'AW-16913987571';
       <slot />
     </main>
     <Footer />
+    <LeadCapture />
   </body>
 </html>

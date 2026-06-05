@@ -1,7 +1,6 @@
 const { requireAdmin } = require('../../../lib/auth')
 const { listAllContacts, findContactByEmail, getNotesForContact } = require('../../../lib/hubspot')
 const { stripe } = require('../../../lib/stripe')
-const { getBookingsForEmail } = require('../../../lib/calcom')
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end()
@@ -58,11 +57,7 @@ export default async function handler(req, res) {
         }
       } catch { /* no Stripe customer */ }
 
-      // Fetch Cal.com bookings
-      let bookings = []
-      try {
-        bookings = await getBookingsForEmail(email)
-      } catch { /* Cal.com not configured */ }
+      const bookings = []
 
       // Fetch HubSpot notes
       const notes = await getNotesForContact(contact.id, 10)

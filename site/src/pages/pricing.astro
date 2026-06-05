@@ -139,6 +139,57 @@ import Base from '../layouts/Base.astro'
       ))}
     </div>
 
+    <!-- Plan comparison table -->
+    <div class="section-label" style="margin-top:56px;">Side-by-Side Plan Comparison</div>
+    <div style="overflow-x:auto;margin-bottom:16px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:14px 16px;font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-faint);border-bottom:1px solid var(--border);">Feature</th>
+            {[
+              { label: '1 Trap', sub: '$159.99/mo', featured: false },
+              { label: '2 Traps', sub: '$266.99/mo', featured: true },
+              { label: '3 Traps', sub: '$399.99/mo', featured: false },
+              { label: 'Mosqitter Grand', sub: '$299.99/mo', featured: false },
+            ].map(col => (
+              <th style={`text-align:center;padding:14px 16px;border-bottom:1px solid var(--border);background:${col.featured ? 'rgba(201,168,76,0.06)' : 'transparent'}`}>
+                <div style={`font-size:0.9rem;font-weight:900;color:${col.featured ? 'var(--gold)' : 'var(--text)'}`}>{col.label}</div>
+                <div style="font-size:0.75rem;color:var(--text-faint);font-weight:600;margin-top:2px;">{col.sub}</div>
+                {col.featured && <div style="font-size:0.62rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);margin-top:4px;">Most Popular</div>}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ['Yard size', 'Up to ⅓ acre', 'Up to ½ acre', '½–1+ acre', 'Large / waterfront'],
+            ['Traps included', '1', '2', '3', '1 commercial-grade'],
+            ['CO₂ tank service', '✓', '✓', '✓', '✓'],
+            ['Monthly tech visit', '✓', '✓', '✓', '✓'],
+            ['Pesticide-free', '✓', '✓', '✓', '✓'],
+            ['No contract', '✓', '✓', '✓', '✓'],
+            ['Trap type', 'Biogents', 'Biogents', 'Biogents', 'Mosqitter stainless'],
+          ].map((row, ri) => (
+            <tr>
+              {row.map((cell, ci) => (
+                <td style={`padding:12px 16px;border-bottom:1px solid rgba(122,171,130,0.07);font-size:0.85rem;${ci === 0 ? 'color:var(--text-faint);font-weight:700;' : 'text-align:center;color:var(--text-dim);font-weight:' + (cell === '✓' ? '800' : '400') + ';color:' + (cell === '✓' ? 'var(--green)' : 'var(--text-dim)')}${ci === 2 ? ';background:rgba(201,168,76,0.04)' : ''}`}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+          <tr>
+            <td style="padding:16px;border:none;"></td>
+            <td style="padding:16px;text-align:center;border:none;"><a href="/book" class="btn-outline" style="font-size:0.8rem;padding:9px 18px;">Get Started</a></td>
+            <td style="padding:16px;text-align:center;border:none;background:rgba(201,168,76,0.04);"><a href="/book" class="btn-gold" style="font-size:0.8rem;padding:9px 18px;">Get Started</a></td>
+            <td style="padding:16px;text-align:center;border:none;"><a href="/book" class="btn-outline" style="font-size:0.8rem;padding:9px 18px;">Get Started</a></td>
+            <td style="padding:16px;text-align:center;border:none;"><a href="/book" class="btn-outline" style="font-size:0.8rem;padding:9px 18px;">Get Started</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="text-align:right;margin-bottom:40px;">
+      <a href="/compare" style="font-size:0.82rem;color:var(--text-faint);">Full comparison including vs. chemical sprays →</a>
+    </div>
+
     <p class="note">All prices include Austin service area. Free property assessment with every new signup. Pause or cancel anytime.</p>
 
     <div style="text-align:center;margin-top:56px;">
@@ -155,5 +206,31 @@ import Base from '../layouts/Base.astro'
   const btn = document.getElementById('hamburger')
   const nav = document.getElementById('nav-links')
   btn?.addEventListener('click', () => nav?.classList.toggle('open'))
+
+  // GA4 e-commerce
+  if (window.gtag) {
+    gtag('event', 'view_item_list', {
+      item_list_id: 'mosquito_plans',
+      item_list_name: 'Mosquito Control Plans',
+      items: [
+        { item_id: 'BG-1', item_name: 'Biogents 1 Trap', price: 159.99, item_category: 'Plan' },
+        { item_id: 'BG-2', item_name: 'Biogents 2 Traps', price: 266.99, item_category: 'Plan' },
+        { item_id: 'BG-3', item_name: 'Biogents 3 Traps', price: 399.99, item_category: 'Plan' },
+        { item_id: 'MQ-1', item_name: 'Mosqitter Grand', price: 299.99, item_category: 'Plan' },
+      ]
+    })
+  }
+
+  // CTA click tracking
+  document.querySelectorAll('.plan-cta').forEach((el, i) => {
+    el.addEventListener('click', () => {
+      const names = ['Biogents 1 Trap', 'Biogents 2 Traps', 'Biogents 3 Traps', 'Mosqitter Grand']
+      const prices = [159.99, 266.99, 399.99, 299.99]
+      if (window.gtag) gtag('event', 'select_item', {
+        item_list_name: 'Mosquito Control Plans',
+        items: [{ item_id: `PLAN-${i}`, item_name: names[i] || 'Plan', price: prices[i] || 0 }]
+      })
+    })
+  })
 </script>
 </Base>

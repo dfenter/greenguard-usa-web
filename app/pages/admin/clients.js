@@ -13,7 +13,7 @@ function getTrapImage(systemType, trapCount) {
   if (systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter' || systemType === 'MQ-RENT') return '/images/trap-mosqitter.webp'
   if (systemType === 'Biogents-NonCO2') return '/images/mosquitairenoco2.webp'
   if (systemType === 'Biogents-CO2') {
-    if (trapCount >= 3) return '/images/biogentstriple.png'
+    if (trapCount >= 3) return '/images/biogentstriple.webp'
     if (trapCount === 2) return '/images/mosquitairedouble.webp'
     return '/images/mosquitairesingle.jpg'
   }
@@ -31,7 +31,7 @@ export async function getServerSideProps({ req, res }) {
   const twelveMonthsOut = new Date(now); twelveMonthsOut.setMonth(twelveMonthsOut.getMonth() + 12)
 
   const [raw, hubspotContacts, upcomingBookings, recentBookings] = await Promise.all([
-    listAllCustomers(),
+    listAllCustomers().catch(() => []),
     getAllContacts(300).catch(() => []),
     getBookingsForDateRange(now.toISOString(), twelveMonthsOut.toISOString()).catch(() => []),
     getBookingsForDateRange(sixMonthsAgo.toISOString(), now.toISOString()).catch(() => []),

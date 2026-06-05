@@ -4,18 +4,15 @@ import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDate, getBookingsForDateRange } from '../../lib/gcal'
-import { getBookingsForEmail } from '../../lib/calcom'
-import { listAllCustomers, findInvoiceForBooking } from '../../lib/stripe'
-import { findContactsByEmails, findContactsByNames, tanksForCustomer } from '../../lib/hubspot'
+import { listAllCustomers, findInvoiceForBooking, findInvoicesForBookings } from '../../lib/stripe'
+import { findContactsByEmails, findContactsByNames, tanksForCustomer, getContactNotes } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import SignaturePad from '../../components/SignaturePad'
-import { getLatestRoutePlan } from '../../lib/route-plan'
-
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 export async function getServerSideProps({ req, query, res }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
-  const session = await getSessionFromRequest(req)
+  const session = await getSessionFromRequest(req, res)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
@@ -38,24 +35,10 @@ export async function getServerSideProps({ req, query, res }) {
         address: b.address || '', email: b.email || '',
         startTime: b.startTime, durationMin: null,
         bookingDate: b.dateStr,
-        appointmentNotes: b.appointmentNotes || null,
       }))
     } catch {}
-  } else { try {
-    const { plan } = await getLatestRoutePlan()
-    const dayPlan = plan && (plan.days || []).find((d) => d.date === selectedDate)
-    if (dayPlan?.stops?.length) {
-      stops = dayPlan.stops.map((s) => ({
-        customerName: s.customer_name || s.name || 'Customer',
-        address: s.address || '', email: s.email || '',
-        startTime: s.scheduled_time || null, durationMin: s.duration_min || null,
-        propertySize: s.property_size || '',
-        serviceType: s.service_type || '',
-      }))
-    }
-  } catch {} }
-
-  if (stops.length === 0 && mode === 'date') {
+  } else {
+    let gcalError = null
     try {
       const bookings = selectedDate === today ? await getTodaysBookings() : await getBookingsForDate(selectedDate)
       stops = bookings.map((b) => ({
@@ -64,22 +47,14 @@ export async function getServerSideProps({ req, query, res }) {
         address: b.address || '', email: b.email || '',
         startTime: b.startTime, durationMin: null, propertySize: b.propertySize || '',
         rescheduleUrl: b.rescheduleUrl || null,
-        appointmentNotes: b.appointmentNotes || null,
+        gcal_event_link: b.gcal_event_link || null,
+        booking_source: b.booking_source || (b.rescheduleUrl?.includes('cal.com') ? 'calcom' : b.rescheduleUrl ? 'legacy' : null),
       }))
-    } catch {}
-  } else {
-    // Route plan stops don't carry rescheduleUrl — fetch GCal to back-fill it
-    try {
-      const bookings = selectedDate === today ? await getTodaysBookings() : await getBookingsForDate(selectedDate)
-      const gcalRescheduleByEmail = {}
-      bookings.forEach((b) => {
-        if (b.email && b.rescheduleUrl) gcalRescheduleByEmail[b.email.toLowerCase()] = b.rescheduleUrl
-      })
-      stops = stops.map((s) => ({
-        ...s,
-        rescheduleUrl: s.rescheduleUrl || gcalRescheduleByEmail[s.email?.toLowerCase()] || null,
-      }))
-    } catch {}
+    } catch (e) {
+      gcalError = e.message || 'Google Calendar connection failed'
+      console.error('[rounds] GCal error:', e.message)
+    }
+    if (gcalError) return { props: { stops: [], today, selectedDate, availableDates: [], mode, gcalError } }
   }
 
   // Back-fill emails for stops whose GCal event description didn't include one,
@@ -113,7 +88,7 @@ export async function getServerSideProps({ req, query, res }) {
         if (c.email && c.name) stripeNameByEmail[c.email.toLowerCase()] = c.name
       })).catch(() => {}),
       // HubSpot names + tank count + full contact (for prefill) — single batched call
-      findContactsByEmails(uniqueEmails).then((contactMap) => {
+      findContactsByEmails(uniqueEmails).then(async (contactMap) => {
         for (const [email, c] of contactMap.entries()) {
           hubspotContactByEmail[email] = c
           const first = c.properties?.firstname || ''
@@ -123,28 +98,31 @@ export async function getServerSideProps({ req, query, res }) {
           const tanks = tanksForCustomer(c.properties) || null
           if (tanks) hubspotNameByEmail[email + '__tanks'] = tanks
         }
+        // Client popup notes are saved with prefix: [ADMIN-NOTE email timestamp] body
+        // Extract only those notes and strip the prefix to show clean text.
+        const ADMIN_NOTE_RE = /^\[ADMIN-NOTE[^\]]*\]\s*/
+        await Promise.all([...contactMap.entries()].map(async ([email, c]) => {
+          try {
+            const notes = await getContactNotes(c.id, 20)
+            const client = notes
+              .filter(n => ADMIN_NOTE_RE.test((n.body || '').trim()))
+              .slice(0, 3)
+              .map(n => n.body.trim().replace(ADMIN_NOTE_RE, ''))
+              .filter(Boolean)
+            if (client.length) hubspotContactByEmail[email]._clientNotes = client
+          } catch {}
+        }))
       }).catch(() => {}),
     ])
   }
 
-  // Match Cal.com booking UIDs to stops — match by same date (not exact time)
-  // Cal.com and Google Calendar can differ by hours due to timezone handling
+  // Cal.com booking UID matching — CALCOM_API_KEY only has event-type scope so
+  // getBookingsForEmail() always returns []. Skip the per-email fan-out entirely.
   if (stops.length > 0) {
-    const uniqueEmails = [...new Set(stops.map((s) => s.email).filter(Boolean))]
     const calBookingsByEmail = {}
-    await Promise.all(uniqueEmails.map(async (email) => {
-      try {
-        // In date mode, scope to selectedDate; in open mode, the last 30 days.
-        const afterStart = selectedDate
-          ? new Date(selectedDate + 'T00:00:00-06:00').toISOString()
-          : new Date(Date.now() - 30 * 86400 * 1000).toISOString()
-        const result = await getBookingsForEmail(email, afterStart)
-        calBookingsByEmail[email] = Array.isArray(result) ? result : []
-      } catch {}
-    }))
     stops = stops.map((stop) => {
       const emailKey = stop.email?.toLowerCase()
-      const candidates = calBookingsByEmail[stop.email] || []
+      const candidates = calBookingsByEmail[stop.email?.toLowerCase()] || []
       // In open mode each stop has its own date; in date mode all share selectedDate.
       const stopDate = stop.bookingDate || selectedDate
 
@@ -173,7 +151,7 @@ export async function getServerSideProps({ req, query, res }) {
         const t = tanksForCustomer(hubspotContactByEmail[emailKey].properties)
         if (t > 0) tanks = t
       }
-      const serviceType = stop.serviceType || stop.customerName || ''
+      const serviceType = stop.serviceType || ''
 
       // Compute prefill line items from Cal.com event-type + HubSpot contact.
       // Slug source priority: explicit booking.eventTypeSlug → derived from event title.
@@ -181,12 +159,7 @@ export async function getServerSideProps({ req, query, res }) {
       const contact = hubspotContactByEmail[emailKey] || null
       const prefill = slug ? prefillFromBooking({ slug }, contact) : []
       const billingContactName = contact?.properties?.billing_contact_name || null
-      const propertyNotes = contact ? {
-        gateCode: contact.properties?.gate_code || '',
-        accessNotes: contact.properties?.access_notes || '',
-        petsOnProperty: contact.properties?.pets_on_property || '',
-        specialInstructions: contact.properties?.special_instructions || '',
-      } : null
+      const clientNotes = contact?._clientNotes || []
 
       return {
         ...stop,
@@ -196,30 +169,19 @@ export async function getServerSideProps({ req, query, res }) {
         eventTypeSlug: slug || null,
         prefill,
         billingContactName,
-        propertyNotes,
+        clientNotes,
         rescheduleUrl: stop.rescheduleUrl || null,
         ...(match ? { calBookingId: match.id, calBookingUid: match.uid } : {}),
       }
     })
 
-    // Invoice enrichment (existingInvoice) is the slowest part of this page
-    // — N parallel Stripe lookups. In the common `date` mode we DON'T do it
-    // here; the page ships immediately and the client fetches invoice badges
-    // after render via /api/admin/stop-invoices. We only enrich server-side
-    // in `open` mode because that mode filters stops by whether an invoice
-    // exists, which has to happen before the list is built.
+    // Invoice enrichment — batch fetch instead of N individual Stripe calls.
+    // Only in `open` mode (needs to filter by invoice existence before building list).
     if (mode === 'open') {
-      stops = await Promise.all(stops.map(async (s) => {
-        if (!s.email) return s
-        try {
-          const existingInvoice = await findInvoiceForBooking(s.email, {
-            calBookingUid: s.calBookingUid,
-            serviceDate: s.bookingDate || selectedDate,
-          })
-          return { ...s, existingInvoice: existingInvoice || null }
-        } catch {
-          return { ...s, existingInvoice: null }
-        }
+      const invoiceMap = await findInvoicesForBookings(stops).catch(() => new Map())
+      stops = stops.map(s => ({
+        ...s,
+        existingInvoice: s.email ? (invoiceMap.get(s.email?.toLowerCase()) || null) : null,
       }))
     }
   }
@@ -232,15 +194,15 @@ export async function getServerSideProps({ req, query, res }) {
       .sort((a, b) => new Date(a.startTime || 0) - new Date(b.startTime || 0))
   }
 
-  // Build last-3-days + today date options
+  // Build last-30-days + 3 days ahead date options
   const availableDates = []
-  for (let i = -10; i <= 3; i++) {
+  for (let i = -30; i <= 3; i++) {
     const d = new Date()
     d.setDate(d.getDate() + i)
     availableDates.push(d.toLocaleDateString('en-CA', { timeZone: tz }))
   }
 
-  return { props: { stops, today, selectedDate, availableDates, mode } }
+  return { props: { stops, today, selectedDate, availableDates, mode, gcalError: null } }
 }
 
 // ── Service Catalog ────────────────────────────────────────────────────────────
@@ -250,6 +212,7 @@ const SERVICES = [
   { label: 'Biogents CO₂ Rental — 1 Trap',   sku: 'BG1',      price: 159.99 },
   { label: 'Biogents CO₂ Rental — 2 Traps',  sku: 'BG2',      price: 266.99 },
   { label: 'Biogents CO₂ Rental — 3 Traps',  sku: 'BG3',      price: 399.99 },
+  { label: 'Biogents CO₂ Rental — 4 Traps',  sku: 'BG4',      price: 500.00 },
   { label: 'Mosqitter Grand Rental',          sku: 'MQ-RENT',  price: 299.99, promptQty: true },
   { label: 'Mosqitter Grand Service',         sku: 'MQ-SVC',   price: 129.99, promptQty: true },
   { label: 'Mosqitter Installation',          sku: 'MQ-INST',  price: 199.99, promptQty: true },
@@ -634,6 +597,39 @@ function CancelModal({ stop, onConfirm, onClose }) {
   )
 }
 
+function ApptDetailModal({ stop, onClose }) {
+  const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }
+  const box = { background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 14, padding: 24, maxWidth: 440, width: '100%', fontFamily: 'Nunito Sans, sans-serif', color: '#d4e6ca', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }
+  const row = (label, value) => value ? (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(212,230,202,0.4)', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: '0.9rem', color: '#d4e6ca' }}>{value}</div>
+    </div>
+  ) : null
+  const fmtTime = (iso) => { try { return new Date(iso).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: TZ }) } catch { return iso } }
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={box} onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: 'rgba(212,230,202,0.4)', fontSize: '1.3rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+        <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 18, paddingRight: 24 }}>{stop.customerName}</div>
+        {row('Appointment time', stop.startTime ? fmtTime(stop.startTime) : null)}
+        {row('Service', stop.serviceType)}
+        {row('Address', stop.address)}
+        {row('Email', stop.email)}
+        {row('Phone', stop.phone)}
+        {(stop.clientNotes || []).map((n, i) => row(i === 0 ? 'Notes' : '', n))}
+        {row('Tanks', stop.tanks > 0 ? `${stop.tanks} tank${stop.tanks > 1 ? 's' : ''}` : null)}
+        {stop.email && (
+          <a href={`/admin/clients/${encodeURIComponent(stop.email)}`}
+            style={{ display: 'inline-block', marginTop: 14, padding: '8px 18px', borderRadius: 8, background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.25)', color: '#7dffaa', fontWeight: 700, fontSize: '0.82rem', textDecoration: 'none' }}>
+            Open Profile →
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
   const isDone = state.status === 'done'
   const isActive = state.status === 'active'
@@ -859,31 +855,34 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
         />
       )}
       <div style={{ ...card, opacity: state.status === 'cancelled' ? 0.45 : isDone ? 0.7 : 1 }}>
-        {/* Header */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          {/* Name row: number · name · address */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3, flexWrap: 'wrap' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: isDone ? 'rgba(125,255,170,0.15)' : isActive ? 'rgba(201,168,76,0.15)' : 'rgba(122,171,130,0.1)', color: isDone ? '#7dffaa' : isActive ? '#c9a84c' : 'rgba(212,230,202,0.5)', flexShrink: 0 }}>
               {isDone ? '✓' : idx + 1}
             </span>
-            <span style={{ fontWeight: 900, fontSize: '1rem' }}>{stop.customerName}</span>
-            {stop.billingContactName && (
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#c9a84c', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.25)', padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em' }}>
-                Bill to: {stop.billingContactName}
-              </span>
+            <a
+              href={stop.email ? `/admin/clients/${encodeURIComponent(stop.email)}` : '#'}
+              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', textDecoration: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', flexShrink: 0 }}
+              onClick={e => e.stopPropagation()}
+            >{stop.customerName}</a>
+            {stop.address && (
+              <span style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', fontWeight: 400 }}>📍 {stop.address}</span>
             )}
-            {stop.existingInvoice && (() => {
+            {/* Invoice badge — only when panel is NOT already showing below */}
+            {stop.existingInvoice && !showInvoicedPanel && (() => {
               const inv = stop.existingInvoice
               const colors = {
                 paid:  { fg: '#7dffaa', bg: 'rgba(125,255,170,0.12)', bd: 'rgba(125,255,170,0.3)' },
                 open:  { fg: '#c9a84c', bg: 'rgba(201,168,76,0.12)',  bd: 'rgba(201,168,76,0.3)'  },
-                draft: { fg: 'rgba(212,230,202,0.85)', bg: 'rgba(212,230,202,0.08)', bd: 'rgba(212,230,202,0.25)' },
+                draft: { fg: 'rgba(212,230,202,0.7)', bg: 'rgba(212,230,202,0.06)', bd: 'rgba(212,230,202,0.2)' },
               }
               const c = colors[inv.status] || colors.draft
               const labelText = inv.status === 'paid' ? `Paid · ${fmt$(inv.amountPaid || inv.amountDue)}`
                 : inv.status === 'open' ? `Invoice sent · ${fmt$(inv.amountDue)}`
-                : `Draft invoice · ${fmt$(inv.amountDue || 0)}`
+                : `Draft · ${fmt$(inv.amountDue || 0)}`
               return (
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.02em' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, padding: '2px 7px', borderRadius: 4 }}>
                   🧾 {labelText}
                 </span>
               )
@@ -892,51 +891,24 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
               <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7dffaa' }}>{fmt$(state.grandTotal)}</span>
             )}
           </div>
-          <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 14px', fontSize: '0.8rem', marginBottom: 4 }}>
+
+          {/* Client notes from the client popup — plain lines, no labels */}
+          {(stop.clientNotes || []).map((note, i) => (
+            <div key={i} style={{ paddingLeft: 36, fontSize: '0.82rem', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5 }}>{note}</div>
+          ))}
+
+          {/* Service info row: time · service type · tanks */}
+          <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '0.8rem', marginTop: 4, marginBottom: 2 }}>
             {stop.startTime && (
               <span style={{ color: '#c9a84c', fontWeight: 700 }}>
-                📅 {new Date(stop.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · {fmtTime(stop.startTime)}
+                {new Date(stop.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · {fmtTime(stop.startTime)}
               </span>
             )}
-            {stop.serviceType && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{stop.serviceType}</span>}
-            {stop.address && <span style={{ color: 'rgba(212,230,202,0.5)' }}>📍 {stop.address}</span>}
-            {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🪣 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
+            {stop.serviceType && <span style={{ color: 'rgba(212,230,202,0.55)' }}>{stop.serviceType}</span>}
+            {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
           </div>
 
-          {/* Property notes badges — shown to tech before arrival */}
-          {stop.propertyNotes && Object.values(stop.propertyNotes).some(Boolean) && (
-            <div style={{ paddingLeft: 36, marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {stop.propertyNotes.petsOnProperty && (
-                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(255,160,80,0.08)', border: '1px solid rgba(255,160,80,0.3)', borderRadius: 6, color: '#ffb060' }}>
-                  🐕 <strong>Pets:</strong> {stop.propertyNotes.petsOnProperty}
-                </div>
-              )}
-              {stop.propertyNotes.gateCode && (
-                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 6, color: '#c9a84c' }}>
-                  🔑 <strong>Gate code:</strong> {stop.propertyNotes.gateCode}
-                </div>
-              )}
-              {stop.propertyNotes.accessNotes && (
-                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(91,196,255,0.07)', border: '1px solid rgba(91,196,255,0.25)', borderRadius: 6, color: '#5bc4ff' }}>
-                  🚪 <strong>Access:</strong> {stop.propertyNotes.accessNotes}
-                </div>
-              )}
-              {stop.propertyNotes.specialInstructions && (
-                <div style={{ fontSize: '0.78rem', padding: '6px 10px', background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.25)', borderRadius: 6, color: '#7dffaa' }}>
-                  📝 <strong>Property:</strong> {stop.propertyNotes.specialInstructions}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Appointment-specific notes from the booking (Cal.com / admin entry) */}
-          {stop.appointmentNotes && (
-            <div style={{ paddingLeft: 36, marginBottom: 8 }}>
-              <div style={{ fontSize: '0.8rem', padding: '8px 12px', background: 'rgba(201,168,76,0.09)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 6, color: '#e8d08a', whiteSpace: 'pre-wrap' }}>
-                📋 <strong>Appointment:</strong> {stop.appointmentNotes}
-              </div>
-            </div>
-          )}
+          {/* Appointment notes from booking */}
           {(state.checkIn || state.checkOut) && (
             <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', display: 'flex', gap: 14 }}>
               {state.checkIn && <span>In: <strong>{state.checkIn}</strong></span>}
@@ -980,33 +952,12 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
 
           {/* Visit notes — the tech's logged notes + service summary for the
               completed visit, shown alongside the existing invoice. */}
-          {showInvoicedPanel && visitLog && (() => {
-            const allQtys = { ...visitLog.serviceQtys, ...visitLog.equipQtys, ...visitLog.addonQtys, ...visitLog.productQtys }
-            const itemsStr = Object.entries(allQtys).filter(([, q]) => q > 0).map(([k, q]) => (q > 1 ? `${k} ×${q}` : k)).join(', ')
-            return (
-              <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(255,255,255,0.02)' }}>
-                <div style={{ fontSize: '0.66rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>
-                  📝 Visit Notes{visitLog.date ? ` · ${visitLog.date}` : ''}
-                </div>
-                {visitLog.notes
-                  ? <div style={{ fontSize: '0.85rem', color: '#d4e6ca', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{visitLog.notes}</div>
-                  : <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.35)' }}>No notes were entered for this visit.</div>}
-                {itemsStr && (
-                  <div style={{ fontSize: '0.74rem', color: 'rgba(212,230,202,0.5)', marginTop: 8 }}>
-                    <strong style={{ color: 'rgba(212,230,202,0.65)' }}>Items:</strong> {itemsStr}
-                  </div>
-                )}
-                {(visitLog.checkIn || visitLog.checkOut) && (
-                  <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', marginTop: 4, display: 'flex', gap: 14 }}>
-                    {visitLog.checkIn && <span>In: <strong>{visitLog.checkIn}</strong></span>}
-                    {visitLog.checkOut && <span>Out: <strong style={{ color: '#7dffaa' }}>{visitLog.checkOut}</strong></span>}
-                  </div>
-                )}
-              </div>
-            )
-          })()}
+          {showInvoicedPanel && visitLog?.notes && (
+            <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(255,255,255,0.02)', fontSize: '0.85rem', color: '#d4e6ca', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+              {visitLog.notes}
+            </div>
+          )}
 
-          {/* Button row — full width, wraps on narrow screens */}
           <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
             {stop.address && (
               <a href={`https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}`} target="_blank" rel="noopener noreferrer"
@@ -1014,7 +965,18 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
                 Navigate
               </a>
             )}
-            {!showInvoicedPanel && state.status !== 'cancelled' && state.status !== 'done' && (stop.rescheduleUrl || stop.calBookingUid) ? (
+            {!showInvoicedPanel && state.status !== 'cancelled' && state.status !== 'done' && stop.booking_source === 'legacy' ? (
+              stop.gcal_event_link ? (
+                <a href={stop.gcal_event_link} target="_blank" rel="noopener noreferrer"
+                  style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(201,168,76,0.3)', fontSize: '0.78rem', fontWeight: 700, color: '#c9a84c', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                  Edit in GCal
+                </a>
+              ) : (
+                <button disabled style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(201,168,76,0.15)', fontSize: '0.78rem', fontWeight: 700, color: 'rgba(201,168,76,0.4)', cursor: 'not-allowed', minHeight: 34, display: 'inline-flex', alignItems: 'center', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent' }}>
+                  Legacy
+                </button>
+              )
+            ) : !showInvoicedPanel && state.status !== 'cancelled' && state.status !== 'done' && (stop.rescheduleUrl || stop.calBookingUid) ? (
               <a href={stop.rescheduleUrl || `https://cal.com/reschedule/${stop.calBookingUid}`} target="_blank" rel="noopener noreferrer"
                 onClick={async () => {
                   if (stop.calBookingId && stop.email) {
@@ -1281,7 +1243,7 @@ function applyPrefill(prefill) {
   return next
 }
 
-export default function Rounds({ stops, today, selectedDate, availableDates, mode = 'date' }) {
+export default function Rounds({ stops, today, selectedDate, availableDates, mode = 'date', gcalError = null }) {
   const [date, setDate] = useState(selectedDate || today)
   const [sortKey, setSortKey] = useState('date-asc')
   const [states, setStates] = useState(() =>
@@ -1441,7 +1403,18 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
           </div>
         </div>
 
-        {stops.length === 0 ? (
+        {gcalError ? (
+          <div style={{ background: 'rgba(255,80,80,0.06)', border: '1px solid rgba(255,80,80,0.3)', borderRadius: 12, padding: 24, textAlign: 'center' }}>
+            <p style={{ color: '#ff8080', margin: '0 0 8px', fontSize: '1rem', fontWeight: 900 }}>⚠️ Google Calendar connection failed</p>
+            <p style={{ color: 'rgba(212,230,202,0.55)', margin: '0 0 14px', fontSize: '0.82rem' }}>
+              The Google OAuth token may have expired. Check Vercel env vars or re-run the token script.
+            </p>
+            <code style={{ display: 'block', background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: 6, fontSize: '0.75rem', color: 'rgba(212,230,202,0.6)', marginBottom: 14 }}>{gcalError}</code>
+            <a href="/api/admin/debug-rounds" target="_blank" style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid rgba(255,80,80,0.4)', color: '#ff8080', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700 }}>
+              Run Diagnostics →
+            </a>
+          </div>
+        ) : stops.length === 0 ? (
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 12, padding: 24, textAlign: 'center' }}>
             <p style={{ color: 'rgba(212,230,202,0.55)', margin: '0 0 14px', fontSize: '0.95rem', fontWeight: 700 }}>
               {mode === 'open'

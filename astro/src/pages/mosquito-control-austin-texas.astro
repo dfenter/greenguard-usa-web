@@ -1,0 +1,262 @@
+---
+import Base from '../layouts/Base.astro';
+
+const faqs = [
+  {
+    q: 'What is the best mosquito control for Austin TX?',
+    a: 'CO₂ trap-based mosquito control is the most effective long-term solution for Austin properties. Unlike spray treatments that kill on contact and require re-application every 21 days, CO₂ traps work continuously to capture and eliminate breeding female mosquitoes around the clock. The Biogents BG-Mosquitaire — the trap GreenGuard USA uses — has been validated in peer-reviewed studies showing up to 93% bite reduction. For Austin homeowners dealing with tiger mosquitoes (which spray programs frequently miss), CO₂ trapping is the only method that targets daytime-biting species effectively.',
+  },
+  {
+    q: 'How long is mosquito season in Austin TX?',
+    a: 'Austin\'s mosquito season typically runs from late February or early March through mid-November — approximately 9 months per year. The Asian tiger mosquito (Aedes albopictus) can remain active any time temperatures are above 50°F, which in Austin\'s climate means activity is possible in every month of the year. Peak season is May through October, with the worst weeks typically following tropical moisture events in late summer.',
+  },
+  {
+    q: 'How much does mosquito control cost in Austin?',
+    a: 'GreenGuard USA\'s mosquito control service starts at $159.99/month for a full-service trap rental (trap, CO₂, maintenance included) or $89.99/month for CO₂ delivery to your existing trap. There are no setup fees, no contracts, and no pesticide application costs. Compared to spray treatments averaging $100–$150 per application every 3 weeks, CO₂ trapping is competitively priced and provides 24/7 protection rather than 3-week windows.',
+  },
+  {
+    q: 'What mosquito species are in Austin TX?',
+    a: 'Austin has three primary mosquito species. The Asian tiger mosquito (Aedes albopictus) is the dominant backyard nuisance — it bites during daylight hours, breeds in tiny containers, and is the primary driver of resident complaints. The southern house mosquito (Culex quinquefasciatus) is active at dusk and dawn, breeds in standing water, and can travel up to two miles from its breeding site. The yellow fever mosquito (Aedes aegypti) is concentrated in older central Austin neighborhoods and is a potential vector for dengue and Zika. CO₂ trapping is effective against all three species.',
+  },
+  {
+    q: 'Is CO₂ mosquito control safe for bees and pets?',
+    a: 'Yes. CO₂ mosquito traps use no pesticides, insecticides, or chemicals of any kind. They attract and capture mosquitoes using CO₂ and heat — the same signals mosquitoes use to find human hosts — and retain them in a catch net until they dehydrate. Bees, butterflies, pets, and children are completely unaffected. The trap presents no hazard to beneficial insects, pollinators, or any animal that does not respond to the CO₂ + heat attractant combination.',
+  },
+  {
+    q: 'Do CO₂ mosquito traps work in Texas heat?',
+    a: 'Yes. GreenGuard USA\'s Biogents traps are tested and validated for operation in temperatures up to 104°F and are specifically designed for use in hot climates. Austin\'s summer heat does not reduce trap performance. CO₂ gas also remains effective as an attractant throughout the season — heat actually increases mosquito flight activity, which improves catch rates during peak summer months.',
+  },
+];
+---
+
+<Base
+  title="Mosquito Control Austin TX: Complete Guide 2025 | GreenGuard USA"
+  description="Everything Austin homeowners need to know about mosquito control: species, season, costs, and the most effective treatment options. GreenGuard USA serves all Austin neighborhoods pesticide-free."
+  canonical="https://www.greenguard-usa.com/mosquito-control-austin-texas"
+>
+  <script type="application/ld+json" slot="head">{JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a }
+    }))
+  })}</script>
+
+  <script type="application/ld+json" slot="head">{JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Mosquito Control in Austin TX: The Complete Guide",
+    "description": "Everything Austin homeowners need to know about mosquito species, season length, treatment options, and costs.",
+    "author": { "@type": "Organization", "name": "GreenGuard USA" },
+    "publisher": { "@type": "Organization", "name": "GreenGuard USA", "url": "https://www.greenguard-usa.com" },
+    "url": "https://www.greenguard-usa.com/mosquito-control-austin-texas",
+    "dateModified": new Date().toISOString().split('T')[0]
+  })}</script>
+
+  <!-- HERO -->
+  <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-2">Complete Guide · Austin, TX</div>
+      <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+        Mosquito Control in Austin, TX
+      </h1>
+      <p class="text-cream/80 text-base md:text-lg leading-relaxed mb-6">
+        Austin has a 9-month mosquito season and three active species — including the daytime-biting tiger mosquito that spray programs miss. Here is everything you need to know to actually solve the problem.
+      </p>
+      <a href="/book" class="btn-gold">Book Free Assessment</a>
+    </div>
+  </section>
+
+  <!-- INTRO -->
+  <section class="py-16 px-5">
+    <div class="max-w-3xl mx-auto prose-custom">
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-6">Why Austin has a serious mosquito problem</h2>
+      <p class="text-cream/80 leading-relaxed mb-4">
+        Austin sits in the heart of one of the longest mosquito seasons in the United States. Mild winters that rarely produce sustained freezes mean tiger mosquito eggs overwinter successfully and populations build rapidly the moment temperatures rise in late winter. The city's position along the Colorado River, Lady Bird Lake, Barton Creek, and dozens of creek tributaries creates miles of natural breeding habitat. Dense residential tree canopy and aggressive irrigation infrastructure layer suburban breeding sites on top of that natural base.
+      </p>
+      <p class="text-cream/80 leading-relaxed mb-4">
+        The result: Austin homeowners deal with mosquito pressure from early March through mid-November — 9 months per year — and the dominant species (the Asian tiger mosquito) bites during daylight hours when families are actually using their yards.
+      </p>
+      <p class="text-cream/80 leading-relaxed">
+        Traditional spray programs were designed for a different mosquito — the dusk-active house mosquito that breeds in large standing water. They are poorly matched to Austin's tiger mosquito problem, which is why many Austin residents have tried spray services and remained unsatisfied. CO₂ trapping was developed specifically to address the tiger mosquito.
+      </p>
+    </div>
+  </section>
+
+  <!-- SPECIES -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3">Know Your Enemy</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-8">3 mosquito species in Austin, TX</h2>
+      <div class="space-y-6">
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-1">Asian Tiger Mosquito · Aedes albopictus</div>
+          <div class="text-white font-bold mb-2">The dominant backyard problem</div>
+          <p class="text-cream/70 text-sm leading-relaxed">Black-and-white striped, aggressive daytime biter. Breeds in containers as small as a bottle cap. Rarely travels more than 200 feet from its breeding site — which means the problem is in your yard, not coming from elsewhere. Spray programs designed for night-active mosquitoes miss this species almost entirely. CO₂ trapping is the most effective control method validated in peer-reviewed research.</p>
+        </div>
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-1">Southern House Mosquito · Culex quinquefasciatus</div>
+          <div class="text-white font-bold mb-2">The dusk-and-dawn attacker</div>
+          <p class="text-cream/70 text-sm leading-relaxed">Brown, medium-sized, active from dusk through dawn. Breeds in standing water — birdbaths, clogged gutters, stormwater features. Can travel up to two miles from breeding sites. The species most targeted by conventional spray programs, though resistance to pyrethroids is now documented in Texas populations. Strong CO₂ responder — high trap catch rates throughout the season.</p>
+        </div>
+        <div class="card">
+          <div class="text-gold font-extrabold text-sm mb-1">Yellow Fever Mosquito · Aedes aegypti</div>
+          <div class="text-white font-bold mb-2">Central Austin's urban species</div>
+          <p class="text-cream/70 text-sm leading-relaxed">Dark with white markings, concentrated in older central Austin neighborhoods with dense vegetation. Potential vector for dengue, Zika, and chikungunya. Like the tiger mosquito, it bites during daylight and breeds in containers. Rarely found in newer suburban neighborhoods but common in Hyde Park, Travis Heights, Brentwood, and similar areas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEASON -->
+  <section class="py-16 px-5">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3">Mosquito Season</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-6">Austin's 9-month mosquito season</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="card text-center">
+          <div class="text-gold font-extrabold text-sm mb-1">Early Season</div>
+          <div class="text-white font-bold">March – April</div>
+          <p class="text-cream/60 text-xs mt-2">First tiger mosquito activity. Populations building. Best time to start trapping to reduce founding population.</p>
+        </div>
+        <div class="card text-center border-gold/30">
+          <div class="text-gold font-extrabold text-sm mb-1">Peak Season</div>
+          <div class="text-white font-bold">May – October</div>
+          <p class="text-cream/60 text-xs mt-2">Maximum pressure. All three species active. Late summer tropical events cause population spikes.</p>
+        </div>
+        <div class="card text-center">
+          <div class="text-gold font-extrabold text-sm mb-1">Late Season</div>
+          <div class="text-white font-bold">October – November</div>
+          <p class="text-cream/60 text-xs mt-2">Populations declining but still active on warm days. Tiger mosquito eggs overwinter for next year's population.</p>
+        </div>
+      </div>
+      <p class="text-cream/70 text-sm leading-relaxed">
+        Austin averages fewer than 20 hard freeze nights per year — not enough to kill tiger mosquito eggs, which are freeze-tolerant. Populations rebuild from overwintered eggs every spring regardless of how cold the previous winter was.
+      </p>
+    </div>
+  </section>
+
+  <!-- TREATMENT OPTIONS -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3">Treatment Comparison</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-6">Mosquito control options in Austin, TX</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="border-b border-accent/20">
+              <th class="text-left py-3 pr-4 text-cream/60 font-semibold">Method</th>
+              <th class="text-left py-3 pr-4 text-cream/60 font-semibold">Tiger Mosquito</th>
+              <th class="text-left py-3 pr-4 text-cream/60 font-semibold">Pesticide-free</th>
+              <th class="text-left py-3 pr-4 text-cream/60 font-semibold">24/7 protection</th>
+              <th class="text-left py-3 text-cream/60 font-semibold">Est. monthly cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-accent/10">
+              <td class="py-3 pr-4 text-accent font-bold">CO₂ Trapping</td>
+              <td class="py-3 pr-4 text-accent">✓ Excellent</td>
+              <td class="py-3 pr-4 text-accent">✓ Yes</td>
+              <td class="py-3 pr-4 text-accent">✓ Yes</td>
+              <td class="py-3 text-cream/80">$90–$165/mo</td>
+            </tr>
+            <tr class="border-b border-accent/10">
+              <td class="py-3 pr-4 text-cream/80">Spray Treatment</td>
+              <td class="py-3 pr-4 text-cream/50">✗ Poor</td>
+              <td class="py-3 pr-4 text-cream/50">✗ No</td>
+              <td class="py-3 pr-4 text-cream/50">✗ 3-week window</td>
+              <td class="py-3 text-cream/80">$150–$200/mo</td>
+            </tr>
+            <tr class="border-b border-accent/10">
+              <td class="py-3 pr-4 text-cream/80">Barrier Spray</td>
+              <td class="py-3 pr-4 text-cream/50">✗ Poor</td>
+              <td class="py-3 pr-4 text-cream/50">✗ No</td>
+              <td class="py-3 pr-4 text-cream/50">✗ 3-week window</td>
+              <td class="py-3 text-cream/80">$120–$180/mo</td>
+            </tr>
+            <tr class="border-b border-accent/10">
+              <td class="py-3 pr-4 text-cream/80">Mosquito Misting System</td>
+              <td class="py-3 pr-4 text-cream/50">~ Partial</td>
+              <td class="py-3 pr-4 text-cream/50">✗ No</td>
+              <td class="py-3 pr-4 text-cream/50">~ Scheduled only</td>
+              <td class="py-3 text-cream/80">$200–$350/mo</td>
+            </tr>
+            <tr>
+              <td class="py-3 pr-4 text-cream/80">Repellents / DIY</td>
+              <td class="py-3 pr-4 text-cream/50">~ Partial</td>
+              <td class="py-3 pr-4 text-cream/50">~ Varies</td>
+              <td class="py-3 pr-4 text-cream/50">✗ While applied</td>
+              <td class="py-3 text-cream/80">$20–$60/mo</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICE AREAS -->
+  <section class="py-16 px-5">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3">Service Area</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-6">GreenGuard USA serves all of greater Austin</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+        {[
+          { city: 'Austin', slug: 'austin' },
+          { city: 'Cedar Park', slug: 'cedar-park' },
+          { city: 'Round Rock', slug: 'round-rock' },
+          { city: 'Westlake Hills', slug: 'westlake-hills' },
+          { city: 'Lakeway', slug: 'lakeway' },
+          { city: 'Bee Cave', slug: 'bee-cave' },
+          { city: 'Dripping Springs', slug: 'dripping-springs' },
+          { city: 'Steiner Ranch', slug: 'steiner-ranch' },
+          { city: 'Georgetown', slug: 'georgetown' },
+          { city: 'Pflugerville', slug: 'pflugerville' },
+          { city: 'Leander', slug: 'leander' },
+          { city: 'Liberty Hill', slug: 'liberty-hill' },
+          { city: 'Kyle', slug: 'kyle' },
+          { city: 'Buda', slug: 'buda' },
+        ].map(({ city, slug }) => (
+          <a href={`/mosquito-control-${slug}`} class="card text-center hover:border-accent/40 transition-colors">
+            <div class="text-cream/80 text-sm font-semibold">{city}, TX</div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="py-16 px-5 bg-bg-panel">
+    <div class="max-w-3xl mx-auto">
+      <div class="eyebrow mb-3">FAQ</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-8">Frequently asked questions</h2>
+      <div class="space-y-4">
+        {faqs.map((f) => (
+          <details class="card group">
+            <summary class="text-white font-bold cursor-pointer list-none flex justify-between items-center">
+              {f.q}
+              <span class="text-accent ml-4 flex-shrink-0">+</span>
+            </summary>
+            <p class="text-cream/70 text-sm leading-relaxed mt-3">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-16 px-5 text-center">
+    <div class="max-w-xl mx-auto">
+      <div class="eyebrow mb-3">Free · No Commitment · Austin</div>
+      <h2 class="text-2xl md:text-3xl font-black text-white mb-4">Ready to reclaim your outdoor space?</h2>
+      <p class="text-cream/75 mb-6">
+        Book a free property assessment. We walk your yard, identify pressure zones, and design a trap placement plan — at no cost and no obligation.
+      </p>
+      <div class="flex gap-4 justify-center flex-wrap">
+        <a href="/book" class="btn-gold">Book Free Assessment</a>
+        <a href="/compare" class="btn-outline">Compare Options</a>
+      </div>
+    </div>
+  </section>
+</Base>
