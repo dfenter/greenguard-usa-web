@@ -62,13 +62,13 @@ export default function Login({ error }) {
                   Enter the email address associated with your GreenGuard service. We&apos;ll send you a sign-in link.
                 </p>
 
-                {error === 'expired' && (
+                {(error === 'expired' || error === 'used') && (
                   <div style={{
                     background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)',
                     borderRadius: 6, padding: '10px 14px', marginBottom: 16,
-                    fontSize: '0.83rem', color: '#c9a84c',
+                    fontSize: '0.83rem', color: '#c9a84c', lineHeight: 1.5,
                   }}>
-                    That link has expired. Request a new one below.
+                    That sign-in link has expired or already been used. Enter your email below to get a fresh one.
                   </div>
                 )}
 

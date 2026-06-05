@@ -1,5 +1,5 @@
 /**
- * Google Ads API v17 — campaign management and reporting
+ * Google Ads API v21 — campaign management and reporting
  * Credentials sourced entirely from env vars — no hardcoded IDs.
  */
 
@@ -7,14 +7,14 @@ const { google } = require('googleapis')
 
 function getClient() {
   const auth = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_ADS_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_ADS_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET,
   )
-  auth.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN })
+  auth.setCredentials({ refresh_token: process.env.GOOGLE_ADS_REFRESH_TOKEN })
   return auth
 }
 
-const BASE = 'https://googleads.googleapis.com/v17'
+const BASE = 'https://googleads.googleapis.com/v21'
 
 async function adsRequest(method, path, body) {
   const auth = getClient()
@@ -25,6 +25,7 @@ async function adsRequest(method, path, body) {
       'Authorization': `Bearer ${token}`,
       'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
       'Content-Type': 'application/json',
+      ...(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID && { 'login-customer-id': process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID }),
     },
     body: body ? JSON.stringify(body) : undefined,
   })

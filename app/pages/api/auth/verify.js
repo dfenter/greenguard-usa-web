@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   if (!payload.jti) {
     return res.redirect('/login?error=expired')
   }
-  const fresh = await consumeJti(payload.jti, 900)
+  const fresh = await consumeJti(payload.jti, 3600)
   if (!fresh) {
     return res.redirect('/login?error=used')
   }
@@ -47,9 +47,9 @@ export default async function handler(req, res) {
     return res.redirect('/prospect')
   }
 
-  if (isAdminEmail(payload.email)) {
-    return res.redirect(isOwnerEmail(payload.email) ? '/admin/home' : '/admin/tech')
-  }
+  const dest = isAdminEmail(payload.email)
+    ? (isOwnerEmail(payload.email) ? '/admin/home' : '/admin/tech')
+    : '/dashboard'
 
-  res.redirect('/dashboard')
+  res.redirect(`/auth-success?next=${encodeURIComponent(dest)}`)
 }

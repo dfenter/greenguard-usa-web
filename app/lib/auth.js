@@ -8,7 +8,7 @@ function getSecret() {
   return new TextEncoder().encode(process.env.JWT_SECRET)
 }
 
-const MAGIC_LINK_EXPIRY = '15m'
+const MAGIC_LINK_EXPIRY = '1h'
 const SESSION_EXPIRY = '90d'
 
 // ── Single-use jti store ─────────────────────────────────────────────────
