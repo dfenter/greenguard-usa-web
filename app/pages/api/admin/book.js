@@ -119,14 +119,8 @@ export default async function handler(req, res) {
 
   const utcIso = localCTtoUTC(startLocal)
 
-  // Enforce 24-hour minimum notice. Admins can override with allowDoubleBook
-  // (which already signals "I know what I'm doing, bypass normal gates").
-  const hoursUntilStart = (new Date(utcIso) - Date.now()) / 3_600_000
-  if (hoursUntilStart < 24 && !allowDoubleBook) {
-    return res.status(400).json({
-      error: `Appointments require at least 24 hours notice. This slot is only ${Math.round(hoursUntilStart)} hour(s) away. Use "Allow double-book / override" to force it.`,
-    })
-  }
+  // 24-hour minimum notice is enforced at the Cal.com level for customers.
+  // Admin bookings are always unrestricted — this endpoint requires admin auth.
 
   const intervalDays = recurring === '21' ? 21 : recurring === '28' ? 28 : 0
   const occurrences = intervalDays > 0 ? 6 : 1
