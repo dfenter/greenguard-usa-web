@@ -10,8 +10,35 @@ export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-  const { customerId } = req.query
-  if (!customerId) return res.status(400).json({ error: 'customerId required' })
+  let { customerId } = req.query
+  const lookupEmail = req.query.email
+
+  // Allow lookup by email when no Stripe customer ID is available
+  if (!customerId && lookupEmail) {
+    const found = await stripe.customers.search({ query: `email:"${lookupEmail}"`, limit: 1 }).catch(() => ({ data: [] }))
+    if (found.data.length > 0) {
+      customerId = found.data[0].id
+    } else {
+      // No Stripe customer — build a minimal response from HubSpot only
+      const contact = await findContactByEmail(lookupEmail).catch(() => null)
+      if (!contact) return res.status(404).json({ error: 'Customer not found' })
+      const p = contact.properties || {}
+      const notes = await getContactNotes(contact.id, 20).catch(() => [])
+      return res.status(200).json({
+        id: null, hubspotContactId: contact.id,
+        name: [p.firstname, p.lastname].filter(Boolean).join(' ') || '',
+        email: lookupEmail, phone: p.phone || '', address: p.address || '',
+        subscription: null, openInvoices: [],
+        nextBooking: null, upcomingBookings: [], pastBookings: [],
+        planType: p.plan_type || null, systemType: p.system_type || null,
+        trapCount: parseInt(p.trap_count || '0', 10) || null,
+        tankCount: parseInt(p.tank_count || '0', 10) || null,
+        hasTimer: p.has_timer === 'true', notes,
+      })
+    }
+  }
+
+  if (!customerId) return res.status(400).json({ error: 'customerId or email required' })
 
   const [stripeCustomer, stripeInvoices] = await Promise.all([
     stripe.customers.retrieve(customerId, { expand: ['subscriptions.data.items.data'] }),

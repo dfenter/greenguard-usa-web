@@ -8,6 +8,7 @@ import { listAllCustomers, findInvoiceForBooking, findInvoicesForBookings } from
 import { findContactsByEmails, findContactsByNames, tanksForCustomer, getContactNotes } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import SignaturePad from '../../components/SignaturePad'
+import CustomerPanel from '../../components/CustomerPanel'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 export async function getServerSideProps({ req, query, res }) {
@@ -597,7 +598,7 @@ function CancelModal({ stop, onConfirm, onClose }) {
   )
 }
 
-function ApptDetailModal({ stop, onClose }) {
+function ApptDetailModal({ stop, onClose, onOpenProfile }) {
   const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }
   const box = { background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 14, padding: 24, maxWidth: 440, width: '100%', fontFamily: 'Nunito Sans, sans-serif', color: '#d4e6ca', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }
   const row = (label, value) => value ? (
@@ -619,18 +620,19 @@ function ApptDetailModal({ stop, onClose }) {
         {row('Phone', stop.phone)}
         {(stop.clientNotes || []).map((n, i) => row(i === 0 ? 'Notes' : '', n))}
         {row('Tanks', stop.tanks > 0 ? `${stop.tanks} tank${stop.tanks > 1 ? 's' : ''}` : null)}
-        {stop.email && (
-          <a href={`/admin/clients/${encodeURIComponent(stop.email)}`}
-            style={{ display: 'inline-block', marginTop: 14, padding: '8px 18px', borderRadius: 8, background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.25)', color: '#7dffaa', fontWeight: 700, fontSize: '0.82rem', textDecoration: 'none' }}>
+        {stop.email && onOpenProfile && (
+          <button
+            style={{ display: 'inline-block', marginTop: 14, padding: '8px 18px', borderRadius: 8, background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.25)', color: '#7dffaa', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            onClick={() => { onClose?.(); onOpenProfile({ email: stop.email, name: stop.customerName, phone: stop.phone }) }}>
             Open Profile →
-          </a>
+          </button>
         )}
       </div>
     </div>
   )
 }
 
-function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
+function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onOpenProfile }) {
   const isDone = state.status === 'done'
   const isActive = state.status === 'active'
   // SSR detected an existing Stripe invoice for this booking. Suppress
@@ -861,11 +863,10 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef }) {
             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: isDone ? 'rgba(125,255,170,0.15)' : isActive ? 'rgba(201,168,76,0.15)' : 'rgba(122,171,130,0.1)', color: isDone ? '#7dffaa' : isActive ? '#c9a84c' : 'rgba(212,230,202,0.5)', flexShrink: 0 }}>
               {isDone ? '✓' : idx + 1}
             </span>
-            <a
-              href={stop.email ? `/admin/clients/${encodeURIComponent(stop.email)}` : '#'}
-              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', textDecoration: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', flexShrink: 0 }}
-              onClick={e => e.stopPropagation()}
-            >{stop.customerName}</a>
+            <button
+              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', background: 'none', border: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
+              onClick={e => { e.stopPropagation(); if (stop.email) onOpenProfile?.({ email: stop.email, name: stop.customerName, phone: stop.phone }) }}
+            >{stop.customerName}</button>
             {stop.address && (
               <span style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', fontWeight: 400 }}>📍 {stop.address}</span>
             )}
@@ -1257,6 +1258,7 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
       showEmailModal: false, invoiceId: null, invoiceUrl: null, grandTotal: 0,
     }))
   )
+  const [profileCustomer, setProfileCustomer] = useState(null)
   const fileRefs = useRef(stops.map(() => ({ current: null })))
   const videoRefs = useRef(stops.map(() => ({ current: null })))
   const stopRefs = useRef([])
@@ -1443,7 +1445,8 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
             return (
               <div key={`${selectedDate || 'open'}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }}>
                 <StopCard stop={stop} idx={idx} state={states[idx]}
-                  onUpdate={(patch) => update(idx, patch)} fileInputRef={fileRefs.current[idx]} videoInputRef={videoRefs.current[idx]} />
+                  onUpdate={(patch) => update(idx, patch)} fileInputRef={fileRefs.current[idx]} videoInputRef={videoRefs.current[idx]}
+                  onOpenProfile={setProfileCustomer} />
               </div>
             )
           })
@@ -1459,6 +1462,20 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
           </div>
         )}
       </PortalLayout>
+
+      {/* Customer profile panel — slides in from right when a name is clicked */}
+      {profileCustomer && (
+        <>
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 199 }}
+            onClick={() => setProfileCustomer(null)}
+          />
+          <CustomerPanel
+            customer={profileCustomer}
+            onClose={() => setProfileCustomer(null)}
+          />
+        </>
+      )}
     </>
   )
 }
