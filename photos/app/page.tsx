@@ -121,7 +121,7 @@ function Lightbox({ photos, index, onClose, onPrev, onNext, onDelete, onTagsChan
     if (!playing) return
     const timer = setInterval(() => {
       if (playRef.current) onNext()
-    }, 3000)
+    }, 15000)
     return () => clearInterval(timer)
   }, [playing, onNext])
 
@@ -632,7 +632,7 @@ export default function GalleryPage() {
                 className="quick-btn"
                 onClick={startSlideshow}
                 disabled={photos.length === 0}
-                title="Start slideshow (auto-advances every 3s)"
+                title="Start slideshow (auto-advances every 15s)"
               >
                 ▶ Slideshow
               </button>
