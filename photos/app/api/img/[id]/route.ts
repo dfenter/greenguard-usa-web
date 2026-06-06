@@ -91,6 +91,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const jpeg = await sharp(buffer)
       .resize(isFull ? FULL_WIDTH : 400, undefined, { withoutEnlargement: true })
+      .flatten({ background: { r: 255, g: 255, b: 255 } })
       .jpeg({ quality: 85 })
       .toBuffer()
 

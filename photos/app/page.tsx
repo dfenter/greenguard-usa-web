@@ -570,6 +570,7 @@ export default function GalleryPage() {
         <div className="header-top">
           <span className="header-title">Fenter Family Photos</span>
           <div className="header-actions">
+            <button className="slideshow-header-btn" onClick={startSlideshow}>▶ Slideshow</button>
             {photos.length > 0 && !selecting && (
               <span className="photo-count">{photos.length.toLocaleString()}{hasMore ? '+' : ''}</span>
             )}
@@ -604,13 +605,6 @@ export default function GalleryPage() {
                 )}
               </div>
               <button
-                className={`quick-btn${shuffleMode ? ' active' : ''}`}
-                onClick={toggleShuffle}
-                title="Show 50 random photos"
-              >
-                🔀 Shuffle
-              </button>
-              <button
                 className={`quick-btn${onThisDay ? ' active' : ''}`}
                 onClick={toggleOnThisDay}
                 title={`Photos from ${todayLabel} in past years`}
@@ -623,13 +617,6 @@ export default function GalleryPage() {
                 title="Show only screenshots"
               >
                 📱 Screenshots
-              </button>
-              <button
-                className="quick-btn slideshow-btn"
-                onClick={startSlideshow}
-                title="Random slideshow"
-              >
-                ▶ Slideshow
               </button>
               {peopleList.map(({ name }) => (
                 <button

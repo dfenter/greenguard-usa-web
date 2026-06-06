@@ -44,6 +44,21 @@ body {
   color: #ccc;
 }
 
+.slideshow-header-btn {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  background: #2d6a4f;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  padding: 6px 16px;
+  letter-spacing: 0.02em;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.slideshow-header-btn:hover { background: #3a8a64; }
+
 .signout-btn {
   font-size: 0.75rem;
   color: #555;
@@ -273,11 +288,6 @@ body {
 }
 .lightbox-tag:hover, .lightbox-tag.active { background: rgba(255,255,255,0.2); }
 
-.quick-btn.slideshow-btn {
-  background: rgba(255,255,255,0.15);
-  border-color: rgba(255,255,255,0.3);
-  font-weight: 600;
-}
 
 .tagger-panel {
   position: fixed;
