@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/router'
+import DetailDock from './AppointmentDetailDock'
 
 const TZ = 'America/Chicago'
 
@@ -164,6 +165,19 @@ export default function CustomerPanel({ customer, onClose }) {
   const [editForm, setEditForm] = useState({ name: '', phone: '', address: '', planType: '', systemType: '', trapCount: '', hasTimer: false })
   const [saving, setSaving] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [apptDock, setApptDock] = useState(null)   // { loading, details }
+
+  async function openApptDock(eventId) {
+    if (!eventId) return
+    setApptDock({ loading: true, details: null })
+    try {
+      const res = await fetch(`/api/admin/appointment-details?eventId=${encodeURIComponent(eventId)}`)
+      const data = await res.json()
+      setApptDock({ loading: false, details: res.ok ? data : { error: data.error || 'Failed to load' } })
+    } catch {
+      setApptDock({ loading: false, details: { error: 'Failed to load' } })
+    }
+  }
   const [messaging, setMessaging] = useState(false)
   const [msgForm, setMsgForm] = useState({ subject: '', body: '' })
   const [msgSending, setMsgSending] = useState(false)
@@ -497,7 +511,11 @@ export default function CustomerPanel({ customer, onClose }) {
                 <div style={row}>
                   <div style={lbl}>Next Appointment</div>
                   {detail.nextBooking ? (
-                    <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(201,168,76,0.06)', borderRadius: 8, border: '1px solid rgba(201,168,76,0.2)' }}>
+                    <div
+                      onClick={() => openApptDock(detail.nextBooking.id)}
+                      style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(201,168,76,0.06)', borderRadius: 8, border: '1px solid rgba(201,168,76,0.2)', cursor: detail.nextBooking.id ? 'pointer' : 'default' }}
+                      title={detail.nextBooking.id ? 'Click to view appointment details' : undefined}
+                    >
                       <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#c9a84c' }}>{fmtDate(detail.nextBooking.startTime)}</div>
                       <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{detail.nextBooking.title}</div>
                       {detail.nextBooking.address && <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 2 }}>{detail.nextBooking.address}</div>}
@@ -552,6 +570,21 @@ export default function CustomerPanel({ customer, onClose }) {
           </>
         )}
       </div>
+
+      {/* Appointment detail dock — opens on top when next appointment is clicked */}
+      {apptDock && (
+        <>
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 299 }}
+            onClick={() => setApptDock(null)}
+          />
+          <DetailDock
+            details={apptDock.details}
+            loading={apptDock.loading}
+            onClose={() => setApptDock(null)}
+          />
+        </>
+      )}
     </div>
   )
 }
