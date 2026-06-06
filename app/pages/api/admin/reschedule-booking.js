@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const dur = durationMin ? durationMin * 60_000 : (oldStart && oldEnd ? oldEnd - oldStart : 45 * 60_000)
     const patched = await cal.events.patch({
       calendarId: CALENDAR_ID, eventId,
-      sendUpdates: 'all',
+      sendUpdates: 'none',
       requestBody: {
         start: { dateTime: new Date(startMs).toISOString(), timeZone: 'America/Chicago' },
         end:   { dateTime: new Date(startMs + dur).toISOString(), timeZone: 'America/Chicago' },
