@@ -23,88 +23,150 @@ export async function getAccessToken(): Promise<string> {
   return (await res.json()).access_token
 }
 
-// Parse EXIF date "YYYY:MM:DD HH:MM:SS" → ISO string. Returns null if invalid.
-function parseExifDate(raw: string | undefined): string | null {
-  if (!raw) return null
-  const p = raw.split(/[: ]/)
-  if (p.length < 3 || !p[0] || p[0] === '0000') return null
-  return `${p[0]}-${p[1]}-${p[2]}T${p[3] ?? '00'}:${p[4] ?? '00'}:${p[5] ?? '00'}.000Z`
+import { readFileSync } from 'fs'
+import { join } from 'path'
+
+interface IndexEntry { id: string; name: string; date: string; thumb?: string; mimeType?: string }
+
+let _index: IndexEntry[] | null = null
+function getIndex(): IndexEntry[] {
+  if (_index) return _index
+  try {
+    const raw = readFileSync(join(process.cwd(), 'lib', 'photo-index.json'), 'utf8')
+    _index = JSON.parse(raw) as IndexEntry[]
+  } catch {
+    _index = []
+  }
+  return _index
 }
 
-function mapFile(f: any): DrivePhoto {
-  return {
-    id: f.id,
-    name: f.name,
-    // Prefer EXIF date (real photo date) over upload date
-    createdTime: parseExifDate(f.imageMediaMetadata?.time) ?? f.createdTime,
-    size: parseInt(f.size ?? '0', 10),
-    mimeType: f.mimeType,
-    thumbnailLink: f.thumbnailLink?.replace(/=s\d+$/, '=s400'),
+// Serve photos from the pre-built chronological index.
+// cursor is a numeric string offset into the (filtered) array.
+function isScreenshot(p: IndexEntry): boolean {
+  if (p.mimeType === 'image/png') return true
+  const lower = p.name.toLowerCase()
+  return lower.includes('screenshot') || lower.includes('screen shot') || lower.includes('screen_shot')
+}
+
+export function listPhotosFromIndex(
+  cursor?: string,
+  year?: string,
+  month?: string,
+  from?: string,
+  to?: string,
+  search?: string,
+  shuffle?: boolean,
+  onThisDay?: boolean,
+  showVideos?: boolean,
+  screenshotsOnly?: boolean,
+  personIds?: Set<string>,
+): { photos: DrivePhoto[]; nextPageToken?: string } {
+  const index = getIndex()
+  const targetYear  = year  ? parseInt(year)  : null
+  const targetMonth = month ? parseInt(month) : null
+  const fromMs = from ? new Date(from).getTime() : null
+  const toMs   = to   ? new Date(to + 'T23:59:59Z').getTime() : null
+  const searchLower = search?.toLowerCase().trim()
+  const now = new Date()
+  const todayMonth = now.getMonth() + 1
+  const todayDay   = now.getDate()
+
+  const needsFilter = targetYear || targetMonth || fromMs || toMs || searchLower || onThisDay || personIds
+  let filtered = needsFilter
+    ? index.filter(p => {
+        const d = new Date(p.date)
+        const t = d.getTime()
+        if (targetYear  && d.getFullYear()  !== targetYear)  return false
+        if (targetMonth && d.getMonth() + 1 !== targetMonth) return false
+        if (fromMs && t < fromMs) return false
+        if (toMs   && t > toMs)   return false
+        if (onThisDay && (d.getMonth() + 1 !== todayMonth || d.getDate() !== todayDay)) return false
+        if (searchLower && !p.name.toLowerCase().includes(searchLower)) return false
+        if (personIds && !personIds.has(p.id)) return false
+        return true
+      })
+    : [...index]
+
+  // By default hide videos; only include when explicitly requested
+  if (!showVideos) {
+    filtered = filtered.filter(p => !p.mimeType?.startsWith('video/'))
   }
+
+  if (screenshotsOnly) {
+    filtered = filtered.filter(isScreenshot)
+  }
+
+  // Shuffle returns random PAGE photos, no pagination
+  if (shuffle) {
+    for (let i = filtered.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [filtered[i], filtered[j]] = [filtered[j], filtered[i]]
+    }
+    return {
+      photos: filtered.slice(0, 50).map(p => ({
+        id: p.id,
+        name: p.name,
+        createdTime: p.date,
+        size: 0,
+        mimeType: p.mimeType ?? 'image/jpeg',
+        thumbnailLink: p.thumb ?? null,
+      })),
+      nextPageToken: undefined,
+    }
+  }
+
+  const PAGE  = 50
+  const start = cursor ? parseInt(cursor) : 0
+  const slice = filtered.slice(start, start + PAGE)
+  const next  = start + PAGE < filtered.length ? String(start + PAGE) : undefined
+
+  return {
+    photos: slice.map(p => ({
+      id: p.id,
+      name: p.name,
+      createdTime: p.date,
+      size: 0,
+      mimeType: p.mimeType ?? 'image/jpeg',
+      thumbnailLink: p.thumb ?? null,
+    })),
+    nextPageToken: next,
+  }
+}
+
+// Return sorted list of years present in the index.
+export function getIndexYears(): number[] {
+  const index = getIndex()
+  const years = new Set<number>()
+  for (const p of index) {
+    const y = new Date(p.date).getFullYear()
+    if (y > 1990 && y <= new Date().getFullYear() + 1) years.add(y)
+  }
+  return [...years].sort((a, b) => b - a)
 }
 
 export async function listPhotos(
   pageToken?: string,
   year?: string,
-  month?: string
+  month?: string,
 ): Promise<{ photos: DrivePhoto[]; nextPageToken?: string }> {
   const token = await getAccessToken()
-  const targetYear  = year  ? parseInt(year)  : null
-  const targetMonth = month ? parseInt(month) : null
-
   const q = `mimeType contains 'image/' and trashed = false`
-
-  // For filtered views we scan up to 10 Drive pages (×200 = 2000 photos) to
-  // collect 50 that match the requested year/month. Unfiltered views return the
-  // first 50 photos with a normal cursor.
-  const DRIVE_PAGE = targetYear ? 200 : 50
-  const TARGET     = 50
-  const MAX_SCAN   = targetYear ? 10 : 1
-
-  let collected: DrivePhoto[] = []
-  let driveToken: string | undefined = pageToken
-  let scans = 0
-
-  while (scans < MAX_SCAN) {
-    const params = new URLSearchParams({
-      q,
-      orderBy: 'createdTime desc',
-      pageSize: String(DRIVE_PAGE),
-      fields: 'nextPageToken,files(id,name,createdTime,size,mimeType,thumbnailLink,imageMediaMetadata)',
-    })
-    if (driveToken) params.set('pageToken', driveToken)
-
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    })
-    if (!res.ok) throw new Error(`Drive list failed: ${await res.text()}`)
-
-    const data = await res.json()
-    const page: DrivePhoto[] = (data.files ?? []).map(mapFile)
-
-    const matching = targetYear
-      ? page.filter(p => {
-          const d = new Date(p.createdTime)
-          if (isNaN(d.getTime())) return false
-          if (d.getFullYear() !== targetYear) return false
-          if (targetMonth && d.getMonth() + 1 !== targetMonth) return false
-          return true
-        })
-      : page
-
-    collected = [...collected, ...matching]
-    driveToken = data.nextPageToken
-    scans++
-
-    if (!driveToken) break
-    if (collected.length >= TARGET) break
-  }
-
-  return {
-    photos: collected.slice(0, TARGET),
-    nextPageToken: collected.length >= TARGET ? driveToken : undefined,
-  }
+  const params = new URLSearchParams({
+    q, orderBy: 'createdTime desc', pageSize: '50',
+    fields: 'nextPageToken,files(id,name,createdTime,size,mimeType,thumbnailLink)',
+  })
+  if (pageToken) params.set('pageToken', pageToken)
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+    headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
+  })
+  if (!res.ok) throw new Error(`Drive list failed: ${await res.text()}`)
+  const data = await res.json()
+  const photos: DrivePhoto[] = (data.files ?? []).map((f: any) => ({
+    id: f.id, name: f.name, createdTime: f.createdTime,
+    size: parseInt(f.size ?? '0', 10), mimeType: f.mimeType,
+    thumbnailLink: f.thumbnailLink?.replace(/=s\d+$/, '=s400'),
+  }))
+  return { photos, nextPageToken: data.nextPageToken }
 }
 
 export async function getFileStream(id: string): Promise<ReadableStream> {

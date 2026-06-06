@@ -1,1 +1,11 @@
 .vercel
+.next/
+node_modules/
+lib/photo-index.json
+lib/size-cache.json
+lib/delete-progress.json
+lib/faces.json
+duplicates.csv
+duplicates-verified.csv
+upload-progress.json
+tsconfig.tsbuildinfo
