@@ -470,19 +470,35 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total, o
 
 // ── Email modal ────────────────────────────────────────────────────────────────
 
+// Roll up tank refill + delivery fee + hookup into one "CO₂ Tank Service" line.
+function rollUpLineItems(lineItems) {
+  const TANK_SKUS = new Set(['TANK-REFILL', 'TANK-DELIVERY-FEE', 'TANK-HOOKUP-MAINT'])
+  const tankItems = lineItems.filter((l) => TANK_SKUS.has(l.sku) && l.qty > 0)
+  const other = lineItems.filter((l) => !TANK_SKUS.has(l.sku) && l.qty > 0)
+  if (tankItems.length === 0) return other
+  const tankTotal = tankItems.reduce((sum, l) => sum + (l.price || 0) * (l.qty || 1), 0)
+  const refillItem = tankItems.find((l) => l.sku === 'TANK-REFILL')
+  const tankQty = refillItem?.qty || 1
+  return [
+    { label: `CO₂ Tank Service${tankQty > 1 ? ` ×${tankQty}` : ''}`, sku: 'TANK-SERVICE', price: tankTotal, qty: 1 },
+    ...other,
+  ]
+}
+
 function EmailModal({ stop, lineItems, grandTotal, onSend, onSkip }) {
+  const displayItems = rollUpLineItems(lineItems)
   const defaultMsg = [
     `Hi ${stop.customerName ? stop.customerName.split(' ')[0] : 'there'},`,
     '',
-    `Your GreenGuard service visit is complete. Here\'s a summary:`,
+    `Your GreenGuard USA service visit is complete. Here's a summary:`,
     '',
-    ...lineItems.filter((l) => l.qty > 0).map((l) => `• ${l.label}${l.qty > 1 ? ` ×${l.qty}` : ''}${l.price ? ` — ${fmt$(l.price * l.qty)}` : ''}`),
+    ...displayItems.map((l) => `• ${l.label}${l.price ? ` — ${fmt$(l.price)}` : ''}`),
     '',
     `Total: ${fmt$(grandTotal)}`,
     '',
-    'An invoice will be sent separately. Thank you for being a GreenGuard customer!',
+    'An invoice will be sent separately. Thank you for being a GreenGuard USA customer!',
     '',
-    '— The GreenGuard Team',
+    '— The GreenGuard USA Team',
   ].join('\n')
 
   const [msg, setMsg] = useState(defaultMsg)
@@ -1347,7 +1363,7 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
 
   return (
     <>
-      <Head><title>Rounds · GreenGuard</title></Head>
+      <Head><title>Rounds · GreenGuard USA</title></Head>
       <PortalLayout isAdmin>
         <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
           <div>
