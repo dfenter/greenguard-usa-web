@@ -46,7 +46,10 @@ deploy_astro() {
 deploy_photos() {
   echo -e "${CYAN}▲ Deploying photos.greenguard-usa.com ...${NC}"
   cd "$REPO_ROOT/photos"
-  vercel --prod --scope "$SCOPE"
+  DEPLOY_URL=$(vercel --prod --scope "$SCOPE" 2>&1 | grep -o 'https://photos-[^ ]*\.vercel\.app' | head -1)
+  if [ -n "$DEPLOY_URL" ]; then
+    vercel alias set "$DEPLOY_URL" photos.greenguard-usa.com --scope "$SCOPE" > /dev/null 2>&1
+  fi
   echo -e "${GREEN}✓ Photos deployed → https://photos.greenguard-usa.com${NC}"
 }
 
