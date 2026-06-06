@@ -624,6 +624,13 @@ export default function GalleryPage() {
               >
                 📱 Screenshots
               </button>
+              <button
+                className="quick-btn slideshow-btn"
+                onClick={startSlideshow}
+                title="Random slideshow"
+              >
+                ▶ Slideshow
+              </button>
               {peopleList.map(({ name }) => (
                 <button
                   key={name}
@@ -701,12 +708,6 @@ export default function GalleryPage() {
 
       <div className="gallery-container">
         {error && <div className="error-banner">Failed to load photos: {error}</div>}
-
-        {photos.length > 0 && !loading && (
-          <div className="hero-slideshow">
-            <button className="hero-slideshow-btn" onClick={startSlideshow}>▶ Random Slideshow</button>
-          </div>
-        )}
 
         {onThisDay && photos.length === 0 && !loading && !error && (
           <div className="empty-state">No photos found for {todayLabel} in past years</div>

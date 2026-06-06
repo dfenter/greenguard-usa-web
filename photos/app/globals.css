@@ -273,25 +273,10 @@ body {
 }
 .lightbox-tag:hover, .lightbox-tag.active { background: rgba(255,255,255,0.2); }
 
-.hero-slideshow {
-  display: flex;
-  justify-content: center;
-  padding: 80px 0 40px;
-}
-.hero-slideshow-btn {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 40px;
-  color: #fff;
-  font-size: 1.1rem;
-  padding: 16px 36px;
-  cursor: pointer;
-  letter-spacing: 0.03em;
-  transition: background 0.15s, border-color 0.15s;
-}
-.hero-slideshow-btn:hover {
+.quick-btn.slideshow-btn {
   background: rgba(255,255,255,0.15);
   border-color: rgba(255,255,255,0.3);
+  font-weight: 600;
 }
 
 .tagger-panel {
