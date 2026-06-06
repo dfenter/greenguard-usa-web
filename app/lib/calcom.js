@@ -34,8 +34,8 @@ async function getBookingsForWeek(startDate, endDate) {
 }
 
 async function rescheduleBooking(bookingId, newStartTime) {
-  return calFetch(`/bookings/${bookingId}/reschedule`, {
-    method: 'POST',
+  return calFetch(`/bookings/${bookingId}`, {
+    method: 'PATCH',
     body: JSON.stringify({ start: newStartTime }),
   })
 }
