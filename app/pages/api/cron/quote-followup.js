@@ -13,6 +13,7 @@
 const { addNote } = require('../../../lib/hubspot')
 const { sendT48Email, sendT7dAdminAlert, buildPaidJtiSet } = require('../../../lib/quote-followup')
 const { authorize } = require('../../../lib/cron-auth')
+const Sentry = require('@sentry/nextjs')
 
 const HUBSPOT_TOKEN = process.env.HUBSPOT_ACCESS_TOKEN
 const T48 = 48 * 3600 * 1000
@@ -98,6 +99,11 @@ export default async function handler(req, res) {
   if (!authorize(req, res)) return
   if (!HUBSPOT_TOKEN) return res.status(503).json({ error: 'HUBSPOT_ACCESS_TOKEN not set' })
 
+  const checkInId = Sentry.captureCheckIn(
+    { monitorSlug: 'apicronquote-followup', status: 'in_progress' },
+    { schedule: { type: 'crontab', value: '0 14 * * *' }, checkinMargin: 30, maxRuntime: 10 }
+  )
+
   const now = Date.now()
   const scanCutoff = new Date(now - SCAN_DAYS * 24 * 3600 * 1000).toISOString()
   const results = {
@@ -181,5 +187,6 @@ export default async function handler(req, res) {
     }
   }
 
+  Sentry.captureCheckIn({ monitorSlug: 'apicronquote-followup', checkInId, status: 'ok' })
   res.status(200).json(results)
 }
