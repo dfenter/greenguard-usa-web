@@ -122,7 +122,7 @@ const objections = [
   title="CO₂ Mosquito Trap Rental Austin TX | GreenGuard USA"
   description="Rent a professional CO₂ mosquito trap from GreenGuard USA. We own it, maintain it, and deliver CO₂ monthly. Pesticide-free, month-to-month, no contracts."
 >
-  <script type="application/ld+json" slot="head">{JSON.stringify({
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": objections.map(o => ({
@@ -130,8 +130,8 @@ const objections = [
       "name": o.q,
       "acceptedAnswer": { "@type": "Answer", "text": o.a }
     }))
-  })}</script>
-  <script type="application/ld+json" slot="head">{JSON.stringify({
+  })} />
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Service",
     "name": "CO₂ Mosquito Trap Rental",
@@ -145,7 +145,7 @@ const objections = [
     ],
     "serviceType": "Mosquito Control",
     "url": "https://www.greenguard-usa.com/traprental"
-  })}</script>
+  })} />
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
     <div class="max-w-3xl mx-auto">

@@ -34,7 +34,7 @@ const faqs = [
   description="Everything Austin homeowners need to know about mosquito control: species, season, costs, and the most effective treatment options. GreenGuard USA serves all Austin neighborhoods pesticide-free."
   canonical="https://www.greenguard-usa.com/mosquito-control-austin-texas"
 >
-  <script type="application/ld+json" slot="head">{JSON.stringify({
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": faqs.map(f => ({
@@ -42,9 +42,9 @@ const faqs = [
       "name": f.q,
       "acceptedAnswer": { "@type": "Answer", "text": f.a }
     }))
-  })}</script>
+  })} />
 
-  <script type="application/ld+json" slot="head">{JSON.stringify({
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "Mosquito Control in Austin TX: The Complete Guide",
@@ -53,7 +53,7 @@ const faqs = [
     "publisher": { "@type": "Organization", "name": "GreenGuard USA", "url": "https://www.greenguard-usa.com" },
     "url": "https://www.greenguard-usa.com/mosquito-control-austin-texas",
     "dateModified": new Date().toISOString().split('T')[0]
-  })}</script>
+  })} />
 
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">

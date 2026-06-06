@@ -52,7 +52,7 @@ const deliveryTiers = [
   title="Mosquito Control Pricing Austin TX | GreenGuard USA"
   description="Transparent monthly pricing for CO₂ mosquito trap rental and CO₂ delivery service in Austin. No contracts, no hidden fees."
 >
-  <script type="application/ld+json" slot="head">{JSON.stringify({
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Service",
     "name": "Mosquito Control Service",
@@ -69,7 +69,7 @@ const deliveryTiers = [
     ],
     "serviceType": "Mosquito Control",
     "url": "https://www.greenguard-usa.com/pricing"
-  })}</script>
+  })} />
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
     <div class="max-w-2xl mx-auto">

@@ -123,7 +123,7 @@ const faqs = [
   title="CO₂ Tank Delivery Austin TX | GreenGuard USA"
   description="Monthly CO₂ cylinder delivery and tank exchange for Austin mosquito traps. GreenGuard USA swaps your empty tank, inspects your trap, and keeps your system running."
 >
-  <script type="application/ld+json" slot="head">{JSON.stringify({
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Service",
     "name": "CO₂ Tank Delivery and Exchange",
@@ -132,7 +132,7 @@ const faqs = [
     "areaServed": { "@type": "City", "name": "Austin", "addressRegion": "TX" },
     "serviceType": "Mosquito Control",
     "url": "https://www.greenguard-usa.com/co2delivery"
-  })}</script>
+  })} />
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
     <div class="max-w-3xl mx-auto">
