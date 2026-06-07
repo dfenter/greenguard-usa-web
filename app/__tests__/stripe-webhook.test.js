@@ -130,11 +130,11 @@ beforeEach(() => {
 
 // ── Signature verification ────────────────────────────────────────────────────
 
-test('invalid webhook signature returns 400', async () => {
+test('invalid webhook signature returns 401', async () => {
   mockConstructEvent.mockImplementation(() => { throw new Error('Webhook signature failed') })
   const res = mockRes()
   await handler(mockReq({}), res)
-  expect(res.status).toHaveBeenCalledWith(400)
+  expect(res.status).toHaveBeenCalledWith(401)
 })
 
 test('GET method returns 405', async () => {

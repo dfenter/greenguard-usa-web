@@ -108,10 +108,13 @@ describe('notifyAdmin', () => {
   })
 
   test('skips SMS when ADMIN_SMS_NUMBER is empty', async () => {
-    process.env.TWILIO_AUTH_TOKEN = 'test_twilio_token'
-    process.env.ADMIN_SMS_NUMBER = ''
-    await notifyAdmin(purchase)
-    expect(mockSendSms).not.toHaveBeenCalled()
+    await jest.isolateModulesAsync(async () => {
+      process.env.ADMIN_SMS_NUMBER = ''
+      process.env.TWILIO_AUTH_TOKEN = 'test_twilio_token'
+      const { notifyAdmin: notifyAdminFresh } = require('../lib/purchase-notify')
+      await notifyAdminFresh(purchase)
+      expect(mockSendSms).not.toHaveBeenCalled()
+    })
   })
 
   test('HTML-escapes XSS-risk customer name', async () => {
@@ -158,7 +161,7 @@ describe('sendCustomerReceipt', () => {
   test('email body addresses customer by first name', async () => {
     await sendCustomerReceipt({ invoice, customer, receiptUrl: null })
     const { html } = mockEmailSend.mock.calls[0][0]
-    expect(html).toContain('Hi Alice')
+    expect(html).toContain('Thank you, Alice')
   })
 
   test('tax row shown when tax > 0', async () => {
@@ -236,7 +239,7 @@ describe('sendCheckoutReceipt', () => {
   test('email body addresses customer by first name', async () => {
     await sendCheckoutReceipt({ session, items, receiptUrl: null })
     const { html } = mockEmailSend.mock.calls[0][0]
-    expect(html).toContain('Hi Bob')
+    expect(html).toContain('Thank you, Bob')
   })
 
   test('all line items rendered in receipt', async () => {
