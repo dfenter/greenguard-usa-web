@@ -94,12 +94,13 @@ function PhotoTile({
   )
 }
 
-function Lightbox({ photos, index, onClose, onPrev, onNext, onDelete, onTagsChange, initialPlaying }: {
+function Lightbox({ photos, index, onClose, onPrev, onNext, onRandomNext, onDelete, onTagsChange, initialPlaying }: {
   photos: Photo[]
   index: number
   onClose: () => void
   onPrev: () => void
   onNext: () => void
+  onRandomNext: () => void
   onDelete: (id: string) => void
   onTagsChange: (id: string, people: string[]) => void
   initialPlaying?: boolean
@@ -120,10 +121,10 @@ function Lightbox({ photos, index, onClose, onPrev, onNext, onDelete, onTagsChan
   useEffect(() => {
     if (!playing) return
     const timer = setInterval(() => {
-      if (playRef.current) onNext()
+      if (playRef.current) onRandomNext()
     }, 15000)
     return () => clearInterval(timer)
-  }, [playing, onNext])
+  }, [playing, onRandomNext])
 
   useEffect(() => {
     setImgLoaded(false)
@@ -772,6 +773,7 @@ export default function GalleryPage() {
           onClose={() => { setLightboxIndex(null); setSlideshowStart(false) }}
           onPrev={() => setLightboxIndex(i => Math.max(0, (i ?? 0) - 1))}
           onNext={() => setLightboxIndex(i => Math.min(photos.length - 1, (i ?? 0) + 1))}
+          onRandomNext={() => setLightboxIndex(() => Math.floor(Math.random() * photos.length))}
           onDelete={handleDelete}
           onTagsChange={handleTagsChange}
           initialPlaying={slideshowStart}
