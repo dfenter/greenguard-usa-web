@@ -161,11 +161,16 @@ export default async function handler(req, res) {
   const resend = new Resend(process.env.RESEND_API_KEY)
   const forecastSummary = forecast ? formatForecastLine(forecast) : null
   const weatherFlag = forecast && isBadWeather(forecast) ? ' ⚠️ weather' : ''
-  await resend.emails.send({
-    from: SENDER, to: RECIPIENTS,
-    subject: `Today's route — ${stops.length} stop${stops.length === 1 ? '' : 's'} (${fmtLongDate(date)})${forecastSummary ? ` · ${forecastSummary}` : ''}${weatherFlag}`,
-    html: renderHtml(date, stops, forecast),
-  })
+  try {
+    await resend.emails.send({
+      from: SENDER, to: RECIPIENTS,
+      subject: `Today's route — ${stops.length} stop${stops.length === 1 ? '' : 's'} (${fmtLongDate(date)})${forecastSummary ? ` · ${forecastSummary}` : ''}${weatherFlag}`,
+      html: renderHtml(date, stops, forecast),
+    })
+  } catch (err) {
+    console.error('daily-route send error:', err)
+    return res.status(500).json({ error: 'Failed to send route email' })
+  }
 
   return res.status(200).json({ ok: true, sent: true, stops: stops.length, date, forecast: forecastSummary })
 }

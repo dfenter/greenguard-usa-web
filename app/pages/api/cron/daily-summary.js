@@ -166,17 +166,22 @@ export default async function handler(req, res) {
   if (!process.env.RESEND_API_KEY) return res.status(200).json({ ok: true, sent: false, reason: 'RESEND_API_KEY missing' })
 
   const resend = new Resend(process.env.RESEND_API_KEY)
-  await resend.emails.send({
-    from: SENDER, to: RECIPIENT,
-    subject: `End of day — ${completedVisits} visits · ${fmt$(revenueCents)} · ${tomorrowBookings.length} stop${tomorrowBookings.length === 1 ? '' : 's'} tomorrow`,
-    html: renderHtml({
-      date: today,
-      completedVisits, cancellations,
-      invoices,
-      totals: { revenueCents },
-      tomorrow: { date: tomorrowIso, count: tomorrowBookings.length, tanks: tomorrowTanks },
-    }),
-  })
+  try {
+    await resend.emails.send({
+      from: SENDER, to: RECIPIENT,
+      subject: `End of day — ${completedVisits} visits · ${fmt$(revenueCents)} · ${tomorrowBookings.length} stop${tomorrowBookings.length === 1 ? '' : 's'} tomorrow`,
+      html: renderHtml({
+        date: today,
+        completedVisits, cancellations,
+        invoices,
+        totals: { revenueCents },
+        tomorrow: { date: tomorrowIso, count: tomorrowBookings.length, tanks: tomorrowTanks },
+      }),
+    })
+  } catch (err) {
+    console.error('daily-summary send error:', err)
+    return res.status(500).json({ error: 'Failed to send summary email' })
+  }
 
   return res.status(200).json({ ok: true, sent: true })
 }

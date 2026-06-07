@@ -26,10 +26,14 @@ export default async function handler(req, res) {
 
   const hubspotFields = { name, phone, address, plan_type: planType, system_type: systemType, trap_count: trapCount ? String(trapCount) : undefined, has_timer: hasTimer ? 'true' : 'false' }
 
-  await Promise.all([
-    Object.keys(stripeUpdates).length ? stripe.customers.update(customerId, stripeUpdates) : Promise.resolve(),
-    hubspotContactId ? updateContact(hubspotContactId, hubspotFields) : Promise.resolve(),
-  ])
-
-  res.status(200).json({ ok: true })
+  try {
+    await Promise.all([
+      Object.keys(stripeUpdates).length ? stripe.customers.update(customerId, stripeUpdates) : Promise.resolve(),
+      hubspotContactId ? updateContact(hubspotContactId, hubspotFields) : Promise.resolve(),
+    ])
+    res.status(200).json({ ok: true })
+  } catch (err) {
+    console.error('update-customer error:', err)
+    res.status(502).json({ error: 'Failed to update customer' })
+  }
 }

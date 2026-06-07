@@ -49,16 +49,22 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'customerEmail, upgradeId, currentPathKey required' })
   }
 
-  const upgrade = await findUpgrade(currentPathKey, upgradeId)
-  if (!upgrade) return res.status(404).json({ error: `Unknown upgrade: ${upgradeId}` })
+  let upgrade, customer, contact
+  try {
+    upgrade = await findUpgrade(currentPathKey, upgradeId)
+    if (!upgrade) return res.status(404).json({ error: `Unknown upgrade: ${upgradeId}` })
 
-  // Resolve customer
-  const search = await stripe.customers.search({ query: `email:"${customerEmail}"`, limit: 1 })
-  const customer = search.data[0]
-  if (!customer) return res.status(404).json({ error: `No Stripe customer for ${customerEmail}` })
+    const search = await stripe.customers.search({ query: `email:"${customerEmail}"`, limit: 1 })
+    customer = search.data[0]
+    if (!customer) return res.status(404).json({ error: `No Stripe customer for ${customerEmail}` })
 
-  const contact = await findContactByEmail(customerEmail).catch(() => null)
+    contact = await findContactByEmail(customerEmail).catch(() => null)
+  } catch (err) {
+    console.error('execute-upgrade lookup error:', err)
+    return res.status(500).json({ error: 'Failed to look up customer' })
+  }
 
+  try {
   if (upgrade.kind === 'addon') {
     // Append addon SKU to subscription if active sub exists
     const sub = await getActiveSubscription(customer.id)
@@ -129,4 +135,8 @@ export default async function handler(req, res) {
     subscriptionId: newSub.id,
     replaced: currentSub?.id || null,
   })
+  } catch (err) {
+    console.error('execute-upgrade error:', err)
+    return res.status(500).json({ error: 'Failed to execute upgrade' })
+  }
 }

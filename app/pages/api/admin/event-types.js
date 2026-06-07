@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
+  try {
   const resp = await fetch(`${CALCOM_BASE}/event-types`, {
     headers: {
       Authorization: `Bearer ${CALCOM_API_KEY}`,
@@ -43,4 +44,8 @@ export default async function handler(req, res) {
       length: et.length,
     }))
   )
+  } catch (err) {
+    console.error('event-types error:', err)
+    res.status(500).json({ error: 'Failed to fetch event types' })
+  }
 }

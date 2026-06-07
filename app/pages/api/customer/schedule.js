@@ -6,8 +6,8 @@ export default async function handler(req, res) {
   if (!session) return res.status(401).json({ error: 'Unauthorized' })
 
   const [upcoming, past] = await Promise.all([
-    getUpcomingBookingsForEmail(session.email, 10),
-    getPastBookingsForEmail(session.email, 5),
+    getUpcomingBookingsForEmail(session.email, 10).catch(() => []),
+    getPastBookingsForEmail(session.email, 5).catch(() => []),
   ])
 
   res.status(200).json({ upcoming, past })

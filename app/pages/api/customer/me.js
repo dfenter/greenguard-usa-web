@@ -9,9 +9,9 @@ export default async function handler(req, res) {
   const { email, stripeCustomerId } = session
 
   const [subscriptions, invoices, hubspotContact] = await Promise.all([
-    stripeCustomerId ? getSubscriptions(stripeCustomerId) : [],
-    stripeCustomerId ? getInvoices(stripeCustomerId, 6) : [],
-    findContactByEmail(email),
+    stripeCustomerId ? getSubscriptions(stripeCustomerId).catch(() => []) : [],
+    stripeCustomerId ? getInvoices(stripeCustomerId, 6).catch(() => []) : [],
+    findContactByEmail(email).catch(() => null),
   ])
 
   const contact = hubspotContact?.properties || {}

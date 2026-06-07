@@ -8,6 +8,11 @@ export default async function handler(req, res) {
   if (!session) return
   const { jti } = req.body || {}
   if (!jti || !/^[a-f0-9]{16,}$/.test(jti)) return res.status(400).json({ error: 'jti required' })
-  await revokeJti(jti)
-  return res.status(200).json({ ok: true })
+  try {
+    await revokeJti(jti)
+    return res.status(200).json({ ok: true })
+  } catch (err) {
+    console.error('revoke-quote error:', err)
+    return res.status(500).json({ error: 'Failed to revoke quote' })
+  }
 }

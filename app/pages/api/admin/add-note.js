@@ -13,19 +13,23 @@ export default async function handler(req, res) {
   const text = (body || '').trim()
   if (!text) return res.status(400).json({ error: 'note body required' })
 
-  let contactId = rawId
-  if (!contactId && email) {
-    const c = await findContactByEmail(email).catch(() => null)
-    if (c?.id) contactId = c.id
-    else {
-      // Auto-create a HubSpot contact if missing so the note has somewhere to go.
-      const created = await upsertContact({ email, name: '' })
-      contactId = created.id
+  try {
+    let contactId = rawId
+    if (!contactId && email) {
+      const c = await findContactByEmail(email).catch(() => null)
+      if (c?.id) contactId = c.id
+      else {
+        const created = await upsertContact({ email, name: '' })
+        contactId = created.id
+      }
     }
-  }
-  if (!contactId) return res.status(400).json({ error: 'contactId or email required' })
+    if (!contactId) return res.status(400).json({ error: 'contactId or email required' })
 
-  const prefix = `[ADMIN-NOTE ${session.email} ${new Date().toISOString()}] `
-  await addNote(contactId, prefix + text)
-  return res.status(200).json({ ok: true, contactId })
+    const prefix = `[ADMIN-NOTE ${session.email} ${new Date().toISOString()}] `
+    await addNote(contactId, prefix + text)
+    return res.status(200).json({ ok: true, contactId })
+  } catch (err) {
+    console.error('add-note error:', err)
+    return res.status(500).json({ error: 'Failed to add note' })
+  }
 }

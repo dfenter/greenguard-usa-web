@@ -9,7 +9,12 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'No billing account found' })
   }
 
-  const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`
-  const url = await createBillingPortalSession(session.stripeCustomerId, returnUrl)
-  res.redirect(url)
+  try {
+    const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`
+    const url = await createBillingPortalSession(session.stripeCustomerId, returnUrl)
+    res.redirect(url)
+  } catch (err) {
+    console.error('billing-portal error:', err)
+    res.status(502).json({ error: 'Could not create billing portal session' })
+  }
 }

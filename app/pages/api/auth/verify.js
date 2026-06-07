@@ -18,6 +18,8 @@ export default async function handler(req, res) {
   const { token } = req.query
   if (!token) return res.status(400).json({ error: 'Token required' })
 
+  try {
+
   const payload = await verifyToken(token)
   if (!payload || payload.type !== 'magic') {
     return res.redirect('/login?error=expired')
@@ -52,4 +54,8 @@ export default async function handler(req, res) {
     : '/dashboard'
 
   res.redirect(`/auth-success?next=${encodeURIComponent(dest)}`)
+  } catch (err) {
+    console.error('auth/verify error:', err)
+    return res.redirect('/login?error=server_error')
+  }
 }

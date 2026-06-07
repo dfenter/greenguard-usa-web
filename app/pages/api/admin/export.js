@@ -15,6 +15,7 @@ export default async function handler(req, res) {
 
   const { type } = req.query
 
+  try {
   if (type === 'clients') {
     const raw = await listAllCustomers()
     const rows = raw.map((c) => {
@@ -56,4 +57,8 @@ export default async function handler(req, res) {
   }
 
   res.status(400).json({ error: 'type must be clients or revenue' })
+  } catch (err) {
+    console.error('export error:', err)
+    res.status(500).json({ error: 'Export failed' })
+  }
 }
