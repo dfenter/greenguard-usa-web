@@ -54,6 +54,9 @@ canvas { display:block; }
     <button class="btn" id="bTop">Top</button>
     <button class="btn" id="bDoor">Door</button>
     <button class="btn" id="shell-toggle">Shell: solid</button>
+    <label class="btn" id="color-label" style="cursor:pointer;display:flex;align-items:center;gap:6px;">
+      Color <input type="color" id="color-pick" value="#0f0f12" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;">
+    </label>
   </div>
 </div>
 <div id="info">
@@ -254,7 +257,7 @@ scene.add(new THREE.Mesh(skyGeo, skyMat));
 // Camera
 var camera = new THREE.PerspectiveCamera(22, innerWidth/innerHeight, 0.5, 1000);
 camera.up.set(0, 0, 1);
-camera.position.set(108, -108, 65);
+camera.position.set(140, -140, 85);
 camera.lookAt(0, 0, 28);
 
 var controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -347,7 +350,7 @@ var PRESETS = {
   front: { pos:[0,-148,44],   tgt:[0,0,28] },
   side:  { pos:[148,0,44],    tgt:[0,0,28] },
   back:  { pos:[0,148,44],    tgt:[0,0,28] },
-  '3q':  { pos:[108,-108,65], tgt:[0,0,28] },
+  '3q':  { pos:[140,-140,85], tgt:[0,0,28] },
   top:   { pos:[0,-8,220],    tgt:[0,0,28] },
 };
 function flyTo(k) {
@@ -377,7 +380,14 @@ document.getElementById('bDoor').addEventListener('click', function() {
   window._doorOpen = !window._doorOpen;
   window._doorTarget = window._doorOpen ? -Math.PI / 2 : 0;
   this.classList.toggle('active', window._doorOpen);
+});
 
+// Color picker
+document.getElementById('color-pick').addEventListener('input', function() {
+  var c = new THREE.Color(this.value);
+  shellSolidMat.color.set(c);
+  shellGhostMat.color.set(c);
+  if (window._doorGroup) window._doorGroup.children[0].material.color.set(c);
 });
 
 // Render loop
