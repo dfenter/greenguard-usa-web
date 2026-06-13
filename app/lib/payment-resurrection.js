@@ -15,9 +15,10 @@ const { stripe } = require('./stripe')
 const { findContactByEmail, addNote, updateContact } = require('./hubspot')
 const { sendSms } = require('./sms')
 
-const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
-const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
+const biz = require('./business.config')
+const FROM = process.env.PORTAL_FROM_EMAIL || `noreply@${biz.email.split('@')[1]}`
+const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || biz.email
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || `https://portal.${biz.email.split('@')[1]}`
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c]))
@@ -43,7 +44,7 @@ async function sendT0Email(invoice, customer) {
   const html = `
     <div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1a2e1f;">
       <div style="background:#0d1a10;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
-        <h1 style="color:#7dffaa;font-size:1.1rem;margin:0;">GreenGuard USA</h1>
+        <h1 style="color:#7dffaa;font-size:1.1rem;margin:0;">${biz.name}</h1>
       </div>
       <p style="font-size:1rem;">Hi ${esc(customer.name?.split(' ')[0] || 'there')},</p>
       <p>Quick heads-up — your most recent payment of <strong>${fmt$(invoice.amount_due)}</strong> didn't go through (your card was declined or there were insufficient funds).</p>
@@ -56,10 +57,10 @@ async function sendT0Email(invoice, customer) {
     </div>`
   const resend = new Resend(process.env.RESEND_API_KEY)
   await resend.emails.send({
-    from: `GreenGuard USA <${FROM}>`,
+    from: `${biz.name} <${FROM}>`,
     to: customer.email,
     reply_to: ADMIN_EMAIL,
-    subject: `Quick fix — your GreenGuard payment didn't go through`,
+    subject: `Quick fix — your ${biz.nameShort} payment didn't go through`,
     html,
   })
   return { sent: true, to: customer.email }
@@ -84,10 +85,10 @@ async function sendT48hReminder(invoice, customer) {
       </div>`
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
-      from: `GreenGuard USA <${FROM}>`,
+      from: `${biz.name} <${FROM}>`,
       to: customer.email,
       reply_to: ADMIN_EMAIL,
-      subject: `Reminder — GreenGuard payment of ${fmt$(invoice.amount_due)} still pending`,
+      subject: `Reminder — ${biz.nameShort} payment of ${fmt$(invoice.amount_due)} still pending`,
       html,
     })
     emailOk = true
@@ -98,7 +99,7 @@ async function sendT48hReminder(invoice, customer) {
   if (phone && process.env.TWILIO_AUTH_TOKEN) {
     const r = await sendSms({
       to: phone,
-      body: `GreenGuard: a ${fmt$(invoice.amount_due)} payment didn't go through. Pay or update card here: ${invoice.hosted_invoice_url}`,
+      body: `${biz.nameShort}: a ${fmt$(invoice.amount_due)} payment didn't go through. Pay or update card here: ${invoice.hosted_invoice_url}`,
     })
     smsOk = r.ok
   }
@@ -132,7 +133,7 @@ async function sendT7dAdminAlert(invoice, customer) {
       </div>`
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
-      from: `GreenGuard Alerts <${FROM}>`,
+      from: `${biz.nameShort} Alerts <${FROM}>`,
       to: ADMIN_EMAIL,
       subject: `⚠️ Manual follow-up: ${customer.name || customer.email} unpaid 7d (${fmt$(invoice.amount_due)})`,
       html,

@@ -1,0 +1,49 @@
+{
+  "eventTypes": [
+    {
+      "title": "Weekly Pool Service",
+      "slug": "weekly-service",
+      "skus": ["WEEKLY-SVC"],
+      "visitType": "service",
+      "systemType": null,
+      "durationMin": 45,
+      "price": 120.00
+    },
+    {
+      "title": "Bi-Weekly Pool Service",
+      "slug": "biweekly-service",
+      "skus": ["BIWEEKLY-SVC"],
+      "visitType": "service",
+      "systemType": null,
+      "durationMin": 45,
+      "price": 80.00
+    },
+    {
+      "title": "Algae Treatment",
+      "slug": "algae-treatment",
+      "skus": ["ALGAE-TREAT"],
+      "visitType": "treatment",
+      "systemType": null,
+      "durationMin": 60,
+      "price": 80.00
+    },
+    {
+      "title": "Filter Service",
+      "slug": "filter-service",
+      "skus": ["FILTER-SVC"],
+      "visitType": "service",
+      "systemType": null,
+      "durationMin": 30,
+      "price": 45.00
+    },
+    {
+      "title": "Free Water Analysis",
+      "slug": "free-water-analysis",
+      "skus": [],
+      "visitType": "assessment",
+      "systemType": null,
+      "durationMin": 30,
+      "price": 0
+    }
+  ]
+}

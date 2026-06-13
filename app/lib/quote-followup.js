@@ -14,9 +14,10 @@
 
 const { Resend } = require('resend')
 const { stripe } = require('./stripe')
+const biz = require('./business.config')
 
-const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
-const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const FROM = process.env.PORTAL_FROM_EMAIL || `noreply@${biz.email.split('@')[1]}`
+const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || biz.email
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c]))
@@ -35,7 +36,7 @@ async function sendT48Email({ to, customerName, quoteUrl, amountDue }) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 100%);border:1px solid rgba(122,171,130,0.2);border-radius:12px;margin-bottom:12px">
     <tr>
       <td style="padding:26px 28px 18px">
-        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">GreenGuard USA &nbsp;&middot;&nbsp; Your Quote</div>
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">${biz.name} &nbsp;&middot;&nbsp; Your Quote</div>
         <div style="color:#ffffff;font-size:24px;font-weight:900;letter-spacing:-0.02em;line-height:1.2">Hi ${esc(first)}, still thinking it over?</div>
         <div style="color:rgba(212,230,202,0.55);font-size:14px;margin-top:6px">Just circling back on your mosquito control quote.</div>
       </td>
@@ -75,16 +76,16 @@ async function sendT48Email({ to, customerName, quoteUrl, amountDue }) {
     </tr>
   </table>
 
-  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; Austin TX &nbsp;&middot;&nbsp; 512-560-4129</div>
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">${biz.name} &nbsp;&middot;&nbsp; ${biz.city} &nbsp;&middot;&nbsp; ${biz.phone}</div>
 </div>
 </body>
 </html>`
   const resend = new Resend(process.env.RESEND_API_KEY)
   await resend.emails.send({
-    from: `GreenGuard USA <${FROM}>`,
+    from: `${biz.name} <${FROM}>`,
     to,
     reply_to: ADMIN_EMAIL,
-    subject: `Following up on your GreenGuard quote`,
+    subject: `Following up on your ${biz.nameShort} quote`,
     html,
   })
   return { sent: true }
@@ -102,7 +103,7 @@ async function sendT7dAdminAlert({ customerName, customerEmail, quoteUrl, amount
   <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 100%);border:1px solid rgba(122,171,130,0.2);border-radius:12px;margin-bottom:12px">
     <tr>
       <td style="padding:24px 28px 18px">
-        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">GreenGuard USA &nbsp;&middot;&nbsp; Cold Quote Alert</div>
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">${biz.name} &nbsp;&middot;&nbsp; Cold Quote Alert</div>
         <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:-0.02em">Time for a personal touch.</div>
         <div style="color:rgba(212,230,202,0.55);font-size:14px;margin-top:6px">7 days out. Auto-follow-up didn't convert.</div>
       </td>
@@ -138,13 +139,13 @@ async function sendT7dAdminAlert({ customerName, customerEmail, quoteUrl, amount
     </tr>
   </table>
 
-  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; Internal Alert</div>
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">${biz.name} &nbsp;&middot;&nbsp; Internal Alert</div>
 </div>
 </body>
 </html>`
   const resend = new Resend(process.env.RESEND_API_KEY)
   await resend.emails.send({
-    from: `GreenGuard Alerts <${FROM}>`,
+    from: `${biz.nameShort} Alerts <${FROM}>`,
     to: ADMIN_EMAIL,
     subject: `Cold quote: ${customerName || customerEmail} ($${parseFloat(amountDue || 0).toFixed(2)})`,
     html,

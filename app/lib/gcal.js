@@ -8,9 +8,10 @@
  */
 const { google } = require('googleapis')
 const { cached } = require('./cache')
+const biz = require('./business.config')
 
-const CALENDAR_ID = 'admin@greenguard-usa.com'
-const BOOKING_TAG = 'GreenGuard USA'
+const CALENDAR_ID = process.env.CALENDAR_ID || biz.email
+const BOOKING_TAG = biz.bookingTag
 
 function getAuth() {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN } = process.env
@@ -35,13 +36,13 @@ function parseEmailFromDescription(description) {
   // Cal.com format: emails appear under "Who:" section, one per line
   // Match any email that's NOT admin@greenguard-usa.com
   const allEmails = description.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g) || []
-  const customerEmail = allEmails.find(e => e.toLowerCase() !== 'admin@greenguard-usa.com')
+  const customerEmail = allEmails.find(e => e.toLowerCase() !== CALENDAR_ID.toLowerCase())
   return customerEmail ? customerEmail.toLowerCase() : null
 }
 
 function parseEmailFromAttendees(attendees) {
   if (!Array.isArray(attendees)) return null
-  const customer = attendees.find(a => a.email && a.email.toLowerCase() !== 'admin@greenguard-usa.com' && !a.organizer)
+  const customer = attendees.find(a => a.email && a.email.toLowerCase() !== CALENDAR_ID.toLowerCase() && !a.organizer)
   return customer ? customer.email.toLowerCase() : null
 }
 
@@ -97,22 +98,24 @@ function parseRescheduleUrl(description) {
 
 function parseServiceTitle(summary) {
   if (!summary) return ''
-  // Cal.com format: "ServiceType between GreenGuard USA and CustomerName"
-  const calMatch = summary.match(/^(.+?)\s+between\s+GreenGuard USA\s+and\s+.+$/i)
+  // Cal.com format: "ServiceType between {bookingTag} and CustomerName"
+  const tagEsc = BOOKING_TAG.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const calMatch = summary.match(new RegExp(`^(.+?)\\s+between\\s+${tagEsc}\\s+and\\s+.+$`, 'i'))
   if (calMatch) return calMatch[1].replace(/\s*\(hidden\)\s*/gi, '').trim()
-  // Legacy event title format: "CustomerName: ServiceType (GreenGuard USA)"
+  // Legacy event title format: "CustomerName: ServiceType ({bookingTag})"
   return summary
     .replace(/^[^:]+:\s*/, '')
-    .replace(/\s*\(GreenGuard USA\)\s*$/, '')
+    .replace(new RegExp(`\\s*\\(${tagEsc}\\)\\s*$`), '')
     .replace(/\s*\(hidden\)\s*/gi, '')
     .trim()
 }
 
 function parseCustomerName(summary) {
   if (!summary) return ''
-  // Cal.com format: "ServiceType between GreenGuard USA and CustomerName"
-  const calMatch = summary.match(/\band\s+(.+?)(?:\s*\(GreenGuard USA\))?\s*$/i)
-  if (calMatch && summary.toLowerCase().includes('between greenguard usa')) {
+  // Cal.com format: "ServiceType between {bookingTag} and CustomerName"
+  const tagEscN = BOOKING_TAG.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const calMatch = summary.match(new RegExp(`\\band\\s+(.+?)(?:\\s*\\(${tagEscN}\\))?\\s*$`, 'i'))
+  if (calMatch && summary.toLowerCase().includes(`between ${BOOKING_TAG.toLowerCase()}`)) {
     return calMatch[1].trim()
   }
   // Legacy event title format: "CustomerName: ServiceType"
@@ -247,7 +250,7 @@ function _tzDayBounds(dateStr, tz) {
 async function getBookingsForDate(dateStr) {
   // 30s cache — /admin/rounds reloads hit the same day repeatedly while the
   // tech works through stops. Matches getBookingsForDateRange's TTL.
-  return cached(`gcal:bookings:date:${dateStr}`, 30, async () => {
+  return cached(`gcal:bookings:date:${dateStr}`, 120, async () => {
     const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
     const calendar = getCalendar()
     const { start: startOfDay, end: endOfDay } = _tzDayBounds(dateStr, tz)
@@ -292,7 +295,7 @@ async function getTodaysBookings() {
   const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: tz })
   // 30s cache keyed on today's CT date — home + rounds + tech all call this.
-  return cached(`gcal:bookings:today:${todayStr}`, 30, async () => {
+  return cached(`gcal:bookings:today:${todayStr}`, 120, async () => {
     const calendar = getCalendar()
     const { start: startOfDay, end: endOfDay } = _tzDayBounds(todayStr, tz)
 
@@ -327,7 +330,11 @@ async function getTodaysBookings() {
   })
 }
 
-async function getAllUpcomingBookings(maxResults = 20) {
+async function getAllUpcomingBookings(maxResults = 250) {
+  return cached(`gcal:upcoming:${maxResults}`, 120, () => _fetchAllUpcomingBookings(maxResults))
+}
+
+async function _fetchAllUpcomingBookings(maxResults) {
   const calendar = getCalendar()
 
   const res = await calendar.events.list({
@@ -364,7 +371,7 @@ async function getBookingsForDateRange(startISO, endISO) {
   // Cache 30s. Bookings change rarely vs. how often /admin/home and tank-data
   // re-fetch the same 60-day window. Key by exact range so different callers
   // share the cache when they request the same window.
-  return cached(`gcal:bookings:${startISO}:${endISO}`, 30, async () => {
+  return cached(`gcal:bookings:${startISO}:${endISO}`, 120, async () => {
     const calendar = getCalendar()
     const res = await calendar.events.list({
       calendarId: CALENDAR_ID,

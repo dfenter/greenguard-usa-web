@@ -1,0 +1,58 @@
+{
+  "eventTypes": [
+    {
+      "title": "Weekly Lawn Mowing",
+      "slug": "weekly-mowing",
+      "skus": ["WEEKLY-MOW"],
+      "visitType": "service",
+      "systemType": null,
+      "durationMin": 45,
+      "price": 65.00
+    },
+    {
+      "title": "Bi-Weekly Lawn Mowing",
+      "slug": "biweekly-mowing",
+      "skus": ["BIWEEKLY-MOW"],
+      "visitType": "service",
+      "systemType": null,
+      "durationMin": 45,
+      "price": 55.00
+    },
+    {
+      "title": "Fertilization Treatment",
+      "slug": "fertilization",
+      "skus": ["FERTILIZE"],
+      "visitType": "treatment",
+      "systemType": null,
+      "durationMin": 30,
+      "price": 85.00
+    },
+    {
+      "title": "Weed Control Treatment",
+      "slug": "weed-control",
+      "skus": ["WEED-CTRL"],
+      "visitType": "treatment",
+      "systemType": null,
+      "durationMin": 30,
+      "price": 65.00
+    },
+    {
+      "title": "Core Aeration",
+      "slug": "core-aeration",
+      "skus": ["AERATION"],
+      "visitType": "treatment",
+      "systemType": null,
+      "durationMin": 60,
+      "price": 120.00
+    },
+    {
+      "title": "Free Lawn Assessment",
+      "slug": "lawn-assessment",
+      "skus": [],
+      "visitType": "assessment",
+      "systemType": null,
+      "durationMin": 30,
+      "price": 0
+    }
+  ]
+}

@@ -1,7 +1,9 @@
 const { Resend } = require('resend')
+const nodemailer = require('nodemailer')
+const biz = require('./business.config')
 
-const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
+const FROM = process.env.PORTAL_FROM_EMAIL || `noreply@${biz.email.split('@')[1]}`
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || `https://portal.${biz.email.split('@')[1]}`
 
 function escapeHtml(str) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }
@@ -13,33 +15,124 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
 }
 
+// Falls back to Gmail OAuth2 when Resend quota is exhausted
+function getGmailTransport() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      type: 'OAuth2',
+      user: 'admin@greenguard-usa.com',
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+    },
+  })
+}
+
+async function sendEmail({ to, subject, html, bcc }) {
+  // Try Resend first; fall back to Gmail if quota exceeded
+  if (process.env.RESEND_API_KEY) {
+    const r = await getResend().emails.send({
+      from: `${biz.name} <${FROM}>`,
+      to,
+      subject,
+      html,
+      ...(bcc ? { bcc } : {}),
+    })
+    if (!r.error) return r
+    const isQuota = r.error.message?.toLowerCase().includes('quota') ||
+                    r.error.message?.toLowerCase().includes('limit') ||
+                    r.error.statusCode === 429
+    if (!isQuota) throw new Error(r.error.message)
+    console.warn('Resend quota hit, falling back to Gmail')
+  }
+  return getGmailTransport().sendMail({
+    from: `${biz.name} <admin@greenguard-usa.com>`,
+    to,
+    subject,
+    html,
+    ...(bcc ? { bcc: Array.isArray(bcc) ? bcc.join(',') : bcc } : {}),
+  })
+}
+
+// Bulletproof light-mode email shell. Pass inner <td> content as body string.
+function emailShell(body) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#f0f4f1;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f0f4f1">
+<tr><td align="center" style="padding:32px 16px;">
+  <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;">
+    <tr>
+      <td align="center" bgcolor="#1a3320" style="border-radius:10px 10px 0 0;padding:24px 32px;">
+        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;letter-spacing:-0.5px;">GreenGuard USA</p>
+        <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Austin, TX</p>
+      </td>
+    </tr>
+    <tr>
+      <td bgcolor="#ffffff" style="padding:32px 32px 28px;border-left:1px solid #dde8de;border-right:1px solid #dde8de;">
+        ${body}
+      </td>
+    </tr>
+    <tr>
+      <td align="center" bgcolor="#dde8de" style="border-radius:0 0 10px 10px;padding:18px 32px;border:1px solid #dde8de;border-top:0;">
+        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">GreenGuard USA</p>
+        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">Austin, TX &nbsp;&#183;&nbsp; 512-560-4129 &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`
+}
+
+// Bulletproof gold button
+function goldButton(href, label) {
+  return `
+  <table cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td align="center" bgcolor="#c9a84c" style="border-radius:6px;">
+        <a href="${href}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:800;color:#111800;text-decoration:none;font-family:Arial,sans-serif;">${label}</a>
+      </td>
+    </tr>
+  </table>`
+}
+
+// Outlined secondary button
+function outlineButton(href, label) {
+  return `
+  <table cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td align="center" bgcolor="#ffffff" style="border-radius:6px;border:2px solid #2d6a3f;">
+        <a href="${href}" style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:700;color:#2d6a3f;text-decoration:none;font-family:Arial,sans-serif;">${label}</a>
+      </td>
+    </tr>
+  </table>`
+}
+
 /**
- * Send a magic login link to the given email.
+ * Magic login link — sent to every customer who signs in.
  */
 async function sendMagicLink(email, token) {
   const link = `${APP_URL}/auth/verify?token=${encodeURIComponent(token)}`
   try {
-  return await getResend().emails.send({
-    from: `GreenGuard USA <${FROM}>`,
-    to: email,
-    subject: 'Your GreenGuard login link',
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#1a2e1f;border-radius:12px;color:#d4e6ca;">
-        <h2 style="color:#7dffaa;font-size:1.4rem;margin:0 0 16px;">Sign in to GreenGuard</h2>
-        <p style="margin:0 0 24px;line-height:1.6;color:rgba(212,230,202,0.8);">
-          Click the button below to sign in. This link expires in 15 minutes.
+    return await sendEmail({
+      to: email,
+      subject: `Your ${biz.nameShort} login link`,
+      html: emailShell(`
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#2d6a3f;text-transform:uppercase;letter-spacing:2px;font-family:Arial,sans-serif;">Sign In</p>
+        <h1 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#111f14;font-family:Arial,sans-serif;">Your login link is ready.</h1>
+        <p style="margin:0 0 28px;font-size:15px;color:#3d4f41;line-height:1.7;font-family:Arial,sans-serif;">
+          Click the button below to sign in to your GreenGuard account. This link expires in 15 minutes.
         </p>
-        <a href="${link}"
-           style="display:inline-block;background:#c9a84c;color:#0d1a10;font-weight:700;
-                  font-size:0.95rem;padding:14px 28px;border-radius:4px;text-decoration:none;">
-          Sign In to My Account
-        </a>
-        <p style="margin:24px 0 0;font-size:0.82rem;color:rgba(212,230,202,0.45);">
+        ${goldButton(link, 'Sign In to My Account')}
+        <p style="margin:24px 0 0;font-size:12px;color:#9aab9c;font-family:Arial,sans-serif;line-height:1.6;">
           If you didn't request this link, you can safely ignore this email.
         </p>
-      </div>
-    `,
-  })
+      `),
+    })
   } catch (e) {
     console.error('sendMagicLink failed:', e.message)
     return { ok: false, error: e.message }
@@ -48,55 +141,62 @@ async function sendMagicLink(email, token) {
 
 /**
  * Post-purchase welcome email for new quote customers.
- * Includes a magic login link so they can access their account immediately.
  */
 async function sendWelcomeEmail({ email, customerName, magicLink, calLink }) {
   try {
-  const name = customerName ? customerName.split(' ')[0] : 'there'
-  const bookingUrl = calLink || 'https://cal.com/greenguard-usa/property-assessment'
+    const name = customerName ? customerName.split(' ')[0] : 'there'
+    const bookingUrl = calLink || `https://cal.com/${biz.calSlug}/${biz.assessmentSlug}`
 
-  return getResend().emails.send({
-    from: `GreenGuard USA <${FROM}>`,
-    to: email,
-    subject: "Welcome to GreenGuard — here's what's next",
-    html: `
-      <div style="font-family:-apple-system,Nunito Sans,sans-serif;max-width:560px;margin:0 auto;background:#0d1a10;color:#d4e6ca;border-radius:12px;overflow:hidden;">
-        <div style="background:linear-gradient(135deg,#1a2e1f,#243627);padding:32px 28px 20px;">
-          <div style="font-weight:900;font-size:1.2rem;letter-spacing:-0.02em;margin-bottom:4px;">Green<span style="color:#7dffaa;">Guard</span> USA</div>
-          <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(212,230,202,0.4);">Welcome to the family</div>
-        </div>
-        <div style="padding:28px;">
-          <h1 style="color:#7dffaa;font-size:1.3rem;font-weight:900;margin:0 0 16px;">Hey ${escapeHtml(name)}, payment confirmed!</h1>
-          <p style="color:rgba(212,230,202,0.75);line-height:1.7;margin:0 0 24px;">Your GreenGuard service is set up. Here's exactly what happens next.</p>
+    return sendEmail({
+      to: email,
+      subject: `Welcome to ${biz.nameShort} — here's what's next`,
+      html: emailShell(`
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#2d6a3f;text-transform:uppercase;letter-spacing:2px;font-family:Arial,sans-serif;">Payment Confirmed</p>
+        <h1 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#111f14;font-family:Arial,sans-serif;">Hey ${escapeHtml(name)}, you're all set.</h1>
+        <p style="margin:0 0 24px;font-size:15px;color:#3d4f41;line-height:1.7;font-family:Arial,sans-serif;">Your GreenGuard service is confirmed. Here's exactly what happens next.</p>
 
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(122,171,130,0.15);border-radius:10px;padding:18px 20px;margin-bottom:16px;">
-            <div style="font-weight:800;color:#c9a84c;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Step 1 — Book your installation</div>
-            <p style="color:rgba(212,230,202,0.7);font-size:0.88rem;line-height:1.6;margin:0 0 14px;">Pick a time and we'll come out to install your trap(s), set up CO₂, and walk you through everything. Takes about an hour.</p>
-            <a href="${bookingUrl}" style="display:inline-block;background:#c9a84c;color:#0d1a10;font-weight:800;font-size:0.88rem;padding:11px 24px;border-radius:7px;text-decoration:none;">Book Installation Time →</a>
-          </div>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
+          <tr>
+            <td bgcolor="#f4f8f5" style="border-radius:8px;padding:18px 20px;border-left:3px solid #c9a84c;">
+              <p style="margin:0 0 6px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-family:Arial,sans-serif;">Step 1</p>
+              <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#111f14;font-family:Arial,sans-serif;">Book your installation</p>
+              <p style="margin:0 0 14px;font-size:13px;color:#3d4f41;line-height:1.6;font-family:Arial,sans-serif;">Pick a time and we'll come out to install your trap(s), set up CO&#8322;, and walk you through everything. Takes about an hour.</p>
+              ${goldButton(bookingUrl, 'Book Installation Time &rarr;')}
+            </td>
+          </tr>
+        </table>
 
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(122,171,130,0.15);border-radius:10px;padding:18px 20px;margin-bottom:16px;">
-            <div style="font-weight:800;color:#c9a84c;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Step 2 — Sign in to your account</div>
-            <p style="color:rgba(212,230,202,0.7);font-size:0.88rem;line-height:1.6;margin:0 0 14px;">View your service history, upcoming visits, and equipment details. Your account is ready — click below to sign in (no password needed).</p>
-            <a href="${magicLink}" style="display:inline-block;background:#1a2e1f;border:1px solid rgba(125,255,170,0.3);color:#7dffaa;font-weight:800;font-size:0.88rem;padding:11px 24px;border-radius:7px;text-decoration:none;">Sign In to My Account →</a>
-            <div style="margin-top:8px;font-size:0.75rem;color:rgba(212,230,202,0.3);">Link expires in 15 minutes. Request a new one anytime at portal.greenguard-usa.com</div>
-          </div>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
+          <tr>
+            <td bgcolor="#f4f8f5" style="border-radius:8px;padding:18px 20px;border-left:3px solid #2d6a3f;">
+              <p style="margin:0 0 6px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#2d6a3f;font-family:Arial,sans-serif;">Step 2</p>
+              <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#111f14;font-family:Arial,sans-serif;">Sign in to your account</p>
+              <p style="margin:0 0 14px;font-size:13px;color:#3d4f41;line-height:1.6;font-family:Arial,sans-serif;">View service history, upcoming visits, and equipment details. No password needed.</p>
+              ${outlineButton(magicLink, 'Sign In to My Account &rarr;')}
+              <p style="margin:8px 0 0;font-size:11px;color:#9aab9c;font-family:Arial,sans-serif;">Link expires in 15 minutes. Request a new one anytime at ${APP_URL.replace(/^https?:\/\//, '')}</p>
+            </td>
+          </tr>
+        </table>
 
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(122,171,130,0.15);border-radius:10px;padding:18px 20px;margin-bottom:24px;">
-            <div style="font-weight:800;color:#c9a84c;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Step 3 — Results in 6–8 weeks</div>
-            <p style="color:rgba(212,230,202,0.7);font-size:0.88rem;line-height:1.6;margin:0;">Most customers notice a significant reduction in bites within 2–4 weeks. Maximum effectiveness at 6–8 weeks as the local population drops. The trap runs 24/7 — you don't have to do anything.</p>
-          </div>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+          <tr>
+            <td bgcolor="#f4f8f5" style="border-radius:8px;padding:18px 20px;border-left:3px solid #7dbc8a;">
+              <p style="margin:0 0 6px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7dbc8a;font-family:Arial,sans-serif;">Step 3</p>
+              <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#111f14;font-family:Arial,sans-serif;">Results in 6&ndash;8 weeks</p>
+              <p style="margin:0;font-size:13px;color:#3d4f41;line-height:1.6;font-family:Arial,sans-serif;">Most customers notice fewer bites within 2&ndash;4 weeks. Maximum effectiveness at 6&ndash;8 weeks as the local population drops. The trap runs 24/7.</p>
+            </td>
+          </tr>
+        </table>
 
-          <p style="color:rgba(212,230,202,0.45);font-size:0.82rem;line-height:1.6;margin:0 0 8px;">Questions? Reply to this email or call/text <a href="tel:+15125604129" style="color:rgba(212,230,202,0.6);">512-560-4129</a>.</p>
-          <p style="color:rgba(212,230,202,0.25);font-size:0.75rem;margin:0;">© 2026 GreenGuard USA · Austin, TX</p>
-        </div>
-      </div>
-    `,
-  })
+        <p style="margin:0;font-size:13px;color:#9aab9c;font-family:Arial,sans-serif;line-height:1.6;">
+          Questions? Reply to this email or call/text <a href="tel:${biz.phoneTel}" style="color:#2d6a3f;font-weight:700;">${biz.phone}</a>.
+        </p>
+      `),
+    })
   } catch (e) {
     console.error('sendWelcomeEmail failed:', e.message)
     return { ok: false, error: e.message }
   }
 }
 
-module.exports = { sendMagicLink, sendWelcomeEmail, escapeHtml }
+module.exports = { sendMagicLink, sendWelcomeEmail, sendEmail, escapeHtml, emailShell, goldButton, outlineButton }

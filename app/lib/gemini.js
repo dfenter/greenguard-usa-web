@@ -1,4 +1,5 @@
 // Google Gemini 2.0 Flash — AI text generation
+const biz = require('./business.config')
 const MODEL = 'gemini-2.0-flash-lite'
 const BASE = 'https://generativelanguage.googleapis.com/v1beta'
 
@@ -33,17 +34,17 @@ Customer: ${customerName || 'Customer'}
 Property: ${address || 'Austin, TX'}
 Services completed today: ${svcList || 'routine service'}
 Tech notes: ${notes || 'none'}
-Tech name: ${techName || 'your GreenGuard technician'}
+Tech name: ${techName || biz.gemini.techLabel}
 
 Requirements:
 - 3-4 short paragraphs, warm and professional
 - Mention what was done specifically
 - Remind them their protection is active
 - Invite them to reply with any questions
-- Sign off from GreenGuard USA
+- Sign off from ${biz.gemini.signOff}
 - Do NOT mention free trial or contracts
 - Do NOT use the word "chemical" — use "pesticide" instead`,
-    'You are a friendly customer service writer for GreenGuard USA, an Austin-based pesticide-free CO₂ mosquito trap service.'
+    `You are a friendly customer service writer for ${biz.gemini.companyDescription}.`
   )
 }
 
@@ -67,9 +68,9 @@ Return ONLY valid JSON, no other text.`,
 // Generate a draft Google Business Profile post
 async function draftBusinessPost(topic) {
   return generate(
-    `Write a short Google Business Profile post for GreenGuard USA, an Austin-based pesticide-free CO₂ mosquito trap company.
+    `Write a short Google Business Profile post for ${biz.gemini.companyDescription}.
 Topic: ${topic}
-Requirements: 2-3 sentences max, local Austin focus, include a call to action, no hashtags, professional but friendly.`,
+Requirements: 2-3 sentences max, local ${biz.city} focus, include a call to action, no hashtags, professional but friendly.`,
   )
 }
 

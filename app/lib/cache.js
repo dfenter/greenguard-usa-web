@@ -1,67 +1,89 @@
-// Thin, fail-open Redis cache. Works with either:
-//   · Vercel KV integration       → KV_REST_API_URL / KV_REST_API_TOKEN
-//   · Direct Upstash provisioning → UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
-// If neither set, every call passes through to the source function — no
-// errors, no behavior change, just no caching.
+// Two-tier cache: in-process memory (always on) + Redis (when configured).
+//
+// Tier 1 — in-memory Map. Works in every environment with zero config.
+//   Entries expire lazily on next read. Survives within a single Vercel
+//   function instance (typically minutes to hours of warm reuse).
+//
+// Tier 2 — Redis via Upstash REST. Cross-instance sharing. Requires either:
+//   · Vercel KV  → KV_REST_API_URL / KV_REST_API_TOKEN
+//   · Upstash    → UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
 //
 // Usage:
-//   const customers = await cached('stripe:customers:all', 60, () => listAllCustomers())
+//   const customers = await cached('stripe:customers:all', 300, () => listAllCustomers())
 //
 // Conventions:
 //  · Keys are colon-namespaced: `<system>:<entity>:<scope>`
-//  · TTLs are in seconds. Pick the shortest TTL that still feels fast — for
-//    Stripe customer/sub lists, 60s is plenty (changes are admin-triggered).
-//  · Values are JSON-serialized; complex Stripe responses are fine.
+//  · TTLs are in seconds.
 
 const { Redis } = require('@upstash/redis')
 
-let client = null
-function getClient() {
-  if (client !== null) return client
+// ── Tier 1: in-memory ────────────────────────────────────────────────────────
+const memCache = new Map() // key → { value, expiresAt }
+
+function memGet(key) {
+  const entry = memCache.get(key)
+  if (!entry) return undefined
+  if (Date.now() > entry.expiresAt) { memCache.delete(key); return undefined }
+  return entry.value
+}
+
+function memSet(key, value, ttlSeconds) {
+  memCache.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 })
+}
+
+function memDel(key) {
+  memCache.delete(key)
+}
+
+// ── Tier 2: Redis ─────────────────────────────────────────────────────────────
+let redisClient = null
+function getRedis() {
+  if (redisClient !== null) return redisClient
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) {
-    client = false
-    return null
-  }
+  if (!url || !token) { redisClient = false; return null }
   try {
-    client = new Redis({ url, token })
-    return client
+    redisClient = new Redis({ url, token })
+    return redisClient
   } catch {
-    client = false
+    redisClient = false
     return null
   }
 }
 
+// ── Public API ────────────────────────────────────────────────────────────────
 async function cached(key, ttlSeconds, fetchFn) {
-  const c = getClient()
-  if (!c) return fetchFn()
+  // Tier 1 hit
+  const memHit = memGet(key)
+  if (memHit !== undefined) return memHit
 
-  try {
-    const hit = await c.get(key)
-    if (hit !== null && hit !== undefined) {
-      // @upstash/redis auto-deserializes JSON on the way out.
-      return hit
-    }
-  } catch {
-    // Cache read failed — fall through to source.
+  // Tier 2 hit
+  const redis = getRedis()
+  if (redis) {
+    try {
+      const hit = await redis.get(key)
+      if (hit !== null && hit !== undefined) {
+        memSet(key, hit, ttlSeconds)
+        return hit
+      }
+    } catch {}
   }
 
+  // Cache miss — fetch fresh
   const fresh = await fetchFn()
 
-  try {
-    await c.set(key, fresh, { ex: ttlSeconds })
-  } catch {
-    // Cache write failed — non-fatal, return the fresh value anyway.
+  memSet(key, fresh, ttlSeconds)
+  if (redis) {
+    try { await redis.set(key, fresh, { ex: ttlSeconds }) } catch {}
   }
 
   return fresh
 }
 
 async function invalidate(key) {
-  const c = getClient()
-  if (!c) return
-  try { await c.del(key) } catch {}
+  memDel(key)
+  const redis = getRedis()
+  if (redis) { try { await redis.del(key) } catch {} }
 }
 
 module.exports = { cached, invalidate }

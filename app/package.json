@@ -37,6 +37,7 @@
     "eslint-config-next": "^15.5.18",
     "jest": "^30.4.2",
     "jest-environment-node": "^30.4.1",
+    "nodemailer": "^8.0.10",
     "sharp": "^0.34.5"
   }
 }

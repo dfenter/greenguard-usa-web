@@ -119,7 +119,7 @@ const { cached, invalidate } = require('./cache')
 // Cached for 60s. Active subs only change when admin creates/cancels — page
 // loads should not pay a full Stripe round-trip for read-heavy widgets.
 async function listAllActiveSubscriptions() {
-  return cached('stripe:subs:active', 60, async () => {
+  return cached('stripe:subs:active', 300, async () => {
     const subs = await stripe.subscriptions.list({
       status: 'active',
       limit: 100,
@@ -134,13 +134,17 @@ async function listAllActiveSubscriptions() {
  * Expands customer_details for email display.
  */
 async function listAllInvoicesSince(fromTimestamp) {
-  const invoices = await stripe.invoices.list({
-    status: 'paid',
-    limit: 100,
-    created: { gte: fromTimestamp },
-    expand: ['data.customer_details'],
+  // Round to nearest 5-minute bucket so repeat analytics loads share the cache
+  const bucket = Math.floor(fromTimestamp / 300) * 300
+  return cached(`stripe:invoices:since:${bucket}`, 300, async () => {
+    const invoices = await stripe.invoices.list({
+      status: 'paid',
+      limit: 100,
+      created: { gte: fromTimestamp },
+      expand: ['data.customer_details'],
+    })
+    return invoices.data
   })
-  return invoices.data
 }
 
 /**
@@ -149,7 +153,7 @@ async function listAllInvoicesSince(fromTimestamp) {
 async function listOpenInvoices() {
   // 30s cache — the home dashboard + analytics both read this; the open-
   // invoice set rarely changes within a 30s window.
-  return cached('stripe:invoices:open', 30, async () => {
+  return cached('stripe:invoices:open', 120, async () => {
     const invoices = await stripe.invoices.list({ status: 'open', limit: 50 })
     return invoices.data
   })
@@ -253,7 +257,7 @@ async function getCustomer(customerId) {
 async function getBalance() {
   // 60s cache — the Stripe balance widget on the home dashboard doesn't
   // need to be real-time to the second.
-  return cached('stripe:balance', 60, async () => {
+  return cached('stripe:balance', 300, async () => {
     const balance = await stripe.balance.retrieve()
     const available = balance.available.reduce((s, b) => s + b.amount, 0)
     const pending = balance.pending.reduce((s, b) => s + b.amount, 0)
@@ -263,7 +267,7 @@ async function getBalance() {
 
 // Cached for 60s. Pages all customers (~5+ Stripe calls at scale).
 async function listAllCustomers() {
-  return cached('stripe:customers:all', 60, async () => {
+  return cached('stripe:customers:all', 300, async () => {
     const all = []
     let cursor = undefined
     do {

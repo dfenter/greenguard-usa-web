@@ -73,6 +73,7 @@ const CONTACT_PROPERTIES = [
   'billing_contact_name', 'mq_installed', 'mq_installed_at',
   'recurring_addons',
   'gate_code', 'access_notes', 'pets_on_property', 'special_instructions',
+  'gclid', 'ga_client_id',
 ]
 
 async function findContactByEmail(email) {
@@ -110,7 +111,7 @@ async function findContactsByEmails(emails) {
   // 60s cache — contact name/phone/tank_count rarely change within a minute,
   // and rounds/home/calendar all re-request the same email set on reload.
   // Was 20s, which expired before a tech's repeat loads benefited.
-  const pairs = await _cachedH(cacheKey, 60, async () => {
+  const pairs = await _cachedH(cacheKey, 300, async () => {
     return await _fetchContactsByEmails(sorted)
   })
   for (const [k, v] of pairs) out.set(k, v)
@@ -142,7 +143,7 @@ async function _fetchContactsByEmails(cleaned) {
 }
 
 async function getContactNotes(contactId, limit = 5) {
-  return _cachedH(`hs:notes:${contactId}`, 60, async () => {
+  return _cachedH(`hs:notes:${contactId}`, 300, async () => {
     // Fetch up to 50 association IDs — do NOT slice before batch-reading because HubSpot
     // returns association IDs in an arbitrary order (often oldest-first), so slicing early
     // would return stale notes instead of the most recent ones.
@@ -213,7 +214,7 @@ async function getAllContacts(limit = 200) {
   // calls at limit=500), the single biggest cost on the home dashboard. The
   // contact list barely changes minute-to-minute, so a short cache turns
   // repeat admin loads from ~1s into a cache hit.
-  return _cachedH(`hubspot:allcontacts:${limit}`, 90, async () => {
+  return _cachedH(`hubspot:allcontacts:${limit}`, 300, async () => {
     const results = []
     let after = undefined
     const properties = ['email', 'firstname', 'lastname', 'phone', 'address', 'system_type', 'plan_type', 'trap_count']

@@ -37,6 +37,15 @@ function maybePrune() {
 export function middleware(req) {
   const { pathname } = req.nextUrl
 
+  // Redirect unauthenticated root requests at the edge (no serverless CPU)
+  if (pathname === '/') {
+    const session = req.cookies.get('gg_session')
+    if (!session?.value) {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+    return NextResponse.next()
+  }
+
   // Rate limit the magic link endpoint only
   if (pathname === '/api/auth/request-link') {
     const ip =
@@ -72,5 +81,5 @@ export function middleware(req) {
 }
 
 export const config = {
-  matcher: ['/api/auth/request-link'],
+  matcher: ['/', '/api/auth/request-link'],
 }

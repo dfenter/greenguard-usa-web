@@ -28,31 +28,81 @@ function esc(s) {
 //     items: [{description, amount}], stripeUrl, ref }
 async function notifyAdmin(purchase) {
   const results = { email: false, sms: false }
-  const subject = `💰 Purchase: ${purchase.customerName || purchase.customerEmail || 'Customer'} ${fmt$(purchase.amount)}`
+  const customerLabel = purchase.customerName || purchase.customerEmail || 'Customer'
+  const subject = `New purchase: ${customerLabel} — ${fmt$(purchase.amount)}`
 
   if (process.env.RESEND_API_KEY) {
-    const lines = (purchase.items || []).map((l) =>
-      `<tr><td style="padding:6px 0;color:#444;">${esc(l.description)}</td><td style="padding:6px 0;text-align:right;font-weight:700;">${fmt$(l.amount)}</td></tr>`
-    ).join('')
-    const html = `
-      <div style="font-family:-apple-system,sans-serif;max-width:560px;padding:24px;color:#1a2e1f;">
-        <div style="background:#0d1a10;border-radius:10px;padding:18px 22px;margin-bottom:20px;">
-          <div style="color:rgba(212,230,202,0.55);font-size:0.72rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:4px;">${esc(purchase.source || 'Stripe')}</div>
-          <h1 style="color:#7dffaa;font-size:1.6rem;margin:0;">${fmt$(purchase.amount)} ${esc((purchase.currency || 'USD').toUpperCase())}</h1>
-        </div>
-        <p><strong>${esc(purchase.customerName || '—')}</strong></p>
-        <p style="color:#555;margin:4px 0;">
-          ${esc(purchase.customerEmail || '')}${purchase.customerPhone ? ' · ' + esc(purchase.customerPhone) : ''}
-        </p>
-        ${lines ? `<table style="width:100%;border-collapse:collapse;margin:18px 0;border-top:1px solid #eee;">${lines}</table>` : ''}
-        <p style="margin-top:18px;">
-          <a href="${esc(purchase.stripeUrl || 'https://dashboard.stripe.com/payments')}" style="display:inline-block;padding:10px 18px;background:#7dffaa;color:#0d1a10;font-weight:800;border-radius:6px;text-decoration:none;">Open in Stripe →</a>
-        </p>
-        <p style="font-size:0.72rem;color:#888;margin-top:18px;">Ref: ${esc(purchase.ref || '-')}</p>
-      </div>`
+    const paidDate = purchase.paidAt
+      ? new Date(purchase.paidAt * 1000).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' })
+      : new Date().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' })
+
+    const itemRows = (purchase.items || []).map((l) => `
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#222;font-size:14px;">${esc(l.description || '—')}${l.quantity > 1 ? ` <span style="color:#888;">×${l.quantity}</span>` : ''}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:700;color:#222;font-size:14px;white-space:nowrap;">${fmt$(l.amount)}</td>
+      </tr>`).join('')
+
+    const subtotal = purchase.subtotal || purchase.amount
+    const tax = purchase.tax || 0
+    const showBreakdown = tax > 0
+
+    const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:580px;margin:0 auto;background:#fff;color:#111;">
+
+      <!-- Header -->
+      <div style="background:#0d1a10;padding:24px 28px 20px;">
+        <div style="color:rgba(212,230,202,0.5);font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:6px;">${esc(purchase.source || 'Purchase')} · ${esc(paidDate)}</div>
+        <div style="color:#7dffaa;font-size:32px;font-weight:900;line-height:1;">${fmt$(purchase.amount)}</div>
+      </div>
+
+      <div style="padding:24px 28px;">
+
+        <!-- Customer -->
+        <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+          <tr>
+            <td style="width:50%;vertical-align:top;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#888;margin-bottom:6px;">Customer</div>
+              <div style="font-size:15px;font-weight:700;margin-bottom:2px;">${esc(purchase.customerName || '—')}</div>
+              ${purchase.customerEmail ? `<div style="font-size:13px;color:#555;margin-bottom:2px;">${esc(purchase.customerEmail)}</div>` : ''}
+              ${purchase.customerPhone ? `<div style="font-size:13px;color:#555;">${esc(purchase.customerPhone)}</div>` : ''}
+            </td>
+            ${purchase.customerAddress ? `
+            <td style="width:50%;vertical-align:top;padding-left:20px;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#888;margin-bottom:6px;">Address</div>
+              <div style="font-size:13px;color:#555;line-height:1.5;">${esc(purchase.customerAddress)}</div>
+            </td>` : ''}
+          </tr>
+        </table>
+
+        <!-- Line items -->
+        ${itemRows ? `
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#888;margin-bottom:10px;">Items</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+          ${itemRows}
+          ${showBreakdown ? `
+          <tr>
+            <td style="padding:8px 0;font-size:13px;color:#888;">Subtotal</td>
+            <td style="padding:8px 0;text-align:right;font-size:13px;color:#888;">${fmt$(subtotal)}</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;font-size:13px;color:#888;">Sales tax (8.25%)</td>
+            <td style="padding:4px 0;text-align:right;font-size:13px;color:#888;">${fmt$(tax)}</td>
+          </tr>` : ''}
+          <tr style="border-top:2px solid #111;">
+            <td style="padding:10px 0;font-size:15px;font-weight:800;">Total</td>
+            <td style="padding:10px 0;text-align:right;font-size:15px;font-weight:800;">${fmt$(purchase.amount)}</td>
+          </tr>
+        </table>` : ''}
+
+        <!-- CTA -->
+        <a href="${esc(purchase.stripeUrl || 'https://dashboard.stripe.com/payments')}" style="display:inline-block;padding:12px 22px;background:#0d1a10;color:#7dffaa;font-weight:800;font-size:14px;border-radius:6px;text-decoration:none;margin-top:8px;">View in Stripe →</a>
+
+        <p style="font-size:11px;color:#bbb;margin-top:20px;margin-bottom:0;">Session: ${esc(purchase.ref || '—')}</p>
+      </div>
+    </div>`
+
     try {
       await new Resend(process.env.RESEND_API_KEY).emails.send({
-        from: `GreenGuard Sales <${FROM}>`,
+        from: `GreenGuard USA <${FROM}>`,
         to: ADMIN_EMAIL,
         subject,
         html,
