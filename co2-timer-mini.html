@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GreenGuard CO₂ Trap Timer — Rev 3.1 Mini</title>
+<meta name="description" content="GreenGuard CO₂ Trap Timer Rev 3.1 Mini — the smallest weatherproof CO₂ timer for Biogents mosquito traps. ~83×58×33 mm IP65 enclosure, 7-month battery, runs 5:30 AM to 11:30 PM.">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#7dffaa;--gold:#c9a84c;--dark:#080f09}
+body{background:radial-gradient(ellipse 80% 60% at 50% 40%,#0f1f12,#060c07);font-family:'Nunito Sans',sans-serif;color:#fff;min-height:100vh;overflow-x:hidden}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:14px 36px;background:rgba(6,12,7,.95);border-bottom:1px solid rgba(122,171,130,.12)}
+.logo{font-size:1rem;font-weight:900;letter-spacing:-.02em}.logo em{color:var(--green);font-style:normal}
+.nav-tag{font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(201,232,209,.3)}
+
+/* VIEWER SECTION */
+.viewer-section{display:grid;grid-template-columns:300px 1fr;min-height:92vh;align-items:center;padding:0 40px 0 60px;gap:0;position:relative}
+
+/* COPY */
+.copy{z-index:2}
+.badge{display:inline-block;font-size:.58rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(201,232,209,.55);background:rgba(122,171,130,.07);border:1px solid rgba(122,171,130,.18);padding:4px 12px;border-radius:4px;margin-bottom:18px}
+h1{font-size:clamp(1.8rem,2.8vw,2.5rem);font-weight:900;letter-spacing:-.03em;line-height:1.1;margin-bottom:14px}
+h1 em{color:var(--green);font-style:normal}
+.tagline{font-size:.88rem;line-height:1.65;color:rgba(212,230,202,.6);margin-bottom:28px;max-width:262px}
+.spec-list{list-style:none;margin-bottom:28px}
+.spec-list li{font-size:.8rem;color:rgba(212,230,202,.65);padding:5px 0;border-bottom:1px solid rgba(122,171,130,.08);display:flex;justify-content:space-between;gap:16px}
+.spec-list li span:first-child{color:rgba(201,232,209,.35);font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.spec-list li span:last-child{font-weight:700;color:#fff;text-align:right}
+.cta{display:inline-block;background:var(--gold);color:#0a1a0d;font-weight:900;font-size:.85rem;letter-spacing:.05em;text-transform:uppercase;padding:13px 28px;border-radius:7px;text-decoration:none}
+
+/* SCENE */
+.scene-wrap{display:flex;align-items:center;justify-content:center;position:relative;height:92vh;cursor:grab;user-select:none}
+.scene-wrap:active{cursor:grabbing}
+.scene{perspective:1000px;width:600px;height:480px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+
+/*
+  BOX GEOMETRY (all px) — Rev 3.1 Mini enclosure ~83 × 58 × 33 mm at 4px/mm
+  W = 332 (83mm)  H = 232 (58mm)  D = 132 (33mm)
+  Front face (W×H) = natural position (z=0)
+  Back        = translateZ(-132)
+  Right (D×H) = left:332, origin 0% 50%,  rotateY(90deg)
+  Left  (D×H) = left:-132, origin 100% 50%, rotateY(-90deg)
+  Top  (W×D)  = top:-132,  origin 50% 100%, rotateX(90deg)
+  Bottom(W×D) = top:232,   origin 50% 0%,   rotateX(-90deg)
+*/
+.box{
+  width:332px;height:232px;
+  position:relative;
+  transform-style:preserve-3d;
+  transform:rotateX(-16deg) rotateY(28deg) translateZ(66px);
+  will-change:transform;
+}
+.face{position:absolute;backface-visibility:visible}
+
+/* FRONT — lid face */
+.f-front{width:332px;height:232px;left:0;top:0;background:#d4d6d3;overflow:hidden;border-radius:13px}
+.f-front::after{content:'';position:absolute;inset:0;background:linear-gradient(165deg,rgba(255,255,255,.14) 0%,transparent 40%);pointer-events:none}
+
+/* BACK */
+.f-back{width:332px;height:232px;left:0;top:0;transform:translateZ(-132px);background:linear-gradient(180deg,#c8cac7 0%,#bbbdba 60%,#aeb0ad 100%);border-radius:13px}
+
+/* RIGHT - CO2 OUT */
+.f-right{width:132px;height:232px;left:332px;top:0;transform-origin:0% 50%;transform:rotateY(90deg);transform-style:preserve-3d;background:#c2c4c1;overflow:visible;border-radius:13px}
+.f-right::before{content:'';position:absolute;top:0;bottom:0;left:66px;width:2px;background:rgba(0,0,0,.22);box-shadow:1px 0 0 rgba(255,255,255,.12)}
+
+/* LEFT - CO2 IN */
+.f-left{width:132px;height:232px;left:-132px;top:0;transform-origin:100% 50%;transform:rotateY(-90deg);transform-style:preserve-3d;background:#caccc9;overflow:visible;border-radius:13px}
+.f-left::before{content:'';position:absolute;top:0;bottom:0;left:66px;width:2px;background:rgba(0,0,0,.22);box-shadow:1px 0 0 rgba(255,255,255,.12)}
+
+/* TOP — lid edge, seam */
+.f-top{width:332px;height:132px;left:0;top:-132px;transform-origin:50% 100%;transform:rotateX(90deg);background:linear-gradient(135deg,#e2e4e1 0%,#d8dad7 50%,#d0d2cf 100%);overflow:visible;border-radius:13px}
+.f-top::after{content:'';position:absolute;inset:0;background:linear-gradient(125deg,rgba(255,255,255,.2) 0%,transparent 55%);pointer-events:none;border-radius:13px}
+.f-top::before{content:'';position:absolute;left:0;right:0;top:66px;height:2px;background:rgba(0,0,0,.18);box-shadow:0 1px 0 rgba(255,255,255,.14)}
+
+/* BOTTOM */
+.f-bottom{width:332px;height:132px;left:0;top:232px;transform-origin:50% 0%;transform:rotateX(-90deg);background:#a8aaa7;border-radius:13px}
+
+/* ── FRONT FACE: TM1637 DISPLAY ── */
+.display-bezel{position:absolute;left:50%;top:62px;transform:translateX(-50%);width:150px;height:54px;background:#080808;border:1.5px solid #2a2a2e;border-radius:4px;box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center}
+.display-inner{display:flex;align-items:center;font-family:'Courier New',monospace;font-weight:700;font-size:22px;color:#ff3200;text-shadow:0 0 5px #ff3200,0 0 12px rgba(255,50,0,.45),0 0 22px rgba(255,30,0,.2);letter-spacing:1px}
+.display-inner .dig{min-width:15px;text-align:center}
+.display-inner .col{margin:0 1px;color:#ff3200;animation:blink-col 1s step-end infinite}
+@keyframes blink-col{0%,49%{opacity:1}50%,100%{opacity:.12}}
+.display-label{position:absolute;left:50%;top:122px;transform:translateX(-50%);font-size:5.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(0,0,0,.28);font-family:'Courier New',monospace;white-space:nowrap}
+
+/* ── FRONT FACE: BUTTONS ── */
+.btn-row{position:absolute;left:50%;top:150px;transform:translateX(-50%);display:flex;gap:40px}
+.btn-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
+.tact-btn{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#5c5c62,#2a2a2e);border:1.5px solid #666;box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 1px 2px rgba(255,255,255,.06)}
+.tact-lbl{font-size:5.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(0,0,0,.35);font-family:'Courier New',monospace}
+
+.front-brand{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:7.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.28);white-space:nowrap}
+.front-brand em{color:rgba(30,100,50,.5);font-style:normal}
+.front-model{position:absolute;bottom:11px;left:50%;transform:translateX(-50%);font-size:5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(0,0,0,.18);white-space:nowrap;font-family:'Courier New',monospace}
+.panel-rule{position:absolute;left:12px;right:12px;height:1px;background:rgba(0,0,0,.08)}
+
+/* ── TOP FACE DETAILS ── */
+.lid-screw{position:absolute;width:15px;height:15px;border-radius:50%;background:radial-gradient(circle at 42% 38%,#dddedd,#c4c6c3,#b0b2af);box-shadow:0 1px 3px rgba(0,0,0,.22),inset 0 1px 2px rgba(255,255,255,.35)}
+.lid-screw::after{content:'';position:absolute;width:8px;height:8px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);background:radial-gradient(circle at 40% 36%,#c8cac7,#9a9c99);box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
+.top-label{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:6.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.2);white-space:nowrap}
+
+/* ── BRASS BARB BULKHEAD — 3D protruding fitting ── */
+.gland{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:46px;height:46px;transform-style:preserve-3d}
+.gland::before{content:'';position:absolute;inset:-4px;border-radius:50%;background:radial-gradient(circle,rgba(0,0,0,.45) 0%,rgba(0,0,0,.65) 42%,rgba(0,0,0,0) 68%);box-shadow:0 0 10px rgba(0,0,0,.6)}
+.gland .cf-outer{position:absolute;inset:0;border-radius:50%;transform:translateZ(20px);background:radial-gradient(circle at 38% 34%,#caa24a,#8a6a22);box-shadow:0 3px 10px rgba(0,0,0,.7),0 6px 20px rgba(0,0,0,.4),inset 0 1px 2px rgba(255,255,255,.12)}
+.gland .cf-flange{position:absolute;inset:4px;border-radius:50%;transform:translateZ(23px);background:radial-gradient(circle at 38% 34%,#e0c074,#a8842e);border:1px solid #8a6a22}
+.gland .cf-hex{position:absolute;inset:8px;border-radius:4px;transform:translateZ(26px);background:linear-gradient(135deg,#e8cd86,#b8922f,#8a6a22);box-shadow:inset 0 1px 3px rgba(255,255,255,.2)}
+.gland .cf-nut{position:absolute;inset:13px;border-radius:50%;transform:translateZ(29px);background:repeating-linear-gradient(0deg,#9a7a28 0px,#9a7a28 2px,#c8a44a 2px,#c8a44a 4px);border:1px solid #7a5e1e}
+.gland .cf-face{position:absolute;inset:18px;border-radius:50%;transform:translateZ(31px);background:radial-gradient(circle at 38% 34%,#d8b860,#a8842e);border:1px solid #c0a040}
+.gland .cf-bore{position:absolute;inset:40%;border-radius:50%;transform:translateZ(33px);background:radial-gradient(circle at 40% 38%,#2a2a2a,#111);border:1px solid #5a4a1e}
+.dir-lbl{position:absolute;font-size:5.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(0,0,0,.35);font-family:'Courier New',monospace;left:50%;bottom:10px;transform:translateX(-50%);white-space:nowrap}
+
+/* ── DRAG HINT ── */
+.drag-hint{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,232,209,.3);border:1px solid rgba(122,171,130,.12);padding:6px 16px;border-radius:20px;animation:pulse 2.5s ease-in-out infinite;pointer-events:none;white-space:nowrap}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
+
+/* ── CALLOUT BADGES ── */
+.callout{position:absolute;display:flex;align-items:center;gap:6px;pointer-events:none}
+.cl-dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);flex-shrink:0}
+.cl-line{height:1px;background:rgba(201,232,209,.2);flex-shrink:0}
+.cl-txt{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(201,232,209,.45);white-space:nowrap;font-family:'Courier New',monospace}
+
+/* ── STRIP ── */
+.strip{background:#0d1a10;border-top:1px solid rgba(122,171,130,.09);border-bottom:1px solid rgba(122,171,130,.09);padding:26px 60px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.si{text-align:center}
+.si-n{font-size:1.4rem;font-weight:900;color:var(--green);display:block;line-height:1}
+.si-d{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(201,232,209,.37);margin-top:4px;display:block}
+
+/* ── SIZE COMPARISON ── */
+.cmp-section{padding:48px 60px 8px;max-width:1100px;margin:0 auto}
+.cmp-card{background:rgba(13,26,16,.6);border:1px solid rgba(122,171,130,.13);border-radius:12px;padding:28px;display:flex;align-items:flex-end;justify-content:center;gap:60px}
+.cmp-box{position:relative;border:2px solid rgba(201,232,209,.25);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+.cmp-old{width:200px;height:136px;border-color:rgba(212,230,202,.22);background:repeating-linear-gradient(45deg,rgba(255,255,255,.015) 0 8px,transparent 8px 16px)}
+.cmp-new{width:166px;height:116px;border-color:var(--green);background:rgba(125,255,170,.06)}
+.cmp-tag{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.cmp-old .cmp-tag{color:rgba(212,230,202,.45)}
+.cmp-new .cmp-tag{color:var(--green)}
+.cmp-dim{font-size:.7rem;font-weight:700;color:#fff}
+.cmp-sub{font-size:.6rem;color:rgba(201,232,209,.4)}
+
+/* ── SCHEDULE CARD ── */
+.info-section{padding:36px 60px;max-width:1100px;margin:0 auto}
+.sl{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:12px}
+.sh2{font-size:clamp(1.2rem,2vw,1.65rem);font-weight:900;letter-spacing:-.02em;margin-bottom:26px}
+.sch-card{background:rgba(13,26,16,.6);border:1px solid rgba(122,171,130,.13);border-radius:12px;padding:24px 28px;display:grid;grid-template-columns:110px 1fr 110px;gap:24px;align-items:center}
+.tb .lbl{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.tb .val{font-size:1.45rem;font-weight:900;color:var(--green);line-height:1}
+.tb .sub{font-size:.66rem;color:rgba(212,230,202,.36);margin-top:3px}
+.timeline{position:relative;height:30px;background:rgba(0,0,0,.35);border-radius:5px;overflow:hidden;border:1px solid rgba(122,171,130,.12)}
+.tl-fill{position:absolute;top:0;bottom:0;left:calc(5.5/24*100%);width:calc(18/24*100%);background:linear-gradient(90deg,rgba(125,255,170,.22),rgba(125,255,170,.1));border-left:2px solid var(--green);border-right:2px solid rgba(125,255,170,.3)}
+.tl-l{position:absolute;top:50%;transform:translateY(-50%);font-size:6.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.tl-on{left:calc(5.5/24*100% + 5px);color:var(--green)}
+.tl-off{right:7px;color:rgba(212,230,202,.25)}
+.ticks{position:absolute;bottom:0;left:0;right:0;height:5px;display:flex}
+.tick{flex:1;border-left:1px solid rgba(255,255,255,.05)}
+.tl-ft{display:flex;justify-content:space-between;margin-top:4px;font-size:6.5px;color:rgba(201,232,209,.2);font-family:'Courier New',monospace}
+
+/* ── SPEC TABLE ── */
+.tbl-section{padding:0 60px 64px;max-width:1100px;margin:0 auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:.55rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(201,232,209,.28);border-bottom:1px solid rgba(122,171,130,.1);padding:8px 12px;text-align:left}
+td{padding:9px 12px;font-size:.83rem;color:rgba(212,230,202,.7);border-bottom:1px solid rgba(122,171,130,.06)}
+td:first-child{font-weight:700;color:#fff;width:30%}
+tr:last-child td{border:none}
+
+footer{background:#060d07;border-top:1px solid rgba(122,171,130,.08);padding:22px 60px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+
+@media(max-width:860px){
+  .viewer-section{grid-template-columns:1fr;padding:30px 20px}
+  .scene-wrap{height:64vw;min-height:340px}
+  .strip{grid-template-columns:repeat(3,1fr);padding:20px}
+  .sch-card{grid-template-columns:1fr;gap:12px}
+  .cmp-card{flex-direction:column;align-items:center;gap:24px}
+  .info-section,.tbl-section,.cmp-section{padding-left:20px;padding-right:20px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Green<em>Guard</em> USA</div>
+  <span class="nav-tag">CO₂ Trap Timer · Timer-001 · Rev 3.1 Mini · ~83×58×33 mm IP65</span>
+</nav>
+
+<div class="viewer-section">
+
+  <!-- COPY -->
+  <div class="copy">
+    <div class="badge">GreenGuard Hardware · Rev 3.1 Mini</div>
+    <h1>CO<sub style="font-size:.6em">2</sub> Trap <em>Timer</em><br>Mini</h1>
+    <p class="tagline">Our smallest weatherproof CO₂ controller. Same TM1637 clock, 2-button setting and latching-solenoid drive as Rev 3.0, in a ~83×58×33 mm IP65 box. CO₂ in left, out right. Runs 5:30 AM to 11:30 PM.</p>
+    <ul class="spec-list">
+      <li><span>MCU</span><span>ATtiny84A (SOIC-14)</span></li>
+      <li><span>RTC</span><span>DS3231M ±5ppm</span></li>
+      <li><span>Display</span><span>TM1637 4-digit red</span></li>
+      <li><span>Enclosure</span><span>~83 × 58 × 33 mm IP65</span></li>
+      <li><span>Supply</span><span>9V battery + DC barrel jack</span></li>
+      <li><span>Battery</span><span>~7 months (1× 9V)</span></li>
+    </ul>
+    <a href="#" class="cta">Add to Cart — $89.99</a>
+  </div>
+
+  <!-- 3D VIEWER -->
+  <div class="scene-wrap" id="sceneWrap">
+
+    <div class="callout" style="position:absolute;top:40%;left:2%;flex-direction:row-reverse">
+      <div class="cl-line" style="width:36px"></div><div class="cl-dot"></div>
+      <div class="cl-txt">CO₂ IN ← tank</div>
+    </div>
+    <div class="callout" style="position:absolute;top:40%;right:2%">
+      <div class="cl-line" style="width:36px"></div><div class="cl-dot"></div>
+      <div class="cl-txt">CO₂ OUT → trap</div>
+    </div>
+    <div class="callout" style="position:absolute;top:9%;left:50%;transform:translateX(-40%);gap:8px">
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:6px;height:6px;border-radius:2px;background:#ff3200;box-shadow:0 0 5px #ff3200"></div>
+        <span class="cl-txt">TM1637 clock</span>
+      </div>
+    </div>
+    <div class="callout" style="position:absolute;bottom:11%;left:50%;transform:translateX(-50%);flex-direction:column;gap:4px">
+      <div class="cl-dot"></div><span class="cl-txt">UP · SET</span>
+    </div>
+    <div class="callout" style="position:absolute;bottom:27%;right:3%">
+      <div class="cl-line" style="width:28px"></div><div class="cl-dot"></div>
+      <div class="cl-txt">DC power · rubber cap</div>
+    </div>
+
+    <div class="scene">
+      <div class="box" id="box">
+
+        <!-- FRONT FACE -->
+        <div class="face f-front">
+          <div class="lid-screw" style="top:10px;left:10px"></div>
+          <div class="lid-screw" style="top:10px;right:10px"></div>
+          <div class="lid-screw" style="bottom:10px;left:10px"></div>
+          <div class="lid-screw" style="bottom:10px;right:10px"></div>
+          <div class="panel-rule" style="top:44px"></div>
+          <div class="panel-rule" style="bottom:32px"></div>
+
+          <div class="display-bezel">
+            <div class="display-inner">
+              <span class="dig">0</span><span class="dig">5</span><span class="col">:</span><span class="dig">3</span><span class="dig">0</span>
+            </div>
+          </div>
+          <div class="display-label">TM1637 · TIME DISPLAY</div>
+
+          <div class="btn-row">
+            <div class="btn-wrap"><div class="tact-btn"></div><div class="tact-lbl">UP</div></div>
+            <div class="btn-wrap"><div class="tact-btn"></div><div class="tact-lbl">SET</div></div>
+          </div>
+
+          <div class="front-brand">Green<em>Guard</em> USA</div>
+          <div class="front-model">CO₂ TRAP TIMER · TIMER-001 · V3.1 MINI</div>
+        </div>
+
+        <!-- BACK FACE — barrel jack with waterproof cap -->
+        <div class="face f-back">
+          <div style="position:absolute;left:166px;top:116px;transform:translate(-50%,-50%)">
+            <div style="position:absolute;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#888,#3a3a3a);border:2px solid #666;margin:-12px"></div>
+            <div style="position:absolute;width:14px;height:14px;border-radius:50%;background:#0a0a0c;border:1px solid #555;margin:-7px"></div>
+            <div style="position:absolute;width:5px;height:5px;border-radius:50%;background:#aaa;margin:-2.5px"></div>
+          </div>
+          <div style="position:absolute;left:166px;top:116px;transform:translate(-50%,-50%)">
+            <div style="position:absolute;width:34px;height:34px;margin:-17px;border-radius:50%;background:radial-gradient(circle at 36% 30%,#484848,#1e1e20,#111113);border:2px solid #3a3a3c;box-shadow:0 3px 8px rgba(0,0,0,.85),inset 0 1px 3px rgba(255,255,255,.07)"></div>
+            <div style="position:absolute;width:26px;height:26px;margin:-13px;border-radius:50%;border:1.5px solid rgba(255,255,255,.06);background:transparent"></div>
+            <div style="position:absolute;width:11px;height:7px;left:50%;top:17px;margin-left:-5.5px;background:linear-gradient(180deg,#3c3c3e,#222224);border-radius:0 0 4px 4px;border:1.5px solid #3a3a3c;border-top:none;box-shadow:0 2px 4px rgba(0,0,0,.6)"></div>
+          </div>
+          <div style="position:absolute;left:166px;top:150px;transform:translateX(-50%);font-size:5.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.18);font-family:'Courier New',monospace;white-space:nowrap">DC 9–12V ◈ CAP</div>
+        </div>
+
+        <!-- RIGHT FACE — CO2 OUT, brass barb -->
+        <div class="face f-right">
+          <div class="dir-lbl">CO₂ OUT</div>
+          <div class="gland">
+            <div class="cf-outer"></div><div class="cf-flange"></div><div class="cf-hex"></div>
+            <div class="cf-nut"></div><div class="cf-face"></div><div class="cf-bore"></div>
+          </div>
+        </div>
+
+        <!-- LEFT FACE — CO2 IN, brass barb -->
+        <div class="face f-left">
+          <div class="dir-lbl">CO₂ IN</div>
+          <div class="gland">
+            <div class="cf-outer"></div><div class="cf-flange"></div><div class="cf-hex"></div>
+            <div class="cf-nut"></div><div class="cf-face"></div><div class="cf-bore"></div>
+          </div>
+        </div>
+
+        <!-- TOP FACE -->
+        <div class="face f-top">
+          <div class="top-label">GreenGuard USA · CO₂ Trap Timer Mini</div>
+        </div>
+
+        <!-- BOTTOM FACE -->
+        <div class="face f-bottom"></div>
+
+      </div><!-- /box -->
+    </div><!-- /scene -->
+
+    <div class="drag-hint" id="hint">⟲ Drag to rotate</div>
+  </div><!-- /scene-wrap -->
+
+</div><!-- /viewer-section -->
+
+<!-- STATS -->
+<div class="strip">
+  <div class="si"><span class="si-n">18h</span><span class="si-d">Active / day</span></div>
+  <div class="si"><span class="si-n">~50%</span><span class="si-d">CO₂ savings</span></div>
+  <div class="si"><span class="si-n">±5ppm</span><span class="si-d">RTC accuracy</span></div>
+  <div class="si"><span class="si-n">IP65</span><span class="si-d">Weatherproof</span></div>
+  <div class="si"><span class="si-n">7mo</span><span class="si-d">Battery life</span></div>
+</div>
+
+<!-- SIZE COMPARISON -->
+<div class="cmp-section">
+  <span class="sl">Smaller by design</span>
+  <h2 class="sh2">62% less board, a third smaller box — same function</h2>
+  <div class="cmp-card">
+    <div class="cmp-box cmp-old">
+      <span class="cmp-tag">Rev 3.0</span>
+      <span class="cmp-dim">100 × 68 × 50 mm</span>
+      <span class="cmp-sub">70 × 50 mm PCB</span>
+    </div>
+    <div class="cmp-box cmp-new">
+      <span class="cmp-tag">Rev 3.1 Mini</span>
+      <span class="cmp-dim">~83 × 58 × 33 mm</span>
+      <span class="cmp-sub">45 × 30 mm PCB</span>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE -->
+<div class="info-section">
+  <span class="sl">Built-in schedule</span>
+  <h2 class="sh2">Runs when mosquitoes are active</h2>
+  <div class="sch-card">
+    <div class="tb"><div class="lbl">ON at</div><div class="val">5:30 AM</div><div class="sub">DS3231 alarm<br>solenoid OPEN pulse</div></div>
+    <div>
+      <div class="timeline">
+        <div class="tl-fill"></div>
+        <div class="tl-l tl-on">ON 5:30</div>
+        <div class="tl-l tl-off">OFF 11:30</div>
+        <div class="ticks">
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+        </div>
+      </div>
+      <div class="tl-ft"><span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>12 AM</span></div>
+    </div>
+    <div class="tb" style="text-align:right"><div class="lbl">OFF at</div><div class="val">11:30 PM</div><div class="sub">solenoid CLOSE pulse<br>display off, ~2.8 mAh/day</div></div>
+  </div>
+</div>
+
+<!-- SPEC TABLE -->
+<div class="tbl-section">
+  <span class="sl">Specifications</span>
+  <h2 class="sh2" style="margin-bottom:20px">Full product spec — Rev 3.1 Mini</h2>
+  <table>
+    <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Enclosure</td><td>IP65 ABS — ~83 × 58 × 33 mm (Gainta G203 or equivalent)</td></tr>
+      <tr><td>CO₂ IN fitting</td><td>1/4" NPT brass barb bulkhead, 6 mm hose barb — left side face, 12 mm panel hole, lock nut inside, PTFE-sealed</td></tr>
+      <tr><td>CO₂ OUT fitting</td><td>1/4" NPT brass barb bulkhead, 6 mm hose barb — right side face, 12 mm panel hole, lock nut inside, PTFE-sealed</td></tr>
+      <tr><td>Display</td><td>TM1637 — 4-digit 7-segment, red 0.36", wakes on button press, shows HH:MM</td></tr>
+      <tr><td>UP button (SW1)</td><td>Front face — increments hour or minute during time-set mode</td></tr>
+      <tr><td>SET button (SW2)</td><td>Front face — hold 3 s to enter time-set, hold 2 s to save</td></tr>
+      <tr><td>MCU</td><td>ATtiny84A — 8 KB flash, 8-bit AVR, SOIC-14, 12 I/O (same pinout as Rev 3.0 DIP — zero firmware change)</td></tr>
+      <tr><td>RTC</td><td>DS3231M — ±5 ppm MEMS, I2C, VBAT tied to 3.3 V rail (no coin cell)</td></tr>
+      <tr><td>Solenoid valve</td><td>Bistable latching 12V 1/4" NPT — Viton seals, CO₂ compatible</td></tr>
+      <tr><td>Solenoid driver</td><td>DRV8833 H-bridge — 50 ms pulse to open/close, zero hold current (U4); internal body diodes handle flyback</td></tr>
+      <tr><td>LDO</td><td>MCP1703A-3302E — 2 µA quiescent, 16 V input max, SOT-23 (U3)</td></tr>
+      <tr><td>Power</td><td>1× 9 V battery (J1) + DC 5.5/2.1 mm barrel jack (J5) — SS14 Schottky OR-diode on both inputs · barrel jack fitted with rubber waterproof cap (back face)</td></tr>
+      <tr><td>Protection</td><td>D1 battery OR-diode, D4 barrel-jack OR-diode (both SS14 SMA), F1 1 A polyfuse — flyback diodes deleted (DRV8833 internal)</td></tr>
+      <tr><td>Battery life</td><td>~7 months (1× 9V alkaline) · ~14 months (1× 9V lithium) — ~2.8 mAh/day</td></tr>
+      <tr><td>PCB size</td><td>45 × 30 mm, FR-4 1.6 mm, all-SMD — 4× M3 standoffs 6 mm</td></tr>
+      <tr><td>Changes from Rev 3.0</td><td>DIP-14 → SOIC-14 MCU · 5 DO-41 diodes → 2 SS14 SMA · removed 2nd 9V battery · 5.08 mm screw terminals → JST-PH · ~62% smaller PCB</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>
+  <div style="font-size:.86rem;font-weight:900">Green<span style="color:var(--green)">Guard</span> USA</div>
+  <div style="font-size:.68rem;color:rgba(201,232,209,.26);font-family:'Courier New',monospace">Timer-001 · Rev 3.1 Mini · ~83×58×33 mm IP65 · Austin, TX</div>
+  <div style="font-size:.68rem;color:rgba(201,232,209,.26)">100% Pesticide-Free</div>
+</footer>
+
+<script>
+const box   = document.getElementById('box');
+const wrap  = document.getElementById('sceneWrap');
+const hint  = document.getElementById('hint');
+
+let rotX = -16, rotY = 28;
+let dragging = false, startX = 0, startY = 0;
+
+function setTransform() {
+  box.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(66px)`;
+}
+
+wrap.addEventListener('mousedown', e => {
+  dragging = true; startX = e.clientX; startY = e.clientY; e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - startX, dy = e.clientY - startY;
+  if (Math.abs(dx) + Math.abs(dy) > 3) hint.style.opacity = '0';
+  rotY += dx * 0.45; rotX -= dy * 0.45;
+  rotX = Math.max(-85, Math.min(85, rotX));
+  setTransform();
+  startX = e.clientX; startY = e.clientY;
+});
+document.addEventListener('mouseup', () => { dragging = false; });
+
+let lastTx = 0, lastTy = 0;
+wrap.addEventListener('touchstart', e => {
+  dragging = true; lastTx = e.touches[0].clientX; lastTy = e.touches[0].clientY; e.preventDefault();
+}, { passive: false });
+document.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  const t = e.touches[0];
+  const dx = t.clientX - lastTx, dy = t.clientY - lastTy;
+  hint.style.opacity = '0';
+  rotY += dx * 0.45; rotX -= dy * 0.45;
+  rotX = Math.max(-85, Math.min(85, rotX));
+  setTransform();
+  lastTx = t.clientX; lastTy = t.clientY;
+}, { passive: false });
+document.addEventListener('touchend', () => { dragging = false; });
+
+let autoSpin = true, spinRaf;
+function spin() {
+  if (!autoSpin) return;
+  rotY += 0.18; setTransform();
+  spinRaf = requestAnimationFrame(spin);
+}
+spin();
+wrap.addEventListener('mousedown', () => { autoSpin = false; cancelAnimationFrame(spinRaf); }, { once: true });
+wrap.addEventListener('touchstart', () => { autoSpin = false; cancelAnimationFrame(spinRaf); }, { once: true });
+</script>
+
+</body>
+</html>

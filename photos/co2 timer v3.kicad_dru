@@ -1,0 +1,9 @@
+(version 1)
+
+# U4 (DRV8833 TSSOP-16, 0.65mm pitch) clearance exception.
+# At 0.65mm pitch with 0.45mm pad width, adjacent pads have 0.20mm gap — below the
+# standard 0.25mm rule. This exception allows 0.15mm within U4's courtyard.
+(rule "U4 copper clearance"
+   (constraint clearance (min 0.15mm))
+   (condition "A.insideCourtyard('U4') || B.insideCourtyard('U4')")
+)

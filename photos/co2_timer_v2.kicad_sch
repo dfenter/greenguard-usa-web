@@ -1,0 +1,190 @@
+(kicad_sch (version 20230121) (generator eeschema)
+  (paper "A4")
+  (title_block
+    (title "GreenGuard CO2 Trap Timer")
+    (rev "2.0")
+    (company "GreenGuard USA")
+    (comment 1 "Schedule: ON 5:30AM / OFF 11:30PM")
+    (comment 2 "ATtiny85 + DS3231 + TM1637 Display + 2-Button Time Set")
+    (comment 3 "No CR2032 — DS3231 VBAT tied to 3.3V rail")
+  )
+
+  ;; ── Power Nets ─────────────────────────────────────────────
+  (symbol (lib_id "power:VCC") (at 50.8 25.4 0) (unit 1)
+    (property "Reference" "#PWR01" (at 50.8 29 0))
+    (property "Value" "+3V3" (at 50.8 22 0))
+  )
+  (symbol (lib_id "power:GND") (at 50.8 115 0) (unit 1)
+    (property "Reference" "#PWR02" (at 50.8 118 0))
+    (property "Value" "GND" (at 50.8 112 0))
+  )
+  (symbol (lib_id "power:VCC") (at 165 25.4 0) (unit 1)
+    (property "Reference" "#PWR03" (at 165 29 0))
+    (property "Value" "+9V_RAW" (at 165 22 0))
+  )
+
+  ;; ── U1: ATtiny85 DIP-8 ────────────────────────────────────
+  ;; PB0=TM1637_CLK, PB1=TM1637_DIO, PB2=SOLENOID+RTC_INT
+  ;; PB3=BTN_UP, PB4=BTN_SET
+  (symbol (lib_id "MCU_Microchip_ATtiny:ATtiny85-20PU") (at 80 65 0) (unit 1)
+    (property "Reference" "U1" (at 80 50 0))
+    (property "Value" "ATtiny85-20PU" (at 80 82 0))
+    (property "Footprint" "Package_DIP:DIP-8_W7.62mm" (at 80 84 0))
+  )
+
+  ;; ── U2: DS3231 RTC ────────────────────────────────────────
+  ;; VBAT tied to 3.3V — no coin cell
+  (symbol (lib_id "Device:DS3231") (at 165 65 0) (unit 1)
+    (property "Reference" "U2" (at 165 50 0))
+    (property "Value" "DS3231SN" (at 165 82 0))
+    (property "Footprint" "Package_SO:SO-16_W7.5mm_P1.27mm" (at 165 84 0))
+  )
+
+  ;; ── U3: AMS1117-3.3 LDO ──────────────────────────────────
+  (symbol (lib_id "Regulator_Linear:AMS1117-3.3") (at 50.8 65 0) (unit 1)
+    (property "Reference" "U3" (at 50.8 55 0))
+    (property "Value" "AMS1117-3.3" (at 50.8 78 0))
+    (property "Footprint" "Package_TO_SOT_SMD:SOT-223-3_TabPin2" (at 50.8 80 0))
+  )
+
+  ;; ── Q1: IRL540N MOSFET ───────────────────────────────────
+  (symbol (lib_id "Device:Q_NMOS_GSD") (at 225 65 0) (unit 1)
+    (property "Reference" "Q1" (at 225 55 0))
+    (property "Value" "IRL540NPBF" (at 225 78 0))
+    (property "Footprint" "Package_TO_SOT_THT:TO-220-3_Vertical" (at 225 80 0))
+  )
+
+  ;; ── D1: Reverse Polarity ─────────────────────────────────
+  (symbol (lib_id "Device:D") (at 28 40 0) (unit 1)
+    (property "Reference" "D1" (at 28 35 0))
+    (property "Value" "1N4007" (at 28 45 0))
+    (property "Footprint" "Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal" (at 28 47 0))
+  )
+
+  ;; ── D2: RTC INT Isolation ────────────────────────────────
+  ;; Cathode to PB2, Anode to DS3231 INT
+  (symbol (lib_id "Device:D") (at 140 85 0) (unit 1)
+    (property "Reference" "D2" (at 140 80 0))
+    (property "Value" "1N4007" (at 140 90 0))
+    (property "Footprint" "Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal" (at 140 92 0))
+  )
+
+  ;; ── D3: Flyback ──────────────────────────────────────────
+  (symbol (lib_id "Device:D") (at 225 40 0) (unit 1)
+    (property "Reference" "D3" (at 225 35 0))
+    (property "Value" "1N4007" (at 225 45 0))
+    (property "Footprint" "Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal" (at 225 47 0))
+  )
+
+  ;; ── SW1: UP Button ───────────────────────────────────────
+  (symbol (lib_id "Device:SW_Push") (at 110 95 0) (unit 1)
+    (property "Reference" "SW1" (at 110 90 0))
+    (property "Value" "UP" (at 110 100 0))
+    (property "Footprint" "Button_Switch_THT:SW_PUSH_6mm" (at 110 102 0))
+  )
+
+  ;; ── SW2: SET Button ──────────────────────────────────────
+  (symbol (lib_id "Device:SW_Push") (at 125 95 0) (unit 1)
+    (property "Reference" "SW2" (at 125 90 0))
+    (property "Value" "SET" (at 125 100 0))
+    (property "Footprint" "Button_Switch_THT:SW_PUSH_6mm" (at 125 102 0))
+  )
+
+  ;; ── TM1637 Display Header ────────────────────────────────
+  ;; 4-pin: VCC, GND, CLK, DIO
+  (symbol (lib_id "Connector:Conn_01x04_Pin") (at 80 35 0) (unit 1)
+    (property "Reference" "J4" (at 80 29 0))
+    (property "Value" "TM1637_DISPLAY" (at 80 42 0))
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical" (at 80 44 0))
+  )
+
+  ;; ── Resistors ────────────────────────────────────────────
+  (symbol (lib_id "Device:R") (at 60 55 0) (unit 1)
+    (property "Reference" "R1" (at 60 50 0))
+    (property "Value" "10K" (at 60 60 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 60 62 0))
+  )
+  (symbol (lib_id "Device:R") (at 100 100 0) (unit 1)
+    (property "Reference" "R2" (at 100 95 0))
+    (property "Value" "10K" (at 100 105 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 100 107 0))
+  )
+  (symbol (lib_id "Device:R") (at 115 100 0) (unit 1)
+    (property "Reference" "R3" (at 115 95 0))
+    (property "Value" "10K" (at 115 105 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 115 107 0))
+  )
+  (symbol (lib_id "Device:R") (at 210 65 0) (unit 1)
+    (property "Reference" "R4" (at 210 60 0))
+    (property "Value" "100R" (at 210 70 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 210 72 0))
+  )
+  (symbol (lib_id "Device:R") (at 150 55 0) (unit 1)
+    (property "Reference" "R5" (at 150 50 0))
+    (property "Value" "4K7" (at 150 60 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 150 62 0))
+  )
+  (symbol (lib_id "Device:R") (at 150 70 0) (unit 1)
+    (property "Reference" "R6" (at 150 65 0))
+    (property "Value" "10K" (at 150 75 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 150 77 0))
+  )
+
+  ;; ── Capacitors ───────────────────────────────────────────
+  (symbol (lib_id "Device:CP") (at 235 90 0) (unit 1)
+    (property "Reference" "C1" (at 235 85 0))
+    (property "Value" "100uF_16V" (at 235 95 0))
+    (property "Footprint" "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm" (at 235 97 0))
+  )
+  (symbol (lib_id "Device:C") (at 70 90 0) (unit 1)
+    (property "Reference" "C2" (at 70 85 0))
+    (property "Value" "100nF" (at 70 95 0))
+    (property "Footprint" "Capacitor_SMD:C_0805_2012Metric" (at 70 97 0))
+  )
+  (symbol (lib_id "Device:C") (at 175 90 0) (unit 1)
+    (property "Reference" "C3" (at 175 85 0))
+    (property "Value" "100nF" (at 175 95 0))
+    (property "Footprint" "Capacitor_SMD:C_0805_2012Metric" (at 175 97 0))
+  )
+
+  ;; ── F1: Polyfuse ─────────────────────────────────────────
+  (symbol (lib_id "Device:Polyfuse") (at 18 40 0) (unit 1)
+    (property "Reference" "F1" (at 18 35 0))
+    (property "Value" "1A_Polyfuse" (at 18 45 0))
+    (property "Footprint" "Fuse:Fuse_1812_4532Metric" (at 18 47 0))
+  )
+
+  ;; ── J1: Battery Input ────────────────────────────────────
+  (symbol (lib_id "Connector:Conn_01x02_Pin") (at 8 55 0) (unit 1)
+    (property "Reference" "J1" (at 8 50 0))
+    (property "Value" "9V_BATT_IN" (at 8 62 0))
+    (property "Footprint" "Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled" (at 8 64 0))
+  )
+
+  ;; ── J2: Solenoid Output ──────────────────────────────────
+  (symbol (lib_id "Connector:Conn_01x02_Pin") (at 248 65 0) (unit 1)
+    (property "Reference" "J2" (at 248 60 0))
+    (property "Value" "SOLENOID_OUT" (at 248 72 0))
+    (property "Footprint" "Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled" (at 248 74 0))
+  )
+
+  ;; ── J3: ICSP Programming Header ──────────────────────────
+  (symbol (lib_id "Connector:Conn_02x03_Odd_Even") (at 55 100 0) (unit 1)
+    (property "Reference" "J3" (at 55 95 0))
+    (property "Value" "ICSP" (at 55 108 0))
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical" (at 55 110 0))
+  )
+
+  ;; ── Net Labels ───────────────────────────────────────────
+  (label "TM1637_CLK" (at 92 62 0))
+  (label "TM1637_DIO" (at 92 65 0))
+  (label "SOLENOID_CTRL" (at 92 68 0))
+  (label "BTN_UP" (at 92 71 0))
+  (label "BTN_SET" (at 92 74 0))
+  (label "SDA" (at 153 62 0))
+  (label "SCL" (at 153 65 0))
+  (label "RTC_INT" (at 153 68 0))
+  (label "VBAT_3V3" (at 153 71 0))
+  (label "TM1637_CLK" (at 68 35 0))
+  (label "TM1637_DIO" (at 68 38 0))
+)

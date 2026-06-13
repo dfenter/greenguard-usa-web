@@ -1,0 +1,190 @@
+(kicad_sch (version 20230121) (generator eeschema)
+  (paper "A4")
+  (title_block
+    (title "GreenGuard CO2 Trap Timer")
+    (rev "1.0")
+    (company "GreenGuard USA")
+    (comment 1 "Schedule: ON 5:30AM / OFF 11:30PM")
+    (comment 2 "ATtiny85 + DS3231 + 12V NC Solenoid")
+  )
+
+  (lib_symbols
+    (symbol "ATtiny85" (pin_names (offset 1.016)) (in_bom yes) (on_board yes)
+      (property "Reference" "U1" (at 0 9 0) (effects (font (size 1.27 1.27))))
+      (property "Value" "ATtiny85-20PU" (at 0 -9 0) (effects (font (size 1.27 1.27))))
+      (symbol "ATtiny85_0_1"
+        (rectangle (start -7.62 7.62) (end 7.62 -7.62) (stroke (width 0.254)) (fill (type background)))
+      )
+      (symbol "ATtiny85_1_1"
+        (pin input (at -12.7 5.08 0) (length 5.08) (name "PB5/RESET" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))
+        (pin bidirectional (at -12.7 2.54 0) (length 5.08) (name "PB3/LED_PWR" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27)))))
+        (pin bidirectional (at -12.7 0 0) (length 5.08) (name "PB4/LED_VALVE" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27)))))
+        (pin power_in (at 0 -12.7 90) (length 5.08) (name "GND" (effects (font (size 1.27 1.27)))) (number "4" (effects (font (size 1.27 1.27)))))
+        (pin bidirectional (at 12.7 0 180) (length 5.08) (name "PB0/SDA" (effects (font (size 1.27 1.27)))) (number "5" (effects (font (size 1.27 1.27)))))
+        (pin bidirectional (at 12.7 2.54 180) (length 5.08) (name "PB1/SOLENOID" (effects (font (size 1.27 1.27)))) (number "6" (effects (font (size 1.27 1.27)))))
+        (pin bidirectional (at 12.7 5.08 180) (length 5.08) (name "PB2/INT0/SCL" (effects (font (size 1.27 1.27)))) (number "7" (effects (font (size 1.27 1.27)))))
+        (pin power_in (at 0 12.7 270) (length 5.08) (name "VCC" (effects (font (size 1.27 1.27)))) (number "8" (effects (font (size 1.27 1.27)))))
+      )
+    )
+  )
+
+  ;; ── Power Symbols ──────────────────────────────────────────
+  (symbol (lib_id "power:VCC") (at 50.8 25.4 0) (unit 1)
+    (property "Reference" "#PWR01" (at 50.8 29.21 0))
+    (property "Value" "+3V3" (at 50.8 22.86 0))
+  )
+  (symbol (lib_id "power:GND") (at 50.8 110 0) (unit 1)
+    (property "Reference" "#PWR02" (at 50.8 113 0))
+    (property "Value" "GND" (at 50.8 107 0))
+  )
+  (symbol (lib_id "power:VCC") (at 160 25.4 0) (unit 1)
+    (property "Reference" "#PWR03" (at 160 29 0))
+    (property "Value" "+9V_RAW" (at 160 22 0))
+  )
+
+  ;; ── U1: ATtiny85 ───────────────────────────────────────────
+  (symbol (lib_id "ATtiny85") (at 80 65 0) (unit 1)
+    (property "Reference" "U1" (at 80 50 0))
+    (property "Value" "ATtiny85-20PU" (at 80 82 0))
+    (property "Footprint" "Package_DIP:DIP-8_W7.62mm" (at 80 84 0))
+  )
+
+  ;; ── U2: DS3231 RTC ─────────────────────────────────────────
+  (symbol (lib_id "Device:DS3231") (at 160 65 0) (unit 1)
+    (property "Reference" "U2" (at 160 50 0))
+    (property "Value" "DS3231SN" (at 160 82 0))
+    (property "Footprint" "Package_SO:SO-16_W7.5mm_P1.27mm" (at 160 84 0))
+  )
+
+  ;; ── U3: AMS1117-3.3 LDO ────────────────────────────────────
+  (symbol (lib_id "Regulator_Linear:AMS1117-3.3") (at 50.8 65 0) (unit 1)
+    (property "Reference" "U3" (at 50.8 55 0))
+    (property "Value" "AMS1117-3.3" (at 50.8 78 0))
+    (property "Footprint" "Package_TO_SOT_SMD:SOT-223-3_TabPin2" (at 50.8 80 0))
+  )
+
+  ;; ── Q1: IRL540N MOSFET ─────────────────────────────────────
+  (symbol (lib_id "Device:Q_NMOS_GSD") (at 220 65 0) (unit 1)
+    (property "Reference" "Q1" (at 220 55 0))
+    (property "Value" "IRL540NPBF" (at 220 78 0))
+    (property "Footprint" "Package_TO_SOT_THT:TO-220-3_Vertical" (at 220 80 0))
+  )
+
+  ;; ── D1: Reverse Polarity Protection ───────────────────────
+  (symbol (lib_id "Device:D") (at 30 40 0) (unit 1)
+    (property "Reference" "D1" (at 30 35 0))
+    (property "Value" "1N4007" (at 30 45 0))
+    (property "Footprint" "Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal" (at 30 47 0))
+  )
+
+  ;; ── D2: Flyback Diode ──────────────────────────────────────
+  (symbol (lib_id "Device:D") (at 220 40 0) (unit 1)
+    (property "Reference" "D2" (at 220 35 0))
+    (property "Value" "1N4007" (at 220 45 0))
+    (property "Footprint" "Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal" (at 220 47 0))
+  )
+
+  ;; ── LEDs ───────────────────────────────────────────────────
+  (symbol (lib_id "Device:LED") (at 100 30 0) (unit 1)
+    (property "Reference" "LED1" (at 100 25 0))
+    (property "Value" "Green_PWR" (at 100 35 0))
+    (property "Footprint" "LED_THT:LED_D3.0mm" (at 100 37 0))
+  )
+  (symbol (lib_id "Device:LED") (at 120 30 0) (unit 1)
+    (property "Reference" "LED2" (at 120 25 0))
+    (property "Value" "Blue_VALVE" (at 120 35 0))
+    (property "Footprint" "LED_THT:LED_D3.0mm" (at 120 37 0))
+  )
+
+  ;; ── Resistors ──────────────────────────────────────────────
+  (symbol (lib_id "Device:R") (at 95 45 0) (unit 1)
+    (property "Reference" "R3" (at 95 40 0))
+    (property "Value" "470R" (at 95 50 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 95 52 0))
+  )
+  (symbol (lib_id "Device:R") (at 115 45 0) (unit 1)
+    (property "Reference" "R4" (at 115 40 0))
+    (property "Value" "470R" (at 115 50 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 115 52 0))
+  )
+  (symbol (lib_id "Device:R") (at 60 55 0) (unit 1)
+    (property "Reference" "R1" (at 60 50 0))
+    (property "Value" "10K" (at 60 60 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 60 62 0))
+  )
+  (symbol (lib_id "Device:R") (at 150 55 0) (unit 1)
+    (property "Reference" "R5" (at 150 50 0))
+    (property "Value" "4K7" (at 150 60 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 150 62 0))
+  )
+  (symbol (lib_id "Device:R") (at 150 70 0) (unit 1)
+    (property "Reference" "R7" (at 150 65 0))
+    (property "Value" "10K" (at 150 75 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 150 77 0))
+  )
+  (symbol (lib_id "Device:R") (at 205 65 0) (unit 1)
+    (property "Reference" "R6" (at 205 60 0))
+    (property "Value" "100R" (at 205 70 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 205 72 0))
+  )
+
+  ;; ── Capacitors ─────────────────────────────────────────────
+  (symbol (lib_id "Device:C") (at 70 90 0) (unit 1)
+    (property "Reference" "C2" (at 70 85 0))
+    (property "Value" "100nF" (at 70 95 0))
+    (property "Footprint" "Capacitor_SMD:C_0805_2012Metric" (at 70 97 0))
+  )
+  (symbol (lib_id "Device:C") (at 170 90 0) (unit 1)
+    (property "Reference" "C3" (at 170 85 0))
+    (property "Value" "100nF" (at 170 95 0))
+    (property "Footprint" "Capacitor_SMD:C_0805_2012Metric" (at 170 97 0))
+  )
+  (symbol (lib_id "Device:CP") (at 230 90 0) (unit 1)
+    (property "Reference" "C1" (at 230 85 0))
+    (property "Value" "100uF_16V" (at 230 95 0))
+    (property "Footprint" "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm" (at 230 97 0))
+  )
+
+  ;; ── SW1: Sync Button ───────────────────────────────────────
+  (symbol (lib_id "Device:SW_Push") (at 130 90 0) (unit 1)
+    (property "Reference" "SW1" (at 130 85 0))
+    (property "Value" "SYNC" (at 130 95 0))
+    (property "Footprint" "Button_Switch_THT:SW_PUSH_6mm" (at 130 97 0))
+  )
+
+  ;; ── BT1: CR2032 Holder ─────────────────────────────────────
+  (symbol (lib_id "Device:Battery_Cell") (at 185 90 0) (unit 1)
+    (property "Reference" "BT1" (at 185 85 0))
+    (property "Value" "CR2032" (at 185 95 0))
+    (property "Footprint" "Battery:BatteryHolder_Keystone_3034_1x20mm" (at 185 97 0))
+  )
+
+  ;; ── F1: Polyfuse ───────────────────────────────────────────
+  (symbol (lib_id "Device:Polyfuse") (at 20 40 0) (unit 1)
+    (property "Reference" "F1" (at 20 35 0))
+    (property "Value" "1A_Polyfuse" (at 20 45 0))
+    (property "Footprint" "Fuse:Fuse_1812_4532Metric" (at 20 47 0))
+  )
+
+  ;; ── J1: Battery Input ──────────────────────────────────────
+  (symbol (lib_id "Connector:Conn_01x02_Pin") (at 10 55 0) (unit 1)
+    (property "Reference" "J1" (at 10 50 0))
+    (property "Value" "9V_BATT_IN" (at 10 62 0))
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" (at 10 64 0))
+  )
+
+  ;; ── J2: Solenoid Output ────────────────────────────────────
+  (symbol (lib_id "Connector:Conn_01x02_Pin") (at 245 65 0) (unit 1)
+    (property "Reference" "J2" (at 245 60 0))
+    (property "Value" "SOLENOID_OUT" (at 245 72 0))
+    (property "Footprint" "Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled" (at 245 74 0))
+  )
+
+  ;; ── J3: ICSP Programming Header ────────────────────────────
+  (symbol (lib_id "Connector:Conn_02x03_Odd_Even") (at 55 100 0) (unit 1)
+    (property "Reference" "J3" (at 55 95 0))
+    (property "Value" "ICSP" (at 55 108 0))
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical" (at 55 110 0))
+  )
+
+)

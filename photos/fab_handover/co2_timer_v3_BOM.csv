@@ -1,0 +1,30 @@
+Reference,Value,Footprint,Qty,MPN,Manufacturer,Digi-Key #,LCSC #,Assembly,Notes
+U1,ATtiny84A-20PU,DIP-14_W7.62mm,1,ATTINY84A-PU,Microchip,ATTINY84A-PU-ND,TBD,THT — consignment (buyer supplies pre-programmed),Buyer pre-programs firmware then ships chips to CM; DIP-14 socket recommended for field replacement
+U2,DS3231M,SO-16_W7.5mm_P1.27mm,1,DS3231M+TRL,Analog Devices,DS3231M+TRLCT-ND,C37663,SMT — top side,MEMS RTC; no coin cell required
+U3,MCP1703A-3302E,SOT-23,1,MCP1703AT-3302E/CB,Microchip,MCP1703AT-3302E/CBCT-ND,C144183,SMT — top side,3.3V LDO 250mA 16V input max
+U4,DRV8833PWP,TSSOP-16_4.4x5mm_P0.65mm,1,DRV8833PWP,Texas Instruments,296-28875-5-ND,C1556089,SMT — top side,Dual H-bridge solenoid driver; exposed pad (EP) — must be soldered
+D1,1N4007,D_DO-41 P10.16mm Horiz,1,1N4007-E3/54,Vishay,1N4007-E3/54GICT-ND,C727110,THT — hand solder,Battery OR-diode; cathode band per silkscreen
+D2,1N4007,D_DO-41 P10.16mm Horiz,1,1N4007-E3/54,Vishay,1N4007-E3/54GICT-ND,C727110,THT — hand solder,Flyback diode
+D3,1N4007,D_DO-41 P10.16mm Horiz,1,1N4007-E3/54,Vishay,1N4007-E3/54GICT-ND,C727110,THT — hand solder,Flyback diode
+D4,1N4007,D_DO-41 P10.16mm Horiz,1,1N4007-E3/54,Vishay,1N4007-E3/54GICT-ND,C727110,THT — hand solder,Barrel jack OR-diode
+D5,1N4007,D_DO-41 P10.16mm Horiz,1,1N4007-E3/54,Vishay,1N4007-E3/54GICT-ND,C727110,THT — hand solder,Battery OR-diode; cathode band per silkscreen
+SW1,SW_Push 6x6mm,SW_PUSH_6mm,1,PTS645SM43SMTR92LFS,C&K,CKN9085CT-ND,C318884,THT — hand solder,UP button; front panel
+SW2,SW_Push 6x6mm,SW_PUSH_6mm,1,PTS645SM43SMTR92LFS,C&K,CKN9085CT-ND,C318884,THT — hand solder,SET button; front panel
+F1,Polyfuse 1A,Fuse_1812_4532Metric,1,MF-MSMF110/33X2CT,Bourns,MF-MSMF110/33X2CT-ND,C369150,SMT — top side,1.1A hold / 2.2A trip PPTC resettable fuse
+R1,10K,R_0805_2012Metric,1,RC0805FR-0710KL,Yageo,311-10KARCT-ND,C17414,SMT — top side,I2C pull-up SDA
+R2,10K,R_0805_2012Metric,1,RC0805FR-0710KL,Yageo,311-10KARCT-ND,C17414,SMT — top side,I2C pull-up SCL
+R3,10K,R_0805_2012Metric,1,RC0805FR-0710KL,Yageo,311-10KARCT-ND,C17414,SMT — top side,
+R5,4K7,R_0805_2012Metric,1,RC0805FR-074K7L,Yageo,311-4.7KARCT-ND,C17673,SMT — top side,
+R6,10K,R_0805_2012Metric,1,RC0805FR-0710KL,Yageo,311-10KARCT-ND,C17414,SMT — top side,
+R7,4K7,R_0805_2012Metric,1,RC0805FR-074K7L,Yageo,311-4.7KARCT-ND,C17673,SMT — top side,
+C1,100uF 16V,CP_Radial_D6.3mm_P2.50mm,1,ECA-1CM101,Panasonic,P10270-ND,C62923,THT — hand solder,Electrolytic; observe polarity per silkscreen
+C2,100nF,C_0805_2012Metric,1,CC0805KRX7R9BB104,Yageo,311-1141-1-ND,C49678,SMT — top side,Decoupling cap
+C3,100nF,C_0805_2012Metric,1,CC0805KRX7R9BB104,Yageo,311-1141-1-ND,C49678,SMT — top side,Decoupling cap
+C4,100nF,C_0805_2012Metric,1,CC0805KRX7R9BB104,Yageo,311-1141-1-ND,C49678,SMT — top side,Decoupling cap
+J1,Screw Terminal 2P 5.08mm,PhoenixContact_MKDS_1.5-2_5.08mm_Angled,1,1729128,Phoenix Contact,277-1247-ND,C8465,THT — hand solder,Battery input 1 (9V)
+J2,Screw Terminal 2P 5.08mm,PhoenixContact_MKDS_1.5-2_5.08mm_Angled,1,1729128,Phoenix Contact,277-1247-ND,C8465,THT — hand solder,Solenoid output
+J3,PinHeader 2x03 2.54mm,PinHeader_2x03_P2.54mm_Vertical,1,TSW-103-07-G-D,Samtec,SAM1035-03-ND,C124378,THT — hand solder,ISP programming header for ATtiny84A
+J4,PinHeader 1x04 2.54mm,PinHeader_1x04_P2.54mm_Vertical,1,TSW-104-07-G-S,Samtec,SAM1024-04-ND,C358686,THT — hand solder,I2C expansion / debug
+J5,DC Barrel Jack 5.5/2.1mm,BarrelJack_CUI_PJ-002A,1,PJ-002A,CUI Devices,CP-002A-ND,TBD,THT — hand solder,DC 9–12V input; center positive
+J6,Screw Terminal 2P 5.08mm,PhoenixContact_MKDS_1.5-2_5.08mm_Angled,1,1729128,Phoenix Contact,277-1247-ND,C8465,THT — hand solder,Battery input 2 (9V)
+U1_SOCKET,DIP-14 Socket,DIP-14 (0.3" row spacing),1,4814-3000-CP,3M,ED3050-ND,—,THT — turnkey,Mounts in U1 footprint; buyer inserts pre-programmed ATtiny84A

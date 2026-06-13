@@ -1,0 +1,24 @@
+Comment,Designator,Footprint,LCSC Part #,Quantity
+ATtiny85-20PU,U1,Package_DIP:DIP-8_W7.62mm,C89852,1
+DS3231SN,U2,Package_SO:SO-16_W7.5mm_P1.27mm,C9868,1
+AMS1117-3.3,U3,Package_TO_SOT_SMD:SOT-223-3_TabPin2,C6186,1
+IRL540NPBF,Q1,Package_TO_SOT_THT:TO-220-3_Vertical,C60330,1
+1N4007,D1,Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal,C727110,1
+1N4007,D2,Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal,C727110,1
+1N4007,D3,Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal,C727110,1
+SW_Push 6x6mm,SW1,Button_Switch_THT:SW_PUSH_6mm,C318884,1
+SW_Push 6x6mm,SW2,Button_Switch_THT:SW_PUSH_6mm,C318884,1
+Polyfuse 1A,F1,Fuse:Fuse_1812_4532Metric,C369150,1
+10K,R1,Resistor_SMD:R_0805_2012Metric,C17414,1
+10K,R2,Resistor_SMD:R_0805_2012Metric,C17414,1
+10K,R3,Resistor_SMD:R_0805_2012Metric,C17414,1
+100R,R4,Resistor_SMD:R_0805_2012Metric,C17408,1
+4K7,R5,Resistor_SMD:R_0805_2012Metric,C17673,1
+10K,R6,Resistor_SMD:R_0805_2012Metric,C17414,1
+100uF 16V,C1,Capacitor_THT:CP_Radial_D6.3mm_P2.50mm,C62923,1
+100nF,C2,Capacitor_SMD:C_0805_2012Metric,C49678,1
+100nF,C3,Capacitor_SMD:C_0805_2012Metric,C49678,1
+Screw Terminal 2P 5.08mm,J1,Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled,C8465,1
+Screw Terminal 2P 5.08mm,J2,Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled,C8465,1
+PinHeader 2x03 2.54mm,J3,Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical,C124378,1
+PinHeader 1x04 2.54mm,J4,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,C358686,1
