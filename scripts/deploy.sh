@@ -43,6 +43,36 @@ deploy_astro() {
   echo -e "${GREEN}✓ Astro site deployed → https://www.greenguard-usa.com${NC}"
 }
 
+deploy_poolpro() {
+  echo -e "${CYAN}▲ Deploying poolpro.greenguard-usa.com ...${NC}"
+  cd "$REPO_ROOT/app"
+  echo -e "${CYAN}  Running lint check...${NC}"
+  if ! npx next lint --quiet 2>&1; then
+    echo -e "${RED}✗ Lint errors found — fix before deploying${NC}"
+    exit 1
+  fi
+  local orig; orig=$(cat .vercel/project.json)
+  echo '{"projectId":"prj_a4m5ikASIpraF8quL7wo6oXfCBZx","orgId":"team_wmgMBIorBimWUSRnl2BGcolX","projectName":"poolpro-portal"}' > .vercel/project.json
+  vercel --prod --scope "$SCOPE" || { echo "$orig" > .vercel/project.json; exit 1; }
+  echo "$orig" > .vercel/project.json
+  echo -e "${GREEN}✓ PoolPro deployed → https://poolpro.greenguard-usa.com${NC}"
+}
+
+deploy_lawnpro() {
+  echo -e "${CYAN}▲ Deploying lawnpro.greenguard-usa.com ...${NC}"
+  cd "$REPO_ROOT/app"
+  echo -e "${CYAN}  Running lint check...${NC}"
+  if ! npx next lint --quiet 2>&1; then
+    echo -e "${RED}✗ Lint errors found — fix before deploying${NC}"
+    exit 1
+  fi
+  local orig; orig=$(cat .vercel/project.json)
+  echo '{"projectId":"prj_WdqNwToBzlCcwLdfAzwLCCh9jY1r","orgId":"team_wmgMBIorBimWUSRnl2BGcolX","projectName":"lawnpro-portal"}' > .vercel/project.json
+  vercel --prod --scope "$SCOPE" || { echo "$orig" > .vercel/project.json; exit 1; }
+  echo "$orig" > .vercel/project.json
+  echo -e "${GREEN}✓ LawnPro deployed → https://lawnpro.greenguard-usa.com${NC}"
+}
+
 deploy_photos() {
   echo -e "${CYAN}▲ Deploying photos.greenguard-usa.com ...${NC}"
   cd "$REPO_ROOT/photos"
@@ -54,10 +84,12 @@ deploy_photos() {
 }
 
 case "${1:-all}" in
-  portal) deploy_portal ;;
-  site)   deploy_site ;;
-  astro)  deploy_astro ;;
-  photos) deploy_photos ;;
+  portal)  deploy_portal ;;
+  poolpro) deploy_poolpro ;;
+  lawnpro) deploy_lawnpro ;;
+  site)    deploy_site ;;
+  astro)   deploy_astro ;;
+  photos)  deploy_photos ;;
   all)
     deploy_site
     echo ""

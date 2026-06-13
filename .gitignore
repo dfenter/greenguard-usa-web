@@ -28,3 +28,10 @@ credentials.json
 .claude/settings.local.json
 .vercel
 .claude/settings.json
+
+# Dependencies & build junk (never commit)
+node_modules/
+**/node_modules/
+package-lock.json
+/package.json
+*.dmg

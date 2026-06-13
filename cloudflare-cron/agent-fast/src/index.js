@@ -51,8 +51,7 @@ async function sendAlert(env, subject, html) {
 async function siteHealth(env) {
   const checks = [
     { name: 'site',   url: 'https://www.greenguard-usa.com' },
-    { name: 'portal', url: `${PORTAL}/api/health` },
-    { name: 'login',  url: `${PORTAL}/login` },
+    { name: 'portal', url: `${PORTAL}/api/ping` },
   ]
   const results = {}
   for (const c of checks) {
@@ -70,11 +69,11 @@ async function siteHealth(env) {
       `<p><strong>www.greenguard-usa.com returned HTTP ${results.site}</strong></p>
        <p>A redeploy has been triggered automatically. Should be back within 60 seconds.</p>`)
   }
-  if (results.portal !== 200 || results.login !== 200) {
+  if (results.portal !== 200) {
     await sendAlert(env, '🚨 GreenGuard PORTAL is DOWN',
       `<p><strong>portal.greenguard-usa.com is not responding.</strong></p>
-       <p>Portal: HTTP ${results.portal}<br>Login: HTTP ${results.login}</p>
-       <p>Check Render dashboard.</p>`)
+       <p>Health check: HTTP ${results.portal}</p>
+       <p>Check Vercel dashboard.</p>`)
   }
   console.log(`[site-health] ${JSON.stringify(results)}`)
   return { name: 'site-health', ...results }
