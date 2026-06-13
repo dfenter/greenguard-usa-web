@@ -207,6 +207,157 @@ import Reviews from '../components/Reviews.astro';
   <!-- REVIEWS -->
   <Reviews bg="bg-bg" />
 
+  <!-- PROOF OF RESULTS -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Real Results</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white mb-3">This is what one Austin trap catches in a week.</h2>
+        <p class="text-cream/65 text-base max-w-xl mx-auto">Every mosquito in that pile is one that never bit your family. No pesticides. No sprays. Just a CO₂ trap doing its job.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
+        <div class="rounded-xl overflow-hidden border border-accent/20">
+          <img
+            src="/images/results-mosquito-haul.jpg"
+            alt="Thousands of dead mosquitoes caught by a single GreenGuard CO2 trap in one week in Austin TX"
+            class="w-full h-72 object-cover"
+            loading="lazy"
+          />
+        </div>
+        <div class="rounded-xl overflow-hidden border border-accent/20">
+          <img
+            src="/images/results-mosquito-haul-2.jpg"
+            alt="Hand next to pile of mosquitoes caught by GreenGuard CO2 trap — Austin Texas mosquito control"
+            class="w-full h-72 object-cover"
+            loading="lazy"
+          />
+        </div>
+      </div>
+      <p class="text-center text-cream/45 text-xs mt-5">Actual catch from a customer property in Austin, TX. Results vary by property size and mosquito pressure.</p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="py-16 px-5">
+    <div class="max-w-2xl mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Common Questions</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white mb-3">Frequently asked questions</h2>
+      </div>
+      <div class="space-y-4" id="faq-list">
+        {[
+          { q: "How is CO₂ trapping different from mosquito sprays?", a: "Sprays coat your yard in pesticides that kill indiscriminately, including bees and beneficial insects. CO₂ traps use the same signal mosquitoes use to find you, drawing them in and capturing them without any chemicals. No spray drift, no residue, no bee deaths." },
+          { q: "How quickly will I see results?", a: "Most customers notice a significant reduction in mosquito activity within 2 to 4 weeks. Studies show up to 93% bite reduction after 6 months of continuous trapping as the local breeding population collapses." },
+          { q: "What does the service include?", a: "We handle everything: trap installation, monthly CO₂ tank exchanges, maintenance, and seasonal adjustments. You don't touch the equipment. We show up, swap tanks, and leave your yard protected." },
+          { q: "Do I have to sign a long-term contract?", a: "No contracts. Service runs month to month. Most customers stay because it works, not because they're locked in." },
+          { q: "Is it safe for kids, pets, and bees?", a: "Yes. CO₂ traps target only blood-seeking insects following carbon dioxide. Bees don't follow CO₂ cues, so they're completely unaffected. No pesticides means no risk to kids, pets, or your garden." },
+        ].map(({ q, a }) => (
+          <details class="card" style="cursor: pointer;">
+            <summary style="font-weight: 800; color: #fff; font-size: 0.95rem; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+              {q}
+              <span style="color: #c9a84c; font-size: 1.2rem; flex-shrink: 0;">+</span>
+            </summary>
+            <p style="margin-top: 12px; font-size: 0.88rem; color: rgba(212,230,202,0.7); line-height: 1.7;">{a}</p>
+          </details>
+        ))}
+      </div>
+      <p class="text-center text-cream/45 text-sm mt-8">
+        More questions? <a href="/faq" class="text-accent underline hover:text-accent/80">See all FAQs</a> or <a href="/compare" class="text-accent underline hover:text-accent/80">compare all options</a>.
+      </p>
+    </div>
+  </section>
+
+  <!-- EMAIL CAPTURE -->
+  <section class="py-14 px-5 bg-bg-panel">
+    <div class="max-w-xl mx-auto text-center">
+      <div class="eyebrow mb-3">Stay in the Loop</div>
+      <h2 class="text-xl md:text-2xl font-black text-white mb-2">Get seasonal tips and service updates</h2>
+      <p class="text-cream/60 text-sm mb-6">No spam. Just useful info about protecting your Austin property from mosquitoes.</p>
+      <form id="email-capture-form" class="flex gap-3 flex-wrap justify-center max-w-md mx-auto">
+        <input
+          type="email"
+          id="email-capture-input"
+          placeholder="your@email.com"
+          required
+          style="flex: 1 1 200px; padding: 11px 14px; border-radius: 6px; border: 1px solid rgba(122,171,130,0.3); background: rgba(255,255,255,0.05); color: #d4e6ca; font-size: 0.95rem; outline: none; font-family: inherit; min-width: 0;"
+        />
+        <button type="submit" class="btn-gold" style="white-space: nowrap; padding: 11px 24px;">Subscribe</button>
+      </form>
+      <p id="email-capture-msg" style="font-size: 0.82rem; margin-top: 10px; min-height: 1.2em; color: #7dffaa; display: none;"></p>
+    </div>
+  </section>
+  <script>
+    const form = document.getElementById('email-capture-form') as HTMLFormElement | null;
+    const msg = document.getElementById('email-capture-msg') as HTMLElement | null;
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = (document.getElementById('email-capture-input') as HTMLInputElement)?.value?.trim();
+      if (!email) return;
+      try {
+        await fetch('https://portal.greenguard-usa.com/api/leads/subscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, source: 'homepage_footer' }),
+        });
+        if (msg) { msg.textContent = 'You\'re in. Talk soon.'; msg.style.display = 'block'; }
+        form.reset();
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'lead_capture', { event_category: 'email', event_label: 'homepage_footer' });
+        }
+      } catch {
+        if (msg) { msg.textContent = 'Something went wrong. Try again.'; msg.style.color = '#ff8080'; msg.style.display = 'block'; }
+      }
+    });
+  </script>
+
+  <!-- SERVICE AREAS -->
+  <section class="py-16 px-5">
+    <div class="max-w-container mx-auto">
+      <div class="text-center mb-10">
+        <div class="eyebrow mb-2">Service Areas</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white mb-3">
+          Mosquito control across greater Austin, TX
+        </h2>
+        <p class="text-cream/65 max-w-xl mx-auto text-sm">
+          We serve Austin and 13 surrounding communities with the same pesticide-free CO₂ trap service and all-electric fleet.
+        </p>
+      </div>
+
+      <div class="max-w-3xl mx-auto mb-8">
+        <a href="/mosquito-control-austin-texas" class="card flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between hover:border-accent/40 transition-colors" style="text-decoration: none;">
+          <div>
+            <div class="eyebrow mb-1 text-xs">Complete Guide</div>
+            <div class="text-white font-bold">Mosquito Control in Austin, TX</div>
+            <p class="text-cream/60 text-sm mt-1">Species, season length, treatment options, and costs — everything Austin homeowners need to know.</p>
+          </div>
+          <span class="text-accent text-2xl flex-shrink-0">→</span>
+        </a>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+        {[
+          { city: 'Austin', slug: 'austin' },
+          { city: 'Cedar Park', slug: 'cedar-park' },
+          { city: 'Round Rock', slug: 'round-rock' },
+          { city: 'Westlake Hills', slug: 'westlake-hills' },
+          { city: 'Lakeway', slug: 'lakeway' },
+          { city: 'Bee Cave', slug: 'bee-cave' },
+          { city: 'Dripping Springs', slug: 'dripping-springs' },
+          { city: 'Steiner Ranch', slug: 'steiner-ranch' },
+          { city: 'Georgetown', slug: 'georgetown' },
+          { city: 'Pflugerville', slug: 'pflugerville' },
+          { city: 'Leander', slug: 'leander' },
+          { city: 'Liberty Hill', slug: 'liberty-hill' },
+          { city: 'Kyle', slug: 'kyle' },
+          { city: 'Buda', slug: 'buda' },
+        ].map(({ city, slug }) => (
+          <a href={`/mosquito-control-${slug}`} class="card text-center hover:border-accent/40 transition-colors py-2" style="text-decoration: none;">
+            <span class="text-cream/80 text-sm font-semibold">{city}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
   <!-- CLOSING CTA -->
   <section class="ix-cta bg-gradient-to-br from-bg-dark via-bg to-bg-card py-16 px-5 text-center">
     <div class="max-w-2xl mx-auto ix-cta-content">
@@ -218,4 +369,16 @@ import Reviews from '../components/Reviews.astro';
       <div class="text-cream/45 text-xs mt-4">or text/call 512-560-4129</div>
     </div>
   </section>
+
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      { "@type": "Question", "name": "How is CO₂ trapping different from mosquito sprays?", "acceptedAnswer": { "@type": "Answer", "text": "Sprays coat your yard in pesticides that kill indiscriminately, including bees and beneficial insects. CO₂ traps use the same signal mosquitoes use to find you, drawing them in and capturing them without any chemicals. No spray drift, no residue, no bee deaths." } },
+      { "@type": "Question", "name": "How quickly will I see results?", "acceptedAnswer": { "@type": "Answer", "text": "Most customers notice a significant reduction in mosquito activity within 2 to 4 weeks. Studies show up to 93% bite reduction after 6 months of continuous trapping as the local breeding population collapses." } },
+      { "@type": "Question", "name": "What does the service include?", "acceptedAnswer": { "@type": "Answer", "text": "We handle everything: trap installation, monthly CO₂ tank exchanges, maintenance, and seasonal adjustments. You don't touch the equipment. We show up, swap tanks, and leave your yard protected." } },
+      { "@type": "Question", "name": "Do I have to sign a long-term contract?", "acceptedAnswer": { "@type": "Answer", "text": "No contracts. Service runs month to month. Most customers stay because it works, not because they're locked in." } },
+      { "@type": "Question", "name": "Is it safe for kids, pets, and bees?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. CO₂ traps target only blood-seeking insects following carbon dioxide. Bees don't follow CO₂ cues, so they're completely unaffected. No pesticides means no risk to kids, pets, or your garden." } },
+    ]
+  })} />
 </Base>

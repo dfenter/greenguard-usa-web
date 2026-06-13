@@ -1,12 +1,36 @@
 ---
 import Base from '../layouts/Base.astro';
 import Reviews from '../components/Reviews.astro';
+import { getReviewMeta, getLatestReviews } from '../lib/reviews';
+
+const meta = getReviewMeta();
+const allReviews = getLatestReviews(20);
+
+const reviewSchema = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "GreenGuard USA",
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": String(meta.averageRating),
+    "reviewCount": String(meta.totalReviews),
+    "bestRating": "5",
+    "worstRating": "1"
+  },
+  "review": allReviews.map(r => ({
+    "@type": "Review",
+    "author": { "@type": "Person", "name": r.author },
+    "reviewRating": { "@type": "Rating", "ratingValue": String(r.rating), "bestRating": "5" },
+    "reviewBody": r.text,
+  }))
+};
 ---
 
 <Base
   title="CO₂ Mosquito Trap Results & Reviews Austin TX | GreenGuard USA"
-  description="Real results from Austin homeowners. 21 five-star reviews, 93% bite reduction in peer-reviewed studies, and mosquito-free backyards across the Austin metro."
+  description={`Real results from Austin homeowners. ${meta.totalReviews} five-star reviews, 93% bite reduction in peer-reviewed studies, and mosquito-free backyards across the Austin metro.`}
 >
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(reviewSchema)} />
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
     <div class="max-w-3xl mx-auto">

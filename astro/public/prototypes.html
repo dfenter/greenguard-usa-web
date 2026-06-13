@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>GreenGuard USA — Prototypes &amp; Engineering</title>
+<meta name="description" content="Interactive 3D prototype renderings and engineering analysis for the full GreenGuard trap lineup: Monolith, Monolith Black Fly, Monolith Mini, Under-Table Halo, and Halo Tower. Wind load, CFD airflow, CO₂ plume, and smoke-capture studies.">
+<link rel="canonical" href="https://www.greenguard-usa.com/prototypes.html">
+<style>
+  :root{
+    --bg:#070e08;
+    --bg2:#0d1a10;
+    --panel:#0f1f14;
+    --panel2:#13281a;
+    --line:#1f3a28;
+    --line2:#2a4d36;
+    --mint:#7dffaa;
+    --mint-dim:#5fc77f;
+    --gold:#c9a84c;
+    --gold-bright:#e7cf83;
+    --text:#e6f3e9;
+    --muted:#9bb8a4;
+    --muted2:#6f8d79;
+    --shadow:0 24px 60px -20px rgba(0,0,0,.7);
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 700px at 70% -10%, #11231701 0%, transparent 60%),
+               radial-gradient(900px 600px at 0% 100%, #0d1a1033 0%, transparent 55%),
+               var(--bg);
+    color:var(--text);
+    font-family:-apple-system,'SF Pro Display','Inter',system-ui,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;min-height:100vh;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+
+  /* ---------- Top bar ---------- */
+  header.topbar{
+    position:sticky;top:0;z-index:40;
+    display:flex;align-items:center;gap:18px;
+    padding:11px clamp(16px,4vw,40px);
+    background:linear-gradient(180deg, rgba(7,14,8,.92), rgba(7,14,8,.72));
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:.2px}
+  .brand .mark{
+    width:32px;height:32px;border-radius:9px;flex:none;
+    background:conic-gradient(from 210deg, var(--mint), var(--mint-dim) 40%, var(--gold) 75%, var(--mint));
+    display:grid;place-items:center;color:#05140a;font-weight:900;font-size:17px;
+    box-shadow:0 0 0 1px rgba(125,255,170,.25), 0 8px 22px -8px rgba(125,255,170,.4);
+  }
+  .brand .name{font-size:17px}
+  .brand .name b{color:var(--mint)}
+  .brand .name .sub{display:block;font-size:10px;font-weight:600;letter-spacing:2.4px;color:var(--muted2);text-transform:uppercase;margin-top:1px}
+  .topbar .spacer{flex:1}
+  .topbar nav{display:flex;gap:6px}
+  .topbar nav a{font-size:13px;font-weight:600;color:var(--muted);padding:8px 13px;border-radius:8px;transition:.18s}
+  .topbar nav a:hover{color:var(--text);background:var(--panel)}
+  .topbar nav a.cta{background:var(--mint);color:#04130a;box-shadow:0 6px 18px -6px rgba(125,255,170,.55)}
+  .topbar nav a.cta:hover{background:#9bffbf}
+  @media(max-width:760px){.topbar nav a:not(.cta){display:none}}
+
+  /* ---------- Hero (compact) ---------- */
+  .hero{
+    padding:clamp(18px,3vw,30px) clamp(16px,4vw,40px) clamp(4px,1vw,8px);
+    max-width:1380px;width:100%;margin:0 auto;
+  }
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:11px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;
+    color:var(--gold);margin-bottom:9px;
+  }
+  .eyebrow::before{content:"";width:24px;height:1.5px;background:linear-gradient(90deg,var(--gold),transparent)}
+  .hero h1{font-size:clamp(22px,3.4vw,34px);line-height:1.06;font-weight:800;letter-spacing:-.6px;max-width:22ch}
+  .hero h1 .g{background:linear-gradient(120deg,var(--mint),var(--gold-bright));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.lede{margin-top:10px;max-width:64ch;font-size:clamp(13px,1.5vw,14.5px);line-height:1.55;color:var(--muted)}
+
+  /* ---------- Stage ---------- */
+  .stage{max-width:1380px;width:100%;margin:clamp(14px,2vw,20px) auto clamp(26px,4vw,40px);padding:0 clamp(16px,4vw,40px)}
+
+  /* control bar: two dropdowns + actions */
+  .controls{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px;border:1px solid var(--line);border-bottom:none;border-radius:14px 14px 0 0;
+    background:linear-gradient(180deg,var(--panel),var(--bg2));
+  }
+  .selwrap{position:relative;display:inline-flex;align-items:center}
+  .selwrap::after{content:"";position:absolute;right:12px;top:50%;width:8px;height:8px;
+    border-right:2px solid var(--mint);border-bottom:2px solid var(--mint);transform:translateY(-65%) rotate(45deg);pointer-events:none}
+  .selwrap.lbl::before{content:attr(data-label);position:absolute;left:14px;top:6px;z-index:1;
+    font-size:9.5px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted2);pointer-events:none}
+  select{
+    appearance:none;-webkit-appearance:none;cursor:pointer;
+    font-family:inherit;font-size:14px;font-weight:700;color:var(--text);
+    background:#0b1a11;border:1px solid var(--line2);border-radius:10px;
+    padding:12px 38px 12px 14px;transition:.16s;min-width:170px;
+  }
+  .selwrap.lbl select{padding-top:19px;padding-bottom:7px}
+  select:hover{border-color:var(--mint)}
+  select:focus{outline:none;border-color:var(--mint);box-shadow:0 0 0 3px rgba(125,255,170,.18)}
+  select option{background:#0b1a11;color:var(--text)}
+  select optgroup{background:#0b1a11;color:var(--muted2);font-style:normal;font-weight:700}
+
+  #selProduct{min-width:210px;font-size:15px}
+  .badge{font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;border-radius:7px;white-space:nowrap}
+  .badge.render{background:rgba(125,255,170,.14);color:var(--mint);border:1px solid rgba(125,255,170,.3)}
+  .badge.test{background:rgba(201,168,76,.14);color:var(--gold-bright);border:1px solid rgba(201,168,76,.32)}
+  .controls .grow{flex:1}
+  .tbtn{
+    display:inline-flex;align-items:center;gap:6px;cursor:pointer;flex:none;
+    font-size:12.5px;font-weight:650;color:var(--muted);
+    border:1px solid var(--line2);background:#0b1a11;border-radius:10px;padding:11px 13px;transition:.16s;
+  }
+  .tbtn:hover{color:var(--text);border-color:var(--mint)}
+  .tbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9}
+  @media(max-width:680px){.tbtn span{display:none}.controls .grow{display:none}}
+
+  /* sub-line: product blurb + chips */
+  .subline{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:9px 14px;border-left:1px solid var(--line);border-right:1px solid var(--line);
+    background:var(--bg2);font-size:12.5px;color:var(--muted);line-height:1.45;
+  }
+  .subline .desc{color:var(--muted)}
+  .subline .chips{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  .chip{font-size:10.5px;font-weight:600;color:var(--muted);background:#0b1a11;border:1px solid var(--line);padding:3px 9px;border-radius:99px}
+  @media(max-width:680px){.subline .chips{display:none}}
+
+  /* viewer */
+  .viewerwrap{position:relative;border:1px solid var(--line);border-top:none;overflow:hidden;background:#05100a;box-shadow:var(--shadow)}
+  .framebox{position:relative;width:100%;height:min(80vh,880px);background:#05100a}
+  .framebox iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+  .loader{
+    position:absolute;inset:0;display:grid;place-items:center;gap:13px;
+    background:radial-gradient(600px 300px at 50% 40%,#0e1d13,#05100a);z-index:2;transition:opacity .4s;
+  }
+  .loader.hide{opacity:0;pointer-events:none}
+  .spin{width:36px;height:36px;border-radius:50%;border:3px solid var(--line2);border-top-color:var(--mint);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loader .ltxt{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+  .loader .lsub{font-size:11px;color:var(--muted2);margin-top:-7px}
+
+  /* spec strip */
+  .specstrip{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;
+    border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px;background:var(--line);overflow:hidden;
+  }
+  .specstrip .cell{background:var(--bg2);padding:11px 16px}
+  .specstrip .k{font-size:9.5px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted2)}
+  .specstrip .v{font-size:14.5px;font-weight:750;margin-top:2px;color:var(--text)}
+  .specstrip .v small{font-size:11px;color:var(--muted);font-weight:600}
+
+  footer{margin-top:auto;border-top:1px solid var(--line);padding:18px clamp(16px,4vw,40px);
+    display:flex;gap:14px;flex-wrap:wrap;align-items:center;color:var(--muted2);font-size:12.5px}
+  footer .spacer{flex:1}
+  footer a{color:var(--muted);font-weight:600}
+  footer a:hover{color:var(--mint)}
+
+  .fade{animation:fade .3s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  :focus-visible{outline:2px solid var(--mint);outline-offset:2px;border-radius:6px}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="https://www.greenguard-usa.com">
+    <span class="mark">G</span>
+    <span class="name"><b>Green</b>Guard<span class="sub">Engineering</span></span>
+  </a>
+  <span class="spacer"></span>
+  <nav>
+    <a href="https://www.greenguard-usa.com">Home</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/shop">Shop</a>
+    <a href="/cutsheets.html">Cut Sheets</a>
+    <a class="cta" href="/book">Book a Trial</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <span class="eyebrow">Hardware &amp; Engineering</span>
+  <h1>The GreenGuard <span class="g">trap lineup</span>, rendered and stress-tested.</h1>
+  <p class="lede">Pick a product, then a view: interactive 3D renders plus the engineering behind each one — wind load, CFD airflow, CO₂ plume, and smoke-capture studies. Drag to orbit, scroll to zoom.</p>
+</section>
+
+<main class="stage">
+  <div class="controls">
+    <span class="selwrap lbl" data-label="Product">
+      <select id="selProduct" aria-label="Select product"></select>
+    </span>
+    <span class="selwrap lbl" data-label="View">
+      <select id="selView" aria-label="Select view"></select>
+    </span>
+    <span id="vBadge" class="badge render">Render</span>
+    <span class="grow"></span>
+    <a class="tbtn" id="vOpen" target="_blank" rel="noopener" title="Open standalone">
+      <svg viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-9 9M19 13v6H5V5h6"/></svg><span>New tab</span>
+    </a>
+    <button class="tbtn" id="vFull" title="Fullscreen">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span>Fullscreen</span>
+    </button>
+  </div>
+
+  <div class="subline">
+    <span class="desc" id="vDesc"></span>
+    <span class="chips" id="vChips"></span>
+  </div>
+
+  <div class="viewerwrap">
+    <div class="framebox" id="framebox">
+      <div class="loader" id="loader">
+        <div class="spin"></div>
+        <div class="ltxt" id="loaderTxt">Loading model…</div>
+        <div class="lsub">3D viewers can take a moment on first load</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="specstrip" id="specstrip"></div>
+</main>
+
+<footer>
+  <span class="brand" style="font-size:14px"><span class="mark" style="width:24px;height:24px;font-size:13px;border-radius:7px">G</span> GreenGuard USA</span>
+  <span class="spacer"></span>
+  <span>Austin, TX · Bee-safe CO₂ mosquito control</span>
+  <a href="/contact">Contact</a>
+  <a href="https://www.greenguard-usa.com">greenguard-usa.com</a>
+</footer>
+
+<script>
+/* ============================================================
+   GreenGuard Product Showcase — data model
+   Each product groups one or more "views" (renders + tests),
+   every view is a standalone HTML loaded lazily in an iframe so
+   all original viewer functionality is preserved verbatim.
+   ============================================================ */
+const PRODUCTS = [
+  {
+    id:"monolith", tag:"Flagship", name:"GreenGuard Monolith",
+    blurb:"Full-size architectural CO₂ counterflow trap — the flagship unit deployed on premium properties.",
+    chips:["CO₂ + heat lure","Counterflow capture","All-weather shell"],
+    specs:[
+      {k:"Height",v:"49<small> in manifold</small>"},
+      {k:"Catch tube",v:"10<small> in</small>"},
+      {k:"Fan",v:"Fantech FG10"},
+      {k:"Wind rating",v:"70<small> mph (staked)</small>"},
+    ],
+    views:[
+      {kind:"render",label:"Product Render",file:"render.html",title:"Monolith — Production Render",desc:"Full exterior + cutaway, drag to orbit."},
+      {kind:"test",label:"Wind Load",file:"wind-load.html",title:"Monolith — Wind Load Analysis",desc:"CFD tipping study across wind speeds & angles."},
+      {kind:"test",label:"Internal Airflow",file:"airflow.html",title:"Monolith — Internal Flow CFD",desc:"Plenum & catch-tube velocity field."},
+      {kind:"test",label:"CO₂ Plume",file:"co2.html",title:"Monolith — CO₂ Plume Dispersion",desc:"Lure plume spread under ambient wind."},
+      {kind:"test",label:"Smoke Capture",file:"smoke-animation.html",title:"Monolith — Smoke Capture Simulation",desc:"Particle capture & retention animation."},
+    ],
+  },
+  {
+    id:"monolith-bf", tag:"Black Fly", name:"Monolith Black Fly",
+    blurb:"High-suction Monolith variant tuned for black flies (Simuliidae): roughly double the airflow, a heated plume with octenol lure, and a blue biting-fly visual cue.",
+    chips:["~900–1000 CFM","Heated plume + octenol","Blue fly-cue, no UV"],
+    specs:[
+      {k:"Fan",v:"FG12<small> + FG10 booster</small>"},
+      {k:"Airflow",v:"~900–1000<small> CFM</small>"},
+      {k:"Slats",v:"10<small> mm</small>"},
+      {k:"Target",v:"Black flies"},
+    ],
+    views:[
+      {kind:"render",label:"Product Render",file:"monolith-bf.html",title:"Monolith Black Fly — Production Render",desc:"High-power BF variant, drag to orbit."},
+      {kind:"test",label:"Smoke Capture",file:"monolith-bf-smoke.html",title:"Monolith Black Fly — Smoke Capture Simulation",desc:"Particle capture at ~2× suction — captures wider than the standard Monolith."},
+    ],
+  },
+  {
+    id:"mini", tag:"Compact", name:"Monolith Mini",
+    blurb:"Scaled-down Monolith for smaller yards, patios, and tighter placements — same capture geometry, smaller footprint.",
+    chips:["Compact footprint","Same internals","Patio-friendly"],
+    specs:[
+      {k:"Form",v:"Compact"},
+      {k:"Lure",v:"CO₂ + heat"},
+      {k:"Capture",v:"Counterflow"},
+      {k:"Placement",v:"Patio / small yard"},
+    ],
+    views:[
+      {kind:"render",label:"Product Render",file:"render-mini.html",title:"Monolith Mini — Production Render",desc:"Compact variant, drag to orbit."},
+      {kind:"test",label:"Internal Airflow",file:"mini-airflow.html",title:"Monolith Mini — Internal Flow CFD",desc:"Plenum & catch-tube velocity field (Mini geometry)."},
+      {kind:"test",label:"CO₂ Plume",file:"mini-co2.html",title:"Monolith Mini — CO₂ Plume Dispersion",desc:"Lure plume spread under ambient wind."},
+      {kind:"test",label:"Smoke Capture",file:"mini-smoke.html",title:"Monolith Mini — Smoke Capture Simulation",desc:"Particle capture, compact chassis."},
+      {kind:"test",label:"Wind Load",file:"mini-wind.html",title:"Monolith Mini — Wind Load Analysis",desc:"Drag & tip stability at 95 lb assembled — stable well past 90 mph."},
+    ],
+  },
+  {
+    id:"titan", tag:"Industrial", name:"GreenGuard Titan",
+    blurb:"Industrial-scale CO₂ counterflow trap for up to 2 acres — the Monolith scaled to 6 ft with a 14 in catch tube, 100 lb CO₂ cylinder, and a ~2,700 CFM stack.",
+    chips:["Up to 2 acres","~2,700 CFM","100 lb CO₂ cylinder"],
+    specs:[
+      {k:"Height",v:"72<small> in (6 ft)</small>"},
+      {k:"Footprint",v:"30 × 30<small> in</small>"},
+      {k:"Catch tube",v:"14<small> in</small>"},
+      {k:"Coverage",v:"Up to 2 acres"},
+    ],
+    views:[
+      {kind:"render",label:"Product Render",file:"titan.html",title:"GreenGuard Titan — Industrial Render",desc:"30 × 30 × 72 in industrial counterflow trap. Drag to orbit; Shell toggle for cutaway."},
+    ],
+  },
+  {
+    id:"halo", tag:"New Form", name:"Under-Table Halo",
+    blurb:"Disc-form counterflow trap that mounts discreetly beneath patio tables — pulls mosquitoes down and away from guests.",
+    chips:["Under-table mount","Disc counterflow","Low-profile"],
+    specs:[
+      {k:"Form",v:"Disc / halo"},
+      {k:"Mount",v:"Under-table"},
+      {k:"Flow",v:"Counterflow"},
+      {k:"Profile",v:"Low-visibility"},
+    ],
+    views:[
+      {kind:"render",label:"Product Render",file:"newtrap.html",title:"Under-Table Halo — Production Render",desc:"Full 3D model, drag to orbit."},
+      {kind:"test",label:"CFD Report",file:"halo-cfd.html",title:"Halo — CFD Capture Report",desc:"Counterflow velocity field & capture analysis."},
+      {kind:"test",label:"Smoke Capture",file:"halo-smoke.html",title:"Halo — Smoke Capture Simulation",desc:"Throat suction draw-in below the disc (scent plume drives long-range attraction)."},
+    ],
+  },
+  {
+    id:"halo-eco", tag:"Consumer · Eco", name:"Halo Eco",
+    blurb:"The tankless, plug-in entry point — the under-table Halo's counterflow capture, powered by a 92 mm USB fan and yeast CO₂. No tank, no regulator, $39.99 retail.",
+    chips:["No tank · USB-C","Yeast CO₂","$39.99 retail"],
+    specs:[
+      {k:"CO₂",v:"Yeast<small> (tankless)</small>"},
+      {k:"Fan",v:"92 mm<small> USB-C</small>"},
+      {k:"Catch net",v:"160 mm"},
+      {k:"Retail",v:"$39.99<small> DTC</small>"},
+    ],
+    views:[
+      {kind:"render",label:"Product Render",file:"newtrap.html",title:"Halo Eco — Under-Table Counterflow",desc:"Same under-table Halo geometry, productized as a tankless consumer build."},
+      {kind:"test",label:"Cut Sheet",file:"cutsheet-halo-eco.html",title:"Halo Eco — Cut Sheet",desc:"Specs, performance & unit economics."},
+      {kind:"test",label:"CFD Report",file:"halo-cfd.html",title:"Halo — CFD Capture Report",desc:"Counterflow velocity field & capture analysis."},
+      {kind:"test",label:"Smoke Capture",file:"halo-smoke.html",title:"Halo — Smoke Capture Simulation",desc:"Throat suction draw-in below the disc."},
+    ],
+  },
+  {
+    id:"halo-lotus", tag:"Halo Garden", name:"Halo · Lotus Bloom",
+    blurb:"Tiered petals open around the intake; tank in the calyx base. One shared face-up counterflow engine; mosquitoes are drawn into the intake.",
+    chips:["Hides 20 lb tank","Mosquito capture","Garden sculpture"],
+    specs:[{k:"Body",v:"Lotus Bloom"},{k:"Engine",v:"Face-up<small> counterflow</small>"},{k:"Tank",v:"20 lb<small> concealed</small>"},{k:"Lure",v:"CO₂ + heat"}],
+    views:[
+      {kind:"render",label:"Render + Capture",file:"halo-lotus.html",title:"Halo Garden — Lotus Bloom",desc:"Body with live mosquito capture from smoke-test data."},
+      {kind:"test",label:"Smoke Capture",file:"halo-lotus-smoke.html",title:"Lotus Bloom — Smoke Capture",desc:"Mosquito paths drawn into the intake; green = captured."},
+      {kind:"test",label:"Airflow",file:"halo-lotus-airflow.html",title:"Lotus Bloom — Airflow",desc:"Potential-flow streamlines converging on the intake."},
+      {kind:"test",label:"CO₂ Plume",file:"halo-lotus-co2.html",title:"Lotus Bloom — CO₂ Plume",desc:"Buoyant CO₂ + heat lure rising from the head."},
+      {kind:"test",label:"Wind Tunnel",file:"halo-lotus-wind.html",title:"Lotus Bloom — Wind Tunnel",desc:"Drag & tip stability vs wind speed."},
+    ],
+  },
+  {
+    id:"halo-agave", tag:"Halo Garden", name:"Halo · Agave Rosette",
+    blurb:"Radiating blades, intake at the heart; widest, most grounded body. One shared face-up counterflow engine; mosquitoes are drawn into the intake.",
+    chips:["Hides 20 lb tank","Mosquito capture","Garden sculpture"],
+    specs:[{k:"Body",v:"Agave Rosette"},{k:"Engine",v:"Face-up<small> counterflow</small>"},{k:"Tank",v:"20 lb<small> concealed</small>"},{k:"Lure",v:"CO₂ + heat"}],
+    views:[
+      {kind:"render",label:"Render + Capture",file:"halo-agave.html",title:"Halo Garden — Agave Rosette",desc:"Body with live mosquito capture from smoke-test data."},
+      {kind:"test",label:"Smoke Capture",file:"halo-agave-smoke.html",title:"Agave Rosette — Smoke Capture",desc:"Mosquito paths drawn into the intake; green = captured."},
+      {kind:"test",label:"Airflow",file:"halo-agave-airflow.html",title:"Agave Rosette — Airflow",desc:"Potential-flow streamlines converging on the intake."},
+      {kind:"test",label:"CO₂ Plume",file:"halo-agave-co2.html",title:"Agave Rosette — CO₂ Plume",desc:"Buoyant CO₂ + heat lure rising from the head."},
+      {kind:"test",label:"Wind Tunnel",file:"halo-agave-wind.html",title:"Agave Rosette — Wind Tunnel",desc:"Drag & tip stability vs wind speed."},
+    ],
+  },
+  {
+    id:"halo-spiral", tag:"Halo Garden", name:"Halo · Spiral",
+    blurb:"Softly twisted fluted helix; tank in the spiral core. One shared face-up counterflow engine; mosquitoes are drawn into the intake.",
+    chips:["Hides 20 lb tank","Mosquito capture","Garden sculpture"],
+    specs:[{k:"Body",v:"Spiral"},{k:"Engine",v:"Face-up<small> counterflow</small>"},{k:"Tank",v:"20 lb<small> concealed</small>"},{k:"Lure",v:"CO₂ + heat"}],
+    views:[
+      {kind:"render",label:"Render + Capture",file:"halo-spiral.html",title:"Halo Garden — Spiral",desc:"Body with live mosquito capture from smoke-test data."},
+      {kind:"test",label:"Smoke Capture",file:"halo-spiral-smoke.html",title:"Spiral — Smoke Capture",desc:"Mosquito paths drawn into the intake; green = captured."},
+      {kind:"test",label:"Airflow",file:"halo-spiral-airflow.html",title:"Spiral — Airflow",desc:"Potential-flow streamlines converging on the intake."},
+      {kind:"test",label:"CO₂ Plume",file:"halo-spiral-co2.html",title:"Spiral — CO₂ Plume",desc:"Buoyant CO₂ + heat lure rising from the head."},
+      {kind:"test",label:"Wind Tunnel",file:"halo-spiral-wind.html",title:"Spiral — Wind Tunnel",desc:"Drag & tip stability vs wind speed."},
+    ],
+  },
+  {
+    id:"halo-cairn", tag:"Halo Garden", name:"Halo · Stacked Cairn",
+    blurb:"Zen river-stones; tank inside the hollow stack. One shared face-up counterflow engine; mosquitoes are drawn into the intake.",
+    chips:["Hides 20 lb tank","Mosquito capture","Garden sculpture"],
+    specs:[{k:"Body",v:"Stacked Cairn"},{k:"Engine",v:"Face-up<small> counterflow</small>"},{k:"Tank",v:"20 lb<small> concealed</small>"},{k:"Lure",v:"CO₂ + heat"}],
+    views:[
+      {kind:"render",label:"Render + Capture",file:"halo-cairn.html",title:"Halo Garden — Stacked Cairn",desc:"Body with live mosquito capture from smoke-test data."},
+      {kind:"test",label:"Smoke Capture",file:"halo-cairn-smoke.html",title:"Stacked Cairn — Smoke Capture",desc:"Mosquito paths drawn into the intake; green = captured."},
+      {kind:"test",label:"Airflow",file:"halo-cairn-airflow.html",title:"Stacked Cairn — Airflow",desc:"Potential-flow streamlines converging on the intake."},
+      {kind:"test",label:"CO₂ Plume",file:"halo-cairn-co2.html",title:"Stacked Cairn — CO₂ Plume",desc:"Buoyant CO₂ + heat lure rising from the head."},
+      {kind:"test",label:"Wind Tunnel",file:"halo-cairn-wind.html",title:"Stacked Cairn — Wind Tunnel",desc:"Drag & tip stability vs wind speed."},
+    ],
+  },
+  {
+    id:"halo-facet", tag:"Halo Garden", name:"Halo · Faceted Gem",
+    blurb:"Low-poly cut-crystal monolith; tank within the body. One shared face-up counterflow engine; mosquitoes are drawn into the intake.",
+    chips:["Hides 20 lb tank","Mosquito capture","Garden sculpture"],
+    specs:[{k:"Body",v:"Faceted Gem"},{k:"Engine",v:"Face-up<small> counterflow</small>"},{k:"Tank",v:"20 lb<small> concealed</small>"},{k:"Lure",v:"CO₂ + heat"}],
+    views:[
+      {kind:"render",label:"Render + Capture",file:"halo-facet.html",title:"Halo Garden — Faceted Gem",desc:"Body with live mosquito capture from smoke-test data."},
+      {kind:"test",label:"Smoke Capture",file:"halo-facet-smoke.html",title:"Faceted Gem — Smoke Capture",desc:"Mosquito paths drawn into the intake; green = captured."},
+      {kind:"test",label:"Airflow",file:"halo-facet-airflow.html",title:"Faceted Gem — Airflow",desc:"Potential-flow streamlines converging on the intake."},
+      {kind:"test",label:"CO₂ Plume",file:"halo-facet-co2.html",title:"Faceted Gem — CO₂ Plume",desc:"Buoyant CO₂ + heat lure rising from the head."},
+      {kind:"test",label:"Wind Tunnel",file:"halo-facet-wind.html",title:"Faceted Gem — Wind Tunnel",desc:"Drag & tip stability vs wind speed."},
+    ],
+  },
+  {
+    id:"halo-birdbath", tag:"Halo Garden", name:"Halo · Birdbath Bowl",
+    blurb:"Wide bowl on a flared pedestal; intake set in the bowl. One shared face-up counterflow engine; mosquitoes are drawn into the intake.",
+    chips:["Hides 20 lb tank","Mosquito capture","Garden sculpture"],
+    specs:[{k:"Body",v:"Birdbath Bowl"},{k:"Engine",v:"Face-up<small> counterflow</small>"},{k:"Tank",v:"20 lb<small> concealed</small>"},{k:"Lure",v:"CO₂ + heat"}],
+    views:[
+      {kind:"render",label:"Render + Capture",file:"halo-birdbath.html",title:"Halo Garden — Birdbath Bowl",desc:"Body with live mosquito capture from smoke-test data."},
+      {kind:"test",label:"Smoke Capture",file:"halo-birdbath-smoke.html",title:"Birdbath Bowl — Smoke Capture",desc:"Mosquito paths drawn into the intake; green = captured."},
+      {kind:"test",label:"Airflow",file:"halo-birdbath-airflow.html",title:"Birdbath Bowl — Airflow",desc:"Potential-flow streamlines converging on the intake."},
+      {kind:"test",label:"CO₂ Plume",file:"halo-birdbath-co2.html",title:"Birdbath Bowl — CO₂ Plume",desc:"Buoyant CO₂ + heat lure rising from the head."},
+      {kind:"test",label:"Wind Tunnel",file:"halo-birdbath-wind.html",title:"Birdbath Bowl — Wind Tunnel",desc:"Drag & tip stability vs wind speed."},
+    ],
+  },
+  {
+    id:"halo-pinecone", tag:"Halo Garden", name:"Halo · Pinecone",
+    blurb:"Overlapping botanical scales; intake at the crown. One shared face-up counterflow engine; mosquitoes are drawn into the intake.",
+    chips:["Hides 20 lb tank","Mosquito capture","Garden sculpture"],
+    specs:[{k:"Body",v:"Pinecone"},{k:"Engine",v:"Face-up<small> counterflow</small>"},{k:"Tank",v:"20 lb<small> concealed</small>"},{k:"Lure",v:"CO₂ + heat"}],
+    views:[
+      {kind:"render",label:"Render + Capture",file:"halo-pinecone.html",title:"Halo Garden — Pinecone",desc:"Body with live mosquito capture from smoke-test data."},
+      {kind:"test",label:"Smoke Capture",file:"halo-pinecone-smoke.html",title:"Pinecone — Smoke Capture",desc:"Mosquito paths drawn into the intake; green = captured."},
+      {kind:"test",label:"Airflow",file:"halo-pinecone-airflow.html",title:"Pinecone — Airflow",desc:"Potential-flow streamlines converging on the intake."},
+      {kind:"test",label:"CO₂ Plume",file:"halo-pinecone-co2.html",title:"Pinecone — CO₂ Plume",desc:"Buoyant CO₂ + heat lure rising from the head."},
+      {kind:"test",label:"Wind Tunnel",file:"halo-pinecone-wind.html",title:"Pinecone — Wind Tunnel",desc:"Drag & tip stability vs wind speed."},
+    ],
+  },
+  {
+    id:"aria-planter", tag:"Aria", name:"Aria · Planter",
+    blurb:"Tank hidden under a false soil floor; the engine disappears into a garden planter. One shared single-fan counterflow cartridge.",
+    chips:["Hides the tank","Single-fan counterflow","Garden planter"],
+    specs:[{k:"Body",v:"Planter"},{k:"Engine",v:"206<small> mm shared</small>"},{k:"Airflow",v:"~22<small> CFM</small>"},{k:"Wind",v:"50<small> mph · SF 1.98</small>"}],
+    views:[
+      {kind:"render",label:"Render",file:"aria-planter.html",title:"Aria — Planter",desc:"Cutaway reveals the concealed engine & CO₂ tank."},
+      {kind:"test",label:"Engineering Tests",file:"aria-tests.html",title:"Aria — Full Test Pipeline",desc:"Airflow, CO₂ plume, smoke capture & per-form wind stability."},
+    ],
+  },
+  {
+    id:"aria-lantern", tag:"Aria", name:"Aria · Lantern",
+    blurb:"Tank concealed in the weighted post base; a luminous light-column body. One shared single-fan counterflow cartridge.",
+    chips:["Hides the tank","Single-fan counterflow","Light column"],
+    specs:[{k:"Body",v:"Lantern"},{k:"Engine",v:"206<small> mm shared</small>"},{k:"Airflow",v:"~22<small> CFM</small>"},{k:"Wind",v:"50<small> mph · SF 1.70</small>"}],
+    views:[
+      {kind:"render",label:"Render",file:"aria-lantern.html",title:"Aria — Lantern",desc:"Cutaway reveals the concealed engine & CO₂ tank."},
+      {kind:"test",label:"Engineering Tests",file:"aria-tests.html",title:"Aria — Full Test Pipeline",desc:"Airflow, CO₂ plume, smoke capture & per-form wind stability."},
+    ],
+  },
+  {
+    id:"aria-disc", tag:"Aria", name:"Aria · Disc",
+    blurb:"Tank inside the drum body; a low, sculptural disc. One shared single-fan counterflow cartridge.",
+    chips:["Hides the tank","Single-fan counterflow","Low sculptural drum"],
+    specs:[{k:"Body",v:"Disc"},{k:"Engine",v:"206<small> mm shared</small>"},{k:"Airflow",v:"~22<small> CFM</small>"},{k:"Wind",v:"50<small> mph · SF 3.96</small>"}],
+    views:[
+      {kind:"render",label:"Render",file:"aria-disc.html",title:"Aria — Disc",desc:"Cutaway reveals the concealed engine & CO₂ tank."},
+      {kind:"test",label:"Engineering Tests",file:"aria-tests.html",title:"Aria — Full Test Pipeline",desc:"Airflow, CO₂ plume, smoke capture & per-form wind stability."},
+    ],
+  },
+  {
+    id:"aria-urn", tag:"Aria", name:"Aria · Urn",
+    blurb:"Tank in the plinth foot; a classic urn silhouette. One shared single-fan counterflow cartridge.",
+    chips:["Hides the tank","Single-fan counterflow","Classic urn"],
+    specs:[{k:"Body",v:"Urn"},{k:"Engine",v:"206<small> mm shared</small>"},{k:"Airflow",v:"~22<small> CFM</small>"},{k:"Wind",v:"50<small> mph · SF 1.72</small>"}],
+    views:[
+      {kind:"render",label:"Render",file:"aria-urn.html",title:"Aria — Urn",desc:"Cutaway reveals the concealed engine & CO₂ tank."},
+      {kind:"test",label:"Engineering Tests",file:"aria-tests.html",title:"Aria — Full Test Pipeline",desc:"Airflow, CO₂ plume, smoke capture & per-form wind stability."},
+    ],
+  },
+  {
+    id:"aria-pot", tag:"Aria", name:"Aria · Pot Insert",
+    blurb:"Drops the counterflow engine into your own terra-cotta pot — the tank buries in the pot. One shared single-fan cartridge.",
+    chips:["Buries in your pot","Single-fan counterflow","Drop-in insert"],
+    specs:[{k:"Body",v:"Pot insert"},{k:"Engine",v:"206<small> mm shared</small>"},{k:"Airflow",v:"~22<small> CFM</small>"},{k:"Wind",v:"50<small> mph · SF 4.49</small>"}],
+    views:[
+      {kind:"render",label:"Render",file:"aria-pot.html",title:"Aria — Pot Insert",desc:"Cutaway reveals the concealed engine & CO₂ tank."},
+      {kind:"test",label:"Engineering Tests",file:"aria-tests.html",title:"Aria — Full Test Pipeline",desc:"Airflow, CO₂ plume, smoke capture & per-form wind stability."},
+    ],
+  },
+];
+
+/* ---- state ---- */
+let curProd = PRODUCTS[0];
+let curView = curProd.views[0];
+const $ = s=>document.querySelector(s);
+const frameCache = {};
+const slug = s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
+
+/* ---- populate product dropdown ---- */
+const selProduct = $("#selProduct");
+PRODUCTS.forEach(p=>{
+  const o=document.createElement("option");
+  o.value=p.id;o.textContent=p.name+"  ·  "+p.tag;
+  selProduct.appendChild(o);
+});
+
+/* ---- populate view dropdown for current product ---- */
+function buildViewSelect(){
+  const sel=$("#selView");
+  sel.innerHTML="";
+  const renders=curProd.views.filter(v=>v.kind==="render");
+  const tests=curProd.views.filter(v=>v.kind==="test");
+  const addOpts=(arr,groupLabel)=>{
+    if(!arr.length) return;
+    let parent=sel;
+    if(tests.length){ // only group when there's a mix worth grouping
+      const og=document.createElement("optgroup");og.label=groupLabel;sel.appendChild(og);parent=og;
+    }
+    arr.forEach(v=>{
+      const o=document.createElement("option");
+      o.value=slug(v.label);o.textContent=v.label;
+      if(v===curView)o.selected=true;
+      parent.appendChild(o);
+    });
+  };
+  addOpts(renders,"Render");
+  addOpts(tests,"Engineering Tests");
+}
+
+/* ---- spec strip + sub-line ---- */
+function buildMeta(){
+  $("#specstrip").innerHTML=curProd.specs.map(s=>`<div class="cell"><div class="k">${s.k}</div><div class="v">${s.v}</div></div>`).join("");
+  $("#vChips").innerHTML=curProd.chips.map(c=>`<span class="chip">${c}</span>`).join("");
+}
+
+/* ---- iframe loading (lazy + cached) ---- */
+function loadView(){
+  const box=$("#framebox"), loader=$("#loader"), isTest=curView.kind==="test";
+  $("#vBadge").className="badge "+(isTest?"test":"render");
+  $("#vBadge").textContent=isTest?"Engineering Test":"Render";
+  $("#vDesc").textContent=curView.desc;
+  $("#vOpen").href="/"+curView.file;
+  $("#loaderTxt").textContent=isTest?"Loading simulation…":"Loading model…";
+
+  Object.values(frameCache).forEach(f=>f.style.display="none");
+  let frame=frameCache[curView.file];
+  if(frame){
+    frame.style.display="block";loader.classList.add("hide");
+  }else{
+    loader.classList.remove("hide");
+    frame=document.createElement("iframe");
+    frame.setAttribute("loading","lazy");
+    frame.setAttribute("allow","fullscreen; accelerometer; gyroscope");
+    frame.setAttribute("title",curView.title);
+    frame.dataset.file=curView.file;
+    frame.src="/"+curView.file;
+    frame.addEventListener("load",()=>{ if(curView.file===frame.dataset.file) loader.classList.add("hide"); });
+    box.appendChild(frame);
+    frameCache[curView.file]=frame;
+    setTimeout(()=>{ if(frameCache[curView.file]===frame && curView.file===frame.dataset.file) loader.classList.add("hide"); },6000);
+  }
+  box.classList.remove("fade");void box.offsetWidth;box.classList.add("fade");
+}
+
+/* ---- apply current product/view to all UI ---- */
+function render(writeHashFlag){
+  selProduct.value=curProd.id;
+  buildViewSelect();
+  $("#selView").value=slug(curView.label);
+  buildMeta();
+  loadView();
+  if(writeHashFlag) writeHash();
+}
+
+/* ---- events ---- */
+selProduct.addEventListener("change",()=>{
+  curProd=PRODUCTS.find(p=>p.id===selProduct.value)||PRODUCTS[0];
+  curView=curProd.views[0];
+  render(true);
+});
+$("#selView").addEventListener("change",e=>{
+  const v=curProd.views.find(x=>slug(x.label)===e.target.value);
+  if(v){curView=v;loadView();$("#vBadge");writeHash();
+    $("#vBadge").className="badge "+(curView.kind==="test"?"test":"render");}
+});
+$("#vFull").addEventListener("click",()=>{
+  const f=frameCache[curView.file];
+  if(f&&f.requestFullscreen) f.requestFullscreen();
+  else if(f&&f.webkitRequestFullscreen) f.webkitRequestFullscreen();
+});
+
+/* ---- keyboard: left/right cycle views within product ---- */
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="IFRAME"||e.target.tagName==="SELECT") return;
+  if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight") return;
+  const i=curProd.views.indexOf(curView), n=e.key==="ArrowRight"?i+1:i-1;
+  if(n>=0&&n<curProd.views.length){curView=curProd.views[n];$("#selView").value=slug(curView.label);loadView();writeHash();
+    $("#vBadge").className="badge "+(curView.kind==="test"?"test":"render");}
+});
+
+/* ---- hash routing ---- */
+function writeHash(){history.replaceState(null,"","#"+curProd.id+"/"+slug(curView.label));}
+function readHash(){
+  const h=location.hash.replace(/^#/,"");
+  if(!h) return false;
+  const [pid,vslug]=h.split("/");
+  const p=PRODUCTS.find(x=>x.id===pid);
+  if(!p) return false;
+  curProd=p;curView=p.views.find(x=>slug(x.label)===vslug)||p.views[0];
+  render(false);return true;
+}
+
+/* ---- init ---- */
+if(!readHash()) render(true);
+window.addEventListener("hashchange",readHash);
+</script>
+</body>
+</html>

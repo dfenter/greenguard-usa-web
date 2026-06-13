@@ -3,6 +3,7 @@ import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import LeadCapture from '../components/LeadCapture.astro';
+import { getReviewMeta } from '../lib/reviews';
 
 interface Props {
   title: string;
@@ -17,6 +18,7 @@ const {
 } = Astro.props;
 
 const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
+const reviewMeta = getReviewMeta();
 const GA_ID = import.meta.env.PUBLIC_GA_MEASUREMENT_ID ?? 'G-K2R5H2Z23X';
 const AW_ID = import.meta.env.PUBLIC_GOOGLE_ADS_CONVERSION_ID ?? 'AW-16913987571';
 const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
@@ -55,8 +57,7 @@ const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
     />
 
     <!-- LocalBusiness structured data -->
-    <script type="application/ld+json">
-    {
+    <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "name": "GreenGuard USA",
@@ -91,8 +92,8 @@ const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
       "paymentAccepted": "Credit Card, Debit Card",
       "aggregateRating": {
         "@type": "AggregateRating",
-        "ratingValue": "5.0",
-        "reviewCount": "21",
+        "ratingValue": String(reviewMeta.averageRating),
+        "reviewCount": String(reviewMeta.totalReviews),
         "bestRating": "5",
         "worstRating": "1"
       },
@@ -100,8 +101,7 @@ const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
         "https://www.facebook.com/GreenGuardUSA",
         "https://www.greenguard-usa.com"
       ]
-    }
-    </script>
+    })}></script>
 
     <!-- BreadcrumbList schema -->
     <script type="application/ld+json" set:html={JSON.stringify({
@@ -164,6 +164,7 @@ const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
           window.gtag('event', 'phone_call_click', {
             event_category: 'contact',
             event_label: (tel as HTMLAnchorElement).href.replace('tel:', ''),
+            transport_type: 'beacon',
           });
         }
 
@@ -173,6 +174,7 @@ const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
             event_category: 'cta',
             event_label: (cta as HTMLAnchorElement).textContent?.trim(),
             event_destination: (cta as HTMLAnchorElement).href,
+            transport_type: 'beacon',
           });
         }
       });

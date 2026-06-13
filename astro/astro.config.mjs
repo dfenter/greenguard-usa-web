@@ -12,6 +12,7 @@ export default defineConfig({
     inlineStylesheets: 'auto',
   },
   redirects: {
+    '/sitemap.xml': { status: 301, destination: '/sitemap-index.xml' },
     // Old static site product URLs → new Astro shop pages (existing)
     '/product-biogents-co2':    { status: 301, destination: '/shop/biogents-co2-trap' },
     '/product-biogents-no-co2': { status: 301, destination: '/shop/biogents-non-co2-trap' },
