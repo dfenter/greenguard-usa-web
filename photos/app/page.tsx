@@ -106,6 +106,7 @@ function Lightbox({ photos, index, onClose, onPrev, onNext, onRandomNext, onDele
   initialPlaying?: boolean
 }) {
   const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [imgLoaded, setImgLoaded] = useState(false)
   const [playing, setPlaying] = useState(initialPlaying ?? false)
   const playRef = useRef(false)
@@ -122,7 +123,7 @@ function Lightbox({ photos, index, onClose, onPrev, onNext, onRandomNext, onDele
     if (!playing) return
     const timer = setInterval(() => {
       if (playRef.current) onRandomNext()
-    }, 15000)
+    }, 10000)
     return () => clearInterval(timer)
   }, [playing, onRandomNext])
 
@@ -131,6 +132,7 @@ function Lightbox({ photos, index, onClose, onPrev, onNext, onRandomNext, onDele
     setShowTagger(false)
     setTagInput('')
     setRotation(0)
+    setConfirmDelete(false)
   }, [index])
 
   async function handleAddTag() {
@@ -179,16 +181,16 @@ function Lightbox({ photos, index, onClose, onPrev, onNext, onRandomNext, onDele
   const video = isVideo(photo)
 
   async function handleDelete() {
-    if (!confirm(`Move "${photo.name}" to trash?`)) return
+    if (!confirmDelete) { setConfirmDelete(true); return }
+    setConfirmDelete(false)
     setDeleting(true)
     try {
       const r = await fetch(`/api/photos/${photo.id}`, { method: 'DELETE' })
       if (!r.ok) throw new Error('Delete failed')
       onDelete(photo.id)
     } catch {
-      alert('Could not delete photo. Try again.')
-    } finally {
       setDeleting(false)
+      alert('Could not delete photo. Try again.')
     }
   }
 
@@ -230,14 +232,21 @@ function Lightbox({ photos, index, onClose, onPrev, onNext, onRandomNext, onDele
       <button className="lightbox-rotate right" onClick={e => { e.stopPropagation(); setRotation(r => (r + 90) % 360) }} title="Rotate right">↻</button>
 
       {/* Trash */}
-      <button
-        className={`lightbox-delete${deleting ? ' busy' : ''}`}
-        onClick={e => { e.stopPropagation(); handleDelete() }}
-        disabled={deleting}
-        title="Move to trash"
-      >
-        {deleting ? '…' : '⌫'}
-      </button>
+      {confirmDelete ? (
+        <div className="lightbox-delete-confirm" onClick={e => e.stopPropagation()}>
+          <button className="lightbox-delete-confirm-yes" onClick={() => handleDelete()}>Trash?</button>
+          <button className="lightbox-delete-confirm-no" onClick={() => setConfirmDelete(false)}>Cancel</button>
+        </div>
+      ) : (
+        <button
+          className={`lightbox-delete${deleting ? ' busy' : ''}`}
+          onClick={e => { e.stopPropagation(); handleDelete() }}
+          disabled={deleting}
+          title="Move to trash"
+        >
+          {deleting ? '…' : '⌫'}
+        </button>
+      )}
 
       <button className="lightbox-nav prev" onClick={e => { e.stopPropagation(); setPlaying(false); onPrev() }}>‹</button>
 
@@ -320,9 +329,11 @@ export default function GalleryPage() {
   const [searchText, setSearchText] = useState('')
   const [searchActive, setSearchActive] = useState(false)
   const [shuffleMode, setShuffleMode] = useState(false)
+  const [sortAsc, setSortAsc] = useState(false)
   const [onThisDay, setOnThisDay] = useState(false)
   const [showVideos, setShowVideos] = useState(false)
   const [showScreenshots, setShowScreenshots] = useState(false)
+  const [hideSmall, setHideSmall] = useState(false)
   const [slideshowStart, setSlideshowStart] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null)
   const [peopleList, setPeopleList] = useState<{ name: string; count: number }[]>([])
@@ -336,6 +347,7 @@ export default function GalleryPage() {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const pendingSlideshowRef = useRef(false)
   const loadingRef = useRef(false)
+  const slideshowPool = useRef<Photo[]>([])
   const cursorRef = useRef<string | null>(null)
   const hasMoreRef = useRef(true)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -360,9 +372,11 @@ export default function GalleryPage() {
       p.set('year', String(selectedYear))
     if (!dateRangeActive && !searchActive && !onThisDay && selectedMonth)
       p.set('month', String(selectedMonth))
+    if (sortAsc) p.set('sort', 'asc')
+    if (hideSmall) p.set('quality', '1')
     return `/api/photos?${p}`
   }, [selectedYear, selectedMonth, fromDate, toDate, dateRangeActive,
-      searchText, searchActive, shuffleMode, onThisDay, showScreenshots, selectedPerson])
+      searchText, searchActive, shuffleMode, onThisDay, showScreenshots, selectedPerson, sortAsc, hideSmall])
 
   const loadMore = useCallback(async (reset = false) => {
     if (loadingRef.current) return
@@ -408,7 +422,7 @@ export default function GalleryPage() {
     setSelecting(false); setSelected(new Set())
     loadMore(true)
   }, [selectedYear, selectedMonth, fromDate, toDate, dateRangeActive,
-      searchActive, searchText, shuffleMode, onThisDay, showVideos, showScreenshots, selectedPerson]) // eslint-disable-line react-hooks/exhaustive-deps
+      searchActive, searchText, shuffleMode, onThisDay, showVideos, showScreenshots, selectedPerson, sortAsc, hideSmall]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const el = sentinelRef.current
@@ -476,11 +490,36 @@ export default function GalleryPage() {
     setShowScreenshots(s => !s)
   }
 
-  function startSlideshow() {
+  async function fetchSlideshowBatch() {
+    try {
+      const r = await fetch('/api/photos?shuffle=1')
+      const data = await r.json()
+      const incoming: Photo[] = data.photos ?? []
+      slideshowPool.current = [...slideshowPool.current, ...incoming]
+    } catch { /* ignore prefetch errors */ }
+  }
+
+  async function startSlideshow() {
     pendingSlideshowRef.current = true
+    slideshowPool.current = []
     setShuffleMode(true)
     setSelectedYear(null); setSelectedMonth(null)
     setDateRangeActive(false); setSearchActive(false); setSearchText(''); setOnThisDay(false)
+    // Pre-fill pool with 5 batches (250 photos) in parallel
+    await Promise.all([1,2,3,4,5].map(() => fetchSlideshowBatch()))
+  }
+
+  function advanceSlideshow() {
+    if (slideshowPool.current.length < 30) fetchSlideshowBatch()
+    const next = slideshowPool.current.shift()
+    if (!next) return
+    setPhotos(prev => {
+      const idx = prev.findIndex(p => p.id === next.id)
+      if (idx !== -1) { setLightboxIndex(idx); return prev }
+      const updated = [...prev, next]
+      setLightboxIndex(updated.length - 1)
+      return updated
+    })
   }
 
   function toggleSelect(id: string) {
@@ -501,10 +540,13 @@ export default function GalleryPage() {
     if (!confirm(`Move ${selected.size} photo${selected.size === 1 ? '' : 's'} to trash?`)) return
     setBulkDeleting(true)
     const ids = [...selected]
-    const results = await Promise.allSettled(
-      ids.map(id => fetch(`/api/photos/${id}`, { method: 'DELETE' }))
-    )
-    const deleted = ids.filter((_, i) => results[i].status === 'fulfilled' && (results[i] as PromiseFulfilledResult<Response>).value.ok)
+    const deleted: string[] = []
+    for (const id of ids) {
+      try {
+        const r = await fetch(`/api/photos/${id}`, { method: 'DELETE' })
+        if (r.ok) deleted.push(id)
+      } catch { /* continue */ }
+    }
     setPhotos(prev => prev.filter(p => !deleted.includes(p.id)))
     setSelected(new Set()); setSelecting(false); setBulkDeleting(false)
     const failed = ids.length - deleted.length
@@ -529,8 +571,13 @@ export default function GalleryPage() {
   }
 
   function handleDelete(id: string) {
-    setPhotos(prev => prev.filter(p => p.id !== id))
-    setLightboxIndex(null)
+    if (slideshowStart) {
+      setPhotos(prev => prev.filter(p => p.id !== id))
+      advanceSlideshow()
+    } else {
+      setPhotos(prev => prev.filter(p => p.id !== id))
+      setLightboxIndex(null)
+    }
   }
 
   function handleTagsChange(id: string, people: string[]) {
@@ -619,6 +666,13 @@ export default function GalleryPage() {
               >
                 📱 Screenshots
               </button>
+              <button
+                className={`quick-btn${hideSmall ? ' active' : ''}`}
+                onClick={() => setHideSmall(v => !v)}
+                title="Hide images under 200 KB (low-quality, MMS, forwards)"
+              >
+                ✨ Quality
+              </button>
               {peopleList.map(({ name }) => (
                 <button
                   key={name}
@@ -633,7 +687,7 @@ export default function GalleryPage() {
                 className="quick-btn"
                 onClick={startSlideshow}
                 disabled={photos.length === 0}
-                title="Start slideshow (auto-advances every 15s)"
+                title="Start slideshow (auto-advances every 10s)"
               >
                 ▶ Slideshow
               </button>
@@ -688,6 +742,13 @@ export default function GalleryPage() {
                     {name}
                   </button>
                 ))}
+                <button
+                  className={`sort-toggle${sortAsc ? ' asc' : ''}`}
+                  onClick={() => setSortAsc(v => !v)}
+                  title={sortAsc ? 'Oldest first — click for newest first' : 'Newest first — click for oldest first'}
+                >
+                  {sortAsc ? '↑ Oldest' : '↓ Newest'}
+                </button>
               </div>
             )}
           </>
@@ -770,10 +831,17 @@ export default function GalleryPage() {
         <Lightbox
           photos={photos}
           index={lightboxIndex}
-          onClose={() => { setLightboxIndex(null); setSlideshowStart(false) }}
+          onClose={() => {
+            setLightboxIndex(null)
+            setSlideshowStart(false)
+            if (slideshowStart) {
+              slideshowPool.current = []
+              setShuffleMode(false)
+            }
+          }}
           onPrev={() => setLightboxIndex(i => Math.max(0, (i ?? 0) - 1))}
           onNext={() => setLightboxIndex(i => Math.min(photos.length - 1, (i ?? 0) + 1))}
-          onRandomNext={() => setLightboxIndex(() => Math.floor(Math.random() * photos.length))}
+          onRandomNext={advanceSlideshow}
           onDelete={handleDelete}
           onTagsChange={handleTagsChange}
           initialPlaying={slideshowStart}

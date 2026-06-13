@@ -26,7 +26,7 @@ export async function getAccessToken(): Promise<string> {
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
-interface IndexEntry { id: string; name: string; date: string; thumb?: string; mimeType?: string }
+interface IndexEntry { id: string; name: string; date: string; thumb?: string; mimeType?: string; size?: number }
 
 let _index: IndexEntry[] | null = null
 function getIndex(): IndexEntry[] {
@@ -60,6 +60,9 @@ export function listPhotosFromIndex(
   showVideos?: boolean,
   screenshotsOnly?: boolean,
   personIds?: Set<string>,
+  deletedIds?: Set<string>,
+  sortAsc?: boolean,
+  hideSmall?: boolean,
 ): { photos: DrivePhoto[]; nextPageToken?: string } {
   const index = getIndex()
   const targetYear  = year  ? parseInt(year)  : null
@@ -71,7 +74,7 @@ export function listPhotosFromIndex(
   const todayMonth = now.getMonth() + 1
   const todayDay   = now.getDate()
 
-  const needsFilter = targetYear || targetMonth || fromMs || toMs || searchLower || onThisDay || personIds
+  const needsFilter = targetYear || targetMonth || fromMs || toMs || searchLower || onThisDay || personIds || deletedIds?.size
   let filtered = needsFilter
     ? index.filter(p => {
         const d = new Date(p.date)
@@ -83,6 +86,7 @@ export function listPhotosFromIndex(
         if (onThisDay && (d.getMonth() + 1 !== todayMonth || d.getDate() !== todayDay)) return false
         if (searchLower && !p.name.toLowerCase().includes(searchLower)) return false
         if (personIds && !personIds.has(p.id)) return false
+        if (deletedIds?.has(p.id)) return false
         return true
       })
     : [...index]
@@ -94,6 +98,11 @@ export function listPhotosFromIndex(
 
   if (screenshotsOnly) {
     filtered = filtered.filter(isScreenshot)
+  }
+
+  // Hide images smaller than 200 KB (low-quality MMS, forwards, thumbnails)
+  if (hideSmall) {
+    filtered = filtered.filter(p => !p.size || p.size >= 200_000)
   }
 
   // Shuffle returns random PAGE photos, no pagination
@@ -114,6 +123,8 @@ export function listPhotosFromIndex(
       nextPageToken: undefined,
     }
   }
+
+  if (sortAsc) filtered = filtered.slice().reverse()
 
   const PAGE  = 50
   const start = cursor ? parseInt(cursor) : 0

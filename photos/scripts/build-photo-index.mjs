@@ -49,7 +49,7 @@ do {
   const params = new URLSearchParams({
     q:         '(mimeType contains "image/" or mimeType contains "video/") and trashed = false',
     pageSize:  '1000',
-    fields:    'nextPageToken,files(id,name,mimeType,createdTime,thumbnailLink,imageMediaMetadata(time))',
+    fields:    'nextPageToken,files(id,name,mimeType,size,createdTime,thumbnailLink,imageMediaMetadata(time))',
   })
   if (pageToken) params.set('pageToken', pageToken)
 
@@ -77,7 +77,8 @@ do {
     }
     const thumb = f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+$/, '=s400') : undefined
     const mimeType = f.mimeType ?? undefined
-    photos.push({ id: f.id, name: f.name, date, thumb, mimeType })
+    const size = f.size ? parseInt(f.size, 10) : undefined
+    photos.push({ id: f.id, name: f.name, date, thumb, mimeType, size })
   }
 
   pageToken = data.nextPageToken

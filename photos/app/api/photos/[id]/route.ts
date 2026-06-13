@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { trashPhoto } from '../../../../lib/drive'
+import { addDeleted } from '../../../../lib/photo-tags'
 
 export async function DELETE(
   _req: NextRequest,
@@ -8,6 +9,7 @@ export async function DELETE(
   const { id } = await params
   try {
     await trashPhoto(id)
+    await addDeleted(id)
     return new NextResponse(null, { status: 204 })
   } catch (e: any) {
     console.error('Delete error:', e.message)

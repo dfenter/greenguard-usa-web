@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { listPhotosFromIndex } from '../../../lib/drive'
-import { loadTags } from '../../../lib/photo-tags'
+import { loadTags, loadDeleted } from '../../../lib/photo-tags'
 
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    const deletedIds = await loadDeleted()
     const { photos, nextPageToken } = listPhotosFromIndex(
       p.get('cursor') ?? undefined,
       p.get('year') ?? undefined,
@@ -28,6 +29,9 @@ export async function GET(req: NextRequest) {
       p.get('videos') === '1',
       p.get('screenshots') === '1',
       personIds,
+      deletedIds,
+      p.get('sort') === 'asc',
+      p.get('quality') === '1',
     )
 
     // Attach people tags to each photo

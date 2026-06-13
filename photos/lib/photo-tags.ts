@@ -3,9 +3,11 @@ import { getAccessToken } from './drive'
 export type TagMap = Record<string, string[]> // fileId → people[]
 
 const TAGS_FILENAME = 'photo-tags.json'
+const DELETED_FILENAME = 'photo-deleted.json'
 
 let _fileId: string | null = null
 let _cache: TagMap | null = null
+let _deletedFileId: string | null = null
 
 async function findOrCreateTagsFile(token: string): Promise<string> {
   if (_fileId) return _fileId
@@ -88,6 +90,64 @@ export async function removeTag(fileId: string, person: string): Promise<string[
   if (tags[fileId].length === 0) delete tags[fileId]
   await saveTags(tags)
   return tags[fileId] ?? []
+}
+
+async function findOrCreateDeletedFile(token: string): Promise<string> {
+  if (_deletedFileId) return _deletedFileId
+  const search = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`name='${DELETED_FILENAME}' and trashed=false`)}&fields=files(id)`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
+  )
+  const { files } = await search.json()
+  if (files?.length) {
+    _deletedFileId = files[0].id
+    return _deletedFileId!
+  }
+  const meta = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: DELETED_FILENAME, mimeType: 'application/json' }),
+    cache: 'no-store',
+  })
+  const { id } = await meta.json()
+  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: '[]',
+    cache: 'no-store',
+  })
+  _deletedFileId = id
+  return id
+}
+
+export async function loadDeleted(): Promise<Set<string>> {
+  try {
+    const token = await getAccessToken()
+    const fileId = await findOrCreateDeletedFile(token)
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }
+    )
+    const text = await res.text()
+    return new Set(text ? JSON.parse(text) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+export async function addDeleted(id: string): Promise<void> {
+  const deleted = await loadDeleted()
+  if (deleted.has(id)) return
+  deleted.add(id)
+  const token = await getAccessToken()
+  const fileId = await findOrCreateDeletedFile(token)
+  const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify([...deleted]),
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new Error(`Drive write failed: ${res.status}`)
 }
 
 export function getPeople(tags: TagMap): { name: string; count: number }[] {

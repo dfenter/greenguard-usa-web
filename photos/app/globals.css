@@ -397,6 +397,22 @@ body {
 .month-pill:hover { color: #ccc; border-color: #444; }
 .month-pill.active { background: #333; color: #fff; border-color: #555; }
 
+.sort-toggle {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 3px 12px;
+  border-radius: 999px;
+  border: 1px solid #333;
+  background: none;
+  color: #888;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.sort-toggle:hover { color: #ccc; border-color: #555; }
+.sort-toggle.asc { color: #aaa; border-color: #555; }
+
 /* ── Gallery ── */
 .gallery-container {
   padding: 8px 12px 40px;
@@ -697,6 +713,26 @@ body {
 }
 .lightbox-delete:hover { color: #ff6b6b; background: rgba(255,80,80,0.1); }
 .lightbox-delete.busy { opacity: 0.4; cursor: default; }
+.lightbox-delete-confirm {
+  position: fixed;
+  top: 10px;
+  right: 44px;
+  display: flex;
+  gap: 6px;
+  z-index: 101;
+}
+.lightbox-delete-confirm-yes, .lightbox-delete-confirm-no {
+  font-size: 0.8rem;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.lightbox-delete-confirm-yes { background: #e53e3e; color: #fff; }
+.lightbox-delete-confirm-yes:hover { background: #c53030; }
+.lightbox-delete-confirm-no { background: rgba(255,255,255,0.15); color: #eee; }
+.lightbox-delete-confirm-no:hover { background: rgba(255,255,255,0.25); }
 
 .lightbox-nav {
   position: fixed;
