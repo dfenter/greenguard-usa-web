@@ -58,6 +58,10 @@ canvas { display:block; }
       Color <input type="color" id="color-pick" value="#0f0f12" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;">
     </label>
   </div>
+  <div class="btn-row">
+    <button class="btn active" id="bPlateaus">Plateaus</button>
+    <button class="btn active" id="bCO2Ring">CO2 Ring</button>
+  </div>
 </div>
 <div id="info">
   <div id="brand">GreenGuard Pagoda</div>
@@ -405,6 +409,103 @@ window.addEventListener('resize', function() {
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
+
+// Shade plateaus & CO2 ring emitter
+(function() {
+  var BW = 24, TW = 14, BD = 24, TD = 14, HT = 54;
+  function hw(z) { return BW/2 + (TW/2 - BW/2) * z / HT; }
+  function hd(z) { return BD/2 + (TD/2 - BD/2) * z / HT; }
+
+  var platMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6, roughness: 0.5 });
+  var co2Mat  = new THREE.MeshStandardMaterial({ color: 0xb0b8c0, metalness: 0.85, roughness: 0.2 });
+
+  function addBar(g, w, d, h, px, py, pz) {
+    var m = new THREE.Mesh(new THREE.BoxGeometry(w, d, h), platMat);
+    m.position.set(px, py, pz);
+    g.add(m);
+  }
+
+  // Shade plateaus — 3 flat rectangular bars at z = [8, 25, 42]
+  function makePlateau(z_pos) {
+    var ov = 3.0, bh = 0.375, gap = 0.5, em = 0.10;
+    var cutDoor = z_pos <= 33.0;
+    var bw = hw(z_pos), bd = hd(z_pos);
+    var zb = z_pos + gap - bh / 2;
+    var pw = 2 * (bw + ov), pd = 2 * (bd + ov);
+    var g = new THREE.Group();
+
+    addBar(g, pw, ov + em, bh, 0, bd + ov/2 - em/2, zb);  // back (always)
+
+    if (cutDoor) {
+      var armD = 2*bd + ov + em;
+      addBar(g, ov + em, armD, bh, -(bw + ov/2 - em/2), ov/2 - em/2, zb);  // left arm
+      addBar(g, ov + em, armD, bh,  (bw + ov/2 - em/2), ov/2 - em/2, zb);  // right arm
+    } else {
+      addBar(g, ov + em, pd, bh, -(bw + ov/2 - em/2), 0, zb);  // left
+      addBar(g, ov + em, pd, bh,  (bw + ov/2 - em/2), 0, zb);  // right
+      addBar(g, pw, ov + em, bh, 0, -(bd + ov/2 - em/2), zb);  // front
+    }
+    return g;
+  }
+
+  var plateauGroup = new THREE.Group();
+  [8.0, 25.0, 42.0].forEach(function(z) { plateauGroup.add(makePlateau(z)); });
+  scene.add(plateauGroup);
+  window._plateauGroup = plateauGroup;
+
+  // CO2 ring emitter — 18" square, 6mm OD tube, 12 nozzles (3 per side), nozzles straight down
+  function makeCO2Ring() {
+    var g = new THREE.Group();
+    var sz = 18.0, h = sz / 2;
+    var d = 0.236;   // 6 mm OD in inches
+    var rz = HT;     // at hat eave, z = 54"
+    var nLen = 0.75, nR = 0.06;
+
+    // Four square-tube sides of the ring
+    var sides = [
+      [sz, d, d,  0,  h, rz],
+      [sz, d, d,  0, -h, rz],
+      [d, sz, d, -h,  0, rz],
+      [d, sz, d,  h,  0, rz],
+    ];
+    sides.forEach(function(s) {
+      var m = new THREE.Mesh(new THREE.BoxGeometry(s[0], s[1], s[2]), co2Mat);
+      m.position.set(s[3], s[4], s[5]);
+      g.add(m);
+    });
+
+    // Nozzles — straight down (-Z), center at rz - nLen/2
+    var nGeo = new THREE.CylinderGeometry(nR, nR, nLen, 8);
+    var offs = [-h/2, 0, h/2];
+    var nz = rz - nLen / 2;
+
+    function addNozzle(x, y) {
+      var n = new THREE.Mesh(nGeo, co2Mat);
+      n.position.set(x, y, nz);
+      n.rotation.x = -Math.PI / 2;
+      g.add(n);
+    }
+
+    offs.forEach(function(o) { addNozzle(o,  h); });  // back side
+    offs.forEach(function(o) { addNozzle(o, -h); });  // front side
+    offs.forEach(function(o) { addNozzle(-h, o); });  // left side
+    offs.forEach(function(o) { addNozzle( h, o); });  // right side
+    return g;
+  }
+
+  var co2RingGroup = makeCO2Ring();
+  scene.add(co2RingGroup);
+  window._co2RingGroup = co2RingGroup;
+
+  document.getElementById('bPlateaus').addEventListener('click', function() {
+    window._plateauGroup.visible = !window._plateauGroup.visible;
+    this.classList.toggle('active', window._plateauGroup.visible);
+  });
+  document.getElementById('bCO2Ring').addEventListener('click', function() {
+    window._co2RingGroup.visible = !window._co2RingGroup.visible;
+    this.classList.toggle('active', window._co2RingGroup.visible);
+  });
+})();
 </script>
 </body>
 </html>
