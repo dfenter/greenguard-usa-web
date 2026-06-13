@@ -152,7 +152,7 @@ export default async function handler(req, res) {
       address: b.address || p.address || '',
       phone: p.phone || '',
       startTime: b.startTime,
-      tankCount: resolved?.tankCount || 0,
+      tankCount: resolved?.tankCount || parseInt(p.tank_count || p.trap_count || '0', 10) || 0,
     }
   })
 

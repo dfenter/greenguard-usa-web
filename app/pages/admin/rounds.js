@@ -648,7 +648,7 @@ function ApptDetailModal({ stop, onClose, onOpenProfile }) {
   )
 }
 
-function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onOpenProfile }) {
+function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onOpenProfile, distance }) {
   const isDone = state.status === 'done'
   const isActive = state.status === 'active'
   // SSR detected an existing Stripe invoice for this booking. Suppress
@@ -885,6 +885,11 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onO
             >{stop.customerName}</button>
             {stop.address && (
               <span style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', fontWeight: 400 }}>📍 {stop.address}</span>
+            )}
+            {distance && (
+              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: parseFloat(distance.miles) <= 5 ? '#7dffaa' : parseFloat(distance.miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.45)', whiteSpace: 'nowrap' }}>
+                {distance.miles} mi · {distance.duration}
+              </span>
             )}
             {/* Invoice badge — only when panel is NOT already showing below */}
             {stop.existingInvoice && !showInvoicedPanel && (() => {
@@ -1275,6 +1280,23 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
     }))
   )
   const [profileCustomer, setProfileCustomer] = useState(null)
+  const [distances, setDistances] = useState({})
+
+  useEffect(() => {
+    const addressable = stops.filter((s) => s.address)
+    if (!addressable.length || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const origin = `${pos.coords.latitude},${pos.coords.longitude}`
+      try {
+        const res = await fetch('/api/admin/distances', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin, addresses: addressable.map((s) => ({ id: s.email || s.customerName, address: s.address })) }),
+        })
+        setDistances(await res.json())
+      } catch {}
+    }, () => {})
+  }, [stops])
+
   const fileRefs = useRef(stops.map(() => ({ current: null })))
   const videoRefs = useRef(stops.map(() => ({ current: null })))
   const stopRefs = useRef([])
@@ -1395,7 +1417,7 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
             {mode === 'date' && (
               <>
                 <select value={availableDates.includes(date) ? date : ''} onChange={handleDateChange}
-                  style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>
+                  style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1.1rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer', fontWeight: 700 }}>
                   <option value="" disabled>Quick pick…</option>
                   {availableDates.map((d) => {
                     const isToday = d === today
@@ -1405,13 +1427,13 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
                   })}
                 </select>
                 <input type="date" value={date} onChange={handleDateChange}
-                  style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer', colorScheme: 'dark' }}
+                  style={{ padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1.1rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer', colorScheme: 'dark', fontWeight: 700 }}
                 />
               </>
             )}
             {mode === 'open' && (
               <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>
+                style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1.1rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer', fontWeight: 700 }}>
                 <option value="date-asc">Oldest first</option>
                 <option value="date-desc">Newest first</option>
                 <option value="name-asc">Name A→Z</option>
@@ -1462,7 +1484,8 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
               <div key={`${selectedDate || 'open'}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }}>
                 <StopCard stop={stop} idx={idx} state={states[idx]}
                   onUpdate={(patch) => update(idx, patch)} fileInputRef={fileRefs.current[idx]} videoInputRef={videoRefs.current[idx]}
-                  onOpenProfile={setProfileCustomer} />
+                  onOpenProfile={setProfileCustomer}
+                  distance={distances[stop.email || stop.customerName]} />
               </div>
             )
           })

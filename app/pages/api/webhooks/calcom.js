@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { upsertContact } from '../../../lib/hubspot'
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || '2225826221565752'
 const META_GRAPH_URL = `https://graph.facebook.com/v21.0/${PIXEL_ID}/events`
@@ -46,9 +47,19 @@ export default async function handler(req, res) {
   const p = payload.payload || {}
   const attendee = (p.attendees || [])[0] || {}
   const email = attendee.email || p.responses?.email?.value || ''
+  const name = attendee.name || p.responses?.name?.value || ''
   const phone = attendee.phone || p.responses?.phone?.value || ''
+  const address = p.responses?.notes?.value || p.responses?.address?.value || p.location || ''
 
   if (!email) return
+
+  // Ensure a HubSpot contact exists for every new booking
+  try {
+    const result = await upsertContact({ email, name, phone, address })
+    console.log(`[calcom-webhook] HubSpot contact ${result.created ? 'created' : 'updated'} for ${email}`)
+  } catch (e) {
+    console.error('[calcom-webhook] HubSpot upsert failed:', e.message)
+  }
 
   const metaToken = process.env.META_SYSTEM_USER_TOKEN
   if (!metaToken) return

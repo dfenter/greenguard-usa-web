@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
 import { findContactByEmail, upsertContact, getNotesForContact } from '../../lib/hubspot'
@@ -351,6 +352,7 @@ function ExchangeForm({ weekDate, onSubmit, onCancel, submitting }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function TankCalendarPage({ isAdmin, initialData }) {
+  const router = useRouter()
   const [data, setData] = useState(initialData)
   const [expandedWeeks, setExpandedWeeks] = useState({})
   const [formWeek, setFormWeek] = useState(null)
@@ -465,7 +467,10 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
                       </tr>
                       {isOpen && wkDays.map((day) => (
                         <React.Fragment key={`day-${day.date}`}>
-                          <tr style={{ background: day.status === 'short' ? 'rgba(255,80,80,0.08)' : day.status === 'low' ? 'rgba(201,168,76,0.05)' : 'transparent' }}>
+                          <tr
+                            onClick={() => router.push(`/admin/calendar?date=${day.date}&view=day`)}
+                            style={{ background: day.status === 'short' ? 'rgba(255,80,80,0.08)' : day.status === 'low' ? 'rgba(201,168,76,0.05)' : 'transparent', cursor: 'pointer' }}
+                          >
                             <td style={{ ...tdStyle(false), paddingLeft: 28, borderLeft: day.isWednesday ? '3px solid #c9a84c' : '3px solid transparent', color: day.isWednesday ? '#c9a84c' : '#d4e6ca', fontWeight: day.isWednesday ? 700 : 400 }}>
                               {fmtDate(day.date)}{day.isWednesday ? ' 🚚' : ''}
                               {day.isOverridden && <span style={{ marginLeft: 6, fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)' }}>override</span>}

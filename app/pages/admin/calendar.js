@@ -182,13 +182,18 @@ function tanksFor(ev) {
 
 export default function CalendarPage({ today, initialBookings }) {
   const router = useRouter()
-  const [date, setDate] = useState(today)
+  const [date, setDate] = useState(() => {
+    const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : null
+    return q && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : today
+  })
   const [bookings, setBookings] = useState(initialBookings)
   const [loading, setLoading] = useState(false)
 
   // Translate a click on the empty day-grid background into a YYYY-MM-DDTHH:mm
   // value and hand off to /admin/booking with the time prefilled. Rounds to
   // the nearest 15 minutes so dropdowns aren't full of weird offsets.
+  const isWeekend = (d) => { const day = new Date(d + 'T12:00:00').getDay(); return day === 0 || day === 6 }
+
   function handleGridClick(e) {
     // Ignore clicks that originated on an event (they have their own handler).
     if (e.target.closest('.event')) return
@@ -210,6 +215,8 @@ export default function CalendarPage({ today, initialBookings }) {
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window === 'undefined') return 'agenda'
+    const qv = new URLSearchParams(window.location.search).get('view')
+    if (qv === 'day' || qv === 'week' || qv === 'month' || qv === 'agenda') return qv
     return window.localStorage.getItem('gg.calendar.viewMode') || 'agenda'
   })
   useEffect(() => {
@@ -264,7 +271,7 @@ export default function CalendarPage({ today, initialBookings }) {
   return (
     <>
       <Head><title>Calendar · GreenGuard Admin</title></Head>
-      <PortalLayout isAdmin>
+      <PortalLayout isAdmin topPadding="12px">
         <style jsx>{`
           .hdr-month { display:flex; align-items:center; gap:6px; font-size:1.4rem; font-weight:900; cursor:pointer; color:#d4e6ca; }
           .week-strip { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin:18px 0 12px; }
@@ -291,32 +298,44 @@ export default function CalendarPage({ today, initialBookings }) {
           .event-time { color:rgba(230,220,255,0.65); font-size:0.72rem; margin-top:2px; }
           .empty { text-align:center; color:rgba(212,230,202,0.45); padding:40px 16px; font-size:0.9rem; }
           .fab { position:fixed; right:24px; bottom:96px; width:56px; height:56px; border-radius:50%; background:#0d1a10; color:#7dffaa; font-size:1.6rem; border:1px solid rgba(125,255,170,0.4); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(0,0,0,0.4); cursor:pointer; z-index:10; text-decoration:none; }
+          .ctrl-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+          .ctrl-right { display:flex; gap:6px; align-items:center; }
+          .view-seg { display:flex; border:1px solid rgba(122,171,130,0.25); border-radius:6; overflow:hidden; }
+          .view-btn { background:transparent; color:rgba(212,230,202,0.6); border:none; border-left:1px solid rgba(122,171,130,0.25); padding:6px 10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:Nunito Sans,sans-serif; text-transform:capitalize; }
+          .view-btn:first-child { border-left:none; }
+          .view-btn.active { background:#7dffaa; color:#0d1a10; }
+          @media (max-width:430px) {
+            .ctrl-right { gap:3px; }
+            .view-btn { padding:6px 6px; font-size:0.72rem; }
+          }
         `}</style>
 
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8 }}>
-          <button onClick={() => setPicker(!picker)} style={{ background:'transparent', border:'none', padding:0 }} className="hdr-month">
-            <span>{fmtMonth(date)}</span>
-            <span style={{ fontSize:'0.9rem', opacity:0.7 }}>▾</span>
-          </button>
-          <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-            <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() - 7); setDate(d.toLocaleDateString('en-CA')) }}
-              aria-label="Previous week"
-              style={{ background:'transparent', border:'1px solid rgba(122,171,130,0.25)', color:'rgba(212,230,202,0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer', minWidth:32 }}>‹</button>
-            <button onClick={() => setDate(today_)} style={{ background:'transparent', border:'1px solid rgba(125,255,170,0.3)', color:'#7dffaa', padding:'6px 14px', borderRadius:6, fontWeight:800, fontSize:'0.78rem', cursor:'pointer' }}>
-              Today
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          <div className="ctrl-row">
+            <button onClick={() => setPicker(!picker)} style={{ background:'transparent', border:'none', padding:0, flexShrink:0 }} className="hdr-month">
+              <span>{fmtMonth(date)}</span>
+              <span style={{ fontSize:'0.9rem', opacity:0.7 }}>▾</span>
             </button>
-            <div style={{ display: 'flex', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, overflow: 'hidden' }}>
-              {['day', 'agenda', 'week', 'month'].map((v, i) => (
-                <button key={v} onClick={() => setViewMode(v)}
-                  title={v[0].toUpperCase() + v.slice(1)}
-                  style={{ background: viewMode === v ? '#7dffaa' : 'transparent', color: viewMode === v ? '#0d1a10' : 'rgba(212,230,202,0.6)', border: 'none', borderLeft: i === 0 ? 'none' : '1px solid rgba(122,171,130,0.25)', padding: '6px 10px', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif', textTransform: 'capitalize' }}>
-                  {v}
-                </button>
-              ))}
+            <div className="ctrl-right">
+              <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() - 7); setDate(d.toLocaleDateString('en-CA')) }}
+                aria-label="Previous week"
+                style={{ background:'transparent', border:'1px solid rgba(122,171,130,0.25)', color:'rgba(212,230,202,0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer' }}>‹</button>
+              <button onClick={() => setDate(today_)} style={{ background:'transparent', border:'1px solid rgba(125,255,170,0.3)', color:'#7dffaa', padding:'6px 14px', borderRadius:6, fontWeight:800, fontSize:'0.78rem', cursor:'pointer' }}>
+                Today
+              </button>
+              <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + 7); setDate(d.toLocaleDateString('en-CA')) }}
+                aria-label="Next week"
+                style={{ background:'transparent', border:'1px solid rgba(122,171,130,0.25)', color:'rgba(212,230,202,0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer' }}>›</button>
             </div>
-            <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + 7); setDate(d.toLocaleDateString('en-CA')) }}
-              aria-label="Next week"
-              style={{ background:'transparent', border:'1px solid rgba(122,171,130,0.25)', color:'rgba(212,230,202,0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer', minWidth:32 }}>›</button>
+          </div>
+          <div className="view-seg" style={{ width:'100%' }}>
+            {['day', 'agenda', 'week', 'month'].map((v) => (
+              <button key={v} onClick={() => setViewMode(v)}
+                className={`view-btn${viewMode === v ? ' active' : ''}`}
+                style={{ flex:1 }}>
+                {v}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -405,7 +424,7 @@ export default function CalendarPage({ today, initialBookings }) {
             <NowLine date={date} today={today_} dayStartHour={DAY_START_HOUR} pxPerMin={PX_PER_MIN} dayEndHour={DAY_END_HOUR} />
 
             <div className="event-area" onClick={handleGridClick}
-                 style={{ position:'absolute', left:0, right:0, top:0, bottom:0, cursor:'crosshair' }}
+                 style={{ position:'absolute', left:0, right:0, top:0, bottom:0, cursor:'crosshair', background: isWeekend(date) ? 'rgba(0,0,0,0.08)' : 'transparent' }}
                  title="Click an empty time slot to start a new booking">
               {positioned.map((ev) => {
                 const top = (ev.startMin - DAY_START_HOUR * 60) * PX_PER_MIN
@@ -439,7 +458,7 @@ export default function CalendarPage({ today, initialBookings }) {
               const dayTanks = dayBookings.reduce((s, ev) => s + (tanksFor(ev) || 0), 0)
               const isToday = d === today_
               return (
-                <div key={d} style={{ minHeight: 200, padding: 8, borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: `1px solid ${isToday ? 'rgba(125,255,170,0.4)' : 'rgba(122,171,130,0.12)'}`, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div key={d} style={{ minHeight: 200, padding: 8, borderRadius: 8, background: isWeekend(d) ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isToday ? 'rgba(125,255,170,0.4)' : 'rgba(122,171,130,0.12)'}`, display: 'flex', flexDirection: 'column', gap: 4, opacity: isWeekend(d) ? 0.5 : 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isToday ? '#7dffaa' : 'rgba(212,230,202,0.55)' }}>
                       {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dd.getDay()]} {dd.getDate()}
@@ -467,35 +486,33 @@ export default function CalendarPage({ today, initialBookings }) {
 
         {viewMode === 'month' && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, fontSize: '0.7rem', fontWeight: 800, color: 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => <div key={d} style={{ textAlign: 'center', padding: '4px 0' }}>{d}</div>)}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+              {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} style={{ textAlign: 'center', padding: '3px 0' }}>{d}</div>)}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
               {monthGrid.map((d) => {
                 const dd = new Date(d + 'T12:00:00')
                 const inMonth = dd.getMonth() === new Date(date + 'T12:00:00').getMonth()
                 const isToday = d === today_
+                const weekend = isWeekend(d)
                 const dayBookings = rangeBookings[d] || []
                 const dayTanks = dayBookings.reduce((s, ev) => s + (tanksFor(ev) || 0), 0)
                 return (
                   <div key={d} onClick={() => { setDate(d); setViewMode('day') }}
-                    style={{ minHeight: 78, padding: 5, borderRadius: 5, background: inMonth ? 'rgba(255,255,255,0.02)' : 'transparent', border: `1px solid ${isToday ? 'rgba(125,255,170,0.45)' : 'rgba(122,171,130,0.08)'}`, cursor: 'pointer', opacity: inMonth ? 1 : 0.35 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                      <div style={{ fontSize: '0.78rem', fontWeight: isToday ? 900 : 700, color: isToday ? '#7dffaa' : 'rgba(212,230,202,0.7)' }}>{dd.getDate()}</div>
-                      {dayTanks > 0 && <span style={{ fontSize: '0.6rem', color: '#7dffaa', fontWeight: 800 }}>🛢{dayTanks}</span>}
+                    style={{ minHeight: 52, padding: '5px 4px 4px', borderRadius: 6, background: weekend ? 'rgba(0,0,0,0.1)' : inMonth ? 'rgba(255,255,255,0.025)' : 'transparent', border: `1px solid ${isToday ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.15)'}`, cursor: 'pointer', opacity: inMonth ? (weekend ? 0.45 : 1) : 0.25, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isToday ? 'var(--green)' : 'transparent', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: isToday ? 900 : 600, color: isToday ? 'var(--bg-deep)' : 'var(--text-muted)', lineHeight: 1 }}>{dd.getDate()}</span>
                     </div>
-                    {dayBookings.slice(0, 3).map((ev) => (
-                      <div key={ev.id} style={{ fontSize: '0.62rem', color: '#e6dcff', background: 'rgba(189,154,255,0.16)', borderRadius: 3, padding: '1px 4px', marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {fmtTime(ev.startTime)} {ev.customerName?.split(' ')[0] || '?'}
+                    {dayBookings.length > 0 && (
+                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--green)', lineHeight: 1.3, textAlign: 'center' }}>
+                        {dayBookings.length}V{dayTanks > 0 ? ` ${dayTanks}T` : ''}
                       </div>
-                    ))}
-                    {dayBookings.length > 3 && (
-                      <div style={{ fontSize: '0.6rem', color: 'rgba(212,230,202,0.45)', textAlign: 'center', marginTop: 1 }}>+{dayBookings.length - 3} more</div>
                     )}
                   </div>
                 )
               })}
             </div>
+            <div style={{ marginTop: 10, fontSize: '0.7rem', color: 'var(--text-dim)', textAlign: 'center' }}>Tap a day to see appointments</div>
           </div>
         )}
 

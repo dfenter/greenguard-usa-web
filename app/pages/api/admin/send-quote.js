@@ -1,7 +1,6 @@
 const { getSessionFromRequest, isAdminEmail, newJti } = require('../../../lib/auth')
 const { SignJWT } = require('jose')
-const { Resend } = require('resend')
-const { escapeHtml } = require('../../../lib/email')
+const { sendEmail, escapeHtml } = require('../../../lib/email')
 const { findContactByEmail, upsertContact, addNote } = require('../../../lib/hubspot')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
@@ -72,8 +71,6 @@ export default async function handler(req, res) {
   } = req.body || {}
   if (!to) return res.status(400).json({ error: 'to required' })
 
-  const resend = new Resend(process.env.RESEND_API_KEY)
-  const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
 
   // Signed JWT for the public quote page; jti uniquely tags this quote version
@@ -138,45 +135,68 @@ export default async function handler(req, res) {
       <p style="margin:6px 0 0;color:#776644;font-size:0.82rem;">We'll confirm this date by reply once you approve the quote.</p>
     </div>` : ''
 
-  const html = `
-    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:24px 16px;background:#fff;color:#1a2e1f;">
-      <div style="background:#0d1a10;border-radius:10px;padding:18px 22px;margin-bottom:24px;">
-        <h1 style="color:#7dffaa;font-size:1.25rem;margin:0;letter-spacing:-0.01em;">GreenGuard USA</h1>
-        <p style="color:rgba(212,230,202,0.55);font-size:0.78rem;margin:4px 0 0;letter-spacing:0.1em;text-transform:uppercase;">Smart · Safe · Effective</p>
-      </div>
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#f0f4f1;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f0f4f1">
+<tr><td align="center" style="padding:32px 16px;">
+  <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;font-family:Arial,sans-serif;">
+    <tr>
+      <td align="center" bgcolor="#1a3320" style="border-radius:10px 10px 0 0;padding:24px 32px;">
+        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;">GreenGuard USA</p>
+        <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Austin, TX</p>
+      </td>
+    </tr>
+    <tr>
+      <td bgcolor="#ffffff" style="padding:28px 28px 8px;border-left:1px solid #dde8de;border-right:1px solid #dde8de;">
+        <h2 style="margin:0 0 4px;font-size:20px;font-weight:900;color:#111f14;font-family:Arial,sans-serif;">Service Quote${name ? ` for ${name}` : ''}</h2>
+        <p style="margin:0 0 20px;font-size:13px;color:#6b7f6e;font-family:Arial,sans-serif;">This quote is valid for 30 days from today.</p>
+        ${serviceDateHtml}
+        ${monthlyHtml}
+        ${oneTimeHtml}
+        ${mapHtml}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+          <tr>
+            <td bgcolor="#1a3320" style="border-radius:8px;padding:16px 20px;">
+              <p style="margin:0 0 8px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7dbc8a;font-family:Arial,sans-serif;">Summary</p>
+              ${oneTimeLines.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:14px;color:#ffffff;font-family:Arial,sans-serif;padding:3px 0;">Due with first visit</td><td align="right" style="font-size:14px;font-weight:800;color:#ffffff;white-space:nowrap;font-family:Arial,sans-serif;padding:3px 0;">${fmt$(dueToday)}</td></tr></table>` : ''}
+              ${recurringLines.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:14px;color:#a8edc0;font-family:Arial,sans-serif;padding:3px 0;">Then monthly</td><td align="right" style="font-size:14px;font-weight:800;color:#a8edc0;white-space:nowrap;font-family:Arial,sans-serif;padding:3px 0;">${fmt$(monthlyAfter)}/mo</td></tr></table>` : ''}
+            </td>
+          </tr>
+        </table>
+        ${notes ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;"><tr><td bgcolor="#fdfaee" style="border-radius:8px;border:1px solid #f0e3c1;padding:14px 16px;"><p style="margin:0 0 6px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#c9a84c;font-family:Arial,sans-serif;">Notes</p><p style="margin:0;font-size:14px;color:#3a2e0f;font-family:Arial,sans-serif;">${escapeHtml(notes)}</p></td></tr></table>` : ''}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+          <tr>
+            <td align="center">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="#c9a84c" style="border-radius:6px;">
+                    <a href="${quoteUrl}" style="display:inline-block;padding:16px 40px;font-size:16px;font-weight:800;color:#111800;text-decoration:none;font-family:Arial,sans-serif;">Review &amp; Approve Quote &rarr;</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:0 0 24px;font-size:13px;color:#9aab9c;text-align:center;font-family:Arial,sans-serif;">
+          Questions? Reply to this email or call <a href="tel:+15125604129" style="color:#2d6a3f;font-weight:700;">512-560-4129</a>
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" bgcolor="#dde8de" style="border-radius:0 0 10px 10px;padding:18px 32px;border:1px solid #dde8de;border-top:0;">
+        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">GreenGuard USA</p>
+        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">Austin, TX &nbsp;&#183;&nbsp; 512-560-4129 &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`
 
-      <h2 style="font-size:1.15rem;margin:0 0 6px;">Service Quote${name ? ` for ${name}` : ''}</h2>
-      <p style="color:#666;font-size:0.85rem;margin:0 0 22px;">This quote is valid for 30 days from today.</p>
-
-      ${serviceDateHtml}
-      ${monthlyHtml}
-      ${oneTimeHtml}
-      ${mapHtml}
-
-      <div style="background:#1a2e1f;color:#fff;border-radius:10px;padding:18px 22px;margin:0 0 24px;">
-        <div style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:#7dffaa;margin-bottom:8px;">Summary</div>
-        ${oneTimeLines.length > 0 ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;color:#fff;font-size:0.95rem;">
-          <tr><td style="padding:4px 0;text-align:left;">Due with first visit</td><td style="padding:4px 0;text-align:right;font-weight:800;white-space:nowrap;">${fmt$(dueToday)}</td></tr>
-        </table>` : ''}
-        ${recurringLines.length > 0 ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;color:#fff;font-size:0.95rem;">
-          <tr><td style="padding:4px 0;text-align:left;">Then monthly</td><td style="padding:4px 0;text-align:right;font-weight:800;white-space:nowrap;">${fmt$(monthlyAfter)}/mo</td></tr>
-        </table>` : ''}
-      </div>
-
-      ${notes ? `<div style="background:#fdfaee;border:1px solid #f0e3c1;border-radius:8px;padding:14px 16px;margin:0 0 24px;"><div style="font-size:0.7rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#c9a84c;margin-bottom:6px;">Notes</div><p style="margin:0;font-size:0.88rem;color:#3a2e0f;">${escapeHtml(notes)}</p></div>` : ''}
-
-      <a href="${quoteUrl}" style="display:block;text-align:center;background:#c9a84c;color:#0d1a10;font-weight:800;font-size:0.98rem;padding:16px 28px;border-radius:8px;text-decoration:none;margin-bottom:18px;">
-        Review &amp; Approve Quote →
-      </a>
-
-      <p style="font-size:0.78rem;color:#888;margin-top:20px;text-align:center;">
-        Questions? Reply to this email or call <a href="tel:+15125604129" style="color:#888;">512-560-4129</a><br>
-        GreenGuard USA · Austin TX
-      </p>
-    </div>`
-
-  await resend.emails.send({
-    from: `GreenGuard USA <${FROM}>`,
+  await sendEmail({
     to,
     bcc: ['admin@greenguard-usa.com', 'bruce@greenguard-usa.com'],
     subject: `Your GreenGuard Service Quote${name ? ` — ${name}` : ''}`,

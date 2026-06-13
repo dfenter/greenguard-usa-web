@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { getSessionFromRequest } from '../lib/auth'
+import { getSessionFromRequest, createSessionToken } from '../lib/auth'
 
 export async function getServerSideProps({ req, res, query }) {
   const session = await getSessionFromRequest(req, res)
@@ -9,14 +9,20 @@ export async function getServerSideProps({ req, res, query }) {
   const next = query.next || '/dashboard'
   // Validate next is a relative path to prevent open redirect
   const dest = next.startsWith('/') ? next : '/dashboard'
-  return { props: { dest } }
+  // Generate a backup token for localStorage — lets the standalone PWA restore its
+  // cookie if iOS evicts it between sessions (cookie store is isolated from Safari)
+  const backupToken = await createSessionToken(session.email, session.stripeCustomerId)
+  return { props: { dest, backupToken } }
 }
 
-export default function AuthSuccess({ dest }) {
+export default function AuthSuccess({ dest, backupToken }) {
   const router = useRouter()
   const [count, setCount] = useState(3)
 
   useEffect(() => {
+    if (backupToken) {
+      try { localStorage.setItem('gg_backup', backupToken) } catch (_) {}
+    }
     const interval = setInterval(() => {
       setCount((c) => {
         if (c <= 1) {
@@ -28,7 +34,7 @@ export default function AuthSuccess({ dest }) {
       })
     }, 1000)
     return () => clearInterval(interval)
-  }, [dest, router])
+  }, [dest, router, backupToken])
 
   return (
     <>

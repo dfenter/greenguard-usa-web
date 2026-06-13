@@ -76,6 +76,8 @@ export default function AdminBooking() {
     return raw                                                // pass through, Cal.com will validate
   }
 
+  const isWeekendDate = form.startLocal ? [0, 6].includes(new Date(form.startLocal).getDay()) : false
+
   async function handleSubmit(e) {
     e.preventDefault()
     setStatus('loading')
@@ -187,6 +189,11 @@ export default function AdminBooking() {
             <div style={field}>
               <label style={label}>Date &amp; Time (Central Time)</label>
               <input style={input} type="datetime-local" value={form.startLocal} onChange={set('startLocal')} required />
+              {isWeekendDate && (
+                <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 5, color: '#c9a84c', fontSize: '0.78rem', fontWeight: 700 }}>
+                  Weekend date. You can still book, but no regular service runs Sat/Sun.
+                </div>
+              )}
             </div>
 
             <div style={field}>

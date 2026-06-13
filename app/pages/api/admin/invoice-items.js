@@ -120,6 +120,35 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true })
     }
 
+    if (action === 'add-custom') {
+      // Add a one-off / arbitrary line item (no SKU). Description + dollar
+      // amount + qty entered by hand in the editor. Lands on the customer's
+      // draft (same target logic as a SKU add) so it bills like any other line.
+      if (!customerId) return res.status(400).json({ error: 'customerId required' })
+      const description = String(req.body?.description || '').trim()
+      const unitPrice = Number(req.body?.unitPrice)
+      const qty = Math.max(1, parseInt(req.body?.qty || 1, 10) || 1)
+      if (!description) return res.status(400).json({ error: 'description required' })
+      if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+        return res.status(400).json({ error: 'unitPrice must be a positive dollar amount' })
+      }
+
+      let targetInvoice = invoiceId
+      if (!targetInvoice) {
+        const drafts = await stripe.invoices.list({ customer: customerId, status: 'draft', limit: 1 })
+        targetInvoice = drafts.data[0]?.id
+      }
+      const params = { customer: customerId }
+      if (targetInvoice) params.invoice = targetInvoice
+      await stripe.invoiceItems.create({
+        ...params,
+        amount: Math.round(unitPrice * 100 * qty),
+        currency: 'usd',
+        description: qty > 1 ? `${description} ×${qty}` : description,
+      })
+      return res.status(200).json({ ok: true })
+    }
+
     if (action === 'remove') {
       // Remove a pending invoice item (not yet on any invoice)
       if (!itemId) return res.status(400).json({ error: 'itemId required' })

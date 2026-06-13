@@ -275,6 +275,23 @@ function CustomerPanel({ customer, onClose }) {
   const [msgForm, setMsgForm] = useState({ subject: '', body: '' })
   const [msgSending, setMsgSending] = useState(false)
   const [msgResult, setMsgResult] = useState(null)
+  const [distance, setDistance] = useState(null)
+
+  const fetchDistance = useCallback((address) => {
+    if (!address || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const origin = `${pos.coords.latitude},${pos.coords.longitude}`
+      try {
+        const res = await fetch('/api/admin/distances', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin, addresses: [{ id: 'self', address }] }),
+        })
+        const data = await res.json()
+        if (data.self) setDistance(data.self)
+      } catch {}
+    }, () => {})
+  }, [])
 
   const fetchDetail = useCallback(async () => {
     setLoading(true)
@@ -285,6 +302,7 @@ function CustomerPanel({ customer, onClose }) {
       const data = await res.json()
       setDetail(data)
       setEditForm({ name: data.name, phone: data.phone, address: data.address, planType: data.planType || '', systemType: data.systemType || '', trapCount: data.trapCount || '', hasTimer: data.hasTimer || false })
+      fetchDistance(data.address || customer.address)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -366,6 +384,22 @@ function CustomerPanel({ customer, onClose }) {
       <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(122,171,130,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 2 }}>{customer.name || 'Customer'}</div>
+          {(detail?.address || customer.address) && (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
+              <a
+                href={`https://maps.apple.com/?daddr=${encodeURIComponent(detail?.address || customer.address)}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.6)', textDecoration: 'none', lineHeight: 1.4 }}
+              >
+                📍 {detail?.address || customer.address}
+              </a>
+              {distance && (
+                <span style={{ fontWeight: 900, fontSize: '1rem', color: parseFloat(distance.miles) <= 5 ? '#7dffaa' : parseFloat(distance.miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.5)', whiteSpace: 'nowrap' }}>
+                  {distance.miles} mi · {distance.duration}
+                </span>
+              )}
+            </div>
+          )}
           {/* Show system type once detail loads */}
           {detail?.systemType ? (
             <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#c9a84c', marginBottom: 4 }}>
@@ -523,15 +557,6 @@ function CustomerPanel({ customer, onClose }) {
                     {detail.email && (
                       <a href={`mailto:${detail.email}`} style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.6)', textDecoration: 'none', wordBreak: 'break-all' }}>
                         ✉ {detail.email}
-                      </a>
-                    )}
-                    {detail.address && (
-                      <a
-                        href={`https://maps.apple.com/?daddr=${encodeURIComponent(detail.address)}`}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', textDecoration: 'none', lineHeight: 1.4 }}
-                      >
-                        📍 {detail.address}
                       </a>
                     )}
                   </div>
@@ -707,6 +732,27 @@ export default function Clients({ customers, prospects = [] }) {
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState('all')
   const [selected, setSelected] = useState(null)
+  const [distances, setDistances] = useState({})
+  const [locating, setLocating] = useState(false)
+
+  async function locateMe() {
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const origin = `${pos.coords.latitude},${pos.coords.longitude}`
+      const addressable = customers.filter((c) => c.address)
+      try {
+        const res = await fetch('/api/admin/distances', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin, addresses: addressable.map((c) => ({ id: c.id, address: c.address })) }),
+        })
+        setDistances(await res.json())
+      } finally {
+        setLocating(false)
+      }
+    }, () => setLocating(false))
+  }
 
   const realClients = customers.filter(c => c.status !== 'prospect')
   const allProspects = customers.filter(c => c.status === 'prospect')
@@ -826,6 +872,11 @@ export default function Clients({ customers, prospects = [] }) {
               background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', outline: 'none',
             }}
           />
+          <button onClick={locateMe} disabled={locating}
+            title="Show driving distance from your current location"
+            style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: Object.keys(distances).length ? 'rgba(125,255,170,0.1)' : 'rgba(255,255,255,0.04)', color: Object.keys(distances).length ? '#7dffaa' : 'rgba(212,230,202,0.6)', fontSize: '0.88rem', cursor: locating ? 'wait' : 'pointer', whiteSpace: 'nowrap', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700 }}>
+            {locating ? '📍 Locating…' : Object.keys(distances).length ? '📍 Refresh' : '📍 My Distance'}
+          </button>
           <div style={{ display: 'flex', gap: 6 }}>
             {FILTER_TABS.map((t) => (
               <button
@@ -852,7 +903,7 @@ export default function Clients({ customers, prospects = [] }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
-                  {['Name', 'Email', 'Phone', 'Address', 'Last Visit', 'Next Visit'].map((h) => (
+                  {['Name', 'Address', ...(Object.keys(distances).length ? ['Distance'] : []), 'Email', 'Phone', 'Last Visit', 'Next Visit'].map((h) => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -873,9 +924,19 @@ export default function Clients({ customers, prospects = [] }) {
                     }}
                   >
                     <td style={{ padding: '11px 16px', fontWeight: 700 }}>{c.name || '—'}</td>
+                    <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.45)', fontSize: '0.78rem', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.address || <span style={{ color: 'rgba(212,230,202,0.2)' }}>—</span>}</td>
+                    {Object.keys(distances).length > 0 && (
+                      <td style={{ padding: '11px 16px', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
+                        {distances[c.id] ? (
+                          <span title={distances[c.id].duration}>
+                            <span style={{ fontWeight: 800, color: parseFloat(distances[c.id].miles) <= 5 ? '#7dffaa' : parseFloat(distances[c.id].miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.5)' }}>{distances[c.id].miles} mi</span>
+                            <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginLeft: 5 }}>{distances[c.id].duration}</span>
+                          </span>
+                        ) : <span style={{ color: 'rgba(212,230,202,0.2)' }}>—</span>}
+                      </td>
+                    )}
                     <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem' }}>{c.email || <span style={{ color: 'rgba(212,230,202,0.25)' }}>—</span>}</td>
                     <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{c.phone || <span style={{ color: 'rgba(212,230,202,0.25)' }}>—</span>}</td>
-                    <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.45)', fontSize: '0.78rem', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.address || <span style={{ color: 'rgba(212,230,202,0.2)' }}>—</span>}</td>
                     <td style={{ padding: '11px 16px', fontSize: '0.78rem', whiteSpace: 'nowrap', color: c.lastVisit ? '#7dffaa' : 'rgba(212,230,202,0.2)' }}>{c.lastVisit ? fmtDate(c.lastVisit) : '—'}</td>
                     <td style={{ padding: '11px 16px', fontSize: '0.78rem', whiteSpace: 'nowrap', color: c.nextVisit ? '#c9a84c' : 'rgba(212,230,202,0.2)' }}>{c.nextVisit ? fmtDate(c.nextVisit) : '—'}</td>
                   </tr>

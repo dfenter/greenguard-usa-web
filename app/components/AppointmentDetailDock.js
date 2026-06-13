@@ -238,12 +238,30 @@ export default function DetailDock({ details, loading, onClose }) {
       {!loading && d.error && <div style={{ padding: 20, color: '#ff8080', fontSize: '0.85rem' }}>{d.error}</div>}
       {!loading && !d.error && (
         <div style={{ padding: '14px 18px' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: 2 }}>{customerName}</div>
-          {billingContact && (
-            <div style={{ fontSize: '0.7rem', color: '#c9a84c', fontWeight: 700, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)', padding: '2px 8px', borderRadius: 4, display: 'inline-block', marginBottom: 6 }}>
-              Bill to: {billingContact}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 2 }}>
+            <div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{customerName}</div>
+              {billingContact && (
+                <div style={{ fontSize: '0.7rem', color: '#c9a84c', fontWeight: 700, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)', padding: '2px 8px', borderRadius: 4, display: 'inline-block', marginTop: 4 }}>
+                  Bill to: {billingContact}
+                </div>
+              )}
             </div>
-          )}
+            {(address || phone) && (
+              <div style={{ textAlign: 'right', flexShrink: 0, maxWidth: '55%' }}>
+                {address && (
+                  <div style={{ fontSize: '0.78rem', marginBottom: 2 }}>
+                    <a href={`https://maps.apple.com/?daddr=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" style={{ color: '#7dffaa', textDecoration: 'none' }}>📍 {address}</a>
+                  </div>
+                )}
+                {phone && (
+                  <div style={{ fontSize: '0.78rem' }}>
+                    <a href={`tel:${phone}`} style={{ color: '#7dffaa', textDecoration: 'none' }}>📞 {phone}</a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div style={{ display: 'flex', gap: 6, margin: '12px 0 4px' }}>
             {[{ k: 'details', l: 'Details' }, { k: 'history', l: 'History' }].map((t) => (
@@ -263,16 +281,10 @@ export default function DetailDock({ details, loading, onClose }) {
             <div style={{ fontSize: '0.78rem', color: '#7dffaa', fontWeight: 700 }}>{fmtDockDate(ev.start)} · {fmtDockTime(ev.start)}{ev.end ? ` – ${fmtDockTime(ev.end)}` : ''}</div>
           </div>
 
-          {(phone || email || address) && (
+          {email && (
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Customer</div>
-              {phone && <div style={{ fontSize: '0.85rem', marginBottom: 3 }}>📞 <a href={`tel:${phone}`} style={{ color: '#7dffaa', textDecoration: 'none' }}>{phone}</a></div>}
-              {email && <div style={{ fontSize: '0.85rem', marginBottom: 3 }}>✉ <a href={`mailto:${email}`} style={{ color: '#7dffaa', textDecoration: 'none' }}>{email}</a></div>}
-              {address && (
-                <div style={{ fontSize: '0.85rem', marginBottom: 3 }}>
-                  📍 <a href={`https://maps.apple.com/?daddr=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" style={{ color: '#7dffaa', textDecoration: 'none' }}>{address}</a>
-                </div>
-              )}
+              <div style={{ fontSize: '0.85rem', marginBottom: 3 }}>✉ <a href={`mailto:${email}`} style={{ color: '#7dffaa', textDecoration: 'none' }}>{email}</a></div>
             </div>
           )}
 

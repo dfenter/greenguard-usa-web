@@ -14,6 +14,10 @@ const CUST_STATUS = {
 }
 
 function getTrapImage(systemType, trapCount) {
+  const images = JSON.parse(process.env.NEXT_PUBLIC_BIZ_SYSTEM_IMAGES || 'null')
+  if (images) {
+    return images[`${systemType}-${trapCount}`] || images[systemType] || null
+  }
   if (systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter' || systemType === 'MQ-RENT') return '/images/trap-mosqitter.webp'
   if (systemType === 'Biogents-NonCO2') return '/images/mosquitairenoco2.webp'
   if (systemType === 'Biogents-CO2') {
@@ -280,6 +284,11 @@ export default function CustomerPanel({ customer, onClose }) {
           ) : customer.plan ? (
             <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)', marginBottom: 4 }}>{customer.plan}</div>
           ) : null}
+          {(detail?.phone || customer.phone) && (
+            <a href={`tel:${(detail?.phone || customer.phone).replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.85rem', fontWeight: 700, color: '#7dffaa', textDecoration: 'none', display: 'block', marginBottom: 4 }}>
+              📞 {detail?.phone || customer.phone}
+            </a>
+          )}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {customer.status && customer.status !== 'inactive' && customer.status !== 'canceled' && <StatusBadge status={customer.status} />}
             {detail?.nextBooking && (
@@ -304,7 +313,7 @@ export default function CustomerPanel({ customer, onClose }) {
         {editing && <button style={btn('green')} onClick={saveEdit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>}
         {editing && <button style={btn('ghost')} onClick={() => setEditing(false)}>Cancel</button>}
         {customer.email && !messaging && (
-          <button style={btn('ghost')} onClick={() => { setMessaging(true); setMsgResult(null); setMsgForm({ subject: 'Hi from GreenGuard USA', body: '' }) }}>✉ Email</button>
+          <button style={btn('ghost')} onClick={() => { setMessaging(true); setMsgResult(null); setMsgForm({ subject: `Hi from ${process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}`, body: '' }) }}>✉ Email</button>
         )}
         {(customer.phone || detail?.phone) && (
           <a href={`sms:${(customer.phone || detail?.phone || '').replace(/[^\d+]/g, '')}`} style={{ ...btn('ghost'), textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>💬 Text</a>
@@ -412,7 +421,7 @@ export default function CustomerPanel({ customer, onClose }) {
                     )}
                     {detail.address && (
                       <a href={`https://maps.apple.com/?daddr=${encodeURIComponent(detail.address)}`} target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', textDecoration: 'none', lineHeight: 1.4 }}>
+                        style={{ fontSize: '1rem', fontWeight: 700, color: '#d4e6ca', textDecoration: 'none', lineHeight: 1.4 }}>
                         📍 {detail.address}
                       </a>
                     )}

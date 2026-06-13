@@ -20,7 +20,7 @@ const ADMIN_NAV_LINKS = [
   { href: '/dashboard?preview=1', label: 'My Account ↗', customer: true },
 ]
 
-export default function PortalLayout({ children, title, isAdmin = false }) {
+export default function PortalLayout({ children, title, isAdmin = false, topPadding }) {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -31,8 +31,8 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
       {/* Nav */}
       <nav style={{
         position: 'sticky', top: 0, zIndex: 100,
-        background: 'rgba(10,26,13,0.95)', backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(122,171,130,0.2)',
+        background: 'var(--bg-deep)', backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid var(--border)',
         padding: '0 24px',
       }}>
         <div style={{
@@ -42,10 +42,10 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
         }}>
           <Link href={isAdmin ? '/admin/home' : '/dashboard'} style={{ textDecoration: 'none', lineHeight: 1.1, flexShrink: 0 }}>
             <div style={{ fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
-              Green<span style={{ color: '#7dffaa' }}>Guard</span> USA
+              {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}
             </div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', whiteSpace: 'nowrap' }}>
-              Smart · Safe · Effective
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              {process.env.NEXT_PUBLIC_BIZ_TAGLINE || 'Smart · Safe · Effective'}
             </div>
           </Link>
 
@@ -60,14 +60,14 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
           <div className={'nav-links' + (menuOpen ? ' open' : '')} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             {/* Customer links — hidden when admin */}
             {!isAdmin && NAV_LINKS.map(({ href, label }) => (
-              <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: 700, padding: '8px 16px', borderRadius: 4, whiteSpace: 'nowrap', color: router.pathname === href ? '#7dffaa' : 'rgba(212,230,202,0.85)', background: router.pathname === href ? 'rgba(125,255,170,0.08)' : 'transparent' }}>
+              <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: 700, padding: '8px 16px', borderRadius: 4, whiteSpace: 'nowrap', color: router.pathname === href ? 'var(--green)' : 'var(--text)', background: router.pathname === href ? 'rgba(var(--green-rgb),0.08)' : 'transparent' }}>
                 {label}
               </Link>
             ))}
 
             {/* Admin links — hidden when customer */}
             {isAdmin && ADMIN_NAV_LINKS.map(({ href, label, customer }) => (
-              <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: 700, padding: '8px 12px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0, color: customer ? 'rgba(125,255,170,0.6)' : router.pathname === href ? '#c9a84c' : 'rgba(201,168,76,0.8)', background: router.pathname === href ? 'rgba(201,168,76,0.08)' : 'transparent', borderLeft: customer ? '1px solid rgba(125,255,170,0.15)' : 'none', marginLeft: customer ? 4 : 0 }}>
+              <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: 700, padding: '8px 12px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0, color: customer ? 'rgba(var(--green-rgb),0.6)' : router.pathname === href ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.8)', background: router.pathname === href ? 'rgba(var(--gold-rgb),0.08)' : 'transparent', borderLeft: customer ? '1px solid rgba(var(--green-rgb),0.15)' : 'none', marginLeft: customer ? 4 : 0 }}>
                 {label}
               </Link>
             ))}
@@ -78,7 +78,7 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
                 try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }) } catch {}
                 window.location.href = '/login'
               }}
-              style={{ marginLeft: 8, fontSize: '1rem', fontWeight: 700, padding: '8px 14px', borderRadius: 4, color: 'rgba(212,230,202,0.6)', whiteSpace: 'nowrap', flexShrink: 0, background: 'transparent', border: 'none', cursor: 'pointer' }}
+              style={{ marginLeft: 8, fontSize: '1rem', fontWeight: 700, padding: '8px 14px', borderRadius: 4, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, background: 'transparent', border: 'none', cursor: 'pointer' }}
             >
               Sign out
             </button>
@@ -86,14 +86,11 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
         </div>
       </nav>
 
-      {/* Page content — clear the fixed admin dock (~70px tall + iOS home
-          indicator safe-area). Previous 100px barely cleared the dock and
-          on iPhones with safe-area the last card got overlapped. */}
-      <main style={{
+      {/* Page content — on mobile, clear the fixed dock (~70px + iOS safe-area).
+          Dock is hidden on tablet/desktop so no extra bottom padding needed there. */}
+      <main className={isAdmin ? 'admin-main' : ''} style={{
         flex: 1, maxWidth: 1100, margin: '0 auto', width: '100%',
-        padding: isAdmin
-          ? '40px 24px calc(120px + env(safe-area-inset-bottom, 0px))'
-          : '40px 24px',
+        padding: `${topPadding ?? '40px'} 24px`,
       }}>
         {title && (
           <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 32 }}>
@@ -104,15 +101,13 @@ export default function PortalLayout({ children, title, isAdmin = false }) {
       </main>
 
       <footer style={{
-        borderTop: '1px solid rgba(122,171,130,0.12)',
-        padding: isAdmin
-          ? '20px 24px calc(100px + env(safe-area-inset-bottom, 0px))'
-          : '20px 24px',
+        borderTop: '1px solid var(--border)',
+        padding: '20px 24px',
         textAlign: 'center',
         fontSize: '0.78rem',
-        color: 'rgba(212,230,202,0.35)',
+        color: 'var(--text-dim)',
       }}>
-        © {new Date().getFullYear()} GreenGuard USA · Austin, TX
+        © {new Date().getFullYear()} {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'} · {process.env.NEXT_PUBLIC_BIZ_CITY || 'Austin, TX'}
       </footer>
 
       {/* Bottom-docked quick access for admin on mobile/tablet */}
@@ -133,8 +128,8 @@ function AdminBottomDock({ pathname }) {
   return (
     <nav className="admin-dock" aria-label="Admin quick access" style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 90,
-      background: 'rgba(10,26,13,0.96)', backdropFilter: 'blur(12px)',
-      borderTop: '1px solid rgba(201,168,76,0.25)',
+      background: 'var(--bg-deep)', backdropFilter: 'blur(12px)',
+      borderTop: '1px solid rgba(var(--gold-rgb),0.25)',
       display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
       padding: '6px 8px env(safe-area-inset-bottom, 6px)',
       boxShadow: '0 -4px 12px rgba(0,0,0,0.25)',
@@ -145,8 +140,8 @@ function AdminBottomDock({ pathname }) {
           <Link key={href} href={href} style={{
             flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: 2, padding: '8px 4px', borderRadius: 8, textDecoration: 'none', minWidth: 0,
-            color: active ? '#c9a84c' : 'rgba(212,230,202,0.55)',
-            background: active ? 'rgba(201,168,76,0.10)' : 'transparent',
+            color: active ? 'var(--gold)' : 'rgba(var(--text-rgb),0.55)',
+            background: active ? 'rgba(var(--gold-rgb),0.10)' : 'transparent',
             fontWeight: active ? 800 : 600,
           }}>
             <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>{icon}</span>

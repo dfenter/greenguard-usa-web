@@ -1,6 +1,7 @@
 import Head from 'next/head'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getSessionFromRequest } from '../lib/auth'
+import { trackEvent } from '../lib/analytics'
 
 export async function getServerSideProps({ req, query }) {
   const session = await getSessionFromRequest(req)
@@ -12,6 +13,27 @@ export default function Login({ error }) {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [restoring, setRestoring] = useState(true)
+
+  useEffect(() => {
+    const backup = localStorage.getItem('gg_backup')
+    if (!backup) { setRestoring(false); return }
+    fetch('/api/auth/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: backup }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          window.location.href = data.dest
+        } else {
+          localStorage.removeItem('gg_backup')
+          setRestoring(false)
+        }
+      })
+      .catch(() => setRestoring(false))
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -23,11 +45,23 @@ export default function Login({ error }) {
     })
     setSent(true)
     setLoading(false)
+    trackEvent('login_requested')
+  }
+
+  if (restoring) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)',
+      }}>
+        <p style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.9rem' }}>Signing you in…</p>
+      </div>
+    )
   }
 
   return (
     <>
-      <Head><title>Sign In · GreenGuard</title></Head>
+      <Head><title>Sign In · {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'}</title></Head>
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)',
@@ -36,7 +70,7 @@ export default function Login({ error }) {
         <div style={{ width: '100%', maxWidth: 400 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div style={{ fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.02em', marginBottom: 8 }}>
-              Green<span style={{ color: '#7dffaa' }}>Guard</span> USA
+              {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}
             </div>
             <p style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.6)', margin: 0 }}>
               Customer Portal
@@ -51,7 +85,7 @@ export default function Login({ error }) {
                   Check your email
                 </h2>
                 <p style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.65)', lineHeight: 1.6 }}>
-                  If <strong style={{ color: '#d4e6ca' }}>{email}</strong> is linked to a GreenGuard account,
+                  If <strong style={{ color: '#d4e6ca' }}>{email}</strong> is linked to a {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} account,
                   you&apos;ll receive a sign-in link within a minute.
                 </p>
               </div>
@@ -102,8 +136,8 @@ export default function Login({ error }) {
           </div>
 
           <p style={{ textAlign: 'center', marginTop: 20, fontSize: '0.8rem', color: 'rgba(212,230,202,0.35)' }}>
-            Not a GreenGuard customer yet?{' '}
-            <a href="https://greenguard-usa.com" style={{ color: '#7aab82' }}>
+            Not a {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} customer yet?{' '}
+            <a href={process.env.NEXT_PUBLIC_BIZ_WEBSITE || 'https://greenguard-usa.com'} style={{ color: '#7aab82' }}>
               Learn more
             </a>
           </p>

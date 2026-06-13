@@ -13,6 +13,38 @@ function sha256hex(str) {
   return crypto.createHash('sha256').update((str || '').trim().toLowerCase()).digest('hex')
 }
 
+async function fireGA4Purchase({ email, amountUsd, orderId, clientId: knownClientId }) {
+  const apiSecret = process.env.GA4_API_SECRET
+  const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-K2R5H2Z23X'
+  if (!apiSecret) return
+  const clientId = knownClientId || sha256hex(email || orderId).slice(0, 20)
+  if (!knownClientId) console.warn('[stripe-webhook] GA4 purchase: no real client_id, attribution will be unassigned')
+  try {
+    const r = await fetch(
+      `https://www.google-analytics.com/mp/collect?measurement_id=${measurementId}&api_secret=${apiSecret}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: clientId,
+          events: [{
+            name: 'purchase',
+            params: {
+              transaction_id: orderId,
+              value: amountUsd,
+              currency: 'USD',
+            },
+          }],
+        }),
+      }
+    )
+    if (!r.ok) console.error('[stripe-webhook] GA4 MP error:', r.status, await r.text())
+    else console.log(`[stripe-webhook] GA4 purchase fired — ${orderId} $${amountUsd}`)
+  } catch (e) {
+    console.error('[stripe-webhook] GA4 MP failed:', e.message)
+  }
+}
+
 async function fireMetaPurchase({ email, phone, amountUsd, orderId }) {
   const metaToken = process.env.META_SYSTEM_USER_TOKEN
   if (!metaToken || !email) return
@@ -108,12 +140,6 @@ export default async function handler(req, res) {
   if (await isWebhookProcessed(event.id)) {
     return res.status(200).json({ received: true, duplicate: true })
   }
-  await recordWebhook(event.id, event.type)
-
-  // Respond to Stripe immediately — processing happens below
-  // This prevents Stripe from retrying due to slow HubSpot/Resend calls
-  res.status(200).json({ received: true })
-
   try {
     switch (event.type) {
       case 'invoice.payment_succeeded': {
@@ -152,11 +178,13 @@ export default async function handler(req, res) {
           receiptUrl: invoice.charge ? `https://pay.stripe.com/receipts/invoices/${invoice.id}` : null,
           hostedInvoiceUrl: invoice.hosted_invoice_url,
         }).catch((e) => console.error('customer receipt:', e.message))
-        // Fire Meta CAPI Purchase + Google Ads offline conversion
+        // Fire Meta CAPI Purchase + Google Ads offline conversion + GA4 server-side purchase
         const amountUsd = invoice.amount_paid / 100
         await fireMetaPurchase({ email: customer.email, phone: customer.phone, amountUsd, orderId: invoice.id })
         const contact = customer.email ? await findContactByEmail(customer.email).catch(() => null) : null
         const gclid = contact?.properties?.gclid || null
+        const ga_client_id = contact?.properties?.ga_client_id || null
+        await fireGA4Purchase({ email: customer.email, amountUsd, orderId: invoice.id, clientId: ga_client_id })
         await fireGoogleAdsConversion({ email: customer.email, amountUsd, conversionTime: invoice.created * 1000, gclid })
 
         // Wipe any payment-resurrection state so a future failure restarts the clock
@@ -203,12 +231,16 @@ export default async function handler(req, res) {
         let items = []
         try {
           const li = await stripe.checkout.sessions.listLineItems(session.id, { limit: 20 })
-          items = (li.data || []).map((l) => ({ description: l.description, amount: l.amount_total }))
+          items = (li.data || []).map((l) => ({ description: l.description, amount: l.amount_total, quantity: l.quantity }))
         } catch {}
 
         const customerName = session.customer_details?.name || ''
         const customerEmail = session.customer_details?.email || session.customer_email || ''
         const customerPhone = session.customer_details?.phone || ''
+        const billingAddr = session.customer_details?.address || session.shipping_details?.address || null
+        const addressLine = billingAddr ? [billingAddr.line1, billingAddr.city, billingAddr.state, billingAddr.postal_code].filter(Boolean).join(', ') : ''
+        const subtotal = session.amount_subtotal || session.amount_total || 0
+        const tax = (session.total_details?.amount_tax) || 0
 
         // HubSpot note (auto-create contact if it's a new buyer via Payment Link)
         if (customerEmail) {
@@ -231,9 +263,13 @@ export default async function handler(req, res) {
           customerName,
           customerEmail,
           customerPhone,
+          customerAddress: addressLine,
           amount: session.amount_total,
+          subtotal,
+          tax,
           currency: session.currency,
           items,
+          paidAt: session.created,
           stripeUrl: `${DASH}/payments/${session.payment_intent}`,
           ref: session.id,
         }).catch((e) => console.error('notify checkout completed:', e.message))
@@ -273,16 +309,30 @@ export default async function handler(req, res) {
             })
           } catch (e) { console.error('welcome email failed:', e.message) }
 
-          // Store gclid/UTMs from session metadata in HubSpot for offline conversion attribution
+          // Store gclid + ga_client_id in HubSpot for offline conversion attribution
           const gclid = session.metadata?.gclid
-          if (gclid && customerEmail) {
+          const ga_client_id = session.metadata?.ga_client_id
+          if ((gclid || ga_client_id) && customerEmail) {
             try {
               const contact = await findContactByEmail(customerEmail).catch(() => null)
               if (contact?.id) {
                 const { updateContact } = require('../../../lib/hubspot')
-                await updateContact(contact.id, { gclid }).catch(() => {})
+                const props = {}
+                if (gclid) props.gclid = gclid
+                if (ga_client_id) props.ga_client_id = ga_client_id
+                await updateContact(contact.id, { properties: props }).catch(() => {})
               }
             } catch {}
+          }
+          // Fire GA4 purchase for quote checkout path (uses real client_id for attribution)
+          if (customerEmail) {
+            const ga_client_id_meta = session.metadata?.ga_client_id || null
+            await fireGA4Purchase({
+              email: customerEmail,
+              amountUsd: (session.amount_total || 0) / 100,
+              orderId: session.id,
+              clientId: ga_client_id_meta,
+            })
           }
         }
         break
@@ -309,9 +359,10 @@ export default async function handler(req, res) {
         break
     }
 
-    // Response already sent above
+    await recordWebhook(event.id, event.type)
+    res.status(200).json({ received: true })
   } catch (err) {
     console.error('[stripe-webhook] Processing error:', err.message)
-    // Response already sent — just log, don't try to respond again
+    res.status(500).json({ error: 'Processing failed' })
   }
 }

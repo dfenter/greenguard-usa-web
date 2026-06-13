@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import CustomerMap from '../../components/CustomerMap'
 import TankCalendar from '../../components/TankCalendar'
+import CustomerPanel from '../../components/CustomerPanel'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
 import { findContactByEmail, getContactNotes } from '../../lib/hubspot'
@@ -108,35 +109,9 @@ function fmtDayLabel(dateStr) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
-function ApptDetailModal({ stop, onClose }) {
-  const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }
-  const box = { background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 14, padding: 24, maxWidth: 440, width: '100%', fontFamily: 'Nunito Sans, sans-serif', color: '#d4e6ca', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }
-  const row = (label, value) => value ? (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(212,230,202,0.4)', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: '0.9rem', color: '#d4e6ca' }}>{value}</div>
-    </div>
-  ) : null
-  const fmtFull = (iso) => { try { return new Date(iso).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' }) } catch { return iso } }
-  return (
-    <div style={overlay} onClick={onClose}>
-      <div style={box} onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: 'rgba(212,230,202,0.4)', fontSize: '1.3rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
-        <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 18, paddingRight: 24 }}>{stop.title || stop.customerName || 'Service Visit'}</div>
-        {row('Appointment time', stop.startTime ? fmtFull(stop.startTime) : null)}
-        {row('Service', stop.serviceType)}
-        {row('Address', stop.address)}
-        {row('Email', stop.email)}
-        {row('Phone', stop.phone)}
-        {row('Tanks', stop.tanks > 0 ? `${stop.tanks} tank${stop.tanks > 1 ? 's' : ''}` : null)}
-        {(stop.clientNotes || []).map((n, i) => row(i === 0 ? 'Notes' : '', n))}
-      </div>
-    </div>
-  )
-}
 
-function StopCard({ stop, index, dateStr }) {
-  const [showDetail, setShowDetail] = useState(false)
+function StopCard({ stop, index, dateStr, distance }) {
+  const [showPanel, setShowPanel] = useState(false)
   const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email || '')}`
   const mapsUrl = stop.address ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}` : null
   const B = (bg, fg, border) => ({
@@ -148,11 +123,13 @@ function StopCard({ stop, index, dateStr }) {
 
   return (
     <>
-      {showDetail && <ApptDetailModal stop={stop} onClose={() => setShowDetail(false)} />}
-      <div
-        style={{ background: 'rgba(26,46,31,0.7)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 12, padding: '16px 18px', marginBottom: 12, display: 'flex', gap: 14, alignItems: 'flex-start', cursor: 'pointer' }}
-        onClick={() => setShowDetail(true)}
-      >
+      {showPanel && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 199 }} onClick={() => setShowPanel(false)} />
+          <CustomerPanel customer={{ email: stop.email, name: stop.title, phone: stop.phone }} onClose={() => setShowPanel(false)} />
+        </>
+      )}
+      <div style={{ background: 'rgba(26,46,31,0.7)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 12, padding: '16px 18px', marginBottom: 12, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
         {/* Stop number */}
         <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(201,168,76,0.18)', border: '2px solid rgba(201,168,76,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', color: '#c9a84c', flexShrink: 0, marginTop: 2 }}>
           {index + 1}
@@ -160,29 +137,37 @@ function StopCard({ stop, index, dateStr }) {
 
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Name + address */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
-            <a
-              href={stop.email ? `/admin/clients/${encodeURIComponent(stop.email)}` : '#'}
-              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', textDecoration: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)' }}
-              onClick={e => e.stopPropagation()}
-            >{stop.title || 'Service Visit'}</a>
+          {/* Name + tanks + address */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
+            <button
+              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', background: 'none', border: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', padding: 0, cursor: stop.email ? 'pointer' : 'default', fontFamily: 'inherit' }}
+              onClick={() => { if (stop.email) setShowPanel(true) }}
+            >{stop.title || 'Service Visit'}</button>
+            {stop.tanks > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.85rem', fontWeight: 800, color: '#7dffaa' }}>
+                🫙 {stop.tanks}
+              </span>
+            )}
             {stop.address && <span style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.5)' }}>📍 {stop.address}</span>}
           </div>
-          {/* Client notes from the client popup */}
+          {/* Client notes */}
           {(stop.clientNotes || []).map((note, i) => (
             <div key={i} style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5 }}>{note}</div>
           ))}
-          {/* Service info */}
+          {/* Service info + distance */}
           <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: '2px 10px' }}>
             {stop.startTime && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{fmtTime(stop.startTime)}{stop.endTime ? ` – ${fmtTime(stop.endTime)}` : ''}</span>}
             {stop.serviceType && <span>{stop.serviceType}</span>}
-            {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
+            {distance && (
+              <span style={{ fontWeight: 800, color: parseFloat(distance.miles) <= 5 ? '#7dffaa' : parseFloat(distance.miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.45)', whiteSpace: 'nowrap' }}>
+                {distance.miles} mi · {distance.duration}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Buttons — docked right, uniform width */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
           {stop.email && <Link href={roundsUrl} style={B('#c9a84c', '#0d1a10')}>Rounds</Link>}
           {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={B('rgba(125,255,170,0.12)', '#7dffaa', '1px solid rgba(125,255,170,0.25)')}>Navigate</a>}
           {stop.phone && <a href={`sms:${stop.phone.replace(/[^\d+]/g, '')}`} style={B('rgba(91,196,255,0.1)', '#5bc4ff', '1px solid rgba(91,196,255,0.2)')}>💬 Text</a>}
@@ -193,7 +178,120 @@ function StopCard({ stop, index, dateStr }) {
   )
 }
 
+function TechNotes() {
+  const [notes, setNotes] = useState([])
+  const [body, setBody] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState(null)
+  const textareaRef = useRef(null)
+
+  useEffect(() => {
+    fetch('/api/admin/tech-notes')
+      .then((r) => r.json())
+      .then((d) => setNotes(d.notes || []))
+      .catch(() => {})
+  }, [])
+
+  async function save() {
+    if (!body.trim()) return
+    setSaving(true)
+    setMsg(null)
+    try {
+      const res = await fetch('/api/admin/tech-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      const newNote = { id: Date.now(), body: body.trim(), timestamp: new Date().toISOString() }
+      setNotes((prev) => [newNote, ...prev])
+      setBody('')
+      setMsg('Saved.')
+      setTimeout(() => setMsg(null), 2000)
+      textareaRef.current?.focus()
+    } catch {
+      setMsg('Failed to save.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function fmtNoteTime(iso) {
+    if (!iso) return ''
+    const d = new Date(iso)
+    const now = new Date()
+    const diffH = (now - d) / 3600000
+    if (diffH < 1) return 'just now'
+    if (diffH < 24) return `${Math.floor(diffH)}h ago`
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' })
+  }
+
+  return (
+    <section style={{ marginBottom: 36 }}>
+      <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 14 }}>
+        Tech Notes
+      </div>
+
+      {/* Input */}
+      <div style={{ background: 'rgba(26,46,31,0.7)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
+        <textarea
+          ref={textareaRef}
+          rows={3}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save() }}
+          placeholder="Quick note for the day…"
+          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1rem', fontFamily: 'Nunito Sans, sans-serif', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.5 }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+          <span style={{ fontSize: '0.72rem', color: msg ? (msg === 'Saved.' ? '#7dffaa' : '#ff8080') : 'rgba(212,230,202,0.3)' }}>
+            {msg || '⌘↵ to save'}
+          </span>
+          <button
+            onClick={save}
+            disabled={saving || !body.trim()}
+            style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: saving || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Nunito Sans, sans-serif', cursor: saving || !body.trim() ? 'not-allowed' : 'pointer' }}
+          >
+            {saving ? 'Saving…' : 'Save Note'}
+          </button>
+        </div>
+      </div>
+
+      {/* History */}
+      {notes.length === 0 ? (
+        <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.3)', textAlign: 'center', padding: '16px 0' }}>No notes this week.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {notes.map((n) => (
+            <div key={n.id} style={{ background: 'rgba(26,46,31,0.5)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 10, padding: '12px 16px' }}>
+              <div style={{ fontSize: '1rem', color: '#d4e6ca', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{n.body}</div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.3)', marginTop: 6 }}>{fmtNoteTime(n.timestamp)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops, mapsKey = '', tankData = null }) {
+  const [distances, setDistances] = useState({})
+
+  useEffect(() => {
+    const addressable = todayStops.filter((s) => s.address)
+    if (!addressable.length || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const origin = `${pos.coords.latitude},${pos.coords.longitude}`
+      try {
+        const res = await fetch('/api/admin/distances', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin, addresses: addressable.map((s) => ({ id: s.email || s.title, address: s.address })) }),
+        })
+        setDistances(await res.json())
+      } catch {}
+    }, () => {})
+  }, [todayStops])
+
   const routeMapData = todayStops
     .filter(s => s.address)
     .map((s, i) => ({ id: `stop_${i}`, name: `${i + 1}. ${s.title}`, address: s.address, status: 'active' }))
@@ -255,7 +353,7 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
                 today={tankData.today}
                 currentStock={tankData.currentStock}
                 expectedDelivery={tankData.expectedDelivery}
-                onDayClick={() => { window.location.href = '/admin/inventory' }}
+                onDayClick={(dateStr) => { window.location.href = `/admin/calendar?date=${dateStr}` }}
               />
             </div>
           </section>
@@ -292,7 +390,7 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
             </div>
           ) : (
             todayStops.map((stop, i) => (
-              <StopCard key={stop.id || i} stop={stop} index={i} dateStr={todayStr} />
+              <StopCard key={stop.id || i} stop={stop} index={i} dateStr={todayStr} distance={distances[stop.email || stop.title]} />
             ))
           )}
         </section>
@@ -315,6 +413,9 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
             ))}
           </section>
         )}
+
+        {/* Tech Notes */}
+        <TechNotes />
 
         {/* Quick links */}
         <section>

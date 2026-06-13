@@ -1,20 +1,5 @@
 *, *::before, *::after { box-sizing: border-box; }
 
-:root {
-  --bg: #1a2e1f;
-  --bg-deep: #0d1a10;
-  --bg-card: rgba(26, 46, 31, 0.85);
-  --bg-alt: #111c13;
-  --border: rgba(122, 171, 130, 0.2);
-  --border-gold: rgba(201, 168, 76, 0.4);
-  --green: #7dffaa;
-  --green-muted: #7aab82;
-  --gold: #c9a84c;
-  --text: #d4e6ca;
-  --text-muted: rgba(212, 230, 202, 0.6);
-  --text-dim: rgba(212, 230, 202, 0.35);
-}
-
 html {
   font-size: 19px; /* Base bump — all rem values scale up. Default is 16px. */
 }
@@ -33,7 +18,7 @@ button { font-family: inherit; cursor: pointer; }
 
 .btn-gold {
   background: var(--gold);
-  color: #0d1a10;
+  color: var(--bg-deep);
   font-weight: 800;
   font-size: 0.9rem;
   padding: 12px 24px;
@@ -42,7 +27,7 @@ button { font-family: inherit; cursor: pointer; }
   transition: background 0.2s;
   display: inline-block;
 }
-.btn-gold:hover { background: #e8d08a; }
+.btn-gold:hover { filter: brightness(1.15); }
 
 .btn-outline {
   background: transparent;
@@ -55,7 +40,7 @@ button { font-family: inherit; cursor: pointer; }
   transition: border-color 0.2s;
   display: inline-block;
 }
-.btn-outline:hover { border-color: rgba(212, 230, 202, 0.6); }
+.btn-outline:hover { border-color: var(--text-muted); }
 
 .card {
   background: var(--bg-card);
@@ -76,8 +61,8 @@ button { font-family: inherit; cursor: pointer; }
 
 .badge {
   display: inline-block;
-  background: rgba(201, 168, 76, 0.15);
-  border: 1px solid rgba(201, 168, 76, 0.3);
+  background: rgba(var(--gold-rgb), 0.15);
+  border: 1px solid rgba(var(--gold-rgb), 0.3);
   border-radius: 100px;
   padding: 3px 10px;
   font-size: 0.72rem;
@@ -86,8 +71,8 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .badge-green {
-  background: rgba(125, 255, 170, 0.12);
-  border-color: rgba(125, 255, 170, 0.25);
+  background: rgba(var(--green-rgb), 0.12);
+  border-color: rgba(var(--green-rgb), 0.25);
   color: var(--green);
 }
 
@@ -106,7 +91,7 @@ button { font-family: inherit; cursor: pointer; }
   display: block;
   width: 22px;
   height: 2px;
-  background: rgba(212, 230, 202, 0.7);
+  background: rgba(var(--text-rgb), 0.7);
   border-radius: 2px;
 }
 
@@ -129,8 +114,8 @@ button { font-family: inherit; cursor: pointer; }
     right: -24px;
     flex-direction: column;
     align-items: flex-start;
-    background: rgba(10, 26, 13, 0.98);
-    border-bottom: 1px solid rgba(122, 171, 130, 0.2);
+    background: var(--bg-deep);
+    border-bottom: 1px solid var(--border);
     padding: 12px 24px 20px;
     gap: 2px;
     z-index: 99;
@@ -164,7 +149,7 @@ button { font-family: inherit; cursor: pointer; }
     width: 100% !important;
     height: 75vh !important;
     border-left: none !important;
-    border-top: 1px solid rgba(122,171,130,0.2) !important;
+    border-top: 1px solid var(--border) !important;
     border-radius: 16px 16px 0 0 !important;
   }
 
@@ -199,11 +184,9 @@ button { font-family: inherit; cursor: pointer; }
   .card { padding: 18px; }
 }
 
-/* ── Admin bottom dock — visible on mobile/tablet, hidden on desktop ── */
+/* ── Admin bottom dock — always visible for admin ── */
 .admin-dock { display: flex; }
-@media (min-width: 1025px) {
-  .admin-dock { display: none !important; }
-}
+.admin-main { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important; }
 
 /* ── Field tech utility classes ────────────────────────────────── */
 /* Large tap targets for field use */

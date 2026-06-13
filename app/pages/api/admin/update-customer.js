@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const { customerId, hubspotContactId, name, phone, address, planType, systemType, trapCount, hasTimer } = req.body || {}
-  if (!customerId) return res.status(400).json({ error: 'customerId required' })
+  if (!customerId && !hubspotContactId) return res.status(400).json({ error: 'customerId or hubspotContactId required' })
 
   const stripeUpdates = {}
   if (name !== undefined) stripeUpdates.name = name

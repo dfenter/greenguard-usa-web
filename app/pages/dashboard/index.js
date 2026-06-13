@@ -9,9 +9,14 @@ import { getSubscriptions, getInvoices, getCustomer } from '../../lib/stripe'
 import { getUpcomingBookingsForEmail, getPastBookingsForEmail } from '../../lib/gcal'
 import { findContactByEmail } from '../../lib/hubspot'
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'
 
 function getTrapImage(systemType, trapCount) {
+  const images = JSON.parse(process.env.NEXT_PUBLIC_BIZ_SYSTEM_IMAGES || 'null')
+  if (images) {
+    const qualified = `${systemType}-${trapCount}`
+    return images[qualified] || images[systemType] || null
+  }
   if (systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter' || systemType === 'MQ-RENT') return '/images/trap-mosqitter.webp'
   if (systemType === 'Biogents-NonCO2') return '/images/mosquitairenoco2.webp'
   if (systemType === 'Biogents-CO2') {
@@ -22,14 +27,17 @@ function getTrapImage(systemType, trapCount) {
   return null
 }
 
-const SYSTEM_LABELS = {
+const SYSTEM_LABELS = JSON.parse(process.env.NEXT_PUBLIC_BIZ_SYSTEM_LABELS || JSON.stringify({
   'Biogents-CO2': 'Biogents CO₂ Trap',
   'Biogents-NonCO2': 'Biogents (Non-CO₂)',
   'Mosqitter-Grand': 'Mosqitter Grand',
-  // legacy values
   Mosqitter: 'Mosqitter Grand',
   'MQ-RENT': 'Mosqitter Grand',
-}
+  'Tank-Exchange-Only': 'CO₂ Tank Exchange Service',
+  'Biogents-Owned': 'Biogents CO₂ Trap',
+  'Mosqitter-Owned': 'Mosqitter Grand',
+  'Mosqitter-Rental': 'Mosqitter Grand (Rental)',
+}))
 
 export async function getServerSideProps({ req, query }) {
   const session = await getSessionFromRequest(req)
@@ -37,10 +45,8 @@ export async function getServerSideProps({ req, query }) {
 
   const { email, stripeCustomerId } = session
   const isAdmin = email === ADMIN_EMAIL
-  // Redirect admin to analytics unless previewing the customer view
   if (isAdmin && !query.preview) return { redirect: { destination: '/admin/analytics', permanent: false } }
 
-  // Compute stable referral code (same algorithm as ReferralProgram component)
   const _refBase = email.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)
   let _h = 0
   for (let i = 0; i < email.length; i++) _h = ((_h << 5) - _h) + email.charCodeAt(i)
@@ -53,7 +59,6 @@ export async function getServerSideProps({ req, query }) {
     stripeCustomerId ? getInvoices(stripeCustomerId, 24).catch(() => []) : Promise.resolve([]),
     findContactByEmail(email).catch(() => null),
     stripeCustomerId ? getCustomer(stripeCustomerId).catch(() => null) : Promise.resolve(null),
-    // Count contacts referred by this customer's code
     fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
@@ -68,7 +73,6 @@ export async function getServerSideProps({ req, query }) {
   const p = contact?.properties || {}
   const m = stripeCustomer?.metadata || {}
 
-  // Infer system type from most recent appointment title when HubSpot property is missing
   function inferSystemFromTitle(title) {
     if (!title) return null
     const t = title.toLowerCase()
@@ -87,13 +91,11 @@ export async function getServerSideProps({ req, query }) {
   const inferredSystem = inferSystemFromTitle(lastTitle)
   const inferredTrapCount = inferTrapCountFromTitle(lastTitle)
 
-  // HubSpot custom properties are source of truth; appointment title is fallback; Stripe metadata is fallback
   const trapCount = parseInt(p.trap_count || m.trap_count || '0', 10) || (inferredSystem ? inferredTrapCount : 0)
   const tankCount = parseInt(p.tank_count || m.tank_count || '0', 10)
   const planType = p.plan_type || m.plan_type || null
   const rawSysType = p.system_type || m.system_type || inferredSystem || null
 
-  // Parse systems array: system_type may be a JSON array (multi-system) or a single legacy string
   let systems = []
   if (rawSysType && typeof rawSysType === 'string' && rawSysType.trim().startsWith('[')) {
     try { systems = JSON.parse(rawSysType).filter((s) => s && s.type) } catch {}
@@ -102,7 +104,6 @@ export async function getServerSideProps({ req, query }) {
     systems = [{ type: rawSysType, count: trapCount || 1, hasTimer: p.has_timer === 'true' && rawSysType === 'Biogents-CO2' }]
   }
 
-  // Legacy single-system view: derive from first row
   const systemType = systems[0]?.type || null
   const usesC02 = systems.some((s) => s.type === 'Biogents-CO2' || s.type === 'Mosqitter-Grand' || s.type === 'Mosqitter' || s.type === 'MQ-RENT')
   const hasTimer = !!systems[0]?.hasTimer
@@ -123,10 +124,8 @@ export async function getServerSideProps({ req, query }) {
     props: {
       email,
       name: [p.firstname, p.lastname].filter(Boolean).join(' ') || null,
-      // visits
       nextBooking: upcoming[0] ? { startTime: upcoming[0].startTime, title: upcoming[0].title, address: upcoming[0].address, rescheduleUrl: upcoming[0].rescheduleUrl || null } : null,
       prevBooking: past[0] ? { startTime: past[0].startTime, title: past[0].title, address: past[0].address } : null,
-      // system
       systemType,
       trapCount,
       tankCount,
@@ -138,12 +137,9 @@ export async function getServerSideProps({ req, query }) {
       systemLabel: SYSTEM_LABELS[systemType] || systemType || null,
       systemFromAppointment: !p.system_type && !m.system_type && !!inferredSystem,
       lastAppointmentTitle: lastTitle || null,
-      // co2
       usesC02,
       nextRefillDate,
-      // Multi-system configuration (used by editor + tank level cards)
       systems,
-      // billing
       subscription: sub ? {
         status: sub.status,
         amount: sub.items.data.reduce((s, i) => s + (i.price.unit_amount || 0), 0),
@@ -161,7 +157,6 @@ export async function getServerSideProps({ req, query }) {
         hostedUrl: inv.hosted_invoice_url,
         pdfUrl: inv.invoice_pdf,
       })),
-      // Referrals: count of contacts who used this customer's referral code
       referralCount: referralContacts.filter(c =>
         c.properties?.customer_status === 'customer' || c.properties?.customer_status === 'active'
       ).length,
@@ -181,22 +176,21 @@ function fmtTime(iso) {
 function fmtDateShort(unix) {
   return new Date(unix * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: TZ })
 }
-
 function fmtAmount(cents) {
   return `$${(cents / 100).toFixed(2)}`
 }
 
-const INV_STATUS_COLOR = {
-  paid: '#7dffaa',
-  open: '#c9a84c',
-  void: 'rgba(212,230,202,0.35)',
-  uncollectible: '#ff6b6b',
+function invStatusColor(status) {
+  if (status === 'paid') return 'var(--green)'
+  if (status === 'open') return 'var(--gold)'
+  if (status === 'uncollectible') return '#ff6b6b'
+  return 'var(--text-dim)'
 }
 
-const DIVIDER = <div style={{ borderTop: '1px solid rgba(122,171,130,0.12)', margin: '32px 0' }} />
+const DIVIDER = <div style={{ borderTop: '1px solid rgba(var(--border-rgb),0.12)', margin: '32px 0' }} />
 
 const SECTION_LABEL = (text) => (
-  <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 18 }}>
+  <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 18 }}>
     {text}
   </div>
 )
@@ -249,51 +243,51 @@ function SystemEditor({ initialSystems }) {
 
   if (!editing) {
     return (
-      <button onClick={() => setEditing(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(125,255,170,0.7)', fontSize: '0.75rem', fontWeight: 700, padding: '4px 0', fontFamily: 'Nunito Sans, sans-serif' }}>
+      <button onClick={() => setEditing(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(var(--green-rgb),0.7)', fontSize: '0.75rem', fontWeight: 700, padding: '4px 0', fontFamily: 'Nunito Sans, sans-serif' }}>
         ✎ Edit my system
       </button>
     )
   }
 
-  const inp = { padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }
+  const inp = { padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }
   return (
-    <div style={{ marginTop: 10, padding: 14, borderRadius: 8, background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.18)' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 10 }}>Edit your system</div>
+    <div style={{ marginTop: 10, padding: 14, borderRadius: 8, background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.18)' }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 10 }}>Edit your system</div>
       <div style={{ display: 'grid', gap: 12 }}>
         {systems.map((row, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: 8, alignItems: 'end', padding: 10, borderRadius: 6, background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(122,171,130,0.15)' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '0.68rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700 }}>
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: 8, alignItems: 'end', padding: 10, borderRadius: 6, background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(var(--border-rgb),0.15)' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '0.68rem', color: 'rgba(var(--text-rgb),0.5)', fontWeight: 700 }}>
               Trap type
               <select value={row.type} onChange={(e) => updateRow(i, { type: e.target.value })} style={inp}>
                 {SYSTEM_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '0.68rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '0.68rem', color: 'rgba(var(--text-rgb),0.5)', fontWeight: 700 }}>
               Qty
               <input type="number" min="1" max="20" value={row.count} onChange={(e) => updateRow(i, { count: parseInt(e.target.value, 10) || 1 })} style={{ ...inp, textAlign: 'center' }} />
             </label>
             <button onClick={() => removeRow(i)} disabled={systems.length === 1} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: systems.length === 1 ? 'rgba(255,100,100,0.25)' : '#ff8080', cursor: systems.length === 1 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Nunito Sans, sans-serif' }}>Remove</button>
             {row.type === 'Biogents-CO2' && (
-              <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'rgba(212,230,202,0.75)', cursor: 'pointer', marginTop: 4 }}>
+              <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.75)', cursor: 'pointer', marginTop: 4 }}>
                 <input type="checkbox" checked={!!row.hasTimer} onChange={(e) => updateRow(i, { hasTimer: e.target.checked })} style={{ width: 16, height: 16 }} />
                 Timer installed (extends tank life from 20 to 28 days)
               </label>
             )}
           </div>
         ))}
-        <button onClick={addRow} style={{ padding: '8px', borderRadius: 6, border: '1px dashed rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>+ Add another system</button>
-        <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', fontStyle: 'italic' }}>
+        <button onClick={addRow} style={{ padding: '8px', borderRadius: 6, border: '1px dashed rgba(var(--green-rgb),0.3)', background: 'transparent', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>+ Add another system</button>
+        <div style={{ fontSize: '0.7rem', color: 'rgba(var(--text-rgb),0.4)', fontStyle: 'italic' }}>
           This updates how we show your tank level only. It will not change your billing or scheduled visits.
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={save} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 6, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', opacity: saving ? 0.6 : 1 }}>
+          <button onClick={save} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 6, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: 'var(--green)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Saving…' : 'Save'}
           </button>
-          <button onClick={() => { setEditing(false); setMsg(null) }} style={{ padding: '9px 16px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', cursor: 'pointer', background: 'transparent', color: 'rgba(212,230,202,0.6)', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+          <button onClick={() => { setEditing(false); setMsg(null) }} style={{ padding: '9px 16px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', cursor: 'pointer', background: 'transparent', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif' }}>
             Cancel
           </button>
         </div>
-        {msg && <div style={{ fontSize: '0.78rem', color: msg.startsWith('Saved') ? '#7dffaa' : '#ff8080', fontWeight: 700 }}>{msg}</div>}
+        {msg && <div style={{ fontSize: '0.78rem', color: msg.startsWith('Saved') ? 'var(--green)' : '#ff8080', fontWeight: 700 }}>{msg}</div>}
       </div>
     </div>
   )
@@ -331,23 +325,22 @@ function CustomerMediaUpload({ email }) {
     setUploading(false)
   }
 
-  const btnStyle = (color) => ({ padding: '10px 18px', borderRadius: 8, border: `1px dashed ${color}40`, background: 'transparent', color, cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 })
-  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', marginBottom: 12 }
+  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', marginBottom: 12 }
 
   return (
     <div className="card" style={{ marginBottom: 20 }}>
-      <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)', margin: '0 0 14px', lineHeight: 1.5 }}>
+      <p style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.55)', margin: '0 0 14px', lineHeight: 1.5 }}>
         Show us your results or report an issue — upload a photo or short video and we&apos;ll follow up.
       </p>
       <input style={inp} placeholder="Optional caption or description…" value={caption} onChange={(e) => setCaption(e.target.value)} />
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <input ref={fileRef} type="file" accept="image/*,video/*"  style={{ display: 'none' }} onChange={handleFile} />
-        <button onClick={() => { fileRef.current.accept='image/*'; fileRef.current?.click() }} disabled={uploading} style={btnStyle('#7dffaa')}>📷 Photo</button>
-        <button onClick={() => { fileRef.current.accept='video/*'; fileRef.current?.click() }} disabled={uploading} style={btnStyle('#5bc4ff')}>
+        <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} />
+        <button onClick={() => { fileRef.current.accept='image/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(var(--green-rgb),0.4)', background: 'transparent', color: 'var(--green)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>📷 Photo</button>
+        <button onClick={() => { fileRef.current.accept='video/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(99,196,255,0.4)', background: 'transparent', color: '#5bc4ff', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>
           {uploading ? 'Uploading…' : '🎥 Video'}
         </button>
       </div>
-      {msg && <p style={{ fontSize: '0.82rem', marginTop: 10, color: msg.includes('failed') || msg.includes('error') ? '#ff8080' : '#7dffaa' }}>{msg}</p>}
+      {msg && <p style={{ fontSize: '0.82rem', marginTop: 10, color: msg.includes('failed') || msg.includes('error') ? '#ff8080' : 'var(--green)' }}>{msg}</p>}
       {uploads.length > 0 && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
           {uploads.map((u, i) => u.type.startsWith('video')
@@ -362,16 +355,14 @@ function CustomerMediaUpload({ email }) {
 
 function ReferralProgram({ email, name, referralCount = 0 }) {
   const [copied, setCopied] = useState(false)
-  // Generate stable referral code from email (first 8 alphanumeric chars of email + hash)
   const refCode = (() => {
     const base = (email || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)
-    // Simple stable hash for the suffix
     let h = 0
     for (let i = 0; i < (email || '').length; i++) h = ((h << 5) - h) + (email || '').charCodeAt(i)
     const suffix = Math.abs(h).toString(36).slice(0, 4).toUpperCase()
     return (base + suffix).toUpperCase()
   })()
-  const refUrl = `https://greenguard-usa.com/?ref=${refCode}`
+  const refUrl = `${process.env.NEXT_PUBLIC_BIZ_WEBSITE || 'https://greenguard-usa.com'}/?ref=${refCode}`
 
   function copy() {
     navigator.clipboard?.writeText(refUrl)
@@ -382,8 +373,8 @@ function ReferralProgram({ email, name, referralCount = 0 }) {
   function share() {
     if (navigator.share) {
       navigator.share({
-        title: 'GreenGuard USA — Chemical-free mosquito control',
-        text: `${name?.split(' ')[0] || 'I'} love GreenGuard's chemical-free mosquito traps. Use my link and we both get $25 off!`,
+        title: `${process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'} — Chemical-free mosquito control`,
+        text: `${name?.split(' ')[0] || 'I'} love ${process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'}'s service. Use my link and we both get $25 off!`,
         url: refUrl,
       }).catch(() => {})
     } else {
@@ -393,7 +384,7 @@ function ReferralProgram({ email, name, referralCount = 0 }) {
 
   return (
     <>
-      <div style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 10 }}>
+      <div style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10 }}>
         Refer a Neighbor · Earn $25
       </div>
       <div className="card" style={{ marginBottom: 20 }}>
@@ -403,7 +394,7 @@ function ReferralProgram({ email, name, referralCount = 0 }) {
             <div style={{ fontWeight: 900, fontSize: '1.05rem', marginBottom: 4 }}>
               Get $25 for every neighbor who signs up
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', margin: '0 0 14px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 14px', lineHeight: 1.5 }}>
               Share your link with friends. When they become a customer, you both get $25 off your next invoice.
             </p>
 
@@ -413,17 +404,17 @@ function ReferralProgram({ email, name, referralCount = 0 }) {
                 value={refUrl}
                 readOnly
                 onFocus={(e) => e.target.select()}
-                style={{ flex: '1 1 220px', padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'monospace' }}
+                style={{ flex: '1 1 220px', padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.82rem', fontFamily: 'monospace' }}
               />
               <button
                 onClick={copy}
-                style={{ padding: '10px 20px', borderRadius: 6, border: 'none', background: copied ? '#7dffaa' : '#c9a84c', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}
+                style={{ padding: '10px 20px', borderRadius: 6, border: 'none', background: copied ? 'var(--green)' : 'var(--gold)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}
               >
                 {copied ? '✓ Copied' : 'Copy Link'}
               </button>
               <button
                 onClick={share}
-                style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#7aab82', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}
+                style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--green-muted)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}
               >
                 Share
               </button>
@@ -431,16 +422,16 @@ function ReferralProgram({ email, name, referralCount = 0 }) {
 
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.82rem' }}>
               <div>
-                <span style={{ color: 'rgba(212,230,202,0.4)' }}>Your code:</span>{' '}
-                <strong style={{ color: '#c9a84c' }}>{refCode}</strong>
+                <span style={{ color: 'rgba(var(--text-rgb),0.4)' }}>Your code:</span>{' '}
+                <strong style={{ color: 'var(--gold)' }}>{refCode}</strong>
               </div>
               <div>
-                <span style={{ color: 'rgba(212,230,202,0.4)' }}>Referrals:</span>{' '}
-                <strong style={{ color: referralCount > 0 ? '#7dffaa' : '#d4e6ca' }}>{referralCount}</strong>
+                <span style={{ color: 'rgba(var(--text-rgb),0.4)' }}>Referrals:</span>{' '}
+                <strong style={{ color: referralCount > 0 ? 'var(--green)' : 'var(--text)' }}>{referralCount}</strong>
               </div>
               <div>
-                <span style={{ color: 'rgba(212,230,202,0.4)' }}>Earned:</span>{' '}
-                <strong style={{ color: referralCount > 0 ? '#7dffaa' : 'rgba(212,230,202,0.6)' }}>${referralCount * 25}</strong>
+                <span style={{ color: 'rgba(var(--text-rgb),0.4)' }}>Earned:</span>{' '}
+                <strong style={{ color: referralCount > 0 ? 'var(--green)' : 'var(--text-muted)' }}>${referralCount * 25}</strong>
               </div>
             </div>
           </div>
@@ -470,7 +461,7 @@ export default function CustomerOverview({
 
   return (
     <>
-      <Head><title>My Account · GreenGuard</title></Head>
+      <Head><title>My Account · {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'}</title></Head>
       <PortalLayout isAdmin={false}>
         {/* ── Header ── */}
         <div style={{ marginBottom: 36 }}>
@@ -478,48 +469,46 @@ export default function CustomerOverview({
           <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
             {name ? `Welcome back, ${name.split(' ')[0]}` : 'Welcome back'}
           </h1>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>{email}</p>
+          <p style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.45)', margin: 0 }}>{email}</p>
         </div>
 
         {/* ── Visits ── */}
         {SECTION_LABEL('Schedule')}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16, marginBottom: 20 }}>
-          {/* Previous */}
           <div className="card" style={{ opacity: 0.7 }}>
             <span className="tag">Previous Visit</span>
             {prevBooking ? (
               <>
                 <div style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 4 }}>{fmtDate(prevBooking.startTime)}</div>
-                <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.55)' }}>{prevBooking.title}</div>
-                {prevBooking.address && <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.35)', marginTop: 4 }}>{prevBooking.address}</div>}
+                <div style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.55)' }}>{prevBooking.title}</div>
+                {prevBooking.address && <div style={{ fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.35)', marginTop: 4 }}>{prevBooking.address}</div>}
               </>
             ) : (
-              <div style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.4)' }}>No previous visits on record</div>
+              <div style={{ fontSize: '0.88rem', color: 'rgba(var(--text-rgb),0.4)' }}>No previous visits on record</div>
             )}
           </div>
 
-          {/* Next */}
           <div className="card">
             <span className="tag">Next Visit</span>
             {nextBooking ? (
               <>
-                <div style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 4, color: '#7dffaa' }}>{fmtDate(nextBooking.startTime)}</div>
-                <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.6)' }}>{nextBooking.title}</div>
-                {nextBooking.address && <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)', marginTop: 4 }}>{nextBooking.address}</div>}
+                <div style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 4, color: 'var(--green)' }}>{fmtDate(nextBooking.startTime)}</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{nextBooking.title}</div>
+                {nextBooking.address && <div style={{ fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.4)', marginTop: 4 }}>{nextBooking.address}</div>}
               </>
             ) : (
-              <div style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.4)' }}>No upcoming visits scheduled</div>
+              <div style={{ fontSize: '0.88rem', color: 'rgba(var(--text-rgb),0.4)' }}>No upcoming visits scheduled</div>
             )}
           </div>
         </div>
 
         <a
-          href={`mailto:admin@greenguard-usa.com?subject=Service Visit Request&body=Hi GreenGuard team,%0A%0AI'd like to request a service visit.%0A%0AAccount email: ${encodeURIComponent(email)}`}
+          href={`mailto:${process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}?subject=Service Visit Request&body=Hi ${process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} team,%0A%0AI'd like to request a service visit.%0A%0AAccount email: ${encodeURIComponent(email)}`}
           style={{
             display: 'inline-block', marginBottom: 8,
             padding: '10px 22px', borderRadius: 6,
-            border: '1px solid rgba(122,171,130,0.35)',
-            color: '#7aab82', fontWeight: 800, fontSize: '0.85rem',
+            border: '1px solid rgba(var(--border-rgb),0.35)',
+            color: 'var(--green-muted)', fontWeight: 800, fontSize: '0.85rem',
             textDecoration: 'none',
           }}
         >
@@ -535,7 +524,7 @@ export default function CustomerOverview({
             <div style={{ flexShrink: 0 }}>
               <Image
                 src={trapImage}
-                alt={systemLabel || 'Your trap'}
+                alt={systemLabel || 'Your system'}
                 width={180}
                 height={180}
                 style={{ borderRadius: 12, objectFit: 'cover', display: 'block' }}
@@ -547,34 +536,34 @@ export default function CustomerOverview({
               {systemLabel || 'System details loading'}
             </div>
             {systemFromAppointment && lastAppointmentTitle && (
-              <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', marginBottom: 10, lineHeight: 1.4 }}>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.4)', marginBottom: 10, lineHeight: 1.4 }}>
                 Based on your last appointment: {lastAppointmentTitle}
               </div>
             )}
             {customerType && (
-              <div style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, background: 'rgba(125,255,170,0.1)', color: '#7dffaa', fontSize: '0.72rem', fontWeight: 800, marginBottom: 14 }}>
+              <div style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, background: 'rgba(var(--green-rgb),0.1)', color: 'var(--green)', fontSize: '0.72rem', fontWeight: 800, marginBottom: 14 }}>
                 {customerType === 'rental' ? 'Rental' : 'Owned'}
               </div>
             )}
             {trapCount > 0 && (
-              <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', marginBottom: 6 }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 6 }}>
                 {trapCount} trap{trapCount !== 1 ? 's' : ''} active
               </div>
             )}
             {hasTimer && (
-              <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', marginBottom: 6 }}>Timer installed</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 6 }}>Timer installed</div>
             )}
             {installDate && (
-              <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.4)', marginTop: 4 }}>
+              <div style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.4)', marginTop: 4 }}>
                 Service since {new Date(installDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </div>
             )}
             {systems.length > 1 && (
-              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(122,171,130,0.12)', fontSize: '0.82rem', color: 'rgba(212,230,202,0.6)' }}>
-                <strong style={{ color: '#d4e6ca' }}>Your systems:</strong> {systems.map((s) => `${s.count}× ${SYSTEM_LABELS[s.type] || s.type}${s.type === 'Biogents-CO2' && s.hasTimer ? ' (timer)' : ''}`).join(' · ')}
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(var(--border-rgb),0.12)', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                <strong style={{ color: 'var(--text)' }}>Your systems:</strong> {systems.map((s) => `${s.count}× ${SYSTEM_LABELS[s.type] || s.type}${s.type === 'Biogents-CO2' && s.hasTimer ? ' (timer)' : ''}`).join(' · ')}
               </div>
             )}
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(var(--border-rgb),0.12)' }}>
               <SystemEditor initialSystems={systems} />
             </div>
           </div>
@@ -584,15 +573,15 @@ export default function CustomerOverview({
           style={{
             display: 'inline-block', marginBottom: 8,
             padding: '10px 22px', borderRadius: 6,
-            border: '1px solid rgba(201,168,76,0.4)',
-            color: '#c9a84c', fontWeight: 800, fontSize: '0.85rem',
+            border: '1px solid var(--border-gold)',
+            color: 'var(--gold)', fontWeight: 800, fontSize: '0.85rem',
             textDecoration: 'none',
           }}
         >
           Upgrade My Service →
         </Link>
 
-        {/* ── Current Tank Levels — one card per CO₂ system ── */}
+        {/* ── Current Tank Levels ── */}
         {(() => {
           const co2Systems = systems.filter((s) =>
             s.type === 'Biogents-CO2' || s.type === 'Mosqitter-Grand' || s.type === 'Mosqitter' || s.type === 'MQ-RENT'
@@ -604,35 +593,35 @@ export default function CustomerOverview({
           return (
             <>
               {DIVIDER}
-              {SECTION_LABEL(co2Systems.length > 1 ? 'Current Tank Levels' : 'Current Tank Level')}
+              {SECTION_LABEL(co2Systems.length > 1 ? 'CO₂ Tank Levels (Estimated)' : 'CO₂ Tank Level (Estimated)')}
               <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', maxWidth: 800 }}>
                 {co2Systems.map((sys, i) => {
                   const lifetime = sys.type === 'Biogents-CO2' && !sys.hasTimer ? 20 : 28
                   const remaining = Math.max(0, lifetime - daysSince)
                   const pct = Math.max(0, Math.min(100, Math.round((remaining / lifetime) * 100)))
-                  const color = pct > 50 ? '#7dffaa' : pct > 20 ? '#c9a84c' : '#ff8080'
+                  const color = pct > 50 ? 'var(--green)' : pct > 20 ? 'var(--gold)' : '#ff8080'
                   const label = SYSTEM_LABELS[sys.type] || sys.type
                   const lifetimeNote = sys.type === 'Biogents-CO2'
                     ? (sys.hasTimer ? 'with timer · 28-day tank' : 'without timer · 20-day tank')
                     : '28-day tank'
                   return (
                     <div key={i} className="card" style={{ marginBottom: 0 }}>
-                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'rgba(212,230,202,0.7)', marginBottom: 6 }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'rgba(var(--text-rgb),0.7)', marginBottom: 6 }}>
                         {sys.count}× {label}
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
                         <span style={{ fontSize: '2.2rem', fontWeight: 900, lineHeight: 1, color }}>{pct}%</span>
-                        <span style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.55)', fontWeight: 700 }}>
+                        <span style={{ fontSize: '0.8rem', color: 'rgba(var(--text-rgb),0.55)', fontWeight: 700 }}>
                           ~{remaining} day{remaining !== 1 ? 's' : ''} left
                         </span>
                       </div>
-                      <div style={{ height: 8, borderRadius: 5, background: 'rgba(212,230,202,0.08)', overflow: 'hidden', marginBottom: 8 }}>
+                      <div style={{ height: 8, borderRadius: 5, background: 'rgba(var(--text-rgb),0.08)', overflow: 'hidden', marginBottom: 8 }}>
                         <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width 0.4s ease' }} />
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.45)' }}>{lifetimeNote}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.45)' }}>{lifetimeNote}</div>
                       {nextRefillDate && (
-                        <div style={{ marginTop: 6, fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)' }}>
-                          Next delivery: <strong style={{ color: pct <= 20 ? '#ff8080' : 'rgba(212,230,202,0.75)' }}>{fmtDate(nextRefillDate)}</strong>
+                        <div style={{ marginTop: 6, fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.5)' }}>
+                          Next delivery: <strong style={{ color: pct <= 20 ? '#ff8080' : 'rgba(var(--text-rgb),0.75)' }}>{fmtDate(nextRefillDate)}</strong>
                         </div>
                       )}
                       {pct <= 20 && (
@@ -644,8 +633,8 @@ export default function CustomerOverview({
                   )
                 })}
               </div>
-              <div style={{ fontSize: '0.74rem', color: 'rgba(212,230,202,0.4)', marginTop: 10 }}>
-                Last service {fmtDate(baseDate.toISOString())}
+              <div style={{ fontSize: '0.74rem', color: 'rgba(var(--text-rgb),0.4)', marginTop: 10 }}>
+                Estimate based on usage and time since last service ({fmtDate(baseDate.toISOString())}). Actual level may vary.
               </div>
             </>
           )
@@ -662,25 +651,25 @@ export default function CustomerOverview({
           const firstOpen = openInvoices[0]
           return (
             <div style={{
-              background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.35)',
+              background: 'rgba(var(--gold-rgb),0.1)', border: '1px solid rgba(var(--gold-rgb),0.35)',
               borderRadius: 8, padding: '16px 20px', marginBottom: 20,
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               flexWrap: 'wrap', gap: 12,
             }}>
               <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 4 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 4 }}>
                   Payment Due
                 </div>
                 <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffb060' }}>
                   {fmtAmount(totalDue)}
                 </div>
-                <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.6)', marginTop: 2 }}>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 2 }}>
                   {openInvoices.length} unpaid invoice{openInvoices.length > 1 ? 's' : ''}
                 </div>
               </div>
               {firstOpen?.hostedUrl && (
                 <a href={firstOpen.hostedUrl} target="_blank" rel="noopener noreferrer" style={{
-                  padding: '12px 24px', borderRadius: 6, background: '#7dffaa', color: '#0d1a10',
+                  padding: '12px 24px', borderRadius: 6, background: 'var(--green)', color: 'var(--bg-deep)',
                   fontWeight: 900, fontSize: '0.95rem', textDecoration: 'none',
                 }}>
                   Pay Now →
@@ -695,8 +684,8 @@ export default function CustomerOverview({
             <div>
               <span className="tag">Active Plan</span>
               <div style={{ fontWeight: 900, fontSize: '1.2rem' }}>{fmtAmount(subscription.amount)}/{subscription.interval}</div>
-              <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>
-                {subscription.label && `${subscription.label} · `}Next invoice: <strong style={{ color: 'rgba(212,230,202,0.75)' }}>{fmtDate(new Date(subscription.currentPeriodEnd * 1000).toISOString())}</strong>
+              <div style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.5)', marginTop: 2 }}>
+                {subscription.label && `${subscription.label} · `}Next invoice: <strong style={{ color: 'rgba(var(--text-rgb),0.75)' }}>{fmtDate(new Date(subscription.currentPeriodEnd * 1000).toISOString())}</strong>
               </div>
             </div>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
@@ -708,7 +697,7 @@ export default function CustomerOverview({
 
         {/* Invoice History */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)' }}>
+          <div style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.4)' }}>
             Invoice History
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -719,8 +708,8 @@ export default function CustomerOverview({
                 style={{
                   padding: '5px 12px', borderRadius: 4, border: 'none', cursor: 'pointer',
                   fontSize: '0.75rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif',
-                  background: dateRange === r.months ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.04)',
-                  color: dateRange === r.months ? '#c9a84c' : 'rgba(212,230,202,0.45)',
+                  background: dateRange === r.months ? 'rgba(var(--gold-rgb),0.2)' : 'rgba(255,255,255,0.04)',
+                  color: dateRange === r.months ? 'var(--gold)' : 'rgba(var(--text-rgb),0.45)',
                 }}
               >
                 {r.label}
@@ -730,17 +719,17 @@ export default function CustomerOverview({
         </div>
 
         {filteredInvoices.length === 0 ? (
-          <p style={{ color: 'rgba(212,230,202,0.4)', fontSize: '0.88rem' }}>No invoices in this period.</p>
+          <p style={{ color: 'rgba(var(--text-rgb),0.4)', fontSize: '0.88rem' }}>No invoices in this period.</p>
         ) : (
           filteredInvoices.map((inv) => (
             <div key={inv.id} className="card" style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
                 <div style={{ minWidth: 90 }}>
-                  <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)' }}>{fmtDateShort(inv.created)}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.4)' }}>{fmtDateShort(inv.created)}</div>
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{inv.number}</div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: INV_STATUS_COLOR[inv.status] || 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: invStatusColor(inv.status), textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     {inv.status}
                   </span>
                 </div>
@@ -750,7 +739,7 @@ export default function CustomerOverview({
                   {fmtAmount(inv.status === 'open' ? inv.amountDue : (inv.amountPaid || inv.amountDue))}
                 </span>
                 {inv.hostedUrl && inv.status === 'open' && (
-                  <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 14px', borderRadius: 4, background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none' }}>
+                  <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 14px', borderRadius: 4, background: 'var(--green)', color: 'var(--bg-deep)', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none' }}>
                     Pay Now
                   </a>
                 )}
@@ -760,7 +749,7 @@ export default function CustomerOverview({
                   </a>
                 )}
                 {inv.pdfUrl && (
-                  <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>
+                  <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.78rem', color: 'var(--green-muted)', fontWeight: 700 }}>
                     PDF
                   </a>
                 )}
@@ -769,7 +758,7 @@ export default function CustomerOverview({
           ))
         )}
 
-        {/* ── Reschedule / Pause ── (only shown when at least one option applies) */}
+        {/* ── Reschedule / Pause ── */}
         {(nextBooking || subscription) && (
           <>
             {DIVIDER}
@@ -777,18 +766,18 @@ export default function CustomerOverview({
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
               {nextBooking && (
                 <a
-                  href={nextBooking.rescheduleUrl || `mailto:admin@greenguard-usa.com?subject=Reschedule Request&body=Hi, I'd like to reschedule my upcoming visit on ${fmtDate(nextBooking.startTime)}.%0A%0AAccount: ${encodeURIComponent(email)}`}
+                  href={nextBooking.rescheduleUrl || `mailto:${process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}?subject=Reschedule Request&body=Hi, I'd like to reschedule my upcoming visit on ${fmtDate(nextBooking.startTime)}.%0A%0AAccount: ${encodeURIComponent(email)}`}
                   target={nextBooking.rescheduleUrl ? '_blank' : undefined}
                   rel={nextBooking.rescheduleUrl ? 'noopener noreferrer' : undefined}
-                  style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', color: '#7aab82', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
+                  style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', color: 'var(--green-muted)', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
                 >
                   Reschedule Upcoming Visit
                 </a>
               )}
               {subscription && (
                 <a
-                  href={`mailto:admin@greenguard-usa.com?subject=Service Pause Request&body=Hi, I'd like to pause my GreenGuard service temporarily.%0A%0AAccount: ${encodeURIComponent(email)}`}
-                  style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.3)', color: '#c9a84c', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
+                  href={`mailto:${process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}?subject=Service Pause Request&body=Hi, I'd like to pause my ${process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} service temporarily.%0A%0AAccount: ${encodeURIComponent(email)}`}
+                  style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(var(--gold-rgb),0.3)', color: 'var(--gold)', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
                 >
                   Pause Service
                 </a>
@@ -808,28 +797,33 @@ export default function CustomerOverview({
         {SECTION_LABEL('Share Your Experience')}
         <CustomerMediaUpload email={email} />
 
-        {DIVIDER}
-
-        {/* ── Review ── */}
-        <div style={{ background: 'rgba(125,255,170,0.04)', border: '1px solid rgba(125,255,170,0.15)', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
-          <div style={{ fontSize: '1.4rem', marginBottom: 8 }}>⭐</div>
-          <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 6 }}>Enjoying GreenGuard?</div>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)', margin: '0 0 16px', lineHeight: 1.5 }}>
-            A Google review helps Austin families find a safer, chemical-free mosquito solution.
-          </p>
-          <a
-            href="https://search.google.com/local/writereview?placeid=ChIJx8wLC4K11wwRbfe7hhZiHXs"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: 'inline-block', padding: '11px 28px', borderRadius: 8, background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.9rem', textDecoration: 'none' }}
-          >
-            Leave a Google Review →
-          </a>
-        </div>
+        {/* ── Review (only shown when configured) ── */}
+        {process.env.NEXT_PUBLIC_BIZ_REVIEW_URL && (
+          <>
+            {DIVIDER}
+            <div style={{ background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.15)', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.4rem', marginBottom: 8 }}>⭐</div>
+              <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 6 }}>
+                Enjoying {process.env.NEXT_PUBLIC_BIZ_NAME || 'our service'}?
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.55)', margin: '0 0 16px', lineHeight: 1.5 }}>
+                A quick Google review helps neighbors find a trusted local service.
+              </p>
+              <a
+                href={process.env.NEXT_PUBLIC_BIZ_REVIEW_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-block', padding: '11px 28px', borderRadius: 8, background: 'var(--green)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.9rem', textDecoration: 'none' }}
+              >
+                Leave a Google Review →
+              </a>
+            </div>
+          </>
+        )}
 
         <div style={{ marginTop: 24 }}>
-          <a href="mailto:admin@greenguard-usa.com" style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.4)' }}>
-            Questions? Email admin@greenguard-usa.com
+          <a href={`mailto:${process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}`} style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.4)' }}>
+            Questions? Email {process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}
           </a>
         </div>
       </PortalLayout>

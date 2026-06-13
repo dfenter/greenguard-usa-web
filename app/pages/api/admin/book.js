@@ -157,22 +157,16 @@ export default async function handler(req, res) {
       const result = await createOneBooking(eventTypeId, firstName, lastName, email, phone, address, start, notes)
       bookings.push(result)
     } catch (err) {
-      // If admin opted into double-booking and Cal.com rejected because
-      // the slot was unavailable, drop straight to Google Calendar so the
-      // visit still lands on the route. Customer won't get a Cal.com
-      // confirmation email but the appointment exists where it matters.
-      const isAvail = /already has booking|not available|slot.*not available|conflict/i.test(err.message)
-      if (allowDoubleBook && isAvail) {
-        try {
-          const direct = await createDirectGCalEvent({
-            firstName, lastName, email, phone, address, utcIso: start, notes, eventTypeTitle,
-          })
-          bookings.push(direct)
-        } catch (e2) {
-          errors.push(`Occurrence ${i + 1}: ${err.message} (GCal fallback also failed: ${e2.message})`)
-        }
-      } else {
-        errors.push(`Occurrence ${i + 1}: ${err.message}`)
+      // Cal.com rejected (any reason: min notice, scheduling window, conflict, etc.)
+      // Admin is never blocked — always fall back to direct GCal so the visit
+      // lands on the route. Customer won't get a Cal.com confirmation email.
+      try {
+        const direct = await createDirectGCalEvent({
+          firstName, lastName, email, phone, address, utcIso: start, notes, eventTypeTitle,
+        })
+        bookings.push(direct)
+      } catch (e2) {
+        errors.push(`Occurrence ${i + 1}: ${err.message} (GCal fallback also failed: ${e2.message})`)
       }
     }
   }

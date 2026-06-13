@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
+import { trackEvent } from '../../lib/analytics'
 
 function fmt$(n) { return n != null ? `$${Number(n).toFixed(2)}` : 'TBD' }
 
@@ -12,7 +13,13 @@ export default function QuotePage({ token, accepted }) {
   useEffect(() => {
     fetch(`/api/admin/quote-link?token=${token}`)
       .then(r => r.json())
-      .then(d => { if (d.error) setError(d.error); else setQuote(d) })
+      .then(d => {
+        if (d.error) setError(d.error)
+        else {
+          setQuote(d)
+          trackEvent('quote_viewed', { value: d.total ?? 0, currency: 'USD' })
+        }
+      })
       .catch(() => setError('Failed to load quote'))
   }, [token])
 
@@ -44,6 +51,7 @@ export default function QuotePage({ token, accepted }) {
   async function handleAcceptPay() {
     setPaying(true)
     setPayError(null)
+    trackEvent('begin_checkout', { value: quote?.total ?? 0, currency: 'USD' })
     // Collect attribution from sessionStorage so webhook can fire proper conversions
     const attrKeys = ['gclid','fbclid','utm_source','utm_medium','utm_campaign','utm_content','ref']
     const attribution = {}
@@ -51,6 +59,14 @@ export default function QuotePage({ token, accepted }) {
       const v = typeof window !== 'undefined' ? sessionStorage.getItem('gg_' + k) : null
       if (v) attribution[k] = v
     })
+    // Capture GA4 client_id from _ga cookie for server-side purchase attribution
+    if (typeof document !== 'undefined') {
+      const gaCookie = document.cookie.split('; ').find(c => c.startsWith('_ga='))
+      if (gaCookie) {
+        const parts = gaCookie.split('=')[1].split('.')
+        if (parts.length >= 4) attribution.ga_client_id = parts.slice(2).join('.')
+      }
+    }
     try {
       const res = await fetch('/api/quote/checkout', {
         method: 'POST',

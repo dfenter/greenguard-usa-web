@@ -58,6 +58,10 @@ export default function InvoiceEditor({ customers = [] }) {
   const [error, setError] = useState(null)
   const [adding, setAdding] = useState(false)
   const [selectedSku, setSelectedSku] = useState('')
+  const [customDesc, setCustomDesc] = useState('')
+  const [customPrice, setCustomPrice] = useState('')
+  const [customQty, setCustomQty] = useState('1')
+  const [addingCustom, setAddingCustom] = useState(false)
   const [sending, setSending] = useState(false)
   const [msg, setMsg] = useState(null)
   const [expandedInv, setExpandedInv] = useState(null)
@@ -138,6 +142,23 @@ export default function InvoiceEditor({ customers = [] }) {
     })
     setAdding(false)
     if (res.ok) { setMsg('Item added'); loadCustomer() }
+    else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+  }
+
+  async function addCustomItem() {
+    if (!data) return
+    const desc = customDesc.trim()
+    const price = parseFloat(customPrice)
+    const qty = Math.max(1, parseInt(customQty, 10) || 1)
+    if (!desc) { setMsg('Error: description required'); return }
+    if (!Number.isFinite(price) || price <= 0) { setMsg('Error: enter a positive dollar amount'); return }
+    setAddingCustom(true)
+    const res = await fetch('/api/admin/invoice-items', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add-custom', customerId: data.customer.id, description: desc, unitPrice: price, qty }),
+    })
+    setAddingCustom(false)
+    if (res.ok) { setMsg('Custom item added'); setCustomDesc(''); setCustomPrice(''); setCustomQty('1'); loadCustomer() }
     else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
   }
 
@@ -566,6 +587,17 @@ export default function InvoiceEditor({ customers = [] }) {
               <p style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.35)', margin: '10px 0 0' }}>
                 Items are added as pending invoice items and included on the next invoice you send.
               </p>
+
+              {/* Custom / one-off line item (no SKU) */}
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', marginBottom: 10 }}>Custom / One-Off Item</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input value={customDesc} onChange={(e) => setCustomDesc(e.target.value)} placeholder="Description (e.g. Extra tank swap)" style={{ ...input, flex: '3 1 240px' }} />
+                  <input value={customPrice} onChange={(e) => setCustomPrice(e.target.value)} inputMode="decimal" placeholder="$ each" style={{ ...input, flex: '1 1 90px' }} />
+                  <input value={customQty} onChange={(e) => setCustomQty(e.target.value)} inputMode="numeric" placeholder="Qty" style={{ ...input, flex: '0 1 70px' }} />
+                  <button style={btn('green')} onClick={addCustomItem} disabled={addingCustom}>{addingCustom ? 'Adding…' : '+ Add Custom'}</button>
+                </div>
+              </div>
             </div>
 
             {/* Pending items */}

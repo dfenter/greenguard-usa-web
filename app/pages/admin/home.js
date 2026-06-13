@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import TankCalendar from '../../components/TankCalendar'
 import CustomerMap from '../../components/CustomerMap'
+import CustomerPanel from '../../components/CustomerPanel'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
 import { findContactsByEmails, getAllContacts, tanksForCustomer, getContactNotes } from '../../lib/hubspot'
@@ -169,45 +170,23 @@ function KPI({ label, value, sub, warn }) {
   )
 }
 
-function ApptDetailModal({ stop, onClose }) {
-  const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }
-  const box = { background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 14, padding: 24, maxWidth: 440, width: '100%', fontFamily: 'Nunito Sans, sans-serif', color: '#d4e6ca', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }
-  const row = (label, value) => value ? (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(212,230,202,0.4)', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: '0.9rem', color: '#d4e6ca' }}>{value}</div>
-    </div>
-  ) : null
-  const fmtFull = (iso) => { try { return new Date(iso).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' }) } catch { return iso } }
-  return (
-    <div style={overlay} onClick={onClose}>
-      <div style={box} onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', color: 'rgba(212,230,202,0.4)', fontSize: '1.3rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
-        <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 18, paddingRight: 24 }}>{stop.title || 'Service Visit'}</div>
-        {row('Appointment time', stop.startTime ? fmtFull(stop.startTime) : null)}
-        {row('Service', stop.serviceType)}
-        {row('Address', stop.address)}
-        {row('Email', stop.email)}
-        {row('Phone', stop.phone)}
-        {row('Tanks', stop.tanks > 0 ? `${stop.tanks} tank${stop.tanks > 1 ? 's' : ''}` : null)}
-        {(stop.clientNotes || []).map((n, i) => row(i === 0 ? 'Notes' : '', n))}
-      </div>
-    </div>
-  )
-}
 
-function StopCard({ stop, dateStr }) {
-  const [showDetail, setShowDetail] = useState(false)
+function StopCard({ stop, dateStr, distance }) {
+  const [showPanel, setShowPanel] = useState(false)
   const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email)}`
   const mapsUrl = stop.address ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}` : null
   const btn = { display: 'inline-flex', alignItems: 'center', padding: '8px 14px', borderRadius: 6, fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none', minHeight: 36 }
 
   return (
     <>
-      {showDetail && <ApptDetailModal stop={stop} onClose={() => setShowDetail(false)} />}
+      {showPanel && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 199 }} onClick={() => setShowPanel(false)} />
+          <CustomerPanel customer={{ email: stop.email, name: stop.title, phone: stop.phone }} onClose={() => setShowPanel(false)} />
+        </>
+      )}
       <div
-        style={{ background: 'rgba(26,46,31,0.6)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: '16px 18px', marginBottom: 10, cursor: 'pointer' }}
-        onClick={() => setShowDetail(true)}
+        style={{ background: 'rgba(26,46,31,0.6)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: '16px 18px', marginBottom: 10 }}
       >
         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
           {/* Time column */}
@@ -222,11 +201,10 @@ function StopCard({ stop, dateStr }) {
 
           {/* Main content */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <a
-              href={stop.email ? `/admin/clients/${encodeURIComponent(stop.email)}` : '#'}
-              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', textDecoration: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', display: 'inline-block', marginBottom: 2 }}
-              onClick={e => e.stopPropagation()}
-            >{stop.title || 'Service Visit'}</a>
+            <button
+              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', background: 'none', border: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', padding: 0, cursor: stop.email ? 'pointer' : 'default', fontFamily: 'inherit', display: 'inline-block', marginBottom: 2 }}
+              onClick={() => { if (stop.email) setShowPanel(true) }}
+            >{stop.title || 'Service Visit'}</button>
             {stop.serviceType && (
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c9a84c', marginBottom: 4 }}>{stop.serviceType}</div>
             )}
@@ -235,6 +213,11 @@ function StopCard({ stop, dateStr }) {
             )}
             {stop.tanks > 0 && (
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 4 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required</div>
+            )}
+            {distance && (
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: parseFloat(distance.miles) <= 5 ? '#7dffaa' : parseFloat(distance.miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.45)', marginBottom: 4 }}>
+                {distance.miles} mi · {distance.duration}
+              </div>
             )}
             {(stop.clientNotes || []).map((note, i) => (
               <div key={i} style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5, marginBottom: 2 }}>{note}</div>
@@ -314,6 +297,23 @@ function VisitsDuePanel() {
 }
 
 export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData, fullTanksOnHand, tanksNeededThisWeek, expectedDeliveryThisWeek, customerMapData = [], mapsKey = '' }) {
+  const [distances, setDistances] = useState({})
+
+  useEffect(() => {
+    const addressable = todayStops.filter((s) => s.address)
+    if (!addressable.length || !navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const origin = `${pos.coords.latitude},${pos.coords.longitude}`
+      try {
+        const res = await fetch('/api/admin/distances', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin, addresses: addressable.map((s) => ({ id: s.email || s.title, address: s.address })) }),
+        })
+        setDistances(await res.json())
+      } catch {}
+    }, () => {})
+  }, [todayStops])
+
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 
@@ -389,7 +389,7 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
                 today={tankData.today}
                 currentStock={tankData.currentStock}
                 expectedDelivery={tankData.expectedDelivery}
-                onDayClick={() => { window.location.href = '/admin/inventory' }}
+                onDayClick={(dateStr) => { window.location.href = `/admin/calendar?date=${dateStr}` }}
               />
               <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', textAlign: 'right' }}>
                 Click a day to log tanks →
@@ -428,7 +428,7 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
               No stops scheduled for today.
             </div>
           ) : (
-            todayStops.map((stop, i) => <StopCard key={stop.id || i} stop={stop} dateStr={todayStr} />)
+            todayStops.map((stop, i) => <StopCard key={stop.id || i} stop={stop} dateStr={todayStr} distance={distances[stop.email || stop.title]} />)
           )}
         </section>
 
@@ -474,6 +474,7 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
             {[
               { label: 'All Invoices', href: '/admin/invoices', desc: 'Browse + filter history' },
               { label: 'Invoice Editor', href: '/admin/invoice', desc: 'Create or edit per customer' },
+              { label: 'PDF Invoice', href: '/admin/invoice-pdf', desc: 'One-off / manual, print or save PDF' },
               { label: 'Reports', href: '/admin/reports', desc: 'Appointments, revenue, add-ons' },
               { label: 'Clients', href: '/admin/clients', desc: 'Customer profiles' },
               { label: 'Analytics', href: '/admin/analytics', desc: 'Revenue & traffic' },

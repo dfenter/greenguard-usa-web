@@ -614,6 +614,11 @@ function BusinessTab() {
         {data.location?.name} · Last 28 days
         <button onClick={load} style={{ marginLeft: 12, background: 'none', border: '1px solid rgba(122,171,130,0.3)', color: '#7dffaa', borderRadius: 6, padding: '2px 10px', fontSize: '0.72rem', cursor: 'pointer' }}>Refresh</button>
       </div>
+      {data.staticFallback && (
+        <div style={{ fontSize: '0.75rem', color: 'rgba(255,180,0,0.6)', marginBottom: 16, padding: '8px 12px', background: 'rgba(255,180,0,0.06)', borderRadius: 6, border: '1px solid rgba(255,180,0,0.15)' }}>
+          GBP API access not yet approved. Showing cached reviews. Insights unavailable. Request API access at Google Cloud Console.
+        </div>
+      )}
 
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>

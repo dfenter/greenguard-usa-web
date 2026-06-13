@@ -1,8 +1,7 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { findContactByEmail, addNote, getContactNotes } = require('../../../lib/hubspot')
 const { logCompletedStop } = require('../../../lib/gsheets')
-const { Resend } = require('resend')
-const { escapeHtml } = require('../../../lib/email')
+const { sendEmail, escapeHtml } = require('../../../lib/email')
 
 const POST_VISIT_DEDUP_MS = 6 * 60 * 60 * 1000 // 6 hours — covers re-saves on same visit
 
@@ -78,25 +77,54 @@ export default async function handler(req, res) {
     if (alreadySent) {
       console.log('complete-stop: post-visit email already sent within 6h, skipping')
     } else try {
-      const resend = new Resend(process.env.RESEND_API_KEY)
-      const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
       const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
 
-      await resend.emails.send({
-        from: `GreenGuard USA <${FROM}>`,
+      await sendEmail({
         to: email,
         subject: `Your GreenGuard service visit is complete — ${today}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;color:#1a2e1f;">
-            <div style="background:#0d1a10;border-radius:8px;padding:18px 20px;margin-bottom:24px;">
-              <h1 style="color:#7dffaa;font-size:1.1rem;margin:0;">GreenGuard USA</h1>
-            </div>
-            <div style="white-space:pre-wrap;font-size:0.9rem;color:#333;line-height:1.6;">${escapeHtml(customEmailMessage)}</div>
-            <div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;display:flex;gap:12px;flex-wrap:wrap;">
-              <a href="${APP_URL}" style="display:inline-block;padding:10px 20px;background:#0d1a10;color:#7dffaa;font-weight:700;font-size:0.85rem;border-radius:6px;text-decoration:none;">View My Account</a>
-              <a href="https://search.google.com/local/writereview?placeid=ChIJx8wLC4K11wwRbfe7hhZiHXs" style="display:inline-block;padding:10px 20px;border:1px solid #ddd;color:#555;font-size:0.85rem;border-radius:6px;text-decoration:none;">⭐ Leave a Review</a>
-            </div>
-          </div>`,
+        html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#f0f4f1;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f0f4f1">
+<tr><td align="center" style="padding:32px 16px;">
+  <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;">
+    <tr>
+      <td align="center" bgcolor="#1a3320" style="border-radius:10px 10px 0 0;padding:24px 32px;">
+        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;">GreenGuard USA</p>
+        <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Service Complete</p>
+      </td>
+    </tr>
+    <tr>
+      <td bgcolor="#ffffff" style="padding:32px;border-left:1px solid #dde8de;border-right:1px solid #dde8de;">
+        <div style="font-size:15px;color:#3d4f41;line-height:1.75;white-space:pre-wrap;font-family:Arial,sans-serif;margin-bottom:28px;">${escapeHtml(customEmailMessage)}</div>
+        <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
+          <tr>
+            <td align="center" bgcolor="#c9a84c" style="border-radius:6px;">
+              <a href="${APP_URL}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:800;color:#111800;text-decoration:none;font-family:Arial,sans-serif;">View My Account</a>
+            </td>
+          </tr>
+        </table>
+        <table cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td align="center" bgcolor="#ffffff" style="border-radius:6px;border:2px solid #2d6a3f;">
+              <a href="https://search.google.com/local/writereview?placeid=ChIJx8wLC4K11wwRbfe7hhZiHXs" style="display:inline-block;padding:10px 22px;font-size:14px;font-weight:700;color:#2d6a3f;text-decoration:none;font-family:Arial,sans-serif;">&#11088; Leave a Review</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" bgcolor="#dde8de" style="border-radius:0 0 10px 10px;padding:18px 32px;border:1px solid #dde8de;border-top:0;">
+        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">GreenGuard USA</p>
+        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">Austin, TX &nbsp;&#183;&nbsp; 512-560-4129 &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`,
       })
       // Mark sent so re-saves of same stop don't re-send for 6 hours
       try {

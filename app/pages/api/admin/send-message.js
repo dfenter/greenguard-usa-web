@@ -4,14 +4,7 @@
  * Body: { to, toName, subject, body }
  */
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
-const { Resend } = require('resend')
-
-const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
-
-function escapeHtml(str) {
-  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' }
-  return String(str ?? '').replace(/[&<>"']/g, (c) => map[c])
-}
+const { sendEmail, escapeHtml } = require('../../../lib/email')
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -21,30 +14,45 @@ export default async function handler(req, res) {
   const { to, toName, subject, body } = req.body || {}
   if (!to || !subject || !body) return res.status(400).json({ error: 'to, subject, and body are required' })
 
-  if (!process.env.RESEND_API_KEY) return res.status(503).json({ error: 'Email not configured' })
-
-  const resend = new Resend(process.env.RESEND_API_KEY)
-  const senderName = session.email.startsWith('bruce') ? 'Bruce at GreenGuard USA' : 'GreenGuard USA'
-
   const htmlBody = escapeHtml(body).replace(/\n/g, '<br/>')
 
-  try {
-    await resend.emails.send({
-      from: `${senderName} <${FROM}>`,
-      to,
-      subject,
-      html: `
-        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#1a2e1f;border-radius:12px;color:#d4e6ca;">
-          ${toName ? `<p style="margin:0 0 20px;font-size:1rem;font-weight:700;">Hi ${escapeHtml(toName.split(' ')[0])},</p>` : ''}
-          <div style="font-size:0.95rem;line-height:1.75;color:rgba(212,230,202,0.85);">${htmlBody}</div>
-          <div style="margin-top:32px;padding-top:20px;border-top:1px solid rgba(122,171,130,0.2);font-size:0.78rem;color:rgba(212,230,202,0.4);">
-            GreenGuard USA · Austin, TX · <a href="https://portal.greenguard-usa.com" style="color:rgba(125,255,170,0.6);">Customer Portal</a>
-          </div>
-        </div>
-      `,
-      reply_to: session.email,
-    })
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#f0f4f1;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f0f4f1">
+<tr><td align="center" style="padding:32px 16px;">
+  <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;">
+    <tr>
+      <td align="center" bgcolor="#1a3320" style="border-radius:10px 10px 0 0;padding:24px 32px;">
+        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;">GreenGuard USA</p>
+        <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Austin, TX</p>
+      </td>
+    </tr>
+    <tr>
+      <td bgcolor="#ffffff" style="padding:32px;border-left:1px solid #dde8de;border-right:1px solid #dde8de;">
+        <div style="font-size:15px;line-height:1.75;color:#3d4f41;font-family:Arial,sans-serif;">${htmlBody}</div>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:32px;border-top:1px solid #e8efe9;">
+          <tr><td style="padding-top:16px;font-size:12px;color:#9aab9c;font-family:Arial,sans-serif;">
+            Questions? Reply to this email or text us at <a href="tel:5125604129" style="color:#2d6a3f;font-weight:700;">512-560-4129</a>.
+          </td></tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" bgcolor="#dde8de" style="border-radius:0 0 10px 10px;padding:18px 32px;border:1px solid #dde8de;border-top:0;">
+        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">GreenGuard USA</p>
+        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">Austin, TX &nbsp;&#183;&nbsp; 512-560-4129 &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`
 
+  try {
+    await sendEmail({ to, subject, html })
     return res.status(200).json({ ok: true })
   } catch (err) {
     return res.status(500).json({ error: err.message })
