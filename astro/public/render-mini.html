@@ -48,12 +48,9 @@ body > canvas { order:1; flex:1; min-height:0; width:100%; display:block; }
 <div id="ui">
   <div class="btn-row">
     <button class="btn" id="bFront">Front</button>
-    <button class="btn" id="bSide">Side</button>
-    <button class="btn" id="bBack">Back</button>
     <button class="btn active" id="b3Q">3/4</button>
   </div>
   <div class="btn-row">
-    <button class="btn" id="bTop">Top</button>
     <button class="btn" id="bDoor">Door</button>
     <button class="btn" id="shell-toggle">Shell: solid</button>
     <label class="btn" id="color-label" style="cursor:pointer;display:flex;align-items:center;gap:6px;">
@@ -535,7 +532,7 @@ function flyTo(k) {
     if (r < 1) requestAnimationFrame(tick);
   })();
 }
-var BM = { bFront:'front', bSide:'side', bBack:'back', b3Q:'3q', bTop:'top' };
+var BM = { bFront:'front', b3Q:'3q' };
 Object.keys(BM).forEach(function(id) {
   document.getElementById(id).addEventListener('click', function() {
     document.querySelectorAll('.btn').forEach(function(b) { b.classList.remove('active'); });
