@@ -246,7 +246,13 @@ renderer.shadowMap.enabled = false;   // shadows disabled — not supported reli
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.localClippingEnabled = true;   // for the cutaway clip plane
 document.body.prepend(renderer.domElement);
+
+// Cutaway clip plane: removes the near/front half (y<0) so you look INSIDE the
+// full-size shell. The shell stays its true size (its far half is sliced open);
+// internals appear within it — never a free-floating "nested mini shell".
+var clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 var scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0f0b);
@@ -298,7 +304,7 @@ scene.add(gnd);
 
 // Materials — MeshStandardMaterial only (iOS safe, no clearcoat)
 var shellSolidMat = new THREE.MeshStandardMaterial({
-  color: 0x0f0f12, metalness: 0.28, roughness: 0.52,
+  color: 0x0f0f12, metalness: 0.28, roughness: 0.52, side: THREE.DoubleSide,
   polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
 });
 var shellGhostMat = new THREE.MeshStandardMaterial({
@@ -312,7 +318,7 @@ var shellFaintMat = new THREE.MeshStandardMaterial({
   transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false
 });
 var internalsMat = new THREE.MeshStandardMaterial({
-  color: 0x8a9aaa, metalness: 0.60, roughness: 0.42
+  color: 0x8a9aaa, metalness: 0.60, roughness: 0.42, side: THREE.DoubleSide
 });
 
 // Parse and add meshes
@@ -437,6 +443,7 @@ function stepParticles() {
   var doorMat = new THREE.MeshStandardMaterial({
     color: 0x0f0f12, metalness: 0.28, roughness: 0.52, side: THREE.DoubleSide
   });
+  window._doorMat = doorMat;   // exposed so the cutaway clip plane applies to the door too
   var doorMesh = new THREE.Mesh(doorGeo, doorMat);
 
   var pivX = -10.2222;  // door hinge X (left edge, mid-door)
@@ -454,24 +461,30 @@ function stepParticles() {
 
 document.getElementById('loading').style.display = 'none';
 
-// Shell toggle
-var SHELL_MODES = ['solid','ghost','hidden'];
+// Shell toggle — Solid vs Cutaway (true clip-plane section, no shell shrink)
+var SHELL_MODES = ['solid','cutaway'];
 var shellMode = 0;
 var toggleBtn = document.getElementById('shell-toggle');
 var plateausOn = true, co2On = true;
+// Apply/remove the clip plane on every solid mesh so the section is consistent.
+function setClip(on) {
+  var planes = on ? [clipPlane] : [];
+  [shellSolidMat, shellGhostMat, shellFaintMat, internalsMat, plateauMat,
+   co2RingMat, (window._doorMat)].forEach(function(mt){
+    if (mt) { mt.clippingPlanes = planes; mt.needsUpdate = true; }
+  });
+}
 function refreshPlateaus() {
   if (!plateausMesh) return;
-  var m = SHELL_MODES[shellMode];
   plateausMesh.visible  = plateausOn;
-  plateausMesh.material = (m === 'ghost' || m === 'hidden') ? shellGhostMat : shellSolidMat;
+  plateausMesh.material = shellSolidMat;
 }
 toggleBtn.addEventListener('click', function() {
-  shellMode = (shellMode + 1) % 3;
+  shellMode = (shellMode + 1) % SHELL_MODES.length;
   var m = SHELL_MODES[shellMode];
   toggleBtn.textContent = 'Shell: ' + m;
-  if (m === 'solid')  { shellMesh.material = shellSolidMat; shellMesh.visible = true;  intMesh.visible = false; }
-  if (m === 'ghost')  { shellMesh.material = shellGhostMat; shellMesh.visible = true;  intMesh.visible = true;  }
-  if (m === 'hidden') { shellMesh.material = shellFaintMat; shellMesh.visible = true;  intMesh.visible = true;  }
+  if (m === 'solid')   { shellMesh.material = shellSolidMat; shellMesh.visible = true; intMesh.visible = false; setClip(false); }
+  if (m === 'cutaway') { shellMesh.material = shellSolidMat; shellMesh.visible = true; intMesh.visible = true;  setClip(true);  }
   refreshPlateaus();
 });
 
