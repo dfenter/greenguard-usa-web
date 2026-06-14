@@ -461,30 +461,24 @@ function stepParticles() {
 
 document.getElementById('loading').style.display = 'none';
 
-// Shell toggle — Solid vs Cutaway (true clip-plane section, no shell shrink)
-var SHELL_MODES = ['solid','cutaway'];
+// Shell toggle — Solid / Ghost / Hidden
+var SHELL_MODES = ['solid','ghost','hidden'];
 var shellMode = 0;
 var toggleBtn = document.getElementById('shell-toggle');
 var plateausOn = true, co2On = true;
-// Apply/remove the clip plane on every solid mesh so the section is consistent.
-function setClip(on) {
-  var planes = on ? [clipPlane] : [];
-  [shellSolidMat, shellGhostMat, shellFaintMat, internalsMat, plateauMat,
-   co2RingMat, (window._doorMat)].forEach(function(mt){
-    if (mt) { mt.clippingPlanes = planes; mt.needsUpdate = true; }
-  });
-}
 function refreshPlateaus() {
   if (!plateausMesh) return;
+  var m = SHELL_MODES[shellMode];
   plateausMesh.visible  = plateausOn;
-  plateausMesh.material = shellSolidMat;
+  plateausMesh.material = (m === 'ghost' || m === 'hidden') ? shellGhostMat : shellSolidMat;
 }
 toggleBtn.addEventListener('click', function() {
   shellMode = (shellMode + 1) % SHELL_MODES.length;
   var m = SHELL_MODES[shellMode];
   toggleBtn.textContent = 'Shell: ' + m;
-  if (m === 'solid')   { shellMesh.material = shellSolidMat; shellMesh.visible = true; intMesh.visible = false; setClip(false); }
-  if (m === 'cutaway') { shellMesh.material = shellSolidMat; shellMesh.visible = true; intMesh.visible = true;  setClip(true);  }
+  if (m === 'solid')  { shellMesh.material = shellSolidMat; shellMesh.visible = true;  intMesh.visible = false; }
+  if (m === 'ghost')  { shellMesh.material = shellGhostMat; shellMesh.visible = true;  intMesh.visible = true;  }
+  if (m === 'hidden') { shellMesh.visible = false;                                      intMesh.visible = true;  }
   refreshPlateaus();
 });
 
