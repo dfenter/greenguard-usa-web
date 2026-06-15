@@ -52,6 +52,7 @@
   <button class="btn" id="bFront">Front</button>
   <button class="btn on" id="b3Q">3/4</button>
   <button class="btn" id="bDoor">Door</button>
+  <button class="btn" id="bXray" style="display:none">⊠ X-Ray</button>
   <button class="btn" id="shell-toggle">Shell: solid</button>
   <label class="btn" id="color-label">Color<input type="color" id="color-pick" value="#0f0f12"></label>
   <button class="btn on" id="bPlateaus">Plateaus</button>
@@ -67,8 +68,8 @@
 <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
-const DATA = {"P": {"monolith": {"line": "Monolith", "name": "Monolith", "plateau": "0x0f0f12", "cam": {"baseHalf": 12, "topHalf": 7, "height": 54, "targetZ": 28, "dist": 215, "maxDist": 800}, "stl": {"shell": "shell_monolith.stl", "internals": "internals_monolith.stl", "fan": "fan_monolith.stl", "door": "door_monolith.stl", "plateaus": "plateaus_monolith.stl", "co2": "co2_monolith.stl"}, "specs": [["Footprint", "24\u00d724 in"], ["Height", "54 in"], ["Catch tube", "10 in"], ["Fan", "Fantech FG10"], ["Slat", "8 mm \u00b7 ~3.4 mph"], ["Lure", "CO\u2082 + heat"], ["Wind", "70 mph (staked)"]]}, "mini": {"line": "Monolith", "name": "Monolith Mini", "plateau": "0x0f0f12", "cam": {"baseHalf": 9.5, "topHalf": 7, "height": 46, "targetZ": 24, "dist": 180, "maxDist": 700}, "stl": {"shell": "shell_mini.stl", "internals": "internals_mini.stl", "fan": "fan_mini.stl", "door": "door_mini.stl", "plateaus": "plateaus_mini.stl", "co2": "co2_mini.stl"}, "specs": [["Footprint", "19\u00d719 in"], ["Height", "46 in"], ["Catch tube", "10 in"], ["Fan", "Fantech FG10"], ["Form", "Compact"], ["Lure", "CO\u2082 + heat"], ["Placement", "Patio / small yard"]]}, "blackfly": {"line": "Monolith", "name": "Monolith Black Fly", "plateau": "0x2a5cc0", "cam": {"baseHalf": 12, "topHalf": 7, "height": 54, "targetZ": 28, "dist": 215, "maxDist": 800}, "stl": {"shell": "shell_blackfly.stl", "internals": "internals_blackfly.stl", "fan": "fan_blackfly.stl", "door": "door_blackfly.stl", "plateaus": "plateaus_blackfly.stl", "co2": "co2_blackfly.stl"}, "specs": [["Footprint", "24\u00d724 in"], ["Catch tube", "10 in"], ["Fan", "FG12 + FG10 booster"], ["Airflow", "~900\u20131000 CFM"], ["Slat", "10 mm \u00b7 ~10 mph"], ["Lure", "CO\u2082 + octenol + heat"], ["Target", "Black flies"]]}, "titan": {"line": "Monolith", "name": "GreenGuard Titan", "plateau": "0x0f0f12", "cam": {"baseHalf": 15, "topHalf": 9, "height": 72, "targetZ": 36, "dist": 300, "maxDist": 1000}, "stl": {"shell": "shell_titan.stl", "internals": "internals_titan.stl", "fan": "fan_titan.stl", "door": "door_titan.stl", "plateaus": "plateaus_titan.stl", "co2": "co2_titan.stl"}, "specs": [["Footprint", "30\u00d730 in"], ["Height", "72 in (6 ft)"], ["Catch tube", "14 in"], ["Airflow", "~2700 CFM"], ["Slat", "2.05 in \u00b7 7.5 mph"], ["Intake", "4-sided"], ["Coverage", "~1 acre / unit"], ["CO\u2082", "100 lb cylinder"]]}, "aria-planter": {"line": "Aria", "name": "Aria \u00b7 Planter", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 22, "targetZ": 11, "dist": 110, "maxDist": 400}, "stl": {"shell": "aria_planter.stl", "internals": "aria_internals.stl"}, "specs": [["Body", "Glazed planter"], ["Engine", "92 mm counterflow"], ["Tank", "Hidden in base"], ["Lure", "CO\u2082 + scent"], ["Catch cup", "150 mm clear"]]}, "aria-lantern": {"line": "Aria", "name": "Aria \u00b7 Lantern", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 22, "targetZ": 11, "dist": 110, "maxDist": 400}, "stl": {"shell": "aria_lantern.stl", "internals": "aria_internals.stl"}, "specs": [["Body", "Post lantern"], ["Engine", "92 mm counterflow"], ["Tank", "Weighted post base"], ["Lure", "CO\u2082 + scent"], ["Light", "Warm LED cap"]]}, "aria-disc": {"line": "Aria", "name": "Aria \u00b7 Disc", "plateau": "0x0f0f12", "cam": {"baseHalf": 7, "topHalf": 7, "height": 14, "targetZ": 7, "dist": 80, "maxDist": 350}, "stl": {"shell": "aria_disc.stl", "internals": "aria_internals.stl"}, "specs": [["Body", "Fluted ground drum"], ["Engine", "92 mm counterflow"], ["Tank", "Inside drum"], ["Lure", "CO\u2082 + scent"], ["Catch cup", "150 mm clear"]]}, "aria-urn": {"line": "Aria", "name": "Aria \u00b7 Urn", "plateau": "0x0f0f12", "cam": {"baseHalf": 7, "topHalf": 7, "height": 28, "targetZ": 14, "dist": 135, "maxDist": 450}, "stl": {"shell": "aria_urn.stl", "internals": "aria_internals.stl"}, "specs": [["Body", "Tapered urn"], ["Engine", "92 mm counterflow"], ["Tank", "Slim plinth foot"], ["Lure", "CO\u2082 + scent"], ["Catch cup", "150 mm clear"]]}, "aria-pot": {"line": "Aria", "name": "Aria \u00b7 Pot Insert", "plateau": "0x0f0f12", "cam": {"baseHalf": 9, "topHalf": 9, "height": 18, "targetZ": 15, "dist": 110, "maxDist": 400}, "stl": {"shell": "aria_pot.stl", "internals": "aria_internals.stl"}, "specs": [["Body", "Customer's own pot"], ["Engine", "92 mm counterflow"], ["Tank", "Buried in soil"], ["Parts", "Brass rim + 3 spines"], ["Lure", "CO\u2082 + scent"]]}, "halo-lotus": {"line": "Halo", "name": "Halo \u00b7 Lotus Bloom", "plateau": "0x0f0f12", "cam": {"baseHalf": 7, "topHalf": 7, "height": 21, "targetZ": 10, "dist": 105, "maxDist": 400}, "stl": {"shell": "halo_lotus.stl"}, "specs": [["Body", "Lotus Bloom"], ["Engine", "Face-up counterflow"], ["Tank", "20 lb concealed"], ["Lure", "CO\u2082 + heat"]]}, "halo-agave": {"line": "Halo", "name": "Halo \u00b7 Agave Rosette", "plateau": "0x0f0f12", "cam": {"baseHalf": 21, "topHalf": 21, "height": 25, "targetZ": 12, "dist": 150, "maxDist": 500}, "stl": {"shell": "halo_agave.stl"}, "specs": [["Body", "Agave Rosette"], ["Engine", "Face-up counterflow"], ["Tank", "20 lb concealed"], ["Lure", "CO\u2082 + heat"]]}, "halo-spiral": {"line": "Halo", "name": "Halo \u00b7 Spiral", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 27, "targetZ": 13, "dist": 125, "maxDist": 450}, "stl": {"shell": "halo_spiral.stl"}, "specs": [["Body", "Spiral"], ["Engine", "Face-up counterflow"], ["Tank", "20 lb concealed"], ["Lure", "CO\u2082 + heat"]]}, "halo-cairn": {"line": "Halo", "name": "Halo \u00b7 Stacked Cairn", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 23, "targetZ": 11, "dist": 115, "maxDist": 420}, "stl": {"shell": "halo_cairn.stl"}, "specs": [["Body", "Stacked Cairn"], ["Engine", "Face-up counterflow"], ["Tank", "20 lb concealed"], ["Lure", "CO\u2082 + heat"]]}, "halo-facet": {"line": "Halo", "name": "Halo \u00b7 Faceted Gem", "plateau": "0x0f0f12", "cam": {"baseHalf": 7, "topHalf": 7, "height": 27, "targetZ": 13, "dist": 125, "maxDist": 450}, "stl": {"shell": "halo_gem.stl"}, "specs": [["Body", "Faceted Gem"], ["Engine", "Face-up counterflow"], ["Tank", "20 lb concealed"], ["Lure", "CO\u2082 + heat"]]}, "halo-birdbath": {"line": "Halo", "name": "Halo \u00b7 Birdbath Bowl", "plateau": "0x0f0f12", "cam": {"baseHalf": 9, "topHalf": 9, "height": 21, "targetZ": 10, "dist": 105, "maxDist": 400}, "stl": {"shell": "halo_birdbath.stl"}, "specs": [["Body", "Birdbath Bowl"], ["Engine", "Face-up counterflow"], ["Tank", "20 lb concealed"], ["Lure", "CO\u2082 + heat"]]}, "halo-pinecone": {"line": "Halo", "name": "Halo \u00b7 Pinecone", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 24, "targetZ": 12, "dist": 120, "maxDist": 440}, "stl": {"shell": "halo_pinecone.stl"}, "specs": [["Body", "Pinecone"], ["Engine", "Face-up counterflow"], ["Tank", "20 lb concealed"], ["Lure", "CO\u2082 + heat"]]}}, "lines": {"Monolith": ["monolith", "mini", "blackfly", "titan"], "Aria": ["aria-planter", "aria-lantern", "aria-disc", "aria-urn", "aria-pot"], "Halo": ["halo-lotus", "halo-agave", "halo-spiral", "halo-cairn", "halo-facet", "halo-birdbath", "halo-pinecone"]}};
-const LINE_ORDER = ["Monolith", "Aria", "Halo"];
+const DATA = {"P": {"monolith": {"line": "Monolith", "name": "Monolith", "plateau": "0x0f0f12", "cam": {"baseHalf": 12, "topHalf": 7, "height": 54, "targetZ": 28, "dist": 215, "maxDist": 800, "ring": 9.5, "bagZ0": 6, "bagZ1": 38, "bagR": 5.5}, "stl": {"shell": "shell_monolith.stl", "internals": "internals_monolith.stl", "fan": "fan_monolith.stl", "door": "door_monolith.stl", "plateaus": "plateaus_monolith.stl", "co2": "co2_monolith.stl", "bag": "bag_monolith.stl"}, "specs": [["Footprint", "24\u00d724 in"], ["Height", "54 in"], ["Catch tube", "10 in"], ["Fan", "Fantech FG10"], ["Slat", "8 mm \u00b7 ~3.4 mph"], ["Lure", "CO\u2082 + heat"], ["Wind", "70 mph (staked)"]]}, "mini": {"line": "Monolith", "name": "Monolith Mini", "plateau": "0x0f0f12", "cam": {"baseHalf": 9.5, "topHalf": 7, "height": 46, "targetZ": 24, "dist": 180, "maxDist": 700, "ring": 7, "bagZ0": 0, "bagZ1": 30, "bagR": 5.5}, "stl": {"shell": "shell_mini.stl", "internals": "internals_mini.stl", "fan": "fan_mini.stl", "door": "door_mini.stl", "plateaus": "plateaus_mini.stl", "co2": "co2_mini.stl", "bag": "bag_mini.stl"}, "specs": [["Footprint", "19\u00d719 in"], ["Height", "46 in"], ["Catch tube", "10 in"], ["Fan", "Fantech FG10"], ["Form", "Compact"], ["Lure", "CO\u2082 + heat"], ["Placement", "Patio / small yard"]]}, "blackfly": {"line": "Monolith", "name": "Monolith Black Fly", "plateau": "0x2a5cc0", "cam": {"baseHalf": 12, "topHalf": 7, "height": 54, "targetZ": 28, "dist": 215, "maxDist": 800, "ring": 9.5, "bagZ0": 6, "bagZ1": 38, "bagR": 5.5}, "stl": {"shell": "shell_blackfly.stl", "internals": "internals_blackfly.stl", "fan": "fan_blackfly.stl", "door": "door_blackfly.stl", "plateaus": "plateaus_blackfly.stl", "co2": "co2_blackfly.stl", "bag": "bag_blackfly.stl"}, "specs": [["Footprint", "24\u00d724 in"], ["Catch tube", "10 in"], ["Fan", "FG12 + FG10 booster"], ["Airflow", "~900\u20131000 CFM"], ["Slat", "10 mm \u00b7 ~10 mph"], ["Lure", "CO\u2082 + octenol + heat"], ["Target", "Black flies"]]}, "titan": {"line": "Monolith", "name": "GreenGuard Titan", "plateau": "0x0f0f12", "cam": {"baseHalf": 15, "topHalf": 9, "height": 72, "targetZ": 36, "dist": 300, "maxDist": 1000, "ring": 12, "bagZ0": 6, "bagZ1": 56, "bagR": 7.5}, "stl": {"shell": "shell_titan.stl", "internals": "internals_titan.stl", "fan": "fan_titan.stl", "door": "door_titan.stl", "plateaus": "plateaus_titan.stl", "co2": "co2_titan.stl", "bag": "bag_titan.stl"}, "specs": [["Footprint", "30\u00d730 in"], ["Height", "72 in (6 ft)"], ["Catch tube", "14 in"], ["Airflow", "~2700 CFM"], ["Slat", "1.33 in \u00b7 ~7.5 mph"], ["Intake", "4-sided \u00b7 z14\u201350"], ["Coverage", "~1 acre / unit"], ["CO\u2082", "100 lb cylinder"]]}, "aria-planter": {"line": "Aria", "name": "Aria \u00b7 Planter", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 22, "targetZ": 11, "dist": 110, "maxDist": 400}, "eng": {"headZ": 18.9, "bowlR": 4.06, "tankH": 18}, "stl": {"shell": "aria_planter.stl"}, "specs": [["Body", "Glazed planter"], ["Engine", "92 mm axial fan \u00b7 face-down"], ["Fan face z", "18.9\" (top of cartridge)"], ["Plenum", "Annular sealed \u00b7 CO\u2082 + scent"], ["Split baffle", "30% curtain / 70% base vents"], ["Catch cup", "150 mm (5.9\") clear \u00b7 below fan"], ["Tank", "CO\u2082 cylinder in base"], ["Lure", "CO\u2082 curtain (gold louver ring) + suction throat"], ["How it works", "Fan pulls air DOWN the throat \u2192 bugs into catch cup \u00b7 CO\u2082 curtain projects outward from louver ring \u00b7 Base vents exhaust bulk airflow"]]}, "aria-lantern": {"line": "Aria", "name": "Aria \u00b7 Lantern", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 22, "targetZ": 11, "dist": 110, "maxDist": 400}, "eng": {"headZ": 17.4, "bowlR": 4.06, "tankH": 17}, "stl": {"shell": "aria_lantern.stl"}, "specs": [["Body", "Post lantern"], ["Engine", "92 mm axial fan \u00b7 face-down"], ["Fan face z", "17.4\""], ["Plenum", "Annular sealed \u00b7 CO\u2082 + scent"], ["Catch cup", "150 mm clear \u00b7 below fan"], ["Tank", "Weighted post base"], ["Light", "Warm LED cap"], ["How it works", "Fan pulls air DOWN the throat \u2192 bugs into catch cup \u00b7 CO\u2082 curtain projects outward from gold louver ring"]]}, "aria-disc": {"line": "Aria", "name": "Aria \u00b7 Disc", "plateau": "0x0f0f12", "cam": {"baseHalf": 7, "topHalf": 7, "height": 14, "targetZ": 7, "dist": 80, "maxDist": 350}, "eng": {"headZ": 13.9, "bowlR": 4.06, "tankH": 13}, "stl": {"shell": "aria_disc.stl"}, "specs": [["Body", "Fluted ground drum"], ["Engine", "92 mm axial fan \u00b7 face-down"], ["Fan face z", "13.9\""], ["Plenum", "Annular sealed \u00b7 CO\u2082 + scent"], ["Catch cup", "150 mm clear"], ["Tank", "Inside drum body"], ["How it works", "Fan pulls air DOWN the throat \u2192 bugs into catch cup \u00b7 CO\u2082 curtain projects outward from gold louver ring"]]}, "aria-urn": {"line": "Aria", "name": "Aria \u00b7 Urn", "plateau": "0x0f0f12", "cam": {"baseHalf": 7, "topHalf": 7, "height": 29, "targetZ": 14, "dist": 135, "maxDist": 450}, "eng": {"headZ": 25.6, "bowlR": 4.06, "tankH": 25}, "stl": {"shell": "aria_urn.stl"}, "specs": [["Body", "Tapered urn"], ["Engine", "92 mm axial fan \u00b7 face-down"], ["Fan face z", "25.6\""], ["Plenum", "Annular sealed \u00b7 CO\u2082 + scent"], ["Catch cup", "150 mm clear \u00b7 below fan"], ["Tank", "Slim plinth foot"], ["How it works", "Fan pulls air DOWN the throat \u2192 bugs into catch cup \u00b7 CO\u2082 curtain projects outward from gold louver ring"]]}, "aria-pot": {"line": "Aria", "name": "Aria \u00b7 Pot Insert", "plateau": "0x0f0f12", "cam": {"baseHalf": 9, "topHalf": 9, "height": 18, "targetZ": 15, "dist": 110, "maxDist": 400}, "eng": {"headZ": 18.1, "bowlR": 4.06, "tankH": 17, "baseZ": 12.3}, "stl": {"shell": "aria_pot.stl"}, "specs": [["Body", "Customer's own pot"], ["Engine", "92 mm axial fan \u00b7 face-down"], ["Fan face z", "18.1\""], ["Plenum", "Annular sealed \u00b7 CO\u2082 + scent"], ["Catch cup", "150 mm clear \u00b7 below fan"], ["Tank", "Buried in soil beside spine"], ["Parts", "Brass rim + 3 spines"], ["How it works", "Fan pulls air DOWN the throat \u2192 bugs into catch cup \u00b7 CO\u2082 curtain projects outward from gold louver ring"]]}, "halo-lotus": {"line": "Halo", "name": "Halo \u00b7 Lotus Bloom", "plateau": "0x0f0f12", "cam": {"baseHalf": 7, "topHalf": 7, "height": 21, "targetZ": 10, "dist": 105, "maxDist": 400}, "eng": {"headZ": 18.5, "bowlR": 5.2, "tankH": 22}, "stl": {"shell": "halo_lotus.stl"}, "specs": [["Body", "Lotus Bloom"], ["Engine", "Face-up counterflow \u00b7 92 mm fan"], ["Intake", "Annular grille, 4.2\u20135.2\" radius"], ["Tank", "20 lb CO\u2082 concealed in core"], ["Catch cup", "Below fan \u2014 bugs fall in"], ["Lure", "CO\u2082 + heat rise from grille"], ["How it works", "CO\u2082+heat plume rises above trap \u2192 mosquitoes descend \u2192 sucked down through grille \u2192 caught in cup"]]}, "halo-agave": {"line": "Halo", "name": "Halo \u00b7 Agave Rosette", "plateau": "0x0f0f12", "cam": {"baseHalf": 21, "topHalf": 21, "height": 25, "targetZ": 12, "dist": 150, "maxDist": 500}, "eng": {"headZ": 13.5, "bowlR": 4.9, "tankH": 16}, "stl": {"shell": "halo_agave.stl"}, "specs": [["Body", "Agave Rosette"], ["Engine", "Face-up counterflow \u00b7 92 mm fan"], ["Intake", "Annular grille at rosette heart"], ["Tank", "20 lb CO\u2082 in core (hidden by blades)"], ["Catch cup", "Below fan"], ["How it works", "CO\u2082+heat plume rises above trap \u2192 mosquitoes descend \u2192 sucked down through grille \u2192 caught in cup"]]}, "halo-spiral": {"line": "Halo", "name": "Halo \u00b7 Spiral", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 27, "targetZ": 13, "dist": 125, "maxDist": 450}, "eng": {"headZ": 24.8, "bowlR": 4.6, "tankH": 22}, "stl": {"shell": "halo_spiral.stl"}, "specs": [["Body", "Spiral Topiary"], ["Engine", "Face-up counterflow \u00b7 92 mm fan"], ["Intake", "Annular grille at spiral crown"], ["Tank", "20 lb CO\u2082 inside twist column"], ["How it works", "CO\u2082+heat plume rises above trap \u2192 mosquitoes descend \u2192 sucked down through grille \u2192 caught in cup"]]}, "halo-cairn": {"line": "Halo", "name": "Halo \u00b7 Stacked Cairn", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 23, "targetZ": 11, "dist": 115, "maxDist": 420}, "eng": {"headZ": 20.6, "bowlR": 4.8, "tankH": 20}, "stl": {"shell": "halo_cairn.stl"}, "specs": [["Body", "Stacked Cairn"], ["Engine", "Face-up counterflow \u00b7 92 mm fan"], ["Intake", "Grille recessed in top stone"], ["Tank", "20 lb CO\u2082 in hollow stack"], ["How it works", "CO\u2082+heat plume rises above trap \u2192 mosquitoes descend \u2192 sucked down through grille \u2192 caught in cup"]]}, "halo-facet": {"line": "Halo", "name": "Halo \u00b7 Faceted Gem", "plateau": "0x0f0f12", "cam": {"baseHalf": 7, "topHalf": 7, "height": 27, "targetZ": 13, "dist": 125, "maxDist": 450}, "eng": {"headZ": 24.4, "bowlR": 4.7, "tankH": 22}, "stl": {"shell": "halo_gem.stl"}, "specs": [["Body", "Faceted Gem"], ["Engine", "Face-up counterflow \u00b7 92 mm fan"], ["Intake", "Annular grille at gem apex"], ["Tank", "20 lb CO\u2082 in crystal column"], ["How it works", "CO\u2082+heat plume rises above trap \u2192 mosquitoes descend \u2192 sucked down through grille \u2192 caught in cup"]]}, "halo-birdbath": {"line": "Halo", "name": "Halo \u00b7 Birdbath Bowl", "plateau": "0x0f0f12", "cam": {"baseHalf": 9, "topHalf": 9, "height": 21, "targetZ": 10, "dist": 105, "maxDist": 400}, "eng": {"headZ": 18.4, "bowlR": 8.6, "tankH": 17}, "stl": {"shell": "halo_birdbath.stl"}, "specs": [["Body", "Birdbath Bowl"], ["Engine", "Face-up counterflow \u00b7 92 mm fan"], ["Intake", "Wide bowl grille (8.6\" radius)"], ["Tank", "20 lb CO\u2082 in pedestal"], ["How it works", "CO\u2082+heat plume rises from wide bowl \u2192 mosquitoes descend \u2192 sucked through grille into cup"]]}, "halo-pinecone": {"line": "Halo", "name": "Halo \u00b7 Pinecone", "plateau": "0x0f0f12", "cam": {"baseHalf": 8, "topHalf": 8, "height": 24, "targetZ": 12, "dist": 120, "maxDist": 440}, "eng": {"headZ": 21.4, "bowlR": 4.6, "tankH": 20}, "stl": {"shell": "halo_pinecone.stl"}, "specs": [["Body", "Pinecone"], ["Engine", "Face-up counterflow \u00b7 92 mm fan"], ["Intake", "Grille at pinecone crown"], ["Tank", "20 lb CO\u2082 in ovoid core"], ["How it works", "CO\u2082+heat plume rises above trap \u2192 mosquitoes descend \u2192 sucked down through grille \u2192 caught in cup"]]}, "spire": {"line": "Concepts", "name": "Spire", "plateau": "0x2a2a30", "cam": {"baseHalf": 8, "topHalf": 3, "height": 60, "targetZ": 30, "dist": 230, "maxDist": 900}, "hint": "updraft", "stl": {"shell": "shell_spire.stl", "internals": "internals_spire.stl"}, "specs": [["Mechanism", "Passive solar-chimney updraft"], ["Disguise", "Obelisk / sundial spire"], ["Fan", "None (solar stack effect)"], ["Tank", "Weighted plinth base"], ["Lure", "CO\u2082 at base lip \u2192 insects enter low \u2192 rising hot air carries them up"], ["Height", "60 in"]]}, "reed": {"line": "Concepts", "name": "Reed", "plateau": "0x2f3a22", "cam": {"baseHalf": 9.5, "topHalf": 6, "height": 53, "targetZ": 26, "dist": 210, "maxDist": 800}, "hint": "in-side", "stl": {"shell": "shell_reed.stl", "internals": "internals_reed.stl"}, "specs": [["Mechanism", "CO\u2082-jet Venturi ejector"], ["Disguise", "Cattail / reed cluster"], ["Power", "None (gas-driven Venturi)"], ["Tank", "Planter base (24 oz+)"], ["Lure", "CO\u2082 jet entrains air \u2192 suction draws insects sideways into capture port"], ["Height", "53 in"]]}, "bloom": {"line": "Concepts", "name": "Bloom", "plateau": "0x6a2a4a", "cam": {"baseHalf": 6.8, "topHalf": 6, "height": 29, "targetZ": 16, "dist": 120, "maxDist": 450}, "hint": "contact", "stl": {"shell": "shell_bloom.stl", "internals": "internals_bloom.stl"}, "specs": [["Mechanism", "Electrostatic adhesive petals"], ["Disguise", "Oversized flower"], ["Service", "Swap petal cards"], ["Tank", "Ground stake / stem"], ["Lure", "CO\u2082 + heat + UV \u2192 insects land on petals \u2192 stuck on adhesive"], ["Height", "29 in"]]}, "cistern": {"line": "Concepts", "name": "Cistern", "plateau": "0x2a3a44", "cam": {"baseHalf": 11, "topHalf": 6, "height": 27, "targetZ": 13, "dist": 130, "maxDist": 480}, "hint": "in-top", "stl": {"shell": "shell_cistern.stl", "internals": "internals_cistern.stl"}, "specs": [["Mechanism", "Gravid oviposition + drowning"], ["Target", "Egg-laying females + larvae"], ["Disguise", "Birdbath / fountain bowl"], ["Tank", "Pedestal column"], ["Lure", "CO\u2082 + hay infusion \u2192 gravid females descend into bowl \u2192 drown / larvae killed"], ["Height", "27 in"]]}, "lumen": {"line": "Concepts", "name": "Lumen", "plateau": "0x3a3320", "cam": {"baseHalf": 5, "topHalf": 4.5, "height": 44, "targetZ": 22, "dist": 175, "maxDist": 700}, "hint": "contact", "stl": {"shell": "shell_lumen.stl", "internals": "internals_lumen.stl"}, "specs": [["Mechanism", "Rotating sticky-film drum"], ["Disguise", "Coach lantern on post"], ["Capacity", "Self-indexing film"], ["Tank", "Post base"], ["Lure", "CO\u2082 + warm UV \u2192 insects orbit lantern \u2192 stick to rotating film drum"], ["Height", "44 in"]]}, "orb": {"line": "Concepts", "name": "Orb", "plateau": "0x2a3340", "cam": {"baseHalf": 9, "topHalf": 6, "height": 29, "targetZ": 18, "dist": 135, "maxDist": 480}, "hint": "contact", "stl": {"shell": "shell_orb.stl", "internals": "internals_orb.stl"}, "specs": [["Mechanism", "Acoustic wingbeat resonance + electrocution mesh"], ["Capture", "Electrocution at surface"], ["Target", "Both sexes"], ["Disguise", "Gazing ball on plinth"], ["Lure", "CO\u2082 + acoustic lure \u2192 insects approach \u2192 electrocuted at mesh surface"], ["Height", "29 in"]]}, "cairn": {"line": "Concepts", "name": "Cairn", "plateau": "0x3a352c", "cam": {"baseHalf": 7, "topHalf": 4, "height": 20, "targetZ": 10, "dist": 100, "maxDist": 400}, "hint": "contact", "stl": {"shell": "shell_cairn.stl", "internals": "internals_cairn.stl"}, "specs": [["Mechanism", "Heated treated-textile contact kill"], ["Disguise", "Landscape boulder / seat"], ["Parts", "No fan, no capture vessel"], ["Tank", "Hollow boulder"], ["Lure", "CO\u2082 + heat + scent \u2192 insects land on heated textile \u2192 contact-killed"], ["Height", "20 in"]]}, "morel": {"line": "Concepts", "name": "Morel", "plateau": "0x33402c", "cam": {"baseHalf": 10, "topHalf": 5, "height": 16, "targetZ": 9, "dist": 95, "maxDist": 380}, "hint": "vortex", "stl": {"shell": "shell_morel.stl", "internals": "internals_morel.stl"}, "specs": [["Mechanism", "Cyclone vortex retention"], ["Disguise", "Mushroom cluster"], ["Fan", "Tangential low-speed fan"], ["Tank", "Largest stem"], ["Lure", "CO\u2082 from cap gills \u2192 insects enter tangentially \u2192 spun by vortex \u2192 centrifuged into walls"], ["Height", "16 in"]]}, "marker": {"line": "Concepts", "name": "Marker", "plateau": "0x2c2c33", "cam": {"baseHalf": 4.5, "topHalf": 4, "height": 22, "targetZ": 11, "dist": 95, "maxDist": 380}, "hint": "in-top", "stl": {"shell": "shell_marker.stl", "internals": "internals_marker.stl"}, "specs": [["Mechanism", "Downdraft path bollard"], ["Disguise", "Path light / bollard"], ["Deploy", "Multiples along walkway"], ["Tank", "Buried ground sleeve"], ["Lure", "CO\u2082 at top opening \u2192 fan creates downdraft \u2192 insects drawn in from top \u2192 trapped in base"], ["Height", "22 in"]]}, "veil": {"line": "Concepts", "name": "Veil", "plateau": "0x2c3a30", "cam": {"baseHalf": 15, "topHalf": 12, "height": 47, "targetZ": 24, "dist": 210, "maxDist": 800}, "hint": "curtain", "stl": {"shell": "shell_veil.stl", "internals": "internals_veil.stl"}, "specs": [["Mechanism", "Misting CO\u2082 air-curtain trough"], ["Coverage", "Perimeter / patio edge"], ["Disguise", "Living-wall trellis"], ["Tank", "Wall cavity (20 lb)"], ["Lure", "CO\u2082 mist curtain runs length of trellis \u2192 creates barrier \u2192 insects hit curtain \u2192 enter capture chambers"], ["Height", "47 in"]]}, "acrevac": {"line": "Benchmark", "name": "AcreVac CO\u2082 Commercial (competitor)", "plateau": "0x3a4a44", "cam": {"baseHalf": 20, "topHalf": 14, "height": 47, "targetZ": 20, "dist": 290, "maxDist": 1050}, "hint": "in-top", "stl": {"shell": "shell_acrevac.stl", "internals": "internals_acrevac.stl"}, "specs": [["Class", "Commercial CO\u2082 downdraft-vacuum (MegaCatch / Dynatrap commercial archetype)"], ["Lure", "CO\u2082 cylinder + UV lamp + PTC heat plate"], ["Capture", "Top intake \u2192 downdraft fan \u2192 central throat \u2192 hanging net"], ["CO\u2082 supply", "External cylinder, VISIBLE on cart (Titan hides its cylinder inside)"], ["Form", "Domed head on a 2-wheel service cart, ~47 in tall"], ["Coverage", "~0.5\u20131 acre / unit (plume-limited, same physics as any CO\u2082 trap)"], ["Why not propane", "Propane catalytic units fail in the field (fouling / flame-out / restart)"], ["vs GreenGuard Titan", "No 4-sided slat counterflow tube; exposed tank; suction vacuum vs Titan's warm-plume counterflow capture"], ["IP note", "Original benchmark model \u2014 shares no Titan geometry"]]}}, "lines": {"Monolith": ["monolith", "mini", "blackfly", "titan"], "Aria": ["aria-planter", "aria-lantern", "aria-disc", "aria-urn", "aria-pot"], "Halo": ["halo-lotus", "halo-agave", "halo-spiral", "halo-cairn", "halo-facet", "halo-birdbath", "halo-pinecone"], "Concepts": ["spire", "reed", "bloom", "cistern", "lumen", "orb", "cairn", "morel", "marker", "veil"], "Benchmark": ["acrevac"]}};
+const LINE_ORDER = ["Monolith", "Aria", "Halo", "Concepts", "Benchmark"];
 const MODELS = "models/";
 
 // ── scene ───────────────────────────────────────────────────────────────────
@@ -97,21 +98,24 @@ const gnd=new THREE.Mesh(new THREE.CircleGeometry(600,64),new THREE.MeshStandard
 scene.add(gnd);
 // materials
 const matShell = new THREE.MeshStandardMaterial({color:0x0f0f12,metalness:.28,roughness:.52,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
-const matGhost = new THREE.MeshStandardMaterial({color:0x0f0f12,metalness:.1,roughness:.55,transparent:true,opacity:.22,side:THREE.DoubleSide});
+const matGhost = new THREE.MeshStandardMaterial({color:0x0f0f12,metalness:.1,roughness:.55,transparent:true,opacity:.35,side:THREE.DoubleSide,depthWrite:false});
 const matInt   = new THREE.MeshStandardMaterial({color:0x8a9aaa,metalness:.6,roughness:.42,side:THREE.DoubleSide});
 const matFan   = new THREE.MeshStandardMaterial({color:0xb8c2cc,metalness:.7,roughness:.35,side:THREE.DoubleSide});
 const matPlat  = new THREE.MeshStandardMaterial({color:0x0f0f12,metalness:.3,roughness:.5});
 const matCO2   = new THREE.MeshStandardMaterial({color:0x3fb56b,metalness:.5,roughness:.35,emissive:0x103d22,emissiveIntensity:.5});
 const matDoor  = new THREE.MeshStandardMaterial({color:0x0f0f12,metalness:.28,roughness:.52,side:THREE.DoubleSide});
+const matBag   = new THREE.MeshStandardMaterial({color:0xd4e8c8,metalness:0,roughness:.9,transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false});
 const clip = new THREE.Plane(new THREE.Vector3(0,1,0),0);
-const CLIPPABLE = [matShell,matGhost,matInt,matPlat,matCO2,matDoor,matFan];
+const CLIPPABLE = [matShell,matGhost,matInt,matPlat,matCO2,matDoor,matFan,matBag];
 
 // ── state ───────────────────────────────────────────────────────────────────
-let MDL={baseHalf:12,topHalf:7,height:54,targetZ:28,dist:215};
+let MDL={baseHalf:12,topHalf:7,height:54,targetZ:28,dist:215,bagZ0:6,bagZ1:38,bagR:5.5};
 let cur={};            // role -> mesh/group
 let fanMesh=null, doorPivot=null;
 let SHELL_MODES=['solid','ghost','hidden','cutaway'], shellMode=0;
 let plateausOn=true, co2On=true, animOn=true, doorOpen=false, doorAngle=0;
+let procMode=false;   // true = Halo only → procedural face-up engine; false = Monolith/Aria/Concepts
+let curLine='', faceUp=false, engCfg={headZ:0,bowlR:5.2,tankH:22}, curHint='';
 const loader=new THREE.STLLoader();
 function hwAt(z){return MDL.baseHalf+(MDL.topHalf-MDL.baseHalf)*z/MDL.height;}
 
@@ -121,18 +125,48 @@ function clearProduct(){
 }
 function setClip(on){var pl=on?[clip]:[];CLIPPABLE.forEach(m=>{m.clippingPlanes=pl;m.needsUpdate=true;});}
 function matFor(role){return role==='shell'?matShell:role==='internals'?matInt:role==='plateaus'?matPlat:
-  role==='co2'?matCO2:role==='door'?matDoor:role==='fan'?matFan:matShell;}
+  role==='co2'?matCO2:role==='door'?matDoor:role==='fan'?matFan:role==='bag'?matBag:matShell;}
 
 function loadProduct(pid){
   const d=DATA.P[pid]; if(!d)return;
   clearProduct();
-  MDL={baseHalf:d.cam.baseHalf,topHalf:d.cam.topHalf,height:d.cam.height,targetZ:d.cam.targetZ,dist:d.cam.dist};
+  MDL={baseHalf:d.cam.baseHalf,topHalf:d.cam.topHalf,height:d.cam.height,targetZ:d.cam.targetZ,dist:d.cam.dist,ring:d.cam.ring,
+       bagZ0:d.cam.bagZ0||0,bagZ1:d.cam.bagZ1||0,bagR:d.cam.bagR||0};
+  resetBugBag();
   matPlat.color.set(parseInt(d.plateau));
   controls.maxDistance=d.cam.maxDist; controls.target.set(0,0,d.cam.targetZ);
   view('3q');
   document.getElementById('color-pick').value='#0f0f12'; matShell.color.set(0x0f0f12);
+  document.getElementById('bXray').style.display=(d.line==='Monolith')?'none':'';
   // cut sheet
   document.getElementById('cut').innerHTML=d.specs.map(s=>`<div class="row"><span class="k">${s[0]}</span><span class="v">${s[1]}</span></div>`).join('');
+  // Default ghost for non-Monolith so internals are immediately visible
+  curLine=d.line; faceUp=(d.line==='Halo');
+  shellMode=(d.line==='Monolith')?0:1;
+  document.getElementById('shell-toggle').textContent='Shell: '+SHELL_MODES[shellMode];
+  engCfg=d.eng||{headZ:MDL.height*0.88,bowlR:5.2,tankH:MDL.height*0.85};
+  curHint=d.hint||'';
+  // Halo + Aria: proc engine (Halo=face-up, Aria=face-down). Monolith has real STL fan. Concepts suppressed.
+  procMode=!d.stl.fan&&(d.line==='Halo'||d.line==='Aria');
+  if(procMode){cur.proc=buildEngine(); cur.proc.visible=procVisible();}
+  animMode = procMode ? 'proc' : (d.line==='Monolith' ? 'monolith' : 'generic');
+  if(animMode==='monolith'){ mPts.material.color.set(0x141414);
+    cpPts.material.color.set(0x6ff0a0); cpPts.material.opacity=.55; cpPts.material.blending=THREE.AdditiveBlending;
+  } else if(animMode==='proc'){ mPts.material.color.set(0xe8eef0);
+    cpPts.material.color.set(0xe8c060); cpPts.material.opacity=.85; cpPts.material.blending=THREE.NormalBlending;
+  } else { mPts.material.color.set(0xe8eef0); }
+  // Particle sizes: monolith forms are 54" with dist 215 so 1.5 ≈ 11px CSS.
+  // Proc/generic forms are 14-30" with dist 80-150, so needs much smaller values for same apparent size.
+  if(animMode==='monolith'){
+    mPts.material.size=1.5; cpPts.material.size=1.7; aPts.material.size=1.1;
+  } else if(animMode==='proc'){
+    mPts.material.size=0.28; cpPts.material.size=0.42; aPts.material.size=0.18;
+  } else {
+    mPts.material.size=0.36; aPts.material.size=0.22;
+  }
+  mPts.material.needsUpdate=true; cpPts.material.needsUpdate=true; aPts.material.needsUpdate=true;
+  for(let i=0;i<N;i++)mspawn(i); for(let i=0;i<AN;i++)aspawn(i);
+  for(let i=0;i<CN;i++){cspawn(i); if(animMode!=='proc')cpp[i*3+2]=Math.random()*MDL.height;}
   // load each role
   const roles=d.stl;
   Object.keys(roles).forEach(role=>{
@@ -153,15 +187,19 @@ function loadProduct(pid){
   document.getElementById('load').style.display='none';
 }
 
+// proc engine structure always visible when shell is open (fan only spins when animOn)
+function procVisible(){const m=SHELL_MODES[shellMode];return m==='ghost'||m==='cutaway'||m==='hidden';}
 function applyVis(){
   const m=SHELL_MODES[shellMode];
   if(cur.shell){cur.shell.visible=(m!=='hidden'); cur.shell.material=(m==='ghost')?matGhost:matShell;}
-  const showInt=(m!=='solid');
+  const showInt=(m!=='solid')||(curLine!=='Monolith'&&curLine!=='');
   ['internals','fan'].forEach(r=>{if(cur[r])cur[r].visible=showInt;});
   if(cur.plateaus)cur.plateaus.visible=plateausOn && (m!=='hidden'?true:true);
   if(cur.plateaus)cur.plateaus.material=(m==='ghost')?matGhost:matPlat, cur.plateaus.visible=plateausOn;
   if(cur.co2)cur.co2.visible=co2On;
   if(cur.door)cur.door.visible=(m!=='hidden');
+  if(cur.proc)cur.proc.visible=procVisible();
+  if(cur.bag)cur.bag.visible=showInt;
   setClip(m==='cutaway');
 }
 
@@ -174,37 +212,388 @@ function view(which){
   camera.lookAt(0,0,t);
 }
 
-// ── particles: mosquitoes + CO2 + airflow ──
-const N=44; const mp=new Float32Array(N*3), mph=new Float32Array(N);
-function mspawn(i){const a=Math.random()*6.28,r=46+Math.random()*70;mp[i*3]=Math.cos(a)*r;mp[i*3+1]=Math.sin(a)*r;mp[i*3+2]=10+Math.random()*(MDL.height-16);mph[i]=Math.random();}
+// ── "how it works" flow — three modes, set per product in loadProduct ──
+//  'monolith' = ORIGINAL render.html: green CO2 curtain falling straight down from the
+//               roof-perimeter ring emitter + dark mosquitoes sucked into the slat band.
+//  'proc'     = Aria/Halo counterflow: gold lure plume + mosquitoes into the procedural cup.
+//  'generic'  = Concepts: white mosquitoes drawn to the body + airflow.
+let animMode='monolith';
+const SZ=()=>Math.max(MDL.baseHalf,MDL.topHalf);
+// CO2 ring half-width under the hat eave — exact per-product value from each
+// original render HTML (monolith 9.5, mini 7, blackfly 9.5, titan 12); fallback to taper midpoint.
+function ringHalf(){return (MDL.ring!=null)?MDL.ring:(MDL.topHalf+(MDL.baseHalf-MDL.topHalf)*0.5);}
+// mosquitoes (dark for monolith, white otherwise)
+const N=46; const mp=new Float32Array(N*3), mozPhase=new Float32Array(N);
+function mspawn(i){const a=Math.random()*6.28; let r,z;
+  if(animMode==='proc'){
+    r=MDL.baseHalf*2.0+Math.random()*MDL.baseHalf*3.5;
+    const gZ=engCfg.headZ||MDL.height*0.84;
+    if(faceUp){
+      // Halo face-up: mosquitoes start ABOVE the trap in the CO2 plume, then pulled DOWN through grille
+      z=gZ+1.5+Math.random()*MDL.height*0.75;
+    } else {
+      // Aria face-down: mosquitoes at various heights near the engine face level, pulled into throat
+      z=gZ-MDL.height*0.25+Math.random()*MDL.height*0.7;
+    }
+  } else if(curHint==='updraft'){
+    // Spire: insects enter from BASE — spawn low, rise upward inside chimney
+    r=MDL.baseHalf*0.3+Math.random()*MDL.baseHalf*1.2; z=Math.random()*MDL.height*0.18;
+  } else if(curHint==='in-top'||curHint==='vortex'){
+    // Cistern/Marker/Morel: insects approach from above/sides at upper half
+    r=MDL.baseHalf*1.5+Math.random()*MDL.baseHalf*3; z=MDL.height*0.4+Math.random()*MDL.height*0.7;
+  } else if(curHint==='curtain'){
+    // Veil: insects cross a horizontal curtain — spawn along the trellis face height
+    r=MDL.baseHalf*0.5+Math.random()*MDL.baseHalf*2; z=MDL.height*0.1+Math.random()*MDL.height*0.85;
+  } else {
+    // generic (contact, in-side, Monolith): orbit at random heights
+    r=48+Math.random()*70; z=MDL.height*0.08+Math.random()*MDL.height*0.82;
+  }
+  mp[i*3]=Math.cos(a)*r;mp[i*3+1]=Math.sin(a)*r;mp[i*3+2]=z; mozPhase[i]=Math.random()*Math.PI*2;}
 for(let i=0;i<N;i++)mspawn(i);
 const mGeo=new THREE.BufferGeometry(); mGeo.setAttribute('position',new THREE.BufferAttribute(mp,3));
-const mPts=new THREE.Points(mGeo,new THREE.PointsMaterial({color:0xe8eef0,size:1.6,transparent:true,opacity:.9}));
+const mPts=new THREE.Points(mGeo,new THREE.PointsMaterial({color:0x141414,size:1.5,transparent:true,opacity:.92,depthWrite:false}));
 scene.add(mPts);
+// airflow (blue) — proc/generic only; direction varies by mechanism
 const AN=60; const ap=new Float32Array(AN*3);
-function aspawn(i){const a=Math.random()*6.28,z=14+Math.random()*(MDL.height-20),r=hwAt(z)*0.9;ap[i*3]=Math.cos(a)*r;ap[i*3+1]=Math.sin(a)*r;ap[i*3+2]=z;}
+function aspawn(i){const a=Math.random()*6.28;let r,z;
+  const gZ=engCfg.headZ||MDL.height*0.84;
+  if(animMode==='proc'&&faceUp){
+    // Halo: airflow particles spawn above grille, flow DOWN through intake
+    r=Math.random()*(engCfg.bowlR||5.2)*1.1; z=gZ+0.5+Math.random()*MDL.height*0.45;
+  } else if(animMode==='proc'){
+    // Aria: airflow spawns around the body at headZ level, converges into throat
+    r=hwAt(gZ)*1.1+Math.random()*MDL.baseHalf*1.8; z=gZ-3+Math.random()*6;
+  } else if(curHint==='updraft'){
+    // Spire: airflow rises from base upward (chimney updraft)
+    r=Math.random()*MDL.baseHalf*0.5; z=Math.random()*MDL.height*0.3;
+  } else if(curHint==='in-top'||curHint==='vortex'){
+    r=MDL.baseHalf*0.8+Math.random()*MDL.baseHalf*1.5; z=MDL.height*0.5+Math.random()*MDL.height*0.4;
+  } else {
+    const zMin=Math.max(2,MDL.height*0.05), zRng=Math.max(4,MDL.height*0.8);
+    z=zMin+Math.random()*zRng; r=hwAt(z)*0.9;
+  }
+  ap[i*3]=Math.cos(a)*r; ap[i*3+1]=Math.sin(a)*r; ap[i*3+2]=z;}
 for(let i=0;i<AN;i++)aspawn(i);
 const aGeo=new THREE.BufferGeometry(); aGeo.setAttribute('position',new THREE.BufferAttribute(ap,3));
 const aPts=new THREE.Points(aGeo,new THREE.PointsMaterial({color:0x7fd0ff,size:1.1,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));
 scene.add(aPts);
+// CO2 lure — 'monolith' green falling perimeter curtain (heavier than air); 'proc' gold rising plume
+const CN=220; const cpp=new Float32Array(CN*3), cv2=new Float32Array(CN*3);
+function cspawn(i){
+  if(animMode==='proc'){
+    const a=Math.random()*6.28;
+    // face-up: CO2 at grille level; face-down: from louver ring radius, just above engine face
+    const hZ=engCfg.headZ||MDL.height*0.84;
+    const co2Z=faceUp?hZ:(hZ+0.4+Math.random()*0.6);
+    const co2R=faceUp?(Math.random()*(engCfg.bowlR||5.2)):(3.2+Math.random()*1.0);
+    cpp[i*3]=Math.cos(a)*co2R; cpp[i*3+1]=Math.sin(a)*co2R; cpp[i*3+2]=co2Z;
+  } else {
+    const s=ringHalf(),edge=Math.floor(Math.random()*4),t=(Math.random()*2-1)*s;
+    const x=(edge===0)?s:(edge===1)?-s:t, y=(edge===2)?s:(edge===3)?-s:t;
+    cpp[i*3]=x; cpp[i*3+1]=y; cpp[i*3+2]=MDL.height-1-Math.random()*2;
+    const out=0.06;
+    cv2[i*3]=Math.sign(x||1)*out*Math.random(); cv2[i*3+1]=Math.sign(y||1)*out*Math.random(); cv2[i*3+2]=-(0.18+Math.random()*0.22);
+  }
+}
+for(let i=0;i<CN;i++){cspawn(i); cpp[i*3+2]=Math.random()*MDL.height;}
+const cpGeo=new THREE.BufferGeometry(); cpGeo.setAttribute('position',new THREE.BufferAttribute(cpp,3));
+const cpPts=new THREE.Points(cpGeo,new THREE.PointsMaterial({color:0x6ff0a0,size:1.7,transparent:true,opacity:.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+scene.add(cpPts);
+
+// ── Procedural engine (face-up = Halo, face-down = Aria) ──
+// Halo: INTAKE_RI=4.2, INTAKE_RO=5.2, CORE_R=4.55, GRILLE_BARS=22.
+// Aria: ENG_R=4.06", THROAT_R=1.3", CUP_R=2.95", CUP_H=3.07", VENT_Z=0.63".
+// depthTest:true (ghost has depthWrite:false so engine shows through it); depthWrite:false to avoid self-occlusion.
+function buildEngine(){
+  const H=MDL.height, g=new THREE.Group();
+  // depthTest:true + depthWrite:false: renders at correct depth against opaque scene,
+  // visible through ghost shell (which has depthWrite:false and writes no depth entries).
+  const ov={transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,renderOrder:10};
+  function mat(color,metal,rough,opacity){
+    return new THREE.MeshStandardMaterial(Object.assign({color,metalness:metal,roughness:rough,opacity},ov));}
+  const steel   =mat(0xc2ccd6,.75,.30,.92);
+  const cupMat  =mat(0x5fd87a,0,.90,.45);
+  const tankMat =mat(0x2a2e33,.5,.70,.85);
+  const grillMat=mat(0x7f8893,.55,.40,.90);
+  const barbMat =mat(0x3fa06a,.4,.50,.88);
+  const louverMat=mat(0xd8b25a,.5,.35,.95);
+  const plenumMat=mat(0x4a6070,.4,.60,.82);
+  const throatMat=mat(0x8ab4c8,.3,.55,.75);
+  const headZ=engCfg.headZ||H*0.84;
+
+  if(faceUp){
+    // ── Halo face-up counterflow ──
+    const IORI=5.2, IIRI=4.2, CORE_R=4.55;
+    const tankH=Math.min(engCfg.tankH||H*0.85,headZ-0.2);
+    const cupDepth=2.6, cupR=IORI;
+    const cupTop=headZ-0.25, cupBot=cupTop-cupDepth;
+
+    // CO2 tank sleeve (dark cylinder)
+    const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(CORE_R,CORE_R,tankH,24,1,true),tankMat);
+    sleeve.rotation.x=Math.PI/2; sleeve.position.set(0,0,tankH/2); g.add(sleeve);
+    [0.01,tankH].forEach(z=>{const c=new THREE.Mesh(new THREE.CircleGeometry(CORE_R,24),tankMat);c.rotation.x=Math.PI/2;c.position.set(0,0,z);g.add(c);});
+
+    // Catch cup (green, below fan — bugs land here)
+    const cup=new THREE.Mesh(new THREE.CylinderGeometry(cupR,cupR*0.88,cupDepth,28,1,true),cupMat);
+    cup.rotation.x=Math.PI/2; cup.position.set(0,0,(cupTop+cupBot)/2); g.add(cup);
+    const cupBotM=new THREE.Mesh(new THREE.CircleGeometry(cupR*0.88,28),cupMat);
+    cupBotM.rotation.x=Math.PI/2; cupBotM.position.set(0,0,cupBot+0.01); g.add(cupBotM);
+    // Solid rim band instead of torus — no floating circle
+    const rimBand=new THREE.Mesh(new THREE.CylinderGeometry(cupR+0.08,cupR+0.08,0.22,28,1,true),mat(0x8fe6a8,.4,.40,.95));
+    rimBand.rotation.x=Math.PI/2; rimBand.position.set(0,0,cupTop+0.1); g.add(rimBand);
+
+    // Fan (7 blades, below grille)
+    const fan=new THREE.Group(); fan.position.set(0,0,headZ-0.18);
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(IIRI*0.42,IIRI*0.42,0.55,14),steel);
+    hub.rotation.x=Math.PI/2; fan.add(hub);
+    for(let b=0;b<7;b++){const a=b/7*Math.PI*2;
+      const bl=new THREE.Mesh(new THREE.BoxGeometry(IIRI*1.55,IIRI*0.28,0.13),steel);
+      bl.position.set(Math.cos(a)*IIRI*0.52,Math.sin(a)*IIRI*0.52,0);
+      bl.rotation.z=a; bl.rotation.x=0.36; fan.add(bl);}
+    g.add(fan); g.userData.fan=fan;
+
+    // Grille disk (flat annular face over intake, shows as solid disc not floating ring)
+    const bowlR=engCfg.bowlR||IORI;
+    const grillDisk=new THREE.Mesh(new THREE.RingGeometry(IIRI*0.6,bowlR,32),grillMat);
+    grillDisk.rotation.x=Math.PI/2; grillDisk.position.set(0,0,headZ+0.22); g.add(grillDisk);
+    // Outer shroud cylinder (defines the grille edge without floating ring)
+    const shroud=new THREE.Mesh(new THREE.CylinderGeometry(bowlR,bowlR,0.35,32,1,true),grillMat);
+    shroud.rotation.x=Math.PI/2; shroud.position.set(0,0,headZ+0.05); g.add(shroud);
+    // 22 radial bars on top of grille disk
+    for(let b=0;b<22;b++){const a=b/22*Math.PI*2;
+      const bar=new THREE.Mesh(new THREE.BoxGeometry(bowlR*1.88,0.06,0.07),grillMat);
+      bar.rotation.z=a; bar.position.set(0,0,headZ+0.26); g.add(bar);}
+    const valveCap=new THREE.Mesh(new THREE.SphereGeometry(IIRI*0.55,12,8),mat(0x9fa8b0,.5,.5,.9));
+    valveCap.scale.z=0.45; valveCap.position.set(0,0,headZ+0.30); g.add(valveCap);
+
+    // CO2 barb (side tube — no elbow torus)
+    const barbH=headZ-0.2;
+    const barb=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,barbH,8),barbMat);
+    barb.rotation.x=Math.PI/2; barb.position.set(CORE_R*0.82,0,barbH/2); g.add(barb);
+
+  } else {
+    // ── Aria face-down counterflow ──
+    const ENG_R=4.06, THROAT_R=1.3, CUP_R=2.95, CUP_H=3.07;
+    const ENG_H=Math.min(5.5,headZ*0.28);
+    const plenumBot=headZ-ENG_H;
+
+    // Outer plenum cylinder (blue-gray annular casing)
+    const plOuter=new THREE.Mesh(new THREE.CylinderGeometry(ENG_R,ENG_R,ENG_H,32,1,true),plenumMat);
+    plOuter.rotation.x=Math.PI/2; plOuter.position.set(0,0,plenumBot+ENG_H/2); g.add(plOuter);
+    // Plenum top annular face (ring disk — flat, not floating torus)
+    const topDisk=new THREE.Mesh(new THREE.RingGeometry(THROAT_R+0.05,ENG_R,32),plenumMat);
+    topDisk.rotation.x=Math.PI/2; topDisk.position.set(0,0,headZ+0.01); g.add(topDisk);
+    const botDisk=new THREE.Mesh(new THREE.RingGeometry(THROAT_R+0.05,ENG_R,32),plenumMat);
+    botDisk.rotation.x=Math.PI/2; botDisk.position.set(0,0,plenumBot+0.01); g.add(botDisk);
+
+    // Inner throat tube (suction path, lighter blue)
+    const throat=new THREE.Mesh(new THREE.CylinderGeometry(THROAT_R,THROAT_R,ENG_H,18,1,true),throatMat);
+    throat.rotation.x=Math.PI/2; throat.position.set(0,0,plenumBot+ENG_H/2); g.add(throat);
+
+    // Fan (7 blades at fan face)
+    const fan=new THREE.Group(); fan.position.set(0,0,headZ-0.15);
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(THROAT_R*0.65,THROAT_R*0.65,0.45,14),steel);
+    hub.rotation.x=Math.PI/2; fan.add(hub);
+    for(let b=0;b<7;b++){const a=b/7*Math.PI*2;
+      const bl=new THREE.Mesh(new THREE.BoxGeometry(THROAT_R*2.9,THROAT_R*0.38,0.11),steel);
+      bl.position.set(Math.cos(a)*THROAT_R*0.72,Math.sin(a)*THROAT_R*0.72,0);
+      bl.rotation.z=a; bl.rotation.x=0.32; fan.add(bl);}
+    g.add(fan); g.userData.fan=fan;
+
+    // Catch cup (green semi-transparent, below fan)
+    const cupTop=headZ-0.25, cupBot=cupTop-CUP_H;
+    const cup=new THREE.Mesh(new THREE.CylinderGeometry(CUP_R,CUP_R*0.88,CUP_H,28,1,true),cupMat);
+    cup.rotation.x=Math.PI/2; cup.position.set(0,0,(cupTop+cupBot)/2); g.add(cup);
+    const cupBotM=new THREE.Mesh(new THREE.CircleGeometry(CUP_R*0.88,28),cupMat);
+    cupBotM.rotation.x=Math.PI/2; cupBotM.position.set(0,0,cupBot+0.01); g.add(cupBotM);
+    // Solid rim band (no floating torus)
+    const cupRimBand=new THREE.Mesh(new THREE.CylinderGeometry(CUP_R+0.06,CUP_R+0.06,0.2,28,1,true),mat(0x8fe6a8,.4,.40,.9));
+    cupRimBand.rotation.x=Math.PI/2; cupRimBand.position.set(0,0,cupTop+0.09); g.add(cupRimBand);
+
+    // Base vent markers (4 fins pointing outward — no floating vent torus)
+    const ventZ=(engCfg.baseZ||0)+0.63;
+    for(let b=0;b<4;b++){const a=b/4*Math.PI*2;
+      const fin=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.12,0.22),mat(0x6a8a9a,.4,.5,.75));
+      fin.position.set(Math.cos(a)*(ENG_R+0.6),Math.sin(a)*(ENG_R+0.6),ventZ); fin.rotation.z=a; g.add(fin);}
+
+    // CO2 barb (side tube — no elbow torus)
+    const barbZ=headZ-ENG_H*0.35;
+    const barbLen=(engCfg.bowlR||ENG_R)*0.55;
+    const barb=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,barbLen,8),barbMat);
+    barb.rotation.y=Math.PI/2; barb.position.set(ENG_R+barbLen/2,0,barbZ); g.add(barb);
+  }
+
+  g.traverse(o=>{if(o.isMesh){o.renderOrder=10; if(!o.material.depthTest)return;}});
+  scene.add(g); return g;
+}
+
+// ── Bug-bag accumulation — mosquitoes settle into the transparent catch bag ──
+const BN=28;
+const bp=new Float32Array(BN*3), bv=new Float32Array(BN*3);
+let bCount=0, bTick=0;
+const bGeo=new THREE.BufferGeometry(); bGeo.setAttribute('position',new THREE.BufferAttribute(bp,3));
+const bPts=new THREE.Points(bGeo,new THREE.PointsMaterial({color:0x141414,size:1.8,transparent:true,opacity:.85,depthWrite:false}));
+scene.add(bPts);
+function resetBugBag(){bCount=0; bTick=0; for(let i=0;i<BN;i++){bp[i*3]=bp[i*3+1]=0;bp[i*3+2]=-999;}bGeo.attributes.position.needsUpdate=true;}
+function bspawn(i){
+  const a=Math.random()*6.28, r=Math.random()*MDL.bagR*0.35;
+  bp[i*3]=Math.cos(a)*r; bp[i*3+1]=Math.sin(a)*r; bp[i*3+2]=MDL.bagZ1+2+Math.random()*3;
+  bv[i*3]=(Math.random()-.5)*.08; bv[i*3+1]=(Math.random()-.5)*.08; bv[i*3+2]=-(0.35+Math.random()*.25);
+}
+function tickBugBag(){
+  if(!MDL.bagZ1)return;
+  bTick++;
+  // add a new bug every ~2 s (120 frames)
+  if(bTick%120===0 && bCount<BN){bspawn(bCount); bCount++;}
+  // reset when bag full, after a pause
+  if(bCount>=BN && bTick%600===599){resetBugBag();}
+  for(let i=0;i<bCount;i++){
+    const floorZ=MDL.bagZ0+MDL.bagR*(0.05+0.08*(i%5)); // staggered floor levels
+    if(bp[i*3+2]>floorZ){
+      bp[i*3+2]+=bv[i*3+2]; bp[i*3]+=bv[i*3]; bp[i*3+1]+=bv[i*3+1];
+      bv[i*3]*=.96; bv[i*3+1]*=.96;
+      if(bp[i*3+2]<=floorZ){bp[i*3+2]=floorZ; bv[i*3+2]=0;}
+    } else {
+      // settled — tiny fidget
+      bp[i*3]+=(Math.random()-.5)*.012; bp[i*3+1]+=(Math.random()-.5)*.012;
+    }
+  }
+  bGeo.attributes.position.needsUpdate=true;
+}
 
 function animate(){
   requestAnimationFrame(animate);
   controls.update();
   // door ease
   const tgt=doorOpen?-Math.PI/2:0; doorAngle+=(tgt-doorAngle)*0.15; if(doorPivot)doorPivot.rotation.z=doorAngle;
+  mPts.visible=animOn;
+  aPts.visible=animOn && animMode!=='monolith';
+  cpPts.visible=animOn && animMode!=='generic';
+  bPts.visible=animOn && animMode==='monolith' && MDL.bagZ1>0;
+  if(animOn && animMode==='monolith') tickBugBag();
+  if(cur.proc)cur.proc.visible=procVisible();
   if(animOn){
     if(fanMesh)fanMesh.rotation.z+=0.5;
-    // mosquitoes drift in then get sucked down the tube
-    for(let i=0;i<N;i++){const x=mp[i*3],y=mp[i*3+1],z=mp[i*3+2];const hr=Math.hypot(x,y);
-      if(hr<hwAt(z)+1.5||z<6){mspawn(i);continue;}
-      const pull=0.5+6/Math.max(hr-hwAt(z),2);
-      mp[i*3]-=x/hr*pull; mp[i*3+1]-=y/hr*pull; mp[i*3+2]-=0.5;}
+    if(cur.proc&&cur.proc.userData.fan)cur.proc.userData.fan.rotation.z+=0.5;  // procedural fan
+    if(animMode==='proc'){
+      const sp=Math.max(1,SZ()*0.06);
+      const grillZ=faceUp?(engCfg.headZ||MDL.height*0.88):(engCfg.headZ||MDL.height*0.84);
+      const catchR=faceUp?(engCfg.bowlR||5.2)*1.1:2.0;
+      for(let i=0;i<N;i++){let x=mp[i*3],y=mp[i*3+1],z=mp[i*3+2];const hr=Math.hypot(x,y)||1;
+        if(faceUp){
+          // Halo face-up: insects start ABOVE grille, CO2 plume draws them in, fan sucks them DOWN
+          // Caught when they cross grillZ going downward inside the bowl
+          const caught=z<grillZ&&hr<catchR;
+          if(caught){mspawn(i);continue;}
+          const tHW=Math.max(0.5,hwAt(z));
+          if(hr>tHW*0.55){const pull=sp*(0.5+4/Math.max(hr-tHW,2));
+            mp[i*3]-=x/hr*pull; mp[i*3+1]-=y/hr*pull;
+            // pull DOWN toward grillZ; accelerates as they get close (suction effect)
+            const dzAbove=z-grillZ; mp[i*3+2]-=sp*(dzAbove<4?1.9:0.5);}
+          else{mp[i*3]*=0.86; mp[i*3+1]*=0.86; mp[i*3+2]-=sp*2.4;}
+        } else {
+          // Aria face-down: insects converge horizontally toward throat at grillZ from all sides
+          // Caught when they reach the throat opening
+          const caught=Math.abs(z-grillZ)<1.2&&hr<catchR;
+          if(caught){mspawn(i);continue;}
+          const tHW=Math.max(0.5,hwAt(z));
+          if(hr>tHW*0.55){const pull=sp*(0.5+4/Math.max(hr-tHW,2));
+            mp[i*3]-=x/hr*pull; mp[i*3+1]-=y/hr*pull;
+            // converge vertically toward grillZ
+            const dz=grillZ-z; mp[i*3+2]+=Math.sign(dz)*sp*(Math.abs(dz)<3?1.8:0.4);}
+          else{mp[i*3]*=0.86; mp[i*3+1]*=0.86; mp[i*3+2]+=Math.sign(grillZ-z)*sp*2.4;}
+        }}
+      // CO2 lure: face-up = gentle vertical rise above trap; face-down = outward drift from louver ring
+      for(let i=0;i<CN;i++){
+        if(faceUp){
+          cpp[i*3]+=(Math.random()-.5)*0.05; cpp[i*3+1]+=(Math.random()-.5)*0.05; cpp[i*3+2]+=sp*0.65;
+          if(cpp[i*3+2]>MDL.height*1.9)cspawn(i);
+        } else {
+          const rr=Math.hypot(cpp[i*3],cpp[i*3+1])||1;
+          cpp[i*3]+=cpp[i*3]/rr*sp*0.9; cpp[i*3+1]+=cpp[i*3+1]/rr*sp*0.9; cpp[i*3+2]+=sp*0.22;
+          if(rr>MDL.baseHalf*3.5||cpp[i*3+2]>MDL.height*1.3)cspawn(i);
+        }
+      }
+      cpGeo.attributes.position.needsUpdate=true;
+      // Directional airflow for proc modes
+      if(faceUp){
+        // Halo: air flows DOWN from above into grille, like a "downdraft" intake
+        for(let i=0;i<AN;i++){let x=ap[i*3],y=ap[i*3+1],z=ap[i*3+2];const hr=Math.hypot(x,y)||1;
+          const gZ=engCfg.headZ||MDL.height*0.88;
+          mp[i*3]; // read ref
+          ap[i*3]-=x/hr*(hr>2?0.4:0.08); ap[i*3+1]-=y/hr*(hr>2?0.4:0.08); ap[i*3+2]-=1.6;
+          if(z<gZ-4||hr<0.8)aspawn(i);}
+      } else {
+        // Aria: air flows inward from sides toward throat
+        for(let i=0;i<AN;i++){let x=ap[i*3],y=ap[i*3+1],z=ap[i*3+2];const hr=Math.hypot(x,y)||1;
+          const gZ=engCfg.headZ||MDL.height*0.84;
+          ap[i*3]-=x/hr*1.1; ap[i*3+1]-=y/hr*1.1; ap[i*3+2]+=(gZ-z)*0.06;
+          if(hr<1.2)aspawn(i);}
+      }
+      aGeo.attributes.position.needsUpdate=true;
+    } else {
+      // ── ORIGINAL render.html mosquitoes (Monolith) ──
+      for(let i=0;i<N;i++){const x=mp[i*3],y=mp[i*3+1],z=mp[i*3+2];const hr=Math.sqrt(x*x+y*y);const shell=hwAt(z);
+        if(hr<shell+1.5){mspawn(i);continue;}
+        const pull=0.5+6/Math.max(hr-shell,2),nx=-x/hr,ny=-y/hr; mozPhase[i]+=0.3;
+        mp[i*3]+=nx*pull+Math.cos(mozPhase[i])*0.25; mp[i*3+1]+=ny*pull+Math.sin(mozPhase[i])*0.25; mp[i*3+2]+=Math.sin(mozPhase[i]*0.7)*0.18;}
+      if(animMode==='monolith'){
+        // ── ORIGINAL green CO2 curtain: falls straight down from the roof-ring emitter ──
+        for(let i=0;i<CN;i++){cpp[i*3]+=cv2[i*3]; cpp[i*3+1]+=cv2[i*3+1]; cpp[i*3+2]+=cv2[i*3+2]; cv2[i*3+2]-=0.004; if(cpp[i*3+2]<2)cspawn(i);}
+        cpGeo.attributes.position.needsUpdate=true;
+      } else {
+        // ── Concepts: mechanism-specific mosquito behavior ──
+        if(curHint==='updraft'){
+          // Spire: insects enter from base, updraft carries them upward
+          for(let i=0;i<N;i++){const x=mp[i*3],y=mp[i*3+1],z=mp[i*3+2];const hr=Math.hypot(x,y)||1;
+            if(z>MDL.height*0.8){mspawn(i);continue;}  // "captured" inside chimney top
+            if(hr<MDL.baseHalf*0.5){mp[i*3+2]+=1.6;} // inside chimney: rise fast
+            else{const pull=0.4+3/Math.max(hr-MDL.baseHalf*0.4,1);mp[i*3]-=x/hr*pull;mp[i*3+1]-=y/hr*pull;mp[i*3+2]+=0.2;}}
+        } else if(curHint==='in-top'){
+          // Cistern/Marker: insects descend from above into top opening
+          for(let i=0;i<N;i++){const x=mp[i*3],y=mp[i*3+1],z=mp[i*3+2];const hr=Math.hypot(x,y)||1;
+            if(z>MDL.height&&hr<MDL.topHalf){mspawn(i);continue;}
+            const pull=0.4+3/Math.max(hr-MDL.topHalf*0.5,1);mp[i*3]-=x/hr*pull;mp[i*3+1]-=y/hr*pull;
+            mp[i*3+2]-=(z>MDL.height*0.7?0.8:0.1);}
+        } else if(curHint==='vortex'){
+          // Morel: insects spiral inward tangentially at mid-height
+          for(let i=0;i<N;i++){const x=mp[i*3],y=mp[i*3+1],z=mp[i*3+2];const hr=Math.hypot(x,y)||1;
+            if(hr<MDL.baseHalf*0.4){mspawn(i);continue;}
+            // tangential + inward = spiral
+            const tx=-y/hr, ty=x/hr;
+            const pull=0.3+2/Math.max(hr-MDL.baseHalf*0.3,1);
+            mp[i*3]+=tx*0.9-x/hr*pull; mp[i*3+1]+=ty*0.9-y/hr*pull; mp[i*3+2]+=Math.sin(mozPhase[i])*0.1; mozPhase[i]+=0.18;}
+        } else if(curHint==='curtain'){
+          // Veil: insects approach the curtain face (Y-axis side) and are stopped
+          for(let i=0;i<N;i++){const x=mp[i*3],y=mp[i*3+1],z=mp[i*3+2];const hr=Math.hypot(x,y)||1;
+            if(Math.abs(x)<MDL.baseHalf*0.2){mspawn(i);continue;}  // captured at curtain face
+            mp[i*3]-=x/Math.abs(x||1)*0.9+(Math.random()-.5)*0.15; mp[i*3+2]+=(Math.random()-.5)*0.2;}
+        } else {
+          // contact/generic: insects approach from orbit, land on body surface
+          for(let i=0;i<N;i++){const x=mp[i*3],y=mp[i*3+1],z=mp[i*3+2];const hr=Math.sqrt(x*x+y*y);const shell=hwAt(z);
+            if(hr<shell-0.5){mspawn(i);continue;}
+            const pull=0.5+4/Math.max(hr-shell,2),nx=-x/hr,ny=-y/hr; mozPhase[i]+=0.25;
+            mp[i*3]+=nx*pull+Math.cos(mozPhase[i])*0.2; mp[i*3+1]+=ny*pull+Math.sin(mozPhase[i])*0.2; mp[i*3+2]+=Math.sin(mozPhase[i]*0.6)*0.15;}
+        }
+        // Directional airflow for concepts
+        for(let i=0;i<AN;i++){let x=ap[i*3],y=ap[i*3+1],z=ap[i*3+2];const hr=Math.hypot(x,y)||1;
+          if(curHint==='updraft'){
+            ap[i*3]-=x/hr*0.2; ap[i*3+1]-=y/hr*0.2; ap[i*3+2]+=1.4; if(z>MDL.height*0.9||hr<0.5)aspawn(i);
+          } else if(curHint==='in-top'){
+            ap[i*3]-=x/hr*0.5; ap[i*3+1]-=y/hr*0.5; ap[i*3+2]-=0.9; if(z<MDL.height*0.3||hr<1)aspawn(i);
+          } else if(curHint==='vortex'){
+            const tx=-y/hr,ty=x/hr; ap[i*3]+=tx*0.6-x/hr*0.7; ap[i*3+1]+=ty*0.6-y/hr*0.7; ap[i*3+2]-=0.2; if(hr<1.2)aspawn(i);
+          } else {
+            ap[i*3]-=x/hr*0.8; ap[i*3+1]-=y/hr*0.8; ap[i*3+2]-=0.8; if(z<3||hr<2)aspawn(i);
+          }}
+        aGeo.attributes.position.needsUpdate=true;
+      }
+    }
     mGeo.attributes.position.needsUpdate=true;
-    // airflow: spiral down toward tube
-    for(let i=0;i<AN;i++){let x=ap[i*3],y=ap[i*3+1],z=ap[i*3+2];const hr=Math.hypot(x,y)||1;
-      ap[i*3]-=x/hr*0.8; ap[i*3+1]-=y/hr*0.8; ap[i*3+2]-=1.2; if(z<4||hr<2)aspawn(i);}
-    aGeo.attributes.position.needsUpdate=true;
+    if(animMode==='monolith'){void 0;}  // monolith airflow not shown
+    else if(animMode!=='proc'){  // proc handles its own airflow above
+      void 0; // already handled per-hint above
+    }
   }
   renderer.render(scene,camera);
 }
@@ -215,7 +604,11 @@ function act(id,on){const e=document.getElementById(id);if(e)e.classList.toggle(
 document.getElementById('bFront').onclick=function(){view('front');act('bFront',true);act('b3Q',false);};
 document.getElementById('b3Q').onclick=function(){view('3q');act('b3Q',true);act('bFront',false);};
 document.getElementById('bDoor').onclick=function(){doorOpen=!doorOpen;this.classList.toggle('on',doorOpen);};
-document.getElementById('shell-toggle').onclick=function(){shellMode=(shellMode+1)%4;this.textContent='Shell: '+SHELL_MODES[shellMode];applyVis();};
+document.getElementById('bXray').onclick=function(){
+  shellMode=1; document.getElementById('shell-toggle').textContent='Shell: '+SHELL_MODES[shellMode];
+  animOn=true; act('bAnimate',true); applyVis(); this.classList.add('on');};
+document.getElementById('shell-toggle').onclick=function(){shellMode=(shellMode+1)%4;this.textContent='Shell: '+SHELL_MODES[shellMode];
+  document.getElementById('bXray').classList.remove('on'); applyVis();};
 document.getElementById('color-pick').oninput=function(){matShell.color.set(this.value);};
 document.getElementById('bPlateaus').onclick=function(){plateausOn=!plateausOn;this.classList.toggle('on',plateausOn);applyVis();};
 document.getElementById('bCO2').onclick=function(){co2On=!co2On;this.classList.toggle('on',co2On);applyVis();};
