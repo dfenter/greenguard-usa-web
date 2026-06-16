@@ -4,7 +4,7 @@ import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import TankCalendar from '../../components/TankCalendar'
 import CustomerMap from '../../components/CustomerMap'
-import CustomerPanel from '../../components/CustomerPanel'
+import { StopRow } from '../../components/StopCard'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
 import { findContactsByEmails, getAllContacts, tanksForCustomer, getContactNotes } from '../../lib/hubspot'
@@ -75,6 +75,7 @@ export async function getServerSideProps({ req, res }) {
       phone: c.properties?.phone || '',
       address: c.properties?.address || '',
       tanks: tanksForCustomer(c.properties) || null,
+      firstAppointment: c.properties?.first_appointment === 'true',
       _contactId: c.id,
     }
   }
@@ -94,16 +95,20 @@ export async function getServerSideProps({ req, res }) {
 
   function serializeStop(s) {
     const info = contactMap[s.email?.toLowerCase()] || {}
+    // Cal.com events carry the customer's phone on the GCal event even when the
+    // HubSpot contact has none — fall back to it so the Text button matches the
+    // tech view exactly (HubSpot phone first, then the booking's phone).
     return {
       id: s.id || null,
-      title: info.name || s.name || '',
+      title: info.name || s.customerName || s.name || '',
       serviceType: s.title || '',
       startTime: s.startTime || null,
       endTime: s.endTime || null,
       address: s.address || info.address || '',
       email: s.email || '',
-      phone: info.phone || '',
+      phone: info.phone || s.phone || '',
       tanks: info.tanks || null,
+      firstAppointment: info.firstAppointment || false,
       appointmentNotes: s.appointmentNotes || null,
       clientNotes: info.clientNotes || [],
     }
@@ -162,7 +167,7 @@ function fmt$(n) {
 
 function KPI({ label, value, sub, warn }) {
   return (
-    <div style={{ flex: '1 1 130px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${warn ? 'rgba(255,160,80,0.25)' : 'rgba(122,171,130,0.15)'}`, borderRadius: 10, padding: '14px 16px' }}>
+    <div style={{ flex: '1 1 130px', background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: `1px solid ${warn ? 'rgba(255,160,80,0.25)' : 'rgba(122,171,130,0.15)'}`, borderRadius: 10, padding: '14px 16px' }}>
       <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: warn ? '#ffb060' : 'rgba(212,230,202,0.35)', marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: '1.45rem', fontWeight: 900, lineHeight: 1, color: warn ? '#ffb060' : '#d4e6ca' }}>{value}</div>
       {sub && <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 4 }}>{sub}</div>}
@@ -171,77 +176,7 @@ function KPI({ label, value, sub, warn }) {
 }
 
 
-function StopCard({ stop, dateStr, distance }) {
-  const [showPanel, setShowPanel] = useState(false)
-  const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email)}`
-  const mapsUrl = stop.address ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}` : null
-  const btn = { display: 'inline-flex', alignItems: 'center', padding: '8px 14px', borderRadius: 6, fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none', minHeight: 36 }
-
-  return (
-    <>
-      {showPanel && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 199 }} onClick={() => setShowPanel(false)} />
-          <CustomerPanel customer={{ email: stop.email, name: stop.title, phone: stop.phone }} onClose={() => setShowPanel(false)} />
-        </>
-      )}
-      <div
-        style={{ background: 'rgba(26,46,31,0.6)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: '16px 18px', marginBottom: 10 }}
-      >
-        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-          {/* Time column */}
-          <div style={{ minWidth: 52, textAlign: 'center', paddingTop: 2 }}>
-            {stop.startTime && (
-              <>
-                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#c9a84c', lineHeight: 1 }}>{fmtTime(stop.startTime).split(' ')[0]}</div>
-                <div style={{ fontSize: '0.62rem', color: 'rgba(212,230,202,0.4)', marginTop: 1 }}>{fmtTime(stop.startTime).split(' ')[1]}</div>
-              </>
-            )}
-          </div>
-
-          {/* Main content */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <button
-              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', background: 'none', border: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', padding: 0, cursor: stop.email ? 'pointer' : 'default', fontFamily: 'inherit', display: 'inline-block', marginBottom: 2 }}
-              onClick={() => { if (stop.email) setShowPanel(true) }}
-            >{stop.title || 'Service Visit'}</button>
-            {stop.serviceType && (
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c9a84c', marginBottom: 4 }}>{stop.serviceType}</div>
-            )}
-            {stop.address && (
-              <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.5)', marginBottom: 4, lineHeight: 1.4 }}>📍 {stop.address}</div>
-            )}
-            {stop.tanks > 0 && (
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 4 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required</div>
-            )}
-            {distance && (
-              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: parseFloat(distance.miles) <= 5 ? '#7dffaa' : parseFloat(distance.miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.45)', marginBottom: 4 }}>
-                {distance.miles} mi · {distance.duration}
-              </div>
-            )}
-            {(stop.clientNotes || []).map((note, i) => (
-              <div key={i} style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5, marginBottom: 2 }}>{note}</div>
-            ))}
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 8 }} onClick={e => e.stopPropagation()}>
-              {stop.email && (
-                <Link href={roundsUrl} style={{ ...btn, background: '#c9a84c', color: '#0d1a10' }}>Rounds</Link>
-              )}
-              {mapsUrl && (
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn, background: 'rgba(125,255,170,0.1)', border: '1px solid rgba(125,255,170,0.2)', color: '#7dffaa' }}>Navigate</a>
-              )}
-              {stop.phone && (
-                <a href={`sms:${stop.phone.replace(/[^\d+]/g, '')}`} style={{ ...btn, background: 'rgba(91,196,255,0.08)', border: '1px solid rgba(91,196,255,0.18)', color: '#5bc4ff' }}>💬 Text</a>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
-
+// Disabled-action style — keeps the button in the row but visibly inert.
 function VisitsDuePanel() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -260,7 +195,7 @@ function VisitsDuePanel() {
     <section style={{ marginBottom: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
         <h2 style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', margin: 0 }}>Customers Due for Service</h2>
-        <button onClick={load} disabled={loading} style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.25)', background: 'transparent', color: '#7dffaa', cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+        <button onClick={load} disabled={loading} style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.25)', background: 'transparent', color: '#7dffaa', cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>
           {loading ? 'Loading…' : opened ? '↻ Refresh' : 'Show'}
         </button>
       </div>
@@ -283,7 +218,7 @@ function VisitsDuePanel() {
                   <span style={{ fontSize: '0.78rem', fontWeight: 800, color: c.overdue ? '#ff8080' : c.daysUntilDue <= 2 ? '#c9a84c' : '#7dffaa' }}>
                     {c.overdue ? `${Math.abs(c.daysUntilDue)}d overdue` : `due in ${c.daysUntilDue}d`}
                   </span>
-                  <Link href={`/admin/booking?email=${encodeURIComponent(c.email)}&name=${encodeURIComponent(c.name)}`} style={{ padding: '5px 12px', borderRadius: 5, background: '#c9a84c', color: '#0d1a10', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', fontFamily: 'Nunito Sans, sans-serif' }}>
+                  <Link href={`/admin/booking?email=${encodeURIComponent(c.email)}&name=${encodeURIComponent(c.name)}`} style={{ padding: '5px 12px', borderRadius: 5, background: '#c9a84c', color: '#0d1a10', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>
                     Book →
                   </Link>
                 </div>
@@ -298,10 +233,12 @@ function VisitsDuePanel() {
 
 export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, activeCount, openInvoiceCount, openInvoiceTotal, openInvoiceList, balanceAvailable, tankData, fullTanksOnHand, tanksNeededThisWeek, expectedDeliveryThisWeek, customerMapData = [], mapsKey = '' }) {
   const [distances, setDistances] = useState({})
+  const [distLoading, setDistLoading] = useState(false)
 
-  useEffect(() => {
+  function refreshDistances() {
     const addressable = todayStops.filter((s) => s.address)
     if (!addressable.length || !navigator.geolocation) return
+    setDistLoading(true)
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const origin = `${pos.coords.latitude},${pos.coords.longitude}`
       try {
@@ -311,8 +248,11 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
         })
         setDistances(await res.json())
       } catch {}
-    }, () => {})
-  }, [todayStops])
+      setDistLoading(false)
+    }, () => setDistLoading(false))
+  }
+
+  useEffect(() => { refreshDistances() }, [todayStops]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
@@ -416,11 +356,18 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
 
         {/* Today's stops */}
         <section style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7dffaa' }}>
               Today — {todayStops.length} {todayStops.length === 1 ? 'stop' : 'stops'}
             </div>
-            <Link href="/admin/rounds" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>All Rounds →</Link>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button onClick={refreshDistances} disabled={distLoading}
+                title="Recalculate driving distance from your current location to each stop"
+                style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.35)', background: 'rgba(91,196,255,0.08)', color: '#5bc4ff', fontSize: '0.9rem', fontWeight: 800, fontFamily: 'Inter, sans-serif', cursor: distLoading ? 'wait' : 'pointer', opacity: distLoading ? 0.6 : 1 }}>
+                {distLoading ? 'Locating…' : 'My Distance'}
+              </button>
+              <Link href="/admin/rounds" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>All Rounds →</Link>
+            </div>
           </div>
 
           {todayStops.length === 0 ? (
@@ -428,7 +375,7 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
               No stops scheduled for today.
             </div>
           ) : (
-            todayStops.map((stop, i) => <StopCard key={stop.id || i} stop={stop} dateStr={todayStr} distance={distances[stop.email || stop.title]} />)
+            todayStops.map((stop, i) => <StopRow key={stop.id || i} stop={stop} index={i} dateStr={todayStr} distance={distances[stop.email || stop.title]} />)
           )}
         </section>
 
@@ -472,6 +419,8 @@ export default function AdminHome({ todayStr, tomorrowStr, todayStops, tomorrowS
           <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', marginBottom: 12 }}>Quick Access</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
+              { label: 'Tech View', href: '/admin/tech', desc: "Today's route & navigation" },
+              { label: 'My Account', href: '/dashboard?preview=1', desc: 'Preview the customer portal' },
               { label: 'All Invoices', href: '/admin/invoices', desc: 'Browse + filter history' },
               { label: 'Invoice Editor', href: '/admin/invoice', desc: 'Create or edit per customer' },
               { label: 'PDF Invoice', href: '/admin/invoice-pdf', desc: 'One-off / manual, print or save PDF' },

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
+import AdminChat from './AdminChat'
 
 const NAV_LINKS = [
   { href: '/dashboard',          label: 'My Account' },
@@ -8,19 +9,19 @@ const NAV_LINKS = [
   { href: '/dashboard/settings', label: 'Settings' },
 ]
 
+// Tech View + My Account intentionally moved OFF the top bar — they
+// live on the admin Home page now (keeps the bar clean & focused).
 const ADMIN_NAV_LINKS = [
-  { href: '/admin/home',         label: '🏠 Home' },
+  { href: '/admin/home',         label: 'Home' },
   { href: '/admin/calendar',     label: 'Calendar' },
   { href: '/admin/clients',      label: 'Clients' },
-  { href: '/admin/rounds',       label: 'Customer Rounds' },
+  { href: '/admin/rounds',       label: 'Rounds' },
   { href: '/admin/inventory',    label: 'Inventory' },
   { href: '/admin/quote',        label: 'Quote' },
   { href: '/admin/invoice',      label: 'Invoice' },
-  { href: '/admin/tech',         label: 'Tech View' },
-  { href: '/dashboard?preview=1', label: 'My Account ↗', customer: true },
 ]
 
-export default function PortalLayout({ children, title, isAdmin = false, topPadding }) {
+export default function PortalLayout({ children, title, isAdmin = false, topPadding, logoHref }) {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -31,22 +32,28 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
       {/* Nav */}
       <nav style={{
         position: 'sticky', top: 0, zIndex: 100,
-        background: 'var(--bg-deep)', backdropFilter: 'blur(10px)',
+        background: 'linear-gradient(180deg, rgba(var(--green-rgb),0.06), rgba(13,26,16,0.88))',
+        backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
         borderBottom: '1px solid var(--border)',
-        padding: '0 24px',
+        boxShadow: '0 1px 0 rgba(var(--gold-rgb),0.06), var(--shadow-sm)',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingLeft: 'max(20px, env(safe-area-inset-left))',
+        paddingRight: 'max(20px, env(safe-area-inset-right))',
       }}>
         <div style={{
           maxWidth: 1100, margin: '0 auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          height: 72, position: 'relative',
+          height: 76, position: 'relative',
         }}>
-          <Link href={isAdmin ? '/admin/home' : '/dashboard'} style={{ textDecoration: 'none', lineHeight: 1.1, flexShrink: 0 }}>
-            <div style={{ fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
-              {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}
-            </div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-              {process.env.NEXT_PUBLIC_BIZ_TAGLINE || 'Smart · Safe · Effective'}
-            </div>
+          <Link href={logoHref || (isAdmin ? '/admin/home' : '/dashboard')} style={{ textDecoration: 'none', lineHeight: 1.15, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span>
+              <span style={{ display: 'block', fontWeight: 900, fontSize: '1.32rem', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+                {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}
+              </span>
+              <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                {process.env.NEXT_PUBLIC_BIZ_TAGLINE || 'Smart · Safe · Effective'}
+              </span>
+            </span>
           </Link>
 
           <button
@@ -57,28 +64,35 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
             <span /><span /><span />
           </button>
 
-          <div className={'nav-links' + (menuOpen ? ' open' : '')} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div className={'nav-links' + (menuOpen ? ' open' : '')} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', gap: 6, minWidth: 0 }}>
             {/* Customer links — hidden when admin */}
-            {!isAdmin && NAV_LINKS.map(({ href, label }) => (
-              <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: 700, padding: '8px 16px', borderRadius: 4, whiteSpace: 'nowrap', color: router.pathname === href ? 'var(--green)' : 'var(--text)', background: router.pathname === href ? 'rgba(var(--green-rgb),0.08)' : 'transparent' }}>
-                {label}
-              </Link>
-            ))}
+            {!isAdmin && NAV_LINKS.map(({ href, label }) => {
+              const active = router.pathname === href
+              return (
+                <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: active ? 800 : 700, padding: '9px 16px', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.15s var(--ease), color 0.15s var(--ease)', color: active ? 'var(--green)' : 'var(--text)', background: active ? 'rgba(var(--green-rgb),0.12)' : 'transparent', boxShadow: active ? 'inset 0 0 0 1px rgba(var(--green-rgb),0.28)' : 'none' }}>
+                  {label}
+                </Link>
+              )
+            })}
 
             {/* Admin links — hidden when customer */}
-            {isAdmin && ADMIN_NAV_LINKS.map(({ href, label, customer }) => (
-              <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: 700, padding: '8px 12px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0, color: customer ? 'rgba(var(--green-rgb),0.6)' : router.pathname === href ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.8)', background: router.pathname === href ? 'rgba(var(--gold-rgb),0.08)' : 'transparent', borderLeft: customer ? '1px solid rgba(var(--green-rgb),0.15)' : 'none', marginLeft: customer ? 4 : 0 }}>
-                {label}
-              </Link>
-            ))}
+            {isAdmin && ADMIN_NAV_LINKS.map(({ href, label }) => {
+              const active = router.pathname === href
+              return (
+                <Link key={href} href={href} style={{ fontSize: '1.05rem', fontWeight: active ? 800 : 700, padding: '9px 14px', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.15s var(--ease), color 0.15s var(--ease)', color: active ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.82)', background: active ? 'rgba(var(--gold-rgb),0.13)' : 'transparent', boxShadow: active ? 'inset 0 0 0 1px rgba(var(--gold-rgb),0.30)' : 'none' }}>
+                  {label}
+                </Link>
+              )
+            })}
 
             <button
               type="button"
+              className="nav-signout"
               onClick={async () => {
                 try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }) } catch {}
                 window.location.href = '/login'
               }}
-              style={{ marginLeft: 8, fontSize: '1rem', fontWeight: 700, padding: '8px 14px', borderRadius: 4, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, background: 'transparent', border: 'none', cursor: 'pointer' }}
+              style={{ fontSize: '1.05rem', fontWeight: 700, padding: '9px 18px', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1.2, background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'inherit', transition: 'border-color 0.15s var(--ease), color 0.15s var(--ease)' }}
             >
               Sign out
             </button>
@@ -90,7 +104,9 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
           Dock is hidden on tablet/desktop so no extra bottom padding needed there. */}
       <main className={isAdmin ? 'admin-main' : ''} style={{
         flex: 1, maxWidth: 1100, margin: '0 auto', width: '100%',
-        padding: `${topPadding ?? '40px'} 24px`,
+        paddingTop: topPadding ?? '40px', paddingBottom: topPadding ?? '40px',
+        paddingLeft: 'max(20px, env(safe-area-inset-left))',
+        paddingRight: 'max(20px, env(safe-area-inset-right))',
       }}>
         {title && (
           <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 32 }}>
@@ -110,6 +126,9 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
         © {new Date().getFullYear()} {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'} · {process.env.NEXT_PUBLIC_BIZ_CITY || 'Austin, TX'}
       </footer>
 
+      {/* Ops assistant — admin/tech only */}
+      {isAdmin && <AdminChat />}
+
       {/* Bottom-docked quick access for admin on mobile/tablet */}
       {isAdmin && <AdminBottomDock pathname={router.pathname} />}
     </div>
@@ -128,24 +147,27 @@ function AdminBottomDock({ pathname }) {
   return (
     <nav className="admin-dock" aria-label="Admin quick access" style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 90,
-      background: 'var(--bg-deep)', backdropFilter: 'blur(12px)',
-      borderTop: '1px solid rgba(var(--gold-rgb),0.25)',
+      background: 'linear-gradient(180deg, rgba(13,26,16,0.92), var(--bg-deep))',
+      backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+      borderTop: '1px solid rgba(var(--gold-rgb),0.28)',
       display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
-      padding: '6px 8px env(safe-area-inset-bottom, 6px)',
-      boxShadow: '0 -4px 12px rgba(0,0,0,0.25)',
+      padding: '8px 8px env(safe-area-inset-bottom, 8px)',
+      boxShadow: '0 -6px 20px rgba(0,0,0,0.30)',
     }}>
       {DOCK_ITEMS.map(({ href, label, icon }) => {
         const active = pathname === href
         return (
           <Link key={href} href={href} style={{
             flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: 2, padding: '8px 4px', borderRadius: 8, textDecoration: 'none', minWidth: 0,
-            color: active ? 'var(--gold)' : 'rgba(var(--text-rgb),0.55)',
-            background: active ? 'rgba(var(--gold-rgb),0.10)' : 'transparent',
-            fontWeight: active ? 800 : 600,
+            gap: 3, padding: '8px 4px', borderRadius: 'var(--radius-sm)', textDecoration: 'none', minWidth: 0,
+            color: active ? 'var(--gold)' : 'rgba(var(--text-rgb),0.62)',
+            background: active ? 'rgba(var(--gold-rgb),0.12)' : 'transparent',
+            boxShadow: active ? 'inset 0 0 0 1px rgba(var(--gold-rgb),0.30)' : 'none',
+            fontWeight: active ? 800 : 700,
+            transition: 'background 0.15s var(--ease), color 0.15s var(--ease)',
           }}>
-            <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>{icon}</span>
-            <span style={{ fontSize: '0.78rem', letterSpacing: '0.04em' }}>{label}</span>
+            <span style={{ fontSize: '1.45rem', lineHeight: 1 }}>{icon}</span>
+            <span style={{ fontSize: '0.85rem', letterSpacing: '0.03em' }}>{label}</span>
           </Link>
         )
       })}

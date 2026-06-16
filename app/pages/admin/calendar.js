@@ -263,6 +263,68 @@ export default function CalendarPage({ today, initialBookings }) {
 
   const positioned = useMemo(() => layoutEvents(bookings), [bookings])
 
+  // Chronologically ordered stops for the day — shared by the agenda render
+  // and the travel-time calculation so both use the same sequence.
+  const sortedBookings = useMemo(
+    () => [...bookings].sort((a, b) => new Date(a.startTime) - new Date(b.startTime)),
+    [bookings]
+  )
+
+  // Drive distance + time for each leg between consecutive addressed stops.
+  // Keyed by the destination booking id (the leg that arrives at that stop).
+  const [legs, setLegs] = useState({})
+  useEffect(() => {
+    if (viewMode !== 'agenda' && viewMode !== 'day') { setLegs({}); return }
+    const stops = sortedBookings.filter((b) => b.address)
+    if (stops.length < 2) { setLegs({}); return }
+    let cancelled = false
+    ;(async () => {
+      const entries = await Promise.all(
+        stops.slice(0, -1).map(async (s, i) => {
+          const next = stops[i + 1]
+          try {
+            const res = await fetch('/api/admin/distances', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ origin: s.address, addresses: [{ id: 'leg', address: next.address }] }),
+            })
+            const data = await res.json()
+            return [next.id, data.leg || null]
+          } catch { return [next.id, null] }
+        })
+      )
+      if (!cancelled) setLegs(Object.fromEntries(entries.filter(([, v]) => v)))
+    })()
+    return () => { cancelled = true }
+  }, [sortedBookings, viewMode])
+
+  const driveTotals = useMemo(() => {
+    const vals = Object.values(legs)
+    if (!vals.length) return null
+    const miles = vals.reduce((s, l) => s + (parseFloat(l.miles) || 0), 0)
+    return { miles: miles.toFixed(1) }
+  }, [legs])
+
+  // Driving distance from the tech's CURRENT location to each stop, refreshed
+  // on demand via the "My Distance" button. Keyed by booking id.
+  const [myDistances, setMyDistances] = useState({})
+  const [myDistLoading, setMyDistLoading] = useState(false)
+  function refreshMyDistance() {
+    const stops = sortedBookings.filter((b) => b.address)
+    if (!stops.length || !navigator.geolocation) return
+    setMyDistLoading(true)
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const origin = `${pos.coords.latitude},${pos.coords.longitude}`
+      try {
+        const res = await fetch('/api/admin/distances', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin, addresses: stops.map((s) => ({ id: s.id, address: s.address })) }),
+        })
+        setMyDistances(await res.json())
+      } catch {}
+      setMyDistLoading(false)
+    }, () => setMyDistLoading(false), { enableHighAccuracy: true, timeout: 10000 })
+  }
+
   const totalMin = (DAY_END_HOUR - DAY_START_HOUR) * 60
   const gridHeight = totalMin * PX_PER_MIN
   const hours = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => DAY_START_HOUR + i)
@@ -301,7 +363,7 @@ export default function CalendarPage({ today, initialBookings }) {
           .ctrl-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
           .ctrl-right { display:flex; gap:6px; align-items:center; }
           .view-seg { display:flex; border:1px solid rgba(122,171,130,0.25); border-radius:6; overflow:hidden; }
-          .view-btn { background:transparent; color:rgba(212,230,202,0.6); border:none; border-left:1px solid rgba(122,171,130,0.25); padding:6px 10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:Nunito Sans,sans-serif; text-transform:capitalize; }
+          .view-btn { background:transparent; color:rgba(212,230,202,0.6); border:none; border-left:1px solid rgba(122,171,130,0.25); padding:6px 10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:Inter,sans-serif; text-transform:capitalize; }
           .view-btn:first-child { border-left:none; }
           .view-btn.active { background:#7dffaa; color:#0d1a10; }
           @media (max-width:430px) {
@@ -337,6 +399,13 @@ export default function CalendarPage({ today, initialBookings }) {
               </button>
             ))}
           </div>
+          {(viewMode === 'agenda' || viewMode === 'day') && bookings.length > 0 && (
+            <button onClick={refreshMyDistance} disabled={myDistLoading}
+              title="Driving distance from your current location to each stop"
+              style={{ alignSelf:'flex-start', padding:'10px 16px', borderRadius:8, border:'1px solid rgba(91,196,255,0.35)', background:'rgba(91,196,255,0.08)', color:'#5bc4ff', fontSize:'0.9rem', fontWeight:800, fontFamily:'Inter,sans-serif', cursor: myDistLoading ? 'wait' : 'pointer', opacity: myDistLoading ? 0.6 : 1 }}>
+              {myDistLoading ? 'Locating…' : 'My Distance'}
+            </button>
+          )}
         </div>
 
         {picker && (
@@ -360,7 +429,11 @@ export default function CalendarPage({ today, initialBookings }) {
 
         <div className="day-title">
           <div className="day-title-name">{fmtDateLong(date)}</div>
-          <div className="day-title-sub">{loading ? 'Loading…' : `${bookings.length} appointment${bookings.length === 1 ? '' : 's'}`}</div>
+          <div className="day-title-sub">
+            {loading
+              ? 'Loading…'
+              : `${bookings.length} appointment${bookings.length === 1 ? '' : 's'}${driveTotals ? ` · ${driveTotals.miles} mi total drive` : ''}`}
+          </div>
         </div>
 
         {!loading && bookings.length === 0 && viewMode === 'agenda' && (
@@ -369,11 +442,19 @@ export default function CalendarPage({ today, initialBookings }) {
 
         {bookings.length > 0 && (viewMode === 'agenda') && (
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[...bookings].sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).map((ev) => {
+            {sortedBookings.map((ev) => {
               const isSelected = selectedEventId === ev.id
               const tanks = tanksFor(ev)
+              const leg = legs[ev.id]
               return (
-                <div key={ev.id} onClick={() => setSelectedEventId(ev.id)}
+                <div key={ev.id}>
+                {leg && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0 8px 8px', fontSize: '0.74rem', fontWeight: 700, color: 'rgba(212,230,202,0.45)' }}>
+                    <span style={{ borderLeft: '2px dotted rgba(125,255,170,0.35)', height: 14, marginLeft: 2 }} />
+                    {leg.duration} drive · {leg.text}
+                  </div>
+                )}
+                <div onClick={() => setSelectedEventId(ev.id)}
                   style={{
                     cursor: 'pointer',
                     padding: '14px 16px',
@@ -402,6 +483,12 @@ export default function CalendarPage({ today, initialBookings }) {
                       📍 {ev.address}
                     </div>
                   )}
+                  {myDistances[ev.id] && (
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5bc4ff', marginTop: 4 }}>
+                      {myDistances[ev.id].text} · {myDistances[ev.id].duration} from you
+                    </div>
+                  )}
+                </div>
                 </div>
               )
             })}

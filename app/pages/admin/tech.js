@@ -4,10 +4,10 @@ import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import CustomerMap from '../../components/CustomerMap'
 import TankCalendar from '../../components/TankCalendar'
-import CustomerPanel from '../../components/CustomerPanel'
+import { StopRow } from '../../components/StopCard'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
-import { findContactByEmail, getContactNotes } from '../../lib/hubspot'
+import { findContactsByEmails, getContactNotes, tanksForCustomer } from '../../lib/hubspot'
 import { buildTankCalendarData } from '../../lib/tank-data'
 
 export async function getServerSideProps({ req, res }) {
@@ -31,20 +31,24 @@ export async function getServerSideProps({ req, res }) {
     buildTankCalendarData(tz).catch(() => null),
   ])
 
-  // Look up name/phone/email/tanks from HubSpot — use GCal phone/name as primary for Cal.com events
+  // Resolve customer name/phone/tanks from HubSpot for all stops.
+  // Use the SAME batch fetch (findContactsByEmails) + tanksForCustomer that
+  // admin home uses, so tech's tank counts and KPIs are identical to admin.
+  // The old per-email findContactByEmail loop rate-limited under load and
+  // dropped some contacts, which undercounted the KPI totals.
   const allEmails = [...new Set([...todayStops, ...tomorrowStops].map(s => s.email).filter(Boolean))]
   const contactMap = {}
-  await Promise.all(allEmails.map(async (email) => {
-    try {
-      const c = await findContactByEmail(email)
-      if (c) contactMap[email.toLowerCase()] = {
-        name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
-        phone: c.properties?.phone || '',
-        tanks: parseInt(c.properties?.trap_count || c.properties?.tank_count || '0', 10) || null,
-        _contactId: c.id,
-      }
-    } catch {}
-  }))
+  const hsContacts = await findContactsByEmails(allEmails).catch(() => new Map())
+  for (const [email, c] of hsContacts.entries()) {
+    contactMap[email] = {
+      name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
+      phone: c.properties?.phone || '',
+      address: c.properties?.address || '',
+      tanks: tanksForCustomer(c.properties) || null,
+      firstAppointment: c.properties?.first_appointment === 'true',
+      _contactId: c.id,
+    }
+  }
   const ADMIN_NOTE_RE = /^\[ADMIN-NOTE[^\]]*\]\s*/
   await Promise.all(Object.entries(contactMap).map(async ([email, info]) => {
     if (!info._contactId) return
@@ -74,6 +78,7 @@ export async function getServerSideProps({ req, res }) {
       email: s.email || '',
       phone: resolvedPhone,
       tanks: info.tanks || null,
+      firstAppointment: info.firstAppointment || false,
       rescheduleUrl: s.rescheduleUrl || null,
       appointmentNotes: s.appointmentNotes || null,
       clientNotes: info.clientNotes || [],
@@ -88,6 +93,10 @@ export async function getServerSideProps({ req, res }) {
       todayStops: todayStops.map(serializeStop),
       tomorrowStops: tomorrowStops.map(serializeStop),
       mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+      // Same KPI source values admin home uses, so the cards match exactly.
+      fullTanksOnHand: tankData?.currentStock ?? null,
+      tanksNeededThisWeek: tankData?.weeklyTankTotal ?? null,
+      expectedDeliveryThisWeek: tankData?.expectedDelivery ?? null,
       tankData: tankData ? {
         tankCalendar: tankData.tankCalendar,
         scheduleByDate: tankData.scheduleByDate,
@@ -110,73 +119,18 @@ function fmtDayLabel(dateStr) {
 }
 
 
-function StopCard({ stop, index, dateStr, distance }) {
-  const [showPanel, setShowPanel] = useState(false)
-  const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email || '')}`
-  const mapsUrl = stop.address ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}` : null
-  const B = (bg, fg, border) => ({
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    width: 96, padding: '8px 0', borderRadius: 6, fontWeight: 800,
-    fontSize: '0.8rem', textDecoration: 'none', minHeight: 38,
-    background: bg, color: fg, border: border || 'none',
-  })
-
+// KPI card — identical to the admin home page KPI cards (same markup,
+// styling, and warn behavior) so the two dashboards stay consistent.
+function KPI({ label, value, sub, warn }) {
   return (
-    <>
-      {showPanel && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 199 }} onClick={() => setShowPanel(false)} />
-          <CustomerPanel customer={{ email: stop.email, name: stop.title, phone: stop.phone }} onClose={() => setShowPanel(false)} />
-        </>
-      )}
-      <div style={{ background: 'rgba(26,46,31,0.7)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 12, padding: '16px 18px', marginBottom: 12, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-        {/* Stop number */}
-        <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(201,168,76,0.18)', border: '2px solid rgba(201,168,76,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', color: '#c9a84c', flexShrink: 0, marginTop: 2 }}>
-          {index + 1}
-        </div>
-
-        {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Name + tanks + address */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
-            <button
-              style={{ fontWeight: 900, fontSize: '1rem', color: '#d4e6ca', background: 'none', border: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', padding: 0, cursor: stop.email ? 'pointer' : 'default', fontFamily: 'inherit' }}
-              onClick={() => { if (stop.email) setShowPanel(true) }}
-            >{stop.title || 'Service Visit'}</button>
-            {stop.tanks > 0 && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.85rem', fontWeight: 800, color: '#7dffaa' }}>
-                🫙 {stop.tanks}
-              </span>
-            )}
-            {stop.address && <span style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.5)' }}>📍 {stop.address}</span>}
-          </div>
-          {/* Client notes */}
-          {(stop.clientNotes || []).map((note, i) => (
-            <div key={i} style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5 }}>{note}</div>
-          ))}
-          {/* Service info + distance */}
-          <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: '2px 10px' }}>
-            {stop.startTime && <span style={{ color: '#c9a84c', fontWeight: 700 }}>{fmtTime(stop.startTime)}{stop.endTime ? ` – ${fmtTime(stop.endTime)}` : ''}</span>}
-            {stop.serviceType && <span>{stop.serviceType}</span>}
-            {distance && (
-              <span style={{ fontWeight: 800, color: parseFloat(distance.miles) <= 5 ? '#7dffaa' : parseFloat(distance.miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.45)', whiteSpace: 'nowrap' }}>
-                {distance.miles} mi · {distance.duration}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Buttons — docked right, uniform width */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
-          {stop.email && <Link href={roundsUrl} style={B('#c9a84c', '#0d1a10')}>Rounds</Link>}
-          {mapsUrl && <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={B('rgba(125,255,170,0.12)', '#7dffaa', '1px solid rgba(125,255,170,0.25)')}>Navigate</a>}
-          {stop.phone && <a href={`sms:${stop.phone.replace(/[^\d+]/g, '')}`} style={B('rgba(91,196,255,0.1)', '#5bc4ff', '1px solid rgba(91,196,255,0.2)')}>💬 Text</a>}
-          {stop.rescheduleUrl && <a href={stop.rescheduleUrl} target="_blank" rel="noopener noreferrer" style={B('rgba(125,170,255,0.1)', '#7aabff', '1px solid rgba(125,170,255,0.2)')}>Reschedule</a>}
-        </div>
-      </div>
-    </>
+    <div style={{ flex: '1 1 130px', background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: `1px solid ${warn ? 'rgba(255,160,80,0.25)' : 'rgba(122,171,130,0.15)'}`, borderRadius: 10, padding: '14px 16px' }}>
+      <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: warn ? '#ffb060' : 'rgba(212,230,202,0.35)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: '1.45rem', fontWeight: 900, lineHeight: 1, color: warn ? '#ffb060' : '#d4e6ca' }}>{value}</div>
+      {sub && <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 4 }}>{sub}</div>}
+    </div>
   )
 }
+
 
 function TechNotes() {
   const [notes, setNotes] = useState([])
@@ -241,7 +195,7 @@ function TechNotes() {
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save() }}
           placeholder="Quick note for the day…"
-          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1rem', fontFamily: 'Nunito Sans, sans-serif', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.5 }}
+          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1rem', fontFamily: 'Inter, sans-serif', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.5 }}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
           <span style={{ fontSize: '0.72rem', color: msg ? (msg === 'Saved.' ? '#7dffaa' : '#ff8080') : 'rgba(212,230,202,0.3)' }}>
@@ -250,7 +204,7 @@ function TechNotes() {
           <button
             onClick={save}
             disabled={saving || !body.trim()}
-            style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: saving || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Nunito Sans, sans-serif', cursor: saving || !body.trim() ? 'not-allowed' : 'pointer' }}
+            style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: saving || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', cursor: saving || !body.trim() ? 'not-allowed' : 'pointer' }}
           >
             {saving ? 'Saving…' : 'Save Note'}
           </button>
@@ -274,12 +228,14 @@ function TechNotes() {
   )
 }
 
-export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops, mapsKey = '', tankData = null }) {
+export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops, mapsKey = '', tankData = null, fullTanksOnHand = null, tanksNeededThisWeek = null, expectedDeliveryThisWeek = null }) {
   const [distances, setDistances] = useState({})
+  const [distLoading, setDistLoading] = useState(false)
 
-  useEffect(() => {
+  function refreshDistances() {
     const addressable = todayStops.filter((s) => s.address)
     if (!addressable.length || !navigator.geolocation) return
+    setDistLoading(true)
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const origin = `${pos.coords.latitude},${pos.coords.longitude}`
       try {
@@ -289,8 +245,11 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
         })
         setDistances(await res.json())
       } catch {}
-    }, () => {})
-  }, [todayStops])
+      setDistLoading(false)
+    }, () => setDistLoading(false))
+  }
+
+  useEffect(() => { refreshDistances() }, [todayStops]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const routeMapData = todayStops
     .filter(s => s.address)
@@ -319,26 +278,47 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
           <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)' }}>{fmtDayLabel(todayStr)}</div>
         </div>
 
-        {/* KPI strip — what Bruce needs at a glance */}
-        {(() => {
-          const tanksToday = todayStops.reduce((s, st) => s + (st.tanks || 0), 0)
-          const tanksTomorrow = tomorrowStops.reduce((s, st) => s + (st.tanks || 0), 0)
-          const stopsToday = todayStops.length
-          const KPI = ({ label, value, sub, color = '#7dffaa' }) => (
-            <div style={{ flex: '1 1 130px', minWidth: 130, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 10, padding: '14px 16px' }}>
-              <div style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>{label}</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, lineHeight: 1, color }}>{value}</div>
-              {sub && <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', marginTop: 4 }}>{sub}</div>}
-            </div>
-          )
-          return (
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
-              <KPI label="Tanks needed today" value={tanksToday} sub={`${stopsToday} stop${stopsToday === 1 ? '' : 's'}`} color="#7dffaa" />
-              <KPI label="Tanks needed tomorrow" value={tanksTomorrow} sub={`${tomorrowStops.length} stop${tomorrowStops.length === 1 ? '' : 's'}`} color="#c9a84c" />
-              <KPI label="Stops complete" value={`0 / ${stopsToday}`} sub="tap a stop to begin" color="rgba(212,230,202,0.6)" />
-            </div>
-          )
-        })()}
+        {/* KPI strip — same four cards as admin home, same data + styling */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
+          {(() => {
+            const tanksToday = todayStops.reduce((s, st) => s + (st.tanks || 0), 0)
+            const tanksTomorrow = tomorrowStops.reduce((s, st) => s + (st.tanks || 0), 0)
+            const onHand = fullTanksOnHand
+            const incoming = expectedDeliveryThisWeek || 0
+            const projectedTotal = (onHand ?? 0) + incoming
+            const weekNeed = tanksNeededThisWeek
+            const depotShort = onHand != null && weekNeed != null && projectedTotal < weekNeed
+            return (
+              <>
+                <KPI
+                  label="Tanks Needed Today"
+                  value={tanksToday}
+                  sub={todayStops.length === 0 ? 'no stops' : `across ${todayStops.length} stop${todayStops.length === 1 ? '' : 's'}`}
+                  warn={onHand != null && tanksToday > onHand}
+                />
+                <KPI
+                  label="Tanks Needed Tomorrow"
+                  value={tanksTomorrow}
+                  sub={tomorrowStops.length === 0 ? 'no stops' : `across ${tomorrowStops.length} stop${tomorrowStops.length === 1 ? '' : 's'}`}
+                />
+                <KPI
+                  label="Tanks at Depot"
+                  value={onHand != null ? onHand : '—'}
+                  sub={onHand == null ? 'no log yet' : incoming > 0 ? `+${incoming} Wed delivery → ${projectedTotal} projected` : 'on hand'}
+                  warn={depotShort}
+                />
+                <KPI
+                  label="Tanks Needed This Week"
+                  value={weekNeed != null ? weekNeed : '—'}
+                  sub="rolling next 7 days"
+                />
+              </>
+            )
+          })()}
+        </div>
+
+        {/* Tech Notes — moved directly below the KPI cards */}
+        <TechNotes />
 
         {/* Tank Calendar — above the route map per Bruce's prep flow */}
         {tankData && (
@@ -371,13 +351,20 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
 
         {/* Today's stops */}
         <section style={{ marginBottom: 36 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7dffaa' }}>
               Today — {todayStops.length} {todayStops.length === 1 ? 'stop' : 'stops'}
             </div>
-            <Link href="/admin/rounds" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>
-              All Rounds →
-            </Link>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button onClick={refreshDistances} disabled={distLoading}
+                title="Recalculate driving distance from your current location to each stop"
+                style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.35)', background: 'rgba(91,196,255,0.08)', color: '#5bc4ff', fontSize: '0.9rem', fontWeight: 800, fontFamily: 'Inter, sans-serif', cursor: distLoading ? 'wait' : 'pointer', opacity: distLoading ? 0.6 : 1 }}>
+                {distLoading ? 'Locating…' : 'My Distance'}
+              </button>
+              <Link href="/admin/rounds" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>
+                All Rounds →
+              </Link>
+            </div>
           </div>
 
           {todayStops.length === 0 ? (
@@ -390,7 +377,7 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
             </div>
           ) : (
             todayStops.map((stop, i) => (
-              <StopCard key={stop.id || i} stop={stop} index={i} dateStr={todayStr} distance={distances[stop.email || stop.title]} />
+              <StopRow key={stop.id || i} stop={stop} index={i} dateStr={todayStr} distance={distances[stop.email || stop.title]} />
             ))
           )}
         </section>
@@ -413,9 +400,6 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, today
             ))}
           </section>
         )}
-
-        {/* Tech Notes */}
-        <TechNotes />
 
         {/* Quick links */}
         <section>
