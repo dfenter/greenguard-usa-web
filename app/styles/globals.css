@@ -1,7 +1,35 @@
 *, *::before, *::after { box-sizing: border-box; }
 
+/* ── v2 design tokens — sleek, modern, brand-consistent ──────────
+   Depth/shape/elevation layered on top of the brand palette injected
+   in _document.js. Colors stay strictly on-brand (green + gold on
+   deep green); these tokens add the polish that reads "professional"
+   instead of "amateur": consistent radii, soft elevation, gradients,
+   and visible focus rings. */
+:root {
+  --radius-sm: 10px;
+  --radius:    14px;
+  --radius-lg: 20px;
+  --radius-pill: 100px;
+
+  /* Soft elevation tuned for a dark UI — depth without harshness */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.25);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.32);
+  --shadow-lg: 0 20px 52px rgba(0,0,0,0.45);
+
+  /* Brand gradients for premium surfaces & accents */
+  --surface-grad: linear-gradient(162deg, rgba(var(--green-rgb),0.06), rgba(var(--green-rgb),0.015) 60%, rgba(var(--gold-rgb),0.015));
+  --gold-grad:   linear-gradient(135deg, var(--gold), #e3c878);
+  --green-grad:  linear-gradient(135deg, var(--green), #57e08c);
+
+  --ring: 0 0 0 3px rgba(var(--gold-rgb),0.40);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 html {
   font-size: 19px; /* Base bump — all rem values scale up. Default is 16px. */
+  -webkit-text-size-adjust: 100%; /* iOS: never auto-resize text on rotate */
+  text-size-adjust: 100%;
 }
 
 body {
@@ -9,48 +37,93 @@ body {
   padding: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Nunito Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent; /* no grey flash on tap (iOS) */
+  overscroll-behavior-y: none; /* avoid rubber-band revealing blank bg */
+}
+
+/* Brand gradient sits on a fixed full-viewport layer instead of
+   background-attachment:fixed (which is broken/janky on iOS Safari). */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(var(--gold-rgb),0.05), transparent 60%),
+    radial-gradient(1000px 700px at -10% 110%, rgba(var(--green-rgb),0.06), transparent 55%);
 }
 
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
 
+/* Consistent, visible keyboard focus across the app */
+a:focus-visible, button:focus-visible, select:focus-visible,
+input:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-sm);
+}
+
 .btn-gold {
-  background: var(--gold);
+  background: var(--gold-grad);
   color: var(--bg-deep);
   font-weight: 800;
-  font-size: 0.9rem;
-  padding: 12px 24px;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  padding: 13px 26px;
   border: none;
-  border-radius: 4px;
-  transition: background 0.2s;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), filter 0.18s var(--ease);
   display: inline-block;
 }
-.btn-gold:hover { filter: brightness(1.15); }
+.btn-gold:hover { filter: brightness(1.06); transform: translateY(-1px); box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.25); }
+.btn-gold:active { transform: translateY(0); }
 
 .btn-outline {
-  background: transparent;
+  background: rgba(var(--text-rgb),0.015);
   color: var(--text);
   font-weight: 700;
-  font-size: 0.9rem;
-  padding: 12px 24px;
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  transition: border-color 0.2s;
+  font-size: 0.95rem;
+  padding: 12px 26px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.18s var(--ease), background 0.18s var(--ease), transform 0.18s var(--ease);
   display: inline-block;
 }
-.btn-outline:hover { border-color: var(--text-muted); }
+.btn-outline:hover { border-color: rgba(var(--gold-rgb),0.55); background: rgba(var(--gold-rgb),0.06); transform: translateY(-1px); }
+
+/* Green action button — for positive/primary field actions */
+.btn-green {
+  background: var(--green-grad);
+  color: var(--bg-deep);
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 13px 26px;
+  border: none;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.25);
+  transition: transform 0.18s var(--ease), filter 0.18s var(--ease);
+  display: inline-block;
+}
+.btn-green:hover { filter: brightness(1.05); transform: translateY(-1px); }
 
 .card {
   background: var(--bg-card);
+  background-image: var(--surface-grad);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 24px;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(6px);
 }
 
 .tag {
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -61,11 +134,11 @@ button { font-family: inherit; cursor: pointer; }
 
 .badge {
   display: inline-block;
-  background: rgba(var(--gold-rgb), 0.15);
-  border: 1px solid rgba(var(--gold-rgb), 0.3);
-  border-radius: 100px;
-  padding: 3px 10px;
-  font-size: 0.72rem;
+  background: rgba(var(--gold-rgb), 0.14);
+  border: 1px solid rgba(var(--gold-rgb), 0.35);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+  font-size: 0.8rem;
   font-weight: 800;
   color: var(--gold);
 }
@@ -75,6 +148,32 @@ button { font-family: inherit; cursor: pointer; }
   border-color: rgba(var(--green-rgb), 0.25);
   color: var(--green);
 }
+
+/* ── Form controls — legible by default ─────────────────────────
+   The technician has poor eyesight, so native selects/inputs are
+   sized up and given clear borders + a brand focus ring. Page-level
+   inline styles still win where set, but every unstyled control gets
+   this comfortable baseline. */
+select, input, textarea {
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  background: rgba(var(--text-rgb), 0.03);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+select { cursor: pointer; min-height: 48px; }
+select:hover, input:hover, textarea:hover { border-color: rgba(var(--gold-rgb), 0.4); }
+input::placeholder, textarea::placeholder { color: var(--text-dim); }
+option { background: var(--bg-deep); color: var(--text); }
+
+/* ── Native scrollbars — slim & on-brand ───────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: rgba(var(--gold-rgb),0.35) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: rgba(var(--gold-rgb),0.30); border-radius: 100px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(var(--gold-rgb),0.50); }
 
 /* ── Mobile hamburger ──────────────────────────────────────────── */
 .hamburger {
@@ -99,7 +198,7 @@ button { font-family: inherit; cursor: pointer; }
   display: flex;
   gap: 4px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 /* ── Responsive ────────────────────────────────────────────────── */
@@ -194,3 +293,35 @@ button { font-family: inherit; cursor: pointer; }
 
 /* Prevent text selection on interactive elements (annoying on touch) */
 button, select, [role="button"] { -webkit-user-select: none; user-select: none; }
+
+/* ── iPhone / touch field optimizations ────────────────────────────
+   The tech works almost entirely on an iPhone in the field, so make
+   the whole thing feel like a native app and stay readable one-handed. */
+
+/* Never let media or the sticky nav cause sideways scroll */
+img, video, canvas, svg, iframe { max-width: 100%; }
+
+/* Anchor jumps clear the sticky header */
+html { scroll-padding-top: 96px; }
+
+@media (max-width: 768px) {
+  /* App-like tap feedback + comfortable touch targets everywhere */
+  a, button, [role="button"], .nav-links a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  /* Bigger primary action buttons for thumbs */
+  .btn-gold, .btn-outline, .btn-green { min-height: 48px; font-size: 1rem; }
+
+  /* Selects/inputs comfortable + >=16px so iOS never zoom-jumps on focus */
+  select, input, textarea { min-height: 48px; font-size: 1rem; }
+
+  /* Smooth momentum scrolling for any horizontal scrollers */
+  .nav-links, table, .scroll-x { -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 480px) {
+  /* Keep tables legible for poor eyesight (override the 0.75rem above) */
+  table { font-size: 0.85rem; }
+
+  /* Headings stay bold but fit narrow screens */
+  h1 { letter-spacing: -0.01em; }
+}

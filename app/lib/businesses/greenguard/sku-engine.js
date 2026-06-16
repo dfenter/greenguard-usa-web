@@ -342,6 +342,13 @@ function prefillFromBooking(booking, contact) {
   const recurringAddons = String(props.recurring_addons || '')
     .split(',').map((s) => s.trim()).filter(Boolean)
 
+  // Per-customer opt-out: comma-separated SKUs to suppress from this
+  // customer's defaults (e.g. the Biogents-owner hookup/bait auto-defaults
+  // below). Lets a specific customer drop a hardcoded default without
+  // changing the business-wide rule.
+  const addonsOptOut = new Set(String(props.addons_optout || '')
+    .split(',').map((s) => s.trim()).filter(Boolean))
+
   // Compute the slug-driven base lines, then append any customer-level
   // recurring addons (skipped on no-charge events). Items already present
   // from the base are not duplicated.
@@ -371,8 +378,8 @@ function prefillFromBooking(booking, contact) {
     if (tankN) {
       baseLines = [{ sku: 'TANK-REFILL', qty: tankN }]
       if (isBgOwned) {
-        baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
-        baseLines.push({ sku: 'BAIT', qty: tankN })
+        if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
+        if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: tankN })
       }
     }
   }
@@ -399,9 +406,9 @@ function prefillFromBooking(booking, contact) {
   // Append recurring addons that aren't already present in the base.
   const haveSku = new Set(baseLines.map((l) => l.sku))
   for (const sku of recurringAddons) {
-    if (!haveSku.has(sku)) baseLines.push({ sku, qty: 1 })
+    if (!haveSku.has(sku) && !addonsOptOut.has(sku)) baseLines.push({ sku, qty: 1 })
   }
-  return baseLines
+  return baseLines.filter((l) => !addonsOptOut.has(l.sku))
 }
 
 module.exports = {

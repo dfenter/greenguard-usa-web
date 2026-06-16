@@ -71,7 +71,7 @@ const CONTACT_PROPERTIES = [
   'customer_type', 'service_start_date', 'stripe_customer_id',
   'payment_status', 'customer_status',
   'billing_contact_name', 'mq_installed', 'mq_installed_at',
-  'recurring_addons',
+  'recurring_addons', 'addons_optout', 'first_appointment',
   'gate_code', 'access_notes', 'pets_on_property', 'special_instructions',
   'gclid', 'ga_client_id',
 ]
