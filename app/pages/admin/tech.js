@@ -69,7 +69,7 @@ export async function getServerSideProps({ req, res }) {
     const resolvedName = info.name || s.customerName || s.name || s.title || ''
     const resolvedPhone = info.phone || s.phone || ''
     return {
-      id: s.id || null,
+      gcalEventId: s.id || null,
       title: resolvedName,
       serviceType: s.title || '',
       startTime: s.startTime || null,

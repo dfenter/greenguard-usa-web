@@ -99,7 +99,7 @@ export async function getServerSideProps({ req, res }) {
     // HubSpot contact has none — fall back to it so the Text button matches the
     // tech view exactly (HubSpot phone first, then the booking's phone).
     return {
-      id: s.id || null,
+      gcalEventId: s.id || null,
       title: info.name || s.customerName || s.name || '',
       serviceType: s.title || '',
       startTime: s.startTime || null,

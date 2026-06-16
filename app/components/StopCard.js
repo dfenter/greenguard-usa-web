@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import CustomerPanel from './CustomerPanel'
 
@@ -106,7 +106,16 @@ export default function StopCard({
   children = null,
 }) {
   const [showPanel, setShowPanel] = useState(false)
+  const [eventNotes, setEventNotes] = useState([])
   const name = stop.customerName || stop.title || 'Service Visit'
+
+  useEffect(() => {
+    if (!stop.gcalEventId) return
+    fetch(`/api/admin/event-notes?eventId=${encodeURIComponent(stop.gcalEventId)}`)
+      .then((r) => r.json())
+      .then((d) => setEventNotes(d.notes || []))
+      .catch(() => {})
+  }, [stop.gcalEventId])
 
   function openProfile() {
     if (!stop.email) return
@@ -155,7 +164,16 @@ export default function StopCard({
             {headerExtras}
           </div>
 
-          {/* Client notes from the client popup — plain lines, no labels */}
+          {/* Per-appointment notes from the calendar dock "This appointment's notes" */}
+          {eventNotes.length > 0 && (
+            <div style={{ paddingLeft: 36, marginTop: 4, marginBottom: 2 }}>
+              {eventNotes.map((n) => (
+                <div key={n.id} style={{ fontSize: '0.82rem', color: '#7dffaa', lineHeight: 1.5 }}>📋 {n.body}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Customer notes from HubSpot ([ADMIN-NOTE] timeline entries) */}
           {(stop.clientNotes || []).map((note, i) => (
             <div key={i} style={{ paddingLeft: 36, fontSize: '0.82rem', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5 }}>{note}</div>
           ))}

@@ -9,6 +9,7 @@ import { findContactsByEmails, findContactsByNames, tanksForCustomer, getContact
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import SignaturePad from '../../components/SignaturePad'
 import CustomerPanel from '../../components/CustomerPanel'
+import StopCard from '../../components/StopCard'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 export async function getServerSideProps({ req, query, res }) {
@@ -31,6 +32,7 @@ export async function getServerSideProps({ req, query, res }) {
       const endISO = new Date().toISOString()
       const bookings = await getBookingsForDateRange(startISO, endISO)
       stops = bookings.map((b) => ({
+        gcalEventId: b.id || null,
         customerName: b.customerName || b.name || 'Customer',
         serviceType: b.title || '',
         address: b.address || '', email: b.email || '',
@@ -43,6 +45,7 @@ export async function getServerSideProps({ req, query, res }) {
     try {
       const bookings = selectedDate === today ? await getTodaysBookings() : await getBookingsForDate(selectedDate)
       stops = bookings.map((b) => ({
+        gcalEventId: b.id || null,
         customerName: b.customerName || b.name || 'Customer',
         serviceType: b.title || '',
         address: b.address || '', email: b.email || '',
@@ -249,7 +252,6 @@ const PRODUCTS_SOLD = productsForRounds()
 
 function fmt$(n) { return n == null ? '—' : `$${n.toFixed(2)}` }
 const TZ = 'America/Chicago'
-function fmtTime(iso) { return iso ? new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ }) : null }
 function nowStr() { return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', timeZone: TZ }) }
 
 function sectionTotal(catalog, qtys) {
@@ -583,7 +585,7 @@ function ApptDetailModal({ stop, onClose, onOpenProfile }) {
   )
 }
 
-function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onOpenProfile, distance }) {
+function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onOpenProfile, distance }) {
   const isDone = state.status === 'done'
   const isActive = state.status === 'active'
   // SSR detected an existing Stripe invoice for this booking. Suppress
@@ -608,6 +610,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onO
       .then((d) => setVisitLog(d.log || null))
       .catch(() => {})
   }, [showInvoicedPanel, stop.email, visitLogLoaded, serviceDate])
+
 
   const svcTotal  = sectionTotal(SERVICES,      state.serviceQtys)
   const eqTotal   = sectionTotal(EQUIPMENT,     state.equipQtys)
@@ -786,11 +789,6 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onO
     }
   }
 
-  const card = {
-    background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))',
-    border: `1px solid ${isDone ? 'rgba(125,255,170,0.2)' : isActive ? 'rgba(201,168,76,0.3)' : 'rgba(122,171,130,0.12)'}`,
-    borderRadius: 12, padding: 20, marginBottom: 14, opacity: isDone ? 0.7 : 1,
-  }
   const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
 
   return (
@@ -799,72 +797,41 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onO
         <EmailModal stop={stop} lineItems={allLineItems} grandTotal={grand}
           onSend={finishStop} onSkip={() => finishStop(null)} />
       )}
-      <div style={{ ...card, opacity: state.status === 'cancelled' ? 0.45 : isDone ? 0.7 : 1 }}>
-        <div style={{ marginBottom: 12 }}>
-          {/* Name row: number · name · address */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.9rem', background: isDone ? 'rgba(125,255,170,0.15)' : isActive ? 'rgba(201,168,76,0.15)' : 'rgba(122,171,130,0.1)', color: isDone ? '#7dffaa' : isActive ? '#c9a84c' : 'rgba(212,230,202,0.5)', flexShrink: 0 }}>
-              {isDone ? '✓' : idx + 1}
-            </span>
-            <button
-              style={{ fontWeight: 900, fontSize: '1rem', color: (stop.firstAppointment || /assessment/i.test(stop.serviceType || '')) ? '#7dffaa' : '#d4e6ca', background: 'none', border: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
-              onClick={e => { e.stopPropagation(); if (stop.email) onOpenProfile?.({ email: stop.email, name: stop.customerName, phone: stop.phone }) }}
-            >{stop.customerName}</button>
-            {stop.address && (
-              <span style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', fontWeight: 400 }}>📍 {stop.address}</span>
-            )}
-            {distance && (
-              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: parseFloat(distance.miles) <= 5 ? '#7dffaa' : parseFloat(distance.miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.45)', whiteSpace: 'nowrap' }}>
-                {distance.miles} mi · {distance.duration}
+      <StopCard
+        stop={stop}
+        number={idx + 1}
+        done={isDone}
+        active={isActive}
+        cancelled={state.status === 'cancelled'}
+        distance={distance}
+        onOpenProfile={onOpenProfile}
+        checkIn={state.checkIn}
+        checkOut={state.checkOut}
+        headerExtras={<>
+          {/* Invoice badge — only when panel is NOT already showing below */}
+          {stop.existingInvoice && !showInvoicedPanel && (() => {
+            const inv = stop.existingInvoice
+            const colors = {
+              paid:  { fg: '#7dffaa', bg: 'rgba(125,255,170,0.12)', bd: 'rgba(125,255,170,0.3)' },
+              open:  { fg: '#c9a84c', bg: 'rgba(201,168,76,0.12)',  bd: 'rgba(201,168,76,0.3)'  },
+              draft: { fg: 'rgba(212,230,202,0.7)', bg: 'rgba(212,230,202,0.06)', bd: 'rgba(212,230,202,0.2)' },
+            }
+            const c = colors[inv.status] || colors.draft
+            const labelText = inv.status === 'paid' ? `Paid · ${fmt$(inv.amountPaid || inv.amountDue)}`
+              : inv.status === 'open' ? `Invoice sent · ${fmt$(inv.amountDue)}`
+              : `Draft · ${fmt$(inv.amountDue || 0)}`
+            return (
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, padding: '2px 7px', borderRadius: 4 }}>
+                🧾 {labelText}
               </span>
-            )}
-            {/* Invoice badge — only when panel is NOT already showing below */}
-            {stop.existingInvoice && !showInvoicedPanel && (() => {
-              const inv = stop.existingInvoice
-              const colors = {
-                paid:  { fg: '#7dffaa', bg: 'rgba(125,255,170,0.12)', bd: 'rgba(125,255,170,0.3)' },
-                open:  { fg: '#c9a84c', bg: 'rgba(201,168,76,0.12)',  bd: 'rgba(201,168,76,0.3)'  },
-                draft: { fg: 'rgba(212,230,202,0.7)', bg: 'rgba(212,230,202,0.06)', bd: 'rgba(212,230,202,0.2)' },
-              }
-              const c = colors[inv.status] || colors.draft
-              const labelText = inv.status === 'paid' ? `Paid · ${fmt$(inv.amountPaid || inv.amountDue)}`
-                : inv.status === 'open' ? `Invoice sent · ${fmt$(inv.amountDue)}`
-                : `Draft · ${fmt$(inv.amountDue || 0)}`
-              return (
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, padding: '2px 7px', borderRadius: 4 }}>
-                  🧾 {labelText}
-                </span>
-              )
-            })()}
-            {isDone && state.grandTotal > 0 && (
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7dffaa' }}>{fmt$(state.grandTotal)}</span>
-            )}
-          </div>
-
-          {/* Client notes from the client popup — plain lines, no labels */}
-          {(stop.clientNotes || []).map((note, i) => (
-            <div key={i} style={{ paddingLeft: 36, fontSize: '0.82rem', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5 }}>{note}</div>
-          ))}
-
-          {/* Service info row: time · service type · tanks */}
-          <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '0.8rem', marginTop: 4, marginBottom: 2 }}>
-            {stop.startTime && (
-              <span style={{ color: '#c9a84c', fontWeight: 700 }}>
-                {new Date(stop.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · {fmtTime(stop.startTime)}
-              </span>
-            )}
-            {stop.serviceType && <span style={{ color: 'rgba(212,230,202,0.55)' }}>{stop.serviceType}</span>}
-            {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
-          </div>
-
-          {/* Appointment notes from booking */}
-          {(state.checkIn || state.checkOut) && (
-            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '0.88rem', color: 'rgba(212,230,202,0.4)', display: 'flex', gap: 14 }}>
-              {state.checkIn && <span>In: <strong>{state.checkIn}</strong></span>}
-              {state.checkOut && <span>Out: <strong style={{ color: '#7dffaa' }}>{state.checkOut}</strong></span>}
-            </div>
+            )
+          })()}
+          {isDone && state.grandTotal > 0 && (
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#7dffaa' }}>{fmt$(state.grandTotal)}</span>
           )}
-
+        </>}
+      >
+        <div>
           {/* Already-invoiced banner — replaces the action buttons when SSR
               detected an existing invoice on this booking. */}
           {showInvoicedPanel && (() => {
@@ -1122,7 +1089,7 @@ function StopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onO
             )}
           </div>
         )}
-      </div>
+      </StopCard>
     </>
   )
 }
@@ -1173,9 +1140,11 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
   const [profileCustomer, setProfileCustomer] = useState(null)
   const [distances, setDistances] = useState({})
 
-  useEffect(() => {
+  const [distLoading, setDistLoading] = useState(false)
+  function refreshDistances() {
     const addressable = stops.filter((s) => s.address)
     if (!addressable.length || !navigator.geolocation) return
+    setDistLoading(true)
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const origin = `${pos.coords.latitude},${pos.coords.longitude}`
       try {
@@ -1185,8 +1154,10 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
         })
         setDistances(await res.json())
       } catch {}
-    }, () => {})
-  }, [stops])
+      setDistLoading(false)
+    }, () => setDistLoading(false), { enableHighAccuracy: true, timeout: 10000 })
+  }
+  useEffect(() => { refreshDistances() }, [stops]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fileRefs = useRef(stops.map(() => ({ current: null })))
   const videoRefs = useRef(stops.map(() => ({ current: null })))
@@ -1331,6 +1302,11 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
                 <option value="name-desc">Name Z→A</option>
               </select>
             )}
+            <button onClick={refreshDistances} disabled={distLoading}
+              title="Recalculate driving distance from your current location to each stop"
+              style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.35)', background: 'rgba(91,196,255,0.08)', color: '#5bc4ff', fontSize: '0.9rem', fontWeight: 800, fontFamily: 'Inter, sans-serif', cursor: distLoading ? 'wait' : 'pointer', opacity: distLoading ? 0.6 : 1 }}>
+              {distLoading ? 'Locating…' : 'My Distance'}
+            </button>
           </div>
         </div>
 
@@ -1373,7 +1349,7 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
               : { ...baseStop, existingInvoice: invoiceByIdx[String(idx)] ?? null }
             return (
               <div key={`${selectedDate || 'open'}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }}>
-                <StopCard stop={stop} idx={idx} state={states[idx]}
+                <RoundsStopCard stop={stop} idx={idx} state={states[idx]}
                   onUpdate={(patch) => update(idx, patch)} fileInputRef={fileRefs.current[idx]} videoInputRef={videoRefs.current[idx]}
                   onOpenProfile={setProfileCustomer}
                   distance={distances[stop.email || stop.customerName]} />
