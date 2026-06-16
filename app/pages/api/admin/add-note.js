@@ -3,6 +3,7 @@
 
 const { requireAdmin } = require('../../../lib/auth')
 const { addNote, findContactByEmail, upsertContact } = require('../../../lib/hubspot')
+const { invalidate } = require('../../../lib/cache')
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -27,6 +28,8 @@ export default async function handler(req, res) {
 
     const prefix = `[ADMIN-NOTE ${session.email} ${new Date().toISOString()}] `
     await addNote(contactId, prefix + text)
+    // Bust the note cache so the new note appears on the next page load immediately.
+    await invalidate(`hs:notes:${contactId}`).catch(() => {})
     return res.status(200).json({ ok: true, contactId })
   } catch (err) {
     console.error('add-note error:', err)

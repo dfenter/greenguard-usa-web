@@ -143,7 +143,7 @@ async function _fetchContactsByEmails(cleaned) {
 }
 
 async function getContactNotes(contactId, limit = 5) {
-  return _cachedH(`hs:notes:${contactId}`, 300, async () => {
+  return _cachedH(`hs:notes:${contactId}`, 60, async () => {
     // Fetch up to 50 association IDs — do NOT slice before batch-reading because HubSpot
     // returns association IDs in an arbitrary order (often oldest-first), so slicing early
     // would return stale notes instead of the most recent ones.
@@ -170,13 +170,15 @@ async function getContactNotes(contactId, limit = 5) {
     if (!batchResp.ok) return []
     const batchData = await batchResp.json()
 
-    // Sort newest-first, then return the requested limit
+    // Sort newest-first, then return the requested limit.
+    // Strip HTML tags HubSpot sometimes wraps around note bodies (<p>, <div>, etc.)
+    // so downstream regex filters like ADMIN_NOTE_RE work on plain text.
     return (batchData.results || [])
       .sort((a, b) => new Date(b.properties.hs_timestamp) - new Date(a.properties.hs_timestamp))
       .slice(0, limit)
       .map((n) => ({
         id: n.id,
-        body: n.properties.hs_note_body || '',
+        body: (n.properties.hs_note_body || '').replace(/<[^>]*>/g, '').trim(),
         timestamp: n.properties.hs_timestamp,
       }))
   })
