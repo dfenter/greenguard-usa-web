@@ -166,8 +166,8 @@ function AdminBottomDock({ pathname }) {
             fontWeight: active ? 800 : 700,
             transition: 'background 0.15s var(--ease), color 0.15s var(--ease)',
           }}>
-            <span style={{ fontSize: '1.45rem', lineHeight: 1 }}>{icon}</span>
-            <span style={{ fontSize: '0.85rem', letterSpacing: '0.03em' }}>{label}</span>
+            <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{icon}</span>
+            <span style={{ fontSize: '0.72rem', letterSpacing: '0.03em' }}>{label}</span>
           </Link>
         )
       })}
