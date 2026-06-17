@@ -13,6 +13,13 @@ function sha256hex(str) {
   return crypto.createHash('sha256').update((str || '').trim().toLowerCase()).digest('hex')
 }
 
+// Meta's click identifier (fbc) reconstructed from a stored fbclid:
+// fb.1.<creation_ms>.<fbclid>. Required for ad attribution on server events.
+function buildFbc(fbclid) {
+  if (!fbclid) return null
+  return `fb.1.${Date.now()}.${fbclid}`
+}
+
 async function fireGA4Purchase({ email, amountUsd, orderId, clientId: knownClientId }) {
   const apiSecret = process.env.GA4_API_SECRET
   const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-K2R5H2Z23X'
@@ -45,16 +52,25 @@ async function fireGA4Purchase({ email, amountUsd, orderId, clientId: knownClien
   }
 }
 
-async function fireMetaPurchase({ email, phone, amountUsd, orderId }) {
+async function fireMetaPurchase({ email, phone, amountUsd, orderId, fbc, fbp, eventSourceUrl, clientIp, userAgent }) {
   const metaToken = process.env.META_SYSTEM_USER_TOKEN
   if (!metaToken || !email) return
   const userData = { em: [sha256hex(email)] }
   if (phone) userData.ph = [sha256hex(phone.replace(/\D/g, ''))]
+  // Click/browser identifiers — without at least one of these Meta receives the
+  // event but cannot attribute it to an ad. fbc is derived from fbclid upstream.
+  if (fbc) userData.fbc = fbc
+  if (fbp) userData.fbp = fbp
+  if (clientIp) userData.client_ip_address = clientIp
+  if (userAgent) userData.client_user_agent = userAgent
   const body = {
     data: [{
       event_name: 'Purchase',
       event_time: Math.floor(Date.now() / 1000),
-      action_source: 'system_generated',
+      // 'website' (not 'system_generated') so the event is eligible for ad
+      // attribution and conversion optimization.
+      action_source: 'website',
+      event_source_url: eventSourceUrl || 'https://www.greenguard-usa.com/',
       event_id: `stripe_${orderId}`,
       user_data: userData,
       custom_data: { value: amountUsd, currency: 'USD' },
@@ -79,8 +95,14 @@ async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid
   if (!devToken || !customerId) return
   try {
     const { google } = require('googleapis')
-    const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
-    auth.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN })
+    // Use the dedicated Google Ads OAuth credentials (the GOOGLE_CLIENT_ID /
+    // GOOGLE_REFRESH_TOKEN pair is the Gmail/Calendar token and lacks the
+    // AdWords scope — that produced silent 403s).
+    const auth = new google.auth.OAuth2(
+      process.env.GOOGLE_ADS_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_ADS_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+    )
+    auth.setCredentials({ refresh_token: process.env.GOOGLE_ADS_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN })
     const { token } = await auth.getAccessToken()
     const body = {
       conversions: [{
@@ -92,8 +114,14 @@ async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid
       }]
     }
     const r = await fetch(
-      `https://googleads.googleapis.com/v17/customers/${customerId}:uploadClickConversions`,
-      { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'developer-token': devToken, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      // v17 is sunset (404). v21 matches the rest of the integration.
+      `https://googleads.googleapis.com/v21/customers/${customerId}:uploadClickConversions`,
+      { method: 'POST', headers: {
+        'Authorization': `Bearer ${token}`,
+        'developer-token': devToken,
+        ...(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID && { 'login-customer-id': process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID }),
+        'Content-Type': 'application/json',
+      }, body: JSON.stringify(body) }
     )
     const data = await r.json()
     if (data.partialFailureError) console.error('[stripe-webhook] Google Ads conversion error:', data.partialFailureError)
@@ -274,8 +302,9 @@ export default async function handler(req, res) {
           ref: session.id,
         }).catch((e) => console.error('notify checkout completed:', e.message))
 
-        // Customer receipt — fetch receipt URL from the payment intent charge
-        if (customerEmail) {
+        // Customer receipt — shop orders get their confirmation from the Render
+        // equipment handler; skip here to avoid a duplicate email.
+        if (customerEmail && session.metadata?.source !== 'shop') {
           let receiptUrl = null
           try {
             const pi = await stripe.paymentIntents.retrieve(session.payment_intent, { expand: ['latest_charge'] })
@@ -332,6 +361,29 @@ export default async function handler(req, res) {
               amountUsd: (session.amount_total || 0) / 100,
               orderId: session.id,
               clientId: ga_client_id_meta,
+            })
+          }
+          // Fire ad-platform conversions on the ACTUAL ad-driven purchase event.
+          // Quote checkouts (mode:'payment') do not produce invoice.payment_succeeded,
+          // so these must fire here — this is where the fresh gclid/fbclid live.
+          if (customerEmail) {
+            const amountUsd = (session.amount_total || 0) / 100
+            // Prefer the real _fbc cookie; fall back to one rebuilt from fbclid.
+            const fbc = session.metadata?.fbc || buildFbc(session.metadata?.fbclid)
+            await fireMetaPurchase({
+              email: customerEmail,
+              phone: session.customer_details?.phone || '',
+              amountUsd,
+              orderId: session.id,
+              fbc,
+              fbp: session.metadata?.fbp || null,
+              eventSourceUrl: 'https://www.greenguard-usa.com/',
+            })
+            await fireGoogleAdsConversion({
+              email: customerEmail,
+              amountUsd,
+              conversionTime: (session.created || Math.floor(Date.now() / 1000)) * 1000,
+              gclid: session.metadata?.gclid,
             })
           }
         }
