@@ -1,9 +1,3 @@
-Cooling_Tower_432_updated.zip
-Cooling_Tower_v5.zip
-Cooling_Tower_NamedQueries_only.zip
-Cooling_Tower_432_fixed.zip
-Cooling_Tower_test.zip
-Cooling_Tower_NamedQueries_only.zip
 Cooling_Tower*
 *.zip
 .DS_Store
@@ -35,3 +29,13 @@ node_modules/
 package-lock.json
 /package.json
 *.dmg
+
+# Scratch / working files — never commit
+upload-progress*.json
+*.docx
+*.log
+*.mov
+*.MOV
+*.csv
+SCM_*.zip
+GITHUB_APPEAL.md
