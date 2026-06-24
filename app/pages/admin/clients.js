@@ -1,11 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { listAllCustomers } from '../../lib/stripe'
 import { getAllContacts } from '../../lib/hubspot'
-import { getBookingsForDateRange } from '../../lib/gcal'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -26,15 +25,9 @@ export async function getServerSideProps({ req, res }) {
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
-  const now = new Date()
-  const sixMonthsAgo = new Date(now); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-  const twelveMonthsOut = new Date(now); twelveMonthsOut.setMonth(twelveMonthsOut.getMonth() + 12)
-
-  const [raw, hubspotContacts, upcomingBookings, recentBookings] = await Promise.all([
+  const [raw, hubspotContacts] = await Promise.all([
     listAllCustomers().catch(() => []),
     getAllContacts(300).catch(() => []),
-    getBookingsForDateRange(now.toISOString(), twelveMonthsOut.toISOString()).catch(() => []),
-    getBookingsForDateRange(sixMonthsAgo.toISOString(), now.toISOString()).catch(() => []),
   ])
 
   const hsAddressByEmail = {}
@@ -43,21 +36,9 @@ export async function getServerSideProps({ req, res }) {
     if (email && c.properties?.address) hsAddressByEmail[email] = c.properties.address
   })
 
-  const nextVisitByEmail = {}
-  upcomingBookings.forEach((b) => {
-    const email = (b.email || '').toLowerCase()
-    if (email && !nextVisitByEmail[email]) nextVisitByEmail[email] = b.startTime
-  })
-
-  const lastVisitByEmail = {}
-  recentBookings.forEach((b) => {
-    const email = (b.email || '').toLowerCase()
-    if (email) {
-      if (!lastVisitByEmail[email] || new Date(b.startTime) > new Date(lastVisitByEmail[email])) {
-        lastVisitByEmail[email] = b.startTime
-      }
-    }
-  })
+  // Last/Next visit columns are lazy-loaded client-side from
+  // /api/admin/client-visits so this SSR render no longer blocks on the
+  // calendar range scans (which were the heaviest part of the page).
 
   const customers = raw.map((c) => {
     const subs = c.subscriptions?.data || []
@@ -74,8 +55,6 @@ export async function getServerSideProps({ req, res }) {
       plan: planLabel,
       mrr,
       address: hsAddressByEmail[email] || '',
-      nextVisit: nextVisitByEmail[email] || null,
-      lastVisit: lastVisitByEmail[email] || null,
     }
   }).sort((a, b) => {
     // Sort by last name (last word of name), fall back to full name
@@ -89,7 +68,8 @@ export async function getServerSideProps({ req, res }) {
     .filter((c) => {
       const email = (c.properties?.email || '').toLowerCase()
       const name = [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ')
-      if (!name && !email) return false
+      // Drop nameless contacts entirely — they render as blank/"—" rows.
+      if (!name) return false
       return !email || !stripeEmails.has(email)
     })
     .map((c) => ({
@@ -110,7 +90,9 @@ export async function getServerSideProps({ req, res }) {
     return lastName(a.name).localeCompare(lastName(b.name))
   })
 
-  return { props: { customers: combined, prospects } }
+  // `combined` already includes prospects for the live table; the standalone
+  // `prospects` array is only referenced by dead code, so we don't ship it.
+  return { props: { customers: combined } }
 }
 
 const STATUS_COLORS = {
@@ -162,7 +144,7 @@ function NoteComposer({ email, hsContactId, onSaved }) {
         style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
         <button onClick={save} disabled={busy || !body.trim()}
-          style={{ padding: '6px 14px', borderRadius: 5, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Nunito Sans, sans-serif' }}>
+          style={{ padding: '6px 14px', borderRadius: 5, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Inter, sans-serif' }}>
           {busy ? 'Saving…' : 'Save note'}
         </button>
         {msg && <span style={{ fontSize: '0.78rem', color: msg.ok ? '#7dffaa' : '#ff8080' }}>{msg.text}</span>}
@@ -194,13 +176,13 @@ function SmsComposer({ email, phone, onSent }) {
     <div style={{ marginTop: 6 }}>
       <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} maxLength={320}
         placeholder={`Text ${phone}…`}
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 8 }}>
         <span style={{ fontSize: '0.7rem', color: msg?.startsWith('✓') ? '#7dffaa' : msg ? '#ff8080' : 'rgba(212,230,202,0.4)' }}>
           {msg || `${body.length}/320`}
         </span>
         <button onClick={send} disabled={sending || !body.trim()}
-          style={{ padding: '7px 16px', borderRadius: 6, border: 'none', cursor: sending || !body.trim() ? 'not-allowed' : 'pointer', background: sending || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+          style={{ padding: '7px 16px', borderRadius: 6, border: 'none', cursor: sending || !body.trim() ? 'not-allowed' : 'pointer', background: sending || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
           {sending ? 'Sending…' : 'Send SMS'}
         </button>
       </div>
@@ -297,7 +279,10 @@ function CustomerPanel({ customer, onClose }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/admin/customer-detail?customerId=${customer.id}`)
+      const url = customer.status === 'prospect'
+        ? `/api/admin/customer-detail?email=${encodeURIComponent(customer.email)}`
+        : `/api/admin/customer-detail?customerId=${customer.id}`
+      const res = await fetch(url)
       if (!res.ok) throw new Error('Failed to load')
       const data = await res.json()
       setDetail(data)
@@ -319,14 +304,24 @@ function CustomerPanel({ customer, onClose }) {
 
   async function saveEdit() {
     setSaving(true)
-    await fetch('/api/admin/update-customer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerId: customer.id, hubspotContactId: detail?.hubspotContactId, ...editForm }),
-    })
-    setSaving(false)
-    setEditing(false)
-    fetchDetail()
+    try {
+      const res = await fetch('/api/admin/update-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: customer.id, hubspotContactId: detail?.hubspotContactId, ...editForm }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        alert('Save failed: ' + (data.error || res.status))
+        return
+      }
+      setEditing(false)
+      fetchDetail()
+    } catch (e) {
+      alert('Save failed: ' + e.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleCancel() {
@@ -366,11 +361,11 @@ function CustomerPanel({ customer, onClose }) {
   const input = {
     width: '100%', padding: '8px 10px', borderRadius: 6, boxSizing: 'border-box',
     border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)',
-    color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none',
+    color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none',
   }
   const btn = (variant) => ({
     padding: '7px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
-    fontWeight: 800, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif',
+    fontWeight: 800, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif',
     ...(variant === 'gold'   ? { background: '#c9a84c', color: '#0d1a10' } :
         variant === 'green'  ? { background: '#7dffaa', color: '#0d1a10' } :
         variant === 'red'    ? { background: 'rgba(255,100,100,0.15)', color: '#ff8080', border: '1px solid rgba(255,100,100,0.25)' } :
@@ -451,14 +446,14 @@ function CustomerPanel({ customer, onClose }) {
             value={msgForm.subject}
             onChange={(e) => setMsgForm((f) => ({ ...f, subject: e.target.value }))}
             placeholder="Subject"
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Nunito Sans, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }}
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }}
           />
           <textarea
             value={msgForm.body}
             onChange={(e) => setMsgForm((f) => ({ ...f, body: e.target.value }))}
             placeholder={`Hi ${customer.name?.split(' ')[0] || 'there'},\n\n`}
             rows={5}
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Nunito Sans, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}
           />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button
@@ -498,7 +493,7 @@ function CustomerPanel({ customer, onClose }) {
       <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0' }}>
         {[{ k: 'details', l: 'Details' }, { k: 'history', l: 'History' }].map((t) => (
           <button key={t.k} onClick={() => setTab(t.k)}
-            style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem', fontFamily: 'Nunito Sans, sans-serif',
+            style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem', fontFamily: 'Inter, sans-serif',
               background: tab === t.k ? '#c9a84c' : 'rgba(201,168,76,0.1)', color: tab === t.k ? '#0d1a10' : 'rgba(201,168,76,0.7)' }}>
             {t.l}
           </button>
@@ -734,6 +729,17 @@ export default function Clients({ customers, prospects = [] }) {
   const [selected, setSelected] = useState(null)
   const [distances, setDistances] = useState({})
   const [locating, setLocating] = useState(false)
+  // Lazy-loaded Last/Next visit data: null = still loading, {} = loaded.
+  const [visits, setVisits] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    fetch('/api/admin/client-visits')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d) setVisits(d) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
 
   async function locateMe() {
     if (!navigator.geolocation) return
@@ -874,7 +880,7 @@ export default function Clients({ customers, prospects = [] }) {
           />
           <button onClick={locateMe} disabled={locating}
             title="Show driving distance from your current location"
-            style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: Object.keys(distances).length ? 'rgba(125,255,170,0.1)' : 'rgba(255,255,255,0.04)', color: Object.keys(distances).length ? '#7dffaa' : 'rgba(212,230,202,0.6)', fontSize: '0.88rem', cursor: locating ? 'wait' : 'pointer', whiteSpace: 'nowrap', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700 }}>
+            style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: Object.keys(distances).length ? 'rgba(125,255,170,0.1)' : 'rgba(255,255,255,0.04)', color: Object.keys(distances).length ? '#7dffaa' : 'rgba(212,230,202,0.6)', fontSize: '0.88rem', cursor: locating ? 'wait' : 'pointer', whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
             {locating ? '📍 Locating…' : Object.keys(distances).length ? '📍 Refresh' : '📍 My Distance'}
           </button>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -884,7 +890,7 @@ export default function Clients({ customers, prospects = [] }) {
                 onClick={() => setTab(t.key)}
                 style={{
                   padding: '7px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                  fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif',
+                  fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif',
                   background: tab === t.key ? '#c9a84c' : 'rgba(201,168,76,0.1)',
                   color: tab === t.key ? '#0d1a10' : 'rgba(201,168,76,0.7)',
                 }}
@@ -903,28 +909,31 @@ export default function Clients({ customers, prospects = [] }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
-                  {['Name', 'Address', ...(Object.keys(distances).length ? ['Distance'] : []), 'Email', 'Phone', 'Last Visit', 'Next Visit'].map((h) => (
+                  {['Name', 'Address', ...(Object.keys(distances).length ? ['Distance'] : [])].map((h) => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c) => (
+                {filtered.map((c) => {
+                  const ve = (c.email || '').toLowerCase()
+                  const lastVisit = visits?.last?.[ve] || null
+                  const nextVisit = visits?.next?.[ve] || null
+                  const visitsLoading = visits === null
+                  return (
                   <tr
                     key={c.id}
                     onClick={() => {
-                      // Prospects don't have Stripe details — skip detail panel for them
-                      if (c.status === 'prospect') return
                       setSelected(selected?.id === c.id ? null : c)
                     }}
                     style={{
                       borderBottom: '1px solid rgba(122,171,130,0.08)',
-                      cursor: c.status === 'prospect' ? 'default' : 'pointer',
+                      cursor: 'pointer',
                       background: selected?.id === c.id ? 'rgba(201,168,76,0.06)' : 'transparent',
                     }}
                   >
-                    <td style={{ padding: '11px 16px', fontWeight: 700 }}>{c.name || '—'}</td>
-                    <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.45)', fontSize: '0.78rem', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.address || <span style={{ color: 'rgba(212,230,202,0.2)' }}>—</span>}</td>
+                    <td style={{ padding: '11px 16px', fontWeight: 700, whiteSpace: 'nowrap' }}>{c.name || '—'}</td>
+                    <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.65)', fontSize: '0.82rem' }}>{c.address || <span style={{ color: 'rgba(212,230,202,0.2)' }}>—</span>}</td>
                     {Object.keys(distances).length > 0 && (
                       <td style={{ padding: '11px 16px', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
                         {distances[c.id] ? (
@@ -935,12 +944,9 @@ export default function Clients({ customers, prospects = [] }) {
                         ) : <span style={{ color: 'rgba(212,230,202,0.2)' }}>—</span>}
                       </td>
                     )}
-                    <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem' }}>{c.email || <span style={{ color: 'rgba(212,230,202,0.25)' }}>—</span>}</td>
-                    <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{c.phone || <span style={{ color: 'rgba(212,230,202,0.25)' }}>—</span>}</td>
-                    <td style={{ padding: '11px 16px', fontSize: '0.78rem', whiteSpace: 'nowrap', color: c.lastVisit ? '#7dffaa' : 'rgba(212,230,202,0.2)' }}>{c.lastVisit ? fmtDate(c.lastVisit) : '—'}</td>
-                    <td style={{ padding: '11px 16px', fontSize: '0.78rem', whiteSpace: 'nowrap', color: c.nextVisit ? '#c9a84c' : 'rgba(212,230,202,0.2)' }}>{c.nextVisit ? fmtDate(c.nextVisit) : '—'}</td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           )}
