@@ -1,8 +1,33 @@
 import crypto from 'crypto'
 import { upsertContact } from '../../../lib/hubspot'
+import { cancelBooking } from '../../../lib/calcom'
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || '2225826221565752'
 const META_GRAPH_URL = `https://graph.facebook.com/v21.0/${PIXEL_ID}/events`
+
+// Service-area backstop: catches out-of-area bookings made via direct Cal.com
+// links (the /book page gate only protects bookings made through the website).
+// Depot = 1519 Parkway, Austin TX 78703.
+const DEPOT = { lat: 30.2805175, lng: -97.7512789 }
+const SERVICE_RADIUS_MI = 40
+
+function milesBetween(a, b) {
+  const R = 3958.8, d2r = Math.PI / 180
+  const dLat = (b.lat - a.lat) * d2r, dLng = (b.lng - a.lng) * d2r
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * d2r) * Math.cos(b.lat * d2r) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+}
+
+async function geocode(address) {
+  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  if (!key || !address) return null
+  try {
+    const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}`)
+    const d = await r.json()
+    const loc = d?.results?.[0]?.geometry?.location
+    return loc ? { lat: loc.lat, lng: loc.lng } : null
+  } catch { return null }
+}
 
 export const config = { api: { bodyParser: false } }
 
@@ -49,9 +74,29 @@ export default async function handler(req, res) {
   const email = attendee.email || p.responses?.email?.value || ''
   const name = attendee.name || p.responses?.name?.value || ''
   const phone = attendee.phone || p.responses?.phone?.value || ''
-  const address = p.responses?.notes?.value || p.responses?.address?.value || p.location || ''
+
+  // The event location type is "attendeeAddress", so the customer's service
+  // address arrives in the location response. Pull it from the shapes Cal.com uses.
+  const loc = p.responses?.location
+  const addrFromLoc =
+    (loc && typeof loc === 'object' && (loc.value?.optionValue || loc.optionValue)) ||
+    (typeof loc?.value === 'string' && loc.value !== 'attendeeAddress' ? loc.value : '') ||
+    (typeof p.location === 'string' && p.location !== 'attendeeAddress' ? p.location : '')
+  const address = addrFromLoc || p.responses?.address?.value || p.responses?.notes?.value || ''
 
   if (!email) return
+
+  // Service-area check — geocode the address and log a warning if out of range.
+  // Never auto-cancel: street-only addresses geocode to wrong cities; admin verifies manually.
+  if (address) {
+    const geo = await geocode(address)
+    if (geo) {
+      const miles = milesBetween(DEPOT, geo)
+      if (miles > SERVICE_RADIUS_MI) {
+        console.warn(`[calcom-webhook] POSSIBLE out-of-area booking (~${Math.round(miles)} mi) for ${email} at "${address}" — admin should verify before the visit`)
+      }
+    }
+  }
 
   // Ensure a HubSpot contact exists for every new booking
   try {

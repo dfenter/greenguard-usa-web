@@ -24,12 +24,13 @@ const CAL_EVENT = 'property-assessment';
     </div>
   </section>
 
-  <!-- ZIP CHECKER -->
+  <!-- SERVICE-AREA CHECK (advisory — calendar always unlocked) -->
   <section class="py-8 px-5">
     <div class="max-w-md mx-auto text-center">
-      <p class="text-cream/60 text-sm font-bold uppercase tracking-widest mb-3">Check if we serve your area</p>
+      <p class="text-cream/60 text-sm font-bold uppercase tracking-widest mb-3">Your location</p>
+      <p class="text-cream/70 text-sm mb-4">Enter your ZIP code or city so we can confirm service availability before your visit.</p>
       <div class="flex gap-2">
-        <input id="zip-input" type="text" inputmode="numeric" maxlength="5" placeholder="Your ZIP code"
+        <input id="zip-input" type="text" maxlength="40" placeholder="ZIP code or city"
           class="flex-1 bg-bg-card border border-accent/20 text-cream rounded-lg px-4 py-3 text-center text-base font-bold tracking-widest outline-none focus:border-gold/60" />
         <button id="zip-btn" class="btn-gold whitespace-nowrap">Check</button>
       </div>
@@ -37,20 +38,17 @@ const CAL_EVENT = 'property-assessment';
     </div>
   </section>
 
-  <!-- BOOKING EMBED -->
+  <!-- BOOKING EMBED (always visible) -->
   <section class="py-12 px-5">
     <div class="max-w-3xl mx-auto">
       <h2 class="text-2xl md:text-3xl font-black text-white text-center mb-6">Pick a time that works for you</h2>
       <div class="card !p-2 min-h-[640px]">
-        <iframe
-          src={`https://cal.com/${CAL_USERNAME}/${CAL_EVENT}?embed=true&theme=dark`}
-          width="100%"
-          height="640"
-          frameborder="0"
-          title="Book a Free Property Assessment"
-          loading="lazy"
-        ></iframe>
+        <!-- Cal.com inline embed via official SDK. The SDK establishes the
+             postMessage handshake a bare <iframe> does not, so the
+             bookingSuccessful event reliably fires for Lead tracking. -->
+        <div id="cal-inline" data-cal-link={`${CAL_USERNAME}/${CAL_EVENT}`} style="width:100%;height:640px;overflow:auto;"></div>
       </div>
+
       <div class="text-center text-cream/50 text-xs mt-4">
         Prefer to talk first? <a href="tel:5125604129" class="text-accent underline">Call 512-560-4129</a>
         &nbsp;·&nbsp;
@@ -60,66 +58,86 @@ const CAL_EVENT = 'property-assessment';
   </section>
 
   <script>
-    // ZIP checker — 45-mile radius from 78703 (Austin depot)
-    const DEPOT = { lat: 30.2741, lng: -97.7602 };
-    function haversine(lat1, lng1, lat2, lng2) {
-      const R = 3958.8, d2r = Math.PI / 180;
-      const dLat = (lat2 - lat1) * d2r, dLng = (lng2 - lng1) * d2r;
-      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*d2r)*Math.cos(lat2*d2r)*Math.sin(dLng/2)**2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
-    async function checkZip() {
-      const zip = (document.getElementById('zip-input') as HTMLInputElement)?.value?.trim();
+    let calMounted = false;
+
+    function checkZip() {
+      const input = (document.getElementById('zip-input') as HTMLInputElement);
+      const val = input?.value?.trim();
       const result = document.getElementById('zip-result')!;
-      if (!zip || zip.length !== 5 || !/^\d+$/.test(zip)) {
-        result.style.color = '#ffb060'; result.textContent = 'Enter a valid 5-digit ZIP code.'; return;
+      if (!val) {
+        result.style.color = '#ffb060'; result.textContent = 'Please enter your ZIP code or city.'; return;
       }
-      result.style.color = 'rgba(212,230,202,0.5)'; result.textContent = 'Checking…';
-      try {
-        const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        const place = data.places?.[0];
-        const miles = haversine(DEPOT.lat, DEPOT.lng, parseFloat(place.latitude), parseFloat(place.longitude));
-        if (miles <= 45) {
-          result.style.color = '#7dffaa';
-          result.textContent = `✓ We serve ${place['place name']}, TX — ${Math.round(miles)} miles away. Go ahead and book!`;
-          if (window.gtag) window.gtag('event', 'zip_check', { zip, in_service_area: true });
-        } else {
-          result.style.color = '#ffb060';
-          result.textContent = `We don't currently serve ${zip} (${Math.round(miles)} mi away). We're expanding — check back soon.`;
-          if (window.gtag) window.gtag('event', 'zip_check', { zip, in_service_area: false });
-        }
-      } catch { result.style.color = '#ffb060'; result.textContent = "Could not look up that ZIP — book anyway and we'll confirm your area."; }
+      result.style.color = '#7dffaa';
+      result.textContent = `✓ Got it — we'll confirm service availability before your appointment.`;
+      if (window.gtag) (window as any).gtag('event', 'zip_check', { location: val });
     }
     document.getElementById('zip-btn')?.addEventListener('click', checkZip);
     (document.getElementById('zip-input') as HTMLInputElement)?.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') checkZip(); });
 
-    // Cal.com fires a postMessage when a booking is confirmed
-    window.addEventListener('message', async (e) => {
+    // Load the Cal.com embed SDK once.
+    (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if (typeof namespace === "string") { cal.ns[namespace] = cal.ns[namespace] || api; p(cal.ns[namespace], ar); p(cal, ["initNamespace", namespace]); } else p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+
+    // Mount the inline calendar — only after the gate passes (lazy, once).
+    function mountCal() {
+      if (calMounted) return;
+      calMounted = true;
+      const Cal = (window as any).Cal;
+      Cal('init', { origin: 'https://cal.com' });
+      Cal('inline', {
+        elementOrSelector: '#cal-inline',
+        calLink: 'greenguard-usa/property-assessment',
+        layout: 'month_view',
+        config: { theme: 'dark' },
+      });
+      Cal('on', { action: 'bookingSuccessful', callback: (e: any) => { fireBookingLead(e?.detail); } });
+    }
+
+    async function fireBookingLead(detail: any) {
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'generate_lead', { event_category: 'booking', event_label: 'property_assessment' });
+        window.gtag('event', 'qualify_lead', { event_category: 'booking', event_label: 'property_assessment' });
+      }
+      // Dig the attendee email out of whatever shape the payload arrives in.
+      const data = detail?.data || detail || {};
+      const bookerEmail =
+        data?.booking?.attendees?.[0]?.email ||
+        data?.attendees?.[0]?.email ||
+        data?.responses?.email?.value ||
+        data?.attendee?.email ||
+        data?.email ||
+        null;
+      // Shared event_id so the client pixel Lead and the server CAPI Lead
+      // (lib fires the same scheme) dedupe instead of double-counting.
+      let leadEventId: string | undefined;
+      if (bookerEmail) {
+        try {
+          const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bookerEmail.trim().toLowerCase()));
+          const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+          leadEventId = `lead_${hex.slice(0, 16)}_${new Date().toISOString().slice(0, 10)}`;
+        } catch {}
+      }
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', 'Lead', { content_name: 'Property Assessment Booking', value: 25, currency: 'USD' }, leadEventId ? { eventID: leadEventId } : undefined);
+      }
+      if (bookerEmail) {
+        const payload: Record<string, string> = { email: bookerEmail, source: 'booking' };
+        ['gclid','fbclid','utm_source','utm_medium','utm_campaign','utm_content','ref'].forEach(k => {
+          const v = sessionStorage.getItem('gg_' + k);
+          if (v) payload[k === 'ref' ? 'referredBy' : k] = v;
+        });
+        await fetch('/api/lead-capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(() => {});
+      }
+    }
+
+    // Belt-and-suspenders: keep the raw postMessage listener too, in case the
+    // SDK callback shape changes. Dedup is handled by the shared event_id.
+    window.addEventListener('message', (e) => {
       if (e.data?.type === 'bookingSuccessful' || e.data?.action === 'bookingSuccessful') {
-        if (typeof window.gtag === 'function') {
-          window.gtag('event', 'generate_lead', { event_category: 'booking', event_label: 'property_assessment' });
-          window.gtag('event', 'qualify_lead', { event_category: 'booking', event_label: 'property_assessment' });
-        }
-        if (typeof window.fbq === 'function') {
-          window.fbq('track', 'Lead', { content_name: 'Property Assessment Booking', value: 25, currency: 'USD' });
-        }
-        // Always save to HubSpot — regardless of ad attribution source
-        const bookerEmail = e.data?.booking?.attendees?.[0]?.email || e.data?.attendee?.email || null;
-        if (bookerEmail) {
-          const payload: Record<string, string> = { email: bookerEmail, source: 'booking' };
-          // Attach any attribution data from sessionStorage
-          ['gclid','fbclid','utm_source','utm_medium','utm_campaign','utm_content','ref'].forEach(k => {
-            const v = sessionStorage.getItem('gg_' + k);
-            if (v) payload[k === 'ref' ? 'referredBy' : k] = v;
-          });
-          await fetch('/api/lead-capture', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          }).catch(() => {});
-        }
+        fireBookingLead(e.data?.data || e.data);
       }
     });
   </script>
