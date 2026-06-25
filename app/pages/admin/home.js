@@ -230,9 +230,9 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
           <div style={{ marginBottom: 24, padding: '14px 16px', background: 'rgba(255,160,80,0.06)', border: '1px solid rgba(255,160,80,0.2)', borderRadius: 10 }}>
             <div style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#ffb060', marginBottom: 10 }}>⚠ Unpaid Invoices</div>
             {openInvoiceList.map(inv => (
-              <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(255,160,80,0.1)' }}>
-                <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.65)' }}>{inv.email || inv.id}</div>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(255,160,80,0.1)' }}>
+                <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem', color: 'rgba(212,230,202,0.65)' }}>{inv.email || inv.id}</div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
                   <span style={{ fontWeight: 800, color: '#ffb060', fontSize: '0.85rem' }}>{fmt$(inv.amount)}</span>
                   {(() => {
                     const st = reminderState[inv.id]
@@ -242,7 +242,7 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
                         onClick={() => sendReminder(inv.id)}
                         disabled={st === 'sending' || st === 'sent'}
                         title="Re-send this invoice email to the customer as a past-due reminder"
-                        style={{ fontSize: '0.72rem', padding: '3px 10px', borderRadius: 4, border: 'none', background: st === 'sent' ? '#7dffaa' : st === 'error' ? '#ff8080' : '#c9a84c', color: '#0d1a10', fontWeight: 800, fontFamily: 'Inter, sans-serif', cursor: st === 'sending' || st === 'sent' ? 'default' : 'pointer' }}>
+                        style={{ whiteSpace: 'nowrap', fontSize: '0.72rem', padding: '3px 10px', borderRadius: 4, border: 'none', background: st === 'sent' ? '#7dffaa' : st === 'error' ? '#ff8080' : '#c9a84c', color: '#0d1a10', fontWeight: 800, fontFamily: 'Inter, sans-serif', cursor: st === 'sending' || st === 'sent' ? 'default' : 'pointer' }}>
                         {label}
                       </button>
                     )
