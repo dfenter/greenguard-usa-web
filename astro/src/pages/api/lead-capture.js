@@ -91,7 +91,9 @@ async function fireGoogleAdsLead({ gclid }) {
         conversion_value: 25,
         currency_code: 'USD',
       }],
-      partialFailureError: true,
+      // `partialFailure` is the request field; `partialFailureError` is a response
+      // field and the API hard-400s if sent in the request (silently killed uploads).
+      partialFailure: true,
     };
     const r = await fetch(
       `https://googleads.googleapis.com/v21/customers/${customerId}:uploadClickConversions`,

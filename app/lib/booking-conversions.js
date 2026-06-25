@@ -48,7 +48,9 @@ async function fireGoogleAdsBookingLead({ gclid }) {
         conversion_value: LEAD_VALUE,
         currency_code: 'USD',
       }],
-      partialFailureError: true,
+      // Must be `partialFailure` (request field). `partialFailureError` is a
+      // RESPONSE field and the API hard-400s if you send it as a request field.
+      partialFailure: true,
     }
     const r = await fetch(
       `https://googleads.googleapis.com/v21/customers/${customerId}:uploadClickConversions`,
