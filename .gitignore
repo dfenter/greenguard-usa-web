@@ -39,3 +39,7 @@ upload-progress*.json
 *.csv
 SCM_*.zip
 GITHUB_APPEAL.md
+
+# Large media — use cloud storage / LFS, never commit
+*.mp4
+ad_pipeline/assets/
