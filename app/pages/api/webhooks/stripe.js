@@ -163,9 +163,12 @@ export default async function handler(req, res) {
     return res.status(401).end()  // Don't leak error details
   }
 
-  // Idempotency: skip if we've already processed this event (Stripe retries on non-200)
-  const { isWebhookProcessed, recordWebhook } = require('../../../lib/db-webhook-log')
-  if (await isWebhookProcessed(event.id)) {
+  // Idempotency: atomically claim the event before doing any work. Stripe
+  // retries on non-200, and the same event can be delivered to parallel
+  // instances; the KV-backed claim ensures exactly one processes it. On
+  // failure we release the claim so the retry can reprocess.
+  const { claimWebhook, releaseWebhook } = require('../../../lib/db-webhook-log')
+  if (!(await claimWebhook(event.id))) {
     return res.status(200).json({ received: true, duplicate: true })
   }
   try {
@@ -387,6 +390,35 @@ export default async function handler(req, res) {
             })
           }
         }
+
+        // Shop equipment purchases (mode:'payment', source:'shop') also produce no
+        // invoice.payment_succeeded, so fire ad conversions here using the click IDs
+        // captured into session metadata at checkout. Mirrors the quote path above.
+        if (session.metadata?.source === 'shop' && customerEmail) {
+          const amountUsd = (session.amount_total || 0) / 100
+          await fireGA4Purchase({
+            email: customerEmail,
+            amountUsd,
+            orderId: session.id,
+            clientId: session.metadata?.ga_client_id || null,
+          })
+          const fbc = session.metadata?.fbc || buildFbc(session.metadata?.fbclid)
+          await fireMetaPurchase({
+            email: customerEmail,
+            phone: session.customer_details?.phone || '',
+            amountUsd,
+            orderId: session.id,
+            fbc,
+            fbp: session.metadata?.fbp || null,
+            eventSourceUrl: 'https://www.greenguard-usa.com/shop',
+          })
+          await fireGoogleAdsConversion({
+            email: customerEmail,
+            amountUsd,
+            conversionTime: (session.created || Math.floor(Date.now() / 1000)) * 1000,
+            gclid: session.metadata?.gclid,
+          })
+        }
         break
       }
 
@@ -411,10 +443,11 @@ export default async function handler(req, res) {
         break
     }
 
-    await recordWebhook(event.id, event.type)
     res.status(200).json({ received: true })
   } catch (err) {
     console.error('[stripe-webhook] Processing error:', err.message)
+    // Release the claim so Stripe's retry can reprocess this event.
+    try { await releaseWebhook(event.id) } catch {}
     res.status(500).json({ error: 'Processing failed' })
   }
 }

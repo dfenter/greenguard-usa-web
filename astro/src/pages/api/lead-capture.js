@@ -1,4 +1,114 @@
+import { createHash } from 'node:crypto';
+
 export const prerender = false;
+
+function sha256hex(str) {
+  return createHash('sha256').update((str || '').trim().toLowerCase()).digest('hex');
+}
+
+function readCookie(request, name) {
+  const raw = request.headers.get('cookie') || '';
+  const m = raw.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// Fire a server-side Meta CAPI Lead event with whatever attribution we can
+// recover (fbp cookie, fbc cookie or rebuilt from fbclid, IP, user-agent).
+async function fireMetaLead({ request, email, fbclid }) {
+  const token = import.meta.env.META_SYSTEM_USER_TOKEN;
+  const pixelId = import.meta.env.PUBLIC_FB_PIXEL_ID || '2225826221565752';
+  if (!token || !email) return;
+  const fbp = readCookie(request, '_fbp');
+  const fbc = readCookie(request, '_fbc') || (fbclid ? `fb.1.${Date.now()}.${fbclid}` : null);
+  const userData = { em: [sha256hex(email)] };
+  if (fbp) userData.fbp = fbp;
+  if (fbc) userData.fbc = fbc;
+  const ip = (request.headers.get('x-forwarded-for') || '').split(',')[0].trim();
+  if (ip) userData.client_ip_address = ip;
+  const ua = request.headers.get('user-agent');
+  if (ua) userData.client_user_agent = ua;
+  // Stable per-email-per-day event_id so the client pixel Lead (if it also fires)
+  // can be deduplicated by Meta rather than double-counted.
+  const eventId = `lead_${sha256hex(email).slice(0, 16)}_${new Date().toISOString().slice(0, 10)}`;
+  const body = {
+    data: [{
+      event_name: 'Lead',
+      event_time: Math.floor(Date.now() / 1000),
+      action_source: 'website',
+      event_source_url: 'https://www.greenguard-usa.com/book',
+      event_id: eventId,
+      user_data: userData,
+      custom_data: { content_name: 'Property Assessment', value: 25, currency: 'USD' },
+    }],
+  };
+  try {
+    const r = await fetch(`https://graph.facebook.com/v21.0/${pixelId}/events?access_token=${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) console.error('[lead-capture] Meta CAPI Lead error:', await r.text());
+  } catch (e) {
+    console.error('[lead-capture] Meta CAPI Lead failed:', e.message);
+  }
+}
+
+// Upload an offline "Booking Lead" conversion to Google Ads using the click's
+// gclid, so MAXIMIZE_CONVERSIONS bidding (Local Service Austin) optimizes toward
+// booked assessments instead of phone calls alone. Fetch-only, no googleapis dep.
+async function fireGoogleAdsLead({ gclid }) {
+  if (!gclid) return;
+  const devToken = import.meta.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+  const customerId = import.meta.env.GOOGLE_ADS_CUSTOMER_ID;
+  const conversionId = import.meta.env.GOOGLE_ADS_LEAD_CONVERSION_ID;
+  const clientId = import.meta.env.GOOGLE_ADS_CLIENT_ID;
+  const clientSecret = import.meta.env.GOOGLE_ADS_CLIENT_SECRET;
+  const refreshToken = import.meta.env.GOOGLE_ADS_REFRESH_TOKEN;
+  if (!devToken || !customerId || !conversionId || !clientId || !clientSecret || !refreshToken) return;
+  try {
+    // Refresh-token grant — the Google Ads OAuth creds carry the AdWords scope.
+    const tokRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
+    });
+    const tok = await tokRes.json();
+    if (!tok.access_token) {
+      console.error('[lead-capture] Google Ads token error:', JSON.stringify(tok).slice(0, 200));
+      return;
+    }
+    const loginCid = import.meta.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || customerId;
+    const body = {
+      conversions: [{
+        gclid,
+        conversion_action: `customers/${customerId}/conversionActions/${conversionId}`,
+        conversion_date_time: new Date().toISOString().replace('T', ' ').replace('Z', '+00:00'),
+        conversion_value: 25,
+        currency_code: 'USD',
+      }],
+      partialFailureError: true,
+    };
+    const r = await fetch(
+      `https://googleads.googleapis.com/v21/customers/${customerId}:uploadClickConversions`,
+      { method: 'POST', headers: {
+        Authorization: `Bearer ${tok.access_token}`,
+        'developer-token': devToken,
+        'login-customer-id': loginCid,
+        'Content-Type': 'application/json',
+      }, body: JSON.stringify(body) }
+    );
+    const data = await r.json();
+    if (data.partialFailureError) console.error('[lead-capture] Google Ads lead error:', JSON.stringify(data.partialFailureError).slice(0, 300));
+    else console.log('[lead-capture] Google Ads lead uploaded');
+  } catch (e) {
+    console.error('[lead-capture] Google Ads lead failed:', e.message);
+  }
+}
 
 export const POST = async ({ request }) => {
   const hsToken = import.meta.env.HUBSPOT_ACCESS_TOKEN;
@@ -37,6 +147,17 @@ export const POST = async ({ request }) => {
 
   if (!hsRes.ok && hsRes.status !== 409) {
     return new Response(JSON.stringify({ error: 'Failed to save' }), { status: 500 });
+  }
+
+  // Server-side Meta CAPI Lead event. The Lead-optimized campaigns were starved
+  // of conversion signal (only the client pixel fired, inconsistently), so Meta
+  // optimized toward cheap clicks. This gives it a reliable, deduplicated Lead.
+  await fireMetaLead({ request, email: emailStr, fbclid });
+
+  // Offline Google Ads lead — only for real bookings with an ad click, so the
+  // signal stays high-intent and matches the "Booking Lead" conversion action.
+  if (source === 'booking' && gclid) {
+    await fireGoogleAdsLead({ gclid });
   }
 
   // Send lead magnet guide email if this came from the popup (not a booking)

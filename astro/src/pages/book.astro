@@ -1,9 +1,5 @@
 ---
 import Base from '../layouts/Base.astro';
-
-// Cal.com inline embed: the public booking page is at /greenguard-usa
-const CAL_USERNAME = 'greenguard-usa';
-const CAL_EVENT = 'property-assessment';
 ---
 
 <Base
@@ -24,123 +20,143 @@ const CAL_EVENT = 'property-assessment';
     </div>
   </section>
 
-  <!-- SERVICE-AREA CHECK (advisory — calendar always unlocked) -->
-  <section class="py-8 px-5">
-    <div class="max-w-md mx-auto text-center">
-      <p class="text-cream/60 text-sm font-bold uppercase tracking-widest mb-3">Your location</p>
-      <p class="text-cream/70 text-sm mb-4">Enter your ZIP code or city so we can confirm service availability before your visit.</p>
-      <div class="flex gap-2">
-        <input id="zip-input" type="text" maxlength="40" placeholder="ZIP code or city"
-          class="flex-1 bg-bg-card border border-accent/20 text-cream rounded-lg px-4 py-3 text-center text-base font-bold tracking-widest outline-none focus:border-gold/60" />
-        <button id="zip-btn" class="btn-gold whitespace-nowrap">Check</button>
-      </div>
-      <div id="zip-result" class="mt-3 text-sm font-bold min-h-[20px]"></div>
-    </div>
-  </section>
-
-  <!-- BOOKING EMBED (always visible) -->
+  <!-- BOOKING FORM -->
   <section class="py-12 px-5">
-    <div class="max-w-3xl mx-auto">
-      <h2 class="text-2xl md:text-3xl font-black text-white text-center mb-6">Pick a time that works for you</h2>
-      <div class="card !p-2 min-h-[640px]">
-        <!-- Cal.com inline embed via official SDK. The SDK establishes the
-             postMessage handshake a bare <iframe> does not, so the
-             bookingSuccessful event reliably fires for Lead tracking. -->
-        <div id="cal-inline" data-cal-link={`${CAL_USERNAME}/${CAL_EVENT}`} style="width:100%;height:640px;overflow:auto;"></div>
+    <div class="max-w-lg mx-auto">
+
+      <!-- Step indicator -->
+      <div id="step-indicator" class="flex items-center gap-0 mb-10 select-none">
+        <div class="step-dot active" data-step="1"><span>1</span></div>
+        <div class="step-line"></div>
+        <div class="step-dot" data-step="2"><span>2</span></div>
+        <div class="step-line"></div>
+        <div class="step-dot" data-step="3"><span>3</span></div>
+        <div class="step-line"></div>
+        <div class="step-dot" data-step="4"><span>4</span></div>
       </div>
 
-      <div class="text-center text-cream/50 text-xs mt-4">
-        Prefer to talk first? <a href="tel:5125604129" class="text-accent underline">Call 512-560-4129</a>
-        &nbsp;·&nbsp;
-        <a href="mailto:admin@greenguard-usa.com" class="text-accent underline">admin@greenguard-usa.com</a>
+      <!-- Step 1: Contact -->
+      <div id="step-1" class="book-step">
+        <h2 class="text-xl font-black text-white mb-1">Your contact info</h2>
+        <p class="text-cream/55 text-sm mb-6">So we can confirm and reach you before the visit.</p>
+        <div class="flex flex-col gap-4">
+          <div>
+            <label class="field-label">Full name <span class="text-red-400">*</span></label>
+            <input id="f-name" type="text" autocomplete="name" placeholder="Jane Smith" class="field-input" />
+          </div>
+          <div>
+            <label class="field-label">Email address <span class="text-red-400">*</span></label>
+            <input id="f-email" type="email" autocomplete="email" placeholder="jane@example.com" class="field-input" />
+          </div>
+          <div>
+            <label class="field-label">Phone number <span class="text-cream/35">(optional)</span></label>
+            <input id="f-phone" type="tel" autocomplete="tel" placeholder="512-555-0100" class="field-input" />
+          </div>
+        </div>
+        <p id="err-1" class="err-msg hidden mt-3"></p>
+        <button onclick="goStep2()" class="btn-primary mt-6 w-full">Continue &rarr;</button>
       </div>
+
+      <!-- Step 2: Address -->
+      <div id="step-2" class="book-step hidden">
+        <h2 class="text-xl font-black text-white mb-1">Service address</h2>
+        <p class="text-cream/55 text-sm mb-6">Where we'll come out. City and ZIP are required so we can route correctly.</p>
+        <div class="flex flex-col gap-4">
+          <div style="position:relative">
+            <label class="field-label">Street address <span class="text-red-400">*</span></label>
+            <input id="f-street" type="text" autocomplete="off" placeholder="2010 Riverview St" class="field-input"
+              oninput="acOnInput(this.value)" onkeydown="acOnKey(event)" />
+            <div id="ac-dropdown" class="ac-dropdown hidden"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">City <span class="text-red-400">*</span></label>
+              <input id="f-city" type="text" autocomplete="address-level2" placeholder="Austin" class="field-input" />
+            </div>
+            <div>
+              <label class="field-label">State</label>
+              <input id="f-state" type="text" autocomplete="address-level1" value="TX" maxlength="2" class="field-input" />
+            </div>
+          </div>
+          <div>
+            <label class="field-label">ZIP code <span class="text-red-400">*</span></label>
+            <input id="f-zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="78704" class="field-input" />
+          </div>
+        </div>
+        <p id="err-2" class="err-msg hidden mt-3"></p>
+        <div class="flex gap-3 mt-6">
+          <button onclick="goStep(1)" class="btn-ghost flex-1">&larr; Back</button>
+          <button onclick="goStep3()" class="btn-primary flex-2">Choose a time &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Date + time -->
+      <div id="step-3" class="book-step hidden">
+        <h2 class="text-xl font-black text-white mb-1">Pick a date and time</h2>
+        <p class="text-cream/55 text-sm mb-6">Mon–Sat, 8am–6pm CT. We serve the greater Austin area.</p>
+
+        <!-- Month navigation -->
+        <div class="flex items-center justify-between mb-4">
+          <button id="prev-month" onclick="changeMonth(-1)" class="btn-icon">&larr;</button>
+          <span id="month-label" class="text-white font-bold text-base"></span>
+          <button id="next-month" onclick="changeMonth(1)" class="btn-icon">&rarr;</button>
+        </div>
+
+        <!-- Calendar grid -->
+        <div id="cal-grid" class="mb-6"></div>
+
+        <!-- Time slots for selected day -->
+        <div id="slots-panel" class="hidden">
+          <p id="slots-date-label" class="text-cream/55 text-xs font-bold uppercase tracking-widest mb-3"></p>
+          <div id="slots-grid" class="grid grid-cols-4 gap-2"></div>
+        </div>
+
+        <p id="err-3" class="err-msg hidden mt-3"></p>
+        <div class="flex gap-3 mt-6">
+          <button onclick="goStep(2)" class="btn-ghost flex-1">&larr; Back</button>
+          <button onclick="goStep4()" id="btn-step4" class="btn-primary flex-2 opacity-40 cursor-not-allowed" disabled>Review booking &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Review -->
+      <div id="step-4" class="book-step hidden">
+        <h2 class="text-xl font-black text-white mb-1">Review your booking</h2>
+        <p class="text-cream/55 text-sm mb-6">Everything look right? Hit confirm and we'll see you then.</p>
+
+        <div class="card !p-5 mb-4 space-y-3 text-sm">
+          <div class="review-row"><span class="review-label">Name</span><span id="r-name"></span></div>
+          <div class="review-row"><span class="review-label">Email</span><span id="r-email" class="break-all"></span></div>
+          <div id="r-phone-row" class="review-row hidden"><span class="review-label">Phone</span><span id="r-phone"></span></div>
+          <div class="review-row"><span class="review-label">Address</span><span id="r-address" class="text-right"></span></div>
+          <div class="review-row"><span class="review-label">When</span><span id="r-when" class="font-bold text-accent text-right"></span></div>
+        </div>
+
+        <div class="mb-4">
+          <label class="field-label">Notes for us <span class="text-cream/35">(optional)</span></label>
+          <textarea id="f-notes" rows="3" placeholder="Anything we should know about your property or visit?"
+            class="field-input resize-none"></textarea>
+        </div>
+
+        <p id="err-4" class="err-msg hidden mt-2"></p>
+        <div class="flex gap-3 mt-4">
+          <button onclick="goStep(3)" class="btn-ghost flex-1">&larr; Back</button>
+          <button onclick="submitBooking()" id="btn-submit" class="btn-primary flex-2">Confirm booking ✓</button>
+        </div>
+      </div>
+
+      <!-- Success -->
+      <div id="step-success" class="hidden text-center py-8">
+        <div class="text-5xl mb-4">✓</div>
+        <h2 class="text-2xl font-black text-white mb-3">You're booked!</h2>
+        <p class="text-cream/70 mb-2">Confirmation sent to <strong id="s-email" class="text-accent"></strong>.</p>
+        <p id="s-when" class="text-gold font-bold text-lg mb-6"></p>
+        <p class="text-cream/55 text-sm">We'll confirm the day before. Questions? Call or text
+          <a href="tel:5125604129" class="text-accent underline">512-560-4129</a>.
+        </p>
+      </div>
+
     </div>
   </section>
-
-  <script>
-    let calMounted = false;
-
-    function checkZip() {
-      const input = (document.getElementById('zip-input') as HTMLInputElement);
-      const val = input?.value?.trim();
-      const result = document.getElementById('zip-result')!;
-      if (!val) {
-        result.style.color = '#ffb060'; result.textContent = 'Please enter your ZIP code or city.'; return;
-      }
-      result.style.color = '#7dffaa';
-      result.textContent = `✓ Got it — we'll confirm service availability before your appointment.`;
-      if (window.gtag) (window as any).gtag('event', 'zip_check', { location: val });
-    }
-    document.getElementById('zip-btn')?.addEventListener('click', checkZip);
-    (document.getElementById('zip-input') as HTMLInputElement)?.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') checkZip(); });
-
-    // Load the Cal.com embed SDK once.
-    (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if (typeof namespace === "string") { cal.ns[namespace] = cal.ns[namespace] || api; p(cal.ns[namespace], ar); p(cal, ["initNamespace", namespace]); } else p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
-
-    // Mount the inline calendar — only after the gate passes (lazy, once).
-    function mountCal() {
-      if (calMounted) return;
-      calMounted = true;
-      const Cal = (window as any).Cal;
-      Cal('init', { origin: 'https://cal.com' });
-      Cal('inline', {
-        elementOrSelector: '#cal-inline',
-        calLink: 'greenguard-usa/property-assessment',
-        layout: 'month_view',
-        config: { theme: 'dark' },
-      });
-      Cal('on', { action: 'bookingSuccessful', callback: (e: any) => { fireBookingLead(e?.detail); } });
-    }
-
-    async function fireBookingLead(detail: any) {
-      if (typeof window.gtag === 'function') {
-        window.gtag('event', 'generate_lead', { event_category: 'booking', event_label: 'property_assessment' });
-        window.gtag('event', 'qualify_lead', { event_category: 'booking', event_label: 'property_assessment' });
-      }
-      // Dig the attendee email out of whatever shape the payload arrives in.
-      const data = detail?.data || detail || {};
-      const bookerEmail =
-        data?.booking?.attendees?.[0]?.email ||
-        data?.attendees?.[0]?.email ||
-        data?.responses?.email?.value ||
-        data?.attendee?.email ||
-        data?.email ||
-        null;
-      // Shared event_id so the client pixel Lead and the server CAPI Lead
-      // (lib fires the same scheme) dedupe instead of double-counting.
-      let leadEventId: string | undefined;
-      if (bookerEmail) {
-        try {
-          const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(bookerEmail.trim().toLowerCase()));
-          const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-          leadEventId = `lead_${hex.slice(0, 16)}_${new Date().toISOString().slice(0, 10)}`;
-        } catch {}
-      }
-      if (typeof window.fbq === 'function') {
-        window.fbq('track', 'Lead', { content_name: 'Property Assessment Booking', value: 25, currency: 'USD' }, leadEventId ? { eventID: leadEventId } : undefined);
-      }
-      if (bookerEmail) {
-        const payload: Record<string, string> = { email: bookerEmail, source: 'booking' };
-        ['gclid','fbclid','utm_source','utm_medium','utm_campaign','utm_content','ref'].forEach(k => {
-          const v = sessionStorage.getItem('gg_' + k);
-          if (v) payload[k === 'ref' ? 'referredBy' : k] = v;
-        });
-        await fetch('/api/lead-capture', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }).catch(() => {});
-      }
-    }
-
-    // Belt-and-suspenders: keep the raw postMessage listener too, in case the
-    // SDK callback shape changes. Dedup is handled by the shared event_id.
-    window.addEventListener('message', (e) => {
-      if (e.data?.type === 'bookingSuccessful' || e.data?.action === 'bookingSuccessful') {
-        fireBookingLead(e.data?.data || e.data);
-      }
-    });
-  </script>
 
   <!-- WHAT TO EXPECT -->
   <section class="py-16 px-5 bg-bg-panel">
@@ -149,7 +165,6 @@ const CAL_EVENT = 'property-assessment';
         <div class="eyebrow mb-2">What to Expect</div>
         <h2 class="text-2xl md:text-3xl font-black text-white">Simple process. No surprises.</h2>
       </div>
-
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div class="card">
           <div class="text-gold font-extrabold text-sm mb-2">Step 1 · Visit</div>
@@ -169,4 +184,399 @@ const CAL_EVENT = 'property-assessment';
       </div>
     </div>
   </section>
+
+  <style>
+    .book-step { animation: fadeIn 0.18s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+    .field-label { display:block; font-size:0.78rem; font-weight:700; color:rgba(212,230,202,0.6); margin-bottom:5px; letter-spacing:0.04em; }
+    .field-input { width:100%; padding:10px 14px; border-radius:8px; border:1px solid rgba(122,171,130,0.25); background:rgba(255,255,255,0.04); color:#d4e6ca; font-size:0.9rem; font-family:inherit; outline:none; box-sizing:border-box; transition:border-color 0.15s; }
+    .field-input:focus { border-color:rgba(125,255,170,0.5); }
+    .field-input::placeholder { color:rgba(212,230,202,0.25); }
+
+    .btn-primary { padding:11px 20px; border-radius:8px; border:none; cursor:pointer; font-weight:800; font-size:0.9rem; font-family:inherit; background:#c9a84c; color:#0d1a10; transition:opacity 0.15s; }
+    .btn-primary:hover:not(:disabled) { opacity:0.85; }
+    .btn-ghost { padding:11px 20px; border-radius:8px; cursor:pointer; font-weight:700; font-size:0.88rem; font-family:inherit; background:rgba(122,171,130,0.08); color:rgba(212,230,202,0.6); border:1px solid rgba(122,171,130,0.18); }
+    .btn-icon { padding:6px 12px; border-radius:6px; border:1px solid rgba(122,171,130,0.2); background:transparent; color:rgba(212,230,202,0.6); cursor:pointer; font-size:1rem; }
+    .btn-icon:hover { background:rgba(122,171,130,0.1); }
+    .flex-2 { flex:2; }
+
+    .err-msg { font-size:0.82rem; color:#ff8080; font-weight:600; }
+
+    /* Step indicator */
+    #step-indicator { display:flex; align-items:center; }
+    .step-dot { width:32px; height:32px; border-radius:50%; border:2px solid rgba(122,171,130,0.2); display:flex; align-items:center; justify-content:center; font-size:0.78rem; font-weight:800; color:rgba(212,230,202,0.3); flex-shrink:0; }
+    .step-dot.active { border-color:#c9a84c; color:#c9a84c; }
+    .step-dot.done { border-color:#7dffaa; background:rgba(125,255,170,0.1); color:#7dffaa; }
+    .step-line { flex:1; height:2px; background:rgba(122,171,130,0.15); }
+
+    /* Calendar */
+    .cal-header { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:4px; }
+    .cal-header span { text-align:center; font-size:0.68rem; font-weight:800; color:rgba(212,230,202,0.35); letter-spacing:0.05em; }
+    .cal-body { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .cal-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:6px; font-size:0.82rem; font-weight:700; }
+    .cal-day.empty { }
+    .cal-day.past { color:rgba(212,230,202,0.15); }
+    .cal-day.unavailable { color:rgba(212,230,202,0.2); }
+    .cal-day.available { background:rgba(125,255,170,0.08); color:#7dffaa; cursor:pointer; border:1px solid rgba(125,255,170,0.2); }
+    .cal-day.available:hover { background:rgba(125,255,170,0.15); }
+    .cal-day.selected { background:rgba(201,168,76,0.2); color:#c9a84c; border:1px solid rgba(201,168,76,0.5); }
+
+    /* Slots */
+    .slot-btn { padding:8px 4px; border-radius:6px; border:1px solid rgba(122,171,130,0.2); background:transparent; color:rgba(212,230,202,0.7); font-size:0.78rem; font-weight:700; font-family:inherit; cursor:pointer; text-align:center; }
+    .slot-btn:hover { background:rgba(122,171,130,0.1); border-color:rgba(122,171,130,0.4); }
+    .slot-btn.selected { background:rgba(201,168,76,0.15); border-color:#c9a84c; color:#c9a84c; }
+
+    /* Review */
+    .review-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:6px 0; border-bottom:1px solid rgba(122,171,130,0.08); }
+    .review-row:last-child { border-bottom:none; }
+    .review-label { color:rgba(212,230,202,0.4); font-size:0.78rem; white-space:nowrap; }
+
+    .hidden { display:none !important; }
+
+    /* Address autocomplete */
+    .ac-dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:#1a2e1e; border:1px solid rgba(122,171,130,0.3); border-radius:8px; z-index:50; max-height:220px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+    .ac-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid rgba(122,171,130,0.08); }
+    .ac-item:last-child { border-bottom:none; }
+    .ac-item:hover, .ac-item.ac-hi { background:rgba(125,255,170,0.08); }
+    .ac-main { color:#d4e6ca; font-size:0.88rem; font-weight:600; }
+    .ac-sec { color:rgba(212,230,202,0.4); font-size:0.78rem; margin-top:1px; }
+  </style>
+
+  <script is:inline>
+    const PORTAL = 'https://portal.greenguard-usa.com'
+    const TZ = 'America/Chicago'
+
+    // ── State ──────────────────────────────────────────────────────────────────
+    const state = {
+      name: '', email: '', phone: '',
+      street: '', city: '', state: 'TX', zip: '',
+      selectedISO: null,
+      viewYear: 0, viewMonth: 0,
+      slotsCache: {},  // 'YYYY-M' → { slots: {...} }
+    }
+
+    // ── Utilities ──────────────────────────────────────────────────────────────
+    function $(id) { return document.getElementById(id) }
+    function val(id) { return $(id)?.value?.trim() || '' }
+    function show(id) { $(id)?.classList.remove('hidden') }
+    function hide(id) { $(id)?.classList.add('hidden') }
+    function showErr(id, msg) { const el = $(id); if (el) { el.textContent = msg; el.classList.remove('hidden') } }
+    function clearErr(id) { const el = $(id); if (el) { el.textContent = ''; el.classList.add('hidden') } }
+
+    function fmtSlotDisplay(isoUtc) {
+      return new Date(isoUtc).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ })
+    }
+    function fmtDateDisplay(isoUtc) {
+      return new Date(isoUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ })
+    }
+    function fmtFull(isoUtc) {
+      return new Date(isoUtc).toLocaleString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', timeZone: TZ, timeZoneName: 'short'
+      })
+    }
+
+    // ── Step navigation ────────────────────────────────────────────────────────
+    function goStep(n) {
+      for (let i = 1; i <= 4; i++) {
+        const el = $(`step-${i}`)
+        if (el) el.classList.toggle('hidden', i !== n)
+      }
+      hide('step-success')
+      updateIndicator(n)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    function updateIndicator(active) {
+      document.querySelectorAll('.step-dot').forEach(dot => {
+        const n = parseInt(dot.dataset.step)
+        dot.classList.remove('active', 'done')
+        if (n < active) dot.classList.add('done')
+        else if (n === active) dot.classList.add('active')
+      })
+    }
+
+    function goStep2() {
+      clearErr('err-1')
+      const name = val('f-name'), email = val('f-email')
+      if (!name) return showErr('err-1', 'Please enter your name.')
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('err-1', 'Please enter a valid email address.')
+      state.name = name; state.email = email; state.phone = val('f-phone')
+      goStep(2)
+    }
+
+    function goStep3() {
+      clearErr('err-2')
+      const street = val('f-street'), city = val('f-city'), zip = val('f-zip')
+      if (!street) return showErr('err-2', 'Please enter your street address.')
+      if (!city) return showErr('err-2', 'Please enter your city.')
+      if (!zip || !/^\d{5}$/.test(zip)) return showErr('err-2', 'Please enter a valid 5-digit ZIP code.')
+      state.street = street; state.city = city
+      state.state = val('f-state') || 'TX'; state.zip = zip
+      goStep(3)
+      if (!state.viewYear) initCalendar()
+    }
+
+    function goStep4() {
+      clearErr('err-3')
+      if (!state.selectedISO) return showErr('err-3', 'Please select a date and time.')
+      // Populate review
+      $('r-name').textContent = state.name
+      $('r-email').textContent = state.email
+      if (state.phone) { $('r-phone').textContent = state.phone; show('r-phone-row') }
+      else hide('r-phone-row')
+      $('r-address').textContent = `${state.street}, ${state.city}, ${state.state} ${state.zip}`
+      $('r-when').textContent = fmtFull(state.selectedISO)
+      goStep(4)
+    }
+
+    // ── Calendar ───────────────────────────────────────────────────────────────
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+    const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+    function initCalendar() {
+      const now = new Date()
+      state.viewYear = now.getFullYear()
+      state.viewMonth = now.getMonth() + 1
+      loadAndRenderMonth()
+    }
+
+    function changeMonth(delta) {
+      state.viewMonth += delta
+      if (state.viewMonth > 12) { state.viewMonth = 1; state.viewYear++ }
+      if (state.viewMonth < 1)  { state.viewMonth = 12; state.viewYear-- }
+      hide('slots-panel')
+      loadAndRenderMonth()
+    }
+
+    async function loadAndRenderMonth() {
+      const { viewYear: y, viewMonth: m } = state
+      $('month-label').textContent = `${MONTH_NAMES[m-1]} ${y}`
+
+      // Disable prev if already at current month
+      const now = new Date()
+      $('prev-month').disabled = y === now.getFullYear() && m === now.getMonth() + 1
+
+      const key = `${y}-${m}`
+      if (!state.slotsCache[key]) {
+        $('cal-grid').innerHTML = '<p style="color:rgba(212,230,202,0.3);font-size:0.82rem;padding:16px 0;">Loading availability…</p>'
+        try {
+          const r = await fetch(`${PORTAL}/api/book/slots?year=${y}&month=${m}`)
+          const data = await r.json()
+          state.slotsCache[key] = data.slots || {}
+        } catch {
+          $('cal-grid').innerHTML = '<p style="color:#ff8080;font-size:0.82rem;">Failed to load availability. Please try again.</p>'
+          return
+        }
+      }
+      renderCalendar(y, m, state.slotsCache[key])
+    }
+
+    function renderCalendar(year, month, slots) {
+      const grid = $('cal-grid')
+      const firstDow = new Date(year, month - 1, 1).getDay()
+      const daysInMonth = new Date(year, month, 0).getDate()
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      let html = '<div class="cal-header">'
+      DAY_NAMES.forEach(d => { html += `<span>${d}</span>` })
+      html += '</div><div class="cal-body">'
+      for (let i = 0; i < firstDow; i++) html += '<div class="cal-day empty"></div>'
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+        const dayDate = new Date(year, month - 1, d)
+        const dow = dayDate.getDay()
+        const isWeekend = dow === 0 // Sun only; Sat is allowed
+        const isPast = dayDate < today
+
+        if (isPast || isWeekend) {
+          html += `<div class="cal-day past">${d}</div>`
+        } else if (slots[dateStr]?.length) {
+          const sel = state.selectedISO && new Date(state.selectedISO).toLocaleDateString('en-CA', { timeZone: TZ }) === dateStr
+          html += `<div class="cal-day available${sel ? ' selected' : ''}" onclick="selectDay('${dateStr}')" title="${slots[dateStr].length} slots available">${d}</div>`
+        } else {
+          html += `<div class="cal-day unavailable">${d}</div>`
+        }
+      }
+      html += '</div>'
+      grid.innerHTML = html
+    }
+
+    function selectDay(dateStr) {
+      const { viewYear: y, viewMonth: m } = state
+      const slots = state.slotsCache[`${y}-${m}`]?.[dateStr] || []
+      if (!slots.length) return
+
+      // Re-render calendar with this day selected
+      renderCalendar(y, m, state.slotsCache[`${y}-${m}`] || {})
+      document.querySelectorAll('.cal-day.available').forEach(el => {
+        if (el.getAttribute('onclick')?.includes(dateStr)) el.classList.add('selected')
+      })
+
+      // Show time slots
+      const d = new Date(dateStr + 'T12:00:00Z')
+      $('slots-date-label').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      const sg = $('slots-grid')
+      sg.innerHTML = slots.map(iso => {
+        const sel = state.selectedISO === iso
+        return `<button class="slot-btn${sel ? ' selected' : ''}" onclick="selectSlot('${iso}')">${fmtSlotDisplay(iso)}</button>`
+      }).join('')
+      show('slots-panel')
+    }
+
+    function selectSlot(iso) {
+      state.selectedISO = iso
+      document.querySelectorAll('.slot-btn').forEach(b => {
+        b.classList.toggle('selected', b.getAttribute('onclick')?.includes(iso))
+      })
+      const btn = $('btn-step4')
+      btn.disabled = false
+      btn.classList.remove('opacity-40', 'cursor-not-allowed')
+    }
+
+    // ── Submit ─────────────────────────────────────────────────────────────────
+    async function submitBooking() {
+      clearErr('err-4')
+      const btn = $('btn-submit')
+      btn.textContent = 'Booking…'
+      btn.disabled = true
+
+      // Attribution: click IDs captured on landing (sessionStorage) + Meta/GA cookies,
+      // forwarded to the server so it can fire durable offline conversions.
+      const ck = (n) => (document.cookie.match(new RegExp('(?:^|; )' + n + '=([^;]+)')) || [])[1] || null
+      const gaCookie = ck('_ga')
+      const eventId = `book_${(state.email || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16)}_${Date.now()}`
+      const attribution = {
+        gclid: sessionStorage.getItem('gg_gclid') || null,
+        fbclid: sessionStorage.getItem('gg_fbclid') || null,
+        fbp: ck('_fbp'),
+        // _ga cookie is GA1.1.<clientId> — last two dotted parts are the client_id.
+        gaClientId: gaCookie ? gaCookie.split('.').slice(-2).join('.') : null,
+        eventId, // shared with the server CAPI Lead so Meta dedupes the pair
+      }
+
+      try {
+        const res = await fetch(`${PORTAL}/api/book/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: state.name,
+            email: state.email,
+            phone: state.phone || null,
+            street: state.street,
+            city: state.city,
+            state: state.state,
+            zip: state.zip,
+            startISO: state.selectedISO,
+            notes: val('f-notes') || null,
+            ...attribution,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+
+        // Success
+        for (let i = 1; i <= 4; i++) hide(`step-${i}`)
+        hide('step-indicator')
+        show('step-success')
+        $('s-email').textContent = state.email
+        $('s-when').textContent = fmtFull(state.selectedISO)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+
+        // GA4 + Meta lead tracking
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'generate_lead', { event_category: 'booking', event_label: 'property_assessment' })
+          window.gtag('event', 'qualify_lead', { event_category: 'booking', event_label: 'property_assessment' })
+        }
+        if (typeof window.fbq === 'function') {
+          window.fbq('track', 'Lead', { content_name: 'Property Assessment Booking', value: 25, currency: 'USD' }, { eventID: eventId })
+        }
+      } catch (e) {
+        showErr('err-4', e.message || 'Something went wrong. Please try again or call 512-560-4129.')
+        btn.textContent = 'Confirm booking ✓'
+        btn.disabled = false
+      }
+    }
+
+    // ── Address autocomplete ────────────────────────────────────────────────────
+    let acTimer = null
+    let acItems = []
+    let acIdx = -1
+    const acSession = Math.random().toString(36).slice(2) + Date.now().toString(36)
+
+    function acOnInput(v) {
+      clearTimeout(acTimer)
+      if (v.trim().length < 2) { closeAc(); return }
+      acTimer = setTimeout(() => fetchAc(v.trim()), 280)
+    }
+
+    async function fetchAc(q) {
+      try {
+        const r = await fetch(`${PORTAL}/api/book/address-suggest?q=${encodeURIComponent(q)}&session=${acSession}`)
+        const data = await r.json()
+        acItems = data.suggestions || []
+        acIdx = -1
+        renderAc()
+      } catch (e) { closeAc() }
+    }
+
+    function acEsc(s) {
+      return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+
+    function renderAc() {
+      const dd = $('ac-dropdown')
+      if (!dd || !acItems.length) { closeAc(); return }
+      dd.innerHTML = acItems.map((s, i) =>
+        `<div class="ac-item" data-idx="${i}" onmousedown="selectAc(${i})">
+          <div class="ac-main">${acEsc(s.main)}</div>
+          ${s.secondary ? `<div class="ac-sec">${acEsc(s.secondary)}</div>` : ''}
+        </div>`
+      ).join('')
+      show('ac-dropdown')
+    }
+
+    function acOnKey(e) {
+      if (!acItems.length) return
+      if (e.key === 'ArrowDown') { e.preventDefault(); acMove(1) }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); acMove(-1) }
+      else if (e.key === 'Enter' && acIdx >= 0) { e.preventDefault(); selectAc(acIdx) }
+      else if (e.key === 'Escape') closeAc()
+    }
+
+    function acMove(d) {
+      const items = document.querySelectorAll('.ac-item')
+      if (acIdx >= 0) items[acIdx]?.classList.remove('ac-hi')
+      acIdx = Math.max(0, Math.min(acItems.length - 1, acIdx + d))
+      items[acIdx]?.classList.add('ac-hi')
+    }
+
+    async function selectAc(i) {
+      const s = acItems[i]
+      if (!s) return
+      closeAc()
+      $('f-street').value = s.main
+      try {
+        const r = await fetch(`${PORTAL}/api/book/address-detail?placeId=${encodeURIComponent(s.placeId)}&session=${acSession}`)
+        const d = await r.json()
+        if (d.street) $('f-street').value = d.street
+        if (d.city) $('f-city').value = d.city
+        if (d.state) $('f-state').value = d.state
+        if (d.zip) $('f-zip').value = d.zip
+      } catch(e) {}
+    }
+
+    function closeAc() {
+      acItems = []; acIdx = -1
+      const dd = $('ac-dropdown')
+      if (dd) { dd.innerHTML = ''; dd.classList.add('hidden') }
+    }
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#ac-dropdown') && e.target.id !== 'f-street') closeAc()
+    })
+  </script>
 </Base>
