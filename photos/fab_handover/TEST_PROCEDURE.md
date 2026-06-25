@@ -6,7 +6,7 @@
 
 ## Equipment Required
 
-- 5 VDC regulated bench supply (500 mA capable) or 9–12 VDC via J5 barrel jack
+- 9–12 VDC regulated bench supply (500 mA capable), current-limited to 500 mA, via J5 barrel jack (center positive)
 - Multimeter (voltage + current)
 - Bistable latching solenoid (or resistive dummy load on J2)
 - Small flathead screwdriver (J1/J2/J6 terminals)
@@ -17,7 +17,8 @@
 
 - [ ] Verify all SMT components present on top side (U2, U3, U4, F1, R1–R7, C2–C4)
 - [ ] Verify U4 (DRV8833, TSSOP-16) — no bridged pins; confirm EP is soldered to thermal pad on B.Cu
-- [ ] Verify THT components present: D1–D5 (cathode band matches square pad), C1 (+ lead to square pad), SW1/SW2, J1/J2/J3/J4/J5/J6
+- [ ] Verify THT components present: D1–D5 (cathode band matches square pad), C1 (+ lead to square pad), SW1/SW2, J1/J2/J4/J5/J6
+- [ ] Verify **J3 is NOT installed** (DNP — J3 footprint must be empty)
 - [ ] Verify U1 socket or U1 chip installed (consignment)
 - [ ] No visible cold joints, solder bridges, or lifted pads
 
@@ -41,6 +42,25 @@
 5. Hold SET 2 seconds — display exits time-set mode and shows set time running.
 
 Pass: time advances in real time with correct HH:MM format.
+
+> **RTC backup note:** The DS3231M has no coin cell or supercap backup. It holds time only while the board is powered by at least one input (battery or adapter). Full removal of all power resets the RTC.
+
+---
+
+## 3a. RTC Retention Under Partial Power Loss
+
+This test confirms the OR-diode network allows the 9V battery to maintain the RTC while the DC adapter is disconnected.
+
+1. Connect 9V battery to J1 AND 9V adapter to J5.
+2. Set time via SET button.
+3. **Disconnect DC adapter only** — leave battery connected to J1.
+4. Wait 60 seconds.
+5. Reconnect DC adapter.
+6. Verify time is within 5 s of the set value.
+
+Pass: RTC holds time during adapter removal when battery is present.
+
+> **Full power-off behavior:** If both battery and adapter are removed, the RTC resets to 00:00 on next power-on. This is expected — there is no independent backup power path.
 
 ---
 
@@ -94,3 +114,30 @@ If chip is blank or fuses are wrong the display will remain off or show garbage.
 | Buttons | Time-set UX fully functional; auto-exit at 30 s |
 | Sleep/wake | Current drops to ~115 µA; button wakes correctly |
 | U1 firmware | Clean startup sequence, no lockup |
+
+---
+
+## Factory Functional Test
+
+Run after full assembly (PCB + enclosure + wiring complete). Record results per unit — any fail = reject for rework.
+
+| # | Step | Method | Pass |
+|---|------|--------|------|
+| 1 | Apply DC adapter input | Connect 9 V DC adapter to J5 (center-positive) | No smoke; F1 does not trip; display shows `----` within 1 s |
+| 2 | Apply battery input | Disconnect adapter; connect 9 V battery to J1 | Same startup; confirm OR-diode failover works |
+| 3 | Simultaneous inputs | Connect both J5 adapter and J1 battery | Both connected without issue; no elevated heat on D1 or D4 |
+| 4 | 3.3 V rail | Measure at U3 output pin | 3.28–3.32 V |
+| 5 | Display startup | Power on | `----` for ~1 s then HH:MM with colon; no garbage or frozen digits |
+| 6 | Time-set entry | Hold SET 3 s | Display flashes; hour field blinks; UP increments 00–23; SET advances to minutes; hold SET 2 s saves; auto-exits at 30 s if no input |
+| 7 | RTC retention (partial) | Connect 9V battery to J1 + adapter to J5, set time, disconnect adapter only, wait 60 s, reconnect adapter | Time within 5 s of set value. Note: full removal of all power resets RTC (no backup cell). |
+| 8 | Solenoid OPEN pulse | Advance time to 05:30 window via time-set; monitor IN1 (PA0) | IN1 HIGH for ~50 ms then LOW; valve clicks open |
+| 9 | Solenoid CLOSE pulse | Advance time to 23:30 window | IN2 HIGH for ~50 ms then LOW; valve clicks closed |
+| 10 | No sustained drive | After pulse, measure J2 current | < 5 mA (coil off — bistable valve retains state) |
+| 11 | Sleep current | Leave unit in OFF window (display off) | Ammeter reads ≤ 150 µA (target ~115 µA) |
+| 12 | Wake on alarm | Let DS3231M alarm fire at schedule boundary | MCU wakes; display activates; schedule re-evaluated; valve pulsed if needed |
+| 13 | Wake on button | During sleep, press UP or SET | Display activates immediately; schedule displayed |
+| 14 | Boot valve state — OFF window | Power on when time is in OFF window | No valve pulse; valve state unchanged |
+| 15 | Boot valve state — ON window | Power on when time is in ON window | OPEN pulse fires unconditionally (firmware cannot know prior valve state after power loss); valve reaches known open state within 2 s |
+| 16 | Enclosure fit | Close snap-fit lid | Lid seats fully; no component contact; J1/J5/J6 accessible; CO2 barbs accessible |
+
+Record current draw at step 11 and solenoid pulse width at steps 8–9 for each unit — these are key production metrics.

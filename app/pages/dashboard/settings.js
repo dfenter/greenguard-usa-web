@@ -31,7 +31,7 @@ export async function getServerSideProps({ req }) {
 const inp = {
   width: '100%', padding: '10px 14px', borderRadius: 8,
   background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(122,171,130,0.25)',
-  color: '#d4e6ca', fontSize: '0.9rem', fontFamily: 'Nunito Sans, sans-serif',
+  color: '#d4e6ca', fontSize: '0.9rem', fontFamily: 'Inter, sans-serif',
   outline: 'none', boxSizing: 'border-box',
 }
 const card = { background: 'rgba(26,46,31,0.7)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }
@@ -119,7 +119,7 @@ export default function SettingsPage({ email, contactId, initialData }) {
             </div>
           )}
           <button type="submit" disabled={saving}
-            style={{ width: '100%', padding: '13px', borderRadius: 10, fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Nunito Sans, sans-serif', cursor: saving ? 'not-allowed' : 'pointer', border: 'none', background: saved ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#d4b45a,#c9a84c)', color: saved ? '#7dffaa' : '#0d1a10', transition: 'all 0.2s' }}>
+            style={{ width: '100%', padding: '13px', borderRadius: 10, fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', cursor: saving ? 'not-allowed' : 'pointer', border: 'none', background: saved ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#d4b45a,#c9a84c)', color: saved ? '#7dffaa' : '#0d1a10', transition: 'all 0.2s' }}>
             {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Changes'}
           </button>
         </form>

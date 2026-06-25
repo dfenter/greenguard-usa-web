@@ -277,7 +277,7 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
                 <div style={{ background: 'rgba(125,255,170,0.05)', border: '1px solid rgba(125,255,170,0.2)', borderRadius: 8, padding: 14 }}>
                   <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 10 }}>Start a Service Plan</div>
                   <select value={planId} onChange={(e) => setPlanId(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', marginBottom: 10 }}>
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', marginBottom: 10 }}>
                     <option value="">— Pick a plan —</option>
                     {SERVICE_PLANS.map((p) => (
                       <option key={p.id} value={p.id}>{p.label} — ${p.monthly.toFixed(2)}/mo{p.perUnit ? ' · per unit' : ''}</option>
@@ -296,7 +296,7 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
                     </div>
                   )}
                   <button onClick={startPlan} disabled={!planId || startingPlan}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 6, border: 'none', background: planId ? '#7dffaa' : 'rgba(125,255,170,0.2)', color: '#0d1a10', fontWeight: 900, cursor: planId ? 'pointer' : 'not-allowed', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 6, border: 'none', background: planId ? '#7dffaa' : 'rgba(125,255,170,0.2)', color: '#0d1a10', fontWeight: 900, cursor: planId ? 'pointer' : 'not-allowed', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif' }}>
                     {startingPlan ? 'Starting…' : 'Start Plan'}
                   </button>
                 </div>

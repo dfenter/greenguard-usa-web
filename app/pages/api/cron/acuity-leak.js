@@ -69,7 +69,7 @@ export default async function handler(req, res) {
 
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
-      from: 'GreenGuard Alerts <noreply@greenguard-usa.com>',
+      from: 'GreenGuard Alerts <admin@greenguard-usa.com>',
       to: ALERT_EMAIL,
       subject: `⚠ Acuity leak: ${newAcuity.length} new booking${newAcuity.length === 1 ? '' : 's'}`,
       html: `

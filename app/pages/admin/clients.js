@@ -3,8 +3,6 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { listAllCustomers } from '../../lib/stripe'
-import { getAllContacts } from '../../lib/hubspot'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -19,80 +17,11 @@ function getTrapImage(systemType, trapCount) {
   return null
 }
 
-export async function getServerSideProps({ req, res }) {
-  res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
+export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
-
-  const [raw, hubspotContacts] = await Promise.all([
-    listAllCustomers().catch(() => []),
-    getAllContacts(300).catch(() => []),
-  ])
-
-  const hsAddressByEmail = {}
-  hubspotContacts.forEach((c) => {
-    const email = (c.properties?.email || '').toLowerCase()
-    if (email && c.properties?.address) hsAddressByEmail[email] = c.properties.address
-  })
-
-  // Last/Next visit columns are lazy-loaded client-side from
-  // /api/admin/client-visits so this SSR render no longer blocks on the
-  // calendar range scans (which were the heaviest part of the page).
-
-  const customers = raw.map((c) => {
-    const subs = c.subscriptions?.data || []
-    const activeSub = subs.find((s) => s.status === 'active') || subs[0] || null
-    const mrr = activeSub ? activeSub.items.data.reduce((sum, i) => sum + (i.price.unit_amount || 0), 0) : 0
-    const planLabel = activeSub ? activeSub.items.data.map((i) => i.price.nickname || i.price.id).filter(Boolean).join(' + ') : null
-    const email = (c.email || '').toLowerCase()
-    return {
-      id: c.id,
-      name: c.name || '',
-      email: c.email || '',
-      phone: c.phone || '',
-      status: activeSub?.status || 'inactive',
-      plan: planLabel,
-      mrr,
-      address: hsAddressByEmail[email] || '',
-    }
-  }).sort((a, b) => {
-    // Sort by last name (last word of name), fall back to full name
-    const lastName = (name) => name.trim().split(/\s+/).pop() || name
-    return lastName(a.name).localeCompare(lastName(b.name))
-  })
-
-  // Prospects = HubSpot contacts not yet in Stripe — merged into customers with status='prospect'
-  const stripeEmails = new Set(raw.map((c) => (c.email || '').toLowerCase()).filter(Boolean))
-  const prospects = hubspotContacts
-    .filter((c) => {
-      const email = (c.properties?.email || '').toLowerCase()
-      const name = [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ')
-      // Drop nameless contacts entirely — they render as blank/"—" rows.
-      if (!name) return false
-      return !email || !stripeEmails.has(email)
-    })
-    .map((c) => ({
-      id: `hs_${c.id}`,
-      hsId: c.id,
-      name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
-      email: c.properties?.email || '',
-      phone: c.properties?.phone || '',
-      address: c.properties?.address || '',
-      systemType: c.properties?.system_type || '',
-      status: 'prospect',
-      plan: null,
-      mrr: 0,
-    }))
-
-  const combined = [...customers, ...prospects].sort((a, b) => {
-    const lastName = (name) => (name || '').trim().split(/\s+/).pop() || name
-    return lastName(a.name).localeCompare(lastName(b.name))
-  })
-
-  // `combined` already includes prospects for the live table; the standalone
-  // `prospects` array is only referenced by dead code, so we don't ship it.
-  return { props: { customers: combined } }
+  return { props: {} }
 }
 
 const STATUS_COLORS = {
@@ -723,7 +652,8 @@ const FILTER_TABS = [
   { key: 'prospect', label: 'Prospects' },
 ]
 
-export default function Clients({ customers, prospects = [] }) {
+export default function Clients() {
+  const [customers, setCustomers] = useState(null)
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState('all')
   const [selected, setSelected] = useState(null)
@@ -731,6 +661,15 @@ export default function Clients({ customers, prospects = [] }) {
   const [locating, setLocating] = useState(false)
   // Lazy-loaded Last/Next visit data: null = still loading, {} = loaded.
   const [visits, setVisits] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    fetch('/api/admin/clients-data')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d) setCustomers(d.customers) })
+      .catch(() => { if (alive) setCustomers([]) })
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -746,7 +685,7 @@ export default function Clients({ customers, prospects = [] }) {
     setLocating(true)
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const origin = `${pos.coords.latitude},${pos.coords.longitude}`
-      const addressable = customers.filter((c) => c.address)
+      const addressable = list.filter((c) => c.address)
       try {
         const res = await fetch('/api/admin/distances', {
           method: 'POST',
@@ -760,10 +699,13 @@ export default function Clients({ customers, prospects = [] }) {
     }, () => setLocating(false))
   }
 
-  const realClients = customers.filter(c => c.status !== 'prospect')
-  const allProspects = customers.filter(c => c.status === 'prospect')
+  const loading = customers === null
+  const list = customers || []
 
-  const filtered = customers.filter((c) => {
+  const realClients = list.filter(c => c.status !== 'prospect')
+  const allProspects = list.filter(c => c.status === 'prospect')
+
+  const filtered = list.filter((c) => {
     const q = search.toLowerCase().trim()
     const qDigits = q.replace(/\D/g, '')
     const matchSearch = !q || (
@@ -794,7 +736,7 @@ export default function Clients({ customers, prospects = [] }) {
             <span className="tag">Admin</span>
             <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Clients</h1>
             <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
-              {realClients.length} clients · {allProspects.length} prospects · MRR ${(totalMrr / 100).toFixed(0)}
+              {loading ? 'Loading…' : `${realClients.length} clients · ${allProspects.length} prospects · MRR $${(totalMrr / 100).toFixed(0)}`}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -820,7 +762,7 @@ export default function Clients({ customers, prospects = [] }) {
               style={{ width: '100%', maxWidth: 360, padding: '9px 14px', marginBottom: 16, border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
             />
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              {prospects.filter((p) => {
+              {allProspects.filter((p) => {
                 const q = search.toLowerCase().trim()
                 if (!q) return true
                 return (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q)
@@ -836,7 +778,7 @@ export default function Clients({ customers, prospects = [] }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {prospects.filter((p) => {
+                    {allProspects.filter((p) => {
                       const q = search.toLowerCase().trim()
                       if (!q) return true
                       return (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q)
@@ -903,7 +845,12 @@ export default function Clients({ customers, prospects = [] }) {
 
         {/* Table */}
         <div className={`card panel-open-shrink`} style={{ padding: 0, overflow: 'auto', marginRight: panelOpen ? 420 : 0, transition: 'margin-right 0.2s' }}>
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div style={{ padding: 32, display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(212,230,202,0.35)', fontSize: '0.85rem' }}>
+              <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(122,171,130,0.3)', borderTopColor: '#7aab82', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              Loading clients…
+            </div>
+          ) : filtered.length === 0 ? (
             <p style={{ padding: 24, color: 'rgba(212,230,202,0.4)', margin: 0 }}>No customers match.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
@@ -953,7 +900,7 @@ export default function Clients({ customers, prospects = [] }) {
         </div>
 
         <p style={{ marginTop: 10, fontSize: '0.72rem', color: 'rgba(212,230,202,0.25)' }}>
-          {filtered.length} of {customers.length} shown · Click a row to open details
+          {filtered.length} of {list.length} shown · Click a row to open details
         </p>
 
         </> /* end clients view */}

@@ -36,7 +36,7 @@ function Card({ title, monthly, features, accent = '#7dffaa', muted = false }) {
   return (
     <div style={{
       flex: '1 1 280px', minWidth: 260, padding: 18, borderRadius: 12,
-      background: muted ? 'rgba(255,255,255,0.03)' : `${accent}11`,
+      background: muted ? 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))' : `${accent}11`,
       border: `1px solid ${muted ? 'rgba(122,171,130,0.15)' : `${accent}40`}`,
     }}>
       <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: muted ? 'rgba(212,230,202,0.4)' : accent, marginBottom: 8 }}>
@@ -134,7 +134,7 @@ export default function UpgradePage({ customer, currentPathKey, customerName, sy
               <div onClick={() => setSelectedUpgrade(u)}
                 style={{
                   cursor: 'pointer', padding: '14px 16px',
-                  background: isSelected ? 'rgba(125,255,170,0.08)' : 'rgba(255,255,255,0.03)',
+                  background: isSelected ? 'rgba(125,255,170,0.08)' : 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))',
                   border: `1px solid ${isSelected ? '#7dffaa' : 'rgba(122,171,130,0.2)'}`,
                   borderRadius: 10, marginBottom: 12,
                 }}>
@@ -180,7 +180,7 @@ export default function UpgradePage({ customer, currentPathKey, customerName, sy
                   </div>
 
                   <button onClick={executeUpgrade} disabled={running}
-                    style={{ width: '100%', padding: '14px 18px', borderRadius: 8, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '1rem', cursor: running ? 'wait' : 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}>
+                    style={{ width: '100%', padding: '14px 18px', borderRadius: 8, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '1rem', cursor: running ? 'wait' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
                     {running ? 'Applying…' : `Apply ${u.kind === 'tier' ? 'Tier Upgrade' : u.kind === 'addon' ? 'Add-On' : 'Capacity Upgrade'}`}
                   </button>
                 </>

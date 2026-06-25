@@ -129,6 +129,8 @@ export default async function handler(req, res) {
         customerName: customerName || '',
         gclid: String(attribution.gclid || '').slice(0, 100),
         fbclid: String(attribution.fbclid || '').slice(0, 100),
+        fbp: String(attribution.fbp || '').slice(0, 100),
+        fbc: String(attribution.fbc || '').slice(0, 100),
         utm_source: String(attribution.utm_source || '').slice(0, 100),
         utm_medium: String(attribution.utm_medium || '').slice(0, 100),
         utm_campaign: String(attribution.utm_campaign || '').slice(0, 100),

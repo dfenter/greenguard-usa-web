@@ -120,7 +120,7 @@ export default function Login({ error }) {
                     border: '1px solid rgba(122,171,130,0.3)',
                     background: 'rgba(255,255,255,0.05)', color: '#d4e6ca',
                     fontSize: '0.95rem', outline: 'none', marginBottom: 16,
-                    fontFamily: 'Nunito Sans, sans-serif',
+                    fontFamily: 'Inter, sans-serif',
                   }}
                 />
                 <button

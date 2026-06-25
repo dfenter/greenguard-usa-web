@@ -29,6 +29,24 @@ deploy_portal() {
   echo -e "${GREEN}✓ Portal deployed → https://portal.greenguard-usa.com${NC}"
 }
 
+deploy_preview() {
+  # Preview deploy pinned to ONE stable URL so the 90-day session cookie
+  # survives across deploys — log in once, no fresh magic link each time.
+  echo -e "${CYAN}▲ Deploying portal PREVIEW → https://gg-portal-preview.vercel.app ...${NC}"
+  cd "$REPO_ROOT/app"
+  echo -e "${CYAN}  Running lint check...${NC}"
+  if ! npx next lint --quiet 2>&1; then
+    echo -e "${RED}✗ Lint errors found — fix before deploying${NC}"
+    exit 1
+  fi
+  DEPLOY_URL=$(vercel --scope "$SCOPE" 2>&1 | grep -oE 'https://app-[a-z0-9]+-green-guard-usa-s-projects\.vercel\.app' | head -1)
+  if [ -z "$DEPLOY_URL" ]; then
+    echo -e "${RED}✗ Could not determine preview deployment URL${NC}"; exit 1
+  fi
+  vercel alias set "$DEPLOY_URL" gg-portal-preview.vercel.app --scope "$SCOPE" > /dev/null 2>&1
+  echo -e "${GREEN}✓ Portal preview deployed → https://gg-portal-preview.vercel.app${NC}"
+}
+
 deploy_site() {
   echo -e "${CYAN}▲ Deploying greenguard-usa.com ...${NC}"
   cd "$REPO_ROOT"
@@ -85,6 +103,7 @@ deploy_photos() {
 
 case "${1:-all}" in
   portal)  deploy_portal ;;
+  preview) deploy_preview ;;
   poolpro) deploy_poolpro ;;
   lawnpro) deploy_lawnpro ;;
   site)    deploy_site ;;
@@ -98,7 +117,7 @@ case "${1:-all}" in
     deploy_astro
     ;;
   *)
-    echo -e "${RED}Usage: $0 [portal|site|all]${NC}"
+    echo -e "${RED}Usage: $0 [portal|preview|site|astro|photos|all]${NC}"
     exit 1
     ;;
 esac

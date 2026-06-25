@@ -3,44 +3,14 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { listAllCustomers } from '../../lib/stripe'
-import { getAllContacts } from '../../lib/hubspot'
+import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30')
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
-  const [raw, hsContacts] = await Promise.all([
-    listAllCustomers().catch(() => []),
-    getAllContacts(200).catch(() => []),
-  ])
-
-  const stripeEmails = new Set(raw.map(c => (c.email || '').toLowerCase()).filter(Boolean))
-
-  // Merge Stripe customers + HubSpot-only contacts (prospects)
-  const stripeList = raw.map((c) => ({ id: c.id, name: c.name || '', email: c.email || '', source: 'stripe' }))
-
-  const hsList = hsContacts
-    .filter(c => {
-      const email = (c.properties?.email || '').toLowerCase()
-      return email && !stripeEmails.has(email)
-    })
-    .map(c => ({
-      id: `hs_${c.id}`,
-      name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
-      email: c.properties?.email || '',
-      source: 'hubspot',
-    }))
-
-  const customers = [...stripeList, ...hsList]
-    .filter((c) => c.name || c.email)
-    .sort((a, b) => {
-      const ln = (n) => n.trim().split(/\s+/).pop() || n
-      return ln(a.name || a.email).localeCompare(ln(b.name || b.email))
-    })
-
-  return { props: { customers } }
+  return { props: {} }
 }
 
 function fmt$(cents) { return `$${(cents / 100).toFixed(2)}` }
@@ -48,7 +18,15 @@ function fmtDate(unix) { return new Date(unix * 1000).toLocaleDateString('en-US'
 
 const STATUS_COLOR = { paid: '#7dffaa', open: '#ffb060', draft: '#c9a84c', void: 'rgba(212,230,202,0.35)' }
 
-export default function InvoiceEditor({ customers = [] }) {
+// Heavy data (customer list) loads client-side; the page shell paints immediately.
+export default function InvoiceEditor() {
+  const { data, error, reload } = useLazyData('/api/admin/invoice-data')
+  if (error) return <LazyError error={error} onRetry={reload} />
+  if (!data) return <LazyLoading />
+  return <InvoiceEditorView {...data} />
+}
+
+function InvoiceEditorView({ customers = [] }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [email, setEmail] = useState('')
@@ -257,8 +235,8 @@ export default function InvoiceEditor({ customers = [] }) {
     await loadPending()
   }
 
-  const input = { padding: '9px 12px', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }
-  const btn = (v) => ({ padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', fontFamily: 'Nunito Sans, sans-serif', ...(v === 'gold' ? { background: '#c9a84c', color: '#0d1a10' } : v === 'green' ? { background: '#7dffaa', color: '#0d1a10' } : v === 'red' ? { background: 'rgba(255,100,100,0.12)', color: '#ff8080', border: '1px solid rgba(255,100,100,0.2)' } : { background: 'rgba(122,171,130,0.1)', color: '#7aab82', border: '1px solid rgba(122,171,130,0.2)' }) })
+  const input = { padding: '9px 12px', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
+  const btn = (v) => ({ padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', fontFamily: 'Inter, sans-serif', ...(v === 'gold' ? { background: '#c9a84c', color: '#0d1a10' } : v === 'green' ? { background: '#7dffaa', color: '#0d1a10' } : v === 'red' ? { background: 'rgba(255,100,100,0.12)', color: '#ff8080', border: '1px solid rgba(255,100,100,0.2)' } : { background: 'rgba(122,171,130,0.1)', color: '#7aab82', border: '1px solid rgba(122,171,130,0.2)' }) })
   const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 12, marginTop: 28 }
 
   return (
@@ -393,7 +371,7 @@ export default function InvoiceEditor({ customers = [] }) {
                           if (r.ok) { setMsg('Draft deleted'); loadPending() }
                           else { const j = await r.json().catch(() => ({})); alert('Failed: ' + (j.error || r.status)) }
                         }}
-                          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.3)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
+                          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.3)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
                           Cancel
                         </button>
                         {draft.hostedUrl && (
@@ -418,7 +396,7 @@ export default function InvoiceEditor({ customers = [] }) {
                                     body: JSON.stringify({ action: 'delete-line', invoiceId: draft.id, itemId: line.id }),
                                   })
                                   loadPending()
-                                }} style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
+                                }} style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
                                   ✕
                                 </button>
                               </div>
@@ -678,7 +656,7 @@ export default function InvoiceEditor({ customers = [] }) {
                               {isDraft && (
                                 <button
                                   onClick={() => deleteLineItem(inv.id, line.invoiceItem || line.id)}
-                                  style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
+                                  style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
                                   ✕
                                 </button>
                               )}

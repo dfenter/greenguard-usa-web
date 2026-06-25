@@ -733,6 +733,12 @@ def main():
             if os.path.isfile(src):
                 shutil.copy(src, dst)
 
+    # Copy zelda game directory (served at /zelda/)
+    zelda_src = os.path.join(REPO, 'zelda')
+    if os.path.isdir(zelda_src):
+        shutil.copytree(zelda_src, os.path.join(OUT, 'zelda'))
+        print('  COPY  zelda/')
+
     # Generate Google Merchant Center product feed
     feed_path = os.path.join(OUT, 'products-feed.xml')
     open(feed_path, 'w', encoding='utf-8').write(_build_merchant_feed())

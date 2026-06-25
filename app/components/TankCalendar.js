@@ -36,10 +36,10 @@ export default function TankCalendar({ tankCalendar = {}, scheduleByDate = {}, o
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <button onClick={() => setViewDate(new Date(year, month - 1, 1))}
-          style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '1.2rem', fontFamily: 'Nunito Sans, sans-serif' }}>‹</button>
+          style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '1.2rem', fontFamily: 'Inter, sans-serif' }}>‹</button>
         <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{monthLabel}</span>
         <button onClick={() => setViewDate(new Date(year, month + 1, 1))}
-          style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '1.2rem', fontFamily: 'Nunito Sans, sans-serif' }}>›</button>
+          style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '1.2rem', fontFamily: 'Inter, sans-serif' }}>›</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3, marginBottom: 3 }}>
@@ -59,7 +59,7 @@ export default function TankCalendar({ tankCalendar = {}, scheduleByDate = {}, o
           const hasLog = !!log
           const deficit = forecast != null && tanks > 0 && forecast < 0
 
-          let bg = 'rgba(255,255,255,0.03)'
+          let bg = 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))'
           let border = 'rgba(122,171,130,0.12)'
           if (tanks > 0) {
             if (deficit) { bg = 'rgba(255,100,100,0.1)'; border = 'rgba(255,100,100,0.3)' }

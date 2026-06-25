@@ -200,3 +200,21 @@ Quote flow:
   → Stripe one-time payment (first month + setup fees)
   → Customer books installation via Cal.com embed
 ```
+
+---
+
+## ⚠ Two-session coordination (prototype showcase)
+
+Two Claude Code sessions run across this repo + `/Users/lucille/Trap Design`.
+They share only the filesystem — respect lanes + locks. Full detail:
+`/Users/lucille/Trap Design/CLAUDE.md` and `Trap Design/CFD/SESSIONS.md`.
+
+- **Lanes — never edit another lane's files.** Halo Garden + Monolith family
+  (`astro/public/render.html`, `render-mini.html`, `monolith-bf.html`, `titan.html`,
+  `halo-*.html`, `cutsheet-*.html`) = Session A. Aria (`aria.html`, `aria-tests.html`,
+  `aria-*.html`) = Session B.
+- **`astro/public/prototypes.html` is SHARED — single-writer.** Before editing:
+  `bash "/Users/lucille/Trap Design/CFD/lock.sh" acquire prototypes`, then re-READ and
+  INSERT only your product block (never rewrite the file), then `... release prototypes`.
+- **Deploy:** either session may `./scripts/deploy.sh astro`, but re-read prototypes.html first.
+- **CFD/render builds:** one at a time via `Trap Design/CFD/cfd_queue.sh` (see CFD/QUEUE.md).

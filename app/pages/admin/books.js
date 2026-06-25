@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import Link from 'next/link'
+import { useState } from 'react'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { q } from '../../lib/db'
@@ -25,9 +26,12 @@ export async function getServerSideProps({ req, res, query }) {
     where += ` AND category_label = $${args.length}`
   }
 
-  let txs, summary, cats, lastRun
+  const thisYear = new Date().getFullYear()
+  const ytdStart = new Date(Date.UTC(thisYear, 0, 1)).toISOString()
+
+  let txs, summary, cats, lastRun, ytd
   try {
-    ;[txs, summary, cats, lastRun] = await Promise.all([
+    ;[txs, summary, cats, lastRun, ytd] = await Promise.all([
       q(`SELECT id, occurred_at, amount_cents, type, description, customer_email, customer_name, sku, category_label
          FROM transactions WHERE ${where} ORDER BY occurred_at DESC LIMIT 200`, args),
       q(`SELECT category_label,
@@ -37,20 +41,31 @@ export async function getServerSideProps({ req, res, query }) {
          FROM transactions WHERE ${where} GROUP BY category_label ORDER BY ABS(SUM(amount_cents)) DESC`, args),
       q(`SELECT label, type FROM categories ORDER BY type, label`),
       q(`SELECT started_at, finished_at, rows_added, ok, error FROM ingest_runs ORDER BY started_at DESC LIMIT 1`),
+      q(`SELECT
+           SUM(CASE WHEN amount_cents > 0 AND category_label LIKE 'Revenue:%' THEN amount_cents ELSE 0 END)::bigint AS revenue_cents,
+           SUM(CASE WHEN amount_cents < 0 AND category_label ~ '^(Expense|COGS):' THEN amount_cents ELSE 0 END)::bigint AS expense_cents
+         FROM transactions WHERE occurred_at >= $1`, [ytdStart]),
     ])
   } catch (err) {
-    return { props: { days, search, category, txs: [], summary: [], categories: [], lastRun: null, dbError: err.message || 'Database unavailable' } }
+    return { props: { days, search, category, txs: [], summary: [], categories: [], lastRun: null, ytd: null, dbError: err.message || 'Database unavailable' } }
   }
 
+  const ytdRow = ytd.rows[0] || {}
   return {
     props: {
       days,
       search,
       category,
+      thisYear,
       txs: txs.rows.map((r) => ({ ...r, occurred_at: r.occurred_at.toISOString() })),
       summary: summary.rows,
       categories: cats.rows,
       lastRun: lastRun.rows[0] ? { ...lastRun.rows[0], started_at: lastRun.rows[0].started_at.toISOString(), finished_at: lastRun.rows[0].finished_at?.toISOString() || null } : null,
+      ytd: {
+        revenue: Number(ytdRow.revenue_cents || 0) / 100,
+        expenses: Number(ytdRow.expense_cents || 0) / 100,
+        net: (Number(ytdRow.revenue_cents || 0) + Number(ytdRow.expense_cents || 0)) / 100,
+      },
       dbError: null,
     },
   }
@@ -68,11 +83,36 @@ const TYPE_COLOR = {
   equity: '#c9a84c', unknown: 'rgba(212,230,202,0.5)', asset: '#7dffaa', liability: '#ff8080',
 }
 
-export default function BooksPage({ days, search, category, txs, summary, categories, lastRun }) {
+export default function BooksPage({ days, search, category, txs, summary, categories, lastRun, ytd, thisYear }) {
   const totalIn = summary.reduce((s, r) => s + Number(r.inflow || 0), 0)
   const totalOut = summary.reduce((s, r) => s + Number(r.outflow || 0), 0)
   const net = totalIn + totalOut
   const grouped = categories.reduce((m, c) => { (m[c.type] ||= []).push(c.label); return m }, {})
+
+  const [showExpense, setShowExpense] = useState(false)
+  const [expForm, setExpForm] = useState({ occurred_at: new Date().toISOString().slice(0, 10), amount_dollars: '', description: '', category_label: '' })
+  const [expSaving, setExpSaving] = useState(false)
+
+  const expenseCategories = categories.filter((c) => c.type === 'expense' || c.type === 'cogs')
+
+  async function submitExpense(e) {
+    e.preventDefault()
+    if (!expForm.category_label) return alert('Pick a category.')
+    setExpSaving(true)
+    try {
+      const res = await fetch('/api/admin/books-add-expense', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(expForm),
+      })
+      if (!res.ok) { const j = await res.json(); throw new Error(j.error || res.status) }
+      setShowExpense(false)
+      window.location.reload()
+    } catch (err) {
+      alert('Failed: ' + err.message)
+      setExpSaving(false)
+    }
+  }
 
   return (
     <>
@@ -96,6 +136,10 @@ export default function BooksPage({ days, search, category, txs, summary, catego
               style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.35)', color: '#7dffaa', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
               ⬆ Upload CSV
             </Link>
+            <button onClick={() => setShowExpense(true)}
+              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(255,128,128,0.35)', color: '#ff8080', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Inter, sans-serif' }}>
+              + Add Expense
+            </button>
             <button onClick={async () => {
               if (!window.confirm('Run Gemini categorizer on the next 25 Unknown transactions?')) return
               const res = await fetch('/api/admin/books-categorize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: 25 }) })
@@ -107,15 +151,15 @@ export default function BooksPage({ days, search, category, txs, summary, catego
                 alert('Failed: ' + (j.error || res.status))
               }
             }}
-              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.35)', color: '#c9a84c', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Nunito Sans, sans-serif' }}>
-              🤖 Recategorize Unknown (25)
+              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.35)', color: '#c9a84c', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Inter, sans-serif' }}>
+              🤖 Recategorize (25)
             </button>
           </div>
           <form method="GET" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <input name="q" defaultValue={search} placeholder="Search description / email"
-              style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', minWidth: 200 }} />
+              style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', minWidth: 200 }} />
             <select name="cat" defaultValue={category}
-              style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+              style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
               <option value="">All categories</option>
               {Object.keys(grouped).map((type) => (
                 <optgroup key={type} label={type.toUpperCase()}>
@@ -124,25 +168,57 @@ export default function BooksPage({ days, search, category, txs, summary, catego
               ))}
             </select>
             <select name="days" defaultValue={days}
-              style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+              style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
               <option value="7">7d</option>
               <option value="30">30d</option>
               <option value="90">90d</option>
               <option value="365">365d</option>
               <option value="730">2y</option>
             </select>
-            <button style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>Apply</button>
+            <button style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', cursor: 'pointer' }}>Apply</button>
           </form>
         </div>
 
-        {/* KPI summary */}
+        {/* YTD summary */}
+        {ytd && (
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', margin: 0 }}>{thisYear} Year to Date</h2>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <a href={`/api/admin/books-export-pnl?ytd=${thisYear}`}
+                  style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 5, border: '1px solid rgba(91,196,255,0.3)', color: '#5bc4ff', textDecoration: 'none', fontWeight: 700 }}>
+                  ↓ YTD CSV
+                </a>
+                <a href={`/api/admin/books-export-pnl?month=${new Date().toISOString().slice(0,7)}`}
+                  style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 5, border: '1px solid rgba(91,196,255,0.3)', color: '#5bc4ff', textDecoration: 'none', fontWeight: 700 }}>
+                  ↓ This Month CSV
+                </a>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {[
+                ['Revenue', ytd.revenue, '#7dffaa'],
+                ['Expenses', Math.abs(ytd.expenses), '#ff8080'],
+                ['Net Income', ytd.net, ytd.net >= 0 ? '#7dffaa' : '#ff8080'],
+              ].map(([lbl, val, color]) => (
+                <div key={lbl} style={{ flex: '1 1 150px', minWidth: 140, padding: '12px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 10 }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 5 }}>{lbl}</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color }}>${val.toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* KPI summary — current filter window */}
+        <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', marginBottom: 6 }}>Last {days} days</h2>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 22 }}>
           {[
             ['Inflow',  totalIn,  '#7dffaa'],
             ['Outflow', totalOut, '#ff8080'],
             ['Net',     net,      net >= 0 ? '#7dffaa' : '#ff8080'],
           ].map(([lbl, val, color]) => (
-            <div key={lbl} style={{ flex: '1 1 150px', minWidth: 140, padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 10 }}>
+            <div key={lbl} style={{ flex: '1 1 150px', minWidth: 140, padding: '14px 16px', background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 10 }}>
               <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>{lbl}</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color }}>${Math.abs(val).toFixed(2)}{val < 0 ? ' out' : ''}</div>
             </div>
@@ -197,8 +273,56 @@ export default function BooksPage({ days, search, category, txs, summary, catego
         </div>
 
         <p style={{ marginTop: 16, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)' }}>
-          Showing up to 200 transactions. Phase 2 adds LLM categorization, natural-language chat, and exports.
+          Showing up to 200 transactions. Upload bank/CC CSVs monthly to keep the ledger complete.
         </p>
+
+        {/* Add Expense modal */}
+        {showExpense && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div style={{ background: '#0f1f12', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 12, padding: 28, width: '100%', maxWidth: 440 }}>
+              <h2 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 900, color: '#d4e6ca' }}>Add Expense</h2>
+              <form onSubmit={submitExpense} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Date</label>
+                  <input type="date" required value={expForm.occurred_at}
+                    onChange={(e) => setExpForm((f) => ({ ...f, occurred_at: e.target.value }))}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Amount ($)</label>
+                  <input type="number" step="0.01" min="0.01" required placeholder="0.00" value={expForm.amount_dollars}
+                    onChange={(e) => setExpForm((f) => ({ ...f, amount_dollars: e.target.value }))}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Description</label>
+                  <input type="text" required placeholder="e.g. Amazon — CO2 fittings" value={expForm.description}
+                    onChange={(e) => setExpForm((f) => ({ ...f, description: e.target.value }))}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Category</label>
+                  <select required value={expForm.category_label}
+                    onChange={(e) => setExpForm((f) => ({ ...f, category_label: e.target.value }))}
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: '#0f1f12', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }}>
+                    <option value="">Select category…</option>
+                    {expenseCategories.map((c) => <option key={c.label} value={c.label}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <button type="submit" disabled={expSaving}
+                    style={{ flex: 1, padding: '9px 0', borderRadius: 7, border: 'none', background: '#ff8080', color: '#1a0000', fontWeight: 900, fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', cursor: expSaving ? 'not-allowed' : 'pointer' }}>
+                    {expSaving ? 'Saving…' : 'Add Expense'}
+                  </button>
+                  <button type="button" onClick={() => setShowExpense(false)}
+                    style={{ padding: '9px 18px', borderRadius: 7, border: '1px solid rgba(122,171,130,0.25)', background: 'transparent', color: 'rgba(212,230,202,0.6)', fontWeight: 700, fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </PortalLayout>
     </>
   )

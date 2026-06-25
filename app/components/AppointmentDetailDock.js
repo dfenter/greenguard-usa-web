@@ -120,7 +120,7 @@ function EventNotesSection({ eventId, customerEmail }) {
         style={{ width: '100%', padding: '7px 9px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
         <button onClick={save} disabled={busy || !body.trim()}
-          style={{ padding: '5px 12px', borderRadius: 4, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.76rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Nunito Sans, sans-serif' }}>
+          style={{ padding: '5px 12px', borderRadius: 4, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.76rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Inter, sans-serif' }}>
           {busy ? 'Saving…' : 'Add'}
         </button>
         {msg && <span style={{ fontSize: '0.74rem', color: msg.ok ? '#7dffaa' : '#ff8080' }}>{msg.text}</span>}
@@ -156,7 +156,7 @@ function DockNoteComposer({ email, hsContactId }) {
         style={{ width: '100%', padding: '7px 9px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
         <button onClick={save} disabled={busy || !body.trim()}
-          style={{ padding: '5px 12px', borderRadius: 4, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.76rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Nunito Sans, sans-serif' }}>
+          style={{ padding: '5px 12px', borderRadius: 4, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.76rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Inter, sans-serif' }}>
           {busy ? 'Saving…' : 'Save'}
         </button>
         {msg && <span style={{ fontSize: '0.74rem', color: msg.ok ? '#7dffaa' : '#ff8080' }}>{msg.text}</span>}
@@ -175,59 +175,16 @@ export default function DetailDock({ details, loading, onClose }) {
   const email = d.email || p.email || ''
   const notes = cleanDescription(ev.description)
   const billingContact = p.billing_contact_name
-  const bookingUid = (ev.rescheduleUrl || '').match(/\/(?:reschedule|booking)\/([^/?#]+)/)?.[1] || null
 
   const [tab, setTab] = useState('details')
   const scheduleHref = '/admin/booking?' + new URLSearchParams({ email: email || '', name: customerName || '', phone: phone || '', address: address || '' }).toString()
-
-  const [editMode, setEditMode] = useState(false)
-  const [newStart, setNewStart] = useState(ev.start ? new Date(ev.start).toISOString().slice(0, 16) : '')
-  const [editBusy, setEditBusy] = useState(false)
-  const [editMsg, setEditMsg] = useState(null)
-
-  async function saveReschedule() {
-    if (!newStart) return
-    setEditBusy(true); setEditMsg(null)
-    try {
-      const res = await fetch('/api/admin/reschedule-booking', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingUid, eventId: ev.id, newStartIso: new Date(newStart).toISOString() }),
-      })
-      const j = await res.json()
-      if (!res.ok) throw new Error(j.error || 'Reschedule failed')
-      setEditMsg({ kind: 'ok', text: 'Rescheduled. Refresh to see updated times.' })
-      setEditMode(false)
-    } catch (err) {
-      setEditMsg({ kind: 'err', text: err.message })
-    } finally { setEditBusy(false) }
-  }
-
-  async function doCancel() {
-    if (!bookingUid) {
-      window.alert('Legacy Acuity event — cancel manually in Google Calendar.')
-      return
-    }
-    if (!window.confirm(`Cancel ${customerName}'s appointment?`)) return
-    setEditBusy(true); setEditMsg(null)
-    try {
-      const res = await fetch('/api/admin/cancel-booking', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: bookingUid, customerEmail: email, reason: 'Cancelled by admin', action: 'cancel' }),
-      })
-      const j = await res.json()
-      if (!res.ok) throw new Error(j.error || 'Cancel failed')
-      setEditMsg({ kind: 'ok', text: 'Cancelled. Refresh to update.' })
-    } catch (err) {
-      setEditMsg({ kind: 'err', text: err.message })
-    } finally { setEditBusy(false) }
-  }
 
   return (
     <div style={{
       position: 'fixed', right: 0, top: 0, bottom: 0, width: 'min(420px, 95vw)',
       background: '#0d1a10', borderLeft: '1px solid rgba(122,171,130,0.25)',
       boxShadow: '-4px 0 24px rgba(0,0,0,0.5)', zIndex: 300, overflow: 'auto',
-      color: '#d4e6ca', fontFamily: 'Nunito Sans, sans-serif',
+      color: '#d4e6ca', fontFamily: 'Inter, sans-serif',
     }}>
       <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(122,171,130,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#0d1a10', zIndex: 1 }}>
         <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.45)' }}>Appointment Details</span>
@@ -266,7 +223,7 @@ export default function DetailDock({ details, loading, onClose }) {
           <div style={{ display: 'flex', gap: 6, margin: '12px 0 4px' }}>
             {[{ k: 'details', l: 'Details' }, { k: 'history', l: 'History' }].map((t) => (
               <button key={t.k} onClick={() => setTab(t.k)}
-                style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem', fontFamily: 'Nunito Sans, sans-serif',
+                style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem', fontFamily: 'Inter, sans-serif',
                   background: tab === t.k ? '#c9a84c' : 'rgba(201,168,76,0.1)', color: tab === t.k ? '#0d1a10' : 'rgba(201,168,76,0.7)' }}>
                 {t.l}
               </button>
@@ -319,6 +276,8 @@ export default function DetailDock({ details, loading, onClose }) {
             </div>
           </div>
 
+          <EventNotesSection eventId={ev.id} customerEmail={email} />
+
           {notes && (
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Notes</div>
@@ -326,76 +285,9 @@ export default function DetailDock({ details, loading, onClose }) {
             </div>
           )}
 
-          <EventNotesSection eventId={ev.id} customerEmail={email} />
-
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Customer note (HubSpot timeline)</div>
             <DockNoteComposer email={email} hsContactId={d.contact?.id} />
-          </div>
-
-          {ev.isLegacyAcuity && (
-            <div style={{ marginBottom: 12, padding: '8px 10px', background: 'rgba(255,160,80,0.08)', border: '1px solid rgba(255,160,80,0.25)', borderRadius: 6, fontSize: '0.72rem', color: '#ffb060' }}>
-              ⚠ Legacy Acuity booking. Use Cal.com or Google Calendar to reschedule going forward.
-            </div>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
-            {!editMode && (
-              <button onClick={() => setEditMode(true)} disabled={editBusy}
-                style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.08)', color: '#c9a84c', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Nunito Sans, sans-serif' }}>
-                ✎ Edit appointment time
-              </button>
-            )}
-            {editMode && (
-              <div style={{ padding: 10, borderRadius: 6, border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.05)' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c9a84c', marginBottom: 6 }}>New start time (Central)</div>
-                <input type="datetime-local" value={newStart} onChange={(e) => setNewStart(e.target.value)}
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', marginBottom: 8 }} />
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={saveReschedule} disabled={editBusy || !newStart}
-                    style={{ flex: 1, padding: '7px 10px', borderRadius: 5, border: 'none', background: '#c9a84c', color: '#0d1a10', cursor: editBusy ? 'wait' : 'pointer', fontWeight: 900, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>
-                    {editBusy ? 'Saving…' : 'Save'}
-                  </button>
-                  <button onClick={() => { setEditMode(false); setEditMsg(null) }} disabled={editBusy}
-                    style={{ padding: '7px 12px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-            <button onClick={doCancel} disabled={editBusy}
-              style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(255,128,128,0.35)', background: 'rgba(255,128,128,0.05)', color: '#ff8080', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Nunito Sans, sans-serif' }}>
-              ✕ Cancel appointment
-            </button>
-            {editMsg && (
-              <div style={{ padding: '6px 10px', borderRadius: 4, fontSize: '0.78rem', color: editMsg.kind === 'ok' ? '#7dffaa' : '#ff8080', background: editMsg.kind === 'ok' ? 'rgba(125,255,170,0.08)' : 'rgba(255,128,128,0.08)' }}>
-                {editMsg.text}
-              </div>
-            )}
-            {ev.htmlLink && (
-              <a href={ev.htmlLink} target="_blank" rel="noopener noreferrer"
-                style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(91,196,255,0.3)', color: '#5bc4ff', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>
-                Open in Google Calendar ↗
-              </a>
-            )}
-            {ev.rescheduleUrl && !ev.isLegacyAcuity && (
-              <a href={ev.rescheduleUrl} target="_blank" rel="noopener noreferrer"
-                style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', color: '#7dffaa', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>
-                Customer self-reschedule link ↗
-              </a>
-            )}
-            {email && (
-              <Link href={`/admin/rounds?date=${(ev.start || '').slice(0,10)}&email=${encodeURIComponent(email)}`}
-                style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.3)', color: '#c9a84c', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>
-                Open in Rounds →
-              </Link>
-            )}
-            {d.contact?.id && (
-              <a href={`https://app.hubspot.com/contacts/0/contact/${d.contact.id}`} target="_blank" rel="noopener noreferrer"
-                style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', color: 'rgba(212,230,202,0.7)', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>
-                Open in HubSpot ↗
-              </a>
-            )}
           </div>
           </>)}
         </div>

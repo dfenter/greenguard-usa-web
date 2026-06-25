@@ -6,106 +6,14 @@ import CustomerMap from '../../components/CustomerMap'
 import TankCalendar from '../../components/TankCalendar'
 import { StopRow } from '../../components/StopCard'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
-import { findContactsByEmails, getContactNotes, tanksForCustomer } from '../../lib/hubspot'
-import { buildTankCalendarData } from '../../lib/tank-data'
+import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
 
 export async function getServerSideProps({ req, res }) {
+  res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
   const session = await getSessionFromRequest(req, res)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
-
-  const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
-  const now = new Date()
-  const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz })
-
-  const tomorrow = new Date(now)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  const tomorrowStr = tomorrow.toLocaleDateString('en-CA', { timeZone: tz })
-  const tomorrowStart = new Date(tomorrowStr + 'T00:00:00-05:00').toISOString()
-  const tomorrowEnd = new Date(tomorrowStr + 'T23:59:59-05:00').toISOString()
-
-  const [todayStops, tomorrowStops, tankData] = await Promise.all([
-    getTodaysBookings().catch(() => []),
-    getBookingsForDateRange(tomorrowStart, tomorrowEnd).catch(() => []),
-    buildTankCalendarData(tz).catch(() => null),
-  ])
-
-  // Resolve customer name/phone/tanks from HubSpot for all stops.
-  // Use the SAME batch fetch (findContactsByEmails) + tanksForCustomer that
-  // admin home uses, so tech's tank counts and KPIs are identical to admin.
-  // The old per-email findContactByEmail loop rate-limited under load and
-  // dropped some contacts, which undercounted the KPI totals.
-  const allEmails = [...new Set([...todayStops, ...tomorrowStops].map(s => s.email).filter(Boolean))]
-  const contactMap = {}
-  const hsContacts = await findContactsByEmails(allEmails).catch(() => new Map())
-  for (const [email, c] of hsContacts.entries()) {
-    contactMap[email] = {
-      name: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' '),
-      phone: c.properties?.phone || '',
-      address: c.properties?.address || '',
-      tanks: tanksForCustomer(c.properties) || null,
-      firstAppointment: c.properties?.first_appointment === 'true',
-      _contactId: c.id,
-    }
-  }
-  const ADMIN_NOTE_RE = /^\[ADMIN-NOTE[^\]]*\]\s*/
-  await Promise.all(Object.entries(contactMap).map(async ([email, info]) => {
-    if (!info._contactId) return
-    try {
-      const notes = await getContactNotes(info._contactId, 20)
-      const client = notes
-        .filter(n => ADMIN_NOTE_RE.test((n.body || '').trim()))
-        .slice(0, 3)
-        .map(n => n.body.trim().replace(ADMIN_NOTE_RE, ''))
-        .filter(Boolean)
-      if (client.length) contactMap[email].clientNotes = client
-    } catch {}
-  }))
-
-  function serializeStop(s) {
-    const info = contactMap[s.email?.toLowerCase()] || {}
-    // Cal.com events have customerName and phone in the GCal event; older events have email in description
-    const resolvedName = info.name || s.customerName || s.name || s.title || ''
-    const resolvedPhone = info.phone || s.phone || ''
-    return {
-      gcalEventId: s.id || null,
-      title: resolvedName,
-      serviceType: s.title || '',
-      startTime: s.startTime || null,
-      endTime: s.endTime || null,
-      address: s.address || '',
-      email: s.email || '',
-      phone: resolvedPhone,
-      tanks: info.tanks || null,
-      firstAppointment: info.firstAppointment || false,
-      rescheduleUrl: s.rescheduleUrl || null,
-      appointmentNotes: s.appointmentNotes || null,
-      clientNotes: info.clientNotes || [],
-    }
-  }
-
-  return {
-    props: {
-      adminEmail: session.email,
-      todayStr,
-      tomorrowStr,
-      todayStops: todayStops.map(serializeStop),
-      tomorrowStops: tomorrowStops.map(serializeStop),
-      mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-      // Same KPI source values admin home uses, so the cards match exactly.
-      fullTanksOnHand: tankData?.currentStock ?? null,
-      tanksNeededThisWeek: tankData?.weeklyTankTotal ?? null,
-      expectedDeliveryThisWeek: tankData?.expectedDelivery ?? null,
-      tankData: tankData ? {
-        tankCalendar: tankData.tankCalendar,
-        scheduleByDate: tankData.scheduleByDate,
-        today: tankData.today,
-        currentStock: tankData.currentStock,
-        expectedDelivery: tankData.expectedDelivery,
-      } : null,
-    },
-  }
+  return { props: {} }
 }
 
 function fmtTime(iso) {
@@ -228,7 +136,14 @@ function TechNotes() {
   )
 }
 
-export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops, mapsKey = '', tankData = null, fullTanksOnHand = null, tanksNeededThisWeek = null, expectedDeliveryThisWeek = null }) {
+export default function TechDashboard() {
+  const { data, error, reload } = useLazyData('/api/admin/tech-data')
+  if (error) return <LazyError error={error} onRetry={reload} />
+  if (!data) return <LazyLoading />
+  return <TechDashboardView {...data} />
+}
+
+function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops, mapsKey = '', tankData = null, fullTanksOnHand = null, tanksNeededThisWeek = null, expectedDeliveryThisWeek = null }) {
   const [distances, setDistances] = useState({})
   const [distLoading, setDistLoading] = useState(false)
 

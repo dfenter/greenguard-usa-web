@@ -64,11 +64,11 @@ export default function LegacyMigration() {
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-          <button onClick={audit} disabled={loading} style={{ padding: '9px 18px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+          <button onClick={audit} disabled={loading} style={{ padding: '9px 18px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif' }}>
             {loading ? 'Scanning…' : events ? '↻ Re-scan' : 'Scan Calendar'}
           </button>
           {events && events.length > 0 && (
-            <button onClick={migrateAll} style={{ padding: '9px 18px', borderRadius: 6, border: 'none', background: '#c9a84c', color: '#0d1a10', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+            <button onClick={migrateAll} style={{ padding: '9px 18px', borderRadius: 6, border: 'none', background: '#c9a84c', color: '#0d1a10', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif' }}>
               Migrate All ({events.length})
             </button>
           )}
@@ -105,7 +105,7 @@ export default function LegacyMigration() {
                         <span style={{ fontSize: '0.75rem', color: '#ff8080', fontWeight: 700, maxWidth: 360, textAlign: 'right' }}>✗ {r.error}</span>
                       )}
                       {!r && (
-                        <button onClick={() => migrateOne(ev.id)} style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid rgba(201,168,76,0.4)', background: 'transparent', color: '#c9a84c', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+                        <button onClick={() => migrateOne(ev.id)} style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid rgba(201,168,76,0.4)', background: 'transparent', color: '#c9a84c', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
                           Migrate
                         </button>
                       )}

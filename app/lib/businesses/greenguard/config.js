@@ -26,9 +26,9 @@ module.exports = {
     accent:      '#7dffaa',
     accentMuted: '#7aab82',
     gold:        '#c9a84c',
-    text:        '#d4e6ca',
-    textMuted:   'rgba(212,230,202,0.6)',
-    textDim:     'rgba(212,230,202,0.35)',
+    text:        '#e3f0db',
+    textMuted:   'rgba(227,240,219,0.78)',
+    textDim:     'rgba(227,240,219,0.55)',
     themeColor:  '#1a2e1f',
   },
 

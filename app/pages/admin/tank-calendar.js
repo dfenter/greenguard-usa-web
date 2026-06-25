@@ -230,7 +230,7 @@ function fmtWed(isoStr) {
 }
 
 const S = {
-  card: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 10, padding: '16px 20px' },
+  card: { background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 10, padding: '16px 20px' },
   input: { width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#d4e6ca', fontSize: '0.88rem', boxSizing: 'border-box', fontFamily: 'inherit' },
   label: { display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4, color: 'rgba(212,230,202,0.55)', textTransform: 'uppercase', letterSpacing: '0.06em' },
   badge: (status) => ({
@@ -527,7 +527,7 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
             <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
               {!exchangeHistory?.length && <div style={{ color: 'rgba(212,230,202,0.4)', fontSize: '0.88rem' }}>No exchanges logged yet.</div>}
               {exchangeHistory?.map((r, i) => (
-                <div key={i} style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(122,171,130,0.15)', fontSize: '0.85rem' }}>
+                <div key={i} style={{ padding: '12px 16px', background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', borderRadius: 8, border: '1px solid rgba(122,171,130,0.15)', fontSize: '0.85rem' }}>
                   <div style={{ fontWeight: 700, color: '#c9a84c', marginBottom: 6 }}>{r.week ? `Week of ${fmtWed(r.week)}` : 'Exchange record'}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '4px 16px' }}>
                     <span><span style={{ color: 'rgba(212,230,202,0.5)' }}>Empties out: </span>{r.emptiesPickedUp}</span>

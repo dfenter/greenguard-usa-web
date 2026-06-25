@@ -68,13 +68,17 @@ async function findOrCreateCustomer({ email, name, phone, address, metadata = {}
 /**
  * Add one-time add-on line items to the customer's next invoice.
  */
-async function addInvoiceItems(customerId, oneTimeSkus) {
+async function addInvoiceItems(customerId, oneTimeSkus, metadata = {}) {
   const results = []
   for (const sku of oneTimeSkus) {
     const priceId = PRICE_ID_MAP[sku]
     if (!priceId) continue
     results.push(
-      await stripe.invoiceItems.create({ customer: customerId, price: priceId })
+      await stripe.invoiceItems.create({
+        customer: customerId,
+        price: priceId,
+        metadata: { ...metadata, gg_sku: sku },
+      })
     )
   }
   return results
@@ -267,14 +271,15 @@ async function getBalance() {
 
 // Cached for 60s. Pages all customers (~5+ Stripe calls at scale).
 async function listAllCustomers() {
-  return cached('stripe:customers:all', 300, async () => {
+  return cached('stripe:customers:all', 1800, async () => {
     const all = []
     let cursor = undefined
     do {
+      // No subscription expand: billing is invoice-based and no subscriptions
+      // exist, so expanding them added ~40% latency for an always-empty field.
       const page = await stripe.customers.list({
         limit: 100,
         starting_after: cursor,
-        expand: ['data.subscriptions'],
       })
       all.push(...page.data)
       cursor = page.has_more ? page.data[page.data.length - 1]?.id : undefined

@@ -191,8 +191,8 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
     }
   }
 
-  const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.9rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', textAlign: 'right' }
-  const lbl = { fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.45)', display: 'block', marginBottom: 4 }
+  const input = { width: '100%', padding: '12px 16px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', outline: 'none', textAlign: 'left' }
+  const lbl = { fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.6)', display: 'block', marginBottom: 8 }
   const section = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', margin: '18px 0 10px', paddingBottom: 6, borderBottom: '1px solid rgba(122,171,130,0.1)' }
 
   // Today's tank count from schedule
@@ -246,12 +246,12 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
 
               <div style={section}>End of Day Counts</div>
 
-              <div style={{ marginBottom: 14 }}>
+              <div style={{ marginBottom: 18 }}>
                 <label style={lbl}>Full tanks at end of day</label>
                 <input style={input} type="number" min="0" placeholder={placeholders.fullEnd} value={form.fullEnd} onChange={set('fullEnd')} />
               </div>
 
-              <div style={{ marginBottom: 14 }}>
+              <div style={{ marginBottom: 18 }}>
                 <label style={lbl}>Empty tanks at end of day</label>
                 <input style={input} type="number" min="0" placeholder={placeholders.emptyEnd} value={form.emptyEnd} onChange={set('emptyEnd')} />
               </div>
@@ -289,16 +289,16 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
               )}
 
               <div style={section}>Equipment Counts</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 12px', marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 14px', marginBottom: 18 }}>
                 {EQUIPMENT_ITEMS.map((item) => (
                   <div key={item.key} style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label style={{ ...lbl, fontSize: '0.65rem', minHeight: 28, lineHeight: 1.25, display: 'flex', alignItems: 'flex-end', marginBottom: 6 }}>{item.label}</label>
-                    <input style={{ ...input, padding: '7px 10px', marginTop: 'auto' }} type="number" min="0" placeholder={placeholders.equipment[item.key]} value={form.equipment[item.key]} onChange={setEquip(item.key)} />
+                    <label style={{ ...lbl, fontSize: '0.65rem', minHeight: 28, lineHeight: 1.25, display: 'flex', alignItems: 'flex-end', marginBottom: 8 }}>{item.label}</label>
+                    <input style={{ ...input, marginTop: 'auto' }} type="number" min="0" placeholder={placeholders.equipment[item.key]} value={form.equipment[item.key]} onChange={setEquip(item.key)} />
                   </div>
                 ))}
               </div>
 
-              <div style={{ marginBottom: 14 }}>
+              <div style={{ marginBottom: 18 }}>
                 <label style={lbl}>Notes</label>
                 <textarea rows={2} style={{ ...input, textAlign: 'left', resize: 'vertical' }} placeholder="Delivery notes, issues…" value={form.notes} onChange={set('notes')} />
               </div>
@@ -310,7 +310,7 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
               )}
 
               <button onClick={save} disabled={saving}
-                style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Nunito Sans, sans-serif', background: saving ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', opacity: saving ? 0.7 : 1 }}>
+                style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', background: saving ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', opacity: saving ? 0.7 : 1 }}>
                 {saving ? 'Saving…' : 'Save Daily Log'}
               </button>
           </div>

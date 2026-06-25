@@ -124,6 +124,12 @@
     (property "Value" "4K7" (at 150 60 0))
     (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 150 62 0))
   )
+  (symbol (lib_id "Device:R") (at 162 55 0) (unit 1)
+    (property "Reference" "R7" (at 162 50 0))
+    (property "Value" "4K7" (at 162 60 0))
+    (property "Footprint" "Resistor_SMD:R_0805_2012Metric" (at 162 62 0))
+    (property "Description" "I2C SCL pullup — PB1/SCL to VCC" (at 162 64 0))
+  )
   (symbol (lib_id "Device:R") (at 150 70 0) (unit 1)
     (property "Reference" "R6" (at 150 65 0))
     (property "Value" "10K" (at 150 75 0))
@@ -175,6 +181,12 @@
     (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical" (at 55 110 0))
   )
 
+  ;; ── R7 VCC power symbol (top of SCL pullup) ─────────────
+  (symbol (lib_id "power:VCC") (at 162 47 0) (unit 1)
+    (property "Reference" "#PWR04" (at 162 51 0))
+    (property "Value" "+3V3" (at 162 44 0))
+  )
+
   ;; ── Net Labels ───────────────────────────────────────────
   (label "TM1637_CLK" (at 92 62 0))
   (label "TM1637_DIO" (at 92 65 0))
@@ -183,6 +195,7 @@
   (label "BTN_SET" (at 92 74 0))
   (label "SDA" (at 153 62 0))
   (label "SCL" (at 153 65 0))
+  (label "SCL" (at 165 62 0))
   (label "RTC_INT" (at 153 68 0))
   (label "VBAT_3V3" (at 153 71 0))
   (label "TM1637_CLK" (at 68 35 0))

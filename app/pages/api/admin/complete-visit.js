@@ -1,4 +1,4 @@
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../../../lib/auth')
 const { findContactByEmail, upsertContact, addNote } = require('../../../lib/hubspot')
 const { addInvoiceItems, stripe } = require('../../../lib/stripe')
 const { SKU_PRICES, isSubscriptionSKU } = require('../../../lib/sku-engine')
@@ -27,16 +27,42 @@ export default async function handler(req, res) {
   try {
     // Find Stripe customer ID
     const customers = await stripe.customers.search({
-      query: `email:"${email}"`,
+      query: `email:"${escapeStripeSearch(email)}"`,
       limit: 1,
     })
     const stripeCustomerId = customers.data[0]?.id || null
 
-    // Add invoice items for one-time SKUs
+    // Add invoice items for one-time SKUs.
+    // Double-billing guard: skip any SKU already added as a pending item for
+    // this same customer + visit day (double-submit, retry, or re-completing
+    // the same visit). A genuine new visit on another day is unaffected.
     let invoiceItemsAdded = 0
+    let skippedDuplicates = 0
     if (stripeCustomerId && skus.length > 0) {
-      const items = await addInvoiceItems(stripeCustomerId, skus)
-      invoiceItemsAdded = items.length
+      const visitDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+      let skusToAdd = skus
+      try {
+        const pending = await stripe.invoiceItems.list({
+          customer: stripeCustomerId,
+          pending: true,
+          limit: 100,
+        })
+        const billedToday = new Set(
+          pending.data
+            .filter((it) => it.metadata?.gg_source === 'complete-visit' && it.metadata?.gg_visit_date === visitDate)
+            .map((it) => it.metadata?.gg_sku)
+        )
+        skusToAdd = skus.filter((s) => !billedToday.has(s))
+        skippedDuplicates = skus.length - skusToAdd.length
+      } catch {}
+
+      if (skusToAdd.length > 0) {
+        const items = await addInvoiceItems(stripeCustomerId, skusToAdd, {
+          gg_source: 'complete-visit',
+          gg_visit_date: visitDate,
+        })
+        invoiceItemsAdded = items.length
+      }
     }
 
     // Update HubSpot last_visit_date
@@ -58,7 +84,7 @@ export default async function handler(req, res) {
       await addNote(contact.id, noteBody)
     }
 
-    res.status(200).json({ success: true, invoiceItemsAdded })
+    res.status(200).json({ success: true, invoiceItemsAdded, skippedDuplicates })
   } catch (err) {
     console.error('complete-visit error:', err)
     res.status(500).json({ error: 'Failed to complete visit' })

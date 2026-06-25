@@ -57,7 +57,7 @@
   <div><span class="dot" style="background:#c8a24a"></span>Visible jewelry (rim / curtain ring)</div>
   <div><span class="dot" style="background:#9aa0a6"></span>Counterflow engine (shared)</div>
   <div><span class="dot" style="background:#4b5a66"></span>Hidden CO&#8322; tank</div>
-  <div id="legFlow" style="display:none"><span class="dot" style="background:#e8c060"></span>CO&#8322; + scent curtain &middot; <span class="dot" style="background:#5ab4f0"></span>Intake suction</div>
+  <div id="legFlow" style="display:none"><span class="dot" style="background:#e8c060"></span>CO&#8322; + scent lure &middot; <span class="dot" style="background:#5ab4f0"></span>Fan suction &middot; <span class="dot" style="background:#1a1a1f"></span>Mosquitoes &middot; <span class="dot" style="background:#5fc77f"></span>Catch net</div>
 </div>
 <div class="arrows">drag to orbit &middot; scroll / pinch to zoom</div>
 <div class="load" id="load">Loading model&hellip;</div>
@@ -176,87 +176,149 @@ bCut.onclick=()=>setClip(true);
 bSpin.onclick=()=>{ controls.autoRotate=!controls.autoRotate; bSpin.classList.toggle('on', controls.autoRotate); };
 
 // ───────────────────────────────────────────────────────────────────────────
-//  LIVE COUNTERFLOW ANIMATION — the shared engine working, placed at each
-//  body's working face (FACE_Z). CO2 curtain blows up-and-out then drapes
-//  (matches the v2 CFD); intake suction draws down the central throat; fan spins.
+//  LIVE COUNTERFLOW ANIMATION — shows the engine actually working, placed at
+//  each body's working face (FACE_Z):
+//    1. CO2 + scent LURE plume projects up-and-out (gold).
+//    2. MOSQUITOES (dark) home in on the plume from the approach zone.
+//    3. The spinning FAN's suction (blue) pulls them DOWN the central throat.
+//    4. They collect in the CATCH NET / bag hanging below (green).
+//  Turning it on switches to cutaway so the fan + net + capture are visible.
 // ───────────────────────────────────────────────────────────────────────────
-const THROAT_R=33, RING_R=92, ENGINE_TOP_LOCAL=148;
+const THROAT_R=33, RING_R=92;
 let faceZ=FACE_Z['POT'];                 // updated per form
 const flow=new THREE.Group(); scene.add(flow);
+const clipFlow=[clip];                   // share the cutaway plane
 
-// CO2 curtain (gold)
-const NC=260;
+// --- CATCH NET / collection bag (green) hanging below the throat ---
+const NET_TOP_R=THROAT_R*1.18, NET_BOT_R=THROAT_R*0.55, NET_DEPTH=150;
+const netMat=new THREE.MeshStandardMaterial({color:0x5fc77f,transparent:true,opacity:.24,
+  metalness:0,roughness:1,side:THREE.DoubleSide,depthWrite:false,clippingPlanes:clipFlow});
+const net=new THREE.Mesh(new THREE.CylinderGeometry(NET_TOP_R,NET_BOT_R,NET_DEPTH,40,1,true),netMat);
+net.rotation.x=Math.PI/2; flow.add(net);
+const netCap=new THREE.Mesh(new THREE.CircleGeometry(NET_BOT_R,32),netMat); flow.add(netCap);
+const netRim=new THREE.Mesh(new THREE.TorusGeometry(NET_TOP_R,1.7,10,40),
+  new THREE.MeshStandardMaterial({color:0x8fe6a8,metalness:.3,roughness:.5,clippingPlanes:clipFlow})); flow.add(netRim);
+const netRings=new THREE.Group(); flow.add(netRings);   // mesh hoops down the bag
+for(let k=1;k<=3;k++){ const rr=NET_TOP_R+(NET_BOT_R-NET_TOP_R)*(k/4);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(rr,0.6,8,36),netMat); ring.userData.frac=k/4; netRings.add(ring); }
+
+// --- FAN: housing ring + hub + 7 blades, sits just under the throat ---
+const fan=new THREE.Group();
+fan.add(new THREE.Mesh(new THREE.TorusGeometry(THROAT_R+4,3,12,40),
+  new THREE.MeshStandardMaterial({color:0x2b3b4a,metalness:.7,roughness:.4,clippingPlanes:clipFlow})));
+const blades=new THREE.Group();
+const hub=new THREE.Mesh(new THREE.CylinderGeometry(7,7,9,20),
+  new THREE.MeshStandardMaterial({color:0x39424c,metalness:.8,roughness:.35,clippingPlanes:clipFlow}));
+hub.rotation.x=Math.PI/2; blades.add(hub);
+for(let b=0;b<7;b++){ const a=b/7*Math.PI*2;
+  const blade=new THREE.Mesh(new THREE.BoxGeometry(THROAT_R*0.92,7,1.4),
+    new THREE.MeshStandardMaterial({color:0xb2c0cf,metalness:.6,roughness:.4,side:THREE.DoubleSide,clippingPlanes:clipFlow}));
+  blade.position.set(Math.cos(a)*THROAT_R*0.5,Math.sin(a)*THROAT_R*0.5,0); blade.rotation.z=a+0.5; blades.add(blade); }
+fan.add(blades); flow.add(fan);
+
+// --- CO2 + scent LURE plume (gold) — projects strongly OUTWARD then settles ---
+const NC=240;
 const cpos=new Float32Array(NC*3), cvel=new Float32Array(NC*3), cage=new Float32Array(NC), clife=new Float32Array(NC);
 function seedCO2(i){
   const a=Math.random()*Math.PI*2, r=RING_R+(Math.random()-0.5)*16;
   cpos[i*3]=Math.cos(a)*r; cpos[i*3+1]=Math.sin(a)*r; cpos[i*3+2]=faceZ+2;
-  // decoupled design: the curtain PROJECTS strongly OUTWARD (and slightly down),
-  // matched to the suction, so the lure reaches the approach zone instead of
-  // being inhaled by the throat. (2026-06-13 CFD finding.)
-  const out=230+Math.random()*140, up=10-Math.random()*40;    // strong out, slight down
+  const out=230+Math.random()*140, up=10-Math.random()*40;    // strong out, slight down (2026-06-13 CFD)
   cvel[i*3]=Math.cos(a)*out; cvel[i*3+1]=Math.sin(a)*out; cvel[i*3+2]=up;
   clife[i]=1.8+Math.random()*1.1; cage[i]=Math.random()*clife[i];
 }
 for(let i=0;i<NC;i++) seedCO2(i);
 const cgeo=new THREE.BufferGeometry(); cgeo.setAttribute('position',new THREE.BufferAttribute(cpos,3));
-const cpts=new THREE.Points(cgeo,new THREE.PointsMaterial({color:0xe8c060,size:7,transparent:true,opacity:.85,sizeAttenuation:true,depthWrite:false}));
-flow.add(cpts);
+flow.add(new THREE.Points(cgeo,new THREE.PointsMaterial({color:0xe8c060,size:7,transparent:true,opacity:.85,sizeAttenuation:true,depthWrite:false})));
 
-// Intake suction (blue) — descends a column into the throat
-const NI=150;
+// --- FAN SUCTION airflow (blue) — descends a column into the throat ---
+const NI=130;
 const ipos=new Float32Array(NI*3), iang=new Float32Array(NI), irad=new Float32Array(NI), iz=new Float32Array(NI), isp=new Float32Array(NI);
 function seedIntake(i){
   iang[i]=Math.random()*Math.PI*2; irad[i]=8+Math.random()*120;
-  iz[i]=faceZ+40+Math.random()*240; isp[i]=140+Math.random()*120;
+  iz[i]=faceZ+40+Math.random()*240; isp[i]=160+Math.random()*120;
   ipos[i*3]=Math.cos(iang[i])*irad[i]; ipos[i*3+1]=Math.sin(iang[i])*irad[i]; ipos[i*3+2]=iz[i];
 }
 for(let i=0;i<NI;i++) seedIntake(i);
 const igeo=new THREE.BufferGeometry(); igeo.setAttribute('position',new THREE.BufferAttribute(ipos,3));
-const ipts=new THREE.Points(igeo,new THREE.PointsMaterial({color:0x5ab4f0,size:6,transparent:true,opacity:.8,sizeAttenuation:true,depthWrite:false}));
-flow.add(ipts);
+flow.add(new THREE.Points(igeo,new THREE.PointsMaterial({color:0x5ab4f0,size:5,transparent:true,opacity:.7,sizeAttenuation:true,depthWrite:false})));
 
-// fan spinner just below the face
-const fan=new THREE.Group();
-for(let b=0;b<6;b++){
-  const blade=new THREE.Mesh(new THREE.PlaneGeometry(46,9),
-    new THREE.MeshStandardMaterial({color:0x9ab0c0,side:THREE.DoubleSide,transparent:true,opacity:.6,depthWrite:false}));
-  blade.rotation.z=(b/6)*Math.PI*2; blade.position.set(20*Math.cos(b/6*Math.PI*2),20*Math.sin(b/6*Math.PI*2),0);
-  fan.add(blade);
+// --- MOSQUITOES (dark) — approach the lure, get sucked down into the net ---
+const NM=64;
+const mpos=new Float32Array(NM*3); const M=[];
+function seedMosq(i){
+  const a=Math.random()*Math.PI*2, r=RING_R+150+Math.random()*180;
+  M[i]={a,r,z:faceZ+60+Math.random()*230,phase:0,settle:0,jit:Math.random()*9};
+  mpos[i*3]=Math.cos(a)*r; mpos[i*3+1]=Math.sin(a)*r; mpos[i*3+2]=M[i].z;
 }
-flow.add(fan);
+for(let i=0;i<NM;i++) seedMosq(i);
+const mgeo=new THREE.BufferGeometry(); mgeo.setAttribute('position',new THREE.BufferAttribute(mpos,3));
+flow.add(new THREE.Points(mgeo,new THREE.PointsMaterial({color:0x14141a,size:5.5,transparent:true,opacity:.95,sizeAttenuation:true,depthWrite:false})));
 
 let animOn=false;
-function placeFlow(){ fan.position.set(0,0,faceZ-16); }
+function placeFlow(){
+  fan.position.set(0,0,faceZ-12);
+  net.position.set(0,0,faceZ-NET_DEPTH/2);
+  netCap.position.set(0,0,faceZ-NET_DEPTH);
+  netRim.position.set(0,0,faceZ);
+  netRings.children.forEach(r=>r.position.set(0,0,faceZ-NET_DEPTH*r.userData.frac));
+}
 function tickFlow(dt){
   if(!animOn) return;
-  fan.rotation.z += dt*26;
-  // CO2 curtain: integrate with gravity settle
+  blades.rotation.z += dt*30;
+  // lure plume
   for(let i=0;i<NC;i++){
     cage[i]+=dt; if(cage[i]>clife[i]){ seedCO2(i); continue; }
-    cvel[i*3+2]-=150*dt;                       // gentle settle so it projects out first
+    cvel[i*3+2]-=150*dt;
     cpos[i*3]+=cvel[i*3]*dt; cpos[i*3+1]+=cvel[i*3+1]*dt; cpos[i*3+2]+=cvel[i*3+2]*dt;
     if(cpos[i*3+2]<faceZ-160) seedCO2(i);
   }
   cgeo.attributes.position.needsUpdate=true;
-  // Intake: descend, accelerate, converge to throat, recycle
+  // suction airflow
   for(let i=0;i<NI;i++){
     iz[i]-=isp[i]*dt;
-    const t=Math.max(0,(iz[i]-faceZ)/240);      // 1 high -> 0 at face
-    const r=THROAT_R*0.5 + (irad[i]-THROAT_R*0.5)*t;   // funnel inward as it nears face
+    const t=Math.max(0,(iz[i]-faceZ)/240);
+    const r=THROAT_R*0.5 + (irad[i]-THROAT_R*0.5)*t;
     if(iz[i]<=faceZ){ seedIntake(i); continue; }
     ipos[i*3]=Math.cos(iang[i])*r; ipos[i*3+1]=Math.sin(iang[i])*r; ipos[i*3+2]=iz[i];
   }
   igeo.attributes.position.needsUpdate=true;
+  // mosquitoes
+  for(let i=0;i<NM;i++){
+    const m=M[i]; m.jit+=dt*12;
+    if(m.phase===2){ m.settle-=dt; if(m.settle<0) seedMosq(i); continue; }
+    if(m.phase===0){                                  // homing in on the lure
+      m.r -= (60+Math.random()*45)*dt;
+      m.a += Math.sin(m.jit)*0.6*dt;
+      m.z += ((faceZ+90)-m.z)*0.7*dt + Math.sin(m.jit*1.3)*7*dt;
+      if(m.r < RING_R*0.92){ m.phase=1; }            // entered the suction zone
+      mpos[i*3]=Math.cos(m.a)*m.r; mpos[i*3+1]=Math.sin(m.a)*m.r; mpos[i*3+2]=m.z;
+    } else {                                          // sucked DOWN the throat
+      m.a += 10*dt;
+      m.r += (THROAT_R*0.45 - m.r)*3.2*dt;
+      m.z -= (270+Math.random()*60)*dt;
+      if(m.z <= faceZ-NET_DEPTH+18){                  // landed in the bag
+        m.phase=2; m.settle=0.6+Math.random()*0.9;
+        const rr=Math.random()*NET_BOT_R*0.8, aa=Math.random()*Math.PI*2;
+        mpos[i*3]=Math.cos(aa)*rr; mpos[i*3+1]=Math.sin(aa)*rr; mpos[i*3+2]=faceZ-NET_DEPTH+10+Math.random()*8;
+        continue;
+      }
+      mpos[i*3]=Math.cos(m.a)*m.r; mpos[i*3+1]=Math.sin(m.a)*m.r; mpos[i*3+2]=m.z;
+    }
+  }
+  mgeo.attributes.position.needsUpdate=true;
 }
 const bAnim=document.getElementById('bAnim');
-bAnim.onclick=()=>{
-  animOn=!animOn; flow.visible=animOn; placeFlow();
-  bAnim.classList.toggle('on',animOn);
-  document.getElementById('legFlow').style.display=animOn?'':'none';
-};
+function setFlow(on){
+  animOn=on; flow.visible=on; placeFlow();
+  bAnim.classList.toggle('on',on);
+  document.getElementById('legFlow').style.display=on?'':'none';
+  if(on) setClip(true);                       // reveal the working internals
+}
+bAnim.onclick=()=>setFlow(!animOn);
 flow.visible=false;
 
 showForm('POT');
+setFlow(true);                                 // operation visible by default
 document.getElementById('load').style.display='none';
 
 addEventListener('resize', ()=>{

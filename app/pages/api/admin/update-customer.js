@@ -12,6 +12,9 @@ export default async function handler(req, res) {
   const { customerId, hubspotContactId, name, phone, address, planType, systemType, trapCount, hasTimer } = req.body || {}
   if (!customerId && !hubspotContactId) return res.status(400).json({ error: 'customerId or hubspotContactId required' })
 
+  // Only update Stripe for real Stripe customer IDs; prospects use hs_ prefixed IDs
+  const isStripeCustomer = typeof customerId === 'string' && customerId.startsWith('cus_')
+
   const stripeUpdates = {}
   if (name !== undefined) stripeUpdates.name = name
   if (phone !== undefined) stripeUpdates.phone = phone
@@ -28,7 +31,7 @@ export default async function handler(req, res) {
 
   try {
     await Promise.all([
-      Object.keys(stripeUpdates).length ? stripe.customers.update(customerId, stripeUpdates) : Promise.resolve(),
+      isStripeCustomer && Object.keys(stripeUpdates).length ? stripe.customers.update(customerId, stripeUpdates) : Promise.resolve(),
       hubspotContactId ? updateContact(hubspotContactId, hubspotFields) : Promise.resolve(),
     ])
     res.status(200).json({ ok: true })

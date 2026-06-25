@@ -85,17 +85,17 @@ export default function SignaturePad({ onSave, onCancel, label = 'Customer signa
       </p>
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={clear} type="button"
-          style={{ flex: '1 1 70px', padding: '9px 12px', borderRadius: 6, border: '1px solid rgba(212,230,202,0.2)', background: 'transparent', color: 'rgba(212,230,202,0.7)', cursor: 'pointer', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
+          style={{ flex: '1 1 70px', padding: '9px 12px', borderRadius: 6, border: '1px solid rgba(212,230,202,0.2)', background: 'transparent', color: 'rgba(212,230,202,0.7)', cursor: 'pointer', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
           Clear
         </button>
         {onCancel && (
           <button onClick={onCancel} type="button"
-            style={{ flex: '1 1 70px', padding: '9px 12px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.3)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif' }}>
+            style={{ flex: '1 1 70px', padding: '9px 12px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.3)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
             Skip
           </button>
         )}
         <button onClick={save} type="button" disabled={!hasInk}
-          style={{ flex: '2 1 140px', padding: '9px 12px', borderRadius: 6, border: 'none', background: hasInk ? '#7dffaa' : 'rgba(125,255,170,0.2)', color: '#0d1a10', cursor: hasInk ? 'pointer' : 'not-allowed', fontWeight: 900, fontFamily: 'Nunito Sans, sans-serif' }}>
+          style={{ flex: '2 1 140px', padding: '9px 12px', borderRadius: 6, border: 'none', background: hasInk ? '#7dffaa' : 'rgba(125,255,170,0.2)', color: '#0d1a10', cursor: hasInk ? 'pointer' : 'not-allowed', fontWeight: 900, fontFamily: 'Inter, sans-serif' }}>
           Save signature
         </button>
       </div>

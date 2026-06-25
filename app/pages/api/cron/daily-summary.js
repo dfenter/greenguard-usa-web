@@ -141,9 +141,8 @@ function renderHtml({ date, completedVisits, invoices, cancellations, tomorrow, 
 
 export default async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
-  if (req.headers['x-cron-key'] !== process.env.CRON_SECRET && req.headers['authorization'] !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  const { authorize } = require('../../../lib/cron-auth')
+  if (!authorize(req, res)) return
 
   const today = todayCT()
   const tomorrowIso = tomorrowCT()

@@ -78,7 +78,7 @@ function NoteComposer({ email, hsContactId, onSaved }) {
         style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
         <button onClick={save} disabled={busy || !body.trim()}
-          style={{ padding: '6px 14px', borderRadius: 5, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Nunito Sans, sans-serif' }}>
+          style={{ padding: '6px 14px', borderRadius: 5, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Inter, sans-serif' }}>
           {busy ? 'Saving…' : 'Save note'}
         </button>
         {msg && <span style={{ fontSize: '0.78rem', color: msg.ok ? '#7dffaa' : '#ff8080' }}>{msg.text}</span>}
@@ -110,13 +110,13 @@ function SmsComposer({ email, phone, onSent }) {
     <div style={{ marginTop: 6 }}>
       <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} maxLength={320}
         placeholder={`Text ${phone}…`}
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 8 }}>
         <span style={{ fontSize: '0.7rem', color: msg?.startsWith('✓') ? '#7dffaa' : msg ? '#ff8080' : 'rgba(212,230,202,0.4)' }}>
           {msg || `${body.length}/320`}
         </span>
         <button onClick={send} disabled={sending || !body.trim()}
-          style={{ padding: '7px 16px', borderRadius: 6, border: 'none', cursor: sending || !body.trim() ? 'not-allowed' : 'pointer', background: sending || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+          style={{ padding: '7px 16px', borderRadius: 6, border: 'none', cursor: sending || !body.trim() ? 'not-allowed' : 'pointer', background: sending || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
           {sending ? 'Sending…' : 'Send SMS'}
         </button>
       </div>
@@ -257,11 +257,11 @@ export default function CustomerPanel({ customer, onClose }) {
   const input = {
     width: '100%', padding: '8px 10px', borderRadius: 6, boxSizing: 'border-box',
     border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)',
-    color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none',
+    color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none',
   }
   const btn = (variant) => ({
     padding: '7px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
-    fontWeight: 800, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif',
+    fontWeight: 800, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif',
     ...(variant === 'gold'  ? { background: '#c9a84c', color: '#0d1a10' } :
         variant === 'green' ? { background: '#7dffaa', color: '#0d1a10' } :
         variant === 'red'   ? { background: 'rgba(255,100,100,0.15)', color: '#ff8080', border: '1px solid rgba(255,100,100,0.25)' } :
@@ -327,10 +327,10 @@ export default function CustomerPanel({ customer, onClose }) {
             Email to {customer.email}
           </div>
           <input value={msgForm.subject} onChange={(e) => setMsgForm((f) => ({ ...f, subject: e.target.value }))} placeholder="Subject"
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Nunito Sans, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }} />
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }} />
           <textarea value={msgForm.body} onChange={(e) => setMsgForm((f) => ({ ...f, body: e.target.value }))}
             placeholder={`Hi ${customer.name?.split(' ')[0] || 'there'},\n\n`} rows={5}
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Nunito Sans, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }} />
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }} />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button disabled={msgSending || !msgForm.subject || !msgForm.body}
               onClick={async () => {
@@ -357,7 +357,7 @@ export default function CustomerPanel({ customer, onClose }) {
       <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0' }}>
         {[{ k: 'details', l: 'Details' }, { k: 'history', l: 'History' }].map((t) => (
           <button key={t.k} onClick={() => setTab(t.k)}
-            style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem', fontFamily: 'Nunito Sans, sans-serif',
+            style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem', fontFamily: 'Inter, sans-serif',
               background: tab === t.k ? '#c9a84c' : 'rgba(201,168,76,0.1)', color: tab === t.k ? '#0d1a10' : 'rgba(201,168,76,0.7)' }}>
             {t.l}
           </button>

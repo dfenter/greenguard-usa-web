@@ -2,134 +2,14 @@ import { useState, useCallback } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { getTodaysBookings, getBookingsForDateRange } from '../../lib/gcal'
-import { findContactsByEmails, tanksForCustomer } from '../../lib/hubspot'
-import { listAllCustomers } from '../../lib/stripe'
-import { getLatestRoutePlan } from '../../lib/route-plan'
+import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
-
-  const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
-
-  const { plan: routePlanLoaded, generatedAt } = await getLatestRoutePlan().catch(() => ({ plan: null, generatedAt: null }))
-  let routePlan = routePlanLoaded
-  let planGeneratedAt = generatedAt
-
-  const todayInPlan = routePlan?.days?.some((d) => d.date === today)
-  let todayBookings = []
-  if (!todayInPlan) {
-    try {
-      todayBookings = await getTodaysBookings()
-    } catch {}
-  }
-
-  if (!routePlan && todayBookings.length > 0) {
-    routePlan = {
-      week: `${today} (live)`,
-      days: [{
-        date: today,
-        stops: todayBookings.map((b) => ({
-          customer_name: b.title,
-          address: b.address || '',
-          email: b.email || '',
-          scheduled_time: b.startTime,
-          duration_min: b.endTime && b.startTime
-            ? Math.round((new Date(b.endTime) - new Date(b.startTime)) / 60000)
-            : null,
-        })),
-      }],
-      source: 'calendar',
-    }
-  }
-
-  // Resolve names, tanks, and Cal.com UIDs for all stops
-  if (routePlan) {
-    const allEmails = [...new Set(
-      (routePlan.days || []).flatMap(d => (d.stops || []).map(s => s.email).filter(Boolean))
-    )]
-    const allDates = [...new Set(
-      (routePlan.days || []).map(d => d.date).filter(Boolean)
-    )]
-
-    const hubspotNameByEmail = {}
-    const stripeNameByEmail = {}
-
-    // Pre-compute live-hydration date window — needed before Promise.all so we can
-    // fire the GCal call in parallel with Stripe/HubSpot instead of sequentially after.
-    const todayMs = new Date(today + 'T00:00:00-06:00').getTime()
-    const cutoffMs = todayMs + 8 * 86400 * 1000
-    const liveDays = (routePlan.days || []).filter((d) => {
-      const dMs = new Date(d.date + 'T00:00:00-06:00').getTime()
-      return dMs >= todayMs && dMs < cutoffMs
-    })
-    const liveWindow = liveDays.length > 0 ? {
-      start: new Date(liveDays[0].date + 'T00:00:00-06:00').toISOString(),
-      end:   new Date(liveDays[liveDays.length - 1].date + 'T23:59:59-06:00').toISOString(),
-    } : null
-
-    // Cal.com API key only has event-type scope — getBookingsForEmail always returns [].
-    // Removed that fan-out entirely (was N dead calls per page load with zero results).
-    let liveByKey = new Map()
-
-    await Promise.all([
-      listAllCustomers().then(cs => cs.forEach(c => {
-        if (c.email && c.name) stripeNameByEmail[c.email.toLowerCase()] = c.name
-      })).catch(() => {}),
-      findContactsByEmails(allEmails).then((m) => {
-        for (const [email, c] of m.entries()) {
-          const full = [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ')
-          if (full) hubspotNameByEmail[email] = full
-          const tanks = tanksForCustomer(c.properties) || null
-          if (tanks) hubspotNameByEmail[email + '__tanks'] = tanks
-        }
-      }).catch(() => {}),
-      // GCal live-hydration fired in parallel — eliminates one sequential round-trip
-      liveWindow
-        ? getBookingsForDateRange(liveWindow.start, liveWindow.end)
-            .then(bookings => {
-              for (const b of bookings) {
-                if (!b.dateStr || !b.email) continue
-                liveByKey.set(`${b.dateStr}|${b.email.toLowerCase()}`, b)
-              }
-            }).catch(() => {})
-        : Promise.resolve(),
-    ])
-
-    routePlan = {
-      ...routePlan,
-      days: (routePlan.days || []).map(day => ({
-        ...day,
-        stops: (day.stops || []).map(stop => {
-          const key = stop.email?.toLowerCase()
-          const resolvedName = hubspotNameByEmail[key] || stripeNameByEmail[key] || stop.customer_name || stop.name
-          const tanks = hubspotNameByEmail[key + '__tanks'] || null
-
-          // Apply live GCal time if available
-          const liveEntry = key ? liveByKey.get(`${day.date}|${key}`) : null
-          const scheduledTime = (liveEntry?.startTime && liveEntry.startTime !== stop.scheduled_time)
-            ? liveEntry.startTime : stop.scheduled_time
-          const hydratedFromGcal = !!(liveEntry?.startTime && liveEntry.startTime !== stop.scheduled_time)
-
-          return {
-            ...stop,
-            customer_name: resolvedName,
-            tanks,
-            cal_booking_uid: stop.cal_booking_uid || null,
-            cal_booking_id: stop.cal_booking_id || null,
-            scheduled_time: scheduledTime,
-            ...(hydratedFromGcal && { hydrated_from_gcal: true }),
-          }
-        }),
-      })),
-    }
-  }
-
-  return { props: { routePlan, today, planGeneratedAt } }
+  return { props: {} }
 }
 
 function mapsEmbedUrl(day) {
@@ -182,10 +62,10 @@ function RouteCalendar({ days, selectedDay, setSelectedDay, today }) {
       {/* Month nav */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
         <button onClick={() => setViewMonth(({ year, month }) => month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 })}
-          style={{ background: 'none', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#7aab82', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Nunito Sans, sans-serif', fontSize: '1rem' }}>‹</button>
+          style={{ background: 'none', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#7aab82', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Inter, sans-serif', fontSize: '1rem' }}>‹</button>
         <div style={{ fontWeight: 800, fontSize: '0.95rem', flex: 1, textAlign: 'center' }}>{monthLabel}</div>
         <button onClick={() => setViewMonth(({ year, month }) => month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 })}
-          style={{ background: 'none', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#7aab82', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Nunito Sans, sans-serif', fontSize: '1rem' }}>›</button>
+          style={{ background: 'none', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#7aab82', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Inter, sans-serif', fontSize: '1rem' }}>›</button>
       </div>
 
       {/* Day labels */}
@@ -233,7 +113,14 @@ function fmtPlanFreshness(iso) {
   return `updated ${Math.round(ageH / 24)}d ago`
 }
 
-export default function RoutePage({ routePlan, today, planGeneratedAt }) {
+export default function RoutePage() {
+  const { data, error, reload } = useLazyData('/api/admin/route-data')
+  if (error) return <LazyError error={error} onRetry={reload} />
+  if (!data) return <LazyLoading />
+  return <RoutePageView {...data} />
+}
+
+function RoutePageView({ routePlan, today, planGeneratedAt }) {
   const days = routePlan?.days || []
   const todayIdx = days.findIndex((d) => d.date === today)
   const [selectedDay, setSelectedDay] = useState(todayIdx >= 0 ? todayIdx : 0)
@@ -276,7 +163,7 @@ export default function RoutePage({ routePlan, today, planGeneratedAt }) {
         .stop-addr { font-size: 0.82rem; color: rgba(212,230,202,0.6); margin-bottom: 10px; word-break: break-word; }
         .stop-meta { font-size: 0.75rem; color: rgba(212,230,202,0.38); }
         .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; background: #1a3a26; border: 1px solid rgba(122,171,130,0.3); border-radius: 6px; color: #7dffaa; font-size: 0.8rem; font-weight: 800; text-decoration: none; letter-spacing: 0.04em; white-space: nowrap; }
-        .day-tab { padding: 10px 18px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.85rem; font-family: 'Nunito Sans', sans-serif; min-height: 44px; transition: all 0.15s; }
+        .day-tab { padding: 10px 18px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.85rem; font-family: 'Inter', sans-serif; min-height: 44px; transition: all 0.15s; }
         @media (max-width: 480px) {
           .stop-card { padding: 14px 12px; gap: 10px; }
           .stop-name { font-size: 0.95rem; }

@@ -128,9 +128,8 @@ function renderHtml(date, stops, forecast) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
-  if (req.headers['x-cron-key'] !== process.env.CRON_SECRET && req.headers['authorization'] !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  const { authorize } = require('../../../lib/cron-auth')
+  if (!authorize(req, res)) return
 
   const date = req.query.date || todayCT()
   const [bookings, forecast] = await Promise.all([

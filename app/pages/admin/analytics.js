@@ -1,13 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import Head from 'next/head'
+import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { listAllActiveSubscriptions, listAllInvoicesSince, listOpenInvoices, getBalance, listAllCustomers } from '../../lib/stripe'
-import { countContactsByProperty, getAllContacts } from '../../lib/hubspot'
-import { getBookingsForWeek, getAllUpcomingBookings } from '../../lib/gcal'
-import { getTrafficOverview } from '../../lib/ga4'
-import { getSearchPerformance } from '../../lib/gsc'
+import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
 
 const BarChart       = dynamic(() => import('recharts').then((m) => m.BarChart),        { ssr: false })
 const Bar            = dynamic(() => import('recharts').then((m) => m.Bar),              { ssr: false })
@@ -28,163 +25,7 @@ export async function getServerSideProps({ req, res }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
-
-  const now = new Date()
-  const oneYearAgo     = Math.floor(new Date(now.getFullYear() - 1, now.getMonth(), 1).getTime() / 1000)
-  const thirtyDaysAgo  = Math.floor(new Date(now.getTime() - 30 * 86400 * 1000).getTime() / 1000)
-  const startOfToday   = Math.floor(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000)
-  const startOfMonth   = Math.floor(new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000)
-  const startOfYear    = Math.floor(new Date(now.getFullYear(), 0, 1).getTime() / 1000)
-
-  const thisWeekStart = new Date(now)
-  thisWeekStart.setDate(now.getDate() - now.getDay())
-  thisWeekStart.setHours(0, 0, 0, 0)
-  const thisWeekEnd = new Date(thisWeekStart)
-  thisWeekEnd.setDate(thisWeekStart.getDate() + 7)
-
-  const SEGMENT_TYPES = ['Biogents-CO2', 'Biogents-NonCO2', 'Mosqitter-Grand']
-
-  // Cal.com: upcoming bookings count
-  const thirtyDaysAheadISO = new Date(now.getTime() + 30 * 86400 * 1000).toISOString()
-
-  const [activeSubs, paidInvoices, openInvoices, weekBookings, balance, traffic, searchPerf, upcomingBookings, allCustomers, hubspotContacts, ...segCounts] = await Promise.all([
-    listAllActiveSubscriptions().catch(() => []),
-    listAllInvoicesSince(oneYearAgo).catch(() => []),
-    listOpenInvoices().catch(() => []),
-    getBookingsForWeek(thisWeekStart.toISOString(), thisWeekEnd.toISOString()).catch(() => []),
-    getBalance().catch(() => null),
-    getTrafficOverview().catch(() => null),
-    getSearchPerformance(28).catch(() => null),
-    getAllUpcomingBookings(100).catch(() => []),
-    listAllCustomers().catch(() => []),
-    getAllContacts(300).catch(() => []),
-    ...SEGMENT_TYPES.map((t) => countContactsByProperty('system_type', t).catch(() => 0)),
-  ])
-
-  // ── Revenue calcs ────────────────────────────────────────────────────────────
-  const mrr = activeSubs.reduce((s, sub) =>
-    s + sub.items.data.reduce((ss, i) => ss + (i.price.unit_amount || 0), 0), 0) / 100
-
-  const monthlyMap = {}
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    monthlyMap[`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`] = 0
-  }
-  paidInvoices.forEach((inv) => {
-    const d = new Date(inv.created * 1000)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    if (key in monthlyMap) monthlyMap[key] += inv.amount_paid / 100
-  })
-  const monthlyRevenue = Object.entries(monthlyMap).map(([month, total]) => ({
-    month: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-    total: Math.round(total * 100) / 100,
-  }))
-
-  const dailyMap = {}
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
-    dailyMap[d.toISOString().slice(0, 10)] = 0
-  }
-  paidInvoices.forEach((inv) => {
-    const key = new Date(inv.created * 1000).toISOString().slice(0, 10)
-    if (key in dailyMap) dailyMap[key] += inv.amount_paid / 100
-  })
-  const dailyRevenue = Object.entries(dailyMap).map(([day, total]) => ({
-    day: day.slice(5), total: Math.round(total * 100) / 100,
-  }))
-
-  const revenueToday      = paidInvoices.filter((i) => i.created >= startOfToday).reduce((s, i) => s + i.amount_paid / 100, 0)
-  const revenueThisMonth  = paidInvoices.filter((i) => i.created >= startOfMonth).reduce((s, i) => s + i.amount_paid / 100, 0)
-  const revenueLast30     = paidInvoices.filter((i) => i.created >= thirtyDaysAgo).reduce((s, i) => s + i.amount_paid / 100, 0)
-  const revenueYTD        = paidInvoices.filter((i) => i.created >= startOfYear).reduce((s, i) => s + i.amount_paid / 100, 0)
-
-  const recentOrders = paidInvoices.slice(0, 20).map((inv) => ({
-    id: inv.id,
-    date: inv.created,
-    email: inv.customer_details?.email || '',
-    amount: inv.amount_paid / 100,
-    status: inv.status,
-    hostedUrl: inv.hosted_invoice_url || null,
-  }))
-
-  const openInvoiceList = openInvoices.map((inv) => ({
-    id: inv.id,
-    email: inv.customer_email || '',
-    amount: inv.amount_due / 100,
-    dueDate: inv.due_date || inv.created,
-    hostedUrl: inv.hosted_invoice_url || null,
-  }))
-
-  const segments = SEGMENT_TYPES.map((t, i) => ({ type: t, count: segCounts[i] }))
-  const totalSegmentCount = segments.reduce((s, seg) => s + seg.count, 0)
-
-  // GA4 uses existing Google OAuth credentials — only needs the property ID
-  const ga4Configured = !!(process.env.GOOGLE_ANALYTICS_PROPERTY_ID)
-
-  return {
-    props: {
-      // Revenue
-      activeCount: activeSubs.length,
-      mrr: Math.round(mrr * 100) / 100,
-      revenueToday: Math.round(revenueToday * 100) / 100,
-      revenueThisMonth: Math.round(revenueThisMonth * 100) / 100,
-      revenueYTD: Math.round(revenueYTD * 100) / 100,
-      servicesThisWeek: weekBookings.length,
-      upcomingCount: upcomingBookings.length,
-      upcomingBookings: upcomingBookings.slice(0, 20).map((b) => {
-        // Resolve name: HubSpot first, then parse from Cal.com title "... and CustomerName"
-        const hsContacts_local = hubspotContacts
-        const hsMatch = hsContacts_local.find(c => (c.properties?.email || '').toLowerCase() === (b.email || '').toLowerCase())
-        const hsName = hsMatch ? [hsMatch.properties?.firstname, hsMatch.properties?.lastname].filter(Boolean).join(' ') : null
-        const titleName = b.title?.match(/and\s+(.+)$/i)?.[1]?.trim() || null
-        const stripeMatch = allCustomers.find(c => (c.email || '').toLowerCase() === (b.email || '').toLowerCase())
-        return {
-          startTime: b.startTime,
-          title: b.title,
-          name: hsName || stripeMatch?.name || titleName || b.email || '—',
-          address: b.address,
-          email: b.email,
-        }
-      }),
-      openInvoiceCount: openInvoices.length,
-      monthlyRevenue,
-      dailyRevenue,
-      recentOrders,
-      openInvoiceList,
-      segments,
-      totalSegmentCount,
-      // Finance
-      balance: balance ? { available: balance.available / 100, pending: balance.pending / 100 } : null,
-      revenueLast30: Math.round(revenueLast30 * 100) / 100,
-      // Traffic
-      ga4Configured,
-      traffic,
-      searchPerf,
-      // Map — merge Stripe billing addresses + HubSpot addresses (from CSV import)
-      mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-      customerLocations: (() => {
-        const seen = new Set()
-        const locs = []
-        // Stripe customers with billing addresses
-        for (const c of allCustomers) {
-          if (c.address?.line1) {
-            const addr = [c.address.line1, c.address.city, c.address.state].filter(Boolean).join(', ')
-            if (!seen.has(addr)) { seen.add(addr); locs.push({ name: c.name || c.email || '', address: addr }) }
-          }
-        }
-        // HubSpot contacts with addresses (includes CSV imports)
-        for (const c of hubspotContacts) {
-          const addr = c.properties?.address || ''
-          if (addr && !seen.has(addr)) {
-            seen.add(addr)
-            const name = [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ')
-            locs.push({ name, address: addr })
-          }
-        }
-        return locs
-      })(),
-    },
-  }
+  return { props: {} }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -208,7 +49,7 @@ const TOOLTIP_STYLE = { background: '#1a2e1f', border: '1px solid rgba(122,171,1
 const TICK = { fill: 'rgba(212,230,202,0.4)', fontSize: 10 }
 
 const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 14 }
-const CARD = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 10, padding: '14px 16px' }
+const CARD = { background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 10, padding: '14px 16px' }
 const TD = { padding: '10px 16px', verticalAlign: 'middle' }
 
 const SEGMENT_COLORS = { 'Biogents-CO2': '#7dffaa', 'Biogents-NonCO2': '#c9a84c', 'Mosqitter-Grand': '#5bc4ff' }
@@ -243,7 +84,7 @@ function Tabs({ active, onChange }) {
           onClick={() => onChange(t)}
           style={{
             padding: '10px 16px', border: 'none', cursor: 'pointer',
-            fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif',
+            fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif',
             background: 'none', whiteSpace: 'nowrap', flexShrink: 0,
             color: active === t ? '#7dffaa' : 'rgba(212,230,202,0.45)',
             borderBottom: active === t ? '2px solid #7dffaa' : '2px solid transparent',
@@ -555,6 +396,213 @@ function TrafficTab({ ga4Configured, traffic }) {
 
 // ── Business (GBP) tab ─────────────────────────────────────────────────────────
 
+function ReviewCard({ r, onReplied }) {
+  const rating = r.starRating
+  const stars = { 'ONE': 1, 'TWO': 2, 'THREE': 3, 'FOUR': 4, 'FIVE': 5 }[rating] || 0
+  const hasReply = !!r.reviewReply
+  const date = r.createTime ? new Date(r.createTime).toLocaleDateString() : ''
+
+  const [open, setOpen] = useState(false)
+  const [comment, setComment] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [err, setErr] = useState(null)
+
+  const draftReply = useCallback(async () => {
+    setDrafting(true)
+    setErr(null)
+    try {
+      const res = await fetch('/api/admin/ai-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'gbp-post', data: { topic: `Reply to this Google review from ${r.reviewer?.displayName || 'a customer'}: "${r.comment}"` } }),
+      })
+      const j = await res.json()
+      if (j.error) throw new Error(j.error)
+      setComment(j.result || j.text || '')
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setDrafting(false)
+    }
+  }, [r])
+
+  const submitReply = useCallback(async () => {
+    if (!comment.trim()) return
+    setSaving(true)
+    setErr(null)
+    try {
+      const res = await fetch('/api/admin/gbp-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewName: r.name, comment: comment.trim() }),
+      })
+      const j = await res.json()
+      if (!j.ok) throw new Error(j.error || 'Reply failed')
+      setOpen(false)
+      onReplied()
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }, [comment, r.name, onReplied])
+
+  return (
+    <div style={{ ...CARD, borderColor: hasReply ? 'rgba(122,171,130,0.15)' : 'rgba(255,180,0,0.25)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{r.reviewer?.displayName || 'Anonymous'}</div>
+          <div style={{ color: '#c9a84c', fontSize: '0.85rem', letterSpacing: 2 }}>{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</div>
+        </div>
+        <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>{date}</div>
+      </div>
+      {r.comment && <p style={{ margin: '8px 0 0', fontSize: '0.83rem', color: 'rgba(212,230,202,0.7)', lineHeight: 1.6 }}>{r.comment}</p>}
+      {hasReply && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(122,171,130,0.15)', fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
+          <span style={{ color: '#7dffaa', fontWeight: 700 }}>Your reply: </span>{r.reviewReply.comment}
+        </div>
+      )}
+      {!hasReply && r.name && (
+        <div style={{ marginTop: 10 }}>
+          {!open ? (
+            <button
+              onClick={() => setOpen(true)}
+              style={{ background: 'none', border: '1px solid rgba(255,180,0,0.4)', color: 'rgba(255,180,0,0.8)', borderRadius: 6, padding: '3px 12px', fontSize: '0.75rem', cursor: 'pointer' }}
+            >Reply</button>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+              <textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder="Write your reply…"
+                rows={3}
+                style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#d4e6ca', fontSize: '0.82rem', padding: '8px 10px', resize: 'vertical' }}
+              />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  onClick={submitReply}
+                  disabled={saving || !comment.trim()}
+                  style={{ background: saving ? 'rgba(122,171,130,0.2)' : 'rgba(122,171,130,0.15)', border: '1px solid rgba(122,171,130,0.4)', color: '#7dffaa', borderRadius: 6, padding: '4px 14px', fontSize: '0.78rem', cursor: saving ? 'default' : 'pointer' }}
+                >{saving ? 'Posting…' : 'Post Reply'}</button>
+                <button
+                  onClick={draftReply}
+                  disabled={drafting}
+                  style={{ background: 'none', border: '1px solid rgba(122,171,130,0.25)', color: 'rgba(212,230,202,0.6)', borderRadius: 6, padding: '4px 12px', fontSize: '0.75rem', cursor: drafting ? 'default' : 'pointer' }}
+                >{drafting ? 'Drafting…' : 'AI Draft'}</button>
+                <button
+                  onClick={() => { setOpen(false); setComment(''); setErr(null) }}
+                  style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.35)', fontSize: '0.75rem', cursor: 'pointer', marginLeft: 'auto' }}
+                >Cancel</button>
+              </div>
+              {err && <div style={{ fontSize: '0.75rem', color: '#ff6b6b' }}>{err}</div>}
+            </div>
+          )}
+        </div>
+      )}
+      {!hasReply && !r.name && (
+        <div style={{ marginTop: 8, fontSize: '0.75rem', color: 'rgba(255,180,0,0.7)', fontWeight: 600 }}>No reply yet</div>
+      )}
+    </div>
+  )
+}
+
+function GbpPostComposer({ onPosted }) {
+  const [summary, setSummary] = useState('')
+  const [ctaUrl, setCtaUrl] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [result, setResult] = useState(null)
+  const [err, setErr] = useState(null)
+  const [topic, setTopic] = useState('')
+
+  const draftPost = useCallback(async () => {
+    setDrafting(true)
+    setErr(null)
+    setResult(null)
+    try {
+      const res = await fetch('/api/admin/ai-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'gbp-post', data: { topic: topic.trim() || 'mosquito control Austin seasonal promotion' } }),
+      })
+      const j = await res.json()
+      if (j.error) throw new Error(j.error)
+      setSummary(j.result || j.text || '')
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setDrafting(false)
+    }
+  }, [topic])
+
+  const publishPost = useCallback(async () => {
+    if (!summary.trim()) return
+    setPosting(true)
+    setErr(null)
+    setResult(null)
+    try {
+      const res = await fetch('/api/admin/gbp-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summary: summary.trim(), callToActionUrl: ctaUrl.trim() || undefined }),
+      })
+      const j = await res.json()
+      if (!j.ok) throw new Error(j.error || 'Post failed')
+      setResult('Post published.')
+      setSummary('')
+      setCtaUrl('')
+      setTopic('')
+      onPosted()
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setPosting(false)
+    }
+  }, [summary, ctaUrl, onPosted])
+
+  return (
+    <div style={{ ...CARD, marginBottom: 28 }}>
+      <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: 12, color: '#7dffaa' }}>New GBP Post</div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+        <input
+          value={topic}
+          onChange={e => setTopic(e.target.value)}
+          placeholder="Topic for AI draft (optional)"
+          style={{ flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, color: '#d4e6ca', fontSize: '0.82rem', padding: '6px 10px' }}
+        />
+        <button
+          onClick={draftPost}
+          disabled={drafting}
+          style={{ background: 'none', border: '1px solid rgba(122,171,130,0.3)', color: 'rgba(212,230,202,0.7)', borderRadius: 6, padding: '6px 14px', fontSize: '0.78rem', cursor: drafting ? 'default' : 'pointer', whiteSpace: 'nowrap' }}
+        >{drafting ? 'Drafting…' : 'AI Draft'}</button>
+      </div>
+      <textarea
+        value={summary}
+        onChange={e => setSummary(e.target.value)}
+        placeholder="Post content (max ~1500 chars)…"
+        rows={5}
+        style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#d4e6ca', fontSize: '0.82rem', padding: '8px 10px', resize: 'vertical', marginBottom: 8 }}
+      />
+      <input
+        value={ctaUrl}
+        onChange={e => setCtaUrl(e.target.value)}
+        placeholder="Call-to-action URL (optional)"
+        style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, color: '#d4e6ca', fontSize: '0.82rem', padding: '6px 10px', marginBottom: 10 }}
+      />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button
+          onClick={publishPost}
+          disabled={posting || !summary.trim()}
+          style={{ background: posting ? 'rgba(122,171,130,0.2)' : 'rgba(122,171,130,0.15)', border: '1px solid rgba(122,171,130,0.4)', color: '#7dffaa', borderRadius: 6, padding: '6px 18px', fontSize: '0.82rem', cursor: posting ? 'default' : 'pointer', fontWeight: 700 }}
+        >{posting ? 'Publishing…' : 'Publish Post'}</button>
+        {result && <span style={{ fontSize: '0.78rem', color: '#7dffaa' }}>{result}</span>}
+        {err && <span style={{ fontSize: '0.78rem', color: '#ff6b6b' }}>{err}</span>}
+      </div>
+    </div>
+  )
+}
+
 function BusinessTab() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -630,38 +678,18 @@ function BusinessTab() {
         ))}
       </div>
 
+      {/* Post composer */}
+      {!data.staticFallback && <GbpPostComposer onPosted={load} />}
+
       {/* Reviews */}
       <div style={SECTION}>Recent Reviews</div>
       {reviews.length === 0 ? (
         <div style={{ color: 'rgba(212,230,202,0.4)', fontSize: '0.85rem' }}>No reviews found.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {reviews.map((r, i) => {
-            const rating = r.starRating
-            const stars = { 'ONE': 1, 'TWO': 2, 'THREE': 3, 'FOUR': 4, 'FIVE': 5 }[rating] || 0
-            const hasReply = !!r.reviewReply
-            const date = r.createTime ? new Date(r.createTime).toLocaleDateString() : ''
-            return (
-              <div key={i} style={{ ...CARD, borderColor: hasReply ? 'rgba(122,171,130,0.15)' : 'rgba(255,180,0,0.25)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{r.reviewer?.displayName || 'Anonymous'}</div>
-                    <div style={{ color: '#c9a84c', fontSize: '0.85rem', letterSpacing: 2 }}>{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</div>
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>{date}</div>
-                </div>
-                {r.comment && <p style={{ margin: '8px 0 0', fontSize: '0.83rem', color: 'rgba(212,230,202,0.7)', lineHeight: 1.6 }}>{r.comment}</p>}
-                {hasReply && (
-                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(122,171,130,0.15)', fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
-                    <span style={{ color: '#7dffaa', fontWeight: 700 }}>Your reply: </span>{r.reviewReply.comment}
-                  </div>
-                )}
-                {!hasReply && (
-                  <div style={{ marginTop: 8, fontSize: '0.75rem', color: 'rgba(255,180,0,0.7)', fontWeight: 600 }}>No reply yet</div>
-                )}
-              </div>
-            )
-          })}
+          {reviews.map((r, i) => (
+            <ReviewCard key={i} r={r} onReplied={load} />
+          ))}
         </div>
       )}
     </div>
@@ -734,7 +762,7 @@ function SocialTab() {
             </div>
           </div>
         )}
-        <button onClick={loadInsights} disabled={loading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: loading ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: loading ? 'rgba(212,230,202,0.4)' : '#0d1a10' }}>
+        <button onClick={loadInsights} disabled={loading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: loading ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: loading ? 'rgba(212,230,202,0.4)' : '#0d1a10' }}>
           {loading ? 'Loading…' : insights ? 'Refresh' : 'Load Facebook Data'}
         </button>
       </div>
@@ -765,17 +793,17 @@ function SocialTab() {
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Write your Facebook post here…"
             rows={4}
-            style={{ width: '100%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#d4e6ca', fontFamily: 'Nunito Sans, sans-serif', fontSize: '0.9rem', padding: '10px 12px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
+            style={{ width: '100%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#d4e6ca', fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', padding: '10px 12px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
           />
           <input
             type="url"
             value={link}
             onChange={(e) => setLink(e.target.value)}
             placeholder="Optional link URL (e.g. greenguard-usa.com)"
-            style={{ width: '100%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, color: '#d4e6ca', fontFamily: 'Nunito Sans, sans-serif', fontSize: '0.85rem', padding: '8px 12px', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
+            style={{ width: '100%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, color: '#d4e6ca', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', padding: '8px 12px', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
           />
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={handlePost} disabled={posting || !message.trim() || notConfigured} style={{ padding: '10px 22px', borderRadius: 6, border: 'none', cursor: (posting || !message.trim() || notConfigured) ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', background: (posting || !message.trim() || notConfigured) ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: (posting || !message.trim() || notConfigured) ? 'rgba(212,230,202,0.3)' : '#0d1a10' }}>
+            <button onClick={handlePost} disabled={posting || !message.trim() || notConfigured} style={{ padding: '10px 22px', borderRadius: 6, border: 'none', cursor: (posting || !message.trim() || notConfigured) ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', background: (posting || !message.trim() || notConfigured) ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: (posting || !message.trim() || notConfigured) ? 'rgba(212,230,202,0.3)' : '#0d1a10' }}>
               {posting ? 'Posting…' : 'Post Now'}
             </button>
             <span style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.35)' }}>{message.length} chars</span>
@@ -903,131 +931,17 @@ function MapTab({ mapsKey, customerLocations }) {
 // ── Accounting tab ─────────────────────────────────────────────────────────────
 
 function AccountingTab() {
-  const [qboData, setQboData] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [syncId, setSyncId] = useState('')
-  const [syncing, setSyncing] = useState(false)
-  const [syncResult, setSyncResult] = useState(null)
-  const [syncError, setSyncError] = useState(null)
-
-  const loadQbo = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/admin/qbo-status')
-      setQboData(await res.json())
-    } catch (e) {
-      setQboData({ error: e.message })
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const handleSync = useCallback(async () => {
-    if (!syncId.trim()) return
-    setSyncing(true)
-    setSyncResult(null)
-    setSyncError(null)
-    try {
-      const res = await fetch('/api/admin/qbo-sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stripeInvoiceId: syncId.trim() }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setSyncResult(data)
-      setSyncId('')
-    } catch (e) {
-      setSyncError(e.message)
-    } finally {
-      setSyncing(false)
-    }
-  }, [syncId])
-
-  const notConfigured = qboData?.configured === false
-
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
-        <button onClick={loadQbo} disabled={loading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: loading ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: loading ? 'rgba(212,230,202,0.4)' : '#0d1a10' }}>
-          {loading ? 'Loading…' : qboData ? 'Refresh' : 'Load QuickBooks Data'}
-        </button>
-      </div>
-
-      {notConfigured && (
-        <div className="card" style={{ maxWidth: 560, marginBottom: 28 }}>
-          <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 12 }}>Connect QuickBooks Online</div>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.6, margin: '0 0 14px' }}>
-            Sync Stripe invoices to QBO automatically and pull P&amp;L reports. Setup:
-          </p>
-          <ol style={{ fontSize: '0.83rem', color: 'rgba(212,230,202,0.7)', lineHeight: 2.2, paddingLeft: 20, margin: '0 0 16px' }}>
-            <li>Go to <strong>developer.intuit.com</strong> → Create App → QuickBooks Online + Payments</li>
-            <li>Copy Client ID and Client Secret → add as <code style={{ color: '#c9a84c' }}>QBO_CLIENT_ID</code> and <code style={{ color: '#c9a84c' }}>QBO_CLIENT_SECRET</code></li>
-            <li>Run: <code style={{ color: '#7dffaa' }}>node _scripts/get-qbo-token.js</code> to get your refresh token</li>
-            <li>Add to Vercel: <code style={{ color: '#c9a84c' }}>QBO_REFRESH_TOKEN</code> and <code style={{ color: '#c9a84c' }}>QBO_REALM_ID</code> (company ID from QBO URL)</li>
-            <li>Optional: <code style={{ color: '#c9a84c' }}>QBO_SANDBOX=true</code> to test against sandbox first</li>
-          </ol>
-        </div>
-      )}
-
-      {/* Manual sync */}
-      <section style={{ marginBottom: 32 }}>
-        <div style={SECTION}>Sync Stripe Invoice → QuickBooks</div>
-        <div className="card" style={{ maxWidth: 480 }}>
-          <p style={{ fontSize: '0.83rem', color: 'rgba(212,230,202,0.55)', marginBottom: 14, lineHeight: 1.6 }}>
-            Paste a Stripe invoice ID (starts with <code style={{ color: '#c9a84c' }}>in_</code>) to create a matching invoice in QuickBooks.
-          </p>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-            <input
-              type="text"
-              value={syncId}
-              onChange={(e) => setSyncId(e.target.value)}
-              placeholder="in_1ABC123..."
-              style={{ flex: 1, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 6, color: '#d4e6ca', fontFamily: 'monospace', fontSize: '0.85rem', padding: '9px 12px', outline: 'none' }}
-              onKeyDown={(e) => e.key === 'Enter' && handleSync()}
-            />
-            <button onClick={handleSync} disabled={syncing || !syncId.trim() || notConfigured} style={{ padding: '9px 18px', borderRadius: 6, border: 'none', cursor: (syncing || !syncId.trim() || notConfigured) ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', background: (syncing || !syncId.trim() || notConfigured) ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: (syncing || !syncId.trim() || notConfigured) ? 'rgba(212,230,202,0.3)' : '#0d1a10' }}>
-              {syncing ? 'Syncing…' : 'Sync'}
-            </button>
-          </div>
-          {syncResult && <div style={{ fontSize: '0.82rem', color: '#7dffaa', fontWeight: 700 }}>Synced! QBO Invoice #{syncResult.docNumber}</div>}
-          {syncError && <div style={{ fontSize: '0.82rem', color: '#ff8080' }}>{syncError}</div>}
-        </div>
-      </section>
-
-      {qboData && !notConfigured && (
-        <section style={{ marginBottom: 32 }}>
-          <div style={SECTION}>Recent QuickBooks Invoices</div>
-          {qboData.recentInvoices?.length > 0 ? (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                <thead><tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
-                  {['Date', 'Customer', 'Amount', 'Balance Due', 'Status'].map((h) => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)' }}>{h}</th>
-                  ))}
-                </tr></thead>
-                <tbody>
-                  {qboData.recentInvoices.map((inv) => (
-                    <tr key={inv.Id} style={{ borderBottom: '1px solid rgba(122,171,130,0.08)' }}>
-                      <td style={TD}>{inv.TxnDate}</td>
-                      <td style={{ ...TD, color: 'rgba(212,230,202,0.65)' }}>{inv.CustomerRef?.name || '—'}</td>
-                      <td style={{ ...TD, fontWeight: 800 }}>{fmt$(inv.TotalAmt || 0)}</td>
-                      <td style={{ ...TD, color: (inv.Balance || 0) > 0 ? '#ffb060' : '#7dffaa', fontWeight: 700 }}>{fmt$(inv.Balance || 0)}</td>
-                      <td style={TD}><span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: (inv.Balance || 0) > 0 ? '#ffb060' : '#7dffaa' }}>{(inv.Balance || 0) > 0 ? 'Unpaid' : 'Paid'}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.4)' }}>No invoices found in QuickBooks.</p>
-          )}
-        </section>
-      )}
-
-      <div className="card" style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.55)', lineHeight: 1.6, maxWidth: 560 }}>
-        <strong>Recommended workflow:</strong> Generate invoice in Customer Rounds → finalize in Stripe → click Sync here to push to QuickBooks.
-        QuickBooks keeps your books; Stripe handles the actual payment collection.
+      <div className="card" style={{ maxWidth: 520 }}>
+        <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 10, color: '#d4e6ca' }}>Books are managed in-house</div>
+        <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.7, margin: '0 0 18px' }}>
+          GreenGuard uses its own ledger instead of QuickBooks. All transactions, P&amp;L reports, and CSV exports live in the Books section.
+        </p>
+        <Link href="/admin/books"
+          style={{ display: 'inline-block', padding: '9px 20px', borderRadius: 7, background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.88rem', textDecoration: 'none' }}>
+          Open Books →
+        </Link>
       </div>
     </div>
   )
@@ -1132,7 +1046,7 @@ function HealthTab() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: '16px 20px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: `1px solid ${statusColor}33`, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: '16px 20px', borderRadius: 10, background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: `1px solid ${statusColor}33`, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
           <span style={{ width: 14, height: 14, borderRadius: '50%', background: statusColor, display: 'inline-block', flexShrink: 0 }} />
           <span style={{ fontWeight: 800, color: statusColor, fontSize: '1rem' }}>{statusLabel}</span>
@@ -1140,7 +1054,7 @@ function HealthTab() {
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {lastRun && <span style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.35)' }}>Last: {lastRun.toLocaleTimeString()}</span>}
-          <button onClick={runCheck} disabled={loading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: loading ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: loading ? 'rgba(212,230,202,0.4)' : '#0d1a10' }}>
+          <button onClick={runCheck} disabled={loading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: loading ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: loading ? 'rgba(212,230,202,0.4)' : '#0d1a10' }}>
             {loading ? 'Checking…' : result ? 'Re-check' : 'Run Health Check'}
           </button>
         </div>
@@ -1177,7 +1091,14 @@ function HealthTab() {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-export default function Analytics(props) {
+export default function Analytics() {
+  const { data, error, reload } = useLazyData('/api/admin/analytics-data')
+  if (error) return <LazyError error={error} onRetry={reload} />
+  if (!data) return <LazyLoading />
+  return <AnalyticsView {...data} />
+}
+
+function AnalyticsView(props) {
   const [tab, setTab] = useState('Revenue')
 
   return (

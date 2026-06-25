@@ -1,6 +1,11 @@
 const { Client } = require('@hubspot/api-client')
+const { fetchWithTimeout } = require('./http')
 
-const client = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN })
+// numberOfApiCallRetries: SDK retries 429/5xx with backoff for all SDK calls.
+const client = new Client({
+  accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
+  numberOfApiCallRetries: 3,
+})
 
 /**
  * Create or update a HubSpot contact by email.
@@ -13,12 +18,12 @@ async function upsertContact({ email, name, phone, address, metadata = {} }) {
     email,
     firstname: firstname || '',
     lastname: lastname || '',
-    phone: phone || '',
-    address: address || '',
     ...Object.fromEntries(
       Object.entries(metadata).map(([k, v]) => [k, String(v)])
     ),
   }
+  if (phone) properties.phone = phone
+  if (address) properties.address = address
 
   try {
     // Search for existing contact
@@ -147,7 +152,7 @@ async function getContactNotes(contactId, limit = 5) {
     // Fetch up to 50 association IDs — do NOT slice before batch-reading because HubSpot
     // returns association IDs in an arbitrary order (often oldest-first), so slicing early
     // would return stale notes instead of the most recent ones.
-    const assocResp = await fetch(
+    const assocResp = await fetchWithTimeout(
       `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}/associations/notes?limit=50`,
       { headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` } }
     )
@@ -156,7 +161,7 @@ async function getContactNotes(contactId, limit = 5) {
     const allIds = (assocData.results || []).map((r) => r.id)
     if (allIds.length === 0) return []
 
-    const batchResp = await fetch('https://api.hubapi.com/crm/v3/objects/notes/batch/read', {
+    const batchResp = await fetchWithTimeout('https://api.hubapi.com/crm/v3/objects/notes/batch/read', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`,
@@ -193,6 +198,10 @@ async function updateContact(contactId, updates) {
   }
   if (updates.phone !== undefined) props.phone = updates.phone
   if (updates.address !== undefined) props.address = updates.address
+  if (updates.plan_type !== undefined) props.plan_type = updates.plan_type || ''
+  if (updates.system_type !== undefined) props.system_type = updates.system_type || ''
+  if (updates.trap_count !== undefined && updates.trap_count !== '') props.trap_count = String(updates.trap_count)
+  if (updates.has_timer !== undefined) props.has_timer = updates.has_timer
   await client.crm.contacts.basicApi.update(contactId, { properties: props })
 }
 
@@ -216,7 +225,7 @@ async function getAllContacts(limit = 200) {
   // calls at limit=500), the single biggest cost on the home dashboard. The
   // contact list barely changes minute-to-minute, so a short cache turns
   // repeat admin loads from ~1s into a cache hit.
-  return _cachedH(`hubspot:allcontacts:${limit}`, 300, async () => {
+  return _cachedH(`hubspot:allcontacts:${limit}`, 1800, async () => {
     const results = []
     let after = undefined
     const properties = ['email', 'firstname', 'lastname', 'phone', 'address', 'system_type', 'plan_type', 'trap_count']
@@ -224,7 +233,7 @@ async function getAllContacts(limit = 200) {
     do {
       const params = new URLSearchParams({ limit: pageSize, properties: properties.join(',') })
       if (after) params.set('after', after)
-      const res = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts?${params}`, {
+      const res = await fetchWithTimeout(`https://api.hubapi.com/crm/v3/objects/contacts?${params}`, {
         headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` },
       })
       if (!res.ok) break

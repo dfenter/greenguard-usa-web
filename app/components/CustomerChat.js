@@ -63,7 +63,7 @@ export default function CustomerChat() {
       width: 'min(380px, calc(100vw - 40px))', height: 'min(540px, calc(100vh - 100px))',
       background: '#0d1a10', borderRadius: 16, overflow: 'hidden',
       border: '1px solid rgba(125,255,170,0.3)', boxShadow: '0 12px 36px rgba(0,0,0,0.5)',
-      display: 'flex', flexDirection: 'column', fontFamily: 'Nunito Sans, sans-serif',
+      display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif',
     }}>
       <div style={{
         padding: '14px 18px', background: 'rgba(125,255,170,0.06)',

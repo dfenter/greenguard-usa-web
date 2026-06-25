@@ -99,7 +99,7 @@ export default function ReportsPage() {
             <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {SECTIONS.map((s) => (
                 <button key={s.key} onClick={() => setSection(s.key)}
-                  style={{ textAlign: 'left', padding: '8px 12px', background: section === s.key ? 'rgba(125,255,170,0.08)' : 'transparent', border: 'none', borderLeft: section === s.key ? '2px solid #7dffaa' : '2px solid transparent', color: section === s.key ? '#7dffaa' : 'rgba(212,230,202,0.6)', fontWeight: section === s.key ? 800 : 600, fontSize: '0.88rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}>
+                  style={{ textAlign: 'left', padding: '8px 12px', background: section === s.key ? 'rgba(125,255,170,0.08)' : 'transparent', border: 'none', borderLeft: section === s.key ? '2px solid #7dffaa' : '2px solid transparent', color: section === s.key ? '#7dffaa' : 'rgba(212,230,202,0.6)', fontWeight: section === s.key ? 800 : 600, fontSize: '0.88rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
                   {s.label}
                 </button>
               ))}
@@ -115,7 +115,7 @@ export default function ReportsPage() {
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.82rem' }}>
                     <span style={{ color: 'rgba(212,230,202,0.5)' }}>Year:</span>
                     <select value={year} onChange={(e) => setYear(parseInt(e.target.value, 10))}
-                      style={{ padding: '5px 10px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+                      style={{ padding: '5px 10px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif' }}>
                       {[year + 1, year, year - 1, year - 2].map((y) => <option key={y} value={y}>{y}</option>)}
                     </select>
                   </div>

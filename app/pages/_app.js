@@ -32,7 +32,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)', padding: 24, fontFamily: 'Nunito Sans, sans-serif', color: '#d4e6ca', textAlign: 'center' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)', padding: 24, fontFamily: 'Inter, sans-serif', color: '#d4e6ca', textAlign: 'center' }}>
           <div style={{ maxWidth: 400 }}>
             <div style={{ fontWeight: 900, fontSize: '1.3rem', marginBottom: 24 }}>{process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}</div>
             <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 8 }}>Something went wrong.</div>
@@ -54,6 +54,16 @@ export default function App({ Component, pageProps }) {
   useEffect(() => {
     PREFETCH_ROUTES.forEach(route => router.prefetch(route))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Register the PWA service worker (production only) for installability,
+  // faster static loads, and an offline fallback page.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') return
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
+    const register = () => navigator.serviceWorker.register('/sw.js').catch(() => {})
+    window.addEventListener('load', register)
+    return () => window.removeEventListener('load', register)
+  }, [])
 
   return (
     <ErrorBoundary>

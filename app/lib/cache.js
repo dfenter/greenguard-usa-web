@@ -18,17 +18,25 @@
 const { Redis } = require('@upstash/redis')
 
 // ── Tier 1: in-memory ────────────────────────────────────────────────────────
-const memCache = new Map() // key → { value, expiresAt }
+// Stale-while-revalidate: each entry has a soft expiry (serve-fresh window) and
+// a hard expiry. Between them the value is served instantly while a background
+// refresh runs, so a reader past the TTL never eats full upstream latency.
+const memCache = new Map() // key → { value, softExpiresAt, hardExpiresAt }
 
 function memGet(key) {
   const entry = memCache.get(key)
   if (!entry) return undefined
-  if (Date.now() > entry.expiresAt) { memCache.delete(key); return undefined }
-  return entry.value
+  if (Date.now() > entry.hardExpiresAt) { memCache.delete(key); return undefined }
+  return entry
 }
 
-function memSet(key, value, ttlSeconds) {
-  memCache.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 })
+function memSet(key, value, ttlSeconds, staleSeconds = ttlSeconds) {
+  const now = Date.now()
+  memCache.set(key, {
+    value,
+    softExpiresAt: now + ttlSeconds * 1000,
+    hardExpiresAt: now + (ttlSeconds + staleSeconds) * 1000,
+  })
 }
 
 function memDel(key) {
@@ -51,11 +59,50 @@ function getRedis() {
   }
 }
 
+// ── Single-flight ────────────────────────────────────────────────────────────
+// In-flight fetches keyed by cache key. When N callers miss the same cold key
+// concurrently, only the first runs fetchFn; the rest await the same promise.
+// Prevents a thundering herd on Stripe/HubSpot/GCal when a hot key expires.
+const inflight = new Map() // key → Promise<value>
+
+// Fetch fresh, write through both tiers. Single-flight: concurrent callers for
+// the same key share one fetchFn run. Returns the fetched value (throws on
+// fetchFn failure for the synchronous-miss path).
+function runFetch(key, ttlSeconds, staleSeconds, fetchFn) {
+  const pending = inflight.get(key)
+  if (pending) return pending
+
+  const fetchPromise = (async () => {
+    const fresh = await fetchFn()
+    memSet(key, fresh, ttlSeconds, staleSeconds)
+    const redis = getRedis()
+    if (redis) {
+      // Keep the value in Redis through the stale window too.
+      try { await redis.set(key, fresh, { ex: ttlSeconds + staleSeconds }) } catch {}
+    }
+    return fresh
+  })()
+  inflight.set(key, fetchPromise)
+  // Clear the in-flight slot when settled. The extra .catch keeps this detached
+  // chain from surfacing as an unhandled rejection; the returned fetchPromise
+  // still rejects for the caller.
+  fetchPromise.finally(() => inflight.delete(key)).catch(() => {})
+  return fetchPromise
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 async function cached(key, ttlSeconds, fetchFn) {
+  const staleSeconds = ttlSeconds // serve-stale window equals the TTL
+
   // Tier 1 hit
-  const memHit = memGet(key)
-  if (memHit !== undefined) return memHit
+  const entry = memGet(key)
+  if (entry !== undefined) {
+    if (Date.now() <= entry.softExpiresAt) return entry.value // still fresh
+    // Stale: serve immediately, refresh in the background. Keep serving the
+    // stale value if the refresh fails (graceful degradation).
+    if (!inflight.has(key)) runFetch(key, ttlSeconds, staleSeconds, fetchFn).catch(() => {})
+    return entry.value
+  }
 
   // Tier 2 hit
   const redis = getRedis()
@@ -63,21 +110,14 @@ async function cached(key, ttlSeconds, fetchFn) {
     try {
       const hit = await redis.get(key)
       if (hit !== null && hit !== undefined) {
-        memSet(key, hit, ttlSeconds)
+        memSet(key, hit, ttlSeconds, staleSeconds)
         return hit
       }
     } catch {}
   }
 
-  // Cache miss — fetch fresh
-  const fresh = await fetchFn()
-
-  memSet(key, fresh, ttlSeconds)
-  if (redis) {
-    try { await redis.set(key, fresh, { ex: ttlSeconds }) } catch {}
-  }
-
-  return fresh
+  // Cold miss — fetch synchronously (single-flight coalesces concurrent misses)
+  return runFetch(key, ttlSeconds, staleSeconds, fetchFn)
 }
 
 async function invalidate(key) {

@@ -92,10 +92,10 @@ export default function InvoicePdf({ customers = [] }) {
   function removeRow(i) { setItems((arr) => arr.length > 1 ? arr.filter((_, idx) => idx !== i) : arr) }
 
   // ── styles (admin dark UI for the form) ──
-  const input = { padding: '9px 12px', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', width: '100%' }
+  const input = { padding: '9px 12px', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none', width: '100%' }
   const label = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', marginBottom: 5, display: 'block' }
   const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', margin: '24px 0 12px' }
-  const btn = (v) => ({ padding: '9px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', ...(v === 'gold' ? { background: '#c9a84c', color: '#0d1a10' } : v === 'green' ? { background: '#7dffaa', color: '#0d1a10' } : { background: 'rgba(122,171,130,0.1)', color: '#7aab82', border: '1px solid rgba(122,171,130,0.2)' }) })
+  const btn = (v) => ({ padding: '9px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', ...(v === 'gold' ? { background: '#c9a84c', color: '#0d1a10' } : v === 'green' ? { background: '#7dffaa', color: '#0d1a10' } : { background: 'rgba(122,171,130,0.1)', color: '#7aab82', border: '1px solid rgba(122,171,130,0.2)' }) })
 
   return (
     <PortalLayout isAdmin title="PDF Invoice">

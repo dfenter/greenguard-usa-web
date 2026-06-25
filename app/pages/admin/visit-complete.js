@@ -194,7 +194,7 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
                           style={{
                             display: 'flex', alignItems: 'center', gap: 10,
                             padding: '10px 14px',
-                            background: checked ? 'rgba(125,255,170,0.08)' : 'rgba(255,255,255,0.03)',
+                            background: checked ? 'rgba(125,255,170,0.08)' : 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))',
                             border: `1px solid ${checked ? 'rgba(125,255,170,0.3)' : 'rgba(122,171,130,0.15)'}`,
                             borderRadius: 6, cursor: 'pointer',
                           }}

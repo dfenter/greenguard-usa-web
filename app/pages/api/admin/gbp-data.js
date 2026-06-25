@@ -13,6 +13,7 @@ function loadStaticReviews() {
     const p = path.join(process.cwd(), '..', 'astro', 'src', 'data', 'reviews.json')
     const raw = JSON.parse(fs.readFileSync(p, 'utf8'))
     return (raw?.google?.reviews || []).map(r => ({
+      name: null,
       starRating: STAR_NAMES[r.rating] || 'FIVE',
       reviewer: { displayName: r.author || 'Anonymous' },
       comment: r.text || '',

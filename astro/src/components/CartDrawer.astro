@@ -174,11 +174,26 @@ async function checkout() {
     });
   }
 
+  // Gather ad attribution so shop purchases can be attributed server-side.
+  // gclid/fbclid persisted to sessionStorage by Base.astro; _fbc/_fbp/_ga are cookies.
+  const cookie = (name: string) => {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  };
+  const ga = cookie('_ga');                      // GA1.1.<client_id>
+  const attribution = {
+    gclid: sessionStorage.getItem('gg_gclid') || '',
+    fbclid: sessionStorage.getItem('gg_fbclid') || '',
+    fbc: cookie('_fbc'),
+    fbp: cookie('_fbp'),
+    ga_client_id: ga ? ga.split('.').slice(-2).join('.') : '',
+  };
+
   try {
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: cart }),
+      body: JSON.stringify({ items: cart, attribution }),
     });
     const data = await res.json();
     if (data.url) {

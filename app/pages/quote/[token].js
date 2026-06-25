@@ -66,6 +66,11 @@ export default function QuotePage({ token, accepted }) {
         const parts = gaCookie.split('=')[1].split('.')
         if (parts.length >= 4) attribution.ga_client_id = parts.slice(2).join('.')
       }
+      // Capture Meta browser cookies (_fbp, _fbc) to raise CAPI Purchase match rate
+      const fbp = document.cookie.split('; ').find(c => c.startsWith('_fbp='))
+      if (fbp) attribution.fbp = fbp.split('=').slice(1).join('=')
+      const fbc = document.cookie.split('; ').find(c => c.startsWith('_fbc='))
+      if (fbc) attribution.fbc = fbc.split('=').slice(1).join('=')
     }
     try {
       const res = await fetch('/api/quote/checkout', {
@@ -92,7 +97,7 @@ export default function QuotePage({ token, accepted }) {
     return lines.some(l => l.amount > 0)
   }
 
-  const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: 28, marginBottom: 20 }
+  const card = { background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: 28, marginBottom: 20 }
   const lbl = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(201,168,76,0.7)', marginBottom: 8, display: 'block' }
 
   return (
@@ -102,7 +107,7 @@ export default function QuotePage({ token, accepted }) {
         <meta name="robots" content="noindex" />
         <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
-      <div style={{ minHeight: '100vh', background: '#0d1a10', color: '#d4e6ca', fontFamily: "'Nunito Sans', sans-serif", padding: '0 0 80px' }}>
+      <div style={{ minHeight: '100vh', background: '#0d1a10', color: '#d4e6ca', fontFamily: "'Inter', sans-serif", padding: '0 0 80px' }}>
         {/* Header */}
         <div style={{ background: 'rgba(13,26,16,0.95)', borderBottom: '1px solid rgba(122,171,130,0.15)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -263,7 +268,7 @@ export default function QuotePage({ token, accepted }) {
                         width: '100%', padding: '18px', borderRadius: 10, border: 'none',
                         background: paying || !canPay(quote) ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#7dffaa,#4dd98a)',
                         color: paying || !canPay(quote) ? 'rgba(212,230,202,0.4)' : '#0d1a10',
-                        fontWeight: 900, fontSize: '1.05rem', fontFamily: "'Nunito Sans', sans-serif",
+                        fontWeight: 900, fontSize: '1.05rem', fontFamily: "'Inter', sans-serif",
                         cursor: paying || !canPay(quote) ? 'not-allowed' : 'pointer',
                         letterSpacing: '-0.01em',
                         transition: 'opacity 0.15s',

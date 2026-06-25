@@ -2,41 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-// Heavy server-only deps (Stripe SDK, HubSpot client) are dynamically imported
-// inside getServerSideProps so they're tree-shaken out of the client bundle.
-// This route was 722kB first-load JS until we moved the imports server-side.
+import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
 
-export async function getServerSideProps({ req }) {
+export async function getServerSideProps({ req, res }) {
+  res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
-
-  const { listAllCustomers } = await import('../../lib/stripe')
-  const raw = await listAllCustomers().catch(() => [])
-  const customers = raw
-    .filter((c) => c.address?.line1 || c.metadata?.address)
-    .map((c) => {
-      const subs = c.subscriptions?.data || []
-      const activeSub = subs.find((s) => s.status === 'active') || subs[0] || null
-      return {
-        id: c.id,
-        name: c.name || c.email || 'Unknown',
-        email: c.email || '',
-        address: c.address?.line1
-          ? [c.address.line1, c.address.city, c.address.state].filter(Boolean).join(', ')
-          : '',
-        status: activeSub?.status || 'inactive',
-        plan: activeSub?.items?.data?.[0]?.price?.nickname || null,
-      }
-    })
-    .filter((c) => c.address)
-
-  return {
-    props: {
-      customers,
-      mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    },
-  }
+  return { props: {} }
 }
 
 const STATUS_COLORS = {
@@ -60,7 +33,14 @@ function Legend() {
   )
 }
 
-export default function SystemMap({ customers, mapsKey }) {
+export default function SystemMap() {
+  const { data, error, reload } = useLazyData('/api/admin/map-data')
+  if (error) return <LazyError error={error} onRetry={reload} />
+  if (!data) return <LazyLoading />
+  return <SystemMapView {...data} />
+}
+
+function SystemMapView({ customers, mapsKey }) {
   const mapRef = useRef(null)
   const mapObj = useRef(null)
   const [selected, setSelected] = useState(null)
@@ -185,7 +165,7 @@ export default function SystemMap({ customers, mapsKey }) {
         <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
           {FILTER_TABS.map((t) => (
             <button key={t.key} onClick={() => setFilter(t.key)}
-              style={{ padding: '6px 14px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif', background: filter === t.key ? '#c9a84c' : 'rgba(201,168,76,0.1)', color: filter === t.key ? '#0d1a10' : 'rgba(201,168,76,0.7)' }}>
+              style={{ padding: '6px 14px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif', background: filter === t.key ? '#c9a84c' : 'rgba(201,168,76,0.1)', color: filter === t.key ? '#0d1a10' : 'rgba(201,168,76,0.7)' }}>
               {t.label}
             </button>
           ))}
@@ -211,7 +191,7 @@ export default function SystemMap({ customers, mapsKey }) {
                   onClick={() => setSelected(c)}
                   style={{
                     padding: '12px 14px', borderRadius: 8, marginBottom: 8, cursor: 'pointer',
-                    background: selected?.id === c.id ? 'rgba(201,168,76,0.08)' : 'rgba(255,255,255,0.03)',
+                    background: selected?.id === c.id ? 'rgba(201,168,76,0.08)' : 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))',
                     border: `1px solid ${selected?.id === c.id ? 'rgba(201,168,76,0.3)' : 'rgba(122,171,130,0.12)'}`,
                   }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>

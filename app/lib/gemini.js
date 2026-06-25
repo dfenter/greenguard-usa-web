@@ -48,23 +48,6 @@ Requirements:
   )
 }
 
-// Analyze sentiment of a customer review
-async function analyzeReviewSentiment(reviewText) {
-  const result = await generate(
-    `Analyze this customer review and return a JSON object with:
-- sentiment: "positive" | "neutral" | "negative"
-- score: 0.0 to 1.0 (1.0 = very positive)
-- topics: array of strings (what they mentioned: service, pricing, technician, results, etc.)
-- response_needed: true if they raised a concern or question
-
-Review: "${reviewText}"
-
-Return ONLY valid JSON, no other text.`,
-  )
-  try { return JSON.parse(result.replace(/```json\n?|\n?```/g, '')) }
-  catch { return { sentiment: 'neutral', score: 0.5, topics: [], response_needed: false } }
-}
-
 // Generate a draft Google Business Profile post
 async function draftBusinessPost(topic) {
   return generate(
@@ -165,4 +148,4 @@ async function chat({ system, history = [], userMessage, maxTokens = 1024, tempe
   return d.candidates?.[0]?.content?.parts?.[0]?.text || ''
 }
 
-module.exports = { generate, generateJSON, visionJSON, chat, draftVisitEmail, analyzeReviewSentiment, draftBusinessPost, draftUpsellMessage }
+module.exports = { generate, generateJSON, visionJSON, chat, draftVisitEmail, draftBusinessPost, draftUpsellMessage }

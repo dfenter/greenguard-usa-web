@@ -23,8 +23,8 @@ C3,100nF,C_0805_2012Metric,1,CC0805KRX7R9BB104,Yageo,311-1141-1-ND,C49678,SMT �
 C4,100nF,C_0805_2012Metric,1,CC0805KRX7R9BB104,Yageo,311-1141-1-ND,C49678,SMT — top side,Decoupling cap
 J1,Screw Terminal 2P 5.08mm,PhoenixContact_MKDS_1.5-2_5.08mm_Angled,1,1729128,Phoenix Contact,277-1247-ND,C8465,THT — hand solder,Battery input 1 (9V)
 J2,Screw Terminal 2P 5.08mm,PhoenixContact_MKDS_1.5-2_5.08mm_Angled,1,1729128,Phoenix Contact,277-1247-ND,C8465,THT — hand solder,Solenoid output
-J3,PinHeader 2x03 2.54mm,PinHeader_2x03_P2.54mm_Vertical,1,TSW-103-07-G-D,Samtec,SAM1035-03-ND,C124378,THT — hand solder,ISP programming header for ATtiny84A
-J4,PinHeader 1x04 2.54mm,PinHeader_1x04_P2.54mm_Vertical,1,TSW-104-07-G-S,Samtec,SAM1024-04-ND,C358686,THT — hand solder,I2C expansion / debug
+J3,PinHeader 2x03 2.54mm,PinHeader_2x03_P2.54mm_Vertical,1,TSW-103-07-G-D,Samtec,SAM1035-03-ND,C124378,DNP — do not install,ISP header non-functional in Rev 3.0 (wired to PB0/PB1/PB2 not PA4/PA5/PA6); footprint reserved for v4 fix
+J4,PinHeader 1x04 2.54mm,PinHeader_1x04_P2.54mm_Vertical,1,TSW-104-07-G-S,Samtec,SAM1024-04-ND,C358686,THT — hand solder,TM1637 display connector (VCC/GND/DIO/CLK)
 J5,DC Barrel Jack 5.5/2.1mm,BarrelJack_CUI_PJ-002A,1,PJ-002A,CUI Devices,CP-002A-ND,TBD,THT — hand solder,DC 9–12V input; center positive
 J6,Screw Terminal 2P 5.08mm,PhoenixContact_MKDS_1.5-2_5.08mm_Angled,1,1729128,Phoenix Contact,277-1247-ND,C8465,THT — hand solder,Battery input 2 (9V)
-U1_SOCKET,DIP-14 Socket,DIP-14 (0.3" row spacing),1,4814-3000-CP,3M,ED3050-ND,—,THT — turnkey,Mounts in U1 footprint; buyer inserts pre-programmed ATtiny84A
+U1_SOCKET,DIP-14 Socket,DIP-14 (0.3" row spacing),1,4814-3000-CP,3M,ED3050-ND,—,THT — turnkey,CM installs socket + inserts buyer-supplied pre-programmed ATtiny84A at assembly

@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       to: ADMIN_EMAIL,
       subject: `Upgrade Request: ${customerName} — ${upgradeTitle}`,
       html: `
-        <div style="font-family:'Nunito Sans',sans-serif;max-width:560px;margin:0 auto;background:#0d1a10;color:#d4e6ca;border-radius:12px;overflow:hidden;">
+        <div style="font-family:'Inter',sans-serif;max-width:560px;margin:0 auto;background:#0d1a10;color:#d4e6ca;border-radius:12px;overflow:hidden;">
           <div style="background:#0a1a0d;padding:20px 28px;border-bottom:1px solid rgba(122,171,130,0.2);">
             <div style="font-weight:900;font-size:1.05rem;">Green<span style="color:#7dffaa;">Guard</span> USA</div>
             <div style="font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(212,230,202,0.35);margin-top:2px;">Customer Upgrade Request</div>
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       to: session.email,
       subject: `Your upgrade request is confirmed — ${upgradeTitle}`,
       html: `
-        <div style="font-family:'Nunito Sans',sans-serif;max-width:520px;margin:0 auto;background:#0d1a10;color:#d4e6ca;border-radius:12px;overflow:hidden;">
+        <div style="font-family:'Inter',sans-serif;max-width:520px;margin:0 auto;background:#0d1a10;color:#d4e6ca;border-radius:12px;overflow:hidden;">
           <div style="background:#0a1a0d;padding:20px 28px;border-bottom:1px solid rgba(122,171,130,0.2);">
             <div style="font-weight:900;font-size:1.05rem;">Green<span style="color:#7dffaa;">Guard</span> USA</div>
           </div>

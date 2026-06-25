@@ -83,7 +83,7 @@ export default function CustomerMap({ customers = [], mapsKey, height = 400, com
 
   if (!mapsKey) {
     return (
-      <div style={{ padding: 12, borderRadius: 8, background: 'rgba(255,255,255,0.03)', color: 'rgba(212,230,202,0.5)', fontSize: '0.85rem' }}>
+      <div style={{ padding: 12, borderRadius: 8, background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', color: 'rgba(212,230,202,0.5)', fontSize: '0.85rem' }}>
         Map unavailable (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY not set)
       </div>
     )

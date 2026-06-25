@@ -1,32 +1,35 @@
 // POST /api/customer/chat
 // Body: { message, history: [{role, content}] }
 //
-// Customer chatbot. Loads HubSpot context for the signed-in customer, calls
-// Gemini, and returns the answer + escalation flag.
-//
-// Safety: never executes destructive actions (cancel/reschedule/refund). For
-// anything risky the bot says it's "letting the team know" and we log to
-// HubSpot as [CHAT-ESCALATION] for admin pickup.
+// Customer assistant powered by Claude with tool-calling. It answers questions
+// from the signed-in customer's own context and can take TWO safe actions on
+// their behalf: request a service visit and request a reschedule (both just
+// notify the team + email the customer a confirmation — no money, no calendar
+// edits). Anything riskier (cancel, refund, complaint) is escalated to a human.
 
 const { getSessionFromRequest } = require('../../../lib/auth')
 const { findContactByEmail, addNote } = require('../../../lib/hubspot')
-const { getInvoices, getCustomer } = require('../../../lib/stripe')
+const { getInvoices } = require('../../../lib/stripe')
 const { getUpcomingBookingsForEmail, getPastBookingsForEmail } = require('../../../lib/gcal')
-const { chat: geminiChat, generateJSON } = require('../../../lib/gemini')
+const { sendServiceRequest } = require('../../../lib/email')
+const { runAssistant } = require('../../../lib/assistant')
 
-const SYSTEM_TEMPLATE = `You are the GreenGuard USA customer assistant. You help customers with simple questions about their CO₂ mosquito-control service.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
-GROUND RULES (do not break):
-1. NEVER agree to cancel, reschedule, refund, or change anything. Always say: "I'll let the team know — someone will reach out within one business day." That's your only response for those topics.
-2. If the customer is upset, angry, or has a service complaint → say you've alerted the team, do not try to fix it yourself.
-3. If they ask a question you can't confidently answer from the provided context → say "Let me have someone get back to you on that."
-4. Be warm, brief, plain-English. No marketing language. No emojis unless they used one first.
-5. NEVER guess at financial amounts, dates, or service details that aren't in the context below.
+const SYSTEM_TEMPLATE = `You are the GreenGuard USA customer assistant. You help the signed-in customer with questions about their CO₂ mosquito-control service and can take two safe actions for them.
+
+GROUND RULES:
+1. Be warm, brief, plain-English. No marketing language. No emojis unless the customer used one first. Never use em dashes.
+2. Answer only from the CUSTOMER CONTEXT below or general service facts. Never invent amounts, dates, or details.
+3. You CAN take these actions with the tools provided:
+   - request_service_visit: when the customer wants someone to come out / service their trap / a tank swap.
+   - request_reschedule: when they want to move their upcoming visit.
+   After calling a tool, tell them plainly that the request was sent and the team will confirm.
+4. You may NOT cancel service, issue refunds, change billing, or promise specific times. For those, or any complaint/upset customer, call escalate_to_team and tell them the team will reach out within one business day.
+5. If you can't confidently answer, say you'll have someone follow up (escalate_to_team).
 
 CUSTOMER CONTEXT:
-{context}
-
-If you need to escalate (cancel/reschedule/complaint/refund/anything you can't handle), include the exact phrase "ESCALATE:" followed by a 1-line reason at the END of your reply. The phrase ESCALATE: is for our internal logging, customer-facing text should come BEFORE it.`
+{context}`
 
 async function buildContext(session) {
   const ctx = { email: session.email }
@@ -35,11 +38,9 @@ async function buildContext(session) {
     if (contact) {
       const p = contact.properties || {}
       ctx.name = [p.firstname, p.lastname].filter(Boolean).join(' ')
-      ctx.phone = p.phone
       ctx.address = p.address
       ctx.systemType = p.system_type
       ctx.trapCount = p.trap_count
-      ctx.tankCount = p.tank_count
       ctx.planType = p.plan_type
     }
   } catch {}
@@ -48,24 +49,13 @@ async function buildContext(session) {
       getUpcomingBookingsForEmail(session.email, 3).catch(() => []),
       getPastBookingsForEmail(session.email, 3).catch(() => []),
     ])
-    ctx.nextVisit = upcoming[0]
-      ? { date: upcoming[0].startTime, service: upcoming[0].title }
-      : null
-    ctx.lastVisit = past[0]
-      ? { date: past[0].startTime, service: past[0].title }
-      : null
+    ctx.nextVisit = upcoming[0] ? { date: upcoming[0].startTime, service: upcoming[0].title } : null
+    ctx.lastVisit = past[0] ? { date: past[0].startTime, service: past[0].title } : null
   } catch {}
   if (session.stripeCustomerId) {
     try {
       const invs = await getInvoices(session.stripeCustomerId, 5)
-      ctx.invoices = invs.map((i) => ({
-        amount: (i.amount_due / 100).toFixed(2),
-        status: i.status,
-        created: new Date(i.created * 1000).toISOString().slice(0, 10),
-      }))
-      const openSum = invs
-        .filter((i) => i.status === 'open')
-        .reduce((s, i) => s + i.amount_due, 0) / 100
+      const openSum = invs.filter((i) => i.status === 'open').reduce((s, i) => s + i.amount_due, 0) / 100
       ctx.openBalance = openSum.toFixed(2)
     } catch {}
   }
@@ -73,17 +63,18 @@ async function buildContext(session) {
 }
 
 function ctxToText(ctx) {
-  const lines = [
+  return [
     `Name: ${ctx.name || ctx.email}`,
-    ctx.phone ? `Phone: ${ctx.phone}` : null,
     ctx.address ? `Address: ${ctx.address}` : null,
-    ctx.systemType ? `System: ${ctx.systemType} (plan=${ctx.planType || '?'}, traps=${ctx.trapCount || '?'}, tanks=${ctx.tankCount || '?'})` : null,
-    ctx.nextVisit ? `Next service visit: ${new Date(ctx.nextVisit.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} — ${ctx.nextVisit.service}` : `Next service visit: not currently scheduled`,
-    ctx.lastVisit ? `Last service visit: ${new Date(ctx.lastVisit.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} — ${ctx.lastVisit.service}` : null,
-    ctx.openBalance && Number(ctx.openBalance) > 0 ? `Open balance: $${ctx.openBalance}` : `Open balance: $0`,
-    ctx.invoices?.length ? `Recent invoices: ${ctx.invoices.map((i) => `$${i.amount} ${i.status} ${i.created}`).join(', ')}` : null,
-  ].filter(Boolean)
-  return lines.join('\n')
+    ctx.systemType ? `System: ${ctx.systemType} (plan=${ctx.planType || '?'}, traps=${ctx.trapCount || '?'})` : null,
+    ctx.nextVisit
+      ? `Next service visit: ${new Date(ctx.nextVisit.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} — ${ctx.nextVisit.service}`
+      : 'Next service visit: not currently scheduled',
+    ctx.lastVisit
+      ? `Last service visit: ${new Date(ctx.lastVisit.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} — ${ctx.lastVisit.service}`
+      : null,
+    `Open balance: $${ctx.openBalance && Number(ctx.openBalance) > 0 ? ctx.openBalance : '0'}`,
+  ].filter(Boolean).join('\n')
 }
 
 export default async function handler(req, res) {
@@ -97,47 +88,67 @@ export default async function handler(req, res) {
 
   try {
     const ctx = await buildContext(session)
-    const system = SYSTEM_TEMPLATE.replace('{context}', ctxToText(ctx))
+    const customerInfo = {
+      name: ctx.name || null, email: session.email, address: ctx.address || null, systemType: ctx.systemType || null,
+    }
+    let escalated = false
+    let escalateReason = null
 
-    // Cap history to last 10 turns
-    const safeHistory = Array.isArray(history) ? history.slice(-10) : []
+    const tools = [
+      {
+        name: 'request_service_visit',
+        description: 'Request that the team schedule a service visit / tank swap for this customer. Use when they want someone to come out.',
+        input_schema: { type: 'object', properties: { note: { type: 'string', description: 'Optional detail from the customer about what they need.' } } },
+        run: async ({ note }) => {
+          await sendServiceRequest(ADMIN_EMAIL, customerInfo,
+            `${customerInfo.name || 'A customer'} would like to request a service visit.${note ? ' Note: ' + note : ''}`,
+            { subject: `Service Visit Request: ${customerInfo.name || session.email}`, heading: 'Customer requested a service visit (via assistant)', confirmHeading: 'We received your service visit request and will reach out to schedule a time.' })
+          return { sent: true }
+        },
+      },
+      {
+        name: 'request_reschedule',
+        description: 'Request that the team reschedule the customer\'s upcoming visit. Use when they want to move their appointment.',
+        input_schema: { type: 'object', properties: { note: { type: 'string', description: 'Optional preferred timing or reason.' } } },
+        run: async ({ note }) => {
+          const when = ctx.nextVisit ? new Date(ctx.nextVisit.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : null
+          await sendServiceRequest(ADMIN_EMAIL, { ...customerInfo, bookingDate: when },
+            `${customerInfo.name || 'A customer'} would like to reschedule their upcoming visit${when ? ' on ' + when : ''}.${note ? ' Note: ' + note : ''}`,
+            { subject: `Reschedule Request: ${customerInfo.name || session.email}`, heading: 'Customer wants to reschedule (via assistant)', confirmHeading: 'We received your reschedule request and will reach out to confirm a new time.' })
+          return { sent: true }
+        },
+      },
+      {
+        name: 'escalate_to_team',
+        description: 'Flag this conversation for a human. Use for cancellations, refunds, billing changes, complaints, or anything you cannot safely handle.',
+        input_schema: { type: 'object', properties: { reason: { type: 'string' } }, required: ['reason'] },
+        run: async ({ reason }) => {
+          escalated = true; escalateReason = reason || 'customer needs help'
+          try {
+            const contact = await findContactByEmail(session.email).catch(() => null)
+            if (contact?.id) await addNote(contact.id, `[CHAT-ESCALATION] ${escalateReason}\n\nCustomer: "${message}"`)
+          } catch {}
+          return { escalated: true }
+        },
+      },
+    ]
 
-    const raw = await geminiChat({
-      system,
-      history: safeHistory,
-      userMessage: message,
-      maxTokens: 512,
+    const { reply } = await runAssistant({
+      system: SYSTEM_TEMPLATE.replace('{context}', ctxToText(ctx)),
+      history, userMessage: message, tools, maxTokens: 700,
     })
 
-    // Extract escalation flag
-    const escalateMatch = raw.match(/ESCALATE:\s*(.*)$/m)
-    const reply = raw.replace(/\s*ESCALATE:.*$/m, '').trim()
-    const escalated = !!escalateMatch
-    const escalateReason = escalateMatch ? escalateMatch[1].trim() : null
-
-    // Log escalations to HubSpot
-    if (escalated) {
+    // Low-priority transcript log for non-escalated chats.
+    if (!escalated) {
       try {
         const contact = await findContactByEmail(session.email).catch(() => null)
-        if (contact?.id) {
-          await addNote(contact.id,
-            `[CHAT-ESCALATION] ${escalateReason}\n\nCustomer message: "${message}"\nBot reply: "${reply}"`
-          )
-        }
-      } catch {}
-    } else {
-      // Log all conversations at low priority for review
-      try {
-        const contact = await findContactByEmail(session.email).catch(() => null)
-        if (contact?.id) {
-          await addNote(contact.id, `[CHAT] Q: ${message.slice(0, 200)}\n   A: ${reply.slice(0, 400)}`)
-        }
+        if (contact?.id) await addNote(contact.id, `[CHAT] Q: ${message.slice(0, 200)}\n   A: ${reply.slice(0, 400)}`)
       } catch {}
     }
 
     return res.status(200).json({ reply, escalated, escalateReason })
   } catch (e) {
-    console.error('chat error:', e.message)
+    console.error('customer chat error:', e.message)
     return res.status(500).json({ error: 'Chat unavailable right now — please email admin@greenguard-usa.com' })
   }
 }

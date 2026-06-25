@@ -54,7 +54,7 @@ The display, buttons, and DC jack are on this face (shorter end, user-facing).
 
 **Power port cap:** Install a silicone/rubber protective dust cap (5.5 mm barrel, push-fit or tab-pull style) over J5 after PCB installation. Cap protects the port when power adapter is not connected and prevents moisture ingress.
 
-**Note:** Verify all positions against the KiCad PCB layout before drilling. Positions above are approximate based on typical layout. Use a printout of the silkscreen at 1:1 scale as a drilling template.
+**Drilling template:** Use `co2_timer_v3_front_drill_template.svg` (included in this package) for the front face layout. Print at **100% scale** — do not fit-to-page. Verify the 65 × 40 mm outer rectangle measures exactly before drilling. A misaligned display window, button hole, or barrel jack hole cannot be corrected without replacing the enclosure end cap.
 
 ---
 
@@ -146,11 +146,15 @@ No cutouts required.
 
 ## Standoff Positions
 
-Measured from corner of enclosure interior. PCB mounting holes are 3 mm from each PCB corner.
+PCB mounting holes are at the following coordinates on the PCB (origin = bottom-left corner of board):
 
-| Standoff | X from left interior wall | Y from front interior wall |
+| Standoff | PCB X | PCB Y |
 |---|---|---|
-| Front-left | 21 mm | 3.5 mm |
-| Front-right | 91 mm | 3.5 mm |
-| Rear-left | 21 mm | 53.5 mm |
-| Rear-right | 91 mm | 53.5 mm |
+| Front-left | 3 mm | 3 mm |
+| Front-right | 67 mm | 3 mm |
+| Rear-left | 3 mm | 47 mm |
+| Rear-right | 67 mm | 47 mm |
+
+**Hole pitch: 64 mm (horizontal) × 44 mm (vertical).** These are exact dimensions from the KiCad PCB.
+
+**Recommended drilling method:** Use the bare PCB as a drilling template. Center the PCB in the enclosure base at your desired position (21 mm clearance each side along the 120 mm axis, 3.5 mm each side along the 65 mm axis per the Hammond datasheet), tape it down, and mark the four mounting holes through the PCB holes with a center punch. Drill 2.5 mm pilot holes (M3 standoff thread), deburr, and install 10 mm brass standoffs. Do not use interior-wall dimension estimates — small errors compound into misaligned standoffs.

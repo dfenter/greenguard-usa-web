@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Offline — GreenGuard USA</title>
+  <style>
+    html, body { margin: 0; height: 100%; }
+    body {
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #0d1a10, #1a2e1f);
+      color: #d4e6ca; font-family: Inter, system-ui, sans-serif; padding: 24px; text-align: center;
+    }
+    .card { max-width: 420px; }
+    h1 { font-weight: 900; font-size: 1.3rem; margin: 0 0 8px; }
+    p { font-size: 0.9rem; color: rgba(212, 230, 202, 0.6); margin: 0 0 24px; }
+    button {
+      padding: 12px 24px; border-radius: 6px; background: #c9a84c; color: #0d1a10;
+      font-weight: 800; font-size: 0.9rem; border: none; cursor: pointer; font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>GreenGuard USA</h1>
+    <p>You're offline. Check your connection — your data is safe and will load once you're back online.</p>
+    <button onclick="location.reload()">Retry</button>
+  </div>
+</body>
+</html>

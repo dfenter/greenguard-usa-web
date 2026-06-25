@@ -18,9 +18,17 @@ function calendar() {
   return google.calendar({ version: 'v3', auth: oauth })
 }
 
+const ADMIN_EMAIL = 'admin@greenguard-usa.com'
+
 function parseEmailFromDescription(desc) {
-  const m = (desc || '').match(/Email:\s*([^\s|]+@[^\s|]+)/i)
-  return m ? m[1].toLowerCase() : null
+  if (!desc) return null
+  // Legacy format: "Email: xxx@example.com"
+  const legacy = desc.match(/Email:\s*([^\s|]+@[^\s|]+)/i)
+  if (legacy) return legacy[1].toLowerCase()
+  // Cal.com format: email appears under "Who:" section — find first non-admin email
+  const all = desc.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g) || []
+  const customer = all.find((e) => e.toLowerCase() !== ADMIN_EMAIL)
+  return customer ? customer.replace(/[,;]+$/, '').toLowerCase() : null
 }
 
 function parseRescheduleUrl(desc) {

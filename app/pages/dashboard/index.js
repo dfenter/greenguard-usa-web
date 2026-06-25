@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -160,6 +160,7 @@ export async function getServerSideProps({ req, query }) {
       referralCount: referralContacts.filter(c =>
         c.properties?.customer_status === 'customer' || c.properties?.customer_status === 'active'
       ).length,
+      isAdminViewer: isAdmin,
     },
   }
 }
@@ -194,6 +195,18 @@ const SECTION_LABEL = (text) => (
     {text}
   </div>
 )
+
+// ── Shared button styles (uniform sizing across the page) ───────────────────────
+
+const BTN_BASE = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  padding: '11px 22px', borderRadius: 6, fontWeight: 700, fontSize: '0.85rem',
+  lineHeight: 1, whiteSpace: 'nowrap', textDecoration: 'none', cursor: 'pointer',
+  fontFamily: 'Inter, sans-serif', border: '1px solid transparent',
+}
+const BTN_PRIMARY = { ...BTN_BASE, background: 'var(--green)', color: 'var(--bg-deep)' }
+const BTN_OUTLINE = { ...BTN_BASE, background: 'transparent', color: 'var(--green-muted)', border: '1px solid rgba(var(--border-rgb),0.35)' }
+const BTN_GOLD = { ...BTN_BASE, background: 'transparent', color: 'var(--gold)', border: '1px solid var(--border-gold)' }
 
 // ── Date range filter options ──────────────────────────────────────────────────
 
@@ -235,7 +248,7 @@ function SystemEditor({ initialSystems }) {
         body: JSON.stringify({ systems }),
       })
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Save failed')
-      setMsg('Saved ✓'); setEditing(false)
+      setMsg('Saved'); setEditing(false)
       setTimeout(() => window.location.reload(), 500)
     } catch (e) { setMsg(e.message) }
     setSaving(false)
@@ -243,13 +256,13 @@ function SystemEditor({ initialSystems }) {
 
   if (!editing) {
     return (
-      <button onClick={() => setEditing(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(var(--green-rgb),0.7)', fontSize: '0.75rem', fontWeight: 700, padding: '4px 0', fontFamily: 'Nunito Sans, sans-serif' }}>
-        ✎ Edit my system
+      <button onClick={() => setEditing(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(var(--green-rgb),0.7)', fontSize: '0.75rem', fontWeight: 700, padding: '4px 0', fontFamily: 'Inter, sans-serif' }}>
+        Edit my system
       </button>
     )
   }
 
-  const inp = { padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }
+  const inp = { padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
   return (
     <div style={{ marginTop: 10, padding: 14, borderRadius: 8, background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.18)' }}>
       <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 10 }}>Edit your system</div>
@@ -266,7 +279,7 @@ function SystemEditor({ initialSystems }) {
               Qty
               <input type="number" min="1" max="20" value={row.count} onChange={(e) => updateRow(i, { count: parseInt(e.target.value, 10) || 1 })} style={{ ...inp, textAlign: 'center' }} />
             </label>
-            <button onClick={() => removeRow(i)} disabled={systems.length === 1} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: systems.length === 1 ? 'rgba(255,100,100,0.25)' : '#ff8080', cursor: systems.length === 1 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Nunito Sans, sans-serif' }}>Remove</button>
+            <button onClick={() => removeRow(i)} disabled={systems.length === 1} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: systems.length === 1 ? 'rgba(255,100,100,0.25)' : '#ff8080', cursor: systems.length === 1 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>Remove</button>
             {row.type === 'Biogents-CO2' && (
               <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.75)', cursor: 'pointer', marginTop: 4 }}>
                 <input type="checkbox" checked={!!row.hasTimer} onChange={(e) => updateRow(i, { hasTimer: e.target.checked })} style={{ width: 16, height: 16 }} />
@@ -275,15 +288,15 @@ function SystemEditor({ initialSystems }) {
             )}
           </div>
         ))}
-        <button onClick={addRow} style={{ padding: '8px', borderRadius: 6, border: '1px dashed rgba(var(--green-rgb),0.3)', background: 'transparent', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif' }}>+ Add another system</button>
+        <button onClick={addRow} style={{ padding: '8px', borderRadius: 6, border: '1px dashed rgba(var(--green-rgb),0.3)', background: 'transparent', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>+ Add another system</button>
         <div style={{ fontSize: '0.7rem', color: 'rgba(var(--text-rgb),0.4)', fontStyle: 'italic' }}>
           This updates how we show your tank level only. It will not change your billing or scheduled visits.
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={save} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 6, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: 'var(--green)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', opacity: saving ? 0.6 : 1 }}>
+          <button onClick={save} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 6, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: 'var(--green)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Saving…' : 'Save'}
           </button>
-          <button onClick={() => { setEditing(false); setMsg(null) }} style={{ padding: '9px 16px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', cursor: 'pointer', background: 'transparent', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+          <button onClick={() => { setEditing(false); setMsg(null) }} style={{ padding: '9px 16px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', cursor: 'pointer', background: 'transparent', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif' }}>
             Cancel
           </button>
         </div>
@@ -325,7 +338,7 @@ function CustomerMediaUpload({ email }) {
     setUploading(false)
   }
 
-  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', marginBottom: 12 }
+  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: 12 }
 
   return (
     <div className="card" style={{ marginBottom: 20 }}>
@@ -335,9 +348,9 @@ function CustomerMediaUpload({ email }) {
       <input style={inp} placeholder="Optional caption or description…" value={caption} onChange={(e) => setCaption(e.target.value)} />
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} />
-        <button onClick={() => { fileRef.current.accept='image/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(var(--green-rgb),0.4)', background: 'transparent', color: 'var(--green)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>📷 Photo</button>
-        <button onClick={() => { fileRef.current.accept='video/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(99,196,255,0.4)', background: 'transparent', color: '#5bc4ff', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>
-          {uploading ? 'Uploading…' : '🎥 Video'}
+        <button onClick={() => { fileRef.current.accept='image/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(var(--green-rgb),0.4)', background: 'transparent', color: 'var(--green)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>Upload Photo</button>
+        <button onClick={() => { fileRef.current.accept='video/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(99,196,255,0.4)', background: 'transparent', color: '#5bc4ff', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>
+          {uploading ? 'Uploading…' : 'Upload Video'}
         </button>
       </div>
       {msg && <p style={{ fontSize: '0.82rem', marginTop: 10, color: msg.includes('failed') || msg.includes('error') ? '#ff8080' : 'var(--green)' }}>{msg}</p>}
@@ -389,7 +402,6 @@ function ReferralProgram({ email, name, referralCount = 0 }) {
       </div>
       <div className="card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div style={{ fontSize: '2rem' }}>🎁</div>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ fontWeight: 900, fontSize: '1.05rem', marginBottom: 4 }}>
               Get $25 for every neighbor who signs up
@@ -408,13 +420,13 @@ function ReferralProgram({ email, name, referralCount = 0 }) {
               />
               <button
                 onClick={copy}
-                style={{ padding: '10px 20px', borderRadius: 6, border: 'none', background: copied ? 'var(--green)' : 'var(--gold)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}
+                style={{ padding: '10px 20px', borderRadius: 6, border: 'none', background: copied ? 'var(--green)' : 'var(--gold)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
               >
-                {copied ? '✓ Copied' : 'Copy Link'}
+                {copied ? 'Copied' : 'Copy Link'}
               </button>
               <button
                 onClick={share}
-                style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--green-muted)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif' }}
+                style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--green-muted)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
               >
                 Share
               </button>
@@ -441,12 +453,203 @@ function ReferralProgram({ email, name, referralCount = 0 }) {
   )
 }
 
+// ── Reschedule date/time picker ─────────────────────────────────────────────────
+
+const RS_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const RS_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+function ReschedulePicker({ onConfirm, onClose }) {
+  const now = new Date()
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [slots, setSlots] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState(null)
+  const [selDay, setSelDay] = useState(null)
+  const [selISO, setSelISO] = useState(null)
+
+  useEffect(() => {
+    setLoading(true); setErr(null)
+    fetch(`/api/book/slots?year=${year}&month=${month}`)
+      .then(r => r.json())
+      .then(d => { setSlots(d.slots || {}); setLoading(false) })
+      .catch(() => { setErr('Could not load availability.'); setLoading(false) })
+  }, [year, month])
+
+  function prevMonth() {
+    if (month === 1) { setYear(y => y - 1); setMonth(12) } else setMonth(m => m - 1)
+    setSelDay(null); setSelISO(null)
+  }
+  function nextMonth() {
+    if (month === 12) { setYear(y => y + 1); setMonth(1) } else setMonth(m => m + 1)
+    setSelDay(null); setSelISO(null)
+  }
+
+  const firstDow = new Date(year, month - 1, 1).getDay()
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const daySlots = selDay ? (slots[selDay] || []) : []
+
+  const CELL = { width: '100%', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, fontSize: '0.82rem', fontWeight: 700, border: 'none', background: 'transparent', fontFamily: 'Inter, sans-serif' }
+
+  return (
+    <div style={{ marginTop: 14, padding: 16, borderRadius: 10, background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.15)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <span style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--green)' }}>Pick a new date</span>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(var(--text-rgb),0.4)', fontSize: '1rem', lineHeight: 1, padding: 0 }}>✕</button>
+      </div>
+
+      {/* Month nav */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <button onClick={prevMonth} style={{ ...BTN_OUTLINE, padding: '4px 10px', fontSize: '0.8rem' }}>‹</button>
+        <span style={{ fontWeight: 800, color: 'rgba(var(--text-rgb),0.85)', fontSize: '0.9rem' }}>{RS_MONTHS[month - 1]} {year}</span>
+        <button onClick={nextMonth} style={{ ...BTN_OUTLINE, padding: '4px 10px', fontSize: '0.8rem' }}>›</button>
+      </div>
+
+      {loading && <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'rgba(var(--text-rgb),0.4)', margin: '16px 0' }}>Loading availability…</p>}
+      {err && <p style={{ fontSize: '0.8rem', color: '#ff8080', margin: '8px 0' }}>{err}</p>}
+
+      {!loading && (
+        <>
+          {/* Day-of-week headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3, marginBottom: 3 }}>
+            {RS_DAYS.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '0.65rem', fontWeight: 800, color: 'rgba(var(--text-rgb),0.3)', letterSpacing: '0.04em' }}>{d}</div>)}
+          </div>
+          {/* Date grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3, marginBottom: 12 }}>
+            {Array.from({ length: firstDow }).map((_, i) => <div key={`e${i}`} />)}
+            {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+              const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+              const dayDate = new Date(year, month - 1, d)
+              const avail = !!(slots[dateStr]?.length)
+              const sel = selDay === dateStr
+              const past = dayDate < today
+              return (
+                <button key={d} disabled={past || !avail} onClick={() => { setSelDay(dateStr); setSelISO(null) }}
+                  style={{ ...CELL,
+                    cursor: past || !avail ? 'default' : 'pointer',
+                    color: past ? 'rgba(var(--text-rgb),0.15)' : avail ? (sel ? 'var(--gold)' : 'var(--green)') : 'rgba(var(--text-rgb),0.2)',
+                    background: sel ? 'rgba(201,168,76,0.12)' : avail && !past ? 'rgba(var(--green-rgb),0.06)' : 'transparent',
+                    border: sel ? '1px solid rgba(201,168,76,0.5)' : avail && !past ? '1px solid rgba(var(--green-rgb),0.18)' : '1px solid transparent',
+                  }}
+                >{d}</button>
+              )
+            })}
+          </div>
+
+          {/* Time slots */}
+          {selDay && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.4)', marginBottom: 8 }}>
+                {new Date(selDay + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ })}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+                {daySlots.map(iso => {
+                  const sel = selISO === iso
+                  return (
+                    <button key={iso} onClick={() => setSelISO(iso)}
+                      style={{ padding: '7px 4px', borderRadius: 6, border: `1px solid ${sel ? 'var(--gold)' : 'rgba(var(--border-rgb),0.3)'}`, background: sel ? 'rgba(201,168,76,0.1)' : 'transparent', color: sel ? 'var(--gold)' : 'rgba(var(--text-rgb),0.7)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif', textAlign: 'center' }}
+                    >
+                      {new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ })}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <button
+            disabled={!selISO}
+            onClick={() => onConfirm(new Date(selISO).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ, timeZoneName: 'short' }))}
+            style={{ ...BTN_PRIMARY, width: '100%', opacity: selISO ? 1 : 0.4, cursor: selISO ? 'pointer' : 'not-allowed' }}
+          >
+            Send Reschedule Request →
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── Service action buttons (request visit / reschedule / pause) ─────────────────
+
+function ServiceActions({ nextBooking, subscription }) {
+  const [busy, setBusy] = useState(null)
+  const [msg, setMsg] = useState(null)
+  const [rescheduleOpen, setRescheduleOpen] = useState(false)
+
+  async function send(kind, body = {}) {
+    setBusy(kind); setMsg(null)
+    try {
+      const res = await fetch('/api/customer/request-service', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, ...body }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(d.error || 'Something went wrong')
+      setMsg({ ok: true, text: 'Request sent. Our team will follow up shortly.' })
+    } catch (e) {
+      setMsg({ ok: false, text: e.message })
+    }
+    setBusy(null)
+  }
+
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <button
+          onClick={() => send('service')}
+          disabled={!!busy}
+          style={{ ...BTN_PRIMARY, opacity: busy ? 0.6 : 1, cursor: busy ? 'not-allowed' : 'pointer' }}
+        >
+          {busy === 'service' ? 'Sending…' : 'Request a Service Visit'}
+        </button>
+        {nextBooking && (
+          <button
+            onClick={() => { setRescheduleOpen(o => !o); setMsg(null) }}
+            disabled={!!busy}
+            style={{ ...BTN_OUTLINE, opacity: busy ? 0.6 : 1, cursor: busy ? 'not-allowed' : 'pointer' }}
+          >
+            {busy === 'reschedule' ? 'Sending…' : 'Reschedule Service'}
+          </button>
+        )}
+        {subscription && (
+          <button
+            onClick={() => send('pause')}
+            disabled={!!busy}
+            style={{ ...BTN_GOLD, opacity: busy ? 0.6 : 1, cursor: busy ? 'not-allowed' : 'pointer' }}
+          >
+            {busy === 'pause' ? 'Sending…' : 'Pause Service'}
+          </button>
+        )}
+      </div>
+
+      {rescheduleOpen && !msg?.ok && (
+        <ReschedulePicker
+          onClose={() => setRescheduleOpen(false)}
+          onConfirm={requestedDate => {
+            setRescheduleOpen(false)
+            send('reschedule', { bookingDate: nextBooking ? fmtDate(nextBooking.startTime) : null, requestedDate })
+          }}
+        />
+      )}
+
+      {msg && (
+        <p style={{ fontSize: '0.82rem', marginTop: 10, fontWeight: 700, color: msg.ok ? 'var(--green)' : '#ff8080' }}>
+          {msg.text}
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function CustomerOverview({
   email, name,
   nextBooking, prevBooking,
   systemType, trapCount, tankCount, hasTimer, customerType, installDate, trapImage, systemLabel,
   usesC02, nextRefillDate, systemFromAppointment, lastAppointmentTitle, systems = [],
-  subscription, invoices, referralCount = 0,
+  subscription, invoices, referralCount = 0, isAdminViewer = false,
 }) {
   const [dateRange, setDateRange] = useState(6)
 
@@ -462,7 +665,7 @@ export default function CustomerOverview({
   return (
     <>
       <Head><title>My Account · {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'}</title></Head>
-      <PortalLayout isAdmin={false}>
+      <PortalLayout isAdmin={false} logoHref={isAdminViewer ? '/admin/home' : undefined}>
         {/* ── Header ── */}
         <div style={{ marginBottom: 36 }}>
           <span className="tag">My Account</span>
@@ -502,18 +705,7 @@ export default function CustomerOverview({
           </div>
         </div>
 
-        <a
-          href={`mailto:${process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}?subject=Service Visit Request&body=Hi ${process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} team,%0A%0AI'd like to request a service visit.%0A%0AAccount email: ${encodeURIComponent(email)}`}
-          style={{
-            display: 'inline-block', marginBottom: 8,
-            padding: '10px 22px', borderRadius: 6,
-            border: '1px solid rgba(var(--border-rgb),0.35)',
-            color: 'var(--green-muted)', fontWeight: 800, fontSize: '0.85rem',
-            textDecoration: 'none',
-          }}
-        >
-          Request a Service Visit →
-        </a>
+        <ServiceActions nextBooking={nextBooking} subscription={subscription} />
 
         {DIVIDER}
 
@@ -568,17 +760,8 @@ export default function CustomerOverview({
             </div>
           </div>
         </div>
-        <Link
-          href="/dashboard/upgrade"
-          style={{
-            display: 'inline-block', marginBottom: 8,
-            padding: '10px 22px', borderRadius: 6,
-            border: '1px solid var(--border-gold)',
-            color: 'var(--gold)', fontWeight: 800, fontSize: '0.85rem',
-            textDecoration: 'none',
-          }}
-        >
-          Upgrade My Service →
+        <Link href="/dashboard/upgrade" style={{ ...BTN_GOLD, marginBottom: 8 }}>
+          Upgrade My Service
         </Link>
 
         {/* ── Current Tank Levels ── */}
@@ -668,11 +851,8 @@ export default function CustomerOverview({
                 </div>
               </div>
               {firstOpen?.hostedUrl && (
-                <a href={firstOpen.hostedUrl} target="_blank" rel="noopener noreferrer" style={{
-                  padding: '12px 24px', borderRadius: 6, background: 'var(--green)', color: 'var(--bg-deep)',
-                  fontWeight: 900, fontSize: '0.95rem', textDecoration: 'none',
-                }}>
-                  Pay Now →
+                <a href={firstOpen.hostedUrl} target="_blank" rel="noopener noreferrer" style={BTN_PRIMARY}>
+                  Pay Now
                 </a>
               )}
             </div>
@@ -689,8 +869,8 @@ export default function CustomerOverview({
               </div>
             </div>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/api/customer/billing-portal" className="btn-gold" style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-              Manage payment →
+            <a href="/api/customer/billing-portal" style={BTN_GOLD}>
+              Manage Payment
             </a>
           </div>
         )}
@@ -707,7 +887,7 @@ export default function CustomerOverview({
                 onClick={() => setDateRange(r.months)}
                 style={{
                   padding: '5px 12px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                  fontSize: '0.75rem', fontWeight: 700, fontFamily: 'Nunito Sans, sans-serif',
+                  fontSize: '0.75rem', fontWeight: 700, fontFamily: 'Inter, sans-serif',
                   background: dateRange === r.months ? 'rgba(var(--gold-rgb),0.2)' : 'rgba(255,255,255,0.04)',
                   color: dateRange === r.months ? 'var(--gold)' : 'rgba(var(--text-rgb),0.45)',
                 }}
@@ -758,34 +938,6 @@ export default function CustomerOverview({
           ))
         )}
 
-        {/* ── Reschedule / Pause ── */}
-        {(nextBooking || subscription) && (
-          <>
-            {DIVIDER}
-            {SECTION_LABEL('Service Options')}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-              {nextBooking && (
-                <a
-                  href={nextBooking.rescheduleUrl || `mailto:${process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}?subject=Reschedule Request&body=Hi, I'd like to reschedule my upcoming visit on ${fmtDate(nextBooking.startTime)}.%0A%0AAccount: ${encodeURIComponent(email)}`}
-                  target={nextBooking.rescheduleUrl ? '_blank' : undefined}
-                  rel={nextBooking.rescheduleUrl ? 'noopener noreferrer' : undefined}
-                  style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', color: 'var(--green-muted)', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
-                >
-                  Reschedule Upcoming Visit
-                </a>
-              )}
-              {subscription && (
-                <a
-                  href={`mailto:${process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}?subject=Service Pause Request&body=Hi, I'd like to pause my ${process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} service temporarily.%0A%0AAccount: ${encodeURIComponent(email)}`}
-                  style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(var(--gold-rgb),0.3)', color: 'var(--gold)', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none' }}
-                >
-                  Pause Service
-                </a>
-              )}
-            </div>
-          </>
-        )}
-
         {DIVIDER}
 
         {/* ── Referral Program ── */}
@@ -797,28 +949,24 @@ export default function CustomerOverview({
         {SECTION_LABEL('Share Your Experience')}
         <CustomerMediaUpload email={email} />
 
-        {/* ── Review (only shown when configured) ── */}
+        {/* Review (only shown when configured) */}
         {process.env.NEXT_PUBLIC_BIZ_REVIEW_URL && (
-          <>
-            {DIVIDER}
-            <div style={{ background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.15)', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', marginBottom: 8 }}>⭐</div>
-              <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 6 }}>
-                Enjoying {process.env.NEXT_PUBLIC_BIZ_NAME || 'our service'}?
-              </div>
-              <p style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.55)', margin: '0 0 16px', lineHeight: 1.5 }}>
-                A quick Google review helps neighbors find a trusted local service.
-              </p>
-              <a
-                href={process.env.NEXT_PUBLIC_BIZ_REVIEW_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'inline-block', padding: '11px 28px', borderRadius: 8, background: 'var(--green)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.9rem', textDecoration: 'none' }}
-              >
-                Leave a Google Review →
-              </a>
+          <div style={{ background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.15)', borderRadius: 12, padding: '24px', textAlign: 'center' }}>
+            <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 6 }}>
+              Enjoying {process.env.NEXT_PUBLIC_BIZ_NAME || 'our service'}?
             </div>
-          </>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.55)', margin: '0 0 16px', lineHeight: 1.5 }}>
+              A quick Google review helps neighbors find a trusted local service.
+            </p>
+            <a
+              href={process.env.NEXT_PUBLIC_BIZ_REVIEW_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={BTN_PRIMARY}
+            >
+              Leave a Google Review
+            </a>
+          </div>
         )}
 
         <div style={{ marginTop: 24 }}>

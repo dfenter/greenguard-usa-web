@@ -69,7 +69,7 @@ export default function BooksChatPage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {SUGGESTIONS.map((s) => (
                 <button key={s} onClick={() => ask(s)}
-                  style={{ padding: '8px 12px', borderRadius: 16, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.03)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>
+                  style={{ padding: '8px 12px', borderRadius: 16, border: '1px solid rgba(122,171,130,0.3)', background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', cursor: 'pointer' }}>
                   {s}
                 </button>
               ))}
@@ -82,7 +82,7 @@ export default function BooksChatPage() {
             <div key={i} style={{
               padding: '12px 16px', borderRadius: 10,
               maxWidth: '92%', alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-              background: m.role === 'user' ? 'rgba(125,255,170,0.10)' : 'rgba(255,255,255,0.03)',
+              background: m.role === 'user' ? 'rgba(125,255,170,0.10)' : 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))',
               border: `1px solid ${m.error ? 'rgba(255,100,100,0.3)' : m.role === 'user' ? 'rgba(125,255,170,0.3)' : 'rgba(122,171,130,0.18)'}`,
               fontSize: '0.92rem', lineHeight: 1.4, color: '#d4e6ca',
             }}>
@@ -120,7 +120,7 @@ export default function BooksChatPage() {
             </div>
           ))}
           {loading && (
-            <div style={{ alignSelf: 'flex-start', padding: '12px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.18)', color: 'rgba(212,230,202,0.6)' }}>
+            <div style={{ alignSelf: 'flex-start', padding: '12px 16px', borderRadius: 10, background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px solid rgba(122,171,130,0.18)', color: 'rgba(212,230,202,0.6)' }}>
               📘 Thinking…
             </div>
           )}
@@ -132,9 +132,9 @@ export default function BooksChatPage() {
           <input value={input} onChange={(e) => setInput(e.target.value)}
             placeholder="Ask the books… (e.g. revenue last month)"
             disabled={loading}
-            style={{ flex: 1, padding: '10px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.95rem', fontFamily: 'Nunito Sans, sans-serif' }} />
+            style={{ flex: 1, padding: '10px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.95rem', fontFamily: 'Inter, sans-serif' }} />
           <button disabled={!input.trim() || loading}
-            style={{ padding: '10px 18px', borderRadius: 6, border: 'none', background: input.trim() && !loading ? '#7dffaa' : 'rgba(125,255,170,0.2)', color: '#0d1a10', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Nunito Sans, sans-serif', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed' }}>
+            style={{ padding: '10px 18px', borderRadius: 6, border: 'none', background: input.trim() && !loading ? '#7dffaa' : 'rgba(125,255,170,0.2)', color: '#0d1a10', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed' }}>
             Ask
           </button>
         </form>

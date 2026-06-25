@@ -165,7 +165,7 @@ function currentPlanLabel(systemType, trapCount) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const PAGE_BG   = '#0d1a10'
-const CARD      = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: 28, marginBottom: 20 }
+const CARD      = { background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: 28, marginBottom: 20 }
 const EYEBROW   = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(201,168,76,0.7)', marginBottom: 8, display: 'block' }
 const TEXT_MUTED = { color: 'rgba(212,230,202,0.5)' }
 
@@ -199,7 +199,7 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
         <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
-      <div style={{ minHeight: '100vh', background: PAGE_BG, color: '#d4e6ca', fontFamily: "'Nunito Sans', sans-serif", paddingBottom: 80 }}>
+      <div style={{ minHeight: '100vh', background: PAGE_BG, color: '#d4e6ca', fontFamily: "'Inter', sans-serif", paddingBottom: 80 }}>
 
         {/* ── Header ── */}
         <div style={{ background: 'rgba(13,26,16,0.97)', borderBottom: '1px solid rgba(122,171,130,0.15)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -361,7 +361,7 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
                         onClick={() => requestUpgrade(u)}
                         disabled={busy}
                         style={{
-                          padding: '13px 28px', borderRadius: 8, border: 'none', fontFamily: "'Nunito Sans', sans-serif",
+                          padding: '13px 28px', borderRadius: 8, border: 'none', fontFamily: "'Inter', sans-serif",
                           background: busy ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#7dffaa,#4dd98a)',
                           color: busy ? 'rgba(212,230,202,0.35)' : '#0d1a10',
                           fontWeight: 900, fontSize: '0.9rem', cursor: busy ? 'wait' : 'pointer',

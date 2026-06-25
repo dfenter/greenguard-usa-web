@@ -1,4 +1,6 @@
 // Cal.com v1 was decommissioned — all calls now use v2 with Bearer auth
+const { fetchWithTimeout } = require('./http')
+
 const BASE_V2 = 'https://api.cal.com/v2'
 const CAL_VERSION = '2024-06-14'
 
@@ -12,7 +14,8 @@ function headers() {
 
 async function calFetch(path, options = {}) {
   const url = `${BASE_V2}${path}`
-  const res = await fetch(url, { headers: headers(), ...options })
+  // Cal.com sits behind Cloudflare and can blip/hang — cap each call and retry.
+  const res = await fetchWithTimeout(url, { headers: headers(), ...options }, { timeoutMs: 8000, retries: 2 })
   if (!res.ok) {
     const text = await res.text()
     throw new Error(`Cal.com API error ${res.status}: ${text.slice(0, 300)}`)
@@ -40,10 +43,10 @@ async function rescheduleBooking(bookingId, newStartTime) {
   })
 }
 
-async function cancelBooking(bookingUid, reason = 'Cancelled by admin') {
+async function cancelBooking(bookingUid, reason = 'Cancelled by admin', notify = false) {
   return calFetch(`/bookings/${bookingUid}/cancel`, {
     method: 'POST',
-    body: JSON.stringify({ cancellationReason: reason }),
+    body: JSON.stringify({ cancellationReason: reason, notify }),
   })
 }
 

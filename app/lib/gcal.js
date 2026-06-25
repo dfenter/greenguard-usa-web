@@ -10,6 +10,15 @@ const { google } = require('googleapis')
 const { cached } = require('./cache')
 const biz = require('./business.config')
 
+// Global gaxios defaults for every Google API call: cap each request at 10s and
+// retry transient failures (network errors, 429, 5xx) so a slow Calendar call
+// can't hang getServerSideProps. Applies to all events.list calls below.
+google.options({
+  timeout: 10000,
+  retry: true,
+  retryConfig: { retry: 3, retryDelay: 300, httpMethodsToRetry: ['GET'] },
+})
+
 const CALENDAR_ID = process.env.CALENDAR_ID || biz.email
 const BOOKING_TAG = biz.bookingTag
 
@@ -37,7 +46,7 @@ function parseEmailFromDescription(description) {
   // Match any email that's NOT admin@greenguard-usa.com
   const allEmails = description.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g) || []
   const customerEmail = allEmails.find(e => e.toLowerCase() !== CALENDAR_ID.toLowerCase())
-  return customerEmail ? customerEmail.toLowerCase() : null
+  return customerEmail ? customerEmail.replace(/[,;]+$/, '').toLowerCase() : null
 }
 
 function parseEmailFromAttendees(attendees) {
@@ -422,7 +431,9 @@ module.exports = {
   parseServiceTitle,
   parseCustomerName,
   parseEmailFromDescription,
+  parseEmailFromAttendees,
   parsePhoneFromDescription,
+  parseAddressFromDescription,
   parseAppointmentNotes,
   parseRescheduleUrl,
 }

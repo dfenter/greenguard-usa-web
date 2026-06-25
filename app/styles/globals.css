@@ -201,6 +201,15 @@ option { background: var(--bg-deep); color: var(--text); }
   flex-wrap: nowrap;
 }
 
+/* Sign out — clearly separated from the nav links on desktop, and sized to
+   match the link pills so it doesn't look cramped/taller than its neighbors. */
+.nav-signout {
+  margin-left: 16px;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .hamburger { display: flex; }
@@ -224,6 +233,8 @@ option { background: var(--bg-deep); color: var(--text); }
   }
   .nav-links.open { display: flex; }
   .nav-links a { padding: 10px 12px !important; min-height: 44px; display: flex; align-items: center; width: 100%; }
+  /* Sign out matches the full-width menu rows instead of a cramped inline button */
+  .nav-signout { display: flex; width: 100%; margin-left: 0 !important; margin-top: 8px; min-height: 44px; justify-content: flex-start; padding: 10px 12px !important; }
 
   /* Touch-friendly tap targets — minimum 44×44px (Apple HIG) */
   .btn-gold, .btn-outline { min-height: 44px; padding: 12px 20px; }
@@ -324,4 +335,8 @@ html { scroll-padding-top: 96px; }
 
   /* Headings stay bold but fit narrow screens */
   h1 { letter-spacing: -0.01em; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

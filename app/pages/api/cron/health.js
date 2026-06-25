@@ -12,11 +12,9 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-us
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end()
 
-  // Vercel sets this header on cron invocations — reject all other callers
-  const authHeader = req.headers.authorization
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  // Shared cron auth — 503s when CRON_SECRET is unset rather than failing open
+  const { authorize } = require('../../../lib/cron-auth')
+  if (!authorize(req, res)) return
 
   // Call the health endpoint internally
   const healthUrl = `${APP_URL}/api/health`

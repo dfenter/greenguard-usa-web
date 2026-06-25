@@ -67,7 +67,7 @@ function emailShell(body) {
     <tr>
       <td align="center" bgcolor="#1a3320" style="border-radius:10px 10px 0 0;padding:24px 32px;">
         <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;letter-spacing:-0.5px;">GreenGuard USA</p>
-        <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Austin, TX</p>
+        <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Smart &middot; Safe &middot; Effective</p>
       </td>
     </tr>
     <tr>
@@ -199,4 +199,61 @@ async function sendWelcomeEmail({ email, customerName, magicLink, calLink }) {
   }
 }
 
-module.exports = { sendMagicLink, sendWelcomeEmail, sendEmail, escapeHtml, emailShell, goldButton, outlineButton }
+/**
+ * Customer-initiated request (service visit, reschedule, or pause).
+ * Emails the admin and sends the customer a confirmation. Sends are best-effort:
+ * the admin send must succeed; the customer confirmation is swallowed on failure.
+ */
+async function sendServiceRequest(adminEmail, customer = {}, message = '', { subject, heading, confirmHeading } = {}) {
+  const name = customer.name || customer.email || 'A customer'
+  const subj = subject || `Service Request: ${name}`
+
+  const detailRows = [
+    ['Customer', customer.name],
+    ['Email', customer.email],
+    ['Address', customer.address],
+    ['System', customer.systemType],
+    ['Upcoming visit', customer.bookingDate],
+  ]
+    .filter(([, v]) => v)
+    .map(([k, v]) => `<tr>
+      <td style="padding:6px 0;font-size:13px;color:#9aab9c;font-family:Arial,sans-serif;width:130px;">${k}</td>
+      <td style="padding:6px 0;font-size:13px;font-weight:700;color:#111f14;font-family:Arial,sans-serif;">${escapeHtml(v)}</td>
+    </tr>`)
+    .join('')
+
+  // ── Admin notification (must succeed) ──
+  await sendEmail({
+    to: adminEmail,
+    subject: subj,
+    html: emailShell(`
+      <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#2d6a3f;text-transform:uppercase;letter-spacing:2px;font-family:Arial,sans-serif;">Customer Request</p>
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#111f14;font-family:Arial,sans-serif;">${escapeHtml(heading || 'New request from your dashboard')}</h1>
+      <p style="margin:0 0 20px;font-size:15px;color:#3d4f41;line-height:1.7;font-family:Arial,sans-serif;">${escapeHtml(message)}</p>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;border-top:1px solid #dde8de;padding-top:8px;">${detailRows}</table>
+    `),
+  })
+
+  // ── Customer confirmation (best-effort) ──
+  if (customer.email) {
+    try {
+      const firstName = (customer.name || '').split(' ')[0] || 'there'
+      await sendEmail({
+        to: customer.email,
+        subject: `We received your request — ${biz.nameShort}`,
+        html: emailShell(`
+          <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#2d6a3f;text-transform:uppercase;letter-spacing:2px;font-family:Arial,sans-serif;">Request Received</p>
+          <h1 style="margin:0 0 16px;font-size:22px;font-weight:900;color:#111f14;font-family:Arial,sans-serif;">Hi ${escapeHtml(firstName)}, we got it.</h1>
+          <p style="margin:0 0 24px;font-size:15px;color:#3d4f41;line-height:1.7;font-family:Arial,sans-serif;">${escapeHtml(confirmHeading || 'Thanks for reaching out. Our team will follow up shortly to confirm the details.')}</p>
+          <p style="margin:0;font-size:13px;color:#9aab9c;font-family:Arial,sans-serif;line-height:1.6;">
+            Questions? Reply to this email or call/text <a href="tel:${biz.phoneTel}" style="color:#2d6a3f;font-weight:700;">${biz.phone}</a>.
+          </p>
+        `),
+      })
+    } catch (e) {
+      console.error('service request confirmation failed:', e.message)
+    }
+  }
+}
+
+module.exports = { sendMagicLink, sendWelcomeEmail, sendEmail, sendServiceRequest, escapeHtml, emailShell, goldButton, outlineButton }

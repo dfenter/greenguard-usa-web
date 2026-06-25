@@ -63,10 +63,10 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
-                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>−</button>
+                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>−</button>
                   <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 900, color: '#7dffaa' }}>{qty}</span>
                   <button onClick={() => onChange(item.label, qty + 1)}
-                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>+</button>
+                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>+</button>
                 </div>
               </div>
             )
@@ -76,7 +76,7 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
 
       {/* Dropdown trigger */}
       <button onClick={() => setOpen((o) => !o)}
-        style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px dashed rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.55)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px dashed rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.85)', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>{selectedItems.length > 0 ? `+ Add more ${title.toLowerCase()}` : `Select ${title.toLowerCase()}…`}</span>
         <span style={{ fontSize: '0.7rem' }}>{open ? '▲' : '▼'}</span>
       </button>
@@ -86,11 +86,11 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
         <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 60, background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 10, marginTop: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxHeight: 360, overflowY: 'auto' }}>
           <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid rgba(122,171,130,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{title}</span>
-            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.45)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>×</button>
+            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.45)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>×</button>
           </div>
           {categories.map((cat) => (
             <div key={cat}>
-              <div style={{ padding: '8px 14px 4px', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', position: 'sticky', top: 0, background: '#0d1a10' }}>{cat}</div>
+              <div style={{ padding: '8px 14px 4px', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.55)', position: 'sticky', top: 0, background: '#0d1a10' }}>{cat}</div>
               {catalog.filter((i) => i.category === cat).map((item) => {
                 const qty = qtys[item.label] || 0
                 const selected = qty > 0
@@ -101,7 +101,7 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
                       {selected ? '✓' : ''}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: selected ? 700 : 500, color: selected ? '#d4e6ca' : 'rgba(212,230,202,0.65)' }}>{item.label}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: selected ? 700 : 600, color: selected ? '#d4e6ca' : 'rgba(212,230,202,0.9)' }}>{item.label}</div>
                       <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.3)', marginTop: 1 }}>
                         {item.price != null
                           ? <span style={{ color: '#7dffaa' }}>${item.price.toFixed(2)}{!item.oneTime ? '/mo' : ''}</span>
@@ -111,10 +111,10 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
                     {selected && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
-                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>−</button>
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>−</button>
                         <span style={{ minWidth: 16, textAlign: 'center', fontWeight: 900, color: '#7dffaa', fontSize: '0.9rem' }}>{qty}</span>
                         <button onClick={() => onChange(item.label, qty + 1)}
-                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Nunito Sans, sans-serif' }}>+</button>
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>+</button>
                       </div>
                     )}
                   </div>
@@ -123,7 +123,7 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
             </div>
           ))}
           <div style={{ padding: '10px 14px', textAlign: 'center' }}>
-            <button onClick={() => setOpen(false)} style={{ padding: '8px 24px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: 'pointer' }}>Done</button>
+            <button onClick={() => setOpen(false)} style={{ padding: '8px 24px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', cursor: 'pointer' }}>Done</button>
           </div>
         </div>
       )}
@@ -165,7 +165,7 @@ function CustomerSearch({ customers, onSelect }) {
         value={query}
         onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
-        style={{ width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }}
+        style={{ width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }}
       />
       {open && filtered.length > 0 && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, zIndex: 50, maxHeight: 240, overflowY: 'auto', marginTop: 4 }}>
@@ -330,7 +330,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
 
   const Q = { fontSize: '0.82rem', fontWeight: 800, color: 'rgba(212,230,202,0.7)', marginBottom: 8, marginTop: 16 }
   const chip = (active) => ({ display: 'inline-block', padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: active ? 'rgba(125,255,170,0.1)' : 'transparent', color: active ? '#7dffaa' : 'rgba(212,230,202,0.5)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', marginRight: 8, marginBottom: 8, userSelect: 'none', transition: 'all 0.12s' })
-  const trapBtn = (n) => ({ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 8, border: `1px solid ${trapCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: trapCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: trapCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', marginRight: 8, fontFamily: 'Nunito Sans, sans-serif' })
+  const trapBtn = (n) => ({ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 8, border: `1px solid ${trapCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: trapCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: trapCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', marginRight: 8, fontFamily: 'Inter, sans-serif' })
 
   return (
     <div>
@@ -503,7 +503,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
               value={serviceDate}
               min={minDate}
               onChange={(e) => setServiceDate(e.target.value)}
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(125,255,170,0.4)' : 'rgba(201,168,76,0.4)'}`, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(125,255,170,0.4)' : 'rgba(201,168,76,0.4)'}`, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1rem', fontFamily: 'Inter, sans-serif', outline: 'none', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
             />
             <span style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
               Earliest available: {new Date(minDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (5-day lead time)
@@ -809,7 +809,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     setTimeout(() => setSent(false), 5000)
   }
 
-  const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Nunito Sans, sans-serif', outline: 'none' }
+  const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
   const lbl = { display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.45)', marginBottom: 4 }
 
   return (
@@ -859,11 +859,11 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                     {mapPin && (
                       <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.3)', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
                         <button onClick={() => setMapView('satellite')}
-                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'satellite' ? '#c9a84c' : 'rgba(13,26,16,0.85)', color: mapView === 'satellite' ? '#0d1a10' : '#d4e6ca' }}>
+                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'satellite' ? '#c9a84c' : 'rgba(13,26,16,0.85)', color: mapView === 'satellite' ? '#0d1a10' : '#d4e6ca' }}>
                           Satellite
                         </button>
                         <button onClick={() => setMapView('street')}
-                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Nunito Sans, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'street' ? '#c9a84c' : 'rgba(13,26,16,0.85)', color: mapView === 'street' ? '#0d1a10' : '#d4e6ca' }}>
+                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'street' ? '#c9a84c' : 'rgba(13,26,16,0.85)', color: mapView === 'street' ? '#0d1a10' : '#d4e6ca' }}>
                           Street
                         </button>
                       </div>
@@ -876,12 +876,12 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {!placingPin ? (
                           <button onClick={() => setPlacingPin(true)}
-                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
                             + Place Trap Location
                           </button>
                         ) : (
                           <button onClick={() => setPlacingPin(false)}
-                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'transparent', color: 'rgba(212,230,202,0.5)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif' }}>
+                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'transparent', color: 'rgba(212,230,202,0.5)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
                             Cancel
                           </button>
                         )}
@@ -890,7 +890,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.68rem', flexShrink: 0 }}>{idx + 1}</span>
                             <span style={{ color: 'rgba(212,230,202,0.7)', fontWeight: 600 }}>Trap {idx + 1}</span>
                             <button onClick={() => setMachPins((prev) => prev.filter((p) => p.id !== pin.id))}
-                              style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.35)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: 0, fontFamily: 'Nunito Sans, sans-serif', marginLeft: 2 }}>×</button>
+                              style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.35)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: 0, fontFamily: 'Inter, sans-serif', marginLeft: 2 }}>×</button>
                           </div>
                         ))}
                       </div>
@@ -1010,7 +1010,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                 <button
                   onClick={payNow}
                   disabled={checkingOut || allLines.filter(l => l.amount > 0).length === 0}
-                  style={{ padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Nunito Sans, sans-serif', background: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#7dffaa,#4dd98a)', color: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(212,230,202,0.4)' : '#0d1a10', opacity: checkingOut ? 0.7 : 1 }}>
+                  style={{ padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', background: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#7dffaa,#4dd98a)', color: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(212,230,202,0.4)' : '#0d1a10', opacity: checkingOut ? 0.7 : 1 }}>
                   {checkingOut ? 'Opening checkout…' : '✓ Approve & Pay Now'}
                 </button>
                 {checkoutError && <div style={{ fontSize: '0.78rem', color: '#ff8080', textAlign: 'center' }}>{checkoutError}</div>}
@@ -1023,16 +1023,16 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                       <div style={{ flex: 1, padding: '9px', borderRadius: 6, background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.2)', color: '#7dffaa', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>Sent ✓</div>
                     ) : (
                       <button onClick={sendQuote} disabled={sending || !customerEmail}
-                        style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', cursor: customerEmail ? 'pointer' : 'not-allowed', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: customerEmail ? '#c9a84c' : 'rgba(201,168,76,0.2)', color: customerEmail ? '#0d1a10' : 'rgba(212,230,202,0.3)', opacity: sending ? 0.7 : 1 }}>
+                        style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', cursor: customerEmail ? 'pointer' : 'not-allowed', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: customerEmail ? '#c9a84c' : 'rgba(201,168,76,0.2)', color: customerEmail ? '#0d1a10' : 'rgba(212,230,202,0.3)', opacity: sending ? 0.7 : 1 }}>
                         {sending ? 'Sending…' : 'Email Quote'}
                       </button>
                     )}
-                    <button onClick={copyQuoteLink} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: linkCopied ? 'rgba(91,196,255,0.1)' : 'transparent', color: linkCopied ? '#5bc4ff' : 'rgba(91,196,255,0.7)' }}>
+                    <button onClick={copyQuoteLink} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: linkCopied ? 'rgba(91,196,255,0.1)' : 'transparent', color: linkCopied ? '#5bc4ff' : 'rgba(91,196,255,0.7)' }}>
                       {linkCopied ? '✓ Copied!' : '🔗 Share Link'}
                     </button>
                   </div>
                 )}
-                <button onClick={() => window.print()} style={{ padding: '9px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Nunito Sans, sans-serif', background: 'transparent', color: 'rgba(212,230,202,0.6)' }}>
+                <button onClick={() => window.print()} style={{ padding: '9px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: 'transparent', color: 'rgba(212,230,202,0.6)' }}>
                   Print / PDF
                 </button>
               </div>

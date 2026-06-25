@@ -1,0 +1,4 @@
+/* Design-sync CSS entry — combines tokens (normally injected at runtime by
+   _document.js) with the portal's global stylesheet. */
+@import './tokens.css';
+@import './globals.css';

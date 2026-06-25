@@ -100,7 +100,7 @@ export default function UploadCsvPage({ categories }) {
   const selectedCount = rows.filter((r) => r.include).length
   const selectedSum = rows.filter((r) => r.include).reduce((s, r) => s + r.amount_cents, 0)
 
-  const inputStyle = { padding: '6px 8px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.78rem', fontFamily: 'Nunito Sans, sans-serif' }
+  const inputStyle = { padding: '6px 8px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }
 
   return (
     <>
@@ -114,7 +114,7 @@ export default function UploadCsvPage({ categories }) {
           </p>
         </div>
 
-        <div style={{ padding: 16, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(122,171,130,0.35)', borderRadius: 10, marginBottom: 18 }}>
+        <div style={{ padding: 16, background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px dashed rgba(122,171,130,0.35)', borderRadius: 10, marginBottom: 18 }}>
           <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} disabled={busy}
             style={{ color: '#d4e6ca', fontSize: '0.85rem' }} />
           {busy && <span style={{ marginLeft: 12, color: '#c9a84c', fontSize: '0.82rem' }}>Parsing &amp; categorizing…</span>}
@@ -156,7 +156,7 @@ export default function UploadCsvPage({ categories }) {
                 <button onClick={() => setRows((rs) => rs.map((r) => ({ ...r, include: false })))}
                   style={{ ...inputStyle, cursor: 'pointer' }}>Select none</button>
                 <button onClick={doImport} disabled={busy || selectedCount === 0}
-                  style={{ padding: '7px 16px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Nunito Sans, sans-serif', cursor: busy || selectedCount === 0 ? 'not-allowed' : 'pointer', opacity: busy || selectedCount === 0 ? 0.5 : 1 }}>
+                  style={{ padding: '7px 16px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', cursor: busy || selectedCount === 0 ? 'not-allowed' : 'pointer', opacity: busy || selectedCount === 0 ? 0.5 : 1 }}>
                   Import {selectedCount}
                 </button>
               </div>

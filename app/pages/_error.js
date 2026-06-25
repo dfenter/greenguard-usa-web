@@ -8,7 +8,7 @@ export default function ErrorPage({ statusCode }) {
   return (
     <>
       <Head><title>{statusCode || 'Error'} · GreenGuard</title></Head>
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)', padding: 24, fontFamily: 'Nunito Sans, sans-serif', color: '#d4e6ca' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)', padding: 24, fontFamily: 'Inter, sans-serif', color: '#d4e6ca' }}>
         <div style={{ width: '100%', maxWidth: 420, textAlign: 'center' }}>
           <div style={{ fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.02em', marginBottom: 32 }}>
             Green<span style={{ color: '#7dffaa' }}>Guard</span> USA
