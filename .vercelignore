@@ -1,0 +1,26 @@
+# Static site build (build_vercel.py) only needs top-level *.html + _scripts/.
+# Keep large binaries, deps, and sibling projects out of the upload.
+node_modules
+**/node_modules
+.next
+**/.next
+.git
+
+# Sibling Vercel projects (deployed separately via scripts/deploy.sh)
+app
+site
+astro
+cloudflare-cron
+photos
+
+# Large non-web directories
+ad_pipeline
+agent
+out
+scripts
+
+# Oversized / non-web assets
+*.dmg
+*.zip
+*.kicad_pcb
+*.kicad_sch
