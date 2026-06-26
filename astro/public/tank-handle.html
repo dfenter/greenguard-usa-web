@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>GreenGuard CO2 Tank Universal Handle</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;overflow:hidden;background:#0a1119;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#eef2f7;}
+  #c{position:fixed;inset:0;display:block;}
+  .ctrl{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);
+    display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:7px;
+    border-radius:12px;background:rgba(10,16,24,.55);border:1px solid rgba(255,255,255,.12);}
+  button{font:11px inherit;color:#eef;background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.16);padding:6px 13px;border-radius:8px;cursor:pointer;}
+  button:hover{background:rgba(255,255,255,.14);}
+  button.on{background:rgba(50,200,50,.2);border-color:#4ec94e;color:#9fef9f;}
+  .sep{width:1px;align-self:stretch;background:rgba(255,255,255,.15);margin:2px 4px;}
+  .lbl{position:fixed;left:16px;top:14px;font-size:12px;color:#9fb0c4;}
+  .lbl b{color:#9fef9f;}
+  .spec{position:fixed;right:16px;top:14px;font-size:11px;text-align:right;color:#8fa0b4;line-height:1.7;}
+  .spec b{color:#cfe;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="lbl"><b>CO&sup2; Universal Handle</b> &middot; strap fits any cylinder</div>
+<div class="spec">
+  Frame <b>90&times;55&times;28 mm</b> &middot; PA12-GF or PETG<br/>
+  Strap <b>25 mm</b> PP webbing + cam buckle<br/>
+  Tank shown: <b>8&Prime; OD &middot; 27.5&Prime; tall &middot; CGA-320</b>
+</div>
+<div class="ctrl">
+  <button id="bQ" class="on">3/4</button>
+  <button id="bT">Top</button>
+  <button id="bF">Front</button>
+  <span class="sep"></span>
+  <button id="bTank" class="on">Tank</button>
+  <button id="bSpin">Spin</button>
+</div>
+
+<script src="/lib/three.min.js"
+  onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'"></script>
+<script src="/lib/OrbitControls.js"
+  onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'"></script>
+<script>
+var IN=25.4;
+
+// 20 lb CO2 tank — real dimensions
+var TANK_R=4.0*IN,TANK_BODY=20.5*IN,SHOULDER_H=2.5*IN;
+var COLLAR_R=0.85*IN,COLLAR_H=1.2*IN;
+var VALVE_R=0.75*IN,VALVE_H=3.5*IN;
+var Z_SHOULDER=TANK_BODY;
+var Z_COLLAR=Z_SHOULDER+SHOULDER_H;
+
+// Handle frame
+var FW=90,FH=55,FD=28;
+var PR=8,POST_X=48,POST_H=180,CR=12;
+var MOUNT_Y=TANK_BODY-FH-20;
+var FRAME_Z=TANK_R+FD/2;
+
+// Renderer — minimal, matches working viewers
+var renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.setClearColor(0x0a1119);
+
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,1,10000);
+camera.position.set(380,460,500);
+
+var controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.target.set(0,420,0);
+controls.enableDamping=true;
+controls.dampingFactor=0.08;
+controls.autoRotate=true;
+controls.autoRotateSpeed=0.8;
+controls.update();
+
+// Lights
+scene.add(new THREE.HemisphereLight(0xdfeaff,0x202830,1.1));
+var key=new THREE.DirectionalLight(0xffffff,1.05);
+key.position.set(400,800,400);
+key.castShadow=true;
+scene.add(key);
+var fill=new THREE.DirectionalLight(0xaaccff,0.4);
+fill.position.set(-300,200,-350);
+scene.add(fill);
+
+// Materials
+var mFrame=new THREE.MeshStandardMaterial({color:0x2ec82e,roughness:0.45,metalness:0.05});
+var mStrap=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.85,metalness:0.0});
+var mBuckle=new THREE.MeshStandardMaterial({color:0xc8a030,roughness:0.30,metalness:0.78});
+var mTank=new THREE.MeshStandardMaterial({color:0x9aaabb,roughness:0.38,metalness:0.60,
+    transparent:true,opacity:0.18,side:THREE.DoubleSide,depthWrite:false});
+var mShoulder=new THREE.MeshStandardMaterial({color:0x8899aa,roughness:0.40,metalness:0.55,
+    transparent:true,opacity:0.22,side:THREE.DoubleSide,depthWrite:false});
+var mValve=new THREE.MeshStandardMaterial({color:0xb87c30,roughness:0.38,metalness:0.65,
+    transparent:true,opacity:0.38,side:THREE.DoubleSide,depthWrite:false});
+var mSlot=new THREE.MeshStandardMaterial({color:0x041004,roughness:0.9,metalness:0.0});
+
+// Helpers
+function addCyl(rT,rB,h,yBot,mat,grp,seg){
+    var m=new THREE.Mesh(new THREE.CylinderGeometry(rT,rB,h,seg||48),mat);
+    m.position.y=yBot+h/2;
+    grp.add(m);
+}
+function addTube(x1,y1,z1,x2,y2,z2,r,mat,grp){
+    var A=new THREE.Vector3(x1,y1,z1),B=new THREE.Vector3(x2,y2,z2);
+    var dir=new THREE.Vector3().subVectors(B,A),len=dir.length();
+    if(len<0.01)return;
+    var m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,24),mat);
+    m.position.copy(A).lerp(B,0.5);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());
+    grp.add(m);
+}
+function addBall(x,y,z,r,mat,grp){
+    var m=new THREE.Mesh(new THREE.SphereGeometry(r,16,16),mat);
+    m.position.set(x,y,z);
+    grp.add(m);
+}
+
+// Ghost tank group
+var tankGrp=new THREE.Group();
+// body
+addCyl(TANK_R,TANK_R,TANK_BODY,0,mTank,tankGrp,64);
+// shoulder dome
+addCyl(COLLAR_R,TANK_R,SHOULDER_H,Z_SHOULDER,mShoulder,tankGrp,64);
+// collar
+addCyl(COLLAR_R,COLLAR_R,COLLAR_H,Z_COLLAR,mShoulder,tankGrp,32);
+// CGA-320 valve (hex)
+addCyl(VALVE_R,VALVE_R,VALVE_H,Z_COLLAR+COLLAR_H,mValve,tankGrp,6);
+scene.add(tankGrp);
+
+// Strap rings (flat tori around upper body)
+var strapGrp=new THREE.Group();
+[0.25,0.75].forEach(function(f){
+    var g=new THREE.TorusGeometry(TANK_R+3,2.5,4,72);
+    g.rotateX(Math.PI/2);
+    var m=new THREE.Mesh(g,mStrap);
+    m.position.y=MOUNT_Y+FH*f;
+    strapGrp.add(m);
+});
+scene.add(strapGrp);
+
+// Carrier frame group
+var frameGrp=new THREE.Group();
+
+// Main block
+var fb=new THREE.Mesh(new THREE.BoxGeometry(FW,FH,FD),mFrame);
+fb.position.set(0,MOUNT_Y+FH/2,FRAME_Z);
+frameGrp.add(fb);
+
+// Strap slots (dark cutout approximation)
+[-1,1].forEach(function(sx){
+    var m=new THREE.Mesh(new THREE.BoxGeometry(28,5,FD+2),mSlot);
+    m.position.set(sx*(FW/2-6-14),MOUNT_Y+FH/2,FRAME_Z);
+    frameGrp.add(m);
+});
+
+// Buckle pocket
+var bp=new THREE.Mesh(new THREE.BoxGeometry(32,18,12),mSlot);
+bp.position.set(0,MOUNT_Y+FH/2,FRAME_Z+FD/2-5);
+frameGrp.add(bp);
+
+// Cam buckle
+var bk=new THREE.Mesh(new THREE.BoxGeometry(28,14,7),mBuckle);
+bk.position.set(0,MOUNT_Y+FH/2,FRAME_Z+FD/2+2);
+frameGrp.add(bk);
+
+// Posts + crossbar
+var ft=MOUNT_Y+FH;
+var cb=ft+POST_H;
+[-1,1].forEach(function(sx){
+    addTube(sx*(FW/2-PR-2),ft-FH*0.3,FRAME_Z, sx*POST_X,ft+12,FRAME_Z, PR+1,mFrame,frameGrp);
+    addTube(sx*POST_X,ft,FRAME_Z, sx*POST_X,cb,FRAME_Z, PR,mFrame,frameGrp);
+    addBall(sx*POST_X,ft,FRAME_Z,PR,mFrame,frameGrp);
+    addBall(sx*POST_X,cb,FRAME_Z,CR,mFrame,frameGrp);
+});
+addTube(-POST_X,cb,FRAME_Z, POST_X,cb,FRAME_Z, CR,mFrame,frameGrp);
+scene.add(frameGrp);
+
+// Button controls
+var spinning=false;
+var SPINAXIS=new THREE.Vector3(0,1,0);
+
+function setView(px,py,pz,tx,ty,tz){
+    camera.position.set(px,py,pz);
+    controls.target.set(tx,ty,tz);
+    controls.update();
+}
+document.getElementById('bQ').onclick=function(){
+    setView(380,460,500,0,420,0);
+    document.querySelectorAll('#bQ,#bT,#bF').forEach(function(b){b.classList.remove('on');});
+    this.classList.add('on');
+};
+document.getElementById('bT').onclick=function(){
+    setView(0,1100,1,0,420,0);
+    document.querySelectorAll('#bQ,#bT,#bF').forEach(function(b){b.classList.remove('on');});
+    this.classList.add('on');
+};
+document.getElementById('bF').onclick=function(){
+    setView(0,420,600,0,420,0);
+    document.querySelectorAll('#bQ,#bT,#bF').forEach(function(b){b.classList.remove('on');});
+    this.classList.add('on');
+};
+document.getElementById('bTank').onclick=function(){
+    this.classList.toggle('on');
+    var v=this.classList.contains('on');
+    tankGrp.visible=v; strapGrp.visible=v;
+};
+document.getElementById('bSpin').onclick=function(){
+    spinning=!spinning;
+    controls.autoRotate=spinning;
+    this.classList.toggle('on',spinning);
+};
+
+window.addEventListener('resize',function(){
+    renderer.setSize(innerWidth,innerHeight);
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+});
+
+// Render loop
+(function loop(){
+    requestAnimationFrame(loop);
+    controls.update();
+    renderer.render(scene,camera);
+})();
+</script>
+</body>
+</html>
