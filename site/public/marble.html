@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Marble Mania</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0f1a;font-family:"Trebuchet MS",Verdana,sans-serif;color:#e8ecf5;}
+  #c{display:block;width:100%;height:100%;touch-action:none;}
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
+       padding:10px 16px;pointer-events:none;font-weight:bold;text-shadow:0 2px 4px #000;z-index:5;}
+  #hud .box{background:rgba(10,16,30,.55);border:1px solid rgba(120,160,255,.35);
+       border-radius:8px;padding:6px 12px;font-size:18px;letter-spacing:.5px;}
+  #time.warn{color:#ff5a5a;}
+  #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+       background:radial-gradient(circle at 50% 35%,rgba(30,44,80,.92),rgba(6,9,18,.97));z-index:10;text-align:center;padding:24px;}
+  #overlay h1{font-size:46px;margin:0 0 6px;letter-spacing:2px;color:#8fd0ff;text-shadow:0 3px 0 #1a3a66,0 0 24px rgba(80,170,255,.5);}
+  #overlay h2{font-size:24px;margin:4px 0;color:#ffd47a;font-weight:bold;}
+  #overlay p{max-width:560px;line-height:1.55;color:#c6d2ea;font-size:16px;}
+  #overlay .btn{margin-top:18px;background:linear-gradient(#3a78ff,#2553d6);border:none;color:#fff;
+       font-size:20px;font-weight:bold;padding:12px 30px;border-radius:30px;cursor:pointer;
+       box-shadow:0 6px 18px rgba(40,90,220,.5);letter-spacing:1px;}
+  #overlay .btn:active{transform:translateY(2px);}
+  .keys{margin-top:14px;font-size:14px;color:#8ea3c8;}
+  .hidden{display:none!important;}
+  #flash{position:fixed;inset:0;pointer-events:none;z-index:8;opacity:0;transition:opacity .12s;}
+  #touch{position:fixed;inset:0;z-index:6;display:none;}
+  #recenter{position:fixed;right:18px;bottom:96px;z-index:7;
+       background:rgba(10,16,30,.7);border:1px solid rgba(120,160,255,.45);color:#cfe0ff;
+       font-weight:bold;font-size:14px;padding:9px 15px;border-radius:22px;cursor:pointer;
+       letter-spacing:.5px;-webkit-tap-highlight-color:transparent;}
+  #recenter:active{background:rgba(40,80,180,.7);}
+  #stick{position:fixed;left:26px;bottom:26px;width:140px;height:140px;border-radius:50%;
+       background:rgba(20,30,55,.45);border:2px solid rgba(120,160,255,.4);z-index:7;
+       touch-action:none;-webkit-tap-highlight-color:transparent;}
+  #knob{position:absolute;left:50%;top:50%;width:62px;height:62px;border-radius:50%;
+       transform:translate(-50%,-50%);
+       background:radial-gradient(circle at 40% 33%,#9fc4ff,#2553d6);
+       border:2px solid rgba(225,238,255,.75);box-shadow:0 4px 14px rgba(0,0,0,.45);}
+  #gyrobtn{position:fixed;right:18px;bottom:34px;z-index:7;background:rgba(10,16,30,.7);
+       border:1px solid rgba(120,160,255,.45);color:#cfe0ff;font-weight:bold;font-size:14px;
+       padding:10px 16px;border-radius:22px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  #gyrobtn:active{background:rgba(40,80,180,.7);}
+  #toast{position:fixed;top:54px;left:50%;transform:translateX(-50%);z-index:9;
+       background:rgba(10,16,30,.85);border:1px solid rgba(120,160,255,.4);color:#cfe0ff;
+       padding:7px 16px;border-radius:18px;font-weight:bold;font-size:14px;pointer-events:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud" class="hidden">
+  <div class="box">LEVEL <span id="lvl">1</span> / <span id="lvlmax">9</span> <span id="lvlname"></span></div>
+  <div class="box">TIME <span id="time">0</span></div>
+  <div class="box">FALLS <span id="falls">0</span></div>
+</div>
+<div id="flash"></div>
+<div id="touch"></div>
+<div id="stick" class="hidden"><div id="knob"></div></div>
+<button id="gyrobtn" class="hidden">Gyro: Off</button>
+<button id="recenter" class="hidden">⟳ Recenter</button>
+<div id="toast" class="hidden"></div>
+<div id="overlay">
+  <h1>MARBLE MANIA</h1>
+  <p>Roll your marble from the <b>start pad</b> to the glowing <b>goal</b>. Stay on the track. Fall off and you respawn, losing precious seconds. Beat all <b>18 courses</b> before the clock runs out. New: yellow <b>springs</b> bounce you up, orange <b>cannons</b> blast you across gaps, purple <b>chutes</b> send you flying downhill.</p>
+  <button class="btn" id="startbtn">START</button>
+  <div class="keys">Desktop: Arrow Keys / WASD to roll, R to respawn &nbsp;•&nbsp; Phone: drag the on-screen stick (Gyro is optional)</div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ---------------------------------------------------------------------------
+//  Marble Mania — a Marble Madness clone with 9 courses (original had 6).
+//  Self-contained: Three.js render + custom sphere/OBB physics.
+// ---------------------------------------------------------------------------
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0f1a);
+scene.fog = new THREE.Fog(0x0b0f1a, 60, 160);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+
+// lighting -------------------------------------------------------------------
+const hemi = new THREE.HemisphereLight(0xbcd2ff, 0x202838, 0.85);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff0d8, 1.1);
+sun.position.set(40, 70, 30);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+const sc = sun.shadow.camera;
+sc.near=1; sc.far=220; sc.left=-90; sc.right=90; sc.top=90; sc.bottom=-90;
+scene.add(sun);
+
+// ---------------------------------------------------------------------------
+//  Level geometry: each platform is an oriented box (OBB) we collide against.
+//  helper boxes: pos = center, size = full extents, rotX/rotZ in radians.
+// ---------------------------------------------------------------------------
+const worldGroup = new THREE.Group();
+scene.add(worldGroup);
+
+let colliders = [];   // {center:Vector3, half:Vector3, matInv:Matrix4, mat:Matrix4, deadly:bool}
+let enemies   = [];   // {mesh, base:Vector3, axis, range, speed, phase, radius}
+let springs   = [];   // {pos:Vector3, radius, power}
+let cannons   = [];   // {pos:Vector3, radius, vel:Vector3}
+let goalPos = new THREE.Vector3();
+let goalRadius = 2.2;
+let startPos = new THREE.Vector3();
+let goalMesh = null;
+
+const tmpMat = new THREE.Matrix4();
+
+function clearWorld(){
+  for(let i=worldGroup.children.length-1;i>=0;i--){
+    const o = worldGroup.children[i];
+    o.geometry && o.geometry.dispose();
+    worldGroup.remove(o);
+  }
+  colliders = []; enemies = []; springs = []; cannons = []; goalMesh = null;
+}
+
+// add an oriented box platform
+function box(x,y,z, w,h,d, opts={}){
+  const rotX = opts.rotX||0, rotZ = opts.rotZ||0, rotY = opts.rotY||0;
+  const color = opts.color!==undefined?opts.color:0x3f6fb0;
+  const deadly = !!opts.deadly;
+  const geo = new THREE.BoxGeometry(w,h,d);
+  const mat = new THREE.MeshStandardMaterial({color, roughness:.85, metalness:.05,
+     emissive: deadly?0x551111:0x000000, emissiveIntensity: deadly?.6:0});
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x,y,z);
+  m.rotation.set(rotX,rotY,rotZ);
+  m.castShadow = true; m.receiveShadow = true;
+  worldGroup.add(m);
+
+  const mm = new THREE.Matrix4();
+  mm.compose(new THREE.Vector3(x,y,z),
+             new THREE.Quaternion().setFromEuler(new THREE.Euler(rotX,rotY,rotZ)),
+             new THREE.Vector3(1,1,1));
+  colliders.push({
+    center:new THREE.Vector3(x,y,z),
+    half:new THREE.Vector3(w/2,h/2,d/2),
+    mat:mm, matInv:new THREE.Matrix4().copy(mm).invert(),
+    deadly
+  });
+  return m;
+}
+
+// low wall rails to keep the marble on track
+function rail(x,y,z,w,h,d,color=0x29406b){ return box(x,y,z,w,h,d,{color}); }
+
+// spring launch pad — yellow coil that kicks the marble upward
+function spring(x,y,z, power=26){
+  box(x,y,z, 3.4,0.4,3.4, {color:0xffe040});
+  for(let i=0;i<3;i++){
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.65,0.14,8,20),
+      new THREE.MeshStandardMaterial({color:0xffe040,metalness:.6,roughness:.2,emissive:0x664400,emissiveIntensity:.5})
+    );
+    ring.position.set(x,y+0.5+i*0.28,z);
+    worldGroup.add(ring);
+  }
+  springs.push({pos:new THREE.Vector3(x,y+0.4,z), radius:2.0, power});
+}
+
+// cannon pad — orange plate that blasts the marble with a set velocity
+function cannon(x,y,z, vx,vy,vz){
+  box(x,y,z, 3.4,0.4,3.4, {color:0xff7700});
+  const dir = new THREE.Vector3(vx,vy,vz).normalize();
+  const arr = new THREE.ArrowHelper(dir, new THREE.Vector3(x,y+0.5,z), 2.8, 0xff9900, 0.8, 0.5);
+  worldGroup.add(arr);
+  cannons.push({pos:new THREE.Vector3(x,y+0.4,z), radius:2.0, vel:new THREE.Vector3(vx,vy,vz)});
+}
+
+function enemy(x,y,z, axis, range, speed, radius=1.0){
+  const geo = new THREE.SphereGeometry(radius, 20, 16);
+  const mat = new THREE.MeshStandardMaterial({color:0xff5566, roughness:.4, metalness:.2,
+     emissive:0x661016, emissiveIntensity:.5});
+  const m = new THREE.Mesh(geo, mat);
+  m.castShadow = true; m.position.set(x,y,z);
+  worldGroup.add(m);
+  enemies.push({mesh:m, base:new THREE.Vector3(x,y,z), axis, range, speed, phase:Math.random()*6.28, radius});
+}
+
+function makeGoal(x,y,z){
+  goalPos.set(x,y,z);
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(goalRadius,0.25,16,40),
+     new THREE.MeshStandardMaterial({color:0x4dff9e,emissive:0x119955,emissiveIntensity:1.0,roughness:.3}));
+  ring.rotation.x = Math.PI/2; ring.position.set(x,y+0.3,z);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(goalRadius*0.9,goalRadius*0.9,14,24,1,true),
+     new THREE.MeshBasicMaterial({color:0x4dff9e,transparent:true,opacity:0.12,side:THREE.DoubleSide}));
+  beam.position.set(x,y+7,z);
+  g.add(ring); g.add(beam);
+  worldGroup.add(g);
+  goalMesh = ring;
+}
+
+// ---------------------------------------------------------------------------
+//  Level definitions. Each is a function that builds geometry and sets
+//  startPos + goal. Designed for increasing difficulty. 9 total.
+// ---------------------------------------------------------------------------
+const PAL = {track:0x3f6fb0, track2:0x4a7ec0, ramp:0x5d6cc0, rail:0x24375e, pad:0x2f9e6b, danger:0x9a2b2b};
+
+function pad(x,y,z,c){ box(x,y-0.4,z, 6,0.8,6, {color:c||PAL.pad}); }
+
+const LEVELS = [
+{ name:"Practice", build(){
+   startPos.set(0,1.5,16);
+   pad(0,0,16);
+   // leg 1 — straight down -z
+   box(0,0,2, 8,1,30, {color:PAL.track});                 // z -13..17
+   rail(-4.4,0.6,4, 0.8,1.2,24); rail(4.4,0.6,4, 0.8,1.2,24);
+   // turn left — leg 2 along -x
+   box(-13,0,-12, 34,1,8, {color:PAL.track2});             // x -30..4
+   rail(-13,0.6,-16.4, 34,1.2,0.8);                         // back edge
+   rail(-15,0.6,-7.6, 26,1.2,0.8);                          // front edge (corners open)
+   // turn — leg 3 back up +z
+   box(-28,0,2, 8,1,30, {color:PAL.track});                // z -13..17, x -32..-24
+   rail(-32.4,0.6,0, 0.8,1.2,24); rail(-23.6,0.6,0, 0.8,1.2,24);
+   pad(-28,0,14,0x2f7e9e);
+   makeGoal(-28,0.4,14);
+}},
+
+{ name:"Beginner", build(){
+   startPos.set(-14,1.5,14);
+   pad(-14,0,14);
+   box(-14,0,4, 8,1,24, {color:PAL.track});
+   rail(-18,0.6,4,0.8,1.2,24); rail(-10,0.6,4,0.8,1.2,24);
+   box(-2,0,-8, 32,1,8, {color:PAL.track2});
+   rail(-2,0.6,-12,32,1.2,0.8); rail(-2,0.6,-4,32,1.2,0.8);
+   box(12,0,2, 8,1,24, {color:PAL.track});
+   rail(8,0.6,2,0.8,1.2,24); rail(16,0.6,2,0.8,1.2,24);
+   pad(12,0,12,0x2f7e9e);
+   makeGoal(12,0.4,12);
+}},
+
+{ name:"Descent", build(){
+   startPos.set(0,7,20);
+   pad(0,6,20);
+   // staircase of ramps going down
+   let z=14, y=6;
+   for(let i=0;i<5;i++){
+     box(0,y-1.0,z, 9,1,8, {color:i%2?PAL.ramp:PAL.track, rotX:-0.22});
+     rail(-4.7,y-0.2,z,0.7,1.4,8,PAL.rail); rail(4.7,y-0.2,z,0.7,1.4,8,PAL.rail);
+     z-=7.2; y-=1.8;
+   }
+   box(0,y-0.5,z-1, 12,1,12, {color:PAL.track2});
+   pad(0,y-0.1,z-4,0x2f7e9e);
+   makeGoal(0,y+0.3,z-4);
+}},
+
+{ name:"Bridges", build(){
+   startPos.set(-18,1.5,0);
+   pad(-18,0,0);
+   box(-18,0,0,8,1,8,{color:PAL.track});
+   // three narrow zig bridges with gaps
+   box(-9,0,-6, 10,1,3, {color:PAL.track2});
+   box(-2,0,2,  3,1,12, {color:PAL.track2});
+   box(6,0,-4, 12,1,3,  {color:PAL.track2});
+   box(14,0,4,  3,1,12, {color:PAL.track2});
+   pad(18,0,8,0x2f7e9e);
+   box(18,0,8,8,1,8,{color:PAL.track});
+   makeGoal(18,0.4,8);
+}},
+
+{ name:"Gauntlet", build(){
+   startPos.set(0,1.5,24);
+   pad(0,0,24);
+   box(0,0,6, 6,1,40, {color:PAL.track});
+   rail(-3.4,0.7,6,0.7,1.6,40,PAL.rail); rail(3.4,0.7,6,0.7,1.6,40,PAL.rail);
+   // rolling enemy boulders down the lane
+   enemy(0,1.4,2, 'x', 2.0, 1.6, 1.2);
+   enemy(0,1.4,-8, 'x', 2.0, 2.1, 1.2);
+   enemy(0,1.4,-16, 'x', 2.0, 1.3, 1.2);
+   pad(0,0,-18,0x2f7e9e);
+   makeGoal(0,0.4,-18);
+}},
+
+{ name:"Spiral", build(){
+   startPos.set(0,11,0);
+   pad(0,10,0);
+   // descending square spiral
+   const seg = [
+     [0,10,-7, 0,-0.2, 8,1,8],
+     [7,8.5,-7, 0,0, 8,1,8, 'rampx-'],
+   ];
+   // build spiral procedurally
+   let cx=0,cz=-7,y=9.4;
+   const dirs=[[7,0],[0,7],[-7,0],[0,-7]];
+   box(0,10,0,8,1,8,{color:PAL.track});
+   for(let i=0;i<10;i++){
+     const d=dirs[i%4];
+     cx+=d[0]; cz+=d[1];
+     box(cx, y, cz, 8,1,8, {color:i%2?PAL.ramp:PAL.track2});
+     // outer rail hint
+     y-=1.5;
+   }
+   pad(cx,y+0.4,cz,0x2f7e9e);
+   makeGoal(cx,y+0.8,cz);
+}},
+
+{ name:"Aerial", build(){
+   // roll to cannon pad → blast to floating islands that descend
+   startPos.set(0,1.5,22);
+   pad(0,0,22);
+   box(0,0,14, 8,1,12, {color:PAL.track});
+   rail(-4.4,0.7,14, 0.8,1.2,12, PAL.rail); rail(4.4,0.7,14, 0.8,1.2,12, PAL.rail);
+   cannon(0,0,7, 0,16,-22);
+   box(0,3,-9,  7,1,7, {color:PAL.track2});
+   enemy(0,4.4,-9,'x',2.0,2.0,1.0);
+   box(0,2,-18, 6,1,6, {color:PAL.track2});
+   box(0,1,-26, 7,1,7, {color:PAL.track});
+   pad(0,1,-26,0x2f7e9e);
+   makeGoal(0,1.4,-26);
+}},
+
+{ name:"Switchback", build(){
+   startPos.set(-20,7,18);
+   pad(-20,6,18);
+   // long ramps that switch direction, dropping height
+   box(-6,5.4,18, 30,1,6, {color:PAL.ramp, rotZ:0.12});
+   rail(-6,6.2,15,30,1.4,0.7,PAL.rail);
+   box(8,3.0,8, 6,1,26, {color:PAL.track2});
+   box(-6,1.2,-2, 30,1,6, {color:PAL.ramp, rotZ:-0.12});
+   rail(-6,2.0,-5,30,1.4,0.7,PAL.rail);
+   box(-20,0,-2, 6,1,6, {color:PAL.track});
+   box(-20,0,-14, 6,1,20, {color:PAL.track});
+   enemy(-20,1.2,-12,'z',3.0,1.8,1.0);
+   pad(-20,0,-22,0x2f7e9e);
+   makeGoal(-20,0.4,-22);
+}},
+
+{ name:"Ultimate", build(){
+   startPos.set(0,9,26);
+   pad(0,8,26);
+   // narrow drop
+   box(0,8,20, 5,1,10, {color:PAL.track});
+   box(0,7.2,12, 5,1,10, {color:PAL.ramp, rotX:-0.25});
+   // bridge with gaps
+   box(0,5.5,4, 3,1,6, {color:PAL.track2});
+   box(0,5.5,-3, 3,1,6, {color:PAL.track2});
+   // crossing enemies
+   enemy(0,6.7,0.5,'x',3.0,2.4,1.0);
+   // wide tilted curve
+   box(0,4.6,-12, 16,1,8, {color:PAL.ramp, rotX:-0.18});
+   rail(-8,5.4,-12,0.7,1.6,8,PAL.rail); rail(8,5.4,-12,0.7,1.6,8,PAL.rail);
+   // final gauntlet lane
+   box(10,3,-20, 6,1,16, {color:PAL.track});
+   rail(7,3.7,-20,0.7,1.6,16,PAL.rail); rail(13,3.7,-20,0.7,1.6,16,PAL.rail);
+   enemy(10,4.2,-22,'x',2.2,2.6,1.0);
+   enemy(10,4.2,-16,'x',2.2,1.9,1.0);
+   pad(10,3,-30,0x2f7e9e);
+   makeGoal(10,3.4,-30);
+}},
+
+// ---- NEW LEVELS (10-18) ----
+
+{ name:"Chutes", build(){
+  // Two steep slides — fast descents down purple chutes
+  startPos.set(0,22,24);
+  pad(0,21,24);
+  box(0,21,16,8,1,8,{color:PAL.track});
+  // chute 1 (rotX=-0.5 → back edge high, front edge low; marble slides in -z)
+  box(0,16,3,5,0.7,18,{color:0x7a4fc8,rotX:-0.5});
+  rail(-3.2,16.8,3,0.7,1.4,18,0x4a2a88); rail(3.2,16.8,3,0.7,1.4,18,0x4a2a88);
+  // mid-platform catch
+  box(0,9,-8,10,1,14,{color:PAL.track2});
+  rail(-5.4,9.7,-8,0.7,1.4,14,PAL.rail); rail(5.4,9.7,-8,0.7,1.4,14,PAL.rail);
+  // chute 2
+  box(0,3.5,-22,5,0.7,14,{color:0x7a4fc8,rotX:-0.52});
+  rail(-3.2,4.3,-22,0.7,1.4,14,0x4a2a88); rail(3.2,4.3,-22,0.7,1.4,14,0x4a2a88);
+  box(0,0,-32,8,1,8,{color:PAL.track});
+  pad(0,0,-32,0x2f7e9e); makeGoal(0,0.4,-32);
+}},
+
+{ name:"Bounce", build(){
+  // Spring pads launch the marble to elevated islands
+  startPos.set(0,1.5,18);
+  pad(0,0,18);
+  box(0,0,10,8,1,8,{color:PAL.track});
+  spring(0,0,10,28);
+  box(0,13,1,8,1,8,{color:PAL.track2});
+  spring(0,13,1,28);
+  box(-6,26,-8,8,1,8,{color:PAL.track2});
+  spring(-6,26,-8,28);
+  box(4,39,-16,9,1,9,{color:PAL.track});
+  pad(4,39,-16,0x2f7e9e); makeGoal(4,39.4,-16);
+}},
+
+{ name:"Cannons", build(){
+  // Three sequential cannon blasts across open gaps — verified trajectories
+  // vy=22 → t=1.571s flat; cannon 3 vy=28 rises to y=4 goal in t≈1.85s
+  startPos.set(-20,1.5,2);
+  pad(-20,0,2);
+  box(-20,0,2, 8,1,8, {color:PAL.track});
+  cannon(-20,0,2, 19,22,0);
+  // island 2 — marble arrives at (≈10, 1.45, 2)
+  box(10,0,2, 8,1,8, {color:PAL.track2});
+  cannon(10,0,2, 0,22,-20);
+  // island 3 — marble arrives at (10, 1.45, ≈-29)
+  box(10,0,-30, 8,1,8, {color:PAL.track2});
+  cannon(10,0,-30, 16,28,0);
+  // goal island elevated — marble arrives at (≈40, 5.2, -30) hits platform top
+  box(40,4,-30, 9,1,9, {color:PAL.track});
+  pad(40,4,-30, 0x2f7e9e); makeGoal(40,4.4,-30);
+}},
+
+{ name:"Mixdown", build(){
+  // Chute → spring → island combo
+  startPos.set(0,18,22);
+  pad(0,17,22);
+  box(0,17,14,8,1,8,{color:PAL.track});
+  // chute 1
+  box(0,11,2,5,0.7,16,{color:0x7a4fc8,rotX:-0.5});
+  rail(-3.2,11.8,2,0.7,1.4,16,0x4a2a88); rail(3.2,11.8,2,0.7,1.4,16,0x4a2a88);
+  // landing + spring
+  box(0,4,-8,9,1,9,{color:PAL.track2});
+  spring(0,4,-8,26);
+  // bounce to island
+  box(0,15,-18,7,1,7,{color:PAL.track2});
+  // chute 2 off the island
+  box(8,9,-28,5,0.7,14,{color:0x7a4fc8,rotX:-0.48});
+  rail(4.8,9.8,-28,0.7,1.4,14,0x4a2a88); rail(11.2,9.8,-28,0.7,1.4,14,0x4a2a88);
+  box(8,4,-38,8,1,8,{color:PAL.track});
+  pad(8,4,-38,0x2f7e9e); makeGoal(8,4.4,-38);
+}},
+
+{ name:"Blitz", build(){
+  // Cannon launch onto a gauntlet bridge then another cannon out
+  startPos.set(-22,1.5,0);
+  pad(-22,0,0);
+  box(-22,0,0,6,1,6,{color:PAL.track});
+  cannon(-22,0,0, 32,8,0);
+  // narrow enemy bridge
+  box(0,3,0,4,1,28,{color:PAL.track2});
+  rail(-2.4,3.7,0,0.7,1.6,28,PAL.rail); rail(2.4,3.7,0,0.7,1.6,28,PAL.rail);
+  enemy(0,4.4,6,'x',1.6,2.2,1.0);
+  enemy(0,4.4,-4,'x',1.6,2.8,1.0);
+  enemy(0,4.4,-14,'x',1.6,1.9,1.0);
+  box(0,3,-18,6,1,6,{color:PAL.track});
+  cannon(0,3,-18, 0,14,-30);
+  box(0,7,-40,9,1,9,{color:PAL.track});
+  pad(0,7,-40,0x2f7e9e); makeGoal(0,7.4,-40);
+}},
+
+{ name:"Tower", build(){
+  // Bounce your way to the top — four spring jumps ascending
+  startPos.set(0,1.5,18);
+  pad(0,0,18);
+  box(0,0,10,8,1,8,{color:PAL.track});
+  spring(0,0,10,30);
+  box(4,14,2,8,1,8,{color:PAL.track2});
+  spring(4,14,2,30);
+  box(-4,28,-6,8,1,8,{color:PAL.track2});
+  spring(-4,28,-6,30);
+  box(4,42,-14,10,1,10,{color:PAL.track});
+  pad(4,42,-14,0x2f7e9e); makeGoal(4,42.4,-14);
+}},
+
+{ name:"Cascades", build(){
+  // Twin diagonal slides with enemy at the bottom
+  startPos.set(18,22,20);
+  pad(18,21,20);
+  // cascade 1: RIGHT HIGH → LEFT LOW (rotZ=+0.28)
+  box(-3,14,20,30,0.8,5,{color:0x7a4fc8,rotZ:0.28});
+  rail(-3,15.4,17,30,1.4,0.7,0x4a2a88); rail(-3,15.4,23,30,1.4,0.7,0x4a2a88);
+  // transition shelf at left exit
+  box(-18,10,12,6,1,16,{color:PAL.track2});
+  // cascade 2: LEFT HIGH → RIGHT LOW (rotZ=-0.28)
+  box(-3,5.6,6,30,0.8,5,{color:0x7a4fc8,rotZ:-0.28});
+  rail(-3,7,3,30,1.4,0.7,0x4a2a88); rail(-3,7,9,30,1.4,0.7,0x4a2a88);
+  // finish run
+  box(12,2,-4,6,1,16,{color:PAL.track});
+  enemy(12,3.2,-4,'z',3.5,1.8,1.1);
+  box(12,2,-16,8,1,8,{color:PAL.track});
+  pad(12,2,-16,0x2f7e9e); makeGoal(12,2.4,-16);
+}},
+
+{ name:"Chaos", build(){
+  // All mechanics — enemies, chutes, cannon, spring
+  startPos.set(0,1.5,26);
+  pad(0,0,26);
+  box(0,0,18,5,1,10,{color:PAL.track});
+  rail(-2.9,0.7,18,0.7,1.4,10,PAL.rail); rail(2.9,0.7,18,0.7,1.4,10,PAL.rail);
+  enemy(0,1.4,18,'x',1.5,2.6,1.0);
+  box(0,0,8,6,1,6,{color:PAL.track});
+  cannon(0,0,8, 0,14,-32);
+  // far island
+  box(0,4,-16,7,1,7,{color:PAL.track2});
+  // chute off island
+  box(0,0,-26,5,0.7,12,{color:0x7a4fc8,rotX:-0.5});
+  rail(-3.2,0.8,-26,0.7,1.4,12,0x4a2a88); rail(3.2,0.8,-26,0.7,1.4,12,0x4a2a88);
+  // deep canyon landing + spring
+  box(0,-7,-34,8,1,8,{color:PAL.track2});
+  spring(0,-7,-34,30);
+  // spring target
+  box(0,6,-44,8,1,8,{color:PAL.track});
+  enemy(0,7.4,-44,'x',2.0,2.3,1.0);
+  pad(0,6,-44,0x2f7e9e); makeGoal(0,6.4,-44);
+}},
+
+{ name:"Grandmaster", build(){
+  // The final test — every mechanic, unforgiving geometry
+  startPos.set(0,1.5,28);
+  pad(0,0,28);
+  // tight guarded approach
+  box(0,0,18,4,1,14,{color:PAL.track});
+  rail(-2.4,0.7,18,0.7,1.4,14,PAL.rail); rail(2.4,0.7,18,0.7,1.4,14,PAL.rail);
+  enemy(0,1.4,18,'x',1.5,3.0,1.0);
+  // cannon launch
+  box(0,0,8,6,1,6,{color:PAL.track});
+  cannon(0,0,8, 0,16,-34);
+  // mid cluster
+  box(-6,6,-4,5,1,5,{color:PAL.track2});
+  box(6,6,-4,5,1,5,{color:PAL.track2});
+  box(0,6,-10,5,1,5,{color:PAL.track2});
+  spring(0,6,-10,26);
+  // chute up (launch ramp to high platform)
+  box(0,14,-20,5,0.8,14,{color:0x7a4fc8,rotX:0.4});
+  box(8,20,-28,7,1,7,{color:PAL.track2});
+  enemy(8,21.4,-28,'x',2.0,3.2,1.1);
+  cannon(8,20,-28, -28,12,-6);
+  // final island + spring up to goal
+  box(-16,25,-34,7,1,7,{color:PAL.track2});
+  spring(-16,25,-34,28);
+  box(-16,38,-42,10,1,10,{color:PAL.track});
+  pad(-16,38,-42,0x2f7e9e); makeGoal(-16,38.4,-42);
+}},
+];
+
+document.getElementById('lvlmax').textContent = LEVELS.length;
+
+// ---------------------------------------------------------------------------
+//  Marble
+// ---------------------------------------------------------------------------
+const R = 0.95;
+const marble = new THREE.Mesh(
+  new THREE.SphereGeometry(R, 32, 24),
+  new THREE.MeshStandardMaterial({color:0xeef2ff, roughness:0.18, metalness:0.85,
+     envMapIntensity:1.0})
+);
+marble.castShadow = true;
+scene.add(marble);
+// little texture so rotation is visible
+(function(){
+  const m2 = new THREE.Mesh(new THREE.SphereGeometry(R*1.002, 16, 12),
+     new THREE.MeshBasicMaterial({color:0x3a78ff, wireframe:true, transparent:true, opacity:0.18}));
+  marble.add(m2);
+})();
+
+const vel = new THREE.Vector3();
+let grounded = false;
+let groundNormal = new THREE.Vector3(0,1,0);
+
+// ---------------------------------------------------------------------------
+//  Input
+// ---------------------------------------------------------------------------
+const keys = {};
+addEventListener('keydown', e=>{
+  keys[e.key.toLowerCase()] = true;
+  if(e.key.toLowerCase()==='r') respawn();
+  if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase())) e.preventDefault();
+});
+addEventListener('keyup', e=>{ keys[e.key.toLowerCase()] = false; });
+
+// transient toast
+let toastT=null;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.remove('hidden');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.add('hidden'),1200);
+}
+
+// ---- device-orientation (gyro) tilt steering ----
+// We map phone tilt to the same camera-relative input the keyboard uses.
+// A baseline is captured on first reading so the player can hold the phone at
+// any comfortable angle; tilting from there steers. Recenter to re-baseline.
+const tilt = {enabled:false, calibrated:false, baseX:0, baseY:0, ix:0, iz:0};
+const TILT_RANGE = 22;   // degrees of tilt for full steer
+const TILT_DEAD  = 2.0;  // degrees of deadzone around neutral
+
+function readOrientation(e){
+  if(e.beta==null || e.gamma==null) return;
+  // adjust axes for the current screen orientation
+  let ang = (screen.orientation && typeof screen.orientation.angle==='number')
+            ? screen.orientation.angle : (window.orientation||0);
+  const beta=e.beta, gamma=e.gamma;
+  let sx, sy;                       // sx = right tilt, sy = forward/back tilt
+  if(ang===90)            { sx=-beta;  sy=-gamma; }
+  else if(ang===180)      { sx=-gamma; sy=-beta;  }
+  else if(ang===270||ang===-90){ sx=beta; sy=gamma; }
+  else                    { sx=gamma;  sy=beta;   }   // 0 = portrait
+  if(!tilt.calibrated){ tilt.baseX=sx; tilt.baseY=sy; tilt.calibrated=true; }
+  let dx=sx-tilt.baseX, dy=sy-tilt.baseY;
+  dx = Math.abs(dx)<TILT_DEAD ? 0 : dx-Math.sign(dx)*TILT_DEAD;
+  dy = Math.abs(dy)<TILT_DEAD ? 0 : dy-Math.sign(dy)*TILT_DEAD;
+  tilt.ix = Math.max(-1,Math.min(1, dx/TILT_RANGE));
+  // leaning the top of the phone away (beta decreases) rolls the marble forward
+  tilt.iz = Math.max(-1,Math.min(1, dy/TILT_RANGE));
+}
+
+function recenter(){ tilt.calibrated=false; toast('Recentered'); }
+
+async function enableTilt(){
+  if(tilt.enabled){ recenter(); return true; }
+  if(typeof DeviceOrientationEvent==='undefined') return false;
+  try{
+    if(typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r = await DeviceOrientationEvent.requestPermission();   // iOS 13+ gesture-gated
+      if(r!=='granted') return false;
+    }
+  }catch(_){ return false; }
+  window.addEventListener('deviceorientation', readOrientation, true);
+  tilt.enabled=true; tilt.calibrated=false;
+  return true;
+}
+
+// touch drag (fallback when no gyro)
+const touch = {active:false, dx:0, dy:0};
+const tdiv = document.getElementById('touch');
+function setTouch(on){ tdiv.style.display = on?'block':'none'; }
+let tStart=null;
+tdiv.addEventListener('pointerdown', e=>{
+  if(tilt.enabled){ recenter(); return; }      // tap to re-baseline in tilt mode
+  tStart={x:e.clientX,y:e.clientY}; touch.active=true;
+});
+tdiv.addEventListener('pointermove', e=>{
+  if(!tStart) return;
+  touch.dx = Math.max(-1,Math.min(1,(e.clientX-tStart.x)/70));
+  touch.dy = Math.max(-1,Math.min(1,(e.clientY-tStart.y)/70));
+});
+tdiv.addEventListener('pointerup', ()=>{ tStart=null; touch.active=false; touch.dx=touch.dy=0; });
+tdiv.addEventListener('pointercancel', ()=>{ tStart=null; touch.active=false; touch.dx=touch.dy=0; });
+document.getElementById('recenter').addEventListener('click', recenter);
+
+// ---- on-screen analog joystick (primary mobile control) ----
+const joy = {active:false, ix:0, iz:0, max:48};
+const stick = document.getElementById('stick');
+const knob  = document.getElementById('knob');
+function setKnob(dx,dy){ knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }
+function stickFrom(e){
+  const r = stick.getBoundingClientRect();
+  let dx = e.clientX - (r.left + r.width/2);
+  let dy = e.clientY - (r.top  + r.height/2);
+  const d = Math.hypot(dx,dy);
+  if(d > joy.max){ dx *= joy.max/d; dy *= joy.max/d; }
+  setKnob(dx,dy);
+  joy.ix = dx/joy.max;   // right = +x
+  joy.iz = dy/joy.max;   // up (dy<0) = forward (iz<0), matches keyboard
+}
+stick.addEventListener('pointerdown', e=>{ joy.active=true; stick.setPointerCapture(e.pointerId); stickFrom(e); e.preventDefault(); });
+stick.addEventListener('pointermove', e=>{ if(joy.active) stickFrom(e); });
+function stickEnd(){ joy.active=false; joy.ix=joy.iz=0; setKnob(0,0); }
+stick.addEventListener('pointerup', stickEnd);
+stick.addEventListener('pointercancel', stickEnd);
+
+// ---- gyro toggle (opt-in; off by default) ----
+const gyrobtn = document.getElementById('gyrobtn');
+gyrobtn.addEventListener('click', async ()=>{
+  if(!tilt.enabled){
+    const ok = await enableTilt();
+    if(ok){ gyrobtn.textContent='Gyro: On'; document.getElementById('recenter').classList.remove('hidden'); toast('Gyro on — tilt to steer'); }
+    else toast('Gyro unavailable');
+  } else {
+    tilt.enabled=false; tilt.ix=tilt.iz=0;
+    window.removeEventListener('deviceorientation', readOrientation, true);
+    gyrobtn.textContent='Gyro: Off';
+    document.getElementById('recenter').classList.add('hidden'); toast('Gyro off');
+  }
+});
+
+// ---------------------------------------------------------------------------
+//  Game state
+// ---------------------------------------------------------------------------
+let state = 'menu';   // menu | play | win | lose
+let level = 0;
+let timeLeft = 0;
+let falls = 0;
+let clock = new THREE.Clock();
+
+const TIME_PER_LEVEL = [30,35,40,40,45,50,50,55,70, 60,65,65,70,70,75,80,90,120]; // carries over
+
+const hud = document.getElementById('hud');
+const overlay = document.getElementById('overlay');
+const flash = document.getElementById('flash');
+
+function loadLevel(i){
+  level = i;
+  clearWorld();
+  LEVELS[i].build();
+  document.getElementById('lvl').textContent = i+1;
+  document.getElementById('lvlname').textContent = '— '+LEVELS[i].name;
+  respawn();
+}
+
+function respawn(){
+  marble.position.copy(startPos);
+  vel.set(0,0,0);
+  // snap camera
+  updateCamera(true);
+}
+
+function fellOff(){
+  falls++;
+  document.getElementById('falls').textContent = falls;
+  timeLeft = Math.max(0, timeLeft - 2); // penalty
+  doFlash('rgba(255,60,60,.35)');
+  respawn();
+}
+
+function doFlash(col){
+  flash.style.background = col;
+  flash.style.opacity = '1';
+  setTimeout(()=>{ flash.style.opacity='0'; }, 110);
+}
+
+function startGame(){
+  state='play'; level=0; falls=0;
+  document.getElementById('falls').textContent='0';
+  timeLeft = 700;
+  overlay.classList.add('hidden');
+  hud.classList.remove('hidden');
+  const mobile = ('ontouchstart' in window) || matchMedia('(pointer:coarse)').matches;
+  setTouch(false);                              // joystick replaces drag-anywhere
+  document.getElementById('stick').classList.toggle('hidden', !mobile);
+  gyrobtn.classList.toggle('hidden', !(mobile && typeof DeviceOrientationEvent!=='undefined'));
+  gyrobtn.textContent = tilt.enabled ? 'Gyro: On' : 'Gyro: Off';
+  document.getElementById('recenter').classList.toggle('hidden', !tilt.enabled);
+  loadLevel(0);
+  clock.start();
+}
+
+function nextLevel(){
+  doFlash('rgba(80,255,160,.4)');
+  if(level+1 >= LEVELS.length){
+    state='win';
+    showOverlay('YOU WIN!', 'All '+LEVELS.length+' courses cleared.',
+      'Final time bank: '+Math.ceil(timeLeft)+'s · Falls: '+falls, 'PLAY AGAIN');
+    return;
+  }
+  timeLeft += TIME_PER_LEVEL[level+1];   // bank carries over, add allotment
+  loadLevel(level+1);
+}
+
+function gameOver(){
+  state='lose';
+  showOverlay('TIME UP', 'You reached course '+(level+1)+' / '+LEVELS.length+' ('+LEVELS[level].name+').',
+    'Falls: '+falls, 'TRY AGAIN');
+}
+
+function showOverlay(title, sub, sub2, btn){
+  hud.classList.add('hidden');
+  document.getElementById('recenter').classList.add('hidden');
+  document.getElementById('stick').classList.add('hidden');
+  gyrobtn.classList.add('hidden');
+  overlay.classList.remove('hidden');
+  overlay.innerHTML = '<h1>'+title+'</h1><h2>'+sub+'</h2><p>'+sub2+'</p>'+
+    '<button class="btn" id="startbtn">'+btn+'</button>'+
+    '<div class="keys">Desktop: Arrow Keys / WASD • Phone: on-screen stick (Gyro optional)</div>';
+  document.getElementById('startbtn').onclick = startGame;
+}
+
+document.getElementById('startbtn').onclick = startGame;
+
+// ---------------------------------------------------------------------------
+//  Physics: gravity + sphere vs OBB resolution with friction & restitution
+// ---------------------------------------------------------------------------
+const GRAV = 28;
+const ACCEL = 60;
+const MAXSPEED = 24;
+// Damping is per-SECOND and applied as exp(-damp*dt) so it's independent of how
+// many physics substeps run per frame (4). Steady-state speed ≈ ACCEL/GROUND_DAMP.
+const GROUND_DAMP = 2.6;
+const AIR_DAMP = 0.25;
+const RESTITUTION = 0.18;
+
+const _local = new THREE.Vector3();
+const _closest = new THREE.Vector3();
+const _normal = new THREE.Vector3();
+
+function collideSphere(){
+  grounded = false;
+  groundNormal.set(0,1,0);
+  for(const c of colliders){
+    // sphere center -> box local space
+    _local.copy(marble.position).applyMatrix4(c.matInv);
+    // closest point on box (in local space) to sphere center
+    _closest.set(
+      Math.max(-c.half.x, Math.min(c.half.x, _local.x)),
+      Math.max(-c.half.y, Math.min(c.half.y, _local.y)),
+      Math.max(-c.half.z, Math.min(c.half.z, _local.z))
+    );
+    const dx=_local.x-_closest.x, dy=_local.y-_closest.y, dz=_local.z-_closest.z;
+    let d2 = dx*dx+dy*dy+dz*dz;
+    if(d2 > R*R) continue;
+
+    let nlx,nly,nlz,pen;
+    if(d2 > 1e-8){
+      const d = Math.sqrt(d2);
+      nlx=dx/d; nly=dy/d; nlz=dz/d; pen = R-d;
+    } else {
+      // center inside box: push out along least-penetration axis
+      const px=c.half.x-Math.abs(_local.x);
+      const py=c.half.y-Math.abs(_local.y);
+      const pz=c.half.z-Math.abs(_local.z);
+      if(px<=py && px<=pz){ nlx=Math.sign(_local.x)||1; nly=0; nlz=0; pen=px+R; }
+      else if(py<=pz){ nlx=0; nly=Math.sign(_local.y)||1; nlz=0; pen=py+R; }
+      else { nlx=0; nly=0; nlz=Math.sign(_local.z)||1; pen=pz+R; }
+    }
+    // local normal -> world normal (rotation only)
+    _normal.set(nlx,nly,nlz).transformDirection(c.mat).normalize();
+
+    if(c.deadly){ fellOff(); return; }
+
+    // positional correction
+    marble.position.addScaledVector(_normal, pen);
+
+    // velocity response
+    const vn = vel.dot(_normal);
+    if(vn < 0){
+      vel.addScaledVector(_normal, -(1+RESTITUTION)*vn);
+    }
+    if(_normal.y > 0.5){
+      grounded = true;
+      groundNormal.copy(_normal);
+    }
+  }
+}
+
+function physics(dt){
+  // input -> camera-relative acceleration on XZ
+  let ix=0, iz=0;
+  if(keys['arrowup']||keys['w']) iz-=1;
+  if(keys['arrowdown']||keys['s']) iz+=1;
+  if(keys['arrowleft']||keys['a']) ix-=1;
+  if(keys['arrowright']||keys['d']) ix+=1;
+  if(joy.active){ ix+=joy.ix; iz+=joy.iz; }
+  else if(tilt.enabled){ ix+=tilt.ix; iz+=tilt.iz; }
+  else if(touch.active){ ix+=touch.dx; iz+=touch.dy; }
+
+  // camera forward/right on ground plane
+  fwd.set(camera.position.x-marble.position.x,0,camera.position.z-marble.position.z);
+  fwd.normalize().negate();              // toward where camera looks
+  right.set(-fwd.z,0,fwd.x);
+  accel.set(0,0,0);
+  accel.addScaledVector(fwd, -iz);
+  accel.addScaledVector(right, ix);
+  if(accel.lengthSq()>1) accel.normalize();
+
+  vel.x += accel.x*ACCEL*dt;
+  vel.z += accel.z*ACCEL*dt;
+  vel.y -= GRAV*dt;
+
+  marble.position.addScaledVector(vel, dt);
+
+  collideSphere();
+  if(state!=='play') return;
+
+  // friction (substep-independent exponential damping)
+  const f = Math.exp(-(grounded ? GROUND_DAMP : AIR_DAMP) * dt);
+  vel.x *= f; vel.z *= f;
+  // clamp horizontal speed
+  const hs = Math.hypot(vel.x,vel.z);
+  if(hs>MAXSPEED){ const s=MAXSPEED/hs; vel.x*=s; vel.z*=s; }
+
+  // visual rolling
+  const axis2 = _normal.set(-vel.z,0,vel.x);
+  if(axis2.lengthSq()>1e-6){
+    axis2.normalize();
+    const ang = hs*dt/R;
+    marble.rotateOnWorldAxis(axis2, ang);
+  }
+
+  // fall check
+  if(marble.position.y < -12){ fellOff(); }
+
+  // goal check
+  const gx=marble.position.x-goalPos.x, gz=marble.position.z-goalPos.z;
+  const gy=Math.abs(marble.position.y-goalPos.y);
+  if(gx*gx+gz*gz < goalRadius*goalRadius && gy < 3){
+    nextLevel();
+  }
+}
+
+const fwd = new THREE.Vector3(), right = new THREE.Vector3(), accel = new THREE.Vector3();
+
+// ---------------------------------------------------------------------------
+//  Enemies: bump the marble
+// ---------------------------------------------------------------------------
+function updateEnemies(t, dt){
+  for(const e of enemies){
+    const off = Math.sin(t*e.speed + e.phase)*e.range;
+    e.mesh.position.copy(e.base);
+    if(e.axis==='x') e.mesh.position.x += off;
+    else e.mesh.position.z += off;
+    e.mesh.rotation.y += dt*2;
+    // collision with marble
+    const dpos = marble.position.clone().sub(e.mesh.position);
+    const rr = R+e.radius;
+    if(dpos.lengthSq() < rr*rr){
+      dpos.y=0;
+      if(dpos.lengthSq()<1e-4) dpos.set(1,0,0);
+      dpos.normalize();
+      vel.addScaledVector(dpos, 16);
+      vel.y += 4;
+      marble.position.addScaledVector(dpos, rr-marble.position.distanceTo(e.mesh.position)+0.01);
+      doFlash('rgba(255,90,90,.18)');
+    }
+  }
+}
+
+function updateSprings(){
+  for(const s of springs){
+    const dx=marble.position.x-s.pos.x, dz=marble.position.z-s.pos.z;
+    const dy=marble.position.y-s.pos.y;
+    if(dx*dx+dz*dz < s.radius*s.radius && dy>0 && dy<2.4 && vel.y<4){
+      vel.y = s.power;
+      doFlash('rgba(255,220,0,.4)');
+      toast('SPRING!');
+    }
+  }
+}
+
+function updateCannons(){
+  for(const c of cannons){
+    const dx=marble.position.x-c.pos.x, dz=marble.position.z-c.pos.z;
+    const dy=marble.position.y-c.pos.y;
+    if(dx*dx+dz*dz < c.radius*c.radius && dy>0 && dy<2.4){
+      vel.copy(c.vel);
+      doFlash('rgba(255,140,0,.4)');
+      toast('LAUNCH!');
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+//  Camera follow (isometric-ish)
+// ---------------------------------------------------------------------------
+const camTarget = new THREE.Vector3();
+const camPos = new THREE.Vector3();
+function updateCamera(snap){
+  camTarget.copy(marble.position);
+  const desired = camTarget.clone().add(new THREE.Vector3(16, 20, 16));
+  if(snap) camPos.copy(desired);
+  else camPos.lerp(desired, 0.08);
+  camera.position.copy(camPos);
+  camera.lookAt(camTarget.x, camTarget.y-1, camTarget.z);
+}
+
+// ---------------------------------------------------------------------------
+//  Main loop
+// ---------------------------------------------------------------------------
+function resize(){
+  const w=innerWidth,h=innerHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+let elapsed=0;
+function frame(){
+  requestAnimationFrame(frame);
+  let dt = Math.min(clock.getDelta(), 0.05);
+  elapsed += dt;
+
+  if(state==='play'){
+    // substeps for stable collisions
+    const steps = 4;
+    const sdt = dt/steps;
+    for(let i=0;i<steps && state==='play';i++) physics(sdt);
+    updateEnemies(elapsed, dt);
+    updateSprings();
+    updateCannons();
+
+    timeLeft -= dt;
+    const tEl = document.getElementById('time');
+    tEl.textContent = Math.ceil(Math.max(0,timeLeft));
+    tEl.parentElement.classList.toggle('warn', timeLeft<10);
+    if(timeLeft<=0){ timeLeft=0; gameOver(); }
+  }
+
+  if(goalMesh) goalMesh.rotation.z += dt*1.5;
+  updateCamera(false);
+  renderer.render(scene, camera);
+}
+frame();
+
+// expose for quick debugging
+window.__marble = {scene, LEVELS, startGame};
+</script>
+</body>
+</html>

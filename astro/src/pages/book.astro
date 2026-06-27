@@ -24,21 +24,10 @@ import Base from '../layouts/Base.astro';
   <section class="py-12 px-5">
     <div class="max-w-lg mx-auto">
 
-      <!-- Step indicator -->
-      <div id="step-indicator" class="flex items-center gap-0 mb-10 select-none">
-        <div class="step-dot active" data-step="1"><span>1</span></div>
-        <div class="step-line"></div>
-        <div class="step-dot" data-step="2"><span>2</span></div>
-        <div class="step-line"></div>
-        <div class="step-dot" data-step="3"><span>3</span></div>
-        <div class="step-line"></div>
-        <div class="step-dot" data-step="4"><span>4</span></div>
-      </div>
-
-      <!-- Step 1: Contact -->
+      <!-- Step 1: Contact + Address -->
       <div id="step-1" class="book-step">
-        <h2 class="text-xl font-black text-white mb-1">Your contact info</h2>
-        <p class="text-cream/55 text-sm mb-6">So we can confirm and reach you before the visit.</p>
+        <h2 class="text-xl font-black text-white mb-1">Your info</h2>
+        <p class="text-cream/55 text-sm mb-6">We'll use this to confirm your visit and route to your property.</p>
         <div class="flex flex-col gap-4">
           <div>
             <label class="field-label">Full name <span class="text-red-400">*</span></label>
@@ -52,21 +41,9 @@ import Base from '../layouts/Base.astro';
             <label class="field-label">Phone number <span class="text-cream/35">(optional)</span></label>
             <input id="f-phone" type="tel" autocomplete="tel" placeholder="512-555-0100" class="field-input" />
           </div>
-        </div>
-        <p id="err-1" class="err-msg hidden mt-3"></p>
-        <button onclick="goStep2()" class="btn-primary mt-6 w-full">Continue &rarr;</button>
-      </div>
-
-      <!-- Step 2: Address -->
-      <div id="step-2" class="book-step hidden">
-        <h2 class="text-xl font-black text-white mb-1">Service address</h2>
-        <p class="text-cream/55 text-sm mb-6">Where we'll come out. City and ZIP are required so we can route correctly.</p>
-        <div class="flex flex-col gap-4">
-          <div style="position:relative">
+          <div>
             <label class="field-label">Street address <span class="text-red-400">*</span></label>
-            <input id="f-street" type="text" autocomplete="off" placeholder="2010 Riverview St" class="field-input"
-              oninput="acOnInput(this.value)" onkeydown="acOnKey(event)" />
-            <div id="ac-dropdown" class="ac-dropdown hidden"></div>
+            <input id="f-street" type="text" autocomplete="street-address" placeholder="2010 Riverview St" class="field-input" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -83,17 +60,12 @@ import Base from '../layouts/Base.astro';
             <input id="f-zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="78704" class="field-input" />
           </div>
         </div>
-        <p id="err-2" class="err-msg hidden mt-3"></p>
-        <div class="flex gap-3 mt-6">
-          <button onclick="goStep(1)" class="btn-ghost flex-1">&larr; Back</button>
-          <button onclick="goStep3()" class="btn-primary flex-2">Choose a time &rarr;</button>
-        </div>
       </div>
 
-      <!-- Step 3: Date + time -->
-      <div id="step-3" class="book-step hidden">
+      <!-- Step 2: Date + time (revealed automatically once info above is complete) -->
+      <div id="step-2" class="book-step hidden mt-10 pt-8 border-t border-[rgba(122,171,130,0.12)]">
         <h2 class="text-xl font-black text-white mb-1">Pick a date and time</h2>
-        <p class="text-cream/55 text-sm mb-6">Mon–Sat, 8am–6pm CT. We serve the greater Austin area.</p>
+        <p class="text-cream/55 text-sm mb-6">Mon–Fri, 10am–5:30pm CT. We serve the greater Austin area.</p>
 
         <!-- Month navigation -->
         <div class="flex items-center justify-between mb-4">
@@ -111,36 +83,22 @@ import Base from '../layouts/Base.astro';
           <div id="slots-grid" class="grid grid-cols-4 gap-2"></div>
         </div>
 
-        <p id="err-3" class="err-msg hidden mt-3"></p>
-        <div class="flex gap-3 mt-6">
-          <button onclick="goStep(2)" class="btn-ghost flex-1">&larr; Back</button>
-          <button onclick="goStep4()" id="btn-step4" class="btn-primary flex-2 opacity-40 cursor-not-allowed" disabled>Review booking &rarr;</button>
-        </div>
-      </div>
-
-      <!-- Step 4: Review -->
-      <div id="step-4" class="book-step hidden">
-        <h2 class="text-xl font-black text-white mb-1">Review your booking</h2>
-        <p class="text-cream/55 text-sm mb-6">Everything look right? Hit confirm and we'll see you then.</p>
-
-        <div class="card !p-5 mb-4 space-y-3 text-sm">
-          <div class="review-row"><span class="review-label">Name</span><span id="r-name"></span></div>
-          <div class="review-row"><span class="review-label">Email</span><span id="r-email" class="break-all"></span></div>
-          <div id="r-phone-row" class="review-row hidden"><span class="review-label">Phone</span><span id="r-phone"></span></div>
-          <div class="review-row"><span class="review-label">Address</span><span id="r-address" class="text-right"></span></div>
-          <div class="review-row"><span class="review-label">When</span><span id="r-when" class="font-bold text-accent text-right"></span></div>
-        </div>
-
-        <div class="mb-4">
-          <label class="field-label">Notes for us <span class="text-cream/35">(optional)</span></label>
-          <textarea id="f-notes" rows="3" placeholder="Anything we should know about your property or visit?"
-            class="field-input resize-none"></textarea>
-        </div>
-
-        <p id="err-4" class="err-msg hidden mt-2"></p>
-        <div class="flex gap-3 mt-4">
-          <button onclick="goStep(3)" class="btn-ghost flex-1">&larr; Back</button>
-          <button onclick="submitBooking()" id="btn-submit" class="btn-primary flex-2">Confirm booking ✓</button>
+        <!-- Inline confirm (appears after slot picked) -->
+        <div id="confirm-panel" class="hidden mt-6">
+          <div class="card !p-5 mb-4 space-y-3 text-sm">
+            <div class="review-row"><span class="review-label">Name</span><span id="r-name"></span></div>
+            <div class="review-row"><span class="review-label">Email</span><span id="r-email" class="break-all"></span></div>
+            <div id="r-phone-row" class="review-row hidden"><span class="review-label">Phone</span><span id="r-phone"></span></div>
+            <div class="review-row"><span class="review-label">Address</span><span id="r-address" class="text-right"></span></div>
+            <div class="review-row"><span class="review-label">When</span><span id="r-when" class="font-bold text-accent text-right"></span></div>
+          </div>
+          <div class="mb-4">
+            <label class="field-label">Notes for us <span class="text-cream/35">(optional)</span></label>
+            <textarea id="f-notes" rows="2" placeholder="Anything we should know?"
+              class="field-input resize-none"></textarea>
+          </div>
+          <p id="err-2" class="err-msg hidden mb-2"></p>
+          <button onclick="submitBooking()" id="btn-submit" class="btn-primary w-full">Confirm booking ✓</button>
         </div>
       </div>
 
@@ -203,13 +161,6 @@ import Base from '../layouts/Base.astro';
 
     .err-msg { font-size:0.82rem; color:#ff8080; font-weight:600; }
 
-    /* Step indicator */
-    #step-indicator { display:flex; align-items:center; }
-    .step-dot { width:32px; height:32px; border-radius:50%; border:2px solid rgba(122,171,130,0.2); display:flex; align-items:center; justify-content:center; font-size:0.78rem; font-weight:800; color:rgba(212,230,202,0.3); flex-shrink:0; }
-    .step-dot.active { border-color:#c9a84c; color:#c9a84c; }
-    .step-dot.done { border-color:#7dffaa; background:rgba(125,255,170,0.1); color:#7dffaa; }
-    .step-line { flex:1; height:2px; background:rgba(122,171,130,0.15); }
-
     /* Calendar */
     .cal-header { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:4px; }
     .cal-header span { text-align:center; font-size:0.68rem; font-weight:800; color:rgba(212,230,202,0.35); letter-spacing:0.05em; }
@@ -233,14 +184,6 @@ import Base from '../layouts/Base.astro';
     .review-label { color:rgba(212,230,202,0.4); font-size:0.78rem; white-space:nowrap; }
 
     .hidden { display:none !important; }
-
-    /* Address autocomplete */
-    .ac-dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:#1a2e1e; border:1px solid rgba(122,171,130,0.3); border-radius:8px; z-index:50; max-height:220px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
-    .ac-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid rgba(122,171,130,0.08); }
-    .ac-item:last-child { border-bottom:none; }
-    .ac-item:hover, .ac-item.ac-hi { background:rgba(125,255,170,0.08); }
-    .ac-main { color:#d4e6ca; font-size:0.88rem; font-weight:600; }
-    .ac-sec { color:rgba(212,230,202,0.4); font-size:0.78rem; margin-top:1px; }
   </style>
 
   <script is:inline>
@@ -277,63 +220,40 @@ import Base from '../layouts/Base.astro';
       })
     }
 
-    // ── Step navigation ────────────────────────────────────────────────────────
-    function goStep(n) {
-      for (let i = 1; i <= 4; i++) {
-        const el = $(`step-${i}`)
-        if (el) el.classList.toggle('hidden', i !== n)
+    // ── Form sync + auto-reveal ──────────────────────────────────────────────────
+    // No "choose a time" button: the date/time picker reveals itself as soon as the
+    // required contact + address fields are valid, and stays in sync as they change.
+    function isStep1Valid() {
+      return !!(state.name &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email) &&
+        state.street && state.city && /^\d{5}$/.test(state.zip))
+    }
+
+    function syncForm() {
+      state.name = val('f-name'); state.email = val('f-email'); state.phone = val('f-phone')
+      state.street = val('f-street'); state.city = val('f-city')
+      state.state = val('f-state') || 'TX'; state.zip = val('f-zip')
+
+      const wasHidden = $('step-2').classList.contains('hidden')
+      if (isStep1Valid()) {
+        show('step-2')
+        if (!state.viewYear) initCalendar()
+        if (wasHidden) $('step-2').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      } else {
+        hide('step-2')
       }
-      hide('step-success')
-      updateIndicator(n)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-
-    function updateIndicator(active) {
-      document.querySelectorAll('.step-dot').forEach(dot => {
-        const n = parseInt(dot.dataset.step)
-        dot.classList.remove('active', 'done')
-        if (n < active) dot.classList.add('done')
-        else if (n === active) dot.classList.add('active')
-      })
-    }
-
-    function goStep2() {
-      clearErr('err-1')
-      const name = val('f-name'), email = val('f-email')
-      if (!name) return showErr('err-1', 'Please enter your name.')
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('err-1', 'Please enter a valid email address.')
-      state.name = name; state.email = email; state.phone = val('f-phone')
-      goStep(2)
-    }
-
-    function goStep3() {
-      clearErr('err-2')
-      const street = val('f-street'), city = val('f-city'), zip = val('f-zip')
-      if (!street) return showErr('err-2', 'Please enter your street address.')
-      if (!city) return showErr('err-2', 'Please enter your city.')
-      if (!zip || !/^\d{5}$/.test(zip)) return showErr('err-2', 'Please enter a valid 5-digit ZIP code.')
-      state.street = street; state.city = city
-      state.state = val('f-state') || 'TX'; state.zip = zip
-      goStep(3)
-      if (!state.viewYear) initCalendar()
-    }
-
-    function goStep4() {
-      clearErr('err-3')
-      if (!state.selectedISO) return showErr('err-3', 'Please select a date and time.')
-      // Populate review
-      $('r-name').textContent = state.name
-      $('r-email').textContent = state.email
-      if (state.phone) { $('r-phone').textContent = state.phone; show('r-phone-row') }
-      else hide('r-phone-row')
-      $('r-address').textContent = `${state.street}, ${state.city}, ${state.state} ${state.zip}`
-      $('r-when').textContent = fmtFull(state.selectedISO)
-      goStep(4)
     }
 
     // ── Calendar ───────────────────────────────────────────────────────────────
     const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
     const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+    // Minimum 24-hour lead time — drop any slot sooner than that from now.
+    const MIN_LEAD_MS = 24 * 60 * 60 * 1000
+    function futureSlots(arr) {
+      const cutoff = Date.now() + MIN_LEAD_MS
+      return (arr || []).filter(iso => new Date(iso).getTime() >= cutoff)
+    }
 
     function initCalendar() {
       const now = new Date()
@@ -392,11 +312,12 @@ import Base from '../layouts/Base.astro';
         const isWeekend = dow === 0 // Sun only; Sat is allowed
         const isPast = dayDate < today
 
+        const avail = futureSlots(slots[dateStr])
         if (isPast || isWeekend) {
           html += `<div class="cal-day past">${d}</div>`
-        } else if (slots[dateStr]?.length) {
+        } else if (avail.length) {
           const sel = state.selectedISO && new Date(state.selectedISO).toLocaleDateString('en-CA', { timeZone: TZ }) === dateStr
-          html += `<div class="cal-day available${sel ? ' selected' : ''}" onclick="selectDay('${dateStr}')" title="${slots[dateStr].length} slots available">${d}</div>`
+          html += `<div class="cal-day available${sel ? ' selected' : ''}" onclick="selectDay('${dateStr}')" title="${avail.length} slots available">${d}</div>`
         } else {
           html += `<div class="cal-day unavailable">${d}</div>`
         }
@@ -407,7 +328,7 @@ import Base from '../layouts/Base.astro';
 
     function selectDay(dateStr) {
       const { viewYear: y, viewMonth: m } = state
-      const slots = state.slotsCache[`${y}-${m}`]?.[dateStr] || []
+      const slots = futureSlots(state.slotsCache[`${y}-${m}`]?.[dateStr])
       if (!slots.length) return
 
       // Re-render calendar with this day selected
@@ -432,14 +353,19 @@ import Base from '../layouts/Base.astro';
       document.querySelectorAll('.slot-btn').forEach(b => {
         b.classList.toggle('selected', b.getAttribute('onclick')?.includes(iso))
       })
-      const btn = $('btn-step4')
-      btn.disabled = false
-      btn.classList.remove('opacity-40', 'cursor-not-allowed')
+      $('r-name').textContent = state.name
+      $('r-email').textContent = state.email
+      if (state.phone) { $('r-phone').textContent = state.phone; show('r-phone-row') }
+      else hide('r-phone-row')
+      $('r-address').textContent = `${state.street}, ${state.city}, ${state.state} ${state.zip}`
+      $('r-when').textContent = fmtFull(iso)
+      show('confirm-panel')
+      $('confirm-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
 
     // ── Submit ─────────────────────────────────────────────────────────────────
     async function submitBooking() {
-      clearErr('err-4')
+      clearErr('err-2')
       const btn = $('btn-submit')
       btn.textContent = 'Booking…'
       btn.disabled = true
@@ -479,8 +405,8 @@ import Base from '../layouts/Base.astro';
         if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
 
         // Success
-        for (let i = 1; i <= 4; i++) hide(`step-${i}`)
-        hide('step-indicator')
+        for (let i = 1; i <= 2; i++) hide(`step-${i}`)
+        hide('confirm-panel')
         show('step-success')
         $('s-email').textContent = state.email
         $('s-when').textContent = fmtFull(state.selectedISO)
@@ -495,88 +421,15 @@ import Base from '../layouts/Base.astro';
           window.fbq('track', 'Lead', { content_name: 'Property Assessment Booking', value: 25, currency: 'USD' }, { eventID: eventId })
         }
       } catch (e) {
-        showErr('err-4', e.message || 'Something went wrong. Please try again or call 512-560-4129.')
+        showErr('err-2', e.message || 'Something went wrong. Please try again or call 512-560-4129.')
         btn.textContent = 'Confirm booking ✓'
         btn.disabled = false
       }
     }
 
-    // ── Address autocomplete ────────────────────────────────────────────────────
-    let acTimer = null
-    let acItems = []
-    let acIdx = -1
-    const acSession = Math.random().toString(36).slice(2) + Date.now().toString(36)
-
-    function acOnInput(v) {
-      clearTimeout(acTimer)
-      if (v.trim().length < 2) { closeAc(); return }
-      acTimer = setTimeout(() => fetchAc(v.trim()), 280)
-    }
-
-    async function fetchAc(q) {
-      try {
-        const r = await fetch(`${PORTAL}/api/book/address-suggest?q=${encodeURIComponent(q)}&session=${acSession}`)
-        const data = await r.json()
-        acItems = data.suggestions || []
-        acIdx = -1
-        renderAc()
-      } catch (e) { closeAc() }
-    }
-
-    function acEsc(s) {
-      return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-    }
-
-    function renderAc() {
-      const dd = $('ac-dropdown')
-      if (!dd || !acItems.length) { closeAc(); return }
-      dd.innerHTML = acItems.map((s, i) =>
-        `<div class="ac-item" data-idx="${i}" onmousedown="selectAc(${i})">
-          <div class="ac-main">${acEsc(s.main)}</div>
-          ${s.secondary ? `<div class="ac-sec">${acEsc(s.secondary)}</div>` : ''}
-        </div>`
-      ).join('')
-      show('ac-dropdown')
-    }
-
-    function acOnKey(e) {
-      if (!acItems.length) return
-      if (e.key === 'ArrowDown') { e.preventDefault(); acMove(1) }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); acMove(-1) }
-      else if (e.key === 'Enter' && acIdx >= 0) { e.preventDefault(); selectAc(acIdx) }
-      else if (e.key === 'Escape') closeAc()
-    }
-
-    function acMove(d) {
-      const items = document.querySelectorAll('.ac-item')
-      if (acIdx >= 0) items[acIdx]?.classList.remove('ac-hi')
-      acIdx = Math.max(0, Math.min(acItems.length - 1, acIdx + d))
-      items[acIdx]?.classList.add('ac-hi')
-    }
-
-    async function selectAc(i) {
-      const s = acItems[i]
-      if (!s) return
-      closeAc()
-      $('f-street').value = s.main
-      try {
-        const r = await fetch(`${PORTAL}/api/book/address-detail?placeId=${encodeURIComponent(s.placeId)}&session=${acSession}`)
-        const d = await r.json()
-        if (d.street) $('f-street').value = d.street
-        if (d.city) $('f-city').value = d.city
-        if (d.state) $('f-state').value = d.state
-        if (d.zip) $('f-zip').value = d.zip
-      } catch(e) {}
-    }
-
-    function closeAc() {
-      acItems = []; acIdx = -1
-      const dd = $('ac-dropdown')
-      if (dd) { dd.innerHTML = ''; dd.classList.add('hidden') }
-    }
-
-    document.addEventListener('click', e => {
-      if (!e.target.closest('#ac-dropdown') && e.target.id !== 'f-street') closeAc()
+    // Reveal the date/time picker automatically as the contact + address fields fill in.
+    ;['f-name','f-email','f-phone','f-street','f-city','f-state','f-zip'].forEach(id => {
+      $(id)?.addEventListener('input', syncForm)
     })
   </script>
 </Base>

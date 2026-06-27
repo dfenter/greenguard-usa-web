@@ -185,7 +185,7 @@ export const POST = async ({ request }) => {
 
 function buildGuideEmail(email) {
   return `
-<div style="font-family:-apple-system,Nunito Sans,sans-serif;max-width:560px;margin:0 auto;background:#0d1a10;color:#d4e6ca;border-radius:12px;overflow:hidden;">
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;background:#0d1a10;color:#d4e6ca;border-radius:12px;overflow:hidden;">
   <div style="background:linear-gradient(135deg,#1a2e1f,#243627);padding:32px 28px 24px;">
     <div style="font-weight:900;font-size:1.2rem;letter-spacing:-0.02em;margin-bottom:4px;">Green<span style="color:#7dffaa;">Guard</span> USA</div>
     <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(212,230,202,0.4);">Austin Mosquito Season Guide</div>

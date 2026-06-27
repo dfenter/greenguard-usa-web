@@ -1,0 +1,84 @@
+{
+  "global": "GreenGuardPortal",
+  "pkg": "greenguard-portal",
+  "pkgDir": "/Users/lucille/greenguard-usa-web/app",
+  "extraEntries": [],
+  "exported": [],
+  "storybookStatic": null,
+  "keyRecipe": 7,
+  "cfgSliceGlobal": "a139d95ad8ab0a8ba08b44a258c54602e36090304087f48fe923c61aa5a8ae08",
+  "components": [
+    {
+      "name": "AdminChat",
+      "group": "general",
+      "srcSha": null,
+      "sourceKey": "50cdf1d92e72a515",
+      "cfgSlice": "5ff899b099eb6923833804cda955efdd69101524bec86f67dac5537cd81802e8",
+      "stories": []
+    },
+    {
+      "name": "AppointmentDetailDock",
+      "group": "general",
+      "srcSha": null,
+      "sourceKey": "97785f0e0f37eead",
+      "cfgSlice": "5ff899b099eb6923833804cda955efdd69101524bec86f67dac5537cd81802e8",
+      "stories": []
+    },
+    {
+      "name": "CustomerChat",
+      "group": "general",
+      "srcSha": null,
+      "sourceKey": "598aa149fe0fcb2a",
+      "cfgSlice": "5ff899b099eb6923833804cda955efdd69101524bec86f67dac5537cd81802e8",
+      "stories": []
+    },
+    {
+      "name": "CustomerMap",
+      "group": "general",
+      "srcSha": null,
+      "sourceKey": "46854c6b22c644d2",
+      "cfgSlice": "5ff899b099eb6923833804cda955efdd69101524bec86f67dac5537cd81802e8",
+      "stories": []
+    },
+    {
+      "name": "CustomerPanel",
+      "group": "general",
+      "srcSha": null,
+      "sourceKey": "3a9348362c1ec924",
+      "cfgSlice": "5ff899b099eb6923833804cda955efdd69101524bec86f67dac5537cd81802e8",
+      "stories": []
+    },
+    {
+      "name": "PortalLayout",
+      "group": "general",
+      "srcSha": null,
+      "sourceKey": "5298cb980d305d0c",
+      "cfgSlice": "5ff899b099eb6923833804cda955efdd69101524bec86f67dac5537cd81802e8",
+      "stories": []
+    },
+    {
+      "name": "SignaturePad",
+      "group": "general",
+      "srcSha": null,
+      "sourceKey": "bb8934e50b2bfdbc",
+      "cfgSlice": "5ff899b099eb6923833804cda955efdd69101524bec86f67dac5537cd81802e8",
+      "stories": []
+    },
+    {
+      "name": "StopCard",
+      "group": "general",
+      "srcSha": null,
+      "sourceKey": "2a6ee2aab8b3f63a",
+      "cfgSlice": "5ff899b099eb6923833804cda955efdd69101524bec86f67dac5537cd81802e8",
+      "stories": []
+    },
+    {
+      "name": "TankCalendar",
+      "group": "general",
+      "srcSha": null,
+      "sourceKey": "b1d0a825f68818f4",
+      "cfgSlice": "5ff899b099eb6923833804cda955efdd69101524bec86f67dac5537cd81802e8",
+      "stories": []
+    }
+  ]
+}

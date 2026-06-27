@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GreenGuard CO₂ Trap Timer — Hammond 1554CGY</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#7dffaa;--gold:#c9a84c;--dark:#080f09}
+body{background:radial-gradient(ellipse 80% 60% at 50% 40%,#0f1f12,#060c07);font-family:'Nunito Sans',sans-serif;color:#fff;min-height:100vh;overflow-x:hidden}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:14px 36px;background:rgba(6,12,7,.95);border-bottom:1px solid rgba(122,171,130,.12)}
+.logo{font-size:1rem;font-weight:900;letter-spacing:-.02em}.logo em{color:var(--green);font-style:normal}
+.nav-tag{font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(201,232,209,.3)}
+
+/* VIEWER SECTION */
+.viewer-section{display:grid;grid-template-columns:300px 1fr;min-height:92vh;align-items:center;padding:0 40px 0 60px;gap:0;position:relative}
+
+/* COPY */
+.copy{z-index:2}
+.badge{display:inline-block;font-size:.58rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(201,232,209,.55);background:rgba(122,171,130,.07);border:1px solid rgba(122,171,130,.18);padding:4px 12px;border-radius:4px;margin-bottom:18px}
+h1{font-size:clamp(1.8rem,2.8vw,2.5rem);font-weight:900;letter-spacing:-.03em;line-height:1.1;margin-bottom:14px}
+h1 em{color:var(--green);font-style:normal}
+.tagline{font-size:.88rem;line-height:1.65;color:rgba(212,230,202,.6);margin-bottom:28px;max-width:260px}
+.spec-list{list-style:none;margin-bottom:28px}
+.spec-list li{font-size:.8rem;color:rgba(212,230,202,.65);padding:5px 0;border-bottom:1px solid rgba(122,171,130,.08);display:flex;justify-content:space-between;gap:16px}
+.spec-list li span:first-child{color:rgba(201,232,209,.35);font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.spec-list li span:last-child{font-weight:700;color:#fff;text-align:right}
+.cta{display:inline-block;background:var(--gold);color:#0a1a0d;font-weight:900;font-size:.85rem;letter-spacing:.05em;text-transform:uppercase;padding:13px 28px;border-radius:7px;text-decoration:none}
+
+/* SCENE */
+.scene-wrap{display:flex;align-items:center;justify-content:center;position:relative;height:92vh;cursor:grab;user-select:none}
+.scene-wrap:active{cursor:grabbing}
+.scene{perspective:1600px;width:640px;height:480px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+
+/*
+  BOX GEOMETRY — corrected orientation, 4px/mm
+  Hammond 1554CGY: 120 x 65 x 40 mm
+  Viewer faces the SHORT END (65 x 40 mm = 260 x 160 px)
+  Box depth (long axis): 120 mm = 480 px
+  Long sides:  480 x 160 px  (right/left of viewer)
+  Lid/bottom:  260 x 480 px  (top/bottom)
+
+  Front (end face, viewer-facing):  260x160, z=0
+  Back  (rear end face, CO2 ports): 260x160, translateZ(-480)
+  Right (long side, J2 terminal):   480x160, left:260, rotateY(90deg)
+  Left  (long side, J1/J6):         480x160, left:-480, rotateY(-90deg)
+  Top   (lid, 65x120mm):            260x480, top:-480, rotateX(90deg)
+  Bottom:                            260x480, top:160,  rotateX(-90deg)
+*/
+.box{
+  width:260px;height:160px;
+  position:relative;
+  transform-style:preserve-3d;
+  transform:rotateX(-12deg) rotateY(25deg) translateZ(240px);
+  will-change:transform;
+}
+.face{position:absolute;backface-visibility:visible}
+
+/* FRONT — end face: display + buttons + DC barrel jack */
+.f-front{
+  width:260px;height:160px;left:0;top:0;
+  background:#d4d6d3;
+  overflow:hidden;
+  border-radius:8px;
+}
+.f-front::after{content:'';position:absolute;inset:0;background:linear-gradient(155deg,rgba(255,255,255,.18) 0%,transparent 45%);pointer-events:none}
+
+/* BACK — rear end face: CO2 IN + CO2 OUT barb fittings */
+.f-back{
+  width:260px;height:160px;left:0;top:0;
+  transform:translateZ(-480px);
+  background:linear-gradient(180deg,#c8cac7 0%,#bbbdba 60%,#aeb0ad 100%);
+  border-radius:8px;
+  transform-style:preserve-3d;
+  overflow:visible;
+}
+
+/* RIGHT — long side, J2 solenoid screw terminal */
+.f-right{
+  width:480px;height:160px;left:260px;top:0;
+  transform-origin:0% 50%;
+  transform:rotateY(90deg);
+  background:linear-gradient(180deg,#cbcdc9 0%,#c0c2be 100%);
+  overflow:hidden;
+  border-radius:8px;
+}
+/* lid seam — horizontal line at top (approx 20mm = 80px from top = lid/body boundary) */
+.f-right::before{content:'';position:absolute;left:0;right:0;top:80px;height:1.5px;background:rgba(0,0,0,.18);box-shadow:0 1px 0 rgba(255,255,255,.1)}
+
+/* LEFT — long side, J1/J6 battery screw terminals (not visible in default view) */
+.f-left{
+  width:480px;height:160px;left:-480px;top:0;
+  transform-origin:100% 50%;
+  transform:rotateY(-90deg);
+  background:linear-gradient(180deg,#cdcfcb 0%,#c3c5c1 100%);
+  overflow:hidden;
+  border-radius:8px;
+}
+.f-left::before{content:'';position:absolute;left:0;right:0;top:80px;height:1.5px;background:rgba(0,0,0,.18);box-shadow:0 1px 0 rgba(255,255,255,.1)}
+
+/* TOP — lid, 260x480 px (65x120 mm) */
+.f-top{
+  width:260px;height:480px;left:0;top:-480px;
+  transform-origin:50% 100%;
+  transform:rotateX(90deg);
+  background:linear-gradient(135deg,#e2e4e1 0%,#d8dad7 50%,#d0d2cf 100%);
+  overflow:visible;
+  border-radius:8px;
+}
+.f-top::after{content:'';position:absolute;inset:0;background:linear-gradient(125deg,rgba(255,255,255,.18) 0%,transparent 55%);pointer-events:none;border-radius:8px}
+
+/* BOTTOM */
+.f-bottom{
+  width:260px;height:480px;left:0;top:160px;
+  transform-origin:50% 0%;
+  transform:rotateX(-90deg);
+  background:#a8aaa7;
+  border-radius:8px;
+}
+
+/* ── FRONT FACE: TM1637 DISPLAY ── */
+/* At 4px/mm: 38x12mm = 152x48px, origin at (13mm,10mm) = (52,40)px */
+.display-bezel{
+  position:absolute;
+  left:52px;top:40px;
+  width:152px;height:48px;
+  background:#080808;
+  border:1.5px solid #2a2a2e;
+  border-radius:4px;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.04);
+  display:flex;align-items:center;justify-content:center;
+}
+.display-inner{
+  display:flex;align-items:center;
+  font-family:'Courier New',monospace;
+  font-weight:700;
+  font-size:20px;
+  color:#ff3200;
+  text-shadow:0 0 5px #ff3200,0 0 12px rgba(255,50,0,.45),0 0 22px rgba(255,30,0,.2);
+  letter-spacing:1px;
+}
+.display-inner .dig{min-width:14px;text-align:center}
+.display-inner .col{
+  margin:0 1px;color:#ff3200;
+  animation:blink-col 1s step-end infinite;
+}
+@keyframes blink-col{0%,49%{opacity:1}50%,100%{opacity:.12}}
+.display-label{
+  position:absolute;
+  left:52px;top:91px;
+  font-size:5.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(0,0,0,.28);font-family:'Courier New',monospace;white-space:nowrap;
+}
+
+/* ── FRONT FACE: BUTTONS — at 4px/mm: centers (18,30)mm=(72,120)px, (34,30)mm=(136,120)px ── */
+.btn-row{
+  position:absolute;
+  left:42px;top:108px;
+  display:flex;gap:52px;
+}
+.btn-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
+.tact-btn{
+  width:18px;height:18px;border-radius:50%;
+  background:radial-gradient(circle at 38% 34%,#5c5c62,#2a2a2e);
+  border:1.5px solid #666;
+  box-shadow:0 2px 4px rgba(0,0,0,.6),inset 0 1px 2px rgba(255,255,255,.06);
+}
+.tact-lbl{
+  font-size:5.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(0,0,0,.35);font-family:'Courier New',monospace;
+}
+
+/* ── FRONT FACE: DC BARREL JACK — at 4px/mm: center (52,20)mm=(208,80)px, r=24px ── */
+.dc-jack-ring{
+  position:absolute;left:184px;top:56px;
+  width:48px;height:48px;border-radius:50%;
+  background:radial-gradient(circle at 38% 34%,#888,#3a3a3a);
+  border:2px solid #666;
+}
+.dc-jack-ring::after{
+  content:'';position:absolute;
+  width:24px;height:24px;border-radius:50%;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  background:#0a0a0c;border:1px solid #555;
+}
+.dc-jack-ring::before{
+  content:'';position:absolute;
+  width:8px;height:8px;border-radius:50%;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  background:#aaa;z-index:1;
+}
+.dc-jack-lbl{
+  position:absolute;left:175px;top:107px;
+  font-size:5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(0,0,0,.3);font-family:'Courier New',monospace;white-space:nowrap;
+}
+
+.front-brand{position:absolute;bottom:14px;left:52px;font-size:7px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.28);white-space:nowrap}
+.front-brand em{color:rgba(30,100,50,.5);font-style:normal}
+.front-model{position:absolute;bottom:6px;left:52px;font-size:4.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(0,0,0,.18);white-space:nowrap;font-family:'Courier New',monospace}
+.panel-rule{position:absolute;left:10px;right:10px;height:1px;background:rgba(0,0,0,.08)}
+
+/* ── TOP FACE DETAILS ── */
+.lid-screw{
+  position:absolute;width:16px;height:16px;border-radius:50%;
+  background:radial-gradient(circle at 42% 38%,#dddedd,#c4c6c3,#b0b2af);
+  box-shadow:0 1px 3px rgba(0,0,0,.22),inset 0 1px 2px rgba(255,255,255,.35);
+}
+.lid-screw::after{
+  content:'';position:absolute;
+  width:9px;height:9px;border-radius:50%;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  background:radial-gradient(circle at 40% 36%,#c8cac7,#9a9c99);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.3);
+}
+.top-label{position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:6px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.2);white-space:nowrap}
+
+/* ── COMPRESSION FITTING — for CO2 ports on rear face ── */
+.gland{
+  position:absolute;
+  width:44px;height:44px;
+  transform-style:preserve-3d;
+}
+.gland::before{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,0,0,.45) 0%,rgba(0,0,0,.65) 42%,rgba(0,0,0,0) 68%);
+  box-shadow:0 0 10px rgba(0,0,0,.6);
+}
+.gland .cf-outer{
+  position:absolute;inset:0;border-radius:50%;
+  transform:translateZ(16px);
+  background:radial-gradient(circle at 38% 34%,#4a4e4b,#2c2f2d);
+  box-shadow:0 3px 10px rgba(0,0,0,.7),0 6px 20px rgba(0,0,0,.4),inset 0 1px 2px rgba(255,255,255,.08);
+}
+.gland .cf-flange{
+  position:absolute;inset:3px;border-radius:50%;
+  transform:translateZ(19px);
+  background:radial-gradient(circle at 38% 34%,#828886,#585c5a);
+  border:1px solid #6a706c;
+}
+.gland .cf-hex{
+  position:absolute;inset:7px;
+  border-radius:3px;
+  transform:translateZ(22px);
+  background:linear-gradient(135deg,#c0c6c3,#8c9290,#6e7471);
+  box-shadow:inset 0 1px 3px rgba(255,255,255,.15);
+}
+.gland .cf-nut{
+  position:absolute;inset:11px;border-radius:50%;
+  transform:translateZ(24px);
+  background:repeating-linear-gradient(
+    0deg,
+    #606662 0px,#606662 2px,
+    #848a86 2px,#848a86 4px
+  );
+  border:1px solid #555a57;
+}
+.gland .cf-face{
+  position:absolute;inset:15px;border-radius:50%;
+  transform:translateZ(26px);
+  background:radial-gradient(circle at 38% 34%,#b0b4b2,#6e7471);
+  border:1px solid #888e8b;
+}
+.gland .cf-bore{
+  position:absolute;inset:40%;border-radius:50%;
+  transform:translateZ(28px);
+  background:radial-gradient(circle at 40% 38%,#2a2a2a,#111);
+  border:1px solid #444;
+}
+.port-lbl{position:absolute;font-size:5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.35);font-family:'Courier New',monospace;white-space:nowrap}
+
+/* ── RIGHT FACE: SCREW TERMINAL SLOT ── */
+/* J2 at (54mm, 25mm) = (216,100)px, slot 12x8mm = 48x32px */
+.terminal-slot{
+  position:absolute;
+  border-radius:3px;
+  background:linear-gradient(180deg,#1a1c1a 0%,#0a0c0a 100%);
+  border:1.5px solid #444;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.8);
+}
+.terminal-slot::after{
+  content:'';position:absolute;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  width:70%;height:30%;border-radius:1px;
+  background:rgba(40,80,50,.25);
+  border:1px solid rgba(122,171,130,.12);
+}
+.slot-lbl{position:absolute;font-size:5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(0,0,0,.35);font-family:'Courier New',monospace;white-space:nowrap}
+
+/* ── DRAG HINT ── */
+.drag-hint{
+  position:absolute;bottom:28px;left:50%;transform:translateX(-50%);
+  font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(201,232,209,.3);
+  border:1px solid rgba(122,171,130,.12);
+  padding:6px 16px;border-radius:20px;
+  animation:pulse 2.5s ease-in-out infinite;
+  pointer-events:none;white-space:nowrap;
+}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
+
+/* ── CALLOUT BADGES ── */
+.callout{position:absolute;display:flex;align-items:center;gap:6px;pointer-events:none}
+.cl-dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);flex-shrink:0}
+.cl-line{height:1px;background:rgba(201,232,209,.2);flex-shrink:0}
+.cl-txt{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(201,232,209,.45);white-space:nowrap;font-family:'Courier New',monospace}
+
+/* ── STRIP ── */
+.strip{background:#0d1a10;border-top:1px solid rgba(122,171,130,.09);border-bottom:1px solid rgba(122,171,130,.09);padding:26px 60px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.si{text-align:center}
+.si-n{font-size:1.4rem;font-weight:900;color:var(--green);display:block;line-height:1}
+.si-d{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(201,232,209,.37);margin-top:4px;display:block}
+
+/* ── SCHEDULE CARD ── */
+.info-section{padding:52px 60px;max-width:1100px;margin:0 auto}
+.sl{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:12px}
+.sh2{font-size:clamp(1.2rem,2vw,1.65rem);font-weight:900;letter-spacing:-.02em;margin-bottom:26px}
+.sch-card{background:rgba(13,26,16,.6);border:1px solid rgba(122,171,130,.13);border-radius:12px;padding:24px 28px;display:grid;grid-template-columns:100px 1fr 100px;gap:24px;align-items:center}
+.tb .lbl{font-size:.56rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.tb .val{font-size:1.45rem;font-weight:900;color:var(--green);line-height:1}
+.tb .sub{font-size:.66rem;color:rgba(212,230,202,.36);margin-top:3px}
+.timeline{position:relative;height:30px;background:rgba(0,0,0,.35);border-radius:5px;overflow:hidden;border:1px solid rgba(122,171,130,.12)}
+.tl-fill{position:absolute;top:0;bottom:0;left:calc(6/24*100%);width:calc(17/24*100%);background:linear-gradient(90deg,rgba(125,255,170,.22),rgba(125,255,170,.1));border-left:2px solid var(--green);border-right:2px solid rgba(125,255,170,.3)}
+.tl-l{position:absolute;top:50%;transform:translateY(-50%);font-size:6.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.tl-on{left:calc(6/24*100% + 5px);color:var(--green)}
+.tl-off{right:7px;color:rgba(212,230,202,.25)}
+.ticks{position:absolute;bottom:0;left:0;right:0;height:5px;display:flex}
+.tick{flex:1;border-left:1px solid rgba(255,255,255,.05)}
+.tl-ft{display:flex;justify-content:space-between;margin-top:4px;font-size:6.5px;color:rgba(201,232,209,.2);font-family:'Courier New',monospace}
+
+/* ── SPEC TABLE ── */
+.tbl-section{padding:0 60px 64px;max-width:1100px;margin:0 auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:.55rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(201,232,209,.28);border-bottom:1px solid rgba(122,171,130,.1);padding:8px 12px;text-align:left}
+td{padding:9px 12px;font-size:.83rem;color:rgba(212,230,202,.7);border-bottom:1px solid rgba(122,171,130,.06)}
+td:first-child{font-weight:700;color:#fff;width:30%}
+tr:last-child td{border:none}
+
+footer{background:#060d07;border-top:1px solid rgba(122,171,130,.08);padding:22px 60px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+
+@media(max-width:860px){
+  .viewer-section{grid-template-columns:1fr;padding:30px 20px}
+  .scene-wrap{height:60vw;min-height:320px}
+  .strip{grid-template-columns:repeat(3,1fr);padding:20px}
+  .sch-card{grid-template-columns:1fr;gap:12px}
+  .info-section,.tbl-section{padding-left:20px;padding-right:20px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Green<em>Guard</em> USA</div>
+  <span class="nav-tag">CO₂ Trap Timer · Timer-001 · Rev 3.0 · Hammond 1554CGY</span>
+</nav>
+
+<div class="viewer-section">
+
+  <!-- COPY -->
+  <div class="copy">
+    <div class="badge">GreenGuard Hardware · Rev 3.0</div>
+    <h1>CO<sub style="font-size:.6em">2</sub> Trap <em>Timer</em></h1>
+    <p class="tagline">Hammond 1554CGY ABS inline controller with TM1637 clock display and 2-button time setting. CO₂ IN and OUT on rear panel. Runs 5:30 AM to 11:30 PM daily.</p>
+    <ul class="spec-list">
+      <li><span>MCU</span><span>ATtiny84A</span></li>
+      <li><span>RTC</span><span>DS3231M ±5ppm</span></li>
+      <li><span>Display</span><span>TM1637 4-digit red</span></li>
+      <li><span>Buttons</span><span>UP + SET</span></li>
+      <li><span>Enclosure</span><span>Hammond 1554CGY 4.7 × 2.6 × 1.6 in</span></li>
+      <li><span>Supply</span><span>2× 9V battery + DC barrel jack</span></li>
+    </ul>
+    <a href="#" class="cta">Add to Cart — $89.99</a>
+  </div>
+
+  <!-- 3D VIEWER -->
+  <div class="scene-wrap" id="sceneWrap">
+
+    <!-- Callout: TM1637 Display -->
+    <div class="callout" style="position:absolute;top:14%;left:52%;transform:translateX(-30%);gap:8px">
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:6px;height:6px;border-radius:2px;background:#ff3200;box-shadow:0 0 5px #ff3200"></div>
+        <span class="cl-txt">TM1637 clock display</span>
+      </div>
+    </div>
+
+    <!-- Callout: Buttons -->
+    <div class="callout" style="position:absolute;bottom:20%;left:50%;transform:translateX(-50%);flex-direction:column;gap:4px">
+      <div class="cl-dot"></div>
+      <span class="cl-txt">UP · SET</span>
+    </div>
+
+    <!-- Callout: DC Power -->
+    <div class="callout" style="position:absolute;top:42%;right:4%">
+      <div class="cl-line" style="width:28px"></div>
+      <div class="cl-dot"></div>
+      <div class="cl-txt">DC 9–12V · front panel</div>
+    </div>
+
+    <!-- Callout: CO2 ports -->
+    <div class="callout" style="position:absolute;top:25%;left:4%;flex-direction:row-reverse">
+      <div class="cl-line" style="width:32px"></div>
+      <div class="cl-dot"></div>
+      <div class="cl-txt">CO₂ IN / OUT — rear panel</div>
+    </div>
+
+    <!-- Callout: Solenoid terminal -->
+    <div class="callout" style="position:absolute;top:55%;right:3%">
+      <div class="cl-line" style="width:32px"></div>
+      <div class="cl-dot"></div>
+      <div class="cl-txt">solenoid wires</div>
+    </div>
+
+    <div class="scene">
+      <div class="box" id="box">
+
+        <!-- FRONT FACE — end face: display + buttons + DC barrel jack -->
+        <div class="face f-front">
+          <div class="panel-rule" style="top:32px"></div>
+          <div class="panel-rule" style="bottom:26px"></div>
+
+          <!-- TM1637 display: 152x48px at (52,40) -->
+          <div class="display-bezel">
+            <div class="display-inner">
+              <span class="dig">0</span><span class="dig">6</span><span class="col">:</span><span class="dig">0</span><span class="dig">0</span>
+            </div>
+          </div>
+          <div class="display-label">TM1637 · TIME DISPLAY</div>
+
+          <!-- Buttons: UP at x=72, SET at x=136, y=120 -->
+          <div class="btn-row">
+            <div class="btn-wrap">
+              <div class="tact-btn"></div>
+              <div class="tact-lbl">UP</div>
+            </div>
+            <div class="btn-wrap">
+              <div class="tact-btn"></div>
+              <div class="tact-lbl">SET</div>
+            </div>
+          </div>
+
+          <!-- DC barrel jack: 48px dia at (184,56) -->
+          <div class="dc-jack-ring"></div>
+          <div class="dc-jack-lbl">DC 9–12V</div>
+
+          <div class="front-brand">Green<em>Guard</em> USA</div>
+          <div class="front-model">CO₂ TRAP TIMER · TIMER-001 · V3</div>
+        </div>
+
+        <!-- BACK FACE — CO2 IN + CO2 OUT barb fittings -->
+        <!-- At 4px/mm: CO2 IN at (16,20)mm=(64,80)px, CO2 OUT at (49,20)mm=(196,80)px -->
+        <div class="face f-back">
+          <!-- CO2 IN fitting — centered at (64,80): gland 44px → left=42, top=58 -->
+          <div class="gland" style="left:42px;top:58px;">
+            <div class="cf-outer"></div>
+            <div class="cf-flange"></div>
+            <div class="cf-hex"></div>
+            <div class="cf-nut"></div>
+            <div class="cf-face"></div>
+            <div class="cf-bore"></div>
+          </div>
+          <div class="port-lbl" style="left:24px;top:106px;">CO₂ IN</div>
+
+          <!-- CO2 OUT fitting — centered at (196,80): left=174, top=58 -->
+          <div class="gland" style="left:174px;top:58px;">
+            <div class="cf-outer"></div>
+            <div class="cf-flange"></div>
+            <div class="cf-hex"></div>
+            <div class="cf-nut"></div>
+            <div class="cf-face"></div>
+            <div class="cf-bore"></div>
+          </div>
+          <div class="port-lbl" style="left:173px;top:106px;">CO₂ OUT</div>
+
+          <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.18);font-family:'Courier New',monospace;white-space:nowrap">REAR PANEL</div>
+        </div>
+
+        <!-- RIGHT FACE — long side, J2 solenoid output terminal -->
+        <!-- J2 at (54mm,25mm)=(216,100)px, slot 48x32px → left=192,top=84 -->
+        <div class="face f-right">
+          <div class="terminal-slot" style="left:192px;top:76px;width:48px;height:32px;"></div>
+          <div class="slot-lbl" style="left:190px;top:111px;">J2 · SOLENOID</div>
+        </div>
+
+        <!-- LEFT FACE — long side, J1+J6 battery terminals (not visible in default view) -->
+        <div class="face f-left">
+          <div class="terminal-slot" style="left:57px;top:76px;width:48px;height:32px;"></div>
+          <div class="slot-lbl" style="left:62px;top:111px;">J1 · PWR</div>
+          <div class="terminal-slot" style="left:231px;top:76px;width:48px;height:32px;"></div>
+          <div class="slot-lbl" style="left:236px;top:111px;">J6 · PWR</div>
+        </div>
+
+        <!-- TOP FACE — lid, 260x480px (65x120mm) -->
+        <div class="face f-top">
+          <div class="lid-screw" style="top:10px;left:10px"></div>
+          <div class="lid-screw" style="top:10px;right:10px"></div>
+          <div class="lid-screw" style="bottom:10px;left:10px"></div>
+          <div class="lid-screw" style="bottom:10px;right:10px"></div>
+          <div class="top-label">GreenGuard USA · CO₂ Trap Timer</div>
+        </div>
+
+        <!-- BOTTOM FACE -->
+        <div class="face f-bottom"></div>
+
+      </div><!-- /box -->
+    </div><!-- /scene -->
+
+    <div class="drag-hint" id="hint">⟲ Drag to rotate</div>
+  </div><!-- /scene-wrap -->
+
+</div><!-- /viewer-section -->
+
+<!-- STATS -->
+<div class="strip">
+  <div class="si"><span class="si-n">18h</span><span class="si-d">Active / day</span></div>
+  <div class="si"><span class="si-n">~50%</span><span class="si-d">CO₂ savings</span></div>
+  <div class="si"><span class="si-n">±5ppm</span><span class="si-d">RTC accuracy</span></div>
+  <div class="si"><span class="si-n">ABS</span><span class="si-d">Enclosure</span></div>
+  <div class="si"><span class="si-n">13mo</span><span class="si-d">Battery life</span></div>
+</div>
+
+<!-- SCHEDULE -->
+<div class="info-section">
+  <span class="sl">Built-in schedule</span>
+  <h2 class="sh2">Runs when mosquitoes are active</h2>
+  <div class="sch-card">
+    <div class="tb"><div class="lbl">ON at</div><div class="val">5:30 AM</div><div class="sub">DS3231M alarm<br>solenoid OPEN</div></div>
+    <div>
+      <div class="timeline">
+        <div class="tl-fill"></div>
+        <div class="tl-l tl-on">ON 5:30</div>
+        <div class="tl-l tl-off">OFF 11:30</div>
+        <div class="ticks">
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+          <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+        </div>
+      </div>
+      <div class="tl-ft"><span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>12 AM</span></div>
+    </div>
+    <div class="tb" style="text-align:right"><div class="lbl">OFF at</div><div class="val">11:30 PM</div><div class="sub">solenoid CLOSE<br>display off, sleep</div></div>
+  </div>
+</div>
+
+<!-- SPEC TABLE -->
+<div class="tbl-section">
+  <span class="sl">Specifications</span>
+  <h2 class="sh2" style="margin-bottom:20px">Full product spec — Rev 3.0 · Hammond 1554CGY</h2>
+  <table>
+    <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Enclosure</td><td>Hammond 1554CGY ABS — 4.7 × 2.6 × 1.6 in (120 × 65 × 40 mm) — snap-fit lid</td></tr>
+      <tr><td>Front panel</td><td>TM1637 4-digit display, UP + SET buttons, DC barrel jack (5.5/2.1 mm) — all on front end face</td></tr>
+      <tr><td>CO₂ IN fitting</td><td>Panel-mount barb fitting, 10 mm hole — rear end face, left port (16 mm from edge) — 6 mm OD tubing</td></tr>
+      <tr><td>CO₂ OUT fitting</td><td>Panel-mount barb fitting, 10 mm hole — rear end face, right port (49 mm from edge) — 6 mm OD tubing</td></tr>
+      <tr><td>Solenoid output</td><td>J2 screw terminal — right long side face — 2-conductor wire to bistable latching solenoid valve</td></tr>
+      <tr><td>Battery input</td><td>J1 + J6 screw terminals — left long side face — 9 V battery × 2 (OR-diode isolated)</td></tr>
+      <tr><td>Display</td><td>TM1637 — 4-digit 7-segment, red 0.36", shows current time (HH:MM)</td></tr>
+      <tr><td>UP button (SW1)</td><td>Front panel — increments hour or minute during time-set mode</td></tr>
+      <tr><td>SET button (SW2)</td><td>Front panel — hold 3 s to enter time-set, hold 2 s to save; auto-exit at 30 s</td></tr>
+      <tr><td>MCU</td><td>ATtiny84A-20PU — 8 KB flash, 8-bit AVR, DIP-14, 12 I/O</td></tr>
+      <tr><td>RTC</td><td>DS3231M — ±5 ppm MEMS, I2C, no coin cell (holds time while any input powered)</td></tr>
+      <tr><td>Solenoid valve</td><td>Bistable latching 12V 1/4" NPT — Viton seals, CO₂ compatible</td></tr>
+      <tr><td>Solenoid driver</td><td>DRV8833 H-bridge — 50 ms directional pulse to open/close; zero hold current</td></tr>
+      <tr><td>LDO</td><td>MCP1703A-3302E — 1.6 µA quiescent, 16 V input max, SOT-23 (U3)</td></tr>
+      <tr><td>Power</td><td>2× 9 V battery (J1 + J6, left side) + DC 9–12 V barrel jack J5 (front panel) — OR-diodes on all three inputs</td></tr>
+      <tr><td>Protection</td><td>D1/D5 battery OR-diodes, D4 barrel jack OR-diode, F1 1 A polyfuse, D2/D3 flyback</td></tr>
+      <tr><td>Battery life</td><td>~13 months (2× 9V alkaline) · ~14 months (1× 9V lithium)</td></tr>
+      <tr><td>Sleep current</td><td>~115 µA (DS3231M timekeeping, MCU + LDO in power-down)</td></tr>
+      <tr><td>PCB size</td><td>2.8 × 2.0 in, FR-4 1.6 mm, HASL — 4× M3 standoffs 10 mm</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>
+  <div style="font-size:.86rem;font-weight:900">Green<span style="color:var(--green)">Guard</span> USA</div>
+  <div style="font-size:.68rem;color:rgba(201,232,209,.26);font-family:'Courier New',monospace">Timer-001 · Rev 3.0 · Hammond 1554CGY · Austin, TX</div>
+  <div style="font-size:.68rem;color:rgba(201,232,209,.26)">100% Pesticide-Free</div>
+</footer>
+
+<script>
+const box   = document.getElementById('box');
+const wrap  = document.getElementById('sceneWrap');
+const hint  = document.getElementById('hint');
+
+let rotX = -12, rotY = 25;
+let dragging = false, startX = 0, startY = 0;
+let dragMoved = false;
+
+function setTransform() {
+  box.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(240px)`;
+}
+
+wrap.addEventListener('mousedown', e => {
+  dragging = true; dragMoved = false;
+  startX = e.clientX; startY = e.clientY;
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+  if (Math.abs(dx) + Math.abs(dy) > 3) {
+    dragMoved = true;
+    hint.style.opacity = '0';
+  }
+  rotY += dx * 0.45;
+  rotX -= dy * 0.45;
+  rotX = Math.max(-85, Math.min(85, rotX));
+  setTransform();
+  startX = e.clientX; startY = e.clientY;
+});
+document.addEventListener('mouseup', () => { dragging = false; });
+
+let lastTx = 0, lastTy = 0;
+wrap.addEventListener('touchstart', e => {
+  dragging = true; dragMoved = false;
+  lastTx = e.touches[0].clientX;
+  lastTy = e.touches[0].clientY;
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  const t = e.touches[0];
+  const dx = t.clientX - lastTx;
+  const dy = t.clientY - lastTy;
+  dragMoved = true;
+  hint.style.opacity = '0';
+  rotY += dx * 0.45;
+  rotX -= dy * 0.45;
+  rotX = Math.max(-85, Math.min(85, rotX));
+  setTransform();
+  lastTx = t.clientX; lastTy = t.clientY;
+}, { passive: false });
+document.addEventListener('touchend', () => { dragging = false; });
+
+let autoSpin = true;
+let spinRaf;
+function spin() {
+  if (!autoSpin) return;
+  rotY += 0.18;
+  setTransform();
+  spinRaf = requestAnimationFrame(spin);
+}
+spin();
+wrap.addEventListener('mousedown', () => { autoSpin = false; cancelAnimationFrame(spinRaf); }, { once: true });
+wrap.addEventListener('touchstart', () => { autoSpin = false; cancelAnimationFrame(spinRaf); }, { once: true });
+</script>
+
+</body>
+</html>

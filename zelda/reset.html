@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zelda - Reset Cache</title>
+<style>
+  body{background:#000;color:#fff;font:14px monospace;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;height:100vh;margin:0;gap:12px;}
+  #s{font-size:16px;}
+</style>
+</head>
+<body>
+<p id="s">Clearing cache...</p>
+<script>
+(async function() {
+  var s = document.getElementById('s');
+  try {
+    if ('serviceWorker' in navigator) {
+      s.textContent = 'Unregistering service worker...';
+      var regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(function(r){ return r.unregister(); }));
+    }
+    if ('caches' in window) {
+      s.textContent = 'Clearing caches...';
+      var keys = await caches.keys();
+      await Promise.all(keys.map(function(k){ return caches.delete(k); }));
+    }
+    s.textContent = 'Done! Loading game...';
+    setTimeout(function(){ window.location.href = 'index.html?nocache=6'; }, 600);
+  } catch(e) {
+    s.textContent = 'Error: ' + e.message + ' — redirecting anyway';
+    setTimeout(function(){ window.location.href = 'index.html?nocache=6'; }, 1500);
+  }
+})();
+</script>
+</body>
+</html>

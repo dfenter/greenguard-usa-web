@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreenGuard CO2 Trap Timer — Rev 3.0 Spec Sheet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #1a1a1a; background: #fff; }
+  @media print {
+    body { font-size: 9pt; }
+    .no-print { display: none; }
+  }
+  .sheet { width: 8.5in; min-height: 11in; margin: 0 auto; padding: 0.55in 0.65in 0.5in; }
+  .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2.5px solid #2e7d32; padding-bottom: 8px; margin-bottom: 18px; }
+  .brand { font-size: 10pt; font-weight: bold; color: #2e7d32; letter-spacing: 0.04em; }
+  .brand-sub { font-size: 8.5pt; color: #555; margin-top: 2px; }
+  .doc-id { text-align: right; font-size: 8pt; color: #666; }
+  h1 { font-size: 17pt; font-weight: bold; color: #1a1a1a; margin-bottom: 3px; }
+  h1 span { color: #2e7d32; }
+  .tagline { font-size: 9.5pt; color: #444; margin-bottom: 18px; }
+  h2 { font-size: 10pt; font-weight: bold; color: #2e7d32; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #c8e6c9; padding-bottom: 3px; margin: 16px 0 8px; }
+  .two-col { display: flex; gap: 28px; }
+  .two-col > div { flex: 1; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 10px; }
+  th { background: #e8f5e9; color: #1b5e20; font-weight: bold; text-align: left; padding: 5px 7px; border: 1px solid #c8e6c9; }
+  td { padding: 4px 7px; border: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .spec-key { font-weight: bold; color: #333; width: 38%; }
+  .callout { background: #fff3e0; border-left: 3px solid #f57c00; padding: 7px 10px; margin: 10px 0; font-size: 8.5pt; color: #4e342e; }
+  .callout.info { background: #e8f5e9; border-left-color: #2e7d32; color: #1b5e20; }
+  .file-list td:first-child { font-family: 'Courier New', monospace; white-space: nowrap; font-size: 8pt; }
+  .footer { margin-top: 24px; border-top: 1px solid #ccc; padding-top: 6px; display: flex; justify-content: space-between; font-size: 7.5pt; color: #888; }
+  p { margin-bottom: 6px; font-size: 9pt; }
+  .no-print { background: #e3f2fd; border: 1px solid #90caf9; padding: 10px 14px; margin: 12px auto; max-width: 8.5in; font-size: 9pt; color: #0d47a1; }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <strong>To generate PDF:</strong> File → Print → Save as PDF. US Letter, margins None, scale 100%.
+</div>
+
+<div class="sheet">
+
+  <div class="header">
+    <div>
+      <div class="brand">GREENGUARD USA</div>
+      <div class="brand-sub">Intelligent Mosquito Control</div>
+    </div>
+    <div class="doc-id">
+      Timer-001 Rev 3.0<br>
+      CO2 Trap Timer — Original<br>
+      2026-06-18
+    </div>
+  </div>
+
+  <h1>CO2 Trap Timer <span>Rev 3.0</span></h1>
+  <p class="tagline">ATtiny84A · DS3231M RTC · TM1637 Display · DRV8833 Bistable Latching Solenoid · 9V Battery + DC Adapter Input · Hammond 1554CGY</p>
+
+  <div class="two-col">
+
+    <div>
+      <h2>Overview</h2>
+      <p>The GreenGuard CO2 Trap Timer Rev 3.0 is a 24-hour programmable timer for GreenGuard CO2 mosquito traps.
+      It drives a bistable latching solenoid with a 50 ms directional pulse at the schedule boundaries,
+      then idles at near-zero coil current between transitions.
+      During the OFF window, the MCU enters power-down sleep (~115 µA total); the display runs during the ON window only.</p>
+      <p>The DS3231M MEMS RTC maintains the schedule without a coin cell.
+      Two tactile buttons allow field time-setting with 30-second auto-exit for field safety.</p>
+
+      <h2>Default Schedule</h2>
+      <table>
+        <tr><th>Event</th><th>Time</th></tr>
+        <tr><td>CO2 ON (bistable valve opens)</td><td>05:30</td></tr>
+        <tr><td>CO2 OFF (bistable valve closes)</td><td>23:30</td></tr>
+        <tr><td>Active window</td><td>18 hours/day</td></tr>
+      </table>
+      <p style="font-size:8.5pt;color:#555;">Schedule is hardcoded in firmware. Field-adjustable only by reflashing.</p>
+
+      <h2>Electrical Specifications</h2>
+      <table>
+        <tr><th class="spec-key">Spec</th><th>Value</th></tr>
+        <tr><td class="spec-key">MCU</td><td>Microchip ATtiny84A-20PU (DIP-14, 8 MHz internal osc, 8 kB flash)</td></tr>
+        <tr><td class="spec-key">RTC</td><td>Maxim DS3231M (MEMS, ±5 ppm, I²C, SO-16, no coin cell required)</td></tr>
+        <tr><td class="spec-key">Display</td><td>TM1637 4-digit 7-segment, 0.36 in, red (ON window only)</td></tr>
+        <tr><td class="spec-key">Solenoid driver</td><td>DRV8833PWP dual H-bridge (TSSOP-16); 50 ms open/close pulse; coil off at idle</td></tr>
+        <tr><td class="spec-key">Solenoid type</td><td>Bistable latching NC/NO — specify valve polarity at order; 9–12 V compatible</td></tr>
+        <tr><td class="spec-key">Power — battery</td><td>9 V battery via J1 and/or J6 screw terminal, through OR-diode (D1/D5)</td></tr>
+        <tr><td class="spec-key">Power — DC adapter</td><td>9–12 V DC, 500 mA min, center-positive (5.5/2.1 mm) via J5 barrel jack; OR-diode D4</td></tr>
+        <tr><td class="spec-key">OR-diode protection</td><td>D1 (J1 path) + D5 (J6 path) + D4 (J5 path) — all three inputs can be connected simultaneously without backfeed</td></tr>
+        <tr><td class="spec-key">Logic supply</td><td>3.3 V (MCP1703A LDO, 250 mA, 1.6 µA quiescent)</td></tr>
+        <tr><td class="spec-key">Sleep current</td><td>~115 µA total (MCU power-down + DS3231M + LDO quiescent)</td></tr>
+        <tr><td class="spec-key">Overcurrent</td><td>F1 1.1 A hold / 2.2 A trip PPTC resettable fuse</td></tr>
+      </table>
+    </div>
+
+    <div>
+      <h2>PCB</h2>
+      <table>
+        <tr><th class="spec-key">Spec</th><th>Value</th></tr>
+        <tr><td class="spec-key">Board size</td><td>70 × 50 mm</td></tr>
+        <tr><td class="spec-key">Layers</td><td>2-layer FR-4, 1.6 mm, HASL lead-free</td></tr>
+        <tr><td class="spec-key">Mounting holes</td><td>4× M3 at (3,3) / (67,3) / (3,47) / (67,47) mm; pitch 64 × 44 mm</td></tr>
+        <tr><td class="spec-key">SMT (top side)</td><td>U2, U3, U4, F1, R1–R3, R5–R7, C2–C4</td></tr>
+        <tr><td class="spec-key">THT (turnkey)</td><td>D1–D5, SW1, SW2, C1, J1, J2, J4, J5, J6, U1_SOCKET (J3 = DNP)</td></tr>
+        <tr><td class="spec-key">THT (consignment)</td><td>U1 — buyer supplies pre-programmed ATtiny84A-20PU</td></tr>
+        <tr><td class="spec-key">U4 thermal pad</td><td>EP on DRV8833 TSSOP-16 must be soldered to B.Cu thermal pad</td></tr>
+      </table>
+
+      <h2>Enclosure</h2>
+      <table>
+        <tr><th class="spec-key">Spec</th><th>Value</th></tr>
+        <tr><td class="spec-key">Enclosure</td><td>Hammond 1554CGY ABS, 120 × 65 × 40 mm</td></tr>
+        <tr><td class="spec-key">Front face</td><td>38×12 mm display window; 2× 6 mm button holes; 12 mm DC barrel jack hole</td></tr>
+        <tr><td class="spec-key">Left side slots</td><td>2× 12×8 mm rectangular slots (J1 and J6 battery screw terminals)</td></tr>
+        <tr><td class="spec-key">Right side slot</td><td>1× 12×8 mm slot (J2 solenoid output screw terminal)</td></tr>
+        <tr><td class="spec-key">Rear face</td><td>2× 10 mm holes (panel-mount barb fittings — CO2 IN / CO2 OUT)</td></tr>
+        <tr><td class="spec-key">Lid</td><td>Snap-fit; no cutouts</td></tr>
+        <tr><td class="spec-key">IP rating</td><td>None — ABS, no gasket; for outdoor use consider silicone bead on lid seam</td></tr>
+      </table>
+
+      <h2>Firmware</h2>
+      <table>
+        <tr><th class="spec-key">Spec</th><th>Value</th></tr>
+        <tr><td class="spec-key">Source file</td><td><code>firmware/co2_timer_v3/co2_timer_v3.ino</code></td></tr>
+        <tr><td class="spec-key">Platform</td><td>Arduino IDE 2.x + ATTinyCore 1.5.x (Spence Konde)</td></tr>
+        <tr><td class="spec-key">Board settings</td><td>ATtiny84(a), 8 MHz internal, BOD 2.7V, default pin mapping</td></tr>
+        <tr><td class="spec-key">Fuses</td><td>LFUSE=0xE2, HFUSE=0xDD, EFUSE=0xFF (set by flash.sh)</td></tr>
+        <tr><td class="spec-key">Flash tool</td><td>USBasp via ZIF socket; see <code>firmware/README.md</code> for wiring</td></tr>
+        <tr><td class="spec-key">Who programs</td><td>Buyer programs in ZIF socket before shipment to CM. J3 ISP header is non-functional in Rev 3.0 (wired to wrong pins — deferred to v4).</td></tr>
+        <tr><td class="spec-key">Libraries</td><td>None — firmware uses bit-bang I2C; no Wire/DS3231/TM1637 dependencies</td></tr>
+      </table>
+
+      <h2>Pin Assignment (ATtiny84A)</h2>
+      <table>
+        <tr><th>Pin / Arduino D#</th><th>Port</th><th>Function</th></tr>
+        <tr><td>D0</td><td>PA0</td><td>DRV8833 AIN1 — solenoid OPEN direction</td></tr>
+        <tr><td>D1</td><td>PA1</td><td>DRV8833 AIN2 — solenoid CLOSE direction</td></tr>
+        <tr><td>D2</td><td>PA2</td><td>DS3231M /INT alarm (PCINT2, active low)</td></tr>
+        <tr><td>D3</td><td>PA3</td><td>DS3231M SDA + TM1637 DIO (shared, bit-bang)</td></tr>
+        <tr><td>D4</td><td>PA4</td><td>DS3231M SCL + TM1637 CLK (shared, bit-bang)</td></tr>
+        <tr><td>D5</td><td>PA5</td><td>Unused</td></tr>
+        <tr><td>D6</td><td>PA6</td><td>UP button (active low, 10K pullup R2)</td></tr>
+        <tr><td>D7</td><td>PA7</td><td>SET button (active low, 10K pullup R3)</td></tr>
+      </table>
+
+      <div class="callout">
+        <strong>Known issue — J3 ISP header:</strong> J3 is wired to PB0/PB1/PB2, not ATtiny84A ISP pins (PA4/PA5/PA6). In-circuit programming is non-functional. All chips must be programmed in a ZIF socket before board installation. Fix deferred to v4.
+      </div>
+    </div>
+  </div>
+
+  <h2>Package Files</h2>
+  <table class="file-list">
+    <tr><th>File</th><th>Purpose</th></tr>
+    <tr><td>co2_timer_v3_gerbers.zip</td><td>Gerber + drill files for PCB fab</td></tr>
+    <tr><td>co2_timer_v3_BOM.csv</td><td>Full BOM with MPN, Digi-Key #, LCSC #, SMT/THT callout</td></tr>
+    <tr><td>co2_timer_v3_CPL_SMT.csv</td><td>SMT pick-and-place (SMT components only)</td></tr>
+    <tr><td>co2_timer_v3_THT_assembly.md</td><td>THT hand-solder instructions for CM</td></tr>
+    <tr><td>co2_timer_v3_assembly_top.pdf</td><td>Top-side assembly drawing</td></tr>
+    <tr><td>co2_timer_v3_assembly_bottom.pdf</td><td>Bottom-side assembly drawing</td></tr>
+    <tr><td>CO2 Timer Enclosure Drilling.md</td><td>Enclosure drilling guide — Hammond 1554CGY</td></tr>
+    <tr><td>co2_timer_v3_front_drill_template.svg</td><td>1:1 printable front face drill template</td></tr>
+    <tr><td>FABRICATION_SPEC.md</td><td>PCB stackup, finish, IPC class, assembly notes</td></tr>
+    <tr><td>TEST_PROCEDURE.md</td><td>Board test procedure + factory functional test</td></tr>
+    <tr><td>co2_timer_v3.kicad_sch</td><td>KiCad schematic source</td></tr>
+    <tr><td>co2 timer v3.kicad_pcb</td><td>KiCad PCB layout source</td></tr>
+    <tr><td>firmware/co2_timer_v3/co2_timer_v3.ino</td><td>Arduino firmware source</td></tr>
+    <tr><td>firmware/co2_timer_v3/flash.sh</td><td>avrdude flash script — sets fuses + programs chip via ZIF socket</td></tr>
+    <tr><td>firmware/README.md</td><td>ZIF socket wiring, build instructions, pin assignments, behavior</td></tr>
+    <tr><td>GreenGuard_CO2_Timer_v3_SpecSheet_source.html</td><td>This document — print to PDF for customer distribution</td></tr>
+  </table>
+
+  <div class="callout info" style="margin-top:14px;">
+    <strong>Power input:</strong> J1, J5, and J6 may be connected simultaneously — OR-diodes D1, D4, D5 prevent backfeed. J5 accepts 9–12 V DC center-positive (120 V AC wall adapter); J1/J6 accept 9 V battery. Fuse F1 protects against overcurrent on all paths.
+  </div>
+
+  <div class="footer">
+    <span>GreenGuard USA · admin@greenguard-usa.com · greenguard-usa.com</span>
+    <span>Timer-001 Rev 3.0 · 2026-06-18 · Confidential — not for distribution</span>
+  </div>
+
+</div>
+</body>
+</html>

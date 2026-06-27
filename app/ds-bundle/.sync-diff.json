@@ -1,0 +1,29 @@
+{
+  "styleChanged": false,
+  "anchorUsed": true,
+  "anchorReason": "ok",
+  "keyedBy": "sourceKeys",
+  "unchanged": [
+    "AdminChat",
+    "AppointmentDetailDock",
+    "CustomerChat",
+    "CustomerMap",
+    "CustomerPanel",
+    "PortalLayout",
+    "SignaturePad",
+    "StopCard",
+    "TankCalendar"
+  ],
+  "changed": [],
+  "added": [],
+  "removed": [],
+  "renderChurned": [],
+  "upload": {
+    "any": false,
+    "components": [],
+    "deletePaths": [],
+    "bundle": false,
+    "styling": false,
+    "aux": false
+  }
+}

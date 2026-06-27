@@ -26,7 +26,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['"Nunito Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       maxWidth: {
         container: '1100px',

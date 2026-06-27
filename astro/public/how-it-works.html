@@ -1,0 +1,629 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>How GreenGuard Traps Work</title>
+<meta name="description" content="The geometry, airflow and physics behind every GreenGuard mosquito trap — Monolith, Aria, Halo and the concept line — in plain language with animated cross-sections."/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,system-ui,"Segoe UI",sans-serif;background:#070e08;color:#e6f3e9;
+    line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:40px 22px 90px}
+  h1{font-family:Georgia,serif;font-size:clamp(28px,6vw,46px);color:#fff;letter-spacing:-.01em;line-height:1.1}
+  .intro{color:#9bb8a4;font-size:clamp(15px,2.6vw,18px);max-width:680px;margin:14px 0 8px}
+  .intro b{color:#c6a96b}
+  h2{font-family:Georgia,serif;font-size:clamp(22px,4vw,30px);color:#fff}
+  .ttag{display:inline-block;margin-left:0;color:#c6a96b;font-size:13px;letter-spacing:.08em;
+    text-transform:uppercase}
+  /* legend */
+  .legend{display:flex;flex-wrap:wrap;gap:14px 22px;margin:26px 0 8px;padding:14px 16px;
+    background:#0d160f;border:1px solid #1c2a20;border-radius:14px}
+  .legend span{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#c8d8cc}
+  .swatch{width:22px;height:8px;border-radius:4px}
+  /* principle hero */
+  .principle{margin:30px 0 10px;padding:22px;background:linear-gradient(160deg,#0e1a12,#0a130c);
+    border:1px solid #20312500;border-radius:18px;border-color:#1c2a20}
+  .principle h2{margin-bottom:6px}
+  .principle p{color:#a9c2b1;max-width:600px}
+  .principle .figwrap{margin-top:8px}
+  /* trap sections */
+  section.trap{margin:54px 0;padding-top:30px;border-top:1px solid #16241a}
+  .thead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .lede{color:#a9c2b1;max-width:640px;margin:10px 0 4px;font-size:15.5px}
+  .grid{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:30px;align-items:start;margin-top:18px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .figwrap{background:#0b130d;border:1px solid #16241a;border-radius:16px;padding:10px}
+  .diagram{width:100%;height:auto;display:block}
+  .lbl{font:600 11px/1.2 -apple-system,system-ui,sans-serif;fill:#c8d8cc}
+  .mlbl{font:700 13px sans-serif}
+  .spin{transform-box:fill-box;transform-origin:center;animation:spin 1.6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .pulse{animation:pulse 2.2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.18}50%{opacity:.6}}
+  /* steps */
+  ol.steps{list-style:none;display:flex;flex-direction:column;gap:14px}
+  ol.steps li{display:flex;gap:12px}
+  .num{flex:none;width:26px;height:26px;border-radius:50%;background:#c6a96b;color:#0a130c;
+    font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+  ol.steps b{color:#fff;font-size:15.5px}
+  ol.steps p{color:#9bb8a4;font-size:14px;margin-top:2px}
+  /* specs */
+  .specs{margin-top:20px;border:1px solid #16241a;border-radius:12px;overflow:hidden}
+  .srow{display:flex;justify-content:space-between;gap:14px;padding:9px 14px;font-size:13.5px;
+    border-bottom:1px solid #11201580}
+  .srow:last-child{border-bottom:none}
+  .sk{color:#7fa68c}.sv{color:#dbe9df;text-align:right;font-weight:600}
+  /* concepts */
+  .concepts-intro{margin-top:64px;padding-top:30px;border-top:2px solid #1c2a20}
+  .cnav{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .cnav a{font-size:13px;color:#c8d8cc;text-decoration:none;background:#0d160f;border:1px solid #1c2a20;
+    border-radius:20px;padding:6px 13px;transition:.15s}
+  .cnav a:hover{background:#16241a;color:#c6a96b;border-color:#c6a96b}
+  .cparts{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .cparts span{font-size:12.5px;color:#bcd0c2;background:#0d160f;border:1px solid #1c2a20;
+    border-radius:8px;padding:5px 10px}
+  /* nav back */
+  .topnav{display:flex;gap:14px;margin-bottom:24px;font-size:14px}
+  .topnav a{color:#7fa68c;text-decoration:none}.topnav a:hover{color:#c6a96b}
+  footer{margin-top:70px;color:#5f7a68;font-size:13px;text-align:center}
+</style></head><body>
+<div class="wrap">
+  <nav class="topnav"><a href="/">← greenguard-usa.com</a><a href="/prototypes.html">3D prototypes →</a></nav>
+  <h1>How GreenGuard traps actually work</h1>
+  <p class="intro">Every GreenGuard trap runs on one idea: <b>counterflow</b>. We put out a
+  lure that smells exactly like prey — CO₂, heat, sometimes scent — and we run a
+  capture airflow that <b>opposes</b> the path a mosquito takes toward that lure. The bug
+  flies upstream toward the &ldquo;breath,&rdquo; crosses into a faster airstream it can&rsquo;t fight,
+  and is pulled into the trap. Below: the principle, then each trap in cross-section.</p>
+
+  <div class="legend">
+    <span><i class="swatch" style="background:#c6a96b"></i>CO₂ + heat lure</span>
+    <span><i class="swatch" style="background:#6fb6ff"></i>capture airflow (fan)</span>
+    <span><i class="swatch" style="background:#ff6b6b"></i>mosquito flight path</span>
+    <span><i class="swatch" style="background:#5fd87a"></i>catch / kill zone</span>
+    <span><i class="swatch" style="background:#aeb9c4"></i>fan &amp; metal parts</span>
+  </div>
+
+  <div class="principle">
+    <h2>The counterflow principle</h2>
+    <p>A mosquito can fly maybe 1–4 mph. If the lure plume drifts one way and the
+    intake pulls air the other way <em>faster than she can fly</em>, then the moment she
+    reaches the source she&rsquo;s already in the intake. That&rsquo;s the whole trick — and it&rsquo;s
+    why these beat sticky traps and zappers, which just wait to be bumped into.</p>
+    <div class="figwrap" style="max-width:480px;margin:14px auto 0">
+<svg viewBox="0 0 460 380" class="diagram" role="img" aria-label="Counterflow principle">
+  <!-- ground -->
+  <rect x="0" y="350" width="460" height="30" fill="#0d160f"/>
+  <!-- the trap (simple box) -->
+  <rect x="170" y="150" width="120" height="200" rx="10" fill="#1c2a20" stroke="#5d7363" stroke-width="2"/>
+  <!-- intake mouth -->
+  <rect x="185" y="150" width="90" height="26" rx="4" fill="#0c130d" stroke="#5d7363"/>
+  <text x="230" y="168" class="lbl" text-anchor="middle">intake</text>
+  <!-- fan -->
+  <g transform="translate(230,210)">
+    <circle r="26" fill="none" stroke="#aeb9c4" stroke-width="2"/>
+    <g class="spin"><path d="M0,0 L0,-22 A22,22 0 0,1 19,-11 Z" fill="#aeb9c4" opacity=".8"/>
+    <path d="M0,0 L19,11 A22,22 0 0,1 -19,11 Z" fill="#aeb9c4" opacity=".55"/>
+    <path d="M0,0 L-19,-11 A22,22 0 0,1 0,-22 Z" fill="#aeb9c4" opacity=".7"/></g>
+    <circle r="5" fill="#aeb9c4"/>
+  </g>
+  <text x="270" y="214" class="lbl">fan</text>
+  <!-- catch -->
+  <rect x="196" y="300" width="68" height="44" rx="5" fill="#5fd87a" opacity=".22" stroke="#5fd87a"/>
+  <text x="230" y="327" class="lbl" fill="#5fd87a" text-anchor="middle">catch</text>
+
+  <!-- CO2 plume rising + spreading out the top (lure) -->
+  <path id="pp1" d="M230,150 C230,90 200,70 150,40" fill="none" stroke="#c6a96b" stroke-width="2.4" stroke-dasharray="5 9" opacity="0.55" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="3.0s" repeatCount="indefinite"/></path>
+  <path id="pp2" d="M230,150 C230,90 260,70 310,40" fill="none" stroke="#c6a96b" stroke-width="2.4" stroke-dasharray="5 9" opacity="0.55" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="3.0s" repeatCount="indefinite"/></path>
+  <circle r="4.2" fill="#c6a96b"><animateMotion dur="3.0s" begin="0s" repeatCount="indefinite"><mpath href="#pp1"/></animateMotion></circle><circle r="4.2" fill="#c6a96b"><animateMotion dur="3.0s" begin="1.2s" repeatCount="indefinite"><mpath href="#pp2"/></animateMotion></circle>
+  <text x="120" y="34" class="lbl" fill="#c6a96b">CO₂ + heat lure ↑ drifts out</text>
+
+  <!-- mosquito flying IN along the CO2 gradient, then yanked DOWN -->
+  <path id="mp1" d="M70,80 C120,70 170,120 210,150 C224,168 226,180 230,196" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.85" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.2s" repeatCount="indefinite"/></path>
+  <circle r="3.6" fill="#ff6b6b"><animateMotion dur="2.2s" begin="0s" repeatCount="indefinite"><mpath href="#mp1"/></animateMotion></circle>
+  <text x="40" y="92" class="lbl" fill="#ff6b6b">mosquito follows CO₂ upstream…</text>
+
+  <!-- capture airflow: fast DOWN intake -->
+  <path id="ap1" d="M210,176 L222,300" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.1s" repeatCount="indefinite"/></path>
+  <path id="ap2" d="M250,176 L238,300" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.1s" repeatCount="indefinite"/></path>
+  <circle r="3" fill="#6fb6ff"><animateMotion dur="1.1s" begin="0s" repeatCount="indefinite"><mpath href="#ap1"/></animateMotion></circle><circle r="3" fill="#6fb6ff"><animateMotion dur="1.1s" begin=".5s" repeatCount="indefinite"><mpath href="#ap2"/></animateMotion></circle>
+  <text x="300" y="270" class="lbl" fill="#6fb6ff">…crosses the fast<tspan x="300" dy="14">downdraft &amp; is</tspan><tspan x="300" dy="14">pulled in</tspan></text>
+</svg></div>
+  </div>
+
+  
+<section class="trap" id="monolith">
+  <header class="thead"><h2>Monolith family</h2><span class="ttag">Slat downdraft counterflow</span></header>
+  <p class="lede">The flagship. A tall column with a vented slat band around its waist, a powerful fan inside, and a catch tube at the bottom. Monolith, Mini, Black Fly and Titan are all the same machine at different scale.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 480" class="diagram" role="img" aria-label="Monolith cross-section">
+  <rect x="0" y="452" width="420" height="28" fill="#0d160f"/>
+  <!-- hat / roof -->
+  <path d="M120,70 L300,70 L320,96 L100,96 Z" fill="#26382b" stroke="#5d7363" stroke-width="2"/>
+  <!-- CO2 ring emitter under the eave -->
+  <rect x="104" y="96" width="212" height="10" fill="#c6a96b" opacity=".5"/>
+  <text x="210" y="62" class="lbl" fill="#c6a96b" text-anchor="middle">CO₂ + heat curtain emitter (roof ring)</text>
+  <!-- body -->
+  <rect x="120" y="106" width="180" height="300" rx="6" fill="#1c2a20" stroke="#5d7363" stroke-width="2"/>
+  <!-- slat intake band -->
+  <g stroke="#aeb9c4" stroke-width="2" opacity=".7">
+    <line x1="124" y1="150" x2="172" y2="144"/><line x1="124" y1="162" x2="172" y2="156"/><line x1="124" y1="174" x2="172" y2="168"/><line x1="124" y1="186" x2="172" y2="180"/><line x1="124" y1="198" x2="172" y2="192"/><line x1="124" y1="210" x2="172" y2="204"/><line x1="124" y1="222" x2="172" y2="216"/><line x1="124" y1="234" x2="172" y2="228"/><line x1="124" y1="246" x2="172" y2="240"/>
+    <line x1="248" y1="144" x2="296" y2="150"/><line x1="248" y1="156" x2="296" y2="162"/><line x1="248" y1="168" x2="296" y2="174"/><line x1="248" y1="180" x2="296" y2="186"/><line x1="248" y1="192" x2="296" y2="198"/><line x1="248" y1="204" x2="296" y2="210"/><line x1="248" y1="216" x2="296" y2="222"/><line x1="248" y1="228" x2="296" y2="234"/><line x1="248" y1="240" x2="296" y2="246"/>
+  </g>
+  <text x="60" y="200" class="lbl" fill="#aeb9c4">8&nbsp;mm slats<tspan x="60" dy="14">~3.4&nbsp;mph</tspan></text>
+  <!-- fan -->
+  <g transform="translate(210,280)">
+    <circle r="34" fill="none" stroke="#aeb9c4" stroke-width="2.5"/>
+    <g class="spin"><path d="M0,0 L0,-30 A30,30 0 0,1 26,-15 Z" fill="#aeb9c4" opacity=".8"/>
+    <path d="M0,0 L26,15 A30,30 0 0,1 -26,15 Z" fill="#aeb9c4" opacity=".55"/>
+    <path d="M0,0 L-26,-15 A30,30 0 0,1 0,-30 Z" fill="#aeb9c4" opacity=".7"/></g>
+    <circle r="6" fill="#aeb9c4"/>
+  </g>
+  <text x="252" y="284" class="lbl" fill="#aeb9c4">Fantech FG10</text>
+  <!-- catch tube -->
+  <rect x="178" y="330" width="64" height="118" rx="4" fill="#5fd87a" opacity=".18" stroke="#5fd87a" stroke-width="1.6"/>
+  <text x="210" y="396" class="lbl" fill="#5fd87a" text-anchor="middle">10&nbsp;in<tspan x="210" dy="14">catch tube</tspan></text>
+
+  <!-- CO2 curtain falls straight down outside the slats (heavier-than-air) -->
+  <path id="mco1" d="M118,108 C108,170 110,260 116,360" fill="none" stroke="#c6a96b" stroke-width="2.4" stroke-dasharray="5 10" opacity="0.55" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="15" to="0" dur="3.4s" repeatCount="indefinite"/></path>
+  <path id="mco2" d="M302,108 C312,170 310,260 304,360" fill="none" stroke="#c6a96b" stroke-width="2.4" stroke-dasharray="5 10" opacity="0.55" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="15" to="0" dur="3.4s" repeatCount="indefinite"/></path>
+  <circle r="4.2" fill="#c6a96b"><animateMotion dur="3.4s" begin="0s" repeatCount="indefinite"><mpath href="#mco1"/></animateMotion></circle><circle r="4.2" fill="#c6a96b"><animateMotion dur="3.4s" begin="1.5s" repeatCount="indefinite"><mpath href="#mco2"/></animateMotion></circle>
+
+  <!-- mosquitoes drawn to slat band -->
+  <path id="mmo1" d="M40,300 C90,270 110,210 122,196" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.4s" repeatCount="indefinite"/></path>
+  <path id="mmo2" d="M380,150 C320,150 300,185 298,196" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.6s" repeatCount="indefinite"/></path>
+  <circle r="3.6" fill="#ff6b6b"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#mmo1"/></animateMotion></circle><circle r="3.6" fill="#ff6b6b"><animateMotion dur="2.6s" begin="1s" repeatCount="indefinite"><mpath href="#mmo2"/></animateMotion></circle>
+
+  <!-- downdraft into catch tube -->
+  <path id="map1" d="M195,210 L200,330" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.0s" repeatCount="indefinite"/></path>
+  <path id="map2" d="M225,210 L222,330" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.0s" repeatCount="indefinite"/></path>
+  <circle r="2.8" fill="#6fb6ff"><animateMotion dur="1.0s" begin="0s" repeatCount="indefinite"><mpath href="#map1"/></animateMotion></circle><circle r="2.8" fill="#6fb6ff"><animateMotion dur="1.0s" begin=".5s" repeatCount="indefinite"><mpath href="#map2"/></animateMotion></circle>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>CO₂ curtain falls</b><p>A ring emitter under the roof eave releases CO₂ + heat. CO₂ is ~1.5× denser than air, so the cool lure sinks in a curtain down the outside of the slats — exactly mimicking the plume a sleeping human gives off.</p></div></li><li><span class="num">2</span><div><b>Mosquitoes home in</b><p>Female mosquitoes track the CO₂ gradient upwind toward the source. The curtain leads them straight onto the slat band.</p></div></li><li><span class="num">3</span><div><b>Fan pulls them through</b><p>The Fantech FG10 draws air inward through the 8 mm slats at ~3.4 mph — faster than a mosquito can fly against. Once they cross the slats they're in the airstream and cannot escape.</p></div></li><li><span class="num">4</span><div><b>Caught &amp; dried</b><p>Air + bugs drop into the 10 in catch tube. The mosquitoes dehydrate and die; the air exhausts out the bottom.</p></div></li></ol>
+      <div class="specs"><div class="srow"><span class="sk">Monolith</span><span class="sv">24×24 in · 54 in · FG10 · 8 mm slat</span></div><div class="srow"><span class="sk">Mini</span><span class="sv">19×19 in · 46 in · patio scale</span></div><div class="srow"><span class="sk">Black Fly</span><span class="sv">FG12 + FG10 ~1000 CFM · 10 mm slat ~10 mph · + octenol</span></div><div class="srow"><span class="sk">Titan</span><span class="sv">30×30 in · 72 in · ~2700 CFM · 4-sided intake · ~1 acre</span></div></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="aria">
+  <header class="thead"><h2>Aria</h2><span class="ttag">Hidden-tank, face-down counterflow</span></header>
+  <p class="lede">The luxury line. Everything — fan, plenum, catch cup and the 20 lb CO₂ cylinder — hides inside a decorative planter, lantern or urn. The engine faces DOWN: it pulls air down a central throat while the CO₂ curtain projects out the top louvers.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 480" class="diagram" role="img" aria-label="Aria cross-section">
+  <rect x="0" y="452" width="420" height="28" fill="#0d160f"/>
+  <!-- decorative planter body (tapered) -->
+  <path d="M150,150 L270,150 L286,440 L134,440 Z" fill="#1c2a20" stroke="#5d7363" stroke-width="2"/>
+  <text x="300" y="350" class="lbl" text-anchor="start">decorative<tspan x="300" dy="14">body hides</tspan><tspan x="300" dy="14">everything</tspan></text>
+  <!-- engine cartridge (annular plenum) at the top -->
+  <rect x="160" y="150" width="100" height="92" rx="6" fill="#26382b" stroke="#5d7363" stroke-width="1.6"/>
+  <!-- gold louver ring (CO2 exits here) -->
+  <rect x="160" y="150" width="100" height="12" fill="#c6a96b" opacity=".55"/>
+  <text x="210" y="138" class="lbl" fill="#c6a96b" text-anchor="middle">CO₂ curtain out top louvers</text>
+  <!-- central throat -->
+  <rect x="196" y="162" width="28" height="80" fill="#0c130d" stroke="#aeb9c4" stroke-width="1.4"/>
+  <text x="232" y="186" class="lbl" fill="#aeb9c4">throat</text>
+  <!-- fan at throat top -->
+  <g transform="translate(210,172)">
+    <g class="spin"><rect x="-22" y="-3" width="44" height="6" rx="3" fill="#aeb9c4" opacity=".8"/>
+    <rect x="-3" y="-22" width="6" height="44" rx="3" fill="#aeb9c4" opacity=".6"/></g>
+    <circle r="5" fill="#aeb9c4"/>
+  </g>
+  <!-- catch cup below fan -->
+  <path d="M186,250 L234,250 L228,300 L192,300 Z" fill="#5fd87a" opacity=".2" stroke="#5fd87a" stroke-width="1.6"/>
+  <text x="252" y="278" class="lbl" fill="#5fd87a">150&nbsp;mm<tspan x="252" dy="14">catch cup</tspan></text>
+  <!-- hidden CO2 tank in base -->
+  <rect x="178" y="320" width="64" height="110" rx="10" fill="#2a2e33" stroke="#5d7363" stroke-width="1.4"/>
+  <text x="210" y="380" class="lbl" text-anchor="middle">20&nbsp;lb CO₂<tspan x="210" dy="14">cylinder</tspan><tspan x="210" dy="14">(hidden)</tspan></text>
+  <!-- base vents -->
+  <g stroke="#6fb6ff" stroke-width="2" opacity=".5">
+    <line x1="150" y1="430" x2="138" y2="438"/><line x1="270" y1="430" x2="282" y2="438"/>
+  </g>
+  <text x="210" y="462" class="lbl" fill="#6fb6ff" text-anchor="middle">70% bulk air exhausts at base vents</text>
+
+  <!-- CO2 curtain projects up &amp; outward -->
+  <path id="aco1" d="M168,150 C150,110 130,96 96,80" fill="none" stroke="#c6a96b" stroke-width="2.4" stroke-dasharray="5 9" opacity="0.55" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="3.2s" repeatCount="indefinite"/></path>
+  <path id="aco2" d="M252,150 C270,110 290,96 324,80" fill="none" stroke="#c6a96b" stroke-width="2.4" stroke-dasharray="5 9" opacity="0.55" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="3.2s" repeatCount="indefinite"/></path>
+  <circle r="4.2" fill="#c6a96b"><animateMotion dur="3.2s" begin="0s" repeatCount="indefinite"><mpath href="#aco1"/></animateMotion></circle><circle r="4.2" fill="#c6a96b"><animateMotion dur="3.2s" begin="1.4s" repeatCount="indefinite"><mpath href="#aco2"/></animateMotion></circle>
+
+  <!-- mosquito follows curtain, pulled DOWN the throat -->
+  <path id="amo1" d="M70,110 C140,110 190,140 205,162 L208,246" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.6s" repeatCount="indefinite"/></path>
+  <circle r="3.6" fill="#ff6b6b"><animateMotion dur="2.6s" begin="0s" repeatCount="indefinite"><mpath href="#amo1"/></animateMotion></circle>
+  <text x="40" y="120" class="lbl" fill="#ff6b6b">bug rides the curtain in</text>
+
+  <!-- air pulled down throat -->
+  <path id="aap1" d="M204,180 L206,250" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.0s" repeatCount="indefinite"/></path>
+  <circle r="2.8" fill="#6fb6ff"><animateMotion dur="1.0s" begin="0s" repeatCount="indefinite"><mpath href="#aap1"/></animateMotion></circle>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>CO₂ out the top louvers</b><p>A sealed annular plenum carries CO₂ + scent up and out a ring of louvers at the rim, forming a curtain that drifts outward.</p></div></li><li><span class="num">2</span><div><b>Mosquitoes ride the curtain</b><p>Bugs follow the curtain back toward the rim, right over the open central throat.</p></div></li><li><span class="num">3</span><div><b>Fan sucks them straight down</b><p>A 92 mm axial fan at the top of the throat pulls the bugs down the center, against the rising curtain — true counterflow.</p></div></li><li><span class="num">4</span><div><b>Split exhaust</b><p>A baffle splits the fan's output: ~30% feeds the CO₂ curtain back up top, ~70% exhausts quietly out base vents. Bugs land in a 150 mm clear catch cup just under the fan.</p></div></li></ol>
+      <div class="specs"><div class="srow"><span class="sk">Engine</span><span class="sv">92 mm axial fan · face-down throat</span></div><div class="srow"><span class="sk">Plenum</span><span class="sv">Annular sealed · CO₂ + scent</span></div><div class="srow"><span class="sk">Catch</span><span class="sv">150 mm clear cup below fan</span></div><div class="srow"><span class="sk">Tank</span><span class="sv">20 lb CO₂ concealed in the base</span></div></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="halo">
+  <header class="thead"><h2>Halo Garden</h2><span class="ttag">Face-up counterflow</span></header>
+  <p class="lede">A garden sculpture (lotus, agave, cairn, birdbath…) that hides the tank in its core. The engine faces UP: an annular grille on top, fan just beneath, catch cup below that. It works like a reverse chimney.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 480" class="diagram" role="img" aria-label="Halo cross-section">
+  <rect x="0" y="452" width="420" height="28" fill="#0d160f"/>
+  <!-- garden-sculpture body -->
+  <rect x="150" y="200" width="120" height="240" rx="8" fill="#1c2a20" stroke="#5d7363" stroke-width="2"/>
+  <text x="296" y="330" class="lbl">sculptural<tspan x="296" dy="14">body</tspan></text>
+  <!-- annular intake grille at TOP, facing up -->
+  <ellipse cx="210" cy="200" rx="64" ry="16" fill="#26382b" stroke="#5d7363" stroke-width="1.6"/>
+  <g stroke="#aeb9c4" stroke-width="1.4" opacity=".7">
+    <line x1="268" y1="200" x2="230" y2="200"/><line x1="260" y1="206" x2="227" y2="202"/><line x1="241" y1="210" x2="220" y2="204"/><line x1="214" y1="212" x2="211" y2="204"/><line x1="186" y1="211" x2="202" y2="204"/><line x1="164" y1="207" x2="194" y2="202"/><line x1="153" y1="201" x2="191" y2="200"/><line x1="156" y1="196" x2="192" y2="199"/><line x1="173" y1="191" x2="197" y2="197"/><line x1="198" y1="188" x2="206" y2="196"/><line x1="226" y1="188" x2="215" y2="196"/><line x1="251" y1="191" x2="224" y2="197"/><line x1="265" y1="197" x2="229" y2="199"/>
+  </g>
+  <text x="210" y="178" class="lbl" fill="#aeb9c4" text-anchor="middle">annular grille (faces up) · 4.2–5.2&quot; radius</text>
+  <!-- fan just below grille -->
+  <g transform="translate(210,228)">
+    <g class="spin"><rect x="-30" y="-3" width="60" height="6" rx="3" fill="#aeb9c4" opacity=".8"/>
+    <rect x="-3" y="-30" width="6" height="60" rx="3" fill="#aeb9c4" opacity=".55"/></g>
+    <circle r="6" fill="#aeb9c4"/>
+  </g>
+  <text x="280" y="232" class="lbl" fill="#aeb9c4">92&nbsp;mm fan</text>
+  <!-- catch cup below fan -->
+  <rect x="184" y="252" width="52" height="60" rx="5" fill="#5fd87a" opacity=".2" stroke="#5fd87a" stroke-width="1.6"/>
+  <text x="246" y="286" class="lbl" fill="#5fd87a">catch cup</text>
+  <!-- CO2 tank in core -->
+  <rect x="190" y="320" width="40" height="112" rx="8" fill="#2a2e33" stroke="#5d7363" stroke-width="1.4"/>
+  <text x="210" y="382" class="lbl" text-anchor="middle">20&nbsp;lb<tspan x="210" dy="13">CO₂ core</tspan></text>
+
+  <!-- CO2 + heat rises ABOVE the trap from the grille -->
+  <path id="hco1" d="M196,196 C190,140 180,110 168,70" fill="none" stroke="#c6a96b" stroke-width="2.4" stroke-dasharray="5 10" opacity="0.55" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="15" to="0" dur="3.4s" repeatCount="indefinite"/></path>
+  <path id="hco2" d="M224,196 C230,140 240,110 252,70" fill="none" stroke="#c6a96b" stroke-width="2.4" stroke-dasharray="5 10" opacity="0.55" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="15" to="0" dur="3.4s" repeatCount="indefinite"/></path>
+  <circle r="4.2" fill="#c6a96b"><animateMotion dur="3.4s" begin="0s" repeatCount="indefinite"><mpath href="#hco1"/></animateMotion></circle><circle r="4.2" fill="#c6a96b"><animateMotion dur="3.4s" begin="1.6s" repeatCount="indefinite"><mpath href="#hco2"/></animateMotion></circle>
+  <text x="210" y="56" class="lbl" fill="#c6a96b" text-anchor="middle">CO₂ + heat plume rises above the trap</text>
+
+  <!-- mosquito descends onto plume, sucked DOWN through grille -->
+  <path id="hmo1" d="M120,80 C150,120 180,150 200,196 L206,250" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.6s" repeatCount="indefinite"/></path>
+  <circle r="3.6" fill="#ff6b6b"><animateMotion dur="2.6s" begin="0s" repeatCount="indefinite"><mpath href="#hmo1"/></animateMotion></circle>
+  <text x="60" y="86" class="lbl" fill="#ff6b6b">mosquito descends…</text>
+
+  <!-- downdraft through grille -->
+  <path id="hap1" d="M200,210 L204,252" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.0s" repeatCount="indefinite"/></path>
+  <path id="hap2" d="M220,210 L216,252" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.0s" repeatCount="indefinite"/></path>
+  <circle r="2.8" fill="#6fb6ff"><animateMotion dur="1.0s" begin="0s" repeatCount="indefinite"><mpath href="#hap1"/></animateMotion></circle><circle r="2.8" fill="#6fb6ff"><animateMotion dur="1.0s" begin=".5s" repeatCount="indefinite"><mpath href="#hap2"/></animateMotion></circle>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>Plume rises from the grille</b><p>CO₂ + heat vents up through the center of the annular grille and rises in a warm plume above the trap.</p></div></li><li><span class="num">2</span><div><b>Mosquitoes descend onto it</b><p>Bugs tracking the plume come DOWN toward the grille from above — the opposite of Halo's downward-facing cousins.</p></div></li><li><span class="num">3</span><div><b>Sucked down through the grille</b><p>The 92 mm fan just below the grille pulls air down through the 4.2–5.2 in annular slot. Descending mosquitoes get drawn straight through.</p></div></li><li><span class="num">4</span><div><b>Collected below</b><p>They drop into the catch cup beneath the fan; the 20 lb CO₂ cylinder sits hidden in the core column below.</p></div></li></ol>
+      <div class="specs"><div class="srow"><span class="sk">Engine</span><span class="sv">Face-up counterflow · 92 mm fan</span></div><div class="srow"><span class="sk">Intake</span><span class="sv">Annular grille · 4.2–5.2 in radius</span></div><div class="srow"><span class="sk">Catch</span><span class="sv">Cup directly below the fan</span></div><div class="srow"><span class="sk">Tank</span><span class="sv">20 lb CO₂ in the core</span></div></div>
+    </div>
+  </div>
+</section>
+
+  <div class="concepts-intro">
+    <header class="thead"><h2>The concept line</h2><span class="ttag">11 alternative mechanisms</span></header>
+    <p class="lede">Beyond the three production families, we prototype traps that catch
+    mosquitoes by completely different physics — no two the same. Each hides its CO₂ tank
+    inside garden decor. Here's how each one actually moves:</p>
+    <div class="cnav"><a href="#eave">Eave</a><a href="#spire">Spire</a><a href="#reed">Reed</a><a href="#bloom">Bloom</a><a href="#cistern">Cistern</a><a href="#lumen">Lumen</a><a href="#orb">Orb</a><a href="#cairn">Cairn</a><a href="#morel">Morel</a><a href="#marker">Marker</a><a href="#veil">Veil</a></div>
+  </div>
+  
+<section class="trap" id="eave">
+  <header class="thead"><h2>Eave</h2><span class="ttag">Shade-harborage updraft</span></header>
+  <p class="lede">Mosquitoes spend the daytime hiding in cool, shaded shelter. Eave fakes the perfect one — an overhanging ledge with a dark cavity beneath — then vacuums the resters straight up into a bag.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Eave cross-section">
+  <rect x="0" y="426" width="420" height="34" fill="#0d160f"/>
+  <!-- overhang ledge / lid -->
+  <rect x="112" y="120" width="196" height="16" rx="3" fill="#26382b" stroke="#5d7363" stroke-width="1.8"/>
+  <text x="210" y="112" class="lbl" fill="#5d7363" text-anchor="middle">shaded overhang ledge</text>
+  <!-- box body -->
+  <rect x="126" y="136" width="168" height="130" rx="4" fill="#1c2a20" stroke="#5d7363" stroke-width="2"/>
+  <!-- mesh trap bag inside box -->
+  <path d="M156,150 L264,150 L246,228 Q210,244 174,228 Z" fill="#5fd87a" opacity=".18" stroke="#5fd87a" stroke-width="1.6"/>
+  <g><line x1="160" y1="156" x2="260" y2="174" stroke="#5fd87a" stroke-width=".7" opacity=".4"/><line x1="160" y1="167" x2="260" y2="185" stroke="#5fd87a" stroke-width=".7" opacity=".4"/><line x1="160" y1="178" x2="260" y2="196" stroke="#5fd87a" stroke-width=".7" opacity=".4"/><line x1="160" y1="189" x2="260" y2="207" stroke="#5fd87a" stroke-width=".7" opacity=".4"/><line x1="160" y1="200" x2="260" y2="218" stroke="#5fd87a" stroke-width=".7" opacity=".4"/><line x1="160" y1="211" x2="260" y2="229" stroke="#5fd87a" stroke-width=".7" opacity=".4"/><line x1="160" y1="222" x2="260" y2="240" stroke="#5fd87a" stroke-width=".7" opacity=".4"/></g>
+  <ellipse cx="210" cy="234" rx="22" ry="6" fill="none" stroke="#5fd87a" stroke-width="1.6" opacity=".7"/>
+  <text x="300" y="180" class="lbl" fill="#5fd87a">mesh<tspan x="300" dy="13">trap bag</tspan></text>
+  <!-- duct from throat to bag -->
+  <rect x="196" y="234" width="28" height="32" fill="#0c130d" stroke="#5d7363" stroke-width="1.2"/>
+  <!-- fan at box floor -->
+  <g transform="translate(210,252)"><g class="spin">
+    <rect x="-22" y="-2.5" width="44" height="5" rx="2.5" fill="#aeb9c4" opacity=".8"/>
+    <rect x="-2.5" y="-22" width="5" height="44" rx="2.5" fill="#aeb9c4" opacity=".55"/></g>
+    <circle r="4" fill="#aeb9c4"/></g>
+  <text x="252" y="254" class="lbl" fill="#aeb9c4">floor fan</text>
+  <!-- intake throat opening downward -->
+  <path d="M190,266 L230,266 L242,292 L178,292 Z" fill="#0c130d" stroke="#5d7363" stroke-width="1.4"/>
+  <text x="252" y="286" class="lbl">intake</text>
+  <!-- hidden CO2 tank in box -->
+  <rect x="138" y="150" width="14" height="108" rx="6" fill="#2a2e33" stroke="#5d7363" stroke-width="1.2"/>
+  <text x="132" y="150" class="lbl" text-anchor="end" transform="rotate(-90 132 150)">CO₂ tank (hidden)</text>
+  <!-- legs -->
+  <rect x="138" y="266" width="12" height="160" fill="#1c2a20" stroke="#5d7363" stroke-width="1.4"/>
+  <rect x="270" y="266" width="12" height="160" fill="#1c2a20" stroke="#5d7363" stroke-width="1.4"/>
+  <!-- shaded harborage cavity -->
+  <rect x="150" y="294" width="120" height="132" fill="#060a07" opacity=".7"/>
+  <text x="210" y="358" class="lbl" text-anchor="middle">cool shaded<tspan x="210" dy="13">harborage</tspan></text>
+  <circle cx="176" cy="372" r="2.6" fill="#ff6b6b" opacity=".8"/><circle cx="196" cy="388" r="2.6" fill="#ff6b6b" opacity=".8"/><circle cx="232" cy="366" r="2.6" fill="#ff6b6b" opacity=".8"/><circle cx="248" cy="384" r="2.6" fill="#ff6b6b" opacity=".8"/><circle cx="212" cy="400" r="2.6" fill="#ff6b6b" opacity=".8"/><circle cx="166" cy="392" r="2.6" fill="#ff6b6b" opacity=".8"/><circle cx="184" cy="406" r="2.4" fill="#c6a96b" opacity=".55"/><circle cx="206" cy="412" r="2.4" fill="#c6a96b" opacity=".55"/><circle cx="228" cy="406" r="2.4" fill="#c6a96b" opacity=".55"/><circle cx="244" cy="414" r="2.4" fill="#c6a96b" opacity=".55"/><circle cx="170" cy="410" r="2.4" fill="#c6a96b" opacity=".55"/>
+  <!-- CO2 sinks into the shade -->
+  <path id="ev_co" d="M196,266 C190,290 188,320 192,404" fill="none" stroke="#c6a96b" stroke-width="2.4" stroke-dasharray="4 9" opacity="0.45" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="13" to="0" dur="3.2s" repeatCount="indefinite"/></path><circle r="2.6" fill="#c6a96b"><animateMotion dur="3.2s" begin="0s" repeatCount="indefinite"><mpath href="#ev_co"/></animateMotion></circle>
+  <text x="296" y="318" class="lbl" fill="#c6a96b">CO₂ pools<tspan x="296" dy="13">in the shade</tspan></text>
+  <!-- mosquitoes drawn into the shade -->
+  <path id="ev_b1" d="M54,360 C110,360 140,372 168,378" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.8s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.8s" begin="0s" repeatCount="indefinite"><mpath href="#ev_b1"/></animateMotion></circle>
+  <path id="ev_b2" d="M366,330 C310,335 270,360 246,372" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="3.0s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="3.0s" begin="1s" repeatCount="indefinite"><mpath href="#ev_b2"/></animateMotion></circle>
+  <text x="40" y="356" class="lbl" fill="#ff6b6b">bugs seek the shade</text>
+  <!-- updraft: cavity → throat → bag -->
+  <path id="ev_air" d="M210,400 L210,294 L210,236" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.1s" repeatCount="indefinite"/></path><circle r="2.8" fill="#6fb6ff"><animateMotion dur="1.1s" begin="0s" repeatCount="indefinite"><mpath href="#ev_air"/></animateMotion></circle>
+  <!-- bugs lifted up into the bag -->
+  <path id="ev_up" d="M206,392 C208,330 208,290 210,238" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.85" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.2s" repeatCount="indefinite"/></path><circle r="3.2" fill="#ff6b6b"><animateMotion dur="2.2s" begin=".5s" repeatCount="indefinite"><mpath href="#ev_up"/></animateMotion></circle>
+  <text x="262" y="392" class="lbl" fill="#6fb6ff">updraft lifts<tspan x="262" dy="13">them up</tspan></text>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>A patch of cool shade</b><p>The overhanging ledge keeps a dark, humid cavity beneath the box. By day, mosquitoes hunt for exactly this kind of sheltered harborage to rest out of the sun.</p></div></li><li><span class="num">2</span><div><b>CO₂ settles into it</b><p>CO₂ vented from the hidden tank is heavier than air, so it sinks and pools in the shaded cavity — making the resting spot smell alive and irresistible.</p></div></li><li><span class="num">3</span><div><b>Floor fan pulls an updraft</b><p>A fan set in the floor of the box draws air straight up out of the cavity through an intake throat — faster than a resting mosquito can react.</p></div></li><li><span class="num">4</span><div><b>Lifted into the bag</b><p>The resters are sucked up the duct into a mesh trap bag in the box, where they're held and dehydrate. Empty the bag to service.</p></div></li></ol>
+      <div class="cparts"><span>Shaded overhang ledge</span><span>Cool harborage cavity</span><span>Floor intake fan</span><span>Mesh trap bag</span><span>Hidden CO₂ tank</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="spire">
+  <header class="thead"><h2>Spire</h2><span class="ttag">Solar-chimney updraft</span></header>
+  <p class="lede">An obelisk with a sun-warmed black skin and a hollow flue. No fan, no power — the sun does the work.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Spire cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <circle cx="58" cy="74" r="16" fill="#ff9d5c" opacity=".85"/><line x1="78" y1="74" x2="90" y2="74" stroke="#ff9d5c" stroke-width="2" opacity=".55"/><line x1="72" y1="88" x2="81" y2="97" stroke="#ff9d5c" stroke-width="2" opacity=".55"/><line x1="58" y1="94" x2="58" y2="106" stroke="#ff9d5c" stroke-width="2" opacity=".55"/><line x1="44" y1="88" x2="35" y2="97" stroke="#ff9d5c" stroke-width="2" opacity=".55"/><line x1="38" y1="74" x2="26" y2="74" stroke="#ff9d5c" stroke-width="2" opacity=".55"/><line x1="44" y1="60" x2="35" y2="51" stroke="#ff9d5c" stroke-width="2" opacity=".55"/><line x1="58" y1="54" x2="58" y2="42" stroke="#ff9d5c" stroke-width="2" opacity=".55"/><line x1="72" y1="60" x2="81" y2="51" stroke="#ff9d5c" stroke-width="2" opacity=".55"/>
+  <text x="58" y="112" class="lbl" fill="#ff9d5c" text-anchor="middle">sun heats<tspan x="58" dy="13">the stack</tspan></text>
+  <path d="M178,60 L242,60 L262,432 L158,432 Z" fill="#1c2a20" stroke="#5d7363" stroke-width="2"/>
+  <path d="M196,84 L224,84 L238,420 L182,420 Z" fill="#0c130d" stroke="#5d7363" stroke-width="1.2"/>
+  <rect x="190" y="86" width="40" height="22" fill="#5fd87a" opacity=".22" stroke="#5fd87a" stroke-width="1.4"/>
+  <text x="252" y="98" class="lbl" fill="#5fd87a">retention<tspan x="252" dy="13">screen</tspan></text>
+  <rect x="170" y="414" width="80" height="8" fill="#c6a96b" opacity=".55"/>
+  <text x="210" y="450" class="lbl" fill="#c6a96b" text-anchor="middle">CO₂ lure at base lip</text>
+  <path id="sp_air" d="M210,416 L210,100" fill="none" stroke="#ff9d5c" stroke-width="3" stroke-dasharray="5 9" opacity="0.5" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="2.2s" repeatCount="indefinite"/></path><circle r="3" fill="#ff9d5c"><animateMotion dur="2.2s" begin="0s" repeatCount="indefinite"><mpath href="#sp_air"/></animateMotion></circle>
+  <text x="276" y="250" class="lbl" fill="#ff9d5c">hot air<tspan x="276" dy="13">rises —</tspan><tspan x="276" dy="13">stack</tspan><tspan x="276" dy="13">effect</tspan></text>
+  <path id="sp_bug" d="M118,420 C160,418 190,408 202,396 L206,112" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="3.0s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="3.0s" begin="0s" repeatCount="indefinite"><mpath href="#sp_bug"/></animateMotion></circle>
+  <text x="60" y="410" class="lbl" fill="#ff6b6b">bugs pulled in low</text>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>Sun heats the stack</b><p>The black surface warms the air in the hollow flue; hot air rises and pulls a steady updraft up the column.</p></div></li><li><span class="num">2</span><div><b>CO₂ lures bugs in low</b><p>A CO₂ lip around the base draws mosquitoes to the intake at ground level.</p></div></li><li><span class="num">3</span><div><b>Updraft carries them up</b><p>The rising air sweeps them up the flue into a retention screen at the top where they can't fly back down.</p></div></li></ol>
+      <div class="cparts"><span>Black solar stack</span><span>Hollow flue</span><span>Base CO₂ lip</span><span>Top retention screen</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="reed">
+  <header class="thead"><h2>Reed</h2><span class="ttag">CO₂-jet Venturi ejector</span></header>
+  <p class="lede">A cattail cluster that runs on gas pressure alone. A fast CO₂ jet does the pumping — no electricity.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Reed cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <path d="M120,432 C108,300 130,200 150,116" stroke="#5d7363" stroke-width="3" fill="none" opacity=".4"/>
+  <path d="M300,432 C312,300 290,200 270,116" stroke="#5d7363" stroke-width="3" fill="none" opacity=".4"/>
+  <rect x="194" y="96" width="32" height="336" rx="4" fill="#0c130d" stroke="#5d7363" stroke-width="1.6"/>
+  <path d="M194,250 L206,262 L206,278 L194,290 Z" fill="#26382b" stroke="#5d7363"/>
+  <path d="M226,250 L214,262 L214,278 L226,290 Z" fill="#26382b" stroke="#5d7363"/>
+  <text x="240" y="270" class="lbl" fill="#aeb9c4">venturi<tspan x="240" dy="13">throat</tspan></text>
+  <rect x="186" y="362" width="48" height="70" rx="8" fill="#2a2e33" stroke="#5d7363" stroke-width="1.4"/>
+  <text x="210" y="404" class="lbl" text-anchor="middle">CO₂</text>
+  <rect x="198" y="98" width="24" height="16" fill="#5fd87a" opacity=".22" stroke="#5fd87a" stroke-width="1.4"/>
+  <text x="234" y="108" class="lbl" fill="#5fd87a">screen</text>
+  <path id="rd_jet" d="M210,360 L210,116" fill="none" stroke="#c6a96b" stroke-width="3" stroke-dasharray="4 7" opacity="0.7" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="11" to="0" dur="1.0s" repeatCount="indefinite"/></path><circle r="3" fill="#c6a96b"><animateMotion dur="1.0s" begin="0s" repeatCount="indefinite"><mpath href="#rd_jet"/></animateMotion></circle>
+  <text x="120" y="150" class="lbl" fill="#c6a96b">high-speed<tspan x="120" dy="13">CO₂ jet ↑</tspan></text>
+  <path id="rd_air" d="M118,300 C158,300 182,286 206,272" fill="none" stroke="#6fb6ff" stroke-width="2.4" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.4s" repeatCount="indefinite"/></path><circle r="2.6" fill="#6fb6ff"><animateMotion dur="1.4s" begin="0s" repeatCount="indefinite"><mpath href="#rd_air"/></animateMotion></circle>
+  <path id="rd_bug" d="M108,332 C150,322 180,294 206,276" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.0s" repeatCount="indefinite"/></path><circle r="3.2" fill="#ff6b6b"><animateMotion dur="2.0s" begin="0s" repeatCount="indefinite"><mpath href="#rd_bug"/></animateMotion></circle>
+  <text x="50" y="300" class="lbl" fill="#ff6b6b">suction pulls<tspan x="50" dy="13">bugs in the side</tspan></text>
+  <path id="rd_up" d="M210,260 L210,118" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-dasharray="2 7" opacity="0.7" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.0s" repeatCount="indefinite"/></path><circle r="2.8" fill="#ff6b6b"><animateMotion dur="2.0s" begin=".6s" repeatCount="indefinite"><mpath href="#rd_up"/></animateMotion></circle>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>CO₂ jet fires up the throat</b><p>A nozzle shoots CO₂ at high speed through a pinched venturi throat.</p></div></li><li><span class="num">2</span><div><b>Venturi suction at the side</b><p>Fast jet = low pressure. That suction pulls surrounding air — and any mosquito near it — in through a side port.</p></div></li><li><span class="num">3</span><div><b>Swept up to the screen</b><p>Entrained bugs ride the jet up the diffuser into a capture screen at the top.</p></div></li></ol>
+      <div class="cparts"><span>CO₂ jet nozzle</span><span>Venturi throat</span><span>Side intake port</span><span>Top screen</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="bloom">
+  <header class="thead"><h2>Bloom</h2><span class="ttag">Electrostatic adhesive petals</span></header>
+  <p class="lede">An oversized flower. The petals are the trap; service is just swapping cards.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Bloom cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <rect x="202" y="200" width="16" height="232" fill="#1c2a20" stroke="#5d7363" stroke-width="1.6"/>
+  <text x="232" y="340" class="lbl">stem hides<tspan x="232" dy="13">CO₂ stake</tspan></text>
+  <ellipse cx="268" cy="168" rx="34" ry="15" transform="rotate(0 268 168)" fill="#6a2a4a" stroke="#5d7363" stroke-width="1.2" opacity=".85"/><ellipse cx="251" cy="189" rx="34" ry="15" transform="rotate(45 251 189)" fill="#6a2a4a" stroke="#5d7363" stroke-width="1.2" opacity=".85"/><ellipse cx="210" cy="198" rx="34" ry="15" transform="rotate(90 210 198)" fill="#6a2a4a" stroke="#5d7363" stroke-width="1.2" opacity=".85"/><ellipse cx="169" cy="189" rx="34" ry="15" transform="rotate(135 169 189)" fill="#6a2a4a" stroke="#5d7363" stroke-width="1.2" opacity=".85"/><ellipse cx="152" cy="168" rx="34" ry="15" transform="rotate(180 152 168)" fill="#6a2a4a" stroke="#5d7363" stroke-width="1.2" opacity=".85"/><ellipse cx="169" cy="147" rx="34" ry="15" transform="rotate(225 169 147)" fill="#6a2a4a" stroke="#5d7363" stroke-width="1.2" opacity=".85"/><ellipse cx="210" cy="138" rx="34" ry="15" transform="rotate(270 210 138)" fill="#6a2a4a" stroke="#5d7363" stroke-width="1.2" opacity=".85"/><ellipse cx="251" cy="147" rx="34" ry="15" transform="rotate(315 251 147)" fill="#6a2a4a" stroke="#5d7363" stroke-width="1.2" opacity=".85"/>
+  <circle cx="210" cy="168" r="30" fill="#b98cff" opacity=".3" class="pulse"/>
+  <circle cx="210" cy="168" r="22" fill="#7a3358" stroke="#c6a96b" stroke-width="1.4"/>
+  <text x="210" y="172" class="lbl" fill="#b98cff" text-anchor="middle">UV + CO₂</text>
+  <text x="300" y="120" class="lbl" fill="#d68fb4">charged adhesive<tspan x="300" dy="13">petal cards</tspan></text>
+  <path id="bl_b1" d="M60,120 C120,130 150,150 176,162" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.2s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.2s" begin="0s" repeatCount="indefinite"><mpath href="#bl_b1"/></animateMotion></circle>
+  <path id="bl_b2" d="M360,250 C300,230 260,200 238,178" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.6s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.6s" begin="1s" repeatCount="indefinite"><mpath href="#bl_b2"/></animateMotion></circle>
+  <text x="40" y="132" class="lbl" fill="#ff6b6b">bugs land &amp; stick</text>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>Lit like a real bloom</b><p>CO₂, heat and a UV glow at the center mimic a nectar source.</p></div></li><li><span class="num">2</span><div><b>Bugs land on the petals</b><p>Mosquitoes settle on the petal faces, drawn to the center.</p></div></li><li><span class="num">3</span><div><b>Stuck on contact</b><p>Each petal is a charged adhesive card; landing bugs stick fast and are removed when the cards are swapped.</p></div></li></ol>
+      <div class="cparts"><span>UV + CO₂ center</span><span>Charged adhesive petals</span><span>Hidden stem stake</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="cistern">
+  <header class="thead"><h2>Cistern</h2><span class="ttag">Gravid oviposition trap</span></header>
+  <p class="lede">A birdbath that targets the next generation — egg-laying females and their larvae, not just adults.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Cistern cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <rect x="186" y="240" width="48" height="192" fill="#1c2a20" stroke="#5d7363" stroke-width="1.6"/>
+  <text x="248" y="340" class="lbl">pedestal<tspan x="248" dy="13">hides tank</tspan></text>
+  <path d="M120,200 L300,200 L276,250 L144,250 Z" fill="#26382b" stroke="#5d7363" stroke-width="1.8"/>
+  <path d="M150,232 L270,232 L262,246 L158,246 Z" fill="#4a90c2" opacity=".55"/>
+  <ellipse cx="210" cy="232" rx="60" ry="7" fill="#4a90c2" opacity=".5"/>
+  <text x="210" y="226" class="lbl" fill="#4a90c2" text-anchor="middle">CO₂ + hay-infused water</text>
+  <path id="ci_co" d="M210,230 C204,180 200,150 196,120" fill="none" stroke="#c6a96b" stroke-width="2.6" stroke-dasharray="5 9" opacity="0.55" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="3.0s" repeatCount="indefinite"/></path><circle r="3" fill="#c6a96b"><animateMotion dur="3.0s" begin="0s" repeatCount="indefinite"><mpath href="#ci_co"/></animateMotion></circle>
+  <path id="ci_bug" d="M70,90 C140,100 180,170 206,224" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.8s" repeatCount="indefinite"/></path><circle r="3.6" fill="#ff6b6b"><animateMotion dur="2.8s" begin="0s" repeatCount="indefinite"><mpath href="#ci_bug"/></animateMotion></circle>
+  <text x="40" y="92" class="lbl" fill="#ff6b6b">gravid female<tspan x="40" dy="13">descends to lay</tspan></text>
+  <text x="300" y="244" class="lbl" fill="#5fd87a">eggs/larvae<tspan x="300" dy="13">drown</tspan></text>
+  <circle cx="195" cy="240" r="2.4" fill="#5fd87a"/><circle cx="220" cy="241" r="2.4" fill="#5fd87a"/>
+  <circle cx="205" cy="243" r="2.4" fill="#5fd87a"/>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>Smells like a nursery</b><p>CO₂ plus a hay infusion mimics the stagnant water gravid females seek to lay eggs.</p></div></li><li><span class="num">2</span><div><b>Females descend to lay</b><p>They drop to the water surface — and drown in the treated bowl.</p></div></li><li><span class="num">3</span><div><b>Larvae killed too</b><p>Any eggs that hatch can't survive the treated water, breaking the breeding cycle.</p></div></li></ol>
+      <div class="cparts"><span>Hay-infused water</span><span>CO₂ lure</span><span>Drowning bowl</span><span>Pedestal tank</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="lumen">
+  <header class="thead"><h2>Lumen</h2><span class="ttag">Rotating sticky-film drum</span></header>
+  <p class="lede">A coach lantern with a slowly turning sticky drum inside the glass.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Lumen cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <rect x="200" y="270" width="20" height="162" fill="#1c2a20" stroke="#5d7363" stroke-width="1.6"/>
+  <text x="236" y="350" class="lbl">post base<tspan x="236" dy="13">hides tank</tspan></text>
+  <path d="M168,120 L252,120 L240,140 L180,140 Z" fill="#26382b" stroke="#5d7363" stroke-width="1.6"/>
+  <rect x="170" y="140" width="80" height="130" rx="4" fill="#0c130d" stroke="#5d7363" stroke-width="1.6"/>
+  <rect x="176" y="146" width="68" height="118" fill="#b98cff" opacity=".14" class="pulse"/>
+  <rect x="188" y="148" width="44" height="112" rx="6" fill="#3a3320" stroke="#aeb9c4" stroke-width="1.4"/>
+  <line x1="190" y1="150" x2="230" y2="150" stroke="#ff6b6b" stroke-width="1" opacity=".5"/><line x1="190" y1="162" x2="230" y2="162" stroke="#ff6b6b" stroke-width="1" opacity=".5"/><line x1="190" y1="174" x2="230" y2="174" stroke="#ff6b6b" stroke-width="1" opacity=".5"/><line x1="190" y1="186" x2="230" y2="186" stroke="#ff6b6b" stroke-width="1" opacity=".5"/><line x1="190" y1="198" x2="230" y2="198" stroke="#ff6b6b" stroke-width="1" opacity=".5"/><line x1="190" y1="210" x2="230" y2="210" stroke="#ff6b6b" stroke-width="1" opacity=".5"/><line x1="190" y1="222" x2="230" y2="222" stroke="#ff6b6b" stroke-width="1" opacity=".5"/><line x1="190" y1="234" x2="230" y2="234" stroke="#ff6b6b" stroke-width="1" opacity=".5"/><line x1="190" y1="246" x2="230" y2="246" stroke="#ff6b6b" stroke-width="1" opacity=".5"/>
+  <text x="210" y="135" class="lbl" fill="#b98cff" text-anchor="middle">warm UV + CO₂ lantern</text>
+  <text x="300" y="200" class="lbl" fill="#aeb9c4">rotating<tspan x="300" dy="13">sticky-film</tspan><tspan x="300" dy="13">drum</tspan></text>
+  <path id="lu_film" d="M210,150 L210,260" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-dasharray="3 6" opacity="0.45" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.4s" repeatCount="indefinite"/></path><circle r="2.4" fill="#ff6b6b"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#lu_film"/></animateMotion></circle>
+  <path id="lu_b1" d="M70,180 C120,180 150,190 186,196" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.2s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.2s" begin="0s" repeatCount="indefinite"><mpath href="#lu_b1"/></animateMotion></circle>
+  <path id="lu_b2" d="M350,210 C300,210 270,205 234,208" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.6s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.6s" begin="1s" repeatCount="indefinite"><mpath href="#lu_b2"/></animateMotion></circle>
+  <text x="40" y="180" class="lbl" fill="#ff6b6b">bugs hit film</text>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>Glows like a lamp</b><p>Warm UV and CO₂ draw mosquitoes to the lantern glass.</p></div></li><li><span class="num">2</span><div><b>They hit the film drum</b><p>Inside, a drum wrapped in sticky film catches anything that lands.</p></div></li><li><span class="num">3</span><div><b>Drum indexes them away</b><p>The drum slowly rotates, carrying caught bugs out of sight and presenting fresh film — self-servicing.</p></div></li></ol>
+      <div class="cparts"><span>Warm UV + CO₂</span><span>Rotating film drum</span><span>Self-indexing film</span><span>Post-base tank</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="orb">
+  <header class="thead"><h2>Orb</h2><span class="ttag">Acoustic + electrocution</span></header>
+  <p class="lede">A gazing ball that lures with sound as well as scent — catching both sexes, not just biting females.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Orb cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <rect x="190" y="270" width="40" height="162" fill="#1c2a20" stroke="#5d7363" stroke-width="1.6"/>
+  <text x="244" y="350" class="lbl">plinth<tspan x="244" dy="13">hides tank</tspan></text>
+  <circle cx="210" cy="200" r="70" fill="#2a3340" stroke="#5d7363" stroke-width="1.8"/>
+  <clipPath id="orbclip"><circle cx="210" cy="200" r="70"/></clipPath>
+  <g clip-path="url(#orbclip)"><line x1="170" y1="150" x2="170" y2="250" stroke="#ffe14d" stroke-width=".8" opacity=".3"/><line x1="182" y1="150" x2="182" y2="250" stroke="#ffe14d" stroke-width=".8" opacity=".3"/><line x1="194" y1="150" x2="194" y2="250" stroke="#ffe14d" stroke-width=".8" opacity=".3"/><line x1="206" y1="150" x2="206" y2="250" stroke="#ffe14d" stroke-width=".8" opacity=".3"/><line x1="218" y1="150" x2="218" y2="250" stroke="#ffe14d" stroke-width=".8" opacity=".3"/><line x1="230" y1="150" x2="230" y2="250" stroke="#ffe14d" stroke-width=".8" opacity=".3"/><line x1="242" y1="150" x2="242" y2="250" stroke="#ffe14d" stroke-width=".8" opacity=".3"/><line x1="254" y1="150" x2="254" y2="250" stroke="#ffe14d" stroke-width=".8" opacity=".3"/></g>
+  <circle cx="210" cy="200" r="6" fill="none" stroke="#b98cff" stroke-width="2"><animate attributeName="r" from="6" to="96" dur="2.4s" begin="0s" repeatCount="indefinite"/><animate attributeName="opacity" from=".8" to="0" dur="2.4s" begin="0s" repeatCount="indefinite"/></circle><circle cx="210" cy="200" r="6" fill="none" stroke="#b98cff" stroke-width="2"><animate attributeName="r" from="6" to="96" dur="2.4s" begin="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" from=".8" to="0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/></circle>
+  <text x="210" y="204" class="lbl" fill="#b98cff" text-anchor="middle">acoustic + CO₂</text>
+  <text x="296" y="150" class="lbl" fill="#ffe14d">electro-<tspan x="296" dy="13">cution mesh</tspan></text>
+  <path id="or_b1" d="M60,150 C120,160 150,175 144,186" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.2s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.2s" begin="0s" repeatCount="indefinite"><mpath href="#or_b1"/></animateMotion></circle>
+  <path id="or_b2" d="M360,250 C300,242 270,232 276,214" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.6s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.6s" begin="1s" repeatCount="indefinite"><mpath href="#or_b2"/></animateMotion></circle>
+  <text x="40" y="146" class="lbl" fill="#ff6b6b">bugs drawn to surface → zap</text>
+  <path d="M140,186 l6,-4 -3,7 6,-3" stroke="#ffe14d" stroke-width="2" fill="none"/>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>Plays a mating tone</b><p>A speaker emits a wing-beat resonance that attracts males and females alike; CO₂ adds the prey cue.</p></div></li><li><span class="num">2</span><div><b>Bugs approach the surface</b><p>They home to the sphere from all sides.</p></div></li><li><span class="num">3</span><div><b>Completed circuit = zap</b><p>Touching the surface mesh completes an electrocution circuit.</p></div></li></ol>
+      <div class="cparts"><span>Wing-beat acoustic lure</span><span>CO₂</span><span>Electrocution mesh</span><span>Plinth tank</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="cairn">
+  <header class="thead"><h2>Cairn</h2><span class="ttag">Heated contact textile</span></header>
+  <p class="lede">A landscape boulder wrapped in a warm, treated fabric. No fan, no capture vessel — the surface itself is lethal.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Cairn cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <ellipse cx="210" cy="408" rx="86" ry="30" fill="#1c2a20" stroke="#5d7363" stroke-width="1.8"/>
+  <ellipse cx="210" cy="350" rx="68" ry="26" fill="#26382b" stroke="#5d7363" stroke-width="1.6"/>
+  <ellipse cx="210" cy="300" rx="50" ry="22" fill="#1c2a20" stroke="#5d7363" stroke-width="1.6"/>
+  <path d="M150,300 a50,22 0 0,1 120,0" fill="none" stroke="#ff9d5c" stroke-width="2" opacity=".5"/>
+  <text x="300" y="300" class="lbl" fill="#ff9d5c">heated, scent-<tspan x="300" dy="13">treated textile</tspan></text>
+  <text x="210" y="416" class="lbl" text-anchor="middle">hollow boulder hides CO₂ tank</text>
+  <path id="ca_h0" d="M180,250 q6,-20 0,-40 q-6,-20 0,-40" fill="none" stroke="#ff9d5c" stroke-width="2" stroke-dasharray="4 7" opacity="0.4" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="11" to="0" dur="2.0s" repeatCount="indefinite"/></path><path id="ca_h1" d="M202,250 q6,-20 0,-40 q-6,-20 0,-40" fill="none" stroke="#ff9d5c" stroke-width="2" stroke-dasharray="4 7" opacity="0.4" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="11" to="0" dur="2.2s" repeatCount="indefinite"/></path><path id="ca_h2" d="M224,250 q6,-20 0,-40 q-6,-20 0,-40" fill="none" stroke="#ff9d5c" stroke-width="2" stroke-dasharray="4 7" opacity="0.4" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="11" to="0" dur="2.4s" repeatCount="indefinite"/></path><path id="ca_h3" d="M246,250 q6,-20 0,-40 q-6,-20 0,-40" fill="none" stroke="#ff9d5c" stroke-width="2" stroke-dasharray="4 7" opacity="0.4" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="11" to="0" dur="2.6s" repeatCount="indefinite"/></path><circle r="2.4" fill="#ff9d5c"><animateMotion dur="2.0s" begin="0s" repeatCount="indefinite"><mpath href="#ca_h0"/></animateMotion></circle><circle r="2.4" fill="#ff9d5c"><animateMotion dur="2.2s" begin="0s" repeatCount="indefinite"><mpath href="#ca_h1"/></animateMotion></circle><circle r="2.4" fill="#ff9d5c"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#ca_h2"/></animateMotion></circle><circle r="2.4" fill="#ff9d5c"><animateMotion dur="2.6s" begin="0s" repeatCount="indefinite"><mpath href="#ca_h3"/></animateMotion></circle>
+  <path id="ca_b1" d="M70,180 C130,200 170,250 198,288" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.6s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.6s" begin="0s" repeatCount="indefinite"><mpath href="#ca_b1"/></animateMotion></circle>
+  <path id="ca_b2" d="M360,200 C300,210 250,255 224,290" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.8s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.8s" begin="1s" repeatCount="indefinite"><mpath href="#ca_b2"/></animateMotion></circle>
+  <text x="40" y="176" class="lbl" fill="#ff6b6b">bugs land on warm surface → die</text>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>Feels like warm skin</b><p>CO₂, heat and scent radiate from a textile-wrapped stone that reads as a warm-blooded host.</p></div></li><li><span class="num">2</span><div><b>Bugs land to bite</b><p>Mosquitoes settle on the warm surface.</p></div></li><li><span class="num">3</span><div><b>Contact kills</b><p>The treated fabric delivers a contact insecticide — they die where they land.</p></div></li></ol>
+      <div class="cparts"><span>Heated scent textile</span><span>CO₂ + heat lure</span><span>Hollow boulder tank</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="morel">
+  <header class="thead"><h2>Morel</h2><span class="ttag">Cyclone vortex retention</span></header>
+  <p class="lede">A mushroom cluster that spins its catch. A low tangential fan makes a vortex inside the stem.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Morel cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <ellipse cx="210" cy="150" rx="74" ry="36" fill="#26382b" stroke="#5d7363" stroke-width="1.8"/>
+  <line x1="210" y1="170" x2="278" y2="176" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="270" y2="180" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="258" y2="183" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="244" y2="186" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="227" y2="187" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="210" y2="188" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="193" y2="187" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="176" y2="186" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="162" y2="183" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="150" y2="180" stroke="#aeb9c4" stroke-width="1" opacity=".6"/><line x1="210" y1="170" x2="142" y2="176" stroke="#aeb9c4" stroke-width="1" opacity=".6"/>
+  <text x="210" y="120" class="lbl" text-anchor="middle">cap · CO₂ from gills</text>
+  <path d="M170,170 L250,170 L240,420 L180,420 Z" fill="#0c130d" stroke="#5d7363" stroke-width="1.6"/>
+  <g transform="translate(210,186)"><g class="spin">
+    <rect x="-24" y="-2.5" width="48" height="5" rx="2.5" fill="#aeb9c4" opacity=".8"/>
+    <rect x="-2.5" y="-24" width="5" height="48" rx="2.5" fill="#aeb9c4" opacity=".55"/></g>
+    <circle r="4" fill="#aeb9c4"/></g>
+  <text x="262" y="186" class="lbl" fill="#aeb9c4">tangential<tspan x="262" dy="13">fan</tspan></text>
+  <path id="mo_spiral" d="M268,200 L260,203 L240,206 L214,209 L188,212 L169,215 L160,218 L164,221 L179,224 L200,227 L223,230 L241,233 L251,236 L250,239 L240,242 L223,245 L205,248 L188,251 L178,254 L177,257 L183,260 L195,263 L210,266 L224,269 L233,272 L235,275 L232,278 L224,281 L213,284 L203,287 L196,290 L193,293 L194,296 L199,299 L206,300 L213,300 L217,300 L219,300 L219,300 L216,300" fill="none" stroke="#ff6b6b" stroke-width="1.6" stroke-dasharray="2 6" opacity=".5"/>
+  <circle r="3.2" fill="#ff6b6b"><animateMotion dur="2.6s" begin="0s" repeatCount="indefinite"><mpath href="#mo_spiral"/></animateMotion></circle><circle r="3.2" fill="#ff6b6b"><animateMotion dur="2.6s" begin="1.3s" repeatCount="indefinite"><mpath href="#mo_spiral"/></animateMotion></circle>
+  <text x="270" y="300" class="lbl" fill="#ff6b6b">bugs spun to<tspan x="270" dy="13">the wall</tspan></text>
+  <path id="mo_in" d="M120,150 C160,160 185,168 196,176" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.0s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.0s" begin="0s" repeatCount="indefinite"><mpath href="#mo_in"/></animateMotion></circle>
+  <text x="60" y="146" class="lbl" fill="#ff6b6b">in via gills</text>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>CO₂ vents from the gills</b><p>The lure escapes under the cap, drawing bugs to the gill intake.</p></div></li><li><span class="num">2</span><div><b>Tangential fan spins the air</b><p>A low-speed fan set off-axis whirls incoming air into a cyclone.</p></div></li><li><span class="num">3</span><div><b>Centrifuged to the wall</b><p>The vortex flings mosquitoes outward against the chamber wall, where they're pinned until they tire and drop.</p></div></li></ol>
+      <div class="cparts"><span>CO₂ from cap gills</span><span>Tangential fan</span><span>Vortex chamber</span><span>Stem tank</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="marker">
+  <header class="thead"><h2>Marker</h2><span class="ttag">Downdraft bollard</span></header>
+  <p class="lede">A path bollard you deploy several of along a walkway — each one a small downdraft trap.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Marker cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <rect x="178" y="120" width="64" height="312" rx="8" fill="#1c2a20" stroke="#5d7363" stroke-width="2"/>
+  <path d="M174,120 L246,120 L236,104 L184,104 Z" fill="#26382b" stroke="#5d7363" stroke-width="1.6"/>
+  <rect x="190" y="106" width="40" height="8" fill="#c6a96b" opacity=".55"/>
+  <text x="210" y="98" class="lbl" fill="#c6a96b" text-anchor="middle">CO₂ at top opening</text>
+  <g transform="translate(210,140)"><g class="spin">
+    <rect x="-22" y="-2.5" width="44" height="5" rx="2.5" fill="#aeb9c4" opacity=".8"/>
+    <rect x="-2.5" y="-22" width="5" height="44" rx="2.5" fill="#aeb9c4" opacity=".55"/></g>
+    <circle r="4" fill="#aeb9c4"/></g>
+  <text x="252" y="142" class="lbl" fill="#aeb9c4">fan</text>
+  <rect x="186" y="330" width="48" height="98" rx="5" fill="#5fd87a" opacity=".2" stroke="#5fd87a" stroke-width="1.6"/>
+  <text x="210" y="384" class="lbl" fill="#5fd87a" text-anchor="middle">base<tspan x="210" dy="13">chamber</tspan></text>
+  <path id="mk_air" d="M200,160 L204,330" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.0s" repeatCount="indefinite"/></path><path id="mk_air2" d="M222,160 L218,330" fill="none" stroke="#6fb6ff" stroke-width="3" stroke-dasharray="4 6" opacity="0.6" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="10" to="0" dur="1.0s" repeatCount="indefinite"/></path>
+  <circle r="2.8" fill="#6fb6ff"><animateMotion dur="1.0s" begin="0s" repeatCount="indefinite"><mpath href="#mk_air"/></animateMotion></circle><circle r="2.8" fill="#6fb6ff"><animateMotion dur="1.0s" begin=".5s" repeatCount="indefinite"><mpath href="#mk_air2"/></animateMotion></circle>
+  <text x="262" y="250" class="lbl" fill="#6fb6ff">downdraft</text>
+  <path id="mk_bug" d="M90,80 C150,90 195,100 208,128 L210,322" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="2.8s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="2.8s" begin="0s" repeatCount="indefinite"><mpath href="#mk_bug"/></animateMotion></circle>
+  <text x="50" y="82" class="lbl" fill="#ff6b6b">bugs sucked in the top</text>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>CO₂ at the top opening</b><p>Lure escapes the cap, drawing bugs to the mouth.</p></div></li><li><span class="num">2</span><div><b>Fan pulls a downdraft</b><p>A fan just inside the cap sucks air straight down the bollard.</p></div></li><li><span class="num">3</span><div><b>Dropped into the base</b><p>Mosquitoes are carried down into a base chamber they can't climb out of.</p></div></li></ol>
+      <div class="cparts"><span>Top CO₂ opening</span><span>Downdraft fan</span><span>Base chamber</span><span>Buried tank sleeve</span></div>
+    </div>
+  </div>
+</section>
+<section class="trap" id="veil">
+  <header class="thead"><h2>Veil</h2><span class="ttag">Misting CO₂ air-curtain</span></header>
+  <p class="lede">A living-wall trellis that runs a CO₂ mist curtain along its whole face — a perimeter barrier rather than a point trap.</p>
+  <div class="grid">
+    <div class="figwrap">
+<svg viewBox="0 0 420 460" class="diagram" role="img" aria-label="Veil cross-section">
+  <rect x="0" y="432" width="420" height="28" fill="#0d160f"/>
+  <rect x="96" y="84" width="232" height="14" fill="#26382b" stroke="#5d7363" stroke-width="1.4"/>
+  <g clip-path="none"><line x1="150" y1="90" x2="110" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="180" y1="90" x2="140" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="210" y1="90" x2="170" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="240" y1="90" x2="200" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="270" y1="90" x2="230" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="300" y1="90" x2="260" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="110" y1="90" x2="150" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="140" y1="90" x2="180" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="170" y1="90" x2="210" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="200" y1="90" x2="240" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="230" y1="90" x2="270" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/><line x1="260" y1="90" x2="300" y2="410" stroke="#5d7363" stroke-width="1.4" opacity=".45"/></g>
+  <rect x="300" y="98" width="28" height="312" fill="#5fd87a" opacity=".16" stroke="#5fd87a" stroke-width="1.4"/>
+  <text x="314" y="250" class="lbl" fill="#5fd87a" text-anchor="middle" transform="rotate(90 314 250)">capture chamber (wall cavity)</text>
+  <text x="210" y="76" class="lbl" fill="#c6a96b" text-anchor="middle">CO₂ mist curtain runs the whole face ↓</text>
+  <path id="ve_m0" d="M180,96 L180,404" fill="none" stroke="#c6a96b" stroke-width="2.6" stroke-dasharray="4 10" opacity="0.4" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="2.4s" repeatCount="indefinite"/></path><path id="ve_m1" d="M202,96 L202,404" fill="none" stroke="#c6a96b" stroke-width="2.6" stroke-dasharray="4 10" opacity="0.4" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="2.4s" repeatCount="indefinite"/></path><path id="ve_m2" d="M224,96 L224,404" fill="none" stroke="#c6a96b" stroke-width="2.6" stroke-dasharray="4 10" opacity="0.4" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="2.4s" repeatCount="indefinite"/></path><path id="ve_m3" d="M246,96 L246,404" fill="none" stroke="#c6a96b" stroke-width="2.6" stroke-dasharray="4 10" opacity="0.4" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="2.4s" repeatCount="indefinite"/></path><path id="ve_m4" d="M268,96 L268,404" fill="none" stroke="#c6a96b" stroke-width="2.6" stroke-dasharray="4 10" opacity="0.4" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="14" to="0" dur="2.4s" repeatCount="indefinite"/></path><circle r="2.6" fill="#c6a96b"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#ve_m0"/></animateMotion></circle><circle r="2.6" fill="#c6a96b"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#ve_m1"/></animateMotion></circle><circle r="2.6" fill="#c6a96b"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#ve_m2"/></animateMotion></circle><circle r="2.6" fill="#c6a96b"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#ve_m3"/></animateMotion></circle><circle r="2.6" fill="#c6a96b"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#ve_m4"/></animateMotion></circle>
+  <path id="ve_b1" d="M50,200 C110,200 150,230 250,250 C275,254 292,252 304,250" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="3.0s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="3.0s" begin="0s" repeatCount="indefinite"><mpath href="#ve_b1"/></animateMotion></circle>
+  <path id="ve_b2" d="M50,320 C120,318 180,300 270,290 C286,288 298,288 306,288" fill="none" stroke="#ff6b6b" stroke-width="2.2" stroke-dasharray="2 7" opacity="0.9" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="9" to="0" dur="3.2s" repeatCount="indefinite"/></path><circle r="3.4" fill="#ff6b6b"><animateMotion dur="3.2s" begin="1.4s" repeatCount="indefinite"><mpath href="#ve_b2"/></animateMotion></circle>
+  <text x="40" y="196" class="lbl" fill="#ff6b6b">bugs hit the curtain,<tspan x="40" dy="13">funneled to the edge</tspan></text>
+</svg></div>
+    <div>
+      <ol class="steps"><li><span class="num">1</span><div><b>Curtain runs the wall</b><p>CO₂ mist falls along the entire trellis face, forming a scented barrier across a patio edge.</p></div></li><li><span class="num">2</span><div><b>Bugs intercept the curtain</b><p>Mosquitoes crossing the perimeter hit the curtain and follow it.</p></div></li><li><span class="num">3</span><div><b>Funneled to the edges</b><p>The airflow sweeps them into capture chambers hidden in the wall cavity at each end.</p></div></li></ol>
+      <div class="cparts"><span>Full-length mist curtain</span><span>Trellis face</span><span>Edge capture chambers</span><span>Wall-cavity tank</span></div>
+    </div>
+  </div>
+</section>
+
+  <footer>GreenGuard USA · CO₂ counterflow mosquito control · Austin, TX</footer>
+</div>
+</body></html>

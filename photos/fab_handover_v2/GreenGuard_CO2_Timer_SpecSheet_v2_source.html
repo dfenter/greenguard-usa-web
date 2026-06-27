@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreenGuard CO2 Trap Timer — Rev 2.0 Spec Sheet</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #1a1a1a; background: #fff; }
+
+  @media print {
+    body { font-size: 9pt; }
+    .page { page-break-after: always; }
+    .no-print { display: none; }
+  }
+
+  .sheet {
+    width: 8.5in;
+    min-height: 11in;
+    margin: 0 auto;
+    padding: 0.55in 0.65in 0.5in;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2.5px solid #2e7d32;
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+  }
+  .brand { font-size: 10pt; font-weight: bold; color: #2e7d32; letter-spacing: 0.04em; }
+  .brand-sub { font-size: 8.5pt; color: #555; margin-top: 2px; }
+  .doc-id { text-align: right; font-size: 8pt; color: #666; }
+
+  h1 { font-size: 17pt; font-weight: bold; color: #1a1a1a; margin-bottom: 3px; }
+  h1 span { color: #2e7d32; }
+  .tagline { font-size: 9.5pt; color: #444; margin-bottom: 18px; }
+
+  h2 {
+    font-size: 10pt;
+    font-weight: bold;
+    color: #2e7d32;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid #c8e6c9;
+    padding-bottom: 3px;
+    margin: 16px 0 8px;
+  }
+
+  .two-col { display: flex; gap: 28px; }
+  .two-col > div { flex: 1; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 10px; }
+  th { background: #e8f5e9; color: #1b5e20; font-weight: bold; text-align: left; padding: 5px 7px; border: 1px solid #c8e6c9; }
+  td { padding: 4px 7px; border: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  .spec-key { font-weight: bold; color: #333; width: 38%; }
+
+  .callout {
+    background: #fff3e0;
+    border-left: 3px solid #f57c00;
+    padding: 7px 10px;
+    margin: 10px 0;
+    font-size: 8.5pt;
+    color: #4e342e;
+  }
+  .callout.info {
+    background: #e8f5e9;
+    border-left-color: #2e7d32;
+    color: #1b5e20;
+  }
+
+  .file-list { font-size: 8.5pt; }
+  .file-list td:first-child { font-family: 'Courier New', monospace; white-space: nowrap; font-size: 8pt; }
+
+  .footer {
+    margin-top: 24px;
+    border-top: 1px solid #ccc;
+    padding-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt;
+    color: #888;
+  }
+
+  .badge {
+    display: inline-block;
+    background: #2e7d32;
+    color: #fff;
+    font-size: 8pt;
+    font-weight: bold;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-right: 4px;
+  }
+
+  p { margin-bottom: 6px; font-size: 9pt; }
+
+  .no-print {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    padding: 10px 14px;
+    margin: 12px auto;
+    max-width: 8.5in;
+    font-size: 9pt;
+    color: #0d47a1;
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <strong>To generate PDF:</strong> File → Print → Save as PDF. Set paper to US Letter, margins to None (the sheet has built-in margins). Scale = 100%.
+</div>
+
+<div class="sheet">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="brand">GREENGUARD USA</div>
+      <div class="brand-sub">Intelligent Mosquito Control</div>
+    </div>
+    <div class="doc-id">
+      Timer-001 Rev 2.0<br>
+      CO2 Trap Timer v2<br>
+      2026-06-18
+    </div>
+  </div>
+
+  <h1>CO2 Trap Timer <span>v2</span></h1>
+  <p class="tagline">ATtiny85 · DS3231 RTC · TM1637 Display · Hardcoded Schedule · 9V Battery or DC Adapter Input</p>
+
+  <div class="two-col">
+
+    <div>
+      <h2>Overview</h2>
+      <p>The GreenGuard CO2 Trap Timer v2 is a standalone 24-hour timer for GreenGuard CO2 mosquito traps.
+      It opens a solenoid valve at a fixed ON time and closes it at a fixed OFF time, maintaining a programmed schedule without user intervention.
+      The DS3231 real-time clock preserves the schedule without a coin cell by powering VBAT from the 3.3 V rail.</p>
+
+      <p>The TM1637 4-digit display shows the current time (HH:MM) and two tactile buttons allow the user to set the RTC time in the field.</p>
+
+      <h2>Default Schedule</h2>
+      <table>
+        <tr><th>Event</th><th>Time</th></tr>
+        <tr><td>CO2 ON (valve opens)</td><td>05:30</td></tr>
+        <tr><td>CO2 OFF (valve closes)</td><td>23:30</td></tr>
+        <tr><td>Active window</td><td>18 hours/day</td></tr>
+      </table>
+      <p style="font-size:8.5pt;color:#555;">Schedule is hardcoded in firmware. Field-adjustable only by reflashing.</p>
+
+      <h2>Electrical Specifications</h2>
+      <table>
+        <tr><th class="spec-key">Spec</th><th>Value</th></tr>
+        <tr><td class="spec-key">MCU</td><td>Microchip ATtiny85-20PU (DIP-8, 8 MHz internal osc)</td></tr>
+        <tr><td class="spec-key">RTC</td><td>Maxim DS3231SN (±2 ppm, I²C, SO-16)</td></tr>
+        <tr><td class="spec-key">Display</td><td>TM1637 4-digit 7-segment, 0.36 in, red</td></tr>
+        <tr><td class="spec-key">Power — battery</td><td>9 V alkaline / NiMH via J1 screw terminal</td></tr>
+        <tr><td class="spec-key">Power — adapter</td><td>120 V AC → 9 V DC wall adapter (500 mA min, center-positive 5.5/2.1 mm) via rear-panel barrel jack → J1</td></tr>
+        <tr><td class="spec-key">Logic supply</td><td>3.3 V (AMS1117-3.3 LDO from 9 V input)</td></tr>
+        <tr><td class="spec-key">Solenoid driver</td><td>IRL540NPBF N-channel MOSFET; solenoid from 9 V (RAW) rail</td></tr>
+        <tr><td class="spec-key">Solenoid rating</td><td>12 V NC, operated at 9 V (reduced force; accepted tradeoff)</td></tr>
+        <tr><td class="spec-key">Polarity protection</td><td>D1 1N4007 in series with input (both battery and adapter paths)</td></tr>
+        <tr><td class="spec-key">Overcurrent</td><td>F1 1.1 A hold / 2.2 A trip PPTC resettable fuse</td></tr>
+        <tr><td class="spec-key">Sleep current</td><td>TBD — ATtiny85 POWER_DOWN + DS3231 sleep; display off</td></tr>
+      </table>
+    </div>
+
+    <div>
+      <h2>PCB</h2>
+      <table>
+        <tr><th class="spec-key">Spec</th><th>Value</th></tr>
+        <tr><td class="spec-key">Board size</td><td>65 × 45 mm</td></tr>
+        <tr><td class="spec-key">Layers</td><td>2-layer FR-4, 1.6 mm, HASL lead-free</td></tr>
+        <tr><td class="spec-key">Mounting holes</td><td>4× M3, at (3,3) / (62,3) / (3,42) / (62,42) mm</td></tr>
+        <tr><td class="spec-key">SMT components</td><td>U2, U3, F1, R1–R7, C2, C3 (top side)</td></tr>
+        <tr><td class="spec-key">THT (turnkey)</td><td>D1–D3, Q1, SW1, SW2, C1, J1–J4, U1_SOCKET</td></tr>
+        <tr><td class="spec-key">THT (consignment)</td><td>U1 — buyer supplies pre-programmed ATtiny85</td></tr>
+      </table>
+
+      <h2>Enclosure</h2>
+      <table>
+        <tr><th class="spec-key">Spec</th><th>Value</th></tr>
+        <tr><td class="spec-key">Enclosure</td><td>Zulkit IP65 ABS, 100 × 68 × 50 mm</td></tr>
+        <tr><td class="spec-key">Lid cutouts</td><td>38×12 mm display window; 2× 6 mm button holes</td></tr>
+        <tr><td class="spec-key">Side cutouts</td><td>2× 12 mm PG7 cable glands (CO2 in / out)</td></tr>
+        <tr><td class="spec-key">Rear cutout</td><td>12 mm hole, panel-mount DC barrel jack (adapter input)</td></tr>
+        <tr><td class="spec-key">IP rating (assembled)</td><td>Splash-resistant; IP65 requires sealing all cutouts (see Drilling Guide)</td></tr>
+      </table>
+
+      <h2>Firmware</h2>
+      <table>
+        <tr><th class="spec-key">Spec</th><th>Value</th></tr>
+        <tr><td class="spec-key">Source file</td><td><code>firmware/co2_timer_v2/co2_timer_v2.ino</code></td></tr>
+        <tr><td class="spec-key">Platform</td><td>Arduino IDE + ATtinyCore (Spence Kachmar)</td></tr>
+        <tr><td class="spec-key">Fuses</td><td>8 MHz internal oscillator (lfuse=0xE2, hfuse=0xDF, efuse=0xFF)</td></tr>
+        <tr><td class="spec-key">Flash tool</td><td>USBasp programmer via J3 (2×3 ICSP); <code>flash.sh</code> included</td></tr>
+        <tr><td class="spec-key">Who programs</td><td>Buyer programs chips before shipment to CM. CM inserts into U1_SOCKET — does not solder U1 directly.</td></tr>
+        <tr><td class="spec-key">Wake mechanism</td><td>DS3231 Alarm 1 via INT on PB2/INT0 (no WDT configured — bench-validate display refresh behavior)</td></tr>
+      </table>
+
+      <h2>Pin Assignment (ATtiny85)</h2>
+      <table>
+        <tr><th>Pin</th><th>Function</th></tr>
+        <tr><td>PB0</td><td>TM1637 CLK + DS3231 SDA (shared, bit-bang)</td></tr>
+        <tr><td>PB1</td><td>TM1637 DIO + DS3231 SCL (shared, bit-bang)</td></tr>
+        <tr><td>PB2</td><td>MOSFET gate (solenoid) + DS3231 INT via D2 diode</td></tr>
+        <tr><td>PB3</td><td>UP button (active LOW, 10 kΩ pullup)</td></tr>
+        <tr><td>PB4</td><td>SET button (active LOW, 10 kΩ pullup)</td></tr>
+        <tr><td>PB5/RESET</td><td>Reset (10 kΩ pullup to VCC)</td></tr>
+      </table>
+
+      <div class="callout">
+        <strong>Validation required before production:</strong> PB0/PB1 shared-bus and PB2 dual-function require bench validation. See README for details and ATtiny1616 upgrade path.
+      </div>
+    </div>
+  </div>
+
+  <h2>Package Files</h2>
+  <table class="file-list">
+    <tr><th>File</th><th>Purpose</th></tr>
+    <tr><td>co2_timer_v2_gerbers.zip</td><td>Gerber + drill files — upload directly to JLCPCB or equivalent</td></tr>
+    <tr><td>co2_timer_v2_BOM.csv</td><td>Full BOM with MPN, Digi-Key #, LCSC #, SMT/THT callout</td></tr>
+    <tr><td>co2_timer_v2_CPL_SMT.csv</td><td>SMT pick-and-place (SMT components only — C2, C3, F1, R1–R7, U2, U3)</td></tr>
+    <tr><td>co2_timer_v2_THT_assembly.md</td><td>THT hand-solder instructions for CM assembly step</td></tr>
+    <tr><td>CO2 Timer Enclosure Drilling.md</td><td>Enclosure drilling guide with 1:1 lid template reference</td></tr>
+    <tr><td>CO2 Timer v2 Schematic BOM.md</td><td>Schematic netlist, full BOM, test procedure</td></tr>
+    <tr><td>co2 timer v2.kicad_sch</td><td>KiCad schematic source</td></tr>
+    <tr><td>co2 timer v2.kicad_pcb</td><td>KiCad PCB layout source</td></tr>
+    <tr><td>firmware/co2_timer_v2/co2_timer_v2.ino</td><td>Arduino firmware source</td></tr>
+    <tr><td>firmware/co2_timer_v2/flash.sh</td><td>avrdude flash script (sets fuses + programs chip)</td></tr>
+    <tr><td>GreenGuard_CO2_Timer_SpecSheet_v2_source.html</td><td>This document — print to PDF for customer-facing spec sheet</td></tr>
+  </table>
+
+  <div class="callout info" style="margin-top:14px;">
+    <strong>Power input note:</strong> J1 accepts 9 V battery (snap connector) or 9 V DC wall adapter (via rear barrel jack pigtail). Do not connect both simultaneously. D1 provides reverse-polarity protection for both paths. The 12 V-rated solenoid operates at reduced force from 9 V — this is an accepted design tradeoff. Bench-test solenoid opening at 9 V with CO2 pressure before production commitment.
+  </div>
+
+  <div class="footer">
+    <span>GreenGuard USA · admin@greenguard-usa.com · greenguard-usa.com</span>
+    <span>Timer-001 Rev 2.0 · 2026-06-18 · Confidential — not for distribution</span>
+  </div>
+
+</div><!-- /sheet -->
+</body>
+</html>

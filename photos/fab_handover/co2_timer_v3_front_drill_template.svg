@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GreenGuard CO2 Trap Timer v3 — Front Face Drill Template
+  Face: 65 mm × 40 mm (shorter end face of Hammond 1554CGY)
+  Print at 100% scale (NO scaling). Verify 65×40 mm outer rectangle before drilling.
+  Coordinates in mm from top-left corner of front face.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="65mm" height="40mm"
+     viewBox="0 0 65 40">
+
+  <style>
+    text { font-family: Arial, sans-serif; }
+  </style>
+
+  <!-- Background / border -->
+  <rect x="0" y="0" width="65" height="40" fill="white" stroke="#999" stroke-width="0.3" stroke-dasharray="2,1"/>
+
+  <!-- Label -->
+  <text x="0.8" y="3.2" font-size="2" fill="#999">GreenGuard CO2 Timer v3 — FRONT FACE DRILL TEMPLATE — Print at 100% — Verify 65×40 mm</text>
+
+  <!-- ── Display window (38×12 mm, origin X=13, Y=10) ── -->
+  <rect x="13" y="10" width="38" height="12" fill="none" stroke="#1b5e20" stroke-width="0.5"/>
+  <!-- Corner crosses -->
+  <line x1="11" y1="10" x2="15" y2="10" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="13" y1="8"  x2="13" y2="12" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="49" y1="10" x2="53" y2="10" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="51" y1="8"  x2="51" y2="12" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="11" y1="22" x2="15" y2="22" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="13" y1="20" x2="13" y2="24" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="49" y1="22" x2="53" y2="22" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="51" y1="20" x2="51" y2="24" stroke="#1b5e20" stroke-width="0.3"/>
+  <text x="32" y="17.5" font-size="2.5" fill="#1b5e20" text-anchor="middle">DISPLAY WINDOW</text>
+  <text x="32" y="20.5" font-size="1.8" fill="#555" text-anchor="middle">38 × 12 mm — mill/file to rectangle</text>
+  <text x="13"  y="8.8"  font-size="1.6" fill="#555">X=13</text>
+  <text x="0.5" y="17"   font-size="1.6" fill="#555">Y=10</text>
+
+  <!-- ── SW1 — UP button — 6 mm dia, center at (18, 30) ── -->
+  <circle cx="18" cy="30" r="3" fill="none" stroke="#1b5e20" stroke-width="0.5"/>
+  <line x1="16" y1="30" x2="20" y2="30" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="18" y1="28" x2="18" y2="32" stroke="#1b5e20" stroke-width="0.3"/>
+  <text x="18" y="35.5" font-size="2" fill="#1b5e20" text-anchor="middle">SW1 UP</text>
+  <text x="18" y="38"   font-size="1.6" fill="#555" text-anchor="middle">6mm (18,30)</text>
+
+  <!-- ── SW2 — SET button — 6 mm dia, center at (34, 30) ── -->
+  <circle cx="34" cy="30" r="3" fill="none" stroke="#1b5e20" stroke-width="0.5"/>
+  <line x1="32" y1="30" x2="36" y2="30" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="34" y1="28" x2="34" y2="32" stroke="#1b5e20" stroke-width="0.3"/>
+  <text x="34" y="35.5" font-size="2" fill="#1b5e20" text-anchor="middle">SW2 SET</text>
+  <text x="34" y="38"   font-size="1.6" fill="#555" text-anchor="middle">6mm (34,30)</text>
+
+  <!-- ── J5 DC barrel jack — 12 mm dia, center at (52, 20) ── -->
+  <circle cx="52" cy="20" r="6" fill="none" stroke="#1b5e20" stroke-width="0.5"/>
+  <!-- Outer circle (outer flange reference, 12mm dia) -->
+  <circle cx="52" cy="20" r="6" fill="none" stroke="#1b5e20" stroke-width="0.5"/>
+  <!-- Center cross -->
+  <line x1="49" y1="20" x2="55" y2="20" stroke="#1b5e20" stroke-width="0.3"/>
+  <line x1="52" y1="17" x2="52" y2="23" stroke="#1b5e20" stroke-width="0.3"/>
+  <text x="52" y="29.5" font-size="2" fill="#1b5e20" text-anchor="middle">J5 DC JACK</text>
+  <text x="52" y="32"   font-size="1.6" fill="#555" text-anchor="middle">12mm dia (52,20)</text>
+  <text x="52" y="34"   font-size="1.6" fill="#555" text-anchor="middle">5.5/2.1mm barrel</text>
+
+  <!-- Y=30 guide line -->
+  <line x1="0.5" y1="30" x2="15" y2="30" stroke="#ccc" stroke-width="0.2" stroke-dasharray="1,1"/>
+  <text x="0.5" y="29.5" font-size="1.6" fill="#999">Y=30</text>
+
+  <!-- Verification bar: 50 mm -->
+  <line x1="5"  y1="37.5" x2="55" y2="37.5" stroke="#333" stroke-width="0.5"/>
+  <line x1="5"  y1="36"   x2="5"  y2="39"   stroke="#333" stroke-width="0.5"/>
+  <line x1="55" y1="36"   x2="55" y2="39"   stroke="#333" stroke-width="0.5"/>
+  <text x="30" y="36.8" font-size="1.8" fill="#333" text-anchor="middle">50 mm — verify before drilling</text>
+
+  <!-- Corner labels -->
+  <text x="0.5" y="39.5" font-size="1.6" fill="#999">0,0</text>
+  <text x="54"  y="39.5" font-size="1.6" fill="#999">65,40</text>
+
+</svg>

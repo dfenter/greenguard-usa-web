@@ -1,0 +1,28 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>render test</title>
+<style>html,body{margin:0;background:#000}canvas{image-rendering:pixelated}</style></head>
+<body>
+<div id="wrap"><canvas id="screen"></canvas></div>
+<script src="../js/engine.js"></script>
+<script src="../js/sound.js"></script>
+<script src="../js/sprites.js"></script>
+<script src="../js/tiles.js"></script>
+<script src="../js/world.js"></script>
+<script src="../js/dungeon.js"></script>
+<script src="../js/entities.js"></script>
+<script src="../js/game.js"></script>
+<script>
+  // auto-start into overworld gameplay for a visual screenshot (no input needed)
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      try {
+        Game._test.startGame();
+        const l = Game.state.link;
+        l.hasSword = true; l.hasBow = true; l.hasBoomerang = true; l.rupees = 42; l.keys = 2;
+        l.x = 6 * 16; l.y = 6 * 16;
+        // trigger a sword swing so the blade renders
+        Game.state.swordSwung = 8; l.attackTimer = 10;
+      } catch (e) { document.title = 'ERR:' + e.message; }
+    }, 60);
+  });
+</script>
+</body></html>

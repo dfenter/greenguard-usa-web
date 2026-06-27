@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "ok": true,
+  "shape": "package",
+  "anchor": "ok",
+  "learningsUnmerged": [],
+  "stages": {
+    "build": {
+      "ok": true,
+      "exit": 0,
+      "skipped": null
+    },
+    "diff": {
+      "ok": true,
+      "exit": 0,
+      "skipped": null
+    },
+    "validate": {
+      "ok": true,
+      "exit": 0,
+      "skipped": null
+    },
+    "capture": {
+      "ok": null,
+      "exit": null,
+      "skipped": "empty_worklist"
+    }
+  },
+  "verification": {
+    "unchanged": [
+      "AdminChat",
+      "AppointmentDetailDock",
+      "CustomerChat",
+      "CustomerMap",
+      "CustomerPanel",
+      "PortalLayout",
+      "SignaturePad",
+      "StopCard",
+      "TankCalendar"
+    ],
+    "changed": [],
+    "added": [],
+    "removed": [],
+    "pendingGrade": [],
+    "canary": null
+  },
+  "upload": {
+    "any": false,
+    "components": [],
+    "deletePaths": [],
+    "bundle": false,
+    "styling": false,
+    "aux": false
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "projectId": "3f9d45bf-441f-4225-8ad1-6ede7184293a",
+  "pkg": "greenguard-portal",
+  "globalName": "GreenGuardPortal",
+  "shape": "package",
+  "srcDir": "components",
+  "cssEntry": "styles/ds-combined.css",
+  "runtimeFontPrefixes": ["Inter"],
+  "buildCmd": "node build-portal-dist.mjs",
+  "componentSrcMap": {
+    "AdminChat": "components/AdminChat.js",
+    "AppointmentDetailDock": "components/AppointmentDetailDock.js",
+    "CustomerChat": "components/CustomerChat.js",
+    "CustomerMap": "components/CustomerMap.js",
+    "CustomerPanel": "components/CustomerPanel.js",
+    "PortalLayout": "components/PortalLayout.js",
+    "SignaturePad": "components/SignaturePad.js",
+    "StopCard": "components/StopCard.js",
+    "TankCalendar": "components/TankCalendar.js"
+  },
+  "overrides": {
+    "AdminChat": { "cardMode": "single", "primaryStory": "ExpandedPanel" },
+    "CustomerChat": { "cardMode": "single", "primaryStory": "ExpandedPanel" },
+    "AppointmentDetailDock": { "cardMode": "single", "primaryStory": "WithDetails" },
+    "CustomerPanel": { "cardMode": "single", "primaryStory": "ActiveCustomer" },
+    "CustomerMap": { "cardMode": "column" },
+    "PortalLayout": { "cardMode": "single", "primaryStory": "TechnicianNav" }
+  }
+}

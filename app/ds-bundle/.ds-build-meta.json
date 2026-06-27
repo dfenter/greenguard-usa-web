@@ -1,0 +1,11 @@
+{
+  "namespace": "GreenGuardPortal",
+  "source": "greenguard-portal@0.1.0",
+  "shape": "package",
+  "provider": null,
+  "componentCount": 9,
+  "skippedStoryIds": [],
+  "runtimeFontPrefixes": [
+    "Inter"
+  ]
+}
