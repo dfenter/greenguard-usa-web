@@ -61,7 +61,7 @@
 <div id="toast" class="hidden"></div>
 <div id="overlay">
   <h1>MARBLE MANIA</h1>
-  <p>Roll your marble from the <b>start pad</b> to the glowing <b>goal</b>. Stay on the track. Fall off and you respawn, losing precious seconds. Beat all <b>9 courses</b> before the clock runs out.</p>
+  <p>Roll your marble from the <b>start pad</b> to the glowing <b>goal</b>. Stay on the track. Fall off and you respawn, losing precious seconds. Beat all <b>18 courses</b> before the clock runs out. New: yellow <b>springs</b> bounce you up, orange <b>cannons</b> blast you across gaps, purple <b>chutes</b> send you flying downhill.</p>
   <button class="btn" id="startbtn">START</button>
   <div class="keys">Desktop: Arrow Keys / WASD to roll, R to respawn &nbsp;•&nbsp; Phone: drag the on-screen stick (Gyro is optional)</div>
 </div>
@@ -109,6 +109,8 @@ scene.add(worldGroup);
 
 let colliders = [];   // {center:Vector3, half:Vector3, matInv:Matrix4, mat:Matrix4, deadly:bool}
 let enemies   = [];   // {mesh, base:Vector3, axis, range, speed, phase, radius}
+let springs   = [];   // {pos:Vector3, radius, power}
+let cannons   = [];   // {pos:Vector3, radius, vel:Vector3}
 let goalPos = new THREE.Vector3();
 let goalRadius = 2.2;
 let startPos = new THREE.Vector3();
@@ -122,7 +124,7 @@ function clearWorld(){
     o.geometry && o.geometry.dispose();
     worldGroup.remove(o);
   }
-  colliders = []; enemies = []; goalMesh = null;
+  colliders = []; enemies = []; springs = []; cannons = []; goalMesh = null;
 }
 
 // add an oriented box platform
@@ -154,6 +156,29 @@ function box(x,y,z, w,h,d, opts={}){
 
 // low wall rails to keep the marble on track
 function rail(x,y,z,w,h,d,color=0x29406b){ return box(x,y,z,w,h,d,{color}); }
+
+// spring launch pad — yellow coil that kicks the marble upward
+function spring(x,y,z, power=26){
+  box(x,y,z, 3.4,0.4,3.4, {color:0xffe040});
+  for(let i=0;i<3;i++){
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.65,0.14,8,20),
+      new THREE.MeshStandardMaterial({color:0xffe040,metalness:.6,roughness:.2,emissive:0x664400,emissiveIntensity:.5})
+    );
+    ring.position.set(x,y+0.5+i*0.28,z);
+    worldGroup.add(ring);
+  }
+  springs.push({pos:new THREE.Vector3(x,y+0.4,z), radius:2.0, power});
+}
+
+// cannon pad — orange plate that blasts the marble with a set velocity
+function cannon(x,y,z, vx,vy,vz){
+  box(x,y,z, 3.4,0.4,3.4, {color:0xff7700});
+  const dir = new THREE.Vector3(vx,vy,vz).normalize();
+  const arr = new THREE.ArrowHelper(dir, new THREE.Vector3(x,y+0.5,z), 2.8, 0xff9900, 0.8, 0.5);
+  worldGroup.add(arr);
+  cannons.push({pos:new THREE.Vector3(x,y+0.4,z), radius:2.0, vel:new THREE.Vector3(vx,vy,vz)});
+}
 
 function enemy(x,y,z, axis, range, speed, radius=1.0){
   const geo = new THREE.SphereGeometry(radius, 20, 16);
@@ -189,12 +214,20 @@ function pad(x,y,z,c){ box(x,y-0.4,z, 6,0.8,6, {color:c||PAL.pad}); }
 
 const LEVELS = [
 { name:"Practice", build(){
-   startPos.set(0,1.5,18);
-   pad(0,0,18);
-   box(0,0,4, 8,1,32, {color:PAL.track});
-   rail(-4.4,0.6,4, 0.8,1.2,32); rail(4.4,0.6,4, 0.8,1.2,32);
-   pad(0,0,-12,0x2f7e9e);
-   makeGoal(0,0.4,-12);
+   startPos.set(0,1.5,16);
+   pad(0,0,16);
+   // leg 1 — straight down -z
+   box(0,0,2, 8,1,30, {color:PAL.track});                 // z -13..17
+   rail(-4.4,0.6,4, 0.8,1.2,24); rail(4.4,0.6,4, 0.8,1.2,24);
+   // turn left — leg 2 along -x
+   box(-13,0,-12, 34,1,8, {color:PAL.track2});             // x -30..4
+   rail(-13,0.6,-16.4, 34,1.2,0.8);                         // back edge
+   rail(-15,0.6,-7.6, 26,1.2,0.8);                          // front edge (corners open)
+   // turn — leg 3 back up +z
+   box(-28,0,2, 8,1,30, {color:PAL.track});                // z -13..17, x -32..-24
+   rail(-32.4,0.6,0, 0.8,1.2,24); rail(-23.6,0.6,0, 0.8,1.2,24);
+   pad(-28,0,14,0x2f7e9e);
+   makeGoal(-28,0.4,14);
 }},
 
 { name:"Beginner", build(){
@@ -276,18 +309,18 @@ const LEVELS = [
 }},
 
 { name:"Aerial", build(){
-   startPos.set(0,2.5,22);
-   pad(0,1,22);
-   box(0,1,16, 8,1,8,{color:PAL.track});
-   // launch ramp then floating islands
-   box(0,1.4,9, 8,1,8,{color:PAL.ramp, rotX:-0.35});
-   box(0,3,-1, 7,1,7,{color:PAL.track2});
-   box(0,3,-12, 6,1,6,{color:PAL.track2});
-   box(-8,3,-20, 6,1,6,{color:PAL.track2});
-   box(4,3,-28, 6,1,6,{color:PAL.track2});
-   enemy(0,4.4,-12,'x',2.2,2.0,1.0);
-   pad(4,3,-28,0x2f7e9e);
-   makeGoal(4,3.4,-28);
+   // roll to cannon pad → blast to floating islands that descend
+   startPos.set(0,1.5,22);
+   pad(0,0,22);
+   box(0,0,14, 8,1,12, {color:PAL.track});
+   rail(-4.4,0.7,14, 0.8,1.2,12, PAL.rail); rail(4.4,0.7,14, 0.8,1.2,12, PAL.rail);
+   cannon(0,0,7, 0,16,-22);
+   box(0,3,-9,  7,1,7, {color:PAL.track2});
+   enemy(0,4.4,-9,'x',2.0,2.0,1.0);
+   box(0,2,-18, 6,1,6, {color:PAL.track2});
+   box(0,1,-26, 7,1,7, {color:PAL.track});
+   pad(0,1,-26,0x2f7e9e);
+   makeGoal(0,1.4,-26);
 }},
 
 { name:"Switchback", build(){
@@ -327,6 +360,180 @@ const LEVELS = [
    enemy(10,4.2,-16,'x',2.2,1.9,1.0);
    pad(10,3,-30,0x2f7e9e);
    makeGoal(10,3.4,-30);
+}},
+
+// ---- NEW LEVELS (10-18) ----
+
+{ name:"Chutes", build(){
+  // Two steep slides — fast descents down purple chutes
+  startPos.set(0,22,24);
+  pad(0,21,24);
+  box(0,21,16,8,1,8,{color:PAL.track});
+  // chute 1 (rotX=-0.5 → back edge high, front edge low; marble slides in -z)
+  box(0,16,3,5,0.7,18,{color:0x7a4fc8,rotX:-0.5});
+  rail(-3.2,16.8,3,0.7,1.4,18,0x4a2a88); rail(3.2,16.8,3,0.7,1.4,18,0x4a2a88);
+  // mid-platform catch
+  box(0,9,-8,10,1,14,{color:PAL.track2});
+  rail(-5.4,9.7,-8,0.7,1.4,14,PAL.rail); rail(5.4,9.7,-8,0.7,1.4,14,PAL.rail);
+  // chute 2
+  box(0,3.5,-22,5,0.7,14,{color:0x7a4fc8,rotX:-0.52});
+  rail(-3.2,4.3,-22,0.7,1.4,14,0x4a2a88); rail(3.2,4.3,-22,0.7,1.4,14,0x4a2a88);
+  box(0,0,-32,8,1,8,{color:PAL.track});
+  pad(0,0,-32,0x2f7e9e); makeGoal(0,0.4,-32);
+}},
+
+{ name:"Bounce", build(){
+  // Spring pads launch the marble to elevated islands
+  startPos.set(0,1.5,18);
+  pad(0,0,18);
+  box(0,0,10,8,1,8,{color:PAL.track});
+  spring(0,0,10,28);
+  box(0,13,1,8,1,8,{color:PAL.track2});
+  spring(0,13,1,28);
+  box(-6,26,-8,8,1,8,{color:PAL.track2});
+  spring(-6,26,-8,28);
+  box(4,39,-16,9,1,9,{color:PAL.track});
+  pad(4,39,-16,0x2f7e9e); makeGoal(4,39.4,-16);
+}},
+
+{ name:"Cannons", build(){
+  // Three sequential cannon blasts across open gaps — verified trajectories
+  // vy=22 → t=1.571s flat; cannon 3 vy=28 rises to y=4 goal in t≈1.85s
+  startPos.set(-20,1.5,2);
+  pad(-20,0,2);
+  box(-20,0,2, 8,1,8, {color:PAL.track});
+  cannon(-20,0,2, 19,22,0);
+  // island 2 — marble arrives at (≈10, 1.45, 2)
+  box(10,0,2, 8,1,8, {color:PAL.track2});
+  cannon(10,0,2, 0,22,-20);
+  // island 3 — marble arrives at (10, 1.45, ≈-29)
+  box(10,0,-30, 8,1,8, {color:PAL.track2});
+  cannon(10,0,-30, 16,28,0);
+  // goal island elevated — marble arrives at (≈40, 5.2, -30) hits platform top
+  box(40,4,-30, 9,1,9, {color:PAL.track});
+  pad(40,4,-30, 0x2f7e9e); makeGoal(40,4.4,-30);
+}},
+
+{ name:"Mixdown", build(){
+  // Chute → spring → island combo
+  startPos.set(0,18,22);
+  pad(0,17,22);
+  box(0,17,14,8,1,8,{color:PAL.track});
+  // chute 1
+  box(0,11,2,5,0.7,16,{color:0x7a4fc8,rotX:-0.5});
+  rail(-3.2,11.8,2,0.7,1.4,16,0x4a2a88); rail(3.2,11.8,2,0.7,1.4,16,0x4a2a88);
+  // landing + spring
+  box(0,4,-8,9,1,9,{color:PAL.track2});
+  spring(0,4,-8,26);
+  // bounce to island
+  box(0,15,-18,7,1,7,{color:PAL.track2});
+  // chute 2 off the island
+  box(8,9,-28,5,0.7,14,{color:0x7a4fc8,rotX:-0.48});
+  rail(4.8,9.8,-28,0.7,1.4,14,0x4a2a88); rail(11.2,9.8,-28,0.7,1.4,14,0x4a2a88);
+  box(8,4,-38,8,1,8,{color:PAL.track});
+  pad(8,4,-38,0x2f7e9e); makeGoal(8,4.4,-38);
+}},
+
+{ name:"Blitz", build(){
+  // Cannon launch onto a gauntlet bridge then another cannon out
+  startPos.set(-22,1.5,0);
+  pad(-22,0,0);
+  box(-22,0,0,6,1,6,{color:PAL.track});
+  cannon(-22,0,0, 32,8,0);
+  // narrow enemy bridge
+  box(0,3,0,4,1,28,{color:PAL.track2});
+  rail(-2.4,3.7,0,0.7,1.6,28,PAL.rail); rail(2.4,3.7,0,0.7,1.6,28,PAL.rail);
+  enemy(0,4.4,6,'x',1.6,2.2,1.0);
+  enemy(0,4.4,-4,'x',1.6,2.8,1.0);
+  enemy(0,4.4,-14,'x',1.6,1.9,1.0);
+  box(0,3,-18,6,1,6,{color:PAL.track});
+  cannon(0,3,-18, 0,14,-30);
+  box(0,7,-40,9,1,9,{color:PAL.track});
+  pad(0,7,-40,0x2f7e9e); makeGoal(0,7.4,-40);
+}},
+
+{ name:"Tower", build(){
+  // Bounce your way to the top — four spring jumps ascending
+  startPos.set(0,1.5,18);
+  pad(0,0,18);
+  box(0,0,10,8,1,8,{color:PAL.track});
+  spring(0,0,10,30);
+  box(4,14,2,8,1,8,{color:PAL.track2});
+  spring(4,14,2,30);
+  box(-4,28,-6,8,1,8,{color:PAL.track2});
+  spring(-4,28,-6,30);
+  box(4,42,-14,10,1,10,{color:PAL.track});
+  pad(4,42,-14,0x2f7e9e); makeGoal(4,42.4,-14);
+}},
+
+{ name:"Cascades", build(){
+  // Twin diagonal slides with enemy at the bottom
+  startPos.set(18,22,20);
+  pad(18,21,20);
+  // cascade 1: RIGHT HIGH → LEFT LOW (rotZ=+0.28)
+  box(-3,14,20,30,0.8,5,{color:0x7a4fc8,rotZ:0.28});
+  rail(-3,15.4,17,30,1.4,0.7,0x4a2a88); rail(-3,15.4,23,30,1.4,0.7,0x4a2a88);
+  // transition shelf at left exit
+  box(-18,10,12,6,1,16,{color:PAL.track2});
+  // cascade 2: LEFT HIGH → RIGHT LOW (rotZ=-0.28)
+  box(-3,5.6,6,30,0.8,5,{color:0x7a4fc8,rotZ:-0.28});
+  rail(-3,7,3,30,1.4,0.7,0x4a2a88); rail(-3,7,9,30,1.4,0.7,0x4a2a88);
+  // finish run
+  box(12,2,-4,6,1,16,{color:PAL.track});
+  enemy(12,3.2,-4,'z',3.5,1.8,1.1);
+  box(12,2,-16,8,1,8,{color:PAL.track});
+  pad(12,2,-16,0x2f7e9e); makeGoal(12,2.4,-16);
+}},
+
+{ name:"Chaos", build(){
+  // All mechanics — enemies, chutes, cannon, spring
+  startPos.set(0,1.5,26);
+  pad(0,0,26);
+  box(0,0,18,5,1,10,{color:PAL.track});
+  rail(-2.9,0.7,18,0.7,1.4,10,PAL.rail); rail(2.9,0.7,18,0.7,1.4,10,PAL.rail);
+  enemy(0,1.4,18,'x',1.5,2.6,1.0);
+  box(0,0,8,6,1,6,{color:PAL.track});
+  cannon(0,0,8, 0,14,-32);
+  // far island
+  box(0,4,-16,7,1,7,{color:PAL.track2});
+  // chute off island
+  box(0,0,-26,5,0.7,12,{color:0x7a4fc8,rotX:-0.5});
+  rail(-3.2,0.8,-26,0.7,1.4,12,0x4a2a88); rail(3.2,0.8,-26,0.7,1.4,12,0x4a2a88);
+  // deep canyon landing + spring
+  box(0,-7,-34,8,1,8,{color:PAL.track2});
+  spring(0,-7,-34,30);
+  // spring target
+  box(0,6,-44,8,1,8,{color:PAL.track});
+  enemy(0,7.4,-44,'x',2.0,2.3,1.0);
+  pad(0,6,-44,0x2f7e9e); makeGoal(0,6.4,-44);
+}},
+
+{ name:"Grandmaster", build(){
+  // The final test — every mechanic, unforgiving geometry
+  startPos.set(0,1.5,28);
+  pad(0,0,28);
+  // tight guarded approach
+  box(0,0,18,4,1,14,{color:PAL.track});
+  rail(-2.4,0.7,18,0.7,1.4,14,PAL.rail); rail(2.4,0.7,18,0.7,1.4,14,PAL.rail);
+  enemy(0,1.4,18,'x',1.5,3.0,1.0);
+  // cannon launch
+  box(0,0,8,6,1,6,{color:PAL.track});
+  cannon(0,0,8, 0,16,-34);
+  // mid cluster
+  box(-6,6,-4,5,1,5,{color:PAL.track2});
+  box(6,6,-4,5,1,5,{color:PAL.track2});
+  box(0,6,-10,5,1,5,{color:PAL.track2});
+  spring(0,6,-10,26);
+  // chute up (launch ramp to high platform)
+  box(0,14,-20,5,0.8,14,{color:0x7a4fc8,rotX:0.4});
+  box(8,20,-28,7,1,7,{color:PAL.track2});
+  enemy(8,21.4,-28,'x',2.0,3.2,1.1);
+  cannon(8,20,-28, -28,12,-6);
+  // final island + spring up to goal
+  box(-16,25,-34,7,1,7,{color:PAL.track2});
+  spring(-16,25,-34,28);
+  box(-16,38,-42,10,1,10,{color:PAL.track});
+  pad(-16,38,-42,0x2f7e9e); makeGoal(-16,38.4,-42);
 }},
 ];
 
@@ -480,7 +687,7 @@ let timeLeft = 0;
 let falls = 0;
 let clock = new THREE.Clock();
 
-const TIME_PER_LEVEL = [30,35,40,40,45,50,50,55,70]; // generous, carries over
+const TIME_PER_LEVEL = [30,35,40,40,45,50,50,55,70, 60,65,65,70,70,75,80,90,120]; // carries over
 
 const hud = document.getElementById('hud');
 const overlay = document.getElementById('overlay');
@@ -519,7 +726,7 @@ function doFlash(col){
 function startGame(){
   state='play'; level=0; falls=0;
   document.getElementById('falls').textContent='0';
-  timeLeft = TIME_PER_LEVEL[0];
+  timeLeft = 700;
   overlay.classList.add('hidden');
   hud.classList.remove('hidden');
   const mobile = ('ontouchstart' in window) || matchMedia('(pointer:coarse)').matches;
@@ -711,6 +918,30 @@ function updateEnemies(t, dt){
   }
 }
 
+function updateSprings(){
+  for(const s of springs){
+    const dx=marble.position.x-s.pos.x, dz=marble.position.z-s.pos.z;
+    const dy=marble.position.y-s.pos.y;
+    if(dx*dx+dz*dz < s.radius*s.radius && dy>0 && dy<2.4 && vel.y<4){
+      vel.y = s.power;
+      doFlash('rgba(255,220,0,.4)');
+      toast('SPRING!');
+    }
+  }
+}
+
+function updateCannons(){
+  for(const c of cannons){
+    const dx=marble.position.x-c.pos.x, dz=marble.position.z-c.pos.z;
+    const dy=marble.position.y-c.pos.y;
+    if(dx*dx+dz*dz < c.radius*c.radius && dy>0 && dy<2.4){
+      vel.copy(c.vel);
+      doFlash('rgba(255,140,0,.4)');
+      toast('LAUNCH!');
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 //  Camera follow (isometric-ish)
 // ---------------------------------------------------------------------------
@@ -747,6 +978,8 @@ function frame(){
     const sdt = dt/steps;
     for(let i=0;i<steps && state==='play';i++) physics(sdt);
     updateEnemies(elapsed, dt);
+    updateSprings();
+    updateCannons();
 
     timeLeft -= dt;
     const tEl = document.getElementById('time');

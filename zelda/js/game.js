@@ -296,6 +296,7 @@ const Game = (() => {
     const ret = state.cave.ret; state.cave = null; state.msg = null;
     loadOverworld(ret.col, ret.row, ret.pos);
     state.link.dir = 'down';
+    saveGame();
   }
 
   function enterDungeon(level, tile) {
@@ -316,10 +317,62 @@ const Game = (() => {
     // place Link on the open tile just below the dungeon entrance
     const pos = ret.tile ? freeBelow(ret.tile.c, ret.tile.r + 1) : [7 * 16, 8 * 16];
     state.link.x = pos[0]; state.link.y = pos[1]; state.link.dir = 'down';
+    saveGame();
   }
 
   // ---------- messages ----------
   function showMsg(text, frames) { state.msg = text; state.msgT = frames; Sound.SFX.text(); }
+
+  // ---------- save / continue (localStorage) ----------
+  const SAVE_KEY = 'zelda_save_v1';
+  const LINK_SAVE_KEYS = [
+    'maxHealth','health','bombs','rupees','keys','swordDmg','bItem','triforce',
+    'hasSword','hasBow','hasBoomerang','hasBomb','hasShield','hasCandle','hasRing',
+    'hasFireRod','hasSilverArrows','hasWhiteSword','hasMagicSword','hasStepladder',
+    'hasRaft','hasMagicKey',
+  ];
+  function saveGame() {
+    try {
+      const l = state.link;
+      // anchor: current overworld screen, or the overworld return point if inside
+      let col = state.col, row = state.row, x = l.x, y = l.y;
+      if (state.level && state.prevReturn) {
+        col = state.prevReturn.col; row = state.prevReturn.row;
+        x = 7 * 16; y = 8 * 16;
+      } else if (state.cave && state.cave.ret) {
+        col = state.cave.ret.col; row = state.cave.ret.row;
+        x = state.cave.ret.pos[0]; y = state.cave.ret.pos[1];
+      }
+      const link = {};
+      for (const k of LINK_SAVE_KEYS) link[k] = l[k];
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        v: 1, col, row, x, y,
+        triforces: state.triforces,
+        cleared: [...state.cleared],
+        taken: [...state.taken],
+        unlocked: [...unlocked],
+        link,
+      }));
+    } catch (e) { /* storage unavailable (private mode etc.) — play on */ }
+  }
+  function hasSave() {
+    try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; }
+  }
+  function loadGame() {
+    let data;
+    try { data = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return false; }
+    if (!data || data.v !== 1) return false;
+    startGame();   // fresh baseline, then overlay the save
+    const l = state.link;
+    for (const k of LINK_SAVE_KEYS) if (data.link && k in data.link) l[k] = data.link[k];
+    l.health = Math.max(6, Math.min(l.maxHealth, l.health || 0));   // continue with ≥3 hearts
+    state.cleared = new Set(data.cleared || []);
+    state.taken = new Set(data.taken || []);
+    unlocked.clear(); (data.unlocked || []).forEach(u => unlocked.add(u));
+    state.triforces = data.triforces || 0;
+    if (World.get(data.col, data.row)) loadOverworld(data.col, data.row, [data.x, data.y]);
+    return true;
+  }
 
   // ---------- callbacks from entities ----------
   state.solidAt = solidAt;
@@ -353,8 +406,8 @@ const Game = (() => {
           showMsg('YOU GOT THE MAGIC SWORD!', 200);
         } else {
           showMsg('ONLY THE WORTHY MAY TAKE THE MAGIC SWORD.', 200);
-          // Return the item to world (don't consume it)
-          it.alive = true; state.entities.push(it); return;
+          it._keep = true;   // refuse the pickup — item stays in the world
+          return;
         }
         break;
       case 'stepladder':
@@ -375,7 +428,7 @@ const Game = (() => {
         else { showMsg('A TRIFORCE PIECE! (' + state.triforces + ' OF ' + Dungeon.count + ')', 220); state._warpOut = true; }
         return;
     }
-    if (it._unique) state.taken.add(it._unique);
+    if (it._unique) { state.taken.add(it._unique); saveGame(); }
   }
 
   function onEnemyKilled(e) {
@@ -416,12 +469,18 @@ const Game = (() => {
       case 'down':  return { x: l.x + 5, y: l.y + 11, w: 7, h: 15 };
     }
   }
+  // 360° spin attack: every swing hits all enemies within a radius of Link,
+  // not just the facing rectangle.
+  const SWORD_RADIUS = 26;
   function doSwordHits() {
     if (state.swordSwung <= 0) return;
-    const sr = swordRect();
+    const lx = state.link.x + 8, ly = state.link.y + 8;
     for (const en of state.entities) {
-      if (en.kind === 'enemy' && en.alive !== false && E.overlap(sr, E.hitbox(en))) {
-        en.hurt(state, state.link.swordDmg || 1, state.link.x + 8, state.link.y + 8);
+      if (en.kind !== 'enemy' || en.alive === false || en.hidden) continue;
+      const hb = E.hitbox(en);
+      const ex = hb.x + hb.w / 2, ey = hb.y + hb.h / 2;
+      if (Math.hypot(ex - lx, ey - ly) <= SWORD_RADIUS + Math.max(hb.w, hb.h) / 2) {
+        en.hurt(state, state.link.swordDmg || 1, lx, ly);
       }
     }
   }
@@ -447,14 +506,15 @@ const Game = (() => {
   // ---------- update ----------
   function update() {
     const P = Engine.pressed;
-    if (P.mute) { const m = Sound.toggleMute(); state.muteFlash = 60; }
+    if (P.mute) { Sound.toggleMute(); state.muteFlash = 60; }
 
     if (state.mode === 'title') {
       if (P.start || P.a) { Sound.ensure(); Sound.startMusic(); startGame(); }
+      else if (P.cont && hasSave()) { Sound.ensure(); Sound.startMusic(); loadGame(); }
       return;
     }
     if (state.mode === 'gameover') {
-      if (P.start || P.a) startGame();
+      if (P.start || P.a) { if (!hasSave() || !loadGame()) startGame(); }   // continue from last save
       if (state.msgT > 0) state.msgT--;
       return;
     }
@@ -466,7 +526,7 @@ const Game = (() => {
     if (state.mode === 'scroll') {
       const s = state.scroll;
       s.t++;
-      if (s.t >= s.max) { s.finalize(); state.mode = state.prevMode === 'dungeon' ? 'dungeon' : (state.level ? 'dungeon' : 'overworld'); state.scroll = null; }
+      if (s.t >= s.max) { s.finalize(); state.mode = state.prevMode === 'dungeon' ? 'dungeon' : (state.level ? 'dungeon' : 'overworld'); state.scroll = null; saveGame(); }
       return;
     }
 
@@ -592,13 +652,21 @@ const Game = (() => {
 
   function drawSword(ctx) {
     if (state.swordSwung <= 0 || !state.link.hasSword) return;
-    const r = swordRect(); const l = state.link;
-    ctx.fillStyle = '#e8e8e8'; ctx.fillStyle = '#d0d0f8';
-    // blade
-    ctx.fillStyle = '#f8f8f8';
-    if (l.dir === 'left' || l.dir === 'right') ctx.fillRect(r.x, r.y + 1, r.w, 4);
-    else ctx.fillRect(r.x + 1, r.y, 4, r.h);
-    // hilt
+    const l = state.link;
+    // 360° spin: blades in all four directions, facing blade brightest
+    const blades = {
+      right: { x: l.x + 11, y: l.y + 6, w: 15, h: 4 },
+      left:  { x: l.x - 10, y: l.y + 6, w: 15, h: 4 },
+      up:    { x: l.x + 6,  y: l.y - 10, w: 4, h: 15 },
+      down:  { x: l.x + 6,  y: l.y + 11, w: 4, h: 15 },
+    };
+    for (const d in blades) {
+      const b = blades[d];
+      ctx.fillStyle = d === l.dir ? '#f8f8f8' : '#a8a8c8';
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+    }
+    // hilt on the facing blade
+    const r = swordRect();
     ctx.fillStyle = '#f8d030';
     if (l.dir === 'right') ctx.fillRect(r.x - 2, r.y, 3, 7);
     if (l.dir === 'left') ctx.fillRect(r.x + r.w - 1, r.y, 3, 7);
@@ -729,7 +797,8 @@ const Game = (() => {
     Engine.text(ctx, 'THE LEGEND OF', cx - 52, 96, '#fff', 1);
     Engine.text(ctx, 'Z E L D A', cx - 56, 112, '#f8d030', 2);
     ctx.strokeStyle = '#f8d030'; ctx.strokeRect(28.5, 108.5, 200, 22);
-    if (((Date2()) & 1)) Engine.text(ctx, 'PRESS  START', cx - 48, 168, '#fff');
+    if (((Date2()) & 1)) Engine.text(ctx, 'PRESS  START', cx - 48, 160, '#fff');
+    if (hasSave()) Engine.text(ctx, 'C - CONTINUE', cx - 48, 176, '#7dbc8a');
     Engine.text(ctx, 'A CLONE - 2026', cx - 56, 200, '#888');
     Engine.text(ctx, 'ARROWS MOVE  Z SWORD  X BOMB', 16, 220, '#666');
   }
@@ -769,7 +838,7 @@ const Game = (() => {
 
   return { init, state,
     // test hooks (harmless; enable headless integration testing)
-    _test: { loadOverworld, loadDungeonRoom, enterDungeon, enterCave, exitCave, exitDungeon, startGame, collect } };
+    _test: { loadOverworld, loadDungeonRoom, enterDungeon, enterCave, exitCave, exitDungeon, startGame, collect, saveGame, loadGame, hasSave } };
 })();
 
 // Scripts are at bottom of <body> so DOM is ready — no need to wait for window.load.

@@ -42,10 +42,10 @@ const Entities = (() => {
     return {
       kind:'link', x:px, y:py, w:16, h:16, dir:'down',
       speed:1.4, moving:false, animTimer:0, frame:0,
-      maxHealth:6, health:6,            // half-hearts (3 hearts)
+      maxHealth:18, health:18,          // half-hearts (9 hearts)
       attackTimer:0, invuln:0, knock:null,
       bombs:8, rupees:0, keys:0,
-      hasSword:false, hasBow:false, hasBoomerang:false, hasBomb:true,
+      hasSword:false, hasBow:false, hasBoomerang:false, hasBomb:true, hasShield:true,
       hasCandle:false, hasRing:false, hasFireRod:false, hasSilverArrows:false,
       hasWhiteSword:false, hasMagicSword:false, hasStepladder:false, hasRaft:false, hasMagicKey:false,
       swordDmg:1,
@@ -166,8 +166,8 @@ const Entities = (() => {
       e.knock.t--; if (e.knock.t <= 0) e.knock = null;
     }
     e.animTimer++; if (e.animTimer >= 12) { e.animTimer = 0; e.frame ^= 1; }
-    // contact damage
-    if (overlap(hitbox(e), hitbox(game.link)))
+    // contact damage (submerged/hidden enemies are intangible)
+    if (!e.hidden && overlap(hitbox(e), hitbox(game.link)))
       game.link.hurt(game, e.touchDmg, e.x + 8, e.y + 8);
   }
   function enemyHurt(e, game, dmg, kx, ky) {
@@ -353,8 +353,12 @@ const Entities = (() => {
   function wizzrobeUpdate(e, game) {
     if (--e.teleTimer <= 0) {
       e.teleTimer = game.randInt(50, 80);
-      e.x = 16 + Math.floor(game.rand() * 12) * 16;
-      e.y = 16 + Math.floor(game.rand() * 8) * 16;
+      // retry teleports that would land inside a solid tile
+      for (let tries = 0; tries < 12; tries++) {
+        const nx = 16 + Math.floor(game.rand() * 12) * 16;
+        const ny = 16 + Math.floor(game.rand() * 8) * 16;
+        if (!game.solidAt(nx + 8, ny + 8)) { e.x = nx; e.y = ny; break; }
+      }
     }
     if (--e.shootTimer <= 0) {
       e.shootTimer = game.randInt(60, 100);
@@ -599,14 +603,27 @@ const Entities = (() => {
         if (this.x < -8 || this.x > 264 || this.y < -8 || this.y > 184) this.alive = false;
         if (this.fromEnemy) {
           if (overlap(hitbox(this), hitbox(game.link))) {
-            game.link.hurt(game, this.damage, this.x, this.y);
+            // shield: blocks rock/spear/arrow coming at Link's facing side
+            // (not while mid-swing; fireballs and magic beams punch through)
+            const l = game.link;
+            const BLOCKABLE = { rock:1, spear:1, arrow:1 };
+            if (l.hasShield && l.attackTimer <= 0 && BLOCKABLE[this.ptype]) {
+              const fromDir = Math.abs(this.vx) > Math.abs(this.vy)
+                ? (this.vx > 0 ? 'left' : 'right')   // travelling right → hits Link's left-facing shield
+                : (this.vy > 0 ? 'up' : 'down');
+              if (l.dir === fromDir) {
+                this.alive = false;
+                Sound.SFX.enemyHit();   // deflect clink
+                return;
+              }
+            }
+            l.hurt(game, this.damage, this.x, this.y);
             this.alive = false;
           }
         } else {
           for (const en of game.entities) {
-            if (en.kind === 'enemy' && en.alive !== false && overlap(hitbox(this), hitbox(en))) {
+            if (en.kind === 'enemy' && en.alive !== false && !en.hidden && overlap(hitbox(this), hitbox(en))) {
               en.hurt(game, this.damage, this.x, this.y);
-              if (this.ptype !== 'beam') this.alive = false;   // beams pierce a bit less
               this.alive = false;
               break;
             }
@@ -668,7 +685,7 @@ const Entities = (() => {
         }
         // stun enemies, collect items
         for (const en of game.entities) {
-          if (en.kind === 'enemy' && en.alive !== false && overlap(hitbox(this), hitbox(en))) {
+          if (en.kind === 'enemy' && en.alive !== false && !en.hidden && overlap(hitbox(this), hitbox(en))) {
             en.flash = 12; en.knock = { dx:this.vx*2, dy:this.vy*2, t:8 };
             if (en.hp <= 1) en.hurt(game, 1, this.x, this.y);
           }
@@ -694,7 +711,7 @@ const Entities = (() => {
           this.exploding--; this.w = 40; this.h = 40; this.x = this._cx-20; this.y = this._cy-20;
           // damage enemies in blast
           for (const en of game.entities) {
-            if (en.kind === 'enemy' && en.alive !== false && overlap(hitbox(this), hitbox(en)))
+            if (en.kind === 'enemy' && en.alive !== false && !en.hidden && overlap(hitbox(this), hitbox(en)))
               en.hurt(game, 4, this._cx, this._cy);
           }
           if (this.exploding <= 0) this.alive = false;
@@ -730,7 +747,13 @@ const Entities = (() => {
       update(game) {
         this.t++;
         if (this.life && !this.permanent && --this.life <= 0) this.alive = false;
-        if (overlap(hitbox(this), hitbox(game.link))) { game.collect(this); this.alive = false; }
+        if (this._refuseCD > 0) { this._refuseCD--; }
+        else if (overlap(hitbox(this), hitbox(game.link))) {
+          game.collect(this);
+          // collect() sets _keep to refuse the pickup (e.g. unworthy of magic sword)
+          if (this._keep) { this._keep = false; this._refuseCD = 90; }
+          else this.alive = false;
+        }
       },
       draw(ctx, ox, oy) { drawItem(this, ctx, ox, oy); }
     };

@@ -1,9 +1,10 @@
 {
   "name": "Zelda Clone",
   "short_name": "Zelda",
-  "start_url": "/zelda/",
+  "start_url": ".",
+  "scope": ".",
   "display": "fullscreen",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [

@@ -2,6 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+  // Resolve relative asset paths (js/, manifest.json) to THIS page's folder.
+  // Vercel serves clean URLs without a trailing slash (e.g. /zelda), so a bare
+  // "js/engine.js" would otherwise resolve to /js/engine.js (404 -> nothing loads).
+  // Add a <base> only when the URL has no trailing slash and isn't a file path,
+  // so local file:// opens and root-served copies keep working unchanged.
+  (function () {
+    var path = location.pathname;
+    if (!/\/$/.test(path) && !/\.[a-z0-9]+$/i.test(path)) {
+      document.write('<base href="' + path + '/">');
+    }
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -144,13 +157,13 @@
   };
   dbg('loading scripts...');
 </script>
-<script src="js/engine.js?v=11"></script><script>dbg('engine ok');</script>
-<script src="js/sound.js?v=11"></script><script>dbg('sound ok');</script>
-<script src="js/sprites.js?v=11"></script><script>dbg('sprites ok');</script>
-<script src="js/tiles.js?v=11"></script><script>dbg('tiles ok');</script>
-<script src="js/world.js?v=11"></script><script>dbg('world ok');</script>
-<script src="js/dungeon.js?v=11"></script><script>dbg('dungeon ok');</script>
-<script src="js/entities.js?v=11"></script><script>dbg('entities ok');</script>
-<script src="js/game.js?v=11"></script>
+<script src="js/engine.js?v=13"></script><script>dbg('engine ok');</script>
+<script src="js/sound.js?v=13"></script><script>dbg('sound ok');</script>
+<script src="js/sprites.js?v=13"></script><script>dbg('sprites ok');</script>
+<script src="js/tiles.js?v=13"></script><script>dbg('tiles ok');</script>
+<script src="js/world.js?v=13"></script><script>dbg('world ok');</script>
+<script src="js/dungeon.js?v=13"></script><script>dbg('dungeon ok');</script>
+<script src="js/entities.js?v=13"></script><script>dbg('entities ok');</script>
+<script src="js/game.js?v=13"></script>
 </body>
 </html>

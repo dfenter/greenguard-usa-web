@@ -34,7 +34,15 @@
       <span class="text-cream/55 text-sm font-semibold">Subtotal</span>
       <span id="cart-subtotal" class="text-white font-black text-2xl">$0.00</span>
     </div>
-    <p class="text-cream/30 text-xs mb-5">Shipping and tax calculated at checkout</p>
+    <p class="text-cream/30 text-xs mb-3">Tax calculated at checkout</p>
+
+    <div class="mb-4">
+      <label for="cart-zip" class="block text-cream/55 text-xs font-semibold mb-1">Delivery ZIP</label>
+      <input id="cart-zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="78704"
+        class="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+        style="background:rgba(255,255,255,0.04);border:1px solid rgba(122,171,130,0.25);" />
+      <p id="cart-ship-note" class="text-cream/35 text-xs mt-1.5">Austin-area delivery is free. Outside Austin, shipping is added at checkout.</p>
+    </div>
 
     <button
       id="checkout-btn"
@@ -189,11 +197,13 @@ async function checkout() {
     ga_client_id: ga ? ga.split('.').slice(-2).join('.') : '',
   };
 
+  const zip = ((document.getElementById('cart-zip') as HTMLInputElement | null)?.value || '').trim();
+
   try {
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: cart, attribution }),
+      body: JSON.stringify({ items: cart, attribution, zip }),
     });
     const data = await res.json();
     if (data.url) {
@@ -202,7 +212,28 @@ async function checkout() {
     } else { throw new Error(data.error || 'Checkout failed'); }
   } catch (e: any) {
     if (btn) { btn.textContent = 'Proceed to Checkout'; btn.disabled = false; btn.style.opacity = '1'; }
-    if (errEl) { errEl.textContent = `Something went wrong. Call 512-560-4129.`; errEl.classList.remove('hidden'); }
+    // Surface the server's reason (e.g. "… is out of stock") when it's a clean,
+    // customer-safe message; otherwise fall back to the support number.
+    const msg = (e && typeof e.message === 'string' && e.message.length > 0 && e.message.length < 140)
+      ? e.message : 'Something went wrong. Call 512-560-4129.';
+    if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+  }
+}
+
+// Austin-local delivery is free. Mirror of isAustinLocal() in lib/catalog.js —
+// cosmetic hint only; the server is authoritative for what shipping is charged.
+function isLocalZip(zip: string) { return /^78[67]\d\d$/.test(zip.trim()); }
+function updateShipNote() {
+  const input = document.getElementById('cart-zip') as HTMLInputElement | null;
+  const note = document.getElementById('cart-ship-note');
+  if (!input || !note) return;
+  const zip = input.value.trim();
+  if (/^\d{5}$/.test(zip)) {
+    if (isLocalZip(zip)) { note.textContent = '✓ Free local Austin delivery'; note.style.color = '#7aab82'; }
+    else { note.textContent = 'Outside Austin — shipping added at checkout.'; note.style.color = ''; }
+  } else {
+    note.textContent = 'Austin-area delivery is free. Outside Austin, shipping is added at checkout.';
+    note.style.color = '';
   }
 }
 
@@ -212,5 +243,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cart-close')?.addEventListener('click', closeCart);
   document.getElementById('cart-overlay')?.addEventListener('click', closeCart);
   document.getElementById('checkout-btn')?.addEventListener('click', checkout);
+
+  const zipEl = document.getElementById('cart-zip') as HTMLInputElement | null;
+  if (zipEl) {
+    const saved = localStorage.getItem('gg_zip') || '';
+    if (saved) zipEl.value = saved;
+    updateShipNote();
+    zipEl.addEventListener('input', () => {
+      localStorage.setItem('gg_zip', zipEl.value.trim());
+      updateShipNote();
+    });
+  }
 });
 </script>

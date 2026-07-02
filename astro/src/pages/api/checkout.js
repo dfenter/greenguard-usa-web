@@ -1,16 +1,9 @@
 export const prerender = false;
 
-const MAX_ITEM_PRICE = 200000  // $2,000 per item max
+import { CATALOG, isAustinLocal } from '../../lib/catalog.js';
+
 const MAX_QTY = 100
 const MAX_ITEMS = 20
-const MAX_NAME_LEN = 250
-
-// Per-unit flat shipping by SKU id. Anything not listed ships free.
-const SHIPPING_RATES = {
-  'mosqitter-grand': 170,    // $170 per unit
-  'co2-tank-20lb': 30,       // $30 per tank
-  'all-in-one-bundle': 30,   // bundle includes a 20 lb tank
-}
 
 export const POST = async ({ request }) => {
   const stripeKey = import.meta.env.STRIPE_SECRET_KEY;
@@ -32,7 +25,7 @@ export const POST = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
   }
 
-  const { items, attribution } = body
+  const { items, attribution, zip } = body
   if (!Array.isArray(items) || !items.length) {
     return new Response(JSON.stringify({ error: 'Cart is empty' }), { status: 400 });
   }
@@ -40,41 +33,44 @@ export const POST = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Too many items' }), { status: 400 });
   }
 
-  // Validate every item server-side — never trust client prices
+  // Validate every line against the server catalog. NEVER trust the client for
+  // price, name, or stock — the cart is localStorage and this endpoint is public.
   const lineItems = []
   let shippingCents = 0
   for (const item of items) {
-    const price = Number(item.price)
-    const qty = parseInt(item.qty) || 1
-    const name = String(item.name || '').slice(0, MAX_NAME_LEN).trim()
     const id = String(item.id || '')
+    const qty = parseInt(item.qty) || 1
 
-    if (!Number.isFinite(price) || price <= 0 || Math.round(price * 100) > MAX_ITEM_PRICE) {
-      return new Response(JSON.stringify({ error: `Invalid price for item: ${name}` }), { status: 400 });
+    const product = CATALOG[id]
+    if (!product) {
+      return new Response(JSON.stringify({ error: 'That product is no longer available.' }), { status: 400 });
+    }
+    if (!product.inStock) {
+      return new Response(JSON.stringify({ error: `${product.name} is out of stock. Please remove it from your cart.` }), { status: 409 });
     }
     if (qty < 1 || qty > MAX_QTY) {
       return new Response(JSON.stringify({ error: 'Invalid quantity' }), { status: 400 });
-    }
-    if (!name) {
-      return new Response(JSON.stringify({ error: 'Item name required' }), { status: 400 });
     }
 
     lineItems.push({
       price_data: {
         currency: 'usd',
-        product_data: { name },
-        unit_amount: Math.round(price * 100),
+        product_data: { name: product.name },
+        unit_amount: Math.round(product.price * 100),   // authoritative price
         tax_behavior: 'exclusive',
       },
       quantity: qty,
     })
 
-    if (SHIPPING_RATES[id]) {
-      shippingCents += Math.round(SHIPPING_RATES[id] * 100) * qty
+    if (product.shipping > 0) {
+      shippingCents += Math.round(product.shipping * 100) * qty
     }
   }
 
-  // Flat per-unit shipping (Mosqitter Grand, CO₂ tanks). Added before tax so TX tax applies.
+  // Austin-local delivery is free — waive all shipping for in-area ZIPs.
+  if (isAustinLocal(zip)) shippingCents = 0
+
+  // Flat per-unit shipping (added before tax so TX tax applies).
   if (shippingCents > 0) {
     lineItems.push({
       price_data: { currency: 'usd', product_data: { name: 'Shipping' }, unit_amount: shippingCents },

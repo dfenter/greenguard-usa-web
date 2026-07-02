@@ -54,7 +54,7 @@ const Engine = (() => {
     KeyZ:'a', KeyJ:'a', Space:'a',
     KeyX:'b', KeyK:'b',
     Enter:'start', ShiftLeft:'select', ShiftRight:'select',
-    KeyM:'mute'
+    KeyM:'mute', KeyC:'cont'
   };
   window.addEventListener('keydown', e => {
     const k = KEYMAP[e.code];

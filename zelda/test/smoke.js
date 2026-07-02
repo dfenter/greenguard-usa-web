@@ -60,6 +60,12 @@ const sandbox = {
   Math, Date, JSON, console, Uint8ClampedArray, Array, Object, String, Number, Boolean,
   parseInt, parseFloat, isNaN, Set, Map,
   performance: { now: () => frameTime },
+  localStorage: (() => {   // in-memory stub so the save feature is testable
+    const store = {};
+    return { getItem: k => (k in store ? store[k] : null),
+             setItem: (k, v) => { store[k] = String(v); },
+             removeItem: k => { delete store[k]; } };
+  })(),
 };
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
@@ -270,6 +276,27 @@ try {
 
   console.log('COVERAGE OK — ' + expectScreens + ' screens, ' + (NUM_DUNGEONS * 5) +
     ' dungeon rooms, 9 cave kinds, all enemy types ticked');
+
+  // ---- save / continue round-trip ----
+  G._test.startGame(); frames(1);
+  const L0 = G.state.link;
+  assert(L0.maxHealth === 18 && L0.health === 18, 'link starts with 9 hearts (18 half-hearts)');
+  assert(L0.hasShield === true, 'link starts with the shield');
+  L0.rupees = 42; L0.hasBoomerang = true; L0.hasSword = true; L0.swordDmg = 2;
+  G.state.cleared.add('ow:3,3'); G.state.taken.add('unit-test-item');
+  G.state.col = 5; G.state.row = 4; G.state.mode = 'overworld';
+  G._test.saveGame();
+  assert(G._test.hasSave(), 'save written to localStorage');
+  G._test.startGame(); frames(1);   // wipe to fresh state
+  assert(G.state.link.rupees === 0 && !G.state.link.hasBoomerang, 'new game resets state');
+  assert(G._test.loadGame(), 'loadGame succeeds');
+  const L1 = G.state.link;
+  assert(L1.rupees === 42 && L1.hasBoomerang && L1.hasSword && L1.swordDmg === 2,
+    'link restored: rupees=' + L1.rupees + ' boomerang=' + L1.hasBoomerang + ' swordDmg=' + L1.swordDmg);
+  assert(G.state.cleared.has('ow:3,3') && G.state.taken.has('unit-test-item'),
+    'cleared/taken sets restored');
+  assert(G.state.col === 5 && G.state.row === 4, 'position restored: ' + G.state.col + ',' + G.state.row);
+  console.log('SAVE OK — save/continue round-trip verified');
 
   // final long idle + movement to ensure stability
   G._test.startGame();
