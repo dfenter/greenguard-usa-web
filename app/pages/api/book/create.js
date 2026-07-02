@@ -62,8 +62,9 @@ export default async function handler(req, res) {
       },
     })
 
-    // 2. Confirmation email to customer
-    await sendEmail({
+    // 2. Confirmation email to customer (non-blocking — a send failure here must
+    //    never abort the admin notification or the rest of the handler)
+    sendEmail({
       to: email,
       subject: `Your assessment is confirmed — ${formattedDT}`,
       html: emailShell(`
@@ -86,7 +87,7 @@ export default async function handler(req, res) {
           or reply to this email and we'll get it sorted.
         </p>
       `),
-    })
+    }).catch(e => console.error('[book/create] customer confirm failed:', e.message))
 
     // 3. Admin notification (non-blocking)
     sendEmail({

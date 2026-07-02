@@ -190,35 +190,15 @@ function CustomerSearch({ customers, onSelect }) {
   )
 }
 
-// Per-trap pricing for Biogents CO₂ rental
-// Biogents CO₂ rental packages — 1–6 traps. Volume discount kicks in at 4.
-const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750 }
-// Hookup fee per trap for Biogents owned on tank service, or tank-only customers
-const BG_HOOKUP_PER_TRAP = 10.00
-// Biogents Non-CO₂ (customer owns trap)
-const BG_NONCO2_PER_TRAP = 10.00
-// Mosqitter — $129.99 all-in (tank hookup, bait, maintenance included)
-const MQ_PRICE = { rental: 299.99, service: 129.99, install: 199.99 }
-// CO₂ tank exchange — 20lb tanks only ($39 delivery + $49.99/tank)
-const TANK_PRICE = { 1: 89.99, 2: 139.99, 3: 189.99 }
-
-// Products catalog (one-time purchases only)
-// Products + service-addon catalog pulled from the shared lib/catalog so
-// rounds + inventory stay aligned. Service-specific one-time entries
-// (installs, maintenance, troubleshoot) stay local to quote since they
-// aren't surfaced elsewhere.
-const { productsForQuote, addonsForQuote } = require('../../lib/catalog')
+// All pricing + line-building lives in lib/quote-pricing.js — the single source
+// of truth shared with the server (/api/quote/create-link recomputes from it).
+const {
+  BG_RENTAL_PRICE, BG_HOOKUP_PER_TRAP, BG_NONCO2_PER_TRAP, MQ_PRICE, TANK_PRICE,
+  serviceAddons, buildServiceLines, buildProductLines, buildAddonLines,
+} = require('../../lib/quote-pricing')
+const { productsForQuote } = require('../../lib/catalog')
 const PRODUCTS = productsForQuote()
-const QUOTE_LOCAL_SERVICES = [
-  { label: 'Trap Installation',           price:  80.00, category: 'One-Time Services' },
-  { label: 'Timer Installation',          price:  29.99, category: 'One-Time Services' },
-  { label: 'Trap Maintenance (1 trap)',   price:  10.00, category: 'One-Time Services' },
-  { label: 'Trap Maintenance (2 traps)', price:  20.00, category: 'One-Time Services' },
-  { label: 'Trap Maintenance (3 traps)', price:  30.00, category: 'One-Time Services' },
-  { label: 'Assessment',                  price:   0.00, category: 'One-Time Services' },
-  { label: 'Troubleshoot',               price:  79.99, category: 'One-Time Services' },
-]
-const SERVICE_ADDONS = [...addonsForQuote(), ...QUOTE_LOCAL_SERVICES]
+const SERVICE_ADDONS = serviceAddons()
 
 // ── Guided service configurator ────────────────────────────────────────────────
 
@@ -267,61 +247,12 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
   const [serviceDate, setServiceDate] = useState(minDate)
 
   useEffect(() => {
-    const lines = []
-
-    // Biogents CO₂ customer rental
-    if (system === 'biogents-co2' && plan === 'rental' && trapCount) {
-      const price = BG_RENTAL_PRICE[trapCount]
-      lines.push({ label: `Biogents CO₂ Customer Rental — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${(price / trapCount).toFixed(2)}/trap)`, amount: price, recurring: true })
-    }
-    // Biogents CO₂ purchase — recurring monthly tank exchange always shows
-    // for the trap count. The hookup & maintenance fee is a separate
-    // opt-in line (defaults to Yes via onTankService state).
-    if (system === 'biogents-co2' && plan === 'purchase' && trapCount) {
-      const tankPrice = TANK_PRICE[trapCount] || (TANK_PRICE[3] + (trapCount - 3) * 49.99)
-      lines.push({
-        label: `Monthly CO₂ Tank Exchange — ${trapCount}× 20lb Tank${trapCount > 1 ? 's' : ''}`,
-        amount: tankPrice,
-        recurring: true,
-      })
-      if (onTankService === true) {
-        const hookupPrice = BG_HOOKUP_PER_TRAP * trapCount
-        lines.push({
-          label: `Tank Hookup & Maintenance — ${trapCount} trap${trapCount > 1 ? 's' : ''}`,
-          amount: hookupPrice,
-          recurring: true,
-        })
-      }
-    }
-    // Biogents Non-CO₂ (always purchase, per trap)
-    if (system === 'biogents-nonco2' && trapCount) {
-      const price = BG_NONCO2_PER_TRAP * trapCount
-      lines.push({ label: `Biogents Non-CO₂ Maintenance — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${BG_NONCO2_PER_TRAP}/trap)`, amount: price, recurring: true })
-    }
-    // Mosqitter
-    if (system === 'mosqitter' && mqPlan) {
-      const unitPrice = mqPlan === 'rental' ? MQ_PRICE.rental : MQ_PRICE.service
-      const label = mqPlan === 'rental'
-        ? `Mosqitter Grand Customer Rental ×${mqCount} — trap, hookup, bait & maintenance`
-        : `Mosqitter Service ×${mqCount} — hookup, bait & maintenance included`
-      lines.push({ label, amount: unitPrice * mqCount, recurring: true })
-      if (mqInstall) lines.push({ label: `Mosqitter Installation ×${mqCount}`, amount: MQ_PRICE.install * mqCount, recurring: false })
-    }
-    // Tank delivery — combine tank exchange + hookup into one line
-    if (system === 'tank' && TANK_PRICE[tankCount]) {
-      const tankPrice = TANK_PRICE[tankCount]
-      const hookupPrice = tankHookup ? (BG_HOOKUP_PER_TRAP * tankCount) : 0
-      lines.push({
-        label: tankHookup
-          ? `CO₂ Tank Exchange — ${tankCount}× 20lb Tank${tankCount > 1 ? 's' : ''} (includes hookup & maintenance)`
-          : `CO₂ Tank Exchange — ${tankCount}× 20lb Tank${tankCount > 1 ? 's' : ''} ($39 delivery + $49.99/tank)`,
-        amount: tankPrice + hookupPrice,
-        recurring: true,
-      })
-    }
-    onChange(lines)
-    if (onConfigChange) onConfigChange({ system, plan, trapCount, mqPlan, mqCount, serviceDate })
-  }, [system, plan, trapCount, onTankService, mqPlan, mqInstall, tankCount, tankHookup, serviceDate])
+    // Lines are built by the shared canonical builder so the on-screen preview
+    // is byte-for-byte what the server recomputes in /api/quote/create-link.
+    const cfg = { system, plan, trapCount, onTankService, mqPlan, mqCount, mqInstall, tankCount, tankHookup, serviceDate }
+    onChange(buildServiceLines(cfg))
+    if (onConfigChange) onConfigChange(cfg)
+  }, [system, plan, trapCount, onTankService, mqPlan, mqCount, mqInstall, tankCount, tankHookup, serviceDate])
 
   // Reset date and clamp if user picks earlier than min
   useEffect(() => {
@@ -681,7 +612,8 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     const res = await fetch('/api/quote/create-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })), serviceDate: serviceConfig?.serviceDate || null, notes }),
+      // Send config + selections only — the server recomputes all prices.
+      body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceConfig, productQtys, addonQtys, serviceDate: serviceConfig?.serviceDate || null, notes }),
     })
     const { url } = await res.json()
     await navigator.clipboard.writeText(url).catch(() => window.prompt('Copy this link:', url))
@@ -697,7 +629,8 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       const linkRes = await fetch('/api/quote/create-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate, taxAmount, notes }),
+        // Send config + selections only — the server recomputes all prices.
+        body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceConfig, productQtys, addonQtys, serviceDate: serviceConfig?.serviceDate || null, notes }),
       })
       const { token } = await linkRes.json()
       if (!token) throw new Error('Could not generate quote token')
@@ -772,16 +705,9 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     })
   }, [serviceConfig])
 
-  const productLines = PRODUCTS.filter((p) => productQtys[p.label] > 0).map((p) => ({
-    label: productQtys[p.label] > 1 ? `${p.label} ×${productQtys[p.label]}` : p.label,
-    amount: p.price != null ? p.price * productQtys[p.label] : null,
-    recurring: false,
-  }))
-  const addonLines = SERVICE_ADDONS.filter((a) => addonQtys[a.label] > 0).map((a) => ({
-    label: addonQtys[a.label] > 1 ? `${a.label} ×${addonQtys[a.label]}` : a.label,
-    amount: a.price != null ? a.price * addonQtys[a.label] : null,
-    recurring: a.category === 'Recurring Add-Ons',
-  }))
+  // Same shared builders the server uses, so preview == server recomputation.
+  const productLines = buildProductLines(productQtys)
+  const addonLines = buildAddonLines(addonQtys)
 
   const allLines = [...serviceLines, ...productLines, ...addonLines]
   const recurringTotal = allLines.filter((l) => l.recurring).reduce((s, l) => s + (l.amount || 0), 0)

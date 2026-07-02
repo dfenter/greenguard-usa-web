@@ -123,12 +123,15 @@ export default function StopCard({
     else setShowPanel(true)
   }
 
+  // Property assessments get a bold blue card so the tech can spot them at a
+  // glance (blue is free — green = done, gold = active). High contrast on purpose.
+  const isAssessment = /assessment/i.test(stop.serviceType || '')
   const accent = done ? '125,255,170' : active ? '201,168,76' : '122,171,130'
   const card = {
-    background: 'var(--bg-card)',
-    backgroundImage: 'var(--surface-grad)',
-    border: `1px solid rgba(${accent}, ${done || active ? 0.32 : 0.16})`,
-    borderLeft: `3px solid rgba(${accent}, ${done || active ? 0.7 : 0.4})`,
+    background: isAssessment ? '#0e2a44' : 'var(--bg-card)',
+    backgroundImage: isAssessment ? 'none' : 'var(--surface-grad)',
+    border: `1px solid ${isAssessment ? 'rgba(91,196,255,0.5)' : `rgba(${accent}, ${done || active ? 0.32 : 0.16})`}`,
+    borderLeft: `${isAssessment ? 6 : 3}px solid ${isAssessment ? '#5bc4ff' : `rgba(${accent}, ${done || active ? 0.7 : 0.4})`}`,
     borderRadius: 'var(--radius)', padding: 20, marginBottom: 14,
     boxShadow: 'var(--shadow-sm)',
     opacity: cancelled ? 0.45 : done ? 0.7 : 1,

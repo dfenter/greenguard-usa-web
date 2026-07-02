@@ -49,15 +49,21 @@ export default async function handler(req, res) {
 
   const rawBody = await readRawBody(req)
 
-  // Verify Cal.com HMAC signature
+  // Verify Cal.com HMAC signature — FAIL CLOSED. Previously the check was
+  // skipped when the header (or secret) was absent, letting an attacker forge
+  // events simply by omitting the signature header.
   const secret = process.env.CALCOM_WEBHOOK_SECRET
-  const sig = req.headers['x-cal-signature-256']
-  if (secret && sig) {
-    const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
-    if (sig !== expected) {
-      console.warn('[calcom-webhook] Invalid signature')
-      return res.status(401).end()
-    }
+  const sig = req.headers['x-cal-signature-256'] || ''
+  if (!secret) {
+    console.error('[calcom-webhook] CALCOM_WEBHOOK_SECRET not configured — rejecting unverifiable webhook')
+    return res.status(503).end()
+  }
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
+  const sigBuf = Buffer.from(sig, 'utf8')
+  const expBuf = Buffer.from(expected, 'utf8')
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    console.warn('[calcom-webhook] Invalid or missing signature')
+    return res.status(401).end()
   }
 
   // Respond immediately so Cal.com doesn't retry
