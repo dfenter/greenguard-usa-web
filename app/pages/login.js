@@ -14,6 +14,9 @@ export default function Login({ error }) {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [restoring, setRestoring] = useState(true)
+  const [code, setCode] = useState('')
+  const [verifying, setVerifying] = useState(false)
+  const [codeError, setCodeError] = useState('')
 
   useEffect(() => {
     const backup = localStorage.getItem('gg_backup')
@@ -46,6 +49,32 @@ export default function Login({ error }) {
     setSent(true)
     setLoading(false)
     trackEvent('login_requested')
+  }
+
+  async function handleVerifyCode(e) {
+    e.preventDefault()
+    setCodeError('')
+    setVerifying(true)
+    try {
+      const r = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: code.trim() }),
+      })
+      const data = await r.json().catch(() => ({}))
+      if (data.ok) {
+        // Save a backup so the app can self-restore if iOS evicts the cookie later
+        if (data.backupToken) { try { localStorage.setItem('gg_backup', data.backupToken) } catch (_) {} }
+        trackEvent('login_code_verified')
+        window.location.href = data.dest || '/dashboard'
+      } else {
+        setCodeError(data.error || 'That code is incorrect or has expired.')
+        setVerifying(false)
+      }
+    } catch (_) {
+      setCodeError('Something went wrong. Please try again.')
+      setVerifying(false)
+    }
   }
 
   if (restoring) {
@@ -88,6 +117,47 @@ export default function Login({ error }) {
                   If <strong style={{ color: '#d4e6ca' }}>{email}</strong> is linked to a {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} account,
                   you&apos;ll receive a sign-in link within a minute.
                 </p>
+
+                <div style={{ margin: '24px 0 0', paddingTop: 20, borderTop: '1px solid rgba(122,171,130,0.2)' }}>
+                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#d4e6ca', marginBottom: 4 }}>
+                    Using the home-screen app?
+                  </p>
+                  <p style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.55)', marginBottom: 14, lineHeight: 1.5 }}>
+                    Enter the 6-digit code from that email to sign in right here.
+                  </p>
+                  <form onSubmit={handleVerifyCode}>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      value={code}
+                      onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setCodeError('') }}
+                      placeholder="123456"
+                      style={{
+                        width: '100%', padding: '13px 14px', borderRadius: 4,
+                        border: `1px solid ${codeError ? 'rgba(201,76,76,0.6)' : 'rgba(122,171,130,0.3)'}`,
+                        background: 'rgba(255,255,255,0.05)', color: '#d4e6ca',
+                        fontSize: '1.4rem', fontWeight: 800, letterSpacing: '0.4em', textAlign: 'center',
+                        outline: 'none', marginBottom: 12, fontFamily: 'monospace',
+                      }}
+                    />
+                    {codeError && (
+                      <p style={{ fontSize: '0.8rem', color: '#e08a8a', margin: '0 0 12px', lineHeight: 1.4 }}>
+                        {codeError}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={verifying || code.length !== 6}
+                      className="btn-gold"
+                      style={{ width: '100%', padding: '13px', fontSize: '0.95rem', opacity: (verifying || code.length !== 6) ? 0.55 : 1 }}
+                    >
+                      {verifying ? 'Signing in…' : 'Sign in with code'}
+                    </button>
+                  </form>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit}>

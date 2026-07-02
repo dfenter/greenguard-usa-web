@@ -15,36 +15,39 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
 }
 
-// Falls back to Gmail OAuth2 when Resend quota is exhausted
+// Falls back to Gmail OAuth2 when Resend fails. Uses the dedicated GMAIL_*
+// admin@ token (gmail-capable); the GOOGLE_* triple is calendar-only and can't
+// send mail, so prefer GMAIL_* and only fall back to GOOGLE_* if it's unset.
 function getGmailTransport() {
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
       type: 'OAuth2',
       user: 'admin@greenguard-usa.com',
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+      clientId: process.env.GMAIL_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GMAIL_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+      refreshToken: process.env.GMAIL_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN,
     },
   })
 }
 
 async function sendEmail({ to, subject, html, bcc }) {
-  // Try Resend first; fall back to Gmail if quota exceeded
+  // Try Resend first; fall back to Gmail on ANY Resend failure (quota, error,
+  // or a thrown network exception) so a Resend hiccup never drops the email.
   if (process.env.RESEND_API_KEY) {
-    const r = await getResend().emails.send({
-      from: `${biz.name} <${FROM}>`,
-      to,
-      subject,
-      html,
-      ...(bcc ? { bcc } : {}),
-    })
-    if (!r.error) return r
-    const isQuota = r.error.message?.toLowerCase().includes('quota') ||
-                    r.error.message?.toLowerCase().includes('limit') ||
-                    r.error.statusCode === 429
-    if (!isQuota) throw new Error(r.error.message)
-    console.warn('Resend quota hit, falling back to Gmail')
+    try {
+      const r = await getResend().emails.send({
+        from: `${biz.name} <${FROM}>`,
+        to,
+        subject,
+        html,
+        ...(bcc ? { bcc } : {}),
+      })
+      if (!r.error) return r
+      console.warn('Resend send failed (%s) — falling back to Gmail', r.error.message)
+    } catch (e) {
+      console.warn('Resend threw (%s) — falling back to Gmail', e.message)
+    }
   }
   return getGmailTransport().sendMail({
     from: `${biz.name} <admin@greenguard-usa.com>`,
@@ -115,8 +118,16 @@ function outlineButton(href, label) {
 /**
  * Magic login link — sent to every customer who signs in.
  */
-async function sendMagicLink(email, token) {
+async function sendMagicLink(email, token, code) {
   const link = `${APP_URL}/auth/verify?token=${encodeURIComponent(token)}`
+  // The code block is for the home-screen app: tapping the link opens Safari
+  // (a separate storage context from the installed PWA), so app users type this
+  // code in the app instead to sign in where they actually use it.
+  const codeBlock = code ? `
+        <div style="margin:0 0 28px;padding:18px 20px;background:#f2f7f0;border:1px solid #d7e6d2;border-radius:10px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#3d4f41;text-transform:uppercase;letter-spacing:1px;font-family:Arial,sans-serif;">Using the home-screen app? Enter this code</p>
+          <p style="margin:0;font-size:34px;font-weight:900;letter-spacing:8px;color:#111f14;font-family:'Courier New',monospace;">${code}</p>
+        </div>` : ''
   try {
     return await sendEmail({
       to: email,
@@ -128,6 +139,7 @@ async function sendMagicLink(email, token) {
           Click the button below to sign in to your GreenGuard account. This link expires in 15 minutes.
         </p>
         ${goldButton(link, 'Sign In to My Account')}
+        ${codeBlock}
         <p style="margin:24px 0 0;font-size:12px;color:#9aab9c;font-family:Arial,sans-serif;line-height:1.6;">
           If you didn't request this link, you can safely ignore this email.
         </p>

@@ -33,6 +33,7 @@ function getKV() {
 
 const _memJtis = new Map() // jti → expiresAt(ms)
 const _MAX_MEM_JTIS = 5000  // cap memory use — LRU evict oldest when exceeded
+const _memLoginCodes = new Map() // login-code key → { hash, exp(ms), att } (dev/local fallback only)
 
 function _memPrune() {
   const now = Date.now()
@@ -82,6 +83,64 @@ async function isJtiRevoked(jti) {
 
 function newJti() {
   return crypto.randomBytes(16).toString('hex')
+}
+
+// ── Short numeric login codes (for in-app PWA sign-in) ───────────────────
+// A 6-digit code emailed alongside the magic link. Bruce types it INSIDE the
+// standalone home-screen PWA, so the session cookie is set in the PWA's own
+// storage context. (Tapping the magic link opens Safari — a separate cookie
+// jar — so the session never reaches the installed app; that's why he had to
+// log in every time.) Codes are single-use, hashed at rest, expire in 15 min,
+// and lock out after 5 wrong tries.
+const LOGIN_CODE_TTL = 900          // 15 minutes (seconds)
+const LOGIN_CODE_MAX_ATTEMPTS = 5
+
+function newLoginCode() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0')
+}
+
+function _hashLoginCode(email, code) {
+  return crypto.createHash('sha256').update(`${String(email).toLowerCase()}:${code}`).digest('hex')
+}
+
+async function storeLoginCode(email, code) {
+  const em = String(email).toLowerCase()
+  const key = `login-code:${em}`
+  const hash = _hashLoginCode(em, code)
+  const kv = getKV()
+  if (kv) {
+    await kv.set(key, hash, { ex: LOGIN_CODE_TTL })
+    await kv.del(`login-code-att:${em}`) // reset attempt counter for the new code
+    return
+  }
+  _memLoginCodes.set(key, { hash, exp: Date.now() + LOGIN_CODE_TTL * 1000, att: 0 })
+}
+
+// Returns true exactly once for the correct, unexpired code; consumes it.
+async function consumeLoginCode(email, code) {
+  const em = String(email || '').toLowerCase()
+  if (!em || !/^\d{6}$/.test(String(code || ''))) return false
+  const key = `login-code:${em}`
+  const want = _hashLoginCode(em, String(code))
+  const kv = getKV()
+  if (kv) {
+    const attKey = `login-code-att:${em}`
+    const attempts = await kv.incr(attKey)
+    if (attempts === 1) await kv.expire(attKey, LOGIN_CODE_TTL)
+    if (attempts > LOGIN_CODE_MAX_ATTEMPTS) { await kv.del(key); return false }
+    const stored = await kv.get(key)
+    if (!stored || String(stored).length !== want.length) return false
+    const ok = crypto.timingSafeEqual(Buffer.from(String(stored)), Buffer.from(want))
+    if (ok) { await kv.del(key); await kv.del(attKey) }
+    return ok
+  }
+  const rec = _memLoginCodes.get(key)
+  if (!rec || rec.exp < Date.now()) { _memLoginCodes.delete(key); return false }
+  rec.att += 1
+  if (rec.att > LOGIN_CODE_MAX_ATTEMPTS) { _memLoginCodes.delete(key); return false }
+  const ok = rec.hash === want
+  if (ok) _memLoginCodes.delete(key)
+  return ok
 }
 
 async function createMagicToken(email) {
@@ -187,6 +246,9 @@ module.exports = {
   revokeJti,
   isJtiRevoked,
   newJti,
+  newLoginCode,
+  storeLoginCode,
+  consumeLoginCode,
   escapeStripeSearch,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_OPTIONS,
