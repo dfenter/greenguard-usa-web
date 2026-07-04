@@ -13,19 +13,40 @@ const CUST_STATUS = {
   prospect: { bg: 'rgba(201,168,76,0.12)',  color: '#c9a84c',               label: 'Prospect'  },
 }
 
+// Canonicalize a raw system_type (any casing / hyphenation drift from HubSpot,
+// e.g. "biogents-co2", "Biogents-Owned", "MQ-RENT") into one of the known kinds.
+// Order matters: check Non-CO2 before the generic Biogents match.
+function systemKind(systemType) {
+  const s = String(systemType || '').toLowerCase()
+  if (!s) return null
+  if (s.includes('mosqitter') || s === 'mq-rent') return 'mosqitter'
+  if (s.includes('nonco2') || s.includes('non-co2')) return 'biogents-nonco2'
+  if (s.includes('biogents')) return 'biogents-co2'
+  return 'mosqitter' // legacy fallback for anything unrecognized
+}
+
+function systemLabel(systemType) {
+  switch (systemKind(systemType)) {
+    case 'biogents-co2': return 'Biogents CO₂'
+    case 'biogents-nonco2': return 'Biogents Non-CO₂'
+    default: return 'Mosqitter Grand'
+  }
+}
+
 function getTrapImage(systemType, trapCount) {
   const images = JSON.parse(process.env.NEXT_PUBLIC_BIZ_SYSTEM_IMAGES || 'null')
   if (images) {
     return images[`${systemType}-${trapCount}`] || images[systemType] || null
   }
-  if (systemType === 'Mosqitter-Grand' || systemType === 'Mosqitter' || systemType === 'MQ-RENT') return '/images/trap-mosqitter.webp'
-  if (systemType === 'Biogents-NonCO2') return '/images/mosquitairenoco2.webp'
-  if (systemType === 'Biogents-CO2') {
-    if (trapCount >= 3) return '/images/biogentstriple.webp'
-    if (trapCount === 2) return '/images/mosquitairedouble.webp'
-    return '/images/mosquitairesingle.jpg'
+  switch (systemKind(systemType)) {
+    case 'mosqitter': return '/images/trap-mosqitter.webp'
+    case 'biogents-nonco2': return '/images/mosquitairenoco2.webp'
+    case 'biogents-co2':
+      if (trapCount >= 3) return '/images/biogentstriple.webp'
+      if (trapCount === 2) return '/images/mosquitairedouble.webp'
+      return '/images/mosquitairesingle.jpg'
+    default: return null
   }
-  return null
 }
 
 function fmtDate(iso) {
@@ -277,7 +298,7 @@ export default function CustomerPanel({ customer, onClose }) {
           <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 2 }}>{customer.name || 'Customer'}</div>
           {detail?.systemType ? (
             <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#c9a84c', marginBottom: 4 }}>
-              {detail.systemType === 'Biogents-CO2' ? 'Biogents CO₂' : detail.systemType === 'Biogents-NonCO2' ? 'Biogents Non-CO₂' : 'Mosqitter Grand'}
+              {systemLabel(detail.systemType)}
               {detail.trapCount ? ` · ${detail.trapCount} trap${detail.trapCount > 1 ? 's' : ''}` : ''}
               {detail.planType ? ` · ${detail.planType}` : ''}
             </div>
@@ -454,7 +475,7 @@ export default function CustomerPanel({ customer, onClose }) {
                 {/* System */}
                 {detail.systemType && (() => {
                   const img = getTrapImage(detail.systemType, detail.trapCount)
-                  const label = detail.systemType === 'Biogents-CO2' ? 'Biogents CO₂' : detail.systemType === 'Biogents-NonCO2' ? 'Biogents Non-CO₂' : 'Mosqitter Grand'
+                  const label = systemLabel(detail.systemType)
                   return (
                     <div style={row}>
                       <div style={lbl}>System</div>
