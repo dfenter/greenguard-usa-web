@@ -89,9 +89,13 @@ export default async function handler(req, res) {
       `),
     }).catch(e => console.error('[book/create] customer confirm failed:', e.message))
 
-    // 3. Admin notification (non-blocking)
+    // 3. Admin notification (non-blocking). Sent from admin@ (NOT the default
+    //    noreply@, which our own inbox spam filter flags). Every attempt +
+    //    outcome is logged so a silent miss is visible in the function logs.
+    console.log(`[book/create] booking OK for ${name} <${email}> @ ${formattedDT} — sending admin notify`)
     sendEmail({
       to: CALENDAR_ID,
+      from: `GreenGuard Bookings <admin@greenguard-usa.com>`,
       subject: `New booking: ${name} — ${formattedDT}`,
       html: emailShell(`
         <h2 style="margin:0 0 16px;font-size:1.1rem;color:#1a3320;font-family:Arial,sans-serif;">New Property Assessment Booking</h2>
@@ -107,7 +111,9 @@ export default async function handler(req, res) {
           <a href="https://calendar.google.com/calendar/r" style="background:#2d6a35;color:#fff;padding:10px 20px;border-radius:5px;text-decoration:none;font-weight:700;font-family:Arial,sans-serif;display:inline-block;font-size:0.85rem;">Open Google Calendar</a>
         </p>
       `),
-    }).catch(e => console.error('[book/create] admin notify failed:', e.message))
+    })
+      .then(r => console.log(`[book/create] admin notify SENT for ${name}:`, r?.data?.id || r?.messageId || 'ok'))
+      .catch(e => console.error(`[book/create] admin notify FAILED for ${name} <${email}>:`, e.message))
 
     // 4. HubSpot upsert (non-blocking)
     upsertContact({ email, name, phone, address }).catch(e => console.error('[book/create] HubSpot failed:', e.message))

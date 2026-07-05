@@ -31,13 +31,18 @@ function getGmailTransport() {
   })
 }
 
-async function sendEmail({ to, subject, html, bcc }) {
+async function sendEmail({ to, subject, html, bcc, from }) {
+  // Optional `from` override (must be on a verified domain). Used e.g. for the
+  // internal booking alert, which sends from admin@ instead of the default
+  // noreply@ — a noreply sender gets flagged by our own inbox spam filter.
+  const resendFrom = from || `${biz.name} <${FROM}>`
+  const gmailFrom = from || `${biz.name} <admin@greenguard-usa.com>`
   // Try Resend first; fall back to Gmail on ANY Resend failure (quota, error,
   // or a thrown network exception) so a Resend hiccup never drops the email.
   if (process.env.RESEND_API_KEY) {
     try {
       const r = await getResend().emails.send({
-        from: `${biz.name} <${FROM}>`,
+        from: resendFrom,
         to,
         subject,
         html,
@@ -50,7 +55,7 @@ async function sendEmail({ to, subject, html, bcc }) {
     }
   }
   return getGmailTransport().sendMail({
-    from: `${biz.name} <admin@greenguard-usa.com>`,
+    from: gmailFrom,
     to,
     subject,
     html,
