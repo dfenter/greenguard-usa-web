@@ -22,6 +22,7 @@ const { Redis } = require('@upstash/redis')
 // a hard expiry. Between them the value is served instantly while a background
 // refresh runs, so a reader past the TTL never eats full upstream latency.
 const memCache = new Map() // key → { value, softExpiresAt, hardExpiresAt }
+const MAX_MEM_ENTRIES = 2000 // cap so dynamic keys (per-email-set) can't grow unbounded
 
 function memGet(key) {
   const entry = memCache.get(key)
@@ -32,6 +33,13 @@ function memGet(key) {
 
 function memSet(key, value, ttlSeconds, staleSeconds = ttlSeconds) {
   const now = Date.now()
+  // Bounded eviction: when full and adding a new key, drop the soonest-to-expire
+  // entry. Keeps a warm instance from accumulating per-email-set keys forever.
+  if (memCache.size >= MAX_MEM_ENTRIES && !memCache.has(key)) {
+    let oldestKey, oldestExp = Infinity
+    for (const [k, e] of memCache) { if (e.hardExpiresAt < oldestExp) { oldestExp = e.hardExpiresAt; oldestKey = k } }
+    if (oldestKey !== undefined) memCache.delete(oldestKey)
+  }
   memCache.set(key, {
     value,
     softExpiresAt: now + ttlSeconds * 1000,
@@ -77,8 +85,10 @@ function runFetch(key, ttlSeconds, staleSeconds, fetchFn) {
     memSet(key, fresh, ttlSeconds, staleSeconds)
     const redis = getRedis()
     if (redis) {
-      // Keep the value in Redis through the stale window too.
-      try { await redis.set(key, fresh, { ex: ttlSeconds + staleSeconds }) } catch {}
+      // Store the write time so a cross-instance reader can compute the value's
+      // real age and only grant the REMAINING fresh window (a Redis hit near its
+      // 2×ttl expiry used to get a full fresh ttl again — up to ~3× staleness).
+      try { await redis.set(key, { __v: fresh, __t: Date.now() }, { ex: ttlSeconds + staleSeconds }) } catch {}
     }
     return fresh
   })()
@@ -110,8 +120,15 @@ async function cached(key, ttlSeconds, fetchFn) {
     try {
       const hit = await redis.get(key)
       if (hit !== null && hit !== undefined) {
-        memSet(key, hit, ttlSeconds, staleSeconds)
-        return hit
+        // New writes are wrapped { __v, __t }; legacy raw values (pre-deploy)
+        // are served as-is with a full window until they expire.
+        let value = hit, ageSec = 0
+        if (hit && typeof hit === 'object' && '__t' in hit) {
+          value = hit.__v
+          ageSec = (Date.now() - hit.__t) / 1000
+        }
+        memSet(key, value, Math.max(0, ttlSeconds - ageSec), staleSeconds)
+        return value
       }
     } catch {}
   }

@@ -4,27 +4,11 @@
  * and adds the actual line items from the tech's rounds form.
  * Does NOT create a new invoice unless none exists.
  */
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
-const { stripe, getTaxRateId } = require('../../../lib/stripe')
+const { getSessionFromRequest, isAdminEmail, consumeJti } = require('../../../lib/auth')
+const { stripe, getTaxRateId, priceIdForSku } = require('../../../lib/stripe')
 const { findContactByEmail, updateContact } = require('../../../lib/hubspot')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
-
-const SKU_TO_ENV = {
-  BG1: 'STRIPE_PRICE_BG1', BG2: 'STRIPE_PRICE_BG2', BG3: 'STRIPE_PRICE_BG3',
-  'MQ-RENT': 'STRIPE_PRICE_MQ_RENT', 'MQ-SVC': 'STRIPE_PRICE_MQ_SVC',
-  'MQ-INST': 'STRIPE_PRICE_MQ_INST', 'MQ-TSHOOT': 'STRIPE_PRICE_MQ_TSHOOT',
-  'OWN-BG': 'STRIPE_PRICE_OWN_BG', 'OWN-MQ': 'STRIPE_PRICE_OWN_MQ',
-  TANK1: 'STRIPE_PRICE_TANK1', TANK2: 'STRIPE_PRICE_TANK2', TANK3: 'STRIPE_PRICE_TANK3',
-  TANK4: 'STRIPE_PRICE_TANK4', TANK6: 'STRIPE_PRICE_TANK6', TANK10: 'STRIPE_PRICE_TANK10',
-  'TANK-DELIVERY-FEE': 'STRIPE_PRICE_TANK_DELIVERY_FEE', 'TANK-REFILL': 'STRIPE_PRICE_TANK_REFILL',
-  'TANK-HOOKUP-MAINT': 'STRIPE_PRICE_TANK_HOOKUP_MAINT',
-  BARRIER: 'STRIPE_PRICE_BARRIER', BAIT: 'STRIPE_PRICE_BAIT', 'TANK-STRAPS': 'STRIPE_PRICE_TANK_STRAPS',
-  'BG-SWEETSCENT': 'STRIPE_PRICE_BG_SWEETSCENT', 'CO2-ADDON': 'STRIPE_PRICE_CO2_ADDON',
-  'TRAP-INSTALL': 'STRIPE_PRICE_TRAP_INSTALL',
-  'TRAP-MAINT-1': 'STRIPE_PRICE_TRAP_MAINT_1', 'TRAP-MAINT-2': 'STRIPE_PRICE_TRAP_MAINT_2',
-  'TIMER-INSTALL': 'STRIPE_PRICE_TIMER_INSTALL', 'WKD-SURCH': 'STRIPE_PRICE_WKD_SURCH',
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -40,6 +24,18 @@ export default async function handler(req, res) {
   const customerEmail = String(rawEmail).trim().replace(/[,;\s]+$/, '').toLowerCase()
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
     return res.status(400).json({ error: `Invalid email address: ${rawEmail}` })
+  }
+
+  // ── Concurrency guard ─────────────────────────────────────────────────────
+  // The dedup below is check-then-act; two overlapping submits (double-tap on
+  // LTE) could both pass it and create duplicate invoices / double-append items.
+  // Take a short single-flight lock per (customer + booking) via KV SET-NX.
+  const lockKey = `invgen:${customerEmail}:${calBookingUid || serviceDate || 'manual'}`
+  if (!force) {
+    const gotLock = await consumeJti(`lock:${lockKey}`, 45).catch(() => true)
+    if (!gotLock) {
+      return res.status(409).json({ error: 'An invoice for this visit is already being generated. Try again in a moment.' })
+    }
   }
 
   // Find or auto-create the Stripe customer. New customers obviously have
@@ -91,13 +87,20 @@ export default async function handler(req, res) {
     }
   }
 
-  // Reuse only an existing DRAFT. Never attach to an open/finalized invoice —
-  // Stripe locks finalized invoices, so adding line items silently fails and
-  // the new charges vanish. (Daniel Raynaud bug: a migrated past-due invoice
-  // was 'open', got picked as the target, and the new visit's items never
-  // landed.) If no draft exists, fall through and create a fresh invoice.
-  const drafts = await stripe.invoices.list({ customer: customer.id, status: 'draft', limit: 1 })
-  const existingInvoice = drafts.data[0] || null
+  // Reuse only an existing DRAFT, and only if it belongs to THIS booking (or is
+  // an unclaimed draft with no booking metadata). Grabbing drafts.data[0]
+  // blindly attached a new visit's items to a DIFFERENT booking's draft and
+  // never recorded this visit's UID — so the dedup check above couldn't see it
+  // and a re-generate appended the items a second time (double-bill). Never
+  // attach to an open/finalized invoice — Stripe locks those and items vanish.
+  const draftList = await stripe.invoices.list({ customer: customer.id, status: 'draft', limit: 100 })
+  const existingInvoice = draftList.data.find((d) => {
+    const m = d.metadata || {}
+    const unclaimed = !m.cal_booking_uid && !m.service_date
+    if (calBookingUid) return m.cal_booking_uid === calBookingUid || unclaimed
+    if (serviceDate) return m.service_date === serviceDate || unclaimed
+    return unclaimed
+  }) || null
 
   // CRITICAL ORDERING: resolve/create the target invoice BEFORE creating
   // invoice items, then attach each item directly via the `invoice` param.
@@ -179,11 +182,11 @@ export default async function handler(req, res) {
   // we still want them on the invoice.
   const errors = []
   const billableItems = lineItems.filter(
-    (i) => i.qty > 0 && (i.price > 0 || (i.sku && process.env[SKU_TO_ENV[i.sku]]))
+    (i) => i.qty > 0 && (i.price > 0 || (i.sku && priceIdForSku(i.sku)))
   )
 
   for (const item of billableItems) {
-    const priceId = item.sku ? process.env[SKU_TO_ENV[item.sku]] : null
+    const priceId = item.sku ? priceIdForSku(item.sku) : null
     try {
       if (priceId) {
         // The env-mapped Stripe price may be either one-time or recurring.
@@ -219,13 +222,14 @@ export default async function handler(req, res) {
   }
 
   if (existingInvoice && Object.keys(invoiceMeta).length) {
-    // Always ensure metadata (cal_booking_uid + service_date) is present on existing invoices
-    const mergedMeta = { ...invoice.metadata, ...invoiceMeta }
+    // Claim the draft for THIS booking — stamp its UID/service_date if they're
+    // missing OR differ (we only ever reuse this booking's draft or an unclaimed
+    // one, so this records the identifiers a later re-generate's dedup relies on).
     const needsUpdate =
-      (invoiceMeta.cal_booking_uid && !invoice.metadata?.cal_booking_uid) ||
-      (invoiceMeta.service_date && !invoice.metadata?.service_date)
+      (invoiceMeta.cal_booking_uid && invoice.metadata?.cal_booking_uid !== invoiceMeta.cal_booking_uid) ||
+      (invoiceMeta.service_date && invoice.metadata?.service_date !== invoiceMeta.service_date)
     if (needsUpdate) {
-      await stripe.invoices.update(invoice.id, { metadata: mergedMeta }).catch(() => {})
+      await stripe.invoices.update(invoice.id, { metadata: { ...invoice.metadata, ...invoiceMeta } }).catch(() => {})
     }
   }
 

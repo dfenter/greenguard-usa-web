@@ -154,7 +154,9 @@ async function clearStages(invoiceId) {
   const meta = { ...inv.metadata }
   let changed = false
   for (const k of Object.keys(meta)) {
-    if (k.startsWith('payfail_')) { delete meta[k]; changed = true }
+    // Stripe MERGES metadata on update — deleting a key locally leaves it
+    // untouched server-side. Setting it to '' is how Stripe removes a key.
+    if (k.startsWith('payfail_')) { meta[k] = ''; changed = true }
   }
   if (changed) await stripe.invoices.update(invoiceId, { metadata: meta })
 }

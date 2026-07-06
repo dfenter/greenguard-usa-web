@@ -1,4 +1,4 @@
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../../../lib/auth')
 const { findContactByEmail, getContactNotes } = require('../../../lib/hubspot')
 const { stripe } = require('../../../lib/stripe')
 
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   const [contact, stripeResult] = await Promise.all([
     findContactByEmail(email).catch(() => null),
-    stripe.customers.search({ query: `email:"${email}"`, limit: 1 })
+    stripe.customers.search({ query: `email:"${escapeStripeSearch(email)}"`, limit: 1 })
       .then(r => r.data[0] || null).catch(() => null),
   ])
 

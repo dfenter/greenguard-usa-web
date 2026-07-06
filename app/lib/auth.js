@@ -20,6 +20,10 @@ function getKV() {
   if (_kv !== null) return _kv
   if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
     _kv = false
+    // Surface the degradation once — otherwise single-use magic links / login
+    // codes / invoice locks silently become multi-use across lambda instances
+    // (the June 2026 env-wipe made this failure mode real and invisible).
+    console.warn('[auth] KV not configured (KV_REST_API_URL/TOKEN missing) — single-use token + lock checks fall back to per-instance memory, which is NOT safe across serverless instances.')
     return false
   }
   try {
@@ -79,6 +83,24 @@ async function isJtiRevoked(jti) {
   if (kv) return Boolean(await kv.get(`revoked:${jti}`))
   _memPrune()
   return _memJtis.has(`revoked:${jti}`)
+}
+
+// Mark a quote (by its jti) as paid so its checkout link can't be paid a second
+// time after the Stripe idempotency key expires (~24h). Separate namespace from
+// revocation so a paid quote gets its own "already paid" message.
+async function markQuotePaid(jti, ttlSeconds = 90 * 24 * 3600) {
+  if (!jti) return
+  const kv = getKV()
+  if (kv) { await kv.set(`paid:${jti}`, '1', { ex: ttlSeconds }); return }
+  _memJtis.set(`paid:${jti}`, Date.now() + ttlSeconds * 1000)
+}
+
+async function isQuotePaid(jti) {
+  if (!jti) return false
+  const kv = getKV()
+  if (kv) return Boolean(await kv.get(`paid:${jti}`))
+  _memPrune()
+  return _memJtis.has(`paid:${jti}`)
 }
 
 function newJti() {
@@ -245,6 +267,8 @@ module.exports = {
   consumeJti,
   revokeJti,
   isJtiRevoked,
+  markQuotePaid,
+  isQuotePaid,
   newJti,
   newLoginCode,
   storeLoginCode,

@@ -1,6 +1,6 @@
 import { requireAdmin } from '../../../lib/auth'
-import { getTodaysBookings, getBookingsForDateRange } from '../../../lib/gcal'
-import { findContactsByEmails, getAllContacts, tanksForCustomer, getContactNotes } from '../../../lib/hubspot'
+import { getTodaysBookings, getBookingsForDateRange, tzDayBoundsISO } from '../../../lib/gcal'
+import { findContactsByEmails, getAllContacts, tanksForCustomer, getClientNotes } from '../../../lib/hubspot'
 import { listAllActiveSubscriptions, listOpenInvoices, getBalance, listAllCustomers } from '../../../lib/stripe'
 import { buildTankCalendarData } from '../../../lib/tank-data'
 
@@ -19,8 +19,8 @@ export default async function handler(req, res) {
   const tomorrow = new Date(now)
   tomorrow.setDate(tomorrow.getDate() + 1)
   const tomorrowStr = tomorrow.toLocaleDateString('en-CA', { timeZone: tz })
-  const tomorrowStart = new Date(tomorrowStr + 'T00:00:00-05:00').toISOString()
-  const tomorrowEnd = new Date(tomorrowStr + 'T23:59:59-05:00').toISOString()
+  // DST-correct day bounds (was a hardcoded -05:00, wrong in CST Nov–Mar).
+  const { start: tomorrowStart, end: tomorrowEnd } = tzDayBoundsISO(tomorrowStr, tz)
 
   const [todayStops, tomorrowStops, activeSubs, openInvoices, balance, tankData, allCustomers, allContacts] = await Promise.all([
     getTodaysBookings().catch(() => []),
@@ -72,18 +72,10 @@ export default async function handler(req, res) {
       _contactId: c.id,
     }
   }
-  const ADMIN_NOTE_RE = /^\[ADMIN-NOTE[^\]]*\]\s*/
   await Promise.all(Object.entries(contactMap).map(async ([email, info]) => {
     if (!info._contactId) return
-    try {
-      const notes = await getContactNotes(info._contactId, 20)
-      const client = notes
-        .filter((n) => ADMIN_NOTE_RE.test((n.body || '').trim()))
-        .slice(0, 3)
-        .map((n) => n.body.trim().replace(ADMIN_NOTE_RE, ''))
-        .filter(Boolean)
-      if (client.length) contactMap[email].clientNotes = client
-    } catch {}
+    const client = await getClientNotes(info._contactId)
+    if (client.length) contactMap[email].clientNotes = client
   }))
 
   function serializeStop(s) {

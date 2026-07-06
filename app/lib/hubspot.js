@@ -1,4 +1,5 @@
 const { Client } = require('@hubspot/api-client')
+const crypto = require('crypto')
 const { fetchWithTimeout } = require('./http')
 
 // numberOfApiCallRetries: SDK retries 429/5xx with backoff for all SDK calls.
@@ -112,7 +113,10 @@ async function findContactsByEmails(emails) {
   if (cleaned.length === 0) return out
 
   const sorted = [...cleaned].sort()
-  const cacheKey = `hs:contacts:${sorted.join(',')}`.slice(0, 250)
+  // Hash the (potentially long) email list — truncating the raw join to 250
+  // chars made large sets that differ only in their tail collide and return the
+  // wrong customers' contact data.
+  const cacheKey = `hs:contacts:${crypto.createHash('sha1').update(sorted.join(',')).digest('hex')}`
   // 60s cache — contact name/phone/tank_count rarely change within a minute,
   // and rounds/home/calendar all re-request the same email set on reload.
   // Was 20s, which expired before a tech's repeat loads benefited.
@@ -187,6 +191,24 @@ async function getContactNotes(contactId, limit = 5) {
         timestamp: n.properties.hs_timestamp,
       }))
   })
+}
+
+// Client-facing popup notes are saved with a `[ADMIN-NOTE email timestamp]`
+// prefix. This returns up to `take` of them, prefix stripped. Shared by
+// rounds / home-data / tech-data (the block used to be copy-pasted in all 3).
+const ADMIN_NOTE_RE = /^\[ADMIN-NOTE[^\]]*\]\s*/
+async function getClientNotes(contactId, scan = 20, take = 3) {
+  if (!contactId) return []
+  try {
+    const notes = await getContactNotes(contactId, scan)
+    return notes
+      .filter((n) => ADMIN_NOTE_RE.test((n.body || '').trim()))
+      .slice(0, take)
+      .map((n) => n.body.trim().replace(ADMIN_NOTE_RE, ''))
+      .filter(Boolean)
+  } catch {
+    return []
+  }
 }
 
 async function updateContact(contactId, updates) {
@@ -347,4 +369,4 @@ function tanksForCustomer(props) {
   return 0
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, findContactsByNames, getContactNotes, updateContact, countContactsByProperty, getAllContacts, tanksForCustomer }
+module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, findContactsByNames, getContactNotes, getClientNotes, updateContact, countContactsByProperty, getAllContacts, tanksForCustomer }

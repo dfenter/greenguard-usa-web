@@ -1,8 +1,7 @@
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../../../lib/auth')
 const { stripe } = require('../../../lib/stripe')
 const { findContactByEmail, getContactNotes } = require('../../../lib/hubspot')
 const { getUpcomingBookingsForEmail, getPastBookingsForEmail } = require('../../../lib/gcal')
-const { getBookingsForEmail } = require('../../../lib/calcom')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -15,7 +14,7 @@ export default async function handler(req, res) {
 
   // Allow lookup by email when no Stripe customer ID is available
   if (!customerId && lookupEmail) {
-    const found = await stripe.customers.search({ query: `email:"${lookupEmail}"`, limit: 1 }).catch(() => ({ data: [] }))
+    const found = await stripe.customers.search({ query: `email:"${escapeStripeSearch(lookupEmail)}"`, limit: 1 }).catch(() => ({ data: [] }))
     if (found.data.length > 0) {
       customerId = found.data[0].id
     } else {
@@ -56,20 +55,11 @@ export default async function handler(req, res) {
     email ? getPastBookingsForEmail(email, 50).catch(() => []) : Promise.resolve([]),
   ])
 
-  let calBookings = []
-  if (email) {
-    try { calBookings = await getBookingsForEmail(email, new Date().toISOString()) } catch {}
-  }
-
-  // Attach Cal.com uid to next upcoming booking if we can match by time
+  // Cal.com UID enrichment removed: getBookingsForEmail() always returns [] with
+  // our event-type-scoped API key (documented in CLAUDE.md), so this only added
+  // a serial ~8s-on-blip call that never matched anything.
   const nextBooking = upcoming[0] || null
-  let nextCalBooking = null
-  if (nextBooking && calBookings.length > 0) {
-    const match = calBookings.find((cb) =>
-      Math.abs(new Date(cb.startTime) - new Date(nextBooking.startTime)) < 300000 // 5 min tolerance
-    )
-    if (match) nextCalBooking = { id: match.id, uid: match.uid, title: match.title }
-  }
+  const nextCalBooking = null
 
   const notes = hubspotContact?.id ? await getContactNotes(hubspotContact.id, 20).catch(() => []) : []
   const p = hubspotContact?.properties || {}

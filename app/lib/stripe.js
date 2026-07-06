@@ -36,47 +36,71 @@ const PRICE_ID_MAP = {
   'WKD-SURCH': process.env.STRIPE_PRICE_WKD_SURCH,
   'BG-NONCO2-UNIT': process.env.STRIPE_PRICE_BG_NONCO2_UNIT,
   'BUCKET-OF-DOOM': process.env.STRIPE_PRICE_BUCKET_OF_DOOM,
+  // Tank-service SKUs (previously only mapped in generate-invoice's local copy)
+  'TANK-DELIVERY-FEE': process.env.STRIPE_PRICE_TANK_DELIVERY_FEE,
+  'TANK-REFILL': process.env.STRIPE_PRICE_TANK_REFILL,
+  'TANK-HOOKUP-MAINT': process.env.STRIPE_PRICE_TANK_HOOKUP_MAINT,
+}
+
+// Single source of truth for SKU → Stripe price ID. Route handlers used to keep
+// their own drifting `SKU_TO_ENV` copies; they now call this instead.
+function priceIdForSku(sku) {
+  return PRICE_ID_MAP[sku] || null
 }
 
 /**
- * Find Stripe customer by email, or create one.
- */
-async function findOrCreateCustomer({ email, name, phone, address, metadata = {} }) {
-  const existing = await stripe.customers.search({
-    query: `email:"${email}"`,
-    limit: 1,
-  })
-
-  if (existing.data.length > 0) return existing.data[0]
-
-  const created = await stripe.customers.create({
-    email,
-    name,
-    phone,
-    address: address ? { line1: address } : undefined,
-    metadata,
-  })
-  await invalidate('stripe:customers:all')
-  return created
-}
-
-/**
- * Create a monthly subscription for a new customer.
- * subscriptionSkus: SKUs that map to recurring price IDs.
- */
-
-/**
- * Add one-time add-on line items to the customer's next invoice.
+ * Add one-time add-on line items to the customer's invoice.
+ *
+ * These items are attached to a DRAFT invoice (reusing the customer's open
+ * draft if one exists, else creating one). Creating invoice items WITHOUT an
+ * `invoice` makes them "pending", and nothing in this invoice-based
+ * (no-subscription) model ever sweeps pending items onto an invoice — they
+ * were silently dropped and never charged. Attaching to a draft makes the
+ * charge real; the billing-run cron finalizes the draft after its billing_date.
  */
 async function addInvoiceItems(customerId, oneTimeSkus, metadata = {}) {
+  const skus = (oneTimeSkus || []).filter((s) => PRICE_ID_MAP[s])
+  if (!skus.length) return []
+
+  // Reuse the customer's open draft (same one generate-invoice would use) so a
+  // visit's charges accumulate on one invoice instead of fragmenting.
+  const drafts = await stripe.invoices.list({ customer: customerId, status: 'draft', limit: 1 })
+  let invoice = drafts.data[0]
+  if (!invoice) {
+    let collection_method = 'send_invoice'
+    let days_until_due = 14
+    try {
+      const pms = await stripe.paymentMethods.list({ customer: customerId, limit: 1 })
+      if (pms.data.length > 0) { collection_method = 'charge_automatically'; days_until_due = undefined }
+    } catch {}
+    const taxRateId = getTaxRateId()
+    invoice = await stripe.invoices.create({
+      customer: customerId,
+      auto_advance: false,
+      collection_method,
+      ...(days_until_due !== undefined ? { days_until_due } : {}),
+      metadata: { ...metadata },
+      ...(taxRateId ? { default_tax_rates: [taxRateId] } : {}),
+    }).catch(async (err) => {
+      // Retry without a stale/missing tax rate rather than lose the charge.
+      if (taxRateId && err?.code === 'resource_missing') {
+        return stripe.invoices.create({
+          customer: customerId, auto_advance: false, collection_method,
+          ...(days_until_due !== undefined ? { days_until_due } : {}),
+          metadata: { ...metadata },
+        })
+      }
+      throw err
+    })
+  }
+
   const results = []
-  for (const sku of oneTimeSkus) {
-    const priceId = PRICE_ID_MAP[sku]
-    if (!priceId) continue
+  for (const sku of skus) {
     results.push(
       await stripe.invoiceItems.create({
         customer: customerId,
-        price: priceId,
+        invoice: invoice.id,
+        price: PRICE_ID_MAP[sku],
         metadata: { ...metadata, gg_sku: sku },
       })
     )
@@ -141,13 +165,18 @@ async function listAllInvoicesSince(fromTimestamp) {
   // Round to nearest 5-minute bucket so repeat analytics loads share the cache
   const bucket = Math.floor(fromTimestamp / 300) * 300
   return cached(`stripe:invoices:since:${bucket}`, 300, async () => {
-    const invoices = await stripe.invoices.list({
+    // Auto-paginate — a single limit:100 page silently truncated revenue
+    // analytics and the accounting CSV export to ~the newest 100 invoices.
+    const all = []
+    for await (const inv of stripe.invoices.list({
       status: 'paid',
       limit: 100,
       created: { gte: fromTimestamp },
       expand: ['data.customer_details'],
-    })
-    return invoices.data
+    })) {
+      all.push(inv)
+    }
+    return all
   })
 }
 
@@ -204,51 +233,70 @@ async function findInvoiceForBooking(customerEmail, { calBookingUid, serviceDate
   })
 }
 
-// Batch version of findInvoiceForBooking — one Stripe call instead of N.
-// Takes an array of {email, calBookingUid?, serviceDate?} and returns a Map<email, invoice>.
-async function findInvoicesForBookings(stops, lookbackDays = 45) {
-  const emails = [...new Set(stops.map(s => s.email).filter(Boolean))]
-  if (!emails.length) return new Map()
+// Stable per-stop identity used to key the batch-invoice result. Matches on the
+// GCal event id when present, else email+date. Shared with rounds.js so the
+// producer and consumer agree on the key.
+function bookingStopKey(stop) {
+  if (stop.gcalEventId) return `evt:${stop.gcalEventId}`
+  const email = (stop.email || '').toLowerCase()
+  return `ed:${email}::${stop.bookingDate || stop.serviceDate || ''}`
+}
 
-  const cacheKey = `stripe:batch-invoices:${lookbackDays}:${emails.sort().join(',')}`
+// Batch version of findInvoiceForBooking — one set of Stripe scans instead of N.
+// For EACH stop, finds an invoice matching THAT specific visit (by
+// cal_booking_uid, else service_date), scoped to the stop's customer email.
+// Returns a plain object keyed by bookingStopKey(stop). (Must be a plain object,
+// not a Map — the cache round-trips through Upstash JSON, which turns a Map into
+// {} and previously crashed the caller.) Matching by email alone used to hide a
+// customer's genuinely-unbilled stops whenever ANY recent invoice existed.
+async function findInvoicesForBookings(stops, lookbackDays = 45) {
+  const emails = [...new Set(stops.map(s => (s.email || '').toLowerCase()).filter(Boolean))]
+  if (!emails.length) return {}
+
+  const cacheKey = `stripe:batch-invoices:v2:${lookbackDays}:${emails.sort().join(',')}`
   return cached(cacheKey, 60, async () => {
     const since = Math.floor(Date.now() / 1000) - lookbackDays * 86400
     const allInvoices = []
+    // Expand the customer so we read customer_email/customer.email directly —
+    // no N+1 customers.retrieve() fan-out.
+    for (const status of ['draft', 'open', 'paid']) {
+      for await (const inv of stripe.invoices.list({
+        created: { gte: since }, limit: 100, status, expand: ['data.customer'],
+      })) { allInvoices.push(inv) }
+    }
 
-    // Fetch invoices created in the last lookbackDays days
-    for await (const inv of stripe.invoices.list({
-      created: { gte: since }, limit: 100, status: 'draft',
-    })) { allInvoices.push(inv) }
-    for await (const inv of stripe.invoices.list({
-      created: { gte: since }, limit: 100, status: 'open',
-    })) { allInvoices.push(inv) }
-    for await (const inv of stripe.invoices.list({
-      created: { gte: since }, limit: 100, status: 'paid',
-    })) { allInvoices.push(inv) }
+    const invEmail = (inv) =>
+      (inv.customer_email || (inv.customer && inv.customer.email) || '').toLowerCase()
 
-    // Get customer emails for all invoices
-    const customerIds = [...new Set(allInvoices.map(i => i.customer).filter(Boolean))]
-    const emailById = new Map()
-    await Promise.all(customerIds.map(async (cid) => {
-      try {
-        const c = await stripe.customers.retrieve(cid)
-        if (c.email) emailById.set(cid, c.email.toLowerCase())
-      } catch {}
-    }))
-
-    // Build email → invoice map
-    const result = new Map()
+    // Bucket candidate invoices by email (only for emails we care about).
+    const byEmail = new Map()
     for (const inv of allInvoices) {
-      const email = emailById.get(inv.customer)
+      const email = invEmail(inv)
       if (!email || !emails.includes(email)) continue
-      if (result.has(email)) continue  // keep first (most recent due to API order)
-      result.set(email, {
-        id: inv.id,
-        status: inv.status,
-        amountDue: (inv.amount_due || 0) / 100,
-        amountPaid: (inv.amount_paid || 0) / 100,
-        hostedUrl: inv.hosted_invoice_url || null,
-      })
+      if (!byEmail.has(email)) byEmail.set(email, [])
+      byEmail.get(email).push(inv)
+    }
+
+    // Match each stop to its own visit's invoice.
+    const result = {}
+    for (const s of stops) {
+      const email = (s.email || '').toLowerCase()
+      if (!email) continue
+      const candidates = byEmail.get(email) || []
+      const uid = s.calBookingUid
+      const date = s.bookingDate || s.serviceDate
+      const match = candidates.find((inv) =>
+        (uid && inv.metadata?.cal_booking_uid === uid) ||
+        (date && inv.metadata?.service_date === date)
+      )
+      if (!match) continue
+      result[bookingStopKey(s)] = {
+        id: match.id,
+        status: match.status,
+        amountDue: (match.amount_due || 0) / 100,
+        amountPaid: (match.amount_paid || 0) / 100,
+        hostedUrl: match.hosted_invoice_url || null,
+      }
     }
     return result
   })
@@ -310,7 +358,7 @@ module.exports = {
   getCustomer,
   getBalance,
   listAllCustomers,
-  findOrCreateCustomer,
+  priceIdForSku,
   addInvoiceItems,
   createBillingPortalSession,
   getInvoices,
@@ -320,6 +368,7 @@ module.exports = {
   listOpenInvoices,
   findInvoiceForBooking,
   findInvoicesForBookings,
+  bookingStopKey,
   getTaxRateId,
   listAllDraftInvoices,
 }

@@ -1,6 +1,6 @@
 const { jwtVerify } = require('jose')
 const Stripe = require('stripe')
-const { isJtiRevoked } = require('../../../lib/auth')
+const { isJtiRevoked, isQuotePaid } = require('../../../lib/auth')
 
 function getSecret() {
   return new TextEncoder().encode(process.env.JWT_SECRET)
@@ -29,6 +29,12 @@ export default async function handler(req, res) {
   // Admin can revoke a leaked / superseded quote without waiting for expiry.
   if (quote.jti && await isJtiRevoked(quote.jti)) {
     return res.status(410).json({ error: 'This quote has been revoked. Ask for an updated one.' })
+  }
+
+  // Already paid — the Stripe idempotency key only dedups for ~24h, so without
+  // this a customer revisiting the link later could be charged again.
+  if (quote.jti && await isQuotePaid(quote.jti)) {
+    return res.status(409).json({ error: 'This quote has already been paid. Thank you!' })
   }
 
   const {

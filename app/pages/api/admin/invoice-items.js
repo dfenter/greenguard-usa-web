@@ -1,4 +1,4 @@
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../../../lib/auth')
 const { stripe, getTaxRateId } = require('../../../lib/stripe')
 const { SKU_PRICES } = require('../../../lib/sku-engine')
 const { notifyAdminInvoiceSent } = require('../../../lib/purchase-notify')
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     const { email } = req.query
     if (!email) return res.status(400).json({ error: 'email required' })
 
-    const search = await stripe.customers.search({ query: `email:"${email}"`, limit: 1 })
+    const search = await stripe.customers.search({ query: `email:"${escapeStripeSearch(email)}"`, limit: 1 })
     const customer = search.data[0]
     if (!customer) return res.status(404).json({ error: 'Customer not found in Stripe' })
 

@@ -4,8 +4,8 @@ import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDate, getBookingsForDateRange } from '../../lib/gcal'
-import { listAllCustomers, findInvoiceForBooking, findInvoicesForBookings } from '../../lib/stripe'
-import { findContactsByEmails, findContactsByNames, tanksForCustomer, getContactNotes } from '../../lib/hubspot'
+import { listAllCustomers, findInvoiceForBooking, findInvoicesForBookings, bookingStopKey } from '../../lib/stripe'
+import { findContactsByEmails, findContactsByNames, tanksForCustomer, getClientNotes } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import SignaturePad from '../../components/SignaturePad'
 import CustomerPanel from '../../components/CustomerPanel'
@@ -38,6 +38,10 @@ export async function getServerSideProps({ req, query, res }) {
         address: b.address || '', email: b.email || '',
         startTime: b.startTime, durationMin: null,
         bookingDate: b.dateStr,
+        // Carry the Cal.com UID through so per-visit invoice matching works.
+        // (The Cal.com match block below never populates it — that fan-out is
+        // disabled — so without this the double-billing guard was dead code.)
+        calBookingUid: b.calBookingUid || null,
       }))
     } catch {}
   } else {
@@ -102,19 +106,10 @@ export async function getServerSideProps({ req, query, res }) {
           const tanks = tanksForCustomer(c.properties) || null
           if (tanks) hubspotNameByEmail[email + '__tanks'] = tanks
         }
-        // Client popup notes are saved with prefix: [ADMIN-NOTE email timestamp] body
-        // Extract only those notes and strip the prefix to show clean text.
-        const ADMIN_NOTE_RE = /^\[ADMIN-NOTE[^\]]*\]\s*/
+        // Client popup notes ([ADMIN-NOTE ...] prefixed) — shared helper.
         await Promise.all([...contactMap.entries()].map(async ([email, c]) => {
-          try {
-            const notes = await getContactNotes(c.id, 20)
-            const client = notes
-              .filter(n => ADMIN_NOTE_RE.test((n.body || '').trim()))
-              .slice(0, 3)
-              .map(n => n.body.trim().replace(ADMIN_NOTE_RE, ''))
-              .filter(Boolean)
-            if (client.length) hubspotContactByEmail[email]._clientNotes = client
-          } catch {}
+          const client = await getClientNotes(c.id)
+          if (client.length) hubspotContactByEmail[email]._clientNotes = client
         }))
       }).catch(() => {}),
     ])
@@ -184,10 +179,13 @@ export async function getServerSideProps({ req, query, res }) {
     // Invoice enrichment — batch fetch instead of N individual Stripe calls.
     // Only in `open` mode (needs to filter by invoice existence before building list).
     if (mode === 'open') {
-      const invoiceMap = await findInvoicesForBookings(stops).catch(() => new Map())
+      // Per-visit invoice match (by cal_booking_uid / service_date), keyed by
+      // bookingStopKey. Email-only matching used to hide a customer's unbilled
+      // stops whenever any recent invoice for them existed.
+      const invoiceMap = await findInvoicesForBookings(stops).catch(() => ({}))
       stops = stops.map(s => ({
         ...s,
-        existingInvoice: s.email ? (invoiceMap.get(s.email?.toLowerCase()) || null) : null,
+        existingInvoice: invoiceMap[bookingStopKey(s)] || null,
       }))
     }
   }
@@ -617,10 +615,11 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
   const addTotal  = sectionTotal(ADDONS,        state.addonQtys)
   const prodTotal = sectionTotal(PRODUCTS_SOLD, state.productQtys)
 
-  // CO2 tank refill auto-bundles a single $39.99 delivery fee per appointment.
+  // CO2 tank refill auto-bundles a single $39.00 delivery fee per appointment
+  // (must match the billed TANK-DELIVERY-FEE line item below and sku-engine).
   // Hookup & maintenance ($10/tank) is opt-in via state.tankHookupOptIn.
   const tankRefillQty = state.serviceQtys['CO₂ Tank Refill (per tank)'] || 0
-  const deliveryFee = tankRefillQty > 0 ? 39.99 : 0
+  const deliveryFee = tankRefillQty > 0 ? 39.00 : 0
   const hookupTotal = (tankRefillQty > 0 && state.tankHookupOptIn) ? 10.00 * tankRefillQty : 0
 
   // Delivery fee + hookup are conceptually service charges — include in

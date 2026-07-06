@@ -19,6 +19,7 @@ jest.mock('stripe', () => {
 
 jest.mock('../lib/auth', () => ({
   isJtiRevoked: jest.fn().mockResolvedValue(false),
+  isQuotePaid: jest.fn().mockResolvedValue(false),
 }))
 
 const Stripe = require('stripe')
@@ -122,6 +123,16 @@ test('revoked JTI returns 410', async () => {
   await handler(mockReq({ token }), res)
   expect(res.status).toHaveBeenCalledWith(410)
   expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('revoked') }))
+})
+
+test('already-paid quote returns 409 (no second charge)', async () => {
+  const { isQuotePaid } = require('../lib/auth')
+  isQuotePaid.mockResolvedValueOnce(true)
+  const token = await makeQuoteToken()
+  const res = mockRes()
+  await handler(mockReq({ token }), res)
+  expect(res.status).toHaveBeenCalledWith(409)
+  expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('already been paid') }))
 })
 
 test('quote with no priced items returns 400', async () => {

@@ -10,19 +10,11 @@
 // POST body: { customerEmail, upgradeId, currentPathKey, quantity? }
 // Returns: { ok, subscriptionId, action }
 
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
-const { stripe } = require('../../../lib/stripe')
+const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../../../lib/auth')
+const { stripe, priceIdForSku } = require('../../../lib/stripe')
 const { getPlan } = require('../../../lib/service-plans')
 const { PATHS } = require('../../../lib/upgrade-paths')
 const { findContactByEmail, updateContact, addNote } = require('../../../lib/hubspot')
-
-const SKU_TO_ENV = {
-  BG1: 'STRIPE_PRICE_BG1', BG2: 'STRIPE_PRICE_BG2', BG3: 'STRIPE_PRICE_BG3',
-  'MQ-RENT': 'STRIPE_PRICE_MQ_RENT', 'MQ-SVC': 'STRIPE_PRICE_MQ_SVC',
-  'CO2-ADDON': 'STRIPE_PRICE_CO2_ADDON',
-  BARRIER: 'STRIPE_PRICE_BARRIER',
-  'BG-SWEETSCENT': 'STRIPE_PRICE_BG_SWEETSCENT',
-}
 
 async function findUpgrade(currentPathKey, upgradeId) {
   const path = PATHS[currentPathKey]
@@ -54,7 +46,7 @@ export default async function handler(req, res) {
     upgrade = await findUpgrade(currentPathKey, upgradeId)
     if (!upgrade) return res.status(404).json({ error: `Unknown upgrade: ${upgradeId}` })
 
-    const search = await stripe.customers.search({ query: `email:"${customerEmail}"`, limit: 1 })
+    const search = await stripe.customers.search({ query: `email:"${escapeStripeSearch(customerEmail)}"`, limit: 1 })
     customer = search.data[0]
     if (!customer) return res.status(404).json({ error: `No Stripe customer for ${customerEmail}` })
 
@@ -68,7 +60,7 @@ export default async function handler(req, res) {
   if (upgrade.kind === 'addon') {
     // Append addon SKU to subscription if active sub exists
     const sub = await getActiveSubscription(customer.id)
-    const priceId = process.env[SKU_TO_ENV[upgrade.addonSku]]
+    const priceId = priceIdForSku(upgrade.addonSku)
     if (!priceId) return res.status(500).json({ error: `Missing Stripe price for ${upgrade.addonSku}` })
 
     if (sub) {
@@ -104,7 +96,7 @@ export default async function handler(req, res) {
   if (currentSub) await cancelSubscription(currentSub.id)
 
   const items = targetPlan.items.map((li) => ({
-    price: process.env[SKU_TO_ENV[li.sku]],
+    price: priceIdForSku(li.sku),
     quantity: targetPlan.perUnit ? Math.max(1, parseInt(quantity, 10) || 1) : 1,
   }))
 

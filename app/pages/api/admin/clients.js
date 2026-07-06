@@ -1,4 +1,4 @@
-const { requireAdmin } = require('../../../lib/auth')
+const { requireAdmin, escapeStripeSearch } = require('../../../lib/auth')
 const { listAllContacts, findContactByEmail, getNotesForContact } = require('../../../lib/hubspot')
 const { stripe } = require('../../../lib/stripe')
 
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       let invoices = []
       let stripeCustomerId = null
       try {
-        const customers = await stripe.customers.search({ query: `email:"${email}"`, limit: 1 })
+        const customers = await stripe.customers.search({ query: `email:"${escapeStripeSearch(email)}"`, limit: 1 })
         if (customers.data.length > 0) {
           stripeCustomerId = customers.data[0].id
           const [subs, invs] = await Promise.all([

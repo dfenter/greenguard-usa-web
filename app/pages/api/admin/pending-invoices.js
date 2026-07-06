@@ -1,6 +1,6 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { listAllDraftInvoices, stripe } = require('../../../lib/stripe')
-const { getBookingsForDateRange } = require('../../../lib/gcal')
+const { getBookingsForDateRange, tzDayBoundsISO } = require('../../../lib/gcal')
 const { SKU_PRICES } = require('../../../lib/sku-engine')
 
 // Returns start-of-Monday ISO for the current week in the configured timezone.
@@ -13,8 +13,8 @@ function getThisMonday(tz) {
   const monday = new Date(now)
   monday.setDate(monday.getDate() - back)
   const mondayStr = monday.toLocaleDateString('en-CA', { timeZone: tz })
-  // Start of Monday in CT: prepend T00:00:00 (treat as local CT time)
-  return new Date(mondayStr + 'T00:00:00-05:00').toISOString()
+  // DST-correct start-of-Monday (was a hardcoded -05:00, wrong in CST Nov–Mar).
+  return tzDayBoundsISO(mondayStr, tz).start
 }
 
 export default async function handler(req, res) {

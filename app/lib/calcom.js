@@ -36,10 +36,15 @@ async function getBookingsForWeek(startDate, endDate) {
   return data.data || data.bookings || []
 }
 
-async function rescheduleBooking(bookingId, newStartTime) {
-  return calFetch(`/bookings/${bookingId}`, {
-    method: 'PATCH',
+async function rescheduleBooking(bookingUid, newStartTime) {
+  // v2 reschedule is POST /bookings/{uid}/reschedule under api-version
+  // 2024-08-13. The old PATCH /bookings/{id} route does not exist (2024-06-14
+  // is the event-types version) and always 404'd — every reschedule silently
+  // fell back to GCal-only and desynced Cal.com.
+  return calFetch(`/bookings/${bookingUid}/reschedule`, {
+    method: 'POST',
     body: JSON.stringify({ start: newStartTime }),
+    headers: { ...headers(), 'cal-api-version': '2024-08-13' },
   })
 }
 

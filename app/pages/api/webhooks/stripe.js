@@ -3,7 +3,7 @@ const { upsertContact, addNote, findContactByEmail } = require('../../../lib/hub
 const { sendT0Email, markStage, clearStages } = require('../../../lib/payment-resurrection')
 const { notifyAdmin, sendCustomerReceipt, sendCheckoutReceipt } = require('../../../lib/purchase-notify')
 const { sendWelcomeEmail } = require('../../../lib/email')
-const { createMagicToken } = require('../../../lib/auth')
+const { createMagicToken, markQuotePaid } = require('../../../lib/auth')
 const crypto = require('crypto')
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || '2225826221565752'
@@ -167,8 +167,14 @@ export default async function handler(req, res) {
   // retries on non-200, and the same event can be delivered to parallel
   // instances; the KV-backed claim ensures exactly one processes it. On
   // failure we release the claim so the retry can reprocess.
-  const { claimWebhook, releaseWebhook } = require('../../../lib/db-webhook-log')
-  if (!(await claimWebhook(event.id))) {
+  // Claim with a SHORT ttl. If this lambda times out mid-processing, neither the
+  // success path nor the catch runs — a long claim would leave the event
+  // permanently marked done and Stripe's retry would get {duplicate:true} and
+  // give up (silent event loss). A short claim self-expires so the retry
+  // reprocesses; confirmWebhook() below extends it to the full TTL only after
+  // the event is actually handled.
+  const { claimWebhook, confirmWebhook, releaseWebhook } = require('../../../lib/db-webhook-log')
+  if (!(await claimWebhook(event.id, 180))) {
     return res.status(200).json({ received: true, duplicate: true })
   }
   try {
@@ -183,6 +189,11 @@ export default async function handler(req, res) {
               contact.id,
               `Payment received: $${(invoice.amount_paid / 100).toFixed(2)} — Invoice ${invoice.id}`
             )
+            // Clear any stale 'failed' flag — payment_failed sets it but nothing
+            // ever reset it, so paying customers stayed flagged 'failed' forever.
+            if (contact.properties?.payment_status === 'failed') {
+              await upsertContact({ email: customer.email, metadata: { payment_status: 'paid' } }).catch(() => {})
+            }
           }
         }
         // Admin notification (email + SMS)
@@ -317,6 +328,12 @@ export default async function handler(req, res) {
             .catch((e) => console.error('checkout customer receipt:', e.message))
         }
 
+        // Mark the quote paid so its checkout link can't be paid again after the
+        // Stripe idempotency key expires (~24h). checkout.js consults this.
+        if (session.metadata?.source === 'quote' && session.metadata?.quote_jti) {
+          await markQuotePaid(session.metadata.quote_jti).catch(() => {})
+        }
+
         // Mark quote as paid in HubSpot so quote-followup cron stops following up
         if (session.metadata?.source === 'quote' && session.metadata?.quote_jti && customerEmail) {
           try {
@@ -443,6 +460,8 @@ export default async function handler(req, res) {
         break
     }
 
+    // Fully handled — extend the short claim to the durable TTL.
+    await confirmWebhook(event.id).catch(() => {})
     res.status(200).json({ received: true })
   } catch (err) {
     console.error('[stripe-webhook] Processing error:', err.message)

@@ -421,6 +421,7 @@ async function getBookingsForDateRange(startISO, endISO) {
 
 module.exports = {
   getCalendar,
+  tzDayBoundsISO: _tzDayBounds, // DST-correct { start, end } ISO for a calendar day
   getUpcomingBookingsForEmail,
   getPastBookingsForEmail,
   getBookingsForWeek,

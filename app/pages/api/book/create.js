@@ -9,6 +9,29 @@ const CALENDAR_ID = process.env.CALENDAR_ID || 'admin@greenguard-usa.com'
 const TZ = 'America/Chicago'
 const SLOT_MIN = 30
 
+// Global cross-instance rate limit via KV so this unauthenticated endpoint
+// can't be scripted to stuff the calendar / spam HubSpot+email. No-ops if KV
+// is unset. 6 bookings per IP per hour is far above any real customer.
+async function rateLimitOk(ip, max = 6, windowSec = 3600) {
+  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) return true
+  try {
+    const key = `book-create:${ip}`
+    const r = await fetch(`${process.env.KV_REST_API_URL}/incr/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` },
+    })
+    const j = await r.json().catch(() => ({}))
+    const count = Number(j?.result || 0)
+    if (count === 1) {
+      await fetch(`${process.env.KV_REST_API_URL}/expire/${encodeURIComponent(key)}/${windowSec}`, {
+        headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` },
+      }).catch(() => {})
+    }
+    return count <= max
+  } catch {
+    return true // fail open — availability over strictness
+  }
+}
+
 function fmtDT(iso) {
   return new Date(iso).toLocaleString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
@@ -22,6 +45,11 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).end()
+
+  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim() || 'unknown'
+  if (!(await rateLimitOk(ip))) {
+    return res.status(429).json({ error: 'Too many booking requests — please try again later or call us.' })
+  }
 
   const { name, email, phone, street, city, state, zip, startISO, notes,
           gclid, fbclid, fbp, gaClientId, eventId } = req.body || {}

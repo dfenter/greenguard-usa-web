@@ -33,22 +33,22 @@ export default async function handler(req, res) {
     const stripeCustomerId = customers.data[0]?.id || null
 
     // Add invoice items for one-time SKUs.
-    // Double-billing guard: skip any SKU already added as a pending item for
-    // this same customer + visit day (double-submit, retry, or re-completing
-    // the same visit). A genuine new visit on another day is unaffected.
+    // Double-billing guard: skip any SKU already added for this same customer +
+    // visit day (double-submit, retry, or re-completing the same visit). Items
+    // are now attached to a draft invoice (not left "pending"), so list ALL
+    // invoice items — not just pending ones — to detect the duplicates.
     let invoiceItemsAdded = 0
     let skippedDuplicates = 0
     if (stripeCustomerId && skus.length > 0) {
       const visitDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
       let skusToAdd = skus
       try {
-        const pending = await stripe.invoiceItems.list({
+        const existing = await stripe.invoiceItems.list({
           customer: stripeCustomerId,
-          pending: true,
           limit: 100,
         })
         const billedToday = new Set(
-          pending.data
+          existing.data
             .filter((it) => it.metadata?.gg_source === 'complete-visit' && it.metadata?.gg_visit_date === visitDate)
             .map((it) => it.metadata?.gg_sku)
         )

@@ -67,6 +67,19 @@ async function claimWebhook(eventId, ttlSeconds = TTL_SECONDS) {
   return true
 }
 
+// Confirm successful processing: extend the (short) in-flight claim to the full
+// TTL so the event is durably marked done. The claim is taken with a SHORT ttl,
+// so if the lambda TIMES OUT mid-processing (neither success nor the catch
+// runs), the claim self-expires and Stripe's retry reprocesses instead of
+// getting a permanent {duplicate:true}. Only a fully-processed event gets the
+// long TTL. No NX — this overwrites/extends the existing claim.
+async function confirmWebhook(eventId, ttlSeconds = TTL_SECONDS) {
+  if (!eventId) return
+  const kv = getKV()
+  if (kv) { try { await kv.set(_key(eventId), Date.now(), { ex: ttlSeconds }) } catch {} ; return }
+  _processed.set(eventId, Date.now())
+}
+
 // Release a claim so a failed event can be retried by Stripe.
 async function releaseWebhook(eventId) {
   if (!eventId) return
@@ -87,4 +100,4 @@ async function recordWebhook(eventId) {
   await claimWebhook(eventId)
 }
 
-module.exports = { claimWebhook, releaseWebhook, isWebhookProcessed, recordWebhook }
+module.exports = { claimWebhook, confirmWebhook, releaseWebhook, isWebhookProcessed, recordWebhook }

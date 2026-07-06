@@ -5,17 +5,10 @@
 // against the plan's recurring price IDs. Quantity scales per-unit plans
 // like mosqitter-rental for multi-Mosqitter customers.
 
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
-const { stripe } = require('../../../lib/stripe')
+const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../../../lib/auth')
+const { stripe, priceIdForSku } = require('../../../lib/stripe')
 const { getPlan } = require('../../../lib/service-plans')
 const { findContactByEmail, updateContact } = require('../../../lib/hubspot')
-
-const SKU_TO_ENV = {
-  BG1: 'STRIPE_PRICE_BG1', BG2: 'STRIPE_PRICE_BG2', BG3: 'STRIPE_PRICE_BG3',
-  'MQ-RENT': 'STRIPE_PRICE_MQ_RENT', 'MQ-SVC': 'STRIPE_PRICE_MQ_SVC',
-  'CO2-ADDON': 'STRIPE_PRICE_CO2_ADDON',
-  'OWN-BG': 'STRIPE_PRICE_OWN_BG', 'OWN-MQ': 'STRIPE_PRICE_OWN_MQ',
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -29,7 +22,7 @@ export default async function handler(req, res) {
   if (!plan) return res.status(400).json({ error: `Unknown plan: ${planId}` })
 
   // Find or create the Stripe customer.
-  const search = await stripe.customers.search({ query: `email:"${customerEmail}"`, limit: 1 })
+  const search = await stripe.customers.search({ query: `email:"${escapeStripeSearch(customerEmail)}"`, limit: 1 })
   let customer = search.data[0]
   if (!customer) {
     customer = await stripe.customers.create({
@@ -42,7 +35,7 @@ export default async function handler(req, res) {
   // Resolve price IDs for each plan line item.
   const items = []
   for (const li of plan.items) {
-    const priceId = process.env[SKU_TO_ENV[li.sku]]
+    const priceId = priceIdForSku(li.sku)
     if (!priceId) return res.status(500).json({ error: `Missing Stripe price for SKU ${li.sku}` })
     items.push({
       price: priceId,
