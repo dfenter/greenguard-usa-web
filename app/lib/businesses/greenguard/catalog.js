@@ -114,7 +114,7 @@ const ADDONS = [
 // Inventory-tracked items also include an inventoryKey for the stock form.
 const PRODUCTS = [
   {
-    sku: null, label: 'Biogents BG-Mosquitaire', price: 279.99,
+    sku: null, label: 'Biogents BG-Mosquitaire', price: 299.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bgTraps', quoteCategory: 'Trap Purchase',
     shipping: 10.00,  // per unit
@@ -132,7 +132,7 @@ const PRODUCTS = [
     shipping: 170.00, // per unit
   },
   {
-    sku: 'BG-TIMER', label: 'Biogents Timer', price: 89.99,
+    sku: 'BG-TIMER', label: 'Biogents Timer', price: 99.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bgTimers', quoteCategory: 'Trap Purchase',
   },

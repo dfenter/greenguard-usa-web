@@ -9,8 +9,8 @@ const products = [
     tagline: 'The scientific standard in outdoor mosquito control',
     badge: 'Best Seller',
     badgeStyle: 'accent',
-    price: 279.99,
-    originalPrice: 299.99,
+    price: 299.99,
+    originalPrice: null,
     image: '/images/prod-biogents-co2.jpg',
     desc: 'CO₂-powered attraction captures host-seeking mosquitoes 24/7. No pesticides. Up to quarter-acre coverage.',
     pills: ['Up to 6,500 sq ft coverage', '24/7 silent operation', 'Regulator included'],
@@ -22,10 +22,10 @@ const products = [
     badge: 'Most Complete',
     badgeStyle: 'gold',
     price: 549.99,
-    originalPrice: 619.97,
+    originalPrice: 649.97,
     image: '/images/prod-all-in-one-bundle.jpg',
     desc: 'CO₂ trap, timer, 20 lb tank, and bait pack in one order. Add a CO₂ fill and start the same day.',
-    pills: ['Save $69.98', 'Includes CO₂ tank', 'Timer included'],
+    pills: ['Save $99.98', 'Includes CO₂ tank', 'Timer included'],
     featured: true,
   },
   {
@@ -58,7 +58,7 @@ const products = [
     tagline: 'Cut CO₂ use by 50%. Extend your tank life.',
     badge: 'Recommended Add-on',
     badgeStyle: 'accent',
-    price: 89.99,
+    price: 99.99,
     originalPrice: null,
     image: '/images/prod-co2-timer.png',
     desc: 'Programmable timer pauses CO₂ during low-activity hours. Reduces tank consumption by up to 50%.',
@@ -302,7 +302,7 @@ function badgeClasses(style: string) {
         </thead>
         <tbody>
           {[
-            { label: 'Price', bg: '$279.99', bundle: '$549.99', grand: '$1,849.99', noco2: '$179.99' },
+            { label: 'Price', bg: '$299.99', bundle: '$549.99', grand: '$1,849.99', noco2: '$179.99' },
             { label: 'Coverage', bg: 'Up to 6,500 sq ft', bundle: 'Up to 6,500 sq ft', grand: 'Up to 2 acres', noco2: 'Indoor/covered areas' },
             { label: 'CO₂ required', bg: 'Yes', bundle: 'Yes (tank included)', grand: 'Yes', noco2: 'No' },
             { label: 'App/Bluetooth', bg: 'No', bundle: 'No', grand: 'Yes', noco2: 'No' },
