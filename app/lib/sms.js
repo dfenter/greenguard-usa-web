@@ -1,4 +1,5 @@
 const twilio = require('twilio')
+const notifyQueue = require('./notify-queue')
 
 let _client = null
 function getClient() {
@@ -24,9 +25,11 @@ function normalizePhone(raw) {
 }
 
 /**
- * Send an SMS. Returns { ok, sid } or { ok:false, error }.
+ * The ORIGINAL Twilio send logic — "the current method". Used directly by the
+ * local notify daemon, and as the backup path when local isn't available.
+ * Returns { ok, sid, to } or { ok:false, error }.
  */
-async function sendSms({ to, body }) {
+async function sendSmsDirect({ to, body }) {
   const from = process.env.TWILIO_FROM_NUMBER
   if (!from) throw new Error('TWILIO_FROM_NUMBER not configured')
   const dest = normalizePhone(to)
@@ -39,4 +42,15 @@ async function sendSms({ to, body }) {
   }
 }
 
-module.exports = { sendSms, normalizePhone }
+/**
+ * Local-first SMS send: hands off to the local daemon when it's alive, else
+ * calls sendSmsDirect() with zero added latency (identical to pre-local-first
+ * behavior). Same shared orchestration as email — see notify-queue.sendLocalFirst.
+ * Return shape is preserved either way ({ ok, sid, to } — plus sentBy:'local'
+ * when the daemon handled it).
+ */
+async function sendSms({ to, body }) {
+  return notifyQueue.sendLocalFirst({ kind: 'sms', to, body }, sendSmsDirect)
+}
+
+module.exports = { sendSms, sendSmsDirect, normalizePhone }

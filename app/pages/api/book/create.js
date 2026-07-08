@@ -90,70 +90,79 @@ export default async function handler(req, res) {
       },
     })
 
-    // 2. Confirmation email to customer (non-blocking — a send failure here must
-    //    never abort the admin notification or the rest of the handler)
-    sendEmail({
-      to: email,
-      subject: `Your assessment is confirmed — ${formattedDT}`,
-      html: emailShell(`
-        <h2 style="margin:0 0 16px;font-size:1.25rem;color:#1a3320;font-family:Arial,sans-serif;">You're booked, ${escapeHtml(firstName)}!</h2>
-        <p style="margin:0 0 20px;color:#444;font-family:Arial,sans-serif;line-height:1.6;font-size:0.95rem;">
-          Your free property assessment with GreenGuard USA is confirmed.
-        </p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f9f5;border-left:4px solid #2d6a35;border-radius:4px;margin:0 0 24px;">
-          <tr><td style="padding:16px 20px;">
-            <p style="margin:0 0 6px;font-weight:800;font-size:1.05rem;color:#1a3320;font-family:Arial,sans-serif;">${escapeHtml(formattedDT)}</p>
-            <p style="margin:0;color:#555;font-family:Arial,sans-serif;font-size:0.9rem;">${escapeHtml(address)}</p>
-          </td></tr>
-        </table>
-        <p style="margin:0 0 10px;color:#555;font-size:0.9rem;font-family:Arial,sans-serif;line-height:1.6;">
-          <strong>What to expect:</strong> We'll walk your property (about 30 minutes), identify the best trap placement, and give you an honest recommendation with no pressure and no obligation.
-        </p>
-        ${notes ? `<p style="margin:10px 0;color:#555;font-size:0.9rem;font-family:Arial,sans-serif;"><strong>Your notes:</strong> ${escapeHtml(notes)}</p>` : ''}
-        <p style="margin:20px 0 0;color:#888;font-size:0.82rem;font-family:Arial,sans-serif;line-height:1.5;">
-          Need to reschedule or cancel? Call or text us at <a href="tel:5125604129" style="color:#2d6a35;font-weight:700;">512-560-4129</a>
-          or reply to this email and we'll get it sorted.
-        </p>
-      `),
-    }).catch(e => console.error('[book/create] customer confirm failed:', e.message))
+    // 2-5. Confirmation email, admin notify, HubSpot upsert, ad conversions.
+    // MUST be awaited (via allSettled, so one failure never blocks another) —
+    // Vercel's Node.js serverless runtime can freeze/tear down the function the
+    // instant res.status(200) is sent, killing any still-in-flight fire-and-forget
+    // promise. That was silently dropping the admin notify: logs showed "sending
+    // admin notify" but the request to Resend never got to finish resolving
+    // ("could not be resolved") because the response had already gone out.
+    console.log(`[book/create] booking OK for ${name} <${email}> @ ${formattedDT} — sending notifications`)
 
-    // 3. Admin notification (non-blocking). Sent from admin@ (NOT the default
-    //    noreply@, which our own inbox spam filter flags). Every attempt +
-    //    outcome is logged so a silent miss is visible in the function logs.
-    console.log(`[book/create] booking OK for ${name} <${email}> @ ${formattedDT} — sending admin notify`)
-    sendEmail({
-      to: CALENDAR_ID,
-      from: `GreenGuard Bookings <admin@greenguard-usa.com>`,
-      subject: `New booking: ${name} — ${formattedDT}`,
-      html: emailShell(`
-        <h2 style="margin:0 0 16px;font-size:1.1rem;color:#1a3320;font-family:Arial,sans-serif;">New Property Assessment Booking</h2>
-        <table cellpadding="0" cellspacing="0" style="font-family:Arial,sans-serif;font-size:0.9rem;width:100%;">
-          <tr><td style="padding:5px 0;color:#888;white-space:nowrap;padding-right:16px;">Name</td><td style="padding:5px 0;font-weight:700;">${escapeHtml(name)}</td></tr>
-          <tr><td style="padding:5px 0;color:#888;">Email</td><td style="padding:5px 0;"><a href="mailto:${escapeHtml(email)}" style="color:#2d6a35;">${escapeHtml(email)}</a></td></tr>
-          ${phone ? `<tr><td style="padding:5px 0;color:#888;">Phone</td><td style="padding:5px 0;"><a href="tel:${phone.replace(/\D/g, '')}" style="color:#2d6a35;">${escapeHtml(phone)}</a></td></tr>` : ''}
-          <tr><td style="padding:5px 0;color:#888;">Address</td><td style="padding:5px 0;">${escapeHtml(address)}</td></tr>
-          <tr><td style="padding:5px 0;color:#888;">When</td><td style="padding:5px 0;font-weight:700;">${escapeHtml(formattedDT)}</td></tr>
-          ${notes ? `<tr><td style="padding:5px 0;color:#888;">Notes</td><td style="padding:5px 0;">${escapeHtml(notes)}</td></tr>` : ''}
-        </table>
-        <p style="margin:20px 0 0;">
-          <a href="https://calendar.google.com/calendar/r" style="background:#2d6a35;color:#fff;padding:10px 20px;border-radius:5px;text-decoration:none;font-weight:700;font-family:Arial,sans-serif;display:inline-block;font-size:0.85rem;">Open Google Calendar</a>
-        </p>
-      `),
-    })
-      .then(r => console.log(`[book/create] admin notify SENT for ${name}:`, r?.data?.id || r?.messageId || 'ok'))
-      .catch(e => console.error(`[book/create] admin notify FAILED for ${name} <${email}>:`, e.message))
-
-    // 4. HubSpot upsert (non-blocking)
-    upsertContact({ email, name, phone, address }).catch(e => console.error('[book/create] HubSpot failed:', e.message))
-
-    // 5. Server-side ad conversions (non-blocking). The client-side gtag/fbq Lead
-    // events are unreliable (iOS/ad-block, Meta Audience Network), so fire the
-    // durable server signal so Google/Meta bidding can optimize toward bookings.
     const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress
-    fireBookingConversions({
-      email, phone, gclid, fbclid, fbp, gaClientId, eventId,
-      clientIp, userAgent: req.headers['user-agent'],
-    }).catch(e => console.error('[book/create] conversions failed:', e.message))
+
+    const results = await Promise.allSettled([
+      sendEmail({
+        to: email,
+        subject: `Your assessment is confirmed — ${formattedDT}`,
+        html: emailShell(`
+          <h2 style="margin:0 0 16px;font-size:1.25rem;color:#1a3320;font-family:Arial,sans-serif;">You're booked, ${escapeHtml(firstName)}!</h2>
+          <p style="margin:0 0 20px;color:#444;font-family:Arial,sans-serif;line-height:1.6;font-size:0.95rem;">
+            Your free property assessment with GreenGuard USA is confirmed.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f9f5;border-left:4px solid #2d6a35;border-radius:4px;margin:0 0 24px;">
+            <tr><td style="padding:16px 20px;">
+              <p style="margin:0 0 6px;font-weight:800;font-size:1.05rem;color:#1a3320;font-family:Arial,sans-serif;">${escapeHtml(formattedDT)}</p>
+              <p style="margin:0;color:#555;font-family:Arial,sans-serif;font-size:0.9rem;">${escapeHtml(address)}</p>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 10px;color:#555;font-size:0.9rem;font-family:Arial,sans-serif;line-height:1.6;">
+            <strong>What to expect:</strong> We'll walk your property (about 30 minutes), identify the best trap placement, and give you an honest recommendation with no pressure and no obligation.
+          </p>
+          ${notes ? `<p style="margin:10px 0;color:#555;font-size:0.9rem;font-family:Arial,sans-serif;"><strong>Your notes:</strong> ${escapeHtml(notes)}</p>` : ''}
+          <p style="margin:20px 0 0;color:#888;font-size:0.82rem;font-family:Arial,sans-serif;line-height:1.5;">
+            Need to reschedule or cancel? Call or text us at <a href="tel:5125604129" style="color:#2d6a35;font-weight:700;">512-560-4129</a>
+            or reply to this email and we'll get it sorted.
+          </p>
+        `),
+      }),
+      // Admin notification, sent from admin@ (NOT the default noreply@, which our
+      // own inbox spam filter flags).
+      sendEmail({
+        to: CALENDAR_ID,
+        from: `GreenGuard Bookings <admin@greenguard-usa.com>`,
+        subject: `New booking: ${name} — ${formattedDT}`,
+        html: emailShell(`
+          <h2 style="margin:0 0 16px;font-size:1.1rem;color:#1a3320;font-family:Arial,sans-serif;">New Property Assessment Booking</h2>
+          <table cellpadding="0" cellspacing="0" style="font-family:Arial,sans-serif;font-size:0.9rem;width:100%;">
+            <tr><td style="padding:5px 0;color:#888;white-space:nowrap;padding-right:16px;">Name</td><td style="padding:5px 0;font-weight:700;">${escapeHtml(name)}</td></tr>
+            <tr><td style="padding:5px 0;color:#888;">Email</td><td style="padding:5px 0;"><a href="mailto:${escapeHtml(email)}" style="color:#2d6a35;">${escapeHtml(email)}</a></td></tr>
+            ${phone ? `<tr><td style="padding:5px 0;color:#888;">Phone</td><td style="padding:5px 0;"><a href="tel:${phone.replace(/\D/g, '')}" style="color:#2d6a35;">${escapeHtml(phone)}</a></td></tr>` : ''}
+            <tr><td style="padding:5px 0;color:#888;">Address</td><td style="padding:5px 0;">${escapeHtml(address)}</td></tr>
+            <tr><td style="padding:5px 0;color:#888;">When</td><td style="padding:5px 0;font-weight:700;">${escapeHtml(formattedDT)}</td></tr>
+            ${notes ? `<tr><td style="padding:5px 0;color:#888;">Notes</td><td style="padding:5px 0;">${escapeHtml(notes)}</td></tr>` : ''}
+          </table>
+          <p style="margin:20px 0 0;">
+            <a href="https://calendar.google.com/calendar/r" style="background:#2d6a35;color:#fff;padding:10px 20px;border-radius:5px;text-decoration:none;font-weight:700;font-family:Arial,sans-serif;display:inline-block;font-size:0.85rem;">Open Google Calendar</a>
+          </p>
+        `),
+      }),
+      upsertContact({ email, name, phone, address }),
+      // Server-side ad conversions. The client-side gtag/fbq Lead events are
+      // unreliable (iOS/ad-block, Meta Audience Network), so fire the durable
+      // server signal so Google/Meta bidding can optimize toward bookings.
+      fireBookingConversions({
+        email, phone, gclid, fbclid, fbp, gaClientId, eventId,
+        clientIp, userAgent: req.headers['user-agent'],
+      }),
+    ])
+
+    const [customerConfirm, adminNotify, hubspot, conversions] = results
+    if (customerConfirm.status === 'rejected') console.error('[book/create] customer confirm failed:', customerConfirm.reason?.message)
+    if (adminNotify.status === 'rejected') console.error(`[book/create] admin notify FAILED for ${name} <${email}>:`, adminNotify.reason?.message)
+    else console.log(`[book/create] admin notify SENT for ${name}:`, adminNotify.value?.data?.id || adminNotify.value?.messageId || 'ok')
+    if (hubspot.status === 'rejected') console.error('[book/create] HubSpot failed:', hubspot.reason?.message)
+    if (conversions.status === 'rejected') console.error('[book/create] conversions failed:', conversions.reason?.message)
 
     return res.status(200).json({ ok: true })
   } catch (e) {

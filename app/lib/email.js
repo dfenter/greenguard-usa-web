@@ -1,6 +1,7 @@
 const { Resend } = require('resend')
-const nodemailer = require('nodemailer')
+const { google } = require('googleapis')
 const biz = require('./business.config')
+const notifyQueue = require('./notify-queue')
 
 const FROM = process.env.PORTAL_FROM_EMAIL || `noreply@${biz.email.split('@')[1]}`
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || `https://portal.${biz.email.split('@')[1]}`
@@ -15,26 +16,53 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
 }
 
-// Falls back to Gmail OAuth2 when Resend fails. Uses the dedicated GMAIL_*
-// admin@ token (gmail-capable); the GOOGLE_* triple is calendar-only and can't
-// send mail, so prefer GMAIL_* and only fall back to GOOGLE_* if it's unset.
-function getGmailTransport() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      type: 'OAuth2',
-      user: 'admin@greenguard-usa.com',
-      clientId: process.env.GMAIL_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GMAIL_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET,
-      refreshToken: process.env.GMAIL_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN,
-    },
-  })
+// Falls back to the Gmail REST API (users.messages.send) when Resend fails.
+// Uses the dedicated GMAIL_* admin@ token; GOOGLE_* is calendar-only and can't
+// send, so prefer GMAIL_* and only fall back to GOOGLE_* if it's unset.
+//
+// Deliberately NOT nodemailer's SMTP 'gmail' transport: that does real SMTP
+// AUTH XOAUTH2, which Google only accepts for tokens carrying the full
+// `https://mail.google.com/` scope. The GMAIL_* token instead carries the
+// granular Gmail API scopes (gmail.compose/gmail.modify) — plenty for
+// messages.send via the REST API, but SMTP login rejects it with
+// "535 BadCredentials". Calling the REST API directly sends with the scopes
+// the token actually has, no re-consent needed.
+function getGmailAuth() {
+  const clientId = process.env.GMAIL_CLIENT_ID || process.env.GOOGLE_CLIENT_ID
+  const clientSecret = process.env.GMAIL_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET
+  const refreshToken = process.env.GMAIL_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN
+  const auth = new google.auth.OAuth2(clientId, clientSecret)
+  auth.setCredentials({ refresh_token: refreshToken })
+  return auth
 }
 
-async function sendEmail({ to, subject, html, bcc, from }) {
-  // Optional `from` override (must be on a verified domain). Used e.g. for the
-  // internal booking alert, which sends from admin@ instead of the default
-  // noreply@ — a noreply sender gets flagged by our own inbox spam filter.
+function base64url(str) {
+  return Buffer.from(str, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+async function sendViaGmailApi({ to, subject, html, bcc, from }) {
+  const gmail = google.gmail({ version: 'v1', auth: getGmailAuth() })
+  const toList = Array.isArray(to) ? to.join(', ') : to
+  const bccList = bcc ? (Array.isArray(bcc) ? bcc.join(', ') : bcc) : null
+  const headers = [
+    `From: ${from}`,
+    `To: ${toList}`,
+    bccList ? `Bcc: ${bccList}` : null,
+    `Subject: =?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+  ].filter(Boolean).join('\r\n')
+  const raw = base64url(`${headers}\r\n\r\n${html}`)
+  const res = await gmail.users.messages.send({ userId: 'me', requestBody: { raw } })
+  return { messageId: res.data.id }
+}
+
+// The ORIGINAL send logic (Resend, then Gmail API on failure), unchanged.
+// This is "the current method" — used directly by the local daemon, and by
+// sendEmail() below as the backup path when local isn't available or doesn't
+// answer in time. Keeping it as its own exported function means the backup
+// path is byte-for-byte the same code that ran before local-first existed.
+async function sendEmailDirect({ to, subject, html, bcc, from }) {
   const resendFrom = from || `${biz.name} <${FROM}>`
   const gmailFrom = from || `${biz.name} <admin@greenguard-usa.com>`
   // Try Resend first; fall back to Gmail on ANY Resend failure (quota, error,
@@ -54,13 +82,18 @@ async function sendEmail({ to, subject, html, bcc, from }) {
       console.warn('Resend threw (%s) — falling back to Gmail', e.message)
     }
   }
-  return getGmailTransport().sendMail({
-    from: gmailFrom,
-    to,
-    subject,
-    html,
-    ...(bcc ? { bcc: Array.isArray(bcc) ? bcc.join(',') : bcc } : {}),
-  })
+  return sendViaGmailApi({ to, subject, html, bcc, from: gmailFrom })
+}
+
+/**
+ * Local-first send: if the local notify daemon is alive, this hands off to it
+ * (see notify-queue.sendLocalFirst); otherwise it calls sendEmailDirect() —
+ * "the current method" — with zero added latency and identical behavior to the
+ * pre-local-first code. The daemon uses the exact same sendEmailDirect(), so
+ * there's a single source of truth for how an email actually goes out.
+ */
+async function sendEmail({ to, subject, html, bcc, from }) {
+  return notifyQueue.sendLocalFirst({ kind: 'email', to, subject, html, bcc, from }, sendEmailDirect)
 }
 
 // Bulletproof light-mode email shell. Pass inner <td> content as body string.
@@ -273,4 +306,7 @@ async function sendServiceRequest(adminEmail, customer = {}, message = '', { sub
   }
 }
 
-module.exports = { sendMagicLink, sendWelcomeEmail, sendEmail, sendServiceRequest, escapeHtml, emailShell, goldButton, outlineButton }
+module.exports = {
+  sendMagicLink, sendWelcomeEmail, sendEmail, sendServiceRequest, escapeHtml, emailShell, goldButton, outlineButton,
+  sendEmailDirect, // exported for the local notify daemon (scripts/local-notify-daemon.js) and tests
+}

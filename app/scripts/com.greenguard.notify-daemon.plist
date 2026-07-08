@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.greenguard.notify-daemon</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>/Users/lucille/greenguard-usa-web/app/scripts/local-notify-daemon.js</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/lucille/greenguard-usa-web/app</string>
+
+  <!-- Start on load (login/boot) and restart automatically if it ever exits,
+       whether from a crash or the Mac waking from sleep. -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <!-- Don't restart-loop faster than once every 10s if it keeps crashing. -->
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>/Users/lucille/greenguard-usa-web/app/scripts/notify-daemon.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/lucille/greenguard-usa-web/app/scripts/notify-daemon.error.log</string>
+</dict>
+</plist>
