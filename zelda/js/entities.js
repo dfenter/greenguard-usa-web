@@ -18,14 +18,18 @@ const Entities = (() => {
   }
   function tryMove(e, dx, dy, game, inset) {
     const ix = inset.x, iy = inset.y, iw = e.w - inset.x - inset.x2, ih = e.h - inset.y - inset.y2;
+    // Escape-overlap rule: if the entity is ALREADY embedded in a solid (this
+    // happens by design when a room transition drops Link onto the far side's
+    // locked/shutter door tiles), allow movement so it can always walk out.
+    const embedded = boxSolid(game, e.x + ix, e.y + iy, iw, ih);
     let moved = false;
     if (dx) {
       const nx = e.x + dx;
-      if (!boxSolid(game, nx + ix, e.y + iy, iw, ih)) { e.x = nx; moved = true; }
+      if (embedded || !boxSolid(game, nx + ix, e.y + iy, iw, ih)) { e.x = nx; moved = true; }
     }
     if (dy) {
       const ny = e.y + dy;
-      if (!boxSolid(game, e.x + ix, ny + iy, iw, ih)) { e.y = ny; moved = true; }
+      if (embedded || !boxSolid(game, e.x + ix, ny + iy, iw, ih)) { e.y = ny; moved = true; }
     }
     return moved;
   }
@@ -584,8 +588,175 @@ const Entities = (() => {
         ctx.globalAlpha = 1;
       }
     };
-    for (const h of heads) h.shootTimer = 60 + Math.floor(Math.random() * 40);
+    for (const h of heads) h.shootTimer = 60 + Math.floor(Engine.rand() * 40);   // deterministic RNG
     return e;
+  }
+
+  // ============================ BOSS: Dodongo ============================
+  // Armored rhino — swords and arrows clink off. Feed it bombs: it swallows a
+  // placed (unexploded) bomb in front of its mouth and takes internal damage;
+  // two swallowed bombs kill it. Blast damage only stuns it.
+  function makeDodongo(tx, ty, opts = {}) {
+    const pair = !!opts.pair;   // harder variant: needs 3 bombs
+    const e = {
+      kind:'enemy', etype:'dodongo', boss:true, variant: pair ? 'red' : 'green',
+      x: tilePx(tx), y: tilePx(ty), w: 26, h: 18,
+      hp: pair ? 3 : 2,            // bombs swallowed to kill
+      touchDmg: 2, value: 0, alive: true,
+      dir:'left', speed: 0.45, moveTimer: 60, flash: 0, stun: 0, knock: null,
+      swallow: 0,
+      update(game) {
+        if (this.flash > 0) this.flash--;
+        if (this.swallow > 0) { this.swallow--; return; }   // gulp pause
+        if (this.stun > 0) { this.stun--; }
+        else {
+          if (--this.moveTimer <= 0) {
+            this.moveTimer = game.randInt(50, 100);
+            this.dir = game.choice(['up','down','left','right']);
+          }
+          const [vx, vy] = DIRS[this.dir];
+          if (!tryMove(this, vx * this.speed, vy * this.speed, game, ENEMY_INSET)) this.moveTimer = 0;
+        }
+        // mouth zone: one tile ahead of facing
+        const [fx, fy] = DIRS[this.dir];
+        const mouth = { x: this.x + 5 + fx * 16, y: this.y + 2 + fy * 16, w: 16, h: 14 };
+        for (const b of game.entities) {
+          if (b.kind === 'proj' && b.ptype === 'bomb' && b.alive !== false && b.exploding <= 0 &&
+              overlap(mouth, hitbox(b))) {
+            b.alive = false;             // swallowed whole
+            this.swallow = 40; this.flash = 24;
+            Sound.SFX.enemyHit();
+            if (--this.hp <= 0) { this.alive = false; Sound.SFX.enemyDie(); game.onBossKilled(this); }
+            return;
+          }
+        }
+        if (overlap(hitbox(this), hitbox(game.link)))
+          game.link.hurt(game, this.touchDmg, this.x + 13, this.y + 9);
+      },
+      hurt(game, dmg, kx, ky, src) {
+        // bomb BLAST stuns; everything else clinks off the armor
+        if (src === 'blast') { this.stun = 90; this.flash = 8; Sound.SFX.enemyHit(); return; }
+        Sound.SFX.enemyHit();   // clink — no damage
+      },
+      draw(ctx, ox, oy) {
+        const x = (this.x|0)+ox, y = (this.y|0)+oy;
+        if (this.flash > 0 && (this.flash & 1)) ctx.globalAlpha = 0.4;
+        const body = this.variant === 'red' ? '#c05820' : '#58a028';
+        const dark = this.variant === 'red' ? '#803008' : '#306010';
+        // body
+        ctx.fillStyle = body; ctx.fillRect(x, y + 2, 26, 14);
+        ctx.fillStyle = dark; ctx.fillRect(x + 2, y + 4, 22, 3);
+        // legs
+        ctx.fillStyle = dark;
+        ctx.fillRect(x + 3, y + 15, 4, 3); ctx.fillRect(x + 19, y + 15, 4, 3);
+        // head toward facing
+        const hx = this.dir === 'left' ? x - 4 : this.dir === 'right' ? x + 22 : x + 9;
+        const hy = this.dir === 'up' ? y - 4 : this.dir === 'down' ? y + 12 : y + 2;
+        ctx.fillStyle = body; ctx.fillRect(hx, hy, 8, 8);
+        ctx.fillStyle = '#fff'; ctx.fillRect(hx + 2, hy + 2, 2, 2);
+        // stun stars
+        if (this.stun > 0 && ((this.stun >> 3) & 1)) {
+          ctx.fillStyle = '#f8d030';
+          ctx.fillRect(x + 4, y - 4, 2, 2); ctx.fillRect(x + 18, y - 6, 2, 2);
+        }
+        ctx.globalAlpha = 1;
+      }
+    };
+    return e;
+  }
+
+  // ============================ BOSS: Manhandla ============================
+  // Four snapping heads around a drifting core; kill each head, the plant
+  // speeds up as heads die. Body is invulnerable while any head lives.
+  function makeManhandla(tx, ty, opts = {}) {
+    const headHp = opts.headHp || 2;
+    const mk = (dx, dy) => ({ dx, dy, hp: headHp, chomp: Engine.rand() * 6.28, shootTimer: 60 + Math.floor(Engine.rand() * 60) });
+    const e = {
+      kind:'enemy', etype:'manhandla', boss:true, variant:'green',
+      x: tilePx(tx), y: tilePx(ty), w: 16, h: 16,
+      hp: 1, touchDmg: 2, value: 0, alive: true, flash: 0, knock: null,
+      heads: [mk(-14, 0), mk(14, 0), mk(0, -14), mk(0, 14)],
+      vx: 0.7, vy: 0.5,
+      update(game) {
+        if (this.flash > 0) this.flash--;
+        const aliveHeads = this.heads.filter(h => h.hp > 0);
+        const spd = 1 + (this.heads.length - aliveHeads.length) * 0.45;   // speeds up
+        this.x += this.vx * spd; this.y += this.vy * spd;
+        if (this.x < 20 || this.x > 220) this.vx *= -1;
+        if (this.y < 20 || this.y > 140) this.vy *= -1;
+        for (const h of aliveHeads) {
+          h.chomp += 0.15;
+          if (--h.shootTimer <= 0) {
+            h.shootTimer = game.randInt(90, 160);
+            const hx = this.x + 8 + h.dx, hy = this.y + 8 + h.dy;
+            const dx = game.link.x - hx, dy = game.link.y - hy;
+            const m = Math.hypot(dx, dy) || 1;
+            game.spawn(makeProjectile('fireball', hx - 4, hy - 4, 'down',
+              { vx: dx/m, vy: dy/m, speed: 2.0, damage: 1, fromEnemy: true }));
+          }
+          const hb = { x: this.x + h.dx, y: this.y + h.dy, w: 16, h: 16 };
+          if (overlap(hb, hitbox(game.link))) game.link.hurt(game, 2, hb.x + 8, hb.y + 8);
+        }
+        if (aliveHeads.length === 0) {
+          this.alive = false; Sound.SFX.enemyDie(); game.onBossKilled(this);
+        }
+      },
+      hurt(game, dmg, kx, ky) {
+        if (this.flash > 4) return;
+        // nearest living head to the hit point takes it; body is armored
+        let best = null, bestD = 20;   // must actually hit near a head
+        for (const h of this.heads) {
+          if (h.hp <= 0) continue;
+          const d = Math.hypot((this.x + 8 + h.dx) - kx, (this.y + 8 + h.dy) - ky);
+          if (d < bestD) { bestD = d; best = h; }
+        }
+        if (!best) { Sound.SFX.enemyHit(); return; }   // clink off the core
+        best.hp -= dmg; this.flash = 10; Sound.SFX.enemyHit();
+      },
+      draw(ctx, ox, oy) {
+        const x = (this.x|0)+ox, y = (this.y|0)+oy;
+        if (this.flash > 0 && (this.flash & 1)) ctx.globalAlpha = 0.4;
+        // core
+        ctx.fillStyle = '#106838'; ctx.fillRect(x + 2, y + 2, 12, 12);
+        ctx.fillStyle = '#f8d030'; ctx.fillRect(x + 6, y + 6, 4, 4);
+        for (const h of this.heads) {
+          if (h.hp <= 0) continue;
+          const hx = x + h.dx, hy = y + h.dy;
+          const open = (Math.sin(h.chomp) + 1) / 2;   // 0 closed .. 1 open
+          ctx.fillStyle = '#30a040';
+          ctx.fillRect(hx, hy + 3, 16, 10);
+          // jaws
+          ctx.fillStyle = '#d82828';
+          const gap = 2 + open * 4;
+          ctx.fillRect(hx + 2, hy + 8 - gap/2, 12, 1 + gap);
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(hx + 2, hy + 7 - gap/2, 12, 2);
+          ctx.fillRect(hx + 2, hy + 9 + gap/2 - 1, 12, 2);
+        }
+        ctx.globalAlpha = 1;
+      }
+    };
+    return e;
+  }
+
+  // ============================ FX (spawn puff / death poof) ============================
+  function makeFx(fxkind, x, y) {
+    return {
+      kind:'fx', fxkind, x, y, w:16, h:16, t:0, life: 18, alive: true,
+      update() { if (++this.t >= this.life) this.alive = false; },
+      draw(ctx, ox, oy) {
+        const x = (this.x|0)+ox, y = (this.y|0)+oy;
+        const p = this.t / this.life;                       // 0..1
+        const cols = this.fxkind === 'poof' ? ['#fff','#f8d030','#f87800'] : ['#88c8f8','#fff','#c8e8f8'];
+        ctx.fillStyle = cols[(this.t >> 2) % cols.length];
+        // four clouds flying outward from center
+        const d = 2 + p * 8, s = Math.max(1, 5 - p * 4);
+        ctx.fillRect(x + 8 - d - s/2, y + 8 - s/2, s, s);
+        ctx.fillRect(x + 8 + d - s/2, y + 8 - s/2, s, s);
+        ctx.fillRect(x + 8 - s/2, y + 8 - d - s/2, s, s);
+        ctx.fillRect(x + 8 - s/2, y + 8 + d - s/2, s, s);
+      }
+    };
   }
 
   // ============================ PROJECTILES ============================
@@ -689,8 +860,9 @@ const Entities = (() => {
             en.flash = 12; en.knock = { dx:this.vx*2, dy:this.vy*2, t:8 };
             if (en.hp <= 1) en.hurt(game, 1, this.x, this.y);
           }
-          if (en.kind === 'item' && en.alive !== false && overlap(hitbox(this), hitbox(en))) {
-            en.x = this.owner.x; en.y = this.owner.y;  // pull toward link
+          if (en.kind === 'item' && en.alive !== false && this.owner.kind === 'link' &&
+              overlap(hitbox(this), hitbox(en))) {
+            en.x = this.owner.x; en.y = this.owner.y;  // pull toward link (never a Goriya)
           }
         }
       },
@@ -712,7 +884,7 @@ const Entities = (() => {
           // damage enemies in blast
           for (const en of game.entities) {
             if (en.kind === 'enemy' && en.alive !== false && !en.hidden && overlap(hitbox(this), hitbox(en)))
-              en.hurt(game, 4, this._cx, this._cy);
+              en.hurt(game, 4, this._cx, this._cy, 'blast');
           }
           if (this.exploding <= 0) this.alive = false;
           return;
@@ -720,6 +892,7 @@ const Entities = (() => {
         if (--this.fuse <= 0) {
           this._cx = this.x + 5; this._cy = this.y + 6;
           this.exploding = 22; Sound.SFX.bomb();
+          if (game.onBombBlast) game.onBombBlast(this._cx, this._cy);   // secrets hook
         }
       },
       draw(ctx, ox, oy) {
@@ -772,6 +945,11 @@ const Entities = (() => {
         ctx.fillRect(x+4,y,5,2); ctx.fillRect(x+2,y+2,9,2); ctx.fillRect(x+1,y+4,11,6);
         ctx.fillRect(x+2,y+10,9,2); ctx.fillRect(x+4,y+12,5,2);
         ctx.fillStyle='#a8f0a8'; ctx.fillRect(x+4,y+3,2,6); break;
+      case 'rupee5':
+        ctx.fillStyle = (it.t>>3)&1 ? '#3858f8' : '#1830a0';
+        ctx.fillRect(x+4,y,5,2); ctx.fillRect(x+2,y+2,9,2); ctx.fillRect(x+1,y+4,11,6);
+        ctx.fillRect(x+2,y+10,9,2); ctx.fillRect(x+4,y+12,5,2);
+        ctx.fillStyle='#a8c8f8'; ctx.fillRect(x+4,y+3,2,6); break;
       case 'fairy': {
         const f=(it.t>>2)&1;
         ctx.fillStyle='#f078c0'; ctx.fillRect(x+4,y+4,5,6);
@@ -864,7 +1042,8 @@ const Entities = (() => {
   }
 
   return {
-    makeLink, makeEnemy, makeAquamentus, makeGleeok, makeProjectile, makeBoomerang, makeBomb, makeItem,
+    makeLink, makeEnemy, makeAquamentus, makeGleeok, makeDodongo, makeManhandla,
+    makeProjectile, makeBoomerang, makeBomb, makeItem, makeFx,
     overlap, hitbox, tryMove, LINK_INSET, ENEMY_INSET, DIRS,
   };
 })();

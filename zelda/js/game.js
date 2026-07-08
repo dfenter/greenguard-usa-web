@@ -19,13 +19,19 @@ const Game = (() => {
     swordHit: false,
     keys: Engine.keys, pressed: Engine.pressed,
     rand: Engine.rand, randInt: Engine.randInt, choice: Engine.choice,
-    cleared: new Set(),       // screens/rooms fully cleared
+    cleared: new Set(),       // dungeon rooms cleared THIS visit (resets on exit)
     taken: new Set(),         // unique items collected (bow, boomerang, triforce...)
+    revealed: new Set(),      // overworld screens whose secret was uncovered (persists)
+    shutters: new Set(),      // dungeon rooms whose shutters opened this visit
+    pushed: new Set(),        // dungeon rooms whose block was pushed this visit
+    lit: new Set(),           // dark rooms lit this visit
+    dark: false,              // current room is dark
     cave: null,
     scroll: null,
     msg: null, msgT: 0,
     flashWin: 0,
     triforces: 0,
+    pauseSel: 0,              // cursor index on the pause/inventory screen
   };
 
   // expose mutable input each frame
@@ -70,13 +76,20 @@ const Game = (() => {
     state.mode = 'overworld';
     state.col = col; state.row = row;
     state.theme = sc.theme;
-    state.grid = sc.rows.map(s => s.split('').slice(0, 16).join(''));
+    // grid as char arrays (mutable — secrets/doors rewrite tiles in place)
+    state.grid = sc.rows.map(s => s.split('').slice(0, 16));
+    // previously revealed secrets stay revealed (bombed wall -> cave, burned tree -> stairs)
+    if (state.revealed.has(col + ',' + row)) {
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (state.grid[r][c] === 'H') state.grid[r][c] = 'C';
+        if (state.grid[r][c] === 'U') state.grid[r][c] = 'S';
+      }
+    }
     state.screenImg = bakeScreen(state.grid, state.theme);
     state.entities = [];
-    // enemies (unless cleared)
-    if (!state.cleared.has(key3('ow', col, row)) && sc.enemies) {
-      for (const [t, v, tx, ty] of sc.enemies) spawnEnemy(t, v, tx, ty);
-    }
+    // enemies respawn on every screen entry (authentic Zelda 1 behavior —
+    // the world never goes permanently quiet)
+    if (sc.enemies) for (const [t, v, tx, ty] of sc.enemies) spawnEnemy(t, v, tx, ty);
     if (entryPos) { state.link.x = entryPos[0]; state.link.y = entryPos[1]; }
     return true;
   }
@@ -89,18 +102,26 @@ const Game = (() => {
     state.col = col; state.row = row;
     state.theme = rd.room.theme;
     state.grid = rd.room.rows.map(s => s.split(''));
-    // re-lock doors are part of grid already; unlocked persist via cleared overrides
     applyDoorState(lvl, col, row);
+    const roomKey = key3('d' + lvl.id, col, row);
+    // shutters already opened this visit stay open; pushed blocks stay pushed
+    if (state.shutters.has(roomKey)) openShutters(false);
+    if (state.pushed.has(roomKey) && rd.room.push) {
+      const p = rd.room.push;
+      if (state.grid[p.r] && state.grid[p.r][p.c] === 'p') state.grid[p.r][p.c] = 'F';
+    }
+    // dark rooms: pitch black until lit with a flame this visit
+    state.dark = !!rd.room.dark && !state.lit.has(roomKey);
     state.screenImg = bakeScreen(state.grid, state.theme);
     state.entities = [];
-    const cleared = state.cleared.has(key3('d' + lvl.id, col, row));
+    const cleared = state.cleared.has(roomKey);
     if (!cleared && rd.enemies) for (const [t, v, tx, ty] of rd.enemies) spawnEnemy(t, v, tx, ty);
     if (rd.boss && !state.taken.has(key3('boss' + lvl.id, col, row))) {
-      if (rd.boss.variant === 'gleeok') {
-        state.entities.push(E.makeGleeok(rd.boss.x, rd.boss.y, rd.boss.bossOpts || {}));
-      } else {
-        state.entities.push(E.makeAquamentus(rd.boss.x, rd.boss.y, { variant: rd.boss.variant }));
-      }
+      const b = rd.boss, o = b.bossOpts || {};
+      if (b.variant === 'gleeok')        state.entities.push(E.makeGleeok(b.x, b.y, o));
+      else if (b.variant === 'dodongo')  state.entities.push(E.makeDodongo(b.x, b.y, o));
+      else if (b.variant === 'manhandla')state.entities.push(E.makeManhandla(b.x, b.y, o));
+      else state.entities.push(E.makeAquamentus(b.x, b.y, { variant: b.variant }));
     }
     if (rd.item && !state.taken.has(key3('item' + lvl.id, col, row))) {
       const it = E.makeItem(rd.item.kind, rd.item.x * 16, rd.item.y * 16, { permanent: true });
@@ -112,8 +133,22 @@ const Game = (() => {
       it._unique = 'triforce' + lvl.id;
       state.entities.push(it);
     }
+    state._hadEnemies = countEnemies() > 0;   // arms the room-clear/shutter check
     if (entryPos) { state.link.x = entryPos[0]; state.link.y = entryPos[1]; }
     return true;
+  }
+
+  // Convert all shutter doors in the current grid to open floor.
+  function openShutters(withSfx = true) {
+    let any = false;
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (state.grid[r][c] === 'Z') { state.grid[r][c] = 'F'; any = true; }
+    if (any) {
+      state.screenImg = bakeScreen(state.grid, state.theme);
+      if (withSfx) Sound.SFX.secret();
+    }
+    return any;
   }
 
   // unlocked doors persist
@@ -127,7 +162,10 @@ const Game = (() => {
   }
 
   function spawnEnemy(t, v, tx, ty) {
-    state.entities.push(E.makeEnemy(t, v, tx, ty));
+    const e = E.makeEnemy(t, v, tx, ty);
+    e._spawnDelay = 20;                             // materialize behind a puff
+    state.entities.push(e);
+    state.entities.push(E.makeFx('puff', e.x, e.y));
   }
 
   function countEnemies() { return state.entities.filter(e => e.kind === 'enemy' && e.alive !== false).length; }
@@ -305,13 +343,24 @@ const Game = (() => {
     }
     state.level = Dungeon.level(level);
     state.prevReturn = { col: state.col, row: state.row, tile: tile ? { c: tile.c, r: tile.r } : null };
+    // every dungeon visit is fresh: rooms repopulate, shutters close, darkness returns
+    resetDungeonVisit(state.level.id);
     Sound.SFX.stairs();
     const en = state.level.entry;
     loadDungeonRoom(en.col, en.row, [en.pos[0] * 16, en.pos[1] * 16]);
   }
+  function resetDungeonVisit(lvlId) {
+    const pre = 'd' + lvlId + ':';
+    for (const k of [...state.cleared]) if (k.startsWith(pre)) state.cleared.delete(k);
+    for (const k of [...state.shutters]) if (k.startsWith(pre)) state.shutters.delete(k);
+    for (const k of [...state.pushed]) if (k.startsWith(pre)) state.pushed.delete(k);
+    for (const k of [...state.lit]) if (k.startsWith(pre)) state.lit.delete(k);
+  }
   function exitDungeon() {
     const ret = state.prevReturn || { col: 1, row: 0, tile: null };
+    if (state.level) resetDungeonVisit(state.level.id);
     state.level = null;
+    state.dark = false;
     Sound.SFX.stairs();
     loadOverworld(ret.col, ret.row, null);
     // place Link on the open tile just below the dungeon entrance
@@ -348,8 +397,9 @@ const Game = (() => {
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         v: 1, col, row, x, y,
         triforces: state.triforces,
-        cleared: [...state.cleared],
+        cleared: [],   // room-clears are per-visit now; kept for save-format compat
         taken: [...state.taken],
+        revealed: [...state.revealed],
         unlocked: [...unlocked],
         link,
       }));
@@ -366,8 +416,9 @@ const Game = (() => {
     const l = state.link;
     for (const k of LINK_SAVE_KEYS) if (data.link && k in data.link) l[k] = data.link[k];
     l.health = Math.max(6, Math.min(l.maxHealth, l.health || 0));   // continue with ≥3 hearts
-    state.cleared = new Set(data.cleared || []);
+    state.cleared = new Set();                        // per-visit only
     state.taken = new Set(data.taken || []);
+    state.revealed = new Set(data.revealed || []);
     unlocked.clear(); (data.unlocked || []).forEach(u => unlocked.add(u));
     state.triforces = data.triforces || 0;
     if (World.get(data.col, data.row)) loadOverworld(data.col, data.row, [data.x, data.y]);
@@ -380,6 +431,7 @@ const Game = (() => {
   state.collect = (it) => collect(it);
   state.onEnemyKilled = (e) => onEnemyKilled(e);
   state.onBossKilled = (e) => onBossKilled(e);
+  state.onBombBlast = (cx, cy) => onBombBlast(cx, cy);
   state.onLinkDead = () => { state.mode = 'gameover'; state.msgT = 180; Sound.SFX.die(); Sound.stopMusic(); };
 
   function collect(it) {
@@ -387,6 +439,7 @@ const Game = (() => {
     switch (it.item) {
       case 'heart': l.health = Math.min(l.maxHealth, l.health + 2); Sound.SFX.heart(); break;
       case 'rupee': l.rupees += 1; Sound.SFX.rupee(); break;
+      case 'rupee5': l.rupees += 5; Sound.SFX.rupee(); break;
       case 'bomb':  l.bombs += 4; Sound.SFX.rupee(); break;
       case 'fairy': l.health = Math.min(l.maxHealth, l.health + 6); Sound.SFX.heart(); break;
       case 'key':   l.keys += 1; Sound.SFX.rupee(); break;
@@ -432,6 +485,7 @@ const Game = (() => {
   }
 
   function onEnemyKilled(e) {
+    state.entities.push(E.makeFx('poof', e.x, e.y));   // death poof
     // drop?
     if (!e.boss && state.rand() < 0.55) {
       const roll = state.rand();
@@ -495,8 +549,23 @@ const Game = (() => {
     if (l.dir === 'up') fy = l.y - 2; if (l.dir === 'down') fy = l.y + 18;
     const t = tileAtPx(fx, fy);
     if (t && t.ch === 'L') {
-      state.grid[t.r][t.c] = 'F';
-      unlocked.add(state.level.id + ':' + state.col + ',' + state.row + ':' + t.c + ',' + t.r);
+      const lid = state.level.id;
+      const mark = (col, row, c, r) => unlocked.add(lid + ':' + col + ',' + row + ':' + c + ',' + r);
+      // open BOTH tiles of the door pair (doors are 2-3 tiles wide)
+      const tiles = [[t.c, t.r]];
+      const horiz = (t.r === 0 || t.r === 10);
+      if (horiz) { if (state.grid[t.r][t.c-1] === 'L') tiles.push([t.c-1, t.r]); if (state.grid[t.r][t.c+1] === 'L') tiles.push([t.c+1, t.r]); }
+      else { if (state.grid[t.r-1] && state.grid[t.r-1][t.c] === 'L') tiles.push([t.c, t.r-1]); if (state.grid[t.r+1] && state.grid[t.r+1][t.c] === 'L') tiles.push([t.c, t.r+1]); }
+      for (const [c, r] of tiles) {
+        state.grid[r][c] = 'F';
+        mark(state.col, state.row, c, r);
+        // a door is ONE object shared by two rooms — unlock the twin tile on
+        // the far side too so the way back stays open
+        if (r === 0)  mark(state.col, state.row - 1, c, 10);
+        if (r === 10) mark(state.col, state.row + 1, c, 0);
+        if (c === 0)  mark(state.col - 1, state.row, 15, r);
+        if (c === 15) mark(state.col + 1, state.row, 0, r);
+      }
       state.screenImg = bakeScreen(state.grid, state.theme);
       if (!l.hasMagicKey) l.keys--;
       Sound.SFX.secret();
@@ -529,31 +598,62 @@ const Game = (() => {
       if (s.t >= s.max) { s.finalize(); state.mode = state.prevMode === 'dungeon' ? 'dungeon' : (state.level ? 'dungeon' : 'overworld'); state.scroll = null; saveGame(); }
       return;
     }
+    if (state.mode === 'pause') {
+      updatePause();
+      return;
+    }
 
     // playing modes: overworld / dungeon / cave
-    // B-item cycle
+    if (P.start) {   // pause / inventory
+      state.prevMode = state.mode;
+      state.mode = 'pause';
+      state.pauseSel = Math.max(0, ownedBItems().indexOf(state.link.bItem));
+      Sound.SFX.select();
+      return;
+    }
+    // B-item quick cycle
     if (P.select) cycleItem();
 
     state.link.update(state);
     state.swordSwung = Math.max(0, state.swordSwung - 1);
     doSwordHits();
-    if (state.mode === 'dungeon') tryUnlock();
+    if (state.mode === 'dungeon') {
+      tryUnlock(); tryPush();
+      // a flame lights a dark room for the rest of the visit
+      if (state.dark && state.entities.some(e => e.kind === 'proj' && (e.ptype === 'flame' || e.ptype === 'fireblast'))) {
+        state.dark = false;
+        state.lit.add(key3('d' + state.level.id, state.col, state.row));
+        Sound.SFX.secret();
+      }
+    }
 
-    // update entities
-    for (const e of state.entities) if (e.update) e.update(state);
+    // update entities (freshly spawned enemies materialize behind a puff)
+    for (const e of state.entities) {
+      if (e._spawnDelay > 0) { e._spawnDelay--; continue; }
+      if (e.update) e.update(state);
+    }
+
+    // secrets: flames burn marked trees; (bomb reveals hook via onBombBlast)
+    if (state.mode === 'overworld') checkBurnSecrets();
 
     // deferred dungeon exit after collecting a non-final Triforce piece
     if (state._warpOut) { state._warpOut = false; exitDungeon(); return; }
 
     // remove dead
-    const before = countEnemies();
     state.entities = state.entities.filter(e => e.alive !== false);
-    const after = countEnemies();
 
-    // mark cleared
-    if (before > 0 && after === 0 && (state.mode === 'overworld' || state.mode === 'dungeon')) {
-      if (state.mode === 'overworld') state.cleared.add(key3('ow', state.col, state.row));
-      else state.cleared.add(key3('d' + state.level.id, state.col, state.row));
+    // room-clear bookkeeping (dungeon rooms stay cleared for THIS visit;
+    // overworld enemies always respawn on re-entry). NOTE: uses a had-enemies
+    // flag — comparing counts before/after the filter never fired because dead
+    // enemies were already excluded from both counts.
+    if (state.mode === 'dungeon' && state._hadEnemies && countEnemies() === 0) {
+      state._hadEnemies = false;
+      const roomKey = key3('d' + state.level.id, state.col, state.row);
+      state.cleared.add(roomKey);
+      const rd = Dungeon.getRoom(state.level, state.col, state.row);
+      if (rd && rd.room.shutter === 'clear' && !state.shutters.has(roomKey)) {
+        if (openShutters()) state.shutters.add(roomKey);
+      }
     }
 
     // triggers (cave/dungeon entrances)
@@ -561,8 +661,9 @@ const Game = (() => {
       const t = tileAtPx(state.link.x + 8, state.link.y + 10);
       if (t) {
         const sc = World.get(state.col, state.row);
-        if (t.ch === 'C' && sc.cave) enterCave(sc.cave.kind, t);
-        else if (t.ch === 'S' && sc.cave) enterCave(sc.cave.kind || 'shop', t);
+        const caveKind = (sc.cave && sc.cave.kind) || (sc.secret && sc.secret.kind);
+        if (t.ch === 'C' && caveKind) enterCave(caveKind, t);
+        else if (t.ch === 'S' && caveKind) enterCave(caveKind || 'shop', t);
         else if (t.ch === 'D' && sc.dungeon) enterDungeon(sc.dungeon.level, t);
       }
     }
@@ -571,13 +672,84 @@ const Game = (() => {
     if (state.msgT > 0 && state.msgT < 99999) state.msgT--;
   }
 
-  function cycleItem() {
+  // ---------- push blocks ----------
+  function tryPush() {
+    const l = state.link;
+    if (!l.moving) { state._pushT = 0; return; }
+    const [dx, dy] = E.DIRS[l.dir];
+    const t = tileAtPx(l.x + 8 + dx * 12, l.y + 8 + dy * 12);
+    if (!t || t.ch !== 'p') { state._pushT = 0; return; }
+    if (++state._pushT < 18) return;                    // shove for ~1/3 second
+    state._pushT = 0;
+    const nc = t.c + dx, nr = t.r + dy;
+    const dest = (nr >= 0 && nr <= 10 && nc >= 0 && nc <= 15) ? state.grid[nr][nc] : null;
+    if (dest !== 'F') return;                           // nowhere to slide
+    state.grid[t.r][t.c] = 'F';
+    state.grid[nr][nc] = 'B';                           // block rests one tile over
+    const roomKey = key3('d' + state.level.id, state.col, state.row);
+    state.pushed.add(roomKey);
+    state.screenImg = bakeScreen(state.grid, state.theme);
+    Sound.SFX.secret();
+    const rd = Dungeon.getRoom(state.level, state.col, state.row);
+    if (rd && rd.room.shutter === 'push' && !state.shutters.has(roomKey)) {
+      if (openShutters()) state.shutters.add(roomKey);
+    }
+  }
+
+  // ---------- secrets ----------
+  function revealSecret(t, becomes) {
+    state.grid[t.r][t.c] = becomes;
+    state.revealed.add(state.col + ',' + state.row);
+    state.screenImg = bakeScreen(state.grid, state.theme);
+    Sound.SFX.secret();
+    showMsg("A SECRET IS REVEALED!", 160);
+    saveGame();
+  }
+  // bombs crack open marked walls ('H' -> cave)
+  function onBombBlast(cx, cy) {
+    if (state.mode !== 'overworld') return;
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const t = tileAtPx(cx + dc * 16, cy + dr * 16);
+      if (t && t.ch === 'H') { revealSecret(t, 'C'); return; }
+    }
+  }
+  // candle / fire-rod flames burn marked trees ('U' -> stairs)
+  function checkBurnSecrets() {
+    for (const p of state.entities) {
+      if (p.kind !== 'proj' || (p.ptype !== 'flame' && p.ptype !== 'fireblast')) continue;
+      const t = tileAtPx(p.x + p.w / 2, p.y + p.h / 2);
+      const ahead = tileAtPx(p.x + p.w / 2 + p.vx * 10, p.y + p.h / 2 + p.vy * 10);
+      for (const tt of [t, ahead]) {
+        if (tt && tt.ch === 'U') { revealSecret(tt, 'S'); return; }
+      }
+    }
+  }
+
+  // ---------- pause / inventory ----------
+  function ownedBItems() {
     const l = state.link;
     const owned = ['bomb'];
     if (l.hasBow) owned.push('bow');
     if (l.hasBoomerang) owned.push('boomerang');
     if (l.hasCandle) owned.push('candle');
     if (l.hasFireRod) owned.push('firerod');
+    return owned;
+  }
+  function updatePause() {
+    const P = Engine.pressed;
+    if (P.start) { state.mode = state.prevMode; Sound.SFX.select(); return; }
+    const owned = ownedBItems();
+    if (P.left)  { state.pauseSel = (state.pauseSel + owned.length - 1) % owned.length; Sound.SFX.select(); }
+    if (P.right) { state.pauseSel = (state.pauseSel + 1) % owned.length; Sound.SFX.select(); }
+    if (P.a || P.select) {
+      state.link.bItem = owned[state.pauseSel];
+      Sound.SFX.item();
+    }
+  }
+
+  function cycleItem() {
+    const l = state.link;
+    const owned = ownedBItems();
     const i = owned.indexOf(l.bItem);
     l.bItem = owned[(i + 1) % owned.length];
     Sound.SFX.select();
@@ -588,6 +760,8 @@ const Game = (() => {
     const st = World.findStart();
     state.link = E.makeLink(st.screen.startPos[0] * 16, st.screen.startPos[1] * 16);
     state.cleared = new Set(); state.taken = new Set(); unlocked.clear();
+    state.revealed = new Set(); state.shutters = new Set(); state.pushed = new Set(); state.lit = new Set();
+    state.dark = false;
     state.level = null; state.cave = null; state.scroll = null;
     state.msg = null; state.msgT = 0; state.triforces = 0;
     loadOverworld(st.col, st.row, [st.screen.startPos[0] * 16, st.screen.startPos[1] * 16]);
@@ -615,14 +789,17 @@ const Game = (() => {
       ctx.drawImage(state.screenImg, 0, 0);
       // entities sorted so pickups/under first
       for (const e of state.entities) if (e.item) e.draw(ctx, 0, 0);
-      for (const e of state.entities) if (e.kind === 'enemy') e.draw(ctx, 0, 0);
+      for (const e of state.entities) if (e.kind === 'enemy' && !(e._spawnDelay > 0)) e.draw(ctx, 0, 0);
       for (const e of state.entities) if (e.kind === 'proj') e.draw(ctx, 0, 0);
+      for (const e of state.entities) if (e.kind === 'fx') e.draw(ctx, 0, 0);
       drawSword(ctx);
       state.link.draw(ctx, 0, 0);
       if (state.mode === 'cave') drawOldMan(ctx);
+      if (state.dark && (state.mode === 'dungeon' || state.mode === 'pause')) drawDarkness(ctx);
     }
     ctx.restore();
 
+    if (state.mode === 'pause') drawPause(ctx);
     if (state.mode === 'gameover') drawGameOver(ctx);
     if (state.msg && state.msgT > 0) drawMessage(ctx);
     if (state.muteFlash > 0) { state.muteFlash--; Engine.text(ctx, Sound.isMuted() ? 'MUTED' : 'SOUND ON', 96, 2, '#fff'); }
@@ -684,6 +861,73 @@ const Game = (() => {
 
   function drawOldMan(ctx) {
     Sprites.blit(ctx, Sprites.get('oldman'), 7 * 16, 1 * 16);
+  }
+
+  // Dark room: black everywhere except a lit square around Link (bigger if he
+  // carries the candle). Retro hard-edged light, no alpha gradients.
+  function drawDarkness(ctx) {
+    const l = state.link;
+    const r = l.hasCandle || l.hasFireRod ? 40 : 24;
+    const hx = Math.max(0, l.x + 8 - r), hy = Math.max(0, l.y + 8 - r);
+    const hw = Math.min(PLAY_W, l.x + 8 + r) - hx, hh = Math.min(PLAY_H, l.y + 8 + r) - hy;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, PLAY_W, hy);                                  // top
+    ctx.fillRect(0, hy + hh, PLAY_W, PLAY_H - hy - hh);              // bottom
+    ctx.fillRect(0, hy, hx, hh);                                     // left
+    ctx.fillRect(hx + hw, hy, PLAY_W - hx - hw, hh);                 // right
+  }
+
+  // ---------- pause / inventory screen ----------
+  function drawPause(ctx) {
+    const l = state.link;
+    ctx.fillStyle = 'rgba(0,0,0,0.88)';
+    ctx.fillRect(8, HUD_H + 6, PLAY_W - 16, PLAY_H - 12);
+    ctx.strokeStyle = '#f8d030'; ctx.strokeRect(8.5, HUD_H + 6.5, PLAY_W - 17, PLAY_H - 13);
+    Engine.text(ctx, 'INVENTORY', 96, HUD_H + 14, '#f8d030');
+
+    // B-item selector row
+    Engine.text(ctx, 'USE B', 20, HUD_H + 32, '#888');
+    const owned = ownedBItems();
+    const bx = 20, by = HUD_H + 44;
+    owned.forEach((it, i) => {
+      const x = bx + i * 30;
+      ctx.fillStyle = '#181818'; ctx.fillRect(x, by, 24, 24);
+      if (i === state.pauseSel && ((state.msgT | 0) || true)) {
+        ctx.strokeStyle = '#fff'; ctx.strokeRect(x + 0.5, by + 0.5, 23, 23);
+      }
+      if (it === l.bItem) { ctx.strokeStyle = '#f8d030'; ctx.strokeRect(x + 2.5, by + 2.5, 19, 19); }
+      drawBIcon(ctx, it, x + 5, by + 6);
+    });
+
+    // passive gear row
+    Engine.text(ctx, 'GEAR', 20, HUD_H + 78, '#888');
+    const gear = [];
+    if (l.hasSword) gear.push(l.hasMagicSword ? 'magicsword' : l.hasWhiteSword ? 'whitesword' : 'sword');
+    if (l.hasShield) gear.push('shield');
+    if (l.hasRing) gear.push('ring');
+    if (l.hasStepladder) gear.push('stepladder');
+    if (l.hasRaft) gear.push('raft');
+    if (l.hasMagicKey) gear.push('magickey');
+    if (l.hasSilverArrows) gear.push('silverarrows');
+    gear.forEach((g, i) => {
+      const x = 20 + i * 24, y = HUD_H + 90;
+      if (g === 'sword') drawSwordItem({ x, y }, ctx, 0, 0);
+      else if (g === 'shield') {
+        ctx.fillStyle = '#b06818'; ctx.fillRect(x + 2, y, 10, 12);
+        ctx.fillStyle = '#f8d030'; ctx.fillRect(x + 5, y + 3, 4, 5);
+      }
+      else drawItem({ item: g, x, y, t: 0 }, ctx, 0, 0);
+    });
+
+    // triforce tally
+    Engine.text(ctx, 'TRIFORCE ' + state.triforces + '/' + Dungeon.count, 20, HUD_H + 118, '#f8d030');
+    Engine.text(ctx, 'START RESUME  <> PICK  A SET', 20, HUD_H + 140, '#666');
+  }
+  // drawItem lives in entities.js's closure — tiny shim for gear icons
+  function drawItem(fake, ctx, ox, oy) {
+    const it = E.makeItem(fake.item, fake.x, fake.y, { permanent: true });
+    it.t = 0;
+    it.draw(ctx, ox, oy);
   }
 
   // ---------- HUD ----------
@@ -753,12 +997,13 @@ const Game = (() => {
   function pad3(n) { n = Math.max(0, Math.min(999, n | 0)); return (n < 10 ? '00' : n < 100 ? '0' : '') + n; }
 
   function drawMiniMap(ctx, x, y) {
-    if (state.mode === 'dungeon') {
-      for (let r = 0; r <= 2; r++) for (let c = 0; c <= 3; c++) {
-        if (!Dungeon.getRoom(state.level, c, r)) continue;
+    if ((state.mode === 'dungeon' || (state.mode === 'pause' && state.level)) && state.level) {
+      const b = Dungeon.bounds(state.level);
+      for (const k in state.level.rooms) {
+        const [c, r] = k.split(',').map(Number);
         const cur = (c === state.col && r === state.row);
         ctx.fillStyle = cur ? (((Date2() >> 0) & 1) ? '#f8d030' : '#888') : '#0048b0';
-        ctx.fillRect(x + c * 9, y + r * 8, 7, 6);
+        ctx.fillRect(x + (c - b.minC) * 9, y + (r - b.minR) * 8, 7, 6);
       }
     } else {
       // full overworld grid, compact so it fits the HUD; current screen lit yellow

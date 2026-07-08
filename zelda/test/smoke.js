@@ -203,15 +203,37 @@ try {
 
   // helper: beat a dungeon's boss and grab its triforce piece
   const NUM_DUNGEONS = sandbox.Dungeon.count;
+  function bossRoomOf(level) {
+    for (const k in level.rooms) if (level.rooms[k] && level.rooms[k].boss) return k.split(',').map(Number);
+    return [2, 0];
+  }
   function beatDungeon(n) {
     G._test.enterDungeon(n); frames(2);
     assert(G.state.mode === 'dungeon' && G.state.level && G.state.level.id === n,
       'entered dungeon ' + n + ' (mode=' + G.state.mode + ')');
-    G._test.loadDungeonRoom(2, 0, [3 * 16, 5 * 16]); frames(2);
+    const [bc, br] = bossRoomOf(G.state.level);
+    G._test.loadDungeonRoom(bc, br, [3 * 16, 5 * 16]); frames(2);
     const boss = G.state.entities.find(e => e.boss);
     assert(boss, 'L' + n + ' boss present');
-    for (let i = 0; i < 60 && boss.alive !== false; i++) { boss.flash = 0; boss.hurt(G.state, 2, boss.x + 50, boss.y); frames(1); }
-    assert(boss.alive === false, 'L' + n + ' boss defeated (hp left=' + boss.hp + ')');
+    if (boss.etype === 'dodongo') {
+      // sword must clink off (immune), then feed it bombs
+      boss.hurt(G.state, 2, boss.x + 50, boss.y); frames(1);
+      assert(boss.alive !== false && boss.hp > 0, 'L' + n + ' dodongo shrugs off the sword');
+      for (let i = 0; i < 30 && boss.alive !== false; i++) {
+        boss.dir = 'left'; boss.stun = 0; boss.swallow = 0;
+        G.state.entities.push(sandbox.Entities.makeBomb(boss.x + 5 - 16, boss.y + 2));
+        frames(2);
+      }
+    } else if (boss.etype === 'manhandla') {
+      for (let i = 0; i < 120 && boss.alive !== false; i++) {
+        boss.flash = 0;
+        for (const h of boss.heads) if (h.hp > 0) boss.hurt(G.state, 2, boss.x + 8 + h.dx, boss.y + 8 + h.dy);
+        frames(1);
+      }
+    } else {
+      for (let i = 0; i < 80 && boss.alive !== false; i++) { boss.flash = 0; boss.hurt(G.state, 2, boss.x + 50, boss.y); frames(1); }
+    }
+    assert(boss.alive === false, 'L' + n + ' boss (' + (boss.etype || 'aquamentus') + ') defeated (hp left=' + boss.hp + ')');
     frames(3);
     const tri = G.state.entities.find(e => e.item === 'triforce');
     assert(tri, 'L' + n + ' triforce appeared');
@@ -247,10 +269,11 @@ try {
   assert(!G._test.loadOverworld(COLS_W, 0) && !G._test.loadOverworld(0, ROWS_W),
     'out-of-bounds screens correctly rejected');
 
-  let roomCount = 0;
+  let roomCount = 0, expectedRooms = 0;
   for (let n = 1; n <= NUM_DUNGEONS; n++) {
     const lvl = sandbox.Dungeon.level(n);
     G.state.level = lvl;
+    expectedRooms += Object.keys(lvl.rooms).length;
     for (const k in lvl.rooms) {
       const [c, r] = k.split(',').map(Number);
       assert(G._test.loadDungeonRoom(c, r, [7 * 16, 8 * 16]), 'L' + n + ' room ' + k + ' loads');
@@ -258,7 +281,8 @@ try {
       frames(8);
     }
   }
-  assert(roomCount === NUM_DUNGEONS * 5, 'all ' + (NUM_DUNGEONS * 5) + ' dungeon rooms load (got ' + roomCount + ')');
+  assert(roomCount === expectedRooms && roomCount >= NUM_DUNGEONS * 6,
+    'all ' + expectedRooms + ' dungeon rooms load, layouts are non-trivial (got ' + roomCount + ')');
 
   // every cave kind (incl. the new raft + heart-container caves)
   G._test.startGame(); frames(1);
@@ -274,7 +298,7 @@ try {
     'cave items granted: sword=' + G.state.link.hasSword + ' candle=' + G.state.link.hasCandle +
     ' ring=' + G.state.link.hasRing + ' raft=' + G.state.link.hasRaft + ' maxHP=' + G.state.link.maxHealth);
 
-  console.log('COVERAGE OK — ' + expectScreens + ' screens, ' + (NUM_DUNGEONS * 5) +
+  console.log('COVERAGE OK — ' + expectScreens + ' screens, ' + expectedRooms +
     ' dungeon rooms, 9 cave kinds, all enemy types ticked');
 
   // ---- save / continue round-trip ----
@@ -283,7 +307,7 @@ try {
   assert(L0.maxHealth === 18 && L0.health === 18, 'link starts with 9 hearts (18 half-hearts)');
   assert(L0.hasShield === true, 'link starts with the shield');
   L0.rupees = 42; L0.hasBoomerang = true; L0.hasSword = true; L0.swordDmg = 2;
-  G.state.cleared.add('ow:3,3'); G.state.taken.add('unit-test-item');
+  G.state.taken.add('unit-test-item'); G.state.revealed.add('3,1');
   G.state.col = 5; G.state.row = 4; G.state.mode = 'overworld';
   G._test.saveGame();
   assert(G._test.hasSave(), 'save written to localStorage');
@@ -293,10 +317,74 @@ try {
   const L1 = G.state.link;
   assert(L1.rupees === 42 && L1.hasBoomerang && L1.hasSword && L1.swordDmg === 2,
     'link restored: rupees=' + L1.rupees + ' boomerang=' + L1.hasBoomerang + ' swordDmg=' + L1.swordDmg);
-  assert(G.state.cleared.has('ow:3,3') && G.state.taken.has('unit-test-item'),
-    'cleared/taken sets restored');
+  assert(G.state.taken.has('unit-test-item') && G.state.revealed.has('3,1'),
+    'taken/revealed sets restored (room clears are per-visit by design)');
   assert(G.state.col === 5 && G.state.row === 4, 'position restored: ' + G.state.col + ',' + G.state.row);
   console.log('SAVE OK — save/continue round-trip verified');
+
+  // ---- v2 mechanics: secrets, shutters, push blocks, dark rooms, pause ----
+  const EN = sandbox.Entities;
+
+  // bombable wall: screen 0,0 has 'H' at row 3, col 8 -> bomb reveals a cave
+  G._test.startGame(); frames(1);
+  G._test.loadOverworld(0, 0, [7 * 16, 8 * 16]); frames(1);
+  assert(G.state.grid[3][8] === 'H', 'secret wall present on 0,0');
+  G.state.onBombBlast(8 * 16 + 8, 3 * 16 + 8); frames(1);
+  assert(G.state.grid[3][8] === 'C' && G.state.revealed.has('0,0'),
+    'bomb reveals hidden cave (H -> C, revealed persisted)');
+
+  // burnable tree: screen 5,3 has 'U' at row 7, col 4 -> flame reveals stairs
+  G._test.loadOverworld(5, 3, [7 * 16, 8 * 16]); frames(1);
+  assert(G.state.grid[7][4] === 'U', 'secret tree present on 5,3');
+  G.state.entities.push(EN.makeProjectile('flame', 4 * 16, 7 * 16, 'up',
+    { vx: 0, vy: 0, speed: 0, damage: 1, life: 30, fromEnemy: false }));
+  frames(2);
+  assert(G.state.grid[7][4] === 'S', 'flame burns hidden tree (U -> S stairs)');
+
+  // shutter room (clear): L1 room 3,1 opens its Z doors when enemies die
+  G._test.enterDungeon(1); frames(1);
+  G._test.loadDungeonRoom(3, 1, [7 * 16, 8 * 16]); frames(1);
+  assert(G.state.grid[4][0] === 'Z', 'L1 item room shutters start closed');
+  for (const en of G.state.entities) if (en.kind === 'enemy') { en._spawnDelay = 0; en.flash = 0; en.hurt(G.state, 99, en.x + 20, en.y); }
+  frames(2);
+  assert(G.state.grid[4][0] === 'F', 'shutters slam open on room clear');
+
+  // dark room + candle: L2 room 1,1 is dark until a flame lights it
+  G._test.enterDungeon(2); frames(1);
+  G._test.loadDungeonRoom(1, 1, [7 * 16, 8 * 16]); frames(1);
+  assert(G.state.dark === true, 'L2 side room is dark');
+  G.state.entities.push(EN.makeProjectile('flame', 60, 60, 'up',
+    { vx: 0, vy: 0, speed: 0, damage: 1, life: 30, fromEnemy: false }));
+  frames(2);
+  assert(G.state.dark === false, 'flame lights the dark room');
+
+  // push block: L3 room 1,1 — shoving the block opens the shutters
+  G._test.enterDungeon(3); frames(1);
+  G._test.loadDungeonRoom(1, 1, [7 * 16, 9 * 16]); frames(1);
+  assert(G.state.grid[5][7] === 'p', 'push block present');
+  assert(G.state.grid[0][7] === 'Z', 'push-room shutters start closed');
+  G.state.link.x = 7 * 16; G.state.link.y = 6 * 16 + 2; G.state.link.dir = 'up';
+  keydown('ArrowUp'); frames(30); keyup('ArrowUp');
+  assert(G.state.grid[5][7] === 'F' && G.state.grid[4][7] === 'B',
+    'block slides one tile when shoved');
+  assert(G.state.grid[0][7] === 'F', 'push opens the shutters');
+
+  // pause / inventory screen round-trip
+  G._test.startGame(); frames(1);
+  keydown('Enter'); frames(2); keyup('Enter');
+  assert(G.state.mode === 'pause', 'START pauses to inventory (mode=' + G.state.mode + ')');
+  keydown('Enter'); frames(2); keyup('Enter');
+  assert(G.state.mode === 'overworld', 'START resumes play');
+
+  // overworld enemies respawn on re-entry (world never goes permanently quiet)
+  G._test.loadOverworld(0, 1, [7 * 16, 8 * 16]); frames(1);
+  for (const en of G.state.entities) if (en.kind === 'enemy') { en._spawnDelay = 0; en.flash = 0; en.hurt(G.state, 99, en.x, en.y); }
+  frames(2);
+  G._test.loadOverworld(1, 1, [7 * 16, 8 * 16]); frames(1);
+  G._test.loadOverworld(0, 1, [7 * 16, 8 * 16]); frames(1);
+  assert(G.state.entities.some(e => e.kind === 'enemy'), 'overworld enemies respawn on revisit');
+
+  console.log('V2 OK — secrets (bomb+burn), shutters, dark rooms, push blocks, pause, respawn verified');
 
   // final long idle + movement to ensure stability
   G._test.startGame();

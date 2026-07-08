@@ -76,6 +76,18 @@ const Tiles = (() => {
     // gravestone (solid)
     'G'(x, t) { px(x,0,0,16,16,t.grass); px(x,4,2,8,12,t.rock);
       x.fillStyle=t.rockDk; x.fillRect(7,5,2,4); x.fillRect(5,7,6,2); px(x,3,13,10,2,'#5a3a10'); },
+    // cracked rock face — bombable secret (solid; like M but with a hairline crack)
+    'H'(x, t) { px(x,0,0,16,16,t.wall);
+      x.fillStyle=t.wallDk;
+      x.fillRect(0,0,16,2); x.fillRect(0,7,16,2); x.fillRect(0,14,16,2);
+      x.fillRect(4,2,2,5); x.fillRect(11,2,2,5); x.fillRect(7,9,2,5); x.fillRect(1,9,2,5); x.fillRect(13,9,2,5);
+      x.fillStyle='#000'; x.fillRect(7,3,1,2); x.fillRect(8,5,1,2); x.fillRect(7,10,1,2); x.fillRect(6,12,1,2); },
+    // burnable tree — secret under it (solid; near-identical to T, one off-color leaf)
+    'U'(x, t) { px(x,0,0,16,16,t.grass);
+      px(x,2,3,12,11,t.grassDk); px(x,3,2,10,2,'#0a5000'); px(x,1,5,14,7,'#1c7000');
+      x.fillStyle='#0a5000'; x.fillRect(4,5,2,2); x.fillRect(9,7,2,2); x.fillRect(6,10,2,2);
+      x.fillStyle='#2c8410'; x.fillRect(11,5,2,2);
+      px(x,6,12,4,4,'#5a2c08'); },
 
     // ===== dungeon tiles =====
     'F'(x, t) { px(x,0,0,16,16,t.ground); x.fillStyle=t.groundAlt; x.fillRect(0,0,16,1); x.fillRect(0,0,1,16); },
@@ -96,9 +108,20 @@ const Tiles = (() => {
       px(x,3,1,10,14,'#b88018'); x.fillStyle='#7a5008';
       x.fillRect(3,1,10,1); x.fillRect(3,14,10,1); x.fillRect(3,1,1,14); x.fillRect(12,1,1,14);
       px(x,7,6,2,4,'#000'); px(x,6,5,4,2,'#000'); },
+    // shutter door (solid; slams open when the room condition is met)
+    'Z'(x, t) { px(x,0,0,16,16,t.wall);
+      px(x,3,1,10,14,'#666'); x.fillStyle='#333';
+      for (let i = 0; i < 5; i++) x.fillRect(3, 2 + i * 3, 10, 1);
+      x.fillStyle='#999'; x.fillRect(3,1,10,1); },
+    // pushable block (solid; Link shoves it one tile to trip a secret)
+    'p'(x, t) { px(x,0,0,16,16,t.ground); px(x,1,1,14,14,t.wall);
+      x.fillStyle=t.wallDk;
+      x.fillRect(1,1,14,1); x.fillRect(1,14,14,1); x.fillRect(1,1,1,14); x.fillRect(14,1,1,14);
+      x.fillRect(4,4,8,8);
+      x.fillStyle=t.wall; x.fillRect(6,6,4,4); },
   };
 
-  const SOLID = new Set(['T','M','R','W','A','G','#','B','L']);
+  const SOLID = new Set(['T','M','R','W','A','G','#','B','L','H','U','Z','p']);
   const TRIGGER = new Set(['C','S','D','X']);   // walkable special tiles
 
   function isSolid(ch) { return SOLID.has(ch); }
