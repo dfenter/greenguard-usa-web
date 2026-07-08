@@ -57,7 +57,8 @@ const ADDONS = [
     price: 24.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bucketOfDoom',
-    quoteCategory: 'Recurring Add-Ons',
+    quoteCategory: 'One-Time Add-Ons',
+    oneTime: true,
   },
   {
     sku: 'INNER-TRAP',
@@ -204,7 +205,7 @@ function productsForRounds() {
 }
 
 function addonsForQuote() {
-  return ADDONS.filter((a) => a.surfaces.quote).map((a) => ({ label: a.label, price: a.price, category: a.quoteCategory || 'Recurring Add-Ons' }))
+  return ADDONS.filter((a) => a.surfaces.quote).map((a) => ({ label: a.label, price: a.price, category: a.quoteCategory || 'Recurring Add-Ons', oneTime: !!a.oneTime }))
 }
 
 function productsForQuote() {
