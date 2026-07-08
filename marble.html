@@ -435,20 +435,23 @@ const LEVELS = [
 }},
 
 { name:"Blitz", build(){
-  // Cannon launch onto a gauntlet bridge then another cannon out
-  startPos.set(-22,1.5,0);
-  pad(-22,0,0);
-  box(-22,0,0,6,1,6,{color:PAL.track});
-  cannon(-22,0,0, 32,8,0);
-  // narrow enemy bridge
-  box(0,3,0,4,1,28,{color:PAL.track2});
-  rail(-2.4,3.7,0,0.7,1.6,28,PAL.rail); rail(2.4,3.7,0,0.7,1.6,28,PAL.rail);
-  enemy(0,4.4,6,'x',1.6,2.2,1.0);
-  enemy(0,4.4,-4,'x',1.6,2.8,1.0);
-  enemy(0,4.4,-14,'x',1.6,1.9,1.0);
-  box(0,3,-18,6,1,6,{color:PAL.track});
-  cannon(0,3,-18, 0,14,-30);
-  box(0,7,-40,9,1,9,{color:PAL.track});
+  // Cannon launch onto a guarded bridge, roll the gauntlet, then a second
+  // cannon out to the goal. Trajectories tuned for GRAV=28 (verified: cannon 1
+  // lands ~z9.5 on the bridge; cannon 2 lands ~z-41 on the goal platform).
+  startPos.set(0,1.5,20);
+  pad(0,0,20);
+  box(0,0,20,6,1,6,{color:PAL.track});
+  cannon(0,0,20, 0,15,-12);
+  // guarded gauntlet bridge — roll -z and dodge the sliding enemies
+  box(0,3,0,5,1,30,{color:PAL.track2});
+  rail(-2.9,3.8,0,0.7,1.6,30,PAL.rail); rail(2.9,3.8,0,0.7,1.6,30,PAL.rail);
+  enemy(0,4.4,8,'x',1.6,2.2,1.0);
+  enemy(0,4.4,-2,'x',1.6,2.8,1.0);
+  enemy(0,4.4,-12,'x',1.6,1.9,1.0);
+  // cannon 2 platform abuts the bridge, then blasts out to the goal
+  box(0,3,-18,6,1,8,{color:PAL.track});
+  cannon(0,3,-18, 0,18,-22);
+  box(0,7,-40,10,1,10,{color:PAL.track});
   pad(0,7,-40,0x2f7e9e); makeGoal(0,7.4,-40);
 }},
 
