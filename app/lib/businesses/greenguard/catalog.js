@@ -66,7 +66,8 @@ const ADDONS = [
     price: 5.00,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'innerTraps',
-    quoteCategory: 'Recurring Add-Ons',
+    quoteCategory: 'One-Time Add-Ons',
+    oneTime: true,
   },
   {
     sku: 'BG-EXT-30',
@@ -74,7 +75,8 @@ const ADDONS = [
     price: 18.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bgExt30',
-    quoteCategory: 'Recurring Add-Ons',
+    quoteCategory: 'One-Time Add-Ons',
+    oneTime: true,
   },
   {
     sku: 'TRAP-MESH-WHITE',
@@ -82,7 +84,8 @@ const ADDONS = [
     price: 7.00,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'whiteTrapMesh',
-    quoteCategory: 'Recurring Add-Ons',
+    quoteCategory: 'One-Time Add-Ons',
+    oneTime: true,
   },
   {
     sku: 'TANK-STRAPS',
@@ -90,7 +93,8 @@ const ADDONS = [
     price: 12.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'tankStraps',
-    quoteCategory: 'Recurring Add-Ons',
+    quoteCategory: 'One-Time Add-Ons',
+    oneTime: true,
   },
   {
     // Larvicide is intentionally SKU-less — we don't yet have a Stripe price.
@@ -100,7 +104,8 @@ const ADDONS = [
     label: 'Larvicide Tablet',
     price: 4.00,
     surfaces: { rounds: true, quote: true },
-    quoteCategory: 'Recurring Add-Ons',
+    quoteCategory: 'One-Time Add-Ons',
+    oneTime: true,
   },
   {
     sku: 'WKD-SURCH',
