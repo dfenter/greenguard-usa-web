@@ -844,6 +844,53 @@ const jsonld = {
     </div>
   </section>
 
+  <!-- COMPARISON (trap only): GreenGuard vs Biogents direct vs sprays. A concrete,
+       quotable grid for AI shopping answers and comparison shoppers. -->
+  {p.vsCompetitor && (
+    <section class="py-16 px-5" style="background: #0a1208; border-top: 1px solid rgba(122,171,130,0.08);">
+      <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-8">
+          <div class="eyebrow mb-2">How It Compares</div>
+          <h2 class="text-3xl font-black text-white tracking-tight">GreenGuard vs. buying direct vs. sprays</h2>
+        </div>
+        <div class="overflow-x-auto rounded-2xl" style="border: 1px solid rgba(122,171,130,0.15);">
+          <table class="w-full text-sm" style="border-collapse: collapse; min-width: 560px;">
+            <thead>
+              <tr style="background: rgba(125,255,170,0.06);">
+                <th class="text-left px-4 py-3 text-cream/50 font-semibold"></th>
+                <th class="px-4 py-3 text-accent font-black">GreenGuard USA</th>
+                <th class="px-4 py-3 text-white/70 font-bold">Biogents (direct)</th>
+                <th class="px-4 py-3 text-white/70 font-bold">Spray service</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Trap price', '$299.99', `$${p.vsCompetitor.price.toFixed(2)}`, 'n/a'],
+                ['Ships from', 'Austin, TX', 'Regional warehouse', 'n/a'],
+                ['Local install & placement', 'Included, free assessment', 'Self-install', 'n/a'],
+                ['CO₂ tank delivery', 'From $89.99/mo', 'Not offered', 'n/a'],
+                ['Ongoing service option', 'From $60/mo (own trap)', 'None', '$80–120/visit'],
+                ['Pesticides', 'None', 'None', 'Yes, sprayed'],
+                ['Pollinator-safe', 'Yes', 'Yes', 'No'],
+                ['How it works', 'Removes breeding females 24/7', 'Removes breeding females 24/7', 'Kills on contact, wears off 2–4 wks'],
+              ].map((row, i) => (
+                <tr style={`border-top: 1px solid rgba(122,171,130,0.08); ${i % 2 ? 'background: rgba(255,255,255,0.015);' : ''}`}>
+                  <td class="px-4 py-3 text-cream/50 font-semibold">{row[0]}</td>
+                  <td class="px-4 py-3 text-center text-white font-bold">{row[1]}</td>
+                  <td class="px-4 py-3 text-center text-cream/55">{row[2]}</td>
+                  <td class="px-4 py-3 text-center text-cream/55">{row[3]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-cream/40 text-xs mt-3 text-center">
+          Buy the same Biogents trap for $50 less than the manufacturer's direct price, and add local install, CO₂ delivery, and service only if you want them.
+        </p>
+      </div>
+    </section>
+  )}
+
   <!-- CROSS-SELLS -->
   {p.crossSells.length > 0 && (
     <section class="py-16 px-5" style="background: #0a1208; border-top: 1px solid rgba(122,171,130,0.08);">
