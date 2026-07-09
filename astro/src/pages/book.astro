@@ -92,6 +92,13 @@ import Base from '../layouts/Base.astro';
             <div class="review-row"><span class="review-label">Address</span><span id="r-address" class="text-right"></span></div>
             <div class="review-row"><span class="review-label">When</span><span id="r-when" class="font-bold text-accent text-right"></span></div>
           </div>
+          <div class="mb-3 flex items-start gap-2 rounded-lg border border-accent/25 bg-accent/5 p-3">
+            <input id="f-own-trap" type="checkbox" class="mt-1 accent-[#7dffaa]" />
+            <label for="f-own-trap" class="text-sm text-cream/80 cursor-pointer select-none">
+              <span class="font-bold text-accent">I already own a mosquito trap</span>
+              (Biogents, Mosqitter, or other). I want service, CO₂, or placement help
+            </label>
+          </div>
           <div class="mb-4">
             <label class="field-label">Notes for us <span class="text-cream/35">(optional)</span></label>
             <textarea id="f-notes" rows="2" placeholder="Anything we should know?"
@@ -397,7 +404,12 @@ import Base from '../layouts/Base.astro';
             state: state.state,
             zip: state.zip,
             startISO: state.selectedISO,
-            notes: val('f-notes') || null,
+            notes: (() => {
+              const own = document.getElementById('f-own-trap')
+              const base = val('f-notes') || ''
+              const tag = own && own.checked ? 'ALREADY OWNS TRAP. Wants service/CO2/placement.' : ''
+              return [tag, base].filter(Boolean).join(' ') || null
+            })(),
             ...attribution,
           }),
         })
@@ -431,5 +443,10 @@ import Base from '../layouts/Base.astro';
     ;['f-name','f-email','f-phone','f-street','f-city','f-state','f-zip'].forEach(id => {
       $(id)?.addEventListener('input', syncForm)
     })
+
+    // ?own=1 — arriving from a shop page / AI answer as an existing trap owner
+    if (new URLSearchParams(location.search).get('own') === '1') {
+      const cb = $('f-own-trap'); if (cb) cb.checked = true
+    }
   </script>
 </Base>

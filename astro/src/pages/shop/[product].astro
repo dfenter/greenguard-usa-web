@@ -15,6 +15,7 @@ interface Product {
   badgeStyle: string;
   price: number;
   originalPrice: number | null;
+  vsCompetitor?: { name: string; price: number; savings: number };
   image: string;
   altImage: string | null;
   shortDesc: string;
@@ -42,10 +43,11 @@ export function getStaticPaths() {
     badgeStyle: 'accent',
     price: 299.99,
     originalPrice: null,
+    vsCompetitor: { name: 'Biogents', price: 349.99, savings: 50 },
     image: '/images/prod-biogents-co2.jpg',
     altImage: '/images/mosquitairesingle.jpg',
-    seoTitle: 'Biogents BG-Mosquitaire CO₂ Trap — Buy from $299.99 | GreenGuard USA',
-    seoDescription: 'Buy the Biogents BG-Mosquitaire CO₂ trap — the #1 scientifically validated outdoor mosquito trap. Covers up to 6,500 sq ft, regulator included, no pesticides. Ships from Austin, TX.',
+    seoTitle: 'Biogents BG-Mosquitaire CO₂ Trap: $299.99 ($50 Off Biogents Direct) | GreenGuard USA',
+    seoDescription: 'Buy the Biogents BG-Mosquitaire CO₂ trap for $299.99, which is $50 less than buying direct from Biogents. The #1 scientifically validated outdoor mosquito trap, regulator included, no pesticides. Ships from Austin, TX.',
     shortDesc: 'CO₂-powered attraction captures host-seeking mosquitoes from all species 24 hours a day. Regulator included. No pesticides.',
     keyBenefits: ['Up to 6,500 sq ft coverage', 'Regulator included', '24/7 all-species capture', 'IP68 waterproof'],
     targetSpecies: 'All mosquito species',
@@ -646,7 +648,7 @@ const jsonld = {
           </div>
 
           <!-- Price -->
-          <div class="flex items-baseline gap-3 mb-4">
+          <div class="flex items-baseline gap-3 mb-2">
             <span class="text-4xl font-black text-white">${p.price.toFixed(2)}</span>
             {p.originalPrice && (
               <span class="text-cream/35 text-xl line-through">${p.originalPrice.toFixed(2)}</span>
@@ -657,6 +659,14 @@ const jsonld = {
               </span>
             )}
           </div>
+
+          <!-- Competitor price comparison (a concrete, quotable fact for AI
+               shopping answers + human shoppers). Only shown when configured. -->
+          {p.vsCompetitor && (
+            <p class="text-sm font-bold text-accent mb-4">
+              ${p.vsCompetitor.savings.toFixed(0)} less than buying direct from {p.vsCompetitor.name} (${p.vsCompetitor.price.toFixed(2)})
+            </p>
+          )}
 
           <!-- Short description -->
           <p class="text-cream/70 leading-relaxed mb-6">{p.shortDesc}</p>
@@ -711,6 +721,21 @@ const jsonld = {
                 </div>
               </div>
             ))}
+          </div>
+
+          <!-- Local service cross-sell: ChatGPT/search shoppers researching this
+               gear are often Austin locals — the highest-margin path is turning
+               an equipment researcher into a service customer. -->
+          <div class="rounded-xl p-4 mb-4" style="background: rgba(125,255,170,0.06); border: 1px solid rgba(125,255,170,0.25);">
+            <div class="text-accent text-sm font-black mb-1">In the Austin area? We install, service &amp; refill this.</div>
+            <p class="text-cream/60 text-xs leading-relaxed mb-3">
+              GreenGuard installs and maintains the equipment we sell, including monthly CO₂ delivery,
+              placement tuning, and full-service plans. Already own a trap? We service those too.
+            </p>
+            <a href="/book?own=1" class="inline-block text-xs font-black px-4 py-2 rounded-lg transition-colors"
+               style="background: #7dffaa; color: #0d1a10;">
+              Book a free on-site assessment →
+            </a>
           </div>
 
           <!-- Not sure link -->
