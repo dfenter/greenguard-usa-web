@@ -2,10 +2,14 @@
 const { google } = require('googleapis')
 
 function getAuth() {
-  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN } = process.env
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN) return null
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GSC_REFRESH_TOKEN } = process.env
+  // Prefer the dedicated Search-Console-scoped token (GSC_REFRESH_TOKEN, minted
+  // via scripts/mint-gsc-token.js). The shared GOOGLE_REFRESH_TOKEN never had
+  // webmasters scope, which left this module silently returning null.
+  const token = GSC_REFRESH_TOKEN || GOOGLE_REFRESH_TOKEN
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !token) return null
   const auth = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
-  auth.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN })
+  auth.setCredentials({ refresh_token: token })
   return auth
 }
 

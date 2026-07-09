@@ -3,5 +3,149 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "regions": ["iad1"]
+  "regions": [
+    "iad1"
+  ],
+  "redirects": [
+    {
+      "source": "/bee-safe-mosquito-control",
+      "destination": "https://new.greenguard-usa.com/bee-safe-mosquito-control",
+      "permanent": true
+    },
+    {
+      "source": "/case-studies",
+      "destination": "https://new.greenguard-usa.com/case-studies",
+      "permanent": true
+    },
+    {
+      "source": "/co2-timer-mini",
+      "destination": "https://new.greenguard-usa.com/co2-timer-mini",
+      "permanent": true
+    },
+    {
+      "source": "/co2-traps-vs-mosquito-spraying",
+      "destination": "https://new.greenguard-usa.com/co2-traps-vs-mosquito-spraying",
+      "permanent": true
+    },
+    {
+      "source": "/eco-friendly-mosquito-control",
+      "destination": "https://new.greenguard-usa.com/eco-friendly-mosquito-control",
+      "permanent": true
+    },
+    {
+      "source": "/franchise",
+      "destination": "https://new.greenguard-usa.com/franchise",
+      "permanent": true
+    },
+    {
+      "source": "/franchise-dallas",
+      "destination": "https://new.greenguard-usa.com/franchise-dallas",
+      "permanent": true
+    },
+    {
+      "source": "/franchise-houston",
+      "destination": "https://new.greenguard-usa.com/franchise-houston",
+      "permanent": true
+    },
+    {
+      "source": "/franchise-phoenix",
+      "destination": "https://new.greenguard-usa.com/franchise-phoenix",
+      "permanent": true
+    },
+    {
+      "source": "/franchise-san-antonio",
+      "destination": "https://new.greenguard-usa.com/franchise-san-antonio",
+      "permanent": true
+    },
+    {
+      "source": "/freetrial",
+      "destination": "https://new.greenguard-usa.com/freetrial",
+      "permanent": true
+    },
+    {
+      "source": "/how-far-do-mosquitoes-travel-texas",
+      "destination": "https://new.greenguard-usa.com/how-far-do-mosquitoes-travel-texas",
+      "permanent": true
+    },
+    {
+      "source": "/larvicide",
+      "destination": "https://new.greenguard-usa.com/larvicide",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-country-clubs",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-country-clubs",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-golf-clubs",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-golf-clubs",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-lakefront-homes-austin",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-lakefront-homes-austin",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-luxury-homes",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-luxury-homes",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-outdoor-restaurants",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-outdoor-restaurants",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-pollinator-gardens",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-pollinator-gardens",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-resorts",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-resorts",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-wedding-venues",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-wedding-venues",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-wineries",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-wineries",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-without-spraying",
+      "destination": "https://new.greenguard-usa.com/mosquito-control-without-spraying",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-science",
+      "destination": "https://new.greenguard-usa.com/mosquito-science",
+      "permanent": true
+    },
+    {
+      "source": "/outdoor-wellness",
+      "destination": "https://new.greenguard-usa.com/outdoor-wellness",
+      "permanent": true
+    },
+    {
+      "source": "/pesticide-free-outdoor-living",
+      "destination": "https://new.greenguard-usa.com/pesticide-free-outdoor-living",
+      "permanent": true
+    },
+    {
+      "source": "/team",
+      "destination": "https://new.greenguard-usa.com/team",
+      "permanent": true
+    },
+    {
+      "source": "/why-co2-mosquito-traps-work",
+      "destination": "https://new.greenguard-usa.com/why-co2-mosquito-traps-work",
+      "permanent": true
+    }
+  ]
 }
