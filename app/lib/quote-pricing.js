@@ -100,9 +100,11 @@ function _clampInt(v, lo, hi, dflt) {
 // Guided-configurator service lines. Prices come only from the constants above.
 function buildServiceLines(cfg = {}) {
   const { system, plan, onTankService, mqPlan, mqInstall, tankHookup } = cfg
-  const tc = _clampInt(cfg.trapCount, 1, 12, 1)
-  const mq = _clampInt(cfg.mqCount, 1, 12, 1)
-  const tk = _clampInt(cfg.tankCount, 1, 12, 2)
+  // Cap 20 — matches the admin builder's count dropdown (raised from 12 for
+  // large commercial quotes); MAX_QTY=24 keeps every ×20 amount in the allowlist.
+  const tc = _clampInt(cfg.trapCount, 1, 20, 1)
+  const mq = _clampInt(cfg.mqCount, 1, 20, 1)
+  const tk = _clampInt(cfg.tankCount, 1, 20, 2)
   const lines = []
 
   if (system === 'biogents-co2' && plan === 'rental' && BG_RENTAL_PRICE[tc]) {

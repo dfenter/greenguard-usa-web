@@ -346,7 +346,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
 
   const Q = { fontSize: '0.82rem', fontWeight: 800, color: 'rgba(212,230,202,0.7)', marginBottom: 8, marginTop: 16 }
   const chip = (active) => ({ display: 'inline-block', padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: active ? 'rgba(125,255,170,0.1)' : 'transparent', color: active ? '#7dffaa' : 'rgba(212,230,202,0.5)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', marginRight: 8, marginBottom: 8, userSelect: 'none', transition: 'all 0.12s' })
-  const trapBtn = (n) => ({ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 8, border: `1px solid ${trapCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: trapCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: trapCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', marginRight: 8, fontFamily: 'Inter, sans-serif' })
+  const trapSelect = { padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(13,26,16,0.85)', color: '#7dffaa', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif', appearance: 'auto' }
 
   return (
     <div>
@@ -405,9 +405,11 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         <>
           <div style={Q}>How many traps?</div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-              <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
-            ))}
+            <select value={trapCount} onChange={(e) => setTrapCount(parseInt(e.target.value, 10))} style={trapSelect}>
+              {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
             {plan === 'rental' && BG_RENTAL_PRICE[trapCount] && (
               <span style={{ fontSize: '0.85rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
                 ${BG_RENTAL_PRICE[trapCount].toFixed(2)}/mo
@@ -442,9 +444,11 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         <>
           <div style={Q}>How many traps?</div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-              <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
-            ))}
+            <select value={trapCount} onChange={(e) => setTrapCount(parseInt(e.target.value, 10))} style={trapSelect}>
+              {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
             <span style={{ fontSize: '0.85rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
               ${(BG_NONCO2_PER_TRAP * trapCount).toFixed(2)}/mo
               <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', marginLeft: 6 }}>(${BG_NONCO2_PER_TRAP}/trap — no CO₂ tanks)</span>
@@ -465,9 +469,11 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
             <>
               <div style={Q}>How many units?</div>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <button key={n} onClick={() => setMqCount(n)} style={{ ...trapBtn(n), width: 42, height: 42, border: `1px solid ${mqCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: mqCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: mqCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)' }}>{n}</button>
-                ))}
+                <select value={mqCount} onChange={(e) => setMqCount(parseInt(e.target.value, 10))} style={trapSelect}>
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
                 <span style={{ fontSize: '0.82rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
                   ${((mqPlan === 'rental' ? MQ_PRICE.rental : MQ_PRICE.service) * mqCount).toFixed(2)}/mo
                 </span>
