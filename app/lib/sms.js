@@ -25,8 +25,9 @@ function normalizePhone(raw) {
 }
 
 /**
- * The ORIGINAL Twilio send logic — "the current method". Used directly by the
- * local notify daemon, and as the backup path when local isn't available.
+ * Twilio send logic. NOT used as a live send path (see sendSms below) —
+ * business decision 2026-07-10: iMessage only, no Twilio fallback. Kept
+ * defined only for reference/diagnostics; nothing calls this anymore.
  * Returns { ok, sid, to } or { ok:false, error }.
  */
 async function sendSmsDirect({ to, body }) {
@@ -43,14 +44,29 @@ async function sendSmsDirect({ to, body }) {
 }
 
 /**
- * Local-first SMS send: hands off to the local daemon when it's alive, else
- * calls sendSmsDirect() with zero added latency (identical to pre-local-first
- * behavior). Same shared orchestration as email — see notify-queue.sendLocalFirst.
- * Return shape is preserved either way ({ ok, sid, to } — plus sentBy:'local'
- * when the daemon handled it).
+ * iMessage-only fallback for when the local daemon's heartbeat is stale.
+ * Does NOT send via Twilio — just enqueues the job so the daemon picks it
+ * up as soon as it's back online. Delivery is delayed, never rerouted to a
+ * different channel.
+ */
+async function queueForDaemon({ to, body }) {
+  try {
+    const id = await notifyQueue.enqueue({ kind: 'sms', to, body })
+    return { ok: true, sid: null, to, sentBy: 'queued-imessage-only', jobId: id }
+  } catch (e) {
+    return { ok: false, error: `iMessage daemon unavailable and queue enqueue failed: ${e.message}` }
+  }
+}
+
+/**
+ * Local-first SMS send: hands off to the local daemon when it's alive
+ * (sends via iMessage). If the daemon isn't available, queues the job for
+ * whenever it comes back — no Twilio fallback (business decision 2026-07-10:
+ * iMessage only). Return shape: { ok, sid, to } plus sentBy:'local' or
+ * sentBy:'queued-imessage-only'.
  */
 async function sendSms({ to, body }) {
-  return notifyQueue.sendLocalFirst({ kind: 'sms', to, body }, sendSmsDirect)
+  return notifyQueue.sendLocalFirst({ kind: 'sms', to, body }, queueForDaemon)
 }
 
 module.exports = { sendSms, sendSmsDirect, normalizePhone }

@@ -44,14 +44,13 @@ loadEnvFile(path.join(__dirname, '..', '.env.local'))
 const { execFile } = require('child_process')
 const notifyQueue = require('../lib/notify-queue')
 const { sendEmailDirect } = require('../lib/email')
-const { sendSmsDirect, normalizePhone } = require('../lib/sms')
+const { normalizePhone } = require('../lib/sms')
 
-// SMS channel: 'twilio' (default, current) or 'imessage' (send from this Mac's
-// Messages app). iMessage requires a ONE-TIME macOS Automation permission grant
-// (System Settings > Privacy & Security > Automation > allow this process to
-// control Messages) — until that's granted, iMessage sends time out, so we keep
-// the default on 'twilio' and only flip to 'imessage' once it's verified working.
-const SMS_CHANNEL = (process.env.SMS_CHANNEL || 'twilio').toLowerCase()
+// iMessage is the ONLY SMS channel this daemon sends through (business
+// decision 2026-07-10: iMessage only, no Twilio). The macOS Automation
+// permission for this daemon's node process to control Messages has been
+// granted and verified end-to-end. SMS_CHANNEL is intentionally no longer
+// read here — there is no Twilio branch to fall back to.
 const IMESSAGE_SCRIPT = path.join(__dirname, 'imessage-send.applescript')
 
 // Send an iMessage via the Messages app (AppleScript). Rejects on any failure
@@ -72,9 +71,7 @@ function sendViaIMessage({ to, body }) {
 // local-first too.
 const SENDERS = {
   email: (job) => sendEmailDirect({ to: job.to, subject: job.subject, html: job.html, bcc: job.bcc, from: job.from }),
-  sms: (job) => (SMS_CHANNEL === 'imessage'
-    ? sendViaIMessage({ to: job.to, body: job.body })
-    : sendSmsDirect({ to: job.to, body: job.body })),
+  sms: (job) => sendViaIMessage({ to: job.to, body: job.body }),
 }
 
 const POLL_INTERVAL_MS = 1000
@@ -155,7 +152,7 @@ async function main() {
     log('FATAL: KV_REST_API_URL / KV_REST_API_TOKEN not set — cannot run')
     process.exit(1)
   }
-  log(`starting — polling every ${POLL_INTERVAL_MS}ms, heartbeat every ${HEARTBEAT_INTERVAL_MS}ms, SMS channel=${SMS_CHANNEL}`)
+  log(`starting — polling every ${POLL_INTERVAL_MS}ms, heartbeat every ${HEARTBEAT_INTERVAL_MS}ms, SMS channel=imessage-only`)
   await notifyQueue.heartbeat()
   log('heartbeat OK — portal will now route sends through this daemon')
   await Promise.all([heartbeatLoop(), pollLoop()])
