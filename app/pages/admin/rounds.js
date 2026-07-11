@@ -42,6 +42,7 @@ export async function getServerSideProps({ req, query, res }) {
         // (The Cal.com match block below never populates it — that fan-out is
         // disabled — so without this the double-billing guard was dead code.)
         calBookingUid: b.calBookingUid || null,
+        appointmentNotes: b.appointmentNotes || null,
       }))
     } catch {}
   } else {
@@ -56,6 +57,7 @@ export async function getServerSideProps({ req, query, res }) {
         startTime: b.startTime, durationMin: null, propertySize: b.propertySize || '',
         rescheduleUrl: b.rescheduleUrl || null,
         gcal_event_link: b.gcal_event_link || null,
+        appointmentNotes: b.appointmentNotes || null,
         booking_source: b.booking_source || (b.rescheduleUrl?.includes('cal.com') ? 'calcom' : b.rescheduleUrl ? 'legacy' : null),
       }))
     } catch (e) {
@@ -161,7 +163,11 @@ export async function getServerSideProps({ req, query, res }) {
       const contact = hubspotContactByEmail[emailKey] || null
       const prefill = prefillFromBooking({ slug }, contact)
       const billingContactName = contact?.properties?.billing_contact_name || null
-      const clientNotes = contact?._clientNotes || []
+      // Surface the customer's booking note (from the GCal event description) in
+      // the same Notes field the tech already sees, ahead of any HubSpot admin
+      // notes. This is what makes a note added at booking time reach rounds.
+      const bookingNote = (stop.appointmentNotes || '').trim()
+      const clientNotes = [...(bookingNote ? [bookingNote] : []), ...(contact?._clientNotes || [])]
       const firstAppointment = contact?.properties?.first_appointment === 'true'
 
       return {
