@@ -295,7 +295,18 @@ option { background: var(--bg-deep); color: var(--text); }
 }
 
 /* ── Admin bottom dock — always visible for admin ── */
-.admin-dock { display: flex; }
+/* Durable guard against the iOS float bug: on iOS WebKit a position:fixed
+   element with backdrop-filter detaches and floats mid-screen while scrolling.
+   The inline style in PortalLayout already omits the blur, but design-sync
+   round-trips have reintroduced it before (commit f9cbc3f). This !important
+   backstop kills backdrop-filter on the dock no matter what the inline style
+   says, so the regression can't come back. Keep the solid background too. */
+.admin-dock {
+  display: flex;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--bg-deep) !important;
+}
 .admin-main { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important; }
 
 /* ── Field tech utility classes ────────────────────────────────── */
