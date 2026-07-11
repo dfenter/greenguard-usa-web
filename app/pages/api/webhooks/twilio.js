@@ -1,6 +1,13 @@
 const { findContactByEmail, addNote } = require('../../../lib/hubspot')
 const { Client } = require('@hubspot/api-client')
+const { sendSms } = require('../../../lib/sms')
 const twilio = require('twilio')
+
+// Inbound customer texts are forwarded straight to the owner as an iMessage (via
+// the local notify daemon — never Twilio). Forwarding to this one number is
+// enough: the daemon mirrors every iMessage to the monitor line (+15127973348),
+// so both numbers receive it exactly once.
+const FORWARD_TO = process.env.SMS_FORWARD_NUMBER || '+15125604129'
 
 /**
  * POST /api/webhooks/twilio
@@ -84,6 +91,18 @@ export default async function handler(req, res) {
     }
   } catch (e) {
     console.error('Twilio webhook note error:', e.message)
+  }
+
+  // Forward the customer's text straight to the owner (iMessage, not Twilio).
+  // Best-effort: a forward failure must never fail the webhook (Twilio would retry).
+  try {
+    const name = contact
+      ? [contact.properties?.firstname, contact.properties?.lastname].filter(Boolean).join(' ').trim()
+      : ''
+    const who = name ? `${name} (${from})` : from
+    await sendSms({ to: FORWARD_TO, body: `Customer text from ${who}:\n${body}` })
+  } catch (e) {
+    console.error('Twilio webhook forward error:', e.message)
   }
 
   return reply(res, '<?xml version="1.0" encoding="UTF-8"?><Response></Response>')
