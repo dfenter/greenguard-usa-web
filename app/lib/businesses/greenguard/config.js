@@ -1,7 +1,7 @@
 module.exports = {
   id:        'greenguard',
   name:      'GreenGuard USA',
-  nameShort: 'GreenGuard',
+  nameShort: 'GreenGuard USA',  // brand is always "GreenGuard USA" in customer comms/alerts, never bare "GreenGuard"
   nameParts: { before: 'Green', accent: 'Guard', after: ' USA' },
   tagline:   'Smart · Safe · Effective',
 

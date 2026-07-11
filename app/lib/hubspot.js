@@ -250,7 +250,7 @@ async function getAllContacts(limit = 200) {
   return _cachedH(`hubspot:allcontacts:${limit}`, 1800, async () => {
     const results = []
     let after = undefined
-    const properties = ['email', 'firstname', 'lastname', 'phone', 'address', 'system_type', 'plan_type', 'trap_count']
+    const properties = ['email', 'firstname', 'lastname', 'phone', 'address', 'system_type', 'plan_type', 'trap_count', 'tank_count', 'customer_status', 'first_appointment', 'has_timer']
     const pageSize = Math.min(100, limit)
     do {
       const params = new URLSearchParams({ limit: pageSize, properties: properties.join(',') })

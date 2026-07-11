@@ -310,6 +310,67 @@ function parseTrailingNumber(slug, prefix) {
 }
 
 /**
+ * Contact-config fallback prefill — used when the appointment's event title /
+ * slug can't be mapped (legacy Acuity titles, manual bookings, renamed events).
+ * Derives the visit's default line items from the customer's HubSpot system
+ * config (system_type / plan_type / trap_count / tank_count) plus their
+ * recurring_addons, so the rounds form never comes up blank for a configured
+ * customer. (Added 2026-07-09 after Chelsea Stanciu — a 3-trap Biogents rental
+ * with the Acuity title "20 Pound CO2 Tank Rental and Refill Delivery
+ * Service" — pre-filled nothing.)
+ *
+ * @param {object} [contact] - HubSpot contact with .properties
+ * @returns {{sku: string, qty: number}[]}
+ */
+function prefillFromContact(contact) {
+  const props = contact?.properties || {}
+  const systemType = String(props.system_type || '')
+  const planType = String(props.plan_type || '').toLowerCase()
+  if (!systemType) return []          // no config — nothing safe to assume
+  if (planType === 'comp') return []  // complimentary account — no charges
+
+  const trapCount = Math.max(1, parseInt(props.trap_count || '1', 10) || 1)
+  const tankCount = Math.max(1, parseInt(props.tank_count || props.trap_count || '1', 10) || 1)
+  const isBgOwned = systemType === 'Biogents-Owned'
+    || /biogents.*own/i.test(systemType)
+    || planType === 'own'
+  const addonsOptOut = new Set(String(props.addons_optout || '')
+    .split(',').map((s) => s.trim()).filter(Boolean))
+
+  let baseLines = null
+  if (/^biogents/i.test(systemType) || /^bg\d/i.test(systemType)) {
+    if (isBgOwned || planType === 'tank-exchange') {
+      // Owner / tank-service customer: visit = tank swap. Owner-only defaults
+      // (hookup + bait) mirror the tank-exchange slug rules above.
+      baseLines = [{ sku: 'TANK-REFILL', qty: tankCount }]
+      if (isBgOwned) {
+        if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
+        if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: tankCount })
+      }
+    } else {
+      // Rental: BG{N} package (BG1–BG3 are the only package SKUs; cap there)
+      baseLines = [{ sku: `BG${Math.min(trapCount, 3)}`, qty: 1 }]
+    }
+  } else if (/^mosqitter/i.test(systemType)) {
+    baseLines = (/rental/i.test(systemType) || planType === 'rent')
+      ? [{ sku: 'MQ-RENT', qty: trapCount }]
+      : [{ sku: 'MQ-SVC', qty: trapCount }]
+  } else if (/^tank/i.test(systemType)) {
+    // Legacy 'TANK1'-style labels — tank-exchange-only customer
+    baseLines = [{ sku: 'TANK-REFILL', qty: parseTrailingNumber(systemType.toUpperCase(), 'TANK') || tankCount }]
+  }
+  if (!baseLines) return []
+
+  const recurringAddons = String(props.recurring_addons || '')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+  const haveSku = new Set(baseLines.map((l) => l.sku))
+  for (const sku of recurringAddons) {
+    if (!haveSku.has(sku) && !addonsOptOut.has(sku)) baseLines.push({ sku, qty: 1 })
+  }
+  return baseLines.filter((l) => !addonsOptOut.has(l.sku))
+}
+
+/**
  * @param {object} booking
  * @param {string} booking.slug - Cal.com event-type slug
  * @param {object} [contact] - HubSpot contact with .properties
@@ -317,7 +378,8 @@ function parseTrailingNumber(slug, prefix) {
  */
 function prefillFromBooking(booking, contact) {
   const slug = (booking?.slug || '').trim()
-  if (!slug) return []
+  // No slug (unmappable title) — fall back to the customer's system config.
+  if (!slug) return prefillFromContact(contact)
 
   const props = contact?.properties || {}
   const systemType = props.system_type || ''
@@ -399,9 +461,11 @@ function prefillFromBooking(booking, contact) {
   if (!baseLines && slug === 'mosqitter-troubleshoot') baseLines = isMqOwned ? [{ sku: 'MQ-TSHOOT', qty: 1 }] : []
   if (!baseLines && slug === 'barrier-treatment') baseLines = [{ sku: 'BARRIER', qty: 1 }]
 
-  // No-charge / unknown events: return nothing, skip addons too.
+  // No-charge events: return nothing, skip addons too.
   const noChargeSlugs = ['tank-refill-check', 'equipment-pickup', 'property-assessment']
-  if (baseLines === null || noChargeSlugs.includes(slug)) return baseLines || []
+  if (noChargeSlugs.includes(slug)) return baseLines || []
+  // Unknown slug — fall back to the customer's system config rather than blank.
+  if (baseLines === null) return prefillFromContact(contact)
 
   // Append recurring addons that aren't already present in the base.
   const haveSku = new Set(baseLines.map((l) => l.sku))
@@ -419,6 +483,7 @@ module.exports = {
   resolveByTitle,
   normalizeEventTitle,
   prefillFromBooking,
+  prefillFromContact,
   slugFromTitle,
   TITLE_TO_SLUG,
   SKU_PRICES,

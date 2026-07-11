@@ -154,9 +154,12 @@ export async function getServerSideProps({ req, query, res }) {
 
       // Compute prefill line items from Cal.com event-type + HubSpot contact.
       // Slug source priority: explicit booking.eventTypeSlug → derived from event title.
+      // Always call the engine even with no slug — it falls back to the customer's
+      // HubSpot system config (system_type/trap_count/recurring_addons) so legacy
+      // Acuity titles and manual bookings still pre-fill instead of coming up blank.
       const slug = match?.eventType?.slug || match?.eventTypeSlug || slugFromTitle(serviceType)
       const contact = hubspotContactByEmail[emailKey] || null
-      const prefill = slug ? prefillFromBooking({ slug }, contact) : []
+      const prefill = prefillFromBooking({ slug }, contact)
       const billingContactName = contact?.properties?.billing_contact_name || null
       const clientNotes = contact?._clientNotes || []
       const firstAppointment = contact?.properties?.first_appointment === 'true'

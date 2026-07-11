@@ -96,7 +96,9 @@ async function sendT48hReminder(invoice, customer) {
   // SMS escalation
   const contact = customer.email ? await findContactByEmail(customer.email).catch(() => null) : null
   const phone = customer.phone || contact?.properties?.phone
-  if (phone && process.env.TWILIO_AUTH_TOKEN) {
+  // Sends via iMessage (lib/sms → local daemon). No longer gated on Twilio creds
+  // (iMessage-only, business decision 2026-07-10) — gate on having a number only.
+  if (phone) {
     const r = await sendSms({
       to: phone,
       body: `${biz.nameShort}: a ${fmt$(invoice.amount_due)} payment didn't go through. Pay or update card here: ${invoice.hosted_invoice_url}`,

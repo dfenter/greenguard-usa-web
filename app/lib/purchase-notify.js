@@ -113,7 +113,9 @@ async function notifyAdmin(purchase) {
 
   const alertText = `💰 *${purchase.customerName || purchase.customerEmail || 'Customer'}* paid ${fmt$(purchase.amount)} (${purchase.source || 'Stripe'})${purchase.stripeUrl ? ` — ${purchase.stripeUrl}` : ''}`
 
-  if (ADMIN_SMS && process.env.TWILIO_AUTH_TOKEN) {
+  // Sends via iMessage (lib/sms → local daemon). No longer gated on Twilio creds
+  // (iMessage-only, business decision 2026-07-10) — gate on having a number only.
+  if (ADMIN_SMS) {
     try {
       const r = await sendSms({ to: ADMIN_SMS, body: alertText.replace(/\*/g, '').slice(0, 320) })
       results.sms = r.ok

@@ -1,11 +1,10 @@
 const { requireAdmin } = require('../../../lib/auth')
-const { getCalendar } = require('../../../lib/gcal')
+const { createDirectGCalEvent, localCTtoUTC } = require('../../../lib/booking')
 
 const CALCOM_API_KEY = process.env.CALCOM_API_KEY || ''
 const CALCOM_BASE = `${(process.env.CALCOM_BASE_URL || 'https://cal.com').replace(/\/$/, '')}/api/v2`
 const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 const BUSINESS_PHONE = process.env.BUSINESS_PHONE || '+15125604129'
-const CALENDAR_ID = 'admin@greenguard-usa.com'
 
 async function createOneBooking(eventTypeId, firstName, lastName, email, phone, address, utcIso, notes) {
   // Cal.com schema (api-version 2024-08-13) requires:
@@ -49,39 +48,6 @@ async function createOneBooking(eventTypeId, firstName, lastName, email, phone, 
   return data.data
 }
 
-// Direct Google Calendar event creation — used when admin opts to force a
-// double-booking through Cal.com's availability check. The event is created
-// on the same admin calendar Cal.com syncs to, so it shows up everywhere
-// (rounds, route, etc.) just like a Cal.com booking would.
-async function createDirectGCalEvent({ firstName, lastName, email, phone, address, utcIso, notes, eventTypeTitle }) {
-  const cal = getCalendar()
-  const start = new Date(utcIso)
-  const end = new Date(start.getTime() + 30 * 60 * 1000)  // default 30 min
-  const name = `${firstName} ${lastName}`.trim()
-  const description = [
-    `Customer: ${name}`,
-    `Email: ${email}`,
-    phone ? `Phone: ${phone}` : null,
-    address ? `Address: ${address}` : null,
-    '',
-    'Manual admin booking (Cal.com slot was unavailable — forced double-book). GreenGuard USA',
-    notes ? '' : null,
-    notes ? `Notes: ${notes}` : null,
-  ].filter((x) => x !== null).join('\n')
-  const r = await cal.events.insert({
-    calendarId: CALENDAR_ID,
-    sendUpdates: 'none',
-    requestBody: {
-      summary: `${name}: ${eventTypeTitle || 'Manual booking'} (GreenGuard USA)`,
-      description,
-      location: address,
-      start: { dateTime: start.toISOString(), timeZone: TZ },
-      end:   { dateTime: end.toISOString(),   timeZone: TZ },
-    },
-  })
-  return { uid: r.data.id, source: 'gcal-direct' }
-}
-
 async function hasOverlappingBooking() {
   return false // Cal.com API key lacks booking scope — always returns []
 }
@@ -100,23 +66,9 @@ export default async function handler(req, res) {
   // no availability gate. Owner asked for full override authority here.
 
   // `startLocal` is a datetime-local string ("YYYY-MM-DDTHH:mm") with NO
-  // timezone — the browser means it as America/Chicago but Node would parse
-  // it as UTC, putting every booking 5-6 hours early.  Convert explicitly:
-  // treat the string as UTC (placeholder), see what CT clock that maps to,
-  // compute the offset, then shift back to get the true UTC instant.
-  function localCTtoUTC(dtLocal) {
-    const asIfUTC = new Date(dtLocal + ':00Z')
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: TZ,
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: false,
-    }).formatToParts(asIfUTC)
-    const get = (t) => parts.find((p) => p.type === t)?.value ?? '00'
-    const tzShown = new Date(`${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}Z`)
-    return new Date(asIfUTC.getTime() + (asIfUTC.getTime() - tzShown.getTime())).toISOString()
-  }
-
+  // timezone — converted to the true UTC instant via the shared helper
+  // (extracted to lib/booking.js so this endpoint and the backfill extender
+  // share one implementation).
   const utcIso = localCTtoUTC(startLocal)
 
   // 24-hour minimum notice is enforced at the Cal.com level for customers.
