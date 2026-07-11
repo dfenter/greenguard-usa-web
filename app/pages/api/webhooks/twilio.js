@@ -3,11 +3,12 @@ const { Client } = require('@hubspot/api-client')
 const { sendSms } = require('../../../lib/sms')
 const twilio = require('twilio')
 
-// Inbound customer texts are forwarded straight to the owner as an iMessage (via
-// the local notify daemon — never Twilio). Forwarding to this one number is
-// enough: the daemon mirrors every iMessage to the monitor line (+15127973348),
-// so both numbers receive it exactly once.
-const FORWARD_TO = process.env.SMS_FORWARD_NUMBER || '+15125604129'
+// Inbound customer texts are forwarded straight to the owner(s) as an iMessage
+// (via the local notify daemon — never Twilio). Sent explicitly to each number
+// (comma-separated SMS_FORWARD_NUMBERS) — the daemon no longer mirrors every
+// message, so each recipient must be addressed directly.
+const FORWARD_NUMBERS = (process.env.SMS_FORWARD_NUMBERS || '+15125604129,+15127973348')
+  .split(',').map((s) => s.trim()).filter(Boolean)
 
 /**
  * POST /api/webhooks/twilio
@@ -100,7 +101,8 @@ export default async function handler(req, res) {
       ? [contact.properties?.firstname, contact.properties?.lastname].filter(Boolean).join(' ').trim()
       : ''
     const who = name ? `${name} (${from})` : from
-    await sendSms({ to: FORWARD_TO, body: `Customer text from ${who}:\n${body}` })
+    const fwdBody = `Customer text from ${who}:\n${body}`
+    await Promise.allSettled(FORWARD_NUMBERS.map((num) => sendSms({ to: num, body: fwdBody })))
   } catch (e) {
     console.error('Twilio webhook forward error:', e.message)
   }

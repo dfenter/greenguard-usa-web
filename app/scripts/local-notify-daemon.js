@@ -53,47 +53,22 @@ const { normalizePhone } = require('../lib/sms')
 // read here — there is no Twilio branch to fall back to.
 const IMESSAGE_SCRIPT = path.join(__dirname, 'imessage-send.applescript')
 
-// Every outbound iMessage is mirrored to this monitor number so the owner keeps a
-// running copy of all customer/admin texts. Override with IMESSAGE_MONITOR_NUMBER;
-// set it empty to disable mirroring.
-const MONITOR_NUMBER = process.env.IMESSAGE_MONITOR_NUMBER === undefined
-  ? '+15127973348'
-  : process.env.IMESSAGE_MONITOR_NUMBER
-
-// Compare two phone numbers on their last 10 digits (ignores +1 / formatting) so
-// we never mirror a message that's already addressed to the monitor number.
-function sameNumber(a, b) {
-  const da = String(a || '').replace(/\D/g, '').slice(-10)
-  const db = String(b || '').replace(/\D/g, '').slice(-10)
-  return da.length === 10 && da === db
-}
-
-// Low-level single iMessage send via the Messages app (AppleScript). Rejects on
-// any failure (permission not granted, number not iMessage-reachable, Messages
-// offline).
-function osascriptSend(dest, body) {
+// Send an iMessage via the Messages app (AppleScript). Rejects on any failure
+// (permission not granted, number not iMessage-reachable, Messages offline) so
+// the caller marks the job failed and the producer's backup path handles it.
+//
+// NOTE: there is deliberately NO blanket "mirror every message to a monitor
+// number" here. Customer-facing texts (appointment reminders, review asks,
+// post-visit thank-yous) go ONLY to the customer. Owner alerts reach the owner
+// numbers because the producer addresses them there directly (agent
+// ALERT_SMS_NUMBERS, twilio webhook forward), not via a copy of every send.
+function sendViaIMessage({ to, body }) {
+  const dest = normalizePhone(to) || to
   return new Promise((resolve, reject) => {
     execFile('osascript', [IMESSAGE_SCRIPT, dest, body], { timeout: 35000 }, (err, stdout, stderr) => {
       if (err) return reject(new Error(`iMessage send failed: ${(stderr || err.message || '').trim()}`))
       resolve({ ok: true, channel: 'imessage', to: dest, sid: null })
     })
-  })
-}
-
-// Send an iMessage. Rejects on any failure so the caller marks the job failed and
-// the producer's backup path handles it. On success, fire a best-effort copy to
-// the monitor number — this never blocks or fails the primary send, and only
-// mirrors messages that actually went out.
-function sendViaIMessage({ to, body }) {
-  const dest = normalizePhone(to) || to
-  return osascriptSend(dest, body).then((result) => {
-    if (MONITOR_NUMBER && !sameNumber(dest, MONITOR_NUMBER)) {
-      const monitorDest = normalizePhone(MONITOR_NUMBER) || MONITOR_NUMBER
-      osascriptSend(monitorDest, `[copy → ${dest}]\n${body}`)
-        .then(() => log(`monitor copy → ${monitorDest} (orig → ${dest})`))
-        .catch((e) => log(`monitor copy FAILED → ${monitorDest}: ${e.message}`))
-    }
-    return result
   })
 }
 
