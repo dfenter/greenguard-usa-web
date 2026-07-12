@@ -1,3 +1,8 @@
+# DISABLED blueprint — do NOT connect this to Render.
+# This agent/ dir is a stale duplicate; the canonical agent is the separate repo
+# dfenter/greenguard-agent (deployed as greenguard-agent-new). Deploying these
+# services alongside it double-sends the daily digest and double-processes email
+# (no cross-host dedup). main.py is also hard-guarded to exit 78 on start.
 services:
   - type: web
     name: greenguard-webhook

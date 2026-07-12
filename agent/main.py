@@ -405,4 +405,15 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # DISABLED — this is a stale duplicate of the canonical agent, which now lives
+    # in its own repo (dfenter/greenguard-agent, local /Users/lucille/greenguard_agent)
+    # and runs on the Mac launchd + Render. Running this copy sends a SECOND daily
+    # digest and double-processes email because it has no cross-host dedup. Refuse
+    # to start. Remove this guard only if this repo becomes the canonical agent again.
+    import sys
+    sys.stderr.write(
+        "greenguard-usa-web/agent is DISABLED — superseded by dfenter/greenguard-agent. "
+        "Refusing to run to avoid duplicate digests/notifications.\n"
+    )
+    sys.exit(78)  # EX_CONFIG
     main()
