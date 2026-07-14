@@ -153,11 +153,11 @@ async function _fetchContactsByEmails(cleaned) {
 
 async function getContactNotes(contactId, limit = 5) {
   return _cachedH(`hs:notes:${contactId}`, 60, async () => {
-    // Fetch up to 50 association IDs — do NOT slice before batch-reading because HubSpot
-    // returns association IDs in an arbitrary order (often oldest-first), so slicing early
-    // would return stale notes instead of the most recent ones.
+    // Fetch up to 100 association IDs (batch-read's max input size) — do NOT slice before
+    // batch-reading because HubSpot returns association IDs in an arbitrary order (often
+    // oldest-first), so slicing early would return stale notes instead of the most recent ones.
     const assocResp = await fetchWithTimeout(
-      `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}/associations/notes?limit=50`,
+      `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}/associations/notes?limit=100`,
       { headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` } }
     )
     if (!assocResp.ok) return []
@@ -197,7 +197,9 @@ async function getContactNotes(contactId, limit = 5) {
 // prefix. This returns up to `take` of them, prefix stripped. Shared by
 // rounds / home-data / tech-data (the block used to be copy-pasted in all 3).
 const ADMIN_NOTE_RE = /^\[ADMIN-NOTE[^\]]*\]\s*/
-async function getClientNotes(contactId, scan = 20, take = 3) {
+// scan=100 (was 20): visit-log + payment notes accumulate ~2/visit, so a shallow
+// scan let permanent notes (gate codes etc.) silently age out of the window.
+async function getClientNotes(contactId, scan = 100, take = 3) {
   if (!contactId) return []
   try {
     const notes = await getContactNotes(contactId, scan)
