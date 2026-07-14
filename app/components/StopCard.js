@@ -21,7 +21,7 @@ function fmtTime(iso) {
 // align across /admin/home, /admin/tech, and /admin/rounds.
 export const actionBtn = {
   flex: '1 1 70px', padding: '9px 8px', borderRadius: 6, justifyContent: 'center',
-  fontSize: '0.9rem', fontWeight: 800, textDecoration: 'none', minHeight: 36,
+  fontSize: '1.125rem', fontWeight: 800, textDecoration: 'none', minHeight: 36,
   display: 'inline-flex', alignItems: 'center', fontFamily: 'inherit',
   boxSizing: 'border-box', cursor: 'pointer',
 }
@@ -151,25 +151,25 @@ export default function StopCard({
         <div style={{ marginBottom: actions || children ? 12 : 0 }}>
           {/* Name row: number · name · address · distance */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--green-muted)', color: 'var(--text-on-accent)', flexShrink: 0 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.975rem', background: done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--green-muted)', color: 'var(--text-on-accent)', flexShrink: 0 }}>
               {done ? '✓' : number}
             </span>
             {preview ? (
-              <span style={{ fontWeight: 900, fontSize: '1rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', flexShrink: 0 }}>{name}</span>
+              <span style={{ fontWeight: 900, fontSize: '1.25rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', flexShrink: 0 }}>{name}</span>
             ) : (
               <button
-                style={{ fontWeight: 900, fontSize: '1rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', background: 'none', border: 'none', borderBottom: '2px solid var(--border)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
+                style={{ fontWeight: 900, fontSize: '1.25rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', background: 'none', border: 'none', borderBottom: '2px solid var(--border)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
                 onClick={(e) => { e.stopPropagation(); openProfile() }}
               >{name}</button>
             )}
             {stop.phone && (
-              <span style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>📞 {stop.phone}</span>
+              <span style={{ fontSize: '1.063rem', color: 'var(--text)', fontWeight: 700 }}>📞 {stop.phone}</span>
             )}
             {stop.address && (
-              <span style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>📍 {stop.address}</span>
+              <span style={{ fontSize: '1.063rem', color: 'var(--text)', fontWeight: 700 }}>📍 {stop.address}</span>
             )}
             {distance && (
-              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>
                 {distance.miles} mi · {distance.duration}
               </span>
             )}
@@ -178,25 +178,25 @@ export default function StopCard({
 
           {/* Booking notes from the calendar appointment description */}
           {stop.appointmentNotes && (
-            <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1.5, paddingLeft: 36 }}>📝 {stop.appointmentNotes}</div>
+            <div style={{ whiteSpace: 'pre-wrap', fontSize: '1.063rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1.5, paddingLeft: 36 }}>📝 {stop.appointmentNotes}</div>
           )}
 
           {/* Per-appointment notes from the calendar dock "This appointment's notes" */}
           {eventNotes.length > 0 && (
             <div style={{ paddingLeft: 36, marginTop: 4, marginBottom: 2 }}>
               {eventNotes.map((n) => (
-                <div key={n.id} style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700, lineHeight: 1.5 }}>📋 {n.body}</div>
+                <div key={n.id} style={{ fontSize: '1.063rem', color: 'var(--text)', fontWeight: 700, lineHeight: 1.5 }}>📋 {n.body}</div>
               ))}
             </div>
           )}
 
           {/* Customer notes from HubSpot ([ADMIN-NOTE] timeline entries) */}
           {(stop.clientNotes || []).map((note, i) => (
-            <div key={i} style={{ paddingLeft: 36, fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700, lineHeight: 1.5 }}>{note}</div>
+            <div key={i} style={{ paddingLeft: 36, fontSize: '1.063rem', color: 'var(--text)', fontWeight: 700, lineHeight: 1.5 }}>{note}</div>
           ))}
 
           {/* Service info row: time · service type · tanks */}
-          <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '0.9rem', marginTop: 4, marginBottom: 2 }}>
+          <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '1.125rem', marginTop: 4, marginBottom: 2 }}>
             {stop.startTime && (
               <span style={{ color: 'var(--text)', fontWeight: 800 }}>
                 {new Date(stop.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · {fmtTime(stop.startTime)}{stop.endTime ? ` – ${fmtTime(stop.endTime)}` : ''}
@@ -208,7 +208,7 @@ export default function StopCard({
 
           {/* Check in / out */}
           {(checkIn || checkOut) && (
-            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '0.85rem', color: 'var(--text)', display: 'flex', gap: 14, fontWeight: 700 }}>
+            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '1.063rem', color: 'var(--text)', display: 'flex', gap: 14, fontWeight: 700 }}>
               {checkIn && <span>In: <strong>{checkIn}</strong></span>}
               {checkOut && <span>Out: <strong style={{ color: 'var(--ok)' }}>{checkOut}</strong></span>}
             </div>
