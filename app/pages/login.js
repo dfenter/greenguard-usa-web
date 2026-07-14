@@ -81,9 +81,9 @@ export default function Login({ error }) {
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)',
+        background: 'var(--bg)',
       }}>
-        <p style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.9rem' }}>Signing you in…</p>
+        <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Signing you in…</p>
       </div>
     )
   }
@@ -93,7 +93,7 @@ export default function Login({ error }) {
       <Head><title>Sign In · {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'}</title></Head>
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)',
+        background: 'var(--bg)',
         padding: '24px',
       }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
@@ -101,28 +101,28 @@ export default function Login({ error }) {
             <div style={{ fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.02em', marginBottom: 8 }}>
               {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}
             </div>
-            <p style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.6)', margin: 0 }}>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0 }}>
               Customer Portal
             </p>
           </div>
 
-          <div className="card" style={{ border: '1px solid rgba(122,171,130,0.25)' }}>
+          <div className="card" style={{ border: '1px solid rgba(var(--border-rgb),0.25)' }}>
             {sent ? (
               <div style={{ textAlign: 'center', padding: '8px 0' }}>
                 <div style={{ fontSize: '2rem', marginBottom: 16 }}>✉️</div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 12, color: '#7dffaa' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 12, color: 'var(--green)' }}>
                   Check your email
                 </h2>
-                <p style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.65)', lineHeight: 1.6 }}>
-                  If <strong style={{ color: '#d4e6ca' }}>{email}</strong> is linked to a {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} account,
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  If <strong style={{ color: 'var(--text)' }}>{email}</strong> is linked to a {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} account,
                   you&apos;ll receive a sign-in link within a minute.
                 </p>
 
-                <div style={{ margin: '24px 0 0', paddingTop: 20, borderTop: '1px solid rgba(122,171,130,0.2)' }}>
-                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#d4e6ca', marginBottom: 4 }}>
+                <div style={{ margin: '24px 0 0', paddingTop: 20, borderTop: '1px solid rgba(var(--border-rgb),0.2)' }}>
+                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
                     Using the home-screen app?
                   </p>
-                  <p style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.55)', marginBottom: 14, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
                     Enter the 6-digit code from that email to sign in right here.
                   </p>
                   <form onSubmit={handleVerifyCode}>
@@ -137,14 +137,14 @@ export default function Login({ error }) {
                       placeholder="123456"
                       style={{
                         width: '100%', padding: '13px 14px', borderRadius: 4,
-                        border: `1px solid ${codeError ? 'rgba(201,76,76,0.6)' : 'rgba(122,171,130,0.3)'}`,
-                        background: 'rgba(255,255,255,0.05)', color: '#d4e6ca',
+                        border: `1px solid ${codeError ? 'rgba(var(--danger-rgb),0.6)' : 'rgba(var(--border-rgb),0.3)'}`,
+                        background: 'var(--bg-card)', color: 'var(--text)',
                         fontSize: '1.4rem', fontWeight: 800, letterSpacing: '0.4em', textAlign: 'center',
                         outline: 'none', marginBottom: 12, fontFamily: 'monospace',
                       }}
                     />
                     {codeError && (
-                      <p style={{ fontSize: '0.8rem', color: '#e08a8a', margin: '0 0 12px', lineHeight: 1.4 }}>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--danger)', margin: '0 0 12px', lineHeight: 1.4 }}>
                         {codeError}
                       </p>
                     )}
@@ -162,15 +162,15 @@ export default function Login({ error }) {
             ) : (
               <form onSubmit={handleSubmit}>
                 <h2 style={{ fontSize: '1.15rem', fontWeight: 900, marginBottom: 6 }}>Sign in</h2>
-                <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', marginBottom: 24, lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
                   Enter the email address associated with your GreenGuard service. We&apos;ll send you a sign-in link.
                 </p>
 
                 {(error === 'expired' || error === 'used') && (
                   <div style={{
-                    background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)',
+                    background: 'rgba(var(--gold-rgb),0.12)', border: '1px solid rgba(var(--gold-rgb),0.3)',
                     borderRadius: 6, padding: '10px 14px', marginBottom: 16,
-                    fontSize: '0.83rem', color: '#c9a84c', lineHeight: 1.5,
+                    fontSize: '0.83rem', color: 'var(--gold)', lineHeight: 1.5,
                   }}>
                     That sign-in link has expired or already been used. Enter your email below to get a fresh one.
                   </div>
@@ -187,10 +187,10 @@ export default function Login({ error }) {
                   placeholder="you@example.com"
                   style={{
                     width: '100%', padding: '11px 14px', borderRadius: 4,
-                    border: '1px solid rgba(122,171,130,0.3)',
-                    background: 'rgba(255,255,255,0.05)', color: '#d4e6ca',
+                    border: '1px solid rgba(var(--border-rgb),0.3)',
+                    background: 'var(--bg-card)', color: 'var(--text)',
                     fontSize: '0.95rem', outline: 'none', marginBottom: 16,
-                    fontFamily: 'Inter, sans-serif',
+
                   }}
                 />
                 <button
@@ -205,9 +205,9 @@ export default function Login({ error }) {
             )}
           </div>
 
-          <p style={{ textAlign: 'center', marginTop: 20, fontSize: '0.8rem', color: 'rgba(212,230,202,0.35)' }}>
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
             Not a {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard'} customer yet?{' '}
-            <a href={process.env.NEXT_PUBLIC_BIZ_WEBSITE || 'https://greenguard-usa.com'} style={{ color: '#7aab82' }}>
+            <a href={process.env.NEXT_PUBLIC_BIZ_WEBSITE || 'https://greenguard-usa.com'} style={{ color: 'var(--green-muted)' }}>
               Learn more
             </a>
           </p>
@@ -216,4 +216,3 @@ export default function Login({ error }) {
     </>
   )
 }
-

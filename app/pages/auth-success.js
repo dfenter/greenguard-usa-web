@@ -44,7 +44,7 @@ export default function AuthSuccess({ dest, backupToken }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)',
+        background: 'var(--bg)',
         padding: '24px',
       }}>
         <div style={{ width: '100%', maxWidth: 400, textAlign: 'center' }}>
@@ -52,13 +52,13 @@ export default function AuthSuccess({ dest, backupToken }) {
           <h1 style={{
             fontWeight: 900,
             fontSize: '1.5rem',
-            color: '#7dffaa',
+            color: 'var(--green)',
             marginBottom: 12,
           }}>
             You&apos;re signed in!
           </h1>
           <p style={{
-            color: 'rgba(212,230,202,0.65)',
+            color: 'var(--text-muted)',
             fontSize: '0.95rem',
             marginBottom: 36,
             lineHeight: 1.5,
@@ -70,8 +70,8 @@ export default function AuthSuccess({ dest, backupToken }) {
             href={dest}
             style={{
               display: 'block',
-              background: '#7dffaa',
-              color: '#0d1a10',
+              background: 'var(--green)',
+              color: 'var(--text-on-accent)',
               fontWeight: 900,
               fontSize: '1.1rem',
               padding: '18px 24px',
@@ -86,7 +86,7 @@ export default function AuthSuccess({ dest, backupToken }) {
           <p style={{
             marginTop: 20,
             fontSize: '0.78rem',
-            color: 'rgba(212,230,202,0.3)',
+            color: 'var(--text-dim)',
           }}>
             Redirecting automatically in {count} second{count !== 1 ? 's' : ''}
           </p>

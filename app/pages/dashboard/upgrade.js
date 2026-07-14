@@ -64,7 +64,7 @@ function buildUpgrades({ pathKey, trapCount, systemType }) {
         'Free placement consultation',
       ],
       badge: nextCount === 2 ? 'Most Popular' : null,
-      badgeColor: '#7dffaa',
+      badgeColor: 'var(--green)',
     })
   }
 
@@ -92,7 +92,7 @@ function buildUpgrades({ pathKey, trapCount, systemType }) {
         'CO₂, bait & monthly maintenance included',
       ],
       badge: 'Premium',
-      badgeColor: '#c9a84c',
+      badgeColor: 'var(--gold)',
     })
   }
 
@@ -164,10 +164,10 @@ function currentPlanLabel(systemType, trapCount) {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-const PAGE_BG   = '#0d1a10'
-const CARD      = { background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: 28, marginBottom: 20 }
-const EYEBROW   = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(201,168,76,0.7)', marginBottom: 8, display: 'block' }
-const TEXT_MUTED = { color: 'rgba(212,230,202,0.5)' }
+const PAGE_BG   = 'var(--bg)'
+const CARD      = { background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.18)', borderRadius: 12, padding: 28, marginBottom: 20 }
+const EYEBROW   = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(var(--gold-rgb),0.7)', marginBottom: 8, display: 'block' }
+const TEXT_MUTED = { color: 'var(--text-dim)' }
 
 export default function UpgradePage({ name, firstName, systemType, trapCount, upgrades, currentPlan }) {
   const [requested, setRequested] = useState({})   // upgradeId → true
@@ -199,17 +199,17 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
         <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
-      <div style={{ minHeight: '100vh', background: PAGE_BG, color: '#d4e6ca', fontFamily: "'Inter', sans-serif", paddingBottom: 80 }}>
+      <div style={{ minHeight: '100vh', background: PAGE_BG, color: 'var(--text)', paddingBottom: 80 }}>
 
         {/* ── Header ── */}
-        <div style={{ background: 'rgba(13,26,16,0.97)', borderBottom: '1px solid rgba(122,171,130,0.15)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--bg-card)', borderBottom: '1px solid rgba(var(--border-rgb),0.15)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.02em' }}>
-              Green<span style={{ color: '#7dffaa' }}>Guard</span> USA
+              Green<span style={{ color: 'var(--green)' }}>Guard</span> USA
             </div>
-            <div style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)' }}>Smart · Safe · Effective</div>
+            <div style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>Smart · Safe · Effective</div>
           </div>
-          <Link href="/dashboard" style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.4)', textDecoration: 'none' }}>← My Dashboard</Link>
+          <Link href="/dashboard" style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textDecoration: 'none' }}>← My Dashboard</Link>
         </div>
 
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '44px 24px 0' }}>
@@ -219,7 +219,7 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
             <span style={EYEBROW}>Upgrade Your Service</span>
             <h1 style={{ fontSize: 'clamp(1.7rem,3.5vw,2.4rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 10px', lineHeight: 1.15 }}>
               {firstName ? `${firstName}, expand your` : 'Expand your'}{' '}
-              <span style={{ color: '#7dffaa' }}>mosquito-free zone.</span>
+              <span style={{ color: 'var(--green)' }}>mosquito-free zone.</span>
             </h1>
             <p style={{ fontSize: '1rem', ...TEXT_MUTED, margin: 0, lineHeight: 1.65 }}>
               Add a system, extend your coverage, or layer in additional protection. Pricing is exactly what you see below — no surprises.
@@ -228,16 +228,16 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
 
           {/* ── Current Plan ── */}
           {currentPlan && (
-            <div style={{ ...CARD, background: 'rgba(122,171,130,0.04)', border: '1px solid rgba(122,171,130,0.2)', marginBottom: 32 }}>
+            <div style={{ ...CARD, background: 'rgba(var(--border-rgb),0.04)', border: '1px solid rgba(var(--border-rgb),0.2)', marginBottom: 32 }}>
               <span style={EYEBROW}>Your Current Service</span>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 8 }}>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#d4e6ca', marginBottom: 4 }}>{currentPlan.label}</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text)', marginBottom: 4 }}>{currentPlan.label}</div>
                   <div style={{ fontSize: '0.85rem', ...TEXT_MUTED }}>Active plan · billed monthly after each service visit</div>
                 </div>
                 {currentPlan.monthly != null && (
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#7dffaa', lineHeight: 1 }}>{fmt$(currentPlan.monthly)}</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--green)', lineHeight: 1 }}>{fmt$(currentPlan.monthly)}</div>
                     <div style={{ fontSize: '0.72rem', ...TEXT_MUTED, marginTop: 2 }}>/month</div>
                   </div>
                 )}
@@ -258,21 +258,21 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
               <div key={u.id} style={{ ...CARD, padding: 0, overflow: 'hidden', marginBottom: 24 }}>
 
                 {/* Card header */}
-                <div style={{ padding: '24px 28px 20px', borderBottom: '1px solid rgba(122,171,130,0.1)' }}>
+                <div style={{ padding: '24px 28px 20px', borderBottom: '1px solid rgba(var(--border-rgb),0.1)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
                         {u.badge && (
-                          <span style={{ fontSize: '0.62rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '3px 10px', borderRadius: 100, background: `${u.badgeColor}18`, border: `1px solid ${u.badgeColor}44`, color: u.badgeColor }}>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '3px 10px', borderRadius: 100, background: u.badgeColor === 'var(--gold)' ? 'rgba(var(--gold-rgb),0.1)' : 'rgba(var(--green-rgb),0.1)', border: `1px solid ${u.badgeColor === 'var(--gold)' ? 'rgba(var(--gold-rgb),0.35)' : 'rgba(var(--green-rgb),0.35)'}`, color: u.badgeColor }}>
                             {u.badge}
                           </span>
                         )}
                       </div>
-                      <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#d4e6ca', margin: '0 0 6px', lineHeight: 1.25 }}>{u.title}</h2>
+                      <h2 style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text)', margin: '0 0 6px', lineHeight: 1.25 }}>{u.title}</h2>
                       <p style={{ margin: 0, fontSize: '0.875rem', ...TEXT_MUTED, lineHeight: 1.6 }}>{u.tagline}</p>
                     </div>
                     {u.image && (
-                      <div style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(122,171,130,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 10, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <img src={u.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
                       </div>
                     )}
@@ -280,56 +280,56 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
                 </div>
 
                 {/* Cost breakdown */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', borderBottom: '1px solid rgba(122,171,130,0.1)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', borderBottom: '1px solid rgba(var(--border-rgb),0.1)' }}>
 
                   {/* Before */}
-                  <div style={{ padding: '20px 28px', borderRight: '1px solid rgba(122,171,130,0.1)' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 10 }}>Monthly — Now</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'rgba(212,230,202,0.45)', lineHeight: 1 }}>{fmt$(u.currentMonthly)}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.3)', marginTop: 4 }}>/month</div>
+                  <div style={{ padding: '20px 28px', borderRight: '1px solid rgba(var(--border-rgb),0.1)' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 10 }}>Monthly — Now</div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-dim)', lineHeight: 1 }}>{fmt$(u.currentMonthly)}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 4 }}>/month</div>
                   </div>
 
                   {/* After */}
                   <div style={{ padding: '20px 28px' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 10 }}>Monthly — After Upgrade</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#7dffaa', lineHeight: 1 }}>{fmt$(u.newMonthly)}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'rgba(125,255,170,0.45)', marginTop: 4 }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 10 }}>Monthly — After Upgrade</div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--green)', lineHeight: 1 }}>{fmt$(u.newMonthly)}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'rgba(var(--green-rgb),0.45)', marginTop: 4 }}>
                       +{fmt$(u.monthlyDelta)}/month
                     </div>
                   </div>
                 </div>
 
                 {/* Monthly service lines */}
-                <div style={{ padding: '18px 28px', borderBottom: '1px solid rgba(122,171,130,0.1)' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(201,168,76,0.6)', marginBottom: 12 }}>Monthly Service</div>
+                <div style={{ padding: '18px 28px', borderBottom: '1px solid rgba(var(--border-rgb),0.1)' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(var(--gold-rgb),0.6)', marginBottom: 12 }}>Monthly Service</div>
                   {u.serviceLines.map((l, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: i < u.serviceLines.length - 1 ? '1px solid rgba(122,171,130,0.07)' : 'none', fontSize: '0.875rem' }}>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: i < u.serviceLines.length - 1 ? '1px solid rgba(var(--border-rgb),0.07)' : 'none', fontSize: '0.875rem' }}>
                       <span style={{ ...TEXT_MUTED }}>{l.label}</span>
-                      <span style={{ fontWeight: 800, color: '#7dffaa' }}>{fmt$(l.amount)}/mo</span>
+                      <span style={{ fontWeight: 800, color: 'var(--green)' }}>{fmt$(l.amount)}/mo</span>
                     </div>
                   ))}
                 </div>
 
                 {/* One-time costs */}
                 {u.oneTime.length > 0 && (
-                  <div style={{ padding: '18px 28px', borderBottom: '1px solid rgba(122,171,130,0.1)', background: 'rgba(91,196,255,0.03)' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(91,196,255,0.7)', marginBottom: 12 }}>One-Time at First Service Visit</div>
+                  <div style={{ padding: '18px 28px', borderBottom: '1px solid rgba(var(--border-rgb),0.1)', background: 'rgba(var(--info-rgb),0.03)' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(var(--info-rgb),0.7)', marginBottom: 12 }}>One-Time at First Service Visit</div>
                     {u.oneTime.map((l, i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontSize: '0.875rem' }}>
                         <span style={{ ...TEXT_MUTED }}>{l.label}</span>
-                        <span style={{ fontWeight: 800, color: '#5bc4ff' }}>{fmt$(l.amount)}</span>
+                        <span style={{ fontWeight: 800, color: 'var(--info)' }}>{fmt$(l.amount)}</span>
                       </div>
                     ))}
                   </div>
                 )}
 
                 {/* What's included */}
-                <div style={{ padding: '18px 28px', borderBottom: '1px solid rgba(122,171,130,0.1)' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 12 }}>What&apos;s Included</div>
+                <div style={{ padding: '18px 28px', borderBottom: '1px solid rgba(var(--border-rgb),0.1)' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 12 }}>What&apos;s Included</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '6px 16px' }}>
                     {u.includes.map((item, i) => (
                       <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: '0.84rem' }}>
-                        <span style={{ color: '#7dffaa', flexShrink: 0, marginTop: 2 }}>✓</span>
+                        <span style={{ color: 'var(--green)', flexShrink: 0, marginTop: 2 }}>✓</span>
                         <span style={{ ...TEXT_MUTED, lineHeight: 1.5 }}>{item}</span>
                       </div>
                     ))}
@@ -337,33 +337,33 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
                 </div>
 
                 {/* Summary + CTA */}
-                <div style={{ padding: '20px 28px', background: 'rgba(255,255,255,0.015)' }}>
+                <div style={{ padding: '20px 28px', background: 'var(--bg-alt)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                     <div>
                       <div style={{ fontSize: '0.8rem', ...TEXT_MUTED, marginBottom: 2 }}>Total cost to upgrade</div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#d4e6ca' }}>
-                          +{fmt$(u.monthlyDelta)}<span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(212,230,202,0.45)', marginLeft: 2 }}>/mo</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text)' }}>
+                          +{fmt$(u.monthlyDelta)}<span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)', marginLeft: 2 }}>/mo</span>
                         </span>
                         {totalOneTime > 0 && (
-                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#5bc4ff' }}>+ {fmt$(totalOneTime)} one-time</span>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--info)' }}>+ {fmt$(totalOneTime)} one-time</span>
                         )}
                       </div>
                     </div>
 
                     {done ? (
-                      <div style={{ padding: '12px 24px', borderRadius: 8, background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.3)', textAlign: 'center' }}>
-                        <div style={{ fontWeight: 900, color: '#7dffaa', fontSize: '0.9rem' }}>✓ Request sent</div>
-                        <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.45)', marginTop: 2 }}>We&apos;ll reach out within 24 hours</div>
+                      <div style={{ padding: '12px 24px', borderRadius: 8, background: 'rgba(var(--green-rgb),0.08)', border: '1px solid rgba(var(--green-rgb),0.3)', textAlign: 'center' }}>
+                        <div style={{ fontWeight: 900, color: 'var(--green)', fontSize: '0.9rem' }}>✓ Request sent</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 2 }}>We&apos;ll reach out within 24 hours</div>
                       </div>
                     ) : (
                       <button
                         onClick={() => requestUpgrade(u)}
                         disabled={busy}
                         style={{
-                          padding: '13px 28px', borderRadius: 8, border: 'none', fontFamily: "'Inter', sans-serif",
-                          background: busy ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#7dffaa,#4dd98a)',
-                          color: busy ? 'rgba(212,230,202,0.35)' : '#0d1a10',
+                          padding: '13px 28px', borderRadius: 8, border: 'none',
+                          background: busy ? 'rgba(var(--green-rgb),0.15)' : 'var(--green)',
+                          color: busy ? 'var(--text-dim)' : 'var(--text-on-accent)',
                           fontWeight: 900, fontSize: '0.9rem', cursor: busy ? 'wait' : 'pointer',
                           letterSpacing: '-0.01em', whiteSpace: 'nowrap',
                           transition: 'opacity 0.15s', opacity: busy ? 0.7 : 1,
@@ -375,7 +375,7 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
                   </div>
 
                   {err && (
-                    <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.2)', color: '#ff8080', fontSize: '0.82rem' }}>
+                    <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(var(--danger-rgb),0.08)', border: '1px solid rgba(var(--danger-rgb),0.2)', color: 'var(--danger)', fontSize: '0.82rem' }}>
                       {err}
                     </div>
                   )}
@@ -387,9 +387,9 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
           {/* ── Footer ── */}
           <div style={{ textAlign: 'center', paddingTop: 16 }}>
             <p style={{ fontSize: '0.85rem', ...TEXT_MUTED, marginBottom: 8 }}>
-              Questions? Call or text <a href="tel:+15125604129" style={{ color: 'rgba(212,230,202,0.6)', textDecoration: 'none', fontWeight: 700 }}>512-560-4129</a>
+              Questions? Call or text <a href="tel:+15125604129" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 700 }}>512-560-4129</a>
             </p>
-            <p style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.25)' }}>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
               Requesting an upgrade notifies our team. We&apos;ll confirm availability and schedule your first upgraded service visit within 24 hours. No charges until service begins.
             </p>
           </div>

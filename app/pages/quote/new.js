@@ -41,9 +41,9 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
   return (
     <div ref={ref} style={{ marginBottom: 16, position: 'relative' }}>
       {/* Section header — same style as rounds CatalogSection */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(122,171,130,0.12)', marginBottom: 8 }}>
-        <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>{title}</span>
-        {total > 0 && <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#7dffaa' }}>${total.toFixed(2)}</span>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(var(--border-rgb),0.12)', marginBottom: 8 }}>
+        <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)' }}>{title}</span>
+        {total > 0 && <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--green)' }}>${total.toFixed(2)}</span>}
       </div>
 
       {/* Selected items — inline rows matching rounds */}
@@ -52,21 +52,21 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
           {selectedItems.map((item) => {
             const qty = qtys[item.label] || 0
             return (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', marginBottom: 4, borderRadius: 8, background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.15)' }}>
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', marginBottom: 4, borderRadius: 8, background: 'rgba(var(--green-rgb),0.06)', border: '1px solid rgba(var(--green-rgb),0.15)' }}>
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#d4e6ca' }}>{item.label}</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>{item.label}</span>
                   {item.price != null && (
-                    <span style={{ marginLeft: 6, fontSize: '0.75rem', color: '#7dffaa' }}>
+                    <span style={{ marginLeft: 6, fontSize: '0.75rem', color: 'var(--green)' }}>
                       ${(item.price * qty).toFixed(2)}{!item.oneTime ? '/mo' : ''}
                     </span>
                   )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
-                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>−</button>
-                  <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 900, color: '#7dffaa' }}>{qty}</span>
+                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, }}>−</button>
+                  <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 900, color: 'var(--green)' }}>{qty}</span>
                   <button onClick={() => onChange(item.label, qty + 1)}
-                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>+</button>
+                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(var(--green-rgb),0.3)', background: 'rgba(var(--green-rgb),0.08)', color: 'var(--green)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, }}>+</button>
                 </div>
               </div>
             )
@@ -76,45 +76,45 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
 
       {/* Dropdown trigger */}
       <button onClick={() => setOpen((o) => !o)}
-        style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px dashed rgba(122,171,130,0.3)', background: 'transparent', color: 'rgba(212,230,202,0.85)', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px dashed rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>{selectedItems.length > 0 ? `+ Add more ${title.toLowerCase()}` : `Select ${title.toLowerCase()}…`}</span>
         <span style={{ fontSize: '0.7rem' }}>{open ? '▲' : '▼'}</span>
       </button>
 
       {/* Dropdown panel */}
       {open && (
-        <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 60, background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 10, marginTop: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxHeight: 360, overflowY: 'auto' }}>
-          <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid rgba(122,171,130,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{title}</span>
-            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.45)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>×</button>
+        <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 60, background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 10, marginTop: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.14)', maxHeight: 360, overflowY: 'auto' }}>
+          <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid rgba(var(--border-rgb),0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{title}</span>
+            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, }}>×</button>
           </div>
           {categories.map((cat) => (
             <div key={cat}>
-              <div style={{ padding: '8px 14px 4px', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.55)', position: 'sticky', top: 0, background: '#0d1a10' }}>{cat}</div>
+              <div style={{ padding: '8px 14px 4px', fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', position: 'sticky', top: 0, background: 'var(--bg-card)' }}>{cat}</div>
               {catalog.filter((i) => i.category === cat).map((item) => {
                 const qty = qtys[item.label] || 0
                 const selected = qty > 0
                 return (
                   <div key={item.label} onClick={() => !selected && onChange(item.label, 1)}
-                    style={{ display: 'flex', alignItems: 'center', padding: '11px 14px', borderBottom: '1px solid rgba(122,171,130,0.06)', cursor: selected ? 'default' : 'pointer', background: selected ? 'rgba(125,255,170,0.05)' : 'transparent' }}>
-                    <div style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${selected ? '#7dffaa' : 'rgba(122,171,130,0.3)'}`, background: selected ? '#7dffaa' : 'transparent', marginRight: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#0d1a10', fontWeight: 900 }}>
+                    style={{ display: 'flex', alignItems: 'center', padding: '11px 14px', borderBottom: '1px solid rgba(var(--border-rgb),0.06)', cursor: selected ? 'default' : 'pointer', background: selected ? 'rgba(var(--green-rgb),0.05)' : 'transparent' }}>
+                    <div style={{ width: 20, height: 20, borderRadius: 4, border: `2px solid ${selected ? 'var(--green)' : 'rgba(var(--border-rgb),0.3)'}`, background: selected ? 'var(--green)' : 'transparent', marginRight: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: 'var(--text-on-accent)', fontWeight: 900 }}>
                       {selected ? '✓' : ''}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: selected ? 700 : 600, color: selected ? '#d4e6ca' : 'rgba(212,230,202,0.9)' }}>{item.label}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.3)', marginTop: 1 }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: selected ? 700 : 600, color: selected ? 'var(--text)' : 'var(--text-muted)' }}>{item.label}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: 1 }}>
                         {item.price != null
-                          ? <span style={{ color: '#7dffaa' }}>${item.price.toFixed(2)}{!item.oneTime ? '/mo' : ''}</span>
-                          : <span style={{ color: 'rgba(201,168,76,0.5)' }}>price TBD</span>}
+                          ? <span style={{ color: 'var(--green)' }}>${item.price.toFixed(2)}{!item.oneTime ? '/mo' : ''}</span>
+                          : <span style={{ color: 'rgba(var(--gold-rgb),0.5)' }}>price TBD</span>}
                       </div>
                     </div>
                     {selected && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
-                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>−</button>
-                        <span style={{ minWidth: 16, textAlign: 'center', fontWeight: 900, color: '#7dffaa', fontSize: '0.9rem' }}>{qty}</span>
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, }}>−</button>
+                        <span style={{ minWidth: 16, textAlign: 'center', fontWeight: 900, color: 'var(--green)', fontSize: '0.9rem' }}>{qty}</span>
                         <button onClick={() => onChange(item.label, qty + 1)}
-                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.08)', color: '#7dffaa', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>+</button>
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(var(--green-rgb),0.3)', background: 'rgba(var(--green-rgb),0.08)', color: 'var(--green)', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, }}>+</button>
                       </div>
                     )}
                   </div>
@@ -123,7 +123,7 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
             </div>
           ))}
           <div style={{ padding: '10px 14px', textAlign: 'center' }}>
-            <button onClick={() => setOpen(false)} style={{ padding: '8px 24px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', cursor: 'pointer' }}>Done</button>
+            <button onClick={() => setOpen(false)} style={{ padding: '8px 24px', borderRadius: 6, border: 'none', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer' }}>Done</button>
           </div>
         </div>
       )}
@@ -156,7 +156,7 @@ function CustomerSearch({ customers, onSelect }) {
 
   return (
     <div ref={ref} style={{ position: 'relative', marginBottom: 14 }}>
-      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.45)', marginBottom: 4 }}>
+      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 4 }}>
         Find Customer or Prospect
       </label>
       <input
@@ -165,23 +165,23 @@ function CustomerSearch({ customers, onSelect }) {
         value={query}
         onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
-        style={{ width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }}
+        style={{ width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', outline: 'none' }}
       />
       {open && filtered.length > 0 && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, zIndex: 50, maxHeight: 240, overflowY: 'auto', marginTop: 4 }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, zIndex: 50, maxHeight: 240, overflowY: 'auto', marginTop: 4 }}>
           {filtered.map((c) => (
             <div key={c.id} onClick={() => { onSelect(c); setQuery(''); setOpen(false) }}
-              style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(122,171,130,0.08)' }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(122,171,130,0.08)'}
+              style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(var(--border-rgb),0.08)' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(var(--border-rgb),0.08)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: '0.88rem' }}>
                 {c.name || c.email}
                 {c.source === 'prospect' && (
-                  <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.08em', background: 'rgba(91,196,255,0.15)', color: '#5bc4ff', borderRadius: 4, padding: '1px 5px' }}>PROSPECT</span>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.08em', background: 'rgba(var(--info-rgb),0.15)', color: 'var(--info)', borderRadius: 4, padding: '1px 5px' }}>PROSPECT</span>
                 )}
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.45)' }}>{c.email}{c.address ? ` · ${c.address}` : ''}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{c.email}{c.address ? ` · ${c.address}` : ''}</div>
             </div>
           ))}
         </div>
@@ -213,7 +213,7 @@ function SystemIcon({ iconPath, emoji }) {
   const [failed, setFailed] = useState(false)
   const showEmoji = !iconPath || failed
   return (
-    <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+    <div style={{ width: 48, height: 48, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
       {showEmoji ? (
         <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>{emoji}</span>
       ) : (
@@ -259,9 +259,9 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
     if (serviceDate && serviceDate < minDate) setServiceDate('')
   }, [serviceDate, minDate])
 
-  const Q = { fontSize: '0.82rem', fontWeight: 800, color: 'rgba(212,230,202,0.7)', marginBottom: 8, marginTop: 16 }
-  const chip = (active) => ({ display: 'inline-block', padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: active ? 'rgba(125,255,170,0.1)' : 'transparent', color: active ? '#7dffaa' : 'rgba(212,230,202,0.5)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', marginRight: 8, marginBottom: 8, userSelect: 'none', transition: 'all 0.12s' })
-  const trapBtn = (n) => ({ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 8, border: `1px solid ${trapCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: trapCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: trapCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', marginRight: 8, fontFamily: 'Inter, sans-serif' })
+  const Q = { fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: 8, marginTop: 16 }
+  const chip = (active) => ({ display: 'inline-block', padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.2)'}`, background: active ? 'rgba(var(--green-rgb),0.1)' : 'transparent', color: active ? 'var(--green)' : 'var(--text-dim)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', marginRight: 8, marginBottom: 8, userSelect: 'none', transition: 'all 0.12s' })
+  const trapBtn = (n) => ({ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 8, border: `1px solid ${trapCount === n ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.2)'}`, background: trapCount === n ? 'rgba(var(--green-rgb),0.12)' : 'transparent', color: trapCount === n ? 'var(--green)' : 'var(--text-dim)', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', marginRight: 8, })
 
   return (
     <div>
@@ -283,9 +283,9 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '14px 18px', borderRadius: 10,
-                border: `1px solid ${active ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`,
-                background: active ? 'rgba(125,255,170,0.08)' : 'rgba(255,255,255,0.02)',
-                color: active ? '#7dffaa' : 'rgba(212,230,202,0.75)',
+                border: `1px solid ${active ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.2)'}`,
+                background: active ? 'rgba(var(--green-rgb),0.08)' : 'var(--bg-alt)',
+                color: active ? 'var(--green)' : 'var(--text-muted)',
                 fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer',
                 userSelect: 'none', transition: 'all 0.12s', width: '100%', boxSizing: 'border-box',
               }}
@@ -299,7 +299,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
       </div>
 
       {system === 'none' && (
-        <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 8, background: 'rgba(91,196,255,0.06)', border: '1px solid rgba(91,196,255,0.2)', fontSize: '0.82rem', color: 'rgba(212,230,202,0.7)', lineHeight: 1.5 }}>
+        <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 8, background: 'rgba(var(--info-rgb),0.06)', border: '1px solid rgba(var(--info-rgb),0.2)', fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
           No recurring service selected. Use the <strong>Add-Ons</strong> and <strong>Products</strong> sections below to build a one-time equipment-only quote.
         </div>
       )}
@@ -324,13 +324,13 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
               <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
             ))}
             {plan === 'rental' && BG_RENTAL_PRICE[trapCount] && (
-              <span style={{ fontSize: '0.85rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--green)', fontWeight: 900, marginLeft: 14 }}>
                 ${BG_RENTAL_PRICE[trapCount].toFixed(2)}/mo
-                <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', marginLeft: 6 }}>(${(BG_RENTAL_PRICE[trapCount] / trapCount).toFixed(2)}/trap)</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 6 }}>(${(BG_RENTAL_PRICE[trapCount] / trapCount).toFixed(2)}/trap)</span>
               </span>
             )}
             {plan === 'owned' && (
-              <span style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.45)', marginLeft: 14 }}>Hookup fee applies if on tank service</span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginLeft: 14 }}>Hookup fee applies if on tank service</span>
             )}
           </div>
         </>
@@ -347,7 +347,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
             <span onClick={() => setOnTankService(false)} style={chip(onTankService === false)}>No — tank exchange drop off only</span>
           </div>
           {onTankService === true && (
-            <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'rgba(201,168,76,0.7)', padding: '8px 12px', borderRadius: 6, background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)' }}>
+            <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'rgba(var(--gold-rgb),0.7)', padding: '8px 12px', borderRadius: 6, background: 'rgba(var(--gold-rgb),0.06)', border: '1px solid rgba(var(--gold-rgb),0.15)' }}>
               $10/trap/mo × {trapCount} trap{trapCount > 1 ? 's' : ''} = ${(BG_HOOKUP_PER_TRAP * trapCount).toFixed(2)}/mo
             </div>
           )}
@@ -362,9 +362,9 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
             ))}
-            <span style={{ fontSize: '0.85rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--green)', fontWeight: 900, marginLeft: 14 }}>
               ${(BG_NONCO2_PER_TRAP * trapCount).toFixed(2)}/mo
-              <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', marginLeft: 6 }}>(${BG_NONCO2_PER_TRAP}/trap — no CO₂ tanks)</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 6 }}>(${BG_NONCO2_PER_TRAP}/trap — no CO₂ tanks)</span>
             </span>
           </div>
         </>
@@ -383,9 +383,9 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
               <div style={Q}>How many units?</div>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <button key={n} onClick={() => setMqCount(n)} style={{ ...trapBtn(n), width: 42, height: 42, border: `1px solid ${mqCount === n ? 'rgba(125,255,170,0.5)' : 'rgba(122,171,130,0.2)'}`, background: mqCount === n ? 'rgba(125,255,170,0.12)' : 'transparent', color: mqCount === n ? '#7dffaa' : 'rgba(212,230,202,0.5)' }}>{n}</button>
+                  <button key={n} onClick={() => setMqCount(n)} style={{ ...trapBtn(n), width: 42, height: 42, border: `1px solid ${mqCount === n ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.2)'}`, background: mqCount === n ? 'rgba(var(--green-rgb),0.12)' : 'transparent', color: mqCount === n ? 'var(--green)' : 'var(--text-dim)' }}>{n}</button>
                 ))}
-                <span style={{ fontSize: '0.82rem', color: '#7dffaa', fontWeight: 900, marginLeft: 14 }}>
+                <span style={{ fontSize: '0.82rem', color: 'var(--green)', fontWeight: 900, marginLeft: 14 }}>
                   ${((mqPlan === 'rental' ? MQ_PRICE.rental : MQ_PRICE.service) * mqCount).toFixed(2)}/mo
                 </span>
               </div>
@@ -417,7 +417,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
             <span onClick={() => setTankHookup(false)} style={chip(!tankHookup)}>No</span>
           </div>
           {tankHookup && (
-            <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'rgba(201,168,76,0.7)', padding: '8px 12px', borderRadius: 6, background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)' }}>
+            <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'rgba(var(--gold-rgb),0.7)', padding: '8px 12px', borderRadius: 6, background: 'rgba(var(--gold-rgb),0.06)', border: '1px solid rgba(var(--gold-rgb),0.15)' }}>
               $10/tank/mo × {tankCount} tank{tankCount > 1 ? 's' : ''} = ${(BG_HOOKUP_PER_TRAP * tankCount).toFixed(2)}/mo added
             </div>
           )}
@@ -427,21 +427,21 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
       {/* Service date — required for any real service (not for equipment-only) */}
       {system && system !== 'none' && (
         <>
-          <div style={{ ...Q, marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(122,171,130,0.12)' }}>Preferred service date</div>
+          <div style={{ ...Q, marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(var(--border-rgb),0.12)' }}>Preferred service date</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
             <input
               type="date"
               value={serviceDate}
               min={minDate}
               onChange={(e) => setServiceDate(e.target.value)}
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(125,255,170,0.4)' : 'rgba(201,168,76,0.4)'}`, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1rem', fontFamily: 'Inter, sans-serif', outline: 'none', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--gold-rgb),0.4)'}`, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', outline: 'none', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
             />
-            <span style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
               Earliest available: {new Date(minDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (5-day lead time)
             </span>
           </div>
           {!serviceDate && (
-            <div style={{ marginTop: 6, fontSize: '0.78rem', color: '#c9a84c', fontWeight: 700 }}>
+            <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--gold)', fontWeight: 700 }}>
               ⚠ Pick a service date before sending the quote.
             </div>
           )}
@@ -566,13 +566,13 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       if (machPinMarkersRef.current.has(pin.id)) {
         const m = machPinMarkersRef.current.get(pin.id)
         m.setPosition({ lat: pin.lat, lng: pin.lng })
-        m.setLabel({ text: String(idx + 1), color: '#0d1a10', fontWeight: 'bold', fontSize: '11px' })
+        m.setLabel({ text: String(idx + 1), color: '#ffffff', fontWeight: 'bold', fontSize: '11px' })
       } else {
         const marker = new window.google.maps.Marker({
           position: { lat: pin.lat, lng: pin.lng },
           map: mapObj.current,
-          label: { text: String(idx + 1), color: '#0d1a10', fontWeight: 'bold', fontSize: '11px' },
-          icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 13, fillColor: '#7dffaa', fillOpacity: 1, strokeColor: '#1a2e1f', strokeWeight: 2 },
+          label: { text: String(idx + 1), color: '#ffffff', fontWeight: 'bold', fontSize: '11px' },
+          icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 13, fillColor: '#0b57d0', fillOpacity: 1, strokeColor: '#444746', strokeWeight: 2 },
           title: `Trap ${idx + 1}`,
           draggable: true,
         })
@@ -735,8 +735,8 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     setTimeout(() => setSent(false), 5000)
   }
 
-  const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
-  const lbl = { display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.45)', marginBottom: 4 }
+  const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', outline: 'none' }
+  const lbl = { display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 4 }
 
   return (
     <>
@@ -747,7 +747,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       <PortalLayout>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Quote Builder</h1>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)', margin: 0 }}>Input your address to estimate the number of traps required for your property.</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Input your address to estimate the number of traps required for your property.</p>
         </div>
 
         <div className="two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 28, alignItems: 'start' }}>
@@ -764,7 +764,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               <input style={input} placeholder="123 Oak St, Austin TX 78701" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} />
               {mapsKey && (
                 <>
-                  <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: `1px solid ${placingPin ? 'rgba(201,168,76,0.5)' : 'rgba(122,171,130,0.2)'}`, height: 360, position: 'relative', transition: 'border-color 0.15s' }}>
+                  <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: `1px solid ${placingPin ? 'rgba(var(--gold-rgb),0.5)' : 'rgba(var(--border-rgb),0.2)'}`, height: 360, position: 'relative', transition: 'border-color 0.15s' }}>
                     {/* Satellite map — always mounted so it keeps its state */}
                     <div ref={mapRef} style={{ height: '100%', width: '100%', display: mapView === 'satellite' ? 'block' : 'none' }} />
                     {/* Street view — mounted on first switch */}
@@ -772,12 +772,12 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                       <div ref={streetRef} style={{ height: '100%', width: '100%' }} />
                     )}
                     {!mapPin && (
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(13,26,16,0.88)', color: 'rgba(212,230,202,0.35)', fontSize: '0.8rem', fontWeight: 600, pointerEvents: 'none' }}>
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-card)', color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 600, pointerEvents: 'none' }}>
                         Type an address to see {mapView === 'satellite' ? 'satellite' : 'street'} view
                       </div>
                     )}
                     {placingPin && mapView === 'satellite' && (
-                      <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', background: 'rgba(201,168,76,0.9)', color: '#0d1a10', padding: '5px 14px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 800, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+                      <div style={{ position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)', background: 'rgba(var(--gold-rgb),0.9)', color: 'var(--text-on-accent)', padding: '5px 14px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 800, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
                         Click map to place trap
                       </div>
                     )}
@@ -785,11 +785,11 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                     {mapPin && (
                       <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.3)', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
                         <button onClick={() => setMapView('satellite')}
-                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'satellite' ? '#c9a84c' : 'rgba(13,26,16,0.85)', color: mapView === 'satellite' ? '#0d1a10' : '#d4e6ca' }}>
+                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'satellite' ? 'var(--gold)' : 'var(--bg-card)', color: mapView === 'satellite' ? 'var(--text-on-accent)' : 'var(--text)' }}>
                           Satellite
                         </button>
                         <button onClick={() => setMapView('street')}
-                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'street' ? '#c9a84c' : 'rgba(13,26,16,0.85)', color: mapView === 'street' ? '#0d1a10' : '#d4e6ca' }}>
+                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'street' ? 'var(--gold)' : 'var(--bg-card)', color: mapView === 'street' ? 'var(--text-on-accent)' : 'var(--text)' }}>
                           Street
                         </button>
                       </div>
@@ -802,21 +802,21 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {!placingPin ? (
                           <button onClick={() => setPlacingPin(true)}
-                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
+                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.3)', background: 'transparent', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', }}>
                             + Place Trap Location
                           </button>
                         ) : (
                           <button onClick={() => setPlacingPin(false)}
-                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'transparent', color: 'rgba(212,230,202,0.5)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
+                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'transparent', color: 'var(--text-dim)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', }}>
                             Cancel
                           </button>
                         )}
                         {machPins.map((pin, idx) => (
-                          <div key={pin.id} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.2)', borderRadius: 20, padding: '4px 10px 4px 6px', fontSize: '0.78rem' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.68rem', flexShrink: 0 }}>{idx + 1}</span>
-                            <span style={{ color: 'rgba(212,230,202,0.7)', fontWeight: 600 }}>Trap {idx + 1}</span>
+                          <div key={pin.id} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(var(--green-rgb),0.06)', border: '1px solid rgba(var(--green-rgb),0.2)', borderRadius: 20, padding: '4px 10px 4px 6px', fontSize: '0.78rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.68rem', flexShrink: 0 }}>{idx + 1}</span>
+                            <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Trap {idx + 1}</span>
                             <button onClick={() => setMachPins((prev) => prev.filter((p) => p.id !== pin.id))}
-                              style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.35)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: 0, fontFamily: 'Inter, sans-serif', marginLeft: 2 }}>×</button>
+                              style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: 0, marginLeft: 2 }}>×</button>
                           </div>
                         ))}
                       </div>
@@ -827,8 +827,8 @@ export default function QuoteBuilder({ customers, mapsKey }) {
             </div>
 
             {/* Services — guided configurator */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(122,171,130,0.12)', marginBottom: 8, marginTop: 20 }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>Services</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(var(--border-rgb),0.12)', marginBottom: 8, marginTop: 20 }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)' }}>Services</span>
             </div>
             <div className="card" style={{ marginBottom: 8 }}>
               <ServiceConfigurator onChange={setServiceLines} onConfigChange={setServiceConfig} />
@@ -850,8 +850,8 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               onChange={(label, n) => setQty(setAddonQtys, label, n)}
             />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(122,171,130,0.12)', marginBottom: 8, marginTop: 20 }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c' }}>Notes</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(var(--border-rgb),0.12)', marginBottom: 8, marginTop: 20 }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)' }}>Notes</span>
             </div>
             <textarea rows={3} style={{ ...input, resize: 'vertical' }} placeholder="Expiry, discounts, special terms…" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
@@ -859,23 +859,23 @@ export default function QuoteBuilder({ customers, mapsKey }) {
           {/* Quote preview */}
           <div style={{ position: 'sticky', top: 72 }}>
             <div className="card">
-              <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 16 }}>Quote Preview</div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 16 }}>Quote Preview</div>
 
               {customerName && <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 2 }}>{customerName}</div>}
-              {customerEmail && <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.45)', marginBottom: 2 }}>{customerEmail}</div>}
-              {customerAddress && <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.35)', marginBottom: 12 }}>{customerAddress}</div>}
+              {customerEmail && <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 2 }}>{customerEmail}</div>}
+              {customerAddress && <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: 12 }}>{customerAddress}</div>}
 
-              <div style={{ borderTop: '1px solid rgba(122,171,130,0.12)', paddingTop: 12 }}>
-                {allLines.length === 0 && <p style={{ color: 'rgba(212,230,202,0.25)', fontSize: '0.82rem', fontStyle: 'italic' }}>Select a service to begin</p>}
+              <div style={{ borderTop: '1px solid rgba(var(--border-rgb),0.12)', paddingTop: 12 }}>
+                {allLines.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem', fontStyle: 'italic' }}>Select a service to begin</p>}
 
                 {/* Recurring lines */}
                 {allLines.filter((l) => l.recurring).length > 0 && (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', marginBottom: 6 }}>Monthly recurring</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 6 }}>Monthly recurring</div>
                     {allLines.filter((l) => l.recurring).map((item, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '0.82rem', borderBottom: '1px solid rgba(122,171,130,0.06)' }}>
-                        <span style={{ color: 'rgba(212,230,202,0.65)', flex: 1, paddingRight: 8 }}>{item.label}</span>
-                        <span style={{ fontWeight: 700, color: '#7dffaa', whiteSpace: 'nowrap' }}>{item.amount != null ? `$${item.amount.toFixed(2)}/mo` : 'TBD'}</span>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '0.82rem', borderBottom: '1px solid rgba(var(--border-rgb),0.06)' }}>
+                        <span style={{ color: 'var(--text-muted)', flex: 1, paddingRight: 8 }}>{item.label}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--green)', whiteSpace: 'nowrap' }}>{item.amount != null ? `$${item.amount.toFixed(2)}/mo` : 'TBD'}</span>
                       </div>
                     ))}
                   </div>
@@ -884,11 +884,11 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                 {/* One-time lines */}
                 {allLines.filter((l) => !l.recurring).length > 0 && (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', marginBottom: 6 }}>One-time</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 6 }}>One-time</div>
                     {allLines.filter((l) => !l.recurring).map((item, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '0.82rem', borderBottom: '1px solid rgba(122,171,130,0.06)' }}>
-                        <span style={{ color: 'rgba(212,230,202,0.65)', flex: 1, paddingRight: 8 }}>{item.label}</span>
-                        <span style={{ fontWeight: 700, color: '#5bc4ff', whiteSpace: 'nowrap' }}>{item.amount != null ? `$${item.amount.toFixed(2)}` : 'TBD'}</span>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '0.82rem', borderBottom: '1px solid rgba(var(--border-rgb),0.06)' }}>
+                        <span style={{ color: 'var(--text-muted)', flex: 1, paddingRight: 8 }}>{item.label}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--info)', whiteSpace: 'nowrap' }}>{item.amount != null ? `$${item.amount.toFixed(2)}` : 'TBD'}</span>
                       </div>
                     ))}
                   </div>
@@ -896,69 +896,69 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               </div>
 
               {/* Tax — fixed 8.25% Austin rate */}
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'rgba(212,230,202,0.4)', fontWeight: 600 }}>
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 600 }}>
                 Tax: {taxRate}% (Austin, TX)
               </div>
 
               {allLines.length > 0 && (
-                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '2px solid rgba(122,171,130,0.2)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '2px solid rgba(var(--border-rgb),0.2)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {hasRecurring && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', fontWeight: 700 }}>Monthly subtotal</span>
-                      <span style={{ fontWeight: 900, color: '#7dffaa' }}>${recurringTotal.toFixed(2)}/mo</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>Monthly subtotal</span>
+                      <span style={{ fontWeight: 900, color: 'var(--green)' }}>${recurringTotal.toFixed(2)}/mo</span>
                     </div>
                   )}
                   {hasOneTime && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', fontWeight: 700 }}>One-time subtotal</span>
-                      <span style={{ fontWeight: 900, color: '#5bc4ff' }}>${oneTimeTotal.toFixed(2)}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>One-time subtotal</span>
+                      <span style={{ fontWeight: 900, color: 'var(--info)' }}>${oneTimeTotal.toFixed(2)}</span>
                     </div>
                   )}
                   {taxAmount > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', fontWeight: 600 }}>Tax ({taxRate}%)</span>
-                      <span style={{ fontWeight: 700, color: 'rgba(212,230,202,0.7)' }}>${taxAmount.toFixed(2)}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: 600 }}>Tax ({taxRate}%)</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>${taxAmount.toFixed(2)}</span>
                     </div>
                   )}
                   {taxAmount > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid rgba(122,171,130,0.15)' }}>
-                      <span style={{ fontSize: '0.9rem', color: '#d4e6ca', fontWeight: 800 }}>Total due</span>
-                      <span style={{ fontWeight: 900, fontSize: '1rem', color: '#c9a84c' }}>${grandTotal.toFixed(2)}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid rgba(var(--border-rgb),0.15)' }}>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text)', fontWeight: 800 }}>Total due</span>
+                      <span style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--gold)' }}>${grandTotal.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
               )}
 
-              {notes && <p style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)', marginTop: 12, borderTop: '1px solid rgba(122,171,130,0.1)', paddingTop: 10 }}>{notes}</p>}
+              {notes && <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: 12, borderTop: '1px solid rgba(var(--border-rgb),0.1)', paddingTop: 10 }}>{notes}</p>}
 
               <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {/* Pay Now — opens Stripe checkout directly */}
                 <button
                   onClick={payNow}
                   disabled={checkingOut || allLines.filter(l => l.amount > 0).length === 0}
-                  style={{ padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', background: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(125,255,170,0.15)' : 'linear-gradient(135deg,#7dffaa,#4dd98a)', color: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(212,230,202,0.4)' : '#0d1a10', opacity: checkingOut ? 0.7 : 1 }}>
+                  style={{ padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.95rem', background: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(var(--green-rgb),0.15)' : 'var(--green)', color: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'var(--text-dim)' : 'var(--text-on-accent)', opacity: checkingOut ? 0.7 : 1 }}>
                   {checkingOut ? 'Opening checkout…' : '✓ Approve & Pay Now'}
                 </button>
-                {checkoutError && <div style={{ fontSize: '0.78rem', color: '#ff8080', textAlign: 'center' }}>{checkoutError}</div>}
+                {checkoutError && <div style={{ fontSize: '0.78rem', color: 'var(--danger)', textAlign: 'center' }}>{checkoutError}</div>}
 
                 {/* Admin-only secondary actions: Email Quote + Share Link.
                     Public visitors only see Approve & Pay Now and Print/PDF. */}
                 {!IS_PUBLIC && (
                   <div style={{ display: 'flex', gap: 6 }}>
                     {sent ? (
-                      <div style={{ flex: 1, padding: '9px', borderRadius: 6, background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.2)', color: '#7dffaa', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>Sent ✓</div>
+                      <div style={{ flex: 1, padding: '9px', borderRadius: 6, background: 'rgba(var(--green-rgb),0.08)', border: '1px solid rgba(var(--green-rgb),0.2)', color: 'var(--green)', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>Sent ✓</div>
                     ) : (
                       <button onClick={sendQuote} disabled={sending || !customerEmail}
-                        style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', cursor: customerEmail ? 'pointer' : 'not-allowed', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: customerEmail ? '#c9a84c' : 'rgba(201,168,76,0.2)', color: customerEmail ? '#0d1a10' : 'rgba(212,230,202,0.3)', opacity: sending ? 0.7 : 1 }}>
+                        style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', cursor: customerEmail ? 'pointer' : 'not-allowed', fontWeight: 800, fontSize: '0.82rem', background: customerEmail ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.2)', color: customerEmail ? 'var(--text-on-accent)' : 'var(--text-dim)', opacity: sending ? 0.7 : 1 }}>
                         {sending ? 'Sending…' : 'Email Quote'}
                       </button>
                     )}
-                    <button onClick={copyQuoteLink} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: linkCopied ? 'rgba(91,196,255,0.1)' : 'transparent', color: linkCopied ? '#5bc4ff' : 'rgba(91,196,255,0.7)' }}>
+                    <button onClick={copyQuoteLink} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid rgba(var(--info-rgb),0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', background: linkCopied ? 'rgba(var(--info-rgb),0.1)' : 'transparent', color: linkCopied ? 'var(--info)' : 'rgba(var(--info-rgb),0.7)' }}>
                       {linkCopied ? '✓ Copied!' : '🔗 Share Link'}
                     </button>
                   </div>
                 )}
-                <button onClick={() => window.print()} style={{ padding: '9px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: 'transparent', color: 'rgba(212,230,202,0.6)' }}>
+                <button onClick={() => window.print()} style={{ padding: '9px', borderRadius: 8, border: '1px solid rgba(var(--border-rgb),0.25)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', background: 'transparent', color: 'var(--text-muted)' }}>
                   Print / PDF
                 </button>
               </div>

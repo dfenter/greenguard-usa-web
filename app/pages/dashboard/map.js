@@ -71,13 +71,13 @@ export default function CustomerMapPage({ markers, address, isAdmin }) {
       const gm = new window.google.maps.Marker({
         position: { lat: marker.lat, lng: marker.lng },
         map,
-        label: { text: marker.label || String(idx + 1), color: '#1a2e1f', fontWeight: 'bold', fontSize: '11px' },
+        label: { text: marker.label || String(idx + 1), color: '#ffffff', fontWeight: 'bold', fontSize: '11px' },
         draggable: false,
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
-          fillColor: '#7dffaa',
+          fillColor: '#0b57d0',
           fillOpacity: 1,
-          strokeColor: '#1a2e1f',
+          strokeColor: '#444746',
           strokeWeight: 2,
           scale: 12,
         },
@@ -85,7 +85,7 @@ export default function CustomerMapPage({ markers, address, isAdmin }) {
 
       if (marker.notes) {
         const infoWindow = new window.google.maps.InfoWindow({
-          content: `<div style="color:#1a2e1f;font-family:sans-serif;"><strong>${marker.label || 'Trap'}</strong><br/>${marker.notes}</div>`,
+          content: `<div style="color:#111111;font-family:sans-serif;"><strong>${marker.label || 'Trap'}</strong><br/>${marker.notes}</div>`,
         })
         gm.addListener('click', () => infoWindow.open(map, gm))
       }
@@ -98,7 +98,7 @@ export default function CustomerMapPage({ markers, address, isAdmin }) {
       <PortalLayout title="My Installation Map" isAdmin={isAdmin}>
         {markers.length === 0 ? (
           <div className="card" style={{ maxWidth: 480 }}>
-            <p style={{ color: 'rgba(212,230,202,0.6)', margin: 0 }}>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>
               Your installation map hasn&apos;t been set up yet. Your technician will map your trap locations after the first service visit.
             </p>
           </div>
@@ -106,20 +106,20 @@ export default function CustomerMapPage({ markers, address, isAdmin }) {
           <>
             <div
               ref={mapRef}
-              style={{ height: 480, borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(122,171,130,0.15)', marginBottom: 20 }}
+              style={{ height: 480, borderRadius: 10, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.15)', marginBottom: 20 }}
             />
             <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', maxWidth: 700 }}>
               {markers.map((m, idx) => (
                 <div key={idx} className="card" style={{ padding: '12px 14px' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{m.label || `Trap ${idx + 1}`}</div>
-                  {m.notes && <div style={{ marginTop: 4, fontSize: '0.8rem', color: 'rgba(212,230,202,0.55)' }}>{m.notes}</div>}
+                  {m.notes && <div style={{ marginTop: 4, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{m.notes}</div>}
                 </div>
               ))}
             </div>
           </>
         )}
         {!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && markers.length > 0 && (
-          <div style={{ marginTop: 16, fontSize: '0.83rem', color: 'rgba(212,230,202,0.4)' }}>
+          <div style={{ marginTop: 16, fontSize: '0.83rem', color: 'var(--text-dim)' }}>
             Google Maps API key not configured — contact your administrator.
           </div>
         )}

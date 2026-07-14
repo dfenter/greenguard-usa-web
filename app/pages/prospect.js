@@ -21,7 +21,7 @@ export default function ProspectPage({ email, name }) {
     { label: 'Free Property Assessment', price: 'Free', desc: 'We evaluate your property, identify breeding zones, and recommend the right trap placement.', slug: 'property-assessment' },
   ]
 
-  const s = { display: 'block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(201,168,76,0.7)', marginBottom: 8 }
+  const s = { display: 'block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(var(--gold-rgb),0.7)', marginBottom: 8 }
 
   return (
     <>
@@ -30,17 +30,17 @@ export default function ProspectPage({ email, name }) {
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
           {/* Welcome */}
           <div style={{ marginBottom: 40 }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 10 }}>Welcome</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10 }}>Welcome</div>
             <h1 style={{ fontSize: 'clamp(1.6rem,3vw,2.2rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 12px' }}>
               {name ? `Hi ${name.split(' ')[0]},` : 'Welcome to GreenGuard USA'}
             </h1>
-            <p style={{ fontSize: '1rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.7, margin: 0 }}>
+            <p style={{ fontSize: '1rem', color: 'var(--text-muted)', lineHeight: 1.7, margin: 0 }}>
               Thank you for your interest in pesticide-free CO₂ mosquito control. Here&apos;s how we can protect your Austin property.
             </p>
           </div>
 
           {/* Why GreenGuard */}
-          <div className="card" style={{ marginBottom: 28, background: 'rgba(201,168,76,0.04)', borderColor: 'rgba(201,168,76,0.2)' }}>
+          <div className="card" style={{ marginBottom: 28, background: 'rgba(var(--gold-rgb),0.04)', borderColor: 'rgba(var(--gold-rgb),0.2)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 20 }}>
               {[
                 { stat: '93%', label: 'Bite reduction' },
@@ -49,8 +49,8 @@ export default function ProspectPage({ email, name }) {
                 { stat: '5★', label: 'Google reviews' },
               ].map(({ stat, label }) => (
                 <div key={label} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#c9a84c', lineHeight: 1 }}>{stat}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>{label}</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--gold)', lineHeight: 1 }}>{stat}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>{label}</div>
                 </div>
               ))}
             </div>
@@ -65,11 +65,11 @@ export default function ProspectPage({ email, name }) {
               <div key={svc.slug} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 4 }}>{svc.label}</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#c9a84c', marginBottom: 8 }}>{svc.price}</div>
-                  <p style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.55)', margin: 0, lineHeight: 1.65 }}>{svc.desc}</p>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--gold)', marginBottom: 8 }}>{svc.price}</div>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.65 }}>{svc.desc}</p>
                 </div>
                 <a href={`https://cal.com/greenguard-usa/${svc.slug}`} target="_blank" rel="noopener noreferrer"
-                  style={{ flexShrink: 0, padding: '10px 20px', borderRadius: 8, background: '#c9a84c', color: '#0d1a10', fontWeight: 900, fontSize: '0.85rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                  style={{ flexShrink: 0, padding: '10px 20px', borderRadius: 8, background: 'var(--gold)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.85rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                   Book →
                 </a>
               </div>
@@ -77,14 +77,14 @@ export default function ProspectPage({ email, name }) {
           </div>
 
           {/* Contact */}
-          <div className="card" style={{ textAlign: 'center', borderColor: 'rgba(122,171,130,0.12)' }}>
+          <div className="card" style={{ textAlign: 'center', borderColor: 'rgba(var(--border-rgb),0.12)' }}>
             <div style={{ fontWeight: 900, fontSize: '1rem', marginBottom: 8 }}>Questions? We&apos;re local.</div>
-            <p style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.5)', margin: '0 0 16px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
               Call or text us directly. We serve Austin and surrounding areas.
             </p>
-            <a href="tel:+15125604129" style={{ fontWeight: 900, fontSize: '1.1rem', color: '#7dffaa', textDecoration: 'none' }}>512-560-4129</a>
-            <div style={{ marginTop: 6, fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>
-              <a href="mailto:admin@greenguard-usa.com" style={{ color: 'rgba(212,230,202,0.35)', textDecoration: 'none' }}>admin@greenguard-usa.com</a>
+            <a href="tel:+15125604129" style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--green)', textDecoration: 'none' }}>512-560-4129</a>
+            <div style={{ marginTop: 6, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+              <a href="mailto:admin@greenguard-usa.com" style={{ color: 'var(--text-dim)', textDecoration: 'none' }}>admin@greenguard-usa.com</a>
             </div>
           </div>
         </div>

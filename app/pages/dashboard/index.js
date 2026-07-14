@@ -184,7 +184,7 @@ function fmtAmount(cents) {
 function invStatusColor(status) {
   if (status === 'paid') return 'var(--green)'
   if (status === 'open') return 'var(--gold)'
-  if (status === 'uncollectible') return '#ff6b6b'
+  if (status === 'uncollectible') return 'var(--danger)'
   return 'var(--text-dim)'
 }
 
@@ -202,9 +202,9 @@ const BTN_BASE = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   padding: '11px 22px', borderRadius: 6, fontWeight: 700, fontSize: '0.85rem',
   lineHeight: 1, whiteSpace: 'nowrap', textDecoration: 'none', cursor: 'pointer',
-  fontFamily: 'Inter, sans-serif', border: '1px solid transparent',
+  border: '1px solid transparent',
 }
-const BTN_PRIMARY = { ...BTN_BASE, background: 'var(--green)', color: 'var(--bg-deep)' }
+const BTN_PRIMARY = { ...BTN_BASE, background: 'var(--green)', color: 'var(--text-on-accent)' }
 const BTN_OUTLINE = { ...BTN_BASE, background: 'transparent', color: 'var(--green-muted)', border: '1px solid rgba(var(--border-rgb),0.35)' }
 const BTN_GOLD = { ...BTN_BASE, background: 'transparent', color: 'var(--gold)', border: '1px solid var(--border-gold)' }
 
@@ -256,19 +256,19 @@ function SystemEditor({ initialSystems }) {
 
   if (!editing) {
     return (
-      <button onClick={() => setEditing(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(var(--green-rgb),0.7)', fontSize: '0.75rem', fontWeight: 700, padding: '4px 0', fontFamily: 'Inter, sans-serif' }}>
+      <button onClick={() => setEditing(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(var(--green-rgb),0.7)', fontSize: '0.75rem', fontWeight: 700, padding: '4px 0', }}>
         Edit my system
       </button>
     )
   }
 
-  const inp = { padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
+  const inp = { padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }
   return (
     <div style={{ marginTop: 10, padding: 14, borderRadius: 8, background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.18)' }}>
       <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 10 }}>Edit your system</div>
       <div style={{ display: 'grid', gap: 12 }}>
         {systems.map((row, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: 8, alignItems: 'end', padding: 10, borderRadius: 6, background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(var(--border-rgb),0.15)' }}>
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: 8, alignItems: 'end', padding: 10, borderRadius: 6, background: 'var(--bg-alt)', border: '1px solid rgba(var(--border-rgb),0.15)' }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: '0.68rem', color: 'rgba(var(--text-rgb),0.5)', fontWeight: 700 }}>
               Trap type
               <select value={row.type} onChange={(e) => updateRow(i, { type: e.target.value })} style={inp}>
@@ -279,7 +279,7 @@ function SystemEditor({ initialSystems }) {
               Qty
               <input type="number" min="1" max="20" value={row.count} onChange={(e) => updateRow(i, { count: parseInt(e.target.value, 10) || 1 })} style={{ ...inp, textAlign: 'center' }} />
             </label>
-            <button onClick={() => removeRow(i)} disabled={systems.length === 1} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: systems.length === 1 ? 'rgba(255,100,100,0.25)' : '#ff8080', cursor: systems.length === 1 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>Remove</button>
+            <button onClick={() => removeRow(i)} disabled={systems.length === 1} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--danger-rgb),0.25)', background: 'transparent', color: systems.length === 1 ? 'rgba(var(--danger-rgb),0.25)' : 'var(--danger)', cursor: systems.length === 1 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.75rem', }}>Remove</button>
             {row.type === 'Biogents-CO2' && (
               <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.75)', cursor: 'pointer', marginTop: 4 }}>
                 <input type="checkbox" checked={!!row.hasTimer} onChange={(e) => updateRow(i, { hasTimer: e.target.checked })} style={{ width: 16, height: 16 }} />
@@ -288,19 +288,19 @@ function SystemEditor({ initialSystems }) {
             )}
           </div>
         ))}
-        <button onClick={addRow} style={{ padding: '8px', borderRadius: 6, border: '1px dashed rgba(var(--green-rgb),0.3)', background: 'transparent', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>+ Add another system</button>
+        <button onClick={addRow} style={{ padding: '8px', borderRadius: 6, border: '1px dashed rgba(var(--green-rgb),0.3)', background: 'transparent', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', }}>+ Add another system</button>
         <div style={{ fontSize: '0.7rem', color: 'rgba(var(--text-rgb),0.4)', fontStyle: 'italic' }}>
           This updates how we show your tank level only. It will not change your billing or scheduled visits.
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={save} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 6, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: 'var(--green)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', opacity: saving ? 0.6 : 1 }}>
+          <button onClick={save} disabled={saving} style={{ flex: 1, padding: '9px', borderRadius: 6, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.85rem', opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Saving…' : 'Save'}
           </button>
-          <button onClick={() => { setEditing(false); setMsg(null) }} style={{ padding: '9px 16px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', cursor: 'pointer', background: 'transparent', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif' }}>
+          <button onClick={() => { setEditing(false); setMsg(null) }} style={{ padding: '9px 16px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', cursor: 'pointer', background: 'transparent', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.85rem', }}>
             Cancel
           </button>
         </div>
-        {msg && <div style={{ fontSize: '0.78rem', color: msg.startsWith('Saved') ? 'var(--green)' : '#ff8080', fontWeight: 700 }}>{msg}</div>}
+        {msg && <div style={{ fontSize: '0.78rem', color: msg.startsWith('Saved') ? 'var(--green)' : 'var(--danger)', fontWeight: 700 }}>{msg}</div>}
       </div>
     </div>
   )
@@ -338,7 +338,7 @@ function CustomerMediaUpload({ email }) {
     setUploading(false)
   }
 
-  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none', marginBottom: 12 }
+  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none', marginBottom: 12 }
 
   return (
     <div className="card" style={{ marginBottom: 20 }}>
@@ -348,12 +348,12 @@ function CustomerMediaUpload({ email }) {
       <input style={inp} placeholder="Optional caption or description…" value={caption} onChange={(e) => setCaption(e.target.value)} />
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} />
-        <button onClick={() => { fileRef.current.accept='image/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(var(--green-rgb),0.4)', background: 'transparent', color: 'var(--green)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>Upload Photo</button>
-        <button onClick={() => { fileRef.current.accept='video/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(99,196,255,0.4)', background: 'transparent', color: '#5bc4ff', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>
+        <button onClick={() => { fileRef.current.accept='image/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(var(--green-rgb),0.4)', background: 'transparent', color: 'var(--green)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>Upload Photo</button>
+        <button onClick={() => { fileRef.current.accept='video/*'; fileRef.current?.click() }} disabled={uploading} style={{ padding: '10px 18px', borderRadius: 8, border: '1px dashed rgba(var(--info-rgb),0.4)', background: 'transparent', color: 'var(--info)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 700, opacity: uploading ? 0.5 : 1 }}>
           {uploading ? 'Uploading…' : 'Upload Video'}
         </button>
       </div>
-      {msg && <p style={{ fontSize: '0.82rem', marginTop: 10, color: msg.includes('failed') || msg.includes('error') ? '#ff8080' : 'var(--green)' }}>{msg}</p>}
+      {msg && <p style={{ fontSize: '0.82rem', marginTop: 10, color: msg.includes('failed') || msg.includes('error') ? 'var(--danger)' : 'var(--green)' }}>{msg}</p>}
       {uploads.length > 0 && (
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
           {uploads.map((u, i) => u.type.startsWith('video')
@@ -416,17 +416,17 @@ function ReferralProgram({ email, name, referralCount = 0 }) {
                 value={refUrl}
                 readOnly
                 onFocus={(e) => e.target.select()}
-                style={{ flex: '1 1 220px', padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'rgba(255,255,255,0.04)', color: 'var(--text)', fontSize: '0.82rem', fontFamily: 'monospace' }}
+                style={{ flex: '1 1 220px', padding: '10px 12px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.82rem', fontFamily: 'monospace' }}
               />
               <button
                 onClick={copy}
-                style={{ padding: '10px 20px', borderRadius: 6, border: 'none', background: copied ? 'var(--green)' : 'var(--gold)', color: 'var(--bg-deep)', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
+                style={{ padding: '10px 20px', borderRadius: 6, border: 'none', background: copied ? 'var(--green)' : 'var(--gold)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', }}
               >
                 {copied ? 'Copied' : 'Copy Link'}
               </button>
               <button
                 onClick={share}
-                style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--green-muted)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
+                style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--green-muted)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', }}
               >
                 Share
               </button>
@@ -490,7 +490,7 @@ function ReschedulePicker({ onConfirm, onClose }) {
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const daySlots = selDay ? (slots[selDay] || []) : []
 
-  const CELL = { width: '100%', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, fontSize: '0.82rem', fontWeight: 700, border: 'none', background: 'transparent', fontFamily: 'Inter, sans-serif' }
+  const CELL = { width: '100%', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, fontSize: '0.82rem', fontWeight: 700, border: 'none', background: 'transparent', }
 
   return (
     <div style={{ marginTop: 14, padding: 16, borderRadius: 10, background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.15)' }}>
@@ -507,7 +507,7 @@ function ReschedulePicker({ onConfirm, onClose }) {
       </div>
 
       {loading && <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'rgba(var(--text-rgb),0.4)', margin: '16px 0' }}>Loading availability…</p>}
-      {err && <p style={{ fontSize: '0.8rem', color: '#ff8080', margin: '8px 0' }}>{err}</p>}
+      {err && <p style={{ fontSize: '0.8rem', color: 'var(--danger)', margin: '8px 0' }}>{err}</p>}
 
       {!loading && (
         <>
@@ -529,8 +529,8 @@ function ReschedulePicker({ onConfirm, onClose }) {
                   style={{ ...CELL,
                     cursor: past || !avail ? 'default' : 'pointer',
                     color: past ? 'rgba(var(--text-rgb),0.15)' : avail ? (sel ? 'var(--gold)' : 'var(--green)') : 'rgba(var(--text-rgb),0.2)',
-                    background: sel ? 'rgba(201,168,76,0.12)' : avail && !past ? 'rgba(var(--green-rgb),0.06)' : 'transparent',
-                    border: sel ? '1px solid rgba(201,168,76,0.5)' : avail && !past ? '1px solid rgba(var(--green-rgb),0.18)' : '1px solid transparent',
+                    background: sel ? 'rgba(var(--gold-rgb),0.12)' : avail && !past ? 'rgba(var(--green-rgb),0.06)' : 'transparent',
+                    border: sel ? '1px solid rgba(var(--gold-rgb),0.5)' : avail && !past ? '1px solid rgba(var(--green-rgb),0.18)' : '1px solid transparent',
                   }}
                 >{d}</button>
               )
@@ -548,7 +548,7 @@ function ReschedulePicker({ onConfirm, onClose }) {
                   const sel = selISO === iso
                   return (
                     <button key={iso} onClick={() => setSelISO(iso)}
-                      style={{ padding: '7px 4px', borderRadius: 6, border: `1px solid ${sel ? 'var(--gold)' : 'rgba(var(--border-rgb),0.3)'}`, background: sel ? 'rgba(201,168,76,0.1)' : 'transparent', color: sel ? 'var(--gold)' : 'rgba(var(--text-rgb),0.7)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif', textAlign: 'center' }}
+                      style={{ padding: '7px 4px', borderRadius: 6, border: `1px solid ${sel ? 'var(--gold)' : 'rgba(var(--border-rgb),0.3)'}`, background: sel ? 'rgba(var(--gold-rgb),0.1)' : 'transparent', color: sel ? 'var(--gold)' : 'rgba(var(--text-rgb),0.7)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}
                     >
                       {new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ })}
                     </button>
@@ -636,7 +636,7 @@ function ServiceActions({ nextBooking, subscription }) {
       )}
 
       {msg && (
-        <p style={{ fontSize: '0.82rem', marginTop: 10, fontWeight: 700, color: msg.ok ? 'var(--green)' : '#ff8080' }}>
+        <p style={{ fontSize: '0.82rem', marginTop: 10, fontWeight: 700, color: msg.ok ? 'var(--green)' : 'var(--danger)' }}>
           {msg.text}
         </p>
       )}
@@ -782,7 +782,7 @@ export default function CustomerOverview({
                   const lifetime = sys.type === 'Biogents-CO2' && !sys.hasTimer ? 20 : 28
                   const remaining = Math.max(0, lifetime - daysSince)
                   const pct = Math.max(0, Math.min(100, Math.round((remaining / lifetime) * 100)))
-                  const color = pct > 50 ? 'var(--green)' : pct > 20 ? 'var(--gold)' : '#ff8080'
+                  const color = pct > 50 ? 'var(--green)' : pct > 20 ? 'var(--gold)' : 'var(--danger)'
                   const label = SYSTEM_LABELS[sys.type] || sys.type
                   const lifetimeNote = sys.type === 'Biogents-CO2'
                     ? (sys.hasTimer ? 'with timer · 28-day tank' : 'without timer · 20-day tank')
@@ -804,11 +804,11 @@ export default function CustomerOverview({
                       <div style={{ fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.45)' }}>{lifetimeNote}</div>
                       {nextRefillDate && (
                         <div style={{ marginTop: 6, fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.5)' }}>
-                          Next delivery: <strong style={{ color: pct <= 20 ? '#ff8080' : 'rgba(var(--text-rgb),0.75)' }}>{fmtDate(nextRefillDate)}</strong>
+                          Next delivery: <strong style={{ color: pct <= 20 ? 'var(--danger)' : 'rgba(var(--text-rgb),0.75)' }}>{fmtDate(nextRefillDate)}</strong>
                         </div>
                       )}
                       {pct <= 20 && (
-                        <div style={{ marginTop: 8, padding: '6px 10px', borderRadius: 5, background: 'rgba(255,128,128,0.08)', border: '1px solid rgba(255,128,128,0.25)', fontSize: '0.76rem', color: '#ff8080', fontWeight: 700 }}>
+                        <div style={{ marginTop: 8, padding: '6px 10px', borderRadius: 5, background: 'rgba(var(--danger-rgb),0.08)', border: '1px solid rgba(var(--danger-rgb),0.25)', fontSize: '0.76rem', color: 'var(--danger)', fontWeight: 700 }}>
                           Time for a refill
                         </div>
                       )}
@@ -843,7 +843,7 @@ export default function CustomerOverview({
                 <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 4 }}>
                   Payment Due
                 </div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ffb060' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--warn)' }}>
                   {fmtAmount(totalDue)}
                 </div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 2 }}>
@@ -887,8 +887,8 @@ export default function CustomerOverview({
                 onClick={() => setDateRange(r.months)}
                 style={{
                   padding: '5px 12px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                  fontSize: '0.75rem', fontWeight: 700, fontFamily: 'Inter, sans-serif',
-                  background: dateRange === r.months ? 'rgba(var(--gold-rgb),0.2)' : 'rgba(255,255,255,0.04)',
+                  fontSize: '0.75rem', fontWeight: 700,
+                  background: dateRange === r.months ? 'rgba(var(--gold-rgb),0.2)' : 'var(--bg-card)',
                   color: dateRange === r.months ? 'var(--gold)' : 'rgba(var(--text-rgb),0.45)',
                 }}
               >
@@ -919,7 +919,7 @@ export default function CustomerOverview({
                   {fmtAmount(inv.status === 'open' ? inv.amountDue : (inv.amountPaid || inv.amountDue))}
                 </span>
                 {inv.hostedUrl && inv.status === 'open' && (
-                  <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 14px', borderRadius: 4, background: 'var(--green)', color: 'var(--bg-deep)', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none' }}>
+                  <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 14px', borderRadius: 4, background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.78rem', textDecoration: 'none' }}>
                     Pay Now
                   </a>
                 )}

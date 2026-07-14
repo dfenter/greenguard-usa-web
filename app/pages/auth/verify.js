@@ -11,8 +11,8 @@ export default function Verify() {
     }
   }, [router.query.token])
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ color: '#d4e6ca' }}>Signing you in…</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <p style={{ color: 'var(--text)' }}>Signing you in…</p>
     </div>
   )
 }

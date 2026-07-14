@@ -73,15 +73,15 @@ function fmtDateStr(s) {
 }
 function fmt$(n) { return `$${Number(n).toFixed(2)}` }
 
-const card = { background: 'rgba(26,46,31,0.7)', border: '1px solid rgba(122,171,130,0.18)', borderRadius: 12, padding: '16px 20px', marginBottom: 12 }
-const label = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 12 }
+const card = { background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.18)', borderRadius: 12, padding: '16px 20px', marginBottom: 12 }
+const label = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 12 }
 
 export default function HistoryPage({ invoices, visitNotes }) {
   return (
     <PortalLayout title="Service History">
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
-        <h1 style={{ fontWeight: 900, fontSize: '1.6rem', color: '#d4e6ca', marginBottom: 6 }}>Service History</h1>
-        <p style={{ color: 'rgba(212,230,202,0.45)', fontSize: '0.85rem', marginBottom: 28 }}>
+        <h1 style={{ fontWeight: 900, fontSize: '1.6rem', color: 'var(--text)', marginBottom: 6 }}>Service History</h1>
+        <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginBottom: 28 }}>
           Your complete service and billing record.
         </p>
 
@@ -94,12 +94,12 @@ export default function HistoryPage({ invoices, visitNotes }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div>
                     <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: 4 }}>{v.date || fmtDateStr(v.timestamp)}</div>
-                    {v.items && <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.55)', marginBottom: 2 }}>{v.items}</div>}
+                    {v.items && <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 2 }}>{v.items}</div>}
                     {v.notes && v.notes !== 'None' && v.notes !== 'No notes were entered for this visit.' && (
-                      <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.7)', fontStyle: 'italic', marginTop: 4 }}>&ldquo;{v.notes}&rdquo;</div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 4 }}>&ldquo;{v.notes}&rdquo;</div>
                     )}
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#7dffaa', background: 'rgba(125,255,170,0.08)', border: '1px solid rgba(125,255,170,0.2)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>Completed</span>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--green)', background: 'rgba(var(--green-rgb),0.08)', border: '1px solid rgba(var(--green-rgb),0.2)', padding: '3px 8px', borderRadius: 4, flexShrink: 0 }}>Completed</span>
                 </div>
               </div>
             ))}
@@ -115,13 +115,13 @@ export default function HistoryPage({ invoices, visitNotes }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                   <div>
                     <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{fmtDate(inv.date)}</div>
-                    <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{inv.description?.replace(' (first month)', '')}</div>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-dim)', marginTop: 2 }}>{inv.description?.replace(' (first month)', '')}</div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontWeight: 900, fontSize: '1rem', color: '#7dffaa' }}>{fmt$(inv.amount)}</div>
+                    <div style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--green)' }}>{fmt$(inv.amount)}</div>
                     {(inv.pdfUrl || inv.hostedUrl) && (
                       <a href={inv.pdfUrl || inv.hostedUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', textDecoration: 'underline' }}>
+                        style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textDecoration: 'underline' }}>
                         View receipt
                       </a>
                     )}
@@ -133,13 +133,13 @@ export default function HistoryPage({ invoices, visitNotes }) {
         )}
 
         {invoices.length === 0 && visitNotes.length === 0 && (
-          <div style={{ ...card, textAlign: 'center', padding: 40, color: 'rgba(212,230,202,0.35)' }}>
+          <div style={{ ...card, textAlign: 'center', padding: 40, color: 'var(--text-dim)' }}>
             No service history yet. Check back after your first visit.
           </div>
         )}
 
         <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <Link href="/dashboard" style={{ color: 'rgba(212,230,202,0.4)', fontSize: '0.82rem', textDecoration: 'none' }}>
+          <Link href="/dashboard" style={{ color: 'var(--text-dim)', fontSize: '0.82rem', textDecoration: 'none' }}>
             ← Back to My Account
           </Link>
         </div>
