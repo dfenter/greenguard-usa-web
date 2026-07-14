@@ -85,8 +85,9 @@ function parseAppointmentNotes(description) {
   // or the Cal.com footer; capture everything until either of those.
   const calMatch = description.match(/Additional notes(?:[^:]*)?:\s*\n([\s\S]+?)(?=\n\s*\n|\nNeed to (?:cancel|reschedule)|\nhttps?:\/\/cal\.com|$)/i)
   if (calMatch) return calMatch[1].trim() || null
-  // Legacy Acuity format: stop before "Change Appointment:" line or bare URLs
-  const legacyMatch = description.match(/^\s*Notes:\s*(.+(?:\n(?!\s*$|Change Appointment:|https?:\/\/).+)*)/im)
+  // Legacy Acuity + manual GCal events: "Notes:" or a hand-typed "NOTE:" /
+  // "Note:" line; stop before "Change Appointment:" line or bare URLs
+  const legacyMatch = description.match(/^\s*Notes?:\s*(.+(?:\n(?!\s*$|Change Appointment:|https?:\/\/).+)*)/im)
   if (legacyMatch) return legacyMatch[1].trim() || null
   return null
 }
