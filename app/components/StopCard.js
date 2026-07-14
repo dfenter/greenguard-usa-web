@@ -20,17 +20,17 @@ function fmtTime(iso) {
 // Matches the rounds-page action buttons exactly so Navigate / Rounds / Text
 // align across /admin/home, /admin/tech, and /admin/rounds.
 export const actionBtn = {
-  flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center',
-  fontSize: '0.9rem', fontWeight: 700, textDecoration: 'none', minHeight: 34,
+  flex: '1 1 70px', padding: '9px 8px', borderRadius: 6, justifyContent: 'center',
+  fontSize: '0.9rem', fontWeight: 800, textDecoration: 'none', minHeight: 36,
   display: 'inline-flex', alignItems: 'center', fontFamily: 'inherit',
   boxSizing: 'border-box', cursor: 'pointer',
 }
 
 export const disabledBtn = {
   ...actionBtn,
-  border: '1px solid rgba(122,171,130,0.12)',
-  color: 'rgba(212,230,202,0.3)',
-  background: 'transparent',
+  border: '2px solid #d0d0d0',
+  color: '#999999',
+  background: '#f5f5f5',
   cursor: 'not-allowed',
   opacity: 0.6,
 }
@@ -64,7 +64,7 @@ export function StopRow({ stop, index, dateStr, distance }) {
     <StopCard stop={stop} number={index + 1} distance={distance} actions={
       <>
         {mapsUrl ? (
-          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...actionBtn, border: '1px solid rgba(122,171,130,0.25)', color: '#7aab82' }}>Navigate</a>
+          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...actionBtn, border: '2px solid #000000', color: '#000000', background: '#f0f0f0', fontWeight: 800 }}>Navigate</a>
         ) : (
           <span style={disabledBtn} aria-disabled="true">Navigate</span>
         )}
@@ -74,17 +74,19 @@ export function StopRow({ stop, index, dateStr, distance }) {
           onClick={sendOnMyWay}
           style={{
             ...actionBtn,
-            border: canNotify ? '1px solid rgba(125,255,170,0.35)' : '1px solid rgba(125,255,170,0.15)',
-            background: canNotify ? 'rgba(125,255,170,0.08)' : 'transparent',
-            color: canNotify ? '#7dffaa' : 'rgba(125,255,170,0.4)',
+            border: canNotify ? '2px solid #000000' : '2px solid #d0d0d0',
+            background: canNotify ? '#f0f0f0' : '#f5f5f5',
+            color: '#000000',
             cursor: canNotify ? 'pointer' : 'not-allowed',
+            fontWeight: 800,
+            opacity: canNotify ? 1 : 0.6,
           }}>
           📲 On My Way
         </button>
         {stop.email ? (
-          <Link href={roundsUrl} style={{ ...actionBtn, background: '#c9a84c', color: '#0d1a10', border: 'none', fontWeight: 800 }}>Finalize Visit</Link>
+          <Link href={roundsUrl} style={{ ...actionBtn, background: '#f0f0f0', color: '#000000', border: '2px solid #000000', fontWeight: 900 }}>Finalize Visit</Link>
         ) : (
-          <span style={{ ...disabledBtn, fontWeight: 800 }} aria-disabled="true">Finalize Visit</span>
+          <span style={{ ...disabledBtn, fontWeight: 900 }} aria-disabled="true">Finalize Visit</span>
         )}
       </>
     } />
@@ -123,18 +125,16 @@ export default function StopCard({
     else setShowPanel(true)
   }
 
-  // Property assessments get a bold blue card so the tech can spot them at a
-  // glance (blue is free — green = done, gold = active). High contrast on purpose.
+  // Accessibility: high contrast with white card background for readability.
+  // Assessment cards use blue highlight with thicker border. Done/active states preserve visual hierarchy.
   const isAssessment = /assessment/i.test(stop.serviceType || '')
-  const accent = done ? '125,255,170' : active ? '201,168,76' : '122,171,130'
   const card = {
-    background: isAssessment ? '#0e2a44' : 'var(--bg-card)',
-    backgroundImage: isAssessment ? 'none' : 'var(--surface-grad)',
-    border: `1px solid ${isAssessment ? 'rgba(91,196,255,0.5)' : `rgba(${accent}, ${done || active ? 0.32 : 0.16})`}`,
-    borderLeft: `${isAssessment ? 6 : 3}px solid ${isAssessment ? '#5bc4ff' : `rgba(${accent}, ${done || active ? 0.7 : 0.4})`}`,
+    background: '#ffffff',
+    border: `${isAssessment ? 4 : 2}px solid ${isAssessment ? '#1565c0' : done ? '#4caf50' : active ? '#f57c00' : '#64b5a6'}`,
+    borderLeft: `${isAssessment ? 10 : 6}px solid ${isAssessment ? '#1565c0' : done ? '#4caf50' : active ? '#f57c00' : '#64b5a6'}`,
     borderRadius: 'var(--radius)', padding: 20, marginBottom: 14,
-    boxShadow: 'var(--shadow-sm)',
-    opacity: cancelled ? 0.45 : done ? 0.7 : 1,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+    opacity: cancelled ? 0.6 : 1,
   }
 
   return (
@@ -149,18 +149,21 @@ export default function StopCard({
         <div style={{ marginBottom: actions || children ? 12 : 0 }}>
           {/* Name row: number · name · address · distance */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: done ? 'rgba(125,255,170,0.15)' : active ? 'rgba(201,168,76,0.15)' : 'rgba(122,171,130,0.1)', color: done ? '#7dffaa' : active ? '#c9a84c' : 'rgba(212,230,202,0.5)', flexShrink: 0 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: done ? '#4caf50' : active ? '#f57c00' : '#64b5a6', color: '#ffffff', flexShrink: 0 }}>
               {done ? '✓' : number}
             </span>
             <button
-              style={{ fontWeight: 900, fontSize: '1rem', color: (stop.firstAppointment || /assessment/i.test(stop.serviceType || '')) ? '#7dffaa' : '#d4e6ca', background: 'none', border: 'none', borderBottom: '1px solid rgba(212,230,202,0.2)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
+              style={{ fontWeight: 900, fontSize: '1rem', color: /assessment/i.test(stop.serviceType || '') ? '#1565c0' : '#000000', background: 'none', border: 'none', borderBottom: '2px solid #64b5a6', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
               onClick={(e) => { e.stopPropagation(); openProfile() }}
             >{name}</button>
+            {stop.phone && (
+              <span style={{ fontSize: '0.85rem', color: '#000000', fontWeight: 700 }}>📞 {stop.phone}</span>
+            )}
             {stop.address && (
-              <span style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', fontWeight: 400 }}>📍 {stop.address}</span>
+              <span style={{ fontSize: '0.85rem', color: '#000000', fontWeight: 700 }}>📍 {stop.address}</span>
             )}
             {distance && (
-              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: parseFloat(distance.miles) <= 5 ? '#7dffaa' : parseFloat(distance.miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.45)', whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#000000', whiteSpace: 'nowrap' }}>
                 {distance.miles} mi · {distance.duration}
               </span>
             )}
@@ -171,32 +174,32 @@ export default function StopCard({
           {eventNotes.length > 0 && (
             <div style={{ paddingLeft: 36, marginTop: 4, marginBottom: 2 }}>
               {eventNotes.map((n) => (
-                <div key={n.id} style={{ fontSize: '0.82rem', color: '#7dffaa', lineHeight: 1.5 }}>📋 {n.body}</div>
+                <div key={n.id} style={{ fontSize: '0.85rem', color: '#000000', fontWeight: 700, lineHeight: 1.5 }}>📋 {n.body}</div>
               ))}
             </div>
           )}
 
           {/* Customer notes from HubSpot ([ADMIN-NOTE] timeline entries) */}
           {(stop.clientNotes || []).map((note, i) => (
-            <div key={i} style={{ paddingLeft: 36, fontSize: '0.82rem', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5 }}>{note}</div>
+            <div key={i} style={{ paddingLeft: 36, fontSize: '0.85rem', color: '#000000', fontWeight: 700, lineHeight: 1.5 }}>{note}</div>
           ))}
 
           {/* Service info row: time · service type · tanks */}
           <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '0.9rem', marginTop: 4, marginBottom: 2 }}>
             {stop.startTime && (
-              <span style={{ color: '#c9a84c', fontWeight: 700 }}>
+              <span style={{ color: '#000000', fontWeight: 800 }}>
                 {new Date(stop.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · {fmtTime(stop.startTime)}{stop.endTime ? ` – ${fmtTime(stop.endTime)}` : ''}
               </span>
             )}
-            {stop.serviceType && <span style={{ color: 'rgba(212,230,202,0.55)' }}>{stop.serviceType}</span>}
-            {stop.tanks > 0 && <span style={{ color: '#7dffaa', fontWeight: 700 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
+            {stop.serviceType && <span style={{ color: '#000000', fontWeight: 700 }}>{stop.serviceType}</span>}
+            {stop.tanks > 0 && <span style={{ color: '#000000', fontWeight: 800 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
           </div>
 
           {/* Check in / out */}
           {(checkIn || checkOut) && (
-            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', display: 'flex', gap: 14 }}>
+            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '0.85rem', color: '#000000', display: 'flex', gap: 14, fontWeight: 700 }}>
               {checkIn && <span>In: <strong>{checkIn}</strong></span>}
-              {checkOut && <span>Out: <strong style={{ color: '#7dffaa' }}>{checkOut}</strong></span>}
+              {checkOut && <span>Out: <strong style={{ color: '#4caf50' }}>{checkOut}</strong></span>}
             </div>
           )}
 

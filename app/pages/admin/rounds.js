@@ -170,8 +170,13 @@ export async function getServerSideProps({ req, query, res }) {
       const clientNotes = [...(bookingNote ? [bookingNote] : []), ...(contact?._clientNotes || [])]
       const firstAppointment = contact?.properties?.first_appointment === 'true'
 
+      // Backfill address from HubSpot if missing from GCal event
+      const hubspotAddress = contact?.properties?.address || null
+      const finalAddress = stop.address || hubspotAddress || ''
+
       return {
         ...stop,
+        address: finalAddress,
         customerName: resolvedName,
         serviceType,
         tanks,
@@ -281,10 +286,10 @@ function QtyRow({ item, qty, onChange, disabled }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(122,171,130,0.06)' }}>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '1.02rem', fontWeight: active ? 800 : 600, color: active ? '#d4e6ca' : 'rgba(212,230,202,0.7)' }}>{item.label}</div>
-        <div style={{ fontSize: '0.84rem', color: 'rgba(212,230,202,0.45)', marginTop: 2 }}>
-          {item.sku && <span style={{ marginRight: 8, color: 'rgba(201,168,76,0.7)' }}>{item.sku}</span>}
-          <span style={{ color: item.price ? '#7dffaa' : 'rgba(212,230,202,0.4)' }}>{item.price ? fmt$(item.price) + '/unit' : 'no charge'}</span>
+        <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#000000' }}>{item.label}</div>
+        <div style={{ fontSize: '1rem', color: '#000000', fontWeight: 900, marginTop: 2 }}>
+          {item.sku && <span style={{ marginRight: 8, color: '#000000' }}>{item.sku}</span>}
+          <span style={{ color: '#000000' }}>{item.price ? fmt$(item.price) + '/unit' : 'no charge'}</span>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -380,7 +385,7 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total, o
       {/* Dropdown trigger */}
       {!disabled && (
         <button onClick={() => setOpen((o) => !o)}
-          style={{ width: '100%', minHeight: 50, padding: '13px 16px', borderRadius: 12, border: '1.5px dashed rgba(122,171,130,0.4)', background: 'rgba(122,171,130,0.04)', color: 'rgba(212,230,202,0.75)', cursor: 'pointer', fontWeight: 700, fontSize: '1rem', fontFamily: 'Inter, sans-serif', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          style={{ width: '100%', minHeight: 50, padding: '13px 16px', borderRadius: 12, border: '1.5px dashed rgba(122,171,130,0.4)', background: 'rgba(122,171,130,0.04)', color: '#000000', cursor: 'pointer', fontWeight: 900, fontSize: '1rem', fontFamily: 'Inter, sans-serif', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{selectedItems.length > 0 ? `+ Add more ${title.toLowerCase()}` : `Select ${title.toLowerCase()}…`}</span>
           <span style={{ fontSize: '0.85rem' }}>{open ? '▲' : '▼'}</span>
         </button>
@@ -390,8 +395,8 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total, o
       {open && (
         <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 50, background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 10, marginTop: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxHeight: 360, overflowY: 'auto' }}>
           <div style={{ padding: '12px 16px 8px', borderBottom: '1px solid rgba(122,171,130,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'rgba(212,230,202,0.65)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{title}</span>
-            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.45)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>×</button>
+            <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#000000', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{title}</span>
+            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#000000', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif', fontWeight: 900 }}>×</button>
           </div>
           {catalog.flatMap((item) => {
             const qty = qtys[item.label] || 0
@@ -407,17 +412,17 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total, o
                   </div>
                 )}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '1.02rem', fontWeight: selected ? 800 : 600, color: selected ? '#d4e6ca' : 'rgba(212,230,202,0.75)' }}>{item.label}</div>
-                  <div style={{ fontSize: '0.84rem', color: 'rgba(212,230,202,0.45)', marginTop: 2 }}>
-                    {item.sku && <span style={{ marginRight: 8, color: 'rgba(201,168,76,0.7)' }}>{item.sku}</span>}
-                    <span style={{ color: item.price ? '#7dffaa' : 'rgba(212,230,202,0.35)' }}>{item.price ? fmt$(item.price) : 'no charge'}</span>
-                    {item.promptQty && qty > 0 && <span style={{ marginLeft: 8, color: '#7dffaa', fontWeight: 700 }}>= {fmt$(item.price * qty)}</span>}
+                  <div style={{ fontSize: '1.02rem', fontWeight: 900, color: '#000000' }}>{item.label}</div>
+                  <div style={{ fontSize: '0.84rem', color: '#000000', marginTop: 2 }}>
+                    {item.sku && <span style={{ marginRight: 8, color: '#000000', fontWeight: 900 }}>{item.sku}</span>}
+                    <span style={{ color: '#000000', fontWeight: 900 }}>{item.price ? fmt$(item.price) : 'no charge'}</span>
+                    {item.promptQty && qty > 0 && <span style={{ marginLeft: 8, color: '#000000', fontWeight: 900 }}>= {fmt$(item.price * qty)}</span>}
                   </div>
                 </div>
                 {/* Inline qty input for promptQty items */}
                 {item.promptQty ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                    <span style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', fontWeight: 700 }}>Qty:</span>
+                    <span style={{ fontSize: '0.85rem', color: '#000000', fontWeight: 900 }}>Qty:</span>
                     <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
                       style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(122,171,130,0.3)', background: 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>−</button>
                     <input
@@ -797,7 +802,7 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
     }
   }
 
-  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
+  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#000000', fontSize: '1.1rem', fontWeight: 900, fontFamily: 'Inter, sans-serif', outline: 'none' }
 
   return (
     <>
@@ -845,9 +850,9 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
           {showInvoicedPanel && (() => {
             const inv = stop.existingInvoice
             const colorByStatus = {
-              paid:  { fg: '#7dffaa', bg: 'rgba(125,255,170,0.08)', bd: 'rgba(125,255,170,0.3)', label: 'Invoice paid' },
-              open:  { fg: '#c9a84c', bg: 'rgba(201,168,76,0.08)',  bd: 'rgba(201,168,76,0.3)',  label: 'Invoice sent — awaiting payment' },
-              draft: { fg: 'rgba(212,230,202,0.7)', bg: 'rgba(212,230,202,0.05)', bd: 'rgba(212,230,202,0.2)', label: 'Invoice draft — finalize when ready' },
+              paid:  { fg: '#000000', bg: '#f0f0f0', bd: '#000000', label: 'Invoice paid' },
+              open:  { fg: '#000000', bg: '#f0f0f0',  bd: '#000000',  label: 'Invoice sent — awaiting payment' },
+              draft: { fg: '#000000', bg: '#f0f0f0', bd: '#000000', label: 'Invoice draft — finalize when ready' },
             }
             const c = colorByStatus[inv.status] || colorByStatus.draft
             const amount = inv.status === 'paid' ? inv.amountPaid || inv.amountDue : inv.amountDue
@@ -856,17 +861,17 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
               <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, border: `1px solid ${c.bd}`, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', fontWeight: 800, color: c.fg }}>✓ {c.label}</div>
-                  <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', marginTop: 2 }}>
+                  <div style={{ fontSize: '0.85rem', color: '#000000', fontWeight: 700, marginTop: 2 }}>
                     {fmt$(amount)} · {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <a href={inv.hostedUrl || fallbackUrl} target="_blank" rel="noopener noreferrer"
-                    style={{ padding: '7px 14px', borderRadius: 6, border: `1px solid ${c.bd}`, fontSize: '0.9rem', fontWeight: 700, color: c.fg, textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                    style={{ padding: '8px 14px', borderRadius: 6, border: `2px solid ${c.bd}`, fontSize: '0.9rem', fontWeight: 800, color: '#000000', background: '#f0f0f0', textDecoration: 'none', minHeight: 36, display: 'inline-flex', alignItems: 'center', boxSizing: 'border-box' }}>
                     View invoice
                   </a>
                   <button onClick={() => setAllowOverride(true)}
-                    style={{ padding: '4px 8px', border: 'none', background: 'transparent', fontSize: '0.7rem', color: 'rgba(212,230,202,0.5)', cursor: 'pointer', fontFamily: 'Inter, sans-serif', textDecoration: 'underline' }}>
+                    style={{ padding: '8px 12px', border: '2px solid #000000', background: '#f0f0f0', fontSize: '0.75rem', color: '#000000', fontWeight: 800, cursor: 'pointer', fontFamily: 'Inter, sans-serif', textDecoration: 'none', borderRadius: 6 }}>
                     Re-complete
                   </button>
                 </div>
@@ -877,7 +882,7 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
           {/* Visit notes — the tech's logged notes + service summary for the
               completed visit, shown alongside the existing invoice. */}
           {showInvoicedPanel && visitLog?.notes && (
-            <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(255,255,255,0.02)', fontSize: '0.85rem', color: '#d4e6ca', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+            <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 8, border: '2px solid #000000', background: '#f5f5f5', fontSize: '0.85rem', color: '#000000', fontWeight: 700, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
               {visitLog.notes}
             </div>
           )}
@@ -885,7 +890,7 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
           <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
             {stop.address && (
               <a href={`https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}`} target="_blank" rel="noopener noreferrer"
-                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: '1px solid rgba(122,171,130,0.25)', fontSize: '0.9rem', fontWeight: 700, color: '#7aab82', textDecoration: 'none', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                style={{ flex: '1 1 70px', padding: '9px 8px', borderRadius: 6, justifyContent: 'center', border: '2px solid #000000', fontSize: '0.9rem', fontWeight: 800, color: '#000000', background: '#f0f0f0', textDecoration: 'none', minHeight: 36, display: 'inline-flex', alignItems: 'center', boxSizing: 'border-box' }}>
                 Navigate
               </a>
             )}
@@ -914,13 +919,14 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
                     else alert('Failed: ' + (d.error || r.status))
                   }}
                   style={{
-                    flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center',
-                    border: canNotify ? '1px solid rgba(125,255,170,0.35)' : '1px solid rgba(125,255,170,0.15)',
-                    cursor: canNotify ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: '0.9rem',
+                    flex: '1 1 70px', padding: '9px 8px', borderRadius: 6, justifyContent: 'center',
+                    border: canNotify ? '2px solid #000000' : '2px solid #d0d0d0',
+                    cursor: canNotify ? 'pointer' : 'not-allowed', fontWeight: 800, fontSize: '0.9rem',
                     fontFamily: 'Inter, sans-serif',
-                    background: canNotify ? 'rgba(125,255,170,0.08)' : 'transparent',
-                    color: canNotify ? '#7dffaa' : 'rgba(125,255,170,0.4)',
-                    minHeight: 34, display: 'inline-flex', alignItems: 'center',
+                    background: canNotify ? '#f0f0f0' : '#f5f5f5',
+                    color: '#000000',
+                    opacity: canNotify ? 1 : 0.6,
+                    minHeight: 36, display: 'inline-flex', alignItems: 'center', boxSizing: 'border-box',
                   }}>
                   📲 On My Way
                 </button>
@@ -929,7 +935,7 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
             {!showInvoicedPanel && state.status === 'pending' && (
               <button onClick={() => onUpdate({ status: 'active', checkIn: nowStr() })}
                 title="Mark visit started and open service entry"
-                style={{ flex: '1 1 70px', padding: '7px 6px', borderRadius: 6, justifyContent: 'center', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: '#c9a84c', color: '#0d1a10', minHeight: 34, display: 'inline-flex', alignItems: 'center' }}>
+                style={{ flex: '1 1 70px', padding: '9px 8px', borderRadius: 6, justifyContent: 'center', border: '2px solid #000000', cursor: 'pointer', fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', background: '#f0f0f0', color: '#000000', minHeight: 36, display: 'inline-flex', alignItems: 'center', boxSizing: 'border-box' }}>
                 Finalize Visit
               </button>
             )}
@@ -997,7 +1003,7 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
                 {/* Arrival / Departure */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Arrival Time</label>
+                    <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000000', marginBottom: 6 }}>Arrival Time</label>
                     <input type="time" style={{ ...inp, textAlign: 'center', minHeight: 42, WebkitAppearance: 'none', appearance: 'none', display: 'block' }} value={state.arrivalTime || ''} onChange={(e) => onUpdate({ arrivalTime: e.target.value })} />
                   </div>
                   <div>
@@ -1008,13 +1014,13 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
 
                 {/* Notes */}
                 <div style={{ marginBottom: 14 }}>
-                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>Notes</label>
+                  <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000000', marginBottom: 6 }}>Notes</label>
                   <textarea rows={2} style={{ ...inp, resize: 'vertical' }} placeholder="CO₂ level, observations, follow-up…" value={state.notes} onChange={(e) => onUpdate({ notes: e.target.value })} />
                 </div>
 
                 {/* Photo + Video */}
                 <div style={{ marginBottom: 14 }}>
-                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 8 }}>Media</label>
+                  <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000000', marginBottom: 8 }}>Media</label>
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     {/* Photo */}
                     {state.photoUrl ? (
@@ -1054,7 +1060,7 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
 
                 {/* Customer signature — optional, captured before completion */}
                 <div style={{ marginBottom: 14 }}>
-                  <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 8 }}>
+                  <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000000', marginBottom: 8 }}>
                     Customer signature {state.signatureUrl ? '✓' : '(optional)'}
                   </label>
                   {state.signatureUrl ? (

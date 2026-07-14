@@ -146,10 +146,7 @@ const DOCK_ITEMS = [
 function AdminBottomDock({ pathname }) {
   return (
     <nav className="admin-dock" aria-label="Admin quick access" style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 90,
-      // NOTE: no backdrop-filter here. On iOS WebKit a position:fixed element
-      // that also has backdrop-filter detaches and floats mid-screen during
-      // scroll. The dock uses a solid, opaque background instead.
+      position: 'sticky', bottom: 0, left: 0, right: 0, zIndex: 90,
       background: 'var(--bg-deep)',
       borderTop: '1px solid rgba(var(--gold-rgb),0.28)',
       display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',

@@ -307,7 +307,7 @@ option { background: var(--bg-deep); color: var(--text); }
   -webkit-backdrop-filter: none !important;
   background: var(--bg-deep) !important;
 }
-.admin-main { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important; }
+.admin-main { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important; }
 
 /* ── Field tech utility classes ────────────────────────────────── */
 /* Large tap targets for field use */
