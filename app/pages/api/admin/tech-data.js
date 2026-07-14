@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       serviceType: s.title || '',
       startTime: s.startTime || null,
       endTime: s.endTime || null,
-      address: s.address || '',
+      address: s.address || info.address || '',
       email: s.email || '',
       phone: resolvedPhone,
       tanks: info.tanks || null,

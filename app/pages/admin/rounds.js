@@ -36,6 +36,7 @@ export async function getServerSideProps({ req, query, res }) {
         customerName: b.customerName || b.name || 'Customer',
         serviceType: b.title || '',
         address: b.address || '', email: b.email || '',
+        phone: b.phone || null, endTime: b.endTime || null,
         startTime: b.startTime, durationMin: null,
         bookingDate: b.dateStr,
         // Carry the Cal.com UID through so per-visit invoice matching works.
@@ -54,6 +55,7 @@ export async function getServerSideProps({ req, query, res }) {
         customerName: b.customerName || b.name || 'Customer',
         serviceType: b.title || '',
         address: b.address || '', email: b.email || '',
+        phone: b.phone || null, endTime: b.endTime || null,
         startTime: b.startTime, durationMin: null, propertySize: b.propertySize || '',
         rescheduleUrl: b.rescheduleUrl || null,
         gcal_event_link: b.gcal_event_link || null,
@@ -163,11 +165,6 @@ export async function getServerSideProps({ req, query, res }) {
       const contact = hubspotContactByEmail[emailKey] || null
       const prefill = prefillFromBooking({ slug }, contact)
       const billingContactName = contact?.properties?.billing_contact_name || null
-      // Surface the customer's booking note (from the GCal event description) in
-      // the same Notes field the tech already sees, ahead of any HubSpot admin
-      // notes. This is what makes a note added at booking time reach rounds.
-      const bookingNote = (stop.appointmentNotes || '').trim()
-      const clientNotes = [...(bookingNote ? [bookingNote] : []), ...(contact?._clientNotes || [])]
       const firstAppointment = contact?.properties?.first_appointment === 'true'
 
       // Backfill address from HubSpot if missing from GCal event
@@ -184,7 +181,8 @@ export async function getServerSideProps({ req, query, res }) {
         eventTypeSlug: slug || null,
         prefill,
         billingContactName,
-        clientNotes,
+        phone: contact?.properties?.phone || stop.phone || null,
+        clientNotes: contact?._clientNotes || [],
         rescheduleUrl: stop.rescheduleUrl || null,
         ...(match ? { calBookingId: match.id, calBookingUid: match.uid } : {}),
       }
@@ -583,6 +581,7 @@ function ApptDetailModal({ stop, onClose, onOpenProfile }) {
         {row('Address', stop.address)}
         {row('Email', stop.email)}
         {row('Phone', stop.phone)}
+        {row('Booking note', stop.appointmentNotes)}
         {(stop.clientNotes || []).map((n, i) => row(i === 0 ? 'Notes' : '', n))}
         {row('Tanks', stop.tanks > 0 ? `${stop.tanks} tank${stop.tanks > 1 ? 's' : ''}` : null)}
         {stop.email && onOpenProfile && (

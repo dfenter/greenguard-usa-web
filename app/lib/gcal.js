@@ -408,12 +408,17 @@ async function getBookingsForDateRange(startISO, endISO) {
       // Email: try description first, then attendees list
       const email = parseEmailFromDescription(e.description) || parseEmailFromAttendees(e.attendees)
       return {
+        id: e.id,
         dateStr,
         name: parseCustomerName(e.summary),
         title: parseServiceTitle(e.summary),
         email,
         calBookingUid,
         startTime: start,
+        endTime: e.end?.dateTime || e.end?.date,
+        address: e.location || parseAddressFromDescription(e.description),
+        phone: parsePhoneFromDescription(e.description),
+        appointmentNotes: parseAppointmentNotes(e.description),
       }
     })
   })

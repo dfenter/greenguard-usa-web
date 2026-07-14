@@ -284,17 +284,7 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
             <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 12 }}>
               Tomorrow — {tomorrowStops.length} {tomorrowStops.length === 1 ? 'stop' : 'stops'}
             </div>
-            {tomorrowStops.map((stop, i) => (
-              <div key={stop.id || i} style={{ background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.08)', borderRadius: 10, padding: '12px 16px', marginBottom: 8, display: 'flex', gap: 14, alignItems: 'center', opacity: 0.65 }}>
-                <div style={{ minWidth: 52, textAlign: 'center' }}>
-                  {stop.startTime && <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'rgba(var(--gold-rgb),0.6)' }}>{fmtTime(stop.startTime)}</div>}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{stop.title || 'Service Visit'}</div>
-                  {stop.address && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{stop.address}</div>}
-                </div>
-              </div>
-            ))}
+            {tomorrowStops.map((stop, i) => <StopRow key={stop.id || i} stop={stop} index={i} dateStr={tomorrowStr} preview />)}
           </section>
         )}
 

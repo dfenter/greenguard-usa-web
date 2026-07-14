@@ -303,16 +303,7 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
             <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 14 }}>
               Tomorrow — {tomorrowStops.length} {tomorrowStops.length === 1 ? 'stop' : 'stops'} ({fmtDayLabel(tomorrowStr).split(',')[0]})
             </div>
-            {tomorrowStops.map((stop, i) => (
-              <div key={stop.id || i} style={{
-                background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.1)',
-                borderRadius: 10, padding: '14px 18px', marginBottom: 8, opacity: 0.7,
-              }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 2 }}>{stop.title || 'Service Visit'}</div>
-                {stop.startTime && <div style={{ fontSize: '0.8rem', color: 'rgba(var(--gold-rgb),0.7)', marginBottom: 3 }}>{fmtTime(stop.startTime)}</div>}
-                {stop.address && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{stop.address}</div>}
-              </div>
-            ))}
+            {tomorrowStops.map((stop, i) => <StopRow key={stop.id || i} stop={stop} index={i} dateStr={tomorrowStr} preview />)}
           </section>
         )}
 

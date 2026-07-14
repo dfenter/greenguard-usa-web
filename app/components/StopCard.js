@@ -37,7 +37,7 @@ export const disabledBtn = {
 
 // Shared stop row used by /admin/home and /admin/tech so the card + its
 // Navigate / On My Way / Finalize Visit actions match the rounds page exactly.
-export function StopRow({ stop, index, dateStr, distance }) {
+export function StopRow({ stop, index, dateStr, distance, preview = false }) {
   const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email || '')}`
   const mapsUrl = stop.address ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}` : null
   const canNotify = !!(stop.email || stop.phone)
@@ -60,37 +60,37 @@ export function StopRow({ stop, index, dateStr, distance }) {
     else alert('Failed: ' + (d.error || r.status))
   }
 
-  return (
-    <StopCard stop={stop} number={index + 1} distance={distance} actions={
-      <>
-        {mapsUrl ? (
-          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...actionBtn, border: '2px solid var(--border)', color: 'var(--text)', background: 'var(--bg-card)', fontWeight: 800 }}>Navigate</a>
-        ) : (
-          <span style={disabledBtn} aria-disabled="true">Navigate</span>
-        )}
-        <button
-          disabled={!canNotify}
-          title={canNotify ? 'Send arrival SMS' : 'No phone or email on file'}
-          onClick={sendOnMyWay}
-          style={{
-            ...actionBtn,
-            border: canNotify ? '2px solid var(--border)' : '2px solid var(--border)',
-            background: canNotify ? 'var(--bg-card)' : 'var(--bg-alt)',
-            color: 'var(--text)',
-            cursor: canNotify ? 'pointer' : 'not-allowed',
-            fontWeight: 800,
-            opacity: canNotify ? 1 : 0.6,
-          }}>
-          📲 On My Way
-        </button>
-        {stop.email ? (
-          <Link href={roundsUrl} style={{ ...actionBtn, background: 'var(--bg-card)', color: 'var(--text)', border: '2px solid var(--border)', fontWeight: 900 }}>Finalize Visit</Link>
-        ) : (
-          <span style={{ ...disabledBtn, fontWeight: 900 }} aria-disabled="true">Finalize Visit</span>
-        )}
-      </>
-    } />
+  const actions = preview ? null : (
+    <>
+      {mapsUrl ? (
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...actionBtn, border: '2px solid var(--border)', color: 'var(--text)', background: 'var(--bg-card)', fontWeight: 800 }}>Navigate</a>
+      ) : (
+        <span style={disabledBtn} aria-disabled="true">Navigate</span>
+      )}
+      <button
+        disabled={!canNotify}
+        title={canNotify ? 'Send arrival SMS' : 'No phone or email on file'}
+        onClick={sendOnMyWay}
+        style={{
+          ...actionBtn,
+          border: canNotify ? '2px solid var(--border)' : '2px solid var(--border)',
+          background: canNotify ? 'var(--bg-card)' : 'var(--bg-alt)',
+          color: 'var(--text)',
+          cursor: canNotify ? 'pointer' : 'not-allowed',
+          fontWeight: 800,
+          opacity: canNotify ? 1 : 0.6,
+        }}>
+        📲 On My Way
+      </button>
+      {stop.email ? (
+        <Link href={roundsUrl} style={{ ...actionBtn, background: 'var(--bg-card)', color: 'var(--text)', border: '2px solid var(--border)', fontWeight: 900 }}>Finalize Visit</Link>
+      ) : (
+        <span style={{ ...disabledBtn, fontWeight: 900 }} aria-disabled="true">Finalize Visit</span>
+      )}
+    </>
   )
+
+  return <StopCard stop={stop} number={index + 1} distance={distance} preview={preview} actions={actions} />
 }
 
 export default function StopCard({
@@ -105,6 +105,7 @@ export default function StopCard({
   checkOut,
   headerExtras = null,
   actions = null,
+  preview = false,
   children = null,
 }) {
   const [showPanel, setShowPanel] = useState(false)
@@ -134,7 +135,7 @@ export default function StopCard({
     borderLeft: `${isAssessment ? 10 : 6}px solid ${isAssessment ? 'var(--info)' : done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--border)'}`,
     borderRadius: 'var(--radius)', padding: 20, marginBottom: 14,
     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-    opacity: cancelled ? 0.6 : 1,
+    opacity: preview ? 0.75 : cancelled ? 0.6 : 1,
   }
 
   return (
@@ -152,10 +153,14 @@ export default function StopCard({
             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--green-muted)', color: 'var(--text-on-accent)', flexShrink: 0 }}>
               {done ? '✓' : number}
             </span>
-            <button
-              style={{ fontWeight: 900, fontSize: '1rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', background: 'none', border: 'none', borderBottom: '2px solid var(--border)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
-              onClick={(e) => { e.stopPropagation(); openProfile() }}
-            >{name}</button>
+            {preview ? (
+              <span style={{ fontWeight: 900, fontSize: '1rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', flexShrink: 0 }}>{name}</span>
+            ) : (
+              <button
+                style={{ fontWeight: 900, fontSize: '1rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', background: 'none', border: 'none', borderBottom: '2px solid var(--border)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
+                onClick={(e) => { e.stopPropagation(); openProfile() }}
+              >{name}</button>
+            )}
             {stop.phone && (
               <span style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>📞 {stop.phone}</span>
             )}
@@ -169,6 +174,11 @@ export default function StopCard({
             )}
             {headerExtras}
           </div>
+
+          {/* Booking notes from the calendar appointment description */}
+          {stop.appointmentNotes && (
+            <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1.5, paddingLeft: 36 }}>📝 {stop.appointmentNotes}</div>
+          )}
 
           {/* Per-appointment notes from the calendar dock "This appointment's notes" */}
           {eventNotes.length > 0 && (
@@ -204,13 +214,13 @@ export default function StopCard({
           )}
 
           {/* Action buttons */}
-          {actions && (
+          {!preview && actions && (
             <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
               {actions}
             </div>
           )}
         </div>
-        {children}
+        {!preview && children}
       </div>
     </>
   )
