@@ -48,16 +48,16 @@ function presetRange(key) {
 
 function StatusPill({ status, isPastDue, isSuperseded }) {
   if (isSuperseded) {
-    return <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(212,230,202,0.08)', color: 'rgba(212,230,202,0.45)', fontSize: '0.7rem', fontWeight: 700 }}>Superseded</span>
+    return <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(var(--text-rgb),0.08)', color: 'rgba(var(--text-rgb),0.45)', fontSize: '0.7rem', fontWeight: 700 }}>Superseded</span>
   }
   const cfg = {
-    paid:           { bg: 'rgba(125,255,170,0.12)', color: '#7dffaa', label: 'Paid' },
-    open:           { bg: 'rgba(201,168,76,0.12)',  color: '#c9a84c', label: isPastDue ? 'Past Due' : 'Open' },
-    draft:          { bg: 'rgba(212,230,202,0.08)', color: 'rgba(212,230,202,0.6)', label: 'Draft' },
-    uncollectible:  { bg: 'rgba(255,128,128,0.12)', color: '#ff8080', label: 'Uncollectible' },
-    void:           { bg: 'rgba(212,230,202,0.08)', color: 'rgba(212,230,202,0.4)', label: 'Void' },
-  }[status] || { bg: 'rgba(212,230,202,0.08)', color: 'rgba(212,230,202,0.5)', label: status }
-  if (isPastDue && status === 'open') { cfg.bg = 'rgba(255,128,128,0.12)'; cfg.color = '#ff8080' }
+    paid:           { bg: 'rgba(var(--green-rgb),0.12)', color: 'var(--green)', label: 'Paid' },
+    open:           { bg: 'rgba(var(--gold-rgb),0.12)',  color: 'var(--gold)', label: isPastDue ? 'Past Due' : 'Open' },
+    draft:          { bg: 'rgba(var(--text-rgb),0.08)', color: 'rgba(var(--text-rgb),0.6)', label: 'Draft' },
+    uncollectible:  { bg: 'rgba(var(--danger-rgb),0.12)', color: 'var(--danger)', label: 'Uncollectible' },
+    void:           { bg: 'rgba(var(--text-rgb),0.08)', color: 'rgba(var(--text-rgb),0.4)', label: 'Void' },
+  }[status] || { bg: 'rgba(var(--text-rgb),0.08)', color: 'rgba(var(--text-rgb),0.5)', label: status }
+  if (isPastDue && status === 'open') { cfg.bg = 'rgba(var(--danger-rgb),0.12)'; cfg.color = 'var(--danger)' }
   return <span style={{ padding: '2px 8px', borderRadius: 4, background: cfg.bg, color: cfg.color, fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{cfg.label}</span>
 }
 
@@ -134,8 +134,8 @@ export default function InvoicesList() {
   }
 
   const chip = (active, color) => ({
-    padding: '5px 12px', borderRadius: 5, border: `1px solid ${active ? color : 'rgba(122,171,130,0.25)'}`,
-    background: active ? `${color}15` : 'transparent', color: active ? color : 'rgba(212,230,202,0.7)',
+    padding: '5px 12px', borderRadius: 5, border: `1px solid ${active ? color : 'rgba(var(--border-rgb),0.25)'}`,
+    background: active ? 'var(--bg-alt)' : 'transparent', color: active ? color : 'rgba(var(--text-rgb),0.7)',
     fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
   })
 
@@ -147,20 +147,20 @@ export default function InvoicesList() {
           <div>
             <span className="tag">Admin</span>
             <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, margin: '0 0 4px' }}>Invoices</h1>
-            <p style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
+            <p style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.45)', margin: 0 }}>
               {visible.length} shown · {rows.length} loaded{hasMore ? ' (more available)' : ''}
             </p>
           </div>
-          <Link href="/admin/invoice" style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.35)', color: '#7dffaa', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
+          <Link href="/admin/invoice" style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.35)', color: 'var(--green)', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
             + New invoice
           </Link>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid rgba(122,171,130,0.15)', marginBottom: 14, overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid rgba(var(--border-rgb),0.15)', marginBottom: 14, overflowX: 'auto' }}>
           {TABS.map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              style={{ padding: '10px 16px', background: 'transparent', border: 'none', borderBottom: tab === t.key ? '2px solid #7dffaa' : '2px solid transparent', color: tab === t.key ? '#7dffaa' : 'rgba(212,230,202,0.55)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
+              style={{ padding: '10px 16px', background: 'transparent', border: 'none', borderBottom: tab === t.key ? '2px solid var(--green)' : '2px solid transparent', color: tab === t.key ? 'var(--green)' : 'rgba(var(--text-rgb),0.55)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
               {t.label}
             </button>
           ))}
@@ -170,11 +170,11 @@ export default function InvoicesList() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
           <input type="search" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search customer or invoice #…"
-            style={{ flex: '1 1 200px', padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', outline: 'none' }} />
-          <button onClick={() => setFiltersOpen(!filtersOpen)} style={chip(filtersOpen, '#5bc4ff')}>
+            style={{ flex: '1 1 200px', padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }} />
+          <button onClick={() => setFiltersOpen(!filtersOpen)} style={chip(filtersOpen, 'var(--info)')}>
             + Filters{paymentFilters.size + (datePreset ? 1 : 0) > 0 ? ` (${paymentFilters.size + (datePreset ? 1 : 0)})` : ''}
           </button>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.5)', cursor: 'pointer' }}>
             <input type="checkbox" checked={showSuperseded} onChange={(e) => setShowSuperseded(e.target.checked)} />
             Show superseded
           </label>
@@ -182,27 +182,27 @@ export default function InvoicesList() {
 
         {/* Filter pop-down */}
         {filtersOpen && (
-          <div style={{ marginBottom: 16, padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 8 }}>
+          <div style={{ marginBottom: 16, padding: 14, background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(var(--border-rgb),0.15)', borderRadius: 8 }}>
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(212,230,202,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Payment status</div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(var(--text-rgb),0.45)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Payment status</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {PAYMENT_FILTERS.map((f) => (
-                  <button key={f.key} onClick={() => togglePayment(f.key)} style={chip(paymentFilters.has(f.key), f.key === 'paid' ? '#7dffaa' : f.key === 'past_due' ? '#ff8080' : '#c9a84c')}>
+                  <button key={f.key} onClick={() => togglePayment(f.key)} style={chip(paymentFilters.has(f.key), f.key === 'paid' ? 'var(--green)' : f.key === 'past_due' ? 'var(--danger)' : 'var(--gold)')}>
                     {f.label}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(212,230,202,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Creation date</div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'rgba(var(--text-rgb),0.45)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Creation date</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {DATE_PRESETS.map((p) => (
-                  <button key={p.key} onClick={() => setDatePreset(datePreset === p.key ? null : p.key)} style={chip(datePreset === p.key, '#5bc4ff')}>
+                  <button key={p.key} onClick={() => setDatePreset(datePreset === p.key ? null : p.key)} style={chip(datePreset === p.key, 'var(--info)')}>
                     {p.label}
                   </button>
                 ))}
                 {(paymentFilters.size > 0 || datePreset) && (
-                  <button onClick={() => { setPaymentFilters(new Set()); setDatePreset(null) }} style={{ ...chip(false), color: '#ff8080', borderColor: 'rgba(255,128,128,0.3)' }}>
+                  <button onClick={() => { setPaymentFilters(new Set()); setDatePreset(null) }} style={{ ...chip(false), color: 'var(--danger)', borderColor: 'rgba(var(--danger-rgb),0.3)' }}>
                     Reset all
                   </button>
                 )}
@@ -212,10 +212,10 @@ export default function InvoicesList() {
         )}
 
         {/* Table */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 8, overflow: 'auto' }}>
+        <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(var(--border-rgb),0.12)', borderRadius: 8, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(212,230,202,0.55)', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              <tr style={{ background: 'rgba(0,0,0,0.04)', color: 'rgba(var(--text-rgb),0.55)', fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 <th style={{ padding: '8px 12px', textAlign: 'left', whiteSpace: 'nowrap' }}>Status</th>
                 <th style={{ padding: '8px 12px', textAlign: 'left', whiteSpace: 'nowrap' }}>Created</th>
                 <th style={{ padding: '8px 12px', textAlign: 'left', whiteSpace: 'nowrap' }}>Invoice</th>
@@ -228,23 +228,23 @@ export default function InvoicesList() {
             </thead>
             <tbody>
               {visible.length === 0 && !loading && (
-                <tr><td colSpan={8} style={{ padding: 28, textAlign: 'center', color: 'rgba(212,230,202,0.4)' }}>No invoices match.</td></tr>
+                <tr><td colSpan={8} style={{ padding: 28, textAlign: 'center', color: 'rgba(var(--text-rgb),0.4)' }}>No invoices match.</td></tr>
               )}
               {visible.map((r) => {
                 const isPastDue = r.status === 'open' && r.dueDate && r.dueDate < now
                 return (
-                  <tr key={r.id} style={{ borderTop: '1px solid rgba(122,171,130,0.06)' }}>
+                  <tr key={r.id} style={{ borderTop: '1px solid rgba(var(--border-rgb),0.06)' }}>
                     <td style={{ padding: '9px 12px' }}><StatusPill status={r.status} isPastDue={isPastDue} isSuperseded={r.isSuperseded} /></td>
-                    <td style={{ padding: '9px 12px', color: 'rgba(212,230,202,0.6)', whiteSpace: 'nowrap' }}>{fmtDate(r.created)}</td>
-                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: '0.78rem', color: 'rgba(212,230,202,0.7)', whiteSpace: 'nowrap' }}>{r.number}</td>
+                    <td style={{ padding: '9px 12px', color: 'rgba(var(--text-rgb),0.6)', whiteSpace: 'nowrap' }}>{fmtDate(r.created)}</td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'monospace', fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.7)', whiteSpace: 'nowrap' }}>{r.number}</td>
                     <td style={{ padding: '9px 12px', fontWeight: 700 }}>{r.customerName || '—'}</td>
-                    <td style={{ padding: '9px 12px', color: 'rgba(212,230,202,0.55)', fontSize: '0.78rem' }}>{r.customerEmail || '—'}</td>
-                    <td style={{ padding: '9px 12px', color: isPastDue ? '#ff8080' : 'rgba(212,230,202,0.6)', whiteSpace: 'nowrap', fontWeight: isPastDue ? 800 : 400 }}>{fmtDate(r.dueDate)}</td>
+                    <td style={{ padding: '9px 12px', color: 'rgba(var(--text-rgb),0.55)', fontSize: '0.78rem' }}>{r.customerEmail || '—'}</td>
+                    <td style={{ padding: '9px 12px', color: isPastDue ? 'var(--danger)' : 'rgba(var(--text-rgb),0.6)', whiteSpace: 'nowrap', fontWeight: isPastDue ? 800 : 400 }}>{fmtDate(r.dueDate)}</td>
                     <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>{fmt$(r.total)}</td>
                     <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                       {r.hostedInvoiceUrl && (
                         <a href={r.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer"
-                          style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: 4, background: 'rgba(91,196,255,0.1)', color: '#5bc4ff', fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(91,196,255,0.25)' }}>
+                          style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: 4, background: 'rgba(var(--info-rgb),0.1)', color: 'var(--info)', fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(var(--info-rgb),0.25)' }}>
                           View ↗
                         </a>
                       )}
@@ -259,8 +259,8 @@ export default function InvoicesList() {
         {(loading || hasMore) && (
           <div style={{ marginTop: 12, textAlign: 'center' }}>
             {loading
-              ? <span style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.4)' }}>Loading…</span>
-              : <button onClick={() => loadPage(cursor)} style={{ padding: '7px 14px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'transparent', color: 'rgba(212,230,202,0.7)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
+              ? <span style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.4)' }}>Loading…</span>
+              : <button onClick={() => loadPage(cursor)} style={{ padding: '7px 14px', borderRadius: 5, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'transparent', color: 'rgba(var(--text-rgb),0.7)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
                   Load 100 more
                 </button>
             }

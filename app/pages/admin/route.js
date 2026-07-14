@@ -62,16 +62,16 @@ function RouteCalendar({ days, selectedDay, setSelectedDay, today }) {
       {/* Month nav */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
         <button onClick={() => setViewMonth(({ year, month }) => month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 })}
-          style={{ background: 'none', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#7aab82', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Inter, sans-serif', fontSize: '1rem' }}>‹</button>
+          style={{ background: 'none', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 6, color: 'var(--green-muted)', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Inter, sans-serif', fontSize: '1rem' }}>‹</button>
         <div style={{ fontWeight: 800, fontSize: '0.95rem', flex: 1, textAlign: 'center' }}>{monthLabel}</div>
         <button onClick={() => setViewMonth(({ year, month }) => month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 })}
-          style={{ background: 'none', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#7aab82', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Inter, sans-serif', fontSize: '1rem' }}>›</button>
+          style={{ background: 'none', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 6, color: 'var(--green-muted)', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Inter, sans-serif', fontSize: '1rem' }}>›</button>
       </div>
 
       {/* Day labels */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3, marginBottom: 3 }}>
         {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
-          <div key={d} style={{ textAlign: 'center', fontSize: '0.68rem', fontWeight: 800, color: 'rgba(212,230,202,0.35)', padding: '4px 0' }}>{d}</div>
+          <div key={d} style={{ textAlign: 'center', fontSize: '0.68rem', fontWeight: 800, color: 'rgba(var(--text-rgb),0.35)', padding: '4px 0' }}>{d}</div>
         ))}
       </div>
 
@@ -90,13 +90,13 @@ function RouteCalendar({ days, selectedDay, setSelectedDay, today }) {
               style={{
                 borderRadius: 8, padding: '8px 4px 6px', textAlign: 'center',
                 cursor: hasStops ? 'pointer' : 'default',
-                background: isSelected ? '#7dffaa' : hasStops ? 'rgba(125,255,170,0.08)' : 'transparent',
-                border: isToday ? '2px solid rgba(201,168,76,0.5)' : `1px solid ${hasStops ? 'rgba(125,255,170,0.2)' : 'rgba(122,171,130,0.08)'}`,
+                background: isSelected ? 'var(--green)' : hasStops ? 'rgba(var(--green-rgb),0.08)' : 'transparent',
+                border: isToday ? '2px solid rgba(var(--gold-rgb),0.5)' : `1px solid ${hasStops ? 'rgba(var(--green-rgb),0.2)' : 'rgba(var(--border-rgb),0.08)'}`,
                 transition: 'all 0.12s',
               }}
             >
-              <div style={{ fontWeight: isSelected ? 900 : 700, fontSize: '0.88rem', color: isSelected ? '#0d1a10' : hasStops ? '#d4e6ca' : 'rgba(212,230,202,0.3)' }}>{d}</div>
-              {hasStops && <div style={{ fontSize: '0.62rem', fontWeight: 800, marginTop: 2, color: isSelected ? '#0d1a10' : '#7dffaa' }}>{stopCount} stop{stopCount !== 1 ? 's' : ''}</div>}
+              <div style={{ fontWeight: isSelected ? 900 : 700, fontSize: '0.88rem', color: isSelected ? 'var(--text-on-accent)' : hasStops ? 'var(--text)' : 'var(--text-dim)' }}>{d}</div>
+              {hasStops && <div style={{ fontSize: '0.62rem', fontWeight: 800, marginTop: 2, color: isSelected ? 'var(--text-on-accent)' : 'var(--green)' }}>{stopCount} stop{stopCount !== 1 ? 's' : ''}</div>}
             </div>
           )
         })}
@@ -154,15 +154,15 @@ function RoutePageView({ routePlan, today, planGeneratedAt }) {
     <>
       <Head><title>Route Plan · GreenGuard Admin</title></Head>
       <style>{`
-        .stop-card { display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-bottom: 1px solid rgba(122,171,130,0.1); }
+        .stop-card { display: flex; align-items: flex-start; gap: 14px; padding: 16px; border-bottom: 1px solid rgba(var(--border-rgb),0.1); }
         .stop-card:last-child { border-bottom: none; }
-        .stop-num { width: 32px; height: 32px; border-radius: 50%; background: rgba(125,255,170,0.12); color: #7dffaa; font-weight: 900; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+        .stop-num { width: 32px; height: 32px; border-radius: 50%; background: rgba(var(--green-rgb),0.12); color: var(--green); font-weight: 900; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
         .stop-body { flex: 1; min-width: 0; }
-        .stop-name { font-weight: 800; font-size: 1rem; color: #fff; margin-bottom: 3px; }
-        .stop-time { font-size: 0.8rem; color: #c9a84c; font-weight: 700; margin-bottom: 4px; }
-        .stop-addr { font-size: 0.82rem; color: rgba(212,230,202,0.6); margin-bottom: 10px; word-break: break-word; }
-        .stop-meta { font-size: 0.75rem; color: rgba(212,230,202,0.38); }
-        .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; background: #1a3a26; border: 1px solid rgba(122,171,130,0.3); border-radius: 6px; color: #7dffaa; font-size: 0.8rem; font-weight: 800; text-decoration: none; letter-spacing: 0.04em; white-space: nowrap; }
+        .stop-name { font-weight: 800; font-size: 1rem; color: var(--text); margin-bottom: 3px; }
+        .stop-time { font-size: 0.8rem; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+        .stop-addr { font-size: 0.82rem; color: rgba(var(--text-rgb),0.6); margin-bottom: 10px; word-break: break-word; }
+        .stop-meta { font-size: 0.75rem; color: rgba(var(--text-rgb),0.38); }
+        .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; background: var(--bg-alt); border: 1px solid rgba(var(--border-rgb),0.3); border-radius: 6px; color: var(--green); font-size: 0.8rem; font-weight: 800; text-decoration: none; letter-spacing: 0.04em; white-space: nowrap; }
         .day-tab { padding: 10px 18px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.85rem; font-family: 'Inter', sans-serif; min-height: 44px; transition: all 0.15s; }
         @media (max-width: 480px) {
           .stop-card { padding: 14px 12px; gap: 10px; }
@@ -177,21 +177,21 @@ function RoutePageView({ routePlan, today, planGeneratedAt }) {
         {/* Trigger */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 24, flexWrap: 'wrap' }}>
           <button onClick={triggerOptimizer} disabled={triggering} className="day-tab"
-            style={{ background: triggering ? 'rgba(201,168,76,0.2)' : '#c9a84c', color: triggering ? 'rgba(212,230,202,0.4)' : '#0d1a10', fontWeight: 800, fontSize: '0.82rem' }}>
+            style={{ background: triggering ? 'rgba(var(--gold-rgb),0.2)' : 'var(--gold)', color: triggering ? 'rgba(var(--text-rgb),0.4)' : 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.82rem' }}>
             {triggering ? 'Triggering…' : 'Run Route Optimizer Now'}
           </button>
-          {triggerMsg && <span style={{ fontSize: '0.82rem', color: triggerMsg.startsWith('Error') ? '#ff8080' : '#7dffaa' }}>{triggerMsg}</span>}
+          {triggerMsg && <span style={{ fontSize: '0.82rem', color: triggerMsg.startsWith('Error') ? 'var(--danger)' : 'var(--green)' }}>{triggerMsg}</span>}
         </div>
 
         {routePlan?.source === 'calendar' && (
-          <div style={{ padding: '8px 14px', borderRadius: 6, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', fontSize: '0.82rem', color: '#c9a84c', marginBottom: 16 }}>
+          <div style={{ padding: '8px 14px', borderRadius: 6, background: 'rgba(var(--gold-rgb),0.08)', border: '1px solid rgba(var(--gold-rgb),0.2)', fontSize: '0.82rem', color: 'var(--gold)', marginBottom: 16 }}>
             Showing live Google Calendar data — no optimized route plan yet for this week.
           </div>
         )}
 
         {!routePlan ? (
           <div className="card" style={{ maxWidth: 480 }}>
-            <p style={{ color: 'rgba(212,230,202,0.5)', margin: 0 }}>
+            <p style={{ color: 'rgba(var(--text-rgb),0.5)', margin: 0 }}>
               No appointments found for today and no route plan for this week. The optimizer runs every Monday morning — or trigger it manually above.
             </p>
           </div>
@@ -199,11 +199,11 @@ function RoutePageView({ routePlan, today, planGeneratedAt }) {
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               <span className="tag">Week {routePlan.week}</span>
-              <span style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.4)' }}>
+              <span style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.4)' }}>
                 {days.length} day{days.length !== 1 ? 's' : ''} · {days.reduce((s, d) => s + (d.stops?.length || 0), 0)} total stops
                 {planGeneratedAt && <span style={{ marginLeft: 8 }}>· plan {fmtPlanFreshness(planGeneratedAt)}</span>}
                 {day?.stops?.some((s) => s.hydrated_from_gcal) && (
-                  <span style={{ marginLeft: 8, color: '#7dffaa' }}>· live GCal times</span>
+                  <span style={{ marginLeft: 8, color: 'var(--green)' }}>· live GCal times</span>
                 )}
               </span>
             </div>
@@ -216,17 +216,17 @@ function RoutePageView({ routePlan, today, planGeneratedAt }) {
                 {/* Efficiency */}
                 {efficiencyScore && (() => {
                   const { score, drive, service } = efficiencyScore
-                  const color = score >= 70 ? '#7dffaa' : score >= 50 ? '#c9a84c' : '#ff8080'
+                  const color = score >= 70 ? 'var(--green)' : score >= 50 ? 'var(--gold)' : 'var(--danger)'
                   return (
                     <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, padding: '14px 20px', flexWrap: 'wrap' }}>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontWeight: 900, fontSize: '1.8rem', color, lineHeight: 1 }}>{score}%</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginTop: 2 }}>Efficiency</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.4)', marginTop: 2 }}>Efficiency</div>
                       </div>
-                      <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', minWidth: 80 }}>
+                      <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(0,0,0,0.06)', overflow: 'hidden', minWidth: 80 }}>
                         <div style={{ height: '100%', width: `${score}%`, background: color, borderRadius: 4 }} />
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.5)' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'rgba(var(--text-rgb),0.5)' }}>
                         {service}m service · {drive}m drive
                         {day.total_distance_miles ? ` · ${day.total_distance_miles} mi` : ''}
                       </div>
@@ -236,7 +236,7 @@ function RoutePageView({ routePlan, today, planGeneratedAt }) {
 
                 {/* Day header + open in maps */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-                  <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.55)' }}>
                     {(day.stops || []).length} stops
                     {day.total_drive_time ? ` · ${day.total_drive_time} drive` : ''}
                     {day.total_service_time ? ` · ${day.total_service_time} service` : ''}
@@ -264,15 +264,15 @@ function RoutePageView({ routePlan, today, planGeneratedAt }) {
                             <div className="stop-name">
                               {name}
                               {stop.booking_source === 'legacy' && (
-                                <span style={{ marginLeft: 8, fontSize: '0.62rem', fontWeight: 800, color: '#c9a84c', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 4, padding: '1px 5px', verticalAlign: 'middle', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Legacy</span>
+                                <span style={{ marginLeft: 8, fontSize: '0.62rem', fontWeight: 800, color: 'var(--gold)', background: 'rgba(var(--gold-rgb),0.12)', border: '1px solid rgba(var(--gold-rgb),0.25)', borderRadius: 4, padding: '1px 5px', verticalAlign: 'middle', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Legacy</span>
                               )}
                             </div>
                             {time && <div className="stop-time">{time}</div>}
-                            {stop.service_type && <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c9a84c', marginBottom: 2 }}>{stop.service_type}</div>}
+                            {stop.service_type && <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gold)', marginBottom: 2 }}>{stop.service_type}</div>}
                             <div className="stop-addr">📍 {stop.address || 'No address'}</div>
-                            {stop.tanks > 0 && <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7dffaa', marginBottom: 6 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required</div>}
+                            {stop.tanks > 0 && <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--green)', marginBottom: 6 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''} required</div>}
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-                              <a href={roundsUrl} className="nav-btn" style={{ background: 'rgba(201,168,76,0.15)', borderColor: 'rgba(201,168,76,0.3)', color: '#c9a84c' }}>
+                              <a href={roundsUrl} className="nav-btn" style={{ background: 'rgba(var(--gold-rgb),0.15)', borderColor: 'rgba(var(--gold-rgb),0.3)', color: 'var(--gold)' }}>
                                 Open Rounds
                               </a>
                               {stop.address && (
@@ -283,14 +283,14 @@ function RoutePageView({ routePlan, today, planGeneratedAt }) {
                               {stop.booking_source === 'legacy' ? (
                                 stop.gcal_event_link && (
                                   <a href={stop.gcal_event_link} target="_blank" rel="noopener noreferrer" className="nav-btn"
-                                    style={{ background: 'rgba(201,168,76,0.08)', borderColor: 'rgba(201,168,76,0.2)', color: '#c9a84c' }}>
+                                    style={{ background: 'rgba(var(--gold-rgb),0.08)', borderColor: 'rgba(var(--gold-rgb),0.2)', color: 'var(--gold)' }}>
                                     Edit in GCal
                                   </a>
                                 )
                               ) : (
                                 stop.cal_booking_uid && (
                                   <a href={`https://cal.com/reschedule/${stop.cal_booking_uid}`} target="_blank" rel="noopener noreferrer" className="nav-btn"
-                                    style={{ background: 'rgba(91,196,255,0.08)', borderColor: 'rgba(91,196,255,0.2)', color: '#5bc4ff' }}>
+                                    style={{ background: 'rgba(var(--info-rgb),0.08)', borderColor: 'rgba(var(--info-rgb),0.2)', color: 'var(--info)' }}>
                                     Reschedule
                                   </a>
                                 )
@@ -308,7 +308,7 @@ function RoutePageView({ routePlan, today, planGeneratedAt }) {
 
                 {/* Map — below stop list so address panel doesn't overlap content */}
                 {embedUrl && (
-                  <div style={{ marginTop: 20, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(122,171,130,0.15)' }}>
+                  <div style={{ marginTop: 20, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(var(--border-rgb),0.15)' }}>
                     <iframe src={embedUrl} width="100%" style={{ height: 'min(380px, 60vw)', minHeight: 220, border: 'none', display: 'block' }}
                       allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Route map" />
                   </div>

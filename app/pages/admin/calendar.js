@@ -335,37 +335,37 @@ export default function CalendarPage({ today, initialBookings }) {
       <Head><title>Calendar · GreenGuard Admin</title></Head>
       <PortalLayout isAdmin topPadding="12px">
         <style jsx>{`
-          .hdr-month { display:flex; align-items:center; gap:6px; font-size:1.4rem; font-weight:900; cursor:pointer; color:#d4e6ca; }
+          .hdr-month { display:flex; align-items:center; gap:6px; font-size:1.4rem; font-weight:900; cursor:pointer; color:var(--text-muted); }
           .week-strip { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin:18px 0 12px; }
           .day-cell { display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 0; border-radius:10px; cursor:pointer; user-select:none; }
-          .day-cell.selected { background:#7dffaa; color:#0d1a10; }
-          .day-cell.today { outline:1px dashed rgba(125,255,170,0.5); outline-offset:-2px; }
-          .day-cell:not(.selected):hover { background:rgba(125,255,170,0.06); }
-          .dow { font-size:0.7rem; font-weight:800; letter-spacing:0.08em; color:rgba(212,230,202,0.4); text-transform:uppercase; }
-          .day-cell.selected .dow { color:rgba(13,26,16,0.6); }
+          .day-cell.selected { background:var(--green); color: var(--text-on-accent); }
+          .day-cell.today { outline:1px dashed rgba(var(--green-rgb),0.5); outline-offset:-2px; }
+          .day-cell:not(.selected):hover { background:rgba(var(--green-rgb),0.06); }
+          .dow { font-size:0.7rem; font-weight:800; letter-spacing:0.08em; color:rgba(var(--text-rgb),0.4); text-transform:uppercase; }
+          .day-cell.selected .dow { color:var(--text-on-accent); }
           .dom { font-size:1.05rem; font-weight:800; }
-          .day-title { text-align:center; padding:14px 0 6px; border-top:1px solid rgba(122,171,130,0.15); margin-top:4px; }
-          .day-title-name { font-size:1rem; font-weight:800; color:#d4e6ca; }
-          .day-title-sub { font-size:0.78rem; color:rgba(212,230,202,0.5); margin-top:2px; }
+          .day-title { text-align:center; padding:14px 0 6px; border-top:1px solid rgba(var(--border-rgb),0.15); margin-top:4px; }
+          .day-title-name { font-size:1rem; font-weight:800; color:var(--text-muted); }
+          .day-title-sub { font-size:0.78rem; color:rgba(var(--text-rgb),0.5); margin-top:2px; }
           .grid-wrap { position:relative; margin-top:6px; padding-left:54px; padding-right:8px; }
-          .hour-row { position:absolute; left:0; right:8px; border-top:1px solid rgba(122,171,130,0.12); }
-          .hour-label { position:absolute; left:0; width:46px; transform:translateY(-50%); font-size:0.7rem; font-weight:800; color:rgba(212,230,202,0.4); text-align:right; padding-right:8px; }
-          .now-line { position:absolute; left:54px; right:8px; height:2px; background:#ff5252; z-index:5; pointer-events:none; }
-          .now-dot { position:absolute; left:-5px; top:-4px; width:10px; height:10px; border-radius:50%; background:#ff5252; }
+          .hour-row { position:absolute; left:0; right:8px; border-top:1px solid rgba(var(--border-rgb),0.12); }
+          .hour-label { position:absolute; left:0; width:46px; transform:translateY(-50%); font-size:0.7rem; font-weight:800; color:rgba(var(--text-rgb),0.4); text-align:right; padding-right:8px; }
+          .now-line { position:absolute; left:54px; right:8px; height:2px; background:var(--danger); z-index:5; pointer-events:none; }
+          .now-dot { position:absolute; left:-5px; top:-4px; width:10px; height:10px; border-radius:50%; background:var(--danger); }
           .event-area { position:relative; }
-          .event { position:absolute; box-sizing:border-box; padding:8px 10px; border-radius:10px; background:rgba(189,154,255,0.18); border:1px solid rgba(189,154,255,0.45); color:#e6dcff; font-size:0.82rem; line-height:1.25; overflow:hidden; cursor:pointer; transition:transform 0.08s; }
-          .event:hover { transform:translateY(-1px); background:rgba(189,154,255,0.28); }
-          .event-name { font-weight:800; color:#fff; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-          .event-title { color:rgba(230,220,255,0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.78rem; }
-          .event-time { color:rgba(230,220,255,0.65); font-size:0.72rem; margin-top:2px; }
-          .empty { text-align:center; color:rgba(212,230,202,0.45); padding:40px 16px; font-size:0.9rem; }
-          .fab { position:fixed; right:24px; bottom:96px; width:56px; height:56px; border-radius:50%; background:#0d1a10; color:#7dffaa; font-size:1.6rem; border:1px solid rgba(125,255,170,0.4); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(0,0,0,0.4); cursor:pointer; z-index:10; text-decoration:none; }
+          .event { position:absolute; box-sizing:border-box; padding:8px 10px; border-radius:10px; background:rgba(var(--info-rgb),0.18); border:1px solid rgba(var(--info-rgb),0.45); color:var(--text); font-size:0.82rem; line-height:1.25; overflow:hidden; cursor:pointer; transition:transform 0.08s; }
+          .event:hover { transform:translateY(-1px); background:rgba(var(--info-rgb),0.28); }
+          .event-name { font-weight:800; color:var(--text); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+          .event-title { color:rgba(var(--text-rgb),0.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.78rem; }
+          .event-time { color:rgba(var(--text-rgb),0.65); font-size:0.72rem; margin-top:2px; }
+          .empty { text-align:center; color:rgba(var(--text-rgb),0.45); padding:40px 16px; font-size:0.9rem; }
+          .fab { position:fixed; right:24px; bottom:96px; width:56px; height:56px; border-radius:50%; background: var(--bg-card); color:var(--green); font-size:1.6rem; border:1px solid rgba(var(--green-rgb),0.4); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(0,0,0,0.4); cursor:pointer; z-index:10; text-decoration:none; }
           .ctrl-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
           .ctrl-right { display:flex; gap:6px; align-items:center; }
-          .view-seg { display:flex; border:1px solid rgba(122,171,130,0.25); border-radius:6; overflow:hidden; }
-          .view-btn { background:transparent; color:rgba(212,230,202,0.6); border:none; border-left:1px solid rgba(122,171,130,0.25); padding:6px 10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:Inter,sans-serif; text-transform:capitalize; }
+          .view-seg { display:flex; border:1px solid rgba(var(--border-rgb),0.25); border-radius:6; overflow:hidden; }
+          .view-btn { background:transparent; color:rgba(var(--text-rgb),0.6); border:none; border-left:1px solid rgba(var(--border-rgb),0.25); padding:6px 10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:Inter,sans-serif; text-transform:capitalize; }
           .view-btn:first-child { border-left:none; }
-          .view-btn.active { background:#7dffaa; color:#0d1a10; }
+          .view-btn.active { background:var(--green); color: var(--text-on-accent); }
           @media (max-width:430px) {
             .ctrl-right { gap:3px; }
             .view-btn { padding:6px 6px; font-size:0.72rem; }
@@ -381,13 +381,13 @@ export default function CalendarPage({ today, initialBookings }) {
             <div className="ctrl-right">
               <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() - 7); setDate(d.toLocaleDateString('en-CA')) }}
                 aria-label="Previous week"
-                style={{ background:'transparent', border:'1px solid rgba(122,171,130,0.25)', color:'rgba(212,230,202,0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer' }}>‹</button>
-              <button onClick={() => setDate(today_)} style={{ background:'transparent', border:'1px solid rgba(125,255,170,0.3)', color:'#7dffaa', padding:'6px 14px', borderRadius:6, fontWeight:800, fontSize:'0.78rem', cursor:'pointer' }}>
+                style={{ background:'transparent', border:'1px solid rgba(var(--border-rgb),0.25)', color:'rgba(var(--text-rgb),0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer' }}>‹</button>
+              <button onClick={() => setDate(today_)} style={{ background:'transparent', border:'1px solid rgba(var(--green-rgb),0.3)', color:'var(--green)', padding:'6px 14px', borderRadius:6, fontWeight:800, fontSize:'0.78rem', cursor:'pointer' }}>
                 Today
               </button>
               <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + 7); setDate(d.toLocaleDateString('en-CA')) }}
                 aria-label="Next week"
-                style={{ background:'transparent', border:'1px solid rgba(122,171,130,0.25)', color:'rgba(212,230,202,0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer' }}>›</button>
+                style={{ background:'transparent', border:'1px solid rgba(var(--border-rgb),0.25)', color:'rgba(var(--text-rgb),0.7)', padding:'6px 10px', borderRadius:6, fontWeight:800, fontSize:'0.85rem', cursor:'pointer' }}>›</button>
             </div>
           </div>
           <div className="view-seg" style={{ width:'100%' }}>
@@ -402,7 +402,7 @@ export default function CalendarPage({ today, initialBookings }) {
           {(viewMode === 'agenda' || viewMode === 'day') && bookings.length > 0 && (
             <button onClick={refreshMyDistance} disabled={myDistLoading}
               title="Driving distance from your current location to each stop"
-              style={{ alignSelf:'flex-start', padding:'10px 16px', borderRadius:8, border:'1px solid rgba(91,196,255,0.35)', background:'rgba(91,196,255,0.08)', color:'#5bc4ff', fontSize:'0.9rem', fontWeight:800, fontFamily:'Inter,sans-serif', cursor: myDistLoading ? 'wait' : 'pointer', opacity: myDistLoading ? 0.6 : 1 }}>
+              style={{ alignSelf:'flex-start', padding:'10px 16px', borderRadius:8, border:'1px solid rgba(var(--info-rgb),0.35)', background:'rgba(var(--info-rgb),0.08)', color:'var(--info)', fontSize:'0.9rem', fontWeight:800, fontFamily:'Inter,sans-serif', cursor: myDistLoading ? 'wait' : 'pointer', opacity: myDistLoading ? 0.6 : 1 }}>
               {myDistLoading ? 'Locating…' : 'My Distance'}
             </button>
           )}
@@ -410,7 +410,7 @@ export default function CalendarPage({ today, initialBookings }) {
 
         {picker && (
           <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setPicker(false) }}
-            style={{ marginTop:10, width:'100%', padding:'10px 14px', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(122,171,130,0.25)', borderRadius:8, color:'#d4e6ca', fontSize:'1rem' }} />
+            style={{ marginTop:10, width:'100%', padding:'10px 14px', background:'var(--bg-card)', border:'1px solid rgba(var(--border-rgb),0.25)', borderRadius:8, color:'var(--text)', fontSize:'1rem' }} />
         )}
 
         <div className="week-strip">
@@ -449,8 +449,8 @@ export default function CalendarPage({ today, initialBookings }) {
               return (
                 <div key={ev.id}>
                 {leg && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0 8px 8px', fontSize: '0.74rem', fontWeight: 700, color: 'rgba(212,230,202,0.45)' }}>
-                    <span style={{ borderLeft: '2px dotted rgba(125,255,170,0.35)', height: 14, marginLeft: 2 }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0 8px 8px', fontSize: '0.74rem', fontWeight: 700, color: 'rgba(var(--text-rgb),0.45)' }}>
+                    <span style={{ borderLeft: '2px dotted rgba(var(--green-rgb),0.35)', height: 14, marginLeft: 2 }} />
                     {leg.duration} drive · {leg.text}
                   </div>
                 )}
@@ -459,32 +459,32 @@ export default function CalendarPage({ today, initialBookings }) {
                     cursor: 'pointer',
                     padding: '14px 16px',
                     borderRadius: 12,
-                    background: 'rgba(189,154,255,0.14)',
-                    border: `1px solid ${isSelected ? '#c9a84c' : 'rgba(189,154,255,0.35)'}`,
-                    color: '#e6dcff',
+                    background: 'rgba(var(--info-rgb),0.14)',
+                    border: `1px solid ${isSelected ? 'var(--gold)' : 'rgba(var(--info-rgb),0.35)'}`,
+                    color: 'var(--text)',
                     transition: 'transform 0.08s',
                   }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                     {ev.customerName || 'Customer'}
                     {tanks != null && (
-                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#7dffaa', background: 'rgba(125,255,170,0.12)', border: '1px solid rgba(125,255,170,0.3)', padding: '2px 7px', borderRadius: 4 }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--green)', background: 'rgba(var(--green-rgb),0.12)', border: '1px solid rgba(var(--green-rgb),0.3)', padding: '2px 7px', borderRadius: 4 }}>
                         🛢 {tanks} tank{tanks === 1 ? '' : 's'}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '0.88rem', color: 'rgba(230,220,255,0.85)', lineHeight: 1.4, marginBottom: 4 }}>
+                  <div style={{ fontSize: '0.88rem', color: 'rgba(var(--text-rgb),0.85)', lineHeight: 1.4, marginBottom: 4 }}>
                     {ev.title}
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: 'rgba(230,220,255,0.7)', marginBottom: 4 }}>
+                  <div style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.7)', marginBottom: 4 }}>
                     {fmtTime(ev.startTime)}{ev.endTime ? `–${fmtTime(ev.endTime)}` : ''} · GreenGuard USA
                   </div>
                   {ev.address && (
-                    <div style={{ fontSize: '0.82rem', color: 'rgba(230,220,255,0.65)' }}>
+                    <div style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.65)' }}>
                       📍 {ev.address}
                     </div>
                   )}
                   {myDistances[ev.id] && (
-                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5bc4ff', marginTop: 4 }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--info)', marginTop: 4 }}>
                       {myDistances[ev.id].text} · {myDistances[ev.id].duration} from you
                     </div>
                   )}
@@ -521,12 +521,12 @@ export default function CalendarPage({ today, initialBookings }) {
                 const tanks = tanksFor(ev)
                 return (
                   <div key={ev.id} className="event"
-                    style={{ top, left, width: colWidth, height, ...(selectedEventId === ev.id ? { outline: '2px solid #c9a84c', outlineOffset: 1 } : {}) }}
+                    style={{ top, left, width: colWidth, height, ...(selectedEventId === ev.id ? { outline: '2px solid var(--gold)', outlineOffset: 1 } : {}) }}
                     title={`${ev.customerName} · ${ev.title}\n${fmtTime(ev.startTime)}–${fmtTime(ev.endTime)}\n${ev.address || ''}`}
                     onClick={() => setSelectedEventId(ev.id)}>
                     <div className="event-name">
                       {ev.customerName || 'Customer'}
-                      {tanks != null && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: '#7dffaa' }}>🛢{tanks}</span>}
+                      {tanks != null && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--green)' }}>🛢{tanks}</span>}
                     </div>
                     <div className="event-title">{ev.title}</div>
                     <div className="event-time">{fmtTime(ev.startTime)}–{fmtTime(ev.endTime)}</div>
@@ -545,22 +545,22 @@ export default function CalendarPage({ today, initialBookings }) {
               const dayTanks = dayBookings.reduce((s, ev) => s + (tanksFor(ev) || 0), 0)
               const isToday = d === today_
               return (
-                <div key={d} style={{ minHeight: 200, padding: 8, borderRadius: 8, background: isWeekend(d) ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isToday ? 'rgba(125,255,170,0.4)' : 'rgba(122,171,130,0.12)'}`, display: 'flex', flexDirection: 'column', gap: 4, opacity: isWeekend(d) ? 0.5 : 1 }}>
+                <div key={d} style={{ minHeight: 200, padding: 8, borderRadius: 8, background: isWeekend(d) ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.02)', border: `1px solid ${isToday ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--border-rgb),0.12)'}`, display: 'flex', flexDirection: 'column', gap: 4, opacity: isWeekend(d) ? 0.5 : 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isToday ? '#7dffaa' : 'rgba(212,230,202,0.55)' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isToday ? 'var(--green)' : 'rgba(var(--text-rgb),0.55)' }}>
                       {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dd.getDay()]} {dd.getDate()}
                     </div>
-                    {dayTanks > 0 && <span style={{ fontSize: '0.62rem', color: '#7dffaa', fontWeight: 800 }}>🛢{dayTanks}</span>}
+                    {dayTanks > 0 && <span style={{ fontSize: '0.62rem', color: 'var(--green)', fontWeight: 800 }}>🛢{dayTanks}</span>}
                   </div>
-                  {dayBookings.length === 0 && <div style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.2)', textAlign: 'center', padding: '20px 0' }}>—</div>}
+                  {dayBookings.length === 0 && <div style={{ fontSize: '0.7rem', color: 'rgba(var(--text-rgb),0.2)', textAlign: 'center', padding: '20px 0' }}>—</div>}
                   {dayBookings.map((ev) => {
                     const tanks = tanksFor(ev)
                     return (
                       <div key={ev.id} onClick={() => setSelectedEventId(ev.id)}
-                        style={{ padding: '4px 6px', borderRadius: 4, background: 'rgba(189,154,255,0.16)', border: '1px solid rgba(189,154,255,0.3)', color: '#e6dcff', fontSize: '0.7rem', cursor: 'pointer', lineHeight: 1.3 }}>
-                        <div style={{ fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        style={{ padding: '4px 6px', borderRadius: 4, background: 'rgba(var(--info-rgb),0.16)', border: '1px solid rgba(var(--info-rgb),0.3)', color: 'var(--text)', fontSize: '0.7rem', cursor: 'pointer', lineHeight: 1.3 }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {fmtTime(ev.startTime)} {ev.customerName?.split(' ')[0] || '?'}
-                          {tanks != null && <span style={{ marginLeft: 4, color: '#7dffaa' }}>🛢{tanks}</span>}
+                          {tanks != null && <span style={{ marginLeft: 4, color: 'var(--green)' }}>🛢{tanks}</span>}
                         </div>
                       </div>
                     )
@@ -586,9 +586,9 @@ export default function CalendarPage({ today, initialBookings }) {
                 const dayTanks = dayBookings.reduce((s, ev) => s + (tanksFor(ev) || 0), 0)
                 return (
                   <div key={d} onClick={() => { setDate(d); setViewMode('day') }}
-                    style={{ minHeight: 52, padding: '5px 4px 4px', borderRadius: 6, background: weekend ? 'rgba(0,0,0,0.1)' : inMonth ? 'rgba(255,255,255,0.025)' : 'transparent', border: `1px solid ${isToday ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.15)'}`, cursor: 'pointer', opacity: inMonth ? (weekend ? 0.45 : 1) : 0.25, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                    style={{ minHeight: 52, padding: '5px 4px 4px', borderRadius: 6, background: weekend ? 'rgba(0,0,0,0.1)' : inMonth ? 'rgba(0,0,0,0.025)' : 'transparent', border: `1px solid ${isToday ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.15)'}`, cursor: 'pointer', opacity: inMonth ? (weekend ? 0.45 : 1) : 0.25, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                     <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isToday ? 'var(--green)' : 'transparent', flexShrink: 0 }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: isToday ? 900 : 600, color: isToday ? 'var(--bg-deep)' : 'var(--text-muted)', lineHeight: 1 }}>{dd.getDate()}</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: isToday ? 900 : 600, color: isToday ? 'var(--text-on-accent)' : 'var(--text-muted)', lineHeight: 1 }}>{dd.getDate()}</span>
                     </div>
                     {dayBookings.length > 0 && (
                       <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--green)', lineHeight: 1.3, textAlign: 'center' }}>

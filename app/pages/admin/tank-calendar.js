@@ -230,13 +230,13 @@ function fmtWed(isoStr) {
 }
 
 const S = {
-  card: { background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 10, padding: '16px 20px' },
-  input: { width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6, color: '#d4e6ca', fontSize: '0.88rem', boxSizing: 'border-box', fontFamily: 'inherit' },
-  label: { display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4, color: 'rgba(212,230,202,0.55)', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  card: { background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.2)', borderRadius: 10, padding: '16px 20px' },
+  input: { width: '100%', padding: '9px 12px', background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 6, color: 'var(--text)', fontSize: '0.88rem', boxSizing: 'border-box', fontFamily: 'inherit' },
+  label: { display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: 4, color: 'rgba(var(--text-rgb),0.55)', textTransform: 'uppercase', letterSpacing: '0.06em' },
   badge: (status) => ({
     display: 'inline-block', padding: '2px 8px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700,
-    background: status === 'short' ? 'rgba(255,80,80,0.15)' : status === 'low' ? 'rgba(201,168,76,0.2)' : 'rgba(125,255,170,0.1)',
-    color: status === 'short' ? '#ff6060' : status === 'low' ? '#c9a84c' : '#7dffaa',
+    background: status === 'short' ? 'rgba(var(--danger-rgb),0.15)' : status === 'low' ? 'rgba(var(--gold-rgb),0.2)' : 'rgba(var(--green-rgb),0.1)',
+    color: status === 'short' ? 'var(--danger)' : status === 'low' ? 'var(--gold)' : 'var(--green)',
   }),
 }
 
@@ -246,20 +246,20 @@ function SummaryBar({ summary, todayLoad }) {
   if (!summary) return null
   const { fullTanks, emptyTanks, damagedTotal, totalPool, nextDelivery, nextWednesday } = summary
   const stats = [
-    ...(todayLoad ? [{ label: `Today's load (${todayLoad.appts || 0} appts)`, value: todayLoad.tanks, color: todayLoad.tanks > fullTanks ? '#ff8080' : '#7dffaa', note: todayLoad.tanks > fullTanks ? `short ${todayLoad.tanks - fullTanks}` : 'tanks needed' }] : []),
-    { label: 'Full Tanks', value: fullTanks, color: '#7dffaa' },
-    { label: 'Empty Tanks', value: emptyTanks, color: '#d4e6ca' },
-    { label: 'Damaged (out)', value: damagedTotal, color: '#c9a84c' },
-    { label: 'Total Tanks', value: totalPool, color: '#d4e6ca', note: 'incl. damaged' },
-    { label: `Delivery ${fmtWed(nextWednesday)}`, value: `+${nextDelivery}`, color: '#c9a84c' },
+    ...(todayLoad ? [{ label: `Today's load (${todayLoad.appts || 0} appts)`, value: todayLoad.tanks, color: todayLoad.tanks > fullTanks ? 'var(--danger)' : 'var(--green)', note: todayLoad.tanks > fullTanks ? `short ${todayLoad.tanks - fullTanks}` : 'tanks needed' }] : []),
+    { label: 'Full Tanks', value: fullTanks, color: 'var(--green)' },
+    { label: 'Empty Tanks', value: emptyTanks, color: 'var(--text-muted)' },
+    { label: 'Damaged (out)', value: damagedTotal, color: 'var(--gold)' },
+    { label: 'Total Tanks', value: totalPool, color: 'var(--text-muted)', note: 'incl. damaged' },
+    { label: `Delivery ${fmtWed(nextWednesday)}`, value: `+${nextDelivery}`, color: 'var(--gold)' },
   ]
   return (
     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
       {stats.map(({ label, value, color, note }) => (
         <div key={label} style={{ ...S.card, minWidth: 110, textAlign: 'center' }}>
           <div style={{ fontSize: '1.6rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
-          <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)', marginTop: 4, fontWeight: 700 }}>{label}</div>
-          {note && <div style={{ fontSize: '0.65rem', color: 'rgba(212,230,202,0.35)' }}>{note}</div>}
+          <div style={{ fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.5)', marginTop: 4, fontWeight: 700 }}>{label}</div>
+          {note && <div style={{ fontSize: '0.65rem', color: 'rgba(var(--text-rgb),0.35)' }}>{note}</div>}
         </div>
       ))}
     </div>
@@ -273,9 +273,9 @@ function AlertsBanner({ alerts }) {
       {alerts.map((a, i) => (
         <div key={i} style={{
           padding: '12px 16px', borderRadius: 8, fontSize: '0.88rem', fontWeight: 600,
-          background: a.level === 'error' ? 'rgba(255,80,80,0.1)' : 'rgba(201,168,76,0.1)',
-          border: `1px solid ${a.level === 'error' ? 'rgba(255,80,80,0.3)' : 'rgba(201,168,76,0.3)'}`,
-          color: a.level === 'error' ? '#ff8080' : '#c9a84c',
+          background: a.level === 'error' ? 'rgba(var(--danger-rgb),0.1)' : 'rgba(var(--gold-rgb),0.1)',
+          border: `1px solid ${a.level === 'error' ? 'rgba(var(--danger-rgb),0.3)' : 'rgba(var(--gold-rgb),0.3)'}`,
+          color: a.level === 'error' ? 'var(--danger)' : 'var(--gold)',
         }}>
           {a.type === 'shortage'
             ? `🔴 Shortage projected ${fmtDate(a.affectedDate)} — ${a.deficit} tank${a.deficit !== 1 ? 's' : ''} short`
@@ -303,10 +303,10 @@ function ExchangeForm({ weekDate, onSubmit, onCancel, submitting }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: '16px 20px', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(122,171,130,0.15)' }}>
+    <form onSubmit={handleSubmit} style={{ padding: '16px 20px', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(var(--border-rgb),0.15)' }}>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        <button type="button" onClick={() => setMode('exchange')} style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(122,171,130,0.4)', background: mode === 'exchange' ? 'rgba(122,171,130,0.15)' : 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '0.8rem' }}>Log Exchange</button>
-        <button type="button" onClick={() => setMode('override')} style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(122,171,130,0.4)', background: mode === 'override' ? 'rgba(122,171,130,0.15)' : 'transparent', color: '#d4e6ca', cursor: 'pointer', fontSize: '0.8rem' }}>Override Stock</button>
+        <button type="button" onClick={() => setMode('exchange')} style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(var(--border-rgb),0.4)', background: mode === 'exchange' ? 'rgba(var(--border-rgb),0.15)' : 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}>Log Exchange</button>
+        <button type="button" onClick={() => setMode('override')} style={{ padding: '4px 12px', borderRadius: 20, border: '1px solid rgba(var(--border-rgb),0.4)', background: mode === 'override' ? 'rgba(var(--border-rgb),0.15)' : 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}>Override Stock</button>
       </div>
 
       {mode === 'exchange' ? (
@@ -343,7 +343,7 @@ function ExchangeForm({ weekDate, onSubmit, onCancel, submitting }) {
         <button type="submit" disabled={submitting} className="btn-gold" style={{ minWidth: 100 }}>
           {submitting ? 'Saving…' : 'Save'}
         </button>
-        <button type="button" onClick={onCancel} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(122,171,130,0.3)', borderRadius: 6, color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '0.88rem' }}>Cancel</button>
+        <button type="button" onClick={onCancel} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(var(--border-rgb),0.3)', borderRadius: 6, color: 'rgba(var(--text-rgb),0.6)', cursor: 'pointer', fontSize: '0.88rem' }}>Cancel</button>
       </div>
     </form>
   )
@@ -408,15 +408,15 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
     daysByWeek[day.weekOf].push(day)
   }
 
-  const thStyle = { padding: '8px 12px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(122,171,130,0.15)', whiteSpace: 'nowrap' }
-  const tdStyle = (highlight) => ({ padding: '7px 12px', fontSize: '0.85rem', color: highlight ? '#ff6060' : '#d4e6ca', fontWeight: highlight ? 700 : 400, borderBottom: '1px solid rgba(122,171,130,0.06)' })
+  const thStyle = { padding: '8px 12px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: 'rgba(var(--text-rgb),0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(var(--border-rgb),0.15)', whiteSpace: 'nowrap' }
+  const tdStyle = (highlight) => ({ padding: '7px 12px', fontSize: '0.85rem', color: highlight ? 'var(--danger)' : 'var(--text-muted)', fontWeight: highlight ? 700 : 400, borderBottom: '1px solid rgba(var(--border-rgb),0.06)' })
 
   return (
     <>
       <Head><title>Tank Calendar · GreenGuard Admin</title></Head>
       <PortalLayout title="Tank Calendar" isAdmin={isAdmin}>
         {toast && (
-          <div style={{ position: 'fixed', top: 70, right: 20, padding: '10px 20px', background: toast === 'Saved' ? 'rgba(125,255,170,0.15)' : 'rgba(255,80,80,0.15)', border: `1px solid ${toast === 'Saved' ? 'rgba(125,255,170,0.4)' : 'rgba(255,80,80,0.4)'}`, borderRadius: 8, color: toast === 'Saved' ? '#7dffaa' : '#ff8080', fontWeight: 700, fontSize: '0.88rem', zIndex: 999 }}>
+          <div style={{ position: 'fixed', top: 70, right: 20, padding: '10px 20px', background: toast === 'Saved' ? 'rgba(var(--green-rgb),0.15)' : 'rgba(var(--danger-rgb),0.15)', border: `1px solid ${toast === 'Saved' ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--danger-rgb),0.4)'}`, borderRadius: 8, color: toast === 'Saved' ? 'var(--green)' : 'var(--danger)', fontWeight: 700, fontSize: '0.88rem', zIndex: 999 }}>
             {toast}
           </div>
         )}
@@ -426,7 +426,7 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
 
         {/* Projection table */}
         <div style={{ ...S.card, padding: 0, overflow: 'hidden', marginBottom: 32 }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(122,171,130,0.15)', fontSize: '0.8rem', color: 'rgba(212,230,202,0.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(var(--border-rgb),0.15)', fontSize: '0.8rem', color: 'rgba(var(--text-rgb),0.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             8-Week Tank Projection — click a week to expand daily detail
           </div>
           <div style={{ overflowX: 'auto' }}>
@@ -452,12 +452,12 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
                     <React.Fragment key={`week-${wk.wednesday}`}>
                       <tr
                         onClick={() => toggleWeek(wk.wednesday)}
-                        style={{ cursor: 'pointer', background: hasIssue ? (wk.worstStatus === 'short' ? 'rgba(255,80,80,0.06)' : 'rgba(201,168,76,0.06)') : 'rgba(255,255,255,0.02)' }}
+                        style={{ cursor: 'pointer', background: hasIssue ? (wk.worstStatus === 'short' ? 'rgba(var(--danger-rgb),0.06)' : 'rgba(var(--gold-rgb),0.06)') : 'rgba(0,0,0,0.02)' }}
                       >
-                        <td style={{ ...tdStyle(false), fontWeight: 700, color: '#7dffaa' }}>
+                        <td style={{ ...tdStyle(false), fontWeight: 700, color: 'var(--green)' }}>
                           {isOpen ? '▾' : '▸'} Week of {fmtWed(wk.wednesday)}
                         </td>
-                        <td style={tdStyle(false)}>{wk.delivery > 0 ? <span style={{ color: '#7dffaa', fontWeight: 700 }}>+{wk.delivery}</span> : '—'}</td>
+                        <td style={tdStyle(false)}>{wk.delivery > 0 ? <span style={{ color: 'var(--green)', fontWeight: 700 }}>+{wk.delivery}</span> : '—'}</td>
                         <td style={tdStyle(false)}>{wk.startStock}</td>
                         <td style={tdStyle(false)}>{wk.totalAppts || '—'}</td>
                         <td style={tdStyle(false)}>{wk.totalTanksNeeded || '—'}</td>
@@ -469,13 +469,13 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
                         <React.Fragment key={`day-${day.date}`}>
                           <tr
                             onClick={() => router.push(`/admin/calendar?date=${day.date}&view=day`)}
-                            style={{ background: day.status === 'short' ? 'rgba(255,80,80,0.08)' : day.status === 'low' ? 'rgba(201,168,76,0.05)' : 'transparent', cursor: 'pointer' }}
+                            style={{ background: day.status === 'short' ? 'rgba(var(--danger-rgb),0.08)' : day.status === 'low' ? 'rgba(var(--gold-rgb),0.05)' : 'transparent', cursor: 'pointer' }}
                           >
-                            <td style={{ ...tdStyle(false), paddingLeft: 28, borderLeft: day.isWednesday ? '3px solid #c9a84c' : '3px solid transparent', color: day.isWednesday ? '#c9a84c' : '#d4e6ca', fontWeight: day.isWednesday ? 700 : 400 }}>
+                            <td style={{ ...tdStyle(false), paddingLeft: 28, borderLeft: day.isWednesday ? '3px solid var(--gold)' : '3px solid transparent', color: day.isWednesday ? 'var(--gold)' : 'var(--text-muted)', fontWeight: day.isWednesday ? 700 : 400 }}>
                               {fmtDate(day.date)}{day.isWednesday ? ' 🚚' : ''}
-                              {day.isOverridden && <span style={{ marginLeft: 6, fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)' }}>override</span>}
+                              {day.isOverridden && <span style={{ marginLeft: 6, fontSize: '0.7rem', color: 'rgba(var(--text-rgb),0.4)' }}>override</span>}
                             </td>
-                            <td style={tdStyle(false)}>{day.delivery > 0 ? <span style={{ color: '#7dffaa', fontWeight: 700 }}>+{day.delivery}</span> : '—'}</td>
+                            <td style={tdStyle(false)}>{day.delivery > 0 ? <span style={{ color: 'var(--green)', fontWeight: 700 }}>+{day.delivery}</span> : '—'}</td>
                             <td style={tdStyle(false)}>{day.fullsAvailable}</td>
                             <td style={tdStyle(false)}>{day.appointments || '—'}</td>
                             <td style={tdStyle(false)}>{day.tanksNeeded || '—'}</td>
@@ -485,7 +485,7 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
                               {day.isWednesday && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setFormWeek(formWeek === day.date ? null : day.date) }}
-                                  style={{ padding: '3px 10px', background: day.logged ? 'rgba(125,255,170,0.1)' : 'rgba(201,168,76,0.15)', border: `1px solid ${day.logged ? 'rgba(125,255,170,0.3)' : 'rgba(201,168,76,0.3)'}`, borderRadius: 4, color: day.logged ? '#7dffaa' : '#c9a84c', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
+                                  style={{ padding: '3px 10px', background: day.logged ? 'rgba(var(--green-rgb),0.1)' : 'rgba(var(--gold-rgb),0.15)', border: `1px solid ${day.logged ? 'rgba(var(--green-rgb),0.3)' : 'rgba(var(--gold-rgb),0.3)'}`, borderRadius: 4, color: day.logged ? 'var(--green)' : 'var(--gold)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}
                                 >
                                   {day.logged ? '✓ Logged' : 'Log'}
                                 </button>
@@ -519,22 +519,22 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
         <div style={S.card}>
           <button
             onClick={() => setHistoryOpen((o) => !o)}
-            style={{ width: '100%', background: 'transparent', border: 'none', color: '#d4e6ca', cursor: 'pointer', textAlign: 'left', padding: 0, fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(212,230,202,0.5)' }}
+            style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', textAlign: 'left', padding: 0, fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(var(--text-rgb),0.5)' }}
           >
             {historyOpen ? '▾' : '▸'} Exchange History (last 10)
           </button>
           {historyOpen && (
             <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
-              {!exchangeHistory?.length && <div style={{ color: 'rgba(212,230,202,0.4)', fontSize: '0.88rem' }}>No exchanges logged yet.</div>}
+              {!exchangeHistory?.length && <div style={{ color: 'rgba(var(--text-rgb),0.4)', fontSize: '0.88rem' }}>No exchanges logged yet.</div>}
               {exchangeHistory?.map((r, i) => (
-                <div key={i} style={{ padding: '12px 16px', background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', borderRadius: 8, border: '1px solid rgba(122,171,130,0.15)', fontSize: '0.85rem' }}>
-                  <div style={{ fontWeight: 700, color: '#c9a84c', marginBottom: 6 }}>{r.week ? `Week of ${fmtWed(r.week)}` : 'Exchange record'}</div>
+                <div key={i} style={{ padding: '12px 16px', background: 'var(--bg-card)', borderRadius: 8, border: '1px solid rgba(var(--border-rgb),0.15)', fontSize: '0.85rem' }}>
+                  <div style={{ fontWeight: 700, color: 'var(--gold)', marginBottom: 6 }}>{r.week ? `Week of ${fmtWed(r.week)}` : 'Exchange record'}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '4px 16px' }}>
-                    <span><span style={{ color: 'rgba(212,230,202,0.5)' }}>Empties out: </span>{r.emptiesPickedUp}</span>
-                    <span><span style={{ color: 'rgba(212,230,202,0.5)' }}>Fulls received: </span>{r.fullsReceived}</span>
-                    <span><span style={{ color: 'rgba(212,230,202,0.5)' }}>Damaged removed: </span>{r.damagedTanks}</span>
+                    <span><span style={{ color: 'rgba(var(--text-rgb),0.5)' }}>Empties out: </span>{r.emptiesPickedUp}</span>
+                    <span><span style={{ color: 'rgba(var(--text-rgb),0.5)' }}>Fulls received: </span>{r.fullsReceived}</span>
+                    <span><span style={{ color: 'rgba(var(--text-rgb),0.5)' }}>Damaged removed: </span>{r.damagedTanks}</span>
                   </div>
-                  {r.notes && <div style={{ marginTop: 6, color: 'rgba(212,230,202,0.5)', fontSize: '0.8rem' }}>{r.notes}</div>}
+                  {r.notes && <div style={{ marginTop: 6, color: 'rgba(var(--text-rgb),0.5)', fontSize: '0.8rem' }}>{r.notes}</div>}
                 </div>
               ))}
             </div>

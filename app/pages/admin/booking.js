@@ -100,15 +100,15 @@ export default function AdminBooking() {
 
   const input = {
     width: '100%', padding: '10px 12px',
-    border: '1px solid rgba(122,171,130,0.25)',
+    border: '1px solid rgba(var(--border-rgb),0.25)',
     borderRadius: 8, fontSize: 15,
-    background: 'rgba(255,255,255,0.04)', color: '#d4e6ca',
+    background: 'var(--bg-card)', color: 'var(--text)',
     outline: 'none',
   }
 
   const label = {
     display: 'block', fontSize: 13, fontWeight: 700,
-    color: 'rgba(212,230,202,0.6)', marginBottom: 6,
+    color: 'rgba(var(--text-rgb),0.6)', marginBottom: 6,
   }
 
   const field = { marginBottom: 18 }
@@ -122,13 +122,13 @@ export default function AdminBooking() {
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 8px' }}>
             New Booking
           </h1>
-          <p style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.45)', marginBottom: 32 }}>
+          <p style={{ fontSize: '0.88rem', color: 'rgba(var(--text-rgb),0.45)', marginBottom: 32 }}>
             Create a booking on behalf of a customer
           </p>
 
           {status?.success && (
-            <div className="card" style={{ marginBottom: 24, borderColor: 'rgba(125,255,170,0.3)', background: 'rgba(125,255,170,0.06)' }}>
-              <p style={{ color: '#7dffaa', fontWeight: 700, margin: 0 }}>
+            <div className="card" style={{ marginBottom: 24, borderColor: 'rgba(var(--green-rgb),0.3)', background: 'rgba(var(--green-rgb),0.06)' }}>
+              <p style={{ color: 'var(--green)', fontWeight: 700, margin: 0 }}>
                 {status.recurring
                   ? `${status.count} recurring appointments created successfully!`
                   : 'Booking created!'}
@@ -137,8 +137,8 @@ export default function AdminBooking() {
           )}
 
           {status?.error && (
-            <div className="card" style={{ marginBottom: 24, borderColor: 'rgba(255,100,100,0.3)', background: 'rgba(255,80,80,0.06)' }}>
-              <p style={{ color: '#ff8080', fontWeight: 700, margin: 0 }}>{status.error}</p>
+            <div className="card" style={{ marginBottom: 24, borderColor: 'rgba(var(--danger-rgb),0.3)', background: 'rgba(var(--danger-rgb),0.06)' }}>
+              <p style={{ color: 'var(--danger)', fontWeight: 700, margin: 0 }}>{status.error}</p>
             </div>
           )}
 
@@ -146,7 +146,7 @@ export default function AdminBooking() {
             <div style={field}>
               <label style={label}>Service Type</label>
               {etError ? (
-                <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.2)', fontSize: '0.82rem', color: '#ff8080' }}>
+                <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(var(--danger-rgb),0.08)', border: '1px solid rgba(var(--danger-rgb),0.2)', fontSize: '0.82rem', color: 'var(--danger)' }}>
                   {etError}
                 </div>
               ) : (
@@ -190,7 +190,7 @@ export default function AdminBooking() {
               <label style={label}>Date &amp; Time (Central Time)</label>
               <input style={input} type="datetime-local" value={form.startLocal} onChange={set('startLocal')} required />
               {isWeekendDate && (
-                <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 5, color: '#c9a84c', fontSize: '0.78rem', fontWeight: 700 }}>
+                <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(var(--gold-rgb),0.12)', border: '1px solid rgba(var(--gold-rgb),0.35)', borderRadius: 5, color: 'var(--gold)', fontSize: '0.78rem', fontWeight: 700 }}>
                   Weekend date. You can still book, but no regular service runs Sat/Sun.
                 </div>
               )}
@@ -204,7 +204,7 @@ export default function AdminBooking() {
                 <option value="28">Every 28 days (6 appointments)</option>
               </select>
               {form.recurring !== 'none' && (
-                <p style={{ fontSize: '0.78rem', color: '#c9a84c', margin: '6px 0 0' }}>
+                <p style={{ fontSize: '0.78rem', color: 'var(--gold)', margin: '6px 0 0' }}>
                   Will create 6 appointments starting from selected date.
                 </p>
               )}
@@ -215,33 +215,33 @@ export default function AdminBooking() {
               <textarea style={{ ...input, resize: 'vertical' }} rows={3} value={form.notes} onChange={set('notes')} placeholder="Any special requests…" />
             </div>
 
-            <div style={{ ...field, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 8, background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)' }}>
+            <div style={{ ...field, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 8, background: 'rgba(var(--gold-rgb),0.06)', border: '1px solid rgba(var(--gold-rgb),0.2)' }}>
               <input
                 type="checkbox"
                 id="allow-double-book"
                 checked={form.allowDoubleBook}
                 onChange={(e) => setForm((f) => ({ ...f, allowDoubleBook: e.target.checked }))}
-                style={{ marginTop: 3, width: 16, height: 16, accentColor: '#c9a84c', cursor: 'pointer' }}
+                style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--gold)', cursor: 'pointer' }}
               />
               <label htmlFor="allow-double-book" style={{ cursor: 'pointer', flex: 1 }}>
-                <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: '#c9a84c', marginBottom: 2 }}>Allow double-booking</span>
-                <span style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.5 }}>
+                <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: 'var(--gold)', marginBottom: 2 }}>Allow double-booking</span>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.6)', lineHeight: 1.5 }}>
                   If a slot is unavailable in Cal.com, drop the appointment directly onto Google Calendar instead. Use for overrides — customer gets no Cal.com confirmation email.
                 </span>
               </label>
             </div>
 
-            <div style={{ ...field, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 8, background: 'rgba(91,196,255,0.06)', border: '1px solid rgba(91,196,255,0.2)' }}>
+            <div style={{ ...field, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 8, background: 'rgba(var(--info-rgb),0.06)', border: '1px solid rgba(var(--info-rgb),0.2)' }}>
               <input
                 type="checkbox"
                 id="skip-notification"
                 checked={form.skipNotification}
                 onChange={(e) => setForm((f) => ({ ...f, skipNotification: e.target.checked }))}
-                style={{ marginTop: 3, width: 16, height: 16, accentColor: '#5bc4ff', cursor: 'pointer' }}
+                style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--info)', cursor: 'pointer' }}
               />
               <label htmlFor="skip-notification" style={{ cursor: 'pointer', flex: 1 }}>
-                <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: '#5bc4ff', marginBottom: 2 }}>Skip customer notification</span>
-                <span style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(212,230,202,0.6)', lineHeight: 1.5 }}>
+                <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: 800, color: 'var(--info)', marginBottom: 2 }}>Skip customer notification</span>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.6)', lineHeight: 1.5 }}>
                   Drop the appointment directly onto Google Calendar with no Cal.com confirmation email or invite to the customer. Useful for internal placeholders or pre-arranged visits.
                 </span>
               </label>

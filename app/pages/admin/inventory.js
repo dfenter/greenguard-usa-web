@@ -191,9 +191,9 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
     }
   }
 
-  const input = { width: '100%', padding: '12px 16px', boxSizing: 'border-box', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', outline: 'none', textAlign: 'left' }
-  const lbl = { fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.6)', display: 'block', marginBottom: 8 }
-  const section = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', margin: '18px 0 10px', paddingBottom: 6, borderBottom: '1px solid rgba(122,171,130,0.1)' }
+  const input = { width: '100%', padding: '12px 16px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', outline: 'none', textAlign: 'left' }
+  const lbl = { fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.6)', display: 'block', marginBottom: 8 }
+  const section = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.3)', margin: '18px 0 10px', paddingBottom: 6, borderBottom: '1px solid rgba(var(--border-rgb),0.1)' }
 
   // Today's tank count from schedule
   const todayTanks = scheduleByDate[form.date]?.tanks || selectedTanks || 0
@@ -206,30 +206,30 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
         <div style={{ marginBottom: 24 }}>
           <span className="tag">Admin</span>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Inventory</h1>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
-            CO₂ tank tracking · Depot stock: <strong style={{ color: '#7dffaa', fontSize: '1.05rem' }}>{stockDisplay}</strong> full tanks
-            {expectedDelivery > 0 && <span style={{ marginLeft: 12, color: 'rgba(201,168,76,0.7)' }}>· Next delivery est. {expectedDelivery} tanks</span>}
+          <p style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.45)', margin: 0 }}>
+            CO₂ tank tracking · Depot stock: <strong style={{ color: 'var(--green)', fontSize: '1.05rem' }}>{stockDisplay}</strong> full tanks
+            {expectedDelivery > 0 && <span style={{ marginLeft: 12, color: 'rgba(var(--gold-rgb),0.7)' }}>· Next delivery est. {expectedDelivery} tanks</span>}
           </p>
         </div>
 
         <div style={{ maxWidth: 540, margin: '0 auto' }}>
           {/* Tomorrow indicator (read-only, auto-calculated from schedule) */}
-          <div style={{ marginBottom: 18, padding: '14px 18px', borderRadius: 10, background: tomorrowTanks > 0 ? 'rgba(201,168,76,0.08)' : 'rgba(125,255,170,0.05)', border: `1px solid ${tomorrowTanks > 0 ? 'rgba(201,168,76,0.3)' : 'rgba(125,255,170,0.18)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div style={{ marginBottom: 18, padding: '14px 18px', borderRadius: 10, background: tomorrowTanks > 0 ? 'rgba(var(--gold-rgb),0.08)' : 'rgba(var(--green-rgb),0.05)', border: `1px solid ${tomorrowTanks > 0 ? 'rgba(var(--gold-rgb),0.3)' : 'rgba(var(--green-rgb),0.18)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
             <div>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: tomorrowTanks > 0 ? '#c9a84c' : 'rgba(212,230,202,0.4)', marginBottom: 4 }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: tomorrowTanks > 0 ? 'var(--gold)' : 'rgba(var(--text-rgb),0.4)', marginBottom: 4 }}>
                 Tanks Needed Tomorrow
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.55)' }}>
+              <div style={{ fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.55)' }}>
                 {tomorrowTanks > 0 ? `From ${scheduleByDate[tomorrow]?.appts || 0} scheduled visit${(scheduleByDate[tomorrow]?.appts || 0) !== 1 ? 's' : ''}` : 'No visits scheduled for tomorrow'}
               </div>
             </div>
-            <div style={{ fontSize: '2.4rem', fontWeight: 900, lineHeight: 1, color: tomorrowTanks > 0 ? '#c9a84c' : 'rgba(125,255,170,0.6)' }}>
+            <div style={{ fontSize: '2.4rem', fontWeight: 900, lineHeight: 1, color: tomorrowTanks > 0 ? 'var(--gold)' : 'rgba(var(--green-rgb),0.6)' }}>
               {tomorrowTanks}
             </div>
           </div>
 
           {/* Log form — full Tank Calendar lives on /admin/home */}
-          <div style={{ fontWeight: 800, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 12 }}>
+          <div style={{ fontWeight: 800, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 12 }}>
             {selectedDay ? `Log for ${selectedDay}` : 'Daily Log Entry'}
           </div>
           <div className="card">
@@ -239,7 +239,7 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
             </div>
 
               {todayTanks > 0 && (
-                <div style={{ marginBottom: 14, padding: '8px 12px', borderRadius: 6, background: 'rgba(125,255,170,0.05)', border: '1px solid rgba(125,255,170,0.15)', fontSize: '0.8rem', color: 'rgba(212,230,202,0.7)' }}>
+                <div style={{ marginBottom: 14, padding: '8px 12px', borderRadius: 6, background: 'rgba(var(--green-rgb),0.05)', border: '1px solid rgba(var(--green-rgb),0.15)', fontSize: '0.8rem', color: 'rgba(var(--text-rgb),0.7)' }}>
                   📅 {todayTanks} tank{todayTanks > 1 ? 's' : ''} needed · {todayAppts} visit{todayAppts !== 1 ? 's' : ''}
                 </div>
               )}
@@ -259,30 +259,30 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
               {/* Tomorrow forecast — Tanks Needed Tomorrow is auto-calculated and shown
                   as a banner at the top of the page; no form input needed */}
               {forecastTomorrow != null && (
-                <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 8, background: forecastTomorrow < 0 ? 'rgba(255,100,100,0.08)' : 'rgba(125,255,170,0.05)', border: `1px solid ${forecastTomorrow < 0 ? 'rgba(255,100,100,0.25)' : 'rgba(125,255,170,0.15)'}` }}>
+                <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 8, background: forecastTomorrow < 0 ? 'rgba(var(--danger-rgb),0.08)' : 'rgba(var(--green-rgb),0.05)', border: `1px solid ${forecastTomorrow < 0 ? 'rgba(var(--danger-rgb),0.25)' : 'rgba(var(--green-rgb),0.15)'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.55)' }}>Forecast after tomorrow</span>
-                    <span style={{ fontWeight: 900, fontSize: '1rem', color: forecastTomorrow < 0 ? '#ff8080' : '#7dffaa' }}>{forecastTomorrow}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'rgba(var(--text-rgb),0.55)' }}>Forecast after tomorrow</span>
+                    <span style={{ fontWeight: 900, fontSize: '1rem', color: forecastTomorrow < 0 ? 'var(--danger)' : 'var(--green)' }}>{forecastTomorrow}</span>
                   </div>
                   {forecastTomorrow < 0 && (
-                    <div style={{ marginTop: 4, fontSize: '0.75rem', color: '#ff8080', fontWeight: 700 }}>⚠️ Deficit of {Math.abs(forecastTomorrow)} — reorder needed!</div>
+                    <div style={{ marginTop: 4, fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 700 }}>⚠️ Deficit of {Math.abs(forecastTomorrow)} — reorder needed!</div>
                   )}
                 </div>
               )}
 
               {/* Wednesday only */}
               {isFormWednesday && (
-                <div style={{ padding: '14px', background: 'rgba(201,168,76,0.05)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 8, marginBottom: 14 }}>
-                  <div style={{ ...section, marginTop: 0, color: '#c9a84c', borderColor: 'rgba(201,168,76,0.2)' }}>Wednesday Exchange</div>
+                <div style={{ padding: '14px', background: 'rgba(var(--gold-rgb),0.05)', border: '1px solid rgba(var(--gold-rgb),0.2)', borderRadius: 8, marginBottom: 14 }}>
+                  <div style={{ ...section, marginTop: 0, color: 'var(--gold)', borderColor: 'rgba(var(--gold-rgb),0.2)' }}>Wednesday Exchange</div>
                   <div style={{ marginBottom: 12 }}>
-                    <label style={{ ...lbl, color: '#c9a84c' }}>Empty tanks picked up today</label>
+                    <label style={{ ...lbl, color: 'var(--gold)' }}>Empty tanks picked up today</label>
                     <input style={input} type="number" min="0" placeholder={placeholders.emptiesPickedUp} value={form.emptiesPickedUp} onChange={set('emptiesPickedUp')} />
-                    <p style={{ fontSize: '0.7rem', color: 'rgba(201,168,76,0.55)', margin: '4px 0 0' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'rgba(var(--gold-rgb),0.55)', margin: '4px 0 0' }}>
                       Pre-filled from the next 7 days&apos; schedule ({weeklyTankTotal} tanks). Adjust if actual pickups differ. This becomes next week&apos;s expected delivery.
                     </p>
                   </div>
                   <div>
-                    <label style={{ ...lbl, color: '#c9a84c' }}>Full tanks delivered today</label>
+                    <label style={{ ...lbl, color: 'var(--gold)' }}>Full tanks delivered today</label>
                     <input style={input} type="number" min="0" placeholder={placeholders.fullDelivered} value={form.fullDelivered} onChange={set('fullDelivered')} />
                   </div>
                 </div>
@@ -304,13 +304,13 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
               </div>
 
               {msg && (
-                <div style={{ padding: '8px 12px', borderRadius: 6, background: msg.startsWith('Error') ? 'rgba(255,100,100,0.08)' : msg.includes('⚠️') ? 'rgba(255,160,80,0.08)' : 'rgba(125,255,170,0.06)', border: `1px solid ${msg.startsWith('Error') ? 'rgba(255,100,100,0.2)' : msg.includes('⚠️') ? 'rgba(255,160,80,0.2)' : 'rgba(125,255,170,0.2)'}`, color: msg.startsWith('Error') ? '#ff8080' : msg.includes('⚠️') ? '#ffb060' : '#7dffaa', fontSize: '0.82rem', marginBottom: 12 }}>
+                <div style={{ padding: '8px 12px', borderRadius: 6, background: msg.startsWith('Error') ? 'rgba(var(--danger-rgb),0.08)' : msg.includes('⚠️') ? 'rgba(var(--warn-rgb),0.08)' : 'rgba(var(--green-rgb),0.06)', border: `1px solid ${msg.startsWith('Error') ? 'rgba(var(--danger-rgb),0.2)' : msg.includes('⚠️') ? 'rgba(var(--warn-rgb),0.2)' : 'rgba(var(--green-rgb),0.2)'}`, color: msg.startsWith('Error') ? 'var(--danger)' : msg.includes('⚠️') ? 'var(--warn)' : 'var(--green)', fontSize: '0.82rem', marginBottom: 12 }}>
                   {msg}
                 </div>
               )}
 
               <button onClick={save} disabled={saving}
-                style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', background: saving ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', opacity: saving ? 0.7 : 1 }}>
+                style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', background: saving ? 'rgba(var(--green-rgb),0.2)' : 'var(--green)', color: 'var(--text-on-accent)', opacity: saving ? 0.7 : 1 }}>
                 {saving ? 'Saving…' : 'Save Daily Log'}
               </button>
           </div>

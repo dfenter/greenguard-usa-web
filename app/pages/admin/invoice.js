@@ -16,7 +16,7 @@ export async function getServerSideProps({ req, res }) {
 function fmt$(cents) { return `$${(cents / 100).toFixed(2)}` }
 function fmtDate(unix) { return new Date(unix * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
 
-const STATUS_COLOR = { paid: '#7dffaa', open: '#ffb060', draft: '#c9a84c', void: 'rgba(212,230,202,0.35)' }
+const STATUS_COLOR = { paid: 'var(--green)', open: 'var(--warn)', draft: 'var(--gold)', void: 'rgba(var(--text-rgb),0.35)' }
 
 // Heavy data (customer list) loads client-side; the page shell paints immediately.
 export default function InvoiceEditor() {
@@ -235,9 +235,9 @@ function InvoiceEditorView({ customers = [] }) {
     await loadPending()
   }
 
-  const input = { padding: '9px 12px', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
-  const btn = (v) => ({ padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', fontFamily: 'Inter, sans-serif', ...(v === 'gold' ? { background: '#c9a84c', color: '#0d1a10' } : v === 'green' ? { background: '#7dffaa', color: '#0d1a10' } : v === 'red' ? { background: 'rgba(255,100,100,0.12)', color: '#ff8080', border: '1px solid rgba(255,100,100,0.2)' } : { background: 'rgba(122,171,130,0.1)', color: '#7aab82', border: '1px solid rgba(122,171,130,0.2)' }) })
-  const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 12, marginTop: 28 }
+  const input = { padding: '9px 12px', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
+  const btn = (v) => ({ padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', fontFamily: 'Inter, sans-serif', ...(v === 'gold' ? { background: 'var(--gold)', color: 'var(--text-on-accent)' } : v === 'green' ? { background: 'var(--green)', color: 'var(--text-on-accent)' } : v === 'red' ? { background: 'rgba(var(--danger-rgb),0.12)', color: 'var(--danger)', border: '1px solid rgba(var(--danger-rgb),0.2)' } : { background: 'rgba(var(--border-rgb),0.1)', color: 'var(--green-muted)', border: '1px solid rgba(var(--border-rgb),0.2)' }) })
+  const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 12, marginTop: 28 }
 
   return (
     <>
@@ -246,7 +246,7 @@ function InvoiceEditorView({ customers = [] }) {
         <div style={{ marginBottom: 24 }}>
           <span className="tag">Admin</span>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Invoice Editor</h1>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>Find a customer and manage their invoices</p>
+          <p style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.45)', margin: 0 }}>Find a customer and manage their invoices</p>
         </div>
 
         {/* Pending Approvals */}
@@ -256,7 +256,7 @@ function InvoiceEditorView({ customers = [] }) {
               <div style={SECTION}>Pending Approvals</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 28 }}>
                 {pending._refreshedAt && (
-                  <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.4)' }}>
                     Updated {new Date(pending._refreshedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                   </span>
                 )}
@@ -273,16 +273,16 @@ function InvoiceEditorView({ customers = [] }) {
             {/* KPI strip */}
             <div className="card" style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap', fontSize: '0.85rem' }}>
               <div>
-                <div style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Drafts Ready</div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#c9a84c' }}>{pending.drafts?.length || 0}</div>
+                <div style={{ color: 'rgba(var(--text-rgb),0.5)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Drafts Ready</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--gold)' }}>{pending.drafts?.length || 0}</div>
               </div>
               <div>
-                <div style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Unbilled</div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffb060' }}>{pending.needsInvoice?.length || 0}</div>
+                <div style={{ color: 'rgba(var(--text-rgb),0.5)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Unbilled</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--warn)' }}>{pending.needsInvoice?.length || 0}</div>
               </div>
               <div>
-                <div style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Outstanding</div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#7dffaa' }}>
+                <div style={{ color: 'rgba(var(--text-rgb),0.5)', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>Outstanding</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--green)' }}>
                   {fmt$(pending.drafts?.reduce((s, d) => s + d.amountDue, 0) || 0)}
                 </div>
               </div>
@@ -291,14 +291,14 @@ function InvoiceEditorView({ customers = [] }) {
             {/* Draft invoices */}
             {pending.drafts?.length > 0 && (
               <div className="card" style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 12 }}>Draft Invoices (ready to send)</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.35)', marginBottom: 12 }}>Draft Invoices (ready to send)</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {pending.drafts.map((draft) => (
                     <div
                       key={draft.id}
                       style={{
                         padding: '12px',
-                        border: '1px solid rgba(122,171,130,0.15)',
+                        border: '1px solid rgba(var(--border-rgb),0.15)',
                         borderRadius: 6,
                       }}
                     >
@@ -306,21 +306,21 @@ function InvoiceEditorView({ customers = [] }) {
                         <div style={{ flex: 1, minWidth: 200, cursor: 'pointer' }}
                              onClick={() => setExpandedDraft(expandedDraft === draft.id ? null : draft.id)}>
                           <div style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.3)' }}>
+                            <span style={{ fontSize: '0.68rem', color: 'rgba(var(--text-rgb),0.3)' }}>
                               {expandedDraft === draft.id ? '▲' : '▼'}
                             </span>
                             {draft.customerName || draft.customerEmail}
                             {draft.lineCount === 0 && (
-                              <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: 3, background: 'rgba(255,160,80,0.15)', border: '1px solid rgba(255,160,80,0.3)', color: '#ffb060', fontWeight: 800 }}>
+                              <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: 3, background: 'rgba(var(--warn-rgb),0.15)', border: '1px solid rgba(var(--warn-rgb),0.3)', color: 'var(--warn)', fontWeight: 800 }}>
                                 ⚠ EMPTY
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>
+                          <div style={{ fontSize: '0.75rem', color: 'rgba(var(--text-rgb),0.5)', marginTop: 2 }}>
                             {draft.serviceDate} · {draft.lineCount} item{draft.lineCount !== 1 ? 's' : ''}
                           </div>
                         </div>
-                        <div style={{ fontWeight: 900, fontSize: '0.95rem', color: '#c9a84c' }}>{fmt$(draft.amountDue)}</div>
+                        <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--gold)' }}>{fmt$(draft.amountDue)}</div>
                         {(() => {
                           const submitted = sentDrafts[draft.id]
                           const isSubmitting = sendingDraft === draft.id
@@ -328,7 +328,7 @@ function InvoiceEditorView({ customers = [] }) {
                             const isPaid = submitted.status === 'paid'
                             const verb = submitted.collectionMethod === 'send_invoice' ? 'Emailed' : (isPaid ? 'Paid' : 'Submitted')
                             return (
-                              <button disabled style={{ ...btn('gold'), opacity: 0.55, cursor: 'not-allowed', background: 'rgba(125,255,170,0.12)', color: '#7dffaa', border: '1px solid rgba(125,255,170,0.3)' }}>
+                              <button disabled style={{ ...btn('gold'), opacity: 0.55, cursor: 'not-allowed', background: 'rgba(var(--green-rgb),0.12)', color: 'var(--green)', border: '1px solid rgba(var(--green-rgb),0.3)' }}>
                                 ✓ {verb}
                               </button>
                             )
@@ -371,7 +371,7 @@ function InvoiceEditorView({ customers = [] }) {
                           if (r.ok) { setMsg('Draft deleted'); loadPending() }
                           else { const j = await r.json().catch(() => ({})); alert('Failed: ' + (j.error || r.status)) }
                         }}
-                          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(255,100,100,0.3)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
+                          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(var(--danger-rgb),0.3)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
                           Cancel
                         </button>
                         {draft.hostedUrl && (
@@ -382,12 +382,12 @@ function InvoiceEditorView({ customers = [] }) {
                       </div>
 
                       {expandedDraft === draft.id && (
-                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(var(--border-rgb),0.12)' }}>
                           {/* Existing line items */}
                           {draft.items?.length > 0 ? (
                             draft.items.map(line => (
-                              <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '7px 0', borderBottom: '1px solid rgba(122,171,130,0.06)' }}>
-                                <span style={{ color: 'rgba(212,230,202,0.75)', flex: 1 }}>{line.description}</span>
+                              <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '7px 0', borderBottom: '1px solid rgba(var(--border-rgb),0.06)' }}>
+                                <span style={{ color: 'rgba(var(--text-rgb),0.75)', flex: 1 }}>{line.description}</span>
                                 <span style={{ fontWeight: 700, marginLeft: 16 }}>{fmt$(line.amount)}</span>
                                 <button onClick={async () => {
                                   if (!window.confirm('Remove this line item?')) return
@@ -396,13 +396,13 @@ function InvoiceEditorView({ customers = [] }) {
                                     body: JSON.stringify({ action: 'delete-line', invoiceId: draft.id, itemId: line.id }),
                                   })
                                   loadPending()
-                                }} style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
+                                }} style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(var(--danger-rgb),0.25)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
                                   ✕
                                 </button>
                               </div>
                             ))
                           ) : (
-                            <div style={{ fontSize: '0.78rem', color: 'rgba(255,160,80,0.7)', padding: '6px 0' }}>
+                            <div style={{ fontSize: '0.78rem', color: 'rgba(var(--warn-rgb),0.7)', padding: '6px 0' }}>
                               No line items yet. Add at least one before sending.
                             </div>
                           )}
@@ -459,7 +459,7 @@ function InvoiceEditorView({ customers = [] }) {
             {/* Appointments without invoices */}
             {pending.needsInvoice?.length > 0 && (
               <div className="card" style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 12 }}>Appointments without invoices (past 7 days)</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.35)', marginBottom: 12 }}>Appointments without invoices (past 7 days)</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {pending.needsInvoice.map((apt, i) => (
                     <div
@@ -469,7 +469,7 @@ function InvoiceEditorView({ customers = [] }) {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: '12px',
-                        border: `1px solid ${apt.needsEmail ? 'rgba(255,160,80,0.3)' : 'rgba(122,171,130,0.15)'}`,
+                        border: `1px solid ${apt.needsEmail ? 'rgba(var(--warn-rgb),0.3)' : 'rgba(var(--border-rgb),0.15)'}`,
                         borderRadius: 6,
                         gap: 12,
                         flexWrap: 'wrap',
@@ -477,16 +477,16 @@ function InvoiceEditorView({ customers = [] }) {
                     >
                       <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{apt.customerName}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(var(--text-rgb),0.5)', marginTop: 2 }}>
                           {apt.date} · {apt.serviceType}
                         </div>
                         {apt.needsEmail && (
-                          <div style={{ fontSize: '0.72rem', color: '#ffb060', marginTop: 4, fontWeight: 700 }}>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--warn)', marginTop: 4, fontWeight: 700 }}>
                             ⚠ No email in calendar event — manual lookup needed
                           </div>
                         )}
                         {apt.email && (
-                          <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', marginTop: 2 }}>
+                          <div style={{ fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.4)', marginTop: 2 }}>
                             {apt.email}
                           </div>
                         )}
@@ -514,15 +514,15 @@ function InvoiceEditorView({ customers = [] }) {
               onKeyDown={(e) => { if (e.key === 'Enter' && email) loadCustomer(); if (e.key === 'Escape') setShowDropdown(false) }}
             />
             {showDropdown && filtered.length > 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#0d1a10', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, zIndex: 50, maxHeight: 280, overflowY: 'auto', marginTop: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, zIndex: 50, maxHeight: 280, overflowY: 'auto', marginTop: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
                 {filtered.map((c) => (
                   <div key={c.id} onClick={() => selectCustomer(c)}
-                    style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(122,171,130,0.08)' }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(122,171,130,0.08)'}
+                    style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(var(--border-rgb),0.08)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(var(--border-rgb),0.08)'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
                     <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{c.name || c.email}</div>
-                    {c.name && <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.45)' }}>{c.email}</div>}
+                    {c.name && <div style={{ fontSize: '0.75rem', color: 'rgba(var(--text-rgb),0.45)' }}>{c.email}</div>}
                   </div>
                 ))}
               </div>
@@ -531,8 +531,8 @@ function InvoiceEditorView({ customers = [] }) {
           <button style={btn('gold')} onClick={() => loadCustomer()} disabled={loading || !email}>{loading ? 'Loading…' : 'Load'}</button>
         </div>
 
-        {error && <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.2)', color: '#ff8080', fontSize: '0.85rem', marginBottom: 20 }}>{error}</div>}
-        {msg && <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(125,255,170,0.06)', border: '1px solid rgba(125,255,170,0.2)', color: '#7dffaa', fontSize: '0.85rem', marginBottom: 20, display: 'flex', justifyContent: 'space-between' }}>{msg} <button onClick={() => setMsg(null)} style={{ background: 'none', border: 'none', color: '#7dffaa', cursor: 'pointer' }}>×</button></div>}
+        {error && <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(var(--danger-rgb),0.08)', border: '1px solid rgba(var(--danger-rgb),0.2)', color: 'var(--danger)', fontSize: '0.85rem', marginBottom: 20 }}>{error}</div>}
+        {msg && <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(var(--green-rgb),0.06)', border: '1px solid rgba(var(--green-rgb),0.2)', color: 'var(--green)', fontSize: '0.85rem', marginBottom: 20, display: 'flex', justifyContent: 'space-between' }}>{msg} <button onClick={() => setMsg(null)} style={{ background: 'none', border: 'none', color: 'var(--green)', cursor: 'pointer' }}>×</button></div>}
 
         {data && (
           <>
@@ -540,10 +540,10 @@ function InvoiceEditorView({ customers = [] }) {
             <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
               <div>
                 <div style={{ fontWeight: 900, fontSize: '1.05rem' }}>{data.customer.name || data.customer.email}</div>
-                <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{data.customer.email}</div>
-                {data.customer.phone && <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)' }}>{data.customer.phone}</div>}
+                <div style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.5)', marginTop: 2 }}>{data.customer.email}</div>
+                {data.customer.phone && <div style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.5)' }}>{data.customer.phone}</div>}
                 {data.subscription && (
-                  <div style={{ marginTop: 8, fontSize: '0.82rem', color: '#7dffaa', fontWeight: 700 }}>
+                  <div style={{ marginTop: 8, fontSize: '0.82rem', color: 'var(--green)', fontWeight: 700 }}>
                     {data.subscription.label} · ${(data.subscription.amount / 100).toFixed(0)}/mo
                   </div>
                 )}
@@ -562,13 +562,13 @@ function InvoiceEditorView({ customers = [] }) {
                 </select>
                 <button style={btn('green')} onClick={addItem} disabled={adding}>{adding ? 'Adding…' : '+ Add to Next Invoice'}</button>
               </div>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.35)', margin: '10px 0 0' }}>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(var(--text-rgb),0.35)', margin: '10px 0 0' }}>
                 Items are added as pending invoice items and included on the next invoice you send.
               </p>
 
               {/* Custom / one-off line item (no SKU) */}
-              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', marginBottom: 10 }}>Custom / One-Off Item</div>
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(var(--border-rgb),0.12)' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.5)', marginBottom: 10 }}>Custom / One-Off Item</div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   <input value={customDesc} onChange={(e) => setCustomDesc(e.target.value)} placeholder="Description (e.g. Extra tank swap)" style={{ ...input, flex: '3 1 240px' }} />
                   <input value={customPrice} onChange={(e) => setCustomPrice(e.target.value)} inputMode="decimal" placeholder="$ each" style={{ ...input, flex: '1 1 90px' }} />
@@ -584,14 +584,14 @@ function InvoiceEditorView({ customers = [] }) {
                 <div style={SECTION}>Pending Items (not yet invoiced)</div>
                 <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
-                    <thead><tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
+                    <thead><tr style={{ borderBottom: '1px solid rgba(var(--border-rgb),0.15)' }}>
                       {['Description', 'Amount', ''].map((h) => (
-                        <th key={h} style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)' }}>{h}</th>
+                        <th key={h} style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.35)' }}>{h}</th>
                       ))}
                     </tr></thead>
                     <tbody>
                       {data.pendingItems.map((item) => (
-                        <tr key={item.id} style={{ borderBottom: '1px solid rgba(122,171,130,0.08)' }}>
+                        <tr key={item.id} style={{ borderBottom: '1px solid rgba(var(--border-rgb),0.08)' }}>
                           <td style={{ padding: '10px 14px' }}>{item.description}</td>
                           <td style={{ padding: '10px 14px', fontWeight: 700 }}>{fmt$(item.amount)}</td>
                           <td style={{ padding: '10px 14px' }}>
@@ -601,8 +601,8 @@ function InvoiceEditorView({ customers = [] }) {
                       ))}
                     </tbody>
                   </table>
-                  <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(122,171,130,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)' }}>{data.pendingItems.length} pending item{data.pendingItems.length !== 1 ? 's' : ''}</span>
+                  <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(var(--border-rgb),0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.5)' }}>{data.pendingItems.length} pending item{data.pendingItems.length !== 1 ? 's' : ''}</span>
                     <button style={btn('gold')} onClick={() => sendInvoice(null)} disabled={sending}>{sending ? 'Sending…' : 'Create & Send Invoice'}</button>
                   </div>
                 </div>
@@ -625,10 +625,10 @@ function InvoiceEditorView({ customers = [] }) {
                         <div style={{ cursor: 'pointer', flex: 1 }} onClick={() => setExpandedInv(isExpanded ? null : inv.id)}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                             <span style={{ fontWeight: 800 }}>{inv.number || inv.id.slice(-8)}</span>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: STATUS_COLOR[inv.status] || 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{inv.status}</span>
-                            <span style={{ fontSize: '0.68rem', color: 'rgba(212,230,202,0.3)' }}>{isExpanded ? '▲' : '▼'}</span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: STATUS_COLOR[inv.status] || 'rgba(var(--text-rgb),0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{inv.status}</span>
+                            <span style={{ fontSize: '0.68rem', color: 'rgba(var(--text-rgb),0.3)' }}>{isExpanded ? '▲' : '▼'}</span>
                           </div>
-                          <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.45)' }}>{fmtDate(inv.created)} · {amount}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'rgba(var(--text-rgb),0.45)' }}>{fmtDate(inv.created)} · {amount}</div>
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                           {isDraft && <button style={btn('gold')} onClick={() => sendInvoice(inv.id)} disabled={sending}>{sending ? 'Sending…' : 'Finalize & Send'}</button>}
@@ -641,28 +641,28 @@ function InvoiceEditorView({ customers = [] }) {
                           )}
                           {isOpen && <button style={btn('red')} onClick={() => voidInvoice(inv.id)}>Void</button>}
                           {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ ...btn('ghost'), textDecoration: 'none' }} title="Preview the page the customer sees">Preview ↗</a>}
-                          {inv.pdfUrl && <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#7aab82', fontWeight: 700 }}>PDF</a>}
+                          {inv.pdfUrl && <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--green-muted)', fontWeight: 700 }}>PDF</a>}
                         </div>
                       </div>
 
                       {/* Expanded line items */}
                       {isExpanded && inv.items?.length > 0 && (
-                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
-                          <div style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 8 }}>Line Items</div>
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(var(--border-rgb),0.12)' }}>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.35)', marginBottom: 8 }}>Line Items</div>
                           {inv.items.map((line) => (
-                            <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '7px 0', borderBottom: '1px solid rgba(122,171,130,0.06)' }}>
-                              <span style={{ color: 'rgba(212,230,202,0.75)', flex: 1 }}>{line.description}</span>
+                            <div key={line.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '7px 0', borderBottom: '1px solid rgba(var(--border-rgb),0.06)' }}>
+                              <span style={{ color: 'rgba(var(--text-rgb),0.75)', flex: 1 }}>{line.description}</span>
                               <span style={{ fontWeight: 700, marginLeft: 16 }}>{fmt$(line.amount)}</span>
                               {isDraft && (
                                 <button
                                   onClick={() => deleteLineItem(inv.id, line.invoiceItem || line.id)}
-                                  style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(255,100,100,0.25)', background: 'transparent', color: '#ff8080', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
+                                  style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(var(--danger-rgb),0.25)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
                                   ✕
                                 </button>
                               )}
                             </div>
                           ))}
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8, fontWeight: 900, color: isDraft ? '#c9a84c' : inv.status === 'paid' ? '#7dffaa' : '#ffb060' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8, fontWeight: 900, color: isDraft ? 'var(--gold)' : inv.status === 'paid' ? 'var(--green)' : 'var(--warn)' }}>
                             Total: {amount}
                           </div>
                         </div>
