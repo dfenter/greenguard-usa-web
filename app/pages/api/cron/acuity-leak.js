@@ -2,15 +2,15 @@
 //
 // Lists GCal events created in the last LOOKBACK_MIN minutes. Any whose
 // description contains Acuity markers triggers an alert email to admin so
-// the lingering booking source can be tracked down. Idempotent via the
-// natural lookback window — duplicates would have to be created twice
-// within ~70 minutes.
+// the lingering booking source can be tracked down. Each event is claimed in
+// KV for seven days so repeated scans do not resend the same alert.
 //
 // Ported from _scripts/acuity-leak-detector.js (formerly a GitHub Actions
 // Node job) so Cloudflare Workers Cron can drive it via HTTP.
 
 const { Resend } = require('resend')
 const { authorize } = require('../../../lib/cron-auth')
+const { consumeJti } = require('../../../lib/auth')
 
 const ALERT_EMAIL = 'admin@greenguard-usa.com'
 const LOOKBACK_MIN = 70
@@ -51,12 +51,29 @@ export default async function handler(req, res) {
     })
 
     const cutoff = new Date(Date.now() - LOOKBACK_MIN * 60 * 1000)
-    const newAcuity = (r.data.items || []).filter((e) => {
+    const candidates = (r.data.items || []).filter((e) => {
       const created = new Date(e.created || 0)
       return created > cutoff && isAcuityish(e.description)
     })
 
     const scanned = (r.data.items || []).length
+    // Claim each event independently so one already-alerted event does not
+    // suppress a different leak found in the same scan. Alerting wins if KV is
+    // unavailable; a missed duplicate alert is safer than hiding a leak.
+    const newAcuity = []
+    for (const event of candidates) {
+      if (!event.id) {
+        console.warn('[acuity-leak] event has no id; alerting without a claim')
+        newAcuity.push(event)
+        continue
+      }
+      try {
+        if (await consumeJti(`acuity-leak:${event.id}`, 7 * 24 * 60 * 60)) newAcuity.push(event)
+      } catch (e) {
+        console.warn(`[acuity-leak] claim failed for ${event.id}; alerting anyway:`, e.message)
+        newAcuity.push(event)
+      }
+    }
     if (newAcuity.length === 0) return res.status(200).json({ scanned, alerts: 0 })
 
     const lines = newAcuity.map((e) => {

@@ -198,7 +198,13 @@ export default async function handler(req, res) {
 
   for (const { item, origIdx } of billableItems) {
     const priceId = item.sku ? priceIdForSku(item.sku) : null
-    const lineIdempotencyKey = `gg:line:${lockKey}${forceId ? ':' + forceId : ''}:${origIdx}:${(item.sku || item.label || '').slice(0, 40)}:${item.qty}`
+    // Fold the target invoice ID into the key: a Stripe idempotency key is bound
+    // to its exact request params (including `invoice`), so a retry that lands on
+    // a DIFFERENT draft (e.g. the prior draft was deleted/recreated) must use a
+    // fresh key or Stripe rejects it with "keys can only be used with the same
+    // parameters". A genuine double-tap reuses the same draft, so the key is
+    // still stable there and dedups correctly.
+    const lineIdempotencyKey = `gg:line:${invoice.id}:${lockKey}${forceId ? ':' + forceId : ''}:${origIdx}:${(item.sku || item.label || '').slice(0, 40)}:${item.qty}`
     try {
       if (priceId) {
         // The env-mapped Stripe price may be either one-time or recurring.

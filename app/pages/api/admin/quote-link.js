@@ -1,5 +1,6 @@
 const { requireAdmin, newJti } = require('../../../lib/auth')
-const { SignJWT, jwtVerify } = require('jose')
+const { SignJWT } = require('jose')
+const { verifyAndSanitizeQuoteToken } = require('../../../lib/quote-link')
 
 function getSecret() {
   return new TextEncoder().encode(process.env.JWT_SECRET)
@@ -39,9 +40,7 @@ export default async function handler(req, res) {
     const { token } = req.query
     if (!token) return res.status(400).json({ error: 'token required' })
     try {
-      const { payload } = await jwtVerify(token, getSecret())
-      if (payload.type !== 'quote') return res.status(400).json({ error: 'Invalid token' })
-      return res.status(200).json(payload)
+      return res.status(200).json(await verifyAndSanitizeQuoteToken(token))
     } catch {
       return res.status(400).json({ error: 'Invalid or expired quote link' })
     }

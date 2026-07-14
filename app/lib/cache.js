@@ -18,7 +18,7 @@
 const { Redis } = require('@upstash/redis')
 
 // ── Tier 1: in-memory ────────────────────────────────────────────────────────
-// Stale-while-revalidate: each entry has a soft expiry (serve-fresh window) and
+// Finding 31 — Stale-while-revalidate: each entry has a soft expiry (serve-fresh window) and
 // a hard expiry. Between them the value is served instantly while a background
 // refresh runs, so a reader past the TTL never eats full upstream latency.
 const memCache = new Map() // key → { value, softExpiresAt, hardExpiresAt }

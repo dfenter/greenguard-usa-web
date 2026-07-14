@@ -4,24 +4,35 @@ import { trackEvent } from '../../lib/analytics'
 
 function fmt$(n) { return n != null ? `$${Number(n).toFixed(2)}` : 'TBD' }
 
-export default function QuotePage({ token, accepted }) {
-  const [quote, setQuote] = useState(null)
-  const [error, setError] = useState(null)
+export default function QuotePage({ token, accepted, initialQuote, initialError }) {
+  const [quote, setQuote] = useState(initialQuote || null)
+  const [error, setError] = useState(initialError || null)
   const [paying, setPaying] = useState(false)
   const [payError, setPayError] = useState(null)
 
   useEffect(() => {
-    fetch(`/api/admin/quote-link?token=${token}`)
+    let active = true
+    fetch(`/api/admin/quote-link?token=${encodeURIComponent(token)}`)
       .then(r => r.json())
       .then(d => {
-        if (d.error) setError(d.error)
+        if (!active) return
+        if (d.error) {
+          // SSR already rendered a verified quote; a refresh failure should not
+          // blank it or turn a transient API outage into a quote error screen.
+          if (!initialQuote) setError(d.error)
+        }
         else {
           setQuote(d)
-          trackEvent('quote_viewed', { value: d.total ?? 0, currency: 'USD' })
+          if (!initialQuote) trackEvent('quote_viewed', { value: d.total ?? 0, currency: 'USD' })
         }
       })
-      .catch(() => setError('Failed to load quote'))
-  }, [token])
+      .catch(() => { if (!initialQuote) setError('Failed to load quote') })
+    return () => { active = false }
+  }, [token, initialQuote])
+
+  useEffect(() => {
+    if (initialQuote) trackEvent('quote_viewed', { value: initialQuote.total ?? 0, currency: 'USD' })
+  }, [initialQuote])
 
   useEffect(() => {
     if (!accepted || !quote) return
@@ -46,7 +57,7 @@ export default function QuotePage({ token, accepted }) {
         content_name: 'GreenGuard Quote',
       })
     }
-  }, [accepted, quote])
+  }, [accepted, quote, token])
 
   async function handleAcceptPay() {
     setPaying(true)
@@ -317,5 +328,13 @@ export default function QuotePage({ token, accepted }) {
 }
 
 export async function getServerSideProps({ params, query }) {
-  return { props: { token: params.token, accepted: query.accepted === '1' } }
+  const { verifyAndSanitizeQuoteToken } = require('../../lib/quote-link')
+  let initialQuote = null
+  let initialError = null
+  try {
+    initialQuote = await verifyAndSanitizeQuoteToken(params.token)
+  } catch {
+    initialError = 'Invalid or expired quote link'
+  }
+  return { props: { token: params.token, accepted: query.accepted === '1', initialQuote, initialError } }
 }

@@ -4,6 +4,7 @@ import { getCalendar } from '../../../lib/gcal'
 import { upsertContact } from '../../../lib/hubspot'
 import { sendEmail, emailShell, escapeHtml } from '../../../lib/email'
 import { fireBookingConversions } from '../../../lib/booking-conversions'
+import { consumeJti } from '../../../lib/auth'
 
 const CALENDAR_ID = process.env.CALENDAR_ID || 'admin@greenguard-usa.com'
 const TZ = 'America/Chicago'
@@ -75,8 +76,45 @@ export default async function handler(req, res) {
   ].filter(l => l !== null).join('\n')
 
   try {
-    // 1. Create GCal event
+    // Claim the exact customer/slot pair before the insert. KV failures are
+    // deliberately fail-open here: public availability is more important than
+    // rejecting a legitimate booking when the optional claim store is down.
+    const claimKey = `book:${email.trim().toLowerCase()}:${startISO}`
+    try {
+      const claimed = await consumeJti(claimKey, 600)
+      if (!claimed) {
+        return res.status(409).json({ error: 'That time was just booked. Please choose another slot.' })
+      }
+    } catch (e) {
+      console.warn('[book/create] slot claim unavailable; proceeding with availability check:', e.message)
+    }
+
+    // Re-check the exact slot immediately before insertion. The month-level
+    // availability response is advisory and can be stale when two customers
+    // submit the same slot concurrently.
     const calendar = getCalendar()
+    const occupied = await calendar.events.list({
+      calendarId: CALENDAR_ID,
+      timeMin: new Date(startISO).toISOString(),
+      timeMax: endISO,
+      singleEvents: true,
+      showDeleted: false,
+      maxResults: 250,
+      orderBy: 'startTime',
+    })
+    const slotStart = new Date(startISO).getTime()
+    const slotEnd = new Date(endISO).getTime()
+    const overlaps = (occupied.data.items || []).some((event) => {
+      if (event.status === 'cancelled') return false
+      const eventStart = new Date(event.start?.dateTime || `${event.start?.date}T00:00:00Z`).getTime()
+      const eventEnd = new Date(event.end?.dateTime || `${event.end?.date}T23:59:59Z`).getTime()
+      return Number.isFinite(eventStart) && Number.isFinite(eventEnd) && slotStart < eventEnd && slotEnd > eventStart
+    })
+    if (overlaps) {
+      return res.status(409).json({ error: 'That time is no longer available. Please choose another slot.' })
+    }
+
+    // Create GCal event
     await calendar.events.insert({
       calendarId: CALENDAR_ID,
       sendUpdates: 'none',

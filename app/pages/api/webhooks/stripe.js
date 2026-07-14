@@ -1,5 +1,5 @@
 const { stripe } = require('../../../lib/stripe')
-const { upsertContact, addNote, findContactByEmail } = require('../../../lib/hubspot')
+const { upsertContact, addNote, findContactByEmail, updateContact } = require('../../../lib/hubspot')
 const { sendT0Email, markStage, clearStages } = require('../../../lib/payment-resurrection')
 const { notifyAdmin, sendCustomerReceipt, sendCheckoutReceipt } = require('../../../lib/purchase-notify')
 const { sendWelcomeEmail } = require('../../../lib/email')
@@ -143,6 +143,29 @@ async function readRawBody(req) {
 }
 
 const DASH = 'https://dashboard.stripe.com'
+const SIDE_EFFECT_TIMEOUT_MS = 8000
+
+// Stripe's SDK calls do not accept an AbortSignal. Bound each non-critical
+// side effect so one provider cannot consume the whole webhook invocation.
+function withSideEffectTimeout(label, task) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${SIDE_EFFECT_TIMEOUT_MS}ms`)), SIDE_EFFECT_TIMEOUT_MS)
+  })
+  return Promise.race([Promise.resolve().then(task), timeout]).finally(() => clearTimeout(timer))
+}
+
+async function settleSideEffectGroup(groupName, effects) {
+  const results = await Promise.allSettled(
+    effects.map(({ label, task }) => withSideEffectTimeout(`${groupName}/${label}`, task))
+  )
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      const reason = result.reason instanceof Error ? result.reason.message : String(result.reason)
+      console.error(`[stripe-webhook] ${groupName}/${effects[index].label} failed:`, reason)
+    }
+  })
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -182,6 +205,10 @@ export default async function handler(req, res) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object
         const customer = await stripe.customers.retrieve(invoice.customer)
+
+        // Money-critical HubSpot writes stay serial and awaited. A failure here
+        // must make Stripe retry rather than acknowledging an incomplete payment
+        // record; notifications and attribution below are deliberately isolated.
         if (customer.email) {
           const contact = await findContactByEmail(customer.email)
           if (contact) {
@@ -192,45 +219,76 @@ export default async function handler(req, res) {
             // Clear any stale 'failed' flag — payment_failed sets it but nothing
             // ever reset it, so paying customers stayed flagged 'failed' forever.
             if (contact.properties?.payment_status === 'failed') {
-              await upsertContact({ email: customer.email, metadata: { payment_status: 'paid' } }).catch(() => {})
+              await upsertContact({ email: customer.email, metadata: { payment_status: 'paid' } })
             }
           }
         }
-        // Admin notification (email + SMS)
-        await notifyAdmin({
-          source: 'Invoice payment',
-          customerName: customer.name,
-          customerEmail: customer.email,
-          customerPhone: customer.phone,
-          amount: invoice.amount_paid,
-          currency: invoice.currency,
-          items: (invoice.lines?.data || []).map((l) => ({
-            description: l.description || '',
-            amount: l.amount,
-          })),
-          stripeUrl: `${DASH}/invoices/${invoice.id}`,
-          ref: invoice.id,
-        }).catch((e) => console.error('notify invoice paid:', e.message))
-        // Send customer their own branded receipt — Stripe's auto-receipt is
-        // unreliable (account toggle + charge.receipt_email both have to line
-        // up). This guarantees delivery regardless of Stripe settings.
-        await sendCustomerReceipt({
-          invoice,
-          customer,
-          receiptUrl: invoice.charge ? `https://pay.stripe.com/receipts/invoices/${invoice.id}` : null,
-          hostedInvoiceUrl: invoice.hosted_invoice_url,
-        }).catch((e) => console.error('customer receipt:', e.message))
-        // Fire Meta CAPI Purchase + Google Ads offline conversion + GA4 server-side purchase
-        const amountUsd = invoice.amount_paid / 100
-        await fireMetaPurchase({ email: customer.email, phone: customer.phone, amountUsd, orderId: invoice.id })
-        const contact = customer.email ? await findContactByEmail(customer.email).catch(() => null) : null
-        const gclid = contact?.properties?.gclid || null
-        const ga_client_id = contact?.properties?.ga_client_id || null
-        await fireGA4Purchase({ email: customer.email, amountUsd, orderId: invoice.id, clientId: ga_client_id })
-        await fireGoogleAdsConversion({ email: customer.email, amountUsd, conversionTime: invoice.created * 1000, gclid })
 
-        // Wipe any payment-resurrection state so a future failure restarts the clock
-        await clearStages(invoice.id).catch(() => {})
+        // These effects are independent. Run notification/cleanup and
+        // attribution as bounded groups so a hung provider only costs 8s.
+        const amountUsd = invoice.amount_paid / 100
+        await Promise.all([
+          settleSideEffectGroup('invoice-notifications', [
+            {
+              label: 'admin notification',
+              task: () => notifyAdmin({
+                source: 'Invoice payment',
+                customerName: customer.name,
+                customerEmail: customer.email,
+                customerPhone: customer.phone,
+                amount: invoice.amount_paid,
+                currency: invoice.currency,
+                items: (invoice.lines?.data || []).map((l) => ({
+                  description: l.description || '',
+                  amount: l.amount,
+                })),
+                stripeUrl: `${DASH}/invoices/${invoice.id}`,
+                ref: invoice.id,
+              }),
+            },
+            {
+              label: 'customer receipt',
+              task: () => sendCustomerReceipt({
+                invoice,
+                customer,
+                receiptUrl: invoice.charge ? `https://pay.stripe.com/receipts/invoices/${invoice.id}` : null,
+                hostedInvoiceUrl: invoice.hosted_invoice_url,
+              }),
+            },
+            // Wipe payment-resurrection state so a future failure restarts the clock.
+            { label: 'payment-resurrection cleanup', task: () => clearStages(invoice.id) },
+          ]),
+          settleSideEffectGroup('invoice-attribution', [
+            {
+              label: 'Meta Purchase',
+              task: () => fireMetaPurchase({ email: customer.email, phone: customer.phone, amountUsd, orderId: invoice.id }),
+            },
+            {
+              label: 'GA4 Purchase',
+              task: async () => {
+                const contact = customer.email ? await findContactByEmail(customer.email) : null
+                await fireGA4Purchase({
+                  email: customer.email,
+                  amountUsd,
+                  orderId: invoice.id,
+                  clientId: contact?.properties?.ga_client_id || null,
+                })
+              },
+            },
+            {
+              label: 'Google Ads conversion',
+              task: async () => {
+                const contact = customer.email ? await findContactByEmail(customer.email) : null
+                await fireGoogleAdsConversion({
+                  email: customer.email,
+                  amountUsd,
+                  conversionTime: invoice.created * 1000,
+                  gclid: contact?.properties?.gclid || null,
+                })
+              },
+            },
+          ]),
+        ])
         break
       }
 
@@ -269,13 +327,6 @@ export default async function handler(req, res) {
         const session = event.data.object
         if (session.payment_status !== 'paid') break
 
-        // Expand line items for the email
-        let items = []
-        try {
-          const li = await stripe.checkout.sessions.listLineItems(session.id, { limit: 20 })
-          items = (li.data || []).map((l) => ({ description: l.description, amount: l.amount_total, quantity: l.quantity }))
-        } catch {}
-
         const customerName = session.customer_details?.name || ''
         const customerEmail = session.customer_details?.email || session.customer_email || ''
         const customerPhone = session.customer_details?.phone || ''
@@ -283,159 +334,149 @@ export default async function handler(req, res) {
         const addressLine = billingAddr ? [billingAddr.line1, billingAddr.city, billingAddr.state, billingAddr.postal_code].filter(Boolean).join(', ') : ''
         const subtotal = session.amount_subtotal || session.amount_total || 0
         const tax = (session.total_details?.amount_tax) || 0
+        const isQuote = session.metadata?.source === 'quote' && !!customerEmail
 
-        // HubSpot note (auto-create contact if it's a new buyer via Payment Link)
-        if (customerEmail) {
-          try {
-            let contact = await findContactByEmail(customerEmail).catch(() => null)
-            if (!contact?.id) {
-              const created = await upsertContact({ email: customerEmail, name: customerName })
-              contact = { id: created.id }
-            }
-            await addNote(
-              contact.id,
-              `[PURCHASE] $${(session.amount_total / 100).toFixed(2)} via ${session.payment_link ? 'Payment Link ' + session.payment_link : 'Checkout'} — session ${session.id}`
-            )
-          } catch (e) { console.error('checkout HubSpot note:', e.message) }
-        }
-
-        // Admin notification
-        await notifyAdmin({
-          source: session.payment_link ? 'Payment Link' : (session.metadata?.source === 'quote' ? 'Quote checkout' : 'Stripe Checkout'),
-          customerName,
-          customerEmail,
-          customerPhone,
-          customerAddress: addressLine,
-          amount: session.amount_total,
-          subtotal,
-          tax,
-          currency: session.currency,
-          items,
-          paidAt: session.created,
-          stripeUrl: `${DASH}/payments/${session.payment_intent}`,
-          ref: session.id,
-        }).catch((e) => console.error('notify checkout completed:', e.message))
-
-        // Customer receipt — shop orders get their confirmation from the Render
-        // equipment handler; skip here to avoid a duplicate email.
-        if (customerEmail && session.metadata?.source !== 'shop') {
-          let receiptUrl = null
-          try {
-            const pi = await stripe.paymentIntents.retrieve(session.payment_intent, { expand: ['latest_charge'] })
-            receiptUrl = pi.latest_charge?.receipt_url || null
-          } catch {}
-          await sendCheckoutReceipt({ session, items, receiptUrl })
-            .catch((e) => console.error('checkout customer receipt:', e.message))
-        }
-
-        // Mark the quote paid so its checkout link can't be paid again after the
-        // Stripe idempotency key expires (~24h). checkout.js consults this.
+        // Money-critical quote state and payment status are serial and awaited
+        // before any notifications, welcome email, or attribution calls.
         if (session.metadata?.source === 'quote' && session.metadata?.quote_jti) {
           await markQuotePaid(session.metadata.quote_jti)
         }
 
-        // Mark quote as paid in HubSpot so quote-followup cron stops following up
-        if (session.metadata?.source === 'quote' && session.metadata?.quote_jti && customerEmail) {
-          try {
-            const contact = await findContactByEmail(customerEmail).catch(() => null)
-            if (contact?.id) {
-              await addNote(contact.id, `[QUOTE-PAID] jti=${session.metadata.quote_jti} session=${session.id} confirmed=${new Date().toISOString()}`)
-            }
-          } catch (e) { console.error('quote-paid marker failed:', e.message) }
+        let checkoutContact = null
+        if (customerEmail) {
+          checkoutContact = await findContactByEmail(customerEmail)
+          if (!checkoutContact?.id) {
+            const created = await upsertContact({ email: customerEmail, name: customerName, phone: customerPhone, address: addressLine })
+            checkoutContact = { id: created.id }
+          }
+          await upsertContact({
+            email: customerEmail,
+            name: customerName,
+            phone: customerPhone,
+            address: addressLine,
+            metadata: { payment_status: 'paid' },
+          })
+          await addNote(
+            checkoutContact.id,
+            `[PURCHASE] $${(session.amount_total / 100).toFixed(2)} via ${session.payment_link ? 'Payment Link ' + session.payment_link : 'Checkout'} — session ${session.id}`
+          )
+          // This note is the durable HubSpot quote-paid marker consumed by the
+          // follow-up cron, so keep it in the serial money-state section.
+          if (isQuote && session.metadata?.quote_jti) {
+            await addNote(checkoutContact.id, `[QUOTE-PAID] jti=${session.metadata.quote_jti} session=${session.id} confirmed=${new Date().toISOString()}`)
+          }
         }
 
-        // For quote checkouts: send welcome email with magic login link + installation CTA
-        if (session.metadata?.source === 'quote' && customerEmail) {
-          try {
-            const magicToken = await createMagicToken(customerEmail)
-            const APP_URL_WH = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
-            const magicLink = `${APP_URL_WH}/auth/verify?token=${encodeURIComponent(magicToken)}`
-            await sendWelcomeEmail({
-              email: customerEmail,
-              customerName: customerName,
-              magicLink,
-              calLink: 'https://cal.com/greenguard-usa/property-assessment',
-            })
-          } catch (e) { console.error('welcome email failed:', e.message) }
+        // Line-item expansion is not money-critical, but it is shared by the
+        // notification tasks and bounded so a slow Stripe read cannot hang them.
+        const itemsPromise = withSideEffectTimeout('checkout line-item expansion', async () => {
+          const li = await stripe.checkout.sessions.listLineItems(session.id, { limit: 20 })
+          return (li.data || []).map((l) => ({ description: l.description, amount: l.amount_total, quantity: l.quantity }))
+        }).catch((e) => {
+          console.error('[stripe-webhook] checkout line-item expansion failed:', e.message)
+          return []
+        })
 
-          // Store gclid + ga_client_id in HubSpot for offline conversion attribution
-          const gclid = session.metadata?.gclid
-          const ga_client_id = session.metadata?.ga_client_id
-          if ((gclid || ga_client_id) && customerEmail) {
-            try {
-              const contact = await findContactByEmail(customerEmail).catch(() => null)
-              if (contact?.id) {
-                const { updateContact } = require('../../../lib/hubspot')
-                const props = {}
-                if (gclid) props.gclid = gclid
-                if (ga_client_id) props.ga_client_id = ga_client_id
-                await updateContact(contact.id, { properties: props }).catch(() => {})
-              }
-            } catch {}
-          }
-          // Fire GA4 purchase for quote checkout path (uses real client_id for attribution)
-          if (customerEmail) {
-            const ga_client_id_meta = session.metadata?.ga_client_id || null
-            await fireGA4Purchase({
+        const amountUsd = (session.amount_total || 0) / 100
+        const conversions = customerEmail ? [
+          {
+            label: 'GA4 Purchase',
+            task: () => fireGA4Purchase({
               email: customerEmail,
-              amountUsd: (session.amount_total || 0) / 100,
-              orderId: session.id,
-              clientId: ga_client_id_meta,
-            })
-          }
-          // Fire ad-platform conversions on the ACTUAL ad-driven purchase event.
-          // Quote checkouts (mode:'payment') do not produce invoice.payment_succeeded,
-          // so these must fire here — this is where the fresh gclid/fbclid live.
-          if (customerEmail) {
-            const amountUsd = (session.amount_total || 0) / 100
-            // Prefer the real _fbc cookie; fall back to one rebuilt from fbclid.
-            const fbc = session.metadata?.fbc || buildFbc(session.metadata?.fbclid)
-            await fireMetaPurchase({
-              email: customerEmail,
-              phone: session.customer_details?.phone || '',
               amountUsd,
               orderId: session.id,
-              fbc,
+              clientId: session.metadata?.ga_client_id || null,
+            }),
+          },
+          {
+            label: 'Meta Purchase',
+            task: () => fireMetaPurchase({
+              email: customerEmail,
+              phone: customerPhone,
+              amountUsd,
+              orderId: session.id,
+              fbc: session.metadata?.fbc || buildFbc(session.metadata?.fbclid),
               fbp: session.metadata?.fbp || null,
-              eventSourceUrl: 'https://www.greenguard-usa.com/',
-            })
-            await fireGoogleAdsConversion({
+              eventSourceUrl: session.metadata?.source === 'shop'
+                ? 'https://www.greenguard-usa.com/shop'
+                : 'https://www.greenguard-usa.com/',
+            }),
+          },
+          {
+            label: 'Google Ads conversion',
+            task: () => fireGoogleAdsConversion({
               email: customerEmail,
               amountUsd,
               conversionTime: (session.created || Math.floor(Date.now() / 1000)) * 1000,
               gclid: session.metadata?.gclid,
-            })
-          }
-        }
+            }),
+          },
+        ] : []
 
-        // Shop equipment purchases (mode:'payment', source:'shop') also produce no
-        // invoice.payment_succeeded, so fire ad conversions here using the click IDs
-        // captured into session metadata at checkout. Mirrors the quote path above.
-        if (session.metadata?.source === 'shop' && customerEmail) {
-          const amountUsd = (session.amount_total || 0) / 100
-          await fireGA4Purchase({
-            email: customerEmail,
-            amountUsd,
-            orderId: session.id,
-            clientId: session.metadata?.ga_client_id || null,
-          })
-          const fbc = session.metadata?.fbc || buildFbc(session.metadata?.fbclid)
-          await fireMetaPurchase({
-            email: customerEmail,
-            phone: session.customer_details?.phone || '',
-            amountUsd,
-            orderId: session.id,
-            fbc,
-            fbp: session.metadata?.fbp || null,
-            eventSourceUrl: 'https://www.greenguard-usa.com/shop',
-          })
-          await fireGoogleAdsConversion({
-            email: customerEmail,
-            amountUsd,
-            conversionTime: (session.created || Math.floor(Date.now() / 1000)) * 1000,
-            gclid: session.metadata?.gclid,
-          })
-        }
+        await Promise.all([
+          settleSideEffectGroup('checkout-notifications', [
+            {
+              label: 'admin notification',
+              task: async () => notifyAdmin({
+                source: session.payment_link ? 'Payment Link' : (session.metadata?.source === 'quote' ? 'Quote checkout' : 'Stripe Checkout'),
+                customerName,
+                customerEmail,
+                customerPhone,
+                customerAddress: addressLine,
+                amount: session.amount_total,
+                subtotal,
+                tax,
+                currency: session.currency,
+                items: await itemsPromise,
+                paidAt: session.created,
+                stripeUrl: `${DASH}/payments/${session.payment_intent}`,
+                ref: session.id,
+              }),
+            },
+            {
+              label: 'customer receipt',
+              task: async () => {
+                // Shop orders get their confirmation from the equipment handler.
+                if (!customerEmail || session.metadata?.source === 'shop') return
+                let receiptUrl = null
+                try {
+                  const pi = await withSideEffectTimeout('checkout receipt URL', () =>
+                    stripe.paymentIntents.retrieve(session.payment_intent, { expand: ['latest_charge'] })
+                  )
+                  receiptUrl = pi.latest_charge?.receipt_url || null
+                } catch (e) {
+                  console.error('[stripe-webhook] checkout receipt URL failed:', e.message)
+                }
+                await sendCheckoutReceipt({ session, items: await itemsPromise, receiptUrl })
+              },
+            },
+            {
+              label: 'welcome email',
+              task: async () => {
+                if (!isQuote) return
+                const magicToken = await createMagicToken(customerEmail)
+                const APP_URL_WH = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
+                await sendWelcomeEmail({
+                  email: customerEmail,
+                  customerName,
+                  magicLink: `${APP_URL_WH}/auth/verify?token=${encodeURIComponent(magicToken)}`,
+                  calLink: 'https://cal.com/greenguard-usa/property-assessment',
+                })
+              },
+            },
+            {
+              label: 'HubSpot attribution',
+              task: async () => {
+                if (!isQuote || !checkoutContact?.id) return
+                const props = {}
+                if (session.metadata?.gclid) props.gclid = session.metadata.gclid
+                if (session.metadata?.ga_client_id) props.ga_client_id = session.metadata.ga_client_id
+                if (Object.keys(props).length > 0) await updateContact(checkoutContact.id, { properties: props })
+              },
+            },
+          ]),
+          settleSideEffectGroup('checkout-attribution', conversions),
+        ])
         break
       }
 

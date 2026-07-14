@@ -6,6 +6,8 @@ import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
 
+// Finding 35 — TODO: evaluate modular recharts imports further; keep these
+// dynamic boundaries until the chart bundle can be reduced without regressions.
 const BarChart       = dynamic(() => import('recharts').then((m) => m.BarChart),        { ssr: false })
 const Bar            = dynamic(() => import('recharts').then((m) => m.Bar),              { ssr: false })
 const AreaChart      = dynamic(() => import('recharts').then((m) => m.AreaChart),       { ssr: false })

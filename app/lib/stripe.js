@@ -119,7 +119,10 @@ async function addInvoiceItems(customerId, oneTimeSkus, metadata = {}) {
         invoice: invoice.id,
         price: PRICE_ID_MAP[sku],
         metadata: { ...stripeMetadata, gg_sku: sku },
-      }, hasIdemBase ? `gg:invitem:${idemBase}:${sku}:${i}` : null)
+        // invoice.id in the key: Stripe binds an idempotency key to its exact
+        // params (incl. `invoice`), so a retry onto a different draft needs a
+        // fresh key; the same draft (real double-tap) stays deduped.
+      }, hasIdemBase ? `gg:invitem:${invoice.id}:${idemBase}:${sku}:${i}` : null)
     )
   }
   return results

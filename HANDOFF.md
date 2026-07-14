@@ -82,8 +82,8 @@ is unset does NOT protect across lambda instances — KV must stay configured in
 - Customer booking: `/book` on the marketing site → `POST /api/book/create` → GCal event + confirmation
   email + **admin notify email** (from `admin@`, logged SENT/FAILED — twice this missed silently before
   being hardened, July 2026) + HubSpot upsert + server-side ad conversions.
-- Cal.com handles rescheduling links; Cal.com→GCal sync is automatic. The Cal.com webhook **fails closed**
-  (503 without secret, 401 on bad signature).
+- Cal.com handles rescheduling links; Cal.com→GCal sync is automatic. The legacy Cal.com webhook route was
+  removed; booking data now arrives through the supported calendar sync path.
 - **Rounds reads live GCal only** — never the route-plan cache. The route plan JSON is for `/admin/route`
   display only. This rule exists because a cached plan once caused missed appointments.
 - Earliest customer slot is 10 AM; 40-mile ZIP service-area gate on public booking (admin `/book` bypasses).
