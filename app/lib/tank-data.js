@@ -1,6 +1,7 @@
 const { findContactByEmail, findContactsByEmails, tanksForCustomer } = require('./hubspot')
 const { getBookingsForDateRange } = require('./gcal')
 const { cached } = require('./cache')
+const { fetchWithTimeout } = require('./http')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -35,7 +36,7 @@ async function _buildTankCalendarData(tz = 'America/Chicago') {
   try {
     const bookings = await getBookingsForDateRange(dayStartUtc.toISOString(), rangeEnd.toISOString())
     const uniqueEmails = [...new Set(bookings.map((b) => b.email).filter(Boolean))]
-    const contactMap = await findContactsByEmails(uniqueEmails).catch(() => new Map())
+    const contactMap = await findContactsByEmails(uniqueEmails)
     const tankCountMap = {}
     for (const email of uniqueEmails) {
       const c = contactMap.get(email.toLowerCase())
@@ -47,45 +48,43 @@ async function _buildTankCalendarData(tz = 'America/Chicago') {
       scheduleByDate[dateStr].tanks += tanks
       scheduleByDate[dateStr].appts += 1
     })
-  } catch {}
+  } catch (err) {
+    throw new Error(`Tank calendar schedule unavailable: ${err.message || err}`)
+  }
 
   let history = []
   let tankCalendar = {}
-  try {
-    const contact = await findContactByEmail(ADMIN_EMAIL)
-    if (contact?.id) {
-      const assocResp = await fetch(
-        `https://api.hubapi.com/crm/v3/objects/contacts/${contact.id}/associations/notes?limit=100`,
-        { headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` } }
-      )
-      if (assocResp.ok) {
-        const assocData = await assocResp.json()
-        const noteIds = (assocData.results || []).map((r) => r.id).slice(0, 100)
-        if (noteIds.length > 0) {
-          const batchResp = await fetch('https://api.hubapi.com/crm/v3/objects/notes/batch/read', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ inputs: noteIds.map((id) => ({ id: String(id) })), properties: ['hs_note_body', 'hs_timestamp'] }),
-          })
-          if (batchResp.ok) {
-            const batchData = await batchResp.json()
-            history = (batchData.results || [])
-              .filter((n) => n.properties.hs_note_body?.startsWith('[TANK-LOG]'))
-              .sort((a, b) => new Date(b.properties.hs_timestamp) - new Date(a.properties.hs_timestamp))
-              .slice(0, 30)
-              .map((n) => {
-                try {
-                  const json = JSON.parse(n.properties.hs_note_body.replace('[TANK-LOG]', ''))
-                  return { ...json, timestamp: n.properties.hs_timestamp }
-                } catch { return null }
-              })
-              .filter(Boolean)
-            history.forEach((entry) => { if (entry.date) tankCalendar[entry.date] = entry })
-          }
-        }
-      }
+  const contact = await findContactByEmail(ADMIN_EMAIL)
+  if (contact?.id) {
+    const assocResp = await fetchWithTimeout(
+      `https://api.hubapi.com/crm/v3/objects/contacts/${contact.id}/associations/notes?limit=100`,
+      { headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` } }
+    )
+    if (!assocResp.ok) throw new Error(`HubSpot notes associations returned ${assocResp.status}`)
+    const assocData = await assocResp.json()
+    const noteIds = (assocData.results || []).map((r) => r.id).slice(0, 100)
+    if (noteIds.length > 0) {
+      const batchResp = await fetchWithTimeout('https://api.hubapi.com/crm/v3/objects/notes/batch/read', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs: noteIds.map((id) => ({ id: String(id) })), properties: ['hs_note_body', 'hs_timestamp'] }),
+      })
+      if (!batchResp.ok) throw new Error(`HubSpot notes batch returned ${batchResp.status}`)
+      const batchData = await batchResp.json()
+      history = (batchData.results || [])
+        .filter((n) => n.properties.hs_note_body?.startsWith('[TANK-LOG]'))
+        .sort((a, b) => new Date(b.properties.hs_timestamp) - new Date(a.properties.hs_timestamp))
+        .slice(0, 30)
+        .map((n) => {
+          try {
+            const json = JSON.parse(n.properties.hs_note_body.replace('[TANK-LOG]', ''))
+            return { ...json, timestamp: n.properties.hs_timestamp }
+          } catch { return null }
+        })
+        .filter(Boolean)
+      history.forEach((entry) => { if (entry.date) tankCalendar[entry.date] = entry })
     }
-  } catch {}
+  }
 
   const lastWedLog = history.find((e) => {
     const dow = new Date(e.date + 'T12:00:00').getDay()

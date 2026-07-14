@@ -11,7 +11,7 @@
  * the claim persists for the TTL (covers Stripe's 72-hour retry window).
  */
 
-const TTL_SECONDS = 24 * 60 * 60 // 24 hours
+const TTL_SECONDS = 96 * 60 * 60 // 96 hours — covers delayed Stripe retries
 const MAX_SIZE = 10000
 
 // ── KV (durable, cross-instance) ──────────────────────────────────────────────
@@ -61,6 +61,7 @@ async function claimWebhook(eventId, ttlSeconds = TTL_SECONDS) {
     const result = await kv.set(_key(eventId), Date.now(), { nx: true, ex: ttlSeconds })
     return result === 'OK'
   }
+  if (process.env.VERCEL) throw new Error('Webhook idempotency KV is required in production')
   _prune()
   if (_processed.has(eventId)) return false
   _processed.set(eventId, Date.now())
@@ -76,7 +77,8 @@ async function claimWebhook(eventId, ttlSeconds = TTL_SECONDS) {
 async function confirmWebhook(eventId, ttlSeconds = TTL_SECONDS) {
   if (!eventId) return
   const kv = getKV()
-  if (kv) { try { await kv.set(_key(eventId), Date.now(), { ex: ttlSeconds }) } catch {} ; return }
+  if (kv) { await kv.set(_key(eventId), Date.now(), { ex: ttlSeconds }); return }
+  if (process.env.VERCEL) throw new Error('Webhook idempotency KV is required in production')
   _processed.set(eventId, Date.now())
 }
 

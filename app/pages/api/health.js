@@ -6,6 +6,8 @@
 const { stripe } = require('../../lib/stripe')
 const { Client } = require('@hubspot/api-client')
 const { getTrafficOverview } = require('../../lib/ga4')
+const { getSessionFromRequest, isAdminEmail } = require('../../lib/auth')
+const { authorize } = require('../../lib/cron-auth')
 
 const REQUIRED_ENV = [
   'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET',
@@ -15,10 +17,18 @@ const REQUIRED_ENV = [
   'NEXT_PUBLIC_APP_URL',
 ]
 
+function withTimeout(promise, timeoutMs = 8000) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Health check timed out after ${timeoutMs}ms`)), timeoutMs)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}
+
 async function checkStripe() {
   const start = Date.now()
   try {
-    await stripe.customers.list({ limit: 1 })
+    await withTimeout(stripe.customers.list({ limit: 1 }))
     return { ok: true, latency: Date.now() - start }
   } catch (e) {
     return { ok: false, error: e.message, latency: Date.now() - start }
@@ -29,7 +39,7 @@ async function checkHubSpot() {
   const start = Date.now()
   try {
     const client = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN })
-    await client.crm.contacts.basicApi.getPage(1)
+    await withTimeout(client.crm.contacts.basicApi.getPage(1))
     return { ok: true, latency: Date.now() - start }
   } catch (e) {
     return { ok: false, error: e.message, latency: Date.now() - start }
@@ -43,7 +53,7 @@ async function checkGoogleCalendar() {
     const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
     auth.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN })
     const cal = google.calendar({ version: 'v3', auth })
-    await cal.calendarList.list({ maxResults: 1 })
+    await withTimeout(cal.calendarList.list({ maxResults: 1 }))
     return { ok: true, latency: Date.now() - start }
   } catch (e) {
     return { ok: false, error: e.message, latency: Date.now() - start }
@@ -62,7 +72,7 @@ async function checkMetaToken() {
   if (!token) return { ok: true, warning: 'META_SYSTEM_USER_TOKEN not set — ads attribution disabled' }
   const start = Date.now()
   try {
-    const r = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${token}`)
+    const r = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${token}`, { signal: AbortSignal.timeout(8000) })
     const d = await r.json()
     if (d.error) return { ok: false, error: `Meta token invalid: ${d.error.message}`, latency: Date.now() - start }
     return { ok: true, latency: Date.now() - start }
@@ -78,6 +88,7 @@ async function checkCalcom() {
   try {
     const r = await fetch('https://api.cal.com/v2/event-types', {
       headers: { Authorization: `Bearer ${key}`, 'cal-api-version': '2024-06-14' },
+      signal: AbortSignal.timeout(8000),
     })
     if (!r.ok) return { ok: false, error: `Cal.com API returned ${r.status}`, latency: Date.now() - start }
     return { ok: true, latency: Date.now() - start }
@@ -91,7 +102,7 @@ async function checkGA4() {
   if (!configured) return { ok: true, warning: 'GA4 property ID not set — Traffic tab disabled' }
   const start = Date.now()
   try {
-    await getTrafficOverview()
+    await withTimeout(getTrafficOverview())
     return { ok: true, latency: Date.now() - start }
   } catch (e) {
     return { ok: false, error: e.message, latency: Date.now() - start }
@@ -131,6 +142,16 @@ function checkEnvVars() {
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end()
+
+  if (req.query.deep !== '1') {
+    res.setHeader('Cache-Control', 'public, max-age=60')
+    return res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString(), version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'local' })
+  }
+
+  const session = await getSessionFromRequest(req, res)
+  if (!session || !isAdminEmail(session.email)) {
+    if (!authorize(req, res)) return
+  }
 
   const t = Date.now()
   const env = checkEnvVars()

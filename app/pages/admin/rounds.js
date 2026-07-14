@@ -24,6 +24,7 @@ export async function getServerSideProps({ req, query, res }) {
   const selectedDate = mode === 'open' ? null : (query.date || today)
 
   let stops = []
+  let gcalError = null
   if (mode === 'open') {
     // Pull GCal events from the last 30 days. Filtering to "open" (no
     // existing invoice) happens later, after we've matched contacts/Cal.com.
@@ -45,9 +46,11 @@ export async function getServerSideProps({ req, query, res }) {
         calBookingUid: b.calBookingUid || null,
         appointmentNotes: b.appointmentNotes || null,
       }))
-    } catch {}
+    } catch (e) {
+      gcalError = e.message || 'Google Calendar connection failed'
+      console.error('[rounds] GCal error:', e.message)
+    }
   } else {
-    let gcalError = null
     try {
       const bookings = selectedDate === today ? await getTodaysBookings() : await getBookingsForDate(selectedDate)
       stops = bookings.map((b) => ({
@@ -66,8 +69,9 @@ export async function getServerSideProps({ req, query, res }) {
       gcalError = e.message || 'Google Calendar connection failed'
       console.error('[rounds] GCal error:', e.message)
     }
-    if (gcalError) return { props: { stops: [], today, selectedDate, availableDates: [], mode, gcalError } }
   }
+
+  if (gcalError) return { props: { stops: [], today, selectedDate, availableDates: [], mode, gcalError } }
 
   // Back-fill emails for stops whose GCal event description didn't include one,
   // by matching the customer name (and address as tiebreaker) against HubSpot.

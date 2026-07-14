@@ -132,10 +132,30 @@ export default async function handler(req, res) {
   if (!authorize(req, res)) return
 
   const date = req.query.date || todayCT()
-  const [bookings, forecast] = await Promise.all([
-    getBookingsForDate(date).catch(() => []),
-    getDayForecast(date).catch(() => null),
-  ])
+  let bookings
+  try {
+    bookings = await getBookingsForDate(date)
+  } catch (err) {
+    const message = `route unavailable: ${err.message || err}`
+    console.error('[daily-route] GCal error:', err)
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        await resend.emails.send({
+          from: SENDER,
+          to: RECIPIENTS,
+          subject: `⚠️ ALERT: route unavailable — ${fmtLongDate(date)}`,
+          html: `<p><strong>${escapeHtml(message)}</strong></p><p>No route email was sent because Google Calendar could not be read.</p>`,
+        })
+      } catch (alertErr) {
+        console.error('[daily-route] alert email failed:', alertErr)
+      }
+    } else {
+      console.error('[daily-route] alert email skipped: RESEND_API_KEY missing')
+    }
+    return res.status(500).json({ ok: false, error: message, date })
+  }
+  const forecast = await getDayForecast(date).catch(() => null)
   const sorted = bookings.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
 
   const emails = [...new Set(sorted.map((b) => b.email).filter(Boolean))]

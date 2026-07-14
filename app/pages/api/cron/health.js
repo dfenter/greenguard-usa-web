@@ -17,10 +17,16 @@ export default async function handler(req, res) {
   if (!authorize(req, res)) return
 
   // Call the health endpoint internally
-  const healthUrl = `${APP_URL}/api/health`
+  const healthUrl = `${APP_URL}/api/health?deep=1`
   let result
   try {
-    const resp = await fetch(healthUrl, { headers: { 'User-Agent': 'GreenGuard-HealthCron/1.0' } })
+    const resp = await fetch(healthUrl, {
+      headers: {
+        Authorization: `Bearer ${process.env.CRON_SECRET}`,
+        'User-Agent': 'GreenGuard-HealthCron/1.0',
+      },
+      signal: AbortSignal.timeout(10000),
+    })
     result = await resp.json()
   } catch (e) {
     result = { status: 'degraded', error: e.message, checks: {} }

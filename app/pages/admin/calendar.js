@@ -29,6 +29,7 @@ export async function getServerSideProps({ req, res }) {
   const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
 
   let bookings = []
+  let gcalError = null
   try {
     bookings = await getBookingsForDate(today)
     // Enrich with canonical HubSpot tank counts so the initial render
@@ -50,9 +51,12 @@ export async function getServerSideProps({ req, res }) {
         }))
       } catch {}
     }
-  } catch {}
+  } catch (err) {
+    gcalError = err.message || 'Google Calendar connection failed'
+    console.error('[calendar] GCal error:', err)
+  }
 
-  return { props: { today, initialBookings: bookings } }
+  return { props: { today, initialBookings: bookings, gcalError } }
 }
 
 function toLocalHM(iso, tz = TZ) {
@@ -180,7 +184,7 @@ function tanksFor(ev) {
   return tankCountFromTitle(ev?.title)
 }
 
-export default function CalendarPage({ today, initialBookings }) {
+export default function CalendarPage({ today, initialBookings, gcalError = null }) {
   const router = useRouter()
   const [date, setDate] = useState(() => {
     const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('date') : null
@@ -188,6 +192,8 @@ export default function CalendarPage({ today, initialBookings }) {
   })
   const [bookings, setBookings] = useState(initialBookings)
   const [loading, setLoading] = useState(false)
+  const [calendarError, setCalendarError] = useState(gcalError)
+  const [retryNonce, setRetryNonce] = useState(0)
 
   // Translate a click on the empty day-grid background into a YYYY-MM-DDTHH:mm
   // value and hand off to /admin/booking with the time prefilled. Rounds to
@@ -240,12 +246,18 @@ export default function CalendarPage({ today, initialBookings }) {
 
   useEffect(() => {
     if (viewMode === 'agenda' || viewMode === 'day') {
-      if (date === today && bookings === initialBookings) return // initial
+      if (date === today && bookings === initialBookings && !gcalError && retryNonce === 0) return // initial
       setLoading(true)
       fetch(`/api/admin/bookings?date=${date}`)
         .then((r) => r.json())
-        .then((d) => setBookings(d.bookings || []))
-        .catch(() => setBookings([]))
+        .then((d) => {
+          setBookings(d.bookings || [])
+          setCalendarError(null)
+        })
+        .catch((err) => {
+          setBookings([])
+          setCalendarError(err.message || 'Google Calendar connection failed')
+        })
         .finally(() => setLoading(false))
       return
     }
@@ -259,7 +271,7 @@ export default function CalendarPage({ today, initialBookings }) {
       for (const [d, b] of pairs) map[d] = b
       setRangeBookings(map)
     }).finally(() => setLoading(false))
-  }, [date, viewMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [date, viewMode, gcalError, retryNonce]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const positioned = useMemo(() => layoutEvents(bookings), [bookings])
 
@@ -413,6 +425,15 @@ export default function CalendarPage({ today, initialBookings }) {
             style={{ marginTop:10, width:'100%', padding:'10px 14px', background:'var(--bg-card)', border:'1px solid rgba(var(--border-rgb),0.25)', borderRadius:8, color:'var(--text)', fontSize:'1rem' }} />
         )}
 
+        {calendarError && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginTop:10, padding:'10px 14px', borderRadius:8, background:'rgba(var(--danger-rgb),0.08)', border:'1px solid rgba(var(--danger-rgb),0.28)', color:'var(--danger)', fontSize:'0.82rem', fontWeight:700 }}>
+            <span>⚠️ Google Calendar unavailable — appointments may be incomplete.</span>
+            <button onClick={() => setRetryNonce((n) => n + 1)} disabled={loading} style={{ padding:'6px 12px', borderRadius:6, border:'1px solid rgba(var(--danger-rgb),0.35)', background:'transparent', color:'var(--danger)', fontWeight:800, cursor:loading ? 'wait' : 'pointer', whiteSpace:'nowrap' }}>
+              {loading ? 'Retrying…' : 'Retry'}
+            </button>
+          </div>
+        )}
+
         <div className="week-strip">
           {week.map((d) => {
             const dd = new Date(d + 'T12:00:00')
@@ -436,7 +457,7 @@ export default function CalendarPage({ today, initialBookings }) {
           </div>
         </div>
 
-        {!loading && bookings.length === 0 && viewMode === 'agenda' && (
+        {!loading && !calendarError && bookings.length === 0 && viewMode === 'agenda' && (
           <div className="empty">No appointments scheduled.</div>
         )}
 

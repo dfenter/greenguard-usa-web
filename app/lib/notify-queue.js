@@ -37,14 +37,26 @@ function kvToken() {
 // Using the raw command endpoint (not the path-shorthand one) so options like
 // NX/EX/GET are expressible without fighting URL-encoding edge cases.
 async function kv(command) {
-  const r = await fetch(kvUrl(), {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${kvToken()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(command),
-  })
-  const j = await r.json()
-  if (j.error) throw new Error(`KV error for ${JSON.stringify(command)}: ${j.error}`)
-  return j.result
+  const op = String(command[0] || '').toUpperCase()
+  const retryable = op === 'GET' || op === 'LRANGE' || (op === 'SET' && command.some((part) => String(part).toUpperCase() === 'NX'))
+  let lastErr
+  for (let attempt = 0; attempt <= (retryable ? 1 : 0); attempt++) {
+    try {
+      const r = await fetch(kvUrl(), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${kvToken()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(command),
+        signal: AbortSignal.timeout(5000),
+      })
+      const j = await r.json()
+      if (!r.ok || j.error) throw new Error(`KV error for ${JSON.stringify(command)}: ${j.error || r.status}`)
+      return j.result
+    } catch (err) {
+      lastErr = err
+      if (attempt === 0 && retryable) continue
+    }
+  }
+  throw lastErr
 }
 
 function isKvConfigured() {

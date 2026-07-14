@@ -60,7 +60,7 @@ export default function HealthDashboard() {
   const runCheck = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/health')
+      const res = await fetch('/api/health?deep=1')
       const data = await res.json()
       setResult(data)
       setLastRun(new Date())
@@ -128,7 +128,7 @@ export default function HealthDashboard() {
             </p>
           </div>
           <a
-            href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'}/api/health`}
+            href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'}/api/health?deep=1`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', fontSize: '0.78rem', fontWeight: 700, color: 'var(--green-muted)', textDecoration: 'none', whiteSpace: 'nowrap' }}

@@ -11,13 +11,20 @@ export function useLazyData(url) {
 
   useEffect(() => {
     let alive = true
+    let timedOut = false
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      timedOut = true
+      controller.abort()
+    }, 15000)
     setData(null)
     setError(null)
-    fetch(url)
+    fetch(url, { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((d) => { if (alive) setData(d) })
-      .catch((e) => { if (alive) setError(e.message || 'Failed to load') })
-    return () => { alive = false }
+      .catch((e) => { if (alive) setError(timedOut ? 'Request timed out' : (e.message || 'Failed to load')) })
+      .finally(() => clearTimeout(timer))
+    return () => { alive = false; clearTimeout(timer); controller.abort() }
   }, [url, nonce])
 
   return { data, loading: data === null && !error, error, reload: () => setNonce((n) => n + 1) }

@@ -1031,7 +1031,7 @@ function HealthTab() {
   const runCheck = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/health')
+      const res = await fetch('/api/health?deep=1')
       setResult(await res.json())
       setLastRun(new Date())
     } catch (e) {
@@ -1083,7 +1083,7 @@ function HealthTab() {
       )}
       <div className="card" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
         Vercel Cron runs <code style={{ color: 'var(--gold)' }}>/api/cron/health</code> every 5 minutes. Alerts go to <strong>admin@greenguard-usa.com</strong> if any service is down.{' '}
-        <a href="https://portal.greenguard-usa.com/api/health" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green-muted)' }}>Raw JSON →</a>
+        <a href="https://portal.greenguard-usa.com/api/health?deep=1" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green-muted)' }}>Raw JSON →</a>
       </div>
     </div>
   )

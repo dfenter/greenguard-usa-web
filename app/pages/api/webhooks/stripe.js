@@ -461,7 +461,7 @@ export default async function handler(req, res) {
     }
 
     // Fully handled — extend the short claim to the durable TTL.
-    await confirmWebhook(event.id).catch(() => {})
+    await confirmWebhook(event.id)
     res.status(200).json({ received: true })
   } catch (err) {
     console.error('[stripe-webhook] Processing error:', err.message)

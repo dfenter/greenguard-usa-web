@@ -21,6 +21,7 @@ const { upsertContact } = require('../../../lib/hubspot')
 const CALENDAR_ID = process.env.CALENDAR_ID || 'admin@greenguard-usa.com'
 const LOOKBACK_DAYS = 90
 const LOOKAHEAD_DAYS = 90
+const MAX_EVENTS = 2000
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end()
@@ -30,35 +31,60 @@ export default async function handler(req, res) {
   const timeMin = new Date(now.getTime() - LOOKBACK_DAYS * 86400 * 1000).toISOString()
   const timeMax = new Date(now.getTime() + LOOKAHEAD_DAYS * 86400 * 1000).toISOString()
 
-  let events
+  let events = []
+  let pageToken
+  let capReached = false
   try {
     const cal = getCalendar()
-    const r = await cal.events.list({
-      calendarId: CALENDAR_ID,
-      timeMin,
-      timeMax,
-      maxResults: 250,
-      singleEvents: true,
-      orderBy: 'startTime',
-      q: 'GreenGuard USA',
-    })
-    events = (r.data.items || []).filter(
-      (e) =>
-        (e.description && e.description.includes('GreenGuard USA')) ||
-        (e.summary && e.summary.includes('GreenGuard USA'))
-    )
+    do {
+      const r = await cal.events.list({
+        calendarId: CALENDAR_ID,
+        timeMin,
+        timeMax,
+        maxResults: 250,
+        pageToken,
+        singleEvents: true,
+        orderBy: 'startTime',
+        q: 'GreenGuard USA',
+      })
+      events.push(...(r.data.items || []).filter(
+        (e) =>
+          (e.description && e.description.includes('GreenGuard USA')) ||
+          (e.summary && e.summary.includes('GreenGuard USA'))
+      ))
+      pageToken = r.data.nextPageToken
+      if (events.length >= MAX_EVENTS) {
+        capReached = true
+        break
+      }
+    } while (pageToken)
   } catch (e) {
     console.error('[gcal-hubspot-sync] GCal error:', e.message)
     return res.status(500).json({ error: e.message })
   }
 
   const results = { created: 0, updated: 0, skipped: 0, errors: [] }
+  if (capReached) {
+    const error = `Pagination safety cap reached (${MAX_EVENTS} events); sync aborted before upserts`
+    results.errors.push({ error })
+    console.error('[gcal-hubspot-sync]', error)
+    return res.status(500).json({ ok: false, scanned: events.length, ...results })
+  }
 
+  // One contact upsert per normalized email, even when a customer has several
+  // appointments in the rolling window. Keep the first event's metadata.
+  const seenEmails = new Set()
+  const uniqueEvents = []
   for (const event of events) {
-    const email =
-      parseEmailFromDescription(event.description) ||
-      parseEmailFromAttendees(event.attendees)
-    if (!email) { results.skipped++; continue }
+    const rawEmail = parseEmailFromDescription(event.description) || parseEmailFromAttendees(event.attendees)
+    if (!rawEmail) { results.skipped++; continue }
+    const email = rawEmail.trim().toLowerCase()
+    if (seenEmails.has(email)) { results.skipped++; continue }
+    seenEmails.add(email)
+    uniqueEvents.push({ event, email })
+  }
+
+  for (const { event, email } of uniqueEvents) {
 
     const name = parseCustomerName(event.summary) || ''
     const phone = parsePhoneFromDescription(event.description) || ''

@@ -160,10 +160,20 @@ async function consumeLoginCode(email, code) {
     const attempts = await kv.incr(attKey)
     if (attempts === 1) await kv.expire(attKey, LOGIN_CODE_TTL)
     if (attempts > LOGIN_CODE_MAX_ATTEMPTS) { await kv.del(key); return false }
-    const stored = await kv.get(key)
-    if (!stored || String(stored).length !== want.length) return false
-    const ok = crypto.timingSafeEqual(Buffer.from(String(stored)), Buffer.from(want))
-    if (ok) { await kv.del(key); await kv.del(attKey) }
+    // Read the TTL before the atomic consume so a wrong code can restore the
+    // hash for later attempts. There is a small race if another request changes
+    // the key between TTL and GETDEL; the atomic GETDEL still guarantees that
+    // only one request can consume the current code.
+    const remainingTtl = await kv.ttl(key)
+    const stored = await kv.getdel(key)
+    if (!stored) return false
+    const storedString = String(stored)
+    const ok = storedString.length === want.length && crypto.timingSafeEqual(Buffer.from(storedString), Buffer.from(want))
+    if (ok) {
+      await kv.del(attKey)
+    } else if (attempts < LOGIN_CODE_MAX_ATTEMPTS && remainingTtl > 0) {
+      await kv.set(key, String(stored), { ex: remainingTtl })
+    }
     return ok
   }
   const rec = _memLoginCodes.get(key)

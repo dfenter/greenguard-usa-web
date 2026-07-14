@@ -144,8 +144,10 @@ async function _fetchContactsByEmails(cleaned) {
         const k = (c.properties?.email || '').toLowerCase()
         if (k) pairs.push([k, c])
       }
-    } catch {
-      // Fail-soft — leave missing contacts out of the result.
+    } catch (err) {
+      // A partial result would be cached as if it were complete and can make
+      // every downstream page render the wrong customer data for its TTL.
+      throw new Error(`HubSpot contact batch failed: ${err.message || err}`)
     }
   }
   return pairs
@@ -260,7 +262,7 @@ async function getAllContacts(limit = 200) {
       const res = await fetchWithTimeout(`https://api.hubapi.com/crm/v3/objects/contacts?${params}`, {
         headers: { Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}` },
       })
-      if (!res.ok) break
+      if (!res.ok) throw new Error(`HubSpot contacts returned ${res.status}`)
       const data = await res.json()
       results.push(...(data.results || []))
       after = data.paging?.next?.after

@@ -4,7 +4,7 @@
 
 const { Resend } = require('resend')
 const { stripe } = require('../../../lib/stripe')
-const { getBookingsForDate } = require('../../../lib/gcal')
+const { getBookingsForDate, tzDayBoundsISO } = require('../../../lib/gcal')
 const { resolveByTitle, normalizeEventTitle } = require('../../../lib/sku-engine')
 
 const TZ = 'America/Chicago'
@@ -23,15 +23,15 @@ function fmtLongDate(iso) {
 function fmt$(cents) { return `$${(cents / 100).toFixed(2)}` }
 function escapeHtml(s) { return String(s || '').replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c])) }
 
-async function fetchTodaysInvoices() {
+async function fetchTodaysInvoices(date = todayCT()) {
   // Stripe invoices created since midnight today, in our local tz.
-  const dayStart = new Date(todayCT() + 'T00:00:00').toLocaleString('en-US', { timeZone: 'UTC' })
+  const { start: dayStart } = tzDayBoundsISO(date, TZ)
   const sinceUnix = Math.floor(new Date(dayStart).getTime() / 1000)
   const page = await stripe.invoices.list({ created: { gte: sinceUnix }, limit: 50, expand: ['data.customer'] })
   return page.data
 }
 
-function renderHtml({ date, completedVisits, invoices, cancellations, tomorrow, totals }) {
+function renderHtml({ date, completedVisits, invoices, cancellations, tomorrow, totals, incompleteSources = [] }) {
   const invRows = invoices.slice(0, 12).map((inv) => {
     const custName = typeof inv.customer === 'object'
       ? (inv.customer?.name || inv.customer_email || '—')
@@ -59,6 +59,8 @@ function renderHtml({ date, completedVisits, invoices, cancellations, tomorrow, 
       </td>
     </tr>
   </table>
+
+  ${incompleteSources.length > 0 ? `<div style="background:#3d0e0e;border:1px solid rgba(255,100,100,0.25);border-radius:8px;padding:12px 16px;margin-bottom:10px;color:#ffd5d5;font-size:12px;font-weight:800">DATA INCOMPLETE: ${escapeHtml(incompleteSources.join(', '))}</div>` : ''}
 
   <!-- Hero card -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 50%,#2d4a32 100%);border:1px solid rgba(122,171,130,0.2);border-radius:12px;margin-bottom:10px">
@@ -147,12 +149,23 @@ export default async function handler(req, res) {
   const today = todayCT()
   const tomorrowIso = tomorrowCT()
 
-  // Today's GCal events → count completed (status confirmed, not cancelled) + cancellations
-  const [todayBookings, tomorrowBookings, invoices] = await Promise.all([
-    getBookingsForDate(today).catch(() => []),
-    getBookingsForDate(tomorrowIso).catch(() => []),
-    fetchTodaysInvoices().catch(() => []),
+  // Keep each source's failure state separate so an outage is never rendered as
+  // a clean zero. The email carries the affected source names as a banner.
+  const [todayResult, tomorrowResult, invoicesResult] = await Promise.allSettled([
+    getBookingsForDate(today),
+    getBookingsForDate(tomorrowIso),
+    fetchTodaysInvoices(today),
   ])
+  const incompleteSources = []
+  if (todayResult.status === 'rejected') incompleteSources.push("today's Google Calendar")
+  if (tomorrowResult.status === 'rejected') incompleteSources.push("tomorrow's Google Calendar")
+  if (invoicesResult.status === 'rejected') incompleteSources.push('Stripe invoices')
+  const todayBookings = todayResult.status === 'fulfilled' ? todayResult.value : []
+  const tomorrowBookings = tomorrowResult.status === 'fulfilled' ? tomorrowResult.value : []
+  const invoices = invoicesResult.status === 'fulfilled' ? invoicesResult.value : []
+  for (const result of [todayResult, tomorrowResult, invoicesResult]) {
+    if (result.status === 'rejected') console.error('[daily-summary] source error:', result.reason)
+  }
 
   // GCal events don't carry a status field in our parsed shape — cancelled events
   // are excluded by the GCal API query itself (singleEvents + no showDeleted).
@@ -162,7 +175,7 @@ export default async function handler(req, res) {
   const tomorrowTanks = tomorrowBookings.reduce((s, b) => s + (resolveByTitle(normalizeEventTitle(b.title || ''))?.tankCount || 0), 0)
   const revenueCents = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.amount_paid, 0)
 
-  if (!process.env.RESEND_API_KEY) return res.status(200).json({ ok: true, sent: false, reason: 'RESEND_API_KEY missing' })
+  if (!process.env.RESEND_API_KEY) return res.status(200).json({ ok: true, sent: false, reason: 'RESEND_API_KEY missing', dataIncomplete: incompleteSources })
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   try {
@@ -175,6 +188,7 @@ export default async function handler(req, res) {
         invoices,
         totals: { revenueCents },
         tomorrow: { date: tomorrowIso, count: tomorrowBookings.length, tanks: tomorrowTanks },
+        incompleteSources,
       }),
     })
   } catch (err) {
@@ -182,5 +196,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to send summary email' })
   }
 
-  return res.status(200).json({ ok: true, sent: true })
+  return res.status(200).json({ ok: true, sent: true, dataIncomplete: incompleteSources })
 }
