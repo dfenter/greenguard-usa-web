@@ -15,6 +15,7 @@
 const { Resend } = require('resend')
 const { stripe } = require('./stripe')
 const biz = require('./business.config')
+const { assertSendOk } = require('./email')
 
 const FROM = process.env.PORTAL_FROM_EMAIL || `noreply@${biz.email.split('@')[1]}`
 const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || biz.email
@@ -25,7 +26,7 @@ function esc(s) {
 
 // ── T+48h customer nudge ─────────────────────────────────────────────────────
 async function sendT48Email({ to, customerName, quoteUrl, amountDue }) {
-  if (!process.env.RESEND_API_KEY || !to) return { skipped: true }
+  if (!process.env.RESEND_API_KEY || !to) return { skipped: true, sent: false, email: false }
   const first = (customerName || '').split(' ')[0] || 'there'
   const html = `<!DOCTYPE html>
 <html>
@@ -80,20 +81,25 @@ async function sendT48Email({ to, customerName, quoteUrl, amountDue }) {
 </div>
 </body>
 </html>`
-  const resend = new Resend(process.env.RESEND_API_KEY)
-  await resend.emails.send({
-    from: `${biz.name} <${FROM}>`,
-    to,
-    reply_to: ADMIN_EMAIL,
-    subject: `Following up on your ${biz.nameShort} quote`,
-    html,
-  })
-  return { sent: true }
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const result = await resend.emails.send({
+      from: `${biz.name} <${FROM}>`,
+      to,
+      reply_to: ADMIN_EMAIL,
+      subject: `Following up on your ${biz.nameShort} quote`,
+      html,
+    })
+    if (!assertSendOk(result)) return { sent: false, error: 'Resend did not return a message id' }
+    return { sent: true, email: true }
+  } catch (e) {
+    return { sent: false, error: e.message }
+  }
 }
 
 // ── T+7d admin alert ─────────────────────────────────────────────────────────
 async function sendT7dAdminAlert({ customerName, customerEmail, quoteUrl, amountDue, jti }) {
-  if (!process.env.RESEND_API_KEY) return { skipped: true }
+  if (!process.env.RESEND_API_KEY) return { skipped: true, sent: false, email: false }
   const html = `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#0a1a0d;font-family:'Helvetica Neue',Arial,sans-serif">
@@ -143,14 +149,19 @@ async function sendT7dAdminAlert({ customerName, customerEmail, quoteUrl, amount
 </div>
 </body>
 </html>`
-  const resend = new Resend(process.env.RESEND_API_KEY)
-  await resend.emails.send({
-    from: `${biz.nameShort} Alerts <${FROM}>`,
-    to: ADMIN_EMAIL,
-    subject: `Cold quote: ${customerName || customerEmail} ($${parseFloat(amountDue || 0).toFixed(2)})`,
-    html,
-  })
-  return { sent: true }
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const result = await resend.emails.send({
+      from: `${biz.nameShort} Alerts <${FROM}>`,
+      to: ADMIN_EMAIL,
+      subject: `Cold quote: ${customerName || customerEmail} ($${parseFloat(amountDue || 0).toFixed(2)})`,
+      html,
+    })
+    if (!assertSendOk(result)) return { sent: false, error: 'Resend did not return a message id' }
+    return { sent: true, email: true }
+  } catch (e) {
+    return { sent: false, error: e.message }
+  }
 }
 
 // ── Check Stripe for jti engagement ──────────────────────────────────────────

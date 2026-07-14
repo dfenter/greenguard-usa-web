@@ -40,11 +40,13 @@ export default async function handler(req, res) {
 
     let qa = null
     if (isImage && !skipQA && process.env.GOOGLE_GEMINI_API_KEY) {
-      // Fire-and-forget: don't block the upload response on the AI roundtrip.
-      assessPhoto({ imageUrl: blob.url, customerEmail, caption }).catch((e) =>
+      try {
+        const result = await assessPhoto({ imageUrl: blob.url, customerEmail, caption })
+        qa = result?.ok ? { queued: false, ...result } : { queued: false, error: true }
+      } catch (e) {
         console.error('photo-qa:', e.message)
-      )
-      qa = { queued: true }
+        qa = { queued: false, error: true }
+      }
     }
 
     res.status(200).json({ url: blob.url, qa })

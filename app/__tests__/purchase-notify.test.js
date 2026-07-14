@@ -91,26 +91,11 @@ describe('notifyAdmin', () => {
     expect(mockEmailSend).not.toHaveBeenCalled()
   })
 
-  test('sends SMS when ADMIN_SMS_NUMBER + TWILIO_AUTH_TOKEN set', async () => {
-    // purchase-notify captures env vars at module load, so isolate + reload
+  test('never texts the owner on a purchase, even with ADMIN_SMS_NUMBER set', async () => {
+    // Owner payment alerts go by email + Slack only — the SMS was unwanted noise
+    // once the iMessage daemon came online (disabled 2026-07-14).
     await jest.isolateModulesAsync(async () => {
       process.env.ADMIN_SMS_NUMBER = '+15125550000'
-      process.env.TWILIO_AUTH_TOKEN = 'test_twilio_token'
-      const { notifyAdmin: notifyAdminFresh } = require('../lib/purchase-notify')
-      await notifyAdminFresh(purchase)
-      expect(mockSendSms).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: '+15125550000',
-          body: expect.stringContaining('Alice Test'),
-        })
-      )
-    })
-  })
-
-  test('skips SMS when ADMIN_SMS_NUMBER is empty', async () => {
-    await jest.isolateModulesAsync(async () => {
-      process.env.ADMIN_SMS_NUMBER = ''
-      process.env.TWILIO_AUTH_TOKEN = 'test_twilio_token'
       const { notifyAdmin: notifyAdminFresh } = require('../lib/purchase-notify')
       await notifyAdminFresh(purchase)
       expect(mockSendSms).not.toHaveBeenCalled()

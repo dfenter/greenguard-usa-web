@@ -14,12 +14,14 @@ const { addNote } = require('../../../lib/hubspot')
 const { sendT48Email, sendT7dAdminAlert, buildPaidJtiSet } = require('../../../lib/quote-followup')
 const { authorize } = require('../../../lib/cron-auth')
 const Sentry = require('@sentry/nextjs')
+const { consumeJtiStrict } = require('../../../lib/auth')
 
 const HUBSPOT_TOKEN = process.env.HUBSPOT_ACCESS_TOKEN
 const T48 = 48 * 3600 * 1000
 const T7D = 7 * 24 * 3600 * 1000
 const T14D = 14 * 24 * 3600 * 1000
 const SCAN_DAYS = 30
+const STAGE_CLAIM_TTL_SEC = 6 * 3600
 
 // Parse "[QUOTE-SENT] jti=X email=Y amount=Z monthly=M url=U sent=ISO"
 function parseQuoteNote(body) {
@@ -159,11 +161,23 @@ export default async function handler(req, res) {
 
     // T+7d → COLD (admin alert)
     if (ageMs >= T7D && !hasMarkerForJti(allNotes, '[QUOTE-COLD]', parsed.jti)) {
+      let claimed
       try {
-        await sendT7dAdminAlert({
+        claimed = await consumeJtiStrict(`cron:quote-followup:${parsed.jti}:t7d`, STAGE_CLAIM_TTL_SEC)
+      } catch (e) {
+        results.errors.push(`cold ${parsed.jti} claim: ${e.message.slice(0, 80)}`)
+        continue
+      }
+      if (!claimed) continue
+      try {
+        const sent = await sendT7dAdminAlert({
           customerName: '', customerEmail: parsed.email,
           quoteUrl: parsed.url, amountDue: parsed.amount, jti: parsed.jti,
         })
+        if (!sent.sent) {
+          results.errors.push(`cold ${parsed.jti}: ${sent.error || 'no channel confirmed'}`)
+          continue
+        }
         await addNote(contactId, `[QUOTE-COLD] jti=${parsed.jti} admin_alerted=${new Date().toISOString()}`)
         results.cold_marked++
       } catch (e) {
@@ -174,11 +188,23 @@ export default async function handler(req, res) {
 
     // T+48h → customer follow-up
     if (ageMs >= T48 && !hasMarkerForJti(allNotes, '[QUOTE-FOLLOWUP-T48]', parsed.jti)) {
+      let claimed
       try {
-        await sendT48Email({
+        claimed = await consumeJtiStrict(`cron:quote-followup:${parsed.jti}:t48`, STAGE_CLAIM_TTL_SEC)
+      } catch (e) {
+        results.errors.push(`t48 ${parsed.jti} claim: ${e.message.slice(0, 80)}`)
+        continue
+      }
+      if (!claimed) continue
+      try {
+        const sent = await sendT48Email({
           to: parsed.email, customerName: '',
           quoteUrl: parsed.url, amountDue: parsed.amount,
         })
+        if (!sent.sent) {
+          results.errors.push(`t48 ${parsed.jti}: ${sent.error || 'no channel confirmed'}`)
+          continue
+        }
         await addNote(contactId, `[QUOTE-FOLLOWUP-T48] jti=${parsed.jti} sent=${new Date().toISOString()}`)
         results.t48_sent++
       } catch (e) {

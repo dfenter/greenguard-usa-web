@@ -16,6 +16,12 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
 }
 
+// Resend resolves API failures as `{ error }` in some cases instead of
+// rejecting. Treat a response without a provider id as unconfirmed too.
+function assertSendOk(result) {
+  return Boolean(result && !result.error && (result.data?.id || result.id))
+}
+
 // Falls back to the Gmail REST API (users.messages.send) when Resend fails.
 // Uses the dedicated GMAIL_* admin@ token; GOOGLE_* is calendar-only and can't
 // send, so prefer GMAIL_* and only fall back to GOOGLE_* if it's unset.
@@ -76,8 +82,8 @@ async function sendEmailDirect({ to, subject, html, bcc, from }) {
         html,
         ...(bcc ? { bcc } : {}),
       })
-      if (!r.error) return r
-      console.warn('Resend send failed (%s) — falling back to Gmail', r.error.message)
+      if (assertSendOk(r)) return r
+      console.warn('Resend send failed or was unconfirmed — falling back to Gmail')
     } catch (e) {
       console.warn('Resend threw (%s) — falling back to Gmail', e.message)
     }
@@ -307,6 +313,6 @@ async function sendServiceRequest(adminEmail, customer = {}, message = '', { sub
 }
 
 module.exports = {
-  sendMagicLink, sendWelcomeEmail, sendEmail, sendServiceRequest, escapeHtml, emailShell, goldButton, outlineButton,
+  sendMagicLink, sendWelcomeEmail, sendEmail, sendServiceRequest, escapeHtml, emailShell, goldButton, outlineButton, assertSendOk,
   sendEmailDirect, // exported for the local notify daemon (scripts/local-notify-daemon.js) and tests
 }

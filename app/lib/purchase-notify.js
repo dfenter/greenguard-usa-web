@@ -6,8 +6,8 @@
 // event twice.
 
 const { Resend } = require('resend')
-const { sendSms } = require('./sms')
 const { postToOps } = require('./slack')
+const { assertSendOk } = require('./email')
 
 const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
 const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
@@ -101,27 +101,21 @@ async function notifyAdmin(purchase) {
     </div>`
 
     try {
-      await new Resend(process.env.RESEND_API_KEY).emails.send({
+      const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
         from: `GreenGuard USA <${FROM}>`,
         to: ADMIN_EMAIL,
         subject,
         html,
       })
+      if (!assertSendOk(result)) throw new Error('purchase notify email was not confirmed by Resend')
       results.email = true
     } catch (e) { console.error('purchase notify email:', e.message) }
   }
 
   const alertText = `💰 *${purchase.customerName || purchase.customerEmail || 'Customer'}* paid ${fmt$(purchase.amount)} (${purchase.source || 'Stripe'})${purchase.stripeUrl ? ` — ${purchase.stripeUrl}` : ''}`
 
-  // Sends via iMessage (lib/sms → local daemon). No longer gated on Twilio creds
-  // (iMessage-only, business decision 2026-07-10) — gate on having a number only.
-  if (ADMIN_SMS) {
-    try {
-      const r = await sendSms({ to: ADMIN_SMS, body: alertText.replace(/\*/g, '').slice(0, 320) })
-      results.sms = r.ok
-    } catch (e) { console.error('purchase notify sms:', e.message) }
-  }
-
+  // Owner payment alerts go by email + Slack only — no owner text (the SMS was
+  // unwanted noise once the iMessage daemon came online, disabled 2026-07-14).
   await postToOps(alertText).catch(() => {})
 
   return results
@@ -208,12 +202,13 @@ async function sendCustomerReceipt({ invoice, customer, receiptUrl, hostedInvoic
 </html>`
 
   try {
-    await new Resend(process.env.RESEND_API_KEY).emails.send({
+    const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: `GreenGuard USA <${FROM}>`,
       to: customer.email,
       subject: `Receipt — ${fmt$(amount)} paid to GreenGuard USA`,
       html,
     })
+    if (!assertSendOk(result)) throw new Error('customer receipt was not confirmed by Resend')
     return { ok: true }
   } catch (e) {
     console.error('customer receipt send failed:', e.message)
@@ -284,13 +279,14 @@ async function sendCheckoutReceipt({ session, items, receiptUrl }) {
 </html>`
 
   try {
-    await new Resend(process.env.RESEND_API_KEY).emails.send({
+    const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: `GreenGuard USA <${FROM}>`,
       to: email,
       bcc: ADMIN_EMAIL,
       subject: `Receipt — ${fmt$(amount)} paid to GreenGuard USA`,
       html,
     })
+    if (!assertSendOk(result)) throw new Error('checkout receipt was not confirmed by Resend')
     return { ok: true }
   } catch (e) {
     console.error('checkout receipt send failed:', e.message)
@@ -328,12 +324,13 @@ async function notifyAdminInvoiceSent({ invoice, customer }) {
       <p style="font-size:0.72rem;color:#888;margin-top:18px;">Ref: ${esc(invoice.id)} · ${esc(invoice.collection_method)}</p>
     </div>`
   try {
-    await new Resend(process.env.RESEND_API_KEY).emails.send({
+    const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: `GreenGuard Billing <${FROM}>`,
       to: ADMIN_EMAIL,
       subject: `📤 Invoice sent: ${customer.name || customer.email} ${fmt$(amount)}`,
       html,
     })
+    if (!assertSendOk(result)) throw new Error('admin invoice-sent notify was not confirmed by Resend')
     return { ok: true }
   } catch (e) {
     console.error('admin invoice-sent notify:', e.message)

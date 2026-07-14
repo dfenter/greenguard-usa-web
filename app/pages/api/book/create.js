@@ -160,7 +160,9 @@ export default async function handler(req, res) {
     const [customerConfirm, adminNotify, hubspot, conversions] = results
     if (customerConfirm.status === 'rejected') console.error('[book/create] customer confirm failed:', customerConfirm.reason?.message)
     if (adminNotify.status === 'rejected') console.error(`[book/create] admin notify FAILED for ${name} <${email}>:`, adminNotify.reason?.message)
-    else console.log(`[book/create] admin notify SENT for ${name}:`, adminNotify.value?.data?.id || adminNotify.value?.messageId || 'ok')
+    else if (adminNotify.value?.queued) console.log(`[book/create] admin notify QUEUED for ${name}:`, adminNotify.value.sentBy || 'daemon-pending')
+    else if (adminNotify.value?.sentBy || adminNotify.value?.data?.id || adminNotify.value?.messageId) console.log(`[book/create] admin notify SENT for ${name}:`, adminNotify.value.sentBy || adminNotify.value.data?.id || adminNotify.value.messageId)
+    else console.error(`[book/create] admin notify UNCONFIRMED for ${name}`)
     if (hubspot.status === 'rejected') console.error('[book/create] HubSpot failed:', hubspot.reason?.message)
     if (conversions.status === 'rejected') console.error('[book/create] conversions failed:', conversions.reason?.message)
 

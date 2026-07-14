@@ -14,6 +14,7 @@ const { Resend } = require('resend')
 const { stripe } = require('./stripe')
 const { findContactByEmail, addNote, updateContact } = require('./hubspot')
 const { sendSms } = require('./sms')
+const { assertSendOk } = require('./email')
 
 const biz = require('./business.config')
 const FROM = process.env.PORTAL_FROM_EMAIL || `noreply@${biz.email.split('@')[1]}`
@@ -39,7 +40,7 @@ async function billingPortalUrl(customerId) {
 
 // ── Stage T+0 ────────────────────────────────────────────────────────────────
 async function sendT0Email(invoice, customer) {
-  if (!process.env.RESEND_API_KEY || !customer.email) return { skipped: true }
+  if (!process.env.RESEND_API_KEY || !customer.email) return { skipped: true, sent: false, email: false }
   const portal = await billingPortalUrl(customer.id)
   const html = `
     <div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1a2e1f;">
@@ -56,14 +57,15 @@ async function sendT0Email(invoice, customer) {
       <p style="font-size:0.85rem;color:#555;">Questions? Just reply to this email — goes straight to admin.</p>
     </div>`
   const resend = new Resend(process.env.RESEND_API_KEY)
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: `${biz.name} <${FROM}>`,
     to: customer.email,
     reply_to: ADMIN_EMAIL,
     subject: `Quick fix — your ${biz.nameShort} payment didn't go through`,
     html,
   })
-  return { sent: true, to: customer.email }
+  if (!assertSendOk(result)) throw new Error('payment-resurrection T+0 email was not confirmed by Resend')
+  return { sent: true, email: true, to: customer.email }
 }
 
 // ── Stage T+48h ──────────────────────────────────────────────────────────────
@@ -84,14 +86,19 @@ async function sendT48hReminder(invoice, customer) {
         <p style="font-size:0.85rem;color:#555;">Trouble with your card? <a href="${esc(portal)}" style="color:#0d8a3c;">Update payment method</a> · or reply with a question.</p>
       </div>`
     const resend = new Resend(process.env.RESEND_API_KEY)
-    await resend.emails.send({
-      from: `${biz.name} <${FROM}>`,
-      to: customer.email,
-      reply_to: ADMIN_EMAIL,
-      subject: `Reminder — ${biz.nameShort} payment of ${fmt$(invoice.amount_due)} still pending`,
-      html,
-    })
-    emailOk = true
+    try {
+      const result = await resend.emails.send({
+        from: `${biz.name} <${FROM}>`,
+        to: customer.email,
+        reply_to: ADMIN_EMAIL,
+        subject: `Reminder — ${biz.nameShort} payment of ${fmt$(invoice.amount_due)} still pending`,
+        html,
+      })
+      emailOk = assertSendOk(result)
+      if (!emailOk) console.error('payment-resurrection T+48 email was not confirmed by Resend')
+    } catch (e) {
+      console.error('payment-resurrection T+48 email:', e.message)
+    }
   }
   // SMS escalation
   const contact = customer.email ? await findContactByEmail(customer.email).catch(() => null) : null
@@ -99,13 +106,17 @@ async function sendT48hReminder(invoice, customer) {
   // Sends via iMessage (lib/sms → local daemon). No longer gated on Twilio creds
   // (iMessage-only, business decision 2026-07-10) — gate on having a number only.
   if (phone) {
-    const r = await sendSms({
-      to: phone,
-      body: `${biz.nameShort}: a ${fmt$(invoice.amount_due)} payment didn't go through. Pay or update card here: ${invoice.hosted_invoice_url}`,
-    })
-    smsOk = r.ok
+    try {
+      const r = await sendSms({
+        to: phone,
+        body: `${biz.nameShort}: a ${fmt$(invoice.amount_due)} payment didn't go through. Pay or update card here: ${invoice.hosted_invoice_url}`,
+      })
+      smsOk = r.ok === true
+    } catch (e) {
+      console.error('payment-resurrection T+48 SMS:', e.message)
+    }
   }
-  return { email: emailOk, sms: smsOk }
+  return { sent: emailOk || smsOk, email: emailOk, sms: smsOk }
 }
 
 // ── Stage T+7d ───────────────────────────────────────────────────────────────
@@ -120,6 +131,8 @@ async function sendT7dAdminAlert(invoice, customer) {
     await updateContact(contact.id, { properties: { payment_status: 'churn_risk' } }).catch(() => {})
   }
   // Admin alert
+  let sent = false
+  let error
   if (process.env.RESEND_API_KEY) {
     const html = `
       <div style="font-family:-apple-system,sans-serif;max-width:560px;padding:20px;">
@@ -134,14 +147,20 @@ async function sendT7dAdminAlert(invoice, customer) {
         <p>The auto-flow has stopped. Time for a call or personal email.</p>
       </div>`
     const resend = new Resend(process.env.RESEND_API_KEY)
-    await resend.emails.send({
-      from: `${biz.nameShort} Alerts <${FROM}>`,
-      to: ADMIN_EMAIL,
-      subject: `⚠️ Manual follow-up: ${customer.name || customer.email} unpaid 7d (${fmt$(invoice.amount_due)})`,
-      html,
-    })
+    try {
+      const result = await resend.emails.send({
+        from: `${biz.nameShort} Alerts <${FROM}>`,
+        to: ADMIN_EMAIL,
+        subject: `⚠️ Manual follow-up: ${customer.name || customer.email} unpaid 7d (${fmt$(invoice.amount_due)})`,
+        html,
+      })
+      sent = assertSendOk(result)
+      if (!sent) error = 'Resend did not return a message id'
+    } catch (e) {
+      error = e.message
+    }
   }
-  return { ok: true }
+  return { ok: sent, sent, email: sent, ...(error ? { error } : {}) }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

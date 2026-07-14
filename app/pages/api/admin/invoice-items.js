@@ -228,6 +228,7 @@ export default async function handler(req, res) {
       if (!inv) {
         inv = await stripe.invoices.create({ customer: customerId, auto_advance: false })
       }
+      let notifyFailed = false
       if (inv.status === 'draft') {
         if (!inv.lines?.data?.length || inv.amount_due === 0) {
           return res.status(400).json({ error: 'Cannot send an invoice with no billable items' })
@@ -270,13 +271,17 @@ export default async function handler(req, res) {
           await stripe.invoices.pay(inv.id)
         }
         // Notify admin with a copy of what the customer received (hosted
-        // invoice URL + line items). Fire-and-forget; don't block response.
+        // invoice URL + line items) before reporting the outcome.
         try {
           const finalInv = await stripe.invoices.retrieve(inv.id)
           const cust = await stripe.customers.retrieve(customerId)
-          notifyAdminInvoiceSent({ invoice: finalInv, customer: cust })
-            .catch((e) => console.error('admin invoice-sent notify:', e.message))
+          const notifyResult = await notifyAdminInvoiceSent({ invoice: finalInv, customer: cust })
+          if (!notifyResult?.ok) {
+            notifyFailed = true
+            console.error('admin invoice-sent notify:', notifyResult?.reason || 'unconfirmed')
+          }
         } catch (e) {
+          notifyFailed = true
           console.error('admin invoice-sent notify (pre-fetch):', e.message)
         }
       } else if (inv.status === 'open') {
@@ -302,9 +307,15 @@ export default async function handler(req, res) {
         try {
           const finalInv = await stripe.invoices.retrieve(inv.id)
           const cust = await stripe.customers.retrieve(customerId)
-          notifyAdminInvoiceSent({ invoice: finalInv, customer: cust })
-            .catch((e) => console.error('admin invoice-resent notify:', e.message))
-        } catch {}
+          const notifyResult = await notifyAdminInvoiceSent({ invoice: finalInv, customer: cust })
+          if (!notifyResult?.ok) {
+            notifyFailed = true
+            console.error('admin invoice-resent notify:', notifyResult?.reason || 'unconfirmed')
+          }
+        } catch (e) {
+          notifyFailed = true
+          console.error('admin invoice-resent notify:', e.message)
+        }
       }
       const refreshed = await stripe.invoices.retrieve(inv.id)
       return res.status(200).json({
@@ -312,6 +323,7 @@ export default async function handler(req, res) {
         invoiceId: inv.id,
         status: refreshed.status,
         collectionMethod: refreshed.collection_method,
+        ...(notifyFailed ? { notifyFailed: true } : {}),
       })
     }
 

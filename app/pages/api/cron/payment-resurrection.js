@@ -9,10 +9,12 @@
 const { stripe } = require('../../../lib/stripe')
 const { sendT48hReminder, sendT7dAdminAlert, markStage } = require('../../../lib/payment-resurrection')
 const { authorize } = require('../../../lib/cron-auth')
+const { consumeJtiStrict } = require('../../../lib/auth')
 
 const HOURS = 3600 * 1000
 const STAGE_T48_AFTER_MS = 48 * HOURS
 const STAGE_T7D_AFTER_MS = 7 * 24 * HOURS
+const STAGE_CLAIM_TTL_SEC = 6 * HOURS / 1000
 
 async function listOpenInvoicesNeedingFollowup() {
   // Open status only; we don't chase voided or paid invoices.
@@ -55,11 +57,35 @@ export default async function handler(req, res) {
 
       try {
         if (age >= STAGE_T7D_AFTER_MS && !inv.metadata.payfail_t7d_at) {
-          await sendT7dAdminAlert(inv, customer)
+          let claimed
+          try {
+            claimed = await consumeJtiStrict(`cron:payment-resurrection:${inv.id}:t7d`, STAGE_CLAIM_TTL_SEC)
+          } catch (e) {
+            results.errors.push(`${inv.id} t7d claim: ${e.message.slice(0, 100)}`)
+            continue
+          }
+          if (!claimed) continue
+          const sent = await sendT7dAdminAlert(inv, customer)
+          if (!sent.sent) {
+            results.errors.push(`${inv.id} t7d: ${sent.error || 'no channel confirmed'}`)
+            continue
+          }
           await markStage(inv.id, 't7d')
           results.t7d_sent++
         } else if (age >= STAGE_T48_AFTER_MS && !inv.metadata.payfail_t48_at) {
-          await sendT48hReminder(inv, customer)
+          let claimed
+          try {
+            claimed = await consumeJtiStrict(`cron:payment-resurrection:${inv.id}:t48`, STAGE_CLAIM_TTL_SEC)
+          } catch (e) {
+            results.errors.push(`${inv.id} t48 claim: ${e.message.slice(0, 100)}`)
+            continue
+          }
+          if (!claimed) continue
+          const sent = await sendT48hReminder(inv, customer)
+          if (!sent.sent) {
+            results.errors.push(`${inv.id} t48: no channel confirmed`)
+            continue
+          }
           await markStage(inv.id, 't48')
           results.t48_sent++
         }

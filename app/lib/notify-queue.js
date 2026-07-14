@@ -103,8 +103,9 @@ async function claimForBackup(id) {
   return removed === 1
 }
 
-const LOCAL_GRACE_MS = 5000
-const LOCAL_POLL_MS = 300
+const LOCAL_GRACE_MS = 1500
+const LOCAL_POLL_MS = 500
+const LOCAL_OWNERSHIP_POLL_MS = 3000
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)) }
 
@@ -120,11 +121,13 @@ function sleep(ms) { return new Promise((r) => setTimeout(r, ms)) }
  * Behavior:
  *  - Daemon not alive (or KV unset) → call directFn immediately. ZERO added
  *    latency, byte-for-byte the pre-local-first behavior.
- *  - Daemon alive → enqueue, poll up to 5s for the daemon to send it locally.
+ *  - Daemon alive → enqueue, poll up to 1.5s (three 500ms polls) for the
+ *    daemon to send it locally.
  *    On success, return the daemon's stored send result with `sentBy:'local'`
  *    grafted on (so callers reading result.data.id / result.sid still work).
  *    On daemon-reported failure or timeout, atomically claim the job away from
- *    the queue (so the daemon can't also send it) and fall through to directFn.
+ *    the queue. If the daemon already owns it, poll its terminal status before
+ *    deciding whether directFn is safe.
  */
 async function sendLocalFirst(payload, directFn) {
   if (!isKvConfigured() || !(await isDaemonAlive())) {
@@ -145,8 +148,9 @@ async function sendLocalFirst(payload, directFn) {
     let job
     try {
       job = await getJob(id)
-    } catch {
-      break // KV hiccup mid-wait — fall through to backup below
+    } catch (e) {
+      console.warn('notify-queue local status read failed (%s) — checking ownership', e.message)
+      break // KV hiccup mid-wait — claim/status state machine decides below
     }
     if (job?.status === 'sent-by-local') {
       return { ...(job.result || {}), sentBy: 'local' }
@@ -158,15 +162,51 @@ async function sendLocalFirst(payload, directFn) {
   }
 
   // Backup path: claim the job away from the queue (in case the daemon is just
-  // slow, not dead) so it can't also send it, then send via the current method.
+  // slow, not dead). If the daemon already popped it, it owns the send; only a
+  // daemon-reported failure permits the backup path in that case.
+  let ownsBackup
   try {
-    await claimForBackup(id)
-    const finalCheck = await getJob(id)
-    if (finalCheck?.status === 'sent-by-local') {
-      return { ...(finalCheck.result || {}), sentBy: 'local' }
-    }
+    ownsBackup = await claimForBackup(id)
   } catch (e) {
-    console.warn('notify-queue backup claim failed (%s) — sending anyway', e.message)
+    // A claim is impossible when KV is unavailable. Availability wins here:
+    // send via the backup path because there is no reliable queue owner.
+    console.warn('notify-queue backup claim failed (%s) — sending via backup', e.message)
+    ownsBackup = true
+  }
+
+  if (!ownsBackup) {
+    let job
+    try {
+      job = await getJob(id)
+    } catch (e) {
+      // The daemon may own the job; a status-read failure is not evidence that
+      // it failed, so do not risk a duplicate send.
+      console.warn('notify-queue daemon status read failed (%s) — leaving queued', e.message)
+      return { queued: true, sentBy: 'daemon-pending' }
+    }
+
+    if (job?.status === 'sent-by-local') {
+      return { ...(job.result || {}), sentBy: 'local' }
+    }
+    if (job?.status !== 'failed-by-local') {
+      const deadline = Date.now() + LOCAL_OWNERSHIP_POLL_MS
+      while (Date.now() < deadline) {
+        await sleep(Math.min(LOCAL_POLL_MS, deadline - Date.now()))
+        try {
+          job = await getJob(id)
+        } catch (e) {
+          console.warn('notify-queue daemon status poll failed (%s) — leaving queued', e.message)
+          return { queued: true, sentBy: 'daemon-pending' }
+        }
+        if (job?.status === 'sent-by-local') {
+          return { ...(job.result || {}), sentBy: 'local' }
+        }
+        if (job?.status === 'failed-by-local') break
+      }
+      if (job?.status !== 'failed-by-local') {
+        return { queued: true, sentBy: 'daemon-pending' }
+      }
+    }
   }
 
   const result = await directFn(payload)
@@ -175,6 +215,6 @@ async function sendLocalFirst(payload, directFn) {
 }
 
 module.exports = {
-  isKvConfigured, isDaemonAlive, heartbeat, enqueue, getJob, setJobStatus, popNext, claimForBackup,
+  kv, isKvConfigured, isDaemonAlive, heartbeat, enqueue, getJob, setJobStatus, popNext, claimForBackup,
   sendLocalFirst,
 }

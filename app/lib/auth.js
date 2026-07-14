@@ -68,6 +68,16 @@ async function consumeJti(jti, ttlSeconds = 900) {
   return true
 }
 
+// Cron jobs must fail closed when the cross-instance store is unavailable.
+// Unlike consumeJti(), this never falls back to per-instance memory.
+async function consumeJtiStrict(jti, ttlSeconds = 900) {
+  if (!jti) return false
+  const kv = getKV()
+  if (!kv) throw new Error('KV is required for strict single-use claims')
+  const result = await kv.set(`jti:${jti}`, '1', { nx: true, ex: ttlSeconds })
+  return result === 'OK'
+}
+
 // Revoke a long-lived jti (e.g. a quote link admin wants to invalidate).
 // Stored separately from consumeJti so the two sets don't collide.
 async function revokeJti(jti, ttlSeconds = 30 * 24 * 3600) {
@@ -265,6 +275,7 @@ module.exports = {
   requireAdmin,
   requireOwner,
   consumeJti,
+  consumeJtiStrict,
   revokeJti,
   isJtiRevoked,
   markQuotePaid,
