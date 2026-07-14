@@ -32,12 +32,12 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1a10, #1a2e1f)', padding: 24, fontFamily: 'Inter, sans-serif', color: '#d4e6ca', textAlign: 'center' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 24, fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif", color: 'var(--text)', textAlign: 'center' }}>
           <div style={{ maxWidth: 400 }}>
             <div style={{ fontWeight: 900, fontSize: '1.3rem', marginBottom: 24 }}>{process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}</div>
             <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 8 }}>Something went wrong.</div>
-            <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)', marginBottom: 24 }}>Please refresh the page to continue.</p>
-            <button onClick={() => window.location.reload()} style={{ padding: '12px 24px', borderRadius: 6, background: '#c9a84c', color: '#0d1a10', fontWeight: 800, fontSize: '0.9rem', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: 24 }}>Please refresh the page to continue.</p>
+            <button onClick={() => window.location.reload()} style={{ padding: '12px 24px', borderRadius: 6, background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.9rem', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
               Refresh
             </button>
           </div>

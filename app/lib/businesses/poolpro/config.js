@@ -30,6 +30,11 @@ module.exports = {
     textMuted:   'rgba(221,238,255,0.58)',
     textDim:     'rgba(221,238,255,0.32)',
     themeColor:  '#06111f',
+    ok:           '#176f2b',
+    danger:       '#b3261e',
+    info:         '#0b57d0',
+    warn:         '#8a5300',
+    textOnAccent: '#102015',
   },
 
   pwa: { appTitle: 'PoolPro', manifest: '/manifest.json' },

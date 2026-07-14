@@ -1,28 +1,18 @@
 *, *::before, *::after { box-sizing: border-box; }
 
-/* ── v2 design tokens — sleek, modern, brand-consistent ──────────
-   Depth/shape/elevation layered on top of the brand palette injected
-   in _document.js. Colors stay strictly on-brand (green + gold on
-   deep green); these tokens add the polish that reads "professional"
-   instead of "amateur": consistent radii, soft elevation, gradients,
-   and visible focus rings. */
+/* ── v2 design tokens — shape, elevation, and visible focus rings ── */
 :root {
   --radius-sm: 10px;
   --radius:    14px;
   --radius-lg: 20px;
   --radius-pill: 100px;
 
-  /* Soft elevation tuned for a dark UI — depth without harshness */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.25);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.32);
-  --shadow-lg: 0 20px 52px rgba(0,0,0,0.45);
-
-  /* Brand gradients for premium surfaces & accents */
-  --surface-grad: linear-gradient(162deg, rgba(var(--green-rgb),0.06), rgba(var(--green-rgb),0.015) 60%, rgba(var(--gold-rgb),0.015));
-  --gold-grad:   linear-gradient(135deg, var(--gold), #e3c878);
-  --green-grad:  linear-gradient(135deg, var(--green), #57e08c);
-
-  --ring: 0 0 0 3px rgba(var(--gold-rgb),0.40);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.10);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.14);
+  --gold-grad:   var(--green);
+  --green-grad:  var(--green);
+  --ring: 0 0 0 3px rgba(var(--green-rgb),0.70);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -37,24 +27,11 @@ body {
   padding: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent; /* no grey flash on tap (iOS) */
   overscroll-behavior-y: none; /* avoid rubber-band revealing blank bg */
-}
-
-/* Brand gradient sits on a fixed full-viewport layer instead of
-   background-attachment:fixed (which is broken/janky on iOS Safari). */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(var(--gold-rgb),0.05), transparent 60%),
-    radial-gradient(1000px 700px at -10% 110%, rgba(var(--green-rgb),0.06), transparent 55%);
 }
 
 a { color: inherit; text-decoration: none; }
@@ -69,8 +46,8 @@ input:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
 }
 
 .btn-gold {
-  background: var(--gold-grad);
-  color: var(--bg-deep);
+  background: var(--green);
+  color: var(--text-on-accent);
   font-weight: 800;
   font-size: 0.95rem;
   letter-spacing: 0.01em;
@@ -85,7 +62,7 @@ input:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
 .btn-gold:active { transform: translateY(0); }
 
 .btn-outline {
-  background: rgba(var(--text-rgb),0.015);
+  background: var(--bg-card);
   color: var(--text);
   font-weight: 700;
   font-size: 0.95rem;
@@ -99,8 +76,8 @@ input:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
 
 /* Green action button — for positive/primary field actions */
 .btn-green {
-  background: var(--green-grad);
-  color: var(--bg-deep);
+  background: var(--green);
+  color: var(--text-on-accent);
   font-weight: 800;
   font-size: 0.95rem;
   padding: 13px 26px;
@@ -114,12 +91,10 @@ input:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
 
 .card {
   background: var(--bg-card);
-  background-image: var(--surface-grad);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 24px;
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(6px);
 }
 
 .tag {
@@ -134,8 +109,8 @@ input:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
 
 .badge {
   display: inline-block;
-  background: rgba(var(--gold-rgb), 0.14);
-  border: 1px solid rgba(var(--gold-rgb), 0.35);
+  background: rgba(var(--gold-rgb), 0.10);
+  border: 1px solid var(--border-gold);
   border-radius: var(--radius-pill);
   padding: 4px 12px;
   font-size: 0.8rem;
@@ -144,8 +119,8 @@ input:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
 }
 
 .badge-green {
-  background: rgba(var(--green-rgb), 0.12);
-  border-color: rgba(var(--green-rgb), 0.25);
+  background: rgba(var(--green-rgb), 0.10);
+  border-color: var(--border);
   color: var(--green);
 }
 
@@ -158,22 +133,23 @@ select, input, textarea {
   font-family: inherit;
   font-size: 1rem;
   color: var(--text);
-  background: rgba(var(--text-rgb), 0.03);
+  background: var(--bg-card);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
 select { cursor: pointer; min-height: 48px; }
-select:hover, input:hover, textarea:hover { border-color: rgba(var(--gold-rgb), 0.4); }
+select:hover, input:hover, textarea:hover { border-color: var(--gold); }
+select:focus, input:focus, textarea:focus { border-color: var(--green); }
 input::placeholder, textarea::placeholder { color: var(--text-dim); }
-option { background: var(--bg-deep); color: var(--text); }
+option { background: var(--bg-card); color: var(--text); }
 
 /* ── Native scrollbars — slim & on-brand ───────────────────────── */
-* { scrollbar-width: thin; scrollbar-color: rgba(var(--gold-rgb),0.35) transparent; }
+* { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.30) transparent; }
 *::-webkit-scrollbar { width: 9px; height: 9px; }
-*::-webkit-scrollbar-thumb { background: rgba(var(--gold-rgb),0.30); border-radius: 100px; }
-*::-webkit-scrollbar-thumb:hover { background: rgba(var(--gold-rgb),0.50); }
+*::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.30); border-radius: 100px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.30); }
 
 /* ── Mobile hamburger ──────────────────────────────────────────── */
 .hamburger {
@@ -190,7 +166,7 @@ option { background: var(--bg-deep); color: var(--text); }
   display: block;
   width: 22px;
   height: 2px;
-  background: rgba(var(--text-rgb), 0.7);
+  background: rgba(var(--text-rgb), 0.75);
   border-radius: 2px;
 }
 
@@ -306,6 +282,7 @@ option { background: var(--bg-deep); color: var(--text); }
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   background: var(--bg-deep) !important;
+  border-top: 1px solid var(--border);
 }
 .admin-main { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important; }
 

@@ -1,22 +1,31 @@
 /* GreenGuard design tokens — static version for design-sync previews.
    In the live portal these are injected at runtime by _document.js. */
 :root {
-  --bg:          #1a2e1f;
-  --bg-deep:     #0d1a10;
-  --bg-card:     rgba(26, 46, 31, 0.85);
-  --bg-alt:      #111c13;
-  --border:      rgba(122, 171, 130, 0.2);
-  --border-gold: rgba(201, 168, 76, 0.4);
-  --green:       #7dffaa;
-  --green-muted: #7aab82;
-  --gold:        #c9a84c;
-  --text:        #e3f0db;
-  --text-muted:  rgba(227, 240, 219, 0.78);
-  --text-dim:    rgba(227, 240, 219, 0.55);
+  --bg:            #f5f5f7;
+  --bg-deep:       #ffffff;
+  --bg-card:       #ffffff;
+  --bg-alt:        #eef2ef;
+  --border:        rgba(27, 94, 32, 0.65);
+  --border-gold:   rgba(120, 88, 0, 0.60);
+  --green:         #1b5e20;
+  --green-muted:   #3f6e47;
+  --gold:          #785800;
+  --text:          #111111;
+  --text-muted:    rgba(17, 17, 17, 0.78);
+  --text-dim:      rgba(17, 17, 17, 0.62);
+  --ok:            #176f2b;
+  --danger:        #b3261e;
+  --info:          #0b57d0;
+  --warn:          #8a5300;
+  --text-on-accent: #ffffff;
 
   /* RGB breakdown for rgba() usage */
-  --green-rgb: 125, 255, 170;
-  --gold-rgb:  201, 168, 76;
-  --text-rgb:  227, 240, 219;
-  --border-rgb: 122, 171, 130;
+  --green-rgb:   27, 94, 32;
+  --gold-rgb:    120, 88, 0;
+  --text-rgb:    17, 17, 17;
+  --border-rgb:  27, 94, 32;
+  --ok-rgb:      23, 111, 43;
+  --danger-rgb:  179, 38, 30;
+  --info-rgb:    11, 87, 208;
+  --warn-rgb:    138, 83, 0;
 }
