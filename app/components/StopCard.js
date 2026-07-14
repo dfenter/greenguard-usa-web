@@ -136,6 +136,7 @@ export default function StopCard({
     borderRadius: 'var(--radius)', padding: 20, marginBottom: 14,
     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
     opacity: preview ? 0.75 : cancelled ? 0.6 : 1,
+    textTransform: 'uppercase', // blind tech: all rounds-card text uppercase for legibility
   }
 
   return (
