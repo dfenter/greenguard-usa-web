@@ -91,11 +91,11 @@ export default function InvoicePdf({ customers = [] }) {
   function addRow() { setItems((arr) => [...arr, { desc: '', qty: '1', price: '' }]) }
   function removeRow(i) { setItems((arr) => arr.length > 1 ? arr.filter((_, idx) => idx !== i) : arr) }
 
-  // ── styles (admin dark UI for the form) ──
-  const input = { padding: '9px 12px', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none', width: '100%' }
-  const label = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', marginBottom: 5, display: 'block' }
-  const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', margin: '24px 0 12px' }
-  const btn = (v) => ({ padding: '9px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', ...(v === 'gold' ? { background: '#c9a84c', color: '#0d1a10' } : v === 'green' ? { background: '#7dffaa', color: '#0d1a10' } : { background: 'rgba(122,171,130,0.1)', color: '#7aab82', border: '1px solid rgba(122,171,130,0.2)' }) })
+  // ── styles for the admin form chrome ──
+  const input = { padding: '9px 12px', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', outline: 'none', width: '100%' }
+  const label = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 5, display: 'block' }
+  const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', margin: '24px 0 12px' }
+  const btn = (v) => ({ padding: '9px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem', ...(v === 'gold' ? { background: 'var(--gold)', color: 'var(--text-on-accent)' } : v === 'green' ? { background: 'var(--green)', color: 'var(--text-on-accent)' } : { background: 'rgba(var(--green-rgb),0.10)', color: 'var(--green-muted)', border: '1px solid rgba(var(--green-rgb),0.20)' }) })
 
   return (
     <PortalLayout isAdmin title="PDF Invoice">
@@ -121,10 +121,10 @@ export default function InvoicePdf({ customers = [] }) {
               onChange={(e) => { setSearch(e.target.value); setShowDrop(true) }}
               onFocus={() => setShowDrop(true)} />
             {showDrop && filtered.length > 0 && (
-              <div style={{ position: 'absolute', zIndex: 5, left: 0, right: 0, background: '#13251a', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, marginTop: 4, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', zIndex: 5, left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8, marginTop: 4, overflow: 'hidden' }}>
                 {filtered.map((c, i) => (
-                  <div key={i} onClick={() => pickCustomer(c)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.84rem', color: '#d4e6ca', borderBottom: '1px solid rgba(122,171,130,0.08)' }}>
-                    <b>{c.name || '(no name)'}</b> <span style={{ color: 'rgba(212,230,202,0.45)' }}>{c.email}</span>
+                  <div key={i} onClick={() => pickCustomer(c)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.84rem', color: 'var(--text)', borderBottom: '1px solid rgba(var(--green-rgb),0.08)' }}>
+                    <b>{c.name || '(no name)'}</b> <span style={{ color: 'var(--text-dim)' }}>{c.email}</span>
                   </div>
                 ))}
               </div>
@@ -157,12 +157,12 @@ export default function InvoicePdf({ customers = [] }) {
 
           <div style={SECTION}>Tax & Notes</div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.84rem', color: '#d4e6ca', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.84rem', color: 'var(--text)', cursor: 'pointer' }}>
               <input type="checkbox" checked={taxEnabled} onChange={(e) => setTaxEnabled(e.target.checked)} /> Apply tax
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: taxEnabled ? 1 : 0.4 }}>
               <input value={taxRate} onChange={(e) => setTaxRate(e.target.value)} inputMode="decimal" disabled={!taxEnabled} style={{ ...input, width: 80 }} />
-              <span style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.84rem' }}>%</span>
+              <span style={{ color: 'var(--text-dim)', fontSize: '0.84rem' }}>%</span>
             </div>
           </div>
           <span style={label}>Notes / memo</span>

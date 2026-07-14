@@ -45,13 +45,13 @@ function LineChart({ series, width = 900, height = 300 }) {
       {yTicks.map((v, i) => {
         const y = yFor(v)
         return <g key={i}>
-          <line x1={pad.left} x2={pad.left + w} y1={y} y2={y} stroke="rgba(122,171,130,0.12)" />
-          <text x={pad.left - 6} y={y + 4} fontSize="10" textAnchor="end" fill="rgba(212,230,202,0.45)">{v}</text>
+          <line x1={pad.left} x2={pad.left + w} y1={y} y2={y} stroke="rgba(27,94,32,0.12)" />
+          <text x={pad.left - 6} y={y + 4} fontSize="10" textAnchor="end" fill="#444746">{v}</text>
         </g>
       })}
       {/* x labels */}
       {MONTHS.map((m, i) => (
-        <text key={m} x={xFor(i)} y={pad.top + h + 16} fontSize="10" textAnchor="middle" fill="rgba(212,230,202,0.45)">{m}</text>
+        <text key={m} x={xFor(i)} y={pad.top + h + 16} fontSize="10" textAnchor="middle" fill="#444746">{m}</text>
       ))}
       {/* series */}
       {series.map((s) => {
@@ -83,9 +83,9 @@ export default function ReportsPage() {
   }, [year, section])
 
   const series = useMemo(() => data?.monthly ? [
-    { label: 'Scheduled', color: '#7dffaa', data: data.monthly },
-    { label: 'Canceled',  color: '#c9a84c', data: Array(12).fill(0) },
-    { label: 'No Show',   color: '#5bc4ff', data: Array(12).fill(0) },
+    { label: 'Scheduled', color: '#176f2b', data: data.monthly },
+    { label: 'Canceled',  color: '#785800', data: Array(12).fill(0) },
+    { label: 'No Show',   color: '#0b57d0', data: Array(12).fill(0) },
   ] : [], [data])
 
   return (
@@ -95,11 +95,11 @@ export default function ReportsPage() {
         <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
           {/* Sidebar */}
           <aside style={{ flex: '0 0 180px', position: 'sticky', top: 70, alignSelf: 'flex-start' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 10, padding: '0 8px' }}>Reports</div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 10, padding: '0 8px' }}>Reports</div>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {SECTIONS.map((s) => (
                 <button key={s.key} onClick={() => setSection(s.key)}
-                  style={{ textAlign: 'left', padding: '8px 12px', background: section === s.key ? 'rgba(125,255,170,0.08)' : 'transparent', border: 'none', borderLeft: section === s.key ? '2px solid #7dffaa' : '2px solid transparent', color: section === s.key ? '#7dffaa' : 'rgba(212,230,202,0.6)', fontWeight: section === s.key ? 800 : 600, fontSize: '0.88rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                  style={{ textAlign: 'left', padding: '8px 12px', background: section === s.key ? 'rgba(var(--green-rgb),0.08)' : 'transparent', border: 'none', borderLeft: section === s.key ? '2px solid var(--green)' : '2px solid transparent', color: section === s.key ? 'var(--green)' : 'var(--text-muted)', fontWeight: section === s.key ? 800 : 600, fontSize: '0.88rem', cursor: 'pointer' }}>
                   {s.label}
                 </button>
               ))}
@@ -113,16 +113,16 @@ export default function ReportsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
                   <h1 style={{ fontSize: 'clamp(1.3rem,2.5vw,1.7rem)', fontWeight: 900, margin: 0 }}>Report for all of {year}</h1>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.82rem' }}>
-                    <span style={{ color: 'rgba(212,230,202,0.5)' }}>Year:</span>
+                    <span style={{ color: 'var(--text-dim)' }}>Year:</span>
                     <select value={year} onChange={(e) => setYear(parseInt(e.target.value, 10))}
-                      style={{ padding: '5px 10px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif' }}>
+                      style={{ padding: '5px 10px', borderRadius: 5, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem' }}>
                       {[year + 1, year, year - 1, year - 2].map((y) => <option key={y} value={y}>{y}</option>)}
                     </select>
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 8, padding: 18, marginBottom: 16 }}>
-                  {loading && <div style={{ padding: 40, textAlign: 'center', color: 'rgba(212,230,202,0.4)' }}>Loading…</div>}
+                <div style={{ background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 8, padding: 18, marginBottom: 16 }}>
+                  {loading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-dim)' }}>Loading…</div>}
                   {!loading && data?.monthly && (
                     <>
                       <LineChart series={series} />
@@ -136,10 +136,10 @@ export default function ReportsPage() {
                 </div>
 
                 {!loading && data?.types && (
-                  <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 8, overflow: 'auto' }}>
+                  <div style={{ background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 8, overflow: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                       <thead>
-                        <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(212,230,202,0.55)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        <tr style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                           <th style={{ padding: '10px 14px', textAlign: 'left' }}>Type</th>
                           <th style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>Cost</th>
                           <th style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>Quantity</th>
@@ -149,23 +149,23 @@ export default function ReportsPage() {
                       </thead>
                       <tbody>
                         {data.types.length === 0 && (
-                          <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: 'rgba(212,230,202,0.4)' }}>No appointments for {year}.</td></tr>
+                          <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: 'var(--text-dim)' }}>No appointments for {year}.</td></tr>
                         )}
                         {data.types.map((t) => (
-                          <tr key={t.type} style={{ borderTop: '1px solid rgba(122,171,130,0.06)' }}>
+                          <tr key={t.type} style={{ borderTop: '1px solid rgba(var(--green-rgb),0.06)' }}>
                             <td style={{ padding: '9px 14px', fontWeight: 600 }}>{t.type}</td>
-                            <td style={{ padding: '9px 14px', textAlign: 'right', color: 'rgba(212,230,202,0.65)' }}>{t.unitCost ? fmt$(t.unitCost) : '—'}</td>
-                            <td style={{ padding: '9px 14px', textAlign: 'right', color: 'rgba(212,230,202,0.75)' }}>{t.qty}</td>
-                            <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: t.total > 0 ? '#7dffaa' : 'rgba(212,230,202,0.4)' }}>{t.total > 0 ? fmt$(t.total) : '—'}</td>
-                            <td style={{ padding: '9px 14px', textAlign: 'right', color: 'rgba(212,230,202,0.6)' }}>{t.totalHours.toFixed(2)}</td>
+                            <td style={{ padding: '9px 14px', textAlign: 'right', color: 'var(--text-muted)' }}>{t.unitCost ? fmt$(t.unitCost) : '—'}</td>
+                            <td style={{ padding: '9px 14px', textAlign: 'right', color: 'var(--text-muted)' }}>{t.qty}</td>
+                            <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: t.total > 0 ? 'var(--green)' : 'var(--text-dim)' }}>{t.total > 0 ? fmt$(t.total) : '—'}</td>
+                            <td style={{ padding: '9px 14px', textAlign: 'right', color: 'var(--text-muted)' }}>{t.totalHours.toFixed(2)}</td>
                           </tr>
                         ))}
                         {data.types.length > 0 && (
-                          <tr style={{ borderTop: '2px solid rgba(122,171,130,0.2)', background: 'rgba(125,255,170,0.04)' }}>
+                          <tr style={{ borderTop: '2px solid rgba(var(--green-rgb),0.20)', background: 'rgba(var(--green-rgb),0.04)' }}>
                             <td style={{ padding: '11px 14px', fontWeight: 900 }}>Totals</td>
                             <td></td>
                             <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 900 }}>{data.totalAppts}</td>
-                            <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 900, color: '#7dffaa' }}>{fmt$(data.totalRevenue)}</td>
+                            <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 900, color: 'var(--green)' }}>{fmt$(data.totalRevenue)}</td>
                             <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 900 }}>{data.types.reduce((s, t) => s + t.totalHours, 0).toFixed(2)}</td>
                           </tr>
                         )}
@@ -177,39 +177,39 @@ export default function ReportsPage() {
             )}
 
             {section === 'revenue' && (
-              <div style={{ padding: 28, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 8 }}>
+              <div style={{ padding: 28, background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 8 }}>
                 <h2 style={{ margin: '0 0 10px', fontSize: '1.2rem', fontWeight: 800 }}>Revenue</h2>
-                <p style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.88rem' }}>Detailed revenue breakdowns live on the analytics page.</p>
-                <Link href="/admin/analytics?tab=revenue" style={{ display: 'inline-block', marginTop: 8, padding: '8px 14px', borderRadius: 6, background: '#7dffaa', color: '#0d1a10', textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem' }}>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.88rem' }}>Detailed revenue breakdowns live on the analytics page.</p>
+                <Link href="/admin/analytics?tab=revenue" style={{ display: 'inline-block', marginTop: 8, padding: '8px 14px', borderRadius: 6, background: 'var(--green)', color: 'var(--text-on-accent)', textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem' }}>
                   Open Revenue Analytics →
                 </Link>
               </div>
             )}
 
             {section === 'users' && (
-              <div style={{ padding: 28, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 8 }}>
+              <div style={{ padding: 28, background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 8 }}>
                 <h2 style={{ margin: '0 0 10px', fontSize: '1.2rem', fontWeight: 800 }}>Users</h2>
-                <p style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.88rem' }}>Customer roster, MRR, and per-client history live on the Clients page.</p>
-                <Link href="/admin/clients" style={{ display: 'inline-block', marginTop: 8, padding: '8px 14px', borderRadius: 6, background: '#7dffaa', color: '#0d1a10', textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem' }}>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.88rem' }}>Customer roster, MRR, and per-client history live on the Clients page.</p>
+                <Link href="/admin/clients" style={{ display: 'inline-block', marginTop: 8, padding: '8px 14px', borderRadius: 6, background: 'var(--green)', color: 'var(--text-on-accent)', textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem' }}>
                   Open Clients →
                 </Link>
               </div>
             )}
 
             {section === 'intake' && (
-              <div style={{ padding: 28, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 8 }}>
+              <div style={{ padding: 28, background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 8 }}>
                 <h2 style={{ margin: '0 0 10px', fontSize: '1.2rem', fontWeight: 800 }}>Intake Forms</h2>
-                <p style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.88rem' }}>Intake responses are captured by Cal.com during booking. Open a customer&apos;s record on the Clients page to see their service profile.</p>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.88rem' }}>Intake responses are captured by Cal.com during booking. Open a customer&apos;s record on the Clients page to see their service profile.</p>
               </div>
             )}
 
             {section === 'addons' && !loading && data?.types && (
               <>
                 <h1 style={{ fontSize: '1.4rem', fontWeight: 900, margin: '0 0 12px' }}>Add-ons by frequency ({year})</h1>
-                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 8, overflow: 'auto' }}>
+                <div style={{ background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 8, overflow: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(212,230,202,0.55)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      <tr style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                         <th style={{ padding: '10px 14px', textAlign: 'left' }}>Add-on type</th>
                         <th style={{ padding: '10px 14px', textAlign: 'right' }}>Qty</th>
                         <th style={{ padding: '10px 14px', textAlign: 'right' }}>Revenue</th>
@@ -219,10 +219,10 @@ export default function ReportsPage() {
                       {/* Heuristic — events whose type is an addon-style service get filtered here.
                           Tightest available signal: anything not BG{N} rental or tank exchange. */}
                       {data.types.filter((t) => /barrier|assessment|pickup|refill check|troubleshoot|installation/i.test(t.type)).map((t) => (
-                        <tr key={t.type} style={{ borderTop: '1px solid rgba(122,171,130,0.06)' }}>
+                        <tr key={t.type} style={{ borderTop: '1px solid rgba(var(--green-rgb),0.06)' }}>
                           <td style={{ padding: '9px 14px' }}>{t.type}</td>
                           <td style={{ padding: '9px 14px', textAlign: 'right' }}>{t.qty}</td>
-                          <td style={{ padding: '9px 14px', textAlign: 'right', color: '#7dffaa', fontWeight: 700 }}>{fmt$(t.total)}</td>
+                          <td style={{ padding: '9px 14px', textAlign: 'right', color: 'var(--green)', fontWeight: 700 }}>{fmt$(t.total)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -232,19 +232,19 @@ export default function ReportsPage() {
             )}
 
             {section === 'tips' && (
-              <div style={{ padding: 28, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 8 }}>
+              <div style={{ padding: 28, background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 8 }}>
                 <h2 style={{ margin: '0 0 10px', fontSize: '1.2rem', fontWeight: 800 }}>Tips</h2>
-                <p style={{ color: 'rgba(212,230,202,0.5)', fontSize: '0.88rem' }}>No tipping is collected in the current flow.</p>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.88rem' }}>No tipping is collected in the current flow.</p>
               </div>
             )}
 
             {section === 'import' && (
-              <div style={{ padding: 28, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 8 }}>
+              <div style={{ padding: 28, background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 8 }}>
                 <h2 style={{ margin: '0 0 12px', fontSize: '1.2rem', fontWeight: 800 }}>Import / Export</h2>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <a href="/api/admin/export?type=clients" download style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', color: '#7aab82', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>Export Clients CSV</a>
-                  <a href="/api/admin/export?type=revenue" download style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', color: '#7aab82', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>Export Revenue CSV</a>
-                  <Link href="/admin/books/upload" style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.35)', color: '#7dffaa', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>Import CSV (books)</Link>
+                  <a href="/api/admin/export?type=clients" download style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', color: 'var(--green-muted)', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>Export Clients CSV</a>
+                  <a href="/api/admin/export?type=revenue" download style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', color: 'var(--green-muted)', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>Export Revenue CSV</a>
+                  <Link href="/admin/books/upload" style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.35)', color: 'var(--green)', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>Import CSV (books)</Link>
                 </div>
               </div>
             )}

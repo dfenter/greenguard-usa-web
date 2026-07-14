@@ -32,24 +32,24 @@ export async function getServerSideProps({ req, query }) {
   }
 }
 
-function Card({ title, monthly, features, accent = '#7dffaa', muted = false }) {
+function Card({ title, monthly, features, accent = '#176f2b', muted = false }) {
   return (
     <div style={{
       flex: '1 1 280px', minWidth: 260, padding: 18, borderRadius: 12,
-      background: muted ? 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))' : `${accent}11`,
-      border: `1px solid ${muted ? 'rgba(122,171,130,0.15)' : `${accent}40`}`,
+      background: muted ? 'var(--bg-alt)' : 'var(--bg-card)',
+      border: `1px solid ${muted ? 'rgba(var(--green-rgb),0.15)' : accent}`,
     }}>
-      <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: muted ? 'rgba(212,230,202,0.4)' : accent, marginBottom: 8 }}>
+      <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: muted ? 'var(--text-dim)' : accent, marginBottom: 8 }}>
         {muted ? 'Current Plan' : 'Proposed Plan'}
       </div>
-      <div style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: 4, color: '#d4e6ca' }}>{title}</div>
-      <div style={{ fontSize: '1.4rem', fontWeight: 900, color: muted ? 'rgba(212,230,202,0.7)' : accent, marginBottom: 12 }}>
+      <div style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: 4, color: 'var(--text)' }}>{title}</div>
+      <div style={{ fontSize: '1.4rem', fontWeight: 900, color: muted ? 'var(--text-muted)' : accent, marginBottom: 12 }}>
         ${monthly.toFixed(2)}<span style={{ fontSize: '0.85rem', fontWeight: 500, opacity: 0.7 }}>/mo</span>
       </div>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem', color: 'rgba(212,230,202,0.75)' }}>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
         {features.map((f, i) => (
           <li key={i} style={{ padding: '5px 0', display: 'flex', gap: 8 }}>
-            <span style={{ color: muted ? 'rgba(212,230,202,0.4)' : accent }}>✓</span>
+            <span style={{ color: muted ? 'var(--text-dim)' : accent }}>✓</span>
             <span>{f}</span>
           </li>
         ))}
@@ -69,7 +69,7 @@ export default function UpgradePage({ customer, currentPathKey, customerName, sy
       <PortalLayout isAdmin>
         <Head><title>Upgrade · GreenGuard Admin</title></Head>
         <h1 style={{ fontWeight: 900, marginBottom: 8 }}>Upgrade Service</h1>
-        <p style={{ color: 'rgba(212,230,202,0.5)' }}>Open this page with <code>?email=customer@example.com</code>, or jump into a client first via <Link href="/admin/clients" style={{ color: '#7dffaa' }}>All Clients</Link>.</p>
+        <p style={{ color: 'var(--text-dim)' }}>Open this page with <code>?email=customer@example.com</code>, or jump into a client first via <Link href="/admin/clients" style={{ color: 'var(--green)' }}>All Clients</Link>.</p>
       </PortalLayout>
     )
   }
@@ -118,11 +118,11 @@ export default function UpgradePage({ customer, currentPathKey, customerName, sy
       <Head><title>Upgrade · {customerName} · GreenGuard Admin</title></Head>
       <PortalLayout isAdmin>
         <div style={{ marginBottom: 18 }}>
-          <Link href={`/admin/clients/${encodeURIComponent(customer.email)}`} style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)' }}>← Back to {customerName}</Link>
+          <Link href={`/admin/clients/${encodeURIComponent(customer.email)}`} style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>← Back to {customerName}</Link>
         </div>
 
         <h1 style={{ fontSize: 'clamp(1.3rem,3vw,1.8rem)', fontWeight: 900, margin: '0 0 4px' }}>Upgrade Options for {customerName}</h1>
-        <p style={{ color: 'rgba(212,230,202,0.55)', margin: '0 0 24px', fontSize: '0.92rem' }}>
+        <p style={{ color: 'var(--text-muted)', margin: '0 0 24px', fontSize: '0.92rem' }}>
           Detected from HubSpot: <strong>{systemType || 'unknown'}</strong>{trapCount ? `, ${trapCount} trap${trapCount === '1' ? '' : 's'}` : ''}. {path.upgrades.length} upgrade{path.upgrades.length === 1 ? '' : 's'} available.
         </p>
 
@@ -134,53 +134,53 @@ export default function UpgradePage({ customer, currentPathKey, customerName, sy
               <div onClick={() => setSelectedUpgrade(u)}
                 style={{
                   cursor: 'pointer', padding: '14px 16px',
-                  background: isSelected ? 'rgba(125,255,170,0.08)' : 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))',
-                  border: `1px solid ${isSelected ? '#7dffaa' : 'rgba(122,171,130,0.2)'}`,
+                  background: isSelected ? 'rgba(var(--green-rgb),0.08)' : 'var(--bg-alt)',
+                  border: `1px solid ${isSelected ? '#176f2b' : 'rgba(var(--green-rgb),0.20)'}`,
                   borderRadius: 10, marginBottom: 12,
                 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: { capacity: '#5bc4ff', tier: '#c9a84c', addon: '#7dffaa' }[u.kind], marginBottom: 4 }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: { capacity: '#0b57d0', tier: '#785800', addon: '#176f2b' }[u.kind], marginBottom: 4 }}>
                       {u.kind === 'capacity' ? 'Capacity Upgrade' : u.kind === 'tier' ? 'Tier Upgrade' : 'Add-On'}
                     </div>
-                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#d4e6ca' }}>{u.title}</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)' }}>{u.title}</div>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#7dffaa', fontWeight: 700 }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--green)', fontWeight: 700 }}>
                     {isSelected ? '✓ selected' : 'Tap to compare →'}
                   </div>
                 </div>
-                <p style={{ margin: '8px 0 0', fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)' }}>{u.why}</p>
+                <p style={{ margin: '8px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{u.why}</p>
               </div>
 
               {isSelected && (
                 <>
                   <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 14 }}>
                     <Card title={path.label} monthly={path.monthly} features={path.features} muted />
-                    <Card title={u.target.label} monthly={u.target.monthly} features={u.features} accent={{ capacity: '#5bc4ff', tier: '#c9a84c', addon: '#7dffaa' }[u.kind]} />
+                    <Card title={u.target.label} monthly={u.target.monthly} features={u.features} accent={{ capacity: '#0b57d0', tier: '#785800', addon: '#176f2b' }[u.kind]} />
                   </div>
 
                   {u.id === 'mq-add-second' && (
                     <div style={{ marginBottom: 12, fontSize: '0.85rem' }}>
                       <label>Total Mosqitters after upgrade: </label>
                       <input type="number" min="2" value={quantity} onChange={(e) => setQuantity(Math.max(2, parseInt(e.target.value) || 2))}
-                        style={{ width: 70, padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontWeight: 700 }} />
+                        style={{ width: 70, padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.30)', background: 'var(--bg-card)', color: 'var(--text)', fontWeight: 700 }} />
                     </div>
                   )}
 
-                  <div style={{ padding: 14, background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 10, marginBottom: 14 }}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 6 }}>Monthly difference</div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#c9a84c' }}>
+                  <div style={{ padding: 14, background: 'rgba(var(--gold-rgb),0.06)', border: '1px solid rgba(var(--gold-rgb),0.25)', borderRadius: 10, marginBottom: 14 }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 6 }}>Monthly difference</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--gold)' }}>
                       {(u.target.monthly - path.monthly) >= 0 ? '+' : ''}${(u.target.monthly - path.monthly).toFixed(2)}/mo
                     </div>
                     {u.installRequired && (
-                      <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.6)', marginTop: 6 }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 6 }}>
                         ⚠ Install / equipment swap visit required. Schedule via Cal.com after approval.
                       </div>
                     )}
                   </div>
 
                   <button onClick={executeUpgrade} disabled={running}
-                    style={{ width: '100%', padding: '14px 18px', borderRadius: 8, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '1rem', cursor: running ? 'wait' : 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                    style={{ width: '100%', padding: '14px 18px', borderRadius: 8, border: 'none', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '1rem', cursor: running ? 'wait' : 'pointer' }}>
                     {running ? 'Applying…' : `Apply ${u.kind === 'tier' ? 'Tier Upgrade' : u.kind === 'addon' ? 'Add-On' : 'Capacity Upgrade'}`}
                   </button>
                 </>

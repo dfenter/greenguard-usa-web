@@ -58,24 +58,24 @@ export default function LegacyMigration() {
         <div style={{ marginBottom: 24 }}>
           <span className="tag">Admin · Migration</span>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Legacy Event Migration</h1>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)', margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', margin: 0, lineHeight: 1.6 }}>
             Upcoming Google Calendar events from Acuity/Squarespace days that don&apos;t yet have a Cal.com booking attached. Migrating one creates a matching Cal.com booking and patches the event description so the customer (and admin) can self-reschedule or cancel via Cal.com going forward.
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-          <button onClick={audit} disabled={loading} style={{ padding: '9px 18px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.3)', background: 'transparent', color: '#7dffaa', cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif' }}>
+          <button onClick={audit} disabled={loading} style={{ padding: '9px 18px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.30)', background: 'transparent', color: 'var(--green)', cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: '0.85rem' }}>
             {loading ? 'Scanning…' : events ? '↻ Re-scan' : 'Scan Calendar'}
           </button>
           {events && events.length > 0 && (
-            <button onClick={migrateAll} style={{ padding: '9px 18px', borderRadius: 6, border: 'none', background: '#c9a84c', color: '#0d1a10', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif' }}>
+            <button onClick={migrateAll} style={{ padding: '9px 18px', borderRadius: 6, border: 'none', background: 'var(--gold)', color: 'var(--text-on-accent)', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem' }}>
               Migrate All ({events.length})
             </button>
           )}
         </div>
 
         {events && events.length === 0 && (
-          <div className="card" style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.55)' }}>
+          <div className="card" style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
             ✓ No legacy events to migrate. Every upcoming GreenGuard booking already has a Cal.com URL.
           </div>
         )}
@@ -89,7 +89,7 @@ export default function LegacyMigration() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontWeight: 800, fontSize: '0.92rem', marginBottom: 2 }}>{ev.summary || '(untitled)'}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.55)' }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                         {ev.start ? new Date(ev.start).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'no time'}
                         {ev.attendeeEmail ? ` · ${ev.attendeeEmail}` : ''}
                         {ev.hasAcuityId ? ' · Acuity legacy' : ''}
@@ -97,25 +97,25 @@ export default function LegacyMigration() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {r?.status === 'ok' && (
-                        <a href={r.rescheduleUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '5px 10px', borderRadius: 4, background: 'rgba(125,255,170,0.12)', color: '#7dffaa', fontWeight: 700, fontSize: '0.75rem', textDecoration: 'none' }}>
+                        <a href={r.rescheduleUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '5px 10px', borderRadius: 4, background: 'rgba(var(--green-rgb),0.12)', color: 'var(--green)', fontWeight: 700, fontSize: '0.75rem', textDecoration: 'none' }}>
                           ✓ Migrated{r.warning ? ' ⚠' : ''}
                         </a>
                       )}
                       {r?.status === 'err' && (
-                        <span style={{ fontSize: '0.75rem', color: '#ff8080', fontWeight: 700, maxWidth: 360, textAlign: 'right' }}>✗ {r.error}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 700, maxWidth: 360, textAlign: 'right' }}>✗ {r.error}</span>
                       )}
                       {!r && (
-                        <button onClick={() => migrateOne(ev.id)} style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid rgba(201,168,76,0.4)', background: 'transparent', color: '#c9a84c', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
+                        <button onClick={() => migrateOne(ev.id)} style={{ padding: '6px 14px', borderRadius: 4, border: '1px solid rgba(var(--gold-rgb),0.40)', background: 'transparent', color: 'var(--gold)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem' }}>
                           Migrate
                         </button>
                       )}
                       {r?.status === 'working' && (
-                        <span style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>migrating…</span>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>migrating…</span>
                       )}
                     </div>
                   </div>
                   {r?.warning && (
-                    <div style={{ fontSize: '0.72rem', color: '#c9a84c', marginTop: 6 }}>⚠ {r.warning}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--gold)', marginTop: 6 }}>⚠ {r.warning}</div>
                   )}
                 </div>
               )

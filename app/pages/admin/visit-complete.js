@@ -149,9 +149,9 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
             placeholder="Customer email"
             required
             style={{
-              flex: 1, padding: '10px 14px', background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(122,171,130,0.25)', borderRadius: 6,
-              color: '#d4e6ca', fontSize: '0.9rem',
+              flex: 1, padding: '10px 14px', background: 'var(--bg-card)',
+              border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 6,
+              color: 'var(--text)', fontSize: '0.9rem',
             }}
           />
           <button type="submit" className="btn-gold" disabled={loadingCustomer} style={{ fontSize: '0.85rem' }}>
@@ -160,7 +160,7 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
         </form>
 
         {customerError && (
-          <div style={{ color: '#ff8888', marginBottom: 20, fontSize: '0.9rem' }}>{customerError}</div>
+          <div style={{ color: 'var(--danger)', marginBottom: 20, fontSize: '0.9rem' }}>{customerError}</div>
         )}
 
         {customer && (
@@ -169,11 +169,11 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
             <div className="card" style={{ maxWidth: 560, marginBottom: 24 }}>
               <span className="tag">Customer</span>
               <div style={{ fontWeight: 800, fontSize: '1.05rem', marginTop: 8 }}>{customer.name || customer.email}</div>
-              <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.6)', marginTop: 2 }}>{customer.email}</div>
-              {customer.address && <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)', marginTop: 2 }}>{customer.address}</div>}
-              <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)' }}>
-                {customer.systemType && <span>System: <strong style={{ color: '#d4e6ca' }}>{customer.systemType}</strong></span>}
-                {customer.trapCount && <span>Traps: <strong style={{ color: '#d4e6ca' }}>{customer.trapCount}</strong></span>}
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 2 }}>{customer.email}</div>
+              {customer.address && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 2 }}>{customer.address}</div>}
+              <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: '0.82rem', color: 'var(--text-dim)' }}>
+                {customer.systemType && <span>System: <strong style={{ color: 'var(--text)' }}>{customer.systemType}</strong></span>}
+                {customer.trapCount && <span>Traps: <strong style={{ color: 'var(--text)' }}>{customer.trapCount}</strong></span>}
               </div>
             </div>
 
@@ -181,7 +181,7 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
               {/* SKU Groups */}
               {SKU_GROUPS.map((group) => (
                 <div key={group.label} style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(212,230,202,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-dim)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
                     {group.label}
                   </div>
                   <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
@@ -194,8 +194,8 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
                           style={{
                             display: 'flex', alignItems: 'center', gap: 10,
                             padding: '10px 14px',
-                            background: checked ? 'rgba(125,255,170,0.08)' : 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))',
-                            border: `1px solid ${checked ? 'rgba(125,255,170,0.3)' : 'rgba(122,171,130,0.15)'}`,
+                            background: checked ? 'rgba(var(--green-rgb),0.08)' : 'var(--bg-alt)',
+                            border: `1px solid ${checked ? 'rgba(var(--green-rgb),0.30)' : 'rgba(var(--green-rgb),0.15)'}`,
                             borderRadius: 6, cursor: 'pointer',
                           }}
                         >
@@ -203,11 +203,11 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleSku(sku)}
-                            style={{ accentColor: '#7dffaa', width: 16, height: 16 }}
+                            style={{ accentColor: 'var(--green)', width: 16, height: 16 }}
                           />
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{SKU_LABELS[sku] || sku}</div>
-                            <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)' }}>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
                               ${SKU_PRICES[sku].toFixed(2)}
                             </div>
                           </div>
@@ -229,9 +229,9 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
                     onChange={(e) => setTrapMaintCount(Number(e.target.value))}
                     style={{
                       width: '100%', padding: '10px 12px',
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(122,171,130,0.25)',
-                      borderRadius: 6, color: '#d4e6ca', fontSize: '0.9rem',
+                      background: 'var(--bg-card)',
+                      border: '1px solid rgba(var(--green-rgb),0.25)',
+                      borderRadius: 6, color: 'var(--text)', fontSize: '0.9rem',
                     }}
                   >
                     <option value={1}>1 trap — $29.99</option>
@@ -252,9 +252,9 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
                   placeholder="Any observations, issues, or follow-ups from this visit…"
                   style={{
                     width: '100%', padding: '12px 14px',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(122,171,130,0.25)',
-                    borderRadius: 6, color: '#d4e6ca', fontSize: '0.9rem',
+                    background: 'var(--bg-card)',
+                    border: '1px solid rgba(var(--green-rgb),0.25)',
+                    borderRadius: 6, color: 'var(--text)', fontSize: '0.9rem',
                     fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
                   }}
                 />
@@ -263,19 +263,19 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
               {/* Total + submit */}
               {selectedSkus.length > 0 && (
                 <div style={{
-                  background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)',
+                  background: 'rgba(var(--gold-rgb),0.08)', border: '1px solid rgba(var(--gold-rgb),0.20)',
                   borderRadius: 8, padding: '14px 18px', marginBottom: 20, maxWidth: 400,
                 }}>
-                  <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)', marginBottom: 6 }}>Items to invoice</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-dim)', marginBottom: 6 }}>Items to invoice</div>
                   {effectiveSkus().map((sku) => (
                     <div key={sku} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', marginBottom: 4 }}>
                       <span>{SKU_LABELS[sku] || sku}</span>
-                      <span style={{ color: '#c9a84c', fontWeight: 700 }}>${(SKU_PRICES[sku] || 0).toFixed(2)}</span>
+                      <span style={{ color: 'var(--gold)', fontWeight: 700 }}>${(SKU_PRICES[sku] || 0).toFixed(2)}</span>
                     </div>
                   ))}
-                  <div style={{ borderTop: '1px solid rgba(201,168,76,0.2)', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
+                  <div style={{ borderTop: '1px solid rgba(var(--gold-rgb),0.20)', marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 800 }}>
                     <span>Total</span>
-                    <span style={{ color: '#c9a84c' }}>${totalAmount().toFixed(2)}</span>
+                    <span style={{ color: 'var(--gold)' }}>${totalAmount().toFixed(2)}</span>
                   </div>
                 </div>
               )}
@@ -292,10 +292,10 @@ export default function VisitComplete({ isAdmin, prefillEmail }) {
             {result && (
               <div style={{
                 marginTop: 20, padding: '14px 18px',
-                background: result.success ? 'rgba(125,255,170,0.08)' : 'rgba(255,68,68,0.1)',
-                border: `1px solid ${result.success ? 'rgba(125,255,170,0.25)' : 'rgba(255,68,68,0.3)'}`,
+                background: result.success ? 'rgba(var(--green-rgb),0.08)' : 'rgba(var(--danger-rgb),0.10)',
+                border: `1px solid ${result.success ? 'rgba(var(--green-rgb),0.25)' : 'rgba(var(--danger-rgb),0.30)'}`,
                 borderRadius: 8, fontSize: '0.9rem',
-                color: result.success ? '#7dffaa' : '#ff8888',
+                color: result.success ? 'var(--ok)' : 'var(--danger)',
                 fontWeight: 700,
               }}>
                 {result.success

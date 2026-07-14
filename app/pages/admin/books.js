@@ -79,8 +79,8 @@ function fmtDate(iso) { return new Date(iso).toLocaleDateString('en-US', { month
 function fmtDateTime(iso) { return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }
 
 const TYPE_COLOR = {
-  revenue: '#7dffaa', cogs: '#ffb060', expense: '#ff8080', transfer: '#5bc4ff',
-  equity: '#c9a84c', unknown: 'rgba(212,230,202,0.5)', asset: '#7dffaa', liability: '#ff8080',
+  revenue: 'var(--green)', cogs: 'var(--warn)', expense: 'var(--danger)', transfer: 'var(--info)',
+  equity: 'var(--gold)', unknown: 'var(--text-dim)', asset: 'var(--green)', liability: 'var(--danger)',
 }
 
 export default function BooksPage({ days, search, category, txs, summary, categories, lastRun, ytd, thisYear }) {
@@ -122,22 +122,22 @@ export default function BooksPage({ days, search, category, txs, summary, catego
           <div>
             <span className="tag">Admin</span>
             <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, margin: '0 0 4px' }}>Books</h1>
-            <p style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', margin: 0 }}>
               Stripe ledger · {txs.length} txns shown (last {days} days)
               {lastRun && <> · last ingest {fmtDateTime(lastRun.started_at)} ({lastRun.rows_added || 0} rows{lastRun.ok ? '' : ' · failed'})</>}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <Link href="/admin/books/chat"
-              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(91,196,255,0.35)', color: '#5bc4ff', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
+              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(var(--info-rgb),0.35)', color: 'var(--info)', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
               💬 Ask the Books
             </Link>
             <Link href="/admin/books/upload"
-              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.35)', color: '#7dffaa', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
+              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.35)', color: 'var(--green)', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 800 }}>
               ⬆ Upload CSV
             </Link>
             <button onClick={() => setShowExpense(true)}
-              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(255,128,128,0.35)', color: '#ff8080', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Inter, sans-serif' }}>
+              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(var(--danger-rgb),0.35)', color: 'var(--danger)', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800 }}>
               + Add Expense
             </button>
             <button onClick={async () => {
@@ -151,15 +151,15 @@ export default function BooksPage({ days, search, category, txs, summary, catego
                 alert('Failed: ' + (j.error || res.status))
               }
             }}
-              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(201,168,76,0.35)', color: '#c9a84c', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800, fontFamily: 'Inter, sans-serif' }}>
+              style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(var(--gold-rgb),0.35)', color: 'var(--gold)', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800 }}>
               🤖 Recategorize (25)
             </button>
           </div>
           <form method="GET" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <input name="q" defaultValue={search} placeholder="Search description / email"
-              style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', minWidth: 200 }} />
+              style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.82rem', minWidth: 200 }} />
             <select name="cat" defaultValue={category}
-              style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
+              style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.82rem' }}>
               <option value="">All categories</option>
               {Object.keys(grouped).map((type) => (
                 <optgroup key={type} label={type.toUpperCase()}>
@@ -168,14 +168,14 @@ export default function BooksPage({ days, search, category, txs, summary, catego
               ))}
             </select>
             <select name="days" defaultValue={days}
-              style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
+              style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.82rem' }}>
               <option value="7">7d</option>
               <option value="30">30d</option>
               <option value="90">90d</option>
               <option value="365">365d</option>
               <option value="730">2y</option>
             </select>
-            <button style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', cursor: 'pointer' }}>Apply</button>
+            <button style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>Apply</button>
           </form>
         </div>
 
@@ -183,26 +183,26 @@ export default function BooksPage({ days, search, category, txs, summary, catego
         {ytd && (
           <div style={{ marginBottom: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', margin: 0 }}>{thisYear} Year to Date</h2>
+              <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: 0 }}>{thisYear} Year to Date</h2>
               <div style={{ display: 'flex', gap: 6 }}>
                 <a href={`/api/admin/books-export-pnl?ytd=${thisYear}`}
-                  style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 5, border: '1px solid rgba(91,196,255,0.3)', color: '#5bc4ff', textDecoration: 'none', fontWeight: 700 }}>
+                  style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 5, border: '1px solid rgba(var(--info-rgb),0.30)', color: 'var(--info)', textDecoration: 'none', fontWeight: 700 }}>
                   ↓ YTD CSV
                 </a>
                 <a href={`/api/admin/books-export-pnl?month=${new Date().toISOString().slice(0,7)}`}
-                  style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 5, border: '1px solid rgba(91,196,255,0.3)', color: '#5bc4ff', textDecoration: 'none', fontWeight: 700 }}>
+                  style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 5, border: '1px solid rgba(var(--info-rgb),0.30)', color: 'var(--info)', textDecoration: 'none', fontWeight: 700 }}>
                   ↓ This Month CSV
                 </a>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {[
-                ['Revenue', ytd.revenue, '#7dffaa'],
-                ['Expenses', Math.abs(ytd.expenses), '#ff8080'],
-                ['Net Income', ytd.net, ytd.net >= 0 ? '#7dffaa' : '#ff8080'],
+                ['Revenue', ytd.revenue, 'var(--green)'],
+                ['Expenses', Math.abs(ytd.expenses), 'var(--danger)'],
+                ['Net Income', ytd.net, ytd.net >= 0 ? 'var(--ok)' : 'var(--danger)'],
               ].map(([lbl, val, color]) => (
-                <div key={lbl} style={{ flex: '1 1 150px', minWidth: 140, padding: '12px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 10 }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 5 }}>{lbl}</div>
+                <div key={lbl} style={{ flex: '1 1 150px', minWidth: 140, padding: '12px 16px', background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.15)', borderRadius: 10 }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 5 }}>{lbl}</div>
                   <div style={{ fontSize: '1.3rem', fontWeight: 900, color }}>${val.toFixed(2)}</div>
                 </div>
               ))}
@@ -211,42 +211,42 @@ export default function BooksPage({ days, search, category, txs, summary, catego
         )}
 
         {/* KPI summary — current filter window */}
-        <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', marginBottom: 6 }}>Last {days} days</h2>
+        <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 6 }}>Last {days} days</h2>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 22 }}>
           {[
-            ['Inflow',  totalIn,  '#7dffaa'],
-            ['Outflow', totalOut, '#ff8080'],
-            ['Net',     net,      net >= 0 ? '#7dffaa' : '#ff8080'],
+            ['Inflow',  totalIn,  'var(--green)'],
+            ['Outflow', totalOut, 'var(--danger)'],
+            ['Net',     net,      net >= 0 ? 'var(--ok)' : 'var(--danger)'],
           ].map(([lbl, val, color]) => (
-            <div key={lbl} style={{ flex: '1 1 150px', minWidth: 140, padding: '14px 16px', background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px solid rgba(122,171,130,0.15)', borderRadius: 10 }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>{lbl}</div>
+            <div key={lbl} style={{ flex: '1 1 150px', minWidth: 140, padding: '14px 16px', background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.15)', borderRadius: 10 }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 6 }}>{lbl}</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color }}>${Math.abs(val).toFixed(2)}{val < 0 ? ' out' : ''}</div>
             </div>
           ))}
         </div>
 
         {/* Category breakdown */}
-        <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', marginBottom: 8 }}>By category</h2>
-        <div style={{ marginBottom: 22, background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(122,171,130,0.12)', overflow: 'hidden' }}>
+        <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 8 }}>By category</h2>
+        <div style={{ marginBottom: 22, background: 'var(--bg-alt)', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.12)', overflow: 'hidden' }}>
           {summary.map((row) => {
             const net = Number(row.inflow || 0) + Number(row.outflow || 0)
             return (
               <Link key={row.category_label} href={`/admin/books?days=${days}&cat=${encodeURIComponent(row.category_label || '')}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid rgba(122,171,130,0.06)', textDecoration: 'none', color: '#d4e6ca', fontSize: '0.85rem' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid rgba(var(--green-rgb),0.06)', textDecoration: 'none', color: 'var(--text)', fontSize: '0.85rem' }}>
                 <span style={{ flex: 1 }}>{row.category_label || '—'}</span>
-                <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', minWidth: 40, textAlign: 'right' }}>{row.n}</span>
-                <span style={{ fontWeight: 700, color: net >= 0 ? '#7dffaa' : '#ff8080', minWidth: 100, textAlign: 'right' }}>${net.toFixed(2)}</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', minWidth: 40, textAlign: 'right' }}>{row.n}</span>
+                <span style={{ fontWeight: 700, color: net >= 0 ? 'var(--ok)' : 'var(--danger)', minWidth: 100, textAlign: 'right' }}>${net.toFixed(2)}</span>
               </Link>
             )
           })}
         </div>
 
         {/* Transactions table */}
-        <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.5)', marginBottom: 8 }}>Transactions</h2>
-        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(122,171,130,0.12)', overflow: 'auto' }}>
+        <h2 style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 8 }}>Transactions</h2>
+        <div style={{ background: 'var(--bg-alt)', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.12)', overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(212,230,202,0.55)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              <tr style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 <th style={{ padding: '8px 10px', textAlign: 'left' }}>Date</th>
                 <th style={{ padding: '8px 10px', textAlign: 'left' }}>Customer / Description</th>
                 <th style={{ padding: '8px 10px', textAlign: 'left' }}>Category</th>
@@ -255,67 +255,67 @@ export default function BooksPage({ days, search, category, txs, summary, catego
             </thead>
             <tbody>
               {txs.length === 0 && (
-                <tr><td colSpan={4} style={{ padding: 20, textAlign: 'center', color: 'rgba(212,230,202,0.4)' }}>No transactions in this window.</td></tr>
+                <tr><td colSpan={4} style={{ padding: 20, textAlign: 'center', color: 'var(--text-dim)' }}>No transactions in this window.</td></tr>
               )}
               {txs.map((t) => (
-                <tr key={t.id} style={{ borderTop: '1px solid rgba(122,171,130,0.06)' }}>
-                  <td style={{ padding: '8px 10px', color: 'rgba(212,230,202,0.55)', whiteSpace: 'nowrap' }}>{fmtDate(t.occurred_at)}</td>
+                <tr key={t.id} style={{ borderTop: '1px solid rgba(var(--green-rgb),0.06)' }}>
+                  <td style={{ padding: '8px 10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmtDate(t.occurred_at)}</td>
                   <td style={{ padding: '8px 10px' }}>
-                    <div style={{ fontWeight: 700, color: '#d4e6ca' }}>{t.customer_name || t.customer_email || '—'}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>{t.description || t.type}{t.sku ? ` · ${t.sku}` : ''}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text)' }}>{t.customer_name || t.customer_email || '—'}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{t.description || t.type}{t.sku ? ` · ${t.sku}` : ''}</div>
                   </td>
-                  <td style={{ padding: '8px 10px', fontSize: '0.72rem', color: 'rgba(212,230,202,0.6)' }}>{t.category_label || '—'}</td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, color: t.amount_cents >= 0 ? '#7dffaa' : '#ff8080', whiteSpace: 'nowrap' }}>{fmt$(t.amount_cents)}</td>
+                  <td style={{ padding: '8px 10px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{t.category_label || '—'}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, color: t.amount_cents >= 0 ? 'var(--ok)' : 'var(--danger)', whiteSpace: 'nowrap' }}>{fmt$(t.amount_cents)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <p style={{ marginTop: 16, fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)' }}>
+        <p style={{ marginTop: 16, fontSize: '0.75rem', color: 'var(--text-dim)' }}>
           Showing up to 200 transactions. Upload bank/CC CSVs monthly to keep the ledger complete.
         </p>
 
         {/* Add Expense modal */}
         {showExpense && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-            <div style={{ background: '#0f1f12', border: '1px solid rgba(122,171,130,0.25)', borderRadius: 12, padding: 28, width: '100%', maxWidth: 440 }}>
-              <h2 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 900, color: '#d4e6ca' }}>Add Expense</h2>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 12, padding: 28, width: '100%', maxWidth: 440 }}>
+              <h2 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 900, color: 'var(--text)' }}>Add Expense</h2>
               <form onSubmit={submitExpense} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Date</label>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Date</label>
                   <input type="date" required value={expForm.occurred_at}
                     onChange={(e) => setExpForm((f) => ({ ...f, occurred_at: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }} />
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Amount ($)</label>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Amount ($)</label>
                   <input type="number" step="0.01" min="0.01" required placeholder="0.00" value={expForm.amount_dollars}
                     onChange={(e) => setExpForm((f) => ({ ...f, amount_dollars: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }} />
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Description</label>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Description</label>
                   <input type="text" required placeholder="e.g. Amazon — CO2 fittings" value={expForm.description}
                     onChange={(e) => setExpForm((f) => ({ ...f, description: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }} />
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Category</label>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Category</label>
                   <select required value={expForm.category_label}
                     onChange={(e) => setExpForm((f) => ({ ...f, category_label: e.target.value }))}
-                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: '#0f1f12', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box' }}>
+                    style={{ display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', boxSizing: 'border-box' }}>
                     <option value="">Select category…</option>
                     {expenseCategories.map((c) => <option key={c.label} value={c.label}>{c.label}</option>)}
                   </select>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                   <button type="submit" disabled={expSaving}
-                    style={{ flex: 1, padding: '9px 0', borderRadius: 7, border: 'none', background: '#ff8080', color: '#1a0000', fontWeight: 900, fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', cursor: expSaving ? 'not-allowed' : 'pointer' }}>
+                    style={{ flex: 1, padding: '9px 0', borderRadius: 7, border: 'none', background: 'var(--danger)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.88rem', cursor: expSaving ? 'not-allowed' : 'pointer' }}>
                     {expSaving ? 'Saving…' : 'Add Expense'}
                   </button>
                   <button type="button" onClick={() => setShowExpense(false)}
-                    style={{ padding: '9px 18px', borderRadius: 7, border: '1px solid rgba(122,171,130,0.25)', background: 'transparent', color: 'rgba(212,230,202,0.6)', fontWeight: 700, fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', cursor: 'pointer' }}>
+                    style={{ padding: '9px 18px', borderRadius: 7, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'transparent', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer' }}>
                     Cancel
                   </button>
                 </div>

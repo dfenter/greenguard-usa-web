@@ -100,34 +100,34 @@ export default function UploadCsvPage({ categories }) {
   const selectedCount = rows.filter((r) => r.include).length
   const selectedSum = rows.filter((r) => r.include).reduce((s, r) => s + r.amount_cents, 0)
 
-  const inputStyle = { padding: '6px 8px', borderRadius: 5, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }
+  const inputStyle = { padding: '6px 8px', borderRadius: 5, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.78rem' }
 
   return (
     <>
       <Head><title>Upload CSV · Books</title></Head>
       <PortalLayout isAdmin>
         <div style={{ marginBottom: 18 }}>
-          <Link href="/admin/books" style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', textDecoration: 'none' }}>← Books</Link>
+          <Link href="/admin/books" style={{ fontSize: '0.78rem', color: 'var(--text-dim)', textDecoration: 'none' }}>← Books</Link>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, margin: '4px 0' }}>Upload Statement CSV</h1>
-          <p style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-dim)', margin: 0 }}>
             Export from your card issuer (Amex, Chase, Capital One, etc). Gemini suggests a category per row; review and import.
           </p>
         </div>
 
-        <div style={{ padding: 16, background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: '1px dashed rgba(122,171,130,0.35)', borderRadius: 10, marginBottom: 18 }}>
+        <div style={{ padding: 16, background: 'var(--bg-alt)', border: '1px dashed rgba(var(--green-rgb),0.35)', borderRadius: 10, marginBottom: 18 }}>
           <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} disabled={busy}
-            style={{ color: '#d4e6ca', fontSize: '0.85rem' }} />
-          {busy && <span style={{ marginLeft: 12, color: '#c9a84c', fontSize: '0.82rem' }}>Parsing &amp; categorizing…</span>}
+            style={{ color: 'var(--text)', fontSize: '0.85rem' }} />
+          {busy && <span style={{ marginLeft: 12, color: 'var(--gold)', fontSize: '0.82rem' }}>Parsing &amp; categorizing…</span>}
         </div>
 
         {error && (
-          <div style={{ padding: 12, background: 'rgba(255,128,128,0.1)', border: '1px solid #ff8080', borderRadius: 8, color: '#ff8080', marginBottom: 18, fontSize: '0.85rem' }}>
+          <div style={{ padding: 12, background: 'rgba(var(--danger-rgb),0.10)', border: '1px solid var(--danger)', borderRadius: 8, color: 'var(--danger)', marginBottom: 18, fontSize: '0.85rem' }}>
             {error}
           </div>
         )}
 
         {parseErrors.length > 0 && (
-          <div style={{ padding: 10, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 8, color: '#c9a84c', marginBottom: 18, fontSize: '0.78rem' }}>
+          <div style={{ padding: 10, background: 'rgba(var(--gold-rgb),0.08)', border: '1px solid rgba(var(--gold-rgb),0.35)', borderRadius: 8, color: 'var(--gold)', marginBottom: 18, fontSize: '0.78rem' }}>
             <strong>{parseErrors.length} parse warning{parseErrors.length === 1 ? '' : 's'}:</strong>
             <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
               {parseErrors.slice(0, 5).map((e, i) => <li key={i}>{e}</li>)}
@@ -137,18 +137,18 @@ export default function UploadCsvPage({ categories }) {
         )}
 
         {importResult && (
-          <div style={{ padding: 12, background: 'rgba(125,255,170,0.1)', border: '1px solid #7dffaa', borderRadius: 8, color: '#7dffaa', marginBottom: 18, fontSize: '0.85rem' }}>
+          <div style={{ padding: 12, background: 'rgba(var(--ok-rgb),0.10)', border: '1px solid var(--ok)', borderRadius: 8, color: 'var(--ok)', marginBottom: 18, fontSize: '0.85rem' }}>
             ✓ Imported {importResult.inserted} new transaction{importResult.inserted === 1 ? '' : 's'}
             {importResult.skipped > 0 && <> · skipped {importResult.skipped} duplicate{importResult.skipped === 1 ? '' : 's'}</>}.
-            {' '}<Link href="/admin/books" style={{ color: '#7dffaa', textDecoration: 'underline' }}>View books</Link>
+            {' '}<Link href="/admin/books" style={{ color: 'var(--green)', textDecoration: 'underline' }}>View books</Link>
           </div>
         )}
 
         {rows.length > 0 && (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.7)' }}>
-                {rows.length} rows parsed · {selectedCount} selected · net <strong style={{ color: selectedSum >= 0 ? '#7dffaa' : '#ff8080' }}>{fmt$(selectedSum)}</strong>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                {rows.length} rows parsed · {selectedCount} selected · net <strong style={{ color: selectedSum >= 0 ? 'var(--ok)' : 'var(--danger)' }}>{fmt$(selectedSum)}</strong>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setRows((rs) => rs.map((r) => ({ ...r, include: true })))}
@@ -156,16 +156,16 @@ export default function UploadCsvPage({ categories }) {
                 <button onClick={() => setRows((rs) => rs.map((r) => ({ ...r, include: false })))}
                   style={{ ...inputStyle, cursor: 'pointer' }}>Select none</button>
                 <button onClick={doImport} disabled={busy || selectedCount === 0}
-                  style={{ padding: '7px 16px', borderRadius: 6, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', cursor: busy || selectedCount === 0 ? 'not-allowed' : 'pointer', opacity: busy || selectedCount === 0 ? 0.5 : 1 }}>
+                  style={{ padding: '7px 16px', borderRadius: 6, border: 'none', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.85rem', cursor: busy || selectedCount === 0 ? 'not-allowed' : 'pointer', opacity: busy || selectedCount === 0 ? 0.5 : 1 }}>
                   Import {selectedCount}
                 </button>
               </div>
             </div>
 
-            <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(122,171,130,0.12)', overflow: 'auto' }}>
+            <div style={{ background: 'var(--bg-alt)', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.12)', overflow: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(212,230,202,0.55)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <tr style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     <th style={{ padding: '8px 10px', textAlign: 'left', width: 32 }}></th>
                     <th style={{ padding: '8px 10px', textAlign: 'left' }}>Date</th>
                     <th style={{ padding: '8px 10px', textAlign: 'left' }}>Description</th>
@@ -176,12 +176,12 @@ export default function UploadCsvPage({ categories }) {
                 </thead>
                 <tbody>
                   {rows.map((r, i) => (
-                    <tr key={i} style={{ borderTop: '1px solid rgba(122,171,130,0.06)', opacity: r.include ? 1 : 0.4 }}>
+                    <tr key={i} style={{ borderTop: '1px solid rgba(var(--green-rgb),0.06)', opacity: r.include ? 1 : 0.4 }}>
                       <td style={{ padding: '6px 10px' }}>
                         <input type="checkbox" checked={r.include} onChange={(e) => updateRow(i, { include: e.target.checked })} />
                       </td>
-                      <td style={{ padding: '6px 10px', whiteSpace: 'nowrap', color: 'rgba(212,230,202,0.6)' }}>{fmtDate(r.occurred_at)}</td>
-                      <td style={{ padding: '6px 10px', color: '#d4e6ca' }}>{r.description}</td>
+                      <td style={{ padding: '6px 10px', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>{fmtDate(r.occurred_at)}</td>
+                      <td style={{ padding: '6px 10px', color: 'var(--text)' }}>{r.description}</td>
                       <td style={{ padding: '6px 10px' }}>
                         <select value={r.category_label} onChange={(e) => pickCategory(i, e.target.value)} style={inputStyle}>
                           {Object.keys(grouped).map((type) => (
@@ -191,8 +191,8 @@ export default function UploadCsvPage({ categories }) {
                           ))}
                         </select>
                       </td>
-                      <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: r.amount_cents >= 0 ? '#7dffaa' : '#ff8080', whiteSpace: 'nowrap' }}>{fmt$(r.amount_cents)}</td>
-                      <td style={{ padding: '6px 10px', textAlign: 'right', fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)' }}>
+                      <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: r.amount_cents >= 0 ? 'var(--green)' : 'var(--danger)', whiteSpace: 'nowrap' }}>{fmt$(r.amount_cents)}</td>
+                      <td style={{ padding: '6px 10px', textAlign: 'right', fontSize: '0.7rem', color: 'var(--text-dim)' }}>
                         {r.suggested?.confidence ? Math.round(r.suggested.confidence * 100) + '%' : '—'}
                       </td>
                     </tr>
