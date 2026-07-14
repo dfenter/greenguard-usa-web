@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "co2v5")(type "KiCad")(uri "${KIPRJMOD}/co2v5.kicad_sym")(options "")(descr "CO2 timer v5 project symbols"))
+)

@@ -1,0 +1,6 @@
+(version 1)
+# fine-pitch exception: VSSOP-8 (U6) 0.5 mm pitch cannot satisfy 0.25 mm
+# pad-to-track clearance at its own pads; relax locally, 0.25 mm elsewhere.
+(rule "U6 fine pitch"
+  (condition "A.intersectsCourtyard('U6') || B.intersectsCourtyard('U6')")
+  (constraint clearance (min 0.15mm)))

@@ -1,0 +1,702 @@
+(kicad_symbol_lib
+	(version 20241209)
+	(generator "kicad_symbol_editor")
+	(generator_version "10.0")
+(symbol "ATtiny84A-SSU"
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "U"
+			(at -12.7 21.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Value" "ATtiny84A-SSU"
+			(at 2.54 -21.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(property "Footprint" "Package_SO:SOIC-14_3.9x8.7mm_P1.27mm"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+					(italic yes)
+				)
+			)
+		)
+		(property "Datasheet" "http://ww1.microchip.com/downloads/en/DeviceDoc/doc8006.pdf"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "20MHz, 8kB Flash, 512B SRAM, 512B EEPROM, debugWIRE, SOIC-14"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "AVR 8bit Microcontroller tinyAVR"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "SOIC*3.9x8.7mm*P1.27mm*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "ATtiny84A-SSU_0_1"
+			(rectangle
+				(start -12.7 -20.32)
+				(end 12.7 20.32)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type background)
+				)
+			)
+		)
+		(symbol "ATtiny84A-SSU_1_1"
+			(pin power_in line
+				(at 0 22.86 270)
+				(length 2.54)
+				(name "VCC"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 -7.62 180)
+				(length 2.54)
+				(name "XTAL1/PB0"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 -10.16 180)
+				(length 2.54)
+				(name "XTAL2/PB1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "3"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 -15.24 180)
+				(length 2.54)
+				(name "~{RESET}/PB3"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "4"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 -12.7 180)
+				(length 2.54)
+				(name "PB2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "5"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 -2.54 180)
+				(length 2.54)
+				(name "PA7"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "6"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 0 180)
+				(length 2.54)
+				(name "PA6"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "7"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 2.54 180)
+				(length 2.54)
+				(name "PA5"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "8"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 5.08 180)
+				(length 2.54)
+				(name "PA4"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "9"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 7.62 180)
+				(length 2.54)
+				(name "PA3"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "10"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 10.16 180)
+				(length 2.54)
+				(name "PA2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "11"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 12.7 180)
+				(length 2.54)
+				(name "PA1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "12"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin bidirectional line
+				(at 15.24 15.24 180)
+				(length 2.54)
+				(name "AREF/PA0"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "13"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at 0 -22.86 90)
+				(length 2.54)
+				(name "GND"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "14"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+	(symbol "DS3231M_SO16"
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+			(property "Reference" "U"
+				(at -12.7 13.969999999999999 0)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Value" "DS3231M_SO16"
+				(at -12.7 -13.969999999999999 0)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Footprint" "Package_SO:SOIC-16W_7.5x10.3mm_P1.27mm"
+				(at 0 0 0)
+				(hide yes)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(hide yes)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Description" "I2C RTC, SO-16, full 16-pin symbol incl. N.C. pins 5-12 (tied to GND per datasheet)"
+				(at 0 0 0)
+				(hide yes)
+				(effects (font (size 1.27 1.27)))
+			)
+		(symbol "DS3231M_SO16_0_1"
+			(rectangle
+				(start -12.7 12.7)
+				(end 12.7 -12.7)
+				(stroke (width 0.254) (type default))
+				(fill (type background))
+			)
+		)
+		(symbol "DS3231M_SO16_1_1"
+			(pin input line
+				(at -15.24 10.16 0)
+				(length 2.54)
+				(name "SCL"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "16"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin bidirectional line
+				(at -15.24 7.62 0)
+				(length 2.54)
+				(name "SDA"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "15"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin bidirectional line
+				(at -15.24 2.54 0)
+				(length 2.54)
+				(name "~{RST}"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "4"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin open_collector line
+				(at -15.24 -2.54 0)
+				(length 2.54)
+				(name "32KHZ"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "1"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin open_collector line
+				(at -15.24 -7.62 0)
+				(length 2.54)
+				(name "~{INT}/SQW"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "3"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin power_in line
+				(at -2.54 15.24 270)
+				(length 2.54)
+				(name "VCC"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "2"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin power_in line
+				(at 2.54 15.24 270)
+				(length 2.54)
+				(name "VBAT"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "14"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin power_in line
+				(at 0.0 -15.24 90)
+				(length 2.54)
+				(name "GND"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "13"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 15.24 10.16 180)
+				(length 2.54)
+				(name "N.C."
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "5"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 15.24 7.62 180)
+				(length 2.54)
+				(name "N.C."
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "6"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 15.24 5.08 180)
+				(length 2.54)
+				(name "N.C."
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "7"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 15.24 2.54 180)
+				(length 2.54)
+				(name "N.C."
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "8"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 15.24 0.0 180)
+				(length 2.54)
+				(name "N.C."
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "9"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 15.24 -2.54 180)
+				(length 2.54)
+				(name "N.C."
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "10"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 15.24 -5.08 180)
+				(length 2.54)
+				(name "N.C."
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "11"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 15.24 -7.62 180)
+				(length 2.54)
+				(name "N.C."
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "12"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+		)
+	)
+	(symbol "MCP1703A-3302E-CB"
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+			(property "Reference" "U"
+				(at -5.08 6.35 0)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Value" "MCP1703A-3302E/CB"
+				(at -5.08 -6.35 0)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
+				(at 0 0 0)
+				(hide yes)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(hide yes)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Description" "250mA 16V LDO 3.3V, SOT-23A: 1=GND 2=VIN 3=VOUT"
+				(at 0 0 0)
+				(hide yes)
+				(effects (font (size 1.27 1.27)))
+			)
+		(symbol "MCP1703A-3302E-CB_0_1"
+			(rectangle
+				(start -5.08 5.08)
+				(end 5.08 -5.08)
+				(stroke (width 0.254) (type default))
+				(fill (type background))
+			)
+		)
+		(symbol "MCP1703A-3302E-CB_1_1"
+			(pin power_in line
+				(at 0.0 -7.62 90)
+				(length 2.54)
+				(name "GND"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "1"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin power_in line
+				(at -7.62 0.0 0)
+				(length 2.54)
+				(name "VIN"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "2"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin power_out line
+				(at 7.62 0.0 180)
+				(length 2.54)
+				(name "VOUT"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "3"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+		)
+	)
+	(symbol "SW_Push_4P"
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+			(property "Reference" "SW"
+				(at -2.54 5.08 0)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Value" "SW_Push_4P"
+				(at -2.54 -5.08 0)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Footprint" "Button_Switch_SMD:SW_SPST_TL3342"
+				(at 0 0 0)
+				(hide yes)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(hide yes)
+				(effects (font (size 1.27 1.27)))
+			)
+			(property "Description" "4-pin SMD tactile switch: pins 1-2 common, 3-4 common"
+				(at 0 0 0)
+				(hide yes)
+				(effects (font (size 1.27 1.27)))
+			)
+		(symbol "SW_Push_4P_0_1"
+			(rectangle
+				(start -2.54 3.81)
+				(end 2.54 -3.81)
+				(stroke (width 0.254) (type default))
+				(fill (type background))
+			)
+		)
+		(symbol "SW_Push_4P_1_1"
+			(pin passive line
+				(at -5.08 2.54 0)
+				(length 2.54)
+				(name "1"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "1"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at -5.08 -2.54 0)
+				(length 2.54)
+				(name "2"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "2"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 5.08 2.54 180)
+				(length 2.54)
+				(name "3"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "3"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+			(pin passive line
+				(at 5.08 -2.54 180)
+				(length 2.54)
+				(name "4"
+					(effects (font (size 1.27 1.27)))
+				)
+				(number "4"
+					(effects (font (size 1.27 1.27)))
+				)
+			)
+		)
+	)
+)
