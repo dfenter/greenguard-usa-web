@@ -5,12 +5,12 @@ import DetailDock from './AppointmentDetailDock'
 const TZ = 'America/Chicago'
 
 const CUST_STATUS = {
-  active:   { bg: '#c8e6c9', color: '#1b5e20',               label: 'Active'    },
-  trialing: { bg: '#c8e6c9', color: '#1b5e20',               label: 'Trialing'  },
-  past_due: { bg: '#ffccbc',  color: '#bf360c',               label: 'Past Due'  },
-  inactive: { bg: '#eeeeee', color: '#424242', label: 'No Sub'    },
-  canceled: { bg: '#eeeeee', color: '#424242', label: 'Canceled'  },
-  prospect: { bg: '#ffe0b2',  color: '#e65100',               label: 'Prospect'  },
+  active:   { bg: 'rgba(var(--ok-rgb),0.10)', color: 'var(--ok)', label: 'Active'    },
+  trialing: { bg: 'rgba(var(--ok-rgb),0.10)', color: 'var(--ok)', label: 'Trialing'  },
+  past_due: { bg: 'rgba(var(--warn-rgb),0.10)', color: 'var(--warn)', label: 'Past Due'  },
+  inactive: { bg: 'rgba(0,0,0,0.06)', color: 'var(--text-muted)', label: 'No Sub'    },
+  canceled: { bg: 'rgba(0,0,0,0.06)', color: 'var(--text-muted)', label: 'Canceled'  },
+  prospect: { bg: 'rgba(var(--warn-rgb),0.10)', color: 'var(--warn)', label: 'Prospect'  },
 }
 
 // Canonicalize a raw system_type (any casing / hyphenation drift from HubSpot,
@@ -65,7 +65,7 @@ function fmtAmt(cents) { return `$${(cents / 100).toFixed(2)}` }
 function StatusBadge({ status }) {
   const s = CUST_STATUS[status] || CUST_STATUS.inactive
   return (
-    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', background: s.bg, color: s.color }}>
+    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', background: s.bg, color: s.color, border: '1px solid var(--border)' }}>
       {s.label}
     </span>
   )
@@ -96,13 +96,13 @@ function NoteComposer({ email, hsContactId, onSaved }) {
     <div style={{ marginTop: 4 }}>
       <textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)}
         placeholder="What did you observe / arrange / promise?"
-        style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '2px solid #64b5a6', background: '#f5f5f5', color: '#000000', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', fontWeight: 700 }} />
+        style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', fontWeight: 700 }} />
       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
         <button onClick={save} disabled={busy || !body.trim()}
-          style={{ padding: '8px 14px', borderRadius: 5, border: 'none', background: '#4caf50', color: '#ffffff', fontWeight: 900, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Inter, sans-serif' }}>
+          style={{ padding: '8px 14px', borderRadius: 5, border: 'none', background: 'var(--ok)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1 }}>
           {busy ? 'Saving…' : 'Save note'}
         </button>
-        {msg && <span style={{ fontSize: '0.78rem', fontWeight: 700, color: msg.ok ? '#4caf50' : '#d32f2f' }}>{msg.text}</span>}
+        {msg && <span style={{ fontSize: '0.78rem', fontWeight: 700, color: msg.ok ? 'var(--ok)' : 'var(--danger)' }}>{msg.text}</span>}
       </div>
     </div>
   )
@@ -131,13 +131,13 @@ function SmsComposer({ email, phone, onSent }) {
     <div style={{ marginTop: 6 }}>
       <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} maxLength={320}
         placeholder={`Text ${phone}…`}
-        style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '2px solid #64b5a6', background: '#f5f5f5', color: '#000000', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontWeight: 700 }} />
+        style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontWeight: 700 }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 8 }}>
-        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: msg?.startsWith('✓') ? '#4caf50' : msg ? '#d32f2f' : '#999999' }}>
+        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: msg?.startsWith('✓') ? 'var(--ok)' : msg ? 'var(--danger)' : 'var(--text-dim)' }}>
           {msg || `${body.length}/320`}
         </span>
         <button onClick={send} disabled={sending || !body.trim()}
-          style={{ padding: '8px 16px', borderRadius: 6, border: '2px solid #4caf50', cursor: sending || !body.trim() ? 'not-allowed' : 'pointer', background: sending || !body.trim() ? '#e8f5e9' : '#4caf50', color: sending || !body.trim() ? '#1b5e20' : '#ffffff', fontWeight: 900, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
+          style={{ padding: '8px 16px', borderRadius: 6, border: '2px solid var(--ok)', cursor: sending || !body.trim() ? 'not-allowed' : 'pointer', background: sending || !body.trim() ? 'rgba(var(--ok-rgb),0.10)' : 'var(--ok)', color: sending || !body.trim() ? 'var(--ok)' : 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.82rem' }}>
           {sending ? 'Sending…' : 'Send SMS'}
         </button>
       </div>
@@ -147,12 +147,12 @@ function SmsComposer({ email, phone, onSent }) {
 
 function ApptRow({ b, accent }) {
   return (
-    <div style={{ padding: '9px 0', borderBottom: '2px solid #e0e0e0' }}>
+    <div style={{ padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
         <span style={{ fontSize: '0.83rem', fontWeight: 900, color: accent }}>{fmtDate(b.startTime)}</span>
-        <span style={{ fontSize: '0.72rem', color: '#666666', fontWeight: 700, whiteSpace: 'nowrap' }}>{fmtTime(b.startTime)}</span>
+        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>{fmtTime(b.startTime)}</span>
       </div>
-      {b.title && <div style={{ fontSize: '0.75rem', color: '#000000', marginTop: 2, fontWeight: 700 }}>{b.title}</div>}
+      {b.title && <div style={{ fontSize: '0.75rem', color: 'var(--text)', marginTop: 2, fontWeight: 700 }}>{b.title}</div>}
     </div>
   )
 }
@@ -160,18 +160,18 @@ function ApptRow({ b, accent }) {
 function AppointmentHistoryPanel({ detail, onSchedule, scheduleBtn }) {
   const upcoming = detail.upcomingBookings?.length ? detail.upcomingBookings : (detail.nextBooking ? [detail.nextBooking] : [])
   const past = detail.pastBookings || []
-  const lbl = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', margin: '16px 0 6px' }
+  const lbl = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '16px 0 6px' }
   return (
     <div style={{ paddingTop: 8 }}>
       <button style={scheduleBtn} onClick={onSchedule}>+ Schedule appointment</button>
       <div style={lbl}>Upcoming ({upcoming.length})</div>
       {upcoming.length === 0
-        ? <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>None scheduled</div>
-        : upcoming.map((b, i) => <ApptRow key={b.id || i} b={b} accent="#c9a84c" />)}
+        ? <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>None scheduled</div>
+        : upcoming.map((b, i) => <ApptRow key={b.id || i} b={b} accent="var(--gold)" />)}
       <div style={lbl}>Past ({past.length})</div>
       {past.length === 0
-        ? <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>No past visits</div>
-        : past.map((b, i) => <ApptRow key={b.id || i} b={b} accent="#7dffaa" />)}
+        ? <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>No past visits</div>
+        : past.map((b, i) => <ApptRow key={b.id || i} b={b} accent="var(--green)" />)}
     </div>
   )
 }
@@ -268,67 +268,67 @@ export default function CustomerPanel({ customer, onClose }) {
 
   const panel = {
     position: 'fixed', top: 0, right: 0, bottom: 0, width: 400,
-    background: '#ffffff', borderLeft: '2px solid #64b5a6',
+    background: 'var(--bg-card)', borderLeft: '1px solid var(--border)',
     zIndex: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column',
     boxShadow: '-8px 0 32px rgba(0,0,0,0.2)',
   }
-  const row = { padding: '14px 0', borderBottom: '2px solid #e0e0e0' }
-  const lbl = { fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#000000', marginBottom: 4 }
-  const val = { fontSize: '0.88rem', fontWeight: 700, color: '#000000' }
+  const row = { padding: '14px 0', borderBottom: '1px solid var(--border)' }
+  const lbl = { fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text)', marginBottom: 4 }
+  const val = { fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }
   const input = {
     width: '100%', padding: '9px 12px', borderRadius: 6, boxSizing: 'border-box',
-    border: '2px solid #64b5a6', background: '#f5f5f5',
-    color: '#000000', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none', fontWeight: 700,
+    border: '1.5px solid var(--border)', background: 'var(--bg-card)',
+    color: 'var(--text)', fontSize: '0.85rem', outline: 'none', fontWeight: 700,
   }
   const btn = (variant) => ({
     padding: '8px 14px', borderRadius: 4, border: '2px solid', cursor: 'pointer',
-    fontWeight: 900, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif',
-    ...(variant === 'gold'  ? { background: '#f57c00', color: '#ffffff', borderColor: '#f57c00' } :
-        variant === 'green' ? { background: '#4caf50', color: '#ffffff', borderColor: '#4caf50' } :
-        variant === 'red'   ? { background: '#d32f2f', color: '#ffffff', borderColor: '#d32f2f' } :
-        variant === 'ghost' ? { background: '#e8f5e9', color: '#1b5e20', borderColor: '#4caf50' } :
-                              { background: '#e0e0e0', color: '#000000', borderColor: '#999999' }),
+    fontWeight: 900, fontSize: '0.78rem',
+    ...(variant === 'gold'  ? { background: 'var(--gold)', color: 'var(--text-on-accent)', borderColor: 'var(--gold)' } :
+        variant === 'green' ? { background: 'var(--green)', color: 'var(--text-on-accent)', borderColor: 'var(--green)' } :
+        variant === 'red'   ? { background: 'var(--danger)', color: 'var(--text-on-accent)', borderColor: 'var(--danger)' } :
+        variant === 'ghost' ? { background: 'var(--bg-alt)', color: 'var(--green)', borderColor: 'var(--border)' } :
+                              { background: 'var(--bg-alt)', color: 'var(--text)', borderColor: 'var(--border)' }),
   })
 
   return (
     <div style={panel} className="docked-panel">
       {/* Header */}
-      <div style={{ padding: '20px 20px 16px', borderBottom: '2px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 2, color: '#000000' }}>{customer.name || 'Customer'}</div>
+          <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 2, color: 'var(--text)' }}>{customer.name || 'Customer'}</div>
           {detail?.systemType ? (
-            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#f57c00', marginBottom: 4 }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--warn)', marginBottom: 4 }}>
               {systemLabel(detail.systemType)}
               {detail.trapCount ? ` · ${detail.trapCount} trap${detail.trapCount > 1 ? 's' : ''}` : ''}
               {detail.planType ? ` · ${detail.planType}` : ''}
             </div>
           ) : customer.plan ? (
-            <div style={{ fontSize: '0.78rem', color: '#666666', marginBottom: 4, fontWeight: 700 }}>{customer.plan}</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 4, fontWeight: 700 }}>{customer.plan}</div>
           ) : null}
           {(detail?.phone || customer.phone) && (
-            <a href={`tel:${(detail?.phone || customer.phone).replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.85rem', fontWeight: 800, color: '#4caf50', textDecoration: 'none', display: 'block', marginBottom: 4 }}>
+            <a href={`tel:${(detail?.phone || customer.phone).replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--green)', textDecoration: 'none', display: 'block', marginBottom: 4 }}>
               📞 {detail?.phone || customer.phone}
             </a>
           )}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {customer.status && customer.status !== 'inactive' && customer.status !== 'canceled' && <StatusBadge status={customer.status} />}
             {detail?.nextBooking && (
-              <span style={{ fontSize: '0.7rem', color: '#4caf50', fontWeight: 800 }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--ok)', fontWeight: 800 }}>
                 Next: {fmtDate(detail.nextBooking.startTime)}
               </span>
             )}
             {detail?.pastBookings?.[0] && (
-              <span style={{ fontSize: '0.7rem', color: '#999999', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 700 }}>
                 Last: {fmtDate(detail.pastBookings[0].startTime)}
               </span>
             )}
           </div>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#999999', cursor: 'pointer', fontSize: '1.3rem', lineHeight: 1, padding: 4, flexShrink: 0, fontWeight: 700 }}>×</button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '1.3rem', lineHeight: 1, padding: 4, flexShrink: 0, fontWeight: 700 }}>×</button>
       </div>
 
       {/* Action bar */}
-      <div style={{ padding: '12px 20px', borderBottom: '2px solid #e0e0e0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button style={btn('gold')} onClick={scheduleForCustomer}>+ Schedule</button>
         {!editing && <button style={btn('ghost')} onClick={() => setEditing(true)}>Edit</button>}
         {editing && <button style={btn('green')} onClick={saveEdit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>}
@@ -343,15 +343,15 @@ export default function CustomerPanel({ customer, onClose }) {
 
       {/* Email compose */}
       {messaging && (
-        <div style={{ padding: '16px 20px', background: '#f5f5f5', borderBottom: '2px solid #e0e0e0' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000000', marginBottom: 10 }}>
+        <div style={{ padding: '16px 20px', background: 'var(--bg-alt)', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text)', marginBottom: 10 }}>
             Email to {customer.email}
           </div>
           <input value={msgForm.subject} onChange={(e) => setMsgForm((f) => ({ ...f, subject: e.target.value }))} placeholder="Subject"
-            style={{ width: '100%', marginBottom: 8, padding: '9px 12px', borderRadius: 6, border: '2px solid #64b5a6', background: '#ffffff', color: '#000000', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', fontWeight: 700 }} />
+            style={{ width: '100%', marginBottom: 8, padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', fontWeight: 700 }} />
           <textarea value={msgForm.body} onChange={(e) => setMsgForm((f) => ({ ...f, body: e.target.value }))}
             placeholder={`Hi ${customer.name?.split(' ')[0] || 'there'},\n\n`} rows={5}
-            style={{ width: '100%', marginBottom: 8, padding: '9px 12px', borderRadius: 6, border: '2px solid #64b5a6', background: '#ffffff', color: '#000000', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontWeight: 700 }} />
+            style={{ width: '100%', marginBottom: 8, padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontWeight: 700 }} />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button disabled={msgSending || !msgForm.subject || !msgForm.body}
               onClick={async () => {
@@ -368,8 +368,8 @@ export default function CustomerPanel({ customer, onClose }) {
               {msgSending ? 'Sending…' : 'Send Email'}
             </button>
             <button style={btn('ghost')} onClick={() => setMessaging(false)}>Cancel</button>
-            {msgResult === 'sent' && <span style={{ fontSize: '0.8rem', color: '#4caf50', fontWeight: 900 }}>✓ Sent</span>}
-            {msgResult && msgResult !== 'sent' && <span style={{ fontSize: '0.8rem', color: '#d32f2f', fontWeight: 700 }}>{msgResult}</span>}
+            {msgResult === 'sent' && <span style={{ fontSize: '0.8rem', color: 'var(--ok)', fontWeight: 900 }}>✓ Sent</span>}
+            {msgResult && msgResult !== 'sent' && <span style={{ fontSize: '0.8rem', color: 'var(--danger)', fontWeight: 700 }}>{msgResult}</span>}
           </div>
         </div>
       )}
@@ -378,8 +378,8 @@ export default function CustomerPanel({ customer, onClose }) {
       <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0' }}>
         {[{ k: 'details', l: 'Details' }, { k: 'history', l: 'History' }].map((t) => (
           <button key={t.k} onClick={() => setTab(t.k)}
-            style={{ padding: '8px 16px', borderRadius: 4, border: tab === t.k ? '2px solid #f57c00' : '2px solid #e0e0e0', cursor: 'pointer', fontWeight: 900, fontSize: '0.76rem', fontFamily: 'Inter, sans-serif',
-              background: tab === t.k ? '#ffe0b2' : '#f5f5f5', color: tab === t.k ? '#e65100' : '#666666' }}>
+            style={{ padding: '8px 16px', borderRadius: 4, border: tab === t.k ? '2px solid var(--warn)' : '1.5px solid var(--border)', cursor: 'pointer', fontWeight: 900, fontSize: '0.76rem',
+              background: tab === t.k ? 'rgba(var(--warn-rgb),0.10)' : 'var(--bg-alt)', color: tab === t.k ? 'var(--warn)' : 'var(--text-muted)' }}>
             {t.l}
           </button>
         ))}
@@ -387,8 +387,8 @@ export default function CustomerPanel({ customer, onClose }) {
 
       {/* Body */}
       <div style={{ padding: '0 20px 32px', flex: 1 }}>
-        {loading && <p style={{ color: '#999999', marginTop: 24, fontWeight: 700 }}>Loading…</p>}
-        {error && <p style={{ color: '#d32f2f', marginTop: 24, fontWeight: 700 }}>{error}</p>}
+        {loading && <p style={{ color: 'var(--text-dim)', marginTop: 24, fontWeight: 700 }}>Loading…</p>}
+        {error && <p style={{ color: 'var(--danger)', marginTop: 24, fontWeight: 700 }}>{error}</p>}
 
         {detail && !loading && tab === 'history' && (
           <AppointmentHistoryPanel detail={detail} onSchedule={scheduleForCustomer}
@@ -417,7 +417,7 @@ export default function CustomerPanel({ customer, onClose }) {
                   </select>
                   <input style={input} type="number" min="1" placeholder="Trap count" value={editForm.trapCount} onChange={(e) => setEditForm((f) => ({ ...f, trapCount: e.target.value }))} />
                   {editForm.systemType === 'Biogents-CO2' && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'rgba(212,230,202,0.7)', cursor: 'pointer' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
                       <input type="checkbox" checked={!!editForm.hasTimer} onChange={(e) => setEditForm((f) => ({ ...f, hasTimer: e.target.checked }))} />
                       Has Biogents Timer
                     </label>
@@ -431,18 +431,18 @@ export default function CustomerPanel({ customer, onClose }) {
                   <div style={lbl}>Contact</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
                     {detail.phone && (
-                      <a href={`tel:${detail.phone.replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.92rem', fontWeight: 800, color: '#4caf50', textDecoration: 'none' }}>
+                      <a href={`tel:${detail.phone.replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--green)', textDecoration: 'none' }}>
                         📞 {detail.phone}
                       </a>
                     )}
                     {detail.email && (
-                      <a href={`mailto:${detail.email}`} style={{ fontSize: '0.82rem', color: '#000000', fontWeight: 700, textDecoration: 'none', wordBreak: 'break-all' }}>
+                      <a href={`mailto:${detail.email}`} style={{ fontSize: '0.82rem', color: 'var(--text)', fontWeight: 700, textDecoration: 'none', wordBreak: 'break-all' }}>
                         ✉ {detail.email}
                       </a>
                     )}
                     {detail.address && (
                       <a href={`https://maps.apple.com/?daddr=${encodeURIComponent(detail.address)}`} target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize: '1rem', fontWeight: 800, color: '#d32f2f', textDecoration: 'none', lineHeight: 1.4 }}>
+                        style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--danger)', textDecoration: 'none', lineHeight: 1.4 }}>
                         📍 {detail.address}
                       </a>
                     )}
@@ -455,14 +455,14 @@ export default function CustomerPanel({ customer, onClose }) {
                   <NoteComposer email={detail.email} hsContactId={detail.hubspotContactId} onSaved={fetchDetail} />
                   {(() => {
                     const adminNotes = (detail.notes || []).filter((n) => /^\[ADMIN-NOTE/.test(n.body || ''))
-                    if (adminNotes.length === 0) return <div style={{ fontSize: '0.78rem', color: '#999999', marginTop: 10, fontWeight: 700 }}>No notes yet</div>
+                    if (adminNotes.length === 0) return <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: 10, fontWeight: 700 }}>No notes yet</div>
                     return adminNotes.map((note) => {
                       const body = (note.body || '').replace(/^\[ADMIN-NOTE[^\]]*\]\s*/, '')
                       return (
-                        <div key={note.id} style={{ marginTop: 8, padding: '10px 12px', background: '#fff3e0', borderRadius: 6, borderLeft: '3px solid #f57c00' }}>
-                          <div style={{ fontSize: '0.82rem', whiteSpace: 'pre-wrap', color: '#000000', lineHeight: 1.5, fontWeight: 700 }}>{body}</div>
+                        <div key={note.id} style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(var(--warn-rgb),0.10)', borderRadius: 6, borderLeft: '3px solid var(--warn)' }}>
+                          <div style={{ fontSize: '0.82rem', whiteSpace: 'pre-wrap', color: 'var(--text)', lineHeight: 1.5, fontWeight: 700 }}>{body}</div>
                           {note.timestamp && (
-                            <div style={{ fontSize: '0.66rem', color: '#999999', marginTop: 5, fontWeight: 700 }}>
+                            <div style={{ fontSize: '0.66rem', color: 'var(--text-dim)', marginTop: 5, fontWeight: 700 }}>
                               {new Date(note.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ })}
                             </div>
                           )}
@@ -479,12 +479,12 @@ export default function CustomerPanel({ customer, onClose }) {
                   return (
                     <div style={row}>
                       <div style={lbl}>System</div>
-                      {img && <img src={img} alt={label} style={{ width: '100%', maxHeight: 140, objectFit: 'cover', borderRadius: 8, marginBottom: 6, border: '2px solid #64b5a6' }} />}
-                      <div style={{ fontSize: '0.82rem', color: '#000000', fontWeight: 700 }}>
-                        {detail.planType && <span style={{ textTransform: 'capitalize', marginRight: 8, color: '#f57c00', fontWeight: 900 }}>{detail.planType}</span>}
+                      {img && <img src={img} alt={label} style={{ width: '100%', maxHeight: 140, objectFit: 'cover', borderRadius: 8, marginBottom: 6, border: '2px solid var(--border)' }} />}
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text)', fontWeight: 700 }}>
+                        {detail.planType && <span style={{ textTransform: 'capitalize', marginRight: 8, color: 'var(--warn)', fontWeight: 900 }}>{detail.planType}</span>}
                         <span style={{ fontWeight: 800 }}>{label}</span>
-                        {detail.trapCount ? <span style={{ color: '#999999', marginLeft: 6, fontWeight: 700 }}>· {detail.trapCount} trap{detail.trapCount > 1 ? 's' : ''}</span> : ''}
-                        {detail.hasTimer ? <span style={{ color: '#999999', marginLeft: 6, fontWeight: 700 }}>· Timer</span> : ''}
+                        {detail.trapCount ? <span style={{ color: 'var(--text-dim)', marginLeft: 6, fontWeight: 700 }}>· {detail.trapCount} trap{detail.trapCount > 1 ? 's' : ''}</span> : ''}
+                        {detail.hasTimer ? <span style={{ color: 'var(--text-dim)', marginLeft: 6, fontWeight: 700 }}>· Timer</span> : ''}
                       </div>
                     </div>
                   )
@@ -494,22 +494,22 @@ export default function CustomerPanel({ customer, onClose }) {
                 {detail.subscription && (
                   <div style={row}>
                     <div style={lbl}>Plan</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 900, color: '#f57c00' }}>{fmtAmt(detail.subscription.amount)}<span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#999999', marginLeft: 4 }}>/{detail.subscription.interval}</span></div>
-                    {detail.subscription.label && <div style={{ fontSize: '0.75rem', color: '#666666', marginTop: 2, fontWeight: 700 }}>{detail.subscription.label}</div>}
+                    <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--warn)' }}>{fmtAmt(detail.subscription.amount)}<span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', marginLeft: 4 }}>/{detail.subscription.interval}</span></div>
+                    {detail.subscription.label && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, fontWeight: 700 }}>{detail.subscription.label}</div>}
                   </div>
                 )}
 
                 {/* Outstanding invoices */}
                 {detail.openInvoices?.length > 0 && (
                   <div style={row}>
-                    <div style={{ ...lbl, color: '#ffb060' }}>⚠ Outstanding Invoices</div>
+                    <div style={{ ...lbl, color: 'var(--warn)' }}>⚠ Outstanding Invoices</div>
                     {detail.openInvoices.map((inv) => (
-                      <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, padding: '8px 10px', background: 'rgba(255,160,80,0.06)', borderRadius: 6, border: '1px solid rgba(255,160,80,0.15)' }}>
+                      <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, padding: '8px 10px', background: 'rgba(var(--warn-rgb),0.08)', borderRadius: 6, border: '1px solid rgba(var(--warn-rgb),0.35)' }}>
                         <div>
-                          <div style={{ fontWeight: 800, color: '#ffb060' }}>{fmtAmt(inv.amountDue)}</div>
-                          <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 2 }}>{inv.number} · {fmtDateShort(inv.created)}</div>
+                          <div style={{ fontWeight: 800, color: 'var(--warn)' }}>{fmtAmt(inv.amountDue)}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 2 }}>{inv.number} · {fmtDateShort(inv.created)}</div>
                         </div>
-                        {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', padding: '5px 12px', borderRadius: 4, background: '#c9a84c', color: '#0d1a10', fontWeight: 800, textDecoration: 'none' }}>Pay</a>}
+                        {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', padding: '5px 12px', borderRadius: 4, background: 'var(--gold)', color: 'var(--text-on-accent)', fontWeight: 800, textDecoration: 'none' }}>Pay</a>}
                       </div>
                     ))}
                   </div>
@@ -519,17 +519,17 @@ export default function CustomerPanel({ customer, onClose }) {
                 {detail.pastBookings?.length > 0 && (
                   <div style={row}>
                     <div style={lbl}>Last Visit</div>
-                    <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(125,255,170,0.04)', borderRadius: 8, border: '1px solid rgba(125,255,170,0.1)' }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#7dffaa' }}>{fmtDate(detail.pastBookings[0].startTime)}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{detail.pastBookings[0].title}</div>
-                      {detail.pastBookings[0].address && <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 2 }}>{detail.pastBookings[0].address}</div>}
+                    <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(var(--green-rgb),0.06)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--green)' }}>{fmtDate(detail.pastBookings[0].startTime)}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>{detail.pastBookings[0].title}</div>
+                      {detail.pastBookings[0].address && <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 2 }}>{detail.pastBookings[0].address}</div>}
                     </div>
                     {detail.pastBookings.length > 1 && (
                       <div style={{ marginTop: 8 }}>
                         {detail.pastBookings.slice(1).map((b) => (
-                          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(122,171,130,0.07)' }}>
-                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(212,230,202,0.55)' }}>{fmtDate(b.startTime)}</div>
-                            <div style={{ fontSize: '0.74rem', color: 'rgba(212,230,202,0.35)', textAlign: 'right', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</div>
+                          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>{fmtDate(b.startTime)}</div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', textAlign: 'right', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</div>
                           </div>
                         ))}
                       </div>
@@ -543,12 +543,12 @@ export default function CustomerPanel({ customer, onClose }) {
                   {detail.nextBooking ? (
                     <div
                       onClick={() => openApptDock(detail.nextBooking.id)}
-                      style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(201,168,76,0.06)', borderRadius: 8, border: '1px solid rgba(201,168,76,0.2)', cursor: detail.nextBooking.id ? 'pointer' : 'default' }}
+                      style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(var(--gold-rgb),0.08)', borderRadius: 8, border: '1px solid var(--border-gold)', cursor: detail.nextBooking.id ? 'pointer' : 'default' }}
                       title={detail.nextBooking.id ? 'Click to view appointment details' : undefined}
                     >
-                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#c9a84c' }}>{fmtDate(detail.nextBooking.startTime)}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{detail.nextBooking.title}</div>
-                      {detail.nextBooking.address && <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 2 }}>{detail.nextBooking.address}</div>}
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--gold)' }}>{fmtDate(detail.nextBooking.startTime)}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>{detail.nextBooking.title}</div>
+                      {detail.nextBooking.address && <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 2 }}>{detail.nextBooking.address}</div>}
                       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                         {detail.nextBooking.calBookingId && (
                           <button style={btn('red')} onClick={handleCancel} disabled={cancelling}>{cancelling ? 'Cancelling…' : 'Cancel'}</button>
@@ -559,7 +559,7 @@ export default function CustomerPanel({ customer, onClose }) {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.3)', marginTop: 4 }}>None scheduled</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginTop: 4 }}>None scheduled</div>
                   )}
                 </div>
 
@@ -579,14 +579,14 @@ export default function CustomerPanel({ customer, onClose }) {
                       const body = note.body || ''
                       const isSmsIn = body.startsWith('[SMS-IN')
                       const tag = isSmsIn ? '← Inbound' : '→ Outbound'
-                      const bg = isSmsIn ? 'rgba(91,196,255,0.06)' : 'rgba(125,255,170,0.05)'
-                      const bord = isSmsIn ? 'rgba(91,196,255,0.35)' : 'rgba(125,255,170,0.35)'
+                      const bg = isSmsIn ? 'rgba(var(--info-rgb),0.08)' : 'rgba(var(--green-rgb),0.06)'
+                      const bord = isSmsIn ? 'rgba(var(--info-rgb),0.35)' : 'var(--border)'
                       return (
                         <div key={note.id} style={{ marginTop: 8, padding: '10px 12px', background: bg, borderRadius: 6, borderLeft: `2px solid ${bord}` }}>
-                          <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: isSmsIn ? '#5bc4ff' : '#7dffaa', marginBottom: 4 }}>{tag}</div>
-                          <div style={{ fontSize: '0.8rem', whiteSpace: 'pre-wrap', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5 }}>{body.replace(/^\[SMS-(IN|OUT)[^\]]*\]\s*(\([^)]*\)\s*)?(by [^\n]*:\s*)?/, '').replace(/^From[^\n]*\n/, '')}</div>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: isSmsIn ? 'var(--info)' : 'var(--green)', marginBottom: 4 }}>{tag}</div>
+                          <div style={{ fontSize: '0.8rem', whiteSpace: 'pre-wrap', color: 'var(--text-muted)', lineHeight: 1.5 }}>{body.replace(/^\[SMS-(IN|OUT)[^\]]*\]\s*(\([^)]*\)\s*)?(by [^\n]*:\s*)?/, '').replace(/^From[^\n]*\n/, '')}</div>
                           {note.timestamp && (
-                            <div style={{ fontSize: '0.66rem', color: 'rgba(212,230,202,0.28)', marginTop: 5 }}>
+                            <div style={{ fontSize: '0.66rem', color: 'var(--text-dim)', marginTop: 5 }}>
                               {new Date(note.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ })}
                             </div>
                           )}

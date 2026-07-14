@@ -28,9 +28,9 @@ export const actionBtn = {
 
 export const disabledBtn = {
   ...actionBtn,
-  border: '2px solid #d0d0d0',
-  color: '#999999',
-  background: '#f5f5f5',
+  border: '2px solid var(--border)',
+  color: 'var(--text-dim)',
+  background: 'var(--bg-alt)',
   cursor: 'not-allowed',
   opacity: 0.6,
 }
@@ -64,7 +64,7 @@ export function StopRow({ stop, index, dateStr, distance }) {
     <StopCard stop={stop} number={index + 1} distance={distance} actions={
       <>
         {mapsUrl ? (
-          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...actionBtn, border: '2px solid #000000', color: '#000000', background: '#f0f0f0', fontWeight: 800 }}>Navigate</a>
+          <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...actionBtn, border: '2px solid var(--border)', color: 'var(--text)', background: 'var(--bg-card)', fontWeight: 800 }}>Navigate</a>
         ) : (
           <span style={disabledBtn} aria-disabled="true">Navigate</span>
         )}
@@ -74,9 +74,9 @@ export function StopRow({ stop, index, dateStr, distance }) {
           onClick={sendOnMyWay}
           style={{
             ...actionBtn,
-            border: canNotify ? '2px solid #000000' : '2px solid #d0d0d0',
-            background: canNotify ? '#f0f0f0' : '#f5f5f5',
-            color: '#000000',
+            border: canNotify ? '2px solid var(--border)' : '2px solid var(--border)',
+            background: canNotify ? 'var(--bg-card)' : 'var(--bg-alt)',
+            color: 'var(--text)',
             cursor: canNotify ? 'pointer' : 'not-allowed',
             fontWeight: 800,
             opacity: canNotify ? 1 : 0.6,
@@ -84,7 +84,7 @@ export function StopRow({ stop, index, dateStr, distance }) {
           📲 On My Way
         </button>
         {stop.email ? (
-          <Link href={roundsUrl} style={{ ...actionBtn, background: '#f0f0f0', color: '#000000', border: '2px solid #000000', fontWeight: 900 }}>Finalize Visit</Link>
+          <Link href={roundsUrl} style={{ ...actionBtn, background: 'var(--bg-card)', color: 'var(--text)', border: '2px solid var(--border)', fontWeight: 900 }}>Finalize Visit</Link>
         ) : (
           <span style={{ ...disabledBtn, fontWeight: 900 }} aria-disabled="true">Finalize Visit</span>
         )}
@@ -129,9 +129,9 @@ export default function StopCard({
   // Assessment cards use blue highlight with thicker border. Done/active states preserve visual hierarchy.
   const isAssessment = /assessment/i.test(stop.serviceType || '')
   const card = {
-    background: '#ffffff',
-    border: `${isAssessment ? 4 : 2}px solid ${isAssessment ? '#1565c0' : done ? '#4caf50' : active ? '#f57c00' : '#64b5a6'}`,
-    borderLeft: `${isAssessment ? 10 : 6}px solid ${isAssessment ? '#1565c0' : done ? '#4caf50' : active ? '#f57c00' : '#64b5a6'}`,
+    background: 'var(--bg-card)',
+    border: `${isAssessment ? 4 : 2}px solid ${isAssessment ? 'var(--info)' : done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--border)'}`,
+    borderLeft: `${isAssessment ? 10 : 6}px solid ${isAssessment ? 'var(--info)' : done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--border)'}`,
     borderRadius: 'var(--radius)', padding: 20, marginBottom: 14,
     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
     opacity: cancelled ? 0.6 : 1,
@@ -149,21 +149,21 @@ export default function StopCard({
         <div style={{ marginBottom: actions || children ? 12 : 0 }}>
           {/* Name row: number · name · address · distance */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: done ? '#4caf50' : active ? '#f57c00' : '#64b5a6', color: '#ffffff', flexShrink: 0 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.78rem', background: done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--green-muted)', color: 'var(--text-on-accent)', flexShrink: 0 }}>
               {done ? '✓' : number}
             </span>
             <button
-              style={{ fontWeight: 900, fontSize: '1rem', color: /assessment/i.test(stop.serviceType || '') ? '#1565c0' : '#000000', background: 'none', border: 'none', borderBottom: '2px solid #64b5a6', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
+              style={{ fontWeight: 900, fontSize: '1rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', background: 'none', border: 'none', borderBottom: '2px solid var(--border)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
               onClick={(e) => { e.stopPropagation(); openProfile() }}
             >{name}</button>
             {stop.phone && (
-              <span style={{ fontSize: '0.85rem', color: '#000000', fontWeight: 700 }}>📞 {stop.phone}</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>📞 {stop.phone}</span>
             )}
             {stop.address && (
-              <span style={{ fontSize: '0.85rem', color: '#000000', fontWeight: 700 }}>📍 {stop.address}</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700 }}>📍 {stop.address}</span>
             )}
             {distance && (
-              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#000000', whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>
                 {distance.miles} mi · {distance.duration}
               </span>
             )}
@@ -174,32 +174,32 @@ export default function StopCard({
           {eventNotes.length > 0 && (
             <div style={{ paddingLeft: 36, marginTop: 4, marginBottom: 2 }}>
               {eventNotes.map((n) => (
-                <div key={n.id} style={{ fontSize: '0.85rem', color: '#000000', fontWeight: 700, lineHeight: 1.5 }}>📋 {n.body}</div>
+                <div key={n.id} style={{ fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700, lineHeight: 1.5 }}>📋 {n.body}</div>
               ))}
             </div>
           )}
 
           {/* Customer notes from HubSpot ([ADMIN-NOTE] timeline entries) */}
           {(stop.clientNotes || []).map((note, i) => (
-            <div key={i} style={{ paddingLeft: 36, fontSize: '0.85rem', color: '#000000', fontWeight: 700, lineHeight: 1.5 }}>{note}</div>
+            <div key={i} style={{ paddingLeft: 36, fontSize: '0.85rem', color: 'var(--text)', fontWeight: 700, lineHeight: 1.5 }}>{note}</div>
           ))}
 
           {/* Service info row: time · service type · tanks */}
           <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '0.9rem', marginTop: 4, marginBottom: 2 }}>
             {stop.startTime && (
-              <span style={{ color: '#000000', fontWeight: 800 }}>
+              <span style={{ color: 'var(--text)', fontWeight: 800 }}>
                 {new Date(stop.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · {fmtTime(stop.startTime)}{stop.endTime ? ` – ${fmtTime(stop.endTime)}` : ''}
               </span>
             )}
-            {stop.serviceType && <span style={{ color: '#000000', fontWeight: 700 }}>{stop.serviceType}</span>}
-            {stop.tanks > 0 && <span style={{ color: '#000000', fontWeight: 800 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
+            {stop.serviceType && <span style={{ color: 'var(--text)', fontWeight: 700 }}>{stop.serviceType}</span>}
+            {stop.tanks > 0 && <span style={{ color: 'var(--text)', fontWeight: 800 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
           </div>
 
           {/* Check in / out */}
           {(checkIn || checkOut) && (
-            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '0.85rem', color: '#000000', display: 'flex', gap: 14, fontWeight: 700 }}>
+            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '0.85rem', color: 'var(--text)', display: 'flex', gap: 14, fontWeight: 700 }}>
               {checkIn && <span>In: <strong>{checkIn}</strong></span>}
-              {checkOut && <span>Out: <strong style={{ color: '#4caf50' }}>{checkOut}</strong></span>}
+              {checkOut && <span>Out: <strong style={{ color: 'var(--ok)' }}>{checkOut}</strong></span>}
             </div>
           )}
 

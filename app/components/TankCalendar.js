@@ -36,15 +36,15 @@ export default function TankCalendar({ tankCalendar = {}, scheduleByDate = {}, o
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <button onClick={() => setViewDate(new Date(year, month - 1, 1))}
-          style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '1.2rem', fontFamily: 'Inter, sans-serif' }}>‹</button>
+          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}>‹</button>
         <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{monthLabel}</span>
         <button onClick={() => setViewDate(new Date(year, month + 1, 1))}
-          style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.6)', cursor: 'pointer', fontSize: '1.2rem', fontFamily: 'Inter, sans-serif' }}>›</button>
+          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem' }}>›</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3, marginBottom: 3 }}>
         {dayLabels.map((l) => (
-          <div key={l} style={{ textAlign: 'center', fontSize: '0.62rem', fontWeight: 800, color: 'rgba(212,230,202,0.35)', letterSpacing: '0.04em', padding: '4px 0' }}>{l}</div>
+          <div key={l} style={{ textAlign: 'center', fontSize: '0.62rem', fontWeight: 800, color: 'var(--text-dim)', letterSpacing: '0.04em', padding: '4px 0' }}>{l}</div>
         ))}
       </div>
 
@@ -59,40 +59,40 @@ export default function TankCalendar({ tankCalendar = {}, scheduleByDate = {}, o
           const hasLog = !!log
           const deficit = forecast != null && tanks > 0 && forecast < 0
 
-          let bg = 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))'
-          let border = 'rgba(122,171,130,0.12)'
+          let bg = 'var(--bg-alt)'
+          let border = 'var(--border)'
           if (tanks > 0) {
-            if (deficit) { bg = 'rgba(255,100,100,0.1)'; border = 'rgba(255,100,100,0.3)' }
-            else { bg = 'rgba(125,255,170,0.06)'; border = 'rgba(125,255,170,0.2)' }
+            if (deficit) { bg = 'rgba(var(--danger-rgb),0.10)'; border = 'rgba(var(--danger-rgb),0.35)' }
+            else { bg = 'rgba(var(--ok-rgb),0.08)'; border = 'rgba(var(--ok-rgb),0.35)' }
           }
-          if (hasLog) { bg = 'rgba(201,168,76,0.07)'; border = 'rgba(201,168,76,0.3)' }
-          if (isToday) border = '#c9a84c'
+          if (hasLog) { bg = 'rgba(var(--gold-rgb),0.08)'; border = 'var(--border-gold)' }
+          if (isToday) border = 'var(--gold)'
 
           return (
             <div key={dateStr} onClick={() => onDayClick(dateStr, log, tanks)}
               style={{ borderRadius: 6, border: `1px solid ${border}`, background: bg, padding: '6px 3px', cursor: 'pointer', minHeight: 72, minWidth: 0, overflow: 'hidden' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: isToday ? 900 : 600, color: isToday ? '#c9a84c' : 'rgba(212,230,202,0.75)', marginBottom: 2, textAlign: 'center' }}>{d}</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: isToday ? 900 : 600, color: isToday ? 'var(--gold)' : 'var(--text)', marginBottom: 2, textAlign: 'center' }}>{d}</div>
               {tanks > 0 && (
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: deficit ? '#ff8080' : '#7dffaa', textAlign: 'center', lineHeight: 1.15 }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: deficit ? 'var(--danger)' : 'var(--ok)', textAlign: 'center', lineHeight: 1.15 }}>
                   {tanks}t
                 </div>
               )}
               {appts > 0 && (
-                <div style={{ fontSize: '0.62rem', color: 'rgba(212,230,202,0.5)', textAlign: 'center', lineHeight: 1.15 }}>{appts}v</div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.15 }}>{appts}v</div>
               )}
               {hasLog && (
-                <div style={{ fontSize: '0.62rem', color: '#c9a84c', fontWeight: 700, marginTop: 2, textAlign: 'center' }}>✓</div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--gold)', fontWeight: 700, marginTop: 2, textAlign: 'center' }}>✓</div>
               )}
             </div>
           )
         })}
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginTop: 10, fontSize: '0.68rem', color: 'rgba(212,230,202,0.45)', flexWrap: 'wrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'rgba(125,255,170,0.15)', border: '1px solid rgba(125,255,170,0.25)', display: 'inline-block' }} /> On track</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'rgba(255,100,100,0.15)', border: '1px solid rgba(255,100,100,0.3)', display: 'inline-block' }} /> Deficit</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)', display: 'inline-block' }} /> Logged</span>
-        <span style={{ color: 'rgba(212,230,202,0.3)' }}>t = tanks · v = visits</span>
+      <div style={{ display: 'flex', gap: 12, marginTop: 10, fontSize: '0.68rem', color: 'var(--text-dim)', flexWrap: 'wrap' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'rgba(var(--ok-rgb),0.12)', border: '1px solid rgba(var(--ok-rgb),0.35)', display: 'inline-block' }} /> On track</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'rgba(var(--danger-rgb),0.12)', border: '1px solid rgba(var(--danger-rgb),0.35)', display: 'inline-block' }} /> Deficit</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'rgba(var(--gold-rgb),0.10)', border: '1px solid var(--border-gold)', display: 'inline-block' }} /> Logged</span>
+        <span style={{ color: 'var(--text-dim)' }}>t = tanks · v = visits</span>
       </div>
     </div>
   )

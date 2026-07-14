@@ -32,10 +32,9 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
       {/* Nav */}
       <nav style={{
         position: 'sticky', top: 0, zIndex: 100,
-        background: 'linear-gradient(180deg, rgba(var(--green-rgb),0.06), rgba(13,26,16,0.88))',
-        backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+        background: 'var(--bg-deep)',
         borderBottom: '1px solid var(--border)',
-        boxShadow: '0 1px 0 rgba(var(--gold-rgb),0.06), var(--shadow-sm)',
+        boxShadow: 'var(--shadow-sm)',
         paddingTop: 'env(safe-area-inset-top, 0px)',
         paddingLeft: 'max(20px, env(safe-area-inset-left))',
         paddingRight: 'max(20px, env(safe-area-inset-right))',
@@ -148,7 +147,7 @@ function AdminBottomDock({ pathname }) {
     <nav className="admin-dock" aria-label="Admin quick access" style={{
       position: 'sticky', bottom: 0, left: 0, right: 0, zIndex: 90,
       background: 'var(--bg-deep)',
-      borderTop: '1px solid rgba(var(--gold-rgb),0.28)',
+      borderTop: '1px solid var(--border)',
       display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
       padding: '8px 8px env(safe-area-inset-bottom, 8px)',
       boxShadow: '0 -6px 20px rgba(0,0,0,0.30)',

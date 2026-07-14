@@ -27,8 +27,8 @@ export function useLazyData(url) {
 export function LazyLoading({ isAdmin = true, label = 'Loading…' }) {
   return (
     <PortalLayout isAdmin={isAdmin}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'rgba(212,230,202,0.4)', fontSize: '0.9rem', fontWeight: 600 }}>
-        <span className="lazy-spinner" style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(125,255,170,0.25)', borderTopColor: '#7dffaa', display: 'inline-block', marginRight: 10, animation: 'lazy-spin 0.7s linear infinite' }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--text-dim)', fontSize: '0.9rem', fontWeight: 600 }}>
+        <span className="lazy-spinner" style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(var(--green-rgb),0.20)', borderTopColor: 'var(--green)', display: 'inline-block', marginRight: 10, animation: 'lazy-spin 0.7s linear infinite' }} />
         {label}
         <style>{`@keyframes lazy-spin { to { transform: rotate(360deg) } }`}</style>
       </div>
@@ -41,10 +41,10 @@ export function LazyError({ isAdmin = true, error, onRetry }) {
   return (
     <PortalLayout isAdmin={isAdmin}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: 12 }}>
-        <div style={{ color: '#ff8080', fontSize: '0.9rem', fontWeight: 700 }}>Couldn’t load this page.</div>
-        <div style={{ color: 'rgba(212,230,202,0.4)', fontSize: '0.78rem' }}>{error}</div>
+        <div style={{ color: 'var(--danger)', fontSize: '0.9rem', fontWeight: 700 }}>Couldn’t load this page.</div>
+        <div style={{ color: 'var(--text-dim)', fontSize: '0.78rem' }}>{error}</div>
         {onRetry && (
-          <button onClick={onRetry} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: '#c9a84c', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+          <button onClick={onRetry} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: 'var(--gold)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}>
             Retry
           </button>
         )}
