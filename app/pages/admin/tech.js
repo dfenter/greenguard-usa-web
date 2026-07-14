@@ -31,10 +31,10 @@ function fmtDayLabel(dateStr) {
 // styling, and warn behavior) so the two dashboards stay consistent.
 function KPI({ label, value, sub, warn }) {
   return (
-    <div style={{ flex: '1 1 130px', background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: `1px solid ${warn ? 'rgba(255,160,80,0.25)' : 'rgba(122,171,130,0.15)'}`, borderRadius: 10, padding: '14px 16px' }}>
-      <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: warn ? '#ffb060' : 'rgba(212,230,202,0.35)', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: '1.45rem', fontWeight: 900, lineHeight: 1, color: warn ? '#ffb060' : '#d4e6ca' }}>{value}</div>
-      {sub && <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 4 }}>{sub}</div>}
+    <div style={{ flex: '1 1 130px', background: 'var(--bg-card)', border: `1px solid ${warn ? 'rgba(var(--warn-rgb),0.25)' : 'rgba(var(--green-rgb),0.15)'}`, borderRadius: 10, padding: '14px 16px' }}>
+      <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: warn ? 'var(--warn)' : 'var(--text-dim)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: '1.45rem', fontWeight: 900, lineHeight: 1, color: warn ? 'var(--warn)' : 'var(--text)' }}>{value}</div>
+      {sub && <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 4 }}>{sub}</div>}
     </div>
   )
 }
@@ -90,12 +90,12 @@ function TechNotes() {
 
   return (
     <section style={{ marginBottom: 36 }}>
-      <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 14 }}>
+      <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 14 }}>
         Tech Notes
       </div>
 
       {/* Input */}
-      <div style={{ background: 'rgba(26,46,31,0.7)', border: '1px solid rgba(122,171,130,0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
         <textarea
           ref={textareaRef}
           rows={3}
@@ -103,16 +103,16 @@ function TechNotes() {
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save() }}
           placeholder="Quick note for the day…"
-          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '1rem', fontFamily: 'Inter, sans-serif', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.5 }}
+          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.5 }}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-          <span style={{ fontSize: '0.72rem', color: msg ? (msg === 'Saved.' ? '#7dffaa' : '#ff8080') : 'rgba(212,230,202,0.3)' }}>
+          <span style={{ fontSize: '0.72rem', color: msg ? (msg === 'Saved.' ? 'var(--green)' : 'var(--danger)') : 'var(--text-dim)' }}>
             {msg || '⌘↵ to save'}
           </span>
           <button
             onClick={save}
             disabled={saving || !body.trim()}
-            style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: saving || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', cursor: saving || !body.trim() ? 'not-allowed' : 'pointer' }}
+            style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: saving || !body.trim() ? 'rgba(var(--green-rgb),0.2)' : 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.95rem', cursor: saving || !body.trim() ? 'not-allowed' : 'pointer' }}
           >
             {saving ? 'Saving…' : 'Save Note'}
           </button>
@@ -121,13 +121,13 @@ function TechNotes() {
 
       {/* History */}
       {notes.length === 0 ? (
-        <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.3)', textAlign: 'center', padding: '16px 0' }}>No notes this week.</div>
+        <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', textAlign: 'center', padding: '16px 0' }}>No notes this week.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {notes.map((n) => (
-            <div key={n.id} style={{ background: 'rgba(26,46,31,0.5)', border: '1px solid rgba(122,171,130,0.12)', borderRadius: 10, padding: '12px 16px' }}>
-              <div style={{ fontSize: '1rem', color: '#d4e6ca', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{n.body}</div>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.3)', marginTop: 6 }}>{fmtNoteTime(n.timestamp)}</div>
+            <div key={n.id} style={{ background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 10, padding: '12px 16px' }}>
+              <div style={{ fontSize: '1rem', color: 'var(--text)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{n.body}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 6 }}>{fmtNoteTime(n.timestamp)}</div>
             </div>
           ))}
         </div>
@@ -186,11 +186,11 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
 
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 4 }}>Field Tech</div>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 4 }}>Field Tech</div>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
             {greeting}, {displayName}
           </h1>
-          <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)' }}>{fmtDayLabel(todayStr)}</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{fmtDayLabel(todayStr)}</div>
         </div>
 
         {/* KPI strip — same four cards as admin home, same data + styling */}
@@ -238,7 +238,7 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
         {/* Tank Calendar — above the route map per Bruce's prep flow */}
         {tankData && (
           <section style={{ marginBottom: 28, maxWidth: 520 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 10 }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10 }}>
               Tank Calendar
             </div>
             <div className="card" style={{ padding: 14 }}>
@@ -257,7 +257,7 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
         {/* Route map — today's stops */}
         {routeMapData.length > 0 && (
           <section style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 10 }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 10 }}>
               Today&apos;s Route
             </div>
             <CustomerMap customers={routeMapData} mapsKey={mapsKey} height={320} compact />
@@ -267,16 +267,16 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
         {/* Today's stops */}
         <section style={{ marginBottom: 36 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7dffaa' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--green)' }}>
               Today — {todayStops.length} {todayStops.length === 1 ? 'stop' : 'stops'}
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button onClick={refreshDistances} disabled={distLoading}
                 title="Recalculate driving distance from your current location to each stop"
-                style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.35)', background: 'rgba(91,196,255,0.08)', color: '#5bc4ff', fontSize: '0.9rem', fontWeight: 800, fontFamily: 'Inter, sans-serif', cursor: distLoading ? 'wait' : 'pointer', opacity: distLoading ? 0.6 : 1 }}>
+                style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(var(--info-rgb),0.35)', background: 'rgba(var(--info-rgb),0.08)', color: 'var(--info)', fontSize: '0.9rem', fontWeight: 800, cursor: distLoading ? 'wait' : 'pointer', opacity: distLoading ? 0.6 : 1 }}>
                 {distLoading ? 'Locating…' : 'My Distance'}
               </button>
-              <Link href="/admin/rounds" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>
+              <Link href="/admin/rounds" style={{ fontSize: '0.78rem', color: 'var(--green-muted)', fontWeight: 700 }}>
                 All Rounds →
               </Link>
             </div>
@@ -284,9 +284,9 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
 
           {todayStops.length === 0 ? (
             <div style={{
-              background: 'rgba(26,46,31,0.5)', border: '1px solid rgba(122,171,130,0.15)',
+              background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.15)',
               borderRadius: 12, padding: '32px 24px', textAlign: 'center',
-              color: 'rgba(212,230,202,0.4)', fontSize: '0.9rem',
+              color: 'var(--text-muted)', fontSize: '0.9rem',
             }}>
               No stops scheduled for today.
             </div>
@@ -300,17 +300,17 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
         {/* Tomorrow preview */}
         {tomorrowStops.length > 0 && (
           <section style={{ marginBottom: 36 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 14 }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 14 }}>
               Tomorrow — {tomorrowStops.length} {tomorrowStops.length === 1 ? 'stop' : 'stops'} ({fmtDayLabel(tomorrowStr).split(',')[0]})
             </div>
             {tomorrowStops.map((stop, i) => (
               <div key={stop.id || i} style={{
-                background: 'rgba(26,46,31,0.35)', border: '1px solid rgba(122,171,130,0.1)',
+                background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.1)',
                 borderRadius: 10, padding: '14px 18px', marginBottom: 8, opacity: 0.7,
               }}>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 2 }}>{stop.title || 'Service Visit'}</div>
-                {stop.startTime && <div style={{ fontSize: '0.8rem', color: 'rgba(201,168,76,0.7)', marginBottom: 3 }}>{fmtTime(stop.startTime)}</div>}
-                {stop.address && <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)' }}>{stop.address}</div>}
+                {stop.startTime && <div style={{ fontSize: '0.8rem', color: 'rgba(var(--gold-rgb),0.7)', marginBottom: 3 }}>{fmtTime(stop.startTime)}</div>}
+                {stop.address && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{stop.address}</div>}
               </div>
             ))}
           </section>
@@ -318,7 +318,7 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
 
         {/* Quick links */}
         <section>
-          <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 14 }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 14 }}>
             Quick Access
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -330,11 +330,11 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
             ].map(({ label, href, desc }) => (
               <Link key={href} href={href} style={{
                 display: 'block', padding: '16px 18px', borderRadius: 10,
-                background: 'rgba(26,46,31,0.6)', border: '1px solid rgba(122,171,130,0.15)',
+                background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.15)',
                 textDecoration: 'none', transition: 'border-color 0.15s',
               }}>
                 <div style={{ fontWeight: 800, fontSize: '0.9rem', marginBottom: 3 }}>{label}</div>
-                <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.45)' }}>{desc}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{desc}</div>
               </Link>
             ))}
           </div>

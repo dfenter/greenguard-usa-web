@@ -126,8 +126,13 @@ function fmtAmt(cents) {
 }
 
 const STATUS_COLORS = {
-  active: '#7dffaa', paid: '#7dffaa', past_due: '#ff8888', open: '#c9a84c',
-  canceled: 'rgba(212,230,202,0.3)', void: 'rgba(212,230,202,0.3)', draft: 'rgba(212,230,202,0.4)',
+  active: { fg: 'var(--ok)', bg: 'rgba(var(--ok-rgb),0.10)', bd: 'var(--ok)' },
+  paid: { fg: 'var(--ok)', bg: 'rgba(var(--ok-rgb),0.10)', bd: 'var(--ok)' },
+  past_due: { fg: 'var(--warn)', bg: 'rgba(var(--warn-rgb),0.10)', bd: 'var(--warn)' },
+  open: { fg: 'var(--warn)', bg: 'rgba(var(--warn-rgb),0.10)', bd: 'var(--warn)' },
+  canceled: { fg: 'var(--text-muted)', bg: 'rgba(var(--text-rgb),0.06)', bd: 'var(--border)' },
+  void: { fg: 'var(--text-muted)', bg: 'rgba(var(--text-rgb),0.06)', bd: 'var(--border)' },
+  draft: { fg: 'var(--text-muted)', bg: 'var(--bg-alt)', bd: 'var(--border)' },
 }
 
 const SERVICE_PLANS = [
@@ -172,7 +177,7 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
       <PortalLayout isAdmin={isAdmin}>
         {/* Back link */}
         <div style={{ marginBottom: 20 }}>
-          <Link href="/admin/clients" style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700 }}>
+          <Link href="/admin/clients" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>
             ← All Clients
           </Link>
         </div>
@@ -183,13 +188,13 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
             <h1 style={{ fontSize: 'clamp(1.3rem,3vw,1.8rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
               {customer.name || customer.email}
             </h1>
-            <div style={{ fontSize: '0.88rem', color: 'rgba(212,230,202,0.5)' }}>{customer.email}</div>
+            <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>{customer.email}</div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Link href={`/admin/visit-complete?email=${encodeURIComponent(customer.email)}`} className="btn-outline" style={{ fontSize: '0.82rem' }}>
               Log Visit
             </Link>
-            <Link href={`/admin/upgrade?email=${encodeURIComponent(customer.email)}`} style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.35)', color: '#7dffaa', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700 }}>
+            <Link href={`/admin/upgrade?email=${encodeURIComponent(customer.email)}`} style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.35)', color: 'var(--green)', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700 }}>
               ↑ Upgrade
             </Link>
             <button onClick={() => setScheduleOpen((o) => !o)} className="btn-gold" style={{ fontSize: '0.82rem' }}>
@@ -200,9 +205,9 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
 
         {/* Schedule panel */}
         {scheduleOpen && (
-          <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 10, padding: '20px', marginBottom: 28 }}>
-            <div style={{ fontWeight: 700, marginBottom: 10, color: '#c9a84c' }}>Schedule for {customer.name || customer.email}</div>
-            <p style={{ margin: '0 0 14px', fontSize: '0.85rem', color: 'rgba(212,230,202,0.55)' }}>
+          <div style={{ background: 'rgba(var(--gold-rgb),0.06)', border: '1px solid rgba(var(--gold-rgb),0.2)', borderRadius: 10, padding: '20px', marginBottom: 28 }}>
+            <div style={{ fontWeight: 700, marginBottom: 10, color: 'var(--gold)' }}>Schedule for {customer.name || customer.email}</div>
+            <p style={{ margin: '0 0 14px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               Pick a service type — Cal.com opens with name, email, and address pre-filled. The webhook will create Stripe invoice items and update HubSpot automatically after booking.
             </p>
             <div style={{ marginBottom: 14 }}>
@@ -211,9 +216,9 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
                 onChange={(e) => setSelectedSlug(e.target.value)}
                 style={{
                   width: '100%', padding: '10px 12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(201,168,76,0.3)',
-                  borderRadius: 6, color: '#d4e6ca', fontSize: '0.88rem',
+                  background: 'var(--bg-card)',
+                  border: '1px solid rgba(var(--gold-rgb),0.3)',
+                  borderRadius: 6, color: 'var(--text)', fontSize: '0.88rem',
                 }}
               >
                 {eventTypeLinks.map((et) => (
@@ -258,8 +263,8 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
                   ['Last visit', fmtDate(customer.lastVisitDate)],
                 ].map(([label, val]) => (
                   <tr key={label}>
-                    <td style={{ padding: '5px 12px 5px 0', color: 'rgba(212,230,202,0.45)', whiteSpace: 'nowrap' }}>{label}</td>
-                    <td style={{ padding: '5px 0', fontWeight: val ? 600 : 400, color: val ? '#d4e6ca' : 'rgba(212,230,202,0.25)' }}>
+                    <td style={{ padding: '5px 12px 5px 0', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{label}</td>
+                    <td style={{ padding: '5px 0', fontWeight: val ? 600 : 400, color: val ? 'var(--text)' : 'var(--text-dim)' }}>
                       {val ?? '—'}
                     </td>
                   </tr>
@@ -273,11 +278,11 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
             <span className="tag">Subscription</span>
             {subscriptions.length === 0 ? (
               <>
-                <div style={{ marginTop: 12, color: 'rgba(212,230,202,0.4)', fontSize: '0.88rem', marginBottom: 14 }}>No Stripe subscription</div>
-                <div style={{ background: 'rgba(125,255,170,0.05)', border: '1px solid rgba(125,255,170,0.2)', borderRadius: 8, padding: 14 }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#7dffaa', marginBottom: 10 }}>Start a Service Plan</div>
+                <div style={{ marginTop: 12, color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: 14 }}>No Stripe subscription</div>
+                <div style={{ background: 'rgba(var(--green-rgb),0.05)', border: '1px solid rgba(var(--green-rgb),0.2)', borderRadius: 8, padding: 14 }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 10 }}>Start a Service Plan</div>
                   <select value={planId} onChange={(e) => setPlanId(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', marginBottom: 10 }}>
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.3)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', marginBottom: 10 }}>
                     <option value="">— Pick a plan —</option>
                     {SERVICE_PLANS.map((p) => (
                       <option key={p.id} value={p.id}>{p.label} — ${p.monthly.toFixed(2)}/mo{p.perUnit ? ' · per unit' : ''}</option>
@@ -285,18 +290,18 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
                   </select>
                   {selectedPlan?.perUnit && (
                     <div style={{ marginBottom: 10 }}>
-                      <label style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)', fontWeight: 700, marginRight: 8 }}>
+                      <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, marginRight: 8 }}>
                         {selectedPlan.unitLabel || 'Units'}:
                       </label>
                       <input type="number" min="1" value={planQty} onChange={(e) => setPlanQty(Math.max(1, parseInt(e.target.value) || 1))}
-                        style={{ width: 70, padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontWeight: 700 }} />
-                      <span style={{ marginLeft: 10, fontSize: '0.85rem', color: '#7dffaa', fontWeight: 700 }}>
+                        style={{ width: 70, padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.3)', background: 'var(--bg-card)', color: 'var(--text)', fontWeight: 700 }} />
+                      <span style={{ marginLeft: 10, fontSize: '0.85rem', color: 'var(--green)', fontWeight: 700 }}>
                         = ${(selectedPlan.monthly * planQty).toFixed(2)}/mo
                       </span>
                     </div>
                   )}
                   <button onClick={startPlan} disabled={!planId || startingPlan}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 6, border: 'none', background: planId ? '#7dffaa' : 'rgba(125,255,170,0.2)', color: '#0d1a10', fontWeight: 900, cursor: planId ? 'pointer' : 'not-allowed', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif' }}>
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 6, border: 'none', background: planId ? 'var(--green)' : 'rgba(var(--green-rgb),0.2)', color: 'var(--text-on-accent)', fontWeight: 900, cursor: planId ? 'pointer' : 'not-allowed', fontSize: '0.88rem', }}>
                     {startingPlan ? 'Starting…' : 'Start Plan'}
                   </button>
                 </div>
@@ -305,20 +310,20 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
               <div key={s.id} style={{ marginTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{fmtAmt(s.amount)}/mo</span>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: STATUS_COLORS[s.status] || '#d4e6ca', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 4 }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: (STATUS_COLORS[s.status] || STATUS_COLORS.draft).fg, background: (STATUS_COLORS[s.status] || STATUS_COLORS.draft).bg, border: `1px solid ${(STATUS_COLORS[s.status] || STATUS_COLORS.draft).bd}`, padding: '2px 8px', borderRadius: 4 }}>
                     {s.status}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.5)' }}>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                   Next billing: {fmtDate(new Date(s.currentPeriodEnd * 1000).toISOString())}
                 </div>
               </div>
             ))}
             {markers.length > 0 && (
-              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(122,171,130,0.12)' }}>
-                <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.45)', marginBottom: 6 }}>Installation Map</div>
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(var(--green-rgb),0.12)' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 6 }}>Installation Map</div>
                 <div style={{ fontSize: '0.85rem', marginBottom: 8 }}>{markers.length} trap{markers.length !== 1 ? 's' : ''} mapped</div>
-                <Link href={`/admin/map`} style={{ fontSize: '0.8rem', color: '#7aab82', fontWeight: 700 }}>
+                <Link href={`/admin/map`} style={{ fontSize: '0.8rem', color: 'var(--green-muted)', fontWeight: 700 }}>
                   Edit map →
                 </Link>
               </div>
@@ -328,18 +333,18 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
 
         {/* Invoices */}
         <div style={{ marginTop: 28 }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'rgba(212,230,202,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
             Invoice History ({invoices.length})
           </div>
           {invoices.length === 0 ? (
-            <div style={{ color: 'rgba(212,230,202,0.35)', fontSize: '0.88rem' }}>No invoices</div>
+            <div style={{ color: 'var(--text-dim)', fontSize: '0.88rem' }}>No invoices</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr>
                     {['Number', 'Date', 'Amount', 'Status', ''].map((h) => (
-                      <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: 'rgba(212,230,202,0.4)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid rgba(122,171,130,0.12)' }}>
+                      <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid rgba(var(--green-rgb),0.12)' }}>
                         {h}
                       </th>
                     ))}
@@ -347,20 +352,20 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
                 </thead>
                 <tbody>
                   {invoices.map((inv) => (
-                    <tr key={inv.id} style={{ borderBottom: '1px solid rgba(122,171,130,0.07)' }}>
-                      <td style={{ padding: '10px 12px', color: 'rgba(212,230,202,0.6)' }}>{inv.number || '—'}</td>
+                    <tr key={inv.id} style={{ borderBottom: '1px solid rgba(var(--green-rgb),0.07)' }}>
+                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{inv.number || '—'}</td>
                       <td style={{ padding: '10px 12px' }}>{fmtDate(new Date(inv.created * 1000).toISOString())}</td>
                       <td style={{ padding: '10px 12px', fontWeight: 700 }}>
                         {inv.status === 'paid' ? fmtAmt(inv.amountPaid) : fmtAmt(inv.amountDue)}
                       </td>
                       <td style={{ padding: '10px 12px' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: STATUS_COLORS[inv.status] || '#d4e6ca' }}>
+                        <span style={{ display: 'inline-block', fontSize: '0.78rem', fontWeight: 700, color: (STATUS_COLORS[inv.status] || STATUS_COLORS.draft).fg, background: (STATUS_COLORS[inv.status] || STATUS_COLORS.draft).bg, border: `1px solid ${(STATUS_COLORS[inv.status] || STATUS_COLORS.draft).bd}`, padding: '2px 8px', borderRadius: 4 }}>
                           {inv.status}
                         </span>
                       </td>
                       <td style={{ padding: '10px 12px' }}>
                         {inv.hostedUrl && (
-                          <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>
+                          <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.78rem', color: 'var(--green-muted)', fontWeight: 700 }}>
                             {inv.status === 'open' ? 'Pay →' : 'View →'}
                           </a>
                         )}
@@ -375,18 +380,18 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
 
         {/* Appointment history */}
         <div style={{ marginTop: 28 }}>
-          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'rgba(212,230,202,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
             Appointment History ({bookings.length})
           </div>
           {bookings.length === 0 ? (
-            <div style={{ color: 'rgba(212,230,202,0.35)', fontSize: '0.88rem' }}>No Cal.com bookings found</div>
+            <div style={{ color: 'var(--text-dim)', fontSize: '0.88rem' }}>No Cal.com bookings found</div>
           ) : (
             <div style={{ display: 'grid', gap: 8 }}>
               {bookings.map((b) => (
-                <div key={b.id} style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.1)', borderRadius: 6, fontSize: '0.85rem' }}>
-                  <div style={{ color: 'rgba(212,230,202,0.55)', whiteSpace: 'nowrap', minWidth: 120 }}>{fmtDateTime(b.startTime)}</div>
+                <div key={b.id} style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.1)', borderRadius: 6, fontSize: '0.85rem' }}>
+                  <div style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', minWidth: 120 }}>{fmtDateTime(b.startTime)}</div>
                   <div style={{ flex: 1, fontWeight: 600 }}>{b.title}</div>
-                  <div style={{ fontSize: '0.78rem', color: STATUS_COLORS[b.status] || 'rgba(212,230,202,0.45)' }}>{b.status}</div>
+                  <div style={{ display: 'inline-block', fontSize: '0.78rem', color: (STATUS_COLORS[b.status] || STATUS_COLORS.draft).fg, background: (STATUS_COLORS[b.status] || STATUS_COLORS.draft).bg, border: `1px solid ${(STATUS_COLORS[b.status] || STATUS_COLORS.draft).bd}`, padding: '2px 8px', borderRadius: 4 }}>{b.status}</div>
                 </div>
               ))}
             </div>
@@ -396,16 +401,16 @@ export default function ClientDetail({ isAdmin, customer, subscriptions, invoice
         {/* HubSpot Notes */}
         {notes.length > 0 && (
           <div style={{ marginTop: 28 }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'rgba(212,230,202,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
               Notes
             </div>
             <div style={{ display: 'grid', gap: 10 }}>
               {notes.map((n) => (
                 <div key={n.id} className="card" style={{ padding: '14px 16px' }}>
-                  <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)', marginBottom: 6 }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 6 }}>
                     {fmtDateTime(n.timestamp)}
                   </div>
-                  <div style={{ fontSize: '0.87rem', whiteSpace: 'pre-wrap', color: 'rgba(212,230,202,0.8)' }}>{n.body}</div>
+                  <div style={{ fontSize: '0.87rem', whiteSpace: 'pre-wrap', color: 'var(--text)' }}>{n.body}</div>
                 </div>
               ))}
             </div>

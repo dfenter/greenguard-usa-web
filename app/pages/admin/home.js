@@ -32,10 +32,10 @@ function fmt$(n) {
 
 function KPI({ label, value, sub, warn }) {
   return (
-    <div style={{ flex: '1 1 130px', background: 'linear-gradient(165deg, rgba(125,255,170,0.05), rgba(201,168,76,0.022))', border: `1px solid ${warn ? 'rgba(255,160,80,0.25)' : 'rgba(122,171,130,0.15)'}`, borderRadius: 10, padding: '14px 16px' }}>
-      <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: warn ? '#ffb060' : 'rgba(212,230,202,0.35)', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: '1.45rem', fontWeight: 900, lineHeight: 1, color: warn ? '#ffb060' : '#d4e6ca' }}>{value}</div>
-      {sub && <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 4 }}>{sub}</div>}
+    <div style={{ flex: '1 1 130px', background: 'var(--bg-card)', border: `1px solid ${warn ? 'rgba(var(--warn-rgb),0.25)' : 'rgba(var(--green-rgb),0.15)'}`, borderRadius: 10, padding: '14px 16px' }}>
+      <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: warn ? 'var(--warn)' : 'var(--text-dim)', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: '1.45rem', fontWeight: 900, lineHeight: 1, color: warn ? 'var(--warn)' : 'var(--text)' }}>{value}</div>
+      {sub && <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 4 }}>{sub}</div>}
     </div>
   )
 }
@@ -59,14 +59,14 @@ function VisitsDuePanel() {
   return (
     <section style={{ marginBottom: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
-        <h2 style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', margin: 0 }}>Customers Due for Service</h2>
-        <button onClick={load} disabled={loading} style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid rgba(125,255,170,0.25)', background: 'transparent', color: '#7dffaa', cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: '0.75rem', fontFamily: 'Inter, sans-serif' }}>
+        <h2 style={{ fontSize: '0.85rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', margin: 0 }}>Customers Due for Service</h2>
+        <button onClick={load} disabled={loading} style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'transparent', color: 'var(--green)', cursor: loading ? 'wait' : 'pointer', fontWeight: 700, fontSize: '0.75rem', }}>
           {loading ? 'Loading…' : opened ? '↻ Refresh' : 'Show'}
         </button>
       </div>
       {data && (
         data.due.length === 0 ? (
-          <div className="card" style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.5)' }}>
+          <div className="card" style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             ✓ No customers due for service in the next {data.horizonDays} days.
           </div>
         ) : (
@@ -75,15 +75,15 @@ function VisitsDuePanel() {
               <div key={c.email} className="card" style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>{c.name}</div>
-                  <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.5)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                     {c.systemType}{c.hasTimer ? ' (timer)' : ''} · {c.lifetime}-day · last serviced {new Date(c.lastVisit).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: c.overdue ? '#ff8080' : c.daysUntilDue <= 2 ? '#c9a84c' : '#7dffaa' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: c.overdue ? 'var(--danger)' : c.daysUntilDue <= 2 ? 'var(--gold)' : 'var(--green)' }}>
                     {c.overdue ? `${Math.abs(c.daysUntilDue)}d overdue` : `due in ${c.daysUntilDue}d`}
                   </span>
-                  <Link href={`/admin/booking?email=${encodeURIComponent(c.email)}&name=${encodeURIComponent(c.name)}`} style={{ padding: '5px 12px', borderRadius: 5, background: '#c9a84c', color: '#0d1a10', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}>
+                  <Link href={`/admin/booking?email=${encodeURIComponent(c.email)}&name=${encodeURIComponent(c.name)}`} style={{ padding: '5px 12px', borderRadius: 5, background: 'var(--gold)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', }}>
                     Book →
                   </Link>
                 </div>
@@ -151,9 +151,9 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
 
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 4 }}>Admin</div>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 4 }}>Admin</div>
           <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 2px' }}>{greeting}</h1>
-          <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)' }}>{fmtDayLabel(todayStr)}</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{fmtDayLabel(todayStr)}</div>
         </div>
 
         {/* KPI strip: Today's Tanks · Tomorrow's Tanks · Tanks at Depot · Tanks Needed This Week */}
@@ -206,7 +206,7 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
         {/* Tank Calendar — moved up; full view lives on /admin/inventory */}
         {tankData && (
           <section style={{ marginBottom: 28, maxWidth: 520 }}>
-            <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', marginBottom: 10 }}>
+            <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10 }}>
               Tank Calendar
             </h2>
             <div className="card" style={{ padding: 14 }}>
@@ -218,7 +218,7 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
                 expectedDelivery={tankData.expectedDelivery}
                 onDayClick={(dateStr) => { window.location.href = `/admin/calendar?date=${dateStr}` }}
               />
-              <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'rgba(212,230,202,0.4)', textAlign: 'right' }}>
+              <div style={{ marginTop: 8, fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'right' }}>
                 Click a day to log tanks →
               </div>
             </div>
@@ -227,13 +227,13 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
 
         {/* Open invoices alert */}
         {openInvoiceList.length > 0 && (
-          <div style={{ marginBottom: 24, padding: '14px 16px', background: 'rgba(255,160,80,0.06)', border: '1px solid rgba(255,160,80,0.2)', borderRadius: 10 }}>
-            <div style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#ffb060', marginBottom: 10 }}>⚠ Unpaid Invoices</div>
+          <div style={{ marginBottom: 24, padding: '14px 16px', background: 'rgba(var(--warn-rgb),0.06)', border: '1px solid rgba(var(--warn-rgb),0.2)', borderRadius: 10 }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--warn)', marginBottom: 10 }}>⚠ Unpaid Invoices</div>
             {openInvoiceList.map(inv => (
-              <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(255,160,80,0.1)' }}>
-                <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem', color: 'rgba(212,230,202,0.65)' }}>{inv.email || inv.id}</div>
+              <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(var(--warn-rgb),0.1)' }}>
+                <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem', color: 'var(--text-muted)' }}>{inv.email || inv.id}</div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-                  <span style={{ fontWeight: 800, color: '#ffb060', fontSize: '0.85rem' }}>{fmt$(inv.amount)}</span>
+                  <span style={{ fontWeight: 800, color: 'var(--warn)', fontSize: '0.85rem' }}>{fmt$(inv.amount)}</span>
                   {(() => {
                     const st = reminderState[inv.id]
                     const label = st === 'sending' ? 'Sending…' : st === 'sent' ? 'Sent ✓' : st === 'error' ? 'Retry' : 'Send Reminder'
@@ -242,7 +242,7 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
                         onClick={() => sendReminder(inv.id)}
                         disabled={st === 'sending' || st === 'sent'}
                         title="Re-send this invoice email to the customer as a past-due reminder"
-                        style={{ whiteSpace: 'nowrap', fontSize: '0.72rem', padding: '3px 10px', borderRadius: 4, border: 'none', background: st === 'sent' ? '#7dffaa' : st === 'error' ? '#ff8080' : '#c9a84c', color: '#0d1a10', fontWeight: 800, fontFamily: 'Inter, sans-serif', cursor: st === 'sending' || st === 'sent' ? 'default' : 'pointer' }}>
+                        style={{ whiteSpace: 'nowrap', fontSize: '0.72rem', padding: '3px 10px', borderRadius: 4, border: 'none', background: st === 'sent' ? 'var(--green)' : st === 'error' ? 'var(--danger)' : 'var(--gold)', color: 'var(--text-on-accent)', fontWeight: 800, cursor: st === 'sending' || st === 'sent' ? 'default' : 'pointer' }}>
                         {label}
                       </button>
                     )
@@ -256,21 +256,21 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
         {/* Today's stops */}
         <section style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#7dffaa' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--green)' }}>
               Today — {todayStops.length} {todayStops.length === 1 ? 'stop' : 'stops'}
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button onClick={refreshDistances} disabled={distLoading}
                 title="Recalculate driving distance from your current location to each stop"
-                style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(91,196,255,0.35)', background: 'rgba(91,196,255,0.08)', color: '#5bc4ff', fontSize: '0.9rem', fontWeight: 800, fontFamily: 'Inter, sans-serif', cursor: distLoading ? 'wait' : 'pointer', opacity: distLoading ? 0.6 : 1 }}>
+                style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(var(--info-rgb),0.35)', background: 'rgba(var(--info-rgb),0.08)', color: 'var(--info)', fontSize: '0.9rem', fontWeight: 800, cursor: distLoading ? 'wait' : 'pointer', opacity: distLoading ? 0.6 : 1 }}>
                 {distLoading ? 'Locating…' : 'My Distance'}
               </button>
-              <Link href="/admin/rounds" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>All Rounds →</Link>
+              <Link href="/admin/rounds" style={{ fontSize: '0.78rem', color: 'var(--green-muted)', fontWeight: 700 }}>All Rounds →</Link>
             </div>
           </div>
 
           {todayStops.length === 0 ? (
-            <div style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(122,171,130,0.1)', borderRadius: 12, color: 'rgba(212,230,202,0.35)', fontSize: '0.88rem', textAlign: 'center' }}>
+            <div style={{ padding: '24px', background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.1)', borderRadius: 12, color: 'var(--text-dim)', fontSize: '0.88rem', textAlign: 'center' }}>
               No stops scheduled for today.
             </div>
           ) : (
@@ -281,17 +281,17 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
         {/* Tomorrow preview */}
         {tomorrowStops.length > 0 && (
           <section style={{ marginBottom: 32 }}>
-            <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', marginBottom: 12 }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 12 }}>
               Tomorrow — {tomorrowStops.length} {tomorrowStops.length === 1 ? 'stop' : 'stops'}
             </div>
             {tomorrowStops.map((stop, i) => (
-              <div key={stop.id || i} style={{ background: 'rgba(26,46,31,0.3)', border: '1px solid rgba(122,171,130,0.08)', borderRadius: 10, padding: '12px 16px', marginBottom: 8, display: 'flex', gap: 14, alignItems: 'center', opacity: 0.65 }}>
+              <div key={stop.id || i} style={{ background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.08)', borderRadius: 10, padding: '12px 16px', marginBottom: 8, display: 'flex', gap: 14, alignItems: 'center', opacity: 0.65 }}>
                 <div style={{ minWidth: 52, textAlign: 'center' }}>
-                  {stop.startTime && <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'rgba(201,168,76,0.6)' }}>{fmtTime(stop.startTime)}</div>}
+                  {stop.startTime && <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'rgba(var(--gold-rgb),0.6)' }}>{fmtTime(stop.startTime)}</div>}
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{stop.title || 'Service Visit'}</div>
-                  {stop.address && <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.4)', marginTop: 2 }}>{stop.address}</div>}
+                  {stop.address && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{stop.address}</div>}
                 </div>
               </div>
             ))}
@@ -304,10 +304,10 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
         {customerMapData.length > 0 && (
           <section style={{ marginBottom: 32 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', margin: 0 }}>
+              <h2 style={{ fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', margin: 0 }}>
                 Customer Map ({customerMapData.length})
               </h2>
-              <Link href="/admin/map" style={{ fontSize: '0.78rem', color: '#7aab82', fontWeight: 700 }}>Full map →</Link>
+              <Link href="/admin/map" style={{ fontSize: '0.78rem', color: 'var(--green-muted)', fontWeight: 700 }}>Full map →</Link>
             </div>
             <CustomerMap customers={customerMapData} mapsKey={mapsKey} height={360} compact />
           </section>
@@ -315,7 +315,7 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
 
         {/* Quick links */}
         <section>
-          <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.3)', marginBottom: 12 }}>Quick Access</div>
+          <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 12 }}>Quick Access</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
               { label: 'Tech View', href: '/admin/tech', desc: "Today's route & navigation" },
@@ -331,9 +331,9 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
               { label: 'New Booking', href: '/admin/booking', desc: 'Schedule a visit' },
               { label: 'Quote Builder', href: '/admin/quote', desc: 'Build & send a quote' },
             ].map(({ label, href, desc }) => (
-              <Link key={href} href={href} style={{ display: 'block', padding: '14px 16px', borderRadius: 10, background: 'rgba(26,46,31,0.5)', border: '1px solid rgba(122,171,130,0.12)', textDecoration: 'none' }}>
+              <Link key={href} href={href} style={{ display: 'block', padding: '14px 16px', borderRadius: 10, background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.12)', textDecoration: 'none' }}>
                 <div style={{ fontWeight: 800, fontSize: '0.88rem', marginBottom: 2 }}>{label}</div>
-                <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)' }}>{desc}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{desc}</div>
               </Link>
             ))}
           </div>

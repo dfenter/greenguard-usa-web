@@ -25,19 +25,19 @@ export async function getServerSideProps({ req }) {
 }
 
 const STATUS_COLORS = {
-  active:   { bg: 'rgba(125,255,170,0.12)', color: '#7dffaa',              label: 'Active' },
-  trialing: { bg: 'rgba(125,255,170,0.07)', color: '#7dffaa',              label: 'Trial' },
-  past_due: { bg: 'rgba(255,160,80,0.12)',  color: '#ffb060',              label: 'Past Due' },
-  unpaid:   { bg: 'rgba(255,100,100,0.12)', color: '#ff8080',              label: 'Unpaid' },
-  canceled: { bg: 'rgba(212,230,202,0.06)', color: 'rgba(212,230,202,0.35)', label: 'Canceled' },
-  inactive: { bg: 'rgba(212,230,202,0.06)', color: 'rgba(212,230,202,0.35)', label: 'No Sub' },
-  prospect: { bg: 'rgba(201,168,76,0.12)',  color: '#c9a84c',              label: 'Prospect' },
+  active:   { bg: 'rgba(var(--ok-rgb),0.10)', color: 'var(--ok)', border: 'var(--ok)', label: 'Active' },
+  trialing: { bg: 'rgba(var(--ok-rgb),0.10)', color: 'var(--ok)', border: 'var(--ok)', label: 'Trial' },
+  past_due: { bg: 'rgba(var(--warn-rgb),0.10)', color: 'var(--warn)', border: 'var(--warn)', label: 'Past Due' },
+  unpaid:   { bg: 'rgba(var(--danger-rgb),0.10)', color: 'var(--danger)', border: 'var(--danger)', label: 'Unpaid' },
+  canceled: { bg: 'rgba(var(--text-rgb),0.06)', color: 'var(--text-muted)', border: 'var(--border)', label: 'Canceled' },
+  inactive: { bg: 'rgba(var(--text-rgb),0.06)', color: 'var(--text-muted)', border: 'var(--border)', label: 'No Sub' },
+  prospect: { bg: 'rgba(var(--gold-rgb),0.10)', color: 'var(--gold)', border: 'var(--gold)', label: 'Prospect' },
 }
 
 function StatusBadge({ status }) {
   const s = STATUS_COLORS[status] || STATUS_COLORS.inactive
   return (
-    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', background: s.bg, color: s.color }}>
+    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
       {s.label}
     </span>
   )
@@ -70,13 +70,13 @@ function NoteComposer({ email, hsContactId, onSaved }) {
     <div style={{ marginTop: 4 }}>
       <textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)}
         placeholder="What did you observe / arrange / promise?"
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
       <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
         <button onClick={save} disabled={busy || !body.trim()}
-          style={{ padding: '6px 14px', borderRadius: 5, border: 'none', background: '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, fontFamily: 'Inter, sans-serif' }}>
+          style={{ padding: '6px 14px', borderRadius: 5, border: 'none', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.78rem', cursor: busy || !body.trim() ? 'not-allowed' : 'pointer', opacity: busy || !body.trim() ? 0.5 : 1, }}>
           {busy ? 'Saving…' : 'Save note'}
         </button>
-        {msg && <span style={{ fontSize: '0.78rem', color: msg.ok ? '#7dffaa' : '#ff8080' }}>{msg.text}</span>}
+        {msg && <span style={{ fontSize: '0.78rem', color: msg.ok ? 'var(--green)' : 'var(--danger)' }}>{msg.text}</span>}
       </div>
     </div>
   )
@@ -105,13 +105,13 @@ function SmsComposer({ email, phone, onSent }) {
     <div style={{ marginTop: 6 }}>
       <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} maxLength={320}
         placeholder={`Text ${phone}…`}
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 8 }}>
-        <span style={{ fontSize: '0.7rem', color: msg?.startsWith('✓') ? '#7dffaa' : msg ? '#ff8080' : 'rgba(212,230,202,0.4)' }}>
+        <span style={{ fontSize: '0.7rem', color: msg?.startsWith('✓') ? 'var(--green)' : msg ? 'var(--danger)' : 'var(--text-muted)' }}>
           {msg || `${body.length}/320`}
         </span>
         <button onClick={send} disabled={sending || !body.trim()}
-          style={{ padding: '7px 16px', borderRadius: 6, border: 'none', cursor: sending || !body.trim() ? 'not-allowed' : 'pointer', background: sending || !body.trim() ? 'rgba(125,255,170,0.2)' : '#7dffaa', color: '#0d1a10', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif' }}>
+          style={{ padding: '7px 16px', borderRadius: 6, border: 'none', cursor: sending || !body.trim() ? 'not-allowed' : 'pointer', background: sending || !body.trim() ? 'rgba(var(--green-rgb),0.2)' : 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.82rem', }}>
           {sending ? 'Sending…' : 'Send SMS'}
         </button>
       </div>
@@ -137,12 +137,12 @@ function fmtAmt(cents) { return `$${(cents / 100).toFixed(2)}` }
 
 function ApptRow({ b, accent }) {
   return (
-    <div style={{ padding: '9px 0', borderBottom: '1px solid rgba(122,171,130,0.07)' }}>
+    <div style={{ padding: '9px 0', borderBottom: '1px solid rgba(var(--green-rgb),0.07)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
         <span style={{ fontSize: '0.83rem', fontWeight: 800, color: accent }}>{fmtDate(b.startTime)}</span>
-        <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.4)', whiteSpace: 'nowrap' }}>{fmtTime(b.startTime)}</span>
+        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmtTime(b.startTime)}</span>
       </div>
-      {b.title && <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{b.title}</div>}
+      {b.title && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{b.title}</div>}
     </div>
   )
 }
@@ -152,20 +152,20 @@ function AppointmentHistoryPanel({ detail, onSchedule, scheduleBtn }) {
     ? detail.upcomingBookings
     : (detail.nextBooking ? [detail.nextBooking] : [])
   const past = detail.pastBookings || []
-  const lbl = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', margin: '16px 0 6px' }
+  const lbl = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '16px 0 6px' }
   return (
     <div style={{ paddingTop: 8 }}>
       <button style={scheduleBtn} onClick={onSchedule}>+ Schedule appointment</button>
 
       <div style={lbl}>Upcoming ({upcoming.length})</div>
       {upcoming.length === 0
-        ? <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>None scheduled</div>
-        : upcoming.map((b, i) => <ApptRow key={b.id || i} b={b} accent="#c9a84c" />)}
+        ? <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>None scheduled</div>
+        : upcoming.map((b, i) => <ApptRow key={b.id || i} b={b} accent="var(--gold)" />)}
 
       <div style={lbl}>Past ({past.length})</div>
       {past.length === 0
-        ? <div style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.3)' }}>No past visits</div>
-        : past.map((b, i) => <ApptRow key={b.id || i} b={b} accent="#7dffaa" />)}
+        ? <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>No past visits</div>
+        : past.map((b, i) => <ApptRow key={b.id || i} b={b} accent="var(--green)" />)}
     </div>
   )
 }
@@ -279,33 +279,33 @@ function CustomerPanel({ customer, onClose }) {
 
   const panel = {
     position: 'fixed', top: 0, right: 0, bottom: 0, width: 400,  /* becomes bottom sheet on mobile via .docked-panel CSS class */
-    background: '#0d1a10', borderLeft: '1px solid rgba(122,171,130,0.2)',
+    background: 'var(--bg-deep)', borderLeft: '1px solid rgba(var(--green-rgb),0.2)',
     zIndex: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column',
     boxShadow: '-8px 0 32px rgba(0,0,0,0.4)',
   }
 
-  const row = { padding: '14px 0', borderBottom: '1px solid rgba(122,171,130,0.08)' }
-  const lbl = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 4 }
-  const val = { fontSize: '0.88rem', fontWeight: 600, color: '#d4e6ca' }
+  const row = { padding: '14px 0', borderBottom: '1px solid rgba(var(--green-rgb),0.08)' }
+  const lbl = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 4 }
+  const val = { fontSize: '0.88rem', fontWeight: 600, color: 'var(--text)' }
   const input = {
     width: '100%', padding: '8px 10px', borderRadius: 6, boxSizing: 'border-box',
-    border: '1px solid rgba(122,171,130,0.3)', background: 'rgba(255,255,255,0.04)',
-    color: '#d4e6ca', fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', outline: 'none',
+    border: '1px solid rgba(var(--green-rgb),0.3)', background: 'var(--bg-card)',
+    color: 'var(--text)', fontSize: '0.85rem', outline: 'none',
   }
   const btn = (variant) => ({
     padding: '7px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
-    fontWeight: 800, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif',
-    ...(variant === 'gold'   ? { background: '#c9a84c', color: '#0d1a10' } :
-        variant === 'green'  ? { background: '#7dffaa', color: '#0d1a10' } :
-        variant === 'red'    ? { background: 'rgba(255,100,100,0.15)', color: '#ff8080', border: '1px solid rgba(255,100,100,0.25)' } :
-        variant === 'ghost'  ? { background: 'rgba(122,171,130,0.08)', color: 'rgba(212,230,202,0.6)', border: '1px solid rgba(122,171,130,0.15)' } :
-                               { background: 'rgba(122,171,130,0.12)', color: '#7aab82' }),
+    fontWeight: 800, fontSize: '0.78rem',
+    ...(variant === 'gold'   ? { background: 'var(--gold)', color: 'var(--text-on-accent)' } :
+        variant === 'green'  ? { background: 'var(--green)', color: 'var(--text-on-accent)' } :
+        variant === 'red'    ? { background: 'rgba(var(--danger-rgb),0.15)', color: 'var(--danger)', border: '1px solid rgba(var(--danger-rgb),0.25)' } :
+        variant === 'ghost'  ? { background: 'rgba(var(--green-rgb),0.08)', color: 'var(--text-muted)', border: '1px solid rgba(var(--green-rgb),0.15)' } :
+                               { background: 'rgba(var(--green-rgb),0.12)', color: 'var(--green-muted)' }),
   })
 
   return (
     <div style={panel} className="docked-panel">
       {/* Header */}
-      <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(122,171,130,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(var(--green-rgb),0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: 2 }}>{customer.name || 'Customer'}</div>
           {(detail?.address || customer.address) && (
@@ -313,12 +313,12 @@ function CustomerPanel({ customer, onClose }) {
               <a
                 href={`https://maps.apple.com/?daddr=${encodeURIComponent(detail?.address || customer.address)}`}
                 target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: '0.8rem', color: 'rgba(212,230,202,0.6)', textDecoration: 'none', lineHeight: 1.4 }}
+                style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textDecoration: 'none', lineHeight: 1.4 }}
               >
                 📍 {detail?.address || customer.address}
               </a>
               {distance && (
-                <span style={{ fontWeight: 900, fontSize: '1rem', color: parseFloat(distance.miles) <= 5 ? '#7dffaa' : parseFloat(distance.miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.5)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontWeight: 900, fontSize: '1rem', color: parseFloat(distance.miles) <= 5 ? 'var(--green)' : parseFloat(distance.miles) <= 15 ? 'var(--gold)' : 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                   {distance.miles} mi · {distance.duration}
                 </span>
               )}
@@ -326,33 +326,33 @@ function CustomerPanel({ customer, onClose }) {
           )}
           {/* Show system type once detail loads */}
           {detail?.systemType ? (
-            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#c9a84c', marginBottom: 4 }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--gold)', marginBottom: 4 }}>
               {detail.systemType === 'Biogents-CO2' ? 'Biogents CO₂' : detail.systemType === 'Biogents-NonCO2' ? 'Biogents Non-CO₂' : 'Mosqitter Grand'}
               {detail.trapCount ? ` · ${detail.trapCount} trap${detail.trapCount > 1 ? 's' : ''}` : ''}
               {detail.planType ? ` · ${detail.planType}` : ''}
             </div>
           ) : customer.plan ? (
-            <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)', marginBottom: 4 }}>{customer.plan}</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 4 }}>{customer.plan}</div>
           ) : null}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {customer.status !== 'inactive' && customer.status !== 'canceled' && <StatusBadge status={customer.status} />}
             {detail?.nextBooking && (
-              <span style={{ fontSize: '0.7rem', color: '#7dffaa', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--green)', fontWeight: 700 }}>
                 Next: {fmtDate(detail.nextBooking.startTime)}
               </span>
             )}
             {detail?.pastBookings?.[0] && (
-              <span style={{ fontSize: '0.7rem', color: 'rgba(212,230,202,0.35)', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 600 }}>
                 Last: {fmtDate(detail.pastBookings[0].startTime)}
               </span>
             )}
           </div>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(212,230,202,0.4)', cursor: 'pointer', fontSize: '1.3rem', lineHeight: 1, padding: 4, flexShrink: 0 }}>×</button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.3rem', lineHeight: 1, padding: 4, flexShrink: 0 }}>×</button>
       </div>
 
       {/* Action bar */}
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(122,171,130,0.08)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(var(--green-rgb),0.08)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button style={btn('gold')} onClick={scheduleForCustomer}>+ Schedule</button>
         {!editing && <button style={btn('ghost')} onClick={() => setEditing(true)}>Edit</button>}
         {editing && <button style={btn('green')} onClick={saveEdit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>}
@@ -367,22 +367,22 @@ function CustomerPanel({ customer, onClose }) {
 
       {/* Email compose */}
       {messaging && (
-        <div style={{ padding: '16px 20px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(122,171,130,0.08)' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', marginBottom: 10 }}>
+        <div style={{ padding: '16px 20px', background: 'var(--bg-alt)', borderBottom: '1px solid rgba(var(--green-rgb),0.08)' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 10 }}>
             Email to {customer.email}
           </div>
           <input
             value={msgForm.subject}
             onChange={(e) => setMsgForm((f) => ({ ...f, subject: e.target.value }))}
             placeholder="Subject"
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }}
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.2)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }}
           />
           <textarea
             value={msgForm.body}
             onChange={(e) => setMsgForm((f) => ({ ...f, body: e.target.value }))}
             placeholder={`Hi ${customer.name?.split(' ')[0] || 'there'},\n\n`}
             rows={5}
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.2)', background: 'rgba(0,0,0,0.25)', color: '#d4e6ca', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.2)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}
           />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button
@@ -412,8 +412,8 @@ function CustomerPanel({ customer, onClose }) {
               {msgSending ? 'Sending…' : 'Send Email'}
             </button>
             <button style={btn('ghost')} onClick={() => setMessaging(false)}>Cancel</button>
-            {msgResult === 'sent' && <span style={{ fontSize: '0.8rem', color: '#7dffaa', fontWeight: 700 }}>✓ Sent</span>}
-            {msgResult && msgResult !== 'sent' && <span style={{ fontSize: '0.8rem', color: '#ff8080' }}>{msgResult}</span>}
+            {msgResult === 'sent' && <span style={{ fontSize: '0.8rem', color: 'var(--green)', fontWeight: 700 }}>✓ Sent</span>}
+            {msgResult && msgResult !== 'sent' && <span style={{ fontSize: '0.8rem', color: 'var(--danger)' }}>{msgResult}</span>}
           </div>
         </div>
       )}
@@ -422,8 +422,8 @@ function CustomerPanel({ customer, onClose }) {
       <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0' }}>
         {[{ k: 'details', l: 'Details' }, { k: 'history', l: 'History' }].map((t) => (
           <button key={t.k} onClick={() => setTab(t.k)}
-            style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem', fontFamily: 'Inter, sans-serif',
-              background: tab === t.k ? '#c9a84c' : 'rgba(201,168,76,0.1)', color: tab === t.k ? '#0d1a10' : 'rgba(201,168,76,0.7)' }}>
+            style={{ padding: '6px 16px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.76rem',
+              background: tab === t.k ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.1)', color: tab === t.k ? 'var(--text-on-accent)' : 'rgba(var(--gold-rgb),0.7)' }}>
             {t.l}
           </button>
         ))}
@@ -431,8 +431,8 @@ function CustomerPanel({ customer, onClose }) {
 
       {/* Body */}
       <div style={{ padding: '0 20px 32px', flex: 1 }}>
-        {loading && <p style={{ color: 'rgba(212,230,202,0.4)', marginTop: 24 }}>Loading…</p>}
-        {error && <p style={{ color: '#ff8080', marginTop: 24 }}>{error}</p>}
+        {loading && <p style={{ color: 'var(--text-muted)', marginTop: 24 }}>Loading…</p>}
+        {error && <p style={{ color: 'var(--danger)', marginTop: 24 }}>{error}</p>}
 
         {detail && !loading && tab === 'history' && (
           <AppointmentHistoryPanel detail={detail} onSchedule={scheduleForCustomer} scheduleBtn={{ ...btn('gold'), width: '100%', padding: '10px 14px', fontSize: '0.85rem' }} />
@@ -460,7 +460,7 @@ function CustomerPanel({ customer, onClose }) {
                   </select>
                   <input style={input} type="number" min="1" placeholder="Trap count" value={editForm.trapCount} onChange={(e) => setEditForm((f) => ({ ...f, trapCount: e.target.value }))} />
                   {editForm.systemType === 'Biogents-CO2' && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'rgba(212,230,202,0.7)', cursor: 'pointer' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text)', cursor: 'pointer' }}>
                       <input type="checkbox" checked={!!editForm.hasTimer} onChange={(e) => setEditForm((f) => ({ ...f, hasTimer: e.target.checked }))} />
                       Has Biogents Timer
                     </label>
@@ -474,12 +474,12 @@ function CustomerPanel({ customer, onClose }) {
                   <div style={lbl}>Contact</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
                     {detail.phone && (
-                      <a href={`tel:${detail.phone.replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.92rem', fontWeight: 700, color: '#7dffaa', textDecoration: 'none' }}>
+                      <a href={`tel:${detail.phone.replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>
                         📞 {detail.phone}
                       </a>
                     )}
                     {detail.email && (
-                      <a href={`mailto:${detail.email}`} style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.6)', textDecoration: 'none', wordBreak: 'break-all' }}>
+                      <a href={`mailto:${detail.email}`} style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textDecoration: 'none', wordBreak: 'break-all' }}>
                         ✉ {detail.email}
                       </a>
                     )}
@@ -492,14 +492,14 @@ function CustomerPanel({ customer, onClose }) {
                   <NoteComposer email={detail.email} hsContactId={detail.hubspotContactId} onSaved={fetchDetail} />
                   {(() => {
                     const adminNotes = (detail.notes || []).filter((n) => /^\[ADMIN-NOTE/.test(n.body || ''))
-                    if (adminNotes.length === 0) return <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.3)', marginTop: 10 }}>No notes yet</div>
+                    if (adminNotes.length === 0) return <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginTop: 10 }}>No notes yet</div>
                     return adminNotes.map((note) => {
                       const body = (note.body || '').replace(/^\[ADMIN-NOTE[^\]]*\]\s*/, '')
                       return (
-                        <div key={note.id} style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(201,168,76,0.05)', borderRadius: 6, borderLeft: '2px solid rgba(201,168,76,0.45)' }}>
-                          <div style={{ fontSize: '0.82rem', whiteSpace: 'pre-wrap', color: 'rgba(212,230,202,0.85)', lineHeight: 1.5 }}>{body}</div>
+                        <div key={note.id} style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(var(--gold-rgb),0.05)', borderRadius: 6, borderLeft: '2px solid rgba(var(--gold-rgb),0.45)' }}>
+                          <div style={{ fontSize: '0.82rem', whiteSpace: 'pre-wrap', color: 'var(--text)', lineHeight: 1.5 }}>{body}</div>
                           {note.timestamp && (
-                            <div style={{ fontSize: '0.66rem', color: 'rgba(212,230,202,0.32)', marginTop: 5 }}>
+                            <div style={{ fontSize: '0.66rem', color: 'var(--text-dim)', marginTop: 5 }}>
                               {new Date(note.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ })}
                             </div>
                           )}
@@ -516,12 +516,12 @@ function CustomerPanel({ customer, onClose }) {
                   return (
                     <div style={row}>
                       <div style={lbl}>System</div>
-                      {img && <img src={img} alt={label} style={{ width: '100%', maxHeight: 140, objectFit: 'cover', borderRadius: 8, marginBottom: 6, border: '1px solid rgba(122,171,130,0.15)' }} />}
-                      <div style={{ fontSize: '0.82rem', color: 'rgba(212,230,202,0.65)' }}>
-                        {detail.planType && <span style={{ textTransform: 'capitalize', marginRight: 8, color: '#c9a84c', fontWeight: 800 }}>{detail.planType}</span>}
+                      {img && <img src={img} alt={label} style={{ width: '100%', maxHeight: 140, objectFit: 'cover', borderRadius: 8, marginBottom: 6, border: '1px solid rgba(var(--green-rgb),0.15)' }} />}
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        {detail.planType && <span style={{ textTransform: 'capitalize', marginRight: 8, color: 'var(--gold)', fontWeight: 800 }}>{detail.planType}</span>}
                         <span style={{ fontWeight: 700 }}>{label}</span>
-                        {detail.trapCount ? <span style={{ color: 'rgba(212,230,202,0.4)', marginLeft: 6 }}>· {detail.trapCount} trap{detail.trapCount > 1 ? 's' : ''}</span> : ''}
-                        {detail.hasTimer ? <span style={{ color: 'rgba(212,230,202,0.4)', marginLeft: 6 }}>· Timer</span> : ''}
+                        {detail.trapCount ? <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>· {detail.trapCount} trap{detail.trapCount > 1 ? 's' : ''}</span> : ''}
+                        {detail.hasTimer ? <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>· Timer</span> : ''}
                       </div>
                     </div>
                   )
@@ -531,22 +531,22 @@ function CustomerPanel({ customer, onClose }) {
                 {detail.subscription && (
                   <div style={row}>
                     <div style={lbl}>Plan</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 900, color: '#c9a84c' }}>{fmtAmt(detail.subscription.amount)}<span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'rgba(212,230,202,0.4)', marginLeft: 4 }}>/{detail.subscription.interval}</span></div>
-                    {detail.subscription.label && <div style={{ fontSize: '0.75rem', color: 'rgba(212,230,202,0.35)', marginTop: 2 }}>{detail.subscription.label}</div>}
+                    <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--gold)' }}>{fmtAmt(detail.subscription.amount)}<span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: 4 }}>/{detail.subscription.interval}</span></div>
+                    {detail.subscription.label && <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 2 }}>{detail.subscription.label}</div>}
                   </div>
                 )}
 
                 {/* ── Outstanding invoices ── */}
                 {detail.openInvoices?.length > 0 && (
                   <div style={row}>
-                    <div style={{ ...lbl, color: '#ffb060' }}>⚠ Outstanding Invoices</div>
+                    <div style={{ ...lbl, color: 'var(--warn)' }}>⚠ Outstanding Invoices</div>
                     {detail.openInvoices.map((inv) => (
-                      <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, padding: '8px 10px', background: 'rgba(255,160,80,0.06)', borderRadius: 6, border: '1px solid rgba(255,160,80,0.15)' }}>
+                      <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, padding: '8px 10px', background: 'rgba(var(--warn-rgb),0.06)', borderRadius: 6, border: '1px solid rgba(var(--warn-rgb),0.15)' }}>
                         <div>
-                          <div style={{ fontWeight: 800, color: '#ffb060' }}>{fmtAmt(inv.amountDue)}</div>
-                          <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 2 }}>{inv.number} · {fmtDateShort(inv.created)}</div>
+                          <div style={{ fontWeight: 800, color: 'var(--warn)' }}>{fmtAmt(inv.amountDue)}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 2 }}>{inv.number} · {fmtDateShort(inv.created)}</div>
                         </div>
-                        {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', padding: '5px 12px', borderRadius: 4, background: '#c9a84c', color: '#0d1a10', fontWeight: 800, textDecoration: 'none' }}>Pay</a>}
+                        {inv.hostedUrl && <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', padding: '5px 12px', borderRadius: 4, background: 'var(--gold)', color: 'var(--text-on-accent)', fontWeight: 800, textDecoration: 'none' }}>Pay</a>}
                       </div>
                     ))}
                   </div>
@@ -556,17 +556,17 @@ function CustomerPanel({ customer, onClose }) {
                 {detail.pastBookings?.length > 0 && (
                   <div style={row}>
                     <div style={lbl}>Last Visit</div>
-                    <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(125,255,170,0.04)', borderRadius: 8, border: '1px solid rgba(125,255,170,0.1)' }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#7dffaa' }}>{fmtDate(detail.pastBookings[0].startTime)}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{detail.pastBookings[0].title}</div>
-                      {detail.pastBookings[0].address && <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 2 }}>{detail.pastBookings[0].address}</div>}
+                    <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(var(--green-rgb),0.04)', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.1)' }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--green)' }}>{fmtDate(detail.pastBookings[0].startTime)}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>{detail.pastBookings[0].title}</div>
+                      {detail.pastBookings[0].address && <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 2 }}>{detail.pastBookings[0].address}</div>}
                     </div>
                     {detail.pastBookings.length > 1 && (
                       <div style={{ marginTop: 8 }}>
                         {detail.pastBookings.slice(1).map((b) => (
-                          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(122,171,130,0.07)' }}>
-                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(212,230,202,0.55)' }}>{fmtDate(b.startTime)}</div>
-                            <div style={{ fontSize: '0.74rem', color: 'rgba(212,230,202,0.35)', textAlign: 'right', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</div>
+                          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid rgba(var(--green-rgb),0.07)' }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>{fmtDate(b.startTime)}</div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', textAlign: 'right', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.title}</div>
                           </div>
                         ))}
                       </div>
@@ -578,10 +578,10 @@ function CustomerPanel({ customer, onClose }) {
                 <div style={row}>
                   <div style={lbl}>Next Appointment</div>
                   {detail.nextBooking ? (
-                    <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(201,168,76,0.06)', borderRadius: 8, border: '1px solid rgba(201,168,76,0.2)' }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#c9a84c' }}>{fmtDate(detail.nextBooking.startTime)}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'rgba(212,230,202,0.5)', marginTop: 2 }}>{detail.nextBooking.title}</div>
-                      {detail.nextBooking.address && <div style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginTop: 2 }}>{detail.nextBooking.address}</div>}
+                    <div style={{ marginTop: 4, padding: '10px 12px', background: 'rgba(var(--gold-rgb),0.06)', borderRadius: 8, border: '1px solid rgba(var(--gold-rgb),0.2)' }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--gold)' }}>{fmtDate(detail.nextBooking.startTime)}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>{detail.nextBooking.title}</div>
+                      {detail.nextBooking.address && <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 2 }}>{detail.nextBooking.address}</div>}
                       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                         {detail.nextBooking.calBookingId && (
                           <button style={btn('red')} onClick={handleCancel} disabled={cancelling}>{cancelling ? 'Cancelling…' : 'Cancel'}</button>
@@ -592,7 +592,7 @@ function CustomerPanel({ customer, onClose }) {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.3)', marginTop: 4 }}>None scheduled</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginTop: 4 }}>None scheduled</div>
                   )}
                 </div>
 
@@ -616,14 +616,14 @@ function CustomerPanel({ customer, onClose }) {
                       const body = note.body || ''
                       const isSmsIn = body.startsWith('[SMS-IN')
                       const tag = isSmsIn ? '← Inbound' : '→ Outbound'
-                      const bg = isSmsIn ? 'rgba(91,196,255,0.06)' : 'rgba(125,255,170,0.05)'
-                      const bord = isSmsIn ? 'rgba(91,196,255,0.35)' : 'rgba(125,255,170,0.35)'
+                      const bg = isSmsIn ? 'rgba(var(--info-rgb),0.06)' : 'rgba(var(--green-rgb),0.05)'
+                      const bord = isSmsIn ? 'rgba(var(--info-rgb),0.35)' : 'rgba(var(--green-rgb),0.35)'
                       return (
                         <div key={note.id} style={{ marginTop: 8, padding: '10px 12px', background: bg, borderRadius: 6, borderLeft: `2px solid ${bord}` }}>
-                          <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: isSmsIn ? '#5bc4ff' : '#7dffaa', marginBottom: 4 }}>{tag}</div>
-                          <div style={{ fontSize: '0.8rem', whiteSpace: 'pre-wrap', color: 'rgba(212,230,202,0.75)', lineHeight: 1.5 }}>{body.replace(/^\[SMS-(IN|OUT)[^\]]*\]\s*(\([^)]*\)\s*)?(by [^\n]*:\s*)?/, '').replace(/^From[^\n]*\n/, '')}</div>
+                          <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: isSmsIn ? 'var(--info)' : 'var(--green)', marginBottom: 4 }}>{tag}</div>
+                          <div style={{ fontSize: '0.8rem', whiteSpace: 'pre-wrap', color: 'var(--text)', lineHeight: 1.5 }}>{body.replace(/^\[SMS-(IN|OUT)[^\]]*\]\s*(\([^)]*\)\s*)?(by [^\n]*:\s*)?/, '').replace(/^From[^\n]*\n/, '')}</div>
                           {note.timestamp && (
-                            <div style={{ fontSize: '0.66rem', color: 'rgba(212,230,202,0.28)', marginTop: 5 }}>
+                            <div style={{ fontSize: '0.66rem', color: 'var(--text-dim)', marginTop: 5 }}>
                               {new Date(note.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ })}
                             </div>
                           )}
@@ -735,17 +735,17 @@ export default function Clients() {
           <div>
             <span className="tag">Admin</span>
             <h1 style={{ fontSize: 'clamp(1.4rem,3vw,1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>Clients</h1>
-            <p style={{ fontSize: '0.85rem', color: 'rgba(212,230,202,0.45)', margin: 0 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
               {loading ? 'Loading…' : `${realClients.length} clients · ${allProspects.length} prospects · MRR $${(totalMrr / 100).toFixed(0)}`}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <a href="/api/admin/export?type=clients" download
-              style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#7aab82', textDecoration: 'none' }}>
+              style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', fontSize: '0.78rem', fontWeight: 700, color: 'var(--green-muted)', textDecoration: 'none' }}>
               Export CSV
             </a>
             <a href="/api/admin/export?type=revenue" download
-              style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(122,171,130,0.25)', fontSize: '0.78rem', fontWeight: 700, color: '#7aab82', textDecoration: 'none' }}>
+              style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', fontSize: '0.78rem', fontWeight: 700, color: 'var(--green-muted)', textDecoration: 'none' }}>
               Revenue CSV
             </a>
           </div>
@@ -759,7 +759,7 @@ export default function Clients() {
               placeholder="Search name, email or address…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', maxWidth: 360, padding: '9px 14px', marginBottom: 16, border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', maxWidth: 360, padding: '9px 14px', marginBottom: 16, border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
             />
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               {allProspects.filter((p) => {
@@ -767,13 +767,13 @@ export default function Clients() {
                 if (!q) return true
                 return (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q)
               }).length === 0 ? (
-                <p style={{ padding: 24, color: 'rgba(212,230,202,0.4)', margin: 0 }}>No prospects match.</p>
+                <p style={{ padding: 24, color: 'var(--text-muted)', margin: 0 }}>No prospects match.</p>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
+                    <tr style={{ borderBottom: '1px solid rgba(var(--green-rgb),0.15)' }}>
                       {['Name', 'Email', 'Phone', 'Address', 'System', ''].map((h) => (
-                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)' }}>{h}</th>
+                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -783,16 +783,16 @@ export default function Clients() {
                       if (!q) return true
                       return (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q)
                     }).map((p) => (
-                      <tr key={p.hsId} style={{ borderBottom: '1px solid rgba(122,171,130,0.08)' }}>
+                      <tr key={p.hsId} style={{ borderBottom: '1px solid rgba(var(--green-rgb),0.08)' }}>
                         <td style={{ padding: '11px 16px', fontWeight: 700 }}>{p.name || '—'}</td>
-                        <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem' }}>{p.email || '—'}</td>
-                        <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.55)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{p.phone ? <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} style={{ color: 'inherit', textDecoration: 'none' }}>{p.phone}</a> : '—'}</td>
-                        <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.45)', fontSize: '0.78rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.address || '—'}</td>
-                        <td style={{ padding: '11px 16px', fontSize: '0.78rem', color: 'rgba(212,230,202,0.4)' }}>{p.systemType || '—'}</td>
+                        <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>{p.email || '—'}</td>
+                        <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{p.phone ? <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} style={{ color: 'inherit', textDecoration: 'none' }}>{p.phone}</a> : '—'}</td>
+                        <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: '0.78rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.address || '—'}</td>
+                        <td style={{ padding: '11px 16px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{p.systemType || '—'}</td>
                         <td style={{ padding: '11px 16px' }}>
                           <div style={{ display: 'flex', gap: 6 }}>
-                            {p.email && <a href={`mailto:${p.email}`} style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 4, background: 'rgba(201,168,76,0.12)', color: '#c9a84c', fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(201,168,76,0.25)' }}>Email</a>}
-                            {p.phone && <a href={`sms:${p.phone.replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 4, background: 'rgba(91,196,255,0.08)', color: '#5bc4ff', fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(91,196,255,0.18)' }}>Text</a>}
+                            {p.email && <a href={`mailto:${p.email}`} style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 4, background: 'rgba(var(--gold-rgb),0.12)', color: 'var(--gold)', fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(var(--gold-rgb),0.25)' }}>Email</a>}
+                            {p.phone && <a href={`sms:${p.phone.replace(/[^\d+]/g, '')}`} style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: 4, background: 'rgba(var(--info-rgb),0.08)', color: 'var(--info)', fontWeight: 800, textDecoration: 'none', border: '1px solid rgba(var(--info-rgb),0.18)' }}>Text</a>}
                           </div>
                         </td>
                       </tr>
@@ -816,13 +816,13 @@ export default function Clients() {
             onChange={(e) => setSearch(e.target.value)}
             style={{
               flex: '1 1 200px', padding: '9px 14px',
-              border: '1px solid rgba(122,171,130,0.25)', borderRadius: 8,
-              background: 'rgba(255,255,255,0.04)', color: '#d4e6ca', fontSize: '0.88rem', outline: 'none',
+              border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8,
+              background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', outline: 'none',
             }}
           />
           <button onClick={locateMe} disabled={locating}
             title="Show driving distance from your current location"
-            style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid rgba(122,171,130,0.25)', background: Object.keys(distances).length ? 'rgba(125,255,170,0.1)' : 'rgba(255,255,255,0.04)', color: Object.keys(distances).length ? '#7dffaa' : 'rgba(212,230,202,0.6)', fontSize: '0.88rem', cursor: locating ? 'wait' : 'pointer', whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+            style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.25)', background: Object.keys(distances).length ? 'rgba(var(--green-rgb),0.1)' : 'var(--bg-card)', color: Object.keys(distances).length ? 'var(--green)' : 'var(--text-muted)', fontSize: '0.88rem', cursor: locating ? 'wait' : 'pointer', whiteSpace: 'nowrap', fontWeight: 700 }}>
             {locating ? '📍 Locating…' : Object.keys(distances).length ? '📍 Refresh' : '📍 My Distance'}
           </button>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -832,9 +832,9 @@ export default function Clients() {
                 onClick={() => setTab(t.key)}
                 style={{
                   padding: '7px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
-                  fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif',
-                  background: tab === t.key ? '#c9a84c' : 'rgba(201,168,76,0.1)',
-                  color: tab === t.key ? '#0d1a10' : 'rgba(201,168,76,0.7)',
+                  fontWeight: 700, fontSize: '0.78rem',
+                  background: tab === t.key ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.1)',
+                  color: tab === t.key ? 'var(--text-on-accent)' : 'rgba(var(--gold-rgb),0.7)',
                 }}
               >
                 {t.label}
@@ -846,18 +846,18 @@ export default function Clients() {
         {/* Table */}
         <div className={`card panel-open-shrink`} style={{ padding: 0, overflow: 'auto', marginRight: panelOpen ? 420 : 0, transition: 'margin-right 0.2s' }}>
           {loading ? (
-            <div style={{ padding: 32, display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(212,230,202,0.35)', fontSize: '0.85rem' }}>
-              <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(122,171,130,0.3)', borderTopColor: '#7aab82', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ padding: 32, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+              <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(var(--green-rgb),0.3)', borderTopColor: 'var(--green-muted)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               Loading clients…
             </div>
           ) : filtered.length === 0 ? (
-            <p style={{ padding: 24, color: 'rgba(212,230,202,0.4)', margin: 0 }}>No customers match.</p>
+            <p style={{ padding: 24, color: 'var(--text-muted)', margin: 0 }}>No customers match.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(122,171,130,0.15)' }}>
+                <tr style={{ borderBottom: '1px solid rgba(var(--green-rgb),0.15)' }}>
                   {['Name', 'Address', ...(Object.keys(distances).length ? ['Distance'] : [])].map((h) => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(212,230,202,0.35)', whiteSpace: 'nowrap' }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -874,21 +874,21 @@ export default function Clients() {
                       setSelected(selected?.id === c.id ? null : c)
                     }}
                     style={{
-                      borderBottom: '1px solid rgba(122,171,130,0.08)',
+                      borderBottom: '1px solid rgba(var(--green-rgb),0.08)',
                       cursor: 'pointer',
-                      background: selected?.id === c.id ? 'rgba(201,168,76,0.06)' : 'transparent',
+                      background: selected?.id === c.id ? 'rgba(var(--gold-rgb),0.06)' : 'transparent',
                     }}
                   >
                     <td style={{ padding: '11px 16px', fontWeight: 700, whiteSpace: 'nowrap' }}>{c.name || '—'}</td>
-                    <td style={{ padding: '11px 16px', color: 'rgba(212,230,202,0.65)', fontSize: '0.82rem' }}>{c.address || <span style={{ color: 'rgba(212,230,202,0.2)' }}>—</span>}</td>
+                    <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>{c.address || <span style={{ color: 'var(--text-dim)' }}>—</span>}</td>
                     {Object.keys(distances).length > 0 && (
                       <td style={{ padding: '11px 16px', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
                         {distances[c.id] ? (
                           <span title={distances[c.id].duration}>
-                            <span style={{ fontWeight: 800, color: parseFloat(distances[c.id].miles) <= 5 ? '#7dffaa' : parseFloat(distances[c.id].miles) <= 15 ? '#c9a84c' : 'rgba(212,230,202,0.5)' }}>{distances[c.id].miles} mi</span>
-                            <span style={{ fontSize: '0.72rem', color: 'rgba(212,230,202,0.35)', marginLeft: 5 }}>{distances[c.id].duration}</span>
+                            <span style={{ fontWeight: 800, color: parseFloat(distances[c.id].miles) <= 5 ? 'var(--green)' : parseFloat(distances[c.id].miles) <= 15 ? 'var(--gold)' : 'var(--text-muted)' }}>{distances[c.id].miles} mi</span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 5 }}>{distances[c.id].duration}</span>
                           </span>
-                        ) : <span style={{ color: 'rgba(212,230,202,0.2)' }}>—</span>}
+                        ) : <span style={{ color: 'var(--text-dim)' }}>—</span>}
                       </td>
                     )}
                   </tr>
@@ -899,7 +899,7 @@ export default function Clients() {
           )}
         </div>
 
-        <p style={{ marginTop: 10, fontSize: '0.72rem', color: 'rgba(212,230,202,0.25)' }}>
+        <p style={{ marginTop: 10, fontSize: '0.72rem', color: 'var(--text-dim)' }}>
           {filtered.length} of {list.length} shown · Click a row to open details
         </p>
 
