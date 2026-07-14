@@ -83,14 +83,14 @@ const SENDERS = {
 // KV budget: Upstash free tier caps at 500K requests/month. At 1s poll + 10s
 // heartbeat this daemon alone burned ~2.85M/month, exhausting the cap in ~5 days
 // and making every claim_*() dedup fail open (duplicate digest + duplicate
-// customer texts). Idle poll is now every 15 min (~3K/month); heartbeat stays
-// frequent enough to keep the daemon's TTL-30s liveness key fresh so the portal
-// still routes through it. Total idle usage ~135K/month, well under the cap.
+// customer texts). Idle poll is now every 15 min (~3K/month); heartbeat is every
+// 5 min against an 11-min liveness TTL (survives one missed beat) so the portal
+// still routes through it. Total idle usage ~12K/month, well under the cap.
 // The loop still drains with no sleep while jobs are queued; the 15-min interval
 // only bounds worst-case pickup latency for a job enqueued while idle (the portal
 // has a synchronous Resend/Gmail backup for anything time-sensitive).
 const POLL_INTERVAL_MS = 15 * 60 * 1000
-const HEARTBEAT_INTERVAL_MS = 20000 // must stay < heartbeat key TTL (30s)
+const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000 // must stay < heartbeat key TTL (11min)
 
 function log(...args) { console.log(new Date().toISOString(), '[notify-daemon]', ...args) }
 

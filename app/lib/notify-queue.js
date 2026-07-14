@@ -4,8 +4,8 @@
  * notify daemon can reach over plain REST — no VPC/network requirement.
  *
  * Keys:
- *   notify:daemon:heartbeat   last-seen timestamp (ms), TTL 30s, set by the
- *                             local daemon every ~10s. Vercel checks this
+ *   notify:daemon:heartbeat   last-seen timestamp (ms), TTL 11min, set by the
+ *                             local daemon every 5min. Vercel checks this
  *                             BEFORE doing anything else — if stale/missing,
  *                             it skips the whole local-first dance and sends
  *                             directly (today's behavior, zero added latency).
@@ -18,7 +18,7 @@
  */
 
 const HEARTBEAT_KEY = 'notify:daemon:heartbeat'
-const HEARTBEAT_TTL_SEC = 30
+const HEARTBEAT_TTL_SEC = 660 // survives one missed 5-min heartbeat
 const QUEUE_KEY = 'notify:queue'
 const JOB_TTL_SEC = 3600
 
@@ -63,7 +63,7 @@ async function isDaemonAlive() {
   }
 }
 
-/** Called by the daemon every ~10s to announce it's alive. */
+/** Called by the daemon every 5min to announce it's alive. */
 async function heartbeat() {
   await kv(['SET', HEARTBEAT_KEY, String(Date.now()), 'EX', String(HEARTBEAT_TTL_SEC)])
 }
