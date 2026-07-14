@@ -44,15 +44,48 @@ async function categorize({ sku, type }) {
   return await getCategoryByLabel('Unknown')
 }
 
-async function insertTx({ source, external_id, occurred_at, amount_cents, type, description, customer_email, customer_name, sku, raw }) {
-  const cat = await categorize({ sku, type })
-  await q(
-    `INSERT INTO transactions
-     (source, external_id, occurred_at, amount_cents, type, description, customer_email, customer_name, sku, category_id, category_label, raw)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-     ON CONFLICT (source, external_id) DO NOTHING`,
-    [source, external_id, occurred_at, amount_cents, type, description, customer_email, customer_name, sku, cat?.id || null, cat?.label || 'Unknown', raw]
+async function preloadCategoryRules() {
+  const [rules, unknown] = await Promise.all([
+    q(`SELECT cr.match_kind, cr.match_value, cr.priority, c.id, c.label
+       FROM category_rules cr JOIN categories c ON c.id = cr.category_id
+       WHERE cr.match_kind IN ('sku', 'stripe_type')
+       ORDER BY cr.priority DESC`),
+    getCategoryByLabel('Unknown'),
+  ])
+  const bySku = new Map()
+  const byType = new Map()
+  for (const rule of rules.rows) {
+    const target = rule.match_kind === 'sku' ? bySku : byType
+    if (!target.has(rule.match_value)) target.set(rule.match_value, { id: rule.id, label: rule.label })
+  }
+  return { bySku, byType, unknown }
+}
+
+function categorizeWithRules({ sku, type }, rules) {
+  return (sku && rules.bySku.get(sku)) ||
+    (type && rules.byType.get(type)) ||
+    rules.unknown
+}
+
+async function insertTransactionsBatch(rows) {
+  if (!rows.length) return 0
+  const columns = ['source', 'external_id', 'occurred_at', 'amount_cents', 'type', 'description', 'customer_email', 'customer_name', 'sku', 'category_id', 'category_label', 'raw']
+  const values = []
+  const placeholders = rows.map((row, rowIndex) => {
+    const offset = rowIndex * columns.length
+    values.push(
+      row.source, row.external_id, row.occurred_at, row.amount_cents, row.type,
+      row.description, row.customer_email, row.customer_name, row.sku,
+      row.category_id, row.category_label, row.raw
+    )
+    return `(${columns.map((_, i) => `$${offset + i + 1}`).join(',')})`
+  })
+  const result = await q(
+    `INSERT INTO transactions (${columns.join(', ')}) VALUES ${placeholders.join(', ')}
+     ON CONFLICT (source, external_id) DO NOTHING RETURNING external_id`,
+    values
   )
+  return result.rowCount
 }
 
 async function ingestStripeBalanceTransactions({ daysBack = 365 } = {}) {
@@ -67,6 +100,7 @@ async function ingestStripeBalanceTransactions({ daysBack = 365 } = {}) {
   let added = 0
 
   try {
+    const rules = await preloadCategoryRules()
     let starting_after
     do {
       const page = await stripe.balanceTransactions.list({
@@ -74,7 +108,7 @@ async function ingestStripeBalanceTransactions({ daysBack = 365 } = {}) {
         ...(starting_after ? { starting_after } : {}),
         expand: ['data.source'],
       })
-      for (const btx of page.data) {
+      const rows = page.data.map((btx) => {
         const src = btx.source
         // Extract customer info + SKU from the source object when possible
         let customer_email = null, customer_name = null, sku = null, description = btx.description || ''
@@ -91,7 +125,8 @@ async function ingestStripeBalanceTransactions({ daysBack = 365 } = {}) {
             description = src.description || lines[0]?.description || description
           }
         }
-        await insertTx({
+        const cat = categorizeWithRules({ sku, type: btx.type }, rules)
+        return {
           source: 'stripe',
           external_id: btx.id,
           occurred_at: new Date(btx.created * 1000),
@@ -101,10 +136,14 @@ async function ingestStripeBalanceTransactions({ daysBack = 365 } = {}) {
           customer_email,
           customer_name,
           sku,
+          category_id: cat?.id || null,
+          category_label: cat?.label || 'Unknown',
           raw: btx,
-        })
-        added++
-      }
+        }
+      })
+      // One parameterized multi-row insert per Stripe page. The unique key
+      // makes retries safe and RETURNING gives the true inserted count.
+      added += await insertTransactionsBatch(rows)
       starting_after = page.has_more ? page.data[page.data.length - 1]?.id : null
     } while (starting_after)
 

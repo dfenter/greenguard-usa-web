@@ -2,8 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { listAllCustomers } from '../../lib/stripe'
-import { getAllContacts } from '../../lib/hubspot'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -12,41 +10,7 @@ export async function getServerSideProps({ req }) {
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
-  const [stripeRaw, hsContacts] = await Promise.all([
-    listAllCustomers(),
-    getAllContacts(1000).catch(() => []),
-  ])
-
-  const stripeCustomers = stripeRaw.map((c) => ({
-    id: c.id,
-    name: c.name || '',
-    email: c.email || '',
-    phone: c.phone || '',
-    address: c.address?.line1 || '',
-    source: 'customer',
-  })).filter((c) => c.email || c.name)
-
-  const stripeEmails = new Set(stripeCustomers.map((c) => c.email.toLowerCase()).filter(Boolean))
-
-  const prospects = hsContacts
-    .filter((c) => {
-      const email = (c.properties.email || '').toLowerCase()
-      const name = [c.properties.firstname, c.properties.lastname].filter(Boolean).join(' ')
-      if (!name && !email) return false
-      return !email || !stripeEmails.has(email)
-    })
-    .map((c) => ({
-      id: `hs_${c.id}`,
-      name: [c.properties.firstname, c.properties.lastname].filter(Boolean).join(' '),
-      email: c.properties.email || '',
-      phone: c.properties.phone || '',
-      address: c.properties.address || '',
-      source: 'prospect',
-    }))
-
-  const customers = [...stripeCustomers, ...prospects]
-
-  return { props: { customers, mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '' } }
+  return { props: { mapsKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '' } }
 }
 
 // ── Multi-select section (matches rounds page style) ──────────────────────────
@@ -162,20 +126,27 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
 
 // ── Customer autocomplete ──────────────────────────────────────────────────────
 
-function CustomerSearch({ customers, onSelect }) {
+function CustomerSearch({ onSelect }) {
   const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
-  const filtered = query.length < 2 ? [] : customers.filter((c) => {
-    const q = query.toLowerCase()
-    const qDigits = q.replace(/\D/g, '')
-    const phone = (c.phone || '').replace(/\D/g, '')
-    return (c.name || '').toLowerCase().includes(q) ||
-      (c.email || '').toLowerCase().includes(q) ||
-      (c.address || '').toLowerCase().includes(q) ||
-      (qDigits.length >= 3 && phone.includes(qDigits))
-  }).slice(0, 25)
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (trimmed.length < 2) { setResults([]); setLoading(false); return undefined }
+    let alive = true
+    setLoading(true)
+    const timer = setTimeout(() => {
+      fetch(`/api/admin/customer-search?q=${encodeURIComponent(trimmed)}`)
+        .then((r) => r.ok ? r.json() : Promise.reject(new Error('Search failed')))
+        .then((d) => { if (alive) setResults(d.customers || []) })
+        .catch(() => { if (alive) setResults([]) })
+        .finally(() => { if (alive) setLoading(false) })
+    }, 300)
+    return () => { alive = false; clearTimeout(timer) }
+  }, [query])
 
   useEffect(() => {
     function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
@@ -196,9 +167,10 @@ function CustomerSearch({ customers, onSelect }) {
         onFocus={() => setOpen(true)}
         style={{ width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }}
       />
-      {open && filtered.length > 0 && (
+      {open && loading && <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, zIndex: 50, marginTop: 4, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Searching…</div>}
+      {open && !loading && results.length > 0 && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, zIndex: 50, maxHeight: 240, overflowY: 'auto', marginTop: 4 }}>
-          {filtered.map((c) => (
+          {results.map((c) => (
             <div key={c.id} onClick={() => { onSelect(c); setQuery(''); setOpen(false) }}
               style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid rgba(var(--border-rgb),0.08)' }}
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(var(--border-rgb),0.08)'}
@@ -542,7 +514,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
-export default function QuoteBuilder({ customers, mapsKey }) {
+export default function QuoteBuilder({ mapsKey }) {
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -864,7 +836,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
         <div className="two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 28, alignItems: 'start' }}>
           <div>
             {/* Customer */}
-            <CustomerSearch customers={customers} onSelect={handleSelectCustomer} />
+            <CustomerSearch onSelect={handleSelectCustomer} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
               <div><label style={lbl}>Name</label><input style={input} placeholder="Full name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} /></div>
               <div><label style={lbl}>Email</label><input style={input} type="email" placeholder="customer@email.com" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} /></div>

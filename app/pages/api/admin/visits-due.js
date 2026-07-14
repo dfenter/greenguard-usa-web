@@ -1,6 +1,6 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { Client } = require('@hubspot/api-client')
-const { getPastBookingsForEmail, getUpcomingBookingsForEmail } = require('../../../lib/gcal')
+const { getBookingsForDateRangePaginated } = require('../../../lib/gcal')
 
 /**
  * GET /api/admin/visits-due?days=7
@@ -67,19 +67,42 @@ export default async function handler(req, res) {
       })
       .filter(Boolean)
 
-    // For each candidate, look up most recent past visit + upcoming
+    // One complete past window and one complete future window replace the old
+    // per-customer Calendar fan-out. Keep the same 18-month decision window so
+    // last-visit and upcoming-appointment inputs remain identical.
+    const pastStart = new Date(now)
+    pastStart.setMonth(pastStart.getMonth() - 18)
+    const futureEnd = new Date(now)
+    futureEnd.setMonth(futureEnd.getMonth() + 18)
+    const [pastBookings, upcomingBookings] = await Promise.all([
+      getBookingsForDateRangePaginated(pastStart.toISOString(), new Date(now).toISOString()),
+      getBookingsForDateRangePaginated(new Date(now).toISOString(), futureEnd.toISOString()),
+    ])
+    const lastVisitByEmail = new Map()
+    for (const booking of pastBookings) {
+      const email = booking.email?.trim().toLowerCase()
+      if (!email || !booking.startTime) continue
+      const current = lastVisitByEmail.get(email)
+      if (!current || new Date(booking.startTime) > new Date(current.startTime)) {
+        lastVisitByEmail.set(email, booking)
+      }
+    }
+    const upcomingByEmail = new Set(
+      upcomingBookings
+        .map((booking) => booking.email?.trim().toLowerCase())
+        .filter(Boolean)
+    )
+
+    // For each candidate, read the grouped inputs without additional GCal calls.
     const due = []
     for (const cand of candidates) {
-      const [past, upcoming] = await Promise.all([
-        getPastBookingsForEmail(cand.email, 1).catch(() => []),
-        getUpcomingBookingsForEmail(cand.email, 1).catch(() => []),
-      ])
-      const lastVisit = past[0]?.startTime ? new Date(past[0].startTime) : null
+      const lastBooking = lastVisitByEmail.get(cand.email)
+      const lastVisit = lastBooking?.startTime ? new Date(lastBooking.startTime) : null
       if (!lastVisit) continue
       const dueDate = lastVisit.getTime() + cand.lifetime * 86400 * 1000
       const daysUntilDue = Math.round((dueDate - now) / 86400000)
       // Skip if they already have an upcoming visit booked
-      if (upcoming.length > 0) continue
+      if (upcomingByEmail.has(cand.email)) continue
       // Include if due within the horizon (positive = future, negative = overdue)
       if (dueDate - now > horizonMs) continue
       due.push({

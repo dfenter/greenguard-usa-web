@@ -222,14 +222,9 @@ function CustomerPanel({ customer, onClose }) {
     } finally {
       setLoading(false)
     }
-  }, [customer.id])
+  }, [customer.id, customer.status, customer.email, customer.address, fetchDistance])
 
-  // Fetch on mount
-  useState(() => { fetchDetail() }, []) // run once; intentionally using useState trick
-
-  // Actually fetch on mount properly
-  const [fetched, setFetched] = useState(false)
-  if (!fetched) { setFetched(true); fetchDetail() }
+  useEffect(() => { fetchDetail() }, [fetchDetail])
 
   async function saveEdit() {
     setSaving(true)

@@ -215,6 +215,24 @@ async function getClientNotes(contactId, scan = 100, take = 3) {
   }
 }
 
+// Batch the per-contact association + notes reads with bounded concurrency.
+// The returned Map preserves getClientNotes' exact value shape for each ID.
+async function getClientNotesBatch(contactIds, scan = 100, take = 3) {
+  const ids = [...new Set((contactIds || []).filter(Boolean).map((id) => String(id)))]
+  const result = new Map(ids.map((id) => [id, []]))
+  let next = 0
+
+  async function worker() {
+    while (next < ids.length) {
+      const id = ids[next++]
+      result.set(id, await getClientNotes(id, scan, take))
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(4, ids.length) }, worker))
+  return result
+}
+
 async function updateContact(contactId, updates) {
   const props = { ...(updates.properties || {}) }
   if (updates.name !== undefined) {
@@ -373,4 +391,4 @@ function tanksForCustomer(props) {
   return 0
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, findContactsByNames, getContactNotes, getClientNotes, updateContact, countContactsByProperty, getAllContacts, tanksForCustomer }
+module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, findContactsByNames, getContactNotes, getClientNotes, getClientNotesBatch, updateContact, countContactsByProperty, getAllContacts, tanksForCustomer }

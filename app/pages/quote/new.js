@@ -492,7 +492,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       return () => clearInterval(poll)
     }
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=marker,drawing,geometry`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=marker`
     script.setAttribute('data-gg-maps', '1')
     script.async = true
     script.onload = () => setMapLoaded(true)

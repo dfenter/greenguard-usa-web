@@ -425,6 +425,70 @@ async function getBookingsForDateRange(startISO, endISO) {
   })
 }
 
+// Paginated range fetch for callers that need a complete window. The regular
+// range helper intentionally remains a small, cheap call for existing callers;
+// this variant follows Calendar's nextPageToken and fails loudly instead of
+// returning a silently truncated result.
+async function getBookingsForDateRangePaginated(startISO, endISO) {
+  return cached(`gcal:bookings:paginated:${startISO}:${endISO}`, 120, async () => {
+    const calendar = getCalendar()
+    const events = []
+    let pageToken
+    const CAP = 5000
+
+    do {
+      const res = await calendar.events.list({
+        calendarId: CALENDAR_ID,
+        timeMin: startISO,
+        timeMax: endISO,
+        maxResults: 250,
+        singleEvents: true,
+        orderBy: 'startTime',
+        q: BOOKING_TAG,
+        ...(pageToken ? { pageToken } : {}),
+      })
+      events.push(...(res.data.items || []))
+      if (events.length >= CAP) {
+        throw new Error(`Google Calendar range exceeded the ${CAP}-event safety cap`)
+      }
+      pageToken = res.data.nextPageToken || null
+    } while (pageToken)
+
+    const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
+    return events
+      .filter((e) =>
+        (e.description && e.description.includes(BOOKING_TAG)) ||
+        (e.summary && e.summary.includes('GreenGuard USA'))
+      )
+      .map((e) => {
+        const start = e.start?.dateTime || e.start?.date
+        const dateStr = start
+          ? new Date(start).toLocaleDateString('en-CA', { timeZone: tz })
+          : null
+        const desc = e.description || ''
+        let calBookingUid = null
+        const uidMatch = desc.match(/cal\.com\/(?:booking|reschedule)\/([a-zA-Z0-9_-]+)/i)
+        if (uidMatch) calBookingUid = uidMatch[1]
+        const email = parseEmailFromDescription(desc) || parseEmailFromAttendees(e.attendees)
+        const customerName = parseCustomerName(e.summary)
+        return {
+          id: e.id,
+          dateStr,
+          customerName,
+          name: customerName,
+          title: parseServiceTitle(e.summary),
+          email,
+          calBookingUid,
+          startTime: start,
+          endTime: e.end?.dateTime || e.end?.date,
+          address: e.location || parseAddressFromDescription(desc),
+          phone: parsePhoneFromDescription(desc),
+          appointmentNotes: parseAppointmentNotes(desc),
+        }
+      })
+  })
+}
+
 module.exports = {
   getCalendar,
   tzDayBoundsISO: _tzDayBounds, // DST-correct { start, end } ISO for a calendar day
@@ -435,6 +499,7 @@ module.exports = {
   getTodaysBookings,
   getBookingsForDate,
   getBookingsForDateRange,
+  getBookingsForDateRangePaginated,
   parseServiceTitle,
   parseCustomerName,
   parseEmailFromDescription,

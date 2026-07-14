@@ -73,6 +73,17 @@ async function qboPost(path, body) {
   return data
 }
 
+function escapeQboString(value) {
+  return String(value).replace(/'/g, "''")
+}
+
+async function findInvoiceByDocNumber(docNumber) {
+  const result = await qboGet('/query', {
+    query: `SELECT * FROM Invoice WHERE DocNumber = '${escapeQboString(docNumber)}' MAXRESULTS 1`,
+  })
+  return result.QueryResponse?.Invoice?.[0] || null
+}
+
 /** Find or create a QBO customer by email */
 async function findOrCreateCustomer({ email, displayName, phone } = {}) {
   const query = `SELECT * FROM Customer WHERE PrimaryEmailAddr = '${email}' MAXRESULTS 1`
@@ -96,6 +107,10 @@ async function findOrCreateCustomer({ email, displayName, phone } = {}) {
  * qboLines: [{ description, amount, quantity, serviceDate }]
  */
 async function createInvoice({ customerEmail, customerName, lines, stripeInvoiceId, serviceDate } = {}) {
+  if (stripeInvoiceId) {
+    const existing = await findInvoiceByDocNumber(stripeInvoiceId)
+    if (existing) return existing
+  }
   const customer = await findOrCreateCustomer({ email: customerEmail, displayName: customerName })
 
   const lineItems = lines.map((l, idx) => ({
@@ -114,6 +129,7 @@ async function createInvoice({ customerEmail, customerName, lines, stripeInvoice
   const body = {
     CustomerRef: { value: customer.Id },
     Line: lineItems,
+    DocNumber: stripeInvoiceId || undefined,
     PrivateNote: stripeInvoiceId ? `Stripe: ${stripeInvoiceId}` : undefined,
     TxnDate: serviceDate || new Date().toISOString().slice(0, 10),
   }

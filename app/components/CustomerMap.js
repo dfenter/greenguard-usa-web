@@ -9,13 +9,59 @@ const STATUS_COLORS = {
   inactive: '#444746',
 }
 
+function addressHash(address) {
+  let hash = 2166136261
+  for (const char of address.trim().toLowerCase()) {
+    hash ^= char.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(16)
+}
+
+function readCachedGeocode(address) {
+  try {
+    const raw = window.localStorage.getItem(`greenguard-geocode:${addressHash(address)}`)
+    const cached = raw ? JSON.parse(raw) : null
+    if (!cached || cached.expiresAt <= Date.now()) return null
+    return { lat: cached.lat, lng: cached.lng }
+  } catch {
+    return null
+  }
+}
+
+function writeCachedGeocode(address, position) {
+  try {
+    window.localStorage.setItem(`greenguard-geocode:${addressHash(address)}`, JSON.stringify({
+      lat: position.lat,
+      lng: position.lng,
+      expiresAt: Date.now() + 30 * 86400 * 1000,
+    }))
+  } catch {}
+}
+
 export default function CustomerMap({ customers = [], mapsKey, height = 400, compact = false }) {
+  const viewportRef = useRef(null)
   const mapRef = useRef(null)
   const mapObj = useRef(null)
   const [loaded, setLoaded] = useState(false)
+  const [visible, setVisible] = useState(false)
+
+  // Maps and geocoding are deferred until the map is actually on screen.
+  // This observer is one-shot: once visible, the component stays mounted.
+  useEffect(() => {
+    if (!mapsKey || visible || !viewportRef.current) return undefined
+    if (!window.IntersectionObserver) { setVisible(true); return undefined }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return
+      setVisible(true)
+      observer.disconnect()
+    }, { rootMargin: '200px' })
+    observer.observe(viewportRef.current)
+    return () => observer.disconnect()
+  }, [mapsKey, visible])
 
   useEffect(() => {
-    if (!mapsKey || loaded) return
+    if (!mapsKey || !visible || loaded) return
     if (window.google?.maps) { setLoaded(true); return }
     const existing = document.querySelector('script[data-greenguard-maps]')
     if (existing) {
@@ -28,7 +74,7 @@ export default function CustomerMap({ customers = [], mapsKey, height = 400, com
     script.dataset.greenguardMaps = '1'
     script.onload = () => setLoaded(true)
     document.head.appendChild(script)
-  }, [mapsKey, loaded])
+  }, [mapsKey, visible, loaded])
 
   useEffect(() => {
     if (!loaded || !mapRef.current || mapObj.current) return
@@ -69,13 +115,22 @@ export default function CustomerMap({ customers = [], mapsKey, height = 400, com
 
     customers.forEach((c, idx) => {
       if (!c.address) return
-      if (geoCache[c.id]) { placeMarker(c, geoCache[c.id]); return }
+      const cacheKey = addressHash(c.address)
+      const persisted = readCachedGeocode(c.address)
+      if (persisted) {
+        geoCache[cacheKey] = persisted
+        placeMarker(c, persisted)
+        return
+      }
+      if (geoCache[cacheKey]) { placeMarker(c, geoCache[cacheKey]); return }
       setTimeout(() => {
         geocoder.geocode({ address: c.address }, (results, status) => {
           if (status !== 'OK' || !results[0]) return
           const pos = results[0].geometry.location
-          geoCache[c.id] = pos
-          placeMarker(c, pos)
+          const literal = { lat: pos.lat(), lng: pos.lng() }
+          geoCache[cacheKey] = literal
+          writeCachedGeocode(c.address, literal)
+          placeMarker(c, literal)
         })
       }, idx * 100)
     })
@@ -90,8 +145,10 @@ export default function CustomerMap({ customers = [], mapsKey, height = 400, com
   }
 
   return (
-    <div ref={mapRef} style={{ height, width: '100%', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', background: 'var(--bg-card)' }}>
-      {!loaded && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-dim)', fontSize: '0.88rem' }}>Loading map…</div>}
+    <div ref={viewportRef} style={{ height, width: '100%', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', background: 'var(--bg-card)' }}>
+      <div ref={mapRef} style={{ height: '100%', width: '100%' }}>
+        {!loaded && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-dim)', fontSize: '0.88rem' }}>{visible ? 'Loading map…' : 'Map will load when visible…'}</div>}
+      </div>
     </div>
   )
 }

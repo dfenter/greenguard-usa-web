@@ -5,7 +5,7 @@ import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDate, getBookingsForDateRange } from '../../lib/gcal'
 import { listAllCustomers, findInvoiceForBooking, findInvoicesForBookings, bookingStopKey } from '../../lib/stripe'
-import { findContactsByEmails, findContactsByNames, tanksForCustomer, getClientNotes } from '../../lib/hubspot'
+import { findContactsByEmails, findContactsByNames, tanksForCustomer, getClientNotesBatch } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import SignaturePad from '../../components/SignaturePad'
 import CustomerPanel from '../../components/CustomerPanel'
@@ -115,10 +115,11 @@ export async function getServerSideProps({ req, query, res }) {
           if (tanks) hubspotNameByEmail[email + '__tanks'] = tanks
         }
         // Client popup notes ([ADMIN-NOTE ...] prefixed) — shared helper.
-        await Promise.all([...contactMap.entries()].map(async ([email, c]) => {
-          const client = await getClientNotes(c.id)
+        const notesByContact = await getClientNotesBatch([...contactMap.values()].map((c) => c.id))
+        for (const [email, c] of contactMap.entries()) {
+          const client = notesByContact.get(String(c.id)) || []
           if (client.length) hubspotContactByEmail[email]._clientNotes = client
-        }))
+        }
       }).catch(() => {}),
     ])
   }

@@ -137,6 +137,12 @@ function buildWeek(dateStr) {
   })
 }
 
+function addDay(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00')
+  d.setDate(d.getDate() + 1)
+  return d.toLocaleDateString('en-CA')
+}
+
 // Build a 6-row × 7-col month grid starting from the Sunday on/before the 1st.
 function buildMonthGrid(dateStr) {
   const ref = new Date(dateStr + 'T12:00:00')
@@ -261,16 +267,25 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
         .finally(() => setLoading(false))
       return
     }
-    // Week / Month: fetch all days in the visible range in parallel.
+    // Week / Month: one range request for the visible window.
     const days = viewMode === 'week' ? week : monthGrid
+    const start = days[0]
+    const end = addDay(days[days.length - 1])
     setLoading(true)
-    Promise.all(days.map((d) =>
-      fetch(`/api/admin/bookings?date=${d}`).then((r) => r.json()).then((j) => [d, j.bookings || []]).catch(() => [d, []])
-    )).then((pairs) => {
+    fetch(`/api/admin/bookings?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then((j) => {
       const map = {}
-      for (const [d, b] of pairs) map[d] = b
+      for (const booking of (j.bookings || [])) {
+        const day = booking.dateStr || new Date(booking.startTime).toLocaleDateString('en-CA', { timeZone: TZ })
+        if (!map[day]) map[day] = []
+        map[day].push(booking)
+      }
       setRangeBookings(map)
-    }).finally(() => setLoading(false))
+      setCalendarError(null)
+    })
+      .catch((err) => { setRangeBookings({}); setCalendarError(err.message || 'Google Calendar connection failed') })
+      .finally(() => setLoading(false))
   }, [date, viewMode, gcalError, retryNonce]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const positioned = useMemo(() => layoutEvents(bookings), [bookings])
@@ -291,20 +306,26 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
     if (stops.length < 2) { setLegs({}); return }
     let cancelled = false
     ;(async () => {
-      const entries = await Promise.all(
-        stops.slice(0, -1).map(async (s, i) => {
-          const next = stops[i + 1]
-          try {
-            const res = await fetch('/api/admin/distances', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ origin: s.address, addresses: [{ id: 'leg', address: next.address }] }),
-            })
-            const data = await res.json()
-            return [next.id, data.leg || null]
-          } catch { return [next.id, null] }
+      try {
+        const res = await fetch('/api/admin/distances', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stops: stops.map((s) => ({ address: s.address })) }),
         })
-      )
-      if (!cancelled) setLegs(Object.fromEntries(entries.filter(([, v]) => v)))
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        const entries = {}
+        const used = new Set()
+        for (const leg of (data.legs || [])) {
+          const index = stops.findIndex((s, i) => !used.has(i) && s.address.trim() === leg.from && stops[i + 1]?.address.trim() === leg.to)
+          if (index >= 0) {
+            used.add(index)
+            entries[stops[index + 1].id] = leg
+          }
+        }
+        if (!cancelled) setLegs(entries)
+      } catch {
+        if (!cancelled) setLegs({})
+      }
     })()
     return () => { cancelled = true }
   }, [sortedBookings, viewMode])

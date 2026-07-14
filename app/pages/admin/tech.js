@@ -6,14 +6,40 @@ import CustomerMap from '../../components/CustomerMap'
 import TankCalendar from '../../components/TankCalendar'
 import { StopRow } from '../../components/StopCard'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
-import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
+import { getTodaysBookings } from '../../lib/gcal'
+import { useLazyData } from '../../components/useLazyData'
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
   const session = await getSessionFromRequest(req, res)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
-  return { props: {} }
+  const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
+  const now = new Date()
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz })
+  const tomorrow = new Date(now)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const tomorrowStr = tomorrow.toLocaleDateString('en-CA', { timeZone: tz })
+  const bookings = await getTodaysBookings().catch((err) => {
+    console.error('[tech] SSR GCal fallback error:', err.message)
+    return []
+  })
+  const initialStops = bookings.map((b) => ({
+    gcalEventId: b.id || null,
+    title: b.customerName || b.name || 'Customer',
+    serviceType: b.title || '',
+    startTime: b.startTime || null,
+    endTime: b.endTime || null,
+    address: b.address || '',
+    email: b.email || '',
+    phone: b.phone || '',
+    tanks: null,
+    firstAppointment: false,
+    rescheduleUrl: null,
+    appointmentNotes: b.appointmentNotes || null,
+    clientNotes: [],
+  }))
+  return { props: { adminEmail: session.email, todayStr, tomorrowStr, initialStops } }
 }
 
 function fmtTime(iso) {
@@ -136,14 +162,19 @@ function TechNotes() {
   )
 }
 
-export default function TechDashboard() {
+export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, initialStops = [] }) {
   const { data, error, reload } = useLazyData('/api/admin/tech-data')
-  if (error) return <LazyError error={error} onRetry={reload} />
-  if (!data) return <LazyLoading />
-  return <TechDashboardView {...data} />
+  const fallback = {
+    adminEmail,
+    todayStr,
+    tomorrowStr,
+    todayStops: initialStops,
+    tomorrowStops: [],
+  }
+  return <TechDashboardView {...(data || fallback)} lazyError={error} onRetry={reload} />
 }
 
-function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomorrowStops, mapsKey = '', tankData = null, fullTanksOnHand = null, tanksNeededThisWeek = null, expectedDeliveryThisWeek = null }) {
+function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [], tomorrowStops = [], mapsKey = '', tankData = null, fullTanksOnHand = null, tanksNeededThisWeek = null, expectedDeliveryThisWeek = null, lazyError = null, onRetry }) {
   const [distances, setDistances] = useState({})
   const [distLoading, setDistLoading] = useState(false)
 
@@ -183,6 +214,13 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops, tomo
     <>
       <Head><title>Today&apos;s Route · GreenGuard</title></Head>
       <PortalLayout isAdmin>
+
+        {lazyError && (
+          <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(var(--warn-rgb),0.35)', background: 'rgba(var(--warn-rgb),0.08)', color: 'var(--warn)', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <span>Live route data is unavailable; showing the server-rendered route.</span>
+            <button onClick={onRetry} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(var(--warn-rgb),0.4)', background: 'transparent', color: 'var(--warn)', fontWeight: 800, cursor: 'pointer' }}>Retry</button>
+          </div>
+        )}
 
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
