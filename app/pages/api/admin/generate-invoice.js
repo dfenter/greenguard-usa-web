@@ -7,6 +7,7 @@
 const { getSessionFromRequest, isAdminEmail, consumeJti } = require('../../../lib/auth')
 const { stripe, getTaxRateId, priceIdForSku } = require('../../../lib/stripe')
 const { findContactByEmail, updateContact } = require('../../../lib/hubspot')
+const crypto = require('crypto')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-  const { customerEmail: rawEmail, customerName, lineItems, calBookingUid, serviceDate, force, signatureUrl } = req.body || {}
+  const { customerEmail: rawEmail, customerName, lineItems, calBookingUid, serviceDate, force, forceId: requestedForceId, signatureUrl } = req.body || {}
   if (!rawEmail) return res.status(400).json({ error: 'customerEmail required' })
   if (!lineItems?.length) return res.status(400).json({ error: 'No line items' })
 
@@ -32,11 +33,21 @@ export default async function handler(req, res) {
   // Take a short single-flight lock per (customer + booking) via KV SET-NX.
   const lockKey = `invgen:${customerEmail}:${calBookingUid || serviceDate || 'manual'}`
   if (!force) {
-    const gotLock = await consumeJti(`lock:${lockKey}`, 45).catch(() => true)
+    let gotLock
+    try {
+      gotLock = await consumeJti(`lock:${lockKey}`, 45)
+    } catch (err) {
+      console.error('Invoice lock unavailable:', err.message)
+      return res.status(503).json({ error: 'Invoice lock unavailable (KV error). Retry in a moment.' })
+    }
     if (!gotLock) {
       return res.status(409).json({ error: 'An invoice for this visit is already being generated. Try again in a moment.' })
     }
   }
+
+  const forceId = force
+    ? (typeof requestedForceId === 'string' && requestedForceId ? requestedForceId : crypto.randomUUID())
+    : null
 
   // Find or auto-create the Stripe customer. New customers obviously have
   // no card on file, so the downstream branch will route to send_invoice
@@ -181,12 +192,13 @@ export default async function handler(req, res) {
   // through from Rounds with price=0 because the dollar value lives in Stripe;
   // we still want them on the invoice.
   const errors = []
-  const billableItems = lineItems.filter(
-    (i) => i.qty > 0 && (i.price > 0 || (i.sku && priceIdForSku(i.sku)))
-  )
+  const billableItems = lineItems
+    .map((item, origIdx) => ({ item, origIdx }))
+    .filter(({ item }) => item.qty > 0 && (item.price > 0 || (item.sku && priceIdForSku(item.sku))))
 
-  for (const item of billableItems) {
+  for (const { item, origIdx } of billableItems) {
     const priceId = item.sku ? priceIdForSku(item.sku) : null
+    const lineIdempotencyKey = `gg:line:${lockKey}${forceId ? ':' + forceId : ''}:${origIdx}:${(item.sku || item.label || '').slice(0, 40)}:${item.qty}`
     try {
       if (priceId) {
         // The env-mapped Stripe price may be either one-time or recurring.
@@ -201,12 +213,12 @@ export default async function handler(req, res) {
             amount: (price.unit_amount || 0) * item.qty,
             currency: price.currency || 'usd',
             description: item.qty > 1 ? `${productName} ×${item.qty}` : productName,
-          })
+          }, { idempotencyKey: lineIdempotencyKey })
         } else {
           await stripe.invoiceItems.create({
             customer: customer.id, invoice: invoice.id,
             price: priceId, quantity: item.qty,
-          })
+          }, { idempotencyKey: lineIdempotencyKey })
         }
       } else {
         await stripe.invoiceItems.create({
@@ -214,11 +226,21 @@ export default async function handler(req, res) {
           amount: Math.round(item.price * item.qty * 100),
           currency: 'usd',
           description: item.qty > 1 ? `${item.label} ×${item.qty}` : item.label,
-        })
+        }, { idempotencyKey: lineIdempotencyKey })
       }
     } catch (err) {
       errors.push(`${item.label}: ${err.message.slice(0, 60)}`)
     }
+  }
+
+  if (errors.length > 0) {
+    return res.status(502).json({
+      ok: false,
+      error: `Invoice incomplete: ${errors.length} line(s) failed`,
+      invoiceId: invoice.id,
+      invoiceUrl: invoice.hosted_invoice_url || null,
+      errors,
+    })
   }
 
   if (existingInvoice && Object.keys(invoiceMeta).length) {

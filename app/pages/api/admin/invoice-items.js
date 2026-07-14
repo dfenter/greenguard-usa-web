@@ -5,6 +5,12 @@ const { notifyAdminInvoiceSent } = require('../../../lib/purchase-notify')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
+function createInvoiceItem(params, requestId) {
+  return typeof requestId === 'string'
+    ? stripe.invoiceItems.create(params, { idempotencyKey: `gg:manual:${requestId}` })
+    : stripe.invoiceItems.create(params)
+}
+
 // GET  ?email=xxx          — load customer, invoices, pending items
 // POST action=add          — add invoice item by SKU
 // POST action=remove       — remove invoice item
@@ -73,10 +79,13 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
    try {
-    const { action, customerId, sku, itemId, invoiceId } = req.body || {}
+    const { action, customerId, sku, itemId, invoiceId, requestId } = req.body || {}
 
     if (action === 'add') {
       if (!customerId || !sku) return res.status(400).json({ error: 'customerId and sku required' })
+      if (requestId !== undefined && (typeof requestId !== 'string' || requestId.length > 64)) {
+        return res.status(400).json({ error: 'requestId must be a string of 64 characters or fewer' })
+      }
       // Whitelist SKU against known list before using it to build env var names
       if (!Object.prototype.hasOwnProperty.call(SKU_PRICES, sku)) {
         return res.status(400).json({ error: `Unknown SKU: ${sku}` })
@@ -108,14 +117,14 @@ export default async function handler(req, res) {
       const params = { customer: customerId }
       if (targetInvoice) params.invoice = targetInvoice
       if (priceId) {
-        await stripe.invoiceItems.create({ ...params, price: priceId, quantity: qty })
+        await createInvoiceItem({ ...params, price: priceId, quantity: qty }, requestId)
       } else {
-        await stripe.invoiceItems.create({
+        await createInvoiceItem({
           ...params,
           amount: Math.round(price * 100 * qty),
           currency: 'usd',
           description: qty > 1 ? `${sku} ×${qty}` : sku,
-        })
+        }, requestId)
       }
       return res.status(200).json({ ok: true })
     }
@@ -125,6 +134,9 @@ export default async function handler(req, res) {
       // amount + qty entered by hand in the editor. Lands on the customer's
       // draft (same target logic as a SKU add) so it bills like any other line.
       if (!customerId) return res.status(400).json({ error: 'customerId required' })
+      if (requestId !== undefined && (typeof requestId !== 'string' || requestId.length > 64)) {
+        return res.status(400).json({ error: 'requestId must be a string of 64 characters or fewer' })
+      }
       const description = String(req.body?.description || '').trim()
       const unitPrice = Number(req.body?.unitPrice)
       const qty = Math.max(1, parseInt(req.body?.qty || 1, 10) || 1)
@@ -140,12 +152,12 @@ export default async function handler(req, res) {
       }
       const params = { customer: customerId }
       if (targetInvoice) params.invoice = targetInvoice
-      await stripe.invoiceItems.create({
+      await createInvoiceItem({
         ...params,
         amount: Math.round(unitPrice * 100 * qty),
         currency: 'usd',
         description: qty > 1 ? `${description} ×${qty}` : description,
-      })
+      }, requestId)
       return res.status(200).json({ ok: true })
     }
 

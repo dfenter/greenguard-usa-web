@@ -715,6 +715,20 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
   async function finishStop(customMsg) {
     onUpdate({ showEmailModal: false, submitting: true, error: null })
     try {
+      const showInvoiceFailure = async (response) => {
+        const errData = await response.json().catch(() => ({}))
+        const details = [
+          errData.error,
+          ...(Array.isArray(errData.errors) ? errData.errors : []),
+        ].filter(Boolean).join('\n') || `Invoice failed: ${response.status}`
+        const partialDraft = errData.invoiceId ? `\nPartial draft in ${errData.invoiceId}.` : ''
+        onUpdate({
+          submitting: false,
+          showEmailModal: false,
+          error: `${details}${partialDraft}`,
+        })
+      }
+
       // 1. Generate Stripe draft invoice. Create one whenever the customer
       // has an email and at least one line item is selected, even if every
       // item happens to be $0 — gives admin a paper trail to finalize/edit.
@@ -739,23 +753,27 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
             return
           }
           // Force through — customer confirmed
+          const forceId = crypto.randomUUID()
           const forceRes = await fetch('/api/admin/generate-invoice', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ customerEmail: stop.email, customerName: stop.customerName, lineItems: allLineItems, serviceDate: state.date, calBookingUid: stop.calBookingUid, force: true }),
+            body: JSON.stringify({ customerEmail: stop.email, customerName: stop.customerName, lineItems: allLineItems, serviceDate: state.date, calBookingUid: stop.calBookingUid, force: true, forceId }),
           })
           if (forceRes.ok) {
             const fd = await forceRes.json()
             invoiceId = fd.invoiceId
             invoiceUrl = fd.invoiceUrl
+          } else {
+            await showInvoiceFailure(forceRes)
+            return
           }
         } else if (invRes.ok) {
           const invData = await invRes.json()
           invoiceId = invData.invoiceId
           invoiceUrl = invData.invoiceUrl
         } else {
-          const errData = await invRes.json().catch(() => ({}))
-          invoiceSkipped = `Invoice failed: ${errData.error || invRes.status}`
+          await showInvoiceFailure(invRes)
+          return
         }
       }
 

@@ -61,6 +61,20 @@ function priceIdForSku(sku) {
 async function addInvoiceItems(customerId, oneTimeSkus, metadata = {}) {
   const skus = (oneTimeSkus || []).filter((s) => PRICE_ID_MAP[s])
   if (!skus.length) return []
+  const { gg_idem_base: idemBase, ...stripeMetadata } = metadata || {}
+  const hasIdemBase = typeof idemBase === 'string'
+
+  function createInvoice(params, idempotencyKey) {
+    return idempotencyKey
+      ? stripe.invoices.create(params, { idempotencyKey })
+      : stripe.invoices.create(params)
+  }
+
+  function createInvoiceItem(params, idempotencyKey) {
+    return idempotencyKey
+      ? stripe.invoiceItems.create(params, { idempotencyKey })
+      : stripe.invoiceItems.create(params)
+  }
 
   // Reuse the customer's open draft (same one generate-invoice would use) so a
   // visit's charges accumulate on one invoice instead of fragmenting.
@@ -74,35 +88,38 @@ async function addInvoiceItems(customerId, oneTimeSkus, metadata = {}) {
       if (pms.data.length > 0) { collection_method = 'charge_automatically'; days_until_due = undefined }
     } catch {}
     const taxRateId = getTaxRateId()
-    invoice = await stripe.invoices.create({
-      customer: customerId,
-      auto_advance: false,
-      collection_method,
-      ...(days_until_due !== undefined ? { days_until_due } : {}),
-      metadata: { ...metadata },
-      ...(taxRateId ? { default_tax_rates: [taxRateId] } : {}),
-    }).catch(async (err) => {
+    try {
+      invoice = await createInvoice({
+        customer: customerId,
+        auto_advance: false,
+        collection_method,
+        ...(days_until_due !== undefined ? { days_until_due } : {}),
+        metadata: { ...stripeMetadata },
+        ...(taxRateId ? { default_tax_rates: [taxRateId] } : {}),
+      }, hasIdemBase ? `gg:invcreate:${idemBase}` : null)
+    } catch (err) {
       // Retry without a stale/missing tax rate rather than lose the charge.
       if (taxRateId && err?.code === 'resource_missing') {
-        return stripe.invoices.create({
+        invoice = await createInvoice({
           customer: customerId, auto_advance: false, collection_method,
           ...(days_until_due !== undefined ? { days_until_due } : {}),
-          metadata: { ...metadata },
-        })
+          metadata: { ...stripeMetadata },
+        }, hasIdemBase ? `gg:invcreate:${idemBase}:notax` : null)
+      } else {
+        throw err
       }
-      throw err
-    })
+    }
   }
 
   const results = []
-  for (const sku of skus) {
+  for (const [i, sku] of skus.entries()) {
     results.push(
-      await stripe.invoiceItems.create({
+      await createInvoiceItem({
         customer: customerId,
         invoice: invoice.id,
         price: PRICE_ID_MAP[sku],
-        metadata: { ...metadata, gg_sku: sku },
-      })
+        metadata: { ...stripeMetadata, gg_sku: sku },
+      }, hasIdemBase ? `gg:invitem:${idemBase}:${sku}:${i}` : null)
     )
   }
   return results

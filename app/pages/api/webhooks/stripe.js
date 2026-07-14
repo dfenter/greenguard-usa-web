@@ -331,7 +331,7 @@ export default async function handler(req, res) {
         // Mark the quote paid so its checkout link can't be paid again after the
         // Stripe idempotency key expires (~24h). checkout.js consults this.
         if (session.metadata?.source === 'quote' && session.metadata?.quote_jti) {
-          await markQuotePaid(session.metadata.quote_jti).catch(() => {})
+          await markQuotePaid(session.metadata.quote_jti)
         }
 
         // Mark quote as paid in HubSpot so quote-followup cron stops following up

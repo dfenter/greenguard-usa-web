@@ -54,12 +54,16 @@ export default async function handler(req, res) {
         )
         skusToAdd = skus.filter((s) => !billedToday.has(s))
         skippedDuplicates = skus.length - skusToAdd.length
-      } catch {}
+      } catch (err) {
+        console.error('complete-visit invoice-item lookup failed:', err.message)
+        return res.status(503).json({ error: 'Could not verify existing invoice items; nothing was billed. Retry in a moment.' })
+      }
 
       if (skusToAdd.length > 0) {
         const items = await addInvoiceItems(stripeCustomerId, skusToAdd, {
           gg_source: 'complete-visit',
           gg_visit_date: visitDate,
+          gg_idem_base: `${stripeCustomerId}:${visitDate}:complete-visit`,
         })
         invoiceItemsAdded = items.length
       }

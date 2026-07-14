@@ -52,6 +52,9 @@ function InvoiceEditorView({ customers = [] }) {
   const [sentDrafts, setSentDrafts] = useState({})  // { invoiceId: { status, collectionMethod } }
   const [sendingDraft, setSendingDraft] = useState(null)  // invoiceId currently submitting
   const searchRef = useRef(null)
+  const addItemInFlight = useRef(false)
+  const addCustomInFlight = useRef(false)
+  const draftAddInFlight = useRef(new Set())
 
   const filtered = search.length >= 1
     ? customers.filter((c) => {
@@ -112,32 +115,46 @@ function InvoiceEditorView({ customers = [] }) {
   }
 
   async function addItem() {
-    if (!selectedSku || !data) return
-    setAdding(true)
-    const res = await fetch('/api/admin/invoice-items', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'add', customerId: data.customer.id, sku: selectedSku }),
-    })
-    setAdding(false)
-    if (res.ok) { setMsg('Item added'); loadCustomer() }
-    else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+    if (addItemInFlight.current) return
+    addItemInFlight.current = true
+    const requestId = crypto.randomUUID()
+    try {
+      if (!selectedSku || !data) return
+      setAdding(true)
+      const res = await fetch('/api/admin/invoice-items', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', customerId: data.customer.id, sku: selectedSku, requestId }),
+      })
+      if (res.ok) { setMsg('Item added'); loadCustomer() }
+      else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+    } finally {
+      addItemInFlight.current = false
+      setAdding(false)
+    }
   }
 
   async function addCustomItem() {
-    if (!data) return
-    const desc = customDesc.trim()
-    const price = parseFloat(customPrice)
-    const qty = Math.max(1, parseInt(customQty, 10) || 1)
-    if (!desc) { setMsg('Error: description required'); return }
-    if (!Number.isFinite(price) || price <= 0) { setMsg('Error: enter a positive dollar amount'); return }
-    setAddingCustom(true)
-    const res = await fetch('/api/admin/invoice-items', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'add-custom', customerId: data.customer.id, description: desc, unitPrice: price, qty }),
-    })
-    setAddingCustom(false)
-    if (res.ok) { setMsg('Custom item added'); setCustomDesc(''); setCustomPrice(''); setCustomQty('1'); loadCustomer() }
-    else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+    if (addCustomInFlight.current) return
+    addCustomInFlight.current = true
+    const requestId = crypto.randomUUID()
+    try {
+      if (!data) return
+      const desc = customDesc.trim()
+      const price = parseFloat(customPrice)
+      const qty = Math.max(1, parseInt(customQty, 10) || 1)
+      if (!desc) { setMsg('Error: description required'); return }
+      if (!Number.isFinite(price) || price <= 0) { setMsg('Error: enter a positive dollar amount'); return }
+      setAddingCustom(true)
+      const res = await fetch('/api/admin/invoice-items', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add-custom', customerId: data.customer.id, description: desc, unitPrice: price, qty, requestId }),
+      })
+      if (res.ok) { setMsg('Custom item added'); setCustomDesc(''); setCustomPrice(''); setCustomQty('1'); loadCustomer() }
+      else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+    } finally {
+      addCustomInFlight.current = false
+      setAddingCustom(false)
+    }
   }
 
   async function removeItem(itemId) {
@@ -420,20 +437,27 @@ function InvoiceEditorView({ customers = [] }) {
                             <button style={btn('green')}
                                     disabled={!draftAddSku[draft.id] || draftAdding === draft.id}
                                     onClick={async () => {
-                                      const sku = draftAddSku[draft.id]
-                                      if (!sku) return
-                                      setDraftAdding(draft.id)
-                                      const r = await fetch('/api/admin/invoice-items', {
-                                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ action: 'add', customerId: draft.customerId, invoiceId: draft.id, sku }),
-                                      })
-                                      setDraftAdding(null)
-                                      if (r.ok) {
-                                        setDraftAddSku({ ...draftAddSku, [draft.id]: '' })
-                                        loadPending()
-                                      } else {
-                                        const j = await r.json().catch(() => ({}))
-                                        alert('Failed: ' + (j.error || r.status))
+                                      if (draftAddInFlight.current.has(draft.id)) return
+                                      draftAddInFlight.current.add(draft.id)
+                                      const requestId = crypto.randomUUID()
+                                      try {
+                                        const sku = draftAddSku[draft.id]
+                                        if (!sku) return
+                                        setDraftAdding(draft.id)
+                                        const r = await fetch('/api/admin/invoice-items', {
+                                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ action: 'add', customerId: draft.customerId, invoiceId: draft.id, sku, requestId }),
+                                        })
+                                        if (r.ok) {
+                                          setDraftAddSku({ ...draftAddSku, [draft.id]: '' })
+                                          loadPending()
+                                        } else {
+                                          const j = await r.json().catch(() => ({}))
+                                          alert('Failed: ' + (j.error || r.status))
+                                        }
+                                      } finally {
+                                        draftAddInFlight.current.delete(draft.id)
+                                        setDraftAdding(null)
                                       }
                                     }}>
                               {draftAdding === draft.id ? 'Adding…' : '+ Add'}
