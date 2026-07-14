@@ -464,8 +464,11 @@ function prefillFromBooking(booking, contact) {
   // No-charge events: return nothing, skip addons too.
   const noChargeSlugs = ['tank-refill-check', 'equipment-pickup', 'property-assessment']
   if (noChargeSlugs.includes(slug)) return baseLines || []
-  // Unknown slug — fall back to the customer's system config rather than blank.
-  if (baseLines === null) return prefillFromContact(contact)
+  // Unknown/unrecognized slug — return blank rather than guessing the customer's
+  // standing charges. Auto-billing the wrong service is worse than an empty
+  // prefill the tech fills in manually. (A MISSING slug still falls back to
+  // prefillFromContact above — that is the legitimate "unmappable title" path.)
+  if (baseLines === null) return []
 
   // Append recurring addons that aren't already present in the base.
   const haveSku = new Set(baseLines.map((l) => l.sku))
