@@ -1,6 +1,7 @@
 // POST /api/customer/request-upgrade
 // Customer submits an upgrade request. Sends an email to admin and logs a
-// HubSpot note. No Stripe changes — admin reviews and applies via /admin/upgrade.
+// HubSpot note. No Stripe changes — admin reviews on the client detail page and
+// bills any upgrade through the normal invoice flow (no subscriptions, policy).
 
 const { getSessionFromRequest } = require('../../../lib/auth')
 const { findContactByEmail, addNote } = require('../../../lib/hubspot')
@@ -65,9 +66,9 @@ export default async function handler(req, res) {
             </div>
             ` : ''}
 
-            <a href="https://portal.greenguard-usa.com/admin/upgrade?email=${encodeURIComponent(session.email)}"
+            <a href="https://portal.greenguard-usa.com/admin/clients/${encodeURIComponent(session.email)}"
                style="display:inline-block;background:linear-gradient(135deg,#7dffaa,#4dd98a);color:#0d1a10;font-weight:900;font-size:0.9rem;padding:13px 24px;border-radius:8px;text-decoration:none;margin-bottom:8px;">
-              Apply Upgrade in Admin →
+              Review in Admin →
             </a>
             <br>
             <a href="https://portal.greenguard-usa.com/admin/clients/${encodeURIComponent(session.email)}"

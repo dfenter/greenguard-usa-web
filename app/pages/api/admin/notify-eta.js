@@ -1,8 +1,29 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
-const { sendSms } = require('../../../lib/sms')
+const { sendSms, normalizePhone } = require('../../../lib/sms')
 const { findContactByEmail, addNote, getContactNotes } = require('../../../lib/hubspot')
+const { kv, isKvConfigured } = require('../../../lib/notify-queue')
 
 const DEDUP_WINDOW_MS = 30 * 60 * 1000 // 30 min — covers re-clicks and "ETA changed" cases
+const DEDUP_WINDOW_SEC = 30 * 60
+
+/**
+ * Atomically claim an On-my-way send for this phone in KV before sending, so two
+ * rapid sends can't both get through. Returns true if THIS call won the claim
+ * (safe to send), false if a claim is already held (duplicate). The HubSpot-note
+ * check below is a 30-min-window backstop, but it reads through a 60s cache and
+ * HubSpot's own note-indexing lag, so it can't catch sub-minute double-sends —
+ * this KV claim does. Fails OPEN (returns true) if KV is unset/unreachable.
+ */
+async function claimOnMyWay(phone) {
+  if (!isKvConfigured()) return true
+  const key = `notify:onmyway:${normalizePhone(phone) || phone}`
+  try {
+    const res = await kv(['SET', key, '1', 'NX', 'EX', String(DEDUP_WINDOW_SEC)])
+    return res === 'OK' // null when the key already exists (claim held)
+  } catch {
+    return true // KV blip — don't block a legitimate arrival text
+  }
+}
 
 /**
  * POST /api/admin/notify-eta
@@ -46,6 +67,18 @@ export default async function handler(req, res) {
         }
       }
     } catch {}
+  }
+
+  // Atomic claim BEFORE sending — closes the sub-minute double-send race the
+  // HubSpot-note check above can't (60s note cache + note-indexing lag).
+  if (!force) {
+    const won = await claimOnMyWay(phone)
+    if (!won) {
+      return res.status(409).json({
+        duplicate: true,
+        error: 'An On-my-way SMS was just sent to this customer. Pass force:true to re-send.',
+      })
+    }
   }
 
   const first = (customerName || '').split(' ')[0] || 'there'

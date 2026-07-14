@@ -9,7 +9,7 @@ const PREFETCH_ROUTES = [
   '/admin/home', '/admin/tech', '/admin/rounds', '/admin/inventory',
   '/admin/clients', '/admin/quote', '/admin/invoice', '/admin/invoices',
   '/admin/route', '/admin/analytics', '/admin/books', '/admin/books/chat',
-  '/admin/books/upload', '/admin/booking', '/admin/upgrade',
+  '/admin/books/upload', '/admin/booking',
   '/dashboard', '/dashboard/billing', '/dashboard/co2', '/dashboard/equipment',
   '/dashboard/history', '/dashboard/map', '/dashboard/schedule',
   '/dashboard/settings', '/dashboard/upgrade',
