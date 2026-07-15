@@ -483,7 +483,7 @@ function InvoiceEditorView({ customers = [] }) {
             {/* Appointments without invoices */}
             {pending.needsInvoice?.length > 0 && (
               <div className="card" style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.35)', marginBottom: 12 }}>Appointments without invoices (past 7 days)</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.35)', marginBottom: 12 }}>Appointments without invoices (past 21 days)</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {pending.needsInvoice.map((apt, i) => (
                     <div

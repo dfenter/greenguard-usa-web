@@ -3,18 +3,16 @@ const { listAllDraftInvoices, stripe } = require('../../../lib/stripe')
 const { getBookingsForDateRange, tzDayBoundsISO } = require('../../../lib/gcal')
 const { SKU_PRICES } = require('../../../lib/sku-engine')
 
-// Returns start-of-Monday ISO for the current week in the configured timezone.
-function getThisMonday(tz) {
-  const now = new Date()
-  // Get day-of-week in target timezone
-  const dayStr = now.toLocaleDateString('en-US', { timeZone: tz, weekday: 'short' })
-  const days = { Sun: 6, Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5 }
-  const back = days[dayStr] ?? 0
-  const monday = new Date(now)
-  monday.setDate(monday.getDate() - back)
-  const mondayStr = monday.toLocaleDateString('en-CA', { timeZone: tz })
-  // DST-correct start-of-Monday (was a hardcoded -05:00, wrong in CST Nov–Mar).
-  return tzDayBoundsISO(mondayStr, tz).start
+// Window for "appointments without invoices" — how many days back to scan.
+const LOOKBACK_DAYS = 21
+
+// Returns start-of-day ISO for `days` ago in the configured timezone.
+function getLookbackStart(tz, days) {
+  const past = new Date()
+  past.setDate(past.getDate() - days)
+  const pastStr = past.toLocaleDateString('en-CA', { timeZone: tz })
+  // DST-correct start-of-day (tzDayBoundsISO handles the CST/CDT offset).
+  return tzDayBoundsISO(pastStr, tz).start
 }
 
 export default async function handler(req, res) {
@@ -24,7 +22,7 @@ export default async function handler(req, res) {
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const tz = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
-  const startISO = getThisMonday(tz)
+  const startISO = getLookbackStart(tz, LOOKBACK_DAYS)
   const endISO = new Date().toISOString()
 
   try {
