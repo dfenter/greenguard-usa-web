@@ -739,6 +739,13 @@ def main():
         shutil.copytree(zelda_src, os.path.join(OUT, 'zelda'))
         print('  COPY  zelda/')
 
+    # Copy EMBERHOLD 3D tactics game (served at /tactics3d/; canonical source
+    # is /Users/lucille/strategy-game/prototype/tactics3d.html — sync before deploy)
+    tactics3d_src = os.path.join(REPO, 'tactics3d')
+    if os.path.isdir(tactics3d_src):
+        shutil.copytree(tactics3d_src, os.path.join(OUT, 'tactics3d'))
+        print('  COPY  tactics3d/')
+
     # Generate Google Merchant Center product feed
     feed_path = os.path.join(OUT, 'products-feed.xml')
     open(feed_path, 'w', encoding='utf-8').write(_build_merchant_feed())
