@@ -1,4 +1,6 @@
 node_modules
+.env.local
+.env*.local
 *.dmg
 *.pdf
 *.csv
@@ -11,7 +13,8 @@ jlcpcb_output
 jlcpcb_output_v2
 jlcpcb_output_v3
 fab_handover
-lib
+lib/size-cache.json
+lib/delete-progress.json
 firmware
 upload-progress.json
 duplicates.csv
