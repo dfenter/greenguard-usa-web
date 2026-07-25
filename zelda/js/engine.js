@@ -48,6 +48,10 @@ const Engine = (() => {
   // ---- input ----
   const keys = {};        // held
   const pressed = {};      // edge: true for one frame
+  function clearInput() {
+    for (const k in keys) keys[k] = false;
+    for (const k in pressed) pressed[k] = false;
+  }
   const KEYMAP = {
     ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right',
     KeyW:'up', KeyS:'down', KeyA:'left', KeyD:'right',
@@ -68,6 +72,8 @@ const Engine = (() => {
     const k = KEYMAP[e.code];
     if (k) { keys[k] = false; e.preventDefault(); }
   });
+  window.addEventListener('blur', clearInput);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) clearInput(); });
 
   // touch: the on-screen controller. Hit-testing is done against the ACTUAL
   // control DOM elements (#dpad, #btn-a/b/start/select) so the touch zones can
@@ -192,12 +198,7 @@ const Engine = (() => {
     ctx.fillText('STARTING...', 4, 4);
     // Also run one frame synchronously
     frame(nowMs());
-    // Then continue async
-    var _rAFfired = false;
-    requestAnimationFrame(function(now) { _rAFfired = true; frame(now); });
-    setTimeout(function() {
-      if (!_rAFfired) { _useRAF = false; tick(); }
-    }, 100);
+    // frame() owns the single recurring scheduler chain.
   }
 
   // ---- tiny deterministic-ish RNG ----

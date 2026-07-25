@@ -7,30 +7,69 @@ const DIRS = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 const Entities = (() => {
 
   // ---- shared movement with per-axis tile collision ----
-  function boxSolid(game, x, y, w, h) {
-    // sample the four corners + edge midpoints
+  function boxSolid(game, e, x, y, w, h) {
+    const s = game.solidFor;
+    if (s) return s(e, x, y) || s(e, x+w-1, y) || s(e, x, y+h-1) || s(e, x+w-1, y+h-1) ||
+      s(e, x+w/2, y) || s(e, x+w/2, y+h-1) || s(e, x, y+h/2) || s(e, x+w-1, y+h/2);
+    return game.solidAt(x, y, e) || game.solidAt(x+w-1, y, e) || game.solidAt(x, y+h-1, e) ||
+      game.solidAt(x+w-1, y+h-1, e) || game.solidAt(x+w/2, y, e) || game.solidAt(x+w/2, y+h-1, e) ||
+      game.solidAt(x, y+h/2, e) || game.solidAt(x+w-1, y+h/2, e);
+  }
+  function embeddingScore(game, e, x, y, w, h) {
     const pts = [
       [x, y], [x+w-1, y], [x, y+h-1], [x+w-1, y+h-1],
       [x+w/2, y], [x+w/2, y+h-1], [x, y+h/2], [x+w-1, y+h/2],
     ];
-    for (const [px, py] of pts) if (game.solidAt(px, py)) return true;
-    return false;
+    let score = 0;
+    for (const [px, py] of pts) if (game.solidFor ? game.solidFor(e, px, py) : game.solidAt(px, py, e)) score++;
+    return score;
+  }
+  function clampEntity(e) {
+    if (e.kind === 'link') return;
+    e.x = Math.max(0, Math.min(PLAY_W - e.w, e.x));
+    e.y = Math.max(0, Math.min(PLAY_H - e.h, e.y));
   }
   function tryMove(e, dx, dy, game, inset) {
     const ix = inset.x, iy = inset.y, iw = e.w - inset.x - inset.x2, ih = e.h - inset.y - inset.y2;
-    // Escape-overlap rule: if the entity is ALREADY embedded in a solid (this
-    // happens by design when a room transition drops Link onto the far side's
-    // locked/shutter door tiles), allow movement so it can always walk out.
-    const embedded = boxSolid(game, e.x + ix, e.y + iy, iw, ih);
+    clampEntity(e);
+    const embedded = boxSolid(game, e, e.x + ix, e.y + iy, iw, ih);
+    const linkEscape = e.kind === 'link' && embedded;
+    const currentScore = embedded ? embeddingScore(game, e, e.x + ix, e.y + iy, iw, ih) : 0;
     let moved = false;
+    const attempt = (nx, ny) => {
+      if (e.kind !== 'link') {
+        nx = Math.max(0, Math.min(PLAY_W - e.w, nx));
+        ny = Math.max(0, Math.min(PLAY_H - e.h, ny));
+      }
+      const clear = !boxSolid(game, e, nx + ix, ny + iy, iw, ih);
+      const reduces = embedded && embeddingScore(game, e, nx + ix, ny + iy, iw, ih) < currentScore;
+      if (linkEscape || clear || reduces) { e.x = nx; e.y = ny; moved = true; }
+    };
     if (dx) {
       const nx = e.x + dx;
-      if (embedded || !boxSolid(game, nx + ix, e.y + iy, iw, ih)) { e.x = nx; moved = true; }
+      attempt(nx, e.y);
     }
     if (dy) {
       const ny = e.y + dy;
-      if (embedded || !boxSolid(game, e.x + ix, ny + iy, iw, ih)) { e.y = ny; moved = true; }
+      attempt(e.x, ny);
     }
+    if (embedded && e.kind !== 'link' && !moved) {
+      const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
+      let best = null;
+      for (let radius = 1; radius <= 4 && !best; radius++) {
+        const candidates = [[0,-radius],[0,radius],[-radius,0],[radius,0]];
+        for (const [tx, ty] of candidates) {
+          const px = Math.floor(cx / 16) + tx, py = Math.floor(cy / 16) + ty;
+          if (px < 0 || px >= COLS || py < 0 || py >= ROWS) continue;
+          if (!game.solidFor(e, px * 16 + 8, py * 16 + 8)) { best = [px * 16 + 8, py * 16 + 8]; break; }
+        }
+      }
+      if (best) {
+        const nx = e.x + Math.sign(best[0] - cx), ny = e.y + Math.sign(best[1] - cy);
+        attempt(nx, ny);
+      }
+    }
+    clampEntity(e);
     return moved;
   }
   const LINK_INSET = { x:2, x2:2, y:5, y2:1 };
@@ -46,19 +85,27 @@ const Entities = (() => {
     return {
       kind:'link', x:px, y:py, w:16, h:16, dir:'down',
       speed:1.4, moving:false, animTimer:0, frame:0,
-      maxHealth:18, health:18,          // half-hearts (9 hearts)
+      maxHealth:6, health:6,            // half-hearts (3 hearts)
       attackTimer:0, invuln:0, knock:null,
-      bombs:8, rupees:0, keys:0,
-      hasSword:false, hasBow:false, hasBoomerang:false, hasBomb:true, hasShield:true,
-      hasCandle:false, hasRing:false, hasFireRod:false, hasSilverArrows:false,
+      hoist:0, hoistItem:null,
+      swordDisabled:0,
+      bombs:0, maxBombs:8, rupees:0, keys:0,
+      hasSword:false, hasBow:false, hasBoomerang:false, hasMagicalBoomerang:false, hasWhistle:false, hasMap:false, hasCompass:false, hasBomb:true, hasShield:true, hasMagicShield:false,
+      hasCandle:false, hasRing:false, hasRedRing:false, hasFireRod:false, hasSilverArrows:false,
       hasWhiteSword:false, hasMagicSword:false, hasStepladder:false, hasRaft:false, hasMagicKey:false,
+      hasPowerBracelet:false, hasBait:false, hasLetter:false, hasPotion:false, potion:null, potionCharges:0, hasBombUpgrade:false,
       swordDmg:1,
       bItem:'bomb',
       triforce:false,
       update(game) {
         const K = game.keys, P = game.pressed;
+        // Major pickups briefly lock Link in the classic overhead item pose.
+        if (this.hoist > 0) {
+          this.moving = false;
+          this.hoist--;
+          if (this.hoist <= 0) this.hoistItem = null;
         // knockback overrides control
-        if (this.knock) {
+        } else if (this.knock) {
           const k = this.knock;
           tryMove(this, k.dx, k.dy, game, LINK_INSET);
           k.t--; if (k.t <= 0) this.knock = null;
@@ -78,8 +125,10 @@ const Entities = (() => {
             tryMove(this, dx * this.speed, dy * this.speed, game, LINK_INSET);
           }
           // attack
-          if (P.a && this.hasSword && this.attackTimer <= 0) {
+          if (P.a && this.hasSword && this.attackTimer <= 0 && this.swordDisabled <= 0) {
             this.attackTimer = 14; game.swordSwung = 8;
+            game.swordSwingId = (game.swordSwingId || 0) + 1;
+            game.swordHitSet = new Set();
             Sound.SFX.sword();
             if (this.health >= this.maxHealth) {
               const [vx, vy] = DIRS[this.dir];
@@ -94,41 +143,16 @@ const Entities = (() => {
         else this.frame = 0;
         if (this.attackTimer > 0) this.attackTimer--;
         if (this.invuln > 0) this.invuln--;
+        if (this.swordDisabled > 0) this.swordDisabled--;
       },
       useItem(game) {
-        if (this.bItem === 'bomb' && this.bombs > 0) {
-          const [vx, vy] = DIRS[this.dir];
-          game.spawn(makeBomb(this.x + vx*14, this.y + vy*14));
-          this.bombs--;
-        } else if (this.bItem === 'bow' && this.hasBow && this.rupees > 0) {
-          const [vx, vy] = DIRS[this.dir];
-          const arrowDmg = this.hasSilverArrows ? 4 : 2;
-          game.spawn(makeProjectile('arrow', this.x, this.y, this.dir, { vx, vy, speed:5, damage:arrowDmg, fromEnemy:false }));
-          this.rupees--; Sound.SFX.beam();
-        } else if (this.bItem === 'boomerang' && this.hasBoomerang) {
-          if (!game.entities.some(e => e.kind==='proj' && e.ptype==='boomerang')) {
-            const [vx, vy] = DIRS[this.dir];
-            game.spawn(makeBoomerang(this.x, this.y, vx, vy, this));
-            Sound.SFX.sword();
-          }
-        } else if (this.bItem === 'candle' && this.hasCandle) {
-          if (!game.entities.some(e => e.kind==='proj' && e.ptype==='flame')) {
-            const [vx, vy] = DIRS[this.dir];
-            game.spawn(makeProjectile('flame', this.x, this.y, this.dir,
-              { vx, vy, speed:2.2, damage:1, life:36, fromEnemy:false }));
-            Sound.SFX.beam();
-          }
-        } else if (this.bItem === 'firerod' && this.hasFireRod && this.rupees >= 4) {
-          const [vx, vy] = DIRS[this.dir];
-          const p = makeProjectile('fireblast', this.x, this.y, this.dir, { vx, vy, speed:2.5, damage:2, life:48, fromEnemy:false });
-          p.w = 20; p.h = 20;
-          game.spawn(p);
-          this.rupees -= 4; Sound.SFX.beam();
-        }
+        const item = ITEMS[this.bItem];
+        if (item && item.use) item.use(this, game);
       },
       hurt(game, dmg, srcx, srcy) {
         if (this.invuln > 0 || this.knock) return;
-        if (this.hasRing) dmg = Math.max(1, Math.ceil(dmg / 2));   // Blue Ring halves damage
+        if (this.hasRedRing) dmg = Math.max(1, Math.ceil(dmg / 4));
+        else if (this.hasRing) dmg = Math.max(1, Math.ceil(dmg / 2));
         this.health = Math.max(0, this.health - dmg);
         this.invuln = 60;
         Sound.SFX.hurt();
@@ -139,9 +163,33 @@ const Entities = (() => {
       },
       draw(ctx, ox, oy) {
         if (this.invuln > 0 && (this.invuln >> 2) & 1) return;   // blink
+        if (this.hoist > 0) {
+          const x = (this.x|0) + ox, y = (this.y|0) + oy;
+          const lift = (this.hoist >> 3) & 1;
+          // A compact procedural two-frame lift: raised arms alternate by
+          // one pixel while the item stays above Link's head.
+          ctx.fillStyle = '#f0b878'; ctx.fillRect(x + 4, y + 2, 8, 5);
+          ctx.fillStyle = '#d8a020'; ctx.fillRect(x + 3, y + 1, 10, 2);
+          ctx.fillStyle = '#38a848'; ctx.fillRect(x + 4, y + 7, 8, 8);
+          ctx.fillStyle = '#f0b878';
+          ctx.fillRect(x + 1, y + 5 - lift, 3, 7);
+          ctx.fillRect(x + 12, y + 5 - lift, 3, 7);
+          ctx.fillStyle = '#804018'; ctx.fillRect(x + 4, y + 14, 3, 2); ctx.fillRect(x + 9, y + 14, 3, 2);
+          const def = typeof ITEMS !== 'undefined' && ITEMS[this.hoistItem];
+          if (def && def.icon) def.icon(ctx, x, y - 12 - lift);
+          else {
+            ctx.fillStyle = '#f8d030'; ctx.fillRect(x + 5, y - 10 - lift, 6, 6);
+            ctx.fillStyle = '#fff'; ctx.fillRect(x + 7, y - 12 - lift, 2, 2);
+          }
+          return;
+        }
         const set = Sprites.get('link')[this.dir];
         const sp = set[this.frame % set.length];
         Sprites.blit(ctx, sp, (this.x|0)+ox, (this.y|0)+oy);
+        if (this.hasRedRing || this.hasRing) {
+          ctx.fillStyle = this.hasRedRing ? '#d82828' : '#3858f8';
+          ctx.globalAlpha = 0.18; ctx.fillRect((this.x|0)+ox+3, (this.y|0)+oy+4, 10, 9); ctx.globalAlpha = 1;
+        }
       }
     };
   }
@@ -150,6 +198,11 @@ const Entities = (() => {
   function tilePx(t) { return t * 16; }
 
   function makeEnemy(type, variant, tx, ty) {
+    if (type === 'moldorm') return makeMoldorm(tx, ty);
+    if (type === 'dodongo') return makeDodongo(tx, ty, { boss:false, pair:false });
+    if (type === 'patra') return makePatra(tx, ty);
+    if (type === 'ganon') return makeGanon(tx, ty);
+    if (type === 'hungrygoriya') return makeHungryGoriya(tx, ty);
     const base = {
       kind:'enemy', etype:type, variant, x:tilePx(tx), y:tilePx(ty), w:16, h:16,
       dir:'down', hp:1, speed:0.7, moveTimer:0, shootTimer:60,
@@ -157,10 +210,17 @@ const Entities = (() => {
     };
     const cfg = ENEMY_CFG[type] || {};
     Object.assign(base, cfg.init ? cfg.init(variant) : {});
+    if (type === 'bubble') { base.anchorX = base.x + 8; base.anchorY = base.y + 8; }
     base.update = function(game) { (cfg.update || octorokUpdate)(this, game); commonPost(this, game); };
     base.draw = function(ctx, ox, oy) { (cfg.draw || defaultDraw)(this, ctx, ox, oy); };
     base.hurt = function(game, dmg, kx, ky) { (cfg.hurt || enemyHurt)(this, game, dmg, kx, ky); };
     return base;
+  }
+
+  function makeEnemyAt(type, variant, x, y) {
+    const e = makeEnemy(type, variant, 0, 0);
+    e.x = x; e.y = y;
+    return e;
   }
 
   function commonPost(e, game) {
@@ -171,11 +231,18 @@ const Entities = (() => {
     }
     e.animTimer++; if (e.animTimer >= 12) { e.animTimer = 0; e.frame ^= 1; }
     // contact damage (submerged/hidden enemies are intangible)
-    if (!e.hidden && overlap(hitbox(e), hitbox(game.link)))
-      game.link.hurt(game, e.touchDmg, e.x + 8, e.y + 8);
+    if (!e.hidden && overlap(hitbox(e), hitbox(game.link))) {
+      if (e.etype === 'bubble') {
+        game.link.swordDisabled = Math.max(game.link.swordDisabled || 0, 80);
+      } else if (e.etype === 'wallmaster') {
+        if (game.onWallmasterGrab) game.onWallmasterGrab(e);
+      } else if (!e.invulnerable) {
+        game.link.hurt(game, e.touchDmg, e.x + 8, e.y + 8);
+      }
+    }
   }
   function enemyHurt(e, game, dmg, kx, ky) {
-    if (e.flash > 4) return;
+    if (e.flash > 4 || e.invulnerable) return;
     e.hp -= dmg; e.flash = 10; Sound.SFX.enemyHit();
     const ang = Math.atan2(e.y - ky, e.x - kx);
     e.knock = { dx: Math.cos(ang) * 4, dy: Math.sin(ang) * 4, t: 6 };
@@ -203,6 +270,10 @@ const Entities = (() => {
       case 'darknut':    return Sprites.get('darknut') || Sprites.get('stalfos');
       case 'wizzrobe':   return Sprites.get('wizzrobe') || Sprites.get('octorok').red;
       case 'likelike':   return Sprites.get('likelike') || Sprites.get('leever');
+      case 'rope':       return Sprites.get('leever');
+      case 'zol':        return Sprites.get('gel').green;
+      case 'bubble':     return Sprites.get('keese');
+      case 'wallmaster': return Sprites.get('stalfos');
       default:        return Sprites.get('octorok').red;
     }
   }
@@ -237,8 +308,9 @@ const Entities = (() => {
     if (e.jump > 0) {
       e.x += e.jvx; e.y += e.jvy; e.jump--;
       // simple collision: keep in play bounds
-      if (e.x < 4 || e.x > 236) { e.jvx *= -1; e.x += e.jvx; }
-      if (e.y < 4 || e.y > 160) { e.jvy *= -1; e.y += e.jvy; }
+      if (e.x < 0 || e.x > PLAY_W - e.w) { e.jvx *= -1; e.x += e.jvx; }
+      if (e.y < 0 || e.y > PLAY_H - e.h) { e.jvy *= -1; e.y += e.jvy; }
+      clampEntity(e);
     } else if (--e.rest <= 0) {
       e.rest = game.randInt(20, 50);
       e.jump = 22;
@@ -276,7 +348,7 @@ const Entities = (() => {
       const dx = game.link.x - e.x, dy = game.link.y - e.y;
       const m = Math.hypot(dx, dy) || 1;
       game.spawn(makeProjectile('fireball', e.x, e.y, 'down',
-        { vx: dx/m, vy: dy/m, speed:2.2, damage:1, fromEnemy:true }));
+        { vx: dx/m, vy: dy/m, speed:2.2, damage:2, fromEnemy:true }));
     }
     if (--e.timer <= 0) { e.state = 'down'; e.timer = game.randInt(60, 120); }
   }
@@ -338,7 +410,7 @@ const Entities = (() => {
     if (!tryMove(e, vx * e.speed, vy * e.speed, game, ENEMY_INSET)) e.moveTimer = 0;
     if (e.hp < 2 && --e.shootTimer <= 0) {
       e.shootTimer = game.randInt(80, 140);
-      game.spawn(makeProjectile('beam', e.x, e.y, e.dir, { vx, vy, speed:3, damage:2, fromEnemy:true }));
+      game.spawn(makeProjectile('beam', e.x, e.y, e.dir, { vx, vy, speed:3, damage:game.level && game.level.id === 9 ? 3 : 2, fromEnemy:true }));
     }
   }
   // Darknut: chases player, blocks front hits
@@ -353,32 +425,101 @@ const Entities = (() => {
     const [vx, vy] = DIRS[e.dir];
     tryMove(e, vx * e.speed, vy * e.speed, game, ENEMY_INSET);
   }
-  // Wizzrobe: teleports, shoots aimed beams
+  // Wizzrobe: visible state is deliberately phase-gated, like the NES enemy.
   function wizzrobeUpdate(e, game) {
-    if (--e.teleTimer <= 0) {
-      e.teleTimer = game.randInt(50, 80);
-      // retry teleports that would land inside a solid tile
-      for (let tries = 0; tries < 12; tries++) {
-        const nx = 16 + Math.floor(game.rand() * 12) * 16;
-        const ny = 16 + Math.floor(game.rand() * 8) * 16;
-        if (!game.solidAt(nx + 8, ny + 8)) { e.x = nx; e.y = ny; break; }
+    const phase = e.phase;
+    if (phase === 'invisible') {
+      e.hidden = true; e.invulnerable = true;
+      if (--e.phaseTimer <= 0) {
+        e.phase = 'shimmer'; e.phaseTimer = 30; e.hidden = false;
+        game.spawn(makeFx('puff', e.x, e.y));
       }
+      return;
     }
-    if (--e.shootTimer <= 0) {
-      e.shootTimer = game.randInt(60, 100);
-      const dx = game.link.x - e.x, dy = game.link.y - e.y;
-      const m = Math.hypot(dx, dy) || 1;
-      game.spawn(makeProjectile('beam', e.x, e.y, 'down', { vx:dx/m, vy:dy/m, speed:2.5, damage:1, fromEnemy:true }));
+    if (phase === 'shimmer') {
+      e.hidden = false; e.invulnerable = true;
+      if (--e.phaseTimer <= 0) {
+        e.phase = 'solid'; e.phaseTimer = 70; e.invulnerable = false; e.beamFired = false;
+        const n = game.rand() < 0.45 ? 2 : 1;
+        for (let i = 0; i < n; i++) {
+          const dx = game.link.x - e.x, dy = game.link.y - e.y, m = Math.hypot(dx, dy) || 1;
+          const offset = i ? 8 : 0;
+          const ox = i ? -dy / m * offset : 0, oy = i ? dx / m * offset : 0;
+          game.spawn(makeProjectile('beam', e.x + ox, e.y + oy, 'down',
+            { vx:dx/m, vy:dy/m, speed:2.5, damage:game.level && game.level.id === 9 ? 3 : 2, fromEnemy:true }));
+        }
+      }
+      return;
+    }
+    if (phase === 'solid') {
+      e.hidden = false; e.invulnerable = false;
+      if (--e.phaseTimer <= 0) {
+        e.phase = 'vanish'; e.phaseTimer = 20; e.hidden = true; e.invulnerable = true;
+        game.spawn(makeFx('puff', e.x, e.y));
+      }
+      return;
+    }
+    e.hidden = true; e.invulnerable = true;
+    if (--e.phaseTimer <= 0) { e.phase = 'invisible'; e.phaseTimer = 90; }
+  }
+
+  // Rope: wander until Link enters its row/column, then commit to a fast charge.
+  function ropeUpdate(e, game) {
+    if (e.knock) return;
+    const sameRow = Math.abs((game.link.y + 8) - (e.y + 8)) < 7;
+    const sameCol = Math.abs((game.link.x + 8) - (e.x + 8)) < 7;
+    if (!e.charging && (sameRow || sameCol)) {
+      e.charging = true;
+      if (sameRow) e.dir = game.link.x < e.x ? 'left' : 'right';
+      else e.dir = game.link.y < e.y ? 'up' : 'down';
+    }
+    if (e.charging) {
+      const [vx, vy] = DIRS[e.dir];
+      if (!tryMove(e, vx * 2.8, vy * 2.8, game, ENEMY_INSET)) e.charging = false;
+      return;
+    }
+    wander(e, game, 0.03);
+  }
+
+  function bubbleUpdate(e, game) {
+    e.orbit += 0.045;
+    e.x = e.anchorX + Math.cos(e.orbit) * 24 - 8;
+    e.y = e.anchorY + Math.sin(e.orbit) * 18 - 8;
+  }
+
+  function wallmasterUpdate(e, game) {
+    if (e.state === 'dormant') {
+      e.hidden = true;
+      if (--e.phaseTimer <= 0) {
+        e.state = 'emerge'; e.hidden = false; e.phaseTimer = 12;
+        const l = game.link, side = game.randInt(0, 3);
+        if (side === 0) { e.x = 16; e.y = Math.max(16, Math.min(144, l.y)); e.dir = 'right'; }
+        else if (side === 1) { e.x = 224; e.y = Math.max(16, Math.min(144, l.y)); e.dir = 'left'; }
+        else if (side === 2) { e.x = Math.max(16, Math.min(224, l.x)); e.y = 16; e.dir = 'down'; }
+        else { e.x = Math.max(16, Math.min(224, l.x)); e.y = 144; e.dir = 'up'; }
+      }
+      return;
+    }
+    e.hidden = false;
+    const dx = game.link.x - e.x, dy = game.link.y - e.y, m = Math.hypot(dx, dy) || 1;
+    if (e.state === 'emerge') {
+      const [vx, vy] = DIRS[e.dir];
+      tryMove(e, vx * 1.5, vy * 1.5, game, ENEMY_INSET);
+      if (--e.phaseTimer <= 0) e.state = 'chase';
+    } else if (m > 1 && !tryMove(e, dx / m * 1.8, dy / m * 1.8, game, ENEMY_INSET)) {
+      e.state = 'dormant'; e.hidden = true; e.phaseTimer = 100;
     }
   }
-  // Like Like: slow wander, eats Link's ring on contact
+  // Like Like: slow wander, eats Link's magical shield on contact
   function likeLikeUpdate(e, game) {
     wander(e, game, 0.02);
     if (overlap(hitbox(e), hitbox(game.link))) {
       e.eatTimer = (e.eatTimer || 0) + 1;
-      if (e.eatTimer >= 3 && game.link.hasRing) {
-        game.link.hasRing = false;
-        game.msg = 'RING STOLEN!'; game.msgT = 160;
+      if (e.eatTimer >= 3 && game.link.hasMagicShield) {
+        game.link.hasMagicShield = false;
+        for (const key in game.stock) if (key.endsWith(':magicshield')) delete game.stock[key];
+        game.msg = 'YOUR MAGICAL SHIELD WAS EATEN!'; game.msgT = 180;
+        if (game.saveGame) game.saveGame();
       }
     } else {
       e.eatTimer = 0;
@@ -398,26 +539,26 @@ const Entities = (() => {
     if (!tryMove(e, vx * e.speed, vy * e.speed, game, ENEMY_INSET)) e.moveTimer = 0;
     if (--e.shootTimer <= 0) {
       e.shootTimer = game.randInt(70, 120);
-      game.spawn(makeProjectile('beam', e.x, e.y, e.dir, { vx, vy, speed:3, damage:1, fromEnemy:true }));
+      game.spawn(makeProjectile('beam', e.x, e.y, e.dir, { vx, vy, speed:3, damage:game.level && game.level.id === 9 ? 3 : 2, fromEnemy:true }));
     }
   }
 
   const ENEMY_CFG = {
-    octorok: { init:(v)=>({ hp:1, speed:0.7, shootTimer:90, value: v==='blue'?2:1 }), update:octorokUpdate },
-    moblin:  { init:(v)=>({ hp:2, speed:0.65, shootTimer:80, value:2 }), update:moblinUpdate },
-    tektite: { init:()=>({ hp:1, speed:0, rest:30, jump:0, jvx:0, jvy:0, value:1 }), update:tektiteUpdate },
-    leever:  { init:()=>({ hp:2, speed:0.8, state:'hidden', hidden:true, timer:40, value:2 }), update:leeverUpdate,
+    octorok: { init:(v)=>({ hp:1, speed:0.7, shootTimer:90, value: v==='blue'?2:1, dropClass:'minor' }), update:octorokUpdate },
+    moblin:  { init:(v)=>({ hp:2, speed:0.65, shootTimer:80, value:2, dropClass:'mid' }), update:moblinUpdate },
+    tektite: { init:()=>({ hp:1, speed:0, rest:30, jump:0, jvx:0, jvy:0, value:1, dropClass:'minor' }), update:tektiteUpdate },
+    leever:  { init:()=>({ hp:2, speed:0.8, state:'hidden', hidden:true, timer:40, value:2, dropClass:'minor' }), update:leeverUpdate,
                draw:(e,ctx,ox,oy)=>{ if(e.hidden) return; defaultDraw(e,ctx,ox,oy); } },
-    zola:    { init:()=>({ hp:2, speed:0, state:'up', hidden:false, timer:90, value:2, touchDmg:1 }), update:zolaUpdate,
+    zola:    { init:()=>({ hp:2, speed:0, state:'up', hidden:false, timer:90, value:2, touchDmg:1, dropClass:'mid' }), update:zolaUpdate,
                draw:(e,ctx,ox,oy)=>{ if(e.hidden) return; defaultDraw(e,ctx,ox,oy); } },
-    keese:   { init:()=>({ hp:1, speed:0, t:1, vx:0, vy:0, value:1 }), update:keeseUpdate },
-    stalfos: { init:()=>({ hp:2, speed:0.7, value:2, touchDmg:1 }), update:stalfosUpdate },
-    gel:     { init:()=>({ hp:1, speed:0, t:1, vx:0, vy:0, value:1, w:10, h:10 }), update:gelUpdate },
-    lynel:   { init:()=>({ hp:4, speed:0.9, shootTimer:60, moveTimer:30, value:5, touchDmg:2 }), update:lynelUpdate },
-    goriya:  { init:(v)=>({ hp: v==='blue'?4:2, speed:0.7, shootTimer:80, boomOut:false, value:3, touchDmg:1 }), update:goriyaUpdate },
-    ironknuckle: { init:()=>({ hp:4, speed:0.4, shootTimer:9999, moveTimer:40, value:5, touchDmg:2 }), update:ironKnuckleUpdate },
+    keese:   { init:()=>({ hp:1, speed:0, t:1, vx:0, vy:0, value:1, dropClass:'minor' }), update:keeseUpdate },
+    stalfos: { init:()=>({ hp:2, speed:0.7, value:2, touchDmg:1, dropClass:'mid' }), update:stalfosUpdate },
+    gel:     { init:()=>({ hp:1, speed:0, t:1, vx:0, vy:0, value:1, w:10, h:10, dropClass:'minor' }), update:gelUpdate },
+    lynel:   { init:()=>({ hp:4, speed:0.9, shootTimer:60, moveTimer:30, value:5, touchDmg:2, dropClass:'elite' }), update:lynelUpdate },
+    goriya:  { init:(v)=>({ hp: v==='blue'?4:2, speed:0.7, shootTimer:80, boomOut:false, value:3, touchDmg:1, dropClass:'mid' }), update:goriyaUpdate },
+    ironknuckle: { init:()=>({ hp:4, speed:0.4, shootTimer:9999, moveTimer:40, value:5, touchDmg:2, dropClass:'elite' }), update:ironKnuckleUpdate },
     darknut: {
-      init:()=>({ hp:3, speed:0.6, moveTimer:40, value:4, touchDmg:2 }),
+      init:()=>({ hp:3, speed:0.6, moveTimer:40, value:4, touchDmg:2, dropClass:'elite' }),
       update:darknutUpdate,
       hurt:(e,game,dmg,kx,ky)=>{
         const dx = kx - e.x, dy = ky - e.y;
@@ -425,13 +566,81 @@ const Entities = (() => {
         if (Math.abs(dx) > Math.abs(dy)) hitDir = dx > 0 ? 'right' : 'left';
         else hitDir = dy > 0 ? 'down' : 'up';
         const OPPOSITE = {left:'right',right:'left',up:'down',down:'up'};
-        if (hitDir === OPPOSITE[e.dir]) return;
+        if (hitDir === e.dir) return;
         enemyHurt(e, game, dmg, kx, ky);
       }
     },
-    wizzrobe:{ init:()=>({ hp:2, speed:0, teleTimer:50, shootTimer:80, value:3, touchDmg:1 }), update:wizzrobeUpdate },
+    wizzrobe:{ init:()=>({ hp:2, speed:0, phase:'invisible', phaseTimer:90, hidden:true, invulnerable:true, value:3, touchDmg:2, dropClass:'elite' }), update:wizzrobeUpdate },
     likelike:{ init:()=>({ hp:2, speed:0.3, value:2, touchDmg:1 }), update:likeLikeUpdate },
+    rope:    { init:()=>({ hp:1, speed:0.8, value:1, touchDmg:1, charging:false, dropClass:'minor' }), update:ropeUpdate },
+    zol:     { init:()=>({ hp:1, speed:0.5, value:2, touchDmg:1, dropClass:'mid' }), update:gelUpdate,
+               hurt:(e,game,dmg,kx,ky)=>{
+                 if (e.flash > 4 || e.invulnerable) return;
+                 e.hp -= dmg; e.flash = 10; Sound.SFX.enemyHit();
+                 if (e.hp > 0) return;
+                 e.alive = false; Sound.SFX.enemyDie(); game.onEnemyKilled(e);
+                 if (dmg >= 2) return;
+                 for (const [dx, dy] of [[-6, 0], [6, 0]]) {
+                   const child = makeEnemyAt('gel', null, e.x + dx, e.y + dy);
+                   child._spawnDelay = 0; child.noDrops = true;
+                   game.spawn(child); game.spawn(makeFx('puff', child.x, child.y));
+                 }
+               } },
+    bubble:  { init:()=>({ hp:1, speed:0, value:0, touchDmg:0, hidden:false, invulnerable:true,
+                           countsForClear:false, noDrops:true, orbit:0, anchorX:0, anchorY:0 }), update:bubbleUpdate,
+               draw:(e,ctx,ox,oy)=>{
+                 const x=(e.x|0)+ox,y=(e.y|0)+oy; ctx.fillStyle='#d8d8f8'; ctx.fillRect(x+2,y+3,12,10);
+                 ctx.fillStyle='#282060'; ctx.fillRect(x+4,y+5,3,3); ctx.fillRect(x+9,y+5,3,3); ctx.fillRect(x+6,y+10,4,2);
+               } },
+    wallmaster:{ init:()=>({ hp:2, speed:1.8, value:0, touchDmg:0, hidden:true, state:'dormant', phaseTimer:100,
+                             countsForClear:false, noDrops:true }), update:wallmasterUpdate,
+                 hurt:(e,game,dmg,kx,ky)=>enemyHurt(e,game,dmg,kx,ky) },
   };
+
+  // Classic corner blade trap. It is a hazard, not an enemy: it never blocks
+  // room clear and cannot be damaged. The only randomness is the Link-facing
+  // axis decision at launch, so a fixed Engine.rand stream is replayable.
+  function makeBladeTrap(corner) {
+    const corners = {
+      tl:[16,16], tr:[224,16], bl:[16,144], br:[224,144],
+    };
+    const origin = corners[corner] || corners.tl;
+    return {
+      kind:'hazard', etype:'bladeTrap', x:origin[0], y:origin[1], w:16, h:16,
+      originX:origin[0], originY:origin[1], targetX:origin[0], targetY:origin[1],
+      corner, state:'idle', speed:4, returnSpeed:1.15, alive:true,
+      update(game) {
+        const l = game.link, row = Math.abs((l.y + 8) - (this.y + 8)) < 6;
+        const col = Math.abs((l.x + 8) - (this.x + 8)) < 6;
+        if (this.state === 'idle' && (row || col)) {
+          this.state = 'out';
+          if (row) {
+            this.targetY = this.y;
+            this.targetX = this.originX < 128 ? 224 : 16;
+          } else {
+            this.targetX = this.x;
+            this.targetY = this.originY < 88 ? 144 : 16;
+          }
+        }
+        if (this.state === 'out') {
+          const dx = this.targetX - this.x, dy = this.targetY - this.y, m = Math.hypot(dx,dy) || 1;
+          this.x += dx / m * Math.min(this.speed, m); this.y += dy / m * Math.min(this.speed, m);
+          if (m <= this.speed) this.state = 'return';
+        } else if (this.state === 'return') {
+          const dx = this.originX - this.x, dy = this.originY - this.y, m = Math.hypot(dx,dy) || 1;
+          this.x += dx / m * Math.min(this.returnSpeed, m); this.y += dy / m * Math.min(this.returnSpeed, m);
+          if (m <= this.returnSpeed) { this.x = this.originX; this.y = this.originY; this.state = 'idle'; }
+        }
+        if (overlap(hitbox(this), hitbox(l))) l.hurt(game, 1, this.x + 8, this.y + 8);
+      },
+      draw(ctx, ox, oy) {
+        const x=(this.x|0)+ox, y=(this.y|0)+oy;
+        ctx.fillStyle='#b8b8c8'; ctx.fillRect(x+3,y+3,10,10);
+        ctx.fillStyle='#f8f8ff'; ctx.fillRect(x+6,y+1,4,14); ctx.fillRect(x+1,y+6,14,4);
+        ctx.fillStyle='#282060'; ctx.fillRect(x+6,y+6,4,4);
+      }
+    };
+  }
 
   // ============================ BOSS: Aquamentus ============================
   function makeAquamentus(tx, ty, opts = {}) {
@@ -458,7 +667,7 @@ const Entities = (() => {
         for (let i = 0; i < n; i++) {
           const off = n === 1 ? 0 : (i / (n - 1) - 0.5) * 2 * spread;
           game.spawn(makeProjectile('fireball', this.x, this.y + 12, 'left',
-            { vx:-1, vy:off, speed:2.0, damage:1, fromEnemy:true }));
+            { vx:-1, vy:off, speed:2.0, damage:2, fromEnemy:true }));
         }
       }
       if (overlap(hitbox(this), hitbox(game.link)))
@@ -478,14 +687,162 @@ const Entities = (() => {
     return e;
   }
 
+  // ============================ MINIBOSS: Patra ============================
+  // The core and satellites are separate clear-counting entities so the room
+  // cannot open its shutter until every visible part has actually died.
+  function makePatra(tx, ty) {
+    const core = {
+      kind:'enemy', etype:'patra', boss:false, miniboss:true,
+      x:tilePx(tx), y:tilePx(ty), w:18, h:18, anchorX:tilePx(tx), anchorY:tilePx(ty),
+      hp:6, maxhp:6, touchDmg:2, value:0, alive:true, flash:0, knock:null,
+      invulnerable:true, countsForClear:true, satellites:[], speed:0.45,
+      orbit:0, driftX:0.45, driftY:0.3,
+      update(game) {
+        if (this.flash > 0) this.flash--;
+        const alive = this.satellites.filter(s => s.alive !== false);
+        if (!alive.length) this.invulnerable = false;
+        this.orbit += this.invulnerable ? 0.02 : 0.045;
+        this.x += this.driftX * (this.invulnerable ? 0.6 : 1.4);
+        this.y += this.driftY * (this.invulnerable ? 0.6 : 1.4);
+        if (this.x < 40 || this.x > 190) this.driftX *= -1;
+        if (this.y < 24 || this.y > 125) this.driftY *= -1;
+        if (overlap(hitbox(this), hitbox(game.link))) game.link.hurt(game, this.touchDmg, this.x+9, this.y+9);
+      },
+      hurt(game, dmg, kx, ky) {
+        if (this.invulnerable || this.flash > 4) return;
+        this.hp -= dmg; this.flash = 10; Sound.SFX.enemyHit();
+        const ang = Math.atan2(this.y - ky, this.x - kx);
+        this.knock = { dx:Math.cos(ang)*3, dy:Math.sin(ang)*3, t:5 };
+        if (this.hp <= 0) { this.alive = false; Sound.SFX.enemyDie(); game.onEnemyKilled(this); }
+      },
+      draw(ctx, ox, oy) {
+        const x=(this.x|0)+ox, y=(this.y|0)+oy;
+        if (this.flash > 0 && (this.flash & 1)) ctx.globalAlpha = 0.4;
+        ctx.fillStyle='#7030a8'; ctx.beginPath(); ctx.arc(x+9,y+9,9,0,7); ctx.fill();
+        ctx.fillStyle='#f8d030'; ctx.beginPath(); ctx.arc(x+9,y+9,4,0,7); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.fillRect(x+7,y+7,2,2); ctx.fillRect(x+11,y+7,2,2);
+        ctx.globalAlpha=1;
+      }
+    };
+    const n = 8, radius = 28;
+    for (let i=0; i<n; i++) {
+      const phase = i * Math.PI * 2 / n;
+      const sat = {
+        kind:'enemy', etype:'patraSatellite', parent:core, x:core.x, y:core.y,
+        w:12, h:12, hp:1, maxhp:1, touchDmg:1, value:0, alive:true,
+        flash:0, invulnerable:false, countsForClear:true, noDrops:true,
+        orbit:phase, radius, phase, speed:0,
+        update(game) {
+          if (this.parent.alive === false && this.alive !== false) this.alive = false;
+          this.orbit += 0.045;
+          this.x = this.parent.x + 9 + Math.cos(this.orbit) * this.radius - 6;
+          this.y = this.parent.y + 9 + Math.sin(this.orbit) * this.radius - 6;
+          if (overlap(hitbox(this), hitbox(game.link))) game.link.hurt(game, this.touchDmg, this.x+6, this.y+6);
+        },
+        hurt(game, dmg, kx, ky) {
+          if (this.flash > 4 || this.alive === false) return;
+          this.hp -= dmg; this.flash=8; Sound.SFX.enemyHit();
+          if (this.hp <= 0) { this.alive=false; Sound.SFX.enemyDie(); game.onEnemyKilled(this); }
+        },
+        draw(ctx, ox, oy) {
+          const x=(this.x|0)+ox, y=(this.y|0)+oy;
+          if (this.flash > 0 && (this.flash & 1)) ctx.globalAlpha=0.35;
+          ctx.fillStyle='#d858d8'; ctx.beginPath(); ctx.arc(x+6,y+6,6,0,7); ctx.fill();
+          ctx.fillStyle='#f8d030'; ctx.fillRect(x+4,y+4,4,4); ctx.globalAlpha=1;
+        }
+      };
+      core.satellites.push(sat);
+    }
+    core.parts = core.satellites;
+    return core;
+  }
+
+  // ================================ GANON =================================
+  // Ganon is never timer-revealed. Each sword/beam hit is a deliberate stun;
+  // only the fourth stun exposes him permanently, and only silver can finish.
+  function makeGanon(tx, ty) {
+    const e = {
+      kind:'enemy', etype:'ganon', boss:true, variant:'ganon',
+      x:tilePx(tx), y:tilePx(ty), w:24, h:28, hp:6, maxhp:6,
+      alive:true, hidden:true, invulnerable:true, stuns:0, stun:0, flash:0,
+      touchDmg:2, speed:0.8, dir:'left', moveTimer:20, shootTimer:80,
+      vx:0, vy:0, value:0,
+      update(game) {
+        if (this.flash > 0) this.flash--;
+        if (this.stun > 0) {
+          this.stun--;
+          this.hidden = false; this.invulnerable = this.stuns < 4;
+        } else if (this.stuns < 4) {
+          this.hidden = true; this.invulnerable = true;
+          if (--this.moveTimer <= 0) {
+            this.moveTimer = game.randInt(18, 42);
+            const choices = ['left','right','up','down']; this.dir = choices[game.randInt(0,3)];
+          }
+          const [vx,vy] = DIRS[this.dir];
+          tryMove(this, vx*this.speed, vy*this.speed, game, ENEMY_INSET);
+        } else {
+          this.hidden = false; this.invulnerable = false;
+          if (--this.moveTimer <= 0) {
+            this.moveTimer = game.randInt(20, 45);
+            const dx=game.link.x-this.x, dy=game.link.y-this.y;
+            this.dir = Math.abs(dx)>Math.abs(dy) ? (dx<0?'left':'right') : (dy<0?'up':'down');
+          }
+          const [vx,vy]=DIRS[this.dir]; tryMove(this,vx*this.speed*0.8,vy*this.speed*0.8,game,ENEMY_INSET);
+        }
+        if (this.stun <= 0 && --this.shootTimer <= 0) {
+          this.shootTimer = game.randInt(68, 92);
+          const dx=game.link.x-this.x, dy=game.link.y-this.y, m=Math.hypot(dx,dy)||1;
+          const n=5, spread=0.62;
+          for (let i=0;i<n;i++) {
+            const off=(i/(n-1)-0.5)*2*spread;
+            const ax=dx/m + (-dy/m)*off, ay=dy/m + (dx/m)*off, am=Math.hypot(ax,ay)||1;
+            game.spawn(makeProjectile('fireball',this.x+8,this.y+10,'down',
+              {vx:ax/am,vy:ay/am,speed:2.0,damage:4,fromEnemy:true}));
+          }
+        }
+        if (!this.hidden && overlap(hitbox(this),hitbox(game.link))) game.link.hurt(game,this.touchDmg,this.x+12,this.y+14);
+      },
+      hurt(game, dmg, kx, ky, src, projectile) {
+        if (this.alive === false || this.flash > 4) return;
+        if (this.stuns >= 4) {
+          if (src === 'arrow' && projectile && projectile.silver) {
+            this.hp=0; this.alive=false; this.hidden=false; this.invulnerable=false;
+            Sound.SFX.enemyDie(); Sound.SFX.secret(); game.onBossKilled(this);
+          } else Sound.SFX.enemyHit();
+          return;
+        }
+        this.stuns++;
+        this.hidden=false; this.invulnerable=true; this.stun=40; this.flash=40;
+        const ang=Math.atan2(this.y-ky,this.x-kx);
+        this.knock={dx:Math.cos(ang)*4,dy:Math.sin(ang)*4,t:12};
+        Sound.SFX.enemyHit();
+        if (this.stuns >= 4) { this.hidden=false; this.invulnerable=false; this.stun=40; }
+      },
+      draw(ctx, ox, oy) {
+        if (this.hidden) return;
+        const x=(this.x|0)+ox,y=(this.y|0)+oy;
+        if (this.flash > 0 && (this.flash & 2)) ctx.globalAlpha=0.35;
+        ctx.fillStyle='#303030'; ctx.fillRect(x+4,y+8,16,17);
+        ctx.fillStyle='#d82828'; ctx.fillRect(x+1,y+5,22,5);
+        ctx.fillStyle='#f8d030'; ctx.fillRect(x+7,y+12,3,3); ctx.fillRect(x+14,y+12,3,3);
+        ctx.fillStyle='#e8e8e8'; ctx.fillRect(x+5,y+2,4,6); ctx.fillRect(x+15,y+2,4,6);
+        if (this.stun > 0) { ctx.fillStyle='#f8d030'; ctx.fillRect(x+1,y-3,3,3); ctx.fillRect(x+20,y-5,3,3); }
+        ctx.globalAlpha=1;
+      }
+    };
+    return e;
+  }
+
   // ============================ BOSS: Gleeok ============================
   function makeGleeok(tx, ty, opts = {}) {
     const headHp = opts.headHp || 4;
     const extraFireballs = opts.extraFireballs || 0;
-    const heads = [
-      { x: 180, y: 40, hp: headHp, detached: false, dx: 1.5, dy: 1.0 },
-      { x: 200, y: 80, hp: headHp, detached: false, dx: -1.5, dy: 0.8 },
-    ];
+    const headCount = opts.heads || 2;
+    const heads = [];
+    for (let i = 0; i < headCount; i++) heads.push({
+      x: 180 + (i % 2) * 20, y: 32 + i * 22, hp: headHp, detached: false,
+      dx: i % 2 ? -1.5 : 1.5, dy: i % 2 ? 0.8 : 1.0,
+    });
     const e = {
       kind:'enemy', etype:'gleeok', boss:true, variant:'green',
       x: 160, y: 48, w: 48, h: 64,
@@ -496,7 +853,6 @@ const Entities = (() => {
       update(game) {
         if (this.flash > 0) this.flash--;
         for (const h of this.heads) {
-          if (h.hp <= 0 && h.detached) continue; // dead flying head
           if (h.detached) {
             h.x += h.dx; h.y += h.dy;
             if (h.x < 8 || h.x > 240) h.dx *= -1;
@@ -510,7 +866,7 @@ const Entities = (() => {
             const hbox = { x:h.x-6, y:h.y-6, w:12, h:12 };
             if (overlap(hbox, hitbox(game.link)))
               game.link.hurt(game, 2, h.x, h.y);
-          } else {
+          } else if (h.hp > 0) {
             if (h.shootTimer === undefined) h.shootTimer = game.randInt(60, 100);
             if (--h.shootTimer <= 0) {
               h.shootTimer = game.randInt(60, 100);
@@ -565,7 +921,7 @@ const Entities = (() => {
         ctx.fillRect((this.x|0)+ox+10, (this.y|0)+oy+24, 8, 8);
         ctx.fillRect((this.x|0)+ox+28, (this.y|0)+oy+24, 8, 8);
         for (const h of this.heads) {
-          if (h.hp <= 0) continue; // head fully dead (or dead+detached)
+          if (h.hp <= 0 && !h.detached) continue;
           ctx.strokeStyle = '#004010'; ctx.lineWidth = 3;
           ctx.beginPath();
           ctx.moveTo((this.x|0)+ox+24, (this.y|0)+oy+20);
@@ -599,7 +955,7 @@ const Entities = (() => {
   function makeDodongo(tx, ty, opts = {}) {
     const pair = !!opts.pair;   // harder variant: needs 3 bombs
     const e = {
-      kind:'enemy', etype:'dodongo', boss:true, variant: pair ? 'red' : 'green',
+      kind:'enemy', etype:'dodongo', boss: opts.boss !== false, variant: pair ? 'red' : 'green',
       x: tilePx(tx), y: tilePx(ty), w: 26, h: 18,
       hp: pair ? 3 : 2,            // bombs swallowed to kill
       touchDmg: 2, value: 0, alive: true,
@@ -626,7 +982,11 @@ const Entities = (() => {
             b.alive = false;             // swallowed whole
             this.swallow = 40; this.flash = 24;
             Sound.SFX.enemyHit();
-            if (--this.hp <= 0) { this.alive = false; Sound.SFX.enemyDie(); game.onBossKilled(this); }
+            if (--this.hp <= 0) {
+              this.alive = false; Sound.SFX.enemyDie();
+              if (this.boss) game.onBossKilled(this);
+              else game.onEnemyKilled(this);
+            }
             return;
           }
         }
@@ -692,7 +1052,7 @@ const Entities = (() => {
             const dx = game.link.x - hx, dy = game.link.y - hy;
             const m = Math.hypot(dx, dy) || 1;
             game.spawn(makeProjectile('fireball', hx - 4, hy - 4, 'down',
-              { vx: dx/m, vy: dy/m, speed: 2.0, damage: 1, fromEnemy: true }));
+              { vx: dx/m, vy: dy/m, speed: 2.0, damage: 2, fromEnemy: true }));
           }
           const hb = { x: this.x + h.dx, y: this.y + h.dy, w: 16, h: 16 };
           if (overlap(hb, hitbox(game.link))) game.link.hurt(game, 2, hb.x + 8, hb.y + 8);
@@ -739,6 +1099,109 @@ const Entities = (() => {
     return e;
   }
 
+  // ============================ DUNGEON MINIBOSSES ============================
+  function makeMoldorm(tx, ty) {
+    const e = {
+      kind:'enemy', etype:'moldorm', x:tilePx(tx), y:tilePx(ty), w:16, h:16,
+      hp:1, alive:true, countsForClear:true, speed:0.65, flash:0, dir:1,
+      segments: [], touchDmg:2, value:4,
+      update(game) {
+        if (this.flash > 0) this.flash--;
+        this.x += this.speed * this.dir;
+        if (this.x < 24 || this.x > 208) this.dir *= -1;
+        for (let i = 0; i < this.segments.length; i++) {
+          const s = this.segments[i]; s.x = this.x - i * 13; s.y = this.y + Math.sin((game.counters.moldormT || 0) * 0.08 + i) * 7;
+        }
+        game.counters.moldormT = (game.counters.moldormT || 0) + 1;
+        for (const s of this.segments) if (s.hp > 0 && overlap({x:s.x,y:s.y,w:14,h:14}, hitbox(game.link))) game.link.hurt(game, this.touchDmg, s.x+7, s.y+7);
+      },
+      hurt(game, dmg, kx, ky) {
+        if (this.flash > 4) return;
+        const target = [...this.segments].reverse().find(s => s.hp > 0);
+        if (target && Math.hypot(target.x + 7 - kx, target.y + 7 - ky) >= 28) { Sound.SFX.enemyHit(); return; }
+        if (!target) { Sound.SFX.enemyHit(); return; }
+        target.hp -= dmg; this.flash = 8; Sound.SFX.enemyHit();
+        if (target.hp <= 0) {
+          const left = this.segments.filter(s => s.hp > 0).length;
+          this.speed = 0.65 + (4 - left) * 0.3;
+          if (!left) { this.alive = false; Sound.SFX.enemyDie(); game.onEnemyKilled(this); }
+        }
+      },
+      draw(ctx, ox, oy) {
+        for (let i = this.segments.length - 1; i >= 0; i--) {
+          const s = this.segments[i]; if (s.hp <= 0) continue;
+          const x=(s.x|0)+ox,y=(s.y|0)+oy; ctx.fillStyle=i===0?'#f8d030':'#d87820'; ctx.fillRect(x+1,y+1,14,14);
+          ctx.fillStyle='#803010'; ctx.fillRect(x+4,y+4,8,8);
+          if (i===0) { ctx.fillStyle='#fff'; ctx.fillRect(x+4,y+4,2,2); ctx.fillRect(x+10,y+4,2,2); }
+        }
+      }
+    };
+    for (let i = 0; i < 4; i++) e.segments.push({x:e.x-i*13,y:e.y,hp:1});
+    return e;
+  }
+
+  // ============================ BOSS: Gohma ============================
+  function makeGohma(tx, ty) {
+    const e = { kind:'enemy', etype:'gohma', boss:true, x:tilePx(tx), y:tilePx(ty), w:32, h:24,
+      hp:3, maxhp:3, alive:true, flash:0, eyeTimer:0, eyeOpen:false, dir:1, speed:0.45, touchDmg:2,
+      update(game) {
+        if (this.flash > 0) this.flash--;
+        this.eyeTimer = (this.eyeTimer + 1) % 90; this.eyeOpen = this.eyeTimer >= 45 && this.eyeTimer < 75;
+        this.x += this.dir * this.speed; if (this.x < 24 || this.x > 200) this.dir *= -1;
+        if (overlap(hitbox(this), hitbox(game.link))) game.link.hurt(game, 2, this.x+16, this.y+12);
+      },
+      hurt(game, dmg, kx, ky, src) {
+        if (src !== 'arrow' || !this.eyeOpen || this.flash > 4) { Sound.SFX.enemyHit(); return; }
+        this.hp -= 1; this.flash = 10; Sound.SFX.enemyHit();
+        if (this.hp <= 0) { this.alive=false; Sound.SFX.enemyDie(); game.onBossKilled(this); }
+      },
+      draw(ctx, ox, oy) {
+        const x=(this.x|0)+ox,y=(this.y|0)+oy; if (this.flash>0 && (this.flash&1)) ctx.globalAlpha=.4;
+        ctx.fillStyle='#a03030'; ctx.fillRect(x+2,y+7,28,15); ctx.fillStyle='#d06040'; ctx.fillRect(x+7,y+2,18,21);
+        ctx.fillStyle='#202020'; ctx.fillRect(x+5,y+5,5,5); ctx.fillRect(x+22,y+5,5,5);
+        ctx.fillStyle=this.eyeOpen?'#f8d030':'#111'; ctx.fillRect(x+13,y+7,7,7); ctx.fillStyle='#fff'; ctx.fillRect(x+16,y+9,2,4);
+        ctx.globalAlpha=1;
+      }
+    }; return e;
+  }
+
+  function makeDigdoggerSmall(parent, x, y) {
+    const e = { kind:'enemy', etype:'digdoggerSmall', boss:false, x, y, w:14, h:14, hp:2, alive:true,
+      speed:1.1, dir:1, touchDmg:1, noDrops:true,
+      update(game) { this.x += this.dir*this.speed; if (this.x<16||this.x>226) this.dir*=-1; if (overlap(hitbox(this),hitbox(game.link))) game.link.hurt(game,1,this.x+7,this.y+7); },
+      hurt(game,dmg,kx,ky) { enemyHurt(this,game,dmg,kx,ky); if (this.alive===false) { parent.childrenLeft--; if (parent.childrenLeft<=0) { parent.alive=false; Sound.SFX.enemyDie(); game.onBossKilled(parent); } } },
+      draw(ctx,ox,oy) { const x=(this.x|0)+ox,y=(this.y|0)+oy; ctx.fillStyle='#d82828'; ctx.fillRect(x+1,y+1,12,12); ctx.fillStyle='#f8d030'; ctx.fillRect(x+5,y+5,4,4); }
+    }; return e;
+  }
+
+  // ============================ BOSS: Digdogger ============================
+  function makeDigdogger(tx, ty) {
+    const e = { kind:'enemy', etype:'digdogger', boss:true, x:tilePx(tx), y:tilePx(ty), w:40, h:40,
+      hp:1, alive:true, large:true, shrinkTimer:0, childrenLeft:0, flash:0, touchDmg:2,
+      shrink(game) {
+        if (!this.large || !this.alive) return false;
+        this.large=false; this.shrinkTimer=600; this.childrenLeft=game.randInt(1,3);
+        for (let i=0;i<this.childrenLeft;i++) game.spawn(makeDigdoggerSmall(this, this.x+8+i*12, this.y+8));
+        Sound.SFX.secret(); return true;
+      },
+      update(game) {
+        if (this.flash>0) this.flash--;
+        if (!this.large) { if (--this.shrinkTimer<=0) { this.large=true; for (const c of game.entities) if (c.etype==='digdoggerSmall') c.alive=false; } return; }
+        if (overlap(hitbox(this),hitbox(game.link))) game.link.hurt(game,2,this.x+20,this.y+20);
+      },
+      hurt(game,dmg,kx,ky) { Sound.SFX.enemyHit(); },
+      draw(ctx,ox,oy) { const x=(this.x|0)+ox,y=(this.y|0)+oy; if (!this.large) return; ctx.fillStyle='#602080'; ctx.fillRect(x+3,y+3,34,34); ctx.fillStyle='#c060c0'; ctx.fillRect(x+10,y+10,20,20); ctx.fillStyle='#f8d030'; ctx.fillRect(x+17,y+17,6,6); }
+    }; return e;
+  }
+
+  function makeHungryGoriya(tx, ty) {
+    return { kind:'enemy', etype:'hungrygoriya', x:tilePx(tx), y:tilePx(ty), w:16, h:24, hp:1, alive:true,
+      countsForClear:false, invulnerable:true, gate:true,
+      update(game) { if (overlap(hitbox(this), hitbox(game.link))) game.onHungryGoriya(this); },
+      hurt() {}, draw(ctx,ox,oy) { const x=(this.x|0)+ox,y=(this.y|0)+oy; ctx.fillStyle='#d82828'; ctx.fillRect(x+2,y+4,12,16); ctx.fillStyle='#fff'; ctx.fillRect(x+4,y+8,3,3); ctx.fillRect(x+10,y+8,3,3); }
+    };
+  }
+
   // ============================ FX (spawn puff / death poof) ============================
   function makeFx(fxkind, x, y) {
     return {
@@ -760,25 +1223,36 @@ const Entities = (() => {
   }
 
   // ============================ PROJECTILES ============================
+  function projectileHit(en, projectile) {
+    if (en.segments) {
+      for (const s of en.segments) {
+        if (s.hp > 0 && overlap(hitbox(projectile), { x:s.x, y:s.y, w:14, h:14 }))
+          return { x:s.x + 7, y:s.y + 7 };
+      }
+      return null;
+    }
+    return overlap(hitbox(projectile), hitbox(en)) ? { x:projectile.x, y:projectile.y } : null;
+  }
   function makeProjectile(ptype, x, y, dir, o) {
     return {
       kind:'proj', ptype, x:x+4, y:y+4, w:8, h:8, dir,
-      vx:o.vx, vy:o.vy, speed:o.speed, damage:o.damage, fromEnemy:!!o.fromEnemy,
+      vx:o.vx, vy:o.vy, speed:o.speed, damage:o.damage, silver:!!o.silver, fromEnemy:!!o.fromEnemy,
       life: o.life || 140, alive:true,
       update(game) {
         this.x += this.vx * this.speed; this.y += this.vy * this.speed;
         if (--this.life <= 0) { this.alive = false; return; }
         // hit wall
-        if (game.solidAt(this.x + 4, this.y + 4)) { this.alive = false; return; }
+        if (game.solidFor(this, this.x + 4, this.y + 4)) { this.alive = false; return; }
         // out of play
         if (this.x < -8 || this.x > 264 || this.y < -8 || this.y > 184) this.alive = false;
         if (this.fromEnemy) {
           if (overlap(hitbox(this), hitbox(game.link))) {
-            // shield: blocks rock/spear/arrow coming at Link's facing side
-            // (not while mid-swing; fireballs and magic beams punch through)
+            // The small shield blocks ordinary missiles. The magical shield
+            // also catches fireballs and beams from the same facing side.
             const l = game.link;
             const BLOCKABLE = { rock:1, spear:1, arrow:1 };
-            if (l.hasShield && l.attackTimer <= 0 && BLOCKABLE[this.ptype]) {
+            const magical = l.hasMagicShield && (this.ptype === 'fireball' || this.ptype === 'beam');
+            if (l.hasShield && l.attackTimer <= 0 && (BLOCKABLE[this.ptype] || magical)) {
               const fromDir = Math.abs(this.vx) > Math.abs(this.vy)
                 ? (this.vx > 0 ? 'left' : 'right')   // travelling right → hits Link's left-facing shield
                 : (this.vy > 0 ? 'up' : 'down');
@@ -793,8 +1267,10 @@ const Entities = (() => {
           }
         } else {
           for (const en of game.entities) {
-            if (en.kind === 'enemy' && en.alive !== false && !en.hidden && overlap(hitbox(this), hitbox(en))) {
-              en.hurt(game, this.damage, this.x, this.y);
+            if (en.kind === 'enemy' && en.alive !== false && (!en.hidden || en.etype === 'ganon')) {
+              const hit = projectileHit(en, this);
+              if (!hit) continue;
+              en.hurt(game, this.damage, hit.x, hit.y, this.ptype, this);
               this.alive = false;
               break;
             }
@@ -839,26 +1315,45 @@ const Entities = (() => {
     }
   }
 
-  function makeBoomerang(x, y, vx, vy, owner) {
+  function makeBoomerang(x, y, vx, vy, owner, opts = {}) {
     return {
       kind:'proj', ptype:'boomerang', x:x+4, y:y+4, w:10, h:10,
-      vx, vy, speed:3.5, returning:false, t:0, alive:true, owner, spin:0,
+      vx, vy, speed:opts.magical ? 5.2 : 3.5, maxT:opts.magical ? 28 : 16,
+      stunFrames:opts.magical ? 16 : 8, returning:false, t:0, alive:true, owner, spin:0,
       update(game) {
         this.spin += 0.5; this.t++;
         if (!this.returning) {
           this.x += this.vx * this.speed; this.y += this.vy * this.speed;
-          if (this.t > 16 || game.solidAt(this.x+5, this.y+5)) this.returning = true;
+          if (this.t > this.maxT || game.solidFor(this, this.x+5, this.y+5)) this.returning = true;
         } else {
           const dx = (this.owner.x+4) - this.x, dy = (this.owner.y+4) - this.y;
           const m = Math.hypot(dx, dy) || 1;
+          this.vx = dx / m; this.vy = dy / m;
           this.x += dx/m * 4; this.y += dy/m * 4;
           if (m < 6) this.alive = false;
         }
+        if (this.owner.kind !== 'link') {
+          if (overlap(hitbox(this), hitbox(game.link))) {
+            const l = game.link;
+            const fromDir = Math.abs(this.vx) > Math.abs(this.vy)
+              ? (this.vx > 0 ? 'left' : 'right')
+              : (this.vy > 0 ? 'up' : 'down');
+            if (l.hasShield && l.attackTimer <= 0 && l.dir === fromDir) {
+              this.alive = false; Sound.SFX.enemyHit(); return;
+            }
+            l.hurt(game, 1, this.x, this.y);
+            this.alive = false; return;
+          }
+          return;
+        }
         // stun enemies, collect items
         for (const en of game.entities) {
-          if (en.kind === 'enemy' && en.alive !== false && !en.hidden && overlap(hitbox(this), hitbox(en))) {
-            en.flash = 12; en.knock = { dx:this.vx*2, dy:this.vy*2, t:8 };
-            if (en.hp <= 1) en.hurt(game, 1, this.x, this.y);
+          if (en.kind === 'enemy' && en.alive !== false && !en.hidden && projectileHit(en, this)) {
+            en.flash = this.stunFrames; en.knock = { dx:this.vx*2, dy:this.vy*2, t:this.stunFrames };
+            if (en.hp <= 1) {
+              const hit = projectileHit(en, this);
+              en.hurt(game, 1, hit.x, hit.y);
+            }
           }
           if (en.kind === 'item' && en.alive !== false && this.owner.kind === 'link' &&
               overlap(hitbox(this), hitbox(en))) {
@@ -883,15 +1378,18 @@ const Entities = (() => {
           this.exploding--; this.w = 40; this.h = 40; this.x = this._cx-20; this.y = this._cy-20;
           // damage enemies in blast
           for (const en of game.entities) {
-            if (en.kind === 'enemy' && en.alive !== false && !en.hidden && overlap(hitbox(this), hitbox(en)))
+            if (en.kind === 'enemy' && en.alive !== false && !en.hidden &&
+                !this._hitEnemies.has(en) && overlap(hitbox(this), hitbox(en))) {
+              this._hitEnemies.add(en);
               en.hurt(game, 4, this._cx, this._cy, 'blast');
+            }
           }
           if (this.exploding <= 0) this.alive = false;
           return;
         }
         if (--this.fuse <= 0) {
           this._cx = this.x + 5; this._cy = this.y + 6;
-          this.exploding = 22; Sound.SFX.bomb();
+          this.exploding = 22; this._hitEnemies = new Set(); Sound.SFX.bomb();
           if (game.onBombBlast) game.onBombBlast(this._cx, this._cy);   // secrets hook
         }
       },
@@ -920,12 +1418,11 @@ const Entities = (() => {
       update(game) {
         this.t++;
         if (this.life && !this.permanent && --this.life <= 0) this.alive = false;
-        if (this._refuseCD > 0) { this._refuseCD--; }
-        else if (overlap(hitbox(this), hitbox(game.link))) {
-          game.collect(this);
-          // collect() sets _keep to refuse the pickup (e.g. unworthy of magic sword)
-          if (this._keep) { this._keep = false; this._refuseCD = 90; }
-          else this.alive = false;
+        if (!overlap(hitbox(this), hitbox(game.link))) {
+          this._refusedTouch = false;
+        } else {
+          const result = game.collect(this);
+          if (result === 'taken') this.alive = false;
         }
       },
       draw(ctx, ox, oy) { drawItem(this, ctx, ox, oy); }
@@ -950,6 +1447,15 @@ const Entities = (() => {
         ctx.fillRect(x+4,y,5,2); ctx.fillRect(x+2,y+2,9,2); ctx.fillRect(x+1,y+4,11,6);
         ctx.fillRect(x+2,y+10,9,2); ctx.fillRect(x+4,y+12,5,2);
         ctx.fillStyle='#a8c8f8'; ctx.fillRect(x+4,y+3,2,6); break;
+      case 'rupee30':
+      case 'rupee100':
+        ctx.fillStyle = (it.t>>3)&1 ? '#34b233' : '#1c7000';
+        ctx.fillRect(x+4,y,5,2); ctx.fillRect(x+2,y+2,9,2); ctx.fillRect(x+1,y+4,11,6);
+        ctx.fillRect(x+2,y+10,9,2); ctx.fillRect(x+4,y+12,5,2);
+        ctx.fillStyle='#a8f0a8'; ctx.fillRect(x+4,y+3,2,6); break;
+      case 'gamble':
+        ctx.fillStyle = (it.t>>3)&1 ? '#34b233' : '#1c7000';
+        ctx.fillRect(x+2,y+5,10,7); ctx.fillRect(x+4,y+2,6,3); ctx.fillStyle='#a8f0a8'; ctx.fillRect(x+5,y+4,2,5); break;
       case 'fairy': {
         const f=(it.t>>2)&1;
         ctx.fillStyle='#f078c0'; ctx.fillRect(x+4,y+4,5,6);
@@ -966,6 +1472,17 @@ const Entities = (() => {
       case 'boomerang':
         ctx.fillStyle='#d8a020'; ctx.fillRect(x+1,y+6,5,3); ctx.fillRect(x+1,y+1,3,6);
         ctx.fillRect(x+1,y+1,8,3); break;
+      case 'magicalboomerang':
+        ctx.fillStyle='#f8d030'; ctx.fillRect(x+1,y+6,7,3); ctx.fillRect(x+1,y+1,3,7);
+        ctx.fillStyle='#f87800'; ctx.fillRect(x+4,y+1,7,3); ctx.fillRect(x+9,y+3,3,8); break;
+      case 'map':
+        ctx.fillStyle='#d8a020'; ctx.fillRect(x+2,y+2,11,10); ctx.fillStyle='#fff';
+        ctx.fillRect(x+4,y+4,2,6); ctx.fillRect(x+8,y+4,2,6); ctx.fillStyle='#3858f8'; ctx.fillRect(x+6,y+6,2,2); break;
+      case 'compass':
+        ctx.fillStyle='#f8d030'; ctx.beginPath(); ctx.arc(x+7,y+7,6,0,7); ctx.fill();
+        ctx.fillStyle='#d82828'; ctx.fillRect(x+6,y+2,2,5); ctx.fillStyle='#3858f8'; ctx.fillRect(x+6,y+7,2,5); break;
+      case 'whistle':
+        ctx.fillStyle='#58a028'; ctx.fillRect(x+2,y+5,10,6); ctx.fillRect(x+8,y+2,4,5); ctx.fillStyle='#d8d8d8'; ctx.fillRect(x+3,y+4,3,2); break;
       case 'candle': {
         const f=(it.t>>2)&1;
         ctx.fillStyle=f?'#f8d030':'#f87800'; ctx.beginPath(); ctx.arc(x+6,y+2,3,0,7); ctx.fill();
@@ -975,6 +1492,29 @@ const Entities = (() => {
         ctx.fillStyle='#3858f8'; ctx.beginPath(); ctx.arc(x+6,y+7,6,0,7); ctx.fill();
         ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(x+6,y+7,3,0,7); ctx.fill();
         ctx.fillStyle='#78c8f8'; ctx.fillRect(x+4,y,4,4); break; }
+      case 'redring': {
+        ctx.fillStyle='#d82828'; ctx.beginPath(); ctx.arc(x+6,y+7,6,0,7); ctx.fill();
+        ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(x+6,y+7,3,0,7); ctx.fill();
+        ctx.fillStyle='#f87878'; ctx.fillRect(x+4,y,4,4); break; }
+      case 'magicshield':
+        ctx.fillStyle='#3858f8'; ctx.fillRect(x+1,y,12,13);
+        ctx.fillStyle='#78c8f8'; ctx.fillRect(x+4,y+2,6,6);
+        ctx.fillStyle='#f8d030'; ctx.fillRect(x+5,y+3,4,4); break;
+      case 'bait':
+        ctx.fillStyle='#d8a020'; ctx.fillRect(x+2,y+5,10,5);
+        ctx.fillStyle='#f8d030'; ctx.fillRect(x+5,y+3,4,3); break;
+      case 'letter':
+        ctx.fillStyle='#f8f0c0'; ctx.fillRect(x+1,y+2,12,10);
+        ctx.fillStyle='#b06818'; ctx.fillRect(x+3,y+4,8,1); ctx.fillRect(x+3,y+7,6,1); break;
+      case 'potion':
+      case 'bluepotion':
+      case 'redpotion':
+        ctx.fillStyle='#d8d8d8'; ctx.fillRect(x+4,y,6,3); ctx.fillStyle='#888'; ctx.fillRect(x+5,y-1,4,2);
+        ctx.fillStyle=it.item === 'redpotion' ? '#d82828' : '#3858f8'; ctx.fillRect(x+2,y+4,10,9);
+        ctx.fillStyle='#fff'; ctx.fillRect(x+4,y+5,2,4); break;
+      case 'bombupgrade':
+        ctx.fillStyle='#202020'; ctx.fillRect(x+1,y+3,11,10); ctx.fillStyle='#f8d030'; ctx.fillRect(x+5,y,3,4);
+        ctx.fillStyle='#78c8f8'; ctx.fillRect(x+4,y+6,5,2); break;
       case 'triforce': {
         const f=(it.t>>2)&1; ctx.fillStyle = f ? '#f8d030':'#f8f870';
         // triangle of three triangles
@@ -1012,6 +1552,10 @@ const Entities = (() => {
         ctx.fillRect(x+6, y+1, 2, 7);
         ctx.fillStyle = '#f8d030';
         ctx.fillRect(x+8, y+1, 5, 4); break;
+      case 'powerbracelet':
+        ctx.fillStyle = '#d82828'; ctx.fillRect(x+2,y+3,10,8);
+        ctx.fillStyle = '#f8d030'; ctx.fillRect(x+4,y+5,6,4);
+        ctx.fillStyle = '#a06000'; ctx.fillRect(x+3,y+11,8,2); break;
       case 'magickey':
         ctx.fillStyle = '#f8d030';
         ctx.beginPath(); ctx.arc(x+5, y+4, 4, 0, 7); ctx.fill();
@@ -1038,12 +1582,17 @@ const Entities = (() => {
         ctx.beginPath(); ctx.arc(x+7, y+1, 2, 0, 7); ctx.fill();
         ctx.fillStyle = '#a06000';
         ctx.fillRect(x+5, y+12, 5, 3); break;
+      case 'zelda':
+        ctx.fillStyle='#f8d030'; ctx.fillRect(x+4,y+1,6,4);
+        ctx.fillStyle='#f0c0a0'; ctx.fillRect(x+3,y+5,8,5);
+        ctx.fillStyle='#e858a0'; ctx.fillRect(x+1,y+9,12,5);
+        ctx.fillStyle='#fff'; ctx.fillRect(x+5,y+6,2,2); break;
     }
   }
 
   return {
-    makeLink, makeEnemy, makeAquamentus, makeGleeok, makeDodongo, makeManhandla,
-    makeProjectile, makeBoomerang, makeBomb, makeItem, makeFx,
+    makeLink, makeEnemy, makeAquamentus, makeGleeok, makeDodongo, makeManhandla, makeMoldorm, makeGohma, makeDigdogger, makePatra, makeGanon,
+    makeProjectile, makeBoomerang, makeBomb, makeItem, makeFx, makeBladeTrap,
     overlap, hitbox, tryMove, LINK_INSET, ENEMY_INSET, DIRS,
   };
 })();

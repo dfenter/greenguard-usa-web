@@ -57,6 +57,11 @@ const Tiles = (() => {
     // water (solid)
     'W'(x, t) { px(x,0,0,16,16,t.water);
       x.fillStyle=t.waterLt; x.fillRect(2,3,5,1); x.fillRect(9,6,5,1); x.fillRect(4,10,5,1); x.fillRect(1,13,4,1); },
+    // dock plank (walkable; raft rides begin here)
+    'K'(x, t) { px(x,0,0,16,16,t.water);
+      px(x,0,2,16,12,'#c8a060'); x.fillStyle='#8a5a20';
+      x.fillRect(0,2,16,1); x.fillRect(0,13,16,1);
+      for (let i=0;i<16;i+=4) x.fillRect(i,3,1,10); },
     // bridge (passable)
     '='(x, t) { px(x,0,0,16,16,t.water);
       px(x,0,2,16,12,'#c8a060'); x.fillStyle='#8a5a20';
@@ -113,6 +118,11 @@ const Tiles = (() => {
       px(x,3,1,10,14,'#666'); x.fillStyle='#333';
       for (let i = 0; i < 5; i++) x.fillRect(3, 2 + i * 3, 10, 1);
       x.fillStyle='#999'; x.fillRect(3,1,10,1); },
+    // Bombable dungeon wall: still solid, with a one-pixel crack telegraph.
+    'Q'(x, t) { px(x,0,0,16,16,t.wall); x.fillStyle=t.wallDk;
+      x.fillRect(0,0,16,2); x.fillRect(0,7,16,2); x.fillRect(0,14,16,2);
+      x.fillRect(7,2,2,5); x.fillRect(3,9,2,5); x.fillRect(11,9,2,5);
+      x.fillStyle='#111'; x.fillRect(7,3,1,2); x.fillRect(8,5,1,2); },
     // pushable block (solid; Link shoves it one tile to trip a secret)
     'p'(x, t) { px(x,0,0,16,16,t.ground); px(x,1,1,14,14,t.wall);
       x.fillStyle=t.wallDk;
@@ -121,7 +131,7 @@ const Tiles = (() => {
       x.fillStyle=t.wall; x.fillRect(6,6,4,4); },
   };
 
-  const SOLID = new Set(['T','M','R','W','A','G','#','B','L','H','U','Z','p']);
+  const SOLID = new Set(['T','M','R','W','A','G','#','B','L','H','U','Z','Q','p']);
   const TRIGGER = new Set(['C','S','D','X']);   // walkable special tiles
 
   function isSolid(ch) { return SOLID.has(ch); }
@@ -153,5 +163,27 @@ const Tiles = (() => {
 
   function bgColor(theme) { return (THEMES[theme]||THEMES.over).ground; }
 
-  return { blit, isSolid, isTrigger, bgColor, THEMES };
+  // Dungeon identity is a cheap palette shift, not a second tile set. The
+  // suffix makes atlas slots level-local while preserving the base theme API.
+  const LEVEL_HUES = {1:220,2:270,3:330,4:18,5:55,6:145,7:195,8:300};
+  function hexRgb(v) {
+    const n = parseInt(v.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function rgbHex(r,g,b) { return '#' + [r,g,b].map(v => Math.max(0,Math.min(255,v|0)).toString(16).padStart(2,'0')).join(''); }
+  function levelTheme(theme, levelId) {
+    if (!levelId || !/^dungeon/.test(theme)) return theme;
+    const id = theme + '@' + levelId;
+    if (!THEMES[id]) {
+      const base = THEMES[theme] || THEMES.dungeon, hue = LEVEL_HUES[levelId] || 220;
+      const tint = [Math.cos(hue * Math.PI / 180) * 18, Math.sin(hue * Math.PI / 180) * 18, 12];
+      THEMES[id] = Object.assign({}, base);
+      for (const k of ['ground','groundAlt','grass','grassDk','wall','wallDk','waterLt','rock','rockDk']) {
+        const c = hexRgb(base[k]); THEMES[id][k] = rgbHex(c[0] + tint[0], c[1] + tint[1], c[2] + tint[2]);
+      }
+    }
+    return id;
+  }
+
+  return { blit, isSolid, isTrigger, bgColor, THEMES, levelTheme };
 })();
