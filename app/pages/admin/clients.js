@@ -848,12 +848,12 @@ export default function Clients() {
           ) : filtered.length === 0 ? (
             <p style={{ padding: 24, color: 'var(--text-muted)', margin: 0 }}>No customers match.</p>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(var(--green-rgb),0.15)' }}>
-                  {['Name', 'Address', ...(Object.keys(distances).length ? ['Distance'] : [])].map((h) => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
+                  {(() => { const hasDist = Object.keys(distances).length > 0; const cols = ['Name', 'Address', ...(hasDist ? ['Distance'] : [])]; const colW = hasDist ? { Name: '32%', Address: '48%', Distance: '20%' } : { Name: '40%', Address: '60%' }; return cols.map((h) => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', whiteSpace: 'nowrap', width: colW[h] }}>{h === 'Distance' ? '' : h}</th>
+                  )) })()}
                 </tr>
               </thead>
               <tbody>
@@ -874,8 +874,8 @@ export default function Clients() {
                       background: selected?.id === c.id ? 'rgba(var(--gold-rgb),0.06)' : 'transparent',
                     }}
                   >
-                    <td style={{ padding: '11px 16px', fontWeight: 700, whiteSpace: 'nowrap' }}>{c.name || '—'}</td>
-                    <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>{c.address || <span style={{ color: 'var(--text-dim)' }}>—</span>}</td>
+                    <td style={{ padding: '11px 16px', fontWeight: 700, wordBreak: 'break-word' }}>{c.name || '—'}</td>
+                    <td style={{ padding: '11px 16px', color: 'var(--text-muted)', fontSize: '0.82rem', whiteSpace: 'normal', wordBreak: 'break-word' }}>{c.address || <span style={{ color: 'var(--text-dim)' }}>—</span>}</td>
                     {Object.keys(distances).length > 0 && (
                       <td style={{ padding: '11px 16px', whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
                         {distances[c.id] ? (

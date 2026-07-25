@@ -1,6 +1,6 @@
 import { requireAdmin } from '../../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange, tzDayBoundsISO } from '../../../lib/gcal'
-import { findContactsByEmails, getAllContacts, tanksForCustomer, getClientNotes } from '../../../lib/hubspot'
+import { findContactsByEmails, getAllContacts, tanksForCustomer, trapsForCustomer, getClientNotes } from '../../../lib/hubspot'
 import { listAllActiveSubscriptions, listOpenInvoices, getBalance, listAllCustomers } from '../../../lib/stripe'
 import { buildTankCalendarData } from '../../../lib/tank-data'
 
@@ -68,6 +68,7 @@ export default async function handler(req, res) {
       phone: c.properties?.phone || '',
       address: c.properties?.address || '',
       tanks: tanksForCustomer(c.properties) || null,
+      traps: trapsForCustomer(c.properties) || null,
       firstAppointment: c.properties?.first_appointment === 'true',
       _contactId: c.id,
     }
@@ -90,6 +91,7 @@ export default async function handler(req, res) {
       email: s.email || '',
       phone: info.phone || s.phone || '',
       tanks: info.tanks || null,
+      traps: info.traps || null,
       firstAppointment: info.firstAppointment || false,
       appointmentNotes: s.appointmentNotes || null,
       clientNotes: info.clientNotes || [],

@@ -276,13 +276,31 @@ option { background: var(--bg-card); color: var(--text); }
    The inline style in PortalLayout already omits the blur, but design-sync
    round-trips have reintroduced it before (commit f9cbc3f). This !important
    backstop kills backdrop-filter on the dock no matter what the inline style
-   says, so the regression can't come back. Keep the solid background too. */
+   says, so the regression can't come back. Keep the solid background too.
+
+   Same durability guard for POSITION: the dock must be position:fixed pinned to
+   the viewport bottom. A design-sync round-trip flipped the inline style to
+   position:sticky, which floats the dock mid-screen whenever page content is
+   shorter than the viewport (nothing pushes a sticky bottom:0 element down).
+   These !important rules force fixed/bottom:0 no matter what the inline style
+   says, so that regression can't come back either. */
 .admin-dock {
   display: flex;
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   background: var(--bg-deep) !important;
   border-top: 1px solid var(--border);
+}
+/* Desktop-hide: the dock is a mobile/tablet-only bottom nav. On desktop a
+   position:fixed full-width bar floats over the content and footer, which the
+   tech reads as "the dock is floating." Commit ce38fb1 introduced this rule and
+   db90070 dropped it, which is what keeps bringing the float back. Keep it. */
+@media (min-width: 1025px) {
+  .admin-dock { display: none !important; }
 }
 .admin-main { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important; }
 

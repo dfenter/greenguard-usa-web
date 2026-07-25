@@ -176,6 +176,14 @@ export default function StopCard({
             {headerExtras}
           </div>
 
+          {/* Tanks needed + trap count — pinned directly below the name */}
+          {(stop.tanks > 0 || stop.traps > 0) && (
+            <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '1.125rem', color: 'var(--text)', fontWeight: 800, marginBottom: 2 }}>
+              {stop.tanks > 0 && <span>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
+              {stop.traps > 0 && <span>🪤 {stop.traps} trap{stop.traps > 1 ? 's' : ''}</span>}
+            </div>
+          )}
+
           {/* Booking notes from the calendar appointment description */}
           {stop.appointmentNotes && (
             <div style={{ whiteSpace: 'pre-wrap', fontSize: '1.063rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1.5, paddingLeft: 36 }}>📝 {stop.appointmentNotes}</div>
@@ -195,7 +203,7 @@ export default function StopCard({
             <div key={i} style={{ paddingLeft: 36, fontSize: '1.063rem', color: 'var(--text)', fontWeight: 700, lineHeight: 1.5 }}>{note}</div>
           ))}
 
-          {/* Service info row: time · service type · tanks */}
+          {/* Service info row: time · service type */}
           <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '1.125rem', marginTop: 4, marginBottom: 2 }}>
             {stop.startTime && (
               <span style={{ color: 'var(--text)', fontWeight: 800 }}>
@@ -203,7 +211,6 @@ export default function StopCard({
               </span>
             )}
             {stop.serviceType && <span style={{ color: 'var(--text)', fontWeight: 700 }}>{stop.serviceType}</span>}
-            {stop.tanks > 0 && <span style={{ color: 'var(--text)', fontWeight: 800 }}>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
           </div>
 
           {/* Check in / out */}

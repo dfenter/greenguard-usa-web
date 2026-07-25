@@ -391,4 +391,16 @@ function tanksForCustomer(props) {
   return 0
 }
 
-module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, findContactsByNames, getContactNotes, getClientNotes, getClientNotesBatch, updateContact, countContactsByProperty, getAllContacts, tanksForCustomer }
+/**
+ * Trap count straight from trap_count. No tank_count fallback — traps and
+ * tanks are distinct quantities (a customer can have more traps than tanks).
+ */
+function trapsForCustomer(props) {
+  if (!props) return 0
+  const raw = props.trap_count
+  if (raw === null || raw === undefined || raw === '') return 0
+  const n = parseInt(raw, 10)
+  return Number.isFinite(n) && n >= 0 ? n : 0
+}
+
+module.exports = { upsertContact, addNote, findContactByEmail, findContactsByEmails, findContactsByNames, getContactNotes, getClientNotes, getClientNotesBatch, updateContact, countContactsByProperty, getAllContacts, tanksForCustomer, trapsForCustomer }

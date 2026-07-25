@@ -1,5 +1,5 @@
 const { requireAdmin } = require('../../../lib/auth')
-const { getBookingsForDate, getBookingsForDateRangePaginated } = require('../../../lib/gcal')
+const { getBookingsForDate, getBookingsForDateRangePaginated, tzDayBoundsISO } = require('../../../lib/gcal')
 const { findContactsByEmails, tanksForCustomer } = require('../../../lib/hubspot')
 const { cached } = require('../../../lib/cache')
 
@@ -82,8 +82,12 @@ export default async function handler(req, res) {
     if (!start || !end || end < start || end.getTime() - start.getTime() > maxSpanMs) {
       return res.status(400).json({ error: 'start and end must be valid ISO dates no more than 45 days apart' })
     }
+    // Google requires full RFC3339 timeMin/timeMax. The calendar client sends
+    // bare CT dates with an exclusive end, so expand those to day starts here.
+    const timeMin = startValue.includes('T') ? start.toISOString() : tzDayBoundsISO(startValue, tz).start
+    const timeMax = endValue.includes('T') ? end.toISOString() : tzDayBoundsISO(endValue, tz).start
     try {
-      const bookings = await cached(`gcal:bookings:v2:range:${startValue}:${endValue}`, 30, () => loadEnrichedBookingsRange(startValue, endValue))
+      const bookings = await cached(`gcal:bookings:v2:range:${startValue}:${endValue}`, 30, () => loadEnrichedBookingsRange(timeMin, timeMax))
       res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30')
       return res.status(200).json({ start: startValue, end: endValue, bookings })
     } catch (e) {

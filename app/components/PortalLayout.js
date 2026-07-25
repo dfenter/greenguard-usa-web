@@ -145,7 +145,7 @@ const DOCK_ITEMS = [
 function AdminBottomDock({ pathname }) {
   return (
     <nav className="admin-dock" aria-label="Admin quick access" style={{
-      position: 'sticky', bottom: 0, left: 0, right: 0, zIndex: 90,
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 90,
       background: 'var(--bg-deep)',
       borderTop: '1px solid var(--border)',
       display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',

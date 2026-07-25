@@ -108,7 +108,7 @@ export default async function handler(req, res) {
         <table cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td align="center" bgcolor="#ffffff" style="border-radius:6px;border:2px solid #2d6a3f;">
-              <a href="https://search.google.com/local/writereview?placeid=ChIJx8wLC4K11wwRbfe7hhZiHXs" style="display:inline-block;padding:10px 22px;font-size:14px;font-weight:700;color:#2d6a3f;text-decoration:none;font-family:Arial,sans-serif;">&#11088; Leave a Review</a>
+              <a href="https://g.page/r/CW33u4YWYh17EBM/review" style="display:inline-block;padding:10px 22px;font-size:14px;font-weight:700;color:#2d6a3f;text-decoration:none;font-family:Arial,sans-serif;">&#11088; Leave a Review</a>
             </td>
           </tr>
         </table>

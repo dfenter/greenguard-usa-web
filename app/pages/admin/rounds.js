@@ -5,7 +5,7 @@ import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings, getBookingsForDate, getBookingsForDateRange } from '../../lib/gcal'
 import { listAllCustomers, findInvoiceForBooking, findInvoicesForBookings, bookingStopKey } from '../../lib/stripe'
-import { findContactsByEmails, findContactsByNames, tanksForCustomer, getClientNotesBatch } from '../../lib/hubspot'
+import { findContactsByEmails, findContactsByNames, tanksForCustomer, trapsForCustomer, getClientNotesBatch } from '../../lib/hubspot'
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import SignaturePad from '../../components/SignaturePad'
 import CustomerPanel from '../../components/CustomerPanel'
@@ -159,6 +159,9 @@ export async function getServerSideProps({ req, query, res }) {
         const t = tanksForCustomer(hubspotContactByEmail[emailKey].properties)
         if (t > 0) tanks = t
       }
+      const traps = hubspotContactByEmail[emailKey]
+        ? (trapsForCustomer(hubspotContactByEmail[emailKey].properties) || null)
+        : null
       const serviceType = stop.serviceType || ''
 
       // Compute prefill line items from Cal.com event-type + HubSpot contact.
@@ -182,6 +185,7 @@ export async function getServerSideProps({ req, query, res }) {
         customerName: resolvedName,
         serviceType,
         tanks,
+        traps,
         firstAppointment,
         eventTypeSlug: slug || null,
         prefill,

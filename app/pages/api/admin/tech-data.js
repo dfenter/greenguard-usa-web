@@ -1,6 +1,6 @@
 import { requireAdmin } from '../../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange, tzDayBoundsISO } from '../../../lib/gcal'
-import { findContactsByEmails, getClientNotes, tanksForCustomer } from '../../../lib/hubspot'
+import { findContactsByEmails, getClientNotes, tanksForCustomer, trapsForCustomer } from '../../../lib/hubspot'
 import { buildTankCalendarData } from '../../../lib/tank-data'
 
 // Lazy data for /admin/tech — moved out of getServerSideProps so the page shell
@@ -37,6 +37,7 @@ export default async function handler(req, res) {
       phone: c.properties?.phone || '',
       address: c.properties?.address || '',
       tanks: tanksForCustomer(c.properties) || null,
+      traps: trapsForCustomer(c.properties) || null,
       firstAppointment: c.properties?.first_appointment === 'true',
       _contactId: c.id,
     }
@@ -61,6 +62,7 @@ export default async function handler(req, res) {
       email: s.email || '',
       phone: resolvedPhone,
       tanks: info.tanks || null,
+      traps: info.traps || null,
       firstAppointment: info.firstAppointment || false,
       rescheduleUrl: s.rescheduleUrl || null,
       appointmentNotes: s.appointmentNotes || null,

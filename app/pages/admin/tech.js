@@ -335,15 +335,8 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [],
           )}
         </section>
 
-        {/* Tomorrow preview */}
-        {tomorrowStops.length > 0 && (
-          <section style={{ marginBottom: 36 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 14 }}>
-              Tomorrow — {tomorrowStops.length} {tomorrowStops.length === 1 ? 'stop' : 'stops'} ({fmtDayLabel(tomorrowStr).split(',')[0]})
-            </div>
-            {tomorrowStops.map((stop, i) => <StopRow key={stop.id || i} stop={stop} index={i} dateStr={tomorrowStr} preview />)}
-          </section>
-        )}
+        {/* Tomorrow's rounds preview removed — the tech only works today's
+            stops, and showing tomorrow's list alongside caused confusion. */}
 
         {/* Quick links */}
         <section>
