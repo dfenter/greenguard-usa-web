@@ -49,9 +49,14 @@ function _memPrune() {
   }
 }
 
-// Proactive cleanup every 5 minutes to prevent unbounded growth
+// Proactive cleanup every 5 minutes to prevent unbounded growth.
+// unref() so this housekeeping timer never by itself keeps the process alive:
+// it still fires for as long as there is real work, but a process with nothing
+// left to do can exit. Without it, `jest` hangs forever after the last test
+// instead of exiting (observed 2026-07-25: a test run sat live for 90 minutes).
 if (typeof setInterval !== 'undefined') {
-  setInterval(_memPrune, 5 * 60 * 1000)
+  const _pruneTimer = setInterval(_memPrune, 5 * 60 * 1000)
+  if (typeof _pruneTimer.unref === 'function') _pruneTimer.unref()
 }
 
 async function consumeJti(jti, ttlSeconds = 900) {

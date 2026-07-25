@@ -45,8 +45,11 @@ function _prune() {
   }
 }
 
+// unref()'d for the same reason as the prune timer in lib/auth.js: a background
+// housekeeping interval must not be the thing that keeps the event loop alive.
 if (typeof setInterval !== 'undefined') {
-  setInterval(_prune, 60 * 60 * 1000)
+  const _pruneTimer = setInterval(_prune, 60 * 60 * 1000)
+  if (typeof _pruneTimer.unref === 'function') _pruneTimer.unref()
 }
 
 const _key = (eventId) => `webhook:${eventId}`

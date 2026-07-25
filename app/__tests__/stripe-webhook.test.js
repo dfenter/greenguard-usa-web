@@ -44,6 +44,15 @@ jest.mock('../lib/hubspot', () => ({
   findContactByEmail: mockFindContactByEmail,
 }))
 
+// The handler calls sendWelcomeEmail directly for quote-sourced checkouts.
+// It MUST stay mocked: lib/email talks to Resend and the Gmail API, so an
+// unmocked run mails every paid-quote fixture in this file for real.
+const mockSendWelcomeEmail = jest.fn().mockResolvedValue({ id: 'email_test_welcome' })
+
+jest.mock('../lib/email', () => ({
+  sendWelcomeEmail: mockSendWelcomeEmail,
+}))
+
 const mockSendT0Email = jest.fn().mockResolvedValue({})
 const mockMarkStage = jest.fn().mockResolvedValue({})
 const mockClearStages = jest.fn().mockResolvedValue({})
@@ -213,6 +222,22 @@ describe('checkout.session.completed', () => {
     expect(mockNotifyAdmin).toHaveBeenCalledWith(
       expect.objectContaining({ source: expect.stringContaining('Payment Link') })
     )
+  })
+
+  test('welcome email is sent for quote-sourced checkouts', async () => {
+    await handler(mockReq({}), mockRes())
+    expect(mockSendWelcomeEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'bob@example.com', customerName: 'Bob Smith' })
+    )
+  })
+
+  test('welcome email is skipped for non-quote checkouts', async () => {
+    mockConstructEvent.mockReturnValueOnce({
+      type: 'checkout.session.completed',
+      data: { object: { ...MOCK_SESSION_PAID, payment_link: 'pl_test_abc', metadata: {} } },
+    })
+    await handler(mockReq({}), mockRes())
+    expect(mockSendWelcomeEmail).not.toHaveBeenCalled()
   })
 
   test('responds 200 on success', async () => {
