@@ -53,7 +53,7 @@ export default async function handler(req, res) {
   }
 
   const { name, email, phone, street, city, state, zip, startISO, notes,
-          gclid, fbclid, fbp, gaClientId, eventId } = req.body || {}
+          gclid, fbclid, fbp, gaClientId, gaSessionId, eventId } = req.body || {}
 
   if (!name || !email || !street || !city || !zip || !startISO) {
     return res.status(400).json({ error: 'name, email, street, city, zip, and startISO are required' })
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
       // unreliable (iOS/ad-block, Meta Audience Network), so fire the durable
       // server signal so Google/Meta bidding can optimize toward bookings.
       fireBookingConversions({
-        email, phone, gclid, fbclid, fbp, gaClientId, eventId,
+        email, phone, gclid, fbclid, fbp, gaClientId, gaSessionId, eventId,
         clientIp, userAgent: req.headers['user-agent'],
       }),
     ])

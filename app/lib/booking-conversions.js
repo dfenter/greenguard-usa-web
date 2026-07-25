@@ -103,10 +103,14 @@ async function fireMetaBookingLead({ email, phone, fbclid, fbp, eventId, clientI
   }
 }
 
-async function fireGA4BookingLead({ email, clientId }) {
+async function fireGA4BookingLead({ email, clientId, sessionId }) {
   const apiSecret = process.env.GA4_API_SECRET
   const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-K2R5H2Z23X'
   if (!apiSecret || !email) return
+  // session_id ties the MP event to the visitor's live session so GA4 attributes
+  // it to the acquiring channel; without it every lead lands in Unassigned.
+  const params = { value: LEAD_VALUE, currency: 'USD', lead_source: 'booking', engagement_time_msec: 100 }
+  if (sessionId) params.session_id = sessionId
   try {
     const r = await fetch(
       `https://www.google-analytics.com/mp/collect?measurement_id=${measurementId}&api_secret=${apiSecret}`,
@@ -115,7 +119,7 @@ async function fireGA4BookingLead({ email, clientId }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           client_id: clientId || sha256hex(email).slice(0, 20),
-          events: [{ name: 'generate_lead', params: { value: LEAD_VALUE, currency: 'USD', lead_source: 'booking' } }],
+          events: [{ name: 'generate_lead', params }],
         }),
       }
     )
@@ -126,11 +130,11 @@ async function fireGA4BookingLead({ email, clientId }) {
 }
 
 // Fire all booking conversions in parallel. Never throws.
-async function fireBookingConversions({ email, phone, gclid, fbclid, fbp, gaClientId, eventId, clientIp, userAgent }) {
+async function fireBookingConversions({ email, phone, gclid, fbclid, fbp, gaClientId, gaSessionId, eventId, clientIp, userAgent }) {
   await Promise.allSettled([
     fireGoogleAdsBookingLead({ gclid }),
     fireMetaBookingLead({ email, phone, fbclid, fbp, eventId, clientIp, userAgent }),
-    fireGA4BookingLead({ email, clientId: gaClientId }),
+    fireGA4BookingLead({ email, clientId: gaClientId, sessionId: gaSessionId }),
   ])
 }
 

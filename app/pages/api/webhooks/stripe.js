@@ -20,12 +20,16 @@ function buildFbc(fbclid) {
   return `fb.1.${Date.now()}.${fbclid}`
 }
 
-async function fireGA4Purchase({ email, amountUsd, orderId, clientId: knownClientId }) {
+async function fireGA4Purchase({ email, amountUsd, orderId, clientId: knownClientId, sessionId }) {
   const apiSecret = process.env.GA4_API_SECRET
   const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-K2R5H2Z23X'
   if (!apiSecret) return
   const clientId = knownClientId || sha256hex(email || orderId).slice(0, 20)
   if (!knownClientId) console.warn('[stripe-webhook] GA4 purchase: no real client_id, attribution will be unassigned')
+  // session_id (captured at checkout) attaches the purchase to the buyer's live
+  // session so GA4 attributes it to the acquiring channel instead of Unassigned.
+  const params = { transaction_id: orderId, value: amountUsd, currency: 'USD', engagement_time_msec: 100 }
+  if (sessionId) params.session_id = sessionId
   try {
     const r = await fetch(
       `https://www.google-analytics.com/mp/collect?measurement_id=${measurementId}&api_secret=${apiSecret}`,
@@ -36,11 +40,7 @@ async function fireGA4Purchase({ email, amountUsd, orderId, clientId: knownClien
           client_id: clientId,
           events: [{
             name: 'purchase',
-            params: {
-              transaction_id: orderId,
-              value: amountUsd,
-              currency: 'USD',
-            },
+            params,
           }],
         }),
       }
@@ -386,6 +386,7 @@ export default async function handler(req, res) {
               amountUsd,
               orderId: session.id,
               clientId: session.metadata?.ga_client_id || null,
+              sessionId: session.metadata?.ga_session_id || null,
             }),
           },
           {

@@ -77,6 +77,13 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
         const parts = gaCookie.split('=')[1].split('.')
         if (parts.length >= 4) attribution.ga_client_id = parts.slice(2).join('.')
       }
+      // Capture GA4 session_id (_ga_<stream> = GS1.1.<session_id>.<n>...) so the
+      // webhook MP purchase attaches to this session instead of Unassigned
+      const gaSess = document.cookie.split('; ').find(c => c.startsWith('_ga_K2R5H2Z23X='))
+      if (gaSess) {
+        const sid = gaSess.split('=')[1].split('.')[2]
+        if (sid) attribution.ga_session_id = sid
+      }
       // Capture Meta browser cookies (_fbp, _fbc) to raise CAPI Purchase match rate
       const fbp = document.cookie.split('; ').find(c => c.startsWith('_fbp='))
       if (fbp) attribution.fbp = fbp.split('=').slice(1).join('=')

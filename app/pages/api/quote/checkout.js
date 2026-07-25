@@ -142,6 +142,7 @@ export default async function handler(req, res) {
         utm_campaign: String(attribution.utm_campaign || '').slice(0, 100),
         ref: String(attribution.ref || '').slice(0, 20),
         ga_client_id: String(attribution.ga_client_id || '').slice(0, 50),
+        ga_session_id: String(attribution.ga_session_id || '').slice(0, 30),
       },
       // Collect shipping address when shippable items are in the quote
       ...(shippingCents > 0 && { shipping_address_collection: { allowed_countries: ['US'] } }),
