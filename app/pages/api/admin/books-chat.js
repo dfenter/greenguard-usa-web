@@ -6,7 +6,7 @@
 // 4. Execute in a read-only transaction
 // 5. Return rows + Gemini's plain-English summary
 
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { getSessionFromRequest, isOwnerEmail } = require('../../../lib/auth')
 const { getPool } = require('../../../lib/db')
 const { complete } = require('../../../lib/llm')
 
@@ -93,7 +93,11 @@ async function summarize({ question, sql, rows }) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
+  // Owner-only, NOT tech. This route runs model-generated SQL on the shared pool,
+  // and sanitizeSql has no table allow-list — so a tech-level admin could read
+  // `employees` (pay rates, W-4 data) and `payroll_items` (net pay), which is
+  // exactly what payroll-employees.js/payroll-run.js use requireOwner to prevent.
+  if (!session || !isOwnerEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const { question } = req.body || {}
   if (!question || question.trim().length < 3) return res.status(400).json({ error: 'Need a question (3+ chars)' })

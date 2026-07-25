@@ -302,7 +302,15 @@ option { background: var(--bg-card); color: var(--text); }
 @media (min-width: 1025px) {
   .admin-dock { display: none !important; }
 }
-.admin-main { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important; }
+/* Counterweight to the position:fixed dock above. The dock is ~68px tall
+   (52px tap targets + 8px padding top/bottom) and is lifted out of flow, so it
+   covers the bottom of the page unless .admin-main reserves the space. 12px was
+   left here when the dock went sticky -> fixed, which hid the bottom ~56px of
+   every admin page on mobile — exactly where the tech's action buttons sit.
+   120px matches the design-system value in ds-combined.css.
+   NOTE: this pairs with the fixed/bottom:0 guard above — do not "simplify" one
+   without the other, and do not drop it in a design-sync round-trip. */
+.admin-main { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important; }
 
 /* ── Field tech utility classes ────────────────────────────────── */
 /* Large tap targets for field use */
