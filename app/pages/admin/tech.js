@@ -352,6 +352,8 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [],
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
+              { label: 'Timesheet', href: '/admin/timesheet', desc: 'Clock in/out, hours' },
+              { label: 'Expenses', href: '/admin/expenses', desc: 'Upload receipts' },
               { label: 'Customer Rounds', href: '/admin/rounds', desc: 'Log service stops' },
               { label: 'Daily Inventory', href: '/admin/inventory', desc: 'Tank & equipment counts' },
               { label: 'Route Plan', href: '/admin/route', desc: 'Weekly route map' },

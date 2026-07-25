@@ -309,6 +309,9 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
               { label: 'Tech View', href: '/admin/tech', desc: "Today's route & navigation" },
+              { label: 'Payroll', href: '/admin/payroll', desc: 'Approve time, run payroll' },
+              { label: 'Timesheet', href: '/admin/timesheet', desc: 'Clock in/out, my hours' },
+              { label: 'Expenses', href: '/admin/expenses', desc: 'Receipts to review' },
               { label: 'My Account', href: '/dashboard?preview=1', desc: 'Preview the customer portal' },
               { label: 'All Invoices', href: '/admin/invoices', desc: 'Browse + filter history' },
               { label: 'Invoice Editor', href: '/admin/invoice', desc: 'Create or edit per customer' },

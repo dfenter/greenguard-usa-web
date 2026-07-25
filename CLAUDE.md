@@ -19,8 +19,10 @@ site/                 → new.greenguard-usa.com (Astro marketing site)
   src/pages/          → index, services, traprental, pricing, faq, about, book, why-co2...
 ```
 
-**Stack:** Next.js 15, React 18, JavaScript only (no TypeScript), no database.
-All persistent state lives in Stripe, HubSpot, and Google Calendar.
+**Stack:** Next.js 15, React 18, JavaScript only (no TypeScript).
+Customer/billing state lives in Stripe, HubSpot, and Google Calendar. A Neon
+Postgres database (`DATABASE_URL`, pooled via `app/lib/db.js`) backs the
+bookkeeping ledger and payroll — see the migration scripts in `app/_scripts/`.
 
 ---
 
@@ -101,6 +103,37 @@ Customer picks installation time via Cal.com embed at end of quote flow
 
 **Env vars:** `RESEND_API_KEY`, `PORTAL_FROM_EMAIL`
 
+### Payroll & timesheets — `app/lib/payroll.js` + `app/lib/payroll-store.js`
+- **In-house payroll.** No third-party payroll provider; the portal computes gross, taxes and net.
+- `lib/payroll.js` is PURE math (no I/O): FLSA weekly overtime on the blended regular rate,
+  minimum-wage makeup, IRS Pub 15-T percentage-method withholding, FICA with wage-base caps,
+  employer FUTA/TX SUTA, non-taxable mileage up to the IRS rate. Unit-tested in `__tests__/payroll.test.js`.
+- `lib/payroll-store.js` owns every SQL statement (employees, timesheet_entries, payroll_runs,
+  payroll_items, payroll_settings) and the invariants: only *approved* entries are payable,
+  finalizing claims them as *paid*, overlapping periods are refused, a void releases the hours and
+  reverses the book entries in the original period.
+- Schema: `node _scripts/db-migrate-payroll.js` (idempotent). Finalized paystubs are frozen by a
+  trigger; the `payroll.allow_purge` session GUC is a maintenance-only escape hatch.
+- End-to-end DB check: `node _scripts/payroll-selftest.js` (creates and removes a throwaway employee).
+- **Update `TAX_YEARS` in lib/payroll.js every January** (Pub 15-T, SS wage base, IRS mileage rate).
+  A pay date in a year with no tables warns in the UI rather than silently using another year's.
+- Authorization: `/admin/payroll`, `/api/admin/payroll-*` are OWNER-only (`requireOwner`);
+  `/admin/timesheet` + `/api/admin/timesheet*` are any admin but scoped to the caller's own
+  employee record — a tech can never read another person's rates, W-4 data, or the business EIN.
+- Finalized runs post to the books ledger as `Expense:Payroll:{Wages,EmployerTaxes,Contractors,Reimbursement}`.
+
+**Expenses / receipts** (`expense_claims`, `/admin/expenses`, `/api/admin/expenses`):
+- Receipt images go to Vercel Blob via `/api/admin/expense-receipt` (`BLOB_READ_WRITE_TOKEN`, photos + PDF, 12 MB cap).
+- Approving a claim books the expense at ITS OWN category (`transactions`, `source='expense-claim'`,
+  `external_id='expense-claim-<id>'`, dated `incurred_on`). Rejecting or deleting a booked claim reverses it.
+- `payment_method='personal'` also queues a NON-TAXABLE reimbursement on the next payroll run
+  (`payroll_items.expense_reimbursement_cents`); `'company'` is booked only (status `recorded`).
+- **The payroll reimbursement is deliberately NOT booked again** — `postRunToBooks()` posts only the mileage
+  portion, otherwise the same receipt would hit the P&L twice.
+- Claims are claimed/locked by a run exactly like timesheet entries: approved → paid, released on void.
+
+**Env vars:** `DATABASE_URL` (shared with the bookkeeping ledger), `CALENDAR_TIMEZONE` (business day + workweek).
+
 ### Auth — `app/lib/auth.js`
 - Magic link + JWT session cookie (`gg_session`, 90-day, httpOnly, SameSite=Lax)
 - Multi-admin: `ADMIN_EMAILS` env var (comma-separated)
@@ -133,6 +166,10 @@ Customer picks installation time via Cal.com embed at end of quote flow
 | Invoice | `/admin/invoice` | Search by name, manage Stripe invoices |
 | Route Plan | `/admin/route` | Calendar view of weekly route |
 | Analytics | `/admin/analytics` | Revenue, Traffic, Map, Social, Finance, Accounting, Health |
+| Timesheet | `/admin/timesheet` | Crew clock in/out + own hours (any admin login) |
+| Payroll | `/admin/payroll` | Approve time, run payroll, crew & tax settings (OWNER only) |
+| Paystub | `/admin/paystub` | Printable earnings statement |
+| Expenses | `/admin/expenses` | Receipt upload (crew) + approval queue (owner) |
 
 ---
 

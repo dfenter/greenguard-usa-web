@@ -255,6 +255,104 @@ What customers see when they log in.
 
 ---
 
+## Timesheet (`/admin/timesheet`)
+
+Every crew member's own page — clock in/out, fix hours, submit the week. Built for one thumb in a truck.
+
+**Clock In / Clock Out** — the big button. Tap it when the route starts and again when it ends; the elapsed time is banked automatically. Tapping Clock In twice is harmless (the first stamp stands). Working a second shift the same day is fine — clock in again and the time adds to that day's total.
+
+**Forgot to clock out?** The next Clock In says so and offers to close the old shift. Clocking out of a shift that started on an earlier day asks for confirmation first, because it records the whole span — fix the hours afterward with Edit.
+
+**This week** — live hours, overtime, and estimated pay (before taxes), plus miles and reimbursement when logged. Overtime shows as soon as the week passes 40 hours, so nobody is surprised on payday.
+
+**Recent days** — one card per day with status: Open → Submitted → Approved → Paid. Edit or delete a day until it's in a payroll run; after that it's locked. Break minutes are unpaid and are subtracted from the day's paid hours.
+
+**Submit week for approval** — flags the week's days for Dan to approve. Editing an already-approved day sends it back for approval automatically.
+
+---
+
+## Payroll (`/admin/payroll`)
+
+Owner only. Bruce (or any tech login) lands on their own Timesheet instead. Four tabs:
+
+### Approve Time
+Pending days on top, approved-not-yet-paid below, with a date range and a CSV export. Select and **Approve selected**. Days still on the clock are listed separately and cannot be approved — there are no final hours yet. **Send all back** un-approves everything for corrections.
+
+### Run Payroll
+1. Set **period start / end** and **pay date**. Keep the period on whole workweeks (Sunday–Saturday by default) — overtime is a weekly calculation, and a split week can hide overtime. The page warns when the dates don't line up.
+2. Optionally add a **bonus** or a **deduction** per person.
+3. **Preview** — shows hours, gross, each tax, and net pay per person plus totals, cash out the door, and the 941 deposit due date. Changing any date or adjustment clears the preview so nothing gets created from numbers you didn't look at.
+4. **Create draft run** — writes the paystubs and claims those timesheet hours. Still reversible.
+5. **Finalize** — locks the hours as Paid and posts the expense to the books (`Expense:Payroll:Wages`, `:EmployerTaxes`, `:Contractors`, `:Reimbursement`).
+
+Only **approved** time inside the period is picked up. The pay date's year selects the tax tables.
+
+### History
+Every run with status, gross, net, employer tax, and whether it reached the books. Expand for the register, per-person **Paystub** links, and a CSV. **Void** releases the hours back to Approved and reverses the book entries in the original period — then the corrected run can be created for the same dates.
+
+### Crew & Settings
+Add or edit people: W-2 vs 1099, hourly/salary, rate, per-stop bonus, mileage rate, overtime eligibility, FLSA exempt, and the W-4 inputs (filing status, Step 2 box, dependents credit, extra withholding). **The email must match the login they use for the portal** — that's how a timesheet is attributed. YTD gross, federal withholding, and hours are shown per person.
+
+Business settings: legal name, EIN, TWC account, SUTA rate, default mileage rate, workweek start, default pay frequency, and the address printed on paystubs.
+
+### What the math does
+- **Overtime** — FLSA weekly: over 40 hours in a workweek earns a half-time premium on the *blended* regular rate, so per-stop pay raises overtime too. Salaried non-exempt staff earn the premium on salary ÷ hours worked.
+- **Minimum wage** — a piece-rate week short of $7.25/h is topped up before overtime is figured.
+- **Taxes** — federal income tax by the IRS Pub 15-T percentage method (or a flat %, or none for 1099), Social Security 6.2% to the annual wage base, Medicare 1.45% (plus 0.9% over $200k), employer FICA match, 0.6% FUTA on the first $7,000, and the TWC SUTA rate on the first $9,000. Texas has no state income tax.
+- **Mileage** — reimbursement at or below the IRS rate is not wages; anything above it is taxed.
+
+### Paystub (`/admin/paystub?run=<id>&employee=<id>`)
+Printable earnings statement with earnings, deductions, YTD, and employer-paid taxes. Print or Save as PDF from the browser. An employee can open their own; the owner can open anyone's.
+
+### Payday checklist
+1. Approve Time → approve the period's days.
+2. Run Payroll → Preview, read the warnings, Create draft, Finalize.
+3. Pay the net amounts (bank transfer / check) — the portal computes, it does not move money.
+4. Deposit the withheld + employer taxes with the IRS on your schedule (monthly depositors: the 15th of the following month), and file the TWC wage report quarterly.
+5. Export the CSV for the accountant.
+
+**Yearly maintenance:** update `TAX_YEARS` in `app/lib/payroll.js` each January (Pub 15-T tables, SS wage base, IRS mileage rate) and your SUTA rate from the TWC notice. A run whose year has no tables warns instead of silently using the wrong ones.
+
+---
+
+## Expenses & Receipts (`/admin/expenses`)
+
+Where the crew files what they bought for a job, and where Dan approves it. Both roles use the same page.
+
+### Filing a receipt (crew)
+1. **📷 Photo of receipt** — opens the camera on a phone. PDFs work too. Optional, but keep one for the IRS.
+2. Amount, date, store, **category**, and what it was for.
+3. **Paid with** — *My own money* (you get reimbursed) or *Company card* (just recorded for the books).
+4. **Submit receipt.** It shows as "Waiting on Dan."
+
+Your two numbers at the top: what's still waiting on approval, and what's **owed to you** — approved receipts that will be paid back on your next check.
+
+### Reviewing (owner)
+Flip to **Everyone** to see the queue with the receipt image one tap away. **Approve** or **Reject** (a rejection asks for a reason, and the crew sees it).
+
+Approving does two things:
+- **Books the expense** at its own category, dated when it was incurred — so the P&L is right whether or not payroll has run yet.
+- For an out-of-pocket receipt, **queues a tax-free reimbursement** on the next payroll run. Company-card receipts are only booked; nothing is owed back.
+
+The reimbursement is *not* booked as a second expense — it's cash going back to the employee, so it can't double-count in the P&L.
+
+### How it lands on the paycheck
+Approved out-of-pocket receipts (incurred on or before the period end) ride along on the next run:
+- shown per person in the payroll preview as reimbursement, on top of net pay
+- printed on the paystub under **Non-taxable reimbursement**, separate from mileage
+- broken out in the register CSV as **Receipt Reimb**
+- untouched by every tax line — an accountable-plan reimbursement is not wages (Pub 463)
+
+Once the run is finalized the receipt is locked and shows "Reimbursed." Voiding the run puts it back in the queue for the corrected run; its books entry stays, because the expense was still real.
+
+### Rules worth knowing
+- Editing an approved receipt sends it back to the review queue — a changed amount can never ride in on an old approval.
+- A rejected receipt that had been booked is reversed out of the ledger automatically.
+- The crew can delete their own receipts until Dan reviews them; after that it's Dan's call.
+- Receipts on a payroll run cannot be edited or deleted by anyone.
+
+---
+
 ## Quick reference — admin nav links
 
 | Link | Page | Use for |
@@ -267,3 +365,6 @@ What customers see when they log in.
 | Quote | `/admin/quote` | Build and send quotes |
 | Invoice | `/admin/invoice` | Manage Stripe invoices |
 | Tech View | `/admin/tech` (via Home → Quick Access) | Bruce's daily dashboard |
+| Timesheet | `/admin/timesheet` (via Home or Tech → Quick Access) | Clock in/out, own hours |
+| Payroll | `/admin/payroll` (via Home → Quick Access) | Approve time, run payroll, crew |
+| Expenses | `/admin/expenses` (via Home or Tech → Quick Access) | Upload receipts, approve reimbursements |
