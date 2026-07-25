@@ -16,7 +16,12 @@ const {
   canonical,
 } = Astro.props;
 
-const canonicalUrl = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
+// Normalize to a trailing slash so canonicals are consistent across all pages
+// (some routes served without one, splitting signals between the two URL forms).
+const normalizedPath = /\.[a-z0-9]+$/i.test(Astro.url.pathname) || Astro.url.pathname.endsWith('/')
+  ? Astro.url.pathname
+  : Astro.url.pathname + '/';
+const canonicalUrl = canonical ?? new URL(normalizedPath, Astro.site).toString();
 const reviewMeta = getReviewMeta();
 const GA_ID = import.meta.env.PUBLIC_GA_MEASUREMENT_ID ?? 'G-K2R5H2Z23X';
 const AW_ID = import.meta.env.PUBLIC_GOOGLE_ADS_CONVERSION_ID ?? 'AW-16913987571';
@@ -77,7 +82,7 @@ const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
         "latitude": 30.2672,
         "longitude": -97.7431
       },
-      "hasMap": "https://www.google.com/maps/place/?q=place_id:ChIJx8wLC4K11wwRbfe7hhZiHXs",
+      "hasMap": "https://maps.google.com/maps?cid=8871354689879013229",
       "areaServed": [
         "Austin, TX", "Westlake Hills, TX", "Lakeway, TX", "Bee Cave, TX",
         "Cedar Park, TX", "Round Rock, TX", "Dripping Springs, TX",
@@ -138,6 +143,9 @@ const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
     <script is:inline define:vars={{ GA_ID, AW_ID }}>
       window.dataLayer = window.dataLayer || [];
       function gtag() { dataLayer.push(arguments); }
+      // define:vars wraps this script in an IIFE, so the declaration above is NOT
+      // global — expose it or every window.gtag caller sitewide silently no-ops.
+      window.gtag = gtag;
       gtag('js', new Date());
       gtag('config', GA_ID);
       gtag('config', AW_ID);

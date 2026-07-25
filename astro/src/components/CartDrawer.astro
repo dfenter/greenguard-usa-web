@@ -195,6 +195,9 @@ async function checkout() {
     fbc: cookie('_fbc'),
     fbp: cookie('_fbp'),
     ga_client_id: ga ? ga.split('.').slice(-2).join('.') : '',
+    // _ga_<stream> is GS1.1.<session_id>.<n>... — lets the webhook's MP purchase
+    // attach to this session instead of landing in Unassigned.
+    ga_session_id: (cookie('_ga_K2R5H2Z23X') || '').split('.')[2] || '',
   };
 
   const zip = ((document.getElementById('cart-zip') as HTMLInputElement | null)?.value || '').trim();

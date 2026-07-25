@@ -388,6 +388,9 @@ import Base from '../layouts/Base.astro';
         fbp: ck('_fbp'),
         // _ga cookie is GA1.1.<clientId> — last two dotted parts are the client_id.
         gaClientId: gaCookie ? gaCookie.split('.').slice(-2).join('.') : null,
+        // _ga_<stream> cookie is GS1.1.<session_id>.<n>... — session_id lets the
+        // server MP event attach to this live session instead of Unassigned.
+        gaSessionId: (ck('_ga_K2R5H2Z23X') || '').split('.')[2] || null,
         eventId, // shared with the server CAPI Lead so Meta dedupes the pair
       }
 

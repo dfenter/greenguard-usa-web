@@ -114,6 +114,14 @@ const ADDONS = [
     surfaces: { rounds: true, quote: true },
     quoteCategory: 'One-Time Services',
   },
+  {
+    sku: 'RUSH-FEE',
+    label: 'Rush Service Fee (Next-Day)',
+    price: 99.99,
+    surfaces: { rounds: true, quote: true },
+    quoteCategory: 'One-Time Services',
+    oneTime: true,
+  },
 ]
 
 // Equipment sold during visit — one-time purchases of physical hardware.
@@ -126,7 +134,7 @@ const PRODUCTS = [
     shipping: 10.00,  // per unit
   },
   {
-    sku: 'BG-NONCO2-UNIT', label: 'Biogents Non-CO₂ Trap', price: 179.99,
+    sku: 'BG-NONCO2-UNIT', label: 'Biogents Non-CO₂ Trap', price: 199.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bgNonCo2', quoteCategory: 'Trap Purchase',
     shipping: 10.00,  // per unit
@@ -138,12 +146,12 @@ const PRODUCTS = [
     shipping: 170.00, // per unit
   },
   {
-    sku: 'BG-TIMER', label: 'Biogents Timer', price: 99.99,
+    sku: 'BG-TIMER', label: 'Biogents Timer', price: 109.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'bgTimers', quoteCategory: 'Trap Purchase',
   },
   {
-    sku: null, label: 'CO₂ Tank — 20lb (empty)', price: 199.99,
+    sku: null, label: 'CO₂ Tank — 20lb (empty)', price: 239.99,
     surfaces: { rounds: true, quote: true },
     quoteCategory: 'Tank Purchase',
     shipping: 50.00,  // per unit (hazmat/freight)

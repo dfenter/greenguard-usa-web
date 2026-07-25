@@ -92,7 +92,7 @@ export const POST = async ({ request }) => {
   // conversions on the actual purchase (mirrors the quote checkout flow).
   const a = attribution && typeof attribution === 'object' ? attribution : {}
   const attrMeta = {}
-  for (const k of ['gclid', 'fbclid', 'fbc', 'fbp', 'ga_client_id']) {
+  for (const k of ['gclid', 'fbclid', 'fbc', 'fbp', 'ga_client_id', 'ga_session_id']) {
     if (a[k]) attrMeta[k] = String(a[k]).slice(0, 200)
   }
 

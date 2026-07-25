@@ -200,6 +200,57 @@ describe('prefillFromBooking', () => {
     ])
   })
 
+  // Biogents-owner defaults on a tank-exchange visit: hookup fee ON
+  // (TANK-HOOKUP-MAINT present → rounds UI flips tankHookupOptIn) and one
+  // generic bait pack PER TRAP.
+  test("tank-exchange, Biogents owner (plan_type 'own') → refill + hookup + bait×traps", () => {
+    const owner = { properties: { system_type: 'Biogents-CO2', plan_type: 'own', trap_count: '2', tank_count: '2' } }
+    expect(prefillFromBooking({ slug: 'tank-exchange-2' }, owner)).toEqual([
+      { sku: 'TANK-REFILL', qty: 2 },
+      { sku: 'TANK-HOOKUP-MAINT', qty: 1 },
+      { sku: 'BAIT', qty: 2 },
+    ])
+  })
+
+  test("tank-exchange, Biogents owner via legacy plan_type 'tank-exchange' → refill + hookup + bait", () => {
+    const owner = { properties: { system_type: 'biogents-co2', plan_type: 'tank-exchange', trap_count: '1', tank_count: '1' } }
+    expect(prefillFromBooking({ slug: 'tank-exchange-1' }, owner)).toEqual([
+      { sku: 'TANK-REFILL', qty: 1 },
+      { sku: 'TANK-HOOKUP-MAINT', qty: 1 },
+      { sku: 'BAIT', qty: 1 },
+    ])
+  })
+
+  test('bait pack tracks TRAP count, not tank count (2 traps, 1 tank)', () => {
+    const owner = { properties: { system_type: 'biogents-co2', plan_type: 'tank-exchange', trap_count: '2', tank_count: '1' } }
+    expect(prefillFromBooking({ slug: 'tank-exchange-1' }, owner)).toEqual([
+      { sku: 'TANK-REFILL', qty: 1 },
+      { sku: 'TANK-HOOKUP-MAINT', qty: 1 },
+      { sku: 'BAIT', qty: 2 },
+    ])
+  })
+
+  test('tank-exchange, Biogents RENTER → refill only, no owner hookup/bait defaults', () => {
+    const renter = { properties: { system_type: 'Biogents-CO2', plan_type: 'rent', trap_count: '2', tank_count: '2' } }
+    expect(prefillFromBooking({ slug: 'tank-exchange-2' }, renter)).toEqual([
+      { sku: 'TANK-REFILL', qty: 2 },
+    ])
+  })
+
+  test('tank-exchange, non-Biogents (Tank-Only) owner → no bait pack default', () => {
+    const tankOnly = { properties: { system_type: 'TANK1', plan_type: 'tank-exchange', trap_count: '1', tank_count: '1' } }
+    expect(prefillFromBooking({ slug: 'tank-exchange-1' }, tankOnly)).toEqual([
+      { sku: 'TANK-REFILL', qty: 1 },
+    ])
+  })
+
+  test('addons_optout suppresses the Biogents-owner hookup/bait defaults', () => {
+    const owner = { properties: { system_type: 'biogents-co2', plan_type: 'tank-exchange', trap_count: '2', tank_count: '2', addons_optout: 'TANK-HOOKUP-MAINT,BAIT' } }
+    expect(prefillFromBooking({ slug: 'tank-exchange-2' }, owner)).toEqual([
+      { sku: 'TANK-REFILL', qty: 2 },
+    ])
+  })
+
   test('mosqitter-installation, rental customer → no line items', () => {
     expect(prefillFromBooking({ slug: 'mosqitter-installation' }, mqRental)).toEqual([])
   })

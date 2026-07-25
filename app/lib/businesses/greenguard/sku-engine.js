@@ -25,6 +25,7 @@ const SKU_PRICES = {
   ASSESS: 0,
   CHK: 0,
   'WKD-SURCH': 25.00,
+  'RUSH-FEE': 99.99,
   BAIT: 10.00,
   'BG-SWEETSCENT': 10.00,
   'CO2-ADDON': 49.99,
@@ -33,9 +34,9 @@ const SKU_PRICES = {
   'TRAP-MAINT-1': 29.99,
   'TRAP-MAINT-2': 49.99,
   'TIMER-INSTALL': 29.99,
-  'BG-TIMER': 99.99,
+  'BG-TIMER': 109.99,
   'NONCO2-UNIT': 79.99,
-  'BG-NONCO2-UNIT': 179.99,
+  'BG-NONCO2-UNIT': 199.99,
   'BG-NONCO2-RENT': 40.00,
   'BUCKET-OF-DOOM': 24.99,
   'INNER-TRAP': 5.00,
@@ -310,6 +311,27 @@ function parseTrailingNumber(slug, prefix) {
 }
 
 /**
+ * A "Biogents owner" owns their Biogents trap and pays per monthly CO₂ tank
+ * exchange — so their rounds card defaults the tank hookup & maintenance fee ON
+ * and one generic bait pack per trap. In HubSpot they're marked plan_type
+ * 'own' OR the legacy 'tank-exchange' value (the dominant owner marker across
+ * the customer base), or an explicit *-Owned system_type. Renters are
+ * plan_type 'rent' and get the bundled BG{N} package instead. Gated on a
+ * Biogents system so Tank-Only / Mosqitter customers are never included.
+ */
+function isBiogentsOwner(systemType, planType) {
+  const st = String(systemType || '')
+  const pt = String(planType || '').toLowerCase()
+  const isBiogents = /^biogents/i.test(st) || /^bg\d/i.test(st)
+  return isBiogents && (
+    pt === 'own'
+    || pt === 'tank-exchange'
+    || st === 'Biogents-Owned'
+    || /biogents.*own/i.test(st)
+  )
+}
+
+/**
  * Contact-config fallback prefill — used when the appointment's event title /
  * slug can't be mapped (legacy Acuity titles, manual bookings, renamed events).
  * Derives the visit's default line items from the customer's HubSpot system
@@ -331,22 +353,18 @@ function prefillFromContact(contact) {
 
   const trapCount = Math.max(1, parseInt(props.trap_count || '1', 10) || 1)
   const tankCount = Math.max(1, parseInt(props.tank_count || props.trap_count || '1', 10) || 1)
-  const isBgOwned = systemType === 'Biogents-Owned'
-    || /biogents.*own/i.test(systemType)
-    || planType === 'own'
+  const isBgOwned = isBiogentsOwner(systemType, planType)
   const addonsOptOut = new Set(String(props.addons_optout || '')
     .split(',').map((s) => s.trim()).filter(Boolean))
 
   let baseLines = null
   if (/^biogents/i.test(systemType) || /^bg\d/i.test(systemType)) {
-    if (isBgOwned || planType === 'tank-exchange') {
+    if (isBgOwned) {
       // Owner / tank-service customer: visit = tank swap. Owner-only defaults
-      // (hookup + bait) mirror the tank-exchange slug rules above.
+      // (hookup + one bait pack per trap) mirror the tank-exchange slug rules above.
       baseLines = [{ sku: 'TANK-REFILL', qty: tankCount }]
-      if (isBgOwned) {
-        if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
-        if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: tankCount })
-      }
+      if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
+      if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: trapCount })
     } else {
       // Rental: BG{N} package (BG1–BG3 are the only package SKUs; cap there)
       baseLines = [{ sku: `BG${Math.min(trapCount, 3)}`, qty: 1 }]
@@ -388,12 +406,11 @@ function prefillFromBooking(booking, contact) {
   // 'mosqitter-rental' event, not installation/service/troubleshoot).
   // Only an explicit 'Mosqitter-Rental' label suppresses owner-side fees.
   const isMqOwned = systemType !== 'Mosqitter-Rental'
-  // Match either the explicit system_type label or the older plan_type='own'
-  // marker. Same rule used by upgrade-paths.js classifier.
+  // Biogents owner = plan_type 'own'/'tank-exchange' (or an explicit *-Owned
+  // system_type) on a Biogents system. See isBiogentsOwner. Same owner notion
+  // used by upgrade-paths.js classifier.
   const planType = String(props.plan_type || '').toLowerCase()
-  const isBgOwned = systemType === 'Biogents-Owned'
-    || /biogents.*own/i.test(systemType)
-    || planType === 'own'
+  const isBgOwned = isBiogentsOwner(systemType, planType)
   // Installation is a one-time event. Once a customer's mq_installed flag is
   // true, treat any future "mosqitter-installation" booking as a service visit.
   const mqInstalled = props.mq_installed === 'true' || props.mq_installed === true
@@ -441,7 +458,7 @@ function prefillFromBooking(booking, contact) {
       baseLines = [{ sku: 'TANK-REFILL', qty: tankN }]
       if (isBgOwned) {
         if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
-        if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: tankN })
+        if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: trapCount })
       }
     }
   }

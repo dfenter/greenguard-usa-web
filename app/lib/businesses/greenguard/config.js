@@ -66,7 +66,9 @@ module.exports = {
   },
 
   // Stamped in Cal.com event summaries — used to filter/parse GCal events
-  reviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJx8wLC4K11wwRbfe7hhZiHXs',
+  // CID-based short link (stable) — the old place_id rotated and killed the
+  // writereview?placeid= form of this URL (2026-07).
+  reviewUrl: 'https://g.page/r/CW33u4YWYh17EBM/review',
 
   bookingTag: 'GreenGuard USA',
 

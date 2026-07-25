@@ -146,6 +146,11 @@
       "source": "/why-co2-mosquito-traps-work",
       "destination": "https://new.greenguard-usa.com/why-co2-mosquito-traps-work",
       "permanent": true
+    },
+    {
+      "source": "/mosquito-control-austin",
+      "destination": "/mosquito-control-austin-texas",
+      "permanent": true
     }
   ]
 }
