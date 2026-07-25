@@ -222,7 +222,7 @@ open the H-bridge's high-current return.
 | R16 | 1K 0603 (MCU series into IN2 OR node) | `DRV_IN2_MCU` | `DRV_IN2` |
 | J2 (solenoid, 5.08mm screw term) | 2-pos | 1 = `SOL_OUT1` | 2 = `SOL_OUT2` |
 
-### U5 — TPS3839G30DBZR (SOT-23-3) supervisor, 2.93 V threshold on the 3.3 V rail
+### U5 — TPS3839K33DBZR (SOT-23-3) supervisor, 2.93 V threshold on the 3.3 V rail
 
 | Pin | Datasheet name | Net |
 |---|---|---|
@@ -356,7 +356,7 @@ C1–C14, SC1, R1–R16, TP1–TP3.
    Verify both pin map and K; also verify no spurious trigger at power-up with B and /CLR hard-tied to VCC
    (A is already low at power-on so no falling edge occurs; confirm '123 power-up behavior note).
 7. **TPS3839 DBZ pinout** (1=GND, 2=/RESET, 3=VDD — VERIFIED against TI SBVS193D Section 6, 2026-07-09),
-   push-pull active-low output (confirmed push-pull per datasheet pin functions), threshold variant G30 =
+   push-pull active-low output (confirmed push-pull per datasheet pin functions), threshold variant K33 =
    2.93 V typ. If MCP809 (reset-output, push-pull) is substituted, re-verify its SOT-23 pin order — it
    differs from TPS3839 (MCP809: 1=/RST? check). Any substitute MUST keep D3/U6.A wiring polarity valid.
 8. **MCP1703A-3302E/CB SOT-23-3 pinout** (1=GND, 2=VIN, 3=VOUT), VIN abs max 16 V (12 V adapter + OR-diode

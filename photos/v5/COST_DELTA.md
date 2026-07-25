@@ -36,7 +36,7 @@ All costs are estimated unit cost @ qty 200. v3 costs derived from v3 BOM + typi
 
 | v5 RefDes | Part | Reason Added | v5 Cost |
 |-----------|------|-------------|---------|
-| U5 TPS3839G30DBZR | Voltage supervisor 2.93V | Safety: closes solenoid on supply collapse even with MCU dead | +$0.62 |
+| U5 TPS3839K33DBZR | Voltage supervisor 2.93V | Safety: closes solenoid on supply collapse even with MCU dead | +$0.62 |
 | U6 SN74LVC1G123DCUR | One-shot monostable | Drives CLOSE pulse to DRV8871 on U5 trip; ~47ms hardware guarantee | +$0.38 |
 | SC1 1F/5.5V supercap | Eaton PB-5R0V105-R | RTC VBAT backup; replaces implied coin cell (which was absent in v3/v4) | +$0.85 |
 | D2, D3, D6 BAT54 x3 | BAT54 SOD-123 Schottky | Trickle-charge isolation (D2), supervisor /ALERT isolation (D3), one-shot OR (D6) | +$0.30 total |
@@ -94,7 +94,7 @@ The $2.18 delta vs. v3 is justified entirely by safety features absent in v3:
 
 ## LCSC TBD-verify Items (must resolve before submitting to JLCPCB)
 
-1. U5 TPS3839G30DBZR — search TI SOT-23-3 supervisor at LCSC; if unavailable, MCP809 SOT-23 is close substitute (verify pin order differs from TPS3839 before PCB layout)
+1. U5 TPS3839K33DBZR — search TI SOT-23-3 supervisor at LCSC; if unavailable, MCP809 SOT-23 is close substitute (verify pin order differs from TPS3839 before PCB layout)
 2. SC1 1F/5.5V supercap — Eaton PB-5R0V105-R; confirm LCSC availability or substitute KEMET FT0H105ZF; both are D14/P5mm radial but verify body height fits Hammond 1554CGY 40mm internal height with PCB standoffs
 3. C1 470uF EEU-FR1C471B — confirm LCSC stock; C TBD-verify means LCSC part number was not confirmed at BOM compile time
 4. C9 470nF 0603 — common value; confirm C1525 or equivalent

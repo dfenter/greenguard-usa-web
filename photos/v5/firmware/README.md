@@ -61,16 +61,21 @@ J3.1=MISO(PA5), J3.2=VCC, J3.3=SCK(PA4), J3.4=MOSI(PA6), J3.5=/RESET, J3.6=GND.
 
 ## 3. Compile / toolchain note
 
-**No AVR toolchain is installed on this machine — this sketch is written conservatively but
-has NOT been compiled.** Validation requires arduino-cli + ATTinyCore (or avr-gcc):
+**COMPILED 2026-07-23** (arduino-cli 1.5.1 + ATTinyCore 1.5.2 on gg-wsl): 5,692 bytes flash
+(69 %), 81 bytes RAM (15 %), no warnings. Artifacts in `build/` —
+`CO2_Timer_v5_ATtiny84A_8MHz.hex` (SHA-256 `17bcd318…eeeabbe`), `.elf`, `.lst`. One source
+fix was required: explicit prototypes for `btnPoll1`/`btnHeldMs` after the `Btn` typedef
+(the Arduino builder hoists auto-prototypes above it). Build command:
 
 ```
 arduino-cli core install ATTinyCore:avr --additional-urls \
   http://drazzy.com/package_drazzy.com_index.json
 arduino-cli compile \
-  --fqbn ATTinyCore:avr:attinyx4:chip=84a,clock=8internal,bod=2v7,eesave=aenable \
-  co2_timer_v5.ino
+  --fqbn "ATTinyCore:avr:attinyx4:chip=84,clock=8internal,millis=enabled,LTO=enable" \
+  --output-dir build co2_timer_v5
 ```
+(Note: the core's option is `chip=84`, not `84a` — same die/binary. BOD/EESAVE are
+fuse-time settings, not compile options; they come from the Section 1 fuse bytes.)
 
 Board settings: **ATtiny84(a), 8 MHz internal, BOD 2.7 V, millis enabled, LTO on.**
 Registers used are ATtiny84A-datasheet-verified only: `USICR/USISR/USIDR` (USI TWI),
@@ -129,7 +134,8 @@ PCMSK0`, `MCUSR`, `PORTA/B DDRA/B PINA/B`, EEPROM via `<avr/eeprom.h>`. ISR vect
 
 ## 6. Known limitations
 
-- Not compiled (no toolchain here) — run the Section 3 build before release candidate.
+- Compiles clean (2026-07-23, see Section 3) but has never run on hardware — first-article
+  bench validation still required.
 - TM1637 driver assumes a standard 4-digit module with on-board pull-ups on J4 and a wired
   colon (digit-2 bit 7); bare TM1637 layouts without pull-ups need external 10Ks on DIO/CLK.
 - `millis()` restarts on every WDT hop; all timing is relative, so nothing user-visible

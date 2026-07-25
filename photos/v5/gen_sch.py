@@ -431,7 +431,7 @@ R("R5", 215.9, r3, "220R", "+3V3", "VBAT_CHG")
 D("D2", 254.0, r3, "BAT54", "VBAT_RTC", "VBAT_CHG")
 place("SC1", "Device:C_Polarized", 292.1, r3, 0, "1F 5.5V PB-5R0V105-R",
       "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm", {"1": "VBAT_RTC", "2": "GND"})
-place("U5", "Power_Supervisor:TPS3839DBZ", 342.9, r3, 0, "TPS3839G30DBZR", SOT23_FP,
+place("U5", "Power_Supervisor:TPS3839DBZ", 342.9, r3, 0, "TPS3839K33DBZR", SOT23_FP,
       {"1": "GND", "2": "/SUPV", "3": "+3V3"})
 C("C13", 381.0, r3, "100nF X7R", "+3V3", "GND")
 D("D3", 419.1, r3, "BAT54", "/SUPV", "/ALERT")

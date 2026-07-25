@@ -52,7 +52,7 @@
 - [ ] ATtiny84A-SSU (U1) — SOIC-14, buy pre-programmed if desired
 - [ ] DS3231M+TRL (U2) — SO-16
 - [ ] DRV8871DDAR (U4) — SOIC-8
-- [ ] TPS3839G30 (U5) — SOT-23-3
+- [ ] TPS3839K33 (U5) — SOT-23-3
 - [ ] SN74LVC1G123 (U6) — SOT-23-5
 - [ ] Passives: 0603 capacitors (100nF, 470µF bulk), resistors (10K, 100K, 1K, 4.7K)
 - [ ] TVS diodes (BZX55C15), SS34 Schottky ORs, BAT54

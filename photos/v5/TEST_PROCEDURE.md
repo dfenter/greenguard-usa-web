@@ -21,7 +21,7 @@
 
 - [ ] Verify all SMT components present on top side (U1-U6, F1, TVS1, TVS2, R1-R16, C1-C14, SC1, D1-D6)
 - [ ] Verify U4 (DRV8871DDAR, HSOP-8 PowerPAD) — no bridged pins; confirm EP is soldered to thermal pad on B.Cu with thermal vias
-- [ ] Verify U5 (TPS3839G30DBZR, SOT-23-3) pin 1 is GND, pin 2 is /RESET, pin 3 is VDD (verify against TI SBVS193D; orientation error caused the v3/v4 defect)
+- [ ] Verify U5 (TPS3839K33DBZR, SOT-23-3) pin 1 is GND, pin 2 is /RESET, pin 3 is VDD (verify against TI SBVS193D; orientation error caused the v3/v4 defect)
 - [ ] Verify U6 (SN74LVC1G123DCUR, VSSOP-8) — pin 5 is Q (output to D6 anode), not Cext; confirm C9 is on pin 6 (Cext)
 - [ ] Verify U2 (DS3231M+TRL, SO-16) — pin 2 is VCC, pin 3 is /INT//SQW, pin 13 is GND, pin 14 is VBAT, pin 15 is SDA, pin 16 is SCL (verify against Maxim DS3231M Rev 19-5312; wrong pinout caused the v3/v4 defect)
 - [ ] Verify THT components: D1, D4, D5 SS34 (cathode band to square pad); SC1 supercap (+ lead to VBAT_RTC); J1/J2/J5/J6 screw terminals
@@ -207,7 +207,7 @@ This test verifies the U5 (TPS3839) -> U6 (SN74LVC1G123) -> D6 -> DRV8871 IN2 ha
 
 Pass: SOL_OUT2 shows a close pulse when TP2 asserts low, without any MCU involvement. U6 one-shot width should be 40-55 ms (within C9/R13 tolerance).
 
-Note: the TPS3839G30 threshold is 2.93 V typical on the +3V3 rail. C1 (470 µF on VM) provides the reservoir energy for the close pulse. If U5 does not trip at or near 2.93 V on +3V3, check U5 orientation (pin 1 = GND, pin 2 = /RESET out, pin 3 = VDD per TI SBVS193D).
+Note: the TPS3839K33 threshold is 2.93 V typical on the +3V3 rail. C1 (470 µF on VM) provides the reservoir energy for the close pulse. If U5 does not trip at or near 2.93 V on +3V3, check U5 orientation (pin 1 = GND, pin 2 = /RESET out, pin 3 = VDD per TI SBVS193D).
 
 ---
 

@@ -81,7 +81,7 @@ v5 has **no pre-programmed chip consignment**. U1 (ATtiny84A-SSU, SOIC-14) is so
 | U2 | DS3231M RTC (SO-16) | DS3231M+TRL | DS3231M+TRLCT-ND |
 | U3 | MCP1703A-3302E LDO | MCP1703AT-3302E/CB | MCP1703AT-3302E/CBCT-ND |
 | U4 | DRV8871 H-bridge (HSOP-8) | DRV8871DDAR | 296-44801-1-ND |
-| U5 | TPS3839 2.93 V supervisor | TPS3839G30DBZR | 296-38290-1-ND |
+| U5 | TPS3839 2.93 V supervisor | TPS3839K33DBZR | 296-38290-1-ND |
 | U6 | One-shot monostable | SN74LVC1G123DCUR | 296-10430-1-ND |
 | SC1 | 1F 5.5 V supercap | PB-5R0V105-R | 283-5237-ND |
 | J5 | DC barrel jack | PJ-002A | CP-002A-ND |

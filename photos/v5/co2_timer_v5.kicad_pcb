@@ -3977,7 +3977,7 @@
 				)
 			)
 		)
-		(property "Value" "TPS3839G30"
+		(property "Value" "TPS3839K33"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)

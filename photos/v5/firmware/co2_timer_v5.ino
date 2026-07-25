@@ -603,6 +603,11 @@ typedef struct {
     uint16_t relHoldMs;   // held duration at last release
 } Btn;
 
+// Explicit prototypes: the Arduino builder hoists auto-generated prototypes
+// above this typedef, where Btn is not yet visible.
+static void btnPoll1(Btn *b, uint8_t raw);
+static uint16_t btnHeldMs(const Btn *b);
+
 static Btn btnUp, btnSet;
 
 static inline uint8_t rawUp(void)  { return (PINA & _BV(BIT_BTN_UP))  ? 0 : 1; }
