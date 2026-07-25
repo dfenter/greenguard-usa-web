@@ -39,9 +39,11 @@ function getCalendar() {
 
 function parseEmailFromDescription(description) {
   if (!description) return null
-  // Legacy event description format: "Email: xxx@example.com"
+  // Legacy event description format: "Email: xxx@example.com". Acuity imports
+  // sometimes put two addresses on the line ("Email: a@x.com, b@y.com"), so strip
+  // any trailing comma/semicolon — HubSpot rejects "a@x.com," as INVALID_EMAIL.
   const legacyMatch = description.match(/^Email:\s*([^\s\n]+)/im)
-  if (legacyMatch) return legacyMatch[1].trim().toLowerCase()
+  if (legacyMatch) return legacyMatch[1].trim().replace(/[,;]+$/, '').toLowerCase()
   // Cal.com format: emails appear under "Who:" section, one per line
   // Match any email that's NOT admin@greenguard-usa.com
   const allEmails = description.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g) || []
@@ -72,7 +74,12 @@ function parseAddressFromDescription(description) {
   if (locMatch) return locMatch[1].trim()
   // Cal.com format: "Where:\nAddress"
   const whereMatch = description.match(/Where:\s*\n(.+)/i)
-  return whereMatch ? whereMatch[1].trim() : null
+  if (whereMatch) return whereMatch[1].trim()
+  // Portal/manual format: "Address: 123 Main St, Austin, TX 78704" on its own
+  // line. Hand-made events often fill only the description, leaving the GCal
+  // location field empty — without this the HubSpot address syncs blank.
+  const addrMatch = description.match(/^Address:\s*(.+)/im)
+  return addrMatch ? addrMatch[1].trim() : null
 }
 
 // Pull the booker's "Notes" / "Additional notes" out of a Cal.com event
