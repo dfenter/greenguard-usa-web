@@ -8,6 +8,17 @@
   ],
   "redirects": [
     {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "greenguard-usa.com"
+        }
+      ],
+      "destination": "https://www.greenguard-usa.com/$1",
+      "permanent": true
+    },
+    {
       "source": "/bee-safe-mosquito-control",
       "destination": "https://new.greenguard-usa.com/bee-safe-mosquito-control",
       "permanent": true

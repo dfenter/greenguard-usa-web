@@ -130,7 +130,10 @@ export const POST = async ({ request }) => {
   const utmSource  = typeof body.utm_source === 'string'   ? body.utm_source.trim().slice(0, 100) : null;
   const utmMedium  = typeof body.utm_medium === 'string'   ? body.utm_medium.trim().slice(0, 100) : null;
   const utmCampaign= typeof body.utm_campaign === 'string' ? body.utm_campaign.trim().slice(0, 100) : null;
-  const source     = typeof body.source === 'string'       ? body.source.trim().slice(0, 50) : 'website';
+  // This endpoint only serves the lead-magnet component (LeadCapture.astro),
+  // which posts just { email }. Defaulting to a generic 'website' made every
+  // lead-magnet signup indistinguishable from ordinary site traffic in HubSpot.
+  const source     = typeof body.source === 'string'       ? body.source.trim().slice(0, 50) : 'website_lead_magnet';
 
   const properties = { email: emailStr, hs_lead_status: 'NEW', lead_source: source };
   if (referredBy) properties.referred_by = referredBy;
