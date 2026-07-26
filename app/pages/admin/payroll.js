@@ -620,8 +620,10 @@ function HistoryTab({ api, runs, busy, setMsg, reload, taxYear }) {
 const BLANK_EMP = {
   name: '', email: '', phone: '', classification: 'employee', pay_type: 'hourly',
   pay_frequency: 'biweekly', hourly_rate: '', salary_annual: '', per_stop: '', mileage_rate: '70',
-  ot_eligible: true, exempt: false, filing_status: 'single', w4_multiple_jobs: false,
-  w4_dependents_credit: '', w4_extra_withholding: '', fed_withholding_mode: 'table', fed_flat_pct: '',
+  ot_eligible: true, exempt: false, fww: false, salary_hours_per_week: '40',
+  filing_status: 'single', w4_multiple_jobs: false,
+  w4_dependents_credit: '', w4_other_income: '', w4_deductions: '',
+  w4_extra_withholding: '', fed_withholding_mode: 'table', fed_flat_pct: '',
   hired_on: '', active: true, notes: '',
 }
 
@@ -634,6 +636,8 @@ function empToForm(e) {
     per_stop: dollarsFromCents(e.per_stop_cents),
     mileage_rate: String(e.mileage_rate_cents || 0),
     w4_dependents_credit: dollarsFromCents(e.w4_dependents_credit_cents),
+    w4_other_income: dollarsFromCents(e.w4_other_income_cents),
+    w4_deductions: dollarsFromCents(e.w4_deductions_cents),
     w4_extra_withholding: dollarsFromCents(e.w4_extra_withholding_cents),
     fed_flat_pct: e.fed_flat_pct ? String(e.fed_flat_pct) : '',
     hired_on: e.hired_on || '',
@@ -648,11 +652,15 @@ function formToPayload(f) {
     salary_annual_cents: centsFromDollars(f.salary_annual),
     per_stop_cents: centsFromDollars(f.per_stop),
     mileage_rate_cents: Math.round(Number(f.mileage_rate) || 0),
-    ot_eligible: Boolean(f.ot_eligible),
+    ot_eligible: true,                 // statutory for non-exempt W-2 staff
     exempt: Boolean(f.exempt),
+    fww: Boolean(f.fww),
+    salary_hours_per_week: Number(f.salary_hours_per_week) || 40,
     filing_status: f.filing_status,
     w4_multiple_jobs: Boolean(f.w4_multiple_jobs),
     w4_dependents_credit_cents: centsFromDollars(f.w4_dependents_credit),
+    w4_other_income_cents: centsFromDollars(f.w4_other_income),
+    w4_deductions_cents: centsFromDollars(f.w4_deductions),
     w4_extra_withholding_cents: centsFromDollars(f.w4_extra_withholding),
     fed_withholding_mode: f.fed_withholding_mode,
     fed_flat_pct: Number(f.fed_flat_pct) || 0,
@@ -751,12 +759,16 @@ function CrewTab({ api, busy, crew, reload, setMsg }) {
                 </select>
               </label>
               <label><span style={lbl}>Dependents credit $ (W-4 3)</span><input type="number" step="1" min="0" value={form.w4_dependents_credit} onChange={set('w4_dependents_credit')} style={input} /></label>
+              <label><span style={lbl}>Other income $ (W-4 4a)</span><input type="number" step="1" min="0" value={form.w4_other_income} onChange={set('w4_other_income')} style={input} /></label>
+              <label><span style={lbl}>Deductions $ (W-4 4b)</span><input type="number" step="1" min="0" value={form.w4_deductions} onChange={set('w4_deductions')} style={input} /></label>
               <label><span style={lbl}>Extra withholding $ (W-4 4c)</span><input type="number" step="0.01" min="0" value={form.w4_extra_withholding} onChange={set('w4_extra_withholding')} style={input} /></label>
               <label><span style={lbl}>Fed withholding method</span>
                 <select value={form.fed_withholding_mode} onChange={set('fed_withholding_mode')} style={input}>
                   <option value="table">IRS percentage method</option>
                   <option value="flat">Flat %</option>
-                  <option value="none">None (1099)</option>
+                  {/* Zero withholding needs a W-4 exempt certification, so it
+                      is offered for contractors only. */}
+                  {form.classification === 'contractor' && <option value="none">None (1099)</option>}
                 </select>
               </label>
               {form.fed_withholding_mode === 'flat' && (
@@ -764,13 +776,19 @@ function CrewTab({ api, busy, crew, reload, setMsg }) {
               )}
             </div>
             <div style={{ display: 'flex', gap: 18, marginTop: 14, flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem', fontWeight: 700 }}>
-                <input type="checkbox" checked={Boolean(form.ot_eligible)} onChange={set('ot_eligible')} /> Overtime eligible
-              </label>
+              {/* No free-standing "overtime eligible" switch: a non-exempt W-2
+                  employee is entitled to overtime by law, so exemption is the
+                  only thing that can turn it off. */}
               <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem', fontWeight: 700 }}
                 title="Only a bona-fide executive/administrative/professional role qualifies. Service technicians do NOT, salaried or not.">
                 <input type="checkbox" checked={Boolean(form.exempt)} onChange={set('exempt')} /> FLSA exempt (no overtime)
               </label>
+              {form.pay_type === 'salary' && !form.exempt && (
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem', fontWeight: 700 }}
+                  title="Half-time overtime on a fluctuating workweek is only lawful with a fixed salary and a written mutual understanding. Without it, overtime is a full 1.5x on salary ÷ 40.">
+                  <input type="checkbox" checked={Boolean(form.fww)} onChange={set('fww')} /> Fluctuating-workweek agreement on file
+                </label>
+              )}
               <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem', fontWeight: 700 }}>
                 <input type="checkbox" checked={Boolean(form.w4_multiple_jobs)} onChange={set('w4_multiple_jobs')} /> W-4 Step 2 box checked
               </label>

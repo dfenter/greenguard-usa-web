@@ -7,7 +7,7 @@
 //                    is a no-op.
 
 const crypto = require('crypto')
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { getSessionFromRequest, isOwnerEmail } = require('../../../lib/auth')
 const { parseCsvStatement } = require('../../../lib/books-csv')
 const { complete } = require('../../../lib/llm')
 const { q } = require('../../../lib/db')
@@ -89,7 +89,7 @@ async function importRows(rows) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
+  if (!session || !isOwnerEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const action = req.body?.action || 'preview'
 

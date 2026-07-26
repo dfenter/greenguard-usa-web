@@ -181,14 +181,29 @@ describe('computeEarnings — FLSA overtime', () => {
   test('a SALARIED NON-EXEMPT employee still earns an overtime premium', () => {
     // "Salaried" is not "exempt" — a service tech fails the FLSA duties test
     // at any salary, so 55 hours owes 15 hours of half-time premium.
+    // Default (no fluctuating-workweek agreement): the salary is treated as
+    // covering 40 hours, so hours 41-55 are owed a FULL time-and-a-half on
+    // that rate — the salary never paid for them.
     const salaried = { ...TECH, pay_type: 'salary', salary_annual_cents: 5_200_000, pay_frequency: 'biweekly', exempt: false }
     const entries = [day('2026-07-20', 11), day('2026-07-21', 11), day('2026-07-22', 11), day('2026-07-23', 11), day('2026-07-24', 11)]
     const e = computeEarnings({ employee: salaried, entries, year: 2026 })
     expect(e.otHours).toBe(15)
-    // weekly salary $1,000 ÷ 55 h = $18.18/h regular rate ⇒ premium = 15 × half
-    const weekly = Math.round(5_200_000 / 52)
-    expect(e.otPremiumCents).toBe(Math.round(15 * (weekly / 55) * 0.5))
+    const weekly = Math.round(5_200_000 / 52)          // $1,000/week
+    expect(e.otPremiumCents).toBe(Math.round(15 * (weekly / 40) * 1.5))   // 15 × $37.50
     expect(e.basePayCents).toBe(Math.round(5_200_000 / 26))
+  })
+
+  test('the half-time premium applies ONLY with an explicit fluctuating-workweek agreement', () => {
+    // FWW requires a fixed salary, genuinely fluctuating hours and a clear
+    // mutual understanding, so it takes a deliberate flag — it must never be
+    // the silent default, because it pays a third of the standard premium.
+    const base = { ...TECH, pay_type: 'salary', salary_annual_cents: 5_200_000, pay_frequency: 'biweekly', exempt: false }
+    const entries = [day('2026-07-20', 11), day('2026-07-21', 11), day('2026-07-22', 11), day('2026-07-23', 11), day('2026-07-24', 11)]
+    const weekly = Math.round(5_200_000 / 52)
+    const fww = computeEarnings({ employee: { ...base, fww: true }, entries, year: 2026 })
+    expect(fww.otPremiumCents).toBe(Math.round(15 * (weekly / 55) * 0.5))
+    const standard = computeEarnings({ employee: base, entries, year: 2026 })
+    expect(standard.otPremiumCents).toBeGreaterThan(fww.otPremiumCents)
   })
 
   test('an EXEMPT employee accrues no overtime and is paid per period', () => {
@@ -351,6 +366,8 @@ describe('federalWithholdingCents', () => {
   })
 
   test('the derived table offsets match the published Pub 15-T schedule starts', () => {
+    // These are the STARTS of the published rows; Worksheet 1A line 1g takes
+    // the rest of the standard deduction out before the table is applied.
     // The annual percentage-method tables do NOT begin at the full standard
     // deduction. Published first-bracket starts, 2025: single $6,400,
     // married $17,100, head of household $13,900. If these drift, withholding
@@ -575,9 +592,10 @@ describe('period helpers', () => {
     expect(suggestPeriod('2026-07-25', 'weekly')).toEqual({ start: '2026-07-19', end: '2026-07-25' })
   })
 
-  test('941 deposits are due the 15th of the following month', () => {
-    expect(form941DueDate('2026-07-31')).toBe('2026-08-15')
-    expect(form941DueDate('2026-12-04')).toBe('2027-01-15')
+  test('941 deposits are due the 15th, rolled off a weekend', () => {
+    // 2026-08-15 is a Saturday, so a monthly depositor's date is Monday 17th.
+    expect(form941DueDate('2026-07-31')).toBe('2026-08-17')
+    expect(form941DueDate('2026-12-04')).toBe('2027-01-15')   // a Friday
     expect(form941DueDate('garbage')).toBeNull()
   })
 })
@@ -592,18 +610,15 @@ describe('W-4 Step 2 checkbox (Pub 15-T half-bracket schedules)', () => {
     const emp = { ...TECH, w4_multiple_jobs: true }
     const got = federalWithholdingCents({ taxableGrossCents: gross, employee: emp, year: 2026, payFrequency: 'biweekly' })
 
-    // Hand-computed (cents): annual wage 5,999,994 → doubled 11,999,988
-    // − 750,000 table offset = 11,249,988 taxable. Doubling pushes it into the
-    // 24% band, which is exactly why the checkbox withholds more.
-    //   10% of the first 1,240,000        =   124,000
-    //   12% to 5,040,000                  =   456,000
-    //   22% to 10,570,000                 = 1,216,600
-    //   24% of the remaining 679,988      =   163,197
-    //                              total = 1,959,797 → halved = 979,898.5
-    const annualTax = 124_000 + 456_000
-      + 0.22 * (10_570_000 - 5_040_000)
-      + 0.24 * (11_249_988 - 10_570_000)
+    // With the box checked, line 1g is -0- and the schedule carries the FULL
+    // standard deduction, halved along with every threshold — equivalently,
+    // tax the doubled wage and halve the result:
+    //   2 × 5,999,994 − 1,610,000 std = 10,389,988 taxable
+    //   10% of 1,240,000 = 124,000; 12% to 5,040,000 = 456,000;
+    //   22% of the remaining 5,349,988 = 1,176,997 → 1,756,997, halved.
+    const annualTax = 124_000 + 456_000 + 0.22 * (10_389_988 - 5_040_000)
     expect(got).toBe(Math.round(annualTax / 2 / 26))
+    expect(got).toBe(33_788)   // the published Step 2 schedule figure
   })
 
   test('withholds roughly twice the single-job amount at the same wage', () => {
@@ -638,15 +653,29 @@ describe('degenerate inputs cannot create money', () => {
     expect(item.netCents).toBe(0)
   })
 
-  test('a deduction larger than the check is capped and the shortfall reported', () => {
+  test('a deduction cannot cut into the minimum wage or the overtime premium', () => {
+    // 29 CFR 531.36. An 8-hour day at $22.50 grosses $180; the FLSA floor is
+    // 8 × $7.25 = $58, so at most $180 − taxes − $58 may be deducted.
     const item = computePayrollItem({
       employee: TECH, entries, year: 2026, ytd: {},
       otherDeductionCents: 999_999, otherDeductionLabel: 'truck damage',
     })
-    expect(item.netCents).toBe(0)
-    expect(item.otherDeductionCents).toBeLessThan(999_999)
-    expect(item.deductionShortfallCents).toBeGreaterThan(0)
-    expect(item.otherDeductionCents + item.deductionShortfallCents).toBe(999_999)
+    expect(item.minimumWageFloorCents).toBe(5_800)
+    expect(item.netCents).toBeGreaterThanOrEqual(item.minimumWageFloorCents)
+    expect(item.otherDeductionCents).toBe(item.grossCents - item.employeeTaxCents - 5_800)
+    expect(item.deductionShortfallCents).toBe(999_999 - item.otherDeductionCents)
+  })
+
+  test('the overtime premium is protected from deductions too', () => {
+    const otEntries = [
+      day('2026-07-20', 9, { id: 1 }), day('2026-07-21', 9, { id: 2 }), day('2026-07-22', 9, { id: 3 }),
+      day('2026-07-23', 9, { id: 4 }), day('2026-07-24', 8, { id: 5 }),
+    ]
+    const item = computePayrollItem({
+      employee: TECH, entries: otEntries, year: 2026, ytd: {}, otherDeductionCents: 999_999,
+    })
+    expect(item.otHours).toBe(4)
+    expect(item.netCents).toBeGreaterThanOrEqual(item.minimumWageFloorCents + item.otPremiumCents)
   })
 
   test('sutaRate: null falls back to the Texas default instead of zeroing SUTA', () => {
@@ -700,20 +729,33 @@ describe('salary is prorated to the period actually paid', () => {
   const week = [day('2026-07-20', 8), day('2026-07-21', 8), day('2026-07-22', 8), day('2026-07-23', 8), day('2026-07-24', 8)]
 
   test('a full 14-day period pays the whole biweekly slice', () => {
-    const e = computeEarnings({ employee: salaried, entries: week, year: 2026, periodDays: 14 })
+    const e = computeEarnings({ employee: salaried, entries: week, year: 2026, periodStart: '2026-06-01', periodEnd: '2026-06-14' })
     expect(e.basePayCents).toBe(Math.round(5_200_000 / 26))
   })
 
   test('a 7-day period pays half — two of them cannot pay the fortnight twice', () => {
-    const half = computeEarnings({ employee: salaried, entries: week, year: 2026, periodDays: 7 })
+    const half = computeEarnings({ employee: salaried, entries: week, year: 2026, periodStart: '2026-06-01', periodEnd: '2026-06-07' })
     expect(half.basePayCents).toBe(Math.round((5_200_000 / 26) * 0.5))
-    const other = computeEarnings({ employee: salaried, entries: [], year: 2026, periodDays: 7 })
+    const other = computeEarnings({ employee: salaried, entries: [], year: 2026, periodStart: '2026-06-08', periodEnd: '2026-06-14' })
     expect(half.basePayCents + other.basePayCents).toBe(Math.round(5_200_000 / 26))
   })
 
-  test('a longer-than-nominal period never pays more than one period', () => {
-    const e = computeEarnings({ employee: salaried, entries: week, year: 2026, periodDays: 40 })
-    expect(e.basePayCents).toBe(Math.round(5_200_000 / 26))
+  test('a catch-up run covering two periods pays TWO installments', () => {
+    // Capping at one installment here silently swallowed a whole paycheck.
+    const e = computeEarnings({
+      employee: salaried, entries: week, year: 2026,
+      periodStart: '2026-06-01', periodEnd: '2026-06-28',    // 28 days = 2 biweekly periods
+    })
+    expect(e.basePayCents).toBe(Math.round((5_200_000 / 26) * 2))
+  })
+
+  test('a calendar month pays exactly one monthly salary, February included', () => {
+    // days/30 proration underpaid February by $333 on a $60k salary.
+    const monthly = { ...TECH, pay_type: 'salary', salary_annual_cents: 6_000_000, pay_frequency: 'monthly', exempt: true }
+    const feb = computeEarnings({ employee: monthly, entries: [], year: 2026, periodStart: '2026-02-01', periodEnd: '2026-02-28' })
+    expect(feb.basePayCents).toBe(Math.round(6_000_000 / 12))
+    const jul = computeEarnings({ employee: monthly, entries: [], year: 2026, periodStart: '2026-07-01', periodEnd: '2026-07-31' })
+    expect(jul.basePayCents).toBe(Math.round(6_000_000 / 12))
   })
 })
 

@@ -269,6 +269,13 @@ async function main() {
     `ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS mileage_excess_cents BIGINT NOT NULL DEFAULT 0`,
     `ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS salary_annual_cents BIGINT NOT NULL DEFAULT 0`,
     `ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS expense_reimbursement_cents BIGINT NOT NULL DEFAULT 0`,
+    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS fww BOOLEAN NOT NULL DEFAULT FALSE`,
+    `ALTER TABLE employees ADD COLUMN IF NOT EXISTS salary_hours_per_week NUMERIC(5,2) NOT NULL DEFAULT 40`,
+    // One claim per uploaded photo: the application checks first, but only a
+    // constraint stops two concurrent submissions of the same receipt.
+    `CREATE UNIQUE INDEX IF NOT EXISTS uniq_expense_receipt_url
+       ON expense_claims(employee_id, receipt_url)
+       WHERE receipt_url IS NOT NULL AND status <> 'rejected'`,
   ]
   for (const sql of ADDITIVE) await q(sql)
 
@@ -294,6 +301,9 @@ async function main() {
       -- _scripts/payroll-selftest.js to clean up after itself.
       IF COALESCE(current_setting('payroll.allow_purge', true), '') = 'on' THEN
         RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+      END IF;
+      IF TG_OP = 'UPDATE' AND NEW.run_id <> OLD.run_id THEN
+        RAISE EXCEPTION 'a paystub cannot be moved between payroll runs';
       END IF;
       IF TG_OP = 'INSERT' THEN
         IF EXISTS (SELECT 1 FROM payroll_runs r WHERE r.id = NEW.run_id AND r.status <> 'draft') THEN

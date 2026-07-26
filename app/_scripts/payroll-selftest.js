@@ -17,6 +17,10 @@ const { q, getPool } = require('../lib/db')
 const S = require('../lib/payroll-store')
 
 const EMAIL = 'payroll-selftest@greenguard-usa.test'
+// Receipt URLs are validated against the configured blob store, so build the
+// test URL from the same env var the validator uses.
+const BLOB_HOST = `${(process.env.BLOB_STORE_ID || 'store_selftest').replace(/^store_/, '').toLowerCase()}.public.blob.vercel-storage.com`
+const RECEIPT_URL = `https://${BLOB_HOST}/receipts/selftest.jpg`
 let failures = 0
 let employeeId = null
 const runIds = []
@@ -104,11 +108,26 @@ async function main() {
   employeeId = emp.id
   check('created with numeric rate (not a pg string)', emp.hourly_rate_cents === 2250, String(emp.hourly_rate_cents))
 
+  // These are GLOBAL business settings, so snapshot the real row and put the
+  // exact prior values back — resetting to hard-coded defaults would quietly
+  // wipe a customized SUTA rate on a production database.
+  const priorSettings = await S.getSettings()
   const settings = await S.updateSettings({ sutaRate: 50, weekStartDay: 99, mileageRateCents: -70 })
-  check('SUTA rate clamped to ≤ 1', settings.sutaRate <= 1, String(settings.sutaRate))
+  check('SUTA rate clamped to the schema bound', settings.sutaRate <= 0.2, String(settings.sutaRate))
   check('week start clamped to 0-6', settings.weekStartDay >= 0 && settings.weekStartDay <= 6, String(settings.weekStartDay))
   check('mileage rate clamped to ≥ 0', settings.mileageRateCents >= 0, String(settings.mileageRateCents))
-  await S.updateSettings({ sutaRate: 0.027, weekStartDay: 0, mileageRateCents: 70 })
+  await S.updateSettings({
+    sutaRate: priorSettings.sutaRate,
+    weekStartDay: priorSettings.weekStartDay,
+    mileageRateCents: priorSettings.mileageRateCents,
+    defaultPayFrequency: priorSettings.defaultPayFrequency,
+  })
+  const restored = await S.getSettings()
+  check('prior business settings restored exactly',
+    restored.sutaRate === priorSettings.sutaRate &&
+    restored.weekStartDay === priorSettings.weekStartDay &&
+    restored.mileageRateCents === priorSettings.mileageRateCents,
+    JSON.stringify(restored))
 
   console.log('\n2. timesheet entry writes')
   await S.upsertEntry({ employeeId, workDate: D(1), hours: 8, stops: 5, miles: 60, notes: 'day one' })
@@ -159,7 +178,7 @@ async function main() {
     employeeId, incurredOn: D(3), amountCents: 4599, vendor: 'Home Depot',
     description: 'CO2 regulator', categoryLabel: 'COGS:Equipment',
     paymentMethod: 'personal',
-    receiptUrl: 'https://fake123.public.blob.vercel-storage.com/receipts/selftest.jpg',
+    receiptUrl: RECEIPT_URL,
     receiptMime: 'image/jpeg', receiptBytes: 1234,
   })
   check('receipt starts as submitted', claim.status === 'submitted', claim.status)
@@ -231,7 +250,7 @@ async function main() {
   await expectStatus('filing the same photo twice', () => S.createExpense({
     employeeId, incurredOn: D(3), amountCents: 4599, description: 'dupe',
     categoryLabel: 'COGS:Equipment',
-    receiptUrl: 'https://fake123.public.blob.vercel-storage.com/receipts/selftest.jpg',
+    receiptUrl: RECEIPT_URL,
   }), 409)
 
   // Company-card receipts are booked but never reimbursed.

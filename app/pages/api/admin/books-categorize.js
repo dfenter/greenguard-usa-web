@@ -1,13 +1,13 @@
 // Triggered manually from /admin/books — runs one batch of LLM categorization.
 // Returns the assignments so the UI can confirm + offer rerun.
 
-const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const { getSessionFromRequest, isOwnerEmail } = require('../../../lib/auth')
 const { categorizeBatch } = require('../../../lib/books-categorize')
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
+  if (!session || !isOwnerEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
   const limit = Math.min(parseInt(req.body?.limit || '25', 10) || 25, 100)
   try {

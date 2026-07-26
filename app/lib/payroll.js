@@ -99,13 +99,52 @@ const PAY_FREQUENCIES = {
   monthly: 12,
 }
 
-// Nominal calendar length of one pay period, used to prorate salary when a run
-// covers less than a whole period.
+// Nominal calendar length of one pay period. Used for the period-length
+// sanity warning; salary itself is prorated by salaryPeriodsCovered() below,
+// which is calendar-aware.
 const NOMINAL_PERIOD_DAYS = {
   weekly: 7,
   biweekly: 14,
   semimonthly: 15,
   monthly: 30,
+}
+
+// How many pay periods a date range actually covers, for a given frequency.
+//
+// A naive days/30 ratio underpays February (28/30 of a month) and caps a
+// catch-up run at one installment when it really covers two. Weekly and
+// biweekly periods are exact day counts; semimonthly and monthly are anchored
+// to the calendar, so they are measured month by month.
+function salaryPeriodsCovered(frequency, periodStart, periodEnd) {
+  const start = new Date(`${String(periodStart).slice(0, 10)}T00:00:00Z`)
+  const end = new Date(`${String(periodEnd).slice(0, 10)}T00:00:00Z`)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0
+  const days = Math.round((end - start) / 86_400_000) + 1
+
+  if (frequency === 'weekly') return days / 7
+  if (frequency === 'biweekly') return days / 14
+
+  // Calendar-anchored frequencies: walk the months the range touches and add
+  // the fraction of each that is covered.
+  let covered = 0
+  let y = start.getUTCFullYear()
+  let m = start.getUTCMonth()
+  while (y < end.getUTCFullYear() || (y === end.getUTCFullYear() && m <= end.getUTCMonth())) {
+    const monthStart = Date.UTC(y, m, 1)
+    const monthEnd = Date.UTC(y, m + 1, 0)
+    const daysInMonth = Math.round((monthEnd - monthStart) / 86_400_000) + 1
+    const from = Math.max(monthStart, start.getTime())
+    const to = Math.min(monthEnd, end.getTime())
+    if (to >= from) {
+      const daysCovered = Math.round((to - from) / 86_400_000) + 1
+      covered += frequency === 'semimonthly'
+        ? daysCovered / (daysInMonth / 2)     // two periods per month
+        : daysCovered / daysInMonth
+    }
+    m += 1
+    if (m > 11) { m = 0; y += 1 }
+  }
+  return covered
 }
 
 const FILING_STATUSES = [SINGLE, MARRIED, HEAD]
@@ -208,13 +247,20 @@ function splitWorkweeks(entries, weekStartDay = 0) {
 // counts toward the regular rate, so OT is a 0.5× PREMIUM on the blended
 // rate rather than a flat 1.5× of the base hourly rate. With no piece pay
 // this collapses to the familiar 1.5× — see the tests.
-function computeEarnings({ employee, entries, weekStartDay = 0, year = new Date().getFullYear(), periodDays = null }) {
+function computeEarnings({
+  employee, entries, weekStartDay = 0, year = new Date().getFullYear(),
+  periodDays = null, periodStart = null, periodEnd = null,
+}) {
   const emp = employee || {}
   // Exempt is its OWN flag. "Salaried" does not mean exempt — a salaried
   // service tech fails the FLSA duties test at any salary and still earns
   // overtime, computed on the fluctuating-workweek half-time basis.
   const exempt = Boolean(emp.exempt)
-  const otEligible = emp.ot_eligible !== false && !exempt
+  // A non-exempt W-2 employee is entitled to overtime by law, so the
+  // `ot_eligible` switch cannot turn it off for them — only exemption can.
+  // (The flag still applies to contractors, who are outside the FLSA.)
+  const contractor = emp.classification === 'contractor'
+  const otEligible = contractor ? emp.ot_eligible !== false : !exempt
   const otThreshold = emp.ot_threshold_hours == null ? 40 : Math.min(40, Number(emp.ot_threshold_hours))
   const salaried = emp.pay_type === 'salary'
   const hourly = Number(emp.hourly_rate_cents) || 0
@@ -229,7 +275,9 @@ function computeEarnings({ employee, entries, weekStartDay = 0, year = new Date(
     // Straight-time earnings for the week. Salary covers all hours worked;
     // hourly + piece pay are additive.
     const wagePayCents = salaried ? weeklySalaryCents : roundCents(wk.hours * hourly)
-    const piecePayCents = salaried ? 0 : roundCents(wk.stops * perStop)
+    // Per-stop pay is earned whether the base is hourly or salary — zeroing it
+    // for salaried staff silently dropped money they were configured to earn.
+    const piecePayCents = roundCents(wk.stops * perStop)
 
     // Minimum-wage makeup: a piece-heavy (or rate-less) week has to reach
     // $7.25 × hours before overtime is figured on top of it.
@@ -239,7 +287,21 @@ function computeEarnings({ employee, entries, weekStartDay = 0, year = new Date(
     // Blended regular rate = all straight-time earnings ÷ all hours worked.
     const straightCents = wagePayCents + piecePayCents + makeupPayCents
     const regularRateCents = wk.hours > 0 ? straightCents / wk.hours : 0
-    const otPremiumCents = roundCents(otHours * regularRateCents * 0.5)
+
+    // Salaried non-exempt: the half-time (fluctuating-workweek) premium is only
+    // lawful with a fixed salary and a clear mutual understanding, so it takes
+    // an explicit `fww` flag. Otherwise the salary is treated as covering
+    // salary_hours_per_week (40 by default) and overtime is a FULL 1.5x on that
+    // rate, because the salary never paid for those hours.
+    let otPremiumCents
+    if (salaried && !emp.fww) {
+      const coveredHours = Number(emp.salary_hours_per_week) || 40
+      const salaryRate = coveredHours > 0 ? weeklySalaryCents / coveredHours : 0
+      const pieceRate = wk.hours > 0 ? (piecePayCents + makeupPayCents) / wk.hours : 0
+      otPremiumCents = roundCents(otHours * (salaryRate * 1.5 + pieceRate * 0.5))
+    } else {
+      otPremiumCents = roundCents(otHours * regularRateCents * 0.5)
+    }
 
     return {
       weekStart: wk.weekStart,
@@ -265,13 +327,16 @@ function computeEarnings({ employee, entries, weekStartDay = 0, year = new Date(
   // base pay is the period slice of the annual salary rather than the sum of
   // whole weeks. Non-exempt salaried get the same base plus the OT premium.
   //
-  // `periodDays` prorates it: two half-length runs over the same fortnight
-  // must not each pay a full biweekly salary. Without it (a bare
-  // computeEarnings call) the full period slice is assumed.
-  const nominalDays = NOMINAL_PERIOD_DAYS[emp.pay_frequency] || NOMINAL_PERIOD_DAYS.biweekly
-  const proration = periodDays && periodDays > 0 ? Math.min(1, periodDays / nominalDays) : 1
+  // Pay periods actually covered, so two half-length runs over one fortnight
+  // pay one salary between them — and a 28-day catch-up run for a biweekly
+  // employee pays TWO installments rather than being capped at one.
+  const periodsCovered = periodStart && periodEnd
+    ? salaryPeriodsCovered(emp.pay_frequency, periodStart, periodEnd)
+    : (periodDays && periodDays > 0
+        ? periodDays / (NOMINAL_PERIOD_DAYS[emp.pay_frequency] || NOMINAL_PERIOD_DAYS.biweekly)
+        : 1)
   const salaryPeriodCents = salaried
-    ? roundCents(((Number(emp.salary_annual_cents) || 0) / periodsPerYear(emp.pay_frequency)) * proration)
+    ? roundCents(((Number(emp.salary_annual_cents) || 0) / periodsPerYear(emp.pay_frequency)) * periodsCovered)
     : 0
 
   const basePayCents = salaried ? salaryPeriodCents : sum((w) => w.basePayCents)
@@ -359,8 +424,14 @@ function federalWithholdingCents({ taxableGrossCents, employee, year, payFrequen
   // deduction exactly. Omitting piece 1 applies the table to the RAW wage and
   // over-withholds by the tax on $8,600/$12,900 (~$39.70 per biweekly check in
   // the 12% bracket). See https://www.irs.gov/publications/p15t Worksheet 1A.
-  const tableDeduction =
-    config.standardDeductionCents[status] - (config.allowanceBaselineCents?.[status] || 0)
+  // With the box CHECKED, line 1g is -0-, so the whole standard deduction has
+  // to come out of the schedule instead: the checked tables are the standard
+  // ones with every threshold halved, and 2026 single starts at 16,100 / 2 =
+  // $8,050. Subtracting only the (std - 1g) table start there over-withheld
+  // about $39 per biweekly check.
+  const tableDeduction = multipleJobs
+    ? config.standardDeductionCents[status]
+    : config.standardDeductionCents[status] - (config.allowanceBaselineCents?.[status] || 0)
 
   // W-4 Step 2 checkbox: Pub 15-T's "Step 2 Checkbox" schedules are the
   // standard schedules with every threshold and tax amount HALVED. That is
@@ -485,7 +556,17 @@ function computePayrollItem({
   // A voluntary deduction can never push a paycheck negative — take what's
   // left after taxes and report the shortfall so it can be carried forward.
   const requestedDed = Math.max(0, roundCents(Number(otherDeductionCents) || 0))
-  const availableForDed = Math.max(0, taxableGrossCents - employeeTaxCents)
+  // 29 CFR 531.36: a deduction that benefits the employer may not bring pay
+  // below the minimum wage for the hours worked (and may not cut into the
+  // overtime premium at all). Anything above that floor is refused here and
+  // reported, so it can be collected lawfully instead of taken silently.
+  const minimumWageFloorCents = roundCents(earnings.totalHours * FEDERAL_MIN_WAGE_CENTS)
+  const protectedCents = Math.max(minimumWageFloorCents, 0) + earnings.otPremiumCents
+  const lawfulDeductionRoom = Math.max(0, taxableGrossCents - employeeTaxCents - protectedCents)
+  const availableForDed = Math.min(
+    Math.max(0, taxableGrossCents - employeeTaxCents),
+    lawfulDeductionRoom
+  )
   const otherDed = Math.min(requestedDed, availableForDed)
   const deductionShortfallCents = requestedDed - otherDed
 
@@ -523,6 +604,7 @@ function computePayrollItem({
     ...fica,
     otherDeductionCents: otherDed,
     deductionShortfallCents,
+    minimumWageFloorCents,
     otherDeductionLabel: otherDed > 0 ? otherDeductionLabel : null,
     employeeTaxCents,
     employerTaxCents,
@@ -570,6 +652,10 @@ function form941DueDate(payDateStr) {
   const d = new Date(`${payDateStr}T00:00:00Z`)
   if (Number.isNaN(d.getTime())) return null
   const due = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 15))
+  // Roll off a weekend — 2026-08-15 is a Saturday, so a monthly depositor's
+  // date is Monday the 17th. Federal holidays are NOT tracked, and this
+  // assumes the monthly schedule: treat it as a prompt, not an authority.
+  while (due.getUTCDay() === 0 || due.getUTCDay() === 6) due.setUTCDate(due.getUTCDate() + 1)
   return due.toISOString().slice(0, 10)
 }
 
@@ -600,6 +686,7 @@ module.exports = {
   computeFicaCents,
   computePayrollItem,
   periodsPerYear,
+  salaryPeriodsCovered,
   taxConfig,
   // helpers
   fmtUsd,

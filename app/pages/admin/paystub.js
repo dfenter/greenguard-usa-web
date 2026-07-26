@@ -30,17 +30,33 @@ export async function getServerSideProps({ req, res, query }) {
   if (!data) return { notFound: true }
   const item = data.items.find((i) => i.employeeId === employeeId)
   if (!item) return { notFound: true }
+  // An employee sees their own FINALIZED stub only. A draft or voided run is
+  // internal, and its header carries company-wide figures.
+  if (!owner && data.run.status !== 'finalized') return { notFound: true }
 
   const [settings, ytd] = await Promise.all([
     getSettings(),
     ytdTotals({ employeeId, year: data.run.taxYear, throughPayDate: data.run.payDate }),
   ])
 
-  // Only what the sheet prints. getSettings() also carries the SUTA rate and
-  // the TWC account, and this page is openable by the employee themselves —
-  // those must not be serialized into the page payload.
-  const printable = { legalName: settings.legalName, address: settings.address, ein: settings.ein }
-  return { props: { run: data.run, item, settings: printable, ytd } }
+  // Everything below is serialized into __NEXT_DATA__ in the employee's
+  // browser, so it is projected down to what the sheet actually prints.
+  // getSettings() also carries the SUTA rate and TWC account, and the full run
+  // header carries company-wide gross/tax/net totals and who ran payroll.
+  const printable = {
+    legalName: settings.legalName,
+    address: settings.address,
+    // The EIN belongs on an employer's own copy, not in every crew payload.
+    ein: owner ? settings.ein : null,
+  }
+  const run = owner ? data.run : {
+    id: data.run.id,
+    periodStart: data.run.periodStart,
+    periodEnd: data.run.periodEnd,
+    payDate: data.run.payDate,
+    status: data.run.status,
+  }
+  return { props: { run, item, settings: printable, ytd } }
 }
 
 const usd = (cents) => ((Number(cents) || 0) / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })

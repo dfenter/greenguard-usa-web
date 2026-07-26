@@ -11,7 +11,9 @@
 //     every read goes through num() before it touches arithmetic.
 
 const { q, getPool } = require('./db')
-const { computePayrollItem, workweekStart, TX_SUTA_DEFAULT_RATE } = require('./payroll')
+const {
+  computePayrollItem, workweekStart, elapsedHours, FEDERAL_MIN_WAGE_CENTS, TX_SUTA_DEFAULT_RATE,
+} = require('./payroll')
 
 const BIZ_TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 
@@ -59,7 +61,8 @@ const SETTINGS_WRITABLE = {
   ein: ['ein', (v) => (v ? String(v).slice(0, 32) : null)],
   address: ['address', (v) => (v ? String(v).slice(0, 300) : null)],
   twc_account: ['twcAccount', (v) => (v ? String(v).slice(0, 64) : null)],
-  suta_rate: ['sutaRate', (v) => Math.min(1, Math.max(0, num(v)))],
+  // The column CHECKs <= 0.2; clamping to 1 here would surface as a raw 23514.
+  suta_rate: ['sutaRate', (v) => Math.min(0.2, Math.max(0, num(v)))],
   week_start_day: ['weekStartDay', (v) => Math.min(6, Math.max(0, Math.round(num(v))))],
   mileage_rate_cents: ['mileageRateCents', (v) => Math.min(1000, Math.max(0, Math.round(num(v))))],
   default_pay_frequency: ['defaultPayFrequency', (v) => (['weekly', 'biweekly', 'semimonthly', 'monthly'].includes(v) ? v : 'biweekly')],
@@ -83,7 +86,8 @@ async function updateSettings(patch) {
 const EMP_COLS = `
   id, email, name, phone, classification, pay_type, pay_frequency,
   hourly_rate_cents, salary_annual_cents, per_stop_cents, mileage_rate_cents,
-  ot_eligible, exempt, ot_threshold_hours::float8 AS ot_threshold_hours,
+  ot_eligible, exempt, fww, salary_hours_per_week::float8 AS salary_hours_per_week,
+  ot_threshold_hours::float8 AS ot_threshold_hours,
   filing_status, w4_multiple_jobs, w4_dependents_credit_cents,
   w4_other_income_cents, w4_deductions_cents, w4_extra_withholding_cents,
   fed_withholding_mode, fed_flat_pct::float8 AS fed_flat_pct,
@@ -110,6 +114,8 @@ function hydrateEmployee(r) {
     mileage_rate_cents: num(r.mileage_rate_cents),
     ot_eligible: r.ot_eligible,
     exempt: r.exempt,
+    fww: r.fww,
+    salary_hours_per_week: num(r.salary_hours_per_week) || 40,
     ot_threshold_hours: num(r.ot_threshold_hours) || 40,
     filing_status: r.filing_status,
     w4_multiple_jobs: r.w4_multiple_jobs,
@@ -159,6 +165,9 @@ const EMP_WRITABLE = {
   mileage_rate_cents: (v) => Math.max(0, Math.round(num(v))),
   ot_eligible: (v) => Boolean(v),
   exempt: (v) => Boolean(v),
+  // Fluctuating-workweek half-time overtime — only with a written agreement.
+  fww: (v) => Boolean(v),
+  salary_hours_per_week: (v) => Math.min(60, Math.max(1, num(v) || 40)),
   // Over 40 would be an FLSA violation; the column CHECKs it too.
   ot_threshold_hours: (v) => Math.min(40, Math.max(1, num(v) || 40)),
   filing_status: (v) => (['single', 'married', 'head'].includes(v) ? v : 'single'),
@@ -169,14 +178,38 @@ const EMP_WRITABLE = {
   w4_extra_withholding_cents: (v) => Math.max(0, Math.round(num(v))),
   fed_withholding_mode: (v) => (['table', 'flat', 'none'].includes(v) ? v : 'table'),
   fed_flat_pct: (v) => Math.min(100, Math.max(0, num(v))),
-  suta_rate: (v) => (v === null || v === '' || v === undefined ? null : Math.min(1, Math.max(0, num(v)))),
+  suta_rate: (v) => (v === null || v === '' || v === undefined ? null : Math.min(0.2, Math.max(0, num(v)))),
   hired_on: (v) => (isDateStr(v) ? v : null),
   terminated_on: (v) => (isDateStr(v) ? v : null),
   active: (v) => Boolean(v),
   notes: (v) => (v ? String(v).slice(0, 4000) : null),
 }
 
+// Texas Payday Law: exempt staff may be paid monthly, everyone else must be
+// paid at least twice a month.
+function assertLawfulWithholding(input) {
+  if (input.fed_withholding_mode === 'none' && input.classification !== 'contractor') {
+    throw Object.assign(
+      new Error('Zero federal withholding needs a W-4 exempt certification — use the IRS percentage method for a W-2 employee.'),
+      { status: 400 }
+    )
+  }
+}
+
+function assertLawfulPayFrequency(input) {
+  if (input.pay_frequency !== 'monthly') return
+  const contractor = input.classification === 'contractor'
+  if (!contractor && !input.exempt) {
+    throw Object.assign(
+      new Error('Texas requires non-exempt employees to be paid at least twice a month — pick weekly, biweekly or semimonthly.'),
+      { status: 400 }
+    )
+  }
+}
+
 async function createEmployee(input) {
+  assertLawfulPayFrequency(input)
+  assertLawfulWithholding(input)
   const cols = []
   const vals = []
   const args = []
@@ -197,6 +230,12 @@ async function createEmployee(input) {
 }
 
 async function updateEmployee(id, patch) {
+  if (patch.pay_frequency !== undefined || patch.exempt !== undefined ||
+      patch.classification !== undefined || patch.fed_withholding_mode !== undefined) {
+    const current = await getEmployeeById(id)
+    assertLawfulPayFrequency({ ...current, ...patch })
+    assertLawfulWithholding({ ...current, ...patch })
+  }
   const sets = []
   const args = []
   for (const [col, coerce] of Object.entries(EMP_WRITABLE)) {
@@ -393,6 +432,17 @@ async function patchEntry(id, patch) {
   const touchedClock = patch.clock_in !== undefined || patch.clock_out !== undefined
   const touchedHours = patch.hours !== undefined
   if (touchedClock && !touchedHours) {
+    // Postgres evaluates every SET expression against the PRE-UPDATE row, so
+    // referencing clock_in/clock_out here would recompute from the old stamps
+    // and leave `hours` stale. Resolve the new pair in JS and pass it in.
+    const current = await getEntry(id)
+    const newIn = patch.clock_in !== undefined ? tstamp(patch.clock_in) : current?.clock_in
+    const newOut = patch.clock_out !== undefined ? tstamp(patch.clock_out) : current?.clock_out
+    const gross = newIn && newOut ? elapsedHours(newIn, newOut) : null
+    args.push(gross === null ? null : Math.min(24, gross))
+    sets.push(`hours = COALESCE($${args.length}, hours)`)
+  }
+  if (false) {
     // GROSS elapsed time, capped — matching clockOut exactly. The break is
     // deducted once, later, by entryHours(); subtracting it here too would
     // take it twice. Correcting a clock pair replaces the day's hours, so
@@ -595,11 +645,23 @@ function safeReceiptUrl(v) {
   if (v === null || v === undefined || v === '') return null
   let u
   try { u = new URL(String(v)) } catch { throw Object.assign(new Error('That receipt link is not a valid URL'), { status: 400 }) }
-  const okHost = u.protocol === 'https:' && u.hostname.endsWith('.blob.vercel-storage.com')
-  if (!okHost) {
+  // Suffix-matching `.blob.vercel-storage.com` accepted ANY Vercel tenant, so
+  // a receipt link could point at storage we do not control. Pin the exact
+  // host when BLOB_STORE_ID is configured, and refuse embedded credentials,
+  // odd ports and paths outside our own receipts prefix.
+  const storeId = (process.env.BLOB_STORE_ID || '').trim()
+  const expectedHost = storeId
+    ? `${storeId.replace(/^store_/, '').toLowerCase()}.public.blob.vercel-storage.com`
+    : null
+  const hostOk = expectedHost
+    ? u.hostname.toLowerCase() === expectedHost
+    : u.hostname.toLowerCase().endsWith('.public.blob.vercel-storage.com')
+  const ok = u.protocol === 'https:' && hostOk && !u.username && !u.password && !u.port &&
+    u.pathname.startsWith('/receipts/')
+  if (!ok) {
     throw Object.assign(new Error('Receipts must be uploaded through the portal'), { status: 400 })
   }
-  return u.toString().slice(0, 500)
+  return `${u.origin}${u.pathname}`.slice(0, 500)
 }
 
 // The categories the receipt form offers — real expense/COGS buckets only, so
@@ -1151,6 +1213,8 @@ async function previewRun({ periodStart, periodEnd, payDate, employeeIds = null,
       // Bonuses only ever add pay. A negative "bonus" would invert the tax
       // math (negative withholding); money owed back belongs in a deduction.
       periodDays: spanDays,
+      periodStart,
+      periodEnd,
       expenseReimbursementCents: (claimsByEmployee.get(employeeId) || [])
         .reduce((sum, c) => sum + c.amountCents, 0),
       bonusCents: Math.max(0, Math.round(num(adj.bonusCents))),
@@ -1241,6 +1305,26 @@ async function createRun({ periodStart, periodEnd, payDate, employeeIds = null, 
   // Check for an overlapping run BEFORE pricing anything: an overlapping
   // period has already had its entries claimed, so the preview would come
   // back empty and report "no approved time" instead of the real problem.
+  // Overtime is weekly. If the period cuts a workweek that actually contains
+  // hours, those hours are divided across two runs and neither sees 40+, so
+  // the premium silently disappears. Warning was not enough — refuse.
+  const check = await previewRun({ periodStart, periodEnd, payDate, employeeIds, adjustments })
+  const splitWeek = check.warnings.find((w) => w.includes("don't line up with whole workweeks"))
+  if (splitWeek && check.items.some((i) => i.totalHours > 0)) {
+    throw Object.assign(
+      new Error(`${splitWeek} Adjust the dates before creating this run — overtime for the split week would be missed.`),
+      { status: 400 }
+    )
+  }
+  // A year with no tax tables must not be paid from another year's numbers.
+  const fallback = check.items.find((i) => i.taxYearFallback)
+  if (fallback) {
+    throw Object.assign(
+      new Error(`No tax tables for ${check.taxYear}. Add them to TAX_YEARS in lib/payroll.js before running this payroll.`),
+      { status: 400 }
+    )
+  }
+
   const earlyClash = await overlappingRuns({ periodStart, periodEnd })
   if (earlyClash.length) {
     const c = earlyClash[0]
@@ -1381,6 +1465,10 @@ async function finalizeRun({ runId, actorEmail }) {
   const client = await getPool().connect()
   try {
     await client.query('BEGIN')
+    // Same lock as createRun: two runs finalizing at once would each read a
+    // year-to-date total that excludes the other and both charge Social
+    // Security past the wage base (or both miss the additional-Medicare step).
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext('payroll_run_create'))`)
     const { rows } = await client.query(
       `SELECT id, status FROM payroll_runs WHERE id = $1 FOR UPDATE`,
       [runId]
@@ -1448,6 +1536,7 @@ async function voidRun({ runId, actorEmail }) {
   const client = await getPool().connect()
   try {
     await client.query('BEGIN')
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext('payroll_run_create'))`)
     const { rows } = await client.query(
       `SELECT id, status, posted_to_books FROM payroll_runs WHERE id = $1 FOR UPDATE`,
       [runId]

@@ -1,4 +1,4 @@
-import { getSessionFromRequest, isAdminEmail } from '../../../lib/auth'
+import { getSessionFromRequest, isOwnerEmail } from '../../../lib/auth'
 import { q } from '../../../lib/db'
 
 function monthBounds(yyyymm) {
@@ -13,7 +13,7 @@ function monthBounds(yyyymm) {
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end()
   const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(401).json({ error: 'Unauthorized' })
+  if (!session || !isOwnerEmail(session.email)) return res.status(401).json({ error: 'Unauthorized' })
 
   const { month, ytd } = req.query
   let start, end, label

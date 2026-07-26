@@ -135,7 +135,9 @@ export default async function handler(req, res) {
 
       // Bulk status transitions.
       if (action) {
-        const targetIds = (ids || (id ? [id] : [])).map(Number).filter(Boolean)
+        // De-duplicated and capped: an unbounded list would fan out into one
+        // query per id below.
+        const targetIds = [...new Set((ids || (id ? [id] : [])).map(Number).filter(Boolean))].slice(0, 200)
         if (!targetIds.length) return res.status(400).json({ error: 'ids required' })
 
         if (action === 'approve' || action === 'unapprove') {
@@ -151,8 +153,9 @@ export default async function handler(req, res) {
           // A tech may only submit their own rows.
           if (!isOwner) {
             if (!me) return res.status(404).json({ error: 'No employee record linked to your login' })
-            const rows = await Promise.all(targetIds.map((i) => getEntry(i)))
-            if (rows.some((r) => !r || r.employee_id !== me.id)) {
+            const rows = await listEntries({ employeeId: me.id, limit: 1000 })
+            const mine = new Set(rows.map((r) => r.id))
+            if (targetIds.some((i) => !mine.has(i))) {
               return res.status(403).json({ error: 'Forbidden' })
             }
           }

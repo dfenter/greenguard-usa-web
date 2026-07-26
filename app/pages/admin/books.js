@@ -2,14 +2,14 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
 import PortalLayout from '../../components/PortalLayout'
-import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
+import { getSessionFromRequest, isOwnerEmail } from '../../lib/auth'
 import { q } from '../../lib/db'
 
 export async function getServerSideProps({ req, res, query }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
-  if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
+  if (!isOwnerEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
   const days = Math.min(parseInt(query.days || '30', 10) || 30, 730)
   const search = (query.q || '').trim().toLowerCase()

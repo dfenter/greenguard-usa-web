@@ -2,12 +2,12 @@ import { useState, useRef, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../../components/PortalLayout'
-import { getSessionFromRequest, isAdminEmail } from '../../../lib/auth'
+import { getSessionFromRequest, isOwnerEmail } from '../../../lib/auth'
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
-  if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
+  if (!isOwnerEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
   return { props: {} }
 }
 

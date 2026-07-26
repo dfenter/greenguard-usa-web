@@ -2,13 +2,13 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useRef } from 'react'
 import PortalLayout from '../../../components/PortalLayout'
-import { getSessionFromRequest, isAdminEmail } from '../../../lib/auth'
+import { getSessionFromRequest, isOwnerEmail } from '../../../lib/auth'
 import { q } from '../../../lib/db'
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
-  if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
+  if (!isOwnerEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
 
   const cats = await q(`SELECT id, label, type FROM categories ORDER BY type, label`)
   return { props: { categories: cats.rows } }

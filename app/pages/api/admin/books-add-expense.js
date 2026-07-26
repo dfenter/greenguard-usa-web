@@ -1,10 +1,10 @@
-import { getSessionFromRequest, isAdminEmail } from '../../../lib/auth'
+import { getSessionFromRequest, isOwnerEmail } from '../../../lib/auth'
 import { q } from '../../../lib/db'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
   const session = await getSessionFromRequest(req)
-  if (!session || !isAdminEmail(session.email)) return res.status(401).json({ error: 'Unauthorized' })
+  if (!session || !isOwnerEmail(session.email)) return res.status(401).json({ error: 'Unauthorized' })
 
   const { occurred_at, amount_dollars, description, category_label } = req.body
   if (!occurred_at || !amount_dollars || !description || !category_label) {
