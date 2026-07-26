@@ -119,6 +119,10 @@ CREATE TABLE IF NOT EXISTS timesheet_entries (
   approved_by     TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- Soft delete: a time card is a wage record to be kept two years, so it is
+  -- marked rather than removed (see timesheet_revisions).
+  deleted_at      TIMESTAMPTZ,
+  deleted_by      TEXT,
   -- Either a clock pair or manual hours must eventually exist; an open
   -- clocked-in row legitimately has neither yet, so this is deliberately loose.
   CHECK (clock_out IS NULL OR clock_in IS NOT NULL),
@@ -127,12 +131,43 @@ CREATE TABLE IF NOT EXISTS timesheet_entries (
 CREATE INDEX IF NOT EXISTS idx_ts_emp_date ON timesheet_entries(employee_id, work_date DESC);
 CREATE INDEX IF NOT EXISTS idx_ts_status   ON timesheet_entries(status, work_date DESC);
 CREATE INDEX IF NOT EXISTS idx_ts_run      ON timesheet_entries(payroll_run_id);
--- One entry per employee per day keeps "today's hours" unambiguous and makes
--- the clock-in endpoint safely idempotent.
-CREATE UNIQUE INDEX IF NOT EXISTS uniq_ts_emp_day ON timesheet_entries(employee_id, work_date);
+-- One LIVE entry per employee per day keeps "today's hours" unambiguous and
+-- makes the clock-in endpoint safely idempotent. Soft-deleted rows are excluded
+-- so a removed day can be entered again.
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_ts_emp_day_live
+  ON timesheet_entries(employee_id, work_date) WHERE deleted_at IS NULL;
 -- At most one open clock (clocked in, not out) per employee.
-CREATE UNIQUE INDEX IF NOT EXISTS uniq_ts_open_clock
-  ON timesheet_entries(employee_id) WHERE clock_in IS NOT NULL AND clock_out IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_ts_open_clock_live
+  ON timesheet_entries(employee_id)
+  WHERE clock_in IS NOT NULL AND clock_out IS NULL AND deleted_at IS NULL;
+
+-- Append-only audit trail for time cards.
+--
+-- FLSA §11(c) / 29 CFR 516 require the underlying time records to be kept for
+-- two years, so a correction must never overwrite history silently. Every
+-- INSERT/UPDATE/DELETE on timesheet_entries writes a row here from a database
+-- trigger — application code cannot skip it, and neither can a hand-run SQL
+-- statement. The rows themselves are protected by an append-only trigger.
+--
+-- employee_id is deliberately NOT a foreign key and the entry_id FK is
+-- ON DELETE SET NULL: the trail has to outlive the rows it describes.
+CREATE TABLE IF NOT EXISTS timesheet_revisions (
+  id            BIGSERIAL PRIMARY KEY,
+  entry_id      INTEGER REFERENCES timesheet_entries(id) ON DELETE SET NULL,
+  employee_id   INTEGER NOT NULL,
+  work_date     DATE NOT NULL,
+  action        TEXT NOT NULL,
+  actor_email   TEXT NOT NULL,
+  hours_before  NUMERIC(6,2),
+  hours_after   NUMERIC(6,2),
+  status_before TEXT,
+  status_after  TEXT,
+  before        JSONB,
+  after         JSONB,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ts_rev_entry ON timesheet_revisions(entry_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ts_rev_emp   ON timesheet_revisions(employee_id, work_date, created_at);
 
 -- Computed paystubs. Immutable once its run is finalized.
 CREATE TABLE IF NOT EXISTS payroll_items (
@@ -329,6 +364,87 @@ async function main() {
   await q(`CREATE TRIGGER trg_payroll_items_freeze
            BEFORE INSERT OR UPDATE OR DELETE ON payroll_items
            FOR EACH ROW EXECUTE FUNCTION payroll_items_freeze()`)
+
+  // ── Time-card audit trail ───────────────────────────────────────────
+  console.log('Installing time-card audit trail…')
+  await q(`ALTER TABLE timesheet_entries ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`)
+  await q(`ALTER TABLE timesheet_entries ADD COLUMN IF NOT EXISTS deleted_by TEXT`)
+
+  // Retire the pre-soft-delete indexes on databases created before this change
+  // (the partial replacements are in the schema above).
+  await q(`DROP INDEX IF EXISTS uniq_ts_emp_day`)
+  await q(`DROP INDEX IF EXISTS uniq_ts_open_clock`)
+
+  // Who did it: the store sets `payroll.actor_email` with SET LOCAL inside the
+  // same transaction as the write. Anything else shows up as 'system', which is
+  // itself a useful signal in the trail.
+  await q(`
+    CREATE OR REPLACE FUNCTION timesheet_audit() RETURNS trigger AS $$
+    DECLARE
+      actor TEXT := COALESCE(NULLIF(current_setting('payroll.actor_email', true), ''), 'system');
+      act   TEXT;
+    BEGIN
+      IF TG_OP = 'INSERT' THEN
+        act := 'created';
+      ELSIF TG_OP = 'DELETE' THEN
+        act := 'purged';
+      ELSIF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
+        act := 'deleted';
+      ELSIF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL THEN
+        act := 'restored';
+      ELSIF OLD.payroll_run_id IS NULL AND NEW.payroll_run_id IS NOT NULL THEN
+        act := 'claimed by run ' || NEW.payroll_run_id;
+      ELSIF OLD.payroll_run_id IS NOT NULL AND NEW.payroll_run_id IS NULL THEN
+        act := 'released from run ' || OLD.payroll_run_id;
+      ELSIF OLD.status IS DISTINCT FROM NEW.status THEN
+        act := NEW.status;
+      ELSIF OLD.clock_in IS DISTINCT FROM NEW.clock_in OR OLD.clock_out IS DISTINCT FROM NEW.clock_out THEN
+        act := 'clock changed';
+      ELSE
+        act := 'edited';
+      END IF;
+
+      INSERT INTO timesheet_revisions
+        (entry_id, employee_id, work_date, action, actor_email,
+         hours_before, hours_after, status_before, status_after, before, after)
+      VALUES (
+        -- On a hard delete the entry row is already gone, so the FK cannot
+        -- point at it; the employee/date/JSON snapshot below keeps the history
+        -- meaningful anyway.
+        CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE COALESCE(NEW.id, OLD.id) END,
+        COALESCE(NEW.employee_id, OLD.employee_id),
+        COALESCE(NEW.work_date, OLD.work_date),
+        act, actor,
+        CASE WHEN TG_OP = 'INSERT' THEN NULL ELSE OLD.hours END,
+        CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE NEW.hours END,
+        CASE WHEN TG_OP = 'INSERT' THEN NULL ELSE OLD.status END,
+        CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE NEW.status END,
+        CASE WHEN TG_OP = 'INSERT' THEN NULL ELSE to_jsonb(OLD) END,
+        CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE to_jsonb(NEW) END
+      );
+      RETURN NULL;
+    END;
+    $$ LANGUAGE plpgsql`)
+  await q(`DROP TRIGGER IF EXISTS trg_timesheet_audit ON timesheet_entries`)
+  await q(`CREATE TRIGGER trg_timesheet_audit
+           AFTER INSERT OR UPDATE OR DELETE ON timesheet_entries
+           FOR EACH ROW EXECUTE FUNCTION timesheet_audit()`)
+
+  // The trail is append-only. The same documented maintenance escape hatch as
+  // payroll_items lets the self-test clean up after itself.
+  await q(`
+    CREATE OR REPLACE FUNCTION timesheet_revisions_append_only() RETURNS trigger AS $$
+    BEGIN
+      IF COALESCE(current_setting('payroll.allow_purge', true), '') = 'on' THEN
+        RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+      END IF;
+      RAISE EXCEPTION 'timesheet_revisions is append-only (attempted %)', TG_OP;
+    END;
+    $$ LANGUAGE plpgsql`)
+  await q(`DROP TRIGGER IF EXISTS trg_ts_revisions_append_only ON timesheet_revisions`)
+  await q(`CREATE TRIGGER trg_ts_revisions_append_only
+           BEFORE UPDATE OR DELETE ON timesheet_revisions
+           FOR EACH ROW EXECUTE FUNCTION timesheet_revisions_append_only()`)
 
   console.log('Seeding payroll categories…')
   for (const [label, type, desc] of PAYROLL_CATEGORIES) {

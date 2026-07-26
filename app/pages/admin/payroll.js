@@ -149,7 +149,7 @@ export default function Payroll({ today, taxYear }) {
 
 // Hoisted so ticking a checkbox doesn't remount every row (a new component
 // type each render means React rebuilds the whole table and drops focus).
-function EntryRow({ e, nameById, sel, setSel, showCheck }) {
+function EntryRow({ e, nameById, sel, setSel, showCheck, onHistory }) {
   return (
     <tr>
       {showCheck && (
@@ -165,15 +165,21 @@ function EntryRow({ e, nameById, sel, setSel, showCheck }) {
       <td style={td}>{e.miles || '—'}</td>
       <td style={{ ...td, color: 'var(--text-dim)', whiteSpace: 'normal', minWidth: 160 }}>{e.notes || ''}</td>
       <td style={{ ...td, color: 'var(--text-dim)' }}>{e.clock_out ? 'clocked' : e.source}</td>
+      <td style={td}>
+        <button onClick={() => onHistory(e)} style={{ background: 'none', border: 'none', color: 'var(--info)', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+          history
+        </button>
+      </td>
     </tr>
   )
 }
 
-const ENTRY_HEAD = ['Date', 'Who', 'Hours', 'Stops', 'Miles', 'Notes', 'Source']
+const ENTRY_HEAD = ['Date', 'Who', 'Hours', 'Stops', 'Miles', 'Notes', 'Source', '']
 
 function ApproveTab({ api, busy, nameById, setMsg, today }) {
   const [entries, setEntries] = useState([])
   const [sel, setSel] = useState({})
+  const [trail, setTrail] = useState(null)   // { entry, rows }
   const [range, setRange] = useState(() => {
     const from = new Date(`${today}T12:00:00`)
     from.setDate(from.getDate() - 28)
@@ -186,6 +192,14 @@ function ApproveTab({ api, busy, nameById, setMsg, today }) {
   }, [api, range.from, range.to])
 
   useEffect(() => { load() }, [load])
+
+  // The append-only record of who changed a day and when — the answer to
+  // "why does this say 9 hours when I approved 8?".
+  async function openTrail(entry) {
+    setTrail({ entry, rows: null })
+    const j = await api(`/api/admin/timesheet?revisionsFor=${entry.id}`)
+    setTrail(j ? { entry, rows: j.revisions || [] } : null)
+  }
 
   // A day that is still on the clock has no final hours yet — approving it
   // would claim it into a run at 0 h and lock the tech out of clocking out.
@@ -216,6 +230,34 @@ function ApproveTab({ api, busy, nameById, setMsg, today }) {
           target="_blank" rel="noopener noreferrer"
           style={{ ...btn('ghost'), textDecoration: 'none' }}>Export CSV</a>
       </div>
+
+      {trail && (
+        <div style={{ ...card, marginBottom: 18, borderColor: 'rgba(var(--info-rgb),0.35)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--info)' }}>
+              Change history — {nameById[trail.entry.employee_id] || `#${trail.entry.employee_id}`}, {fmtDay(trail.entry.work_date)}
+            </div>
+            <button onClick={() => setTrail(null)} style={{ ...btn('ghost'), padding: '6px 12px' }}>Close</button>
+          </div>
+          {trail.rows === null ? (
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Loading…</div>
+          ) : trail.rows.length === 0 ? (
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>No changes recorded.</div>
+          ) : trail.rows.map((r) => (
+            <div key={r.id} style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.8, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ color: 'var(--text-dim)' }}>
+                {new Date(r.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              </span>
+              <strong style={{ color: 'var(--text)' }}>{r.action}</strong>
+              <span>by {r.actorEmail}</span>
+              {r.hoursBefore !== r.hoursAfter && (
+                <span>hours {r.hoursBefore == null ? '—' : hrs(r.hoursBefore)} → {r.hoursAfter == null ? '—' : hrs(r.hoursAfter)}</span>
+              )}
+              {r.statusBefore !== r.statusAfter && r.statusBefore && <span>({r.statusBefore} → {r.statusAfter})</span>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {running.length > 0 && (
         <div style={{ ...card, marginBottom: 18, borderColor: 'rgba(var(--info-rgb),0.35)' }}>
@@ -252,7 +294,7 @@ function ApproveTab({ api, busy, nameById, setMsg, today }) {
                 <th style={th}></th>{ENTRY_HEAD.map((h) => <th key={h} style={th}>{h}</th>)}
               </tr></thead>
               <tbody>{pending.map((e) => (
-                <EntryRow key={e.id} e={e} nameById={nameById} sel={sel} setSel={setSel} showCheck />
+                <EntryRow key={e.id} e={e} nameById={nameById} sel={sel} setSel={setSel} showCheck onHistory={openTrail} />
               ))}</tbody>
             </table>
           </div>
@@ -277,7 +319,7 @@ function ApproveTab({ api, busy, nameById, setMsg, today }) {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>{ENTRY_HEAD.map((h) => <th key={h} style={th}>{h}</th>)}</tr></thead>
               <tbody>{approved.map((e) => (
-                <EntryRow key={e.id} e={e} nameById={nameById} sel={sel} setSel={setSel} />
+                <EntryRow key={e.id} e={e} nameById={nameById} sel={sel} setSel={setSel} onHistory={openTrail} />
               ))}</tbody>
             </table>
           </div>

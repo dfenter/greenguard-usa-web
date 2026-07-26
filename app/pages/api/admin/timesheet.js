@@ -8,7 +8,7 @@ import { requireAdmin, isOwnerEmail } from '../../../lib/auth'
 import {
   getEmployeeByEmail, getEmployeeById, listEntries, getEntry,
   upsertEntry, patchEntry, deleteEntry, setEntryStatus, getOpenClock, today,
-  getSettings, listAllEntries,
+  getSettings, listAllEntries, listEntryRevisions,
 } from '../../../lib/payroll-store'
 import { computeEarnings, workweekStart, entryHours } from '../../../lib/payroll'
 
@@ -72,7 +72,18 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      const { from, to, employeeId, all, status } = req.query
+      const { from, to, employeeId, all, status, revisionsFor } = req.query
+
+      // The audit trail for one day. An employee may read their own history;
+      // the owner may read anyone's.
+      if (revisionsFor) {
+        const entry = await getEntry(Number(revisionsFor), { includeDeleted: true })
+        if (!entry) return res.status(404).json({ error: 'Entry not found' })
+        if (!isOwner && (!me || entry.employee_id !== me.id)) {
+          return res.status(403).json({ error: 'Forbidden' })
+        }
+        return res.json({ revisions: await listEntryRevisions({ entryId: entry.id }) })
+      }
       const settings = await getSettings()
 
       // ?all=1 — owner-wide view used by the payroll review screen.
@@ -122,9 +133,10 @@ export default async function handler(req, res) {
         employeeId: emp.id,
         workDate: workDate || today(),
         hours, breakMinutes, stops, miles, notes,
+        actorEmail: session.email,
       })
       if (submit && entry.status === 'open') {
-        const [updated] = await setEntryStatus({ ids: [entry.id], status: 'submitted' })
+        const [updated] = await setEntryStatus({ ids: [entry.id], status: 'submitted', actorEmail: session.email })
         return res.json({ ok: true, entry: updated || entry })
       }
       return res.json({ ok: true, entry })
@@ -159,7 +171,7 @@ export default async function handler(req, res) {
               return res.status(403).json({ error: 'Forbidden' })
             }
           }
-          const entries = await setEntryStatus({ ids: targetIds, status: 'submitted' })
+          const entries = await setEntryStatus({ ids: targetIds, status: 'submitted', actorEmail: session.email })
           return res.json({ ok: true, entries })
         }
         return res.status(400).json({ error: `Unknown action: ${action}` })
@@ -173,7 +185,7 @@ export default async function handler(req, res) {
       if (!isOwner && (!me || existing.employee_id !== me.id)) {
         return res.status(403).json({ error: 'Forbidden' })
       }
-      const entry = await patchEntry(entryId, patch)
+      const entry = await patchEntry(entryId, patch, { actorEmail: session.email })
       return res.json({ ok: true, entry })
     }
 
@@ -191,7 +203,7 @@ export default async function handler(req, res) {
       if (!isOwner && existing.status === 'approved') {
         return res.status(403).json({ error: 'That day is already approved — ask Dan to remove it.' })
       }
-      await deleteEntry(entryId)
+      await deleteEntry(entryId, { actorEmail: session.email })
       return res.json({ ok: true })
     }
 

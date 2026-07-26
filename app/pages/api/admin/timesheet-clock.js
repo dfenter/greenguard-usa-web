@@ -41,11 +41,11 @@ export default async function handler(req, res) {
 
     const action = req.body?.action
     if (action === 'in') {
-      const entry = await clockIn({ employeeId: employee.id })
+      const entry = await clockIn({ employeeId: employee.id, actorEmail: session.email })
       return res.json({ ok: true, action: 'in', entry })
     }
     if (action === 'out') {
-      const entry = await clockOut({ employeeId: employee.id })
+      const entry = await clockOut({ employeeId: employee.id, actorEmail: session.email })
       return res.json({ ok: true, action: 'out', entry })
     }
     return res.status(400).json({ error: "action must be 'in' or 'out'" })

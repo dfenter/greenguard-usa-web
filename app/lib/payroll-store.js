@@ -17,6 +17,29 @@ const {
 
 const BIZ_TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 
+// Every timesheet write runs inside a transaction that first declares WHO is
+// doing it, so the database audit trigger can attribute the revision. Without
+// this the trail still records the change — attributed to 'system' — which is
+// why the actor is a hint to the trigger rather than something the trigger
+// depends on.
+async function withActor(actorEmail, fn) {
+  const client = await getPool().connect()
+  try {
+    await client.query('BEGIN')
+    // SET LOCAL, not SET: pooled connections are reused across requests, and a
+    // leaked actor would mis-attribute someone else's edit.
+    await client.query(`SELECT set_config('payroll.actor_email', $1, true)`, [String(actorEmail || 'system')])
+    const out = await fn(client)
+    await client.query('COMMIT')
+    return out
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {})
+    throw err
+  } finally {
+    client.release()
+  }
+}
+
 function num(v) {
   const n = Number(v)
   return Number.isFinite(n) ? n : 0
@@ -259,7 +282,8 @@ const TS_COLS = `
   id, employee_id, to_char(work_date, 'YYYY-MM-DD') AS work_date,
   clock_in, clock_out, hours::float8 AS hours, break_minutes,
   stops, miles::float8 AS miles, notes, source, status, payroll_run_id,
-  submitted_at, approved_at, approved_by, created_at, updated_at`
+  submitted_at, approved_at, approved_by, created_at, updated_at,
+  deleted_at, deleted_by`
 
 function hydrateEntry(r) {
   if (!r) return null
@@ -280,12 +304,14 @@ function hydrateEntry(r) {
     submitted_at: r.submitted_at ? new Date(r.submitted_at).toISOString() : null,
     approved_at: r.approved_at ? new Date(r.approved_at).toISOString() : null,
     approved_by: r.approved_by || null,
+    deleted_at: r.deleted_at ? new Date(r.deleted_at).toISOString() : null,
+    deleted_by: r.deleted_by || null,
   }
 }
 
-async function listEntries({ employeeId, from, to, status, limit = 200, offset = 0 } = {}) {
+async function listEntries({ employeeId, from, to, status, limit = 200, offset = 0, includeDeleted = false } = {}) {
   const args = []
-  const where = []
+  const where = includeDeleted ? [] : ['deleted_at IS NULL']
   if (employeeId) { args.push(employeeId); where.push(`employee_id = $${args.length}`) }
   if (isDateStr(from)) { args.push(from); where.push(`work_date >= $${args.length}::date`) }
   if (isDateStr(to)) { args.push(to); where.push(`work_date <= $${args.length}::date`) }
@@ -319,6 +345,7 @@ async function listAllEntries({ employeeId, from, to, status, pageSize = 1000, m
     if (isDateStr(from)) { args.push(from); where.push(`work_date >= $${args.length}::date`) }
     if (isDateStr(to)) { args.push(to); where.push(`work_date <= $${args.length}::date`) }
     if (status) { args.push(Array.isArray(status) ? status : [status]); where.push(`status = ANY($${args.length})`) }
+    where.push('deleted_at IS NULL')
     if (cursor) {
       args.push(cursor.work_date, cursor.id)
       where.push(`(work_date, id) < ($${args.length - 1}::date, $${args.length}::int)`)
@@ -338,8 +365,12 @@ async function listAllEntries({ employeeId, from, to, status, pageSize = 1000, m
   return { entries: out, truncated: true }
 }
 
-async function getEntry(id) {
-  const { rows } = await q(`SELECT ${TS_COLS} FROM timesheet_entries WHERE id = $1`, [id])
+async function getEntry(id, { includeDeleted = false } = {}) {
+  const { rows } = await q(
+    `SELECT ${TS_COLS} FROM timesheet_entries
+     WHERE id = $1 ${includeDeleted ? '' : 'AND deleted_at IS NULL'}`,
+    [id]
+  )
   return hydrateEntry(rows[0])
 }
 
@@ -348,6 +379,7 @@ async function listPayableEntries({ periodStart, periodEnd, runId = null }) {
   const { rows } = await q(
     `SELECT ${TS_COLS} FROM timesheet_entries
      WHERE work_date >= $1::date AND work_date <= $2::date
+       AND deleted_at IS NULL
        AND (
          (status = 'approved' AND payroll_run_id IS NULL)
          OR ($3::int IS NOT NULL AND payroll_run_id = $3::int)
@@ -365,14 +397,14 @@ const optNum = (v, coerce) => (v === undefined || v === null || v === '' ? null 
 // Manual hours OVERRIDE a clock pair by clearing it. lib/payroll.js prefers a
 // clock pair when one exists, so leaving both behind would mean the number the
 // owner approves is not the number payroll pays.
-async function upsertEntry({ employeeId, workDate, hours, breakMinutes, stops, miles, notes }) {
+async function upsertEntry({ employeeId, workDate, hours, breakMinutes, stops, miles, notes, actorEmail = 'system' }) {
   if (!isDateStr(workDate)) throw Object.assign(new Error('work_date must be YYYY-MM-DD'), { status: 400 })
   const manualHours = optNum(hours, (v) => Math.min(24, Math.max(0, num(v))))
-  const { rows } = await q(
+  const { rows } = await withActor(actorEmail, (client) => client.query(
     `INSERT INTO timesheet_entries
        (employee_id, work_date, hours, break_minutes, stops, miles, notes, source)
      VALUES ($1, $2::date, $3, COALESCE($4, 0), COALESCE($5, 0), COALESCE($6, 0), $7, 'manual')
-     ON CONFLICT (employee_id, work_date) DO UPDATE SET
+     ON CONFLICT (employee_id, work_date) WHERE deleted_at IS NULL DO UPDATE SET
        hours = COALESCE($3, timesheet_entries.hours),
        -- a manual hours edit supersedes the clock pair for that day
        clock_in  = CASE WHEN $3 IS NULL THEN timesheet_entries.clock_in  ELSE NULL END,
@@ -396,7 +428,7 @@ async function upsertEntry({ employeeId, workDate, hours, breakMinutes, stops, m
       optNum(miles, (v) => Math.max(0, Math.round(num(v) * 10) / 10)),
       notes === undefined || notes === null ? null : String(notes).slice(0, 2000),
     ]
-  )
+  ))
   if (!rows[0]) throw Object.assign(new Error('That day is already in a payroll run and cannot be edited'), { status: 409 })
   return hydrateEntry(rows[0])
 }
@@ -408,7 +440,7 @@ function tstamp(v) {
   return d.toISOString()
 }
 
-async function patchEntry(id, patch) {
+async function patchEntry(id, patch, { actorEmail = 'system' } = {}) {
   const WRITABLE = {
     hours: (v) => (v === null || v === '' ? null : Math.min(24, Math.max(0, num(v)))),
     break_minutes: (v) => Math.max(0, Math.round(num(v))),
@@ -458,26 +490,71 @@ async function patchEntry(id, patch) {
   args.push(id)
   // Any edit sends the entry back to 'submitted' so the owner re-approves the
   // changed numbers instead of silently paying them.
-  const { rows } = await q(
+  const { rows } = await withActor(actorEmail, (client) => client.query(
     `UPDATE timesheet_entries SET ${sets.join(', ')},
        status = 'submitted', submitted_at = NOW(),
        approved_at = NULL, approved_by = NULL,
        updated_at = NOW()
-     WHERE id = $${args.length} AND status <> 'paid' AND payroll_run_id IS NULL
+     WHERE id = $${args.length} AND deleted_at IS NULL AND status <> 'paid' AND payroll_run_id IS NULL
      RETURNING ${TS_COLS}`,
     args
-  )
+  ))
   if (!rows[0]) throw Object.assign(new Error('Entry is locked by a payroll run'), { status: 409 })
   return hydrateEntry(rows[0])
 }
 
-async function deleteEntry(id) {
-  const { rowCount } = await q(
-    `DELETE FROM timesheet_entries WHERE id = $1 AND status <> 'paid' AND payroll_run_id IS NULL`,
-    [id]
-  )
-  if (!rowCount) throw Object.assign(new Error('Entry is locked by a payroll run'), { status: 409 })
+// SOFT delete. A time card is a wage record the FLSA requires us to keep for
+// two years, so the row is marked instead of removed and the audit trigger
+// records who removed it. Live reads filter deleted_at IS NULL, and the partial
+// unique index lets the same day be entered again afterwards.
+async function deleteEntry(id, { actorEmail = 'system' } = {}) {
+  const rows = await withActor(actorEmail, async (client) => {
+    const res = await client.query(
+      `UPDATE timesheet_entries
+       SET deleted_at = NOW(), deleted_by = $2, updated_at = NOW()
+       WHERE id = $1 AND deleted_at IS NULL AND status <> 'paid' AND payroll_run_id IS NULL
+       RETURNING ${TS_COLS}`,
+      [id, actorEmail]
+    )
+    return res.rows
+  })
+  if (!rows[0]) throw Object.assign(new Error('Entry is locked by a payroll run'), { status: 409 })
   return true
+}
+
+// The trail for one day (or one entry). Owner sees any; an employee sees theirs.
+async function listEntryRevisions({ entryId = null, employeeId = null, workDate = null, limit = 100 } = {}) {
+  const args = []
+  const where = []
+  if (entryId) { args.push(entryId); where.push(`entry_id = $${args.length}`) }
+  if (employeeId) { args.push(employeeId); where.push(`employee_id = $${args.length}`) }
+  if (isDateStr(workDate)) { args.push(workDate); where.push(`work_date = $${args.length}::date`) }
+  if (!where.length) throw Object.assign(new Error('entryId or employeeId required'), { status: 400 })
+  args.push(Math.min(500, Math.max(1, num(limit) || 100)))
+  const { rows } = await q(
+    `SELECT id, entry_id, employee_id, to_char(work_date,'YYYY-MM-DD') AS work_date,
+            action, actor_email,
+            hours_before::float8 AS hours_before, hours_after::float8 AS hours_after,
+            status_before, status_after, created_at
+     FROM timesheet_revisions
+     WHERE ${where.join(' AND ')}
+     ORDER BY created_at DESC, id DESC
+     LIMIT $${args.length}`,
+    args
+  )
+  return rows.map((r) => ({
+    id: String(r.id),
+    entryId: r.entry_id,
+    employeeId: r.employee_id,
+    workDate: r.work_date,
+    action: r.action,
+    actorEmail: r.actor_email,
+    hoursBefore: r.hours_before == null ? null : num(r.hours_before),
+    hoursAfter: r.hours_after == null ? null : num(r.hours_after),
+    statusBefore: r.status_before || null,
+    statusAfter: r.status_after || null,
+    at: r.created_at ? new Date(r.created_at).toISOString() : null,
+  }))
 }
 
 async function setEntryStatus({ ids, status, actorEmail }) {
@@ -487,22 +564,24 @@ async function setEntryStatus({ ids, status, actorEmail }) {
     : status === 'approved' ? `approved_at = NOW(), approved_by = $3`
     : `approved_at = NULL, approved_by = NULL`
   const args = status === 'approved' ? [ids, status, actorEmail] : [ids, status]
+  // (actorEmail is also declared to the audit trigger below.)
   // A day that is still on the clock has no final hours yet. Approving it
   // would claim it into a run at 0 h AND block the tech from clocking out.
   const notRunning = status === 'approved'
     ? `AND NOT (clock_in IS NOT NULL AND clock_out IS NULL)`
     : ''
-  const { rows } = await q(
+  const { rows } = await withActor(actorEmail, (client) => client.query(
     `UPDATE timesheet_entries SET status = $2, ${stamp}, updated_at = NOW()
-     WHERE id = ANY($1) AND status <> 'paid' AND payroll_run_id IS NULL ${notRunning}
+     WHERE id = ANY($1) AND deleted_at IS NULL AND status <> 'paid'
+       AND payroll_run_id IS NULL ${notRunning}
      RETURNING ${TS_COLS}`,
     args
-  )
+  ))
   return rows.map(hydrateEntry)
 }
 
 // Clock in: creates (or reuses) today's entry and stamps clock_in.
-async function clockIn({ employeeId, tz = BIZ_TZ, at = new Date() }) {
+async function clockIn({ employeeId, tz = BIZ_TZ, at = new Date(), actorEmail = 'system' }) {
   const workDate = at.toLocaleDateString('en-CA', { timeZone: tz })
 
   // A forgotten clock-out from an earlier day would otherwise hit the partial
@@ -516,10 +595,10 @@ async function clockIn({ employeeId, tz = BIZ_TZ, at = new Date() }) {
     )
   }
 
-  const { rows } = await q(
+  const { rows } = await withActor(actorEmail, (client) => client.query(
     `INSERT INTO timesheet_entries (employee_id, work_date, clock_in, source, status)
      VALUES ($1, $2::date, $3, 'clock', 'open')
-     ON CONFLICT (employee_id, work_date) DO UPDATE SET
+     ON CONFLICT (employee_id, work_date) WHERE deleted_at IS NULL DO UPDATE SET
        -- Already clocked in (clock_out NULL) ⇒ keep the original stamp, so a
        -- double-tap is idempotent. Already clocked OUT ⇒ this is a SECOND
        -- shift: take the new stamp, because clock-out adds (now − clock_in) to
@@ -539,7 +618,7 @@ async function clockIn({ employeeId, tz = BIZ_TZ, at = new Date() }) {
        AND timesheet_entries.payroll_run_id IS NULL
      RETURNING ${TS_COLS}`,
     [employeeId, workDate, at.toISOString()]
-  )
+  ))
   if (!rows[0]) {
     const existing = await getEntry(
       (await q(`SELECT id FROM timesheet_entries WHERE employee_id = $1 AND work_date = $2::date`, [employeeId, workDate])).rows[0]?.id
@@ -557,8 +636,8 @@ async function clockIn({ employeeId, tz = BIZ_TZ, at = new Date() }) {
 
 // Clock out: closes the open clock (which may belong to yesterday's date if
 // the shift ran past midnight) and banks the elapsed hours.
-async function clockOut({ employeeId, at = new Date() }) {
-  const { rows } = await q(
+async function clockOut({ employeeId, at = new Date(), actorEmail = 'system' }) {
+  const { rows } = await withActor(actorEmail, (client) => client.query(
     `UPDATE timesheet_entries
      SET clock_out = $2,
          -- ADD this shift's elapsed time to whatever is already banked, so a
@@ -572,10 +651,10 @@ async function clockOut({ employeeId, at = new Date() }) {
          submitted_at = NOW(), approved_at = NULL, approved_by = NULL,
          updated_at = NOW()
      WHERE employee_id = $1 AND clock_in IS NOT NULL AND clock_out IS NULL
-       AND status <> 'paid' AND payroll_run_id IS NULL
+       AND deleted_at IS NULL AND status <> 'paid' AND payroll_run_id IS NULL
      RETURNING ${TS_COLS}`,
     [employeeId, at.toISOString()]
-  )
+  ))
   if (!rows[0]) throw Object.assign(new Error('You are not clocked in'), { status: 409 })
   return hydrateEntry(rows[0])
 }
@@ -583,7 +662,8 @@ async function clockOut({ employeeId, at = new Date() }) {
 async function getOpenClock(employeeId) {
   const { rows } = await q(
     `SELECT ${TS_COLS} FROM timesheet_entries
-     WHERE employee_id = $1 AND clock_in IS NOT NULL AND clock_out IS NULL LIMIT 1`,
+     WHERE employee_id = $1 AND clock_in IS NOT NULL AND clock_out IS NULL
+       AND deleted_at IS NULL LIMIT 1`,
     [employeeId]
   )
   return hydrateEntry(rows[0])
@@ -1366,6 +1446,7 @@ async function createRun({ periodStart, periodEnd, payDate, employeeIds = null, 
   const client = await getPool().connect()
   try {
     await client.query('BEGIN')
+    await client.query(`SELECT set_config('payroll.actor_email', $1, true)`, [String(createdBy || 'system')])
     // FOR UPDATE can't lock rows that don't exist yet, so two simultaneous
     // creates of DIFFERENT overlapping periods would both pass the check below
     // (and each pay the same salary/bonus). One advisory lock serializes all
@@ -1495,6 +1576,7 @@ async function finalizeRun({ runId, actorEmail }) {
     // year-to-date total that excludes the other and both charge Social
     // Security past the wage base (or both miss the additional-Medicare step).
     await client.query(`SELECT pg_advisory_xact_lock(hashtext('payroll_run_create'))`)
+    await client.query(`SELECT set_config('payroll.actor_email', $1, true)`, [String(actorEmail || 'system')])
     const { rows } = await client.query(
       `SELECT id, status FROM payroll_runs WHERE id = $1 FOR UPDATE`,
       [runId]
@@ -1563,6 +1645,7 @@ async function voidRun({ runId, actorEmail }) {
   try {
     await client.query('BEGIN')
     await client.query(`SELECT pg_advisory_xact_lock(hashtext('payroll_run_create'))`)
+    await client.query(`SELECT set_config('payroll.actor_email', $1, true)`, [String(actorEmail || 'system')])
     const { rows } = await client.query(
       `SELECT id, status, posted_to_books FROM payroll_runs WHERE id = $1 FOR UPDATE`,
       [runId]
@@ -1729,6 +1812,8 @@ module.exports = {
   upsertEntry,
   patchEntry,
   deleteEntry,
+  listEntryRevisions,
+  withActor,
   setEntryStatus,
   clockIn,
   clockOut,

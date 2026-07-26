@@ -269,6 +269,8 @@ Every crew member's own page — clock in/out, fix hours, submit the week. Built
 
 **Submit week for approval** — flags the week's days for Dan to approve. Editing an already-approved day sends it back for approval automatically.
 
+**History** — every card has a History button. It shows every change ever made to that day: what changed, who changed it, and when (including hours before → after). Nothing about a time card can be changed silently, by you or by Dan, and deleting a day marks it removed rather than erasing it — the FLSA requires time records to be kept for two years. Dan sees the same trail from the Approve Time queue, so a disagreement about hours is answerable from the record.
+
 ---
 
 ## Payroll (`/admin/payroll`)

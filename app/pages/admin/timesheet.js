@@ -82,6 +82,7 @@ export default function Timesheet({ email, isOwner, serverToday }) {
   const [busy, setBusy] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [editing, setEditing] = useState(null)   // work_date being edited
+  const [history, setHistory] = useState(null)   // { entryId, rows } — audit trail
   const [form, setForm] = useState({ hours: '', break_minutes: '', stops: '', miles: '', notes: '' })
   const flash = useRef(null)
 
@@ -175,6 +176,21 @@ export default function Timesheet({ email, isOwner, serverToday }) {
       say(e.message, 5000)
     } finally {
       setBusy(false)
+    }
+  }
+
+  // Every change to a day is recorded in an append-only trail; this shows it.
+  async function showHistory(entryId) {
+    if (history?.entryId === entryId) return setHistory(null)
+    setHistory({ entryId, rows: null })
+    try {
+      const r = await fetch(`/api/admin/timesheet?revisionsFor=${entryId}`, { credentials: 'same-origin' })
+      const j = await r.json()
+      if (!r.ok) throw new Error(j.error || 'Failed')
+      setHistory({ entryId, rows: j.revisions || [] })
+    } catch (e) {
+      say(e.message, 5000)
+      setHistory(null)
     }
   }
 
@@ -371,7 +387,11 @@ export default function Timesheet({ email, isOwner, serverToday }) {
                         />
                       </div>
                     ) : !locked ? (
-                      <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                      <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+                        <button onClick={() => showHistory(e.id)} disabled={busy}
+                          style={{ padding: '7px 13px', borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          History
+                        </button>
                         <button onClick={() => startEdit(e)} disabled={busy}
                           style={{ padding: '7px 13px', borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                           Edit
@@ -391,8 +411,14 @@ export default function Timesheet({ email, isOwner, serverToday }) {
                         </button>
                       </div>
                     ) : (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 10 }}>
-                        Locked — included in payroll run #{e.payroll_run_id}
+                      <div style={{ display: 'flex', gap: 10, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                          Locked — included in payroll run #{e.payroll_run_id}
+                        </span>
+                        <button onClick={() => showHistory(e.id)} disabled={busy}
+                          style={{ padding: '5px 11px', borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          History
+                        </button>
                       </div>
                     )}
                   </div>
@@ -403,6 +429,38 @@ export default function Timesheet({ email, isOwner, serverToday }) {
         )}
       </PortalLayout>
     </>
+  )
+}
+
+// Append-only history for one day: what changed, who changed it, when.
+function RevisionList({ rows }) {
+  if (rows === null) {
+    return <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: 10 }}>Loading history…</div>
+  }
+  if (!rows.length) {
+    return <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: 10 }}>No changes recorded.</div>
+  }
+  const who = (email) => (email || 'system').split('@')[0]
+  return (
+    <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+      <div style={{ fontSize: '0.64rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 8 }}>
+        Change history
+      </div>
+      {rows.map((r) => (
+        <div key={r.id} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.7, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ color: 'var(--text-dim)' }}>
+            {new Date(r.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+          </span>
+          <strong style={{ color: 'var(--text)' }}>{r.action}</strong>
+          <span>by {who(r.actorEmail)}</span>
+          {r.hoursBefore !== r.hoursAfter && (
+            <span>
+              hours {r.hoursBefore == null ? '—' : r.hoursBefore.toFixed(2)} → {r.hoursAfter == null ? '—' : r.hoursAfter.toFixed(2)}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
   )
 }
 

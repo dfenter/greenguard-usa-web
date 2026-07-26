@@ -132,6 +132,19 @@ Customer picks installation time via Cal.com embed at end of quote flow
   portion, otherwise the same receipt would hit the P&L twice.
 - Claims are claimed/locked by a run exactly like timesheet entries: approved → paid, released on void.
 
+**Time-card audit trail** (`timesheet_revisions`):
+- A DB trigger on `timesheet_entries` writes a revision row for EVERY insert/update/delete — app code
+  and hand-run SQL alike. `timesheet_revisions` is append-only (a second trigger refuses UPDATE/DELETE).
+- Deletes are SOFT (`deleted_at`/`deleted_by`); the unique day/open-clock indexes are partial on
+  `deleted_at IS NULL`, so a removed day can be re-entered as a new row. Live reads filter deleted rows,
+  and `ON CONFLICT (employee_id, work_date) WHERE deleted_at IS NULL` matches the partial index.
+- Attribution comes from `payroll.actor_email`, set with `set_config(..., true)` (transaction-local)
+  by `withActor()` in payroll-store — pooled connections make a plain SET unsafe. A write that skips
+  it is still recorded, attributed to `system`.
+- Read it via `listEntryRevisions()` or `GET /api/admin/timesheet?revisionsFor=<entryId>` (owner: any
+  employee; crew: their own). Shown on each day card and in the Approve Time queue.
+- Retention: FLSA §11(c) / 29 CFR 516 — payroll records 3 years, time cards 2 years.
+
 **Env vars:** `DATABASE_URL` (shared with the bookkeeping ledger), `CALENDAR_TIMEZONE` (business day + workweek).
 
 ### Auth — `app/lib/auth.js`

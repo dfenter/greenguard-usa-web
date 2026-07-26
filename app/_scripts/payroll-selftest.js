@@ -44,6 +44,17 @@ async function expectStatus(label, fn, status) {
   }
 }
 
+// Assert the DATABASE refuses a statement outright (trigger or constraint).
+async function expectPgError(label, sql, params) {
+  try {
+    await q(sql, params)
+    failures++
+    console.log(`  ✗ ${label} — the database allowed it`)
+  } catch (err) {
+    check(`${label} is refused by the database`, true)
+  }
+}
+
 // Monday-of-a-known-week dates so the workweek math is deterministic.
 const D = (n) => `2026-06-${String(n).padStart(2, '0')}`   // June 2026: 1st is a Monday
 
@@ -67,6 +78,7 @@ async function cleanup() {
       )
     }
     await client.query(`DELETE FROM expense_claims WHERE employee_id = $1`, [employeeId])
+    await client.query(`DELETE FROM timesheet_revisions WHERE employee_id = $1`, [employeeId])
     await client.query(`DELETE FROM timesheet_entries WHERE employee_id = $1`, [employeeId])
     await client.query(`DELETE FROM payroll_items WHERE employee_id = $1`, [employeeId])
     if (runIds.length) await client.query(`DELETE FROM payroll_runs WHERE id = ANY($1)`, [runIds])
@@ -159,7 +171,40 @@ async function main() {
   check('second shift adds only its own 2 h (total 6, not 11)', Number(shift2.hours) === 6, `hours=${shift2.hours}`)
   await S.deleteEntry(shift2.id)
 
-  console.log('\n5. approval cannot survive an hours change')
+  console.log('\n5. time-card audit trail')
+  const auditDay = D(9)
+  const a1 = await S.upsertEntry({ employeeId, workDate: auditDay, hours: 8, actorEmail: 'zeke@test' })
+  await S.upsertEntry({ employeeId, workDate: auditDay, hours: 9, actorEmail: 'zeke@test' })
+  await S.setEntryStatus({ ids: [a1.id], status: 'approved', actorEmail: 'owner@test' })
+  const trail = await S.listEntryRevisions({ entryId: a1.id })
+  check('every change is recorded', trail.length >= 3, `${trail.length} revisions`)
+  check('the trail is newest-first', trail[0].action === 'approved', trail[0].action)
+  check('the approval is attributed to the owner', trail[0].actorEmail === 'owner@test', trail[0].actorEmail)
+  const edit = trail.find((r) => r.hoursBefore === 8 && r.hoursAfter === 9)
+  check('the hours change kept both values', Boolean(edit), JSON.stringify(trail.map((r) => [r.action, r.hoursBefore, r.hoursAfter])))
+  check('the edit is attributed to the crew member', edit?.actorEmail === 'zeke@test', edit?.actorEmail)
+
+  // Append-only: history cannot be rewritten or removed.
+  await expectPgError('rewriting history', `UPDATE timesheet_revisions SET action = 'nope' WHERE id = $1`, [trail[0].id])
+  await expectPgError('deleting history', `DELETE FROM timesheet_revisions WHERE id = $1`, [trail[0].id])
+
+  // Deleting a day is a soft delete — the record survives for the FLSA's
+  // two-year retention, and the day can be entered again afterwards.
+  await S.deleteEntry(a1.id, { actorEmail: 'owner@test' })
+  const gone = await S.listEntries({ employeeId, from: auditDay, to: auditDay })
+  check('a deleted day disappears from live reads', gone.length === 0, `${gone.length} rows`)
+  const stillThere = await S.getEntry(a1.id, { includeDeleted: true })
+  check('but the row is retained, marked deleted', Boolean(stillThere?.deleted_at), String(stillThere?.deleted_at))
+  const afterDelete = await S.listEntryRevisions({ entryId: a1.id })
+  check('the deletion is in the trail with its actor',
+    afterDelete[0].action === 'deleted' && afterDelete[0].actorEmail === 'owner@test',
+    `${afterDelete[0].action}/${afterDelete[0].actorEmail}`)
+  const reentered = await S.upsertEntry({ employeeId, workDate: auditDay, hours: 7, actorEmail: 'zeke@test' })
+  check('the same day can be entered again', Number(reentered.hours) === 7, String(reentered.hours))
+  check('as a NEW entry, not the deleted one', reentered.id !== a1.id)
+  await S.deleteEntry(reentered.id, { actorEmail: 'owner@test' })
+
+  console.log('\n6. approval cannot survive an hours change')
   await S.setEntryStatus({ ids: [co.id], status: 'approved', actorEmail: 'owner@test' })
   const reopened = await S.clockIn({ employeeId, at: new Date('2026-06-02T22:00:00Z') })
   check('re-clocking an approved day un-approves it', reopened.status === 'submitted', reopened.status)
@@ -173,7 +218,7 @@ async function main() {
   check('a manual hours edit clears the clock pair', edited.clock_in === null && edited.clock_out === null)
   check('so approved hours == paid hours', require('../lib/payroll').entryHours(edited) === 9)
 
-  console.log('\n6. expense receipts')
+  console.log('\n7. expense receipts')
   const claim = await S.createExpense({
     employeeId, incurredOn: D(3), amountCents: 4599, vendor: 'Home Depot',
     description: 'CO2 regulator', categoryLabel: 'COGS:Equipment',
@@ -264,7 +309,7 @@ async function main() {
   check('only the out-of-pocket receipt is queued for reimbursement',
     reimbursable.length === 1 && reimbursable[0].id === claim.id, `${reimbursable.length} queued`)
 
-  console.log('\n7. payroll run')
+  console.log('\n8. payroll run')
   for (const d of [3, 4, 5]) await S.upsertEntry({ employeeId, workDate: D(d), hours: 8, stops: 4, miles: 50 })
   const all = await S.listEntries({ employeeId })
   await S.setEntryStatus({ ids: all.map((e) => e.id), status: 'approved', actorEmail: 'owner@test' })
@@ -288,7 +333,7 @@ async function main() {
   check('the receipt is claimed by the run too', claimedExp.payrollRunId === run.id)
   await expectStatus('editing a claimed receipt', () => S.updateExpense(claim.id, { amount_cents: 9999 }), 409)
 
-  console.log('\n8. the same work cannot be paid twice')
+  console.log('\n9. the same work cannot be paid twice')
   await expectStatus(
     'an overlapping period',
     () => S.createRun({ periodStart: D(8), periodEnd: D(21), payDate: D(26), createdBy: 'owner@test' }),
@@ -304,7 +349,7 @@ async function main() {
   await expectStatus('editing a claimed day', () => S.patchEntry(claimed[0].id, { hours: 12 }), 409)
   await expectStatus('deleting a claimed day', () => S.deleteEntry(claimed[0].id), 409)
 
-  console.log('\n9. finalize')
+  console.log('\n10. finalize')
   const finalized = await S.finalizeRun({ runId: run.id, actorEmail: 'owner@test' })
   check('run is finalized', finalized.run.status === 'finalized', finalized.run.status)
   const paid = await S.listEntries({ employeeId })
@@ -325,13 +370,13 @@ async function main() {
   const booksAgain = await q(`SELECT COUNT(*)::int n FROM transactions WHERE source='payroll' AND external_id LIKE $1`, [`payroll-run-${run.id}-%`])
   check('re-posting is idempotent', booksAgain.rows[0].n === books.rows.length)
 
-  console.log('\n10. year-to-date')
+  console.log('\n11. year-to-date')
   const ytd = await S.ytdTotals({ employeeId, year: 2026 })
   check('YTD counts the finalized run', ytd.grossCents === finalized.items[0].taxableGrossCents, String(ytd.grossCents))
   const ytdBefore = await S.ytdTotals({ employeeId, year: 2026, throughPayDate: D(18) })
   check('YTD respects throughPayDate', ytdBefore.grossCents === 0, String(ytdBefore.grossCents))
 
-  console.log('\n11. void releases the work and reverses the ledger')
+  console.log('\n12. void releases the work and reverses the ledger')
   const voided = await S.voidRun({ runId: run.id, actorEmail: 'owner@test' })
   check('run is void', voided.run.status === 'void', voided.run.status)
   const released = await S.listEntries({ employeeId })
