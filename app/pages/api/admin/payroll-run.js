@@ -11,6 +11,7 @@ import { requireOwner } from '../../../lib/auth'
 import {
   previewRun, createRun, finalizeRun, voidRun, postRunToBooks,
   listRuns, getRunWithItems, getSettings, ytdTotals, isDateStr,
+  markRunPaymentsSent, markRunTaxesDeposited,
 } from '../../../lib/payroll-store'
 import { suggestPeriod, form941DueDate } from '../../../lib/payroll'
 
@@ -127,6 +128,15 @@ export default async function handler(req, res) {
       if (!runId) return res.status(400).json({ error: 'runId required' })
       const data = await voidRun({ runId, actorEmail: session.email })
       return res.json({ ok: true, ...data })
+    }
+
+    if (action === 'payments-sent' || action === 'taxes-deposited') {
+      const runId = Number(req.body.runId)
+      if (!runId) return res.status(400).json({ error: 'runId required' })
+      const run = action === 'payments-sent'
+        ? await markRunPaymentsSent({ runId, actorEmail: session.email })
+        : await markRunTaxesDeposited({ runId })
+      return res.json({ ok: true, run })
     }
 
     if (action === 'post-books') {

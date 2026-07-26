@@ -13,6 +13,8 @@ const NAV_LINKS = [
 // live on the admin Home page now (keeps the bar clean & focused).
 const ADMIN_NAV_LINKS = [
   { href: '/admin/home',         label: 'Home' },
+  { href: '/admin/timesheet',    label: 'Timesheet' },
+  { href: '/admin/expenses',     label: 'Receipts' },
   { href: '/admin/calendar',     label: 'Calendar' },
   { href: '/admin/clients',      label: 'Clients' },
   { href: '/admin/rounds',       label: 'Rounds' },
@@ -134,12 +136,14 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
   )
 }
 
+// The dock is the crew's primary navigation on a phone, so the time clock and
+// receipts belong in it.
 const DOCK_ITEMS = [
-  { href: '/admin/inventory', label: 'Inventory', icon: '📦' },
-  { href: '/admin/calendar',  label: 'Calendar',  icon: '📅' },
-  { href: '/admin/clients',   label: 'Clients',   icon: '👥' },
+  { href: '/admin/timesheet', label: 'Time',      icon: '⏱' },
+  { href: '/admin/expenses',  label: 'Receipts',  icon: '🧾' },
   { href: '/admin/rounds',    label: 'Rounds',    icon: '🚐' },
-  { href: '/admin/quote',     label: 'Quote',     icon: '📝' },
+  { href: '/admin/inventory', label: 'Inventory', icon: '📦' },
+  { href: '/admin/clients',   label: 'Clients',   icon: '👥' },
 ]
 
 function AdminBottomDock({ pathname }) {

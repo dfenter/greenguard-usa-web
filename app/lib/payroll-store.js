@@ -1041,7 +1041,7 @@ const RUN_COLS = `
   status, tax_year, week_start_day,
   gross_cents, employee_tax_cents, employer_tax_cents, net_cents, reimbursement_cents,
   notes, created_by, created_at, finalized_at, finalized_by, voided_at, voided_by,
-  posted_to_books`
+  posted_to_books, payments_sent_at, payments_sent_by, taxes_deposited_at`
 
 function hydrateRun(r) {
   if (!r) return null
@@ -1066,7 +1066,33 @@ function hydrateRun(r) {
     voidedAt: r.voided_at ? new Date(r.voided_at).toISOString() : null,
     voidedBy: r.voided_by || null,
     postedToBooks: Boolean(r.posted_to_books),
+    paymentsSentAt: r.payments_sent_at ? new Date(r.payments_sent_at).toISOString() : null,
+    paymentsSentBy: r.payments_sent_by || null,
+    taxesDepositedAt: r.taxes_deposited_at ? new Date(r.taxes_deposited_at).toISOString() : null,
   }
+}
+
+// The portal computes payroll; it does not move money. These two record what
+// the owner actually did, so "the hours are marked paid" never stands in for
+// "the employee was paid".
+async function markRunPaymentsSent({ runId, actorEmail }) {
+  const { rows } = await q(
+    `UPDATE payroll_runs SET payments_sent_at = NOW(), payments_sent_by = $2
+     WHERE id = $1 AND status = 'finalized' RETURNING ${RUN_COLS}`,
+    [runId, actorEmail]
+  )
+  if (!rows[0]) throw Object.assign(new Error('Only a finalized run can be marked paid'), { status: 409 })
+  return hydrateRun(rows[0])
+}
+
+async function markRunTaxesDeposited({ runId }) {
+  const { rows } = await q(
+    `UPDATE payroll_runs SET taxes_deposited_at = NOW()
+     WHERE id = $1 AND status = 'finalized' RETURNING ${RUN_COLS}`,
+    [runId]
+  )
+  if (!rows[0]) throw Object.assign(new Error('Only a finalized run can be marked deposited'), { status: 409 })
+  return hydrateRun(rows[0])
 }
 
 async function listRuns({ limit = 24 } = {}) {
@@ -1710,6 +1736,8 @@ module.exports = {
   ytdTotals,
   listRuns,
   overlappingRuns,
+  markRunPaymentsSent,
+  markRunTaxesDeposited,
   getRunWithItems,
   previewRun,
   createRun,

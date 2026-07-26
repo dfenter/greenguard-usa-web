@@ -366,7 +366,10 @@ function RunTab({ api, busy, setMsg, today, employees, settings, state, setState
     const j = await api('/api/admin/payroll-run', { method: 'POST', body: { action: 'finalize', runId: draft.run.id } })
     if (j) {
       setState((s) => ({ ...s, draft: j }))
-      setMsg({ kind: 'ok', text: `Run #${j.run.id} finalized. Net to pay: ${usd(j.run.netCents)}.` })
+      setMsg({
+        kind: 'ok',
+        text: `Run #${j.run.id} finalized. The portal does NOT move money — send ${usd(j.run.netCents)} to the crew, deposit the taxes, then mark both done on the History tab.`,
+      })
       onChanged()
     }
   }
@@ -560,11 +563,20 @@ function HistoryTab({ api, runs, busy, setMsg, reload, taxYear }) {
   }
 
   async function act(action, runId) {
-    const label = action === 'finalize' ? 'Finalize' : action === 'void' ? 'Void' : 'Re-post'
+    const label = action === 'finalize' ? 'Finalize'
+      : action === 'void' ? 'Void'
+      : action === 'payments-sent' ? 'Confirm you have sent the net pay for'
+      : action === 'taxes-deposited' ? 'Confirm you have deposited the 941 taxes for'
+      : 'Re-post'
     if (!window.confirm(`${label} run #${runId}?`)) return
     const j = await api('/api/admin/payroll-run', { method: 'POST', body: { action, runId } })
     if (j) {
-      setMsg({ kind: 'ok', text: `Run #${runId} ${action === 'void' ? 'voided — hours released' : action === 'finalize' ? 'finalized' : 'posted to books'}.` })
+      const said = action === 'void' ? 'voided — hours released'
+        : action === 'finalize' ? 'finalized — now send the net pay and deposit the taxes'
+        : action === 'payments-sent' ? 'marked paid'
+        : action === 'taxes-deposited' ? 'marked deposited'
+        : 'posted to books'
+      setMsg({ kind: 'ok', text: `Run #${runId} ${said}.` })
       reload()
       // Re-fetch rather than toggling — show() would collapse the panel the
       // owner is watching.
@@ -596,11 +608,27 @@ function HistoryTab({ api, runs, busy, setMsg, reload, taxYear }) {
                 Paid {fmtDay(r.payDate)} · net {usd(r.netCents)} · gross {usd(r.grossCents)} · employer tax {usd(r.employerTaxCents)}
                 {r.postedToBooks ? ' · in books' : ''}
               </div>
+              {r.status === 'finalized' && (
+                <div style={{ fontSize: '0.78rem', marginTop: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ color: r.paymentsSentAt ? 'var(--ok)' : 'var(--warn)', fontWeight: 700 }}>
+                    {r.paymentsSentAt ? `✓ crew paid ${fmtDay(r.paymentsSentAt.slice(0, 10))}` : '⚠ crew NOT paid yet'}
+                  </span>
+                  <span style={{ color: r.taxesDepositedAt ? 'var(--ok)' : 'var(--warn)', fontWeight: 700 }}>
+                    {r.taxesDepositedAt ? `✓ taxes deposited ${fmtDay(r.taxesDepositedAt.slice(0, 10))}` : '⚠ 941 taxes not deposited'}
+                  </span>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button style={btn('ghost')} disabled={busy} onClick={() => show(r.id)}>{open === r.id ? 'Hide' : 'Details'}</button>
               {r.status === 'draft' && <button style={btn('gold')} disabled={busy} onClick={() => act('finalize', r.id)}>Finalize</button>}
               {r.status === 'finalized' && !r.postedToBooks && <button style={btn('info')} disabled={busy} onClick={() => act('post-books', r.id)}>Post to books</button>}
+              {r.status === 'finalized' && !r.paymentsSentAt && (
+                <button style={btn('ok')} disabled={busy} onClick={() => act('payments-sent', r.id)}>Mark crew paid</button>
+              )}
+              {r.status === 'finalized' && !r.taxesDepositedAt && (
+                <button style={btn('ok')} disabled={busy} onClick={() => act('taxes-deposited', r.id)}>Mark taxes deposited</button>
+              )}
               {r.status !== 'void' && <button style={btn('danger')} disabled={busy} onClick={() => act('void', r.id)}>Void</button>}
             </div>
           </div>

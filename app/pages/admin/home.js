@@ -5,7 +5,7 @@ import PortalLayout from '../../components/PortalLayout'
 import TankCalendar from '../../components/TankCalendar'
 import CustomerMap from '../../components/CustomerMap'
 import { StopRow } from '../../components/StopCard'
-import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
+import { getSessionFromRequest, isAdminEmail, isOwnerEmail } from '../../lib/auth'
 import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
 
 export async function getServerSideProps({ req, res }) {
@@ -14,6 +14,9 @@ export async function getServerSideProps({ req, res }) {
   const session = await getSessionFromRequest(req, res)
   if (!session) return { redirect: { destination: '/login', permanent: false } }
   if (!isAdminEmail(session.email)) return { redirect: { destination: '/dashboard', permanent: false } }
+  // This page shows Stripe balances, open invoices and customer data. Crew get
+  // the tech dashboard instead.
+  if (!isOwnerEmail(session.email)) return { redirect: { destination: '/admin/tech', permanent: false } }
   return { props: {} }
 }
 

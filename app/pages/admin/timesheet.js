@@ -320,19 +320,19 @@ export default function Timesheet({ email, isOwner, serverToday }) {
                 <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>
                   Recent days
                 </div>
-                {editing !== today && !todayEntry && (
-                  <button onClick={() => { setEditing(today); setForm({ hours: '', break_minutes: '', stops: '', miles: '', notes: '' }) }}
+                {editing !== 'new' && (
+                  <button onClick={() => { setEditing('new'); setForm({ workDate: today, hours: '', break_minutes: '', stops: '', miles: '', notes: '' }) }}
                     style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.3)', background: 'transparent', color: 'var(--green)', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    + Enter hours manually
+                    + Enter hours for a day
                   </button>
                 )}
               </div>
 
-              {editing === today && !todayEntry && (
+              {editing === 'new' && (
                 <EntryForm
-                  dateLabel={`Today — ${fmtDay(today)}`}
-                  form={form} setForm={setForm} busy={busy}
-                  onSave={() => saveEntry(today)} onCancel={() => setEditing(null)}
+                  dateLabel="Add or fix a day"
+                  form={form} setForm={setForm} busy={busy} today={today} pickDate
+                  onSave={() => saveEntry(form.workDate || today)} onCancel={() => setEditing(null)}
                 />
               )}
 
@@ -406,23 +406,40 @@ export default function Timesheet({ email, isOwner, serverToday }) {
   )
 }
 
-function EntryForm({ dateLabel, form, setForm, busy, onSave, onCancel }) {
+function EntryForm({ dateLabel, form, setForm, busy, onSave, onCancel, today, pickDate }) {
   const set = (k) => (ev) => setForm((f) => ({ ...f, [k]: ev.target.value }))
   return (
     <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 12, padding: '16px', marginBottom: 12 }}>
       <div style={{ fontWeight: 800, marginBottom: 4 }}>{dateLabel}</div>
       <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: 12 }}>
         Enter hours <strong>before</strong> the break.{' '}
-        {Number(form.hours) > 0 && (
-          <>Paid: <strong>{Math.max(0, Number(form.hours) - (Number(form.break_minutes) || 0) / 60).toFixed(2)} h</strong></>
-        )}
+        {Number(form.hours) > 0 && (() => {
+          const paid = Math.max(0, Number(form.hours) - (Number(form.break_minutes) || 0) / 60)
+          return (
+            <span style={{ color: paid === 0 ? 'var(--danger)' : 'inherit', fontWeight: paid === 0 ? 800 : 400 }}>
+              Paid: <strong>{paid.toFixed(2)} h</strong>
+              {paid === 0 && ' — the break cancels the whole day, check the minutes'}
+            </span>
+          )
+        })()}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
+        {/* A forgotten day is the common case, so the date is editable here —
+            back-dating is limited to the last two weeks. */}
+        {pickDate && (
+          <label><span style={labelStyle}>Day</span>
+            <input type="date" max={today}
+              min={(() => { const d = new Date(`${today}T12:00:00`); d.setDate(d.getDate() - 14); return d.toLocaleDateString('en-CA') })()}
+              value={form.workDate || today}
+              onChange={(e) => setForm((f) => ({ ...f, workDate: e.target.value }))} style={inputStyle} />
+          </label>
+        )}
         <label><span style={labelStyle}>Hours worked</span>
           <input type="number" inputMode="decimal" step="0.25" min="0" max="24" value={form.hours} onChange={set('hours')} style={inputStyle} />
         </label>
         <label><span style={labelStyle}>Break (min)</span>
-          <input type="number" inputMode="numeric" step="5" min="0" value={form.break_minutes} onChange={set('break_minutes')} style={inputStyle} />
+          {/* Capped: typing 480 instead of 48 used to wipe the day to 0 paid hours. */}
+          <input type="number" inputMode="numeric" step="5" min="0" max="240" value={form.break_minutes} onChange={set('break_minutes')} style={inputStyle} />
         </label>
         <label><span style={labelStyle}>Stops</span>
           <input type="number" inputMode="numeric" step="1" min="0" value={form.stops} onChange={set('stops')} style={inputStyle} />

@@ -270,6 +270,11 @@ async function main() {
     `ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS salary_annual_cents BIGINT NOT NULL DEFAULT 0`,
     `ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS expense_reimbursement_cents BIGINT NOT NULL DEFAULT 0`,
     `ALTER TABLE employees ADD COLUMN IF NOT EXISTS fww BOOLEAN NOT NULL DEFAULT FALSE`,
+    // Finalizing only computes and records the run; the money still has to be
+    // sent by hand. These track that separately so "paid" is never a guess.
+    `ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS payments_sent_at TIMESTAMPTZ`,
+    `ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS payments_sent_by TEXT`,
+    `ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS taxes_deposited_at TIMESTAMPTZ`,
     `ALTER TABLE employees ADD COLUMN IF NOT EXISTS salary_hours_per_week NUMERIC(5,2) NOT NULL DEFAULT 40`,
     // One claim per uploaded photo: the application checks first, but only a
     // constraint stops two concurrent submissions of the same receipt.

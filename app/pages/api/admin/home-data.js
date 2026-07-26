@@ -1,4 +1,4 @@
-import { requireAdmin } from '../../../lib/auth'
+import { requireOwner } from '../../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange, tzDayBoundsISO } from '../../../lib/gcal'
 import { findContactsByEmails, getAllContacts, tanksForCustomer, trapsForCustomer, getClientNotes } from '../../../lib/hubspot'
 import { listAllActiveSubscriptions, listOpenInvoices, getBalance, listAllCustomers } from '../../../lib/stripe'
@@ -7,7 +7,7 @@ import { buildTankCalendarData } from '../../../lib/tank-data'
 // Lazy data for /admin/home — moved out of getServerSideProps so the dashboard
 // shell paints immediately and the KPIs/stops/map fill in client-side.
 export default async function handler(req, res) {
-  const admin = await requireAdmin(req, res)
+  const admin = await requireOwner(req, res)
   if (!admin) return
   if (req.method !== 'GET') return res.status(405).end()
   res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
