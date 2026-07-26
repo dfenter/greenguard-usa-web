@@ -331,15 +331,23 @@ describe('federalWithholdingCents', () => {
     expect(w).toBe(0)
   })
 
-  test('single, biweekly $1,800 — percentage-method bracket math', () => {
+  test('single, biweekly $1,800 — full Worksheet 1A, both subtractions', () => {
     const gross = 180_000
     const w = federalWithholdingCents({ taxableGrossCents: gross, employee: TECH, year: 2026, payFrequency: 'biweekly' })
-    // Annualized $46,800 − $7,500 (the 2026 single table offset: $16,100 std
-    // deduction less the $8,600 baseline built into Pub 15-T) = $39,300:
-    //   10% of the first $12,400 = $1,240
-    //   12% of the remaining $26,900 = $3,228
-    const annual = 1_240_00 + 3_228_00
+    // IRS Pub 15-T Worksheet 1A — https://www.irs.gov/publications/p15t
+    // Step 1: annualize $1,800 x 26 = $46,800
+    //         line 1g subtracts $8,600 (Step 2 box NOT checked)
+    //         => Adjusted Annual Wage Amount $38,200
+    // Step 2: the 2026 Single standard schedule starts taxing at $7,500
+    //         $38,200 − $7,500 = $30,700 into the brackets
+    //           10% of the first $12,400          = $1,240
+    //           12% of the remaining $18,300      = $2,196
+    //         => $3,436/yr ÷ 26 = $132.15
+    // Cross-check: 8,600 + 7,500 = 16,100 = the full 2026 single standard
+    // deduction, so this must equal brackets($46,800 − $16,100)/26.
+    const annual = 1_240_00 + 2_196_00
     expect(w).toBe(Math.round(annual / 26))
+    expect(w).toBe(13_215)
   })
 
   test('the derived table offsets match the published Pub 15-T schedule starts', () => {
@@ -358,9 +366,52 @@ describe('federalWithholdingCents', () => {
     expect(u.standardDeductionCents.head - u.allowanceBaselineCents.head).toBe(1_555_000)
   })
 
-  test('2026 single, biweekly $2,000 withholds the published ~$195.85', () => {
+  // NOTE: this test previously asserted 19_585 and called it "the published
+  // ~$195.85". That figure was never published anywhere — it was the output of
+  // the implementation at the time, which omitted the Worksheet 1A line 1g
+  // allowance. Labelling it "published" gave an unverified number the authority
+  // of an IRS citation and actively defended the bug through two reviews.
+  // Any test naming a figure "published" must carry its source URL.
+  test('2026 single, biweekly $2,000 — Pub 15-T Worksheet 1A', () => {
+    // https://www.irs.gov/publications/p15t
+    // $2,000 x 26 = $52,000 annualized; − $8,600 (line 1g) = $43,400 adjusted;
+    // − $7,500 (2026 Single table start) = $35,900 into the brackets:
+    //   10% x $12,400 = $1,240 ; 12% x $23,500 = $2,820  => $4,060/yr
+    // $4,060 ÷ 26 = $156.15
     const w = federalWithholdingCents({ taxableGrossCents: 200_000, employee: TECH, year: 2026, payFrequency: 'biweekly' })
-    expect(w).toBe(19_585)
+    expect(w).toBe(15_615)
+  })
+
+  // The regression guard that would have caught this immediately. Every other
+  // withholding test here is property-based (monotonic, married < single,
+  // credits reduce) and is INVARIANT under a uniform offset — omitting a fixed
+  // $8,600 leaves them all green. This one is not: it pins the total amount
+  // subtracted before the brackets to the full standard deduction.
+  test('IDENTITY: line 1g + table start must equal the full standard deduction', () => {
+    for (const year of [2025, 2026]) {
+      for (const status of ['single', 'married', 'head']) {
+        const { standardDeductionCents, brackets } = TAX_YEARS[year]
+        for (const annual of [2_000_000, 4_160_000, 7_800_000, 25_000_000]) {
+          const gross = Math.round(annual / 26)
+          const got = federalWithholdingCents({
+            taxableGrossCents: gross,
+            employee: { ...TECH, filing_status: status },
+            year,
+            payFrequency: 'biweekly',
+          })
+          // Annual liability on wage less the FULL standard deduction.
+          let taxable = Math.max(0, gross * 26 - standardDeductionCents[status])
+          let tax = 0
+          let prev = 0
+          for (const [cap, rate] of brackets[status]) {
+            if (taxable <= prev) break
+            tax += (Math.min(taxable, cap) - prev) * rate
+            prev = cap
+          }
+          expect(got).toBe(Math.round(tax / 26))
+        }
+      }
+    }
   })
 
   test('married filing jointly withholds less than single on the same wage', () => {

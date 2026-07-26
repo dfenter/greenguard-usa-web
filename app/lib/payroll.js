@@ -347,8 +347,18 @@ function federalWithholdingCents({ taxableGrossCents, employee, year, payFrequen
   const itemized = Number(emp.w4_deductions_cents) || 0
   const multipleJobs = Boolean(emp.w4_multiple_jobs)
 
-  // The amount the published schedules subtract before the brackets apply.
-  // See allowanceBaselineCents above — it is NOT the whole standard deduction.
+  // The full standard deduction comes off in TWO pieces, and both are required:
+  //
+  //   1. Worksheet 1A line 1g — the employer subtracts $8,600 ($12,900 MFJ)
+  //      from the annualized wage to get the "Adjusted Annual Wage Amount".
+  //      Line 1g is -0- when the W-4 Step 2 checkbox IS checked.
+  //   2. The table start baked into the schedule itself — the published rows
+  //      do not begin taxing until (std deduction - allowance).
+  //
+  // 2026 single: 8,600 (1g) + 7,500 (table start) = 16,100 = the standard
+  // deduction exactly. Omitting piece 1 applies the table to the RAW wage and
+  // over-withholds by the tax on $8,600/$12,900 (~$39.70 per biweekly check in
+  // the 12% bracket). See https://www.irs.gov/publications/p15t Worksheet 1A.
   const tableDeduction =
     config.standardDeductionCents[status] - (config.allowanceBaselineCents?.[status] || 0)
 
@@ -356,7 +366,9 @@ function federalWithholdingCents({ taxableGrossCents, employee, year, payFrequen
   // standard schedules with every threshold and tax amount HALVED. That is
   // the same as taxing double the wage and halving the result — i.e. each of
   // two jobs withholds half the tax on the couple's combined income.
-  const adjusted = annualWage + otherIncome - itemized
+  // Line 1g enters -0- in that case, so no allowance is subtracted here.
+  const allowance = multipleJobs ? 0 : (config.allowanceBaselineCents?.[status] || 0)
+  const adjusted = annualWage + otherIncome - itemized - allowance
   const scale = multipleJobs ? 2 : 1
   const taxable = Math.max(0, scale * adjusted - tableDeduction)
   const tentative = bracketTaxCents(taxable, config.brackets[status]) / scale
