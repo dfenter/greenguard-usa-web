@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-  const { customerEmail: rawEmail, customerName, lineItems, calBookingUid, serviceDate, force, forceId: requestedForceId, signatureUrl } = req.body || {}
+  const { customerEmail: rawEmail, customerName, lineItems, calBookingUid, serviceDate, force, forceId: requestedForceId, signatureUrl, targetInvoiceId } = req.body || {}
   if (!rawEmail) return res.status(400).json({ error: 'customerEmail required' })
   if (!lineItems?.length) return res.status(400).json({ error: 'No line items' })
 
@@ -104,14 +104,30 @@ export default async function handler(req, res) {
   // never recorded this visit's UID — so the dedup check above couldn't see it
   // and a re-generate appended the items a second time (double-bill). Never
   // attach to an open/finalized invoice — Stripe locks those and items vanish.
-  const draftList = await stripe.invoices.list({ customer: customer.id, status: 'draft', limit: 100 })
-  const existingInvoice = draftList.data.find((d) => {
-    const m = d.metadata || {}
-    const unclaimed = !m.cal_booking_uid && !m.service_date
-    if (calBookingUid) return m.cal_booking_uid === calBookingUid || unclaimed
-    if (serviceDate) return m.service_date === serviceDate || unclaimed
-    return unclaimed
-  }) || null
+  //
+  // Recovering a partial draft (rounds re-sends only the lines that failed)
+  // names that draft explicitly, so the missing lines can't land on a
+  // different one. It must still be a draft belonging to this customer.
+  let existingInvoice = null
+  if (targetInvoiceId) {
+    const target = await stripe.invoices.retrieve(targetInvoiceId).catch(() => null)
+    if (!target || target.customer !== customer.id) {
+      return res.status(400).json({ error: 'targetInvoiceId does not belong to this customer' })
+    }
+    if (target.status !== 'draft') {
+      return res.status(409).json({ error: `Invoice ${targetInvoiceId} is ${target.status} — cannot add lines` })
+    }
+    existingInvoice = target
+  } else {
+    const draftList = await stripe.invoices.list({ customer: customer.id, status: 'draft', limit: 100 })
+    existingInvoice = draftList.data.find((d) => {
+      const m = d.metadata || {}
+      const unclaimed = !m.cal_booking_uid && !m.service_date
+      if (calBookingUid) return m.cal_booking_uid === calBookingUid || unclaimed
+      if (serviceDate) return m.service_date === serviceDate || unclaimed
+      return unclaimed
+    }) || null
+  }
 
   // CRITICAL ORDERING: resolve/create the target invoice BEFORE creating
   // invoice items, then attach each item directly via the `invoice` param.
@@ -191,7 +207,32 @@ export default async function handler(req, res) {
   // Stripe price). SKU-priced items (e.g. BG1 monthly rental at $159.99) come
   // through from Rounds with price=0 because the dollar value lives in Stripe;
   // we still want them on the invoice.
+  // A transient Stripe network blip (timeout / connection reset on LTE) used to
+  // kill a single line and leave a partial draft the tech couldn't fix from the
+  // truck. Retry those in-process. The idempotency key is unchanged across
+  // attempts, so if the item DID land before the connection dropped, Stripe
+  // replays the original result instead of creating a duplicate.
+  const TRANSIENT = new Set(['StripeConnectionError', 'StripeAPIError', 'StripeRateLimitError'])
+  const isTransient = (err) =>
+    TRANSIENT.has(err?.type) || TRANSIENT.has(err?.rawType) ||
+    err?.code === 'lock_timeout' || err?.statusCode >= 500
+  async function createLineWithRetry(params, idempotencyKey) {
+    let lastErr
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await stripe.invoiceItems.create(params, { idempotencyKey })
+      } catch (err) {
+        lastErr = err
+        if (!isTransient(err)) throw err
+        console.error(`Invoice line attempt ${attempt + 1} failed (${err.type}): ${err.message}`)
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
+      }
+    }
+    throw lastErr
+  }
+
   const errors = []
+  const failedIndexes = []
   const billableItems = lineItems
     .map((item, origIdx) => ({ item, origIdx }))
     .filter(({ item }) => item.qty > 0 && (item.price > 0 || (item.sku && priceIdForSku(item.sku))))
@@ -214,37 +255,43 @@ export default async function handler(req, res) {
         const price = await stripe.prices.retrieve(priceId, { expand: ['product'] })
         if (price.type === 'recurring') {
           const productName = price.product?.name || item.label || item.sku
-          await stripe.invoiceItems.create({
+          await createLineWithRetry({
             customer: customer.id, invoice: invoice.id,
             amount: (price.unit_amount || 0) * item.qty,
             currency: price.currency || 'usd',
             description: item.qty > 1 ? `${productName} ×${item.qty}` : productName,
-          }, { idempotencyKey: lineIdempotencyKey })
+          }, lineIdempotencyKey)
         } else {
-          await stripe.invoiceItems.create({
+          await createLineWithRetry({
             customer: customer.id, invoice: invoice.id,
             price: priceId, quantity: item.qty,
-          }, { idempotencyKey: lineIdempotencyKey })
+          }, lineIdempotencyKey)
         }
       } else {
-        await stripe.invoiceItems.create({
+        await createLineWithRetry({
           customer: customer.id, invoice: invoice.id,
           amount: Math.round(item.price * item.qty * 100),
           currency: 'usd',
           description: item.qty > 1 ? `${item.label} ×${item.qty}` : item.label,
-        }, { idempotencyKey: lineIdempotencyKey })
+        }, lineIdempotencyKey)
       }
     } catch (err) {
       errors.push(`${item.label}: ${err.message.slice(0, 60)}`)
+      failedIndexes.push(origIdx)
     }
   }
 
   if (errors.length > 0) {
+    // `partial` + `failedIndexes` let the client re-send ONLY the missing lines
+    // (see rounds.js). Retrying the whole submit would re-add the lines that
+    // already landed, so never do that on this path.
     return res.status(502).json({
       ok: false,
+      partial: true,
       error: `Invoice incomplete: ${errors.length} line(s) failed`,
       invoiceId: invoice.id,
       invoiceUrl: invoice.hosted_invoice_url || null,
+      failedIndexes,
       errors,
     })
   }
@@ -277,9 +324,11 @@ export default async function handler(req, res) {
     } catch {}
   }
 
-  // Save line items as a template on the customer for next-time auto-populate
+  // Save line items as a template on the customer for next-time auto-populate.
+  // Skipped on a partial-draft recovery — that request carries only the lines
+  // that failed, and saving those alone would shrink the customer's template.
   try {
-    const skuTemplate = billableItems.map(i => ({ sku: i.sku || null, label: i.label, qty: i.qty }))
+    const skuTemplate = targetInvoiceId ? [] : billableItems.map(i => ({ sku: i.sku || null, label: i.label, qty: i.qty }))
     if (skuTemplate.length > 0) {
       await stripe.customers.update(customer.id, {
         metadata: {
