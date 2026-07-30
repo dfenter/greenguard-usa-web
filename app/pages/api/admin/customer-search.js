@@ -20,9 +20,22 @@ async function loadSearchDataset() {
       listAllCustomers(),
       getAllContacts(1000),
     ])
+    const hsByEmail = new Map(hsContacts
+      .filter((c) => c.properties?.email)
+      .map((c) => [c.properties.email.toLowerCase(), c.properties]))
     const stripeCustomers = stripeRaw
       .map(normalizeCustomer)
       .filter((c) => c.email || c.name)
+      .map((c) => {
+        // Assessment prospects get bare Stripe records; fall back to HubSpot
+        const hs = hsByEmail.get(c.email.toLowerCase())
+        if (!hs) return c
+        return {
+          ...c,
+          phone: c.phone || hs.phone || '',
+          address: c.address || hs.address || '',
+        }
+      })
     const stripeEmails = new Set(stripeCustomers.map((c) => c.email.toLowerCase()).filter(Boolean))
     const prospects = hsContacts
       .filter((c) => {
