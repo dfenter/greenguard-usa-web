@@ -275,7 +275,7 @@ Every crew member's own page — clock in/out, fix hours, submit the week. Built
 
 ## Payroll (`/admin/payroll`)
 
-Owner only. Bruce (or any tech login) lands on their own Timesheet instead. Four tabs:
+Owner only. Bruce (or any tech login) lands on their own Timesheet instead. Five tabs:
 
 ### Approve Time
 Pending days on top, approved-not-yet-paid below, with a date range and a CSV export. Select and **Approve selected**. Days still on the clock are listed separately and cannot be approved — there are no final hours yet. **Send all back** un-approves everything for corrections.
@@ -291,6 +291,15 @@ Only **approved** time inside the period is picked up. The pay date's year selec
 
 ### History
 Every run with status, gross, net, employer tax, and whether it reached the books. Expand for the register, per-person **Paystub** links, and a CSV. **Void** releases the hours back to Approved and reverses the book entries in the original period — then the corrected run can be created for the same dates.
+
+### Filings & Deposits
+The federal paperwork, computed from finalized runs for the selected year:
+- **EFTPS deposits** — one row per pay month: the exact federal deposit (withheld income tax + both halves of Social Security and Medicare), its due date (15th of the next month, weekend-rolled), and whether every run that month is marked deposited. Schedule at eftps.gov; FUTA and TX SUTA are separate.
+- **Form 941** — per-quarter figures plus a **pre-filled official Form 941 PDF** to download, sign and mail. The TWC wage report is due the same day. Finalizing a run also emails the owner the deposit amount and due date.
+- **Form 940** — annual FUTA worksheet (under $500/yr means no quarterly deposits; pay with the return).
+- **W-2 / W-3** — per-employee box 1-6 worksheet to type into SSA Business Services Online (W-2 Online generates the W-3 and employee copies). Contractors paid $600+ are flagged for 1099-NEC.
+
+The vendored IRS form is `app/lib/forms/f941-<year>.pdf`; vendor the new revision each year and re-verify the field map (see `app/lib/payroll-941-pdf.js`).
 
 ### Crew & Settings
 Add or edit people: W-2 vs 1099, hourly/salary, rate, per-stop bonus, mileage rate, overtime eligibility, FLSA exempt, and the W-4 inputs (filing status, Step 2 box, dependents credit, extra withholding). **The email must match the login they use for the portal** — that's how a timesheet is attributed. YTD gross, federal withholding, and hours are shown per person.

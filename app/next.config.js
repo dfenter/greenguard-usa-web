@@ -15,6 +15,12 @@ const CSP = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // The 941 filler opens lib/forms/f941-<year>.pdf with a computed filename,
+  // which file tracing can't follow — include the directory explicitly or the
+  // deployed lambda has no form to fill.
+  outputFileTracingIncludes: {
+    '/api/admin/payroll-filings': ['./lib/forms/**'],
+  },
   env: {
     NEXT_PUBLIC_BIZ_NAME:     biz.name,
     NEXT_PUBLIC_BIZ_TAGLINE:  biz.tagline,

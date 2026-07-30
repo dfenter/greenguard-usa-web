@@ -1223,6 +1223,30 @@ function hydrateItem(r) {
   return out
 }
 
+// Every finalized paystub line for a year, flattened with its run's dates —
+// the input shape for lib/payroll-filings.js (941/940/W-2/deposit rollups).
+async function listFinalizedItemRows({ year }) {
+  const { rows } = await q(
+    `SELECT ${ITEM_COLS.replace('id, run_id', 'pi.id, run_id')}
+            , to_char(r.pay_date,'YYYY-MM-DD')     AS pay_date
+            , to_char(r.period_start,'YYYY-MM-DD') AS period_start
+            , to_char(r.period_end,'YYYY-MM-DD')   AS period_end
+            , r.taxes_deposited_at
+     FROM payroll_items pi
+     JOIN payroll_runs r ON r.id = pi.run_id
+     WHERE r.status = 'finalized' AND EXTRACT(YEAR FROM r.pay_date) = $1
+     ORDER BY r.pay_date, pi.employee_name`,
+    [year]
+  )
+  return rows.map((r) => ({
+    ...hydrateItem(r),
+    payDate: r.pay_date,
+    periodStart: r.period_start,
+    periodEnd: r.period_end,
+    taxesDepositedAt: r.taxes_deposited_at ? new Date(r.taxes_deposited_at).toISOString() : null,
+  }))
+}
+
 async function getRunWithItems(runId) {
   const [{ rows: runRows }, { rows: itemRows }] = await Promise.all([
     q(`SELECT ${RUN_COLS} FROM payroll_runs WHERE id = $1`, [runId]),
@@ -1820,6 +1844,7 @@ module.exports = {
   getOpenClock,
   ytdTotals,
   listRuns,
+  listFinalizedItemRows,
   overlappingRuns,
   markRunPaymentsSent,
   markRunTaxesDeposited,

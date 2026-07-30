@@ -11,9 +11,40 @@ import { requireOwner } from '../../../lib/auth'
 import {
   previewRun, createRun, finalizeRun, voidRun, postRunToBooks,
   listRuns, getRunWithItems, getSettings, ytdTotals, isDateStr,
-  markRunPaymentsSent, markRunTaxesDeposited,
+  markRunPaymentsSent, markRunTaxesDeposited, listFinalizedItemRows,
 } from '../../../lib/payroll-store'
-import { suggestPeriod, form941DueDate } from '../../../lib/payroll'
+import { suggestPeriod, form941DueDate, fmtUsd } from '../../../lib/payroll'
+import { depositSchedule, rowFederalLiabilityCents } from '../../../lib/payroll-filings'
+import { sendEmailDirect } from '../../../lib/email'
+
+// After a run is finalized, mail the owner the exact EFTPS deposit: what this
+// run added, the pay month's running total, and its due date. Advisory only —
+// a failed email must never fail (or roll back) the finalize, so the caller
+// fire-and-forgets this with a catch.
+async function sendDepositReminder({ ownerEmail, run, items }) {
+  const year = Number(run.payDate.slice(0, 4))
+  const month = run.payDate.slice(0, 7)
+  const rows = await listFinalizedItemRows({ year })
+  const monthly = depositSchedule({ rows, year }).find((m) => m.month === month)
+  if (!monthly || monthly.liabilityCents <= 0) return
+  const runLiability = items.reduce((t, i) => t + rowFederalLiabilityCents(i), 0)
+  const monthLabel = new Date(`${month}-15T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  const dueLabel = new Date(`${monthly.dueDate}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+  await sendEmailDirect({
+    to: ownerEmail,
+    subject: `EFTPS deposit ${fmtUsd(monthly.liabilityCents)} due by ${dueLabel} (payroll run #${run.id})`,
+    html: `
+      <p>Payroll run #${run.id} (paid ${run.payDate}) is finalized. Its federal deposit liability is
+      <strong>${fmtUsd(runLiability)}</strong> (withheld income tax plus both halves of Social Security and Medicare).</p>
+      <p>Running total for ${monthLabel}: <strong>${fmtUsd(monthly.liabilityCents)}</strong>,
+      due by <strong>${dueLabel}</strong> on the monthly deposit schedule.</p>
+      <p>Schedule it now at <a href="https://www.eftps.gov">eftps.gov</a> (Form 941, federal tax deposit),
+      then mark the run "taxes deposited" on the
+      <a href="https://portal.greenguard-usa.com/admin/payroll">Payroll page</a>.
+      Full schedule: Payroll &rarr; Filings &amp; Deposits.</p>
+    `,
+  })
+}
 
 // Adjustments arrive as { employeeId: {bonusCents, otherDeductionCents, ...} }.
 // The store clamps the numbers; this rejects a malformed shape outright so a
@@ -120,6 +151,10 @@ export default async function handler(req, res) {
       const runId = Number(req.body.runId)
       if (!runId) return res.status(400).json({ error: 'runId required' })
       const data = await finalizeRun({ runId, actorEmail: session.email })
+      // Await so the serverless invocation can't be frozen mid-send (the
+      // Vercel un-awaited-promise rule), but never let it fail the finalize.
+      await sendDepositReminder({ ownerEmail: session.email, run: data.run, items: data.items })
+        .catch((e) => console.error('[payroll-run] deposit reminder email failed:', e.message))
       return res.json({ ok: true, ...data })
     }
 

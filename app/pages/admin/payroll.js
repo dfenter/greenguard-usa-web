@@ -51,6 +51,7 @@ const TABS = [
   ['approve', 'Approve Time'],
   ['run', 'Run Payroll'],
   ['history', 'History'],
+  ['filings', 'Filings & Deposits'],
   ['crew', 'Crew & Settings'],
 ]
 
@@ -138,6 +139,7 @@ export default function Payroll({ today, taxYear }) {
             onChanged={() => { loadRuns() }} />
         )}
         {tab === 'history' && <HistoryTab api={api} runs={runs} busy={busy} setMsg={setMsg} reload={loadRuns} taxYear={taxYear} />}
+        {tab === 'filings' && <FilingsTab api={api} taxYear={taxYear} />}
         {tab === 'crew' && <CrewTab api={api} busy={busy} crew={crew} reload={loadCrew} setMsg={setMsg} />}
 
       </PortalLayout>
@@ -681,6 +683,193 @@ function HistoryTab({ api, runs, busy, setMsg, reload, taxYear }) {
           )}
         </div>
       ))}
+    </>
+  )
+}
+
+// ── Filings & Deposits ──────────────────────────────────────────────────────
+// Everything the government wants, computed from finalized runs. The portal
+// still files nothing: EFTPS deposits, the signed 941, the TWC report, Form
+// 940 and the W-2s are all typed/mailed by the owner from these numbers.
+
+function FilingsTab({ api, taxYear }) {
+  const thisYear = taxYear || new Date().getFullYear()
+  const [year, setYear] = useState(thisYear)
+  const [data, setData] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    api(`/api/admin/payroll-filings?year=${year}`).then((j) => { if (alive && j) setData(j) })
+    return () => { alive = false }
+  }, [api, year])
+
+  if (!data) return <div style={{ ...card, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading…</div>
+
+  const quarters = data.quarters.filter((q) => q.hasActivity)
+  const line = (label, cents, strong = false) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderTop: '1px solid var(--border)', fontSize: '0.88rem', fontWeight: strong ? 800 : 500 }}>
+      <span style={{ color: strong ? 'var(--text)' : 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{usd(cents)}</span>
+    </div>
+  )
+  const fmtMonth = (mm) => new Date(`${mm}-15T12:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        {[thisYear, thisYear - 1].map((y) => (
+          <button key={y} onClick={() => { setData(null); setYear(y) }} style={btn(year === y ? 'gold' : 'ghost')}>{y}</button>
+        ))}
+        {!data.settings.ein && (
+          <span style={{ color: 'var(--warn)', fontWeight: 700, fontSize: '0.85rem' }}>
+            ⚠ No EIN on file. Set it on Crew &amp; Settings before filing anything.
+          </span>
+        )}
+      </div>
+
+      {/* EFTPS deposit schedule */}
+      <section style={{ ...card, marginBottom: 14 }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>EFTPS federal deposits (monthly schedule)</h3>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: 10 }}>
+          Withheld income tax + both halves of Social Security and Medicare, by pay month. Schedule each payment at{' '}
+          <a href="https://www.eftps.gov" target="_blank" rel="noopener noreferrer">eftps.gov</a> right after finalizing a run
+          (form 941, tax type: federal tax deposit); payments can be scheduled up to a year ahead. FUTA and TX SUTA are separate and not deposited here.
+        </div>
+        {data.deposits.length === 0 ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No finalized payroll in {year}.</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+              <thead><tr><th style={th}>Pay month</th><th style={th}>Deposit</th><th style={th}>Due by</th><th style={th}>Status</th></tr></thead>
+              <tbody>
+                {data.deposits.map((d) => (
+                  <tr key={d.month}>
+                    <td style={td}>{fmtMonth(d.month)}</td>
+                    <td style={{ ...td, fontWeight: 800 }}>{usd(d.liabilityCents)}</td>
+                    <td style={td}>{fmtDay(d.dueDate)}</td>
+                    <td style={{ ...td, color: d.deposited ? 'var(--ok)' : 'var(--warn)', fontWeight: 700 }}>
+                      {d.deposited ? '✓ deposited' : `⚠ not confirmed (run${d.runIds.length > 1 ? 's' : ''} #${d.runIds.join(', #')})`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Quarterly 941 */}
+      <section style={{ ...card, marginBottom: 14 }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>Form 941: quarterly federal return</h3>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: 10 }}>
+          Download the pre-filled official form, print, sign and mail (no payment enclosed when deposits cover line 12).
+          The Texas Workforce Commission wage report (C-3/C-4{data.settings.twcAccount ? `, account ${data.settings.twcAccount}` : ''}) is due the same day each quarter.
+        </div>
+        {quarters.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No finalized payroll in {year}.</div>}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+          {quarters.map((q) => (
+            <div key={q.quarter} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                <strong>Q{q.quarter} {q.year}</strong>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>file by {fmtDay(q.filingDueDate)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', fontSize: '0.88rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Line 1 · employees (pay period incl. the 12th)</span><span>{q.line1}</span>
+              </div>
+              {line('Line 2 · wages', q.line2)}
+              {line('Line 3 · federal income tax withheld', q.line3)}
+              {line('Line 5a · Social Security wages × 12.4%', q.line5a2)}
+              {line('Line 5c · Medicare wages × 2.9%', q.line5c2)}
+              {q.line7 !== 0 && line('Line 7 · fractions-of-cents adjustment', q.line7)}
+              {line('Line 12 · total tax (= deposits due)', q.line12, true)}
+              {q.runsNotDeposited.length > 0 && (
+                <div style={{ color: 'var(--warn)', fontSize: '0.78rem', fontWeight: 700, marginTop: 6 }}>
+                  ⚠ Line 13 assumes full deposits, but run{q.runsNotDeposited.length > 1 ? 's' : ''} #{q.runsNotDeposited.join(', #')} {q.runsNotDeposited.length > 1 ? 'are' : 'is'} not marked deposited.
+                </div>
+              )}
+              {q.deMinimis && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 6 }}>
+                  Under $2,500 for the quarter, so line 16 box one is checked and the tax may be paid with the return.
+                </div>
+              )}
+              <a href={`/api/admin/payroll-filings?year=${year}&form941=${q.quarter}`} style={{ ...btn('gold'), display: 'inline-block', textDecoration: 'none', marginTop: 10 }}>
+                Download filled Form 941 (PDF)
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Annual 940 */}
+      <section style={{ ...card, marginBottom: 14 }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>Form 940: annual FUTA return</h3>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: 10 }}>
+          Due {fmtDay(data.form940.filingDueDate)}. The IRS publishes the {year} form in December; copy this worksheet onto it
+          (the fillable PDF is at irs.gov/form940). Texas takes the full 5.4% credit, so the rate is 0.6% on the first $7,000 per employee.
+        </div>
+        {!data.form940.hasActivity ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No finalized payroll in {year}.</div>
+        ) : (
+          <div style={{ maxWidth: 520 }}>
+            {line('Line 3 · total payments to employees', data.form940.line3)}
+            {line('Line 5 · payments above the $7,000 base', data.form940.line5)}
+            {line('Line 7 · taxable FUTA wages', data.form940.line7)}
+            {line('Line 8 · FUTA tax (× 0.006)', data.form940.line8, true)}
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 8 }}>
+              {data.form940.payWithReturn
+                ? 'Liability is under $500 for the year: no quarterly FUTA deposits, just pay with the return.'
+                : 'Liability tops $500: deposit quarterly via EFTPS once the accumulated amount passes $500.'}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* W-2 worksheet */}
+      <section style={{ ...card, marginBottom: 14 }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: '1rem' }}>W-2 / W-3: annual wage statements</h3>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: 10 }}>
+          Due {fmtDay(data.w2.filingDueDate)} (employee copies AND the SSA filing). Type these boxes into{' '}
+          <a href="https://www.ssa.gov/bso" target="_blank" rel="noopener noreferrer">SSA Business Services Online</a> → W-2 Online:
+          it generates the W-3 automatically and prints the employee copies. SSN and home address come from each employee&apos;s paper W-4 file.
+        </div>
+        {data.w2.w2s.length === 0 ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No W-2 employees paid in {year}.</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={th}>Employee</th>
+                  <th style={th}>1 Wages</th>
+                  <th style={th}>2 Fed tax</th>
+                  <th style={th}>3 SS wages</th>
+                  <th style={th}>4 SS tax</th>
+                  <th style={th}>5 Medicare wages</th>
+                  <th style={th}>6 Medicare tax</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.w2.w2s.map((w) => (
+                  <tr key={w.employeeId}>
+                    <td style={{ ...td, fontWeight: 700 }}>{w.name}</td>
+                    <td style={td}>{usd(w.box1)}</td>
+                    <td style={td}>{usd(w.box2)}</td>
+                    <td style={td}>{usd(w.box3)}</td>
+                    <td style={td}>{usd(w.box4)}</td>
+                    <td style={td}>{usd(w.box5)}</td>
+                    <td style={td}>{usd(w.box6)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {data.w2.contractors.length > 0 && (
+          <div style={{ color: 'var(--warn)', fontSize: '0.8rem', fontWeight: 700, marginTop: 10 }}>
+            ⚠ 1099-NEC also due {fmtDay(data.w2.filingDueDate)} for: {data.w2.contractors.map((c) => `${c.name} (${usd(c.paidCents)})`).join(', ')}
+          </div>
+        )}
+      </section>
     </>
   )
 }

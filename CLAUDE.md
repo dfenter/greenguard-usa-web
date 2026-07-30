@@ -121,6 +121,14 @@ Customer picks installation time via Cal.com embed at end of quote flow
   `/admin/timesheet` + `/api/admin/timesheet*` are any admin but scoped to the caller's own
   employee record — a tech can never read another person's rates, W-4 data, or the business EIN.
 - Finalized runs post to the books ledger as `Expense:Payroll:{Wages,EmployerTaxes,Contractors,Reimbursement}`.
+- **Filings & Deposits tab** (`lib/payroll-filings.js` pure rollups + `lib/payroll-941-pdf.js` +
+  `/api/admin/payroll-filings`): EFTPS monthly deposit schedule, per-quarter 941 figures with a
+  pre-filled official Form 941 PDF download, Form 940 worksheet, W-2 box worksheet (typed into SSA BSO).
+  The vendored form lives at `lib/forms/f941-<year>.pdf` — **when vendoring a new year's PDF, re-verify
+  the AcroForm field map** (sentinel-fill + render; map documented in `lib/payroll-941-pdf.js`) and note
+  `outputFileTracingIncludes` in next.config.js ships the form to the lambda. Finalizing a run emails
+  the owner the exact EFTPS deposit amount and due date (`sendDepositReminder` in `api/admin/payroll-run.js`).
+  The portal still transmits nothing: deposits, mailing the signed 941, TWC reports, 940 and W-2s stay manual.
 
 **Expenses / receipts** (`expense_claims`, `/admin/expenses`, `/api/admin/expenses`):
 - Receipt images go to Vercel Blob via `/api/admin/expense-receipt` (`BLOB_READ_WRITE_TOKEN`, photos + PDF, 12 MB cap).
