@@ -41,7 +41,6 @@ export default defineConfig({
     '/shop/p/product-2-5c6mb-j8mng-zyt72-5jksn': { status: 301, destination: '/shop' },
 
     // Old service/location pages
-    '/co2-delivery-austin':     { status: 301, destination: '/co2delivery' },
     '/co2-trap-rental-austin':  { status: 301, destination: '/traprental' },
     '/co2-tank-delivery-austin':{ status: 301, destination: '/co2delivery' },
     '/co2-mosquito-trap-placement': { status: 301, destination: '/faq' },
