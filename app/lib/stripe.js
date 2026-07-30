@@ -36,6 +36,7 @@ const PRICE_ID_MAP = {
   'TANK-STRAPS': process.env.STRIPE_PRICE_TANK_STRAPS,
   'WKD-SURCH': process.env.STRIPE_PRICE_WKD_SURCH,
   'RUSH-FEE': process.env.STRIPE_PRICE_RUSH_FEE,
+  'CO2-RUSH': process.env.STRIPE_PRICE_CO2_RUSH,
   'BG-NONCO2-UNIT': process.env.STRIPE_PRICE_BG_NONCO2_UNIT,
   'BUCKET-OF-DOOM': process.env.STRIPE_PRICE_BUCKET_OF_DOOM,
   // Tank-service SKUs (previously only mapped in generate-invoice's local copy)

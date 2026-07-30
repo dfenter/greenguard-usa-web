@@ -122,6 +122,16 @@ const ADDONS = [
     quoteCategory: 'One-Time Services',
     oneTime: true,
   },
+  {
+    // Flat fee on top of the standard tank exchange price for weekend and
+    // after-hours commercial CO2 deliveries (restaurants, bars, pools).
+    sku: 'CO2-RUSH',
+    label: 'CO2 Emergency Delivery (Wknd/After-Hrs)',
+    price: 99.00,
+    surfaces: { rounds: true, quote: true },
+    quoteCategory: 'One-Time Services',
+    oneTime: true,
+  },
 ]
 
 // Equipment sold during visit — one-time purchases of physical hardware.
