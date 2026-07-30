@@ -315,4 +315,5 @@ async function sendServiceRequest(adminEmail, customer = {}, message = '', { sub
 module.exports = {
   sendMagicLink, sendWelcomeEmail, sendEmail, sendServiceRequest, escapeHtml, emailShell, goldButton, outlineButton, assertSendOk,
   sendEmailDirect, // exported for the local notify daemon (scripts/local-notify-daemon.js) and tests
+  sendViaGmailApi, // exported for admin-copy notifications that must stay off the Resend daily quota
 }

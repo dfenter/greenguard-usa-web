@@ -7,7 +7,7 @@
 
 const { Resend } = require('resend')
 const { postToOps } = require('./slack')
-const { assertSendOk } = require('./email')
+const { assertSendOk, sendViaGmailApi } = require('./email')
 
 const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
 const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
@@ -20,6 +20,29 @@ function fmt$(cents) {
 }
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c]))
+}
+
+// Admin-copy emails go Gmail-first: they were ~2/3 of the Resend daily quota
+// (one "invoice sent" + one "new purchase" per invoice), and Gmail has no
+// meaningful cap for internal mail. Resend stays as the fallback so a Gmail
+// hiccup never drops the copy. Customer-facing receipts still use Resend.
+async function sendAdminCopy({ subject, html, fromName }) {
+  const from = `${fromName || 'GreenGuard USA'} <admin@greenguard-usa.com>`
+  try {
+    await sendViaGmailApi({ to: ADMIN_EMAIL, subject, html, from })
+    return { ok: true }
+  } catch (e) {
+    console.warn('admin copy via Gmail failed (%s) — falling back to Resend', e.message)
+    if (!process.env.RESEND_API_KEY) return { ok: false, reason: e.message }
+    const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: `${fromName || 'GreenGuard USA'} <${FROM}>`,
+      to: ADMIN_EMAIL,
+      subject,
+      html,
+    })
+    if (!assertSendOk(result)) return { ok: false, reason: 'not confirmed by Resend' }
+    return { ok: true }
+  }
 }
 
 // Notify admin of a successful purchase.
@@ -101,13 +124,8 @@ async function notifyAdmin(purchase) {
     </div>`
 
     try {
-      const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
-        from: `GreenGuard USA <${FROM}>`,
-        to: ADMIN_EMAIL,
-        subject,
-        html,
-      })
-      if (!assertSendOk(result)) throw new Error('purchase notify email was not confirmed by Resend')
+      const r = await sendAdminCopy({ subject, html })
+      if (!r.ok) throw new Error(r.reason || 'admin copy send failed')
       results.email = true
     } catch (e) { console.error('purchase notify email:', e.message) }
   }
@@ -298,7 +316,6 @@ async function sendCheckoutReceipt({ session, items, receiptUrl }) {
 // Mirrors what the customer just received so admin has a copy without
 // configuring Stripe's BCC setting (which is global and noisy).
 async function notifyAdminInvoiceSent({ invoice, customer }) {
-  if (!process.env.RESEND_API_KEY) return { ok: false, reason: 'no RESEND_API_KEY' }
 
   const amount = invoice.amount_due || invoice.total || 0
   const lines = (invoice.lines?.data || []).map((l) =>
@@ -324,13 +341,12 @@ async function notifyAdminInvoiceSent({ invoice, customer }) {
       <p style="font-size:0.72rem;color:#888;margin-top:18px;">Ref: ${esc(invoice.id)} · ${esc(invoice.collection_method)}</p>
     </div>`
   try {
-    const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
-      from: `GreenGuard Billing <${FROM}>`,
-      to: ADMIN_EMAIL,
+    const r = await sendAdminCopy({
       subject: `📤 Invoice sent: ${customer.name || customer.email} ${fmt$(amount)}`,
       html,
+      fromName: 'GreenGuard Billing',
     })
-    if (!assertSendOk(result)) throw new Error('admin invoice-sent notify was not confirmed by Resend')
+    if (!r.ok) throw new Error(r.reason || 'admin copy send failed')
     return { ok: true }
   } catch (e) {
     console.error('admin invoice-sent notify:', e.message)
