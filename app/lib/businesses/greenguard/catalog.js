@@ -151,7 +151,7 @@ const PRODUCTS = [
     inventoryKey: 'bgTimers', quoteCategory: 'Trap Purchase',
   },
   {
-    sku: null, label: 'CO₂ Tank — 20lb (empty)', price: 239.99,
+    sku: 'TANK-20-EMPTY', label: 'CO₂ Tank — 20lb (empty)', price: 239.99,
     surfaces: { rounds: true, quote: true },
     quoteCategory: 'Tank Purchase',
     shipping: 50.00,  // per unit (hazmat/freight)

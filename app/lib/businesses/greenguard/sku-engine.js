@@ -16,6 +16,8 @@ const SKU_PRICES = {
   'TANK-DELIVERY-FEE': 39.00,
   'TANK-REFILL': 50.00,
   'TANK-HOOKUP-MAINT': 10.00,
+  // Customer buys their own empty cylinder (hazmat freight billed separately)
+  'TANK-20-EMPTY': 239.99,
   TANK1: 89.99,
   TANK2: 159.99,
   TANK3: 249.99,
