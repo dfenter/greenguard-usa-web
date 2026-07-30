@@ -35,9 +35,27 @@ export const disabledBtn = {
   opacity: 0.6,
 }
 
+// Clearly delineated "Completed Rounds" area shared by /admin/rounds,
+// /admin/home, and /admin/tech. Finalized stops move out of the working list
+// and into this labeled section at the bottom, so the remaining route reads
+// clean and what's already done is unmistakable.
+export function CompletedRoundsSection({ count, children }) {
+  if (!count) return null
+  return (
+    <div style={{ marginTop: 28, borderTop: '3px solid var(--ok)', paddingTop: 16 }}>
+      <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ok)', marginBottom: 12 }}>
+        ✓ Completed Rounds — {count}
+      </div>
+      <div style={{ background: 'rgba(var(--ok-rgb),0.04)', border: '1px solid rgba(var(--ok-rgb),0.25)', borderRadius: 12, padding: '14px 14px 0' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 // Shared stop row used by /admin/home and /admin/tech so the card + its
 // Navigate / On My Way / Finalize Visit actions match the rounds page exactly.
-export function StopRow({ stop, index, dateStr, distance, preview = false }) {
+export function StopRow({ stop, index, dateStr, distance, preview = false, done = false }) {
   const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email || '')}`
   const mapsUrl = stop.address ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}` : null
   const canNotify = !!(stop.email || stop.phone)
@@ -83,14 +101,14 @@ export function StopRow({ stop, index, dateStr, distance, preview = false }) {
         📲 On My Way
       </button>
       {stop.email ? (
-        <Link href={roundsUrl} style={{ ...actionBtn, background: 'var(--bg-card)', color: 'var(--text)', border: '2px solid var(--border)', fontWeight: 900 }}>Finalize Visit</Link>
+        <Link href={roundsUrl} style={{ ...actionBtn, background: 'var(--bg-card)', color: 'var(--text)', border: '2px solid var(--border)', fontWeight: 900 }}>{done ? 'Review Visit' : 'Finalize Visit'}</Link>
       ) : (
         <span style={{ ...disabledBtn, fontWeight: 900 }} aria-disabled="true">Finalize Visit</span>
       )}
     </>
   )
 
-  return <StopCard stop={stop} number={index + 1} distance={distance} preview={preview} actions={actions} />
+  return <StopCard stop={stop} number={index + 1} done={done} distance={distance} preview={preview} actions={actions} />
 }
 
 export default function StopCard({

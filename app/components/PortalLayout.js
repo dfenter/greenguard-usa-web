@@ -137,10 +137,10 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
 }
 
 // The dock is the crew's primary navigation on a phone, so the time clock and
-// receipts belong in it.
+// the day's calendar belong in it.
 const DOCK_ITEMS = [
   { href: '/admin/timesheet', label: 'Time',      icon: '⏱' },
-  { href: '/admin/expenses',  label: 'Receipts',  icon: '🧾' },
+  { href: '/admin/calendar',  label: 'Calendar',  icon: '📅' },
   { href: '/admin/rounds',    label: 'Rounds',    icon: '🚐' },
   { href: '/admin/inventory', label: 'Inventory', icon: '📦' },
   { href: '/admin/clients',   label: 'Clients',   icon: '👥' },

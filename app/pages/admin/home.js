@@ -4,7 +4,7 @@ import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import TankCalendar from '../../components/TankCalendar'
 import CustomerMap from '../../components/CustomerMap'
-import { StopRow } from '../../components/StopCard'
+import { StopRow, CompletedRoundsSection } from '../../components/StopCard'
 import { getSessionFromRequest, isAdminEmail, isOwnerEmail } from '../../lib/auth'
 import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
 
@@ -144,6 +144,25 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
 
   useEffect(() => { refreshDistances() }, [todayStops]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Invoice status per stop (same endpoint /admin/rounds uses) — a stop with
+  // an invoice is finalized and drops into the Completed Rounds area below.
+  const [stopInvoices, setStopInvoices] = useState({})
+  useEffect(() => {
+    const payload = todayStops
+      .map((s, i) => ({ key: String(i), email: s.email, calBookingUid: s.calBookingUid, serviceDate: todayStr }))
+      .filter((s) => s.email)
+    if (payload.length === 0) { setStopInvoices({}); return }
+    let cancelled = false
+    fetch('/api/admin/stop-invoices', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stops: payload }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d?.invoices) setStopInvoices(d.invoices) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [todayStops, todayStr])
+
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 
@@ -276,9 +295,22 @@ function AdminHomeView({ todayStr, tomorrowStr, todayStops, tomorrowStops, mrr, 
             <div style={{ padding: '24px', background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.1)', borderRadius: 12, color: 'var(--text-dim)', fontSize: '0.88rem', textAlign: 'center' }}>
               No stops scheduled for today.
             </div>
-          ) : (
-            todayStops.map((stop, i) => <StopRow key={stop.id || i} stop={stop} index={i} dateStr={todayStr} distance={distances[stop.email || stop.title]} />)
-          )}
+          ) : (() => {
+            const finalized = (i) => !!stopInvoices[String(i)]
+            const completed = todayStops.map((_, i) => i).filter(finalized)
+            return (
+              <>
+                {todayStops.map((stop, i) => finalized(i) ? null : (
+                  <StopRow key={stop.id || i} stop={stop} index={i} dateStr={todayStr} distance={distances[stop.email || stop.title]} />
+                ))}
+                <CompletedRoundsSection count={completed.length}>
+                  {completed.map((i) => (
+                    <StopRow key={todayStops[i].id || i} stop={todayStops[i]} index={i} dateStr={todayStr} done distance={distances[todayStops[i].email || todayStops[i].title]} />
+                  ))}
+                </CompletedRoundsSection>
+              </>
+            )
+          })()}
         </section>
 
         {/* Tomorrow preview */}

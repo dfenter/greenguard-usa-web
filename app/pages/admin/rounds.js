@@ -9,7 +9,7 @@ import { findContactsByEmails, findContactsByNames, tanksForCustomer, trapsForCu
 import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import SignaturePad from '../../components/SignaturePad'
 import CustomerPanel from '../../components/CustomerPanel'
-import StopCard from '../../components/StopCard'
+import StopCard, { CompletedRoundsSection } from '../../components/StopCard'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 export async function getServerSideProps({ req, query, res }) {
@@ -724,8 +724,8 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
   async function finishStop(customMsg) {
     onUpdate({ showEmailModal: false, submitting: true, error: null })
     try {
-      const showInvoiceFailure = async (response) => {
-        const errData = await response.json().catch(() => ({}))
+      const showInvoiceFailure = async (response, preParsed) => {
+        const errData = preParsed || await response.json().catch(() => ({}))
         const details = [
           errData.error,
           ...(Array.isArray(errData.errors) ? errData.errors : []),
@@ -781,8 +781,31 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
           invoiceId = invData.invoiceId
           invoiceUrl = invData.invoiceUrl
         } else {
-          await showInvoiceFailure(invRes)
-          return
+          const errData = await invRes.json().catch(() => ({}))
+          // Partial draft: some lines landed, some hit a Stripe blip. Re-send
+          // ONLY the missing lines onto the same draft — re-sending all of them
+          // would double-bill the ones that already succeeded.
+          const missing = Array.isArray(errData.failedIndexes)
+            ? errData.failedIndexes.map((i) => allLineItems[i]).filter(Boolean)
+            : []
+          if (errData.partial && errData.invoiceId && missing.length > 0 && missing.length === errData.failedIndexes.length) {
+            const retryRes = await fetch('/api/admin/generate-invoice', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ customerEmail: stop.email, customerName: stop.customerName, lineItems: missing, serviceDate: state.date, calBookingUid: stop.calBookingUid, signatureUrl: state.signatureUrl || null, force: true, forceId: `partial:${errData.invoiceId}`, targetInvoiceId: errData.invoiceId }),
+            })
+            if (retryRes.ok) {
+              const rd = await retryRes.json()
+              invoiceId = rd.invoiceId
+              invoiceUrl = rd.invoiceUrl
+            } else {
+              await showInvoiceFailure(retryRes)
+              return
+            }
+          } else {
+            await showInvoiceFailure(invRes, errData)
+            return
+          }
         }
       }
 
@@ -1379,14 +1402,20 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
               </div>
             )}
           </div>
-        ) : (
-          displayOrder.map((idx) => {
-            // Merge client-fetched invoice (date mode) onto the stop. SSR
-            // already set existingInvoice in open mode; prefer whichever exists.
+        ) : (() => {
+          // Merge client-fetched invoice (date mode) onto the stop. SSR
+          // already set existingInvoice in open mode; prefer whichever exists.
+          const mergedStop = (idx) => {
             const baseStop = stops[idx]
-            const stop = baseStop.existingInvoice !== undefined
+            return baseStop.existingInvoice !== undefined
               ? baseStop
               : { ...baseStop, existingInvoice: invoiceByIdx[String(idx)] ?? null }
+          }
+          // Finalized = completed in-session or already invoiced. Those stops
+          // move out of the working list into the Completed Rounds area below.
+          const isFinalized = (idx) => states[idx]?.status === 'done' || !!mergedStop(idx).existingInvoice
+          const renderStop = (idx) => {
+            const stop = mergedStop(idx)
             return (
               <div key={`${selectedDate || 'open'}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }}>
                 <RoundsStopCard stop={stop} idx={idx} state={states[idx]}
@@ -1395,8 +1424,17 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
                   distance={distances[stop.email || stop.customerName]} />
               </div>
             )
-          })
-        )}
+          }
+          const completed = displayOrder.filter(isFinalized)
+          return (
+            <>
+              {displayOrder.filter((idx) => !isFinalized(idx)).map(renderStop)}
+              <CompletedRoundsSection count={completed.length}>
+                {completed.map(renderStop)}
+              </CompletedRoundsSection>
+            </>
+          )
+        })()}
 
         {doneCount === stops.length && stops.length > 0 && (
           <div style={{ background: 'rgba(var(--green-rgb),0.05)', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 12, padding: 28, textAlign: 'center' }}>
