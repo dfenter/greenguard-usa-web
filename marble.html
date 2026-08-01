@@ -2,18 +2,36 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0b0f1a">
+<link rel="manifest" href="marble-manifest.json?v=1">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%230b0f1a'/><circle cx='96' cy='96' r='58' fill='%233a78ff'/><circle cx='78' cy='76' r='20' fill='%239fc4ff'/></svg>">
 <title>Marble Mania</title>
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#0b0f1a;font-family:"Trebuchet MS",Verdana,sans-serif;color:#e8ecf5;}
+  :root{
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+    --safe-left:env(safe-area-inset-left,0px);
+    --safe-right:env(safe-area-inset-right,0px);
+  }
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0f1a;font-family:"Trebuchet MS",Verdana,sans-serif;color:#e8ecf5;
+       overscroll-behavior:none;-webkit-text-size-adjust:100%;}
+  button{touch-action:manipulation;}
   #c{display:block;width:100%;height:100%;touch-action:none;}
-  #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
-       padding:10px 16px;pointer-events:none;font-weight:bold;text-shadow:0 2px 4px #000;z-index:5;}
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;gap:6px;
+       /* right padding leaves room for the pause button, which shares this row */
+       padding:calc(10px + var(--safe-top)) calc(70px + var(--safe-right)) 10px calc(16px + var(--safe-left));
+       pointer-events:none;font-weight:bold;text-shadow:0 2px 4px #000;z-index:5;}
   #hud .box{background:rgba(10,16,30,.55);border:1px solid rgba(120,160,255,.35);
-       border-radius:8px;padding:6px 12px;font-size:18px;letter-spacing:.5px;}
+       border-radius:8px;padding:6px 12px;font-size:18px;letter-spacing:.5px;
+       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   #time.warn{color:#ff5a5a;}
   #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-       background:radial-gradient(circle at 50% 35%,rgba(30,44,80,.92),rgba(6,9,18,.97));z-index:10;text-align:center;padding:24px;}
+       background:radial-gradient(circle at 50% 35%,rgba(30,44,80,.92),rgba(6,9,18,.97));z-index:10;text-align:center;
+       padding:calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left));}
   #overlay h1{font-size:46px;margin:0 0 6px;letter-spacing:2px;color:#8fd0ff;text-shadow:0 3px 0 #1a3a66,0 0 24px rgba(80,170,255,.5);}
   #overlay h2{font-size:24px;margin:4px 0;color:#ffd47a;font-weight:bold;}
   #overlay p{max-width:560px;line-height:1.55;color:#c6d2ea;font-size:16px;}
@@ -24,26 +42,53 @@
   .keys{margin-top:14px;font-size:14px;color:#8ea3c8;}
   .hidden{display:none!important;}
   #flash{position:fixed;inset:0;pointer-events:none;z-index:8;opacity:0;transition:opacity .12s;}
-  #touch{position:fixed;inset:0;z-index:6;display:none;}
-  #recenter{position:fixed;right:18px;bottom:96px;z-index:7;
-       background:rgba(10,16,30,.7);border:1px solid rgba(120,160,255,.45);color:#cfe0ff;
-       font-weight:bold;font-size:14px;padding:9px 15px;border-radius:22px;cursor:pointer;
-       letter-spacing:.5px;-webkit-tap-highlight-color:transparent;}
-  #recenter:active{background:rgba(40,80,180,.7);}
-  #stick{position:fixed;left:26px;bottom:26px;width:140px;height:140px;border-radius:50%;
+  /* touch-action:none is load bearing. Without it the browser claims the
+     gesture as a pan and fires pointercancel mid-drag, so steering dies. */
+  #touch{position:fixed;inset:0;z-index:6;display:none;touch-action:none;}
+  /* Shared pill button look for every on-screen control. 44px min touch target. */
+  .pill{background:rgba(10,16,30,.7);border:1px solid rgba(120,160,255,.45);color:#cfe0ff;
+       font-family:inherit;font-weight:bold;font-size:14px;letter-spacing:.5px;
+       min-height:44px;min-width:44px;padding:10px 16px;border-radius:22px;cursor:pointer;
+       -webkit-tap-highlight-color:transparent;}
+  .pill:active{background:rgba(40,80,180,.7);}
+  #btns{position:fixed;z-index:7;display:flex;flex-direction:column;align-items:flex-end;gap:10px;
+       right:calc(18px + var(--safe-right));bottom:calc(26px + var(--safe-bottom));}
+  #pausebtn{position:fixed;z-index:7;right:calc(16px + var(--safe-right));top:calc(10px + var(--safe-top));
+       font-size:18px;padding:8px 14px;}
+  #stick{position:fixed;left:calc(26px + var(--safe-left));bottom:calc(26px + var(--safe-bottom));
+       width:140px;height:140px;border-radius:50%;
        background:rgba(20,30,55,.45);border:2px solid rgba(120,160,255,.4);z-index:7;
        touch-action:none;-webkit-tap-highlight-color:transparent;}
   #knob{position:absolute;left:50%;top:50%;width:62px;height:62px;border-radius:50%;
        transform:translate(-50%,-50%);
        background:radial-gradient(circle at 40% 33%,#9fc4ff,#2553d6);
        border:2px solid rgba(225,238,255,.75);box-shadow:0 4px 14px rgba(0,0,0,.45);}
-  #gyrobtn{position:fixed;right:18px;bottom:34px;z-index:7;background:rgba(10,16,30,.7);
-       border:1px solid rgba(120,160,255,.45);color:#cfe0ff;font-weight:bold;font-size:14px;
-       padding:10px 16px;border-radius:22px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-  #gyrobtn:active{background:rgba(40,80,180,.7);}
-  #toast{position:fixed;top:54px;left:50%;transform:translateX(-50%);z-index:9;
+  #toast{position:fixed;top:calc(54px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:9;
        background:rgba(10,16,30,.85);border:1px solid rgba(120,160,255,.4);color:#cfe0ff;
        padding:7px 16px;border-radius:18px;font-weight:bold;font-size:14px;pointer-events:none;}
+  /* Narrow screens: shrink the HUD so LEVEL/TIME/FALLS stay on one row. */
+  @media (max-width:520px){
+    #hud .box{font-size:13px;padding:5px 8px;border-radius:6px;}
+    #overlay h1{font-size:34px;}
+    #overlay h2{font-size:19px;}
+    #overlay p{font-size:15px;}
+  }
+  /* Short (landscape phone) screens: compact stick and overlay so nothing clips. */
+  @media (max-height:480px){
+    #hud{padding-top:calc(6px + var(--safe-top));}
+    #hud .box{font-size:12px;padding:4px 8px;}
+    #pausebtn{top:calc(6px + var(--safe-top));}
+    #stick{width:112px;height:112px;bottom:calc(14px + var(--safe-bottom));left:calc(16px + var(--safe-left));}
+    #knob{width:52px;height:52px;}
+    #btns{bottom:calc(14px + var(--safe-bottom));gap:8px;}
+    #pausebtn{top:calc(8px + var(--safe-top));}
+    #overlay{justify-content:flex-start;padding:12px 24px;overflow-y:auto;}
+    #overlay h1{font-size:26px;margin:0 0 2px;}
+    #overlay h2{font-size:17px;margin:2px 0;}
+    #overlay p{font-size:13px;line-height:1.35;margin:4px 0;}
+    #overlay .btn{margin-top:10px;padding:10px 26px;font-size:17px;}
+    .keys{margin-top:8px;font-size:12px;}
+  }
 </style>
 </head>
 <body>
@@ -56,14 +101,18 @@
 <div id="flash"></div>
 <div id="touch"></div>
 <div id="stick" class="hidden"><div id="knob"></div></div>
-<button id="gyrobtn" class="hidden">Gyro: Off</button>
-<button id="recenter" class="hidden">⟳ Recenter</button>
+<button id="pausebtn" class="pill hidden" aria-label="Pause">II</button>
+<div id="btns">
+  <button id="recenter" class="pill hidden">⟳ Recenter</button>
+  <button id="gyrobtn" class="pill hidden">Gyro: Off</button>
+  <button id="respawnbtn" class="pill hidden">⟲ Respawn</button>
+</div>
 <div id="toast" class="hidden"></div>
 <div id="overlay">
   <h1>MARBLE MANIA</h1>
   <p>Roll your marble from the <b>start pad</b> to the glowing <b>goal</b>. Stay on the track. Fall off and you respawn, losing precious seconds. Beat all <b>18 courses</b> before the clock runs out. New: yellow <b>springs</b> bounce you up, orange <b>cannons</b> blast you across gaps, purple <b>chutes</b> send you flying downhill.</p>
   <button class="btn" id="startbtn">START</button>
-  <div class="keys">Desktop: Arrow Keys / WASD to roll, R to respawn &nbsp;•&nbsp; Phone: drag the on-screen stick (Gyro is optional)</div>
+  <div class="keys">Desktop: Arrow Keys / WASD to roll, R to respawn &nbsp;•&nbsp; Phone: drag anywhere on screen or use the stick (Gyro is optional)</div>
 </div>
 
 <script type="importmap">
@@ -78,10 +127,18 @@ import * as THREE from 'three';
 // ---------------------------------------------------------------------------
 
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+// Touch devices get a lighter render path: no MSAA, a lower pixel-ratio ceiling
+// (a 3x phone would otherwise rasterise ~9x the pixels of a 1x desktop) and a
+// cheaper shadow filter. Desktop keeps exactly what it had before.
+const IS_TOUCH = (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches)
+                 || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+const DPR_CAP = IS_TOUCH ? 1.5 : 2;
+
+const renderer = new THREE.WebGLRenderer({canvas, antialias: !IS_TOUCH, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, DPR_CAP));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = IS_TOUCH ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b0f1a);
@@ -95,7 +152,7 @@ scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff0d8, 1.1);
 sun.position.set(40, 70, 30);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048,2048);
+sun.shadow.mapSize.set(IS_TOUCH?1024:2048, IS_TOUCH?1024:2048);
 const sc = sun.shadow.camera;
 sc.near=1; sc.far=220; sc.left=-90; sc.right=90; sc.top=90; sc.bottom=-90;
 scene.add(sun);
@@ -701,7 +758,7 @@ function loadLevel(i){
   clearWorld();
   LEVELS[i].build();
   document.getElementById('lvl').textContent = i+1;
-  document.getElementById('lvlname').textContent = '— '+LEVELS[i].name;
+  document.getElementById('lvlname').textContent = '· '+LEVELS[i].name;
   respawn();
 }
 
@@ -726,21 +783,59 @@ function doFlash(col){
   setTimeout(()=>{ flash.style.opacity='0'; }, 110);
 }
 
+// Show or hide every in-play control. Touch devices get the stick, the
+// drag-anywhere layer, respawn and the gyro toggle; every device gets pause.
+const mobile = ('ontouchstart' in window) || matchMedia('(pointer:coarse)').matches;
+function showControls(on){
+  setTouch(on && mobile);                       // drag anywhere steers, stick sits on top
+  document.getElementById('stick').classList.toggle('hidden', !(on && mobile));
+  document.getElementById('respawnbtn').classList.toggle('hidden', !(on && mobile));
+  document.getElementById('pausebtn').classList.toggle('hidden', !on);
+  gyrobtn.classList.toggle('hidden', !(on && mobile && typeof DeviceOrientationEvent!=='undefined'));
+  gyrobtn.textContent = tilt.enabled ? 'Gyro: On' : 'Gyro: Off';
+  document.getElementById('recenter').classList.toggle('hidden', !(on && tilt.enabled));
+}
+
 function startGame(){
   state='play'; level=0; falls=0;
   document.getElementById('falls').textContent='0';
   timeLeft = 700;
   overlay.classList.add('hidden');
   hud.classList.remove('hidden');
-  const mobile = ('ontouchstart' in window) || matchMedia('(pointer:coarse)').matches;
-  setTouch(false);                              // joystick replaces drag-anywhere
-  document.getElementById('stick').classList.toggle('hidden', !mobile);
-  gyrobtn.classList.toggle('hidden', !(mobile && typeof DeviceOrientationEvent!=='undefined'));
-  gyrobtn.textContent = tilt.enabled ? 'Gyro: On' : 'Gyro: Off';
-  document.getElementById('recenter').classList.toggle('hidden', !tilt.enabled);
+  showControls(true);
   loadLevel(0);
   clock.start();
 }
+
+// ---- pause / resume (touch friendly; also works with a mouse) ----
+function pauseGame(){
+  if(state!=='play') return;
+  state='paused';
+  hud.classList.add('hidden');
+  showControls(false);
+  overlay.innerHTML = '<h1>PAUSED</h1><h2>Course '+(level+1)+' / '+LEVELS.length+'</h2>'+
+    '<p>'+LEVELS[level].name+' &nbsp;•&nbsp; Time '+Math.ceil(Math.max(0,timeLeft))+'s &nbsp;•&nbsp; Falls '+falls+'</p>'+
+    '<button class="btn" id="resumebtn">RESUME</button>'+
+    '<button class="btn" id="restartbtn" style="margin-top:12px;background:linear-gradient(#48557a,#2f3a55);box-shadow:none;">RESTART</button>';
+  overlay.classList.remove('hidden');
+  document.getElementById('resumebtn').onclick = resumeGame;
+  document.getElementById('restartbtn').onclick = startGame;
+}
+
+function resumeGame(){
+  if(state!=='paused') return;
+  overlay.classList.add('hidden');
+  hud.classList.remove('hidden');
+  showControls(true);
+  state='play';
+  clock.getDelta();          // drop the paused interval so no time is lost
+}
+
+document.getElementById('pausebtn').addEventListener('click', pauseGame);
+document.getElementById('respawnbtn').addEventListener('click', ()=>{ if(state==='play') respawn(); });
+// Backgrounding a phone (call, app switch, screen lock) pauses instead of
+// silently burning the clock.
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pauseGame(); });
 
 function nextLevel(){
   doFlash('rgba(80,255,160,.4)');
@@ -762,13 +857,11 @@ function gameOver(){
 
 function showOverlay(title, sub, sub2, btn){
   hud.classList.add('hidden');
-  document.getElementById('recenter').classList.add('hidden');
-  document.getElementById('stick').classList.add('hidden');
-  gyrobtn.classList.add('hidden');
+  showControls(false);
   overlay.classList.remove('hidden');
   overlay.innerHTML = '<h1>'+title+'</h1><h2>'+sub+'</h2><p>'+sub2+'</p>'+
     '<button class="btn" id="startbtn">'+btn+'</button>'+
-    '<div class="keys">Desktop: Arrow Keys / WASD • Phone: on-screen stick (Gyro optional)</div>';
+    '<div class="keys">Desktop: Arrow Keys / WASD • Phone: drag anywhere or use the stick (Gyro optional)</div>';
   document.getElementById('startbtn').onclick = startGame;
 }
 
@@ -963,11 +1056,16 @@ function updateCamera(snap){
 //  Main loop
 // ---------------------------------------------------------------------------
 function resize(){
-  const w=innerWidth,h=innerHeight;
+  // Match the layout viewport, since the canvas is sized by CSS at 100%/100%.
+  const w=innerWidth, h=innerHeight;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, DPR_CAP));
   renderer.setSize(w,h,false);
   camera.aspect=w/h; camera.updateProjectionMatrix();
 }
-addEventListener('resize', resize); resize();
+addEventListener('resize', resize);
+addEventListener('orientationchange', ()=>setTimeout(resize,120));
+if(window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+resize();
 
 let elapsed=0;
 function frame(){
@@ -997,8 +1095,23 @@ function frame(){
 }
 frame();
 
-// expose for quick debugging
-window.__marble = {scene, LEVELS, startGame};
+// ---------------------------------------------------------------------------
+//  PWA: offline asset caching. Registered from the page's own directory so the
+//  worker resolves correctly whether the game is served at /marble or locally.
+// ---------------------------------------------------------------------------
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  addEventListener('load', ()=>{
+    navigator.serviceWorker.register('marble-sw.js?v=1').catch(()=>{});
+  });
+}
+
+// expose for quick debugging and for the automated touch probe
+window.__marble = {
+  scene, LEVELS, startGame, pauseGame, resumeGame, gameOver,
+  get state(){ return state; },
+  get pos(){ return marble.position.clone(); },
+  get vel(){ return vel.clone(); },
+};
 </script>
 </body>
 </html>
