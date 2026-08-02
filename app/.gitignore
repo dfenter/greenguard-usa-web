@@ -19,3 +19,6 @@ npm-debug.log*
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# appointment watcher runtime state (machine-local, written by the notify daemon)
+scripts/appointment-watcher-state.json

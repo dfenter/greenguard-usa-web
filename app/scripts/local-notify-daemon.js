@@ -41,36 +41,23 @@ const path = require('path')
 loadEnvFile(path.join(__dirname, '..', '.env'))
 loadEnvFile(path.join(__dirname, '..', '.env.local'))
 
-const { execFile } = require('child_process')
 const notifyQueue = require('../lib/notify-queue')
 const { sendEmailDirect } = require('../lib/email')
-const { normalizePhone } = require('../lib/sms')
 
 // iMessage is the ONLY SMS channel this daemon sends through (business
 // decision 2026-07-10: iMessage only, no Twilio). The macOS Automation
 // permission for this daemon's node process to control Messages has been
 // granted and verified end-to-end. SMS_CHANNEL is intentionally no longer
-// read here — there is no Twilio branch to fall back to.
-const IMESSAGE_SCRIPT = path.join(__dirname, 'imessage-send.applescript')
-
-// Send an iMessage via the Messages app (AppleScript). Rejects on any failure
-// (permission not granted, number not iMessage-reachable, Messages offline) so
-// the caller marks the job failed and the producer's backup path handles it.
+// read here — there is no Twilio branch to fall back to. The sender lives in
+// scripts/imessage.js so the appointment watcher (same process, same TCC
+// grant) can send too.
 //
 // NOTE: there is deliberately NO blanket "mirror every message to a monitor
 // number" here. Customer-facing texts (appointment reminders, review asks,
 // post-visit thank-yous) go ONLY to the customer. Owner alerts reach the owner
 // numbers because the producer addresses them there directly (agent
 // ALERT_SMS_NUMBERS, twilio webhook forward), not via a copy of every send.
-function sendViaIMessage({ to, body }) {
-  const dest = normalizePhone(to) || to
-  return new Promise((resolve, reject) => {
-    execFile('osascript', [IMESSAGE_SCRIPT, dest, body], { timeout: 35000 }, (err, stdout, stderr) => {
-      if (err) return reject(new Error(`iMessage send failed: ${(stderr || err.message || '').trim()}`))
-      resolve({ ok: true, channel: 'imessage', to: dest, sid: null })
-    })
-  })
-}
+const { sendViaIMessage } = require('./imessage')
 
 // Dispatch table: job.kind -> the channel's direct sender. Add new channels
 // here (and a matching sendLocalFirst({ kind: ... }) producer) to route them
@@ -177,6 +164,14 @@ async function main() {
     log('heartbeat OK — portal will now route sends through this daemon')
   } catch (e) {
     log('startup heartbeat failed (KV unavailable) — staying up, will retry:', e.message)
+  }
+  // Booking lifecycle notifications (assessment welcome text, inside-48h
+  // reschedule notice). Runs in THIS process on purpose: Mac-first sends and
+  // the existing Messages Automation grant. GCal polling, zero KV usage.
+  try {
+    require('./appointment-watcher').start(log)
+  } catch (e) {
+    log('appointment watcher failed to start (queue draining unaffected):', e.message)
   }
   await Promise.all([heartbeatLoop(), pollLoop()])
   log('stopped')
