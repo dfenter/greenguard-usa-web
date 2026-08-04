@@ -2,6 +2,7 @@ import { requireAdmin } from '../../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange, tzDayBoundsISO } from '../../../lib/gcal'
 import { findContactsByEmails, getClientNotes, tanksForCustomer, trapsForCustomer } from '../../../lib/hubspot'
 import { buildTankCalendarData } from '../../../lib/tank-data'
+import { bookingTanks } from '../../../lib/tank-count'
 
 // Lazy data for /admin/tech — moved out of getServerSideProps so the page shell
 // renders immediately and today's route fills in client-side.
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
       address: s.address || info.address || '',
       email: s.email || '',
       phone: resolvedPhone,
-      tanks: info.tanks || null,
+      tanks: bookingTanks(info.tanks, s.title),
       traps: info.traps || null,
       firstAppointment: info.firstAppointment || false,
       rescheduleUrl: s.rescheduleUrl || null,

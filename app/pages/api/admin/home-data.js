@@ -3,6 +3,7 @@ import { getTodaysBookings, getBookingsForDateRange, tzDayBoundsISO } from '../.
 import { findContactsByEmails, getAllContacts, tanksForCustomer, trapsForCustomer, getClientNotes } from '../../../lib/hubspot'
 import { listAllActiveSubscriptions, listOpenInvoices, getBalance, listAllCustomers } from '../../../lib/stripe'
 import { buildTankCalendarData } from '../../../lib/tank-data'
+import { bookingTanks } from '../../../lib/tank-count'
 
 // Lazy data for /admin/home — moved out of getServerSideProps so the dashboard
 // shell paints immediately and the KPIs/stops/map fill in client-side.
@@ -90,7 +91,7 @@ export default async function handler(req, res) {
       address: s.address || info.address || '',
       email: s.email || '',
       phone: info.phone || s.phone || '',
-      tanks: info.tanks || null,
+      tanks: bookingTanks(info.tanks, s.title),
       traps: info.traps || null,
       firstAppointment: info.firstAppointment || false,
       appointmentNotes: s.appointmentNotes || null,

@@ -1,4 +1,5 @@
 const { findContactByEmail, findContactsByEmails, tanksForCustomer } = require('./hubspot')
+const { bookingTanks } = require('./tank-count')
 const { getBookingsForDateRange } = require('./gcal')
 const { cached } = require('./cache')
 const { fetchWithTimeout } = require('./http')
@@ -42,8 +43,8 @@ async function _buildTankCalendarData(tz = 'America/Chicago') {
       const c = contactMap.get(email.toLowerCase())
       tankCountMap[email] = tanksForCustomer(c?.properties)
     }
-    bookings.forEach(({ dateStr, email }) => {
-      const tanks = email ? (tankCountMap[email] || 0) : 0
+    bookings.forEach(({ dateStr, email, title }) => {
+      const tanks = bookingTanks(email ? tankCountMap[email] : 0, title) || 0
       if (!scheduleByDate[dateStr]) scheduleByDate[dateStr] = { tanks: 0, appts: 0 }
       scheduleByDate[dateStr].tanks += tanks
       scheduleByDate[dateStr].appts += 1

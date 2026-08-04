@@ -1,6 +1,7 @@
 import { requireAdmin } from '../../../lib/auth'
 import { getTodaysBookings, getBookingsForDateRange } from '../../../lib/gcal'
 import { findContactsByEmails, tanksForCustomer } from '../../../lib/hubspot'
+import { tankCountFromTitle } from '../../../lib/tank-count'
 import { listAllCustomers } from '../../../lib/stripe'
 import { getLatestRoutePlan } from '../../../lib/route-plan'
 
@@ -102,7 +103,10 @@ export default async function handler(req, res) {
         stops: (day.stops || []).map((stop) => {
           const key = stop.email?.toLowerCase()
           const resolvedName = hubspotNameByEmail[key] || stripeNameByEmail[key] || stop.customer_name || stop.name
-          const tanks = hubspotNameByEmail[key + '__tanks'] || null
+          // Same fallback chain as lib/tank-count.js: HubSpot count, else the
+          // GCal/route-plan service title.
+          const tanks = hubspotNameByEmail[key + '__tanks'] ||
+            tankCountFromTitle(stop.service_type || stop.serviceType || stop.title) || null
 
           // Apply live GCal time if available
           const liveEntry = key ? liveByKey.get(`${day.date}|${key}`) : null

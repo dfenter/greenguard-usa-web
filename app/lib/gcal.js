@@ -297,7 +297,9 @@ async function getBookingsForDate(dateStr) {
           startTime: e.start?.dateTime || e.start?.date,
           endTime: e.end?.dateTime || e.end?.date,
           address: e.location || parseAddressFromDescription(desc),
-          email: parseEmailFromDescription(desc),
+          // Description first, attendees fallback — same as the range helpers,
+          // so every caller resolves the same HubSpot contact for an event.
+          email: parseEmailFromDescription(desc) || parseEmailFromAttendees(e.attendees),
           phone: parsePhoneFromDescription(desc),
           propertySize: propMatch?.[1]?.trim() || '',
           appointmentNotes: parseAppointmentNotes(desc),
@@ -340,7 +342,8 @@ async function getTodaysBookings() {
         startTime: e.start?.dateTime || e.start?.date,
         endTime: e.end?.dateTime || e.end?.date,
         address: e.location || parseAddressFromDescription(e.description),
-        email: parseEmailFromDescription(e.description),
+        // Description first, attendees fallback — same as the range helpers.
+        email: parseEmailFromDescription(e.description) || parseEmailFromAttendees(e.attendees),
         phone: parsePhoneFromDescription(e.description),
         appointmentNotes: parseAppointmentNotes(e.description),
       }))
