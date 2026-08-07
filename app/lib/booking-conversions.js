@@ -44,7 +44,7 @@ async function fireGoogleAdsBookingLead({ gclid }) {
       conversions: [{
         gclid,
         conversion_action: `customers/${customerId}/conversionActions/${BOOKING_CONVERSION_ID}`,
-        conversion_date_time: new Date().toISOString().replace('T', ' ').replace('Z', '+00:00'),
+        conversion_date_time: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '+00:00'),
         conversion_value: LEAD_VALUE,
         currency_code: 'USD',
       }],
@@ -62,7 +62,8 @@ async function fireGoogleAdsBookingLead({ gclid }) {
       }, body: JSON.stringify(body) }
     )
     const data = await r.json()
-    if (data.partialFailureError) console.error('[book-conv] Google Ads lead error:', JSON.stringify(data.partialFailureError).slice(0, 300))
+    if (!r.ok || data.error) console.error('[book-conv] Google Ads lead HTTP error:', r.status, JSON.stringify(data.error || data).slice(0, 300))
+    else if (data.partialFailureError) console.error('[book-conv] Google Ads lead error:', JSON.stringify(data.partialFailureError).slice(0, 300))
     else console.log('[book-conv] Google Ads booking lead uploaded')
   } catch (e) {
     console.error('[book-conv] Google Ads lead failed:', e.message)
@@ -75,7 +76,8 @@ async function fireMetaBookingLead({ email, phone, fbclid, fbp, eventId, clientI
   const userData = { em: [sha256hex(email)] }
   if (phone) userData.ph = [sha256hex(phone.replace(/\D/g, ''))]
   // Rebuild fbc from fbclid (fb.1.<ms>.<fbclid>) so Meta can attribute to the click.
-  if (fbclid) userData.fbc = `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}`
+  // Meta's spec wants the creation time in MILLISECONDS — seconds tanks match quality.
+  if (fbclid) userData.fbc = `fb.1.${Date.now()}.${fbclid}`
   if (fbp) userData.fbp = fbp
   if (clientIp) userData.client_ip_address = clientIp
   if (userAgent) userData.client_user_agent = userAgent

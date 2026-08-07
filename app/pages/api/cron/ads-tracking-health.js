@@ -54,21 +54,25 @@ async function checkGoogleConversionAction() {
     method: 'POST', headers: googleAdsHeaders(token),
     body: JSON.stringify({
       validateOnly: true, partialFailure: true,
-      conversions: [{
+      // Probe BOTH live conversion actions: the Stripe purchase import and the
+      // booking-lead import (they use different env vars — one passing does not
+      // prove the other resolves).
+      conversions: [ca, process.env.GOOGLE_ADS_LEAD_CONVERSION_ID || '7653935010'].map((action) => ({
         gclid: 'health_probe_dummy_gclid',
-        conversion_action: `customers/${cid}/conversionActions/${ca}`,
-        conversion_date_time: new Date().toISOString().replace('T', ' ').replace('Z', '+00:00'),
+        conversion_action: `customers/${cid}/conversionActions/${action}`,
+        conversion_date_time: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '+00:00'),
         conversion_value: 1, currency_code: 'USD',
-      }],
+      })),
     }),
   })
   const d = await r.json()
   const msg = JSON.stringify(d.partialFailureError || d.error || d)
   // A dummy gclid SHOULD be rejected. A missing/invalid conversion action or
   // auth failure is the real problem we are watching for.
-  if (/not found|INVALID_CONVERSION_ACTION|does not exist|PERMISSION_DENIED|authentication|developer token/i.test(msg)) {
+  if (/not found|INVALID_CONVERSION_ACTION|NO_CONVERSION_ACTION_FOUND|does not exist|PERMISSION_DENIED|NOT_AUTHORIZED|UNAUTHENTICATED|CUSTOMER_NOT_FOUND|authentication|developer token/i.test(msg)) {
     return { ok: false, error: `conversion action unresolved/auth: ${msg.slice(0, 200)}` }
   }
+  if (d.error) return { ok: false, error: `request error: ${msg.slice(0, 200)}` }
   if (r.status >= 500 || /<!DOCTYPE/i.test(msg)) return { ok: false, error: `endpoint error (sunset?): HTTP ${r.status}` }
   return { ok: true }
 }

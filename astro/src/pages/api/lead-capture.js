@@ -87,7 +87,7 @@ async function fireGoogleAdsLead({ gclid }) {
       conversions: [{
         gclid,
         conversion_action: `customers/${customerId}/conversionActions/${conversionId}`,
-        conversion_date_time: new Date().toISOString().replace('T', ' ').replace('Z', '+00:00'),
+        conversion_date_time: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '+00:00'),
         conversion_value: 25,
         currency_code: 'USD',
       }],
@@ -105,7 +105,8 @@ async function fireGoogleAdsLead({ gclid }) {
       }, body: JSON.stringify(body) }
     );
     const data = await r.json();
-    if (data.partialFailureError) console.error('[lead-capture] Google Ads lead error:', JSON.stringify(data.partialFailureError).slice(0, 300));
+    if (!r.ok || data.error) console.error('[lead-capture] Google Ads lead HTTP error:', r.status, JSON.stringify(data.error || data).slice(0, 300));
+    else if (data.partialFailureError) console.error('[lead-capture] Google Ads lead error:', JSON.stringify(data.partialFailureError).slice(0, 300));
     else console.log('[lead-capture] Google Ads lead uploaded');
   } catch (e) {
     console.error('[lead-capture] Google Ads lead failed:', e.message);

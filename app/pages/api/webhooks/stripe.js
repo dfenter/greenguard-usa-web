@@ -88,7 +88,7 @@ async function fireMetaPurchase({ email, phone, amountUsd, orderId, fbc, fbp, ev
   }
 }
 
-async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid }) {
+async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid, orderId }) {
   if (!gclid) return
   const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN
   const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID
@@ -108,10 +108,14 @@ async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid
       conversions: [{
         gclid,
         conversion_action: `customers/${customerId}/conversionActions/${process.env.GOOGLE_ADS_CONVERSION_ID}`,
-        conversion_date_time: new Date(conversionTime).toISOString().replace('T', ' ').replace('Z', '+00:00'),
+        // Google's format is 'yyyy-mm-dd HH:mm:ss+HH:mm' — no milliseconds.
+        conversion_date_time: new Date(conversionTime).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '+00:00'),
         conversion_value: amountUsd,
         currency_code: 'USD',
-      }]
+        // order_id dedupes webhook retries / repeated events for the same payment.
+        ...(orderId && { order_id: String(orderId) }),
+      }],
+      partialFailure: true,
     }
     const r = await fetch(
       // v17 is sunset (404). v25 matches the rest of the integration (v21 sunset 2026-08-05).
@@ -124,7 +128,8 @@ async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid
       }, body: JSON.stringify(body) }
     )
     const data = await r.json()
-    if (data.partialFailureError) console.error('[stripe-webhook] Google Ads conversion error:', data.partialFailureError)
+    if (!r.ok || data.error) console.error('[stripe-webhook] Google Ads conversion HTTP error:', r.status, JSON.stringify(data.error || data).slice(0, 300))
+    else if (data.partialFailureError) console.error('[stripe-webhook] Google Ads conversion error:', data.partialFailureError)
     else console.log('[stripe-webhook] Google Ads conversion uploaded')
   } catch (e) {
     console.error('[stripe-webhook] Google Ads conversion failed:', e.message)
@@ -284,6 +289,7 @@ export default async function handler(req, res) {
                   amountUsd,
                   conversionTime: invoice.created * 1000,
                   gclid: contact?.properties?.gclid || null,
+                  orderId: invoice.id,
                 })
               },
             },
@@ -410,6 +416,7 @@ export default async function handler(req, res) {
               amountUsd,
               conversionTime: (session.created || Math.floor(Date.now() / 1000)) * 1000,
               gclid: session.metadata?.gclid,
+              orderId: session.id,
             }),
           },
         ] : []
