@@ -1,9 +1,13 @@
 -- Send an iMessage via the Messages app.
 -- Usage: osascript imessage-send.applescript "+15125551234[,+15125556789,...]" "message body"
--- One phone sends a normal 1:1 iMessage; multiple comma-separated phones send a
--- single group iMessage (all participants see each other and any replies).
--- Exits 0 on success; nonzero (with error text on stderr) on failure so the
--- caller can treat it as a failed send and surface/log it.
+-- One phone sends a normal 1:1 iMessage. Multiple comma-separated phones send
+-- into the EXISTING group chat whose participants exactly match the list (so a
+-- thread Dan has created and named, e.g. "GreenGuard USA", keeps its name and
+-- everyone sees replies). macOS removed scriptable group-chat CREATION, so if
+-- no matching thread exists yet the script falls back to individual 1:1 sends
+-- to every number — create the group once in Messages to upgrade a customer.
+-- Exits 0 on success (stdout says which mode); nonzero with error text on
+-- stderr on failure so the caller can treat it as a failed send.
 on run argv
 	if (count of argv) < 2 then
 		error "usage: imessage-send.applescript <phone[,phone...]> <body>"
@@ -19,13 +23,29 @@ on run argv
 		set imsg to 1st account whose service type = iMessage
 		if (count of phoneList) is 1 then
 			send messageText to participant (item 1 of phoneList) of imsg
-		else
-			set groupBuddies to {}
-			repeat with p in phoneList
-				set end of groupBuddies to participant (contents of p) of imsg
-			end repeat
-			set groupChat to make new text chat with properties {participants:groupBuddies}
-			send messageText to groupChat
+			return "sent-1to1"
 		end if
+		-- Group: find the existing chat whose participant set matches exactly.
+		repeat with c in chats
+			set pl to participants of c
+			if (count of pl) is (count of phoneList) then
+				set matched to true
+				repeat with p in pl
+					if phoneList does not contain (handle of p) then
+						set matched to false
+						exit repeat
+					end if
+				end repeat
+				if matched then
+					send messageText to c
+					return "sent-group"
+				end if
+			end if
+		end repeat
+		-- No group thread yet: individual sends so nobody misses the message.
+		repeat with ph in phoneList
+			send messageText to participant (contents of ph) of imsg
+		end repeat
+		return "sent-individual-fallback"
 	end tell
 end run

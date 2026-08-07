@@ -16,7 +16,9 @@ const IMESSAGE_SCRIPT = path.join(__dirname, 'imessage-send.applescript')
 // (permission not granted, number not iMessage-reachable, Messages offline) so
 // the caller can mark the job failed / retry.
 // `to` may be a single phone, an array, or a comma-separated list — multiple
-// recipients become one group iMessage (everyone sees replies).
+// recipients send into the matching existing group chat (everyone sees
+// replies; the thread keeps its name, e.g. "GreenGuard USA"), or fall back to
+// individual 1:1 sends when no group thread exists yet.
 function sendViaIMessage({ to, body }) {
   const dest = (Array.isArray(to) ? to : String(to).split(','))
     .map((p) => p.trim())
@@ -24,9 +26,9 @@ function sendViaIMessage({ to, body }) {
     .map((p) => normalizePhone(p) || p)
     .join(',')
   return new Promise((resolve, reject) => {
-    execFile('osascript', [IMESSAGE_SCRIPT, dest, body], { timeout: 35000 }, (err, stdout, stderr) => {
+    execFile('osascript', [IMESSAGE_SCRIPT, dest, body], { timeout: 60000 }, (err, stdout, stderr) => {
       if (err) return reject(new Error(`iMessage send failed: ${(stderr || err.message || '').trim()}`))
-      resolve({ ok: true, channel: 'imessage', to: dest, sid: null })
+      resolve({ ok: true, channel: 'imessage', to: dest, sid: null, mode: (stdout || '').trim() || null })
     })
   })
 }
