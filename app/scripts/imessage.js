@@ -15,8 +15,14 @@ const IMESSAGE_SCRIPT = path.join(__dirname, 'imessage-send.applescript')
 // Send an iMessage via the Messages app (AppleScript). Rejects on any failure
 // (permission not granted, number not iMessage-reachable, Messages offline) so
 // the caller can mark the job failed / retry.
+// `to` may be a single phone, an array, or a comma-separated list — multiple
+// recipients become one group iMessage (everyone sees replies).
 function sendViaIMessage({ to, body }) {
-  const dest = normalizePhone(to) || to
+  const dest = (Array.isArray(to) ? to : String(to).split(','))
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => normalizePhone(p) || p)
+    .join(',')
   return new Promise((resolve, reject) => {
     execFile('osascript', [IMESSAGE_SCRIPT, dest, body], { timeout: 35000 }, (err, stdout, stderr) => {
       if (err) return reject(new Error(`iMessage send failed: ${(stderr || err.message || '').trim()}`))
