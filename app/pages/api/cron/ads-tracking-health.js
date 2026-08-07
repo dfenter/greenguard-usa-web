@@ -50,7 +50,7 @@ async function checkGoogleConversionAction() {
   const ca = process.env.GOOGLE_ADS_CONVERSION_ID
   if (!cid || !ca) return { ok: false, error: 'GOOGLE_ADS_CUSTOMER_ID / CONVERSION_ID not set' }
   const token = await googleAdsToken()
-  const r = await fetch(`https://googleads.googleapis.com/v21/customers/${cid}:uploadClickConversions`, {
+  const r = await fetch(`https://googleads.googleapis.com/v25/customers/${cid}:uploadClickConversions`, {
     method: 'POST', headers: googleAdsHeaders(token),
     body: JSON.stringify({
       validateOnly: true, partialFailure: true,
@@ -76,7 +76,7 @@ async function checkGoogleConversionAction() {
 async function checkGoogleDashboardRead() {
   const cid = process.env.GOOGLE_ADS_CUSTOMER_ID
   const token = await googleAdsToken()
-  const r = await fetch(`https://googleads.googleapis.com/v21/customers/${cid}/googleAds:search`, {
+  const r = await fetch(`https://googleads.googleapis.com/v25/customers/${cid}/googleAds:search`, {
     method: 'POST', headers: googleAdsHeaders(token),
     body: JSON.stringify({ query: 'SELECT campaign.id FROM campaign LIMIT 1' }),
   })

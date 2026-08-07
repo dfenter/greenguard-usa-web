@@ -96,7 +96,7 @@ async function fireGoogleAdsLead({ gclid }) {
       partialFailure: true,
     };
     const r = await fetch(
-      `https://googleads.googleapis.com/v21/customers/${customerId}:uploadClickConversions`,
+      `https://googleads.googleapis.com/v25/customers/${customerId}:uploadClickConversions`,
       { method: 'POST', headers: {
         Authorization: `Bearer ${tok.access_token}`,
         'developer-token': devToken,

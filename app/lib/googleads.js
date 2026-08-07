@@ -1,5 +1,5 @@
 /**
- * Google Ads API v21 — campaign management and reporting
+ * Google Ads API v25 — campaign management and reporting
  * Credentials sourced entirely from env vars — no hardcoded IDs.
  */
 
@@ -14,7 +14,7 @@ function getClient() {
   return auth
 }
 
-const BASE = 'https://googleads.googleapis.com/v21'
+const BASE = 'https://googleads.googleapis.com/v25'
 
 async function adsRequest(method, path, body) {
   const auth = getClient()

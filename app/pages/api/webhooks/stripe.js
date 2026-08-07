@@ -114,8 +114,8 @@ async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid
       }]
     }
     const r = await fetch(
-      // v17 is sunset (404). v21 matches the rest of the integration.
-      `https://googleads.googleapis.com/v21/customers/${customerId}:uploadClickConversions`,
+      // v17 is sunset (404). v25 matches the rest of the integration (v21 sunset 2026-08-05).
+      `https://googleads.googleapis.com/v25/customers/${customerId}:uploadClickConversions`,
       { method: 'POST', headers: {
         'Authorization': `Bearer ${token}`,
         'developer-token': devToken,
