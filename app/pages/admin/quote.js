@@ -198,6 +198,8 @@ const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 75
 const BG_HOOKUP_PER_TRAP = 10.00
 // Biogents Non-CO₂ (customer owns trap)
 const BG_NONCO2_PER_TRAP = 10.00
+// Starter package — we rent the non-CO₂ trap (no tanks), per trap
+const STARTER_NONCO2_PER_TRAP = 49.99
 // Mosqitter — $129.99 all-in (tank hookup, bait, maintenance included)
 const MQ_PRICE = { rental: 299.99, service: 129.99, install: 199.99 }
 // CO₂ tank exchange — 20lb tanks only ($39 delivery + $49.99/tank)
@@ -281,10 +283,13 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         recurring: true,
       })
     }
-    // Biogents Non-CO₂ (always purchase, per trap)
+    // Biogents Non-CO₂ — starter rental (we own the trap) or customer-owned maintenance
     if (system === 'biogents-nonco2' && trapCount) {
-      const price = BG_NONCO2_PER_TRAP * trapCount
-      lines.push({ label: `Biogents Non-CO₂ Maintenance — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${BG_NONCO2_PER_TRAP}/trap)`, amount: price, recurring: true })
+      if (plan === 'rental') {
+        lines.push({ label: `Starter Non-CO₂ Trap Rental — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${STARTER_NONCO2_PER_TRAP}/trap)`, amount: STARTER_NONCO2_PER_TRAP * trapCount, recurring: true })
+      } else {
+        lines.push({ label: `Biogents Non-CO₂ Maintenance — ${trapCount} Trap${trapCount > 1 ? 's' : ''} ($${BG_NONCO2_PER_TRAP}/trap)`, amount: BG_NONCO2_PER_TRAP * trapCount, recurring: true })
+      }
     }
     // Mosqitter
     if (system === 'mosqitter' && mqPlan) {
@@ -411,8 +416,17 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         </>
       )}
 
-      {/* Biogents Non-CO₂ — trap count (always owned) */}
+      {/* Biogents Non-CO₂ — starter rental or customer-owned */}
       {system === 'biogents-nonco2' && (
+        <>
+          <div style={Q}>Starter Rental or Customer-Owned?</div>
+          <div>
+            <span onClick={() => setPlan('rental')} style={chip(plan === 'rental')}>🌱 Starter Rental — we provide the trap, attractant &amp; maintenance ($49.99/trap/mo)</span>
+            <span onClick={() => setPlan('purchase')} style={chip(plan === 'purchase')}>🛒 Customer-Owned — maintenance only ($10/trap/mo)</span>
+          </div>
+        </>
+      )}
+      {system === 'biogents-nonco2' && plan && (
         <>
           <div style={Q}>How many traps?</div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -422,8 +436,8 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
               ))}
             </select>
             <span style={{ fontSize: '0.85rem', color: 'var(--green)', fontWeight: 900, marginLeft: 14 }}>
-              ${(BG_NONCO2_PER_TRAP * trapCount).toFixed(2)}/mo
-              <span style={{ fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.4)', marginLeft: 6 }}>(${BG_NONCO2_PER_TRAP}/trap — no CO₂ tanks)</span>
+              ${((plan === 'rental' ? STARTER_NONCO2_PER_TRAP : BG_NONCO2_PER_TRAP) * trapCount).toFixed(2)}/mo
+              <span style={{ fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.4)', marginLeft: 6 }}>(${plan === 'rental' ? STARTER_NONCO2_PER_TRAP : BG_NONCO2_PER_TRAP}/trap — no CO₂ tanks)</span>
             </span>
           </div>
         </>
@@ -742,7 +756,7 @@ export default function QuoteBuilder({ mapsKey }) {
   useEffect(() => {
     if (!serviceConfig) return
     const { system, plan, trapCount, mqPlan, mqCount } = serviceConfig
-    const isBiogentsPurchase = (system === 'biogents-co2' && plan === 'purchase') || system === 'biogents-nonco2'
+    const isBiogentsPurchase = (system === 'biogents-co2' && plan === 'purchase') || (system === 'biogents-nonco2' && plan !== 'rental')
     const isMosqitterPurchase = system === 'mosqitter' && mqPlan === 'purchase'
 
     setProductQtys((prev) => {

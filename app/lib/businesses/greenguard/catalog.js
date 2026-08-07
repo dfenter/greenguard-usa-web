@@ -22,6 +22,13 @@ const ADDONS = [
     quoteCategory: 'Recurring Add-Ons',
   },
   {
+    sku: 'STARTER-NONCO2',
+    label: 'Starter Non-CO₂ Trap Rental Package',
+    price: 49.99,
+    surfaces: { rounds: true, quote: true },
+    quoteCategory: 'Recurring Add-Ons',
+  },
+  {
     sku: 'OWN-BG',
     label: 'Tank Hookup & Maintenance',
     price: 10.00,
@@ -167,7 +174,7 @@ const PRODUCTS = [
     shipping: 50.00,  // per unit (hazmat/freight)
   },
   {
-    sku: null, label: 'CO₂ Regulator', price: 119.99,
+    sku: 'REGULATOR', label: 'CO₂ Regulator', price: 119.99,
     surfaces: { rounds: true, quote: true, inventory: true },
     inventoryKey: 'regulators', quoteCategory: 'Accessories',
   },

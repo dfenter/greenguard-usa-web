@@ -191,6 +191,8 @@ async function checkout() {
   const ga = cookie('_ga');                      // GA1.1.<client_id>
   const attribution = {
     gclid: sessionStorage.getItem('gg_gclid') || '',
+    gbraid: sessionStorage.getItem('gg_gbraid') || '',
+    wbraid: sessionStorage.getItem('gg_wbraid') || '',
     fbclid: sessionStorage.getItem('gg_fbclid') || '',
     fbc: cookie('_fbc'),
     fbp: cookie('_fbp'),

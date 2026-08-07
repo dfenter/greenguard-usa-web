@@ -18,6 +18,8 @@ const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 75
 const BG_HOOKUP_PER_TRAP = 10.00
 // Biogents Non-CO₂ (customer owns trap), per trap
 const BG_NONCO2_PER_TRAP = 10.00
+// Starter package — WE rent the non-CO₂ trap (no tanks), per trap
+const STARTER_NONCO2_PER_TRAP = 49.99
 // Mosqitter — all-in service / rental / install
 const MQ_PRICE = { rental: 299.99, service: 129.99, install: 199.99 }
 // CO₂ tank exchange — 20lb tanks ($39 delivery + $49.99/tank, tiered 1–3)
@@ -119,7 +121,11 @@ function buildServiceLines(cfg = {}) {
     }
   }
   if (system === 'biogents-nonco2') {
-    lines.push({ label: `Biogents Non-CO₂ Maintenance — ${tc} Trap${tc > 1 ? 's' : ''} ($${BG_NONCO2_PER_TRAP}/trap)`, amount: BG_NONCO2_PER_TRAP * tc, recurring: true })
+    if (plan === 'rental') {
+      lines.push({ label: `Starter Non-CO₂ Trap Rental — ${tc} Trap${tc > 1 ? 's' : ''} ($${STARTER_NONCO2_PER_TRAP}/trap)`, amount: STARTER_NONCO2_PER_TRAP * tc, recurring: true })
+    } else {
+      lines.push({ label: `Biogents Non-CO₂ Maintenance — ${tc} Trap${tc > 1 ? 's' : ''} ($${BG_NONCO2_PER_TRAP}/trap)`, amount: BG_NONCO2_PER_TRAP * tc, recurring: true })
+    }
   }
   if (system === 'mosqitter' && (mqPlan === 'rental' || mqPlan === 'purchase')) {
     const unitPrice = mqPlan === 'rental' ? MQ_PRICE.rental : MQ_PRICE.service
@@ -173,7 +179,7 @@ function buildQuoteLines({ serviceConfig, productQtys, addonQtys } = {}) {
 }
 
 module.exports = {
-  BG_RENTAL_PRICE, BG_HOOKUP_PER_TRAP, BG_NONCO2_PER_TRAP, MQ_PRICE, TANK_PRICE,
+  BG_RENTAL_PRICE, BG_HOOKUP_PER_TRAP, BG_NONCO2_PER_TRAP, STARTER_NONCO2_PER_TRAP, MQ_PRICE, TANK_PRICE,
   QUOTE_LOCAL_SERVICES, serviceAddons,
   buildServiceLines, buildProductLines, buildAddonLines, buildQuoteLines,
   allowedAmountCents, isAllowedQuoteAmount,

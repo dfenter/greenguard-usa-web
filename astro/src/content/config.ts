@@ -19,6 +19,7 @@ const areas = defineCollection({
     county: z.string().optional(),
     description: z.string(),
     localDetail: z.string().optional(),
+    faqs: z.array(z.object({ q: z.string(), a: z.string() })).optional(),
   }),
 });
 

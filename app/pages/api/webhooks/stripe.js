@@ -88,8 +88,10 @@ async function fireMetaPurchase({ email, phone, amountUsd, orderId, fbc, fbp, ev
   }
 }
 
-async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid, orderId }) {
-  if (!gclid) return
+async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid, gbraid, wbraid, orderId }) {
+  // ClickConversion takes exactly one of gclid / gbraid / wbraid.
+  const clickId = gclid ? { gclid } : gbraid ? { gbraid } : wbraid ? { wbraid } : null
+  if (!clickId) return
   const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN
   const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID
   if (!devToken || !customerId) return
@@ -106,7 +108,7 @@ async function fireGoogleAdsConversion({ email, amountUsd, conversionTime, gclid
     const { token } = await auth.getAccessToken()
     const body = {
       conversions: [{
-        gclid,
+        ...clickId,
         conversion_action: `customers/${customerId}/conversionActions/${process.env.GOOGLE_ADS_CONVERSION_ID}`,
         // Google's format is 'yyyy-mm-dd HH:mm:ss+HH:mm' — no milliseconds.
         conversion_date_time: new Date(conversionTime).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '+00:00'),
@@ -289,6 +291,8 @@ export default async function handler(req, res) {
                   amountUsd,
                   conversionTime: invoice.created * 1000,
                   gclid: contact?.properties?.gclid || null,
+                  gbraid: contact?.properties?.gbraid || null,
+                  wbraid: contact?.properties?.wbraid || null,
                   orderId: invoice.id,
                 })
               },
@@ -416,6 +420,8 @@ export default async function handler(req, res) {
               amountUsd,
               conversionTime: (session.created || Math.floor(Date.now() / 1000)) * 1000,
               gclid: session.metadata?.gclid,
+              gbraid: session.metadata?.gbraid,
+              wbraid: session.metadata?.wbraid,
               orderId: session.id,
             }),
           },
@@ -478,6 +484,8 @@ export default async function handler(req, res) {
                 if (!isQuote || !checkoutContact?.id) return
                 const props = {}
                 if (session.metadata?.gclid) props.gclid = session.metadata.gclid
+                if (session.metadata?.gbraid) props.gbraid = session.metadata.gbraid
+                if (session.metadata?.wbraid) props.wbraid = session.metadata.wbraid
                 if (session.metadata?.ga_client_id) props.ga_client_id = session.metadata.ga_client_id
                 if (Object.keys(props).length > 0) await updateContact(checkoutContact.id, { properties: props })
               },

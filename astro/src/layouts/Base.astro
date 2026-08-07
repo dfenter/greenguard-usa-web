@@ -153,12 +153,33 @@ const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
   </head>
   <body>
     <script>
-      // Capture UTM params + gclid + fbclid on every page load, persist to sessionStorage
-      // so they survive navigation and are available on the booking/checkout page.
+      // Capture UTM params + click IDs (gclid/gbraid/wbraid/fbclid) on every page
+      // load. sessionStorage is the read path the funnels use; localStorage
+      // ('gg_attr', 90-day TTL to match the Google Ads lookback) persists across
+      // tabs/restarts and re-hydrates sessionStorage so a booking days after the
+      // ad click still attributes.
       (function() {
         const p = new URLSearchParams(window.location.search);
-        const keys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','fbclid','ref'];
-        keys.forEach(k => { const v = p.get(k); if (v) sessionStorage.setItem('gg_' + k, v.slice(0, 200)); });
+        const keys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','gbraid','wbraid','fbclid','ref'];
+        const TTL = 90 * 24 * 3600 * 1000;
+        const now = Date.now();
+        let store = {};
+        try { store = JSON.parse(localStorage.getItem('gg_attr') || '{}') || {}; } catch (e) {}
+        keys.forEach(k => {
+          const v = p.get(k);
+          if (v) {
+            const val = v.slice(0, 200);
+            sessionStorage.setItem('gg_' + k, val);
+            store[k] = { v: val, t: now };
+          }
+        });
+        keys.forEach(k => {
+          const e = store[k];
+          if (!e || typeof e.v !== 'string') { delete store[k]; return; }
+          if (now - (e.t || 0) > TTL) { delete store[k]; return; }
+          if (!sessionStorage.getItem('gg_' + k)) sessionStorage.setItem('gg_' + k, e.v);
+        });
+        try { localStorage.setItem('gg_attr', JSON.stringify(store)); } catch (e) {}
       })();
     </script>
     <script>

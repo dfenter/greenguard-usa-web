@@ -4,6 +4,15 @@ city: Round Rock
 county: Williamson County
 description: GreenGuard USA provides pesticide-free CO₂ mosquito control in Round Rock, TX. Trap-based elimination targeting tiger mosquitoes along Brushy Creek, Williamson Creek, and throughout Round Rock's established neighborhoods.
 localDetail: Round Rock's mosquito pressure stems from the Brushy Creek and Williamson Creek drainage systems threading through the city's oldest neighborhoods. The city's numerous HOA retention ponds, Old Settlers Park irrigation, and the tree canopy along creek corridors create sustained breeding habitat spring through fall. Round Rock sits in a transition zone between the Edwards Plateau and Blackland Prairie, giving it a longer effective mosquito season than cities farther north — tiger mosquitoes are active from late February in warm years through early December. Flash flooding common to Williamson County triggers mass hatching events that overwhelm seasonal spray programs.
+faqs:
+  - q: "How much does mosquito control cost in Round Rock?"
+    a: "Service starts at $49.99 per month for our starter non-CO2 trap rental package. CO2 tank delivery for trap owners starts at $89.99 per month, and full-service CO2 trap rental starts at $159.99 per month. Every plan is month to month with no contract, and the property assessment is free."
+  - q: "How long is mosquito season in Round Rock?"
+    a: "Round Rock sits in a transition zone that gives it one of the longer seasons in Central Texas: tiger mosquitoes can be active from late February through early December in warm years. Most customers run service from March through November."
+  - q: "What mosquito species are a problem in Round Rock?"
+    a: "Two species drive most bites: the Asian tiger mosquito, which bites during the day in shaded yards, and the southern house mosquito, which is active at dusk near standing water along Brushy and Williamson Creeks. CO2 trapping targets both."
+  - q: "Is trap-based control safe for kids and pets?"
+    a: "Yes. There is no spray, no residue on grass or play areas, and nothing your dog can get into. The trap uses CO2 and heat to lure mosquitoes into a capture chamber."
 ---
 
 Round Rock homeowners deal with both the Asian tiger mosquito (*Aedes albopictus*) and southern house mosquito (*Culex quinquefasciatus*). Tiger mosquitoes bite aggressively during daylight in shaded yards; house mosquitoes create problems at dusk near standing water. CO₂ trapping addresses both species effectively — unlike spray programs designed for a single species.

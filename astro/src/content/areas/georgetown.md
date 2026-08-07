@@ -4,6 +4,15 @@ city: Georgetown
 county: Williamson County
 description: Georgetown's outdoor lifestyle and growing community deserve protection. GreenGuard USA provides pesticide-free CO2 mosquito control for Georgetown homeowners from Sun City to Wolf Ranch — no chemicals, no contracts.
 localDetail: Georgetown faces sustained mosquito pressure from multiple sources. The San Gabriel River corridor runs through the city providing extensive Culex breeding habitat. Lake Georgetown creates waterfront pressure in north Georgetown neighborhoods throughout the warm season. Sun City Georgetown's retention ponds and extensive green space add a third pressure zone across the development's 15,000-plus residents. Georgetown's limestone karst terrain and periodic heavy rainfall from Hill Country thunderstorms create mass hatching events in spring and after summer storms that can overwhelm temporary spray control measures within days.
+faqs:
+  - q: "How much does mosquito control cost in Georgetown?"
+    a: "Service starts at $49.99 per month for our starter non-CO2 trap rental package. CO2 tank delivery for trap owners starts at $89.99 per month, and full-service CO2 trap rental starts at $159.99 per month. Every plan is month to month with no contract, and the property assessment is free."
+  - q: "Do you serve Sun City Georgetown?"
+    a: "Yes. Sun City's retention ponds and green space create steady pressure, and trap-based control is popular there because there is no spraying, no chemicals on patios, and nothing to maintain yourself."
+  - q: "What creates mosquito pressure in Georgetown?"
+    a: "Three overlapping sources: the San Gabriel River corridor through town, Lake Georgetown waterfront in the north, and retention infrastructure in newer developments like Wolf Ranch. Placement is tailored to which pressure zone your home sits in."
+  - q: "Do CO2 traps still work after heavy Hill Country storms?"
+    a: "Yes, and they matter most then. Storms trigger mass hatching events that overwhelm spray programs within days, while traps keep intercepting mosquitoes continuously as the hatch emerges."
 ---
 
 Georgetown is Williamson County's county seat and one of its most diverse mosquito pressure environments — combining an urban river corridor, a major reservoir, one of the largest active adult communities in the country, and rapidly growing suburban development all within one city.

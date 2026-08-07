@@ -384,6 +384,8 @@ import Base from '../layouts/Base.astro';
       const eventId = `book_${(state.email || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16)}_${Date.now()}`
       const attribution = {
         gclid: sessionStorage.getItem('gg_gclid') || null,
+        gbraid: sessionStorage.getItem('gg_gbraid') || null,
+        wbraid: sessionStorage.getItem('gg_wbraid') || null,
         fbclid: sessionStorage.getItem('gg_fbclid') || null,
         fbp: ck('_fbp'),
         // _ga cookie is GA1.1.<clientId> — last two dotted parts are the client_id.

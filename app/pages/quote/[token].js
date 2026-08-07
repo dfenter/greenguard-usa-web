@@ -64,7 +64,7 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
     setPayError(null)
     trackEvent('begin_checkout', { value: quote?.total ?? 0, currency: 'USD' })
     // Collect attribution from sessionStorage so webhook can fire proper conversions
-    const attrKeys = ['gclid','fbclid','utm_source','utm_medium','utm_campaign','utm_content','ref']
+    const attrKeys = ['gclid','gbraid','wbraid','fbclid','utm_source','utm_medium','utm_campaign','utm_content','ref']
     const attribution = {}
     attrKeys.forEach(k => {
       const v = typeof window !== 'undefined' ? sessionStorage.getItem('gg_' + k) : null

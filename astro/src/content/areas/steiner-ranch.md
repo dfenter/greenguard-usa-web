@@ -4,6 +4,15 @@ city: Steiner Ranch
 county: Travis County
 description: Steiner Ranch is built around outdoor living. GreenGuard USA protects your greenbelt access, community pools, and lakefront spaces with pesticide-free CO2 trapping that works as hard as your outdoor lifestyle demands.
 localDetail: Steiner Ranch sits at the interface of Lake Austin, the Bull Creek watershed, and dense residential tree canopy — a combination that creates some of the highest sustained mosquito pressure in the entire Austin metro. Lake Austin shoreline access introduces Culex quinquefasciatus from water breeding sites that can travel up to two miles into the community. The extensive greenbelt trail system and native oak canopy provide daytime resting habitat for tiger mosquitoes within 200 feet of most residential lots. HOA retention ponds and the community's irrigation-heavy landscaping further concentrate breeding pressure throughout the year.
+faqs:
+  - q: "How much does mosquito control cost in Steiner Ranch?"
+    a: "Service starts at $49.99 per month for our starter non-CO2 trap rental package. CO2 tank delivery for trap owners starts at $89.99 per month, and full-service CO2 trap rental starts at $159.99 per month. Every plan is month to month with no contract, and the property assessment is free."
+  - q: "Why is mosquito pressure in Steiner Ranch so high?"
+    a: "The community sits at the interface of Lake Austin, the Bull Creek watershed, and dense oak canopy. Lake-bred Culex can travel up to two miles into the neighborhood, and tiger mosquitoes rest in greenbelt habitat within 200 feet of most lots."
+  - q: "Do CO2 traps work for greenbelt-backing lots?"
+    a: "Yes. Traps placed between the greenbelt edge and your patio intercept mosquitoes moving in from the trail system and canopy. Placement is mapped during the free assessment."
+  - q: "Is trap-based control safe around community pools and parks?"
+    a: "Yes. There is no spray drift and no chemical residue, which is why trap-based control fits HOA amenity areas as well as private backyards."
 ---
 
 Steiner Ranch residents invest heavily in outdoor living — patios, pools, waterfront access, trail systems — but without professional mosquito control, those investments go underused from May through October. CO2 trapping creates the pressure-free zone those spaces need.

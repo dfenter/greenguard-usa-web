@@ -21,8 +21,10 @@ const META_GRAPH_URL = `https://graph.facebook.com/v21.0/${PIXEL_ID}/events`
 const BOOKING_CONVERSION_ID = process.env.GOOGLE_ADS_LEAD_CONVERSION_ID || '7653935010'
 const LEAD_VALUE = 25
 
-async function fireGoogleAdsBookingLead({ gclid }) {
-  if (!gclid) return
+async function fireGoogleAdsBookingLead({ gclid, gbraid, wbraid }) {
+  // ClickConversion takes exactly one of gclid / gbraid / wbraid.
+  const clickId = gclid ? { gclid } : gbraid ? { gbraid } : wbraid ? { wbraid } : null
+  if (!clickId) return
   const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN
   const customerId = process.env.GOOGLE_ADS_CUSTOMER_ID
   if (!devToken || !customerId) return
@@ -42,7 +44,7 @@ async function fireGoogleAdsBookingLead({ gclid }) {
     const loginCid = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || customerId
     const body = {
       conversions: [{
-        gclid,
+        ...clickId,
         conversion_action: `customers/${customerId}/conversionActions/${BOOKING_CONVERSION_ID}`,
         conversion_date_time: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '+00:00'),
         conversion_value: LEAD_VALUE,
@@ -132,9 +134,9 @@ async function fireGA4BookingLead({ email, clientId, sessionId }) {
 }
 
 // Fire all booking conversions in parallel. Never throws.
-async function fireBookingConversions({ email, phone, gclid, fbclid, fbp, gaClientId, gaSessionId, eventId, clientIp, userAgent }) {
+async function fireBookingConversions({ email, phone, gclid, gbraid, wbraid, fbclid, fbp, gaClientId, gaSessionId, eventId, clientIp, userAgent }) {
   await Promise.allSettled([
-    fireGoogleAdsBookingLead({ gclid }),
+    fireGoogleAdsBookingLead({ gclid, gbraid, wbraid }),
     fireMetaBookingLead({ email, phone, fbclid, fbp, eventId, clientIp, userAgent }),
     fireGA4BookingLead({ email, clientId: gaClientId, sessionId: gaSessionId }),
   ])

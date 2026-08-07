@@ -56,8 +56,10 @@ async function fireMetaLead({ request, email, fbclid }) {
 // Upload an offline "Booking Lead" conversion to Google Ads using the click's
 // gclid, so MAXIMIZE_CONVERSIONS bidding (Local Service Austin) optimizes toward
 // booked assessments instead of phone calls alone. Fetch-only, no googleapis dep.
-async function fireGoogleAdsLead({ gclid }) {
-  if (!gclid) return;
+async function fireGoogleAdsLead({ gclid, gbraid, wbraid }) {
+  // ClickConversion takes exactly one of gclid / gbraid / wbraid.
+  const clickId = gclid ? { gclid } : gbraid ? { gbraid } : wbraid ? { wbraid } : null;
+  if (!clickId) return;
   const devToken = import.meta.env.GOOGLE_ADS_DEVELOPER_TOKEN;
   const customerId = import.meta.env.GOOGLE_ADS_CUSTOMER_ID;
   const conversionId = import.meta.env.GOOGLE_ADS_LEAD_CONVERSION_ID;
@@ -85,7 +87,7 @@ async function fireGoogleAdsLead({ gclid }) {
     const loginCid = import.meta.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID || customerId;
     const body = {
       conversions: [{
-        gclid,
+        ...clickId,
         conversion_action: `customers/${customerId}/conversionActions/${conversionId}`,
         conversion_date_time: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '+00:00'),
         conversion_value: 25,
@@ -127,6 +129,8 @@ export const POST = async ({ request }) => {
 
   const referredBy = typeof body.referredBy === 'string' ? body.referredBy.trim().slice(0, 12) : null;
   const gclid     = typeof body.gclid === 'string'      ? body.gclid.trim().slice(0, 100) : null;
+  const gbraid    = typeof body.gbraid === 'string'     ? body.gbraid.trim().slice(0, 100) : null;
+  const wbraid    = typeof body.wbraid === 'string'     ? body.wbraid.trim().slice(0, 100) : null;
   const fbclid    = typeof body.fbclid === 'string'     ? body.fbclid.trim().slice(0, 100) : null;
   const utmSource  = typeof body.utm_source === 'string'   ? body.utm_source.trim().slice(0, 100) : null;
   const utmMedium  = typeof body.utm_medium === 'string'   ? body.utm_medium.trim().slice(0, 100) : null;
@@ -162,8 +166,8 @@ export const POST = async ({ request }) => {
 
   // Offline Google Ads lead — only for real bookings with an ad click, so the
   // signal stays high-intent and matches the "Booking Lead" conversion action.
-  if (source === 'booking' && gclid) {
-    await fireGoogleAdsLead({ gclid });
+  if (source === 'booking' && (gclid || gbraid || wbraid)) {
+    await fireGoogleAdsLead({ gclid, gbraid, wbraid });
   }
 
   // Send lead magnet guide email if this came from the popup (not a booking)

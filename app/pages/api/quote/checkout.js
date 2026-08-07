@@ -134,6 +134,8 @@ export default async function handler(req, res) {
         customerAddress: customerAddress || '',
         customerName: customerName || '',
         gclid: String(attribution.gclid || '').slice(0, 100),
+        gbraid: String(attribution.gbraid || '').slice(0, 100),
+        wbraid: String(attribution.wbraid || '').slice(0, 100),
         fbclid: String(attribution.fbclid || '').slice(0, 100),
         fbp: String(attribution.fbp || '').slice(0, 100),
         fbc: String(attribution.fbc || '').slice(0, 100),

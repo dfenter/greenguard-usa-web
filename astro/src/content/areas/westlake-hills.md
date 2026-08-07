@@ -4,6 +4,15 @@ city: Westlake Hills
 county: Travis County
 description: Pesticide-free CO2 mosquito trapping for Westlake Hills properties. We protect your outdoor living space, your bees, your garden, and your family without a single pesticide. Serving Davenport Ranch, Rob Roy, Rollingwood, and surrounding areas.
 localDetail: Westlake Hills sits within the Barton Creek watershed, where live oak canopy, shaded drainage corridors, and mature landscaping create ideal conditions for the Asian tiger mosquito (Aedes albopictus). This species rarely travels more than 200 feet from its breeding site, meaning the problem originates inside your landscape. Leaf-collecting container plants, oak leaf litter that holds moisture, and drainage features common to Westlake Hills properties sustain pressure from April through November. Premium properties here often have extensive irrigation, water features, and pool equipment condensate — all prime tiger mosquito breeding sites that spray programs cannot eliminate.
+faqs:
+  - q: "How much does mosquito control cost in Westlake Hills?"
+    a: "Service starts at $49.99 per month for our starter non-CO2 trap rental package. CO2 tank delivery for trap owners starts at $89.99 per month, and full-service CO2 trap rental starts at $159.99 per month. Every plan is month to month with no contract, and the property assessment is free."
+  - q: "When does mosquito season start in Westlake Hills?"
+    a: "Tiger mosquitoes in the Barton Creek watershed typically become active in mid March and stay active through early November. In warm years they begin biting as early as late February, so early spring is the best time to get traps placed."
+  - q: "Do CO2 traps work on properties near the Barton Creek Greenbelt?"
+    a: "Yes. Creek-side lots face both container-breeding tiger mosquitoes and Culex from the creek itself, and CO2 traps intercept both species. We place traps between the greenbelt pressure and your outdoor living areas during the free assessment."
+  - q: "Is trap-based mosquito control safe for gardens and pollinators?"
+    a: "Yes. CO2 traps attract only blood-seeking female mosquitoes, so bees, butterflies, and beneficial insects are unaffected. Nothing is sprayed on your landscaping, which matters on mature Westlake Hills lots with established plantings."
 ---
 
 Westlake Hills has some of the highest property values in the Austin metro and some of the highest mosquito pressure per acre. The combination of Barton Creek proximity, dense live oak canopy, and mature irrigated landscapes creates an interconnected web of tiny breeding sites that sustains tiger mosquito colonies regardless of rainfall.

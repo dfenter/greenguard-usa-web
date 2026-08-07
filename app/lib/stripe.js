@@ -38,11 +38,13 @@ const PRICE_ID_MAP = {
   'RUSH-FEE': process.env.STRIPE_PRICE_RUSH_FEE,
   'CO2-RUSH': process.env.STRIPE_PRICE_CO2_RUSH,
   'BG-NONCO2-UNIT': process.env.STRIPE_PRICE_BG_NONCO2_UNIT,
+  'STARTER-NONCO2': process.env.STRIPE_PRICE_STARTER_NONCO2,
   'BUCKET-OF-DOOM': process.env.STRIPE_PRICE_BUCKET_OF_DOOM,
   // Tank-service SKUs (previously only mapped in generate-invoice's local copy)
   'TANK-DELIVERY-FEE': process.env.STRIPE_PRICE_TANK_DELIVERY_FEE,
   'TANK-REFILL': process.env.STRIPE_PRICE_TANK_REFILL,
   'TANK-HOOKUP-MAINT': process.env.STRIPE_PRICE_TANK_HOOKUP_MAINT,
+  REGULATOR: process.env.STRIPE_PRICE_REGULATOR,
 }
 
 // Single source of truth for SKU → Stripe price ID. Route handlers used to keep

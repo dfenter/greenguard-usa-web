@@ -56,13 +56,14 @@ const deliveryTiers = [
     "@context": "https://schema.org",
     "@type": "Service",
     "name": "Mosquito Control Service",
-    "description": "Pesticide-free CO₂ mosquito control for Austin TX homeowners. Trap rental from $159.99/mo, CO₂ delivery from $89.99/mo. No contracts.",
+    "description": "Pesticide-free mosquito control for Austin TX homeowners. Starter trap rental from $49.99/mo, CO₂ trap rental from $159.99/mo, CO₂ delivery from $89.99/mo. No contracts.",
     "provider": { "@type": "LocalBusiness", "name": "GreenGuard USA", "telephone": "+1-512-560-4129", "url": "https://www.greenguard-usa.com" },
     "areaServed": [
       "Austin TX", "Cedar Park TX", "Round Rock TX", "Westlake Hills TX", "Lakeway TX",
       "Bee Cave TX", "Dripping Springs TX", "Georgetown TX", "Pflugerville TX", "Leander TX"
     ],
     "offers": [
+      { "@type": "Offer", "name": "Starter Non-CO2 Trap Rental", "price": "49.99", "priceCurrency": "USD" },
       { "@type": "Offer", "name": "CO₂ Trap Rental — 1 Trap", "price": "159.99", "priceCurrency": "USD" },
       { "@type": "Offer", "name": "CO₂ Trap Rental — 2 Traps", "price": "266.99", "priceCurrency": "USD" },
       { "@type": "Offer", "name": "CO₂ Tank Delivery", "price": "89.99", "priceCurrency": "USD" }
@@ -80,6 +81,23 @@ const deliveryTiers = [
       <p class="text-cream/80 text-base md:text-lg">
         Flat monthly rate. Everything included. Cancel anytime.
       </p>
+    </div>
+  </section>
+
+  <!-- STARTER PACKAGE -->
+  <section class="py-12 px-5">
+    <div class="max-w-container mx-auto">
+      <div class="max-w-2xl mx-auto card border-accent/40 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+        <div class="flex-1">
+          <div class="eyebrow mb-1">New: Starter Package</div>
+          <div class="text-white font-black text-xl mb-1">Starter Non-CO₂ Trap Rental — $49.99<span class="text-sm text-cream/50 font-normal">/mo</span></div>
+          <p class="text-cream/70 text-sm leading-relaxed">
+            The lowest-cost way to start: a professionally placed Biogents non-CO₂ trap with attractant
+            refills and maintenance included. No tanks, no contract, upgrade anytime.
+          </p>
+        </div>
+        <a href="/traprental" class="btn-gold text-sm flex-shrink-0">See Starter Plan</a>
+      </div>
     </div>
   </section>
 

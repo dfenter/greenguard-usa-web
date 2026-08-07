@@ -193,7 +193,7 @@ function CustomerSearch({ customers, onSelect }) {
 // All pricing + line-building lives in lib/quote-pricing.js — the single source
 // of truth shared with the server (/api/quote/create-link recomputes from it).
 const {
-  BG_RENTAL_PRICE, BG_HOOKUP_PER_TRAP, BG_NONCO2_PER_TRAP, MQ_PRICE, TANK_PRICE,
+  BG_RENTAL_PRICE, BG_HOOKUP_PER_TRAP, BG_NONCO2_PER_TRAP, STARTER_NONCO2_PER_TRAP, MQ_PRICE, TANK_PRICE,
   serviceAddons, buildServiceLines, buildProductLines, buildAddonLines,
 } = require('../../lib/quote-pricing')
 const { productsForQuote } = require('../../lib/catalog')
@@ -354,8 +354,17 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         </>
       )}
 
-      {/* Biogents Non-CO₂ — trap count (always owned) */}
+      {/* Biogents Non-CO₂ — starter rental or customer-owned */}
       {system === 'biogents-nonco2' && (
+        <>
+          <div style={Q}>Starter Rental or Customer-Owned?</div>
+          <div>
+            <span onClick={() => setPlan('rental')} style={chip(plan === 'rental')}>🌱 Starter Rental — we provide the trap, attractant &amp; maintenance ($49.99/trap/mo)</span>
+            <span onClick={() => setPlan('purchase')} style={chip(plan === 'purchase')}>🛒 Customer-Owned — maintenance only ($10/trap/mo)</span>
+          </div>
+        </>
+      )}
+      {system === 'biogents-nonco2' && plan && (
         <>
           <div style={Q}>How many traps?</div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -363,8 +372,8 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
               <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
             ))}
             <span style={{ fontSize: '0.85rem', color: 'var(--green)', fontWeight: 900, marginLeft: 14 }}>
-              ${(BG_NONCO2_PER_TRAP * trapCount).toFixed(2)}/mo
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 6 }}>(${BG_NONCO2_PER_TRAP}/trap — no CO₂ tanks)</span>
+              ${((plan === 'rental' ? STARTER_NONCO2_PER_TRAP : BG_NONCO2_PER_TRAP) * trapCount).toFixed(2)}/mo
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 6 }}>(${plan === 'rental' ? STARTER_NONCO2_PER_TRAP : BG_NONCO2_PER_TRAP}/trap — no CO₂ tanks)</span>
             </span>
           </div>
         </>
@@ -671,7 +680,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   useEffect(() => {
     if (!serviceConfig) return
     const { system, plan, trapCount, mqPlan, mqCount } = serviceConfig
-    const isBiogentsPurchase = (system === 'biogents-co2' && plan === 'purchase') || system === 'biogents-nonco2'
+    const isBiogentsPurchase = (system === 'biogents-co2' && plan === 'purchase') || (system === 'biogents-nonco2' && plan !== 'rental')
     const isMosqitterPurchase = system === 'mosqitter' && mqPlan === 'purchase'
 
     setProductQtys((prev) => {

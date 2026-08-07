@@ -12,7 +12,7 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await entry.render();
-const { title, city, county, description, localDetail } = entry.data;
+const { title, city, county, description, localDetail, faqs = [] } = entry.data;
 
 // Sibling city pages for internal cross-linking (topical clustering).
 const allAreas = await getCollection('areas');
@@ -36,14 +36,25 @@ const serviceSchema = {
   areaServed: { '@type': 'City', name: city, addressRegion: 'TX' },
   url: `https://www.greenguard-usa.com/mosquito-control-${entry.slug}`,
 };
+
+const faqSchema = faqs.length ? {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+} : null;
 ---
 
 <Base
-  title={`Mosquito Control ${city}, TX | GreenGuard USA — Pesticide-Free CO₂ Traps`}
+  title={`Mosquito Control ${city} TX | Pesticide-Free CO₂ Traps | GreenGuard USA`}
   description={`Professional CO₂ mosquito control in ${city}, TX. Pesticide-free, no contracts, all-electric fleet. Free property assessment. Call 512-560-4129.`}
   canonical={`https://www.greenguard-usa.com/mosquito-control-${entry.slug}`}
 >
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+  {faqSchema && <script slot="head" type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
 
   <!-- HERO -->
   <section class="bg-gradient-to-br from-bg-card via-bg to-accent-deep/40 py-16 px-5 text-center">
@@ -121,7 +132,16 @@ const serviceSchema = {
           What we offer in <span class="text-accent">{city}</span>
         </h2>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="card">
+          <div class="eyebrow mb-2">Starter</div>
+          <div class="text-white font-bold mb-2">Starter Trap Rental</div>
+          <p class="text-cream/70 text-sm leading-relaxed mb-4">
+            Our entry-level package: a professionally placed non-CO₂ Biogents trap with
+            attractant, maintained by us. The easiest way to start. $49.99/mo.
+          </p>
+          <a href="/traprental" class="btn-outline text-sm">See Starter Plan</a>
+        </div>
         <div class="card">
           <div class="eyebrow mb-2">CO₂ Delivery</div>
           <div class="text-white font-bold mb-2">CO₂ Tank Delivery</div>
@@ -170,6 +190,29 @@ const serviceSchema = {
       </p>
     </div>
   </section>
+
+  <!-- LOCAL FAQ -->
+  {faqs.length > 0 && (
+    <section class="py-16 px-5">
+      <div class="max-w-3xl mx-auto">
+        <div class="eyebrow mb-3 text-center">Common Questions</div>
+        <h2 class="text-2xl md:text-3xl font-black text-white mb-8 text-center">
+          Mosquito control in {city}: your questions answered
+        </h2>
+        <div class="space-y-4">
+          {faqs.map((f) => (
+            <details class="card group">
+              <summary class="text-white font-bold text-sm cursor-pointer list-none flex justify-between items-center gap-3">
+                <span>{f.q}</span>
+                <span class="text-accent flex-shrink-0 group-open:rotate-45 transition-transform">+</span>
+              </summary>
+              <p class="text-cream/75 text-sm leading-relaxed mt-3">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
 
   <!-- RELATED GUIDE -->
   <section class="py-10 px-5">
