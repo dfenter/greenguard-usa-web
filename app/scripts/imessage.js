@@ -12,7 +12,6 @@ const { normalizePhone } = require('../lib/sms')
 
 const IMESSAGE_SCRIPT = path.join(__dirname, 'imessage-send.applescript')
 const CREATE_GROUP_SCRIPT = path.join(__dirname, 'create-group-thread.applescript')
-const GROUP_NAME = 'GreenGuard USA'
 
 function runOsascript(args, timeout) {
   return new Promise((resolve, reject) => {
@@ -55,7 +54,7 @@ async function sendViaIMessage({ to, body }) {
     }
   }
   try {
-    const mode = await runOsascript([CREATE_GROUP_SCRIPT, dest, body, GROUP_NAME], 240000)
+    const mode = await runOsascript([CREATE_GROUP_SCRIPT, dest, body], 240000)
     return { ok: true, channel: 'imessage', to: dest, sid: null, mode }
   } catch (e) {
     // Creation failed (screen busy, no Accessibility, UI changed) — never drop

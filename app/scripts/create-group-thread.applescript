@@ -42,12 +42,17 @@ on clickSheetButton(btnDesc)
 end clickSheetButton
 
 on run argv
-	if (count of argv) < 3 then
-		error "usage: create-group-thread.applescript <phone,phone,...> <first message> <group name>"
+	if (count of argv) < 2 then
+		error "usage: create-group-thread.applescript <phone,phone,...> <first message> [group name]"
 	end if
 	set targetPhones to item 1 of argv
 	set messageText to item 2 of argv
-	set groupName to item 3 of argv
+	-- Group name is optional: with no 3rd arg the script just creates the
+	-- thread by sending the message and skips the rename/icon UI entirely
+	-- (per Dan 2026-08-07: "instead of changing group name and photo, just
+	-- send out the group text").
+	set groupName to ""
+	if (count of argv) ≥ 3 then set groupName to item 3 of argv
 	set oldDelims to AppleScript's text item delimiters
 	set AppleScript's text item delimiters to ","
 	set phoneList to text items of targetPhones
@@ -55,6 +60,18 @@ on run argv
 	set bodyLines to text items of messageText
 	set AppleScript's text item delimiters to oldDelims
 	if (count of phoneList) < 2 then error "need at least 2 phones for a group"
+
+	-- Normalized handles for post-send verification (participant handles are
+	-- E.164: +1XXXXXXXXXX)
+	set expectedHandles to {}
+	repeat with ph in phoneList
+		set digits to ""
+		repeat with c in (contents of ph)
+			if c is in "0123456789" then set digits to digits & c
+		end repeat
+		if (count of digits) is 10 then set digits to "1" & digits
+		set end of expectedHandles to "+" & digits
+	end repeat
 
 	tell application "Messages" to activate
 	delay 2
@@ -74,7 +91,7 @@ on run argv
 			end repeat
 			my assertFront()
 			keystroke tab
-			delay 0.5
+			delay 0.8
 			set n to count of bodyLines
 			repeat with i from 1 to n
 				my assertFront()
@@ -86,9 +103,74 @@ on run argv
 				end if
 			end repeat
 			delay 0.5
-			my assertFront()
-			keystroke return
-			delay 2.5
+			-- VERIFY the body landed in the "Message" compose field before sending
+			set bodyOK to false
+			set msgField to missing value
+			set els0 to entire contents of window 1
+			repeat with e in els0
+				try
+					if description of e is "Message" and (value of e) contains (item 1 of bodyLines) then
+						set msgField to e
+						set bodyOK to true
+						exit repeat
+					end if
+				end try
+			end repeat
+			if not bodyOK then error "BODY_NOT_TYPED: message text not found in compose field"
+			-- Send via the explicit menu command; fall back to Return in the field
+			click menu item "Send Message" of menu 1 of menu bar item "Edit" of menu bar 1
+			delay 2
+			try
+				if (value of msgField) contains (item 1 of bodyLines) then
+					-- menu send did not clear the field — press Return in it
+					set focused of msgField to true
+					delay 0.3
+					my assertFront()
+					keystroke return
+					delay 1.5
+				end if
+			end try
+		end tell
+	end tell
+
+	-- VERIFY the thread now exists (send actually happened) before touching
+	-- any rename UI — renaming without this check can hit the wrong chat.
+	set chatFound to false
+	repeat 8 times
+		tell application "Messages"
+			repeat with c in chats
+				try
+					set pl to participants of c
+					if (count of pl) is (count of expectedHandles) then
+						set matched to true
+						repeat with p in pl
+							if expectedHandles does not contain (handle of p) then
+								set matched to false
+								exit repeat
+							end if
+						end repeat
+						if matched then
+							set chatFound to true
+							exit repeat
+						end if
+					end if
+				end try
+			end repeat
+		end tell
+		if chatFound then exit repeat
+		delay 2
+	end repeat
+	if not chatFound then error "SEND_NOT_CONFIRMED: no chat with expected participants"
+	if groupName is "" then return "created-group"
+
+	tell application "System Events"
+		tell process "Messages"
+			-- Guard: the active conversation must be the new thread (its title
+			-- carries the customer number) before we rename anything.
+			set last4 to text -4 thru -1 of (item 1 of expectedHandles)
+			if (name of window 1) does not contain last4 then
+				error "WRONG_CONVERSATION: window is " & (name of window 1)
+			end if
 
 			-- Open Conversation Details (retry: popover is flaky right after a send)
 			set pop to missing value
