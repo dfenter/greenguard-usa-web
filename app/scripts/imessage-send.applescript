@@ -8,12 +8,18 @@
 -- to every number — create the group once in Messages to upgrade a customer.
 -- Exits 0 on success (stdout says which mode); nonzero with error text on
 -- stderr on failure so the caller can treat it as a failed send.
+-- Optional 3rd arg "nofallback": when no matching group thread exists, error
+-- out with NO_GROUP_THREAD instead of sending individually — lets the caller
+-- GUI-create the group thread and then not need to send at all (creation
+-- itself delivers the message).
 on run argv
 	if (count of argv) < 2 then
-		error "usage: imessage-send.applescript <phone[,phone...]> <body>"
+		error "usage: imessage-send.applescript <phone[,phone...]> <body> [nofallback]"
 	end if
 	set targetPhones to item 1 of argv
 	set messageText to item 2 of argv
+	set noFallback to false
+	if (count of argv) ≥ 3 and item 3 of argv is "nofallback" then set noFallback to true
 	set oldDelims to AppleScript's text item delimiters
 	set AppleScript's text item delimiters to ","
 	set phoneList to text items of targetPhones
@@ -42,6 +48,7 @@ on run argv
 				end if
 			end if
 		end repeat
+		if noFallback then error "NO_GROUP_THREAD"
 		-- No group thread yet: individual sends so nobody misses the message.
 		repeat with ph in phoneList
 			send messageText to participant (contents of ph) of imsg
