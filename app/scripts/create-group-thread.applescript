@@ -1,5 +1,10 @@
 -- Create a named iMessage group thread via Messages GUI automation.
 -- Usage: osascript create-group-thread.applescript "5125551234,5125556789,..." "first message" "Group Name"
+-- Also applies the most-recently-used group photo (the "Photo" suggestion in
+-- the rename sheet — currently the GreenGuard icon, kept at
+-- group-icon-greenguard.jpg in this directory for reference). If the
+-- suggestion is missing the group is still created and named, just without
+-- the icon.
 -- Requires: Accessibility permission for the calling process (System Settings >
 -- Privacy & Security > Accessibility) AND Automation permission for Messages.
 -- Messages takes over the screen while this runs — run when the Mac is idle.
@@ -55,6 +60,20 @@ on run argv
 			delay 1.5
 			set sh to sheet 1 of window 1
 			set els2 to entire contents of sh
+			-- Apply the group icon: the "Photo" suggestion is the most recently
+			-- used group photo (the GreenGuard icon).
+			set iconApplied to false
+			repeat with e in els2
+				try
+					if role of e is "AXButton" and description of e is "Photo" then
+						click e
+						set iconApplied to true
+						exit repeat
+					end if
+				end try
+			end repeat
+			delay 1
+			set els2 to entire contents of sheet 1 of window 1
 			repeat with e in els2
 				try
 					if role of e is "AXTextField" then
@@ -66,16 +85,31 @@ on run argv
 			delay 0.3
 			keystroke groupName
 			delay 0.5
-			repeat with e in els2
+			-- Click Done with retries: the sheet re-renders after the icon click
+			-- and a stale element reference can miss.
+			repeat 3 times
+				set els3 to entire contents of sheet 1 of window 1
+				repeat with e in els3
+					try
+						if role of e is "AXButton" and description of e is "Done" then
+							click e
+							exit repeat
+						end if
+					end try
+				end repeat
+				delay 1.5
 				try
-					if role of e is "AXButton" and description of e is "Done" then
-						click e
-						exit repeat
-					end if
+					get sheet 1 of window 1
+				on error
+					exit repeat
 				end try
 			end repeat
-			delay 1
+			delay 0.5
 		end tell
 	end tell
-	return "created+named: " & groupName
+	if iconApplied then
+		return "created+named+icon: " & groupName
+	else
+		return "created+named (NO icon suggestion found): " & groupName
+	end if
 end run
