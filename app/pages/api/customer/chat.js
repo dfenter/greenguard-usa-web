@@ -13,8 +13,12 @@ const { getInvoices } = require('../../../lib/stripe')
 const { getUpcomingBookingsForEmail, getPastBookingsForEmail } = require('../../../lib/gcal')
 const { sendServiceRequest } = require('../../../lib/email')
 const { runAssistant } = require('../../../lib/assistant')
+const { tryLocalChat, STARTED_BUT_FAILED_REPLY } = require('../../../lib/chat-local')
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+
+// The local (Mac daemon) path can take up to ~52s; default lambda cap is lower.
+export const config = { maxDuration: 60 }
 
 const SYSTEM_TEMPLATE = `You are the GreenGuard USA customer assistant. You help the signed-in customer with questions about their CO₂ mosquito-control service and can take two safe actions for them.
 
@@ -88,6 +92,25 @@ export default async function handler(req, res) {
 
   try {
     const ctx = await buildContext(session)
+
+    // Local-first: the Mac chat daemon (Claude CLI + richer billing tools)
+    // answers when it's up; anything that didn't start falls through to the
+    // original API path below, unchanged.
+    const local = await tryLocalChat({
+      audience: 'customer', email: session.email, message, history,
+      context: { text: ctxToText(ctx), name: ctx.name, address: ctx.address, nextVisit: ctx.nextVisit },
+    })
+    if (local) {
+      if (!local.ok) return res.status(200).json({ reply: STARTED_BUT_FAILED_REPLY, escalated: false, escalateReason: null })
+      if (!local.escalated) {
+        try {
+          const contact = await findContactByEmail(session.email).catch(() => null)
+          if (contact?.id) await addNote(contact.id, `[CHAT] Q: ${message.slice(0, 200)}\n   A: ${local.reply.slice(0, 400)}`)
+        } catch {}
+      }
+      return res.status(200).json({ reply: local.reply, escalated: local.escalated, escalateReason: local.escalateReason })
+    }
+
     const customerInfo = {
       name: ctx.name || null, email: session.email, address: ctx.address || null, systemType: ctx.systemType || null,
     }

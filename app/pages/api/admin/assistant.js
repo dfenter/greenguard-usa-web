@@ -12,8 +12,12 @@ const { findContactByEmail, findContactsByNames, tanksForCustomer } = require('.
 const { buildTankCalendarData } = require('../../../lib/tank-data')
 const { sendSms } = require('../../../lib/sms')
 const { runAssistant } = require('../../../lib/assistant')
+const { tryLocalChat, STARTED_BUT_FAILED_REPLY } = require('../../../lib/chat-local')
 
 const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
+
+// The local (Mac daemon) path can take up to ~52s; default lambda cap is lower.
+export const config = { maxDuration: 60 }
 
 const SYSTEM = `You are the GreenGuard USA operations assistant for the owner and field tech. Be terse and direct: answer the question, surface the number, name the next stop. No marketing language, no emojis, no em dashes.
 
@@ -39,6 +43,15 @@ export default async function handler(req, res) {
   const { message, history = [] } = req.body || {}
   if (!message || typeof message !== 'string') return res.status(400).json({ error: 'message required' })
   if (message.length > 2000) return res.status(400).json({ error: 'message too long' })
+
+  // Local-first: the Mac chat daemon is the FULL admin assistant (book,
+  // reschedule, cancel, invoices). This API fallback stays read-only + SMS,
+  // so mutations only ever run through the Mac's guarded tool set.
+  const local = await tryLocalChat({ audience: 'admin', email: session.email, message, history })
+  if (local) {
+    if (!local.ok) return res.status(200).json({ reply: STARTED_BUT_FAILED_REPLY, actions: [] })
+    return res.status(200).json({ reply: local.reply, actions: local.actions })
+  }
 
   const tools = [
     {

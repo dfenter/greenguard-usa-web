@@ -22,3 +22,5 @@ npm-debug.log*
 
 # appointment watcher runtime state (machine-local, written by the notify daemon)
 scripts/appointment-watcher-state.json
+scripts/chat-daemon-state.json
+scripts/funnel-setup.log

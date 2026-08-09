@@ -12,6 +12,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
     "@hubspot/api-client": "^13.5.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@sentry/nextjs": "^10.56.0",
     "@upstash/redis": "^1.38.0",
     "@vercel/blob": "^2.4.0",
@@ -30,7 +31,8 @@
     "recharts": "^3.8.1",
     "resend": "^4.0.1",
     "stripe": "^16.12.0",
-    "twilio": "^6.0.2"
+    "twilio": "^6.0.2",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@jest/globals": "^30.4.1",
