@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/vault-raiders/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Vault Raiders</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="game-shell" aria-label="Vault Raiders game">
+    <canvas id="game" aria-label="Vault Raiders game canvas"></canvas>
+    <div id="start-screen" class="screen-card">
+      <div class="eyebrow">A pocket-sized village heist</div>
+      <h1>VAULT<br><span>RAIDERS</span></h1>
+      <p>Tap once to turn on the soundboard. Your village is already live underneath.</p>
+      <button id="start-button" type="button">TAP FOR SOUND</button>
+      <div class="tiny-note">Audio is optional · no purchases · no waiting</div>
+    </div>
+    <div id="rotate-screen" class="screen-card rotate-card" aria-live="polite">
+      <div class="rotate-glyph">↻</div>
+      <h2>TURN THE PHONE</h2>
+      <p>Vault Raiders is a portrait-only operation.</p>
+    </div>
+    <div id="sr-status" class="sr-only" aria-live="polite"></div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -2,6 +2,7 @@ const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { listAllDraftInvoices, stripe } = require('../../../lib/stripe')
 const { getBookingsForDateRange, tzDayBoundsISO } = require('../../../lib/gcal')
 const { SKU_PRICES } = require('../../../lib/sku-engine')
+const { q } = require('../../../lib/db')
 
 // Window for "appointments without invoices" — how many days back to scan.
 const LOOKBACK_DAYS = 21
@@ -27,10 +28,13 @@ export default async function handler(req, res) {
 
   try {
     // Fetch drafts AND open/paid invoices (covering set) to avoid double-billing
-    const [rawDrafts, gcalBookings, allRecentInvoices] = await Promise.all([
+    const [rawDrafts, gcalBookings, allRecentInvoices, dismissedRows] = await Promise.all([
       listAllDraftInvoices(),
       getBookingsForDateRange(startISO, endISO),
       stripe.invoices.list({ limit: 100, status: 'open' }).then(r => r.data).catch(() => []),
+      q(`SELECT cal_booking_uid, customer_email, customer_name, service_date
+         FROM dismissed_appointments WHERE service_date >= $1`,
+        [startISO.slice(0, 10)]).then(r => r.rows).catch(() => []),
     ])
 
     // Also fetch recently paid invoices to mark those appointments as covered
@@ -67,8 +71,24 @@ export default async function handler(req, res) {
       if (uid) coveredByUid.add(uid)
     })
 
+    // Admin-dismissed appointments (marked "no invoice needed")
+    const dismissedByUid = new Set()
+    const dismissedByEmailDate = new Set()
+    const dismissedByNameDate = new Set()
+    dismissedRows.forEach(d => {
+      if (d.cal_booking_uid) dismissedByUid.add(d.cal_booking_uid)
+      if (d.customer_email) dismissedByEmailDate.add(`${d.customer_email.toLowerCase()}|${d.service_date}`)
+      if (d.customer_name) dismissedByNameDate.add(`${d.customer_name.toLowerCase()}|${d.service_date}`)
+    })
+
+    const isDismissed = b =>
+      (b.calBookingUid && dismissedByUid.has(b.calBookingUid)) ||
+      (b.email && dismissedByEmailDate.has(`${b.email.toLowerCase()}|${b.dateStr}`)) ||
+      (b.name && dismissedByNameDate.has(`${b.name.toLowerCase()}|${b.dateStr}`))
+
     const needsInvoice = gcalBookings.filter(b => {
       if (!b.dateStr) return false
+      if (isDismissed(b)) return false
       // Without an email, always show as needing review (can't dedup)
       if (!b.email) return true
       const dateKey = `${b.email.toLowerCase()}|${b.dateStr}`

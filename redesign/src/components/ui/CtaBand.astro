@@ -1,0 +1,47 @@
+---
+/**
+ * Dark "evening garden" pre-footer CTA band. Every page ends with one.
+ * Defaults are homepage copy; override per page. Phone stays constant.
+ */
+interface Props {
+  title?: string;
+  sub?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+const {
+  title = 'Ready to reclaim your backyard?',
+  sub = "Free property assessment. No pressure, no contracts. We'll show you what's possible.",
+  ctaLabel = 'Book Free Assessment',
+  ctaHref = '/book',
+} = Astro.props;
+---
+
+<section class="bg-night section-night relative overflow-hidden" style="color: rgba(250,247,241,.75);">
+  <!-- botanical line art, decorative -->
+  <svg
+    class="absolute pointer-events-none"
+    style="right:-4rem; bottom:-5rem; width: 30rem; opacity:.12;"
+    viewBox="0 0 200 200" fill="none" stroke="var(--sage)" stroke-width="0.8" aria-hidden="true"
+  >
+    <path d="M100 190 C 100 130, 100 90, 100 20" />
+    <path d="M100 160 C 70 150, 50 130, 46 100" />
+    <path d="M100 160 C 130 150, 150 130, 154 100" />
+    <path d="M100 120 C 76 112, 62 98, 58 74" />
+    <path d="M100 120 C 124 112, 138 98, 142 74" />
+    <path d="M100 80 C 84 74, 74 64, 70 46" />
+    <path d="M100 80 C 116 74, 126 64, 130 46" />
+  </svg>
+
+  <div class="container-x relative text-center" style="padding-top: clamp(4.5rem, 9vw, 7.5rem); padding-bottom: clamp(4.5rem, 9vw, 7.5rem);">
+    <h2
+      class="font-display text-ivory mx-auto reveal"
+      style="font-size: clamp(2rem, 4.5vw, 3.25rem); font-weight: 380; max-width: 24ch; line-height: 1.1;"
+    >{title}</h2>
+    <p class="mx-auto mt-5 reveal" style="max-width: 36rem; color: rgba(250,247,241,.62);">{sub}</p>
+    <div class="flex flex-wrap justify-center items-center gap-4 mt-9 reveal">
+      <a href={ctaHref} class="btn btn-ondark">{ctaLabel}</a>
+      <a href="tel:5125604129" class="btn btn-ghost-ondark">or text/call 512-560-4129</a>
+    </div>
+  </div>
+</section>

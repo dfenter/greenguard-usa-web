@@ -1,0 +1,343 @@
+---
+import Base from '../../layouts/Base.astro';
+import Section from '../../components/ui/Section.astro';
+import Eyebrow from '../../components/ui/Eyebrow.astro';
+import Card from '../../components/ui/Card.astro';
+import CtaBand from '../../components/ui/CtaBand.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  return posts.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const { title, description, pubDate, category } = entry.data;
+
+const formattedDate = pubDate.toLocaleDateString('en-US', {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+// Reading time from the raw markdown body (~220 wpm, floor of 2).
+const readMinutes = Math.max(2, Math.round(entry.body.split(/\s+/).length / 220));
+
+// Related posts: same category first, then most recent, never self, max 3.
+const allPosts = (await getCollection('blog', ({ data }) => !data.draft))
+  .filter((p) => p.slug !== entry.slug)
+  .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+const related = [
+  ...allPosts.filter((p) => p.data.category === category),
+  ...allPosts.filter((p) => p.data.category !== category),
+].slice(0, 3);
+
+const blogSchema = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": title,
+  "description": description,
+  "datePublished": pubDate.toISOString(),
+  "dateModified": pubDate.toISOString(),
+  "author": {
+    "@type": "Organization",
+    "name": "GreenGuard USA",
+    "url": "https://www.greenguard-usa.com"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "GreenGuard USA",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://www.greenguard-usa.com/og-image.jpg"
+    }
+  },
+  "url": `https://www.greenguard-usa.com/blog/${entry.slug}`,
+  "mainEntityOfPage": `https://www.greenguard-usa.com/blog/${entry.slug}`,
+  "articleSection": category,
+  "keywords": `mosquito control Austin TX, ${category}, GreenGuard USA`
+};
+---
+
+<Base title={`${title} | GreenGuard USA`} description={description}>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(blogSchema)} />
+
+  <!-- ============ ARTICLE HEADER ============ -->
+  <Section variant="linen" tight class="hairline-b !pt-10 md:!pt-14 !pb-10 md:!pb-14">
+    <div class="mx-auto" style="max-width: 46rem;">
+      <nav aria-label="Breadcrumb" class="text-xs mb-6" style="color: rgba(30,43,35,.5);">
+        <a href="/blog" class="no-underline hover:text-pine" style="color: rgba(30,43,35,.55);">Blog</a>
+        <span class="mx-1.5" aria-hidden="true">/</span>
+        <span>{category}</span>
+      </nav>
+      <Eyebrow>{category}</Eyebrow>
+      <h1 class="mt-5 text-ink" style="font-size: clamp(2rem, 4.5vw, 3.1rem); font-weight: 400; line-height: 1.12;">
+        {title}
+      </h1>
+      <p class="mt-5 text-soft" style="font-size: 1.1rem; line-height: 1.7;">{description}</p>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-7 text-sm" style="color: rgba(30,43,35,.55);">
+        <span class="inline-flex items-center gap-2.5 font-medium text-ink/75">
+          <span class="inline-flex items-center justify-center rounded-full flex-none" style="width: 34px; height: 34px; background: var(--pine); color: var(--paper); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;" aria-hidden="true">GG</span>
+          GreenGuard USA
+        </span>
+        <span aria-hidden="true">&middot;</span>
+        <time datetime={pubDate.toISOString()}>{formattedDate}</time>
+        <span aria-hidden="true">&middot;</span>
+        <span>{readMinutes} min read</span>
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ ARTICLE BODY ============ -->
+  <article class="bg-ivory" style="padding-top: clamp(3rem, 6vw, 5rem); padding-bottom: clamp(2rem, 4vw, 3rem);">
+    <div class="container-x">
+      <div class="prose-gg mx-auto">
+        <Content />
+      </div>
+    </div>
+  </article>
+
+  <!-- ============ INLINE EMAIL CAPTURE ============ -->
+  <Section tight>
+    <Card tone="linen" class="!p-8 md:!p-10 mx-auto max-w-[46rem]">
+      <div class="md:flex md:items-center md:gap-8">
+        <div class="flex-1">
+          <p class="eyebrow eyebrow--plain">Free Guide</p>
+          <p class="font-display mt-2 text-ink" style="font-size: 1.35rem; font-weight: 440; line-height: 1.2;">
+            The Austin Mosquito Season Guide
+          </p>
+          <p class="text-sm text-soft mt-2" style="max-width: 26rem;">
+            When the season actually starts, where traps catch the most, and what to expect in weeks one through eight.
+          </p>
+        </div>
+        <form id="article-subscribe" class="flex flex-col gap-3 mt-5 md:mt-0 md:w-64 flex-none" novalidate>
+          <label for="article-subscribe-email" class="sr-only">Email address</label>
+          <input
+            id="article-subscribe-email"
+            type="email"
+            placeholder="your@email.com"
+            autocomplete="email"
+            required
+            class="rounded-full px-5 text-[0.95rem] outline-none min-w-0"
+            style="background: var(--paper); border: 1px solid var(--hairline); color: var(--text); min-height: 48px;"
+          />
+          <button type="submit" class="btn btn-primary !text-sm">Send Me the Guide</button>
+          <p id="article-subscribe-msg" class="hidden text-xs font-medium text-center"></p>
+        </form>
+      </div>
+    </Card>
+  </Section>
+
+  <!-- ============ RELATED READING ============ -->
+  <Section variant="linen">
+    <div class="reveal">
+      <Eyebrow>Related</Eyebrow>
+      <h2 class="font-display mt-4" style="font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 400;">
+        Related articles
+      </h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10" data-stagger>
+      {related.map((post) => (
+        <div class="reveal h-full">
+          <a href={`/blog/${post.slug}`} class="block h-full no-underline group">
+            <Card tone="ivory" class="h-full flex flex-col transition-shadow group-hover:shadow-bloom">
+              <p class="eyebrow eyebrow--plain !text-xs">{post.data.category}</p>
+              <h3 class="font-display mt-3 text-ink group-hover:text-pine" style="font-size: 1.15rem; font-weight: 460; line-height: 1.28;">
+                {post.data.title}
+              </h3>
+              <p class="text-sm text-soft mt-3 flex-1" style="line-height: 1.6;">{post.data.description}</p>
+              <span class="inline-flex items-center gap-1.5 text-xs font-semibold mt-5" style="color: var(--pine);">
+                Read article
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </span>
+            </Card>
+          </a>
+        </div>
+      ))}
+    </div>
+    <div class="flex flex-wrap gap-x-6 gap-y-2 mt-10 text-sm reveal">
+      <a href="/mosquito-control-austin-texas" class="underline" style="color: var(--pine);">Mosquito Control Austin TX: Complete Guide</a>
+      <a href="/compare" class="underline" style="color: var(--pine);">CO₂ Trapping vs. Spray vs. DIY</a>
+      <a href="/blog" class="underline" style="color: var(--pine);">More Articles</a>
+    </div>
+  </Section>
+
+  <CtaBand
+    title="Ready to protect your yard?"
+    sub="Free property assessment. No pressure, no obligation."
+    ctaLabel="Book Free Assessment"
+  />
+
+  <style is:global>
+    /* Editorial reading typography for rendered markdown. is:global because
+       the content lands outside this template's scoped hash. Measure: 68ch. */
+    .prose-gg {
+      max-width: 68ch;
+      font-size: 1.0625rem;
+      line-height: 1.8;
+      color: var(--text);
+    }
+    .prose-gg > * + * { margin-top: 1.25em; }
+    .prose-gg h2 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: clamp(1.45rem, 2.6vw, 1.8rem);
+      font-weight: 440;
+      line-height: 1.22;
+      color: var(--text);
+      margin-top: 2.4em;
+      padding-top: 1.1em;
+      border-top: 1px solid var(--hairline);
+    }
+    .prose-gg h2:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+    .prose-gg h3 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 480;
+      line-height: 1.3;
+      margin-top: 1.9em;
+    }
+    .prose-gg p { color: rgba(30, 43, 35, 0.86); }
+    .prose-gg strong { font-weight: 600; color: var(--text); }
+    .prose-gg a { color: var(--pine); text-decoration: underline; text-underline-offset: 3px; }
+    .prose-gg a:hover { color: var(--moss); }
+    .prose-gg ul, .prose-gg ol { padding-left: 0.25rem; }
+    .prose-gg ul li, .prose-gg ol li {
+      position: relative;
+      padding-left: 1.6rem;
+      margin-bottom: 0.65em;
+      color: rgba(30, 43, 35, 0.86);
+      list-style: none;
+    }
+    .prose-gg ul li::before {
+      content: '';
+      position: absolute;
+      left: 0.15rem;
+      top: 0.72em;
+      width: 0.85rem;
+      height: 1px;
+      background: var(--brass);
+    }
+    .prose-gg ol { counter-reset: gg-ol; }
+    .prose-gg ol li { counter-increment: gg-ol; }
+    .prose-gg ol li::before {
+      content: counter(gg-ol) '.';
+      position: absolute;
+      left: 0;
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 480;
+      color: var(--brass-ink);
+      font-size: 0.95em;
+    }
+    .prose-gg blockquote {
+      border-left: 2px solid var(--brass);
+      padding: 0.35rem 0 0.35rem 1.4rem;
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.2rem;
+      font-weight: 380;
+      font-style: italic;
+      line-height: 1.55;
+      color: var(--moss);
+    }
+    .prose-gg blockquote p { color: inherit; }
+    .prose-gg img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 24px;
+      box-shadow: 0 1px 2px rgba(20,32,26,.08), 0 24px 64px -20px rgba(20,32,26,.28);
+      margin: 2rem auto;
+    }
+    .prose-gg hr {
+      border: none;
+      height: 1px;
+      background: var(--hairline);
+      margin: 2.5rem auto;
+      max-width: 8rem;
+    }
+    .prose-gg table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      display: block;
+      overflow-x: auto;
+    }
+    .prose-gg th {
+      text-align: left;
+      font-weight: 600;
+      color: var(--text);
+      border-bottom: 1px solid rgba(30,43,35,.25);
+      padding: 0.6rem 0.9rem 0.6rem 0;
+    }
+    .prose-gg td {
+      border-bottom: 1px solid var(--hairline);
+      padding: 0.6rem 0.9rem 0.6rem 0;
+      color: rgba(30, 43, 35, 0.82);
+      vertical-align: top;
+    }
+    .prose-gg code {
+      background: var(--paper-alt);
+      border: 1px solid var(--hairline);
+      border-radius: 6px;
+      padding: 0.1em 0.4em;
+      font-size: 0.88em;
+    }
+    /* Large opening: first paragraph reads as a lede */
+    .prose-gg > p:first-child {
+      font-size: 1.18rem;
+      line-height: 1.72;
+      color: var(--text);
+    }
+  </style>
+
+  <script>
+    // End-of-article email capture: same portal endpoint family as the footer.
+    const form = document.getElementById('article-subscribe') as HTMLFormElement | null;
+    const msg = document.getElementById('article-subscribe-msg');
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('article-subscribe-email') as HTMLInputElement | null;
+      const email = input?.value?.trim();
+      if (!email || !email.includes('@')) {
+        if (msg) {
+          msg.textContent = 'Please enter a valid email address.';
+          msg.style.color = 'var(--error)';
+          msg.classList.remove('hidden');
+        }
+        return;
+      }
+      const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      if (btn?.disabled) return;
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('https://portal.greenguard-usa.com/api/leads/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, source: 'blog_article' }),
+        });
+        if (!res.ok && res.status !== 409) throw new Error(String(res.status));
+        if (msg) {
+          msg.textContent = 'Sent! Check your inbox.';
+          msg.style.color = 'var(--success)';
+          msg.classList.remove('hidden');
+        }
+        form.reset();
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'lead_capture', { event_category: 'email', event_label: 'blog_article' });
+        }
+      } catch {
+        if (msg) {
+          msg.textContent = 'Something went wrong. Try again.';
+          msg.style.color = 'var(--error)';
+          msg.classList.remove('hidden');
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+  </script>
+</Base>

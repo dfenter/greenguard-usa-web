@@ -1,0 +1,228 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   GreenGuard USA — "Quiet Luxury Garden" foundation styles
+   Tokens live in tailwind.config.mjs; semantic vars + shared
+   component classes live here. Foundation lane owns this file.
+   ============================================================ */
+
+@layer base {
+  :root {
+    --paper: #faf7f1;      /* ivory */
+    --paper-alt: #f2ede3;  /* linen */
+    --text: #1e2b23;       /* ink */
+    --text-soft: #4a6b57;  /* moss: secondary text on light */
+    --pine: #2e4a3b;
+    --moss: #4a6b57;
+    --sage: #7c9885;
+    --brass: #b08d4c;
+    --brass-ink: #7e612b;  /* AA brass for labels on light */
+    --champagne: #e5d5b0;
+    --night: #14201a;
+    --hairline: rgba(30, 43, 35, 0.12);
+    --hairline-dark: rgba(250, 247, 241, 0.14);
+    --success: #2e6b46;
+    --error: #9c3a2e;
+  }
+
+  html {
+    @apply bg-ivory text-ink font-sans antialiased;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply min-h-screen;
+    font-size: 1.0625rem; /* 17px */
+    line-height: 1.7;
+  }
+  h1, h2, h3, .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-variation-settings: 'opsz' 72;
+    letter-spacing: -0.015em;
+  }
+  h1 { font-weight: 380; line-height: 1.06; }
+  h2 { font-weight: 420; line-height: 1.12; }
+  h3 { font-weight: 480; line-height: 1.2; }
+  a { @apply transition-colors duration-150; }
+  ::selection { background: var(--champagne); color: var(--text); }
+
+  /* Visible focus everywhere, brand-toned */
+  :focus-visible {
+    outline: 2px solid var(--moss);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  .on-dark :focus-visible, .section-night :focus-visible {
+    outline-color: var(--champagne);
+  }
+}
+
+@layer components {
+  /* ---------- layout ---------- */
+  .container-x {
+    @apply max-w-container mx-auto px-5 sm:px-8;
+  }
+  .hairline    { border-color: var(--hairline); }
+  .hairline-b  { border-bottom: 1px solid var(--hairline); }
+  .hairline-t  { border-top: 1px solid var(--hairline); }
+
+  /* ---------- eyebrow ---------- */
+  .eyebrow {
+    @apply inline-flex items-center gap-3 font-sans font-semibold uppercase;
+    font-size: 0.8125rem; /* 13px */
+    letter-spacing: 0.14em;
+    color: var(--brass-ink);
+  }
+  .eyebrow::before {
+    content: '';
+    width: 28px;
+    height: 1px;
+    background: var(--brass);
+    flex: none;
+  }
+  .eyebrow--ondark { color: var(--champagne); }
+  .eyebrow--plain::before { display: none; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full font-sans font-semibold text-[0.95rem] no-underline select-none;
+    padding: 0.875rem 1.75rem; /* py-3.5 px-7 */
+    min-height: 48px;
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease,
+                transform .2s ease, box-shadow .25s ease;
+  }
+  .btn-primary {
+    background: var(--pine);
+    color: var(--paper);
+  }
+  .btn-primary:hover {
+    background: var(--moss);
+    color: var(--paper);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(20,32,26,.10), 0 16px 48px -12px rgba(46,74,59,.45);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(30,43,35,.22);
+  }
+  .btn-ghost:hover {
+    border-color: var(--pine);
+    color: var(--pine);
+    transform: translateY(-1px);
+  }
+  .btn-ondark {
+    background: var(--champagne);
+    color: var(--night);
+  }
+  .btn-ondark:hover {
+    background: #efe3c6;
+    color: var(--night);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,.35), 0 16px 48px -10px rgba(229,213,176,.25);
+  }
+  .btn-ghost-ondark {
+    background: transparent;
+    color: var(--paper);
+    border: 1px solid var(--hairline-dark);
+  }
+  .btn-ghost-ondark:hover { border-color: var(--champagne); color: var(--champagne); }
+
+  /* ---------- card ---------- */
+  .card {
+    @apply rounded-2xl bg-ivory shadow-card;
+    border: 1px solid rgba(30, 43, 35, 0.08);
+    padding: 1.75rem;
+  }
+  .card--linen { background: var(--paper-alt); }
+  .card--night {
+    background: rgba(250,247,241,.04);
+    border-color: var(--hairline-dark);
+    box-shadow: none;
+  }
+
+  /* ---------- legacy aliases (old pages, restyled to new palette;
+       Base.astro CTA tracking also matches these selectors) ---------- */
+  .btn-gold {
+    @apply btn btn-primary;
+  }
+  .btn-outline {
+    @apply btn btn-ghost;
+  }
+}
+
+@layer utilities {
+  .text-soft { color: var(--text-soft); }
+
+  /* Oversized editorial numerals (how-it-works steps) */
+  .display-numeral {
+    font-family: 'Fraunces', Georgia, serif;
+    font-variation-settings: 'opsz' 144;
+    font-weight: 300;
+    font-size: clamp(4rem, 9vw, 7rem);
+    line-height: 0.9;
+    color: var(--sage);
+  }
+
+  /* Editorial photo frame */
+  .photo-frame {
+    @apply rounded-frame overflow-hidden;
+    box-shadow: 0 1px 2px rgba(20,32,26,.08), 0 24px 64px -20px rgba(20,32,26,.28);
+  }
+
+  /* Hero media slow zoom (14s), reduced-motion safe */
+  @keyframes gg-slow-zoom {
+    from { transform: scale(1.0); }
+    to   { transform: scale(1.06); }
+  }
+  .hero-zoom { animation: gg-slow-zoom 14s ease-out forwards; }
+}
+
+/* ============================================================
+   Reveal-on-scroll. Applied only when JS is confirmed (html.js,
+   set inline in Base) so content is never hidden without it.
+   ============================================================ */
+html.js .reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.6s cubic-bezier(.2,.6,.2,1),
+              transform 0.6s cubic-bezier(.2,.6,.2,1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+html.js .reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+/* Auto-stagger children of a [data-stagger] parent (80ms steps, set in JS) */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  html.js .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .hero-zoom { animation: none !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3.5rem;
+  z-index: 100;
+  background: var(--pine);
+  color: var(--paper);
+  padding: 0.6rem 1.1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: top .2s ease;
+}
+.skip-link:focus { top: 1rem; }

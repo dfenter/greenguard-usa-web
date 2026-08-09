@@ -1,0 +1,254 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Card from '../components/ui/Card.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+import LeadCapture from '../components/LeadCapture.astro';
+import { getCollection } from 'astro:content';
+
+const allPosts = await getCollection('blog', ({ data }) => !data.draft);
+allPosts.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+
+const featured = allPosts[0];
+const rest = allPosts.slice(1);
+
+const categories = ['Environment', 'Health and Family', 'Local Guide', 'Mosquito Science', 'Outdoor Living'] as const;
+
+function fmtDate(d: Date) {
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+---
+
+<Base
+  title="Mosquito Control Blog | GreenGuard USA"
+  description="Practical guidance on mosquito control, outdoor living, and protecting your home environment. Written for Austin homeowners."
+>
+  <!-- ============ HERO ============ -->
+  <Section variant="linen" class="hairline-b">
+    <div class="max-w-3xl">
+      <Eyebrow>GreenGuard USA</Eyebrow>
+      <h1 class="mt-5 text-ink" style="font-size: clamp(2.4rem, 5.5vw, 4rem); max-width: 16ch;">
+        Outdoor Living. Mosquito Science. <em class="italic" style="color: var(--pine); font-weight: 340;">Austin Life.</em>
+      </h1>
+      <p class="mt-6 text-soft" style="font-size: 1.1rem; max-width: 34rem; line-height: 1.75;">
+        Practical guidance on mosquito control, outdoor living, and protecting your home environment. Written for Austin homeowners who take these things seriously.
+      </p>
+    </div>
+  </Section>
+
+  {allPosts.length === 0 ? (
+    <Section>
+      <div class="text-center py-10">
+        <p class="font-display" style="font-size: 1.4rem;">Articles coming soon.</p>
+        <p class="text-soft text-sm mt-2">Check back shortly or subscribe for updates.</p>
+        <div class="mt-7"><Btn href="/contact" variant="ghost">Get Notified</Btn></div>
+      </div>
+    </Section>
+  ) : (
+    <>
+      <!-- ============ FEATURED (latest) ============ -->
+      <Section>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center reveal">
+          <a href={`/blog/${featured.slug}`} class="lg:col-span-6 block no-underline group">
+            <div class="photo-frame relative" style="aspect-ratio: 4 / 3;">
+              <img
+                src="/images/austintrail.jpg"
+                alt="Shaded greenbelt trail under live oaks in Austin, Texas"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+              />
+              <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(180deg, rgba(30,43,35,0) 55%, rgba(30,43,35,.30) 100%);"></div>
+              <span class="absolute top-5 left-5 text-[0.68rem] font-semibold uppercase rounded-full px-3 py-1" style="letter-spacing: 0.12em; background: var(--brass); color: #fff;">
+                Latest
+              </span>
+            </div>
+          </a>
+          <div class="lg:col-span-6">
+            <Eyebrow>{featured.data.category}</Eyebrow>
+            <h2 class="font-display mt-4" style="font-size: clamp(1.7rem, 3.4vw, 2.5rem); font-weight: 420; line-height: 1.15;">
+              <a href={`/blog/${featured.slug}`} class="no-underline text-ink hover:text-pine">{featured.data.title}</a>
+            </h2>
+            <p class="mt-4 text-soft" style="max-width: 32rem;">{featured.data.description}</p>
+            <p class="mt-4 text-sm" style="color: rgba(30,43,35,.5);">GreenGuard USA &middot; {fmtDate(featured.data.pubDate)}</p>
+            <div class="mt-7">
+              <Btn href={`/blog/${featured.slug}`} variant="ghost">Read article</Btn>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <!-- ============ ALL ARTICLES ============ -->
+      <Section variant="linen">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-5 reveal">
+          <div>
+            <Eyebrow>Blog</Eyebrow>
+            <h2 class="font-display mt-4" style="font-size: clamp(1.8rem, 3.6vw, 2.6rem); font-weight: 400;">
+              All articles
+            </h2>
+          </div>
+          <!-- Category filter chips -->
+          <div class="flex flex-wrap gap-2" id="blog-filter" role="group" aria-label="Filter articles by category">
+            <button type="button" data-cat="all" aria-pressed="true" class="blog-chip is-active">All</button>
+            {categories.map((c) => (
+              <button type="button" data-cat={c} aria-pressed="false" class="blog-chip">{c}</button>
+            ))}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12" id="blog-grid" data-stagger>
+          {rest.map((post) => (
+            <article class="reveal h-full" data-category={post.data.category}>
+              <a href={`/blog/${post.slug}`} class="block h-full no-underline group">
+                <Card tone="ivory" class="h-full flex flex-col transition-shadow group-hover:shadow-bloom">
+                  <p class="eyebrow eyebrow--plain !text-xs">{post.data.category}</p>
+                  <h3 class="font-display mt-3 text-ink group-hover:text-pine" style="font-size: 1.22rem; font-weight: 460; line-height: 1.25;">
+                    {post.data.title}
+                  </h3>
+                  <p class="text-sm text-soft mt-3 flex-1" style="line-height: 1.65;">{post.data.description}</p>
+                  <div class="hairline-t mt-5 pt-4 flex items-center justify-between">
+                    <span class="text-xs" style="color: rgba(30,43,35,.5);">{fmtDate(post.data.pubDate)}</span>
+                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold" style="color: var(--pine);">
+                      Read article
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
+                    </span>
+                  </div>
+                </Card>
+              </a>
+            </article>
+          ))}
+        </div>
+        <p id="blog-empty" class="hidden text-center text-soft mt-10">No articles in this category yet.</p>
+      </Section>
+
+      <!-- ============ INLINE EMAIL CAPTURE ============ -->
+      <Section tight class="hairline-b">
+        <Card tone="linen" class="!p-8 md:!p-10 max-w-3xl mx-auto text-center reveal">
+          <p class="eyebrow eyebrow--plain justify-center">Free Guide</p>
+          <h2 class="font-display mt-3" style="font-size: clamp(1.4rem, 2.6vw, 1.8rem); font-weight: 440;">
+            The Austin Mosquito Season Guide
+          </h2>
+          <p class="text-sm text-soft mt-3 mx-auto" style="max-width: 28rem;">
+            When the season actually starts, where traps catch the most, and what to expect in weeks one through eight.
+          </p>
+          <form id="blog-subscribe" class="flex flex-col sm:flex-row gap-3 mt-6 max-w-md mx-auto" novalidate>
+            <label for="blog-subscribe-email" class="sr-only">Email address</label>
+            <input
+              id="blog-subscribe-email"
+              type="email"
+              placeholder="your@email.com"
+              autocomplete="email"
+              required
+              class="flex-1 rounded-full px-5 text-[0.95rem] outline-none min-w-0"
+              style="background: var(--paper); border: 1px solid var(--hairline); color: var(--text); min-height: 48px;"
+            />
+            <button type="submit" class="btn btn-primary whitespace-nowrap !text-sm">Send Me the Guide</button>
+          </form>
+          <p id="blog-subscribe-msg" class="hidden text-sm mt-3 font-medium"></p>
+          <p class="text-xs mt-4" style="color: rgba(30,43,35,.4);">No spam. Unsubscribe anytime.</p>
+        </Card>
+      </Section>
+    </>
+  )}
+
+  <CtaBand
+    title="Ready to protect your yard?"
+    sub="Free property assessment. No pressure, no obligation."
+    ctaLabel="Book Free Assessment"
+  />
+
+  <LeadCapture />
+
+  <style>
+    .blog-chip {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 0.5rem 1rem;
+      min-height: 40px;
+      border-radius: 9999px;
+      border: 1px solid rgba(30, 43, 35, 0.18);
+      background: transparent;
+      color: var(--text-soft);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .blog-chip:hover { border-color: var(--pine); color: var(--pine); }
+    .blog-chip.is-active {
+      background: var(--pine);
+      border-color: var(--pine);
+      color: var(--paper);
+    }
+  </style>
+
+  <script>
+    // Category filter: pure show/hide, no fetches.
+    const chips = document.querySelectorAll<HTMLButtonElement>('#blog-filter .blog-chip');
+    const cards = document.querySelectorAll<HTMLElement>('#blog-grid [data-category]');
+    const empty = document.getElementById('blog-empty');
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const cat = chip.dataset.cat;
+        chips.forEach((c) => {
+          const active = c === chip;
+          c.classList.toggle('is-active', active);
+          c.setAttribute('aria-pressed', String(active));
+        });
+        let shown = 0;
+        cards.forEach((card) => {
+          const match = cat === 'all' || card.dataset.category === cat;
+          card.style.display = match ? '' : 'none';
+          if (match) shown++;
+        });
+        empty?.classList.toggle('hidden', shown > 0);
+      });
+    });
+
+    // Inline email capture: same portal endpoint family as the footer capture.
+    const form = document.getElementById('blog-subscribe') as HTMLFormElement | null;
+    const msg = document.getElementById('blog-subscribe-msg');
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('blog-subscribe-email') as HTMLInputElement | null;
+      const email = input?.value?.trim();
+      if (!email || !email.includes('@')) {
+        if (msg) {
+          msg.textContent = 'Please enter a valid email address.';
+          msg.style.color = 'var(--error)';
+          msg.classList.remove('hidden');
+        }
+        return;
+      }
+      const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      if (btn?.disabled) return;
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('https://portal.greenguard-usa.com/api/leads/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, source: 'blog_index' }),
+        });
+        if (!res.ok && res.status !== 409) throw new Error(String(res.status));
+        if (msg) {
+          msg.textContent = 'Sent! Check your inbox.';
+          msg.style.color = 'var(--success)';
+          msg.classList.remove('hidden');
+        }
+        form.reset();
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'lead_capture', { event_category: 'email', event_label: 'blog_index' });
+        }
+      } catch {
+        if (msg) {
+          msg.textContent = 'Something went wrong. Try again.';
+          msg.style.color = 'var(--error)';
+          msg.classList.remove('hidden');
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+  </script>
+</Base>

@@ -1,0 +1,15 @@
+{
+  "name": "Shout It!",
+  "short_name": "Shout It!",
+  "description": "A pass-the-device party clue game with original family-safe categories and a hidden buzzer clock.",
+  "start_url": "/play/shout-it/",
+  "scope": "/play/shout-it/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#120a2c",
+  "theme_color": "#1b1046",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

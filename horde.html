@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Horde Meridian</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="Horde Meridian: top-down auto-fire horde survival with a build draft between waves. Seeded runs.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0a0e18">
+<link rel="manifest" href="horde-manifest.json?v=1">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#0a0e18;color:#e8f0ff;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;
+    -webkit-tap-highlight-color:transparent;touch-action:none}
+  #wrap{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:20px;gap:14px;
+    background:rgba(5,8,14,.88);text-align:center;z-index:5}
+  .overlay.hidden{display:none}
+  h1{font-size:clamp(26px,7vw,52px);letter-spacing:.18em;color:#1accf2;font-weight:700}
+  .sub{font-size:clamp(11px,3vw,14px);color:#8fa2c0;line-height:1.6;max-width:34em}
+  .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+  button,.btn{font:inherit;font-size:15px;padding:12px 20px;border-radius:10px;
+    border:1px solid #2c3852;background:#141c2c;color:#e8f0ff;cursor:pointer;min-height:46px}
+  button.primary{background:#1accf2;color:#06121a;border-color:#1accf2;font-weight:700}
+  button:active{transform:translateY(1px)}
+  button[aria-pressed="true"]{border-color:#1accf2;color:#1accf2}
+  input[type=text]{font:inherit;font-size:15px;padding:11px 12px;width:9em;text-align:center;
+    border-radius:10px;border:1px solid #2c3852;background:#0d1420;color:#e8f0ff}
+  .stat{font-size:13px;color:#8fa2c0}
+  .big{font-size:clamp(20px,5vw,30px);color:#ffe633}
+
+  /* Draft */
+  #draft{position:absolute;left:0;right:0;top:0;bottom:0;z-index:4;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    padding:calc(env(safe-area-inset-top,0px) + 112px) 10px 0;pointer-events:none}
+  #draft.hidden{display:none}
+  #draftHead{pointer-events:none;font-size:13px;letter-spacing:.16em;color:#1accf2;margin-bottom:8px;
+    text-shadow:0 2px 8px #000}
+  #cards{display:flex;gap:8px;width:100%;max-width:720px;pointer-events:none}
+  .card{flex:1 1 0;pointer-events:auto;cursor:pointer;background:rgba(13,20,32,.95);
+    border:1px solid #2c3852;border-left:4px solid #1accf2;border-radius:10px;
+    padding:12px 8px;text-align:center;min-height:96px;display:flex;flex-direction:column;
+    gap:6px;justify-content:center}
+  .card:active{background:#1a2438}
+  .card .k{font-size:10px;color:#8fa2c0;letter-spacing:.1em}
+  .card .n{font-size:clamp(12px,3.4vw,16px);font-weight:700;color:#ffe633}
+  .card .d{font-size:clamp(9px,2.6vw,12px);color:#c3d0e4;line-height:1.35}
+
+  /* Virtual stick */
+  #stick{position:absolute;z-index:3;width:132px;height:132px;margin:-66px 0 0 -66px;
+    border-radius:50%;border:2px solid rgba(26,204,242,.35);background:rgba(20,28,44,.35);
+    display:none;pointer-events:none}
+  #stick.on{display:block}
+  #knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;
+    border-radius:50%;background:rgba(26,204,242,.55);border:2px solid rgba(232,240,255,.6)}
+  #hint{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+    text-align:center;font-size:11px;color:#4d5c75;z-index:2;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+
+  <div id="stick"><div id="knob"></div></div>
+  <div id="hint">drag to move &middot; auto-fire is automatic</div>
+
+  <div id="draft" class="hidden">
+    <div id="draftHead">DRAFT AN UPGRADE</div>
+    <div id="cards"></div>
+  </div>
+
+  <div id="title" class="overlay">
+    <h1>HORDE MERIDIAN</h1>
+    <div class="sub">Top-down auto-fire horde survival. Move to survive, draft a build
+      between waves. Seeded runs: the same seed always spawns the same horde.</div>
+    <div class="row">
+      <button id="seedDaily" aria-pressed="true">DAILY</button>
+      <button id="seedCustom" aria-pressed="false">SEED</button>
+      <input type="text" id="seedInput" value="12345" inputmode="numeric" disabled>
+    </div>
+    <div class="row"><button class="primary" id="startBtn">START RUN</button></div>
+    <div class="stat" id="bestLine"></div>
+    <div class="sub">Mobile: drag anywhere to move, tap a card to draft.<br>
+      Desktop: WASD / arrows to move, 1 / 2 / 3 to draft, R to restart.</div>
+  </div>
+
+  <div id="over" class="overlay hidden">
+    <h1 style="color:#e62619">RUN OVER</h1>
+    <div class="big" id="overScore"></div>
+    <div class="stat" id="overWave"></div>
+    <div class="stat" id="overKills"></div>
+    <div class="stat" id="overSeed"></div>
+    <div class="stat" id="overBest"></div>
+    <div class="row">
+      <button class="primary" id="againBtn">RUN AGAIN</button>
+      <button id="menuBtn">MENU</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===========================================================================
+   HORDE MERIDIAN - mobile web port of the UE 5.8 C++ title (C6).
+   Mechanics and tuning values are ported from /Users/lucille/horde-meridian
+   Source/HordeMeridian/*. Constant provenance is cited per block.
+   Sim is a fixed 60 Hz step; rendering never writes sim state.
+   =========================================================================== */
+
+/* ---------- Frozen contract constants (HMTypes.h) ---------- */
+const HM = {
+  MaxLiveEnemies: 24,
+  MaxLiveProjectiles: 64,
+  TargetWave: 20,
+  EnemyHealthScalingPerWaveCycle: 0.30,
+  UpgradePoolSize: 10,
+  DraftChoiceCount: 3,
+  ScorePerKill: 10,
+  ScorePerWaveSurvived: 50,
+  StreakMultiplierPerCycle: 0.4,   // architect ruling 2 (2026-07-22, Sol F5)
+  StreakWaveCycle: 5,
+  MaxStreakMultiplier: 3.0,
+  WavesForMaxStreak: 25,
+  StepHz: 60,
+  StepCap: 5,
+  WaveRngSeedXor: 0x1b873593,
+  DraftRngSeedXor: 0x9e3779b9,
+  VisualRngSeedXor: 0x2545f491,
+  PlayerMaxHealth: 100,
+  ArenaHalfExtent: 1800,
+};
+const spawnCountForWave = w => (w < 1 ? 3 : (w <= HM.TargetWave ? w + 3 : HM.MaxLiveEnemies));
+
+/* ---------- Package A constants (HMUpgradeTree.h / HMAutoFire.h / HMSurvivor.h) ---------- */
+const A = {
+  BaseDamage: 10,
+  HealthUp_Bonus: 25,
+  DamageUp_Add: 0.30,
+  FireRateUp_Add: 0.20,
+  MoveSpeedUp_Add: 0.15,
+  PierceUp_Level: 1,
+  PierceUp_DmgPerLevel: 0.25,
+  HealthRegen_PerSec: 2.0,
+  CritChance_Add: 0.10,
+  AttackRange_Add: 250.0,
+  MultiShot_Level: 1,
+  ArmorUp_Flat: 3,
+  BaseFireIntervalTicks: 30,
+  MinFireIntervalTicks: 3,
+  BaseRange: 1200.0,
+  BaseMovePerTick: 8.0,            // 480 uu/s at MoveSpeedMult 1.0
+  DraftWindowTicks: 600,
+  MaxDrawAttempts: 256,
+};
+
+/* ---------- Package B constants (HMHordeEnemy.cpp / HMEnemyProjectile.cpp / HMWaveProgression.cpp) ---------- */
+const B = {
+  RunnerSpeed: 220, RunnerContactDamage: 8, RunnerBaseHP: 20,
+  TankSpeed: 90,   TankContactDamage: 15,   TankBaseHP: 60,
+  FlyerSpeed: 260, FlyerContactDamage: 6,   FlyerBaseHP: 12,
+  ShooterSpeed: 140, ShooterBaseHP: 15,
+  ShooterPreferredRange: 900, ShooterRangeBuffer: 100,
+  ShooterFireIntervalTicks: 90, ShooterProjectileSpeed: 350, ShooterProjectileDamage: 8,
+  ContactRadius: 60, ContactCooldownTicks: 30,
+  ProjHitRadius: 50, ProjDespawnRadius: HM.ArenaHalfExtent * 1.5,
+  BetweenWaveTicks: 600,
+  ClampWaveAdvanceTicks: 1200,
+  RespawnBaseTicks: 60,
+  RespawnFloorTicks: 9,
+  SpawnRadius: 1500,
+};
+
+const ET = { Runner: 0, Shooter: 1, Flyer: 2, Tank: 3 };
+const UK = { HealthUp:0, DamageUp:1, FireRateUp:2, MoveSpeedUp:3, PierceUp:4,
+             HealthRegen:5, CritChance:6, AttackRange:7, MultiShot:8, ArmorUp:9 };
+
+/* Catalog, indexed by EHMUpgradeKind (HMUpgradeTree::BuildCatalog). */
+const CATALOG = [
+  { kind:UK.HealthUp,    mag:A.HealthUp_Bonus,     name:"Vitality",  desc:"+25 max health" },
+  { kind:UK.DamageUp,    mag:A.DamageUp_Add,       name:"Power",     desc:"+30% damage" },
+  { kind:UK.FireRateUp,  mag:A.FireRateUp_Add,     name:"Rapid Fire",desc:"+20% fire rate" },
+  { kind:UK.MoveSpeedUp, mag:A.MoveSpeedUp_Add,    name:"Swift",     desc:"+15% move speed" },
+  { kind:UK.PierceUp,    mag:A.PierceUp_Level,     name:"Pierce",    desc:"+25% per-hit damage" },
+  { kind:UK.HealthRegen, mag:A.HealthRegen_PerSec, name:"Regen",     desc:"+2 HP/sec" },
+  { kind:UK.CritChance,  mag:A.CritChance_Add,     name:"Precision", desc:"+10% critical hits (2x)" },
+  { kind:UK.AttackRange, mag:A.AttackRange_Add,    name:"Reach",     desc:"+250 targeting range" },
+  { kind:UK.MultiShot,   mag:A.MultiShot_Level,    name:"Multishot", desc:"+1 projectile per volley" },
+  { kind:UK.ArmorUp,     mag:A.ArmorUp_Flat,       name:"Armor",     desc:"-3 damage taken per hit" },
+];
+
+/* ---------- LCG (HMLcg.h): s = (s*1664525 + 1013904223) >>> 0 ---------- */
+function Lcg(seed){ this.s = seed >>> 0; }
+Lcg.prototype.next = function(){ this.s = (Math.imul(this.s, 1664525) + 1013904223) >>> 0; return this.s; };
+
+/* 8-direction move lattice (EHMMove; AHMSurvivor::MoveVector, diagonals normalized) */
+const MOVE = { None:0, N:1, NE:2, E:3, SE:4, S:5, SW:6, W:7, NW:8 };
+const INV_SQRT2 = Math.SQRT1_2;
+const MOVE_VEC = [
+  [0,0],[0,1],[INV_SQRT2,INV_SQRT2],[1,0],[INV_SQRT2,-INV_SQRT2],
+  [0,-1],[-INV_SQRT2,-INV_SQRT2],[-1,0],[-INV_SQRT2,INV_SQRT2],
+];
+/* Quantize an analog axis to 8 directions (AHMSurvivor::QuantizeToMove). */
+function quantizeToMove(x, y){
+  if (x*x + y*y < 0.25*0.25) return MOVE.None;              // dead zone
+  const oct = Math.round(Math.atan2(y, x) / (Math.PI/4));   // 0=E, CCW
+  return [MOVE.E,MOVE.NE,MOVE.N,MOVE.NW,MOVE.W,MOVE.SW,MOVE.S,MOVE.SE][((oct%8)+8)%8];
+}
+const clamp = (v,a,b) => v < a ? a : (v > b ? b : v);
+
+/* =========================================================================
+   SIM  -- one Step() == one 60 Hz tick. No wall clock, no frame delta.
+   Step order is the architect-ruled order from UHMSimDriver::Step:
+     draft pick dispatch -> survivor -> autofire -> enemies -> projectiles
+     -> waves -> draft window.
+   ========================================================================= */
+function Sim(seed){
+  this.seed = seed >>> 0;
+  this.reset();
+}
+Sim.prototype.reset = function(){
+  const s = this.seed;
+  this.waveRng  = new Lcg(s ^ HM.WaveRngSeedXor);
+  this.draftRng = new Lcg(s ^ HM.DraftRngSeedXor);
+  this.visualRng= new Lcg(s ^ HM.VisualRngSeedXor);   // cosmetic only, never sim state
+
+  this.tick = 0;
+  this.gameOver = false;
+
+  // Player (AHMSurvivor)
+  this.px = 0; this.py = 0;
+  this.facing = MOVE.S;
+  this.maxHealth = HM.PlayerMaxHealth;
+  this.prevMaxHealth = HM.PlayerMaxHealth;
+  this.health = HM.PlayerMaxHealth;
+  this.regenAcc = 0;
+  this.score = 0; this.kills = 0; this.wavesSurvived = 0; this.streak = 1.0;
+
+  // Upgrade modifiers (UHMUpgradeTree)
+  this.healthBonus = 0; this.damageMult = 1; this.fireRateMult = 1; this.moveSpeedMult = 1;
+  this.pierce = 0; this.regenPerSec = 0; this.critFraction = 0; this.rangeBonus = 0;
+  this.multiShot = 0; this.armorFlat = 0; this.pickHistory = [];
+
+  // Auto-fire (UHMAutoFire)
+  this.fireCooldown = 0; this.critAcc = 0; this.targetId = -1;
+  this.muzzleFlash = 0;                                  // render-only
+
+  // Enemy table (UHMHordeEnemy), fixed capacity
+  this.enemies = [];
+  for (let i=0;i<HM.MaxLiveEnemies;i++) this.enemies.push({id:-1,type:0,x:0,y:0,hp:1,phase:0,alive:false,hit:0});
+  this.liveEnemies = 0; this.nextEnemyId = 0;
+
+  // Projectile table (UHMEnemyProjectile)
+  this.projectiles = [];
+  for (let i=0;i<HM.MaxLiveProjectiles;i++) this.projectiles.push({id:-1,x:0,y:0,vx:0,vy:0,dmg:0,alive:false});
+  this.liveProjectiles = 0; this.nextProjId = 0;
+
+  // Wave progression (UHMWaveProgression)
+  this.wave = 0; this.waveTicks = 0; this.waveActive = false; this.clampRegime = false;
+  this.spawnedThisWave = 0; this.quotaThisWave = 0;
+  this.betweenWave = false; this.betweenWaveTicks = 0;
+  this.respawnTicks = 0; this.respawnInterval = B.RespawnBaseTicks; this.clampAdvanceTicks = 0;
+
+  // Draft (UHMUpgradeDraft)
+  this.draftOpen = false; this.draftJustOpened = false; this.draftRemaining = 0;
+  this.draftOptions = [CATALOG[0], CATALOG[1], CATALOG[2]];
+
+  // Render-only feedback
+  this.hitFlash = 0; this.lastDamageSource = -1;
+};
+
+Sim.prototype.start = function(){ this.beginWave(1); };
+
+/* --- Player step (AHMSurvivor::Step) --- */
+Sim.prototype.stepSurvivor = function(input){
+  if (input.move !== MOVE.None){
+    this.facing = input.move;
+    const v = MOVE_VEC[input.move];
+    const d = A.BaseMovePerTick * this.moveSpeedMult;
+    this.px = clamp(this.px + v[0]*d, -HM.ArenaHalfExtent, HM.ArenaHalfExtent);
+    this.py = clamp(this.py + v[1]*d, -HM.ArenaHalfExtent, HM.ArenaHalfExtent);
+  }
+  // HealthUp raises max HP and heals the granted delta.
+  this.maxHealth = HM.PlayerMaxHealth + this.healthBonus;
+  if (this.maxHealth > this.prevMaxHealth) this.health += (this.maxHealth - this.prevMaxHealth);
+  this.prevMaxHealth = this.maxHealth;
+  this.health = Math.min(this.health, this.maxHealth);
+
+  // Deterministic integer regen accumulation.
+  if (this.regenPerSec > 0 && this.health > 0 && this.health < this.maxHealth){
+    this.regenAcc += this.regenPerSec / HM.StepHz;
+    while (this.regenAcc >= 1){ this.regenAcc -= 1; this.health = Math.min(this.health+1, this.maxHealth); }
+  }
+};
+
+Sim.prototype.playerDamaged = function(damage){
+  const effective = Math.max(1, damage - this.armorFlat);   // ArmorUp = flat, min 1
+  this.health -= effective;
+  this.hitFlash = 1;
+  if (this.health <= 0) this.health = 0;
+};
+
+Sim.prototype.enemyKilled = function(){
+  this.kills++;
+  this.score += Math.round(HM.ScorePerKill * this.streak);
+};
+
+Sim.prototype.recomputeStreak = function(){
+  const maxBlocks = HM.WavesForMaxStreak / HM.StreakWaveCycle;      // 5
+  const blocks = Math.min(Math.floor(this.wavesSurvived / HM.StreakWaveCycle), maxBlocks);
+  this.streak = Math.min(HM.MaxStreakMultiplier, 1 + HM.StreakMultiplierPerCycle * blocks);
+};
+
+/* --- Auto-fire (UHMAutoFire::Step) --- */
+Sim.prototype.nearestEnemyId = function(x, y){
+  let bestId = -1, bestD = Infinity;
+  for (let i=0;i<HM.MaxLiveEnemies;i++){
+    const e = this.enemies[i];
+    if (!e.alive) continue;
+    const d = Math.hypot(x - e.x, y - e.y);
+    if (d < bestD){ bestD = d; bestId = e.id; }
+  }
+  return bestId;
+};
+Sim.prototype.enemyById = function(id){
+  for (let i=0;i<HM.MaxLiveEnemies;i++){ const e=this.enemies[i]; if (e.alive && e.id===id) return e; }
+  return null;
+};
+Sim.prototype.stepAutoFire = function(){
+  const interval = Math.max(A.MinFireIntervalTicks,
+    Math.round(A.BaseFireIntervalTicks / Math.max(0.01, this.fireRateMult)));
+
+  this.targetId = this.nearestEnemyId(this.px, this.py);
+  if (this.fireCooldown > 0){ this.fireCooldown--; return; }
+  if (this.targetId < 0) return;                      // stay ready, keep cadence
+
+  const range = A.BaseRange + this.rangeBonus;
+  const t = this.enemyById(this.targetId);
+  if (!t) return;
+  const dx = this.px - t.x, dy = this.py - t.y;
+  if (dx*dx + dy*dy > range*range) return;
+
+  const pierceMult = 1 + this.pierce * A.PierceUp_DmgPerLevel;
+  const baseHit = Math.max(1, Math.round(A.BaseDamage * this.damageMult * pierceMult));
+  const volley = 1 + Math.max(0, this.multiShot);
+  for (let p=0;p<volley;p++){
+    let dmg = baseHit;
+    this.critAcc += this.critFraction;                // deterministic crit, no RNG
+    if (this.critAcc >= 1){ this.critAcc -= 1; dmg *= 2; }
+    this.applyAutofireHit(this.targetId, dmg);
+  }
+  this.muzzleFlash = 4;
+  this.fireCooldown = interval;
+};
+Sim.prototype.applyAutofireHit = function(id, dmg){
+  const e = this.enemyById(id);
+  if (!e) return;
+  e.hp -= dmg; e.hit = 3;
+  if (e.hp <= 0){ e.alive = false; this.liveEnemies--; this.enemyKilled(); }
+};
+
+/* --- Enemies (UHMHordeEnemy::Tick) --- */
+const STEP_DT = 1 / HM.StepHz;
+Sim.prototype.meleeChase = function(e, speed, contactDamage, ignoreWalls){
+  const tx = this.px - e.x, ty = this.py - e.y;
+  const dist = Math.hypot(tx, ty);
+  if (dist > 1e-4){ e.x += (tx/dist) * speed * STEP_DT; e.y += (ty/dist) * speed * STEP_DT; }
+  if (!ignoreWalls){
+    e.x = clamp(e.x, -HM.ArenaHalfExtent, HM.ArenaHalfExtent);
+    e.y = clamp(e.y, -HM.ArenaHalfExtent, HM.ArenaHalfExtent);
+  }
+  if (e.phase > 0) e.phase--;
+  if (dist <= B.ContactRadius && e.phase <= 0){
+    this.playerDamaged(contactDamage);
+    e.phase = B.ContactCooldownTicks;
+  }
+};
+Sim.prototype.stepEnemies = function(){
+  for (let i=0;i<HM.MaxLiveEnemies;i++){
+    const e = this.enemies[i];
+    if (!e.alive) continue;
+    if (e.hit > 0) e.hit--;
+    switch (e.type){
+      case ET.Runner: this.meleeChase(e, B.RunnerSpeed, B.RunnerContactDamage, false); break;
+      case ET.Tank:   this.meleeChase(e, B.TankSpeed,   B.TankContactDamage,   false); break;
+      case ET.Flyer:  this.meleeChase(e, B.FlyerSpeed,  B.FlyerContactDamage,  true);  break;
+      case ET.Shooter: {
+        const tx = this.px - e.x, ty = this.py - e.y;
+        const dist = Math.hypot(tx, ty);
+        const dx = dist > 1e-4 ? tx/dist : 1, dy = dist > 1e-4 ? ty/dist : 0;
+        if (dist < B.ShooterPreferredRange - B.ShooterRangeBuffer){
+          e.x -= dx * B.ShooterSpeed * STEP_DT; e.y -= dy * B.ShooterSpeed * STEP_DT;
+        } else if (dist > B.ShooterPreferredRange + B.ShooterRangeBuffer){
+          e.x += dx * B.ShooterSpeed * STEP_DT; e.y += dy * B.ShooterSpeed * STEP_DT;
+        }
+        e.x = clamp(e.x, -HM.ArenaHalfExtent, HM.ArenaHalfExtent);
+        e.y = clamp(e.y, -HM.ArenaHalfExtent, HM.ArenaHalfExtent);
+        e.phase++;
+        if (e.phase >= B.ShooterFireIntervalTicks){
+          e.phase = 0;
+          this.fireProjectile(e.x, e.y, dx*B.ShooterProjectileSpeed, dy*B.ShooterProjectileSpeed,
+                              B.ShooterProjectileDamage);
+        }
+        break;
+      }
+    }
+  }
+};
+
+/* --- Projectiles (UHMEnemyProjectile::Tick) --- */
+Sim.prototype.fireProjectile = function(x,y,vx,vy,dmg){
+  for (let i=0;i<HM.MaxLiveProjectiles;i++){
+    const p = this.projectiles[i];
+    if (!p.alive){
+      p.id = this.nextProjId++; p.x=x; p.y=y; p.vx=vx; p.vy=vy; p.dmg=dmg; p.alive=true;
+      this.liveProjectiles++; return p.id;
+    }
+  }
+  return -1;                                          // at cap: never exceed 64
+};
+Sim.prototype.stepProjectiles = function(){
+  for (let i=0;i<HM.MaxLiveProjectiles;i++){
+    const p = this.projectiles[i];
+    if (!p.alive) continue;
+    p.x += p.vx * STEP_DT; p.y += p.vy * STEP_DT;
+    if (Math.hypot(p.x - this.px, p.y - this.py) <= B.ProjHitRadius){
+      this.playerDamaged(p.dmg); p.alive = false; this.liveProjectiles--; continue;
+    }
+    if (Math.hypot(p.x, p.y) > B.ProjDespawnRadius){ p.alive = false; this.liveProjectiles--; }
+  }
+};
+
+/* --- Wave progression (UHMWaveProgression) --- */
+Sim.prototype.scaledHealth = function(type, wave){
+  const base = [B.RunnerBaseHP, B.ShooterBaseHP, B.FlyerBaseHP, B.TankBaseHP][type];
+  const cycle = Math.max(0, Math.floor((wave - 1) / 10));
+  return Math.max(1, Math.round(base * Math.pow(1 + HM.EnemyHealthScalingPerWaveCycle, cycle)));
+};
+Sim.prototype.spawnEnemy = function(type, x, y, hp){
+  for (let i=0;i<HM.MaxLiveEnemies;i++){
+    const e = this.enemies[i];
+    if (!e.alive){
+      e.id = this.nextEnemyId++; e.type=type; e.x=x; e.y=y;
+      e.hp = Math.max(1, hp); e.phase = 0; e.alive = true; e.hit = 0;
+      this.liveEnemies++; return e.id;
+    }
+  }
+  return -1;                                          // at cap: never exceed 24
+};
+Sim.prototype.rollSpawn = function(wave){
+  const type = this.waveRng.next() % 4;
+  const angle = this.waveRng.next() % 360;
+  const rad = angle * Math.PI / 180;
+  return { type, x: Math.cos(rad) * B.SpawnRadius, y: Math.sin(rad) * B.SpawnRadius,
+           hp: this.scaledHealth(type, wave) };
+};
+Sim.prototype.beginWave = function(n){
+  this.wave = n; this.waveActive = true; this.waveTicks = 0;
+  this.spawnedThisWave = 0; this.quotaThisWave = spawnCountForWave(n);
+  for (let i=0;i<this.quotaThisWave;i++){
+    if (this.liveEnemies >= HM.MaxLiveEnemies) break;
+    const s = this.rollSpawn(n);
+    this.spawnEnemy(s.type, s.x, s.y, s.hp);
+    this.spawnedThisWave++;
+  }
+};
+Sim.prototype.respawnClamped = function(){
+  const s = this.rollSpawn(this.wave);
+  this.spawnEnemy(s.type, s.x, s.y, s.hp);
+};
+Sim.prototype.respawnIntervalFor = function(wave){
+  return Math.max(B.RespawnFloorTicks, B.RespawnBaseTicks - (wave - HM.TargetWave) * 2);
+};
+Sim.prototype.waveComplete = function(waveIndex){
+  // A consumes HM_WaveComplete: adopt B's wave number, advance streak, credit score.
+  this.wavesSurvived = waveIndex;
+  this.recomputeStreak();
+  this.score += Math.round(HM.ScorePerWaveSurvived * this.streak);
+  this.composeDraft();
+};
+Sim.prototype.stepWaves = function(){
+  this.waveTicks++;
+  if (this.betweenWave){
+    if (--this.betweenWaveTicks <= 0){ this.betweenWave = false; this.beginWave(this.wave + 1); }
+    return;
+  }
+  if (this.clampRegime){
+    if (this.liveEnemies < HM.MaxLiveEnemies){
+      if (--this.respawnTicks <= 0){ this.respawnClamped(); this.respawnTicks = this.respawnInterval; }
+    }
+    if (--this.clampAdvanceTicks <= 0){
+      this.waveComplete(this.wave);
+      this.wave++;
+      this.respawnInterval = this.respawnIntervalFor(this.wave);
+      this.clampAdvanceTicks = B.ClampWaveAdvanceTicks;
+      this.waveTicks = 0;
+    }
+    return;
+  }
+  if (this.waveActive && this.spawnedThisWave >= this.quotaThisWave && this.liveEnemies === 0){
+    this.waveActive = false;
+    this.waveComplete(this.wave);
+    if (this.wave >= HM.TargetWave){
+      this.clampRegime = true;
+      this.wave++;                                   // -> 21
+      this.respawnInterval = this.respawnIntervalFor(this.wave);
+      this.respawnTicks = this.respawnInterval;
+      this.clampAdvanceTicks = B.ClampWaveAdvanceTicks;
+      this.waveTicks = 0;
+      let guard = 0;
+      while (this.liveEnemies < HM.MaxLiveEnemies && guard++ < HM.MaxLiveEnemies) this.respawnClamped();
+      return;
+    }
+    this.betweenWave = true; this.betweenWaveTicks = B.BetweenWaveTicks; this.waveTicks = 0;
+  }
+};
+
+/* --- Draft (UHMUpgradeDraft) --- */
+Sim.prototype.drawDistinct = function(){
+  const out = []; let attempts = 0;
+  while (out.length < HM.DraftChoiceCount && attempts < A.MaxDrawAttempts){
+    attempts++;
+    const idx = this.draftRng.next() % HM.UpgradePoolSize;
+    if (out.indexOf(idx) === -1) out.push(idx);
+  }
+  return out;
+};
+Sim.prototype.composeDraft = function(){
+  const chosen = this.drawDistinct();
+  for (let i=0;i<HM.DraftChoiceCount;i++){
+    this.draftOptions[i] = CATALOG[i < chosen.length ? chosen[i] : i];
+  }
+  this.draftOpen = true; this.draftJustOpened = true;
+  this.draftRemaining = A.DraftWindowTicks;
+};
+Sim.prototype.applyOption = function(opt){
+  switch (opt.kind){
+    case UK.HealthUp:    this.healthBonus   += Math.round(opt.mag); break;
+    case UK.DamageUp:    this.damageMult    += opt.mag; break;
+    case UK.FireRateUp:  this.fireRateMult  += opt.mag; break;
+    case UK.MoveSpeedUp: this.moveSpeedMult += opt.mag; break;
+    case UK.PierceUp:    this.pierce        += Math.round(opt.mag); break;
+    case UK.HealthRegen: this.regenPerSec   += opt.mag; break;
+    case UK.CritChance:  this.critFraction  += opt.mag; break;
+    case UK.AttackRange: this.rangeBonus    += opt.mag; break;
+    case UK.MultiShot:   this.multiShot     += Math.round(opt.mag); break;
+    case UK.ArmorUp:     this.armorFlat     += Math.round(opt.mag); break;
+  }
+  this.pickHistory.push(opt.kind);
+};
+Sim.prototype.draftPicked = function(index){
+  if (!this.draftOpen) return;
+  const i = clamp(index|0, 0, HM.DraftChoiceCount - 1);
+  this.applyOption(this.draftOptions[i]);
+  this.draftOpen = false; this.draftJustOpened = false; this.draftRemaining = 0;
+};
+Sim.prototype.stepDraft = function(){
+  if (!this.draftOpen) return;
+  if (this.draftJustOpened){ this.draftJustOpened = false; return; }   // 600 ticks, not 599
+  if (this.draftRemaining > 0) this.draftRemaining--;
+  if (this.draftRemaining <= 0){ this.draftOpen = false; this.draftRemaining = 0; }
+};
+
+/* --- The single tick --- */
+Sim.prototype.step = function(input){
+  if (this.gameOver) return;
+  this.tick++;
+  if (input.draftPick && this.draftOpen) this.draftPicked(input.draftIndex);
+  this.stepSurvivor(input);
+  this.stepAutoFire();
+  this.stepEnemies();
+  this.stepProjectiles();
+  this.stepWaves();
+  this.stepDraft();
+  if (this.health <= 0) this.gameOver = true;
+  if (this.hitFlash > 0) this.hitFlash = Math.max(0, this.hitFlash - 0.06);
+  if (this.muzzleFlash > 0) this.muzzleFlash--;
+};
+
+/* =========================================================================
+   SAVE  -- versioned, corrupt-tolerant. A bad blob is discarded, never fatal.
+   ========================================================================= */
+const SAVE_KEY = "hordeMeridian.save.v1";
+let save = { v:1, bestScore:0, bestWave:0, bestSeed:0, runs:0 };
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const o = JSON.parse(raw);
+    if (!o || typeof o !== "object" || o.v !== 1) return;
+    save.bestScore = Number.isFinite(o.bestScore) ? (o.bestScore|0) : 0;
+    save.bestWave  = Number.isFinite(o.bestWave)  ? (o.bestWave|0)  : 0;
+    save.bestSeed  = Number.isFinite(o.bestSeed)  ? (o.bestSeed>>>0): 0;
+    save.runs      = Number.isFinite(o.runs)      ? (o.runs|0)      : 0;
+  }catch(_){ /* corrupt: keep defaults */ }
+}
+function writeSave(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(_){ /* private mode: play on */ }
+}
+loadSave();
+
+/* =========================================================================
+   RENDER  -- reads sim state, writes none.
+   Colour language matches AHMArenaHorde's ISM tints.
+   ========================================================================= */
+const COL = {
+  bg:"#0a0e18", floor:"#161d2b", grid:"#1f2839", wall:"#4d4d52",
+  player:"#e8f0ff", playerRing:"#1accf2",
+  runner:"#e62619", shooter:"#f28c0d", flyer:"#1accf2", tank:"#8c1ab3",
+  proj:"#ffe633", hud:"#e8f0ff", dim:"#8fa2c0", warn:"#e62619",
+};
+const ENEMY_COL = [COL.runner, COL.shooter, COL.flyer, COL.tank];
+const ENEMY_R   = [30, 35, 25, 45];       // uu; from the ISM scales (0.6/0.7/0.5/0.9 of 100uu)
+const ENEMY_NAME= ["RUNNER","SHOOTER","FLYER","TANK"];
+
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+let DPR = 1, CW = 0, CH = 0, scale = 0.1, camX = 0, camY = 0;
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  CW = cv.clientWidth; CH = cv.clientHeight;
+  cv.width = Math.max(1, Math.round(CW * DPR));
+  cv.height = Math.max(1, Math.round(CH * DPR));
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  // Follow camera. Short axis wants ~2400 uu of the arena (auto-fire range is 1200 uu);
+  // the long axis is capped at 4000 uu so a tall phone does not letterbox the 3600 uu
+  // arena inside a screen of dead space.
+  scale = Math.max(Math.min(CW, CH) / 2400, Math.max(CW, CH) / 4000);
+}
+window.addEventListener("resize", resize);
+
+function worldToScreen(x, y){
+  return [ CW*0.5 + (x - camX) * scale, CH*0.5 - (y - camY) * scale ];
+}
+function updateCamera(sim){
+  // Follow the player, but never show more than a screen of dead space past the walls.
+  const halfW = CW*0.5/scale, halfH = CH*0.5/scale, M = HM.ArenaHalfExtent + 260;
+  camX = halfW >= M ? 0 : clamp(sim.px, -(M - halfW), M - halfW);
+  camY = halfH >= M ? 0 : clamp(sim.py, -(M - halfH), M - halfH);
+}
+
+function drawArena(){
+  const A0 = worldToScreen(-HM.ArenaHalfExtent,  HM.ArenaHalfExtent);
+  const A1 = worldToScreen( HM.ArenaHalfExtent, -HM.ArenaHalfExtent);
+  ctx.fillStyle = COL.floor;
+  ctx.fillRect(A0[0], A0[1], A1[0]-A0[0], A1[1]-A0[1]);
+  ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let g=-HM.ArenaHalfExtent; g<=HM.ArenaHalfExtent; g+=450){
+    const a = worldToScreen(g, HM.ArenaHalfExtent), b = worldToScreen(g, -HM.ArenaHalfExtent);
+    ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]);
+    const c = worldToScreen(-HM.ArenaHalfExtent, g), d = worldToScreen(HM.ArenaHalfExtent, g);
+    ctx.moveTo(c[0],c[1]); ctx.lineTo(d[0],d[1]);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = COL.wall; ctx.lineWidth = Math.max(2, 60*scale);
+  ctx.strokeRect(A0[0], A0[1], A1[0]-A0[0], A1[1]-A0[1]);
+}
+
+function drawSim(sim){
+  ctx.fillStyle = COL.bg; ctx.fillRect(0,0,CW,CH);
+  updateCamera(sim);
+  drawArena();
+
+  // Auto-fire targeting range ring
+  const pr = worldToScreen(sim.px, sim.py);
+  ctx.strokeStyle = "rgba(26,204,242,.13)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(pr[0], pr[1], (A.BaseRange + sim.rangeBonus)*scale, 0, Math.PI*2); ctx.stroke();
+
+  // Projectiles
+  ctx.fillStyle = COL.proj;
+  for (let i=0;i<HM.MaxLiveProjectiles;i++){
+    const p = sim.projectiles[i]; if (!p.alive) continue;
+    const s = worldToScreen(p.x, p.y);
+    ctx.beginPath(); ctx.arc(s[0], s[1], Math.max(2.5, 12*scale), 0, Math.PI*2); ctx.fill();
+  }
+
+  // Enemies
+  for (let i=0;i<HM.MaxLiveEnemies;i++){
+    const e = sim.enemies[i]; if (!e.alive) continue;
+    const s = worldToScreen(e.x, e.y);
+    const r = Math.max(5, ENEMY_R[e.type]*scale);
+    ctx.fillStyle = e.hit > 0 ? "#ffffff" : ENEMY_COL[e.type];
+    if (e.type === ET.Flyer){
+      ctx.beginPath(); ctx.moveTo(s[0], s[1]-r); ctx.lineTo(s[0]+r, s[1]);
+      ctx.lineTo(s[0], s[1]+r); ctx.lineTo(s[0]-r, s[1]); ctx.closePath(); ctx.fill();
+    } else if (e.type === ET.Tank){
+      ctx.fillRect(s[0]-r, s[1]-r, r*2, r*2);
+    } else if (e.type === ET.Shooter){
+      ctx.fillRect(s[0]-r*0.8, s[1]-r*0.8, r*1.6, r*1.6);
+      ctx.strokeStyle = COL.proj; ctx.lineWidth = 1.5;
+      ctx.strokeRect(s[0]-r*0.8, s[1]-r*0.8, r*1.6, r*1.6);
+    } else {
+      ctx.beginPath(); ctx.arc(s[0], s[1], r, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // Reticle on the current auto-fire target
+  if (sim.targetId >= 0){
+    const t = sim.enemyById(sim.targetId);
+    if (t){
+      const s = worldToScreen(t.x, t.y);
+      const r = Math.max(8, ENEMY_R[t.type]*scale + 6);
+      ctx.strokeStyle = "rgba(255,230,51,.9)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(s[0], s[1], r, 0, Math.PI*2); ctx.stroke();
+      if (sim.muzzleFlash > 0){
+        ctx.strokeStyle = "rgba(255,230,51,.5)"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(pr[0], pr[1]); ctx.lineTo(s[0], s[1]); ctx.stroke();
+      }
+    }
+  }
+
+  // Player
+  const prr = Math.max(7, 30*scale);
+  ctx.fillStyle = COL.player;
+  ctx.beginPath(); ctx.arc(pr[0], pr[1], prr, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = COL.playerRing; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(pr[0], pr[1], prr + 4, 0, Math.PI*2); ctx.stroke();
+  const fv = MOVE_VEC[sim.facing];
+  ctx.strokeStyle = COL.playerRing; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(pr[0], pr[1]);
+  ctx.lineTo(pr[0] + fv[0]*prr*1.9, pr[1] - fv[1]*prr*1.9); ctx.stroke();
+
+  if (sim.hitFlash > 0){
+    ctx.fillStyle = "rgba(230,38,25," + (sim.hitFlash*0.28).toFixed(3) + ")";
+    ctx.fillRect(0,0,CW,CH);
+  }
+  drawHud(sim);
+}
+
+/* HUD: health bar, wave counter + timer, score, enemy count, multiplier badge.
+   (The ability-cooldown element was deleted by architect ruling 9.) */
+function drawHud(sim){
+  const top = 10 + (window.__safeTop || 0);
+  const px = 12, barW = Math.min(210, CW*0.5), barH = 14;
+  ctx.fillStyle = "rgba(10,14,24,.6)"; ctx.fillRect(px-4, top-4, barW+8, barH+8);
+  ctx.fillStyle = "#2a1218"; ctx.fillRect(px, top, barW, barH);
+  const frac = sim.maxHealth > 0 ? clamp(sim.health/sim.maxHealth, 0, 1) : 0;
+  ctx.fillStyle = frac > 0.35 ? "#38d977" : COL.warn;
+  ctx.fillRect(px, top, barW*frac, barH);
+  ctx.strokeStyle = "#3a4a66"; ctx.lineWidth = 1; ctx.strokeRect(px, top, barW, barH);
+
+  ctx.font = "12px ui-monospace, Menlo, monospace";
+  ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillStyle = COL.hud;
+  ctx.fillText(sim.health + " / " + sim.maxHealth, px + 2, top + barH + 6);
+
+  const waveSecs = Math.floor(sim.waveTicks / HM.StepHz);
+  ctx.fillStyle = COL.hud;
+  ctx.fillText("WAVE " + Math.max(1, sim.wave) + "   " + waveSecs + "s", px, top + barH + 24);
+  ctx.fillStyle = COL.proj;
+  ctx.fillText("SCORE " + sim.score, px, top + barH + 42);
+  ctx.fillStyle = COL.runner;
+  ctx.fillText("ENEMIES " + sim.liveEnemies, px, top + barH + 60);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = COL.flyer;
+  ctx.font = "bold 18px ui-monospace, Menlo, monospace";
+  ctx.fillText(sim.streak.toFixed(1) + "x", CW - 12, top);
+  ctx.font = "11px ui-monospace, Menlo, monospace";
+  ctx.fillStyle = COL.dim;
+  ctx.fillText("SEED " + sim.seed, CW - 12, top + 24);
+  ctx.fillText("KILLS " + sim.kills, CW - 12, top + 40);
+
+  if (sim.betweenWave && !sim.draftOpen){
+    ctx.textAlign = "center"; ctx.fillStyle = COL.dim;
+    ctx.font = "13px ui-monospace, Menlo, monospace";
+    ctx.fillText("NEXT WAVE IN " + Math.ceil(sim.betweenWaveTicks / HM.StepHz) + "s", CW*0.5, top + 8);
+  }
+}
+
+/* =========================================================================
+   INPUT  -- virtual stick (touch/pointer) + keyboard WASD/arrows, 1/2/3, R.
+   ========================================================================= */
+const input = { move: MOVE.None, draftPick: false, draftIndex: 0 };
+const keys = Object.create(null);
+let stickId = null, stickX = 0, stickY = 0, stickAxis = [0,0];
+const stickEl = document.getElementById("stick"), knobEl = document.getElementById("knob");
+const STICK_R = 56;
+
+function setStickVisual(active){
+  if (!active){ stickEl.classList.remove("on"); return; }
+  stickEl.classList.add("on");
+  stickEl.style.left = stickX + "px"; stickEl.style.top = stickY + "px";
+  knobEl.style.transform = "translate(" + (stickAxis[0]*STICK_R) + "px," + (-stickAxis[1]*STICK_R) + "px)";
+}
+function stickStart(x, y, id){
+  stickId = id; stickX = x; stickY = y; stickAxis = [0,0]; setStickVisual(true);
+}
+function stickMove(x, y){
+  let dx = x - stickX, dy = -(y - stickY);
+  const d = Math.hypot(dx, dy);
+  if (d > STICK_R){ dx = dx/d*STICK_R; dy = dy/d*STICK_R; }
+  stickAxis = [dx/STICK_R, dy/STICK_R];
+  setStickVisual(true);
+}
+function stickEnd(){ stickId = null; stickAxis = [0,0]; setStickVisual(false); }
+
+function isUiTarget(t){ return !!(t && t.closest && t.closest("button, input, .card")); }
+
+cv.addEventListener("touchstart", ev => {
+  if (isUiTarget(ev.target)) return;
+  ev.preventDefault();
+  const t = ev.changedTouches[0];
+  if (stickId === null) stickStart(t.clientX, t.clientY, t.identifier);
+}, {passive:false});
+cv.addEventListener("touchmove", ev => {
+  ev.preventDefault();
+  for (const t of ev.changedTouches) if (t.identifier === stickId) stickMove(t.clientX, t.clientY);
+}, {passive:false});
+function touchDone(ev){
+  for (const t of ev.changedTouches) if (t.identifier === stickId) stickEnd();
+}
+cv.addEventListener("touchend", touchDone, {passive:false});
+cv.addEventListener("touchcancel", touchDone, {passive:false});
+
+cv.addEventListener("mousedown", ev => { stickStart(ev.clientX, ev.clientY, "mouse"); });
+window.addEventListener("mousemove", ev => { if (stickId === "mouse") stickMove(ev.clientX, ev.clientY); });
+window.addEventListener("mouseup", () => { if (stickId === "mouse") stickEnd(); });
+
+window.addEventListener("keydown", ev => {
+  keys[ev.key.toLowerCase()] = true;
+  const k = ev.key;
+  if (k === "1" || k === "2" || k === "3"){ pickDraft(parseInt(k,10) - 1); }
+  if (k.toLowerCase() === "r" && state !== "playing"){ startRun(currentSeed); }
+  if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].indexOf(k) >= 0) ev.preventDefault();
+});
+window.addEventListener("keyup", ev => { keys[ev.key.toLowerCase()] = false; });
+
+function keyboardAxis(){
+  let x = 0, y = 0;
+  if (keys["a"] || keys["arrowleft"])  x -= 1;
+  if (keys["d"] || keys["arrowright"]) x += 1;
+  if (keys["w"] || keys["arrowup"])    y += 1;
+  if (keys["s"] || keys["arrowdown"])  y -= 1;
+  return [x, y];
+}
+function sampleInput(){
+  let ax = stickAxis[0], ay = stickAxis[1];
+  const k = keyboardAxis();
+  if (k[0] !== 0 || k[1] !== 0){ const n = Math.hypot(k[0],k[1]); ax = k[0]/n; ay = k[1]/n; }
+  if (autopilot && sim && !sim.gameOver){ const p = autopilotAxis(sim); ax = p[0]; ay = p[1]; }
+  input.move = quantizeToMove(ax, ay);
+  return input;
+}
+
+/* =========================================================================
+   AUTOPILOT  -- scripted flee-kite policy, the same shape as the UE
+   TraceGate/SolverGate bot policy. Drives the REAL input path.
+   ========================================================================= */
+const PICK_PRIORITY = [UK.HealthUp, UK.ArmorUp, UK.DamageUp, UK.FireRateUp, UK.HealthRegen,
+                       UK.MultiShot, UK.PierceUp, UK.CritChance, UK.MoveSpeedUp, UK.AttackRange];
+function autopilotAxis(s){
+  let fx = 0, fy = 0;
+  for (let i=0;i<HM.MaxLiveEnemies;i++){
+    const e = s.enemies[i]; if (!e.alive) continue;
+    const dx = s.px - e.x, dy = s.py - e.y, d = Math.max(1, Math.hypot(dx,dy));
+    if (d < 800){ const w = (800 - d) / 800; fx += (dx/d)*w; fy += (dy/d)*w; }
+  }
+  for (let i=0;i<HM.MaxLiveProjectiles;i++){
+    const p = s.projectiles[i]; if (!p.alive) continue;
+    const dx = s.px - p.x, dy = s.py - p.y, d = Math.max(1, Math.hypot(dx,dy));
+    if (d < 420){ const w = (420 - d)/420 * 1.6; fx += (dx/d)*w; fy += (dy/d)*w; }
+  }
+  // Stay off the walls: bias back toward the centre near the bounds.
+  const edge = HM.ArenaHalfExtent - 400;
+  if (Math.abs(s.px) > edge) fx += (s.px > 0 ? -1 : 1) * 1.4;
+  if (Math.abs(s.py) > edge) fy += (s.py > 0 ? -1 : 1) * 1.4;
+  const m = Math.hypot(fx, fy);
+  if (m < 1e-3) return [0, 0];
+  return [fx/m, fy/m];
+}
+function autopilotDraftIndex(s){
+  let best = 0, bestRank = 99;
+  for (let i=0;i<HM.DraftChoiceCount;i++){
+    const rank = PICK_PRIORITY.indexOf(s.draftOptions[i].kind);
+    if (rank < bestRank){ bestRank = rank; best = i; }
+  }
+  return best;
+}
+
+/* =========================================================================
+   FLOW  -- title / playing / over, plus the draft overlay.
+   ========================================================================= */
+let sim = null, state = "title", currentSeed = 12345, seedMode = "daily";
+let acc = 0, lastT = 0, rafId = 0;
+let autopilot = false, turbo = 1;
+
+const el = id => document.getElementById(id);
+const titleEl = el("title"), overEl = el("over"), draftEl = el("draft"), cardsEl = el("cards");
+
+function dailySeed(){
+  const d = new Date();
+  return (d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate()) >>> 0;
+}
+function refreshBest(){
+  el("bestLine").textContent = save.bestScore > 0
+    ? "BEST  " + save.bestScore + " pts  ·  wave " + save.bestWave + "  ·  seed " + save.bestSeed
+    : "no runs recorded yet";
+}
+function setSeedMode(mode){
+  seedMode = mode;
+  el("seedDaily").setAttribute("aria-pressed", mode === "daily");
+  el("seedCustom").setAttribute("aria-pressed", mode === "custom");
+  el("seedInput").disabled = (mode !== "custom");
+  if (mode === "daily") el("seedInput").value = String(dailySeed());
+}
+
+function renderDraftCards(s){
+  cardsEl.innerHTML = "";
+  for (let i=0;i<HM.DraftChoiceCount;i++){
+    const o = s.draftOptions[i];
+    const d = document.createElement("div");
+    d.className = "card"; d.dataset.index = String(i);
+    d.innerHTML = '<div class="k">' + (i+1) + '</div><div class="n"></div><div class="d"></div>';
+    d.querySelector(".n").textContent = o.name;
+    d.querySelector(".d").textContent = o.desc;
+    d.addEventListener("click", ev => { ev.preventDefault(); pickDraft(i); });
+    cardsEl.appendChild(d);
+  }
+}
+let draftShownFor = -1;
+function syncDraftUi(s){
+  if (s.draftOpen){
+    if (draftShownFor !== s.wavesSurvived){ draftShownFor = s.wavesSurvived; renderDraftCards(s); }
+    el("draftHead").textContent = "DRAFT AN UPGRADE  ·  " + Math.ceil(s.draftRemaining / HM.StepHz) + "s";
+    draftEl.classList.remove("hidden");
+  } else {
+    draftEl.classList.add("hidden");
+  }
+}
+function pickDraft(index){
+  if (!sim || state !== "playing" || !sim.draftOpen) return;
+  input.draftPick = true; input.draftIndex = index;
+}
+
+function startRun(seed){
+  currentSeed = seed >>> 0;
+  sim = new Sim(currentSeed);
+  sim.start();
+  state = "playing";
+  draftShownFor = -1;
+  input.draftPick = false; input.move = MOVE.None;
+  titleEl.classList.add("hidden"); overEl.classList.add("hidden");
+  acc = 0; lastT = performance.now();
+}
+function endRun(){
+  state = "over";
+  draftEl.classList.add("hidden");
+  stickEnd();
+  save.runs++;
+  if (sim.score > save.bestScore){
+    save.bestScore = sim.score; save.bestWave = sim.wavesSurvived; save.bestSeed = sim.seed;
+  }
+  writeSave();
+  el("overScore").textContent = sim.score + " PTS";
+  el("overWave").textContent  = "waves survived  " + sim.wavesSurvived;
+  el("overKills").textContent = "kills  " + sim.kills + "  ·  streak  " + sim.streak.toFixed(1) + "x";
+  el("overSeed").textContent  = "seed  " + sim.seed;
+  el("overBest").textContent  = "best  " + save.bestScore + " pts (wave " + save.bestWave + ")";
+  overEl.classList.remove("hidden");
+}
+
+function frame(now){
+  rafId = requestAnimationFrame(frame);
+  if (state === "playing" && sim){
+    const stepDur = 1000 / HM.StepHz;
+    if (turbo > 1){
+      for (let i=0;i<turbo && !sim.gameOver;i++){ sim.step(sampleInput()); input.draftPick = false; }
+    } else {
+      let dt = now - lastT;
+      if (dt > 250) dt = 250;                      // tab-switch guard
+      acc += dt;
+      let steps = 0;
+      while (acc >= stepDur && steps < HM.StepCap){ // fixed step, cap 5
+        sim.step(sampleInput());
+        input.draftPick = false;
+        acc -= stepDur; steps++;
+      }
+      // Remainder carries (contract determinism rule), but never unbounded: a long
+      // stall cannot bank more than one full cap's worth of catch-up steps.
+      if (acc > stepDur * HM.StepCap) acc = stepDur * HM.StepCap;
+    }
+    lastT = now;
+    // Autopilot commits its draft pick through the same latch a tap uses.
+    if (autopilot && sim.draftOpen && !input.draftPick) pickDraft(autopilotDraftIndex(sim));
+    syncDraftUi(sim);
+    if (sim.gameOver) endRun();
+  } else {
+    lastT = now;
+  }
+  if (sim) drawSim(sim); else { ctx.fillStyle = COL.bg; ctx.fillRect(0,0,CW,CH); }
+}
+
+/* ---------- Wiring ---------- */
+el("seedDaily").addEventListener("click", () => setSeedMode("daily"));
+el("seedCustom").addEventListener("click", () => { setSeedMode("custom"); el("seedInput").focus(); });
+el("startBtn").addEventListener("click", () => {
+  const raw = parseInt(el("seedInput").value, 10);
+  startRun(Number.isFinite(raw) ? (raw >>> 0) : dailySeed());
+});
+el("againBtn").addEventListener("click", () => startRun(currentSeed));
+el("menuBtn").addEventListener("click", () => {
+  state = "title"; sim = null; overEl.classList.add("hidden");
+  refreshBest(); titleEl.classList.remove("hidden");
+});
+
+/* URL params: seed, autopilot, turbo, autostart (used by the verification harness). */
+(function boot(){
+  const q = new URLSearchParams(location.search);
+  autopilot = q.get("autopilot") === "1";
+  turbo = Math.max(1, Math.min(240, parseInt(q.get("turbo") || "1", 10) || 1));
+  const qs = parseInt(q.get("seed") || "", 10);
+  setSeedMode(Number.isFinite(qs) ? "custom" : "daily");
+  if (Number.isFinite(qs)) el("seedInput").value = String(qs >>> 0);
+  refreshBest();
+  resize();
+  rafId = requestAnimationFrame(frame);
+  if (q.get("autostart") === "1" || autopilot){
+    startRun(Number.isFinite(qs) ? (qs >>> 0) : dailySeed());
+  }
+})();
+
+/* Test/debug surface. Read-only observation plus the same entry points the UI uses. */
+window.__HORDE = {
+  get sim(){ return sim; },
+  get state(){ return state; },
+  get save(){ return save; },
+  startRun, pickDraft,
+  reloadSave: loadSave,
+  // Determinism probe: a fresh Sim driven by the scripted flee-kite policy for
+  // exactly N ticks, no wall clock involved. Same shape as the UE GenGate check.
+  determinismProbe(seed, ticks){
+    const s = new Sim(seed >>> 0); s.start();
+    const inp = { move: MOVE.None, draftPick: false, draftIndex: 0 };
+    for (let i = 0; i < ticks && !s.gameOver; i++){
+      const a = autopilotAxis(s);
+      inp.move = quantizeToMove(a[0], a[1]);
+      inp.draftPick = s.draftOpen;
+      inp.draftIndex = s.draftOpen ? autopilotDraftIndex(s) : 0;
+      s.step(inp);
+    }
+    return { tick:s.tick, wave:s.wave, score:s.score, kills:s.kills,
+             px:s.px.toFixed(6), py:s.py.toFixed(6), hp:s.health,
+             picks:s.pickHistory.join(','), live:s.liveEnemies, proj:s.liveProjectiles };
+  },
+  constants: { HM, A, B, CATALOG },
+};
+</script>
+</body>
+</html>

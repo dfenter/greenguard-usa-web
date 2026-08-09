@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/dirt-rocket/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#12161f">
+<title>Dirt Rocket</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#0d1016;overflow:hidden;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+  #wrap{position:fixed;inset:0;touch-action:none;overscroll-behavior:none;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+  #rot{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    flex-direction:column;gap:14px;background:rgba(9,11,16,.94);color:#e8eef7;z-index:9;
+    text-align:center;padding:24px;}
+  #rot.on{display:flex;}
+  #rot .ph{width:52px;height:86px;border:3px solid #ffb03a;border-radius:9px;
+    animation:tw 1.6s ease-in-out infinite;}
+  @keyframes tw{0%,40%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
+  #rot b{font-size:19px;letter-spacing:.06em}
+  #rot span{font-size:13px;opacity:.6}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="rot"><div class="ph"></div><b>ROTATE YOUR PHONE</b><span>Dirt Rocket runs in landscape</span></div>
+<script src="track.js"></script>
+<script src="bike.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

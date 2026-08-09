@@ -1,0 +1,78 @@
+---
+import { getLatestReviews, getReviewMeta } from '../lib/reviews';
+import Eyebrow from './ui/Eyebrow.astro';
+import Card from './ui/Card.astro';
+import Stars from './ui/Stars.astro';
+
+interface Props {
+  /** section background: 'linen' (default) or 'ivory'; cards invert automatically */
+  variant?: 'linen' | 'ivory';
+  /** legacy prop from the old design; ignored */
+  bg?: string;
+  eyebrow?: string;
+  title?: string;
+}
+const { variant = 'linen', eyebrow = 'What Customers Say', title } = Astro.props;
+
+const reviews = getLatestReviews(3);
+const meta = getReviewMeta();
+// Original site heading: "{rating}★ on Google"
+const heading = title ?? `${meta.averageRating}★ on Google`;
+const reviewUrl = 'https://g.page/r/CW33u4YWYh17EAE/review';
+
+// Truncate at a word boundary, never mid-word.
+function excerpt(text: string, limit = 240): string {
+  if (text.length <= limit) return text;
+  const cut = text.slice(0, limit);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[,.;:]$/, '') + '…';
+}
+---
+
+<section class:list={[variant === 'linen' ? 'bg-linen' : 'bg-ivory', 'text-ink']} style="padding-top: clamp(4rem, 9vw, 8rem); padding-bottom: clamp(4rem, 9vw, 8rem);">
+  <div class="container-x">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12 reveal">
+      <div>
+        <Eyebrow>{eyebrow}</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 400;">
+          {heading}
+        </h2>
+        <p class="mt-3 text-soft text-sm md:text-base">
+          Real reviews from Austin homeowners reclaiming their backyards.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <Stars rating={meta.averageRating} size={18} />
+        <span class="text-soft text-sm">
+          <strong class="text-ink font-semibold">{Number(meta.averageRating).toFixed(1)}</strong> on Google &middot; {meta.totalReviews} reviews
+        </span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" data-stagger>
+      {reviews.map((r) => (
+        <div class="reveal">
+          <Card tone={variant === 'linen' ? 'ivory' : 'linen'} class="flex flex-col h-full">
+            <Stars rating={r.rating} size={14} />
+            <p class="flex-1 mt-4 mb-6" style="font-size: 0.97rem; line-height: 1.75; color: var(--text);">
+              &ldquo;{excerpt(r.text)}&rdquo;
+            </p>
+            <div class="hairline-t pt-4 flex justify-between items-center">
+              <div>
+                <div class="font-semibold text-sm">{r.author}</div>
+                <div class="text-xs text-soft">Verified Customer</div>
+              </div>
+              <span class="text-[0.65rem] uppercase" style="letter-spacing: 0.14em; color: var(--brass-ink);">Google</span>
+            </div>
+          </Card>
+        </div>
+      ))}
+    </div>
+
+    <div class="text-center mt-12 reveal">
+      <a href={reviewUrl} class="btn btn-ghost" target="_blank" rel="noopener">
+        Read all {meta.totalReviews} reviews
+      </a>
+    </div>
+  </div>
+</section>

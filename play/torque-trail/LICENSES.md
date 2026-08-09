@@ -1,0 +1,40 @@
+# Torque Trail asset licenses
+
+All shipped files are curated from sources listed in `/play/_assets/LEDGER.md`. Engine files are loaded from `/play/_shared/` and are not copied into this title.
+
+## Vehicle
+
+- `assets/cars/SUV.obj`
+- `assets/cars/SUV.mtl`
+
+Source: Quaternius Cars Pack, `https://quaternius.com/packs/cars.html`.
+License: CC0 1.0 Universal, `https://creativecommons.org/publicdomain/zero/1.0/`.
+The source pack includes license evidence in `worker-archive/studio-assets/quaternius-cars/License.txt`.
+
+## Music
+
+- `assets/music/quiet-range.mp3` is a 24-second mono MP3 cut from `calm_Relaxing_0.mp3`, titled Calm Loop by wipics.
+- `assets/music/open-trail.mp3` is a 24-second mono MP3 cut from `driving_001_Synthwave_4k_0.mp3`, titled Calm Ambient 1 (Synthwave 4k) by cynicmusic.
+
+Source: OpenGameArt music harvest, `worker-archive/studio-assets/web2d/music/LICENSE.txt`.
+License: CC0 per the source records. Source pages are `https://opengameart.org/content/calm-loop` and `https://opengameart.org/content/calm-ambient-1-synthwave-4k`.
+Transcode: `ffmpeg -ac 1 -c:a libmp3lame -b:a 96k`.
+
+## Sound effects
+
+- `assets/sfx/click.mp3`, `confirm.mp3`, `back.mp3`, `open.mp3`, `drop.mp3`, and `select.mp3` are curated from Kenney Interface Sounds.
+- `assets/sfx/winch.mp3`, `mud.mp3`, `wood.mp3`, and `payout.mp3` are curated from Kenney Impact Sounds.
+
+Source: `https://kenney.nl/assets/interface-sounds` and `https://kenney.nl/assets/impact-sounds`.
+License: CC0 1.0 Public Domain. Source evidence is recorded in `worker-archive/studio-assets/web2d/interface-sounds/LICENSE.txt` and `worker-archive/studio-assets/web2d/impact-sounds/LICENSE.txt`.
+Transcode: `ffmpeg -ac 1 -c:a libmp3lame -b:a 96k`.
+
+## Icons
+
+- `icon.png` and `icon512.png` are internal GreenGuard PWA marks resized from the repository smoke-test icon. No third-party content is introduced.
+
+## Engine and kit
+
+- Three.js r160.1 is loaded from `/play/_shared/three/three.module.min.js` under its MIT license.
+- `OBJLoader.js` is loaded from `/play/_shared/three/OBJLoader.js` under the Three.js MIT license.
+- `ggkit.js` is loaded from `/play/_shared/ggkit.js` as original GreenGuard studio code.

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#08222e">
+<meta name="description" content="Driftlands: a top-down island adventure. Roam a procedural isle, clear three hidden gauntlets, upgrade your gear and wake the sealed ruin.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/driftlands/">
+<title>Driftlands</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    background: #08222e; overflow: hidden; overscroll-behavior: none;
+    color-scheme: dark;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  #game-root { position: fixed; inset: 0; touch-action: none; }
+  #game-root canvas { display: block; touch-action: none; }
+  #inset-probe {
+    position: fixed; left: 0; top: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+</style>
+</head>
+<body>
+<div id="inset-probe"></div>
+<div id="game-root"></div>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="art.js"></script>
+<script src="world.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -14,7 +14,7 @@
     { "source": "/mosquito-bucket-of-doom-instructions", "destination": "/product-bucket-of-doom", "permanent": true },
     { "source": "/co2-mosquito-trap-placement",          "destination": "/trapplacement",          "permanent": true },
 
-    { "source": "/shop",                                 "destination": "https://portal.greenguard-usa.com/admin/quote", "permanent": true }
+    { "source": "/mosquito-control-austin",              "destination": "/mosquito-control-austin-texas", "permanent": false }
   ],
   "headers": [
     {

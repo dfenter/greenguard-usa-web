@@ -1,0 +1,35 @@
+---
+/**
+ * Page section with vertical rhythm + contained content.
+ * variant: 'ivory' (default) | 'linen' | 'night'
+ * tight:   reduced vertical padding (strips, banners)
+ * flush:   omit the inner .container-x (bring your own layout)
+ */
+interface Props {
+  variant?: 'ivory' | 'linen' | 'night';
+  id?: string;
+  class?: string;
+  tight?: boolean;
+  flush?: boolean;
+}
+const { variant = 'ivory', id, class: className = '', tight = false, flush = false } = Astro.props;
+
+const bg = {
+  ivory: 'bg-ivory text-ink',
+  linen: 'bg-linen text-ink',
+  night: 'bg-night section-night',
+}[variant];
+---
+
+<section
+  id={id}
+  class:list={[bg, tight ? 'section-pad-tight' : 'section-pad', className]}
+  style={variant === 'night' ? 'color: rgba(250,247,241,.78);' : undefined}
+>
+  {flush ? <slot /> : <div class="container-x"><slot /></div>}
+</section>
+
+<style>
+  .section-pad { padding-top: clamp(4rem, 9vw, 8rem); padding-bottom: clamp(4rem, 9vw, 8rem); }
+  .section-pad-tight { padding-top: clamp(2rem, 4vw, 3.25rem); padding-bottom: clamp(2rem, 4vw, 3.25rem); }
+</style>

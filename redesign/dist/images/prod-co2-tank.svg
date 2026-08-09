@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="20 lb CO2 tank">
+  <rect width="400" height="400" fill="#1a2e1f"/>
+  <!-- shadow -->
+  <ellipse cx="200" cy="358" rx="84" ry="10" fill="#000" opacity="0.35"/>
+  <!-- cylinder body -->
+  <defs>
+    <linearGradient id="alu" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#5a6e74"/>
+      <stop offset="0.45" stop-color="#c2cdd1"/>
+      <stop offset="0.55" stop-color="#c2cdd1"/>
+      <stop offset="1" stop-color="#5a6e74"/>
+    </linearGradient>
+  </defs>
+  <rect x="130" y="120" width="140" height="240" rx="10" fill="url(#alu)"/>
+  <!-- top dome -->
+  <path d="M130 130 Q200 88 270 130 Z" fill="url(#alu)"/>
+  <!-- neck -->
+  <rect x="184" y="78" width="32" height="20" fill="#3b4a4f"/>
+  <!-- valve -->
+  <rect x="172" y="58" width="56" height="24" rx="4" fill="#c9a84c"/>
+  <rect x="196" y="42" width="8" height="20" fill="#c9a84c"/>
+  <circle cx="200" cy="40" r="10" fill="#c9a84c"/>
+  <!-- handle hole -->
+  <ellipse cx="200" cy="72" rx="12" ry="4" fill="#0d1a10"/>
+  <!-- label panel -->
+  <rect x="146" y="180" width="108" height="120" rx="6" fill="#0d1a10" opacity="0.85"/>
+  <text x="200" y="220" text-anchor="middle" fill="#7dffaa" font-family="ui-sans-serif,system-ui,sans-serif" font-size="22" font-weight="900">CO₂</text>
+  <text x="200" y="252" text-anchor="middle" fill="#d4e6ca" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14" font-weight="800" letter-spacing="2">20 LB</text>
+  <text x="200" y="278" text-anchor="middle" fill="#7aab82" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" font-weight="700">DOT CERTIFIED</text>
+</svg>

@@ -1,0 +1,1 @@
+- aetherfall: screenshot suggests layout computed from load-time innerWidth (headless 500px artifact); verify resize/orientation re-check in batch-B QA review

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/fallline/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#101820">
+  <title>FALLLINE</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="game" aria-label="Fallline mobile battle royale">
+    <canvas id="playfield"></canvas>
+
+    <section id="hud" aria-live="polite">
+      <div class="hud-card left-card">
+        <div class="brand">FALLLINE <span>RUN 02</span></div>
+        <div id="aliveReadout">24 ALIVE</div>
+        <div class="health-row"><i id="healthBar"></i><i id="shieldBar"></i></div>
+        <div class="health-label"><span id="healthReadout">100</span> HP <span id="shieldReadout">0</span> ARMOR</div>
+      </div>
+      <div class="hud-card storm-card">
+        <div id="stormReadout">STORM PHASE 1/4</div>
+        <strong id="stormTimer">COLLAPSES 00:48</strong>
+        <div id="matchTimer">04:00</div>
+      </div>
+      <div class="hud-card right-card">
+        <div id="weaponReadout">RIVET PISTOL</div>
+        <div class="ammo"><strong id="ammoReadout">12</strong><span id="reserveReadout">/ 48</span></div>
+        <div id="medReadout">MEDKITS 0</div>
+      </div>
+      <div id="feed" aria-live="polite"></div>
+      <div id="reticle" aria-hidden="true"></div>
+      <div id="interactPrompt">INTERACT</div>
+      <p id="hint">MOVE • INTERACT TO LOOT • FIRE AUTO-AIMS NEAREST THREAT</p>
+    </section>
+
+    <div id="controls" aria-label="Touch controls">
+      <div id="stick" class="control stick-control" aria-label="Move stick">
+        <span class="stick-ring"></span><span id="stickKnob"></span>
+      </div>
+      <button id="interact" class="control interact-control" type="button">E</button>
+      <button id="fire" class="control fire-control" type="button">FIRE</button>
+    </div>
+
+    <div id="audioOverlay" class="modal audio-modal">
+      <div class="modal-panel">
+        <div class="eyebrow">LIVE DROP</div>
+        <h1>FALLLINE</h1>
+        <p>Tap once to arm audio.<br><small>The match is already live.</small></p>
+        <button id="audioButton" type="button">TAP TO ARM</button>
+      </div>
+    </div>
+
+    <div id="rotateOverlay" class="modal rotate-modal" aria-hidden="true">
+      <div class="modal-panel">
+        <div class="phone-icon">↻</div>
+        <h2>TURN YOUR PHONE</h2>
+        <p>Fallline pauses here.<br>Return to portrait to resume.</p>
+      </div>
+    </div>
+
+    <div id="resultOverlay" class="modal result-modal" aria-hidden="true">
+      <div class="modal-panel">
+        <div id="resultEyebrow" class="eyebrow">RUN COMPLETE</div>
+        <h2 id="resultTitle">RUN ENDED</h2>
+        <p id="resultCopy"></p>
+        <div class="result-stats">
+          <div><span>PLACEMENT</span><strong id="placementReadout">#24</strong></div>
+          <div><span>ELIMINATIONS</span><strong id="killsReadout">0</strong></div>
+          <div><span>RUN TIME</span><strong id="timeReadout">00:00</strong></div>
+        </div>
+        <button id="requeue" type="button">REQUEUE</button>
+        <p class="persisted">CAREER <span id="careerReadout">0 WINS · 0 KILLS</span></p>
+      </div>
+    </div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -15,6 +15,22 @@ const Sound = (() => {
     } catch (e) { ctx = null; }
   }
 
+  // Mobile browsers (iOS Safari especially) start every AudioContext suspended and
+  // only allow resume() from inside a real user-gesture handler. Engine calls this
+  // synchronously on the first touch/pointer/key event so the game is never silent.
+  function unlock() {
+    ensure();
+    if (!ctx) return false;
+    try {
+      if (ctx.state === 'suspended') ctx.resume();
+      // iOS additionally wants one buffer actually played inside the gesture.
+      const b = ctx.createBuffer(1, 1, 22050);
+      const s = ctx.createBufferSource();
+      s.buffer = b; s.connect(ctx.destination); s.start(0);
+    } catch (e) { return false; }
+    return ctx.state !== 'suspended';
+  }
+
   function blip(freq, dur, type='square', vol=0.5) {
     if (muted) return;
     ensure(); if (!ctx) return;
@@ -169,5 +185,5 @@ const Sound = (() => {
 
   return { TRACKS, SFX, blip, sweep, playTrack, stinger, startMusic, resumeMusic, pauseMusic,
     stopMusic, toggleMute, isMuted, currentTrack:()=>currentTrackName,
-    isMusicPlaying:()=>musicOn, ensure };
+    isMusicPlaying:()=>musicOn, ensure, unlock };
 })();

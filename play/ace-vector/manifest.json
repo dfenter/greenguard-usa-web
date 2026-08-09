@@ -1,0 +1,16 @@
+{
+  "name": "Ace Vector",
+  "short_name": "Ace Vector",
+  "description": "An arcade dogfighter. Fourteen sorties, four ace duels, one wingman who does what you tell him.",
+  "start_url": "/play/ace-vector/",
+  "scope": "/play/ace-vector/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#071126",
+  "theme_color": "#071126",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

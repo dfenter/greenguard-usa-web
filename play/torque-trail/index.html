@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <base href="/play/torque-trail/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#152a2b">
+  <meta name="description" content="Torque Trail is a stylized off-road delivery adventure with winch recovery, tire strategy, and a living frontier map.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Torque Trail</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon512.png">
+  <style>
+    :root { color-scheme: dark; --cream: #f7edc8; --muted: #b7c9b2; --ink: #122321; --panel: rgba(12, 29, 29, .93); --line: rgba(255, 242, 191, .18); --gold: #f4ce65; --teal: #76d7bd; --orange: #ee9857; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #152a2b; overscroll-behavior: none; }
+    body { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--cream); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+    button:disabled { cursor: default; opacity: .47; }
+    #shell, #scene, #hud { position: fixed; inset: 0; width: 100%; height: 100%; }
+    #shell { overflow: hidden; background: #152a2b; }
+    #scene { display: block; touch-action: none; }
+    #hud { pointer-events: none; }
+    #loadingScreen { position: fixed; z-index: 9100; inset: 0; display: flex; align-items: center; justify-content: center; padding: 28px; background: radial-gradient(circle at 74% 30%, rgba(118,215,189,.18), transparent 35%), linear-gradient(145deg, #112c2d, #1f4b4b 52%, #a1774f); }
+    .loading-card { width: min(420px, 100%); padding: 24px; border: 1px solid rgba(255,242,191,.28); border-radius: 24px; background: rgba(10,28,28,.74); box-shadow: 0 22px 70px rgba(0,0,0,.32); }
+    .loading-mark { display: flex; align-items: center; gap: 12px; color: var(--gold); font-size: 12px; font-weight: 950; letter-spacing: .2em; text-transform: uppercase; }
+    .loading-mark:before { content: "TT"; display: grid; place-items: center; width: 42px; height: 42px; border: 2px solid var(--gold); border-radius: 13px; color: var(--ink); background: var(--gold); letter-spacing: -.08em; }
+    .loading-card h2 { margin-top: 22px; color: var(--cream); font-size: clamp(30px, 8vw, 52px); letter-spacing: -.06em; }
+    .loading-stage { margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 800; }
+    .loading-track { height: 8px; margin-top: 22px; overflow: hidden; border-radius: 8px; background: rgba(255,255,255,.12); }
+    #loadingBar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--teal), var(--gold)); transition: width .2s ease; }
+    .ui { position: fixed; z-index: 5; pointer-events: none; }
+    .ui > * { pointer-events: auto; }
+    #titleScreen { inset: 0; display: flex; align-items: flex-end; justify-content: space-between; padding: max(28px, calc(env(safe-area-inset-top) + 24px)) max(24px, calc(env(safe-area-inset-right) + 24px)) max(28px, calc(env(safe-area-inset-bottom) + 24px)) max(24px, calc(env(safe-area-inset-left) + 24px)); background: linear-gradient(90deg, rgba(9, 27, 28, .76), rgba(9, 27, 28, .04) 70%); }
+    .title-copy { max-width: min(620px, 78vw); animation: rise .75s cubic-bezier(.16,1,.3,1) both; }
+    .eyebrow { color: var(--teal); font-size: 12px; font-weight: 900; letter-spacing: .22em; text-transform: uppercase; }
+    h1, h2, p { margin: 0; }
+    h1 { margin-top: 8px; color: var(--cream); font-size: clamp(42px, 9vw, 92px); line-height: .92; letter-spacing: -.06em; text-shadow: 0 7px 0 rgba(12, 35, 32, .48); }
+    .title-copy p { max-width: 460px; margin-top: 18px; color: #d6e2c5; font-size: clamp(14px, 2vw, 18px); line-height: 1.45; }
+    .title-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+    .title-meta { min-width: 240px; max-width: 300px; padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: rgba(10, 30, 29, .74); box-shadow: 0 16px 45px rgba(0,0,0,.22); backdrop-filter: blur(12px); animation: rise .85s .1s cubic-bezier(.16,1,.3,1) both; }
+    .title-meta .meta-label { color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    .title-meta .meta-value { margin-top: 6px; color: var(--gold); font-size: 25px; font-weight: 950; }
+    .title-meta .meta-row { display: flex; justify-content: space-between; gap: 18px; margin-top: 15px; color: var(--muted); font-size: 12px; font-weight: 750; }
+    .title-meta .meta-row b { color: var(--cream); }
+    .primary, .secondary, .small-button, .chip-button { border-radius: 13px; font-weight: 900; transition: transform .18s ease, filter .18s ease, background .18s ease; }
+    .primary { min-height: 54px; padding: 0 20px; color: var(--ink); background: var(--gold); box-shadow: 0 4px 0 #8b5a27, 0 10px 24px rgba(0,0,0,.24); }
+    .secondary { min-height: 54px; padding: 0 18px; border: 1px solid var(--line); background: rgba(17, 41, 40, .76); }
+    .small-button, .chip-button { min-height: 38px; padding: 0 12px; border: 1px solid var(--line); background: rgba(12, 31, 30, .8); color: var(--cream); font-size: 11px; }
+    .chip-button.active { color: var(--ink); background: var(--teal); border-color: var(--teal); }
+    button:hover { filter: brightness(1.1); }
+    button:active { transform: translateY(2px) scale(.985); }
+    #driveHud { inset: 0; display: none; padding: max(12px, calc(env(safe-area-inset-top) + 10px)) max(13px, calc(env(safe-area-inset-right) + 13px)) 0 max(13px, calc(env(safe-area-inset-left) + 13px)); }
+    .hud-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .brand-lockup { min-width: 125px; }
+    .brand { color: var(--gold); font-size: 13px; font-weight: 950; letter-spacing: .2em; text-transform: uppercase; text-shadow: 0 2px 0 #10231f; }
+    .zone-read { margin-top: 4px; color: #dce8c9; font-size: 11px; font-weight: 800; }
+    .hud-chips { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+    .hud-chip { min-width: 62px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 999px; background: rgba(10, 28, 28, .76); color: var(--cream); font-size: 10px; font-weight: 900; text-align: center; box-shadow: 0 6px 16px rgba(0,0,0,.15); backdrop-filter: blur(8px); }
+    .hud-chip b { display: block; margin-top: 2px; color: var(--gold); font-size: 12px; }
+    #cargoRead { display: none; width: min(360px, 62vw); margin: 10px auto 0; padding: 9px 13px; border-left: 3px solid var(--gold); border-radius: 0 12px 12px 0; background: rgba(10, 29, 29, .78); color: #e5efcf; font-size: 11px; font-weight: 850; box-shadow: 0 6px 18px rgba(0,0,0,.16); }
+    #cargoRead b { color: var(--gold); }
+    #message { position: fixed; z-index: 20; left: 50%; bottom: max(27%, calc(env(safe-area-inset-bottom) + 150px)); display: none; transform: translateX(-50%); max-width: min(420px, 78vw); padding: 11px 16px; border: 1px solid rgba(244, 206, 101, .42); border-radius: 14px; background: rgba(15, 35, 32, .92); color: var(--cream); font-size: 12px; font-weight: 850; text-align: center; box-shadow: 0 10px 28px rgba(0,0,0,.25); }
+    #message.show { display: block; animation: pop .28s cubic-bezier(.16,1.4,.3,1); }
+    .control { position: fixed; z-index: 8; pointer-events: auto; touch-action: none; }
+    #throttleControl { left: max(13px, env(safe-area-inset-left)); bottom: max(22px, calc(env(safe-area-inset-bottom) + 18px)); width: 82px; height: 226px; }
+    #steerControl { right: max(13px, env(safe-area-inset-right)); bottom: max(24px, calc(env(safe-area-inset-bottom) + 20px)); width: min(220px, 38vw); height: 82px; }
+    .control-label { position: absolute; color: rgba(255,248,207,.82); font-size: 10px; font-weight: 950; letter-spacing: .13em; text-align: center; text-shadow: 0 2px 4px #112721; }
+    #throttleControl .control-label { inset: -18px 0 auto; }
+    #steerControl .control-label { inset: -18px 0 auto; }
+    .track { position: absolute; border: 1px solid rgba(241,227,167,.24); background: rgba(10, 27, 26, .64); box-shadow: inset 0 0 0 5px rgba(255,255,255,.025), 0 6px 18px rgba(0,0,0,.22); }
+    #throttleTrack { left: 27px; top: 0; width: 28px; height: 226px; border-radius: 20px; }
+    #steerTrack { left: 0; top: 27px; width: 100%; height: 28px; border-radius: 20px; }
+    .track:after { content: ""; position: absolute; background: rgba(234,201,90,.25); }
+    #throttleTrack:after { left: 8px; top: 11px; width: 10px; height: calc(100% - 22px); border-radius: 8px; }
+    #steerTrack:after { left: 11px; top: 8px; width: calc(100% - 22px); height: 10px; border-radius: 8px; }
+    .knob { position: absolute; z-index: 2; width: 50px; height: 50px; border: 2px solid #fff0ae; border-radius: 50%; background: radial-gradient(circle at 35% 27%, #fff4bc, #e0ac3e 55%, #8b5826); box-shadow: 0 6px 14px rgba(0,0,0,.38), 0 0 0 5px rgba(226,172,61,.13); }
+    #throttleKnob { left: 16px; top: 88px; }
+    #steerKnob { left: calc(50% - 25px); top: 16px; }
+    .hint { position: absolute; color: rgba(255,248,207,.62); font-size: 10px; font-weight: 800; text-align: center; }
+    #throttleHint { left: 0; right: 0; top: 235px; }
+    #steerHint { left: 0; right: 0; top: 64px; }
+    #winchButton, #recoverButton { position: fixed; z-index: 10; display: none; min-height: 51px; }
+    #winchButton { right: max(20px, env(safe-area-inset-right)); bottom: max(130px, calc(env(safe-area-inset-bottom) + 130px)); min-width: 124px; }
+    #recoverButton { left: 50%; bottom: 25%; min-width: 190px; transform: translateX(-50%); }
+    #stateRead { position: fixed; z-index: 9; right: max(18px, env(safe-area-inset-right)); bottom: max(112px, calc(env(safe-area-inset-bottom) + 108px)); padding: 8px 11px; border: 1px solid var(--line); border-radius: 10px; background: rgba(10, 27, 26, .82); color: #d9e8cc; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    #telemetry { display: flex; justify-content: center; gap: 8px; margin: 10px auto 0; }
+    .telemetry-card { display: flex; align-items: center; gap: 8px; min-width: 110px; padding: 6px 9px 6px 6px; border: 1px solid rgba(255,242,191,.16); border-radius: 14px; background: rgba(10,29,29,.76); box-shadow: 0 8px 20px rgba(0,0,0,.16); }
+    .arc { position: relative; width: 38px; height: 38px; overflow: hidden; border-radius: 50%; background: conic-gradient(var(--teal) 0 22%, rgba(255,255,255,.1) 22% 100%); }
+    .arc:after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: #173333; }
+    .arc b { position: absolute; z-index: 1; inset: 0; display: grid; place-items: center; color: var(--cream); font-size: 8px; }
+    .telemetry-card:last-child .arc { background: conic-gradient(var(--orange) 0 22%, rgba(255,255,255,.1) 22% 100%); }
+    .telemetry-label { color: var(--muted); font-size: 8px; font-weight: 950; letter-spacing: .1em; text-transform: uppercase; }
+    .telemetry-value { margin-top: 2px; color: var(--cream); font-size: 14px; font-weight: 950; }
+    #payoutRead { display: none; width: fit-content; margin: 8px auto 0; padding: 7px 12px; border: 1px solid rgba(244,206,101,.45); border-radius: 999px; background: rgba(244,206,101,.15); color: var(--gold); font-size: 10px; font-weight: 950; letter-spacing: .12em; animation: payout .5s cubic-bezier(.16,1.4,.3,1); }
+    #topActions { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
+    .panel { position: fixed; z-index: 30; inset: 0; display: none; align-items: center; justify-content: center; padding: 22px; background: rgba(5, 16, 17, .56); backdrop-filter: blur(6px); }
+    .panel-card { width: min(580px, 100%); max-height: min(760px, 88vh); overflow: auto; padding: 22px; border: 1px solid rgba(255, 242, 191, .22); border-radius: 24px; background: var(--panel); box-shadow: 0 22px 65px rgba(0,0,0,.38); animation: rise .32s cubic-bezier(.16,1,.3,1); }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .panel-kicker { color: var(--teal); font-size: 10px; font-weight: 950; letter-spacing: .16em; text-transform: uppercase; }
+    .panel-card h2 { margin-top: 5px; color: var(--cream); font-size: 28px; letter-spacing: -.035em; }
+    .panel-card p { margin-top: 8px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .close-button { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 50%; background: rgba(255,255,255,.05); color: var(--cream); font-size: 22px; line-height: 1; }
+    .job-list { display: grid; gap: 9px; margin-top: 18px; }
+    .job-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; padding: 13px 14px; border: 1px solid rgba(255,242,191,.13); border-radius: 15px; background: rgba(255,255,255,.045); text-align: left; }
+    .job-card.ready { border-color: rgba(244,206,101,.5); background: rgba(244,206,101,.09); }
+    .job-card.done { opacity: .56; }
+    .job-card.locked { opacity: .42; }
+    .job-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .route-preview { display: flex; align-items: center; gap: 2px; width: 38px; height: 30px; padding: 4px; border: 1px solid rgba(255,242,191,.2); border-radius: 9px; background: linear-gradient(145deg, #396957, #6d7653); }
+    .route-preview i { display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 8px 0 0 rgba(255,255,255,.3), 16px 0 0 rgba(255,255,255,.16); }
+    .route-2 { background: linear-gradient(145deg, #3d7b6b, #7e6d4c); }
+    .route-3, .route-4 { background: linear-gradient(145deg, #4a6e62, #8b7254); }
+    .route-5, .route-6 { background: linear-gradient(145deg, #555d5c, #a08061); }
+    .difficulty-pips { display: flex; gap: 3px; margin-top: 6px; }
+    .difficulty-pips i { display: block; width: 10px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.18); }
+    .difficulty-pips i.on { background: var(--gold); }
+    .job-name { color: var(--cream); font-size: 13px; font-weight: 900; }
+    .job-detail { margin-top: 4px; color: var(--muted); font-size: 11px; font-weight: 750; }
+    .job-pay { color: var(--gold); font-size: 15px; font-weight: 950; white-space: nowrap; }
+    .section-label { margin-top: 20px; color: var(--teal); font-size: 10px; font-weight: 950; letter-spacing: .16em; text-transform: uppercase; }
+    .choice-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 9px; }
+    .choice { flex: 1 1 105px; min-height: 47px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.045); text-align: left; }
+    .choice.selected { border-color: var(--gold); background: rgba(244,206,101,.13); }
+    .choice b { display: block; color: var(--cream); font-size: 12px; }
+    .choice small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .garage-preview { display: grid; grid-template-columns: 78px 1fr; gap: 12px; align-items: center; margin-top: 16px; padding: 12px; border: 1px solid rgba(118,215,189,.22); border-radius: 16px; background: linear-gradient(145deg, rgba(118,215,189,.12), rgba(244,206,101,.06)); }
+    .truck-icon { position: relative; height: 54px; border: 2px solid var(--gold); border-radius: 16px 12px 10px 10px; background: var(--teal); transform: skewX(-8deg); box-shadow: 0 8px 0 rgba(0,0,0,.17); animation: turntable 5s ease-in-out infinite; }
+    .truck-icon:before, .truck-icon:after { content: ""; position: absolute; bottom: -8px; width: 16px; height: 16px; border: 2px solid var(--cream); border-radius: 50%; background: #243434; }
+    .truck-icon:before { left: 8px; } .truck-icon:after { right: 8px; }
+    .stat-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 10px; font-weight: 850; }
+    .stat-line + .stat-line { margin-top: 6px; }
+    .stat-bar { flex: 1; height: 5px; overflow: hidden; border-radius: 5px; background: rgba(255,255,255,.14); }
+    .stat-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--teal), var(--gold)); }
+    .panel-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+    .settings-card { width: min(460px, 100%); }
+    .range-row { display: grid; grid-template-columns: 72px 1fr; align-items: center; gap: 12px; margin-top: 12px; color: var(--cream); font-size: 12px; font-weight: 850; }
+    .range-row input { width: 100%; accent-color: var(--gold); }
+    .range-row output { display: none; }
+    #pausePanel { z-index: 35; }
+    #settingsPanel { z-index: 40; }
+    #pausePanel .panel-card { width: min(360px, 100%); text-align: center; }
+    #pausePanel .panel-card p { margin-bottom: 18px; }
+    .stack { display: grid; gap: 9px; }
+    #tutorialCard { position: fixed; z-index: 18; left: 50%; top: max(92px, calc(env(safe-area-inset-top) + 80px)); display: none; width: min(330px, 72vw); padding: 13px 15px; transform: translateX(-50%); border: 1px solid rgba(118,215,189,.42); border-radius: 16px; background: rgba(10, 34, 33, .86); box-shadow: 0 10px 28px rgba(0,0,0,.2); pointer-events: auto; cursor: pointer; }
+    #tutorialCard.show { display: block; animation: rise .35s cubic-bezier(.16,1,.3,1); }
+    #tutorialStep { color: var(--teal); font-size: 10px; font-weight: 950; letter-spacing: .14em; text-transform: uppercase; }
+    #tutorialText { margin-top: 5px; color: var(--cream); font-size: 12px; font-weight: 800; line-height: 1.35; }
+    .credits { margin-top: 14px; color: rgba(214,226,197,.65); font-size: 10px; line-height: 1.5; }
+    @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pop { from { opacity: 0; transform: translateX(-50%) scale(.88); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
+    @keyframes payout { from { opacity: 0; transform: translateY(-6px) scale(.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes turntable { 0%, 100% { filter: saturate(.9) brightness(.96); } 50% { filter: saturate(1.2) brightness(1.08); } }
+    @media (orientation: portrait) {
+      #titleScreen { align-items: flex-end; flex-direction: column; justify-content: flex-end; gap: 22px; }
+      .title-copy { max-width: 90vw; }
+      .title-meta { align-self: flex-start; min-width: min(300px, 76vw); }
+      #cargoRead { width: min(330px, 74vw); }
+      #stateRead { bottom: max(114px, calc(env(safe-area-inset-bottom) + 110px)); right: 50%; transform: translateX(50%); }
+    }
+    @media (orientation: landscape) {
+      #titleScreen { align-items: flex-end; }
+      #driveHud { padding-left: max(112px, calc(env(safe-area-inset-left) + 108px)); padding-right: max(112px, calc(env(safe-area-inset-right) + 108px)); }
+      #throttleControl { left: max(18px, env(safe-area-inset-left)); bottom: max(18px, calc(env(safe-area-inset-bottom) + 16px)); }
+      #steerControl { right: max(18px, env(safe-area-inset-right)); bottom: max(18px, calc(env(safe-area-inset-bottom) + 16px)); }
+      #stateRead { right: max(18px, calc(env(safe-area-inset-right) + 8px)); bottom: max(116px, calc(env(safe-area-inset-bottom) + 112px)); }
+      #telemetry { justify-content: flex-start; }
+      #cargoRead { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main id="shell">
+    <section id="loadingScreen" aria-label="Loading Torque Trail">
+      <div class="loading-card">
+        <div class="loading-mark">Field operations</div>
+        <h2>Torque Trail</h2>
+        <div id="loadingStage" class="loading-stage">Calibrating the field map</div>
+        <div class="loading-track"><div id="loadingBar"></div></div>
+      </div>
+    </section>
+    <canvas id="scene" aria-label="Torque Trail off-road map"></canvas>
+    <canvas id="hud" aria-hidden="true"></canvas>
+
+    <section id="titleScreen" class="ui" aria-label="Torque Trail title screen">
+      <div class="title-copy">
+        <div class="eyebrow">Frontier logistics / field operations</div>
+        <h1>Torque<br>Trail</h1>
+        <p>Take the long way through mud, stone, and ridge country. Read the ground, tune the truck, and get every load home.</p>
+        <div class="title-actions">
+          <button id="startButton" class="primary">Start first route</button>
+          <button id="titleSettingsButton" class="secondary">Settings</button>
+        </div>
+        <div class="credits">A stylized low-poly off-road adventure by GreenGuard USA</div>
+      </div>
+      <aside class="title-meta">
+        <div class="meta-label">Field log</div>
+        <div id="titleCash" class="meta-value">$160</div>
+        <div class="meta-row"><span>Delivered runs</span><b id="titleJobs">0</b></div>
+        <div class="meta-row"><span>Truck upgrade</span><b id="titleUpgrade">Stock</b></div>
+        <div class="meta-row"><span>Best cash</span><b id="titleBest">$160</b></div>
+      </aside>
+    </section>
+
+    <section id="driveHud" class="ui" aria-label="Driving HUD">
+      <div class="hud-top">
+        <div class="brand-lockup"><div class="brand">Torque Trail</div><div id="zoneRead" class="zone-read">Base Camp</div></div>
+        <div class="hud-chips">
+          <div class="hud-chip">CASH<b id="cashRead">$240</b></div>
+          <div class="hud-chip">RUNS<b id="jobsRead">0</b></div>
+          <div class="hud-chip">TIRES<b id="tireRead">ROAD</b></div>
+          <div class="hud-chip">LOCK<b id="lockRead">OFF</b></div>
+        </div>
+      </div>
+      <div id="cargoRead">No cargo loaded. <b>Tap a depot</b> to open the job board.</div>
+      <div id="telemetry" aria-label="Truck telemetry">
+        <div class="telemetry-card"><div id="speedArc" class="arc"><b>SPD</b></div><div><div class="telemetry-label">Speed</div><div id="speedRead" class="telemetry-value">0 km/h</div></div></div>
+        <div class="telemetry-card"><div id="torqueArc" class="arc"><b>GRIP</b></div><div><div class="telemetry-label">Torque</div><div id="torqueRead" class="telemetry-value">100%</div></div></div>
+      </div>
+      <div id="payoutRead" role="status">PAYMENT CLEARED  +$0</div>
+      <div id="topActions">
+        <button id="garageButton" class="small-button">Garage</button>
+        <button id="settingsButton" class="small-button">Settings</button>
+        <button id="pauseButton" class="small-button">Pause</button>
+      </div>
+    </section>
+
+    <div id="tutorialCard"><div id="tutorialStep">Field briefing 1 / 4</div><div id="tutorialText">Open the Base Camp board and choose the first load.</div></div>
+    <div id="message" role="status"></div>
+    <button id="winchButton" class="primary">Engage winch</button>
+    <button id="recoverButton" class="primary">Recover to last depot</button>
+    <div id="stateRead">Idle</div>
+
+    <div id="throttleControl" class="control" aria-label="Throttle and brake control">
+      <div class="control-label">THROTTLE</div><div id="throttleTrack" class="track"><div id="throttleKnob" class="knob"></div></div><div id="throttleHint" class="hint">BRAKE below</div>
+    </div>
+    <div id="steerControl" class="control" aria-label="Steering control">
+      <div class="control-label">STEER</div><div id="steerTrack" class="track"><div id="steerKnob" class="knob"></div></div><div id="steerHint" class="hint">DRAG LEFT / RIGHT</div>
+    </div>
+
+    <section id="jobPanel" class="panel" aria-label="Job board">
+      <div class="panel-card">
+        <div class="panel-head"><div><div class="panel-kicker">Depot board</div><h2 id="jobPanelTitle">Base Camp</h2><p id="jobPanelCopy">Load a route, then choose the ground that suits it.</p></div><button class="close-button" data-close="jobPanel" aria-label="Close job board">×</button></div>
+        <div class="job-list" id="jobList"></div>
+        <div class="section-label">Tire rack</div>
+        <div class="choice-row" id="tireChoices">
+          <button class="choice" data-tire="road"><b>ROAD</b><small>Fast on packed trail</small></button>
+          <button class="choice" data-tire="mud"><b>MUD</b><small>Find grip in bogs</small></button>
+          <button class="choice" data-tire="rock"><b>ROCK</b><small>Climb loose stone</small></button>
+        </div>
+        <div class="panel-footer"><button id="jobGarageButton" class="secondary">Open garage</button><button class="primary" data-close="jobPanel">Roll out</button></div>
+      </div>
+    </section>
+
+    <section id="garagePanel" class="panel" aria-label="Garage">
+      <div class="panel-card">
+        <div class="panel-head"><div><div class="panel-kicker">Workshop</div><h2>Truck setup</h2><p>Small choices add up across a long run.</p></div><button class="close-button" data-close="garagePanel" aria-label="Close garage">×</button></div>
+        <div class="section-label">Differential</div>
+        <div class="choice-row"><button id="diffLockChoice" class="choice"><b>DIFF-LOCK</b><small>More low-speed traction, slower on firm trail</small></button></div>
+        <div class="section-label">Tire rack</div>
+        <div class="choice-row" id="garageTireChoices">
+          <button class="choice" data-tire="road"><b>ROAD</b><small>Fast on packed trail</small></button>
+          <button class="choice" data-tire="mud"><b>MUD</b><small>Find grip in bogs</small></button>
+          <button class="choice" data-tire="rock"><b>ROCK</b><small>Climb loose stone</small></button>
+        </div>
+        <div class="section-label">Livery</div>
+        <div class="choice-row" id="liveryChoices">
+          <button class="choice" data-livery="sunset"><b>SUNSET</b><small>Amber field paint</small></button>
+          <button class="choice" data-livery="pine"><b>PINE</b><small>Deep forest green</small></button>
+          <button class="choice" data-livery="ridge"><b>RIDGE</b><small>Highland blue</small></button>
+        </div>
+        <div class="garage-preview"><div id="garageTruckIcon" class="truck-icon" aria-hidden="true"></div><div><div class="stat-line"><span>Pull</span><span class="stat-bar"><i id="pullStat" style="width: 34%"></i></span></div><div class="stat-line"><span>Recovery</span><span class="stat-bar"><i id="recoveryStat" style="width: 22%"></i></span></div><small id="garagePreviewCopy">Stock field tune</small></div></div>
+        <div class="section-label">Upgrade</div>
+        <div class="choice-row"><button id="upgradeButton" class="choice"><b>TORQUE KIT</b><small>Loading...</small></button></div>
+        <div class="panel-footer"><button class="primary" data-close="garagePanel">Close garage</button></div>
+      </div>
+    </section>
+
+    <section id="pausePanel" class="panel" aria-label="Pause menu">
+      <div class="panel-card"><div class="panel-kicker">Trip paused</div><h2>Take a breath</h2><p>The truck is safe. Your route and cargo stay saved between jobs.</p><div class="stack"><button id="resumeButton" class="primary">Resume drive</button><button id="pauseRestartButton" class="secondary">Reset current trip</button><button id="pauseSettingsButton" class="secondary">Settings</button><button id="quitButton" class="secondary">Return to title</button></div></div>
+    </section>
+
+    <section id="settingsPanel" class="panel" aria-label="Torque Trail settings">
+      <div class="panel-card settings-card">
+        <div class="panel-head"><div><div class="panel-kicker">Field preferences</div><h2>Settings</h2><p>Tune the sound and motion of the run.</p></div><button id="settingsCloseButton" class="close-button" aria-label="Close settings">×</button></div>
+        <div class="section-label">Audio mix</div>
+        <label class="range-row"><span>Music</span><input id="musicVolume" type="range" min="0" max="100" step="1" value="70"><output>Music</output></label>
+        <label class="range-row"><span>Effects</span><input id="sfxVolume" type="range" min="0" max="100" step="1" value="100"><output>Effects</output></label>
+        <div class="section-label">Accessibility</div>
+        <div class="stack"><button id="shakeToggle" class="choice" aria-pressed="true">Screen shake: On</button><button id="reducedToggle" class="choice" aria-pressed="false">Reduced motion: Off</button></div>
+      </div>
+    </section>
+  </main>
+  <script type="importmap">
+    {"imports":{"three":"/play/_shared/three/three.module.min.js"}}
+  </script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script type="module" src="./game.js"></script>
+</body>
+</html>

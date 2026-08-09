@@ -1,0 +1,113 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Card from '../components/ui/Card.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+
+const products = [
+  { name: 'BG-Mosquitaire CO₂ Trap', price: '$299.99', orig: null, savings: null, href: '/shop/biogents-co2-trap', badge: 'Best Seller' },
+  { name: 'All-in-One Starter Bundle', price: '$619.99', orig: '$649.97', savings: 'Save $29.98', href: '/shop/all-in-one-bundle', badge: 'Best Value' },
+  { name: 'BG-Mosquitaire (No CO₂)', price: '$199.99', orig: null, savings: null, href: '/shop/biogents-non-co2-trap', badge: 'Indoor/Patio' },
+];
+
+const reasons = [
+  ['M11 4a7 7 0 1 0 4.9 12L21 21M18 11h-7', 'Free property consultation', 'Every order includes a free site visit to confirm optimal trap placement. Biogents.com ships a box. We make sure it works.'],
+  ['M12 3v10M8 9l4 4 4-4M5 17h14a2 2 0 0 1 2 2v1H3v-1a2 2 0 0 1 2-2Z', 'Monthly CO₂ service', 'Add our $89.99/month CO₂ delivery service: we swap your tank, inspect the trap, and keep it running. No trips to a fill station.'],
+  ['M12 21c-4-4-8-7-8-11a8 8 0 1 1 16 0c0 4-4 7-8 11ZM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z', 'Local Austin expertise', 'We know Central Texas mosquito species, seasonal patterns, and the specific pressure zones around Lake Travis, Barton Creek, and the Hill Country.'],
+  ['M3 16V8h11v8M14 10h4l3 3v3h-3M6.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM17.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z', 'Ships from Austin, TX', 'No international shipping delays. Products ship from Austin within 1-2 business days.'],
+];
+---
+
+<Base
+  title="Biogents Mosquito Trap Discount & Promo Codes | GreenGuard USA Austin"
+  description="Looking for a Biogents mosquito trap discount or promo code? GreenGuard USA offers the best prices on Biogents BG-Mosquitaire traps in Austin, TX, plus free property consultation with every purchase."
+>
+  <!-- ============ HERO ============ -->
+  <Section variant="ivory">
+    <div class="max-w-3xl">
+      <Eyebrow>Best Prices on Biogents</Eyebrow>
+      <h1 class="mt-6 text-ink" style="font-size: clamp(2.6rem, 6vw, 4.2rem); max-width: 16ch;">
+        Biogents Trap Pricing <em class="italic" style="color: var(--pine); font-weight: 340;">and Discounts</em>
+      </h1>
+      <p class="mt-7 text-soft" style="font-size: 1.125rem; max-width: 34rem; line-height: 1.75;">
+        GreenGuard USA is an authorized Biogents dealer in Austin, TX. We offer the same professional-grade traps at competitive prices, plus a free property consultation that Biogents.com can't give you.
+      </p>
+    </div>
+  </Section>
+
+  <!-- ============ CURRENT PRICING ============ -->
+  <Section variant="linen">
+    <div class="text-center max-w-2xl mx-auto reveal">
+      <h2 class="font-display" style="font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 400;">
+        Current Pricing
+      </h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-14" data-stagger>
+      {products.map((p) => (
+        <div class="reveal">
+          <Card tone="ivory" class="h-full flex flex-col !p-8">
+            <p class="eyebrow eyebrow--plain !text-xs">{p.badge}</p>
+            <h3 class="font-display mt-3" style="font-size: 1.3rem;">{p.name}</h3>
+            <p class="mt-4 flex items-baseline gap-2.5">
+              <span class="font-display" style="font-size: 2.2rem; font-weight: 380; color: var(--pine);">{p.price}</span>
+              {p.orig && <span class="text-sm text-soft line-through">{p.orig}</span>}
+            </p>
+            {p.savings && <p class="mt-1 text-sm font-semibold" style="color: var(--brass-ink);">{p.savings}</p>}
+            <div class="mt-auto pt-6">
+              <Btn href={p.href} variant="ghost" class="w-full">View Product</Btn>
+            </div>
+          </Card>
+        </div>
+      ))}
+    </div>
+  </Section>
+
+  <!-- ============ WHY BUY FROM US ============ -->
+  <Section variant="ivory">
+    <div class="text-center max-w-2xl mx-auto reveal">
+      <h2 class="font-display" style="font-size: clamp(1.7rem, 3.5vw, 2.4rem); font-weight: 400;">
+        Why buy from GreenGuard USA instead of directly from Biogents?
+      </h2>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-14 max-w-4xl mx-auto" data-stagger>
+      {reasons.map(([d, title, body]) => (
+        <div class="reveal">
+          <Card tone="linen" class="h-full flex gap-4 items-start">
+            <svg class="flex-none mt-1" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d={d} />
+            </svg>
+            <div>
+              <h3 class="font-display" style="font-size: 1.15rem;">{title}</h3>
+              <p class="mt-2 text-sm text-soft">{body}</p>
+            </div>
+          </Card>
+        </div>
+      ))}
+    </div>
+  </Section>
+
+  <!-- ============ RENTAL ALTERNATIVE ============ -->
+  <Section variant="linen" tight class="hairline-t">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div>
+        <h2 class="font-display" style="font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 420;">Don't want to pay upfront? Rent instead.</h2>
+        <p class="mt-2 text-soft text-[0.97rem]" style="max-width: 36rem;">
+          Our full-service rental starts at $159.99/month: trap included, CO₂ delivered monthly, all maintenance covered. No equipment cost, no contracts.
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-4 flex-none">
+        <Btn href="/traprental">See Rental Plans</Btn>
+        <Btn href="/compare" variant="ghost">Compare All Options</Btn>
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ CTA BAND ============ -->
+  <CtaBand
+    title="Ready to get started?"
+    sub="Book a free property assessment. We walk your yard, confirm your trap placement, and you only pay once you're satisfied with the plan."
+    ctaLabel="Book Free Assessment"
+  />
+</Base>

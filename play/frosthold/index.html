@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/frosthold/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#09121e">
+  <title>Frosthold</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #07101a; }
+    body { display: grid; place-items: center; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; touch-action: none; }
+    .game-shell { position: relative; width: min(100vw, calc(100vh * .5571428571)); height: min(100vh, calc(100vw * 1.7948717949)); overflow: hidden; background: #0d1a29; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; image-rendering: auto; }
+    .screen { position: absolute; inset: 0; display: grid; place-items: center; padding: 28px; text-align: center; background: rgba(5, 11, 19, .9); z-index: 5; }
+    .screen[hidden] { display: none; }
+    .screen-card { width: 100%; padding: 28px 20px 24px; border: 1px solid #4b7790; border-radius: 20px; background: #0c1c2c; box-shadow: 0 16px 50px rgba(0,0,0,.38); }
+    .screen h1 { margin: 0 0 8px; color: #d8f7ff; font-size: 42px; letter-spacing: .1em; text-transform: uppercase; }
+    .screen p { margin: 10px 0; color: #a7becb; line-height: 1.45; }
+    .screen .tag { margin: 0 0 20px; color: #7bd4dc; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+    button { min-height: 52px; border: 1px solid #8be6e2; border-radius: 12px; padding: 12px 20px; color: #07151e; background: #8be6e2; font: inherit; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; touch-action: manipulation; }
+    button:active { transform: translateY(1px); background: #b8fff3; }
+  </style>
+</head>
+<body>
+  <main class="game-shell" aria-label="Frosthold survival settlement game">
+    <canvas id="game" aria-label="Frosthold game board"></canvas>
+    <section id="startOverlay" class="screen">
+      <div class="screen-card">
+        <div class="tag">a free survival settlement run</div>
+        <h1>Frosthold</h1>
+        <p>Keep a tiny camp warm through ten whiteout cycles. Build instantly, assign hands, and make every coal burn count.</p>
+        <button id="startButton" type="button">Tap to kindle</button>
+      </div>
+    </section>
+    <section id="rotateOverlay" class="screen" hidden>
+      <div class="screen-card">
+        <div class="tag">the storm is waiting</div>
+        <h1>Turn upright</h1>
+        <p>Frosthold is a portrait camp. Rotate your device to resume the clock.</p>
+      </div>
+    </section>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

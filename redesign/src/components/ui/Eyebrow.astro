@@ -1,0 +1,16 @@
+---
+/**
+ * Uppercase label with a brass hairline lead-in.
+ * onDark: champagne text for night sections. plain: no lead-in rule.
+ */
+interface Props {
+  onDark?: boolean;
+  plain?: boolean;
+  class?: string;
+}
+const { onDark = false, plain = false, class: className = '' } = Astro.props;
+---
+
+<p class:list={['eyebrow', onDark && 'eyebrow--ondark', plain && 'eyebrow--plain', className]}>
+  <slot />
+</p>

@@ -20,7 +20,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
-<link rel="manifest" href="manifest.json?v=15">
+<link rel="manifest" href="manifest.json?v=16">
 <title>The Legend of Zelda — Clone</title>
 <style>
   :root{
@@ -28,7 +28,15 @@
     --safe-bottom:env(safe-area-inset-bottom,0px);
     --safe-left:env(safe-area-inset-left,0px);
     --safe-right:env(safe-area-inset-right,0px);
+    /* One place that decides how big the thumb controls are. engine.js MEASURES
+       the resulting rects to size the canvas, so these two never disagree. */
+    --pad:min(42vw,200px);
+    --btn:min(19vw,90px);
+    --tap:44px;              /* minimum tap target (WCAG 2.5.5 / iOS HIG) */
   }
+  /* Landscape phones are short, so size the controls off the height instead —
+     otherwise a 42vw d-pad eats the whole playfield on a 667x375 screen. */
+  body.landscape-touch{--pad:min(42vw,38vh,190px);--btn:min(19vw,19vh,84px);}
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;background:#000;overflow:hidden;
     font-family:'Courier New',monospace;color:#fff;
@@ -40,10 +48,12 @@
   #hint{position:fixed;bottom:calc(2px + var(--safe-bottom));left:0;right:0;
     text-align:center;color:#666;font-size:12px;pointer-events:none;}
 
-  /* Portrait phone: pin the canvas to the top, controls own the bottom band. */
-  body.portrait-touch #wrap{align-items:flex-start;
-    padding-top:calc(8px + var(--safe-top));}
-  body.portrait-touch #hint{display:none;}
+  /* Touch phone: the controls own a band, the canvas is centred in what's left.
+     engine.js measures the real control rects and sets #wrap's padding-bottom,
+     so the playfield can never grow underneath a thumb button. */
+  body.portrait-touch #wrap{align-items:center;padding-top:calc(4px + var(--safe-top));}
+  /* Keyboard hint is meaningless (and overlaps the playfield) on a touch device. */
+  body.portrait-touch #hint,body.landscape-touch #hint{display:none;}
 
   /* ---------- on-screen controller ---------- */
   #touch-ui{display:none;position:fixed;inset:0;pointer-events:none;z-index:50;}
@@ -52,7 +62,7 @@
   /* D-pad — bottom-left, large thumb target */
   #dpad{position:fixed;left:calc(20px + var(--safe-left));
     bottom:calc(26px + var(--safe-bottom));
-    width:42vw;max-width:200px;height:42vw;max-height:200px;
+    width:var(--pad);height:var(--pad);
     pointer-events:auto;touch-action:none;opacity:0.85;}
   #dpad .cross{position:absolute;inset:0;}
   #dpad .bar{position:absolute;background:#2b2b2b;border:2px solid #555;border-radius:10px;}
@@ -60,7 +70,7 @@
   #dpad .bar.v{top:0;bottom:0;left:33.3%;right:33.3%;}
   #dpad .hub{position:absolute;left:33.3%;top:33.3%;width:33.4%;height:33.4%;
     background:#3a3a3a;}
-  #dpad .ar{position:absolute;color:#cfcfcf;font-size:6vw;line-height:1;
+  #dpad .ar{position:absolute;color:#cfcfcf;font-size:calc(var(--pad) * 0.15);line-height:1;
     display:flex;align-items:center;justify-content:center;}
   #dpad .ar.up{top:3%;left:33.3%;width:33.4%;height:30%;}
   #dpad .ar.dn{bottom:3%;left:33.3%;width:33.4%;height:30%;}
@@ -68,28 +78,40 @@
   #dpad .ar.rt{right:3%;top:33.3%;width:30%;height:33.4%;}
   #dpad.active .bar{border-color:#9a9a9a;background:#383838;}
 
-  /* A / B action buttons — bottom-right */
-  .btn-group{position:fixed;right:calc(18px + var(--safe-right));
+  /* A (sword) / B (item) action buttons — bottom-right */
+  #btn-group{position:fixed;right:calc(18px + var(--safe-right));
     bottom:calc(30px + var(--safe-bottom));
     display:flex;align-items:flex-end;gap:18px;pointer-events:none;}
-  .gbtn{width:19vw;max-width:90px;height:19vw;max-height:90px;border-radius:50%;
+  .gbtn{width:var(--btn);height:var(--btn);border-radius:50%;
     display:flex;align-items:center;justify-content:center;
-    color:#fff;font-size:5vw;font-weight:bold;pointer-events:auto;
+    color:#fff;font-size:calc(var(--btn) * 0.42);font-weight:bold;pointer-events:auto;
     touch-action:none;opacity:0.9;border:3px solid rgba(255,255,255,0.25);}
-  .gbtn.b{background:#9a1414;margin-bottom:34px;}
+  .gbtn.b{background:#9a1414;margin-bottom:calc(var(--btn) * 0.38);}
   .gbtn.a{background:#137a13;}
   .gbtn.active{filter:brightness(1.6);transform:scale(0.94);}
 
-  /* START / SELECT — small pills, top-center area */
-  .sys-group{position:fixed;left:50%;transform:translateX(-50%);
-    top:calc(6px + var(--safe-top));display:flex;gap:14px;pointer-events:none;z-index:60;}
-  .sysbtn{background:#2a2a2a;color:#ddd;font-size:11px;font-weight:bold;
-    letter-spacing:1px;padding:7px 14px;border-radius:14px;
-    border:2px solid rgba(255,255,255,0.2);pointer-events:auto;touch-action:none;opacity:0.8;}
+  /* System pills: START, SELECT, CONT (load save), MUTE.
+     Every one is at least 44px tall so it is a real thumb target, not a link. */
+  #sys-group{position:fixed;left:50%;transform:translateX(-50%);
+    top:calc(6px + var(--safe-top));display:flex;flex-wrap:wrap;gap:10px;
+    justify-content:center;max-width:calc(100vw - 16px);pointer-events:none;z-index:60;}
+  .sysbtn{background:#2a2a2a;color:#ddd;font-size:12px;font-weight:bold;
+    letter-spacing:1px;padding:0 14px;border-radius:22px;
+    min-height:var(--tap);min-width:72px;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid rgba(255,255,255,0.2);pointer-events:auto;touch-action:none;opacity:0.85;}
   .sysbtn.active{filter:brightness(1.7);}
-  /* In portrait, float START/SELECT in the empty band just under the playfield
-     so they never crowd the d-pad or action buttons. */
-  body.portrait-touch .sys-group{top:auto;bottom:38vh;}
+  .sysbtn[hidden]{display:none;}
+  /* Portrait: park the pills in the gap directly above the d-pad, so they crowd
+     neither the playfield above nor the thumb controls below. */
+  body.portrait-touch #sys-group{top:auto;
+    bottom:calc(26px + var(--safe-bottom) + var(--pad) + 16px);}
+  /* Landscape: the pills must NOT sit over the canvas (they used to cover the
+     HUD). Park them in the left gutter, above the d-pad, in a 2-wide grid. */
+  body.landscape-touch #sys-group{left:calc(12px + var(--safe-left));transform:none;
+    top:calc(6px + var(--safe-top));max-width:var(--pad);gap:8px;justify-content:flex-start;}
+  body.landscape-touch .sysbtn{min-width:calc((var(--pad) - 8px) / 2);
+    padding:0 6px;font-size:11px;letter-spacing:0;}
 </style>
 </head>
 <body>
@@ -105,13 +127,17 @@
       <div class="ar lt">◀</div><div class="ar rt">▶</div>
     </div>
   </div>
-  <div class="sys-group">
-    <div id="btn-select" class="sysbtn">SELECT</div>
-    <div id="btn-start" class="sysbtn">START</div>
+  <div id="sys-group" class="sys-group">
+    <div id="btn-select" class="sysbtn" role="button" aria-label="Select">SELECT</div>
+    <div id="btn-start" class="sysbtn" role="button" aria-label="Start">START</div>
+    <!-- CONT is the touch equivalent of the C key. Without it a saved game is
+         literally unreachable on a phone: the title screen offers no other way. -->
+    <div id="btn-c" class="sysbtn" role="button" aria-label="Continue saved game" hidden>CONT</div>
+    <div id="btn-m" class="sysbtn" role="button" aria-label="Toggle sound">SOUND</div>
   </div>
-  <div class="btn-group">
-    <div id="btn-b" class="gbtn b">B</div>
-    <div id="btn-a" class="gbtn a">A</div>
+  <div id="btn-group" class="btn-group">
+    <div id="btn-b" class="gbtn b" role="button" aria-label="B - use item">B</div>
+    <div id="btn-a" class="gbtn a" role="button" aria-label="A - sword">A</div>
   </div>
 </div>
 
@@ -139,18 +165,30 @@
   };
   dbg('loading scripts...');
 </script>
-<script src="js/engine.js?v=15"></script><script>dbg('engine ok');</script>
-<script src="js/sound.js?v=15"></script><script>dbg('sound ok');</script>
-<script src="js/sprites.js?v=15"></script><script>dbg('sprites ok');</script>
-<script src="js/tiles.js?v=15"></script><script>dbg('tiles ok');</script>
-<script src="js/world.js?v=15"></script><script>dbg('world ok');</script>
-<script src="js/dungeon.js?v=15"></script><script>dbg('dungeon ok');</script>
-<script src="js/entities.js?v=15"></script><script>dbg('entities ok');</script>
-<script src="js/items.js?v=15"></script><script>dbg('items ok');</script>
-<script src="js/game.js?v=15"></script>
+<script src="js/engine.js?v=16"></script><script>dbg('engine ok');</script>
+<script src="js/sound.js?v=16"></script><script>dbg('sound ok');</script>
+<script src="js/sprites.js?v=16"></script><script>dbg('sprites ok');</script>
+<script src="js/tiles.js?v=16"></script><script>dbg('tiles ok');</script>
+<script src="js/world.js?v=16"></script><script>dbg('world ok');</script>
+<script src="js/dungeon.js?v=16"></script><script>dbg('dungeon ok');</script>
+<script src="js/entities.js?v=16"></script><script>dbg('entities ok');</script>
+<script src="js/items.js?v=16"></script><script>dbg('items ok');</script>
+<script src="js/game.js?v=16"></script>
 <script>
+  // Show the touch CONTINUE pill only where the C key would work: on the title
+  // screen, with a save present. Presentation only - it just feeds the same
+  // 'cont' input the keyboard does.
+  (function () {
+    var btn = document.getElementById('btn-c');
+    if (!btn || typeof Game === 'undefined' || !Game._test) return;
+    setInterval(function () {
+      var show = false;
+      try { show = Game.state.mode === 'title' && Game._test.hasSave(); } catch (e) {}
+      if (show === btn.hidden) btn.hidden = !show;
+    }, 250);
+  })();
   window.addEventListener('load', function () {
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=15');
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=16');
   });
 </script>
 </body>

@@ -1,6 +1,13 @@
 const { getSessionFromRequest } = require('../../../lib/auth')
 const { findContactByEmail } = require('../../../lib/hubspot')
 const { sendServiceRequest } = require('../../../lib/email')
+const { autoReschedule } = require('../../../lib/auto-reschedule')
+
+const TZ = 'America/Chicago'
+const fmtSlot = (d) => d.toLocaleString('en-US', {
+  weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  timeZone: TZ, timeZoneName: 'short',
+})
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -62,13 +69,11 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests — please wait an hour before sending another.' })
   }
 
-  const { kind = 'service', bookingDate = null, requestedDate = null } = req.body || {}
+  const { kind = 'service', bookingDate = null, requestedDate = null, requestedIso = null } = req.body || {}
 
   const contact = await findContactByEmail(session.email).catch(() => null)
   const p = contact?.properties || {}
   const name = [p.firstname, p.lastname].filter(Boolean).join(' ') || session.email
-
-  const { subject, heading, message, confirmHeading } = buildRequest(kind, { name, bookingDate, requestedDate })
 
   const customerInfo = {
     name: [p.firstname, p.lastname].filter(Boolean).join(' ') || null,
@@ -78,6 +83,29 @@ export default async function handler(req, res) {
     bookingDate: bookingDate || null,
   }
 
+  // Reschedule requests with a concrete slot are applied directly; any failure
+  // falls through to the manual request-email flow below.
+  if (kind === 'reschedule' && requestedIso) {
+    const result = await autoReschedule(session.email, requestedIso)
+    if (result.ok) {
+      const oldSlot = fmtSlot(result.oldStart)
+      const newSlot = fmtSlot(result.newStart)
+      try {
+        await sendServiceRequest(ADMIN_EMAIL, customerInfo, `${name}'s visit was moved from ${oldSlot} to ${newSlot} at their request. No action needed.`, {
+          subject: `Rescheduled automatically: ${name}`,
+          heading: 'Visit rescheduled automatically',
+          confirmHeading: `Your visit is confirmed for ${newSlot}. No further action needed — see you then!`,
+        })
+      } catch (err) {
+        console.error('auto-reschedule notification error:', err)
+      }
+      return res.status(200).json({ sent: true, rescheduled: true, newTime: newSlot })
+    }
+    console.log('auto-reschedule fell back to manual:', result.reason)
+  }
+
+  const { subject, heading, message, confirmHeading } = buildRequest(kind, { name, bookingDate, requestedDate })
+
   try {
     await sendServiceRequest(ADMIN_EMAIL, customerInfo, message, { subject, heading, confirmHeading })
   } catch (err) {
@@ -85,5 +113,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to send' })
   }
 
-  res.status(200).json({ sent: true })
+  res.status(200).json({ sent: true, rescheduled: false })
 }

@@ -1,0 +1,364 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Card from '../components/ui/Card.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+---
+
+<Base
+  title="Book Your Free Mosquito Assessment | GreenGuard USA"
+  description="Schedule a free in-person property assessment with GreenGuard USA. No pressure, no obligation."
+>
+  <section class="bg-ivory" style="padding-top:clamp(5rem,10vw,8.5rem);padding-bottom:clamp(3rem,7vw,5rem);"><div class="container-x"><div class="max-w-3xl reveal"><Eyebrow>Free Assessment</Eyebrow><h1 class="font-display mt-6" style="font-size:clamp(2.6rem,6vw,4.5rem);max-width:12ch;">Book your <em class="italic" style="color:var(--pine);font-weight:340;">free assessment</em></h1><p class="mt-7 text-soft" style="font-size:1.125rem;max-width:38rem;">We come out, walk your property, and show you exactly where traps would go and what to expect. No pressure, no obligation.</p></div></div></section>
+
+  <Section variant="linen">
+    <div class="max-w-2xl mx-auto reveal"><Eyebrow>Free Assessment</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">Pick a date and time</h2><p class="mt-5 text-soft">Mon–Fri, 10am–5:30pm CT. We serve the greater Austin area.</p></div>
+    <div class="max-w-2xl mx-auto mt-12">
+      <!-- Step 1: Contact + Address -->
+      <div id="step-1" class="book-step reveal">
+        <Card tone="ivory" class="!p-6 sm:!p-8">
+          <h2 class="font-display" style="font-size:1.65rem;">Your info</h2>
+          <p class="text-soft text-sm mt-2 mb-7">We'll use this to confirm your visit and route to your property.</p>
+          <div class="flex flex-col gap-5">
+            <div><label class="field-label" for="f-name">Full name <span aria-hidden="true">*</span></label><input id="f-name" type="text" autocomplete="name" placeholder="Jane Smith" class="field-input" /></div>
+            <div><label class="field-label" for="f-email">Email address <span aria-hidden="true">*</span></label><input id="f-email" type="email" autocomplete="email" placeholder="jane@example.com" class="field-input" /></div>
+            <div><label class="field-label" for="f-phone">Phone number <span class="optional">(optional)</span></label><input id="f-phone" type="tel" autocomplete="tel" placeholder="512-555-0100" class="field-input" /></div>
+            <div><label class="field-label" for="f-street">Street address <span aria-hidden="true">*</span></label><input id="f-street" type="text" autocomplete="street-address" placeholder="2010 Riverview St" class="field-input" /></div>
+            <div class="grid grid-cols-2 gap-4"><div><label class="field-label" for="f-city">City <span aria-hidden="true">*</span></label><input id="f-city" type="text" autocomplete="address-level2" placeholder="Austin" class="field-input" /></div><div><label class="field-label" for="f-state">State</label><input id="f-state" type="text" autocomplete="address-level1" value="TX" maxlength="2" class="field-input" /></div></div>
+            <div><label class="field-label" for="f-zip">ZIP code <span aria-hidden="true">*</span></label><input id="f-zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="78704" class="field-input" /></div>
+          </div>
+        </Card>
+      </div>
+
+      <!-- Step 2: Date + time (revealed automatically once info above is complete) -->
+      <div id="step-2" class="book-step step-hidden mt-10 pt-8 border-t hairline-t">
+        <Card tone="ivory" class="!p-6 sm:!p-8">
+          <h2 class="font-display" style="font-size:1.65rem;">Pick a date and time</h2>
+          <p class="text-soft text-sm mt-2 mb-7">Mon–Fri, 10am–5:30pm CT. We serve the greater Austin area.</p>
+
+          <div class="flex items-center justify-between mb-5"><button id="prev-month" onclick="changeMonth(-1)" class="btn-icon" aria-label="Previous month">←</button><span id="month-label" class="font-display text-xl"></span><button id="next-month" onclick="changeMonth(1)" class="btn-icon" aria-label="Next month">→</button></div>
+          <div id="cal-grid" class="mb-7"></div>
+          <div id="slots-panel" class="step-hidden"><p id="slots-date-label" class="slots-date-label"></p><div id="slots-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div></div>
+
+          <div id="confirm-panel" class="step-hidden mt-7">
+            <div class="card card--linen !p-5 mb-5 space-y-3 text-sm"><div class="review-row"><span class="review-label">Name</span><span id="r-name"></span></div><div class="review-row"><span class="review-label">Email</span><span id="r-email" class="break-all text-right"></span></div><div id="r-phone-row" class="review-row step-hidden"><span class="review-label">Phone</span><span id="r-phone"></span></div><div class="review-row"><span class="review-label">Address</span><span id="r-address" class="text-right"></span></div><div class="review-row"><span class="review-label">When</span><span id="r-when" class="font-semibold text-right" style="color:var(--pine);"></span></div></div>
+            <div class="mb-5 flex items-start gap-3 rounded-xl p-4" style="border:1px solid rgba(176,141,76,.3);background:rgba(176,141,76,.08);"><input id="f-own-trap" type="checkbox" class="mt-1" /><label for="f-own-trap" class="text-sm cursor-pointer select-none"><span class="font-semibold">I already own a mosquito trap</span> (Biogents, Mosqitter, or other). I want service, CO₂, or placement help</label></div>
+            <div class="mb-5"><label class="field-label" for="f-notes">Notes for us <span class="optional">(optional)</span></label><textarea id="f-notes" rows="2" placeholder="Anything we should know?" class="field-input resize-none"></textarea></div>
+            <p id="err-2" class="err-msg step-hidden mb-3" role="alert"></p><button onclick="submitBooking()" id="btn-submit" class="btn btn-primary w-full">Confirm booking</button>
+          </div>
+        </Card>
+      </div>
+
+      <div id="step-success" class="step-hidden text-center py-12 reveal"><div class="success-mark" aria-hidden="true">✓</div><h2 class="font-display mt-5" style="font-size:2.1rem;">You're booked!</h2><p class="text-soft mt-3">Confirmation sent to <strong id="s-email" class="text-ink"></strong>.</p><p id="s-when" class="font-semibold mt-2" style="color:var(--pine);"></p><p class="text-soft text-sm mt-6">We'll confirm the day before. Questions? Call or text <a href="tel:5125604129" class="underline" style="color:var(--pine);">512-560-4129</a>.</p></div>
+    </div>
+  </Section>
+
+  <Section tight class="hairline-t hairline-b"><div class="container-x"><div class="flex flex-col sm:flex-row items-start sm:items-center justify-center gap-3 sm:gap-6 text-center sm:text-left"><Eyebrow class="mx-auto sm:mx-0">Service Area</Eyebrow><p class="text-sm text-ink/80">We serve the greater Austin area. Not sure if you are covered? <a href="tel:5125604129" class="underline font-semibold" style="color:var(--pine);">Call us</a>.</p></div></div></Section>
+
+  <Section variant="ivory"><div class="max-w-2xl mx-auto text-center reveal"><Eyebrow class="justify-center">What to Expect</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">Simple process. No surprises.</h2></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12" data-stagger><div class="reveal"><Card tone="linen" class="h-full !p-7"><span class="display-numeral block" style="font-size:3.5rem;">01</span><h3 class="font-display mt-4" style="font-size:1.25rem;">~30 minute walkthrough</h3><p class="mt-3 text-sm text-soft">We look at vegetation, water sources, and how you use the yard. Identify the right trap spots.</p></Card></div><div class="reveal"><Card tone="linen" class="h-full !p-7"><span class="display-numeral block" style="font-size:3.5rem;">02</span><h3 class="font-display mt-4" style="font-size:1.25rem;">Honest assessment</h3><p class="mt-3 text-sm text-soft">We'll tell you if CO₂ trapping is right for your property, or honestly say it's not the best fit.</p></Card></div><div class="reveal"><Card tone="linen" class="h-full !p-7"><span class="display-numeral block" style="font-size:3.5rem;">03</span><h3 class="font-display mt-4" style="font-size:1.25rem;">Decide on your own time</h3><p class="mt-3 text-sm text-soft">Take a day, a week, or pass entirely. No follow-up sales calls.</p></Card></div></div></Section>
+
+  <style is:global>
+    .book-step { animation: book-fade-in .18s ease; }
+    @keyframes book-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .field-label { display:block; font-size:.78rem; font-weight:600; color:var(--text); margin-bottom:7px; letter-spacing:.03em; }
+    .field-label span[aria-hidden="true"] { color:var(--error); }
+    .field-label .optional { color:var(--text-soft); font-weight:400; }
+    .field-input { width:100%; min-height:48px; padding:11px 14px; border-radius:12px; border:1px solid rgba(30,43,35,.2); background:var(--paper); color:var(--text); font-size:.95rem; font-family:inherit; outline:none; box-sizing:border-box; transition:border-color .15s, box-shadow .15s; }
+    .field-input:focus { border-color:var(--pine); box-shadow:0 0 0 3px rgba(46,74,59,.14); }
+    .field-input::placeholder { color:rgba(30,43,35,.42); }
+    .btn-icon { min-width:44px; min-height:44px; border-radius:999px; border:1px solid rgba(30,43,35,.18); background:transparent; color:var(--pine); cursor:pointer; font-size:1.2rem; }
+    .btn-icon:hover:not(:disabled) { background:var(--paper-alt); border-color:var(--pine); }
+    .btn-icon:disabled { opacity:.35; cursor:not-allowed; }
+    .err-msg { font-size:.84rem; color:var(--error); font-weight:600; }
+    .slots-date-label { color:var(--brass-ink); font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.13em; margin-bottom:12px; }
+    .cal-header { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:5px; }
+    .cal-header span { text-align:center; font-size:.68rem; font-weight:700; color:var(--text-soft); letter-spacing:.05em; }
+    .cal-body { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+    .cal-day { width:100%; aspect-ratio:1; min-height:38px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-size:.82rem; font-weight:600; font-family:inherit; }
+    .cal-day.past, .cal-day.unavailable { color:rgba(30,43,35,.28); }
+    .cal-day.past, .cal-day.unavailable { cursor:not-allowed; }
+    .cal-day.available { background:rgba(46,74,59,.08); color:var(--pine); cursor:pointer; border:1px solid rgba(46,74,59,.2); }
+    .cal-day.available:hover { background:rgba(46,74,59,.15); }
+    .cal-day.selected { background:var(--pine); color:var(--paper); border-color:var(--pine); }
+    .slot-btn { min-height:44px; padding:8px 4px; border-radius:10px; border:1px solid rgba(30,43,35,.18); background:transparent; color:var(--text); font-size:.8rem; font-weight:600; font-family:inherit; cursor:pointer; text-align:center; }
+    .slot-btn:hover { background:var(--paper-alt); border-color:var(--pine); }
+    .slot-btn.selected { background:var(--pine); border-color:var(--pine); color:var(--paper); }
+    .review-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--hairline); }
+    .review-row:last-child { border-bottom:none; }
+    .review-label { color:var(--text-soft); font-size:.78rem; white-space:nowrap; }
+    .success-mark { width:56px; height:56px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background:var(--pine); color:var(--paper); font-size:1.75rem; }
+    .step-hidden { display:none !important; }
+    @media (max-width: 420px) { .cal-day { min-height:34px; font-size:.76rem; } .cal-header, .cal-body { gap:3px; } }
+  </style>
+
+  <script is:inline>
+    const PORTAL = 'https://portal.greenguard-usa.com'
+    const TZ = 'America/Chicago'
+
+    // ── State ──────────────────────────────────────────────────────────────────
+    const state = {
+      name: '', email: '', phone: '',
+      street: '', city: '', state: 'TX', zip: '',
+      selectedISO: null,
+      selectedDate: null,
+      viewYear: 0, viewMonth: 0,
+      slotsCache: {},  // 'YYYY-M' → { slots: {...} }
+      monthRequest: 0,
+    }
+
+    // ── Utilities ──────────────────────────────────────────────────────────────
+    function $(id) { return document.getElementById(id) }
+    function val(id) { return $(id)?.value?.trim() || '' }
+    function show(id) { $(id)?.classList.remove('step-hidden') }
+    function hide(id) { $(id)?.classList.add('step-hidden') }
+    function showErr(id, msg) { const el = $(id); if (el) { el.textContent = msg; el.classList.remove('step-hidden') } }
+    function clearErr(id) { const el = $(id); if (el) { el.textContent = ''; el.classList.add('step-hidden') } }
+
+    function fmtSlotDisplay(isoUtc) {
+      return new Date(isoUtc).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ })
+    }
+    function fmtDateDisplay(isoUtc) {
+      return new Date(isoUtc).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ })
+    }
+    function fmtFull(isoUtc) {
+      return new Date(isoUtc).toLocaleString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', timeZone: TZ, timeZoneName: 'short'
+      })
+    }
+
+    // ── Form sync + auto-reveal ──────────────────────────────────────────────────
+    // No "choose a time" button: the date/time picker reveals itself as soon as the
+    // required contact + address fields are valid, and stays in sync as they change.
+    function isStep1Valid() {
+      return !!(state.name &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email) &&
+        state.street && state.city && /^\d{5}$/.test(state.zip))
+    }
+
+    function syncForm() {
+      state.name = val('f-name'); state.email = val('f-email'); state.phone = val('f-phone')
+      state.street = val('f-street'); state.city = val('f-city')
+      state.state = val('f-state') || 'TX'; state.zip = val('f-zip')
+
+      const wasHidden = $('step-2').classList.contains('step-hidden')
+      if (isStep1Valid()) {
+        show('step-2')
+        if (!state.viewYear) initCalendar()
+        if (wasHidden) $('step-2').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      } else {
+        hide('step-2')
+      }
+    }
+
+    // ── Calendar ───────────────────────────────────────────────────────────────
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+    const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+    // Minimum 24-hour lead time: drop any slot sooner than that from now.
+    const MIN_LEAD_MS = 24 * 60 * 60 * 1000
+    function futureSlots(arr) {
+      const cutoff = Date.now() + MIN_LEAD_MS
+      return (arr || []).filter(iso => new Date(iso).getTime() >= cutoff)
+    }
+
+    function initCalendar() {
+      const now = new Date()
+      state.viewYear = now.getFullYear()
+      state.viewMonth = now.getMonth() + 1
+      loadAndRenderMonth()
+    }
+
+    function changeMonth(delta) {
+      state.viewMonth += delta
+      if (state.viewMonth > 12) { state.viewMonth = 1; state.viewYear++ }
+      if (state.viewMonth < 1)  { state.viewMonth = 12; state.viewYear-- }
+      hide('slots-panel')
+      loadAndRenderMonth()
+    }
+
+    async function loadAndRenderMonth() {
+      const { viewYear: y, viewMonth: m } = state
+      const requestId = ++state.monthRequest
+      $('month-label').textContent = `${MONTH_NAMES[m-1]} ${y}`
+
+      // Disable prev if already at current month
+      const now = new Date()
+      $('prev-month').disabled = y === now.getFullYear() && m === now.getMonth() + 1
+
+      const key = `${y}-${m}`
+      if (!state.slotsCache[key]) {
+        $('cal-grid').innerHTML = '<p style="color:rgba(74,107,87,.7);font-size:0.82rem;padding:16px 0;">Loading availability…</p>'
+        try {
+          const r = await fetch(`${PORTAL}/api/book/slots?year=${y}&month=${m}`)
+          const data = await r.json()
+          state.slotsCache[key] = data.slots || {}
+        } catch {
+          if (requestId !== state.monthRequest) return
+          $('cal-grid').innerHTML = '<p style="color:#9c3a2e;font-size:0.82rem;">Failed to load availability. Please try again.</p>'
+          return
+        }
+      }
+      if (requestId !== state.monthRequest || state.viewYear !== y || state.viewMonth !== m) return
+      renderCalendar(y, m, state.slotsCache[key])
+    }
+
+    function renderCalendar(year, month, slots) {
+      const grid = $('cal-grid')
+      const firstDow = new Date(year, month - 1, 1).getDay()
+      const daysInMonth = new Date(year, month, 0).getDate()
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      let html = '<div class="cal-header">'
+      DAY_NAMES.forEach(d => { html += `<span>${d}</span>` })
+      html += '</div><div class="cal-body">'
+      for (let i = 0; i < firstDow; i++) html += '<div class="cal-day empty" aria-hidden="true"></div>'
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+        const dayDate = new Date(year, month - 1, d)
+        const dow = dayDate.getDay()
+        const isWeekend = dow === 0 // Sun only; Sat is allowed
+        const isPast = dayDate < today
+        const dateLabel = dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+
+        const avail = futureSlots(slots[dateStr])
+        if (isPast || isWeekend) {
+          const reason = isPast ? 'unavailable, in the past' : 'unavailable on weekends'
+          html += `<button type="button" class="cal-day past" disabled aria-disabled="true" aria-label="${dateLabel}, ${reason}">${d}</button>`
+        } else if (avail.length) {
+          const sel = state.selectedDate === dateStr
+          html += `<button type="button" class="cal-day available${sel ? ' selected' : ''}" onclick="selectDay('${dateStr}')" aria-pressed="${sel ? 'true' : 'false'}" aria-label="${dateLabel}, ${avail.length} slots available" title="${avail.length} slots available">${d}</button>`
+        } else {
+          html += `<button type="button" class="cal-day unavailable" disabled aria-disabled="true" aria-label="${dateLabel}, no slots available">${d}</button>`
+        }
+      }
+      html += '</div>'
+      grid.innerHTML = html
+    }
+
+    function selectDay(dateStr) {
+      const { viewYear: y, viewMonth: m } = state
+      const slots = futureSlots(state.slotsCache[`${y}-${m}`]?.[dateStr])
+      if (!slots.length) return
+
+      state.selectedDate = dateStr
+      state.selectedISO = null
+
+      // Re-render calendar with this day selected
+      renderCalendar(y, m, state.slotsCache[`${y}-${m}`] || {})
+      hide('confirm-panel')
+
+      // Show time slots
+      const d = new Date(dateStr + 'T12:00:00Z')
+      $('slots-date-label').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      const sg = $('slots-grid')
+      sg.innerHTML = slots.map(iso => {
+        return `<button type="button" class="slot-btn" aria-pressed="false" onclick="selectSlot('${iso}')" aria-label="${fmtSlotDisplay(iso)}">${fmtSlotDisplay(iso)}</button>`
+      }).join('')
+      show('slots-panel')
+    }
+
+    function selectSlot(iso) {
+      state.selectedISO = iso
+      document.querySelectorAll('.slot-btn').forEach(b => {
+        b.classList.toggle('selected', b.getAttribute('onclick')?.includes(iso))
+        b.setAttribute('aria-pressed', b.classList.contains('selected') ? 'true' : 'false')
+      })
+      $('r-name').textContent = state.name
+      $('r-email').textContent = state.email
+      if (state.phone) { $('r-phone').textContent = state.phone; show('r-phone-row') }
+      else hide('r-phone-row')
+      $('r-address').textContent = `${state.street}, ${state.city}, ${state.state} ${state.zip}`
+      $('r-when').textContent = fmtFull(iso)
+      show('confirm-panel')
+      $('confirm-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+
+    // ── Submit ─────────────────────────────────────────────────────────────────
+    async function submitBooking() {
+      clearErr('err-2')
+      const btn = $('btn-submit')
+      btn.textContent = 'Booking…'
+      btn.disabled = true
+
+      // Attribution: click IDs captured on landing (sessionStorage) + Meta/GA cookies,
+      // forwarded to the server so it can fire durable offline conversions.
+      const ck = (n) => (document.cookie.match(new RegExp('(?:^|; )' + n + '=([^;]+)')) || [])[1] || null
+      const gaCookie = ck('_ga')
+      const eventId = `book_${(state.email || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16)}_${Date.now()}`
+      const attribution = {
+        gclid: sessionStorage.getItem('gg_gclid') || null,
+        fbclid: sessionStorage.getItem('gg_fbclid') || null,
+        fbp: ck('_fbp'),
+        // _ga cookie is GA1.1.<clientId>: last two dotted parts are the client_id.
+        gaClientId: gaCookie ? gaCookie.split('.').slice(-2).join('.') : null,
+        // _ga_<stream> cookie is GS1.1.<session_id>.<n>...: session_id lets the
+        // server MP event attach to this live session instead of Unassigned.
+        gaSessionId: (ck('_ga_K2R5H2Z23X') || '').split('.')[2] || null,
+        eventId, // shared with the server CAPI Lead so Meta dedupes the pair
+      }
+
+      try {
+        const res = await fetch(`${PORTAL}/api/book/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: state.name,
+            email: state.email,
+            phone: state.phone || null,
+            street: state.street,
+            city: state.city,
+            state: state.state,
+            zip: state.zip,
+            startISO: state.selectedISO,
+            notes: (() => {
+              const own = document.getElementById('f-own-trap')
+              const base = val('f-notes') || ''
+              const tag = own && own.checked ? 'ALREADY OWNS TRAP. Wants service/CO2/placement.' : ''
+              return [tag, base].filter(Boolean).join(' ') || null
+            })(),
+            ...attribution,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+
+        // Success
+        for (let i = 1; i <= 2; i++) hide(`step-${i}`)
+        hide('confirm-panel')
+        show('step-success')
+        $('s-email').textContent = state.email
+        $('s-when').textContent = fmtFull(state.selectedISO)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+
+        // GA4 + Meta lead tracking
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'generate_lead', { event_category: 'booking', event_label: 'property_assessment' })
+          window.gtag('event', 'qualify_lead', { event_category: 'booking', event_label: 'property_assessment' })
+        }
+        if (typeof window.fbq === 'function') {
+          window.fbq('track', 'Lead', { content_name: 'Property Assessment Booking', value: 25, currency: 'USD' }, { eventID: eventId })
+        }
+      } catch (e) {
+        showErr('err-2', e.message || 'Something went wrong. Please try again or call 512-560-4129.')
+        btn.textContent = 'Confirm booking ✓'
+        btn.disabled = false
+      }
+    }
+
+    // Reveal the date/time picker automatically as the contact + address fields fill in.
+    ;['f-name','f-email','f-phone','f-street','f-city','f-state','f-zip'].forEach(id => {
+      $(id)?.addEventListener('input', syncForm)
+    })
+
+    // ?own=1: arriving from a shop page or AI answer as an existing trap owner
+    if (new URLSearchParams(location.search).get('own') === '1') {
+      const cb = $('f-own-trap'); if (cb) cb.checked = true
+    }
+  </script>
+
+  <CtaBand title="Book your free assessment" sub="We come out, walk your property, and show you exactly where traps would go and what to expect. No pressure, no obligation." ctaLabel="Book Free Assessment" />
+</Base>

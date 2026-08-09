@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/terrace-tales/">
+<meta charset="utf-8">
+<title>Terrace Tales</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1218">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#080b0f;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;touch-action:none}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  #cv{display:block;touch-action:none;background:#0d1218;
+    box-shadow:0 0 40px rgba(0,0,0,.6)}
+  #rot{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    flex-direction:column;gap:14px;background:#0d1218;color:#dbe6dd;z-index:9;text-align:center;padding:24px}
+  #rot b{font-size:20px;font-weight:700}
+  #rot span{font-size:14px;color:#8fa3a0}
+  #rot i{font-size:44px;font-style:normal;display:block;animation:tw 1.6s ease-in-out infinite}
+  @keyframes tw{0%,100%{transform:rotate(0)}50%{transform:rotate(-90deg)}}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv" width="390" height="700"></canvas></div>
+<div id="rot"><i>&#9634;</i><b>Turn your device upright</b><span>Terrace Tales is played in portrait. The garden is paused.</span></div>
+<script src="js/util.js"></script>
+<script src="js/board.js"></script>
+<script src="js/garden.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

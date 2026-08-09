@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/ridge-glider/">
+<meta charset="utf-8">
+<title>Ridge Glider</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1b2a">
+<style>
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#0b1622;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  #wrap{position:fixed;inset:0;touch-action:none;overscroll-behavior:none;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+  #rotate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(8,16,26,.93);color:#e8f2ff;z-index:20;text-align:center;padding:24px;}
+  #rotate.on{display:flex;}
+  #rotate div{max-width:300px;font-size:17px;line-height:1.5;letter-spacing:.02em;}
+  #rotate b{display:block;font-size:34px;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="rotate"><div><b>&#8635;</b>Rotate your phone to landscape<br>to fly the ridge.</div></div>
+<script src="world.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

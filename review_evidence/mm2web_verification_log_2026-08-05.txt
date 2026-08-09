@@ -1,0 +1,40 @@
+==== desktop (1280, 800) ====
+[desktop] measured document offsetWidth = 1280 (requested 1280)
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_desktop_01_title.png :: Title screen at 1280px: MARBLE MANIA 2 heading, Extended Edition tagline, PLAY button, control hints
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_desktop_02_campaign.png :: Campaign select at 1280px: CLASSIC and EXTENDED cards with cleared/unlocked progress
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_desktop_02b_levels.png :: Course select at 1280px: 18-course grid with names, best times and lock state
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_desktop_03_classic_L01.png :: classic course 1 (Practice) mid-play at 1280px, sim t=2.5s, marble at (-10.5,1.4,-14.1), 31 meshes, lit pixel fraction 0.88, 3553 distinct colours
+[desktop] 03_classic_L01 stats={"meshes": 31, "pos": {"x": -10.533426005974933, "y": 1.45, "z": -14.082644132980095}, "t": 2.4583333333333273, "falls": 0, "state": "play", "level": "Practice", "w": 1280} lit=0.877 colours=3553
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_desktop_04_extended_L01.png :: extended course 1 (Practice) mid-play at 1280px, sim t=3.0s, marble at (21.5,0.9,-20.0), 57 meshes, lit pixel fraction 0.97, 4127 distinct colours
+[desktop] 04_extended_L01 stats={"meshes": 57, "pos": {"x": 21.51896744311695, "y": 0.95, "z": -19.97162173223115}, "t": 2.999999999999992, "falls": 0, "state": "play", "level": "Practice", "w": 1280} lit=0.971 colours=4127
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_desktop_05_extended_L13.png :: extended course 13 (Mixdown) mid-play at 1280px, sim t=13.5s, marble at (2.5,16.8,1.9), 121 meshes, lit pixel fraction 0.20, 2086 distinct colours
+[desktop] 05_extended_L13 stats={"meshes": 121, "pos": {"x": 2.497584522553899, "y": 16.80876942090395, "z": 1.9096424306743045}, "t": 13.499999999999874, "falls": 5, "state": "play", "level": "Mixdown", "w": 1280} lit=0.199 colours=2086
+[desktop] bot cleared Classic 01 on attempt 1
+[desktop] results overlay text: COURSE CLEAR | 01  •  Practice |  | Time 0:04.4  •  Falls 0 | GOLD MEDAL | NEW BEST TIME |  | Par 0:30.0  •  gold 0:10.1 / silver 0:17.1 / bronze 0:25.3 |  | NEXT COURSE | RETRY | COURSES
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_desktop_06_results.png :: Results screen at 1280px after autopilot cleared Classic 01: COURSE CLEAR
+[desktop] save before reload: classic.unlocked=18 classic.best[0]=4.383333333333341
+[desktop] save after  reload: classic.unlocked=18 classic.best[0]=4.383333333333341 extended.unlocked=7
+[desktop] SAVE/RELOAD OK (in-memory best[0]=4.38s survived reload)
+[desktop] corrupt save -> fresh state unlocked=1, title renders=True
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_desktop_07_corrupt_recover.png :: Title screen at 1280px after a deliberately corrupt localStorage value: page boots to a fresh save, not an error
+==== mobile (390, 844) ====
+[mobile] measured document offsetWidth = 390 (requested 390)
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_mobile_01_title.png :: Title screen at 390px: MARBLE MANIA 2 heading, Extended Edition tagline, PLAY button, control hints
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_mobile_02_campaign.png :: Campaign select at 390px: CLASSIC and EXTENDED cards with cleared/unlocked progress
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_mobile_02b_levels.png :: Course select at 390px: 18-course grid with names, best times and lock state
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_mobile_03_classic_L01.png :: classic course 1 (Practice) mid-play at 390px, sim t=2.7s, marble at (-16.0,1.4,-12.4), 31 meshes, lit pixel fraction 0.86, 5196 distinct colours
+[mobile] 03_classic_L01 stats={"meshes": 31, "pos": {"x": -16.006538757585776, "y": 1.45, "z": -12.44275274635003}, "t": 2.699999999999993, "falls": 0, "state": "play", "level": "Practice", "w": 390} lit=0.860 colours=5196
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_mobile_04_extended_L01.png :: extended course 1 (Practice) mid-play at 390px, sim t=4.8s, marble at (20.1,0.9,14.7), 57 meshes, lit pixel fraction 0.96, 6359 distinct colours
+[mobile] 04_extended_L01 stats={"meshes": 57, "pos": {"x": 20.136117280212616, "y": 0.95, "z": 14.671621260089148}, "t": 4.841666666666697, "falls": 0, "state": "play", "level": "Practice", "w": 390} lit=0.956 colours=6359
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_mobile_05_extended_L13.png :: extended course 13 (Mixdown) mid-play at 390px, sim t=14.2s, marble at (5.9,6.3,-12.2), 121 meshes, lit pixel fraction 0.10, 2113 distinct colours
+[mobile] 05_extended_L13 stats={"meshes": 121, "pos": {"x": 5.893062129341498, "y": 6.289953213276798, "z": -12.24320231100102}, "t": 14.183333333333168, "falls": 5, "state": "play", "level": "Mixdown", "w": 390} lit=0.101 colours=2113
+[mobile] bot cleared Classic 01 on attempt 1
+[mobile] results overlay text: COURSE CLEAR | 01  •  Practice |  | Time 0:05.7  •  Falls 0 | GOLD MEDAL | NEW BEST TIME |  | Par 0:30.0  •  gold 0:10.1 / silver 0:17.1 / bronze 0:25.3 |  | NEXT COURSE | RETRY | COURSES
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_mobile_06_results.png :: Results screen at 390px after autopilot cleared Classic 01: COURSE CLEAR
+[mobile] save before reload: classic.unlocked=18 classic.best[0]=5.700000000000073
+[mobile] save after  reload: classic.unlocked=18 classic.best[0]=5.700000000000073 extended.unlocked=7
+[mobile] SAVE/RELOAD OK (in-memory best[0]=5.70s survived reload)
+[mobile] corrupt save -> fresh state unlocked=1, title renders=True
+SHOT /Users/lucille/ue-port-studio/inbox/mm2web_mobile_07_corrupt_recover.png :: Title screen at 390px after a deliberately corrupt localStorage value: page boots to a fresh save, not an error
+==== CONSOLE / PAGE ERROR SCAN ====
+  zero console errors and zero page errors across both viewports

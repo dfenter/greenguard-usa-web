@@ -24,3 +24,6 @@ scripts
 *.zip
 *.kicad_pcb
 *.kicad_sch
+
+# Redesign source project (built locally; staged output redesign-dist/ IS uploaded)
+redesign

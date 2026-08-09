@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Card from '../components/ui/Card.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+---
+
+<Base
+  title="Get a Free Mosquito Control Quote | GreenGuard USA Austin TX"
+  description="Get transparent, instant pricing for your Austin property. Build a custom mosquito control plan online, no sales calls, no pressure, no commitment required."
+>
+  <section class="bg-ivory" style="padding-top:clamp(5rem,10vw,8.5rem);padding-bottom:clamp(4rem,8vw,6.5rem);"><div class="container-x"><div class="max-w-3xl reveal"><Eyebrow>Online Quote</Eyebrow><h1 class="font-display mt-6" style="font-size:clamp(2.6rem,6vw,4.5rem);max-width:12ch;">See exact pricing <em class="italic" style="color:var(--pine);font-weight:340;">for your property.</em></h1><p class="mt-7 text-soft" style="font-size:1.125rem;max-width:38rem;">Our quote builder lets you customize your service plan, see a line-by-line price breakdown, and book installation before you ever talk to anyone.</p><div class="flex flex-wrap gap-4 mt-9"><Btn href="https://portal.greenguard-usa.com/quote/new">Open Quote Builder</Btn><Btn href="/book" variant="ghost">Prefer a call? Book Free Assessment</Btn></div></div></div></section>
+
+  <Section variant="linen"><div class="max-w-2xl mx-auto text-center reveal"><Eyebrow class="justify-center">Online Quote</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">How the quote process works</h2></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12" data-stagger>{[['01','Build your quote','Choose your service plan, trap type, and any add-ons. Pricing updates as you configure.'],['02','Review the breakdown','See a full itemized price: monthly service, any one-time fees, and the first month total.'],['03','Approve and pay','Approve online and pay the first month via secure Stripe checkout. No commitment beyond that.'],['04','Book your installation','Choose your installation time directly from available slots. We confirm and show up.']].map(([number,title,body]) => <div class="reveal"><Card tone="ivory" class="h-full !p-6"><span class="display-numeral block" style="font-size:3.5rem;">{number}</span><h3 class="font-display mt-4" style="font-size:1.2rem;">{title}</h3><p class="mt-3 text-sm text-soft">{body}</p></Card></div>)}</div></Section>
+
+  <Section variant="ivory"><div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start"><div class="lg:col-span-4 reveal"><Eyebrow>What you'll need</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,2.8rem);">The quote builder takes about 3 minutes.</h2><p class="mt-5 text-soft">Have these handy:</p></div><div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-5" data-stagger>{[['Your address','So we can confirm we service your area and estimate property size.'],['Rough yard size','Quarter acre, half acre, or larger. Helps us recommend the right number of traps.'],['Payment method','Credit or debit card for the first month. Charged only after you approve the quote.'],['Preferred install window',"A general idea of when you're available. We'll show you real available slots at the end."]].map(([title,body], index) => <div class="reveal"><Card tone="linen" class="h-full !p-6"><span class="inline-flex items-center justify-center rounded-full w-9 h-9" style="background:rgba(176,141,76,.14);color:var(--brass-ink);">{index + 1}</span><h3 class="font-display mt-4" style="font-size:1.2rem;">{title}</h3><p class="mt-2 text-sm text-soft">{body}</p></Card></div>)}</div></div></Section>
+
+  <Section variant="linen"><div class="grid grid-cols-1 md:grid-cols-3 gap-6" data-stagger>{[['Month-to-month','No long-term contract required'],['Secure checkout','Powered by Stripe. We never store card data.'],['Cancel anytime','No cancellation fees, ever']].map(([stat,label]) => <div class="reveal"><Card tone="ivory" class="text-center !p-7"><p class="font-display" style="font-size:1.45rem;color:var(--pine);">{stat}</p><p class="mt-2 text-sm text-soft">{label}</p></Card></div>)}</div></Section>
+
+  <CtaBand title="Ready to see your price?" sub="Takes about 3 minutes. No account needed." ctaLabel="Open Quote Builder" ctaHref="https://portal.greenguard-usa.com/quote/new" />
+</Base>

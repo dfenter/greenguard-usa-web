@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <base href="/play/blockborough/">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#09131d">
+  <meta name="description" content="Blockborough is a pocket city builder about readable streets, power, and people.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <title>Blockborough</title>
+  <style>
+    :root { color-scheme: dark; --ink:#ebf4ee; --muted:#8da4a5; --line:#29434a; --panel:#10232a; --panel-hi:#17313a; --mint:#8ce6b3; --amber:#ffc86d; --coral:#f17d6b; --cyan:#65d5df; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { margin:0; min-height:100%; background:#07121b; overflow:hidden; font-family:ui-rounded, "Avenir Next", system-ui, sans-serif; color:var(--ink); }
+    body { min-height:100dvh; }
+    button,select { font:inherit; color:inherit; }
+    button { border:0; cursor:pointer; }
+    #app { min-height:100dvh; display:flex; flex-direction:column; padding:calc(8px + env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); background:radial-gradient(circle at 50% 38%, #16313b 0, #091821 48%, #061018 100%); }
+    #hud { flex:0 0 auto; position:relative; z-index:5; max-width:520px; width:100%; margin:0 auto; }
+    .eyebrow { letter-spacing:.18em; text-transform:uppercase; color:var(--mint); font-size:10px; font-weight:800; }
+    #brandRow { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 2px 8px; }
+    #brand { font-size:20px; font-weight:900; letter-spacing:-.04em; }
+    #brand small { display:block; margin-top:1px; color:var(--muted); font-size:10px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; }
+    .iconButton { width:36px; height:36px; display:grid; place-items:center; border:1px solid var(--line); border-radius:12px; background:#10262e; color:var(--ink); font-weight:900; }
+    .iconButton:active,.tool:active,.action:active,.primary:active { transform:translateY(1px) scale(.98); }
+    #statRow { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .stat { min-width:0; padding:8px 9px 7px; border:1px solid var(--line); border-radius:12px; background:rgba(13,34,42,.88); box-shadow:0 6px 18px rgba(0,0,0,.12); }
+    .stat label { display:block; color:var(--muted); font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:800; }
+    .stat strong { display:block; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:16px; }
+    .stat strong.good { color:var(--mint); } .stat strong.warn { color:var(--amber); } .stat strong.bad { color:var(--coral); }
+    #goalRow { display:flex; align-items:center; gap:8px; padding:8px 3px 6px; color:var(--muted); font-size:11px; }
+    #goalMeter { height:5px; flex:1; border-radius:99px; overflow:hidden; background:#1a3238; }
+    #goalFill { height:100%; width:0; background:linear-gradient(90deg,var(--mint),var(--amber)); border-radius:99px; transition:width .25s ease; }
+    #stage { position:relative; flex:1 1 auto; min-height:240px; max-width:520px; width:100%; margin:0 auto; overflow:hidden; border:1px solid #22414a; border-radius:20px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.02), 0 14px 36px rgba(0,0,0,.24); touch-action:none; }
+    #stage:after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 22%,transparent 76%,rgba(0,0,0,.16)); }
+    #stage canvas { display:block; width:100%; height:100%; image-rendering:pixelated; touch-action:none; }
+    #cityLegend { position:absolute; z-index:3; left:8px; bottom:8px; max-width:190px; padding:6px 8px; border:1px solid rgba(87,130,132,.7); border-radius:9px; background:rgba(7,24,29,.84); color:#c8d9d4; font-size:10px; line-height:1.3; pointer-events:none; }
+    #cityLegend strong { color:var(--mint); letter-spacing:.08em; font-size:9px; text-transform:uppercase; }
+    #miniMap { position:absolute; z-index:4; right:8px; top:8px; width:55px; height:76px; padding:4px; border:1px solid rgba(87,130,132,.75); border-radius:8px; background:rgba(7,24,29,.72); color:var(--muted); font-size:8px; pointer-events:none; }
+    #brushStatus { min-height:18px; max-width:520px; width:100%; margin:4px auto 0; color:var(--muted); text-align:center; font-size:11px; font-weight:750; letter-spacing:.02em; }
+    #brushStatus.good { color:var(--mint); } #brushStatus.warn { color:var(--amber); } #brushStatus.bad { color:var(--coral); }
+    #toolbar { flex:0 0 auto; display:grid; grid-template-columns:repeat(6,1fr); gap:5px; max-width:520px; width:100%; margin:8px auto 0; }
+    .tool { min-width:0; padding:7px 2px 6px; border:1px solid var(--line); border-radius:12px; background:#10252d; color:var(--muted); font-size:11px; font-weight:850; }
+    .toolIcon { display:block; position:relative; width:20px; height:18px; margin:0 auto 3px; }
+    .toolIcon:before,.toolIcon:after { content:""; position:absolute; display:block; }
+    .iconRoad:before { left:2px; top:7px; width:16px; height:5px; border-radius:2px; background:#8da5a8; transform:skewY(-24deg); box-shadow:0 -4px 0 #40575e; }
+    .iconHome:before { left:4px; top:7px; width:12px; height:9px; border:2px solid #73d09c; background:#173c42; }
+    .iconHome:after { left:3px; top:3px; width:14px; height:10px; border-top:3px solid #b4edb2; transform:rotate(45deg) skew(-15deg); }
+    .iconShop:before { left:3px; top:5px; width:14px; height:12px; border:2px solid #73d6e5; background:#1d4c5e; }
+    .iconShop:after { left:2px; top:3px; width:16px; height:5px; background:#f2c878; border-radius:2px; }
+    .iconPower:before { left:7px; top:1px; width:7px; height:17px; background:#ef8971; clip-path:polygon(45% 0,100% 0,64% 42%,100% 42%,28% 100%,42% 55%,8% 55%); }
+    .iconPark:before { left:3px; top:6px; width:14px; height:10px; border-radius:8px 8px 3px 3px; background:#a7df66; box-shadow:6px -4px 0 #71bd62; }
+    .iconPark:after { left:9px; top:12px; width:3px; height:6px; background:#b9e28a; }
+    .iconRaze:before,.iconRaze:after { left:3px; top:8px; width:15px; height:3px; background:#f0a79a; transform:rotate(45deg); }
+    .iconRaze:after { transform:rotate(-45deg); }
+    .toolCost { display:block; color:#8ca8aa; font-size:9px; margin-top:2px; }
+    .tool.selected { border-color:var(--mint); background:#173a3d; color:var(--ink); box-shadow:0 0 0 1px rgba(140,230,179,.2) inset; }
+    .tool[data-tool="raze"].selected { border-color:var(--coral); background:#3a292d; }
+    #actionRow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:5px; max-width:520px; width:100%; margin:6px auto 0; }
+    .action { min-width:0; min-height:32px; border:1px solid var(--line); border-radius:10px; background:#0d2028; color:var(--muted); font-size:10px; font-weight:850; letter-spacing:.04em; }
+    .action.primary { color:#0b1c1c; border-color:var(--mint); background:var(--mint); }
+    .action.danger { color:#ffd8d1; border-color:#73434a; }
+    #slotSelect { width:100%; min-height:32px; padding:0 5px; border:1px solid var(--line); border-radius:10px; background:#0d2028; font-size:10px; }
+    #toast { position:fixed; z-index:30; left:50%; bottom:calc(92px + env(safe-area-inset-bottom)); transform:translate(-50%, 12px); max-width:calc(100vw - 34px); padding:9px 13px; border:1px solid #4b6b6b; border-radius:99px; background:#10282e; color:var(--ink); font-size:11px; font-weight:800; text-align:center; opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease; }
+    #toast.show { opacity:1; transform:translate(-50%,0); }
+    .overlay { position:fixed; z-index:20; inset:0; display:grid; place-items:center; padding:22px; background:rgba(3,11,16,.78); backdrop-filter:blur(12px); }
+    .overlay.hidden { display:none; }
+    .card { width:min(430px,100%); padding:24px; border:1px solid #38585d; border-radius:24px; background:linear-gradient(145deg,#17353c,#0d2028 72%); box-shadow:0 22px 70px rgba(0,0,0,.45); }
+    .card h1 { margin:7px 0 8px; font-size:38px; line-height:.95; letter-spacing:-.065em; }
+    .card h2 { margin:4px 0 8px; font-size:22px; letter-spacing:-.04em; }
+    .card p { margin:0 0 15px; color:#b9c9c6; font-size:13px; line-height:1.5; }
+    .card .rule { height:1px; margin:17px 0; background:#2a4b51; }
+    .primary { width:100%; padding:13px 16px; border-radius:13px; background:var(--mint); color:#0a1a1b; font-weight:950; letter-spacing:.03em; }
+    .subtle { margin-top:10px; width:100%; padding:8px; background:transparent; color:var(--muted); font-size:11px; font-weight:800; }
+    #tutorialPanel { position:fixed; z-index:12; left:50%; top:calc(70px + env(safe-area-inset-top)); transform:translateX(-50%); width:min(350px,calc(100vw - 30px)); padding:13px 15px 12px; border:1px solid #426d66; border-radius:15px; background:rgba(12,34,38,.94); box-shadow:0 12px 30px rgba(0,0,0,.28); }
+    #tutorialPanel.hidden { display:none; }
+    #tutorialPanel strong { display:block; color:var(--mint); font-size:12px; letter-spacing:.1em; text-transform:uppercase; }
+    #tutorialPanel p { margin:5px 0 9px; color:#d4e1dd; font-size:12px; line-height:1.35; }
+    #tutorialPanel button { padding:3px 0; background:transparent; color:var(--muted); font-size:10px; font-weight:850; text-transform:uppercase; }
+    #titleCityArt { position:relative; height:102px; margin:-4px 0 11px; overflow:hidden; border:1px solid #31555b; border-radius:16px; background:linear-gradient(180deg,#183943,#0c242d); }
+    #titleCityArt:before { content:""; position:absolute; left:-10%; right:-10%; bottom:-24px; height:75px; background:linear-gradient(150deg,transparent 0 29%,#234b4c 30% 48%,transparent 49% 52%,#1b3e45 53% 70%,transparent 71%); transform:skewY(-6deg); }
+    #titleCityArt:after { content:""; position:absolute; inset:0; background:radial-gradient(circle at 70% 19%,rgba(255,211,126,.48),transparent 4%,transparent 26%),linear-gradient(180deg,rgba(101,213,223,.1),transparent 60%); }
+    .titleTower { position:absolute; z-index:1; bottom:17px; width:25px; border:2px solid #071b23; background:linear-gradient(90deg,#3c8066 0 42%,#62bf91 43% 70%,#286d68 71%); box-shadow:5px 6px 0 rgba(4,16,20,.45); }
+    .titleTower:before { content:""; position:absolute; left:5px; right:5px; top:8px; height:4px; background:#ffd47b; box-shadow:0 11px 0 #65d5df,0 22px 0 #ffd47b; }
+    .towerA { left:11%; height:45px; } .towerB { left:29%; height:64px; width:29px; background:linear-gradient(90deg,#438fb3,#5bb6d4 56%,#28677e); }
+    .towerC { left:51%; height:37px; width:23px; background:linear-gradient(90deg,#b65d55,#df7767 58%,#8d4750); }
+    .towerD { left:69%; height:72px; width:32px; background:linear-gradient(90deg,#4b9c76,#62bf91 57%,#2a7d70); }
+    .titleSign { position:absolute; z-index:2; right:9%; bottom:17px; padding:4px 6px; border:1px solid #65d5df; border-radius:5px; color:#07151a; background:#65d5df; font-size:8px; font-weight:950; letter-spacing:.1em; }
+    #loadingOverlay { position:fixed; z-index:40; inset:0; display:grid; place-items:center; background:#07121b; color:var(--ink); }
+    #loadingOverlay.hidden { display:none; }
+    .loadingCard { width:min(330px,calc(100vw - 38px)); text-align:center; }
+    .loadingMark { width:96px; height:72px; margin:0 auto 17px; border:1px solid #365e62; border-radius:15px; background:linear-gradient(145deg,#173d43,#0b222a); position:relative; overflow:hidden; }
+    .loadingMark:before { content:""; position:absolute; left:14px; right:14px; bottom:12px; height:27px; background:linear-gradient(145deg,transparent 0 26%,#3c8066 27% 48%,transparent 49% 53%,#438fb3 54% 74%,transparent 75%); }
+    .loadingTitle { font-weight:950; letter-spacing:.16em; font-size:14px; }
+    .loadingNote { margin-top:6px; color:var(--muted); font-size:11px; }
+    .loadingTrack { height:7px; margin-top:16px; border-radius:99px; overflow:hidden; background:#193239; }
+    #loadingFill { width:8%; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--mint),var(--cyan)); transition:width .15s ease; }
+    #settingsOverlay,#confirmOverlay { position:fixed; z-index:25; inset:0; display:grid; place-items:center; padding:22px; background:rgba(3,11,16,.82); backdrop-filter:blur(12px); }
+    #settingsOverlay.hidden,#confirmOverlay.hidden { display:none; }
+    .settingsCard { width:min(390px,100%); padding:22px; border:1px solid #38585d; border-radius:22px; background:linear-gradient(145deg,#17353c,#0d2028 72%); box-shadow:0 22px 70px rgba(0,0,0,.45); }
+    .settingsCard h2 { margin:6px 0 5px; font-size:25px; letter-spacing:-.04em; }
+    .settingsCard p { margin:0 0 16px; color:#b9c9c6; font-size:12px; line-height:1.45; }
+    .settingRow { display:grid; grid-template-columns:1fr 112px; align-items:center; gap:10px; margin:12px 0; color:#d4e1dd; font-size:12px; font-weight:800; }
+    .settingRow input[type=range] { width:100%; accent-color:var(--mint); }
+    .settingButton { width:100%; min-height:38px; margin-top:8px; padding:9px 12px; border:1px solid #365b61; border-radius:11px; background:#102a32; color:var(--ink); font-size:12px; font-weight:850; }
+    .settingButton.primary { color:#0b1c1c; border-color:var(--mint); background:var(--mint); }
+    .confirmActions { display:flex; gap:8px; }
+    #pauseOverlay .card { max-width:330px; }
+    @media (min-height:800px) { #stage { min-height:310px; } }
+    @media (max-width:350px) { #statRow { gap:4px; } .stat { padding-left:6px; padding-right:6px; } .tool { font-size:9px; } #actionRow { gap:3px; } }
+  </style>
+</head>
+<body>
+  <main id="app">
+    <section id="hud" aria-label="City status">
+      <div id="brandRow"><div id="brand">BLOCKBOROUGH<small>pocket city / district 01</small></div><button class="iconButton" id="settingsButton" aria-label="Open settings">⚙</button></div>
+      <div id="statRow">
+        <div class="stat"><label>Residents</label><strong id="populationValue">0</strong></div>
+        <div class="stat"><label>Treasury</label><strong id="fundsValue">$2,200</strong></div>
+        <div class="stat"><label>Month</label><strong id="monthValue">01</strong></div>
+        <div class="stat"><label>Flow</label><strong id="flowValue">steady</strong></div>
+      </div>
+      <div id="goalRow"><span id="goalLabel">Next charter 500</span><div id="goalMeter"><div id="goalFill"></div></div><span id="phaseLabel">1 / 10</span></div>
+    </section>
+    <section id="stage" aria-label="Interactive isometric city board"><div id="cityLegend"><strong>City readout</strong><br>Teal pulses show power. Gold lanes show traffic. Coral lanes need relief.</div></section>
+    <nav id="toolbar" aria-label="Build palette">
+      <button class="tool selected" data-tool="road"><span class="toolIcon iconRoad" aria-hidden="true"></span>ROAD<small class="toolCost">$12</small></button>
+      <button class="tool" data-tool="home"><span class="toolIcon iconHome" aria-hidden="true"></span>HOMES<small class="toolCost">$30</small></button>
+      <button class="tool" data-tool="shop"><span class="toolIcon iconShop" aria-hidden="true"></span>SHOPS<small class="toolCost">$55</small></button>
+      <button class="tool" data-tool="power"><span class="toolIcon iconPower" aria-hidden="true"></span>PLANT<small class="toolCost">$300</small></button>
+      <button class="tool" data-tool="park"><span class="toolIcon iconPark" aria-hidden="true"></span>PARK<small class="toolCost">$40</small></button>
+      <button class="tool" data-tool="raze"><span class="toolIcon iconRaze" aria-hidden="true"></span>RAZE<small class="toolCost">$6</small></button>
+    </nav>
+    <div id="brushStatus" aria-live="polite">ROAD $12 · select a tile</div>
+    <div id="actionRow">
+      <button class="action primary" id="pauseButton">PAUSE</button>
+      <button class="action" id="speedButton">SPEED 1×</button>
+      <button class="action" id="zoomOutButton" aria-label="Zoom out">−</button>
+      <button class="action" id="zoomInButton" aria-label="Zoom in">+</button>
+      <button class="action" id="overviewButton">OVERVIEW</button>
+      <select id="slotSelect" aria-label="City save slot"><option value="0">SLOT 1</option><option value="1">SLOT 2</option><option value="2">SLOT 3</option></select>
+      <button class="action" id="saveButton">SAVE</button>
+      <button class="action" id="loadButton">LOAD</button>
+      <button class="action danger" id="newButton">NEW</button>
+    </div>
+  </main>
+
+  <div id="loadingOverlay"><div class="loadingCard"><div class="loadingMark" aria-hidden="true"></div><div class="loadingTitle">BLOCKBOROUGH</div><div class="loadingNote">Mapping the next street</div><div class="loadingTrack"><div id="loadingFill"></div></div></div></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="tutorialPanel" class="hidden"><strong id="tutorialTitle">First district / step 1</strong><p id="tutorialText"></p><button id="tutorialSkip">Skip briefing</button></div>
+  <div id="titleOverlay" class="overlay">
+    <div class="card">
+      <div class="eyebrow">Pocket city / district 01</div><h1>Blockborough</h1>
+      <div id="titleCityArt" aria-hidden="true"><span class="titleTower towerA"></span><span class="titleTower towerB"></span><span class="titleTower towerC"></span><span class="titleTower towerD"></span><span class="titleSign">BUILD / BREATHE</span></div>
+      <p>Paint a pocket city tile by tile. Connect homes to roads, power, and shops, then make space for the people who arrive.</p>
+      <div class="rule"></div><p><strong>Tap or drag</strong> to build. Keyboard: 1-6 tools, arrows or WASD to move, Space to build, P to pause.</p>
+      <button class="primary" id="startButton">BEGIN FIRST DISTRICT</button><button class="subtle" id="titleSettings">AUDIO / DISPLAY SETTINGS</button>
+    </div>
+  </div>
+  <div id="pauseOverlay" class="overlay hidden">
+    <div class="card"><div class="eyebrow">City paused</div><h2>Take the long view.</h2><p>Your treasury and population are safe. Resume when you are ready to place the next tile.</p><button class="primary" id="resumeButton">RESUME CITY</button><button class="subtle" id="pauseSettings">OPEN SETTINGS</button></div>
+  </div>
+  <div id="settingsOverlay" class="hidden">
+    <div class="settingsCard">
+      <div class="eyebrow">Blockborough controls</div><h2>Settings</h2>
+      <p>Shape the city sound and motion to suit the way you play.</p>
+      <div class="settingRow"><span>Music volume</span><input id="musicVolume" type="range" min="0" max="100" step="1" aria-label="Music volume"></div>
+      <div class="settingRow"><span>SFX volume</span><input id="sfxVolume" type="range" min="0" max="100" step="1" aria-label="SFX volume"></div>
+      <button class="settingButton" id="soundToggle">Sound: On</button>
+      <button class="settingButton" id="motionToggle">Screen motion: On</button>
+      <button class="settingButton" id="fullscreenButton">ENTER FULLSCREEN</button>
+      <button class="settingButton primary" id="settingsClose">BACK TO CITY</button>
+    </div>
+  </div>
+  <div id="confirmOverlay" class="hidden">
+    <div class="settingsCard"><div class="eyebrow">New city</div><h2>Reseed this slot?</h2><p>The current city in slot <span id="confirmSlot">1</span> will stay saved only if you choose another slot first.</p><div class="confirmActions"><button class="settingButton" id="confirmCancel">CANCEL</button><button class="settingButton primary" id="confirmReseed">RESEED CITY</button></div></div>
+  </div>
+
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="sim.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,7191 @@
+{
+  "version": 2,
+  "physics": {
+    "GRAV": 28,
+    "ACCEL": 60,
+    "MAXSPEED": 24,
+    "GROUND_DAMP": 2.6,
+    "AIR_DAMP": 0.25,
+    "RESTITUTION": 0.18,
+    "R": 0.95,
+    "FRAME_DT": 0.008333333333333333,
+    "SUBSTEPS": 4
+  },
+  "levels": [
+    {
+      "name": "Practice",
+      "par": 30,
+      "medals": {
+        "gold": 10.1,
+        "silver": 17.1,
+        "bronze": 25.3
+      },
+      "startPos": {
+        "x": 0,
+        "y": 1.5,
+        "z": 16
+      },
+      "goal": {
+        "pos": {
+          "x": -28,
+          "y": 0.4,
+          "z": 14
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": 16,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 2,
+          "w": 8,
+          "h": 1,
+          "d": 30,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -4.4,
+          "y": 0.6,
+          "z": 4,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 4.4,
+          "y": 0.6,
+          "z": 4,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": -13,
+          "y": 0,
+          "z": -12,
+          "w": 34,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -13,
+          "y": 0.6,
+          "z": -16.4,
+          "w": 34,
+          "h": 1.2,
+          "d": 0.8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": -15,
+          "y": 0.6,
+          "z": -7.6,
+          "w": 26,
+          "h": 1.2,
+          "d": 0.8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": -28,
+          "y": 0,
+          "z": 2,
+          "w": 8,
+          "h": 1,
+          "d": 30,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -32.4,
+          "y": 0.6,
+          "z": 0,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": -23.6,
+          "y": 0.6,
+          "z": 0,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": -28,
+          "y": -0.4,
+          "z": 14,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 4
+        },
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": -10
+        },
+        {
+          "x": -13,
+          "y": 1.5,
+          "z": -12
+        },
+        {
+          "x": -28,
+          "y": 1.5,
+          "z": -10
+        },
+        {
+          "x": -28,
+          "y": 1.5,
+          "z": 4
+        },
+        {
+          "x": -28,
+          "y": 1.5,
+          "z": 14
+        }
+      ],
+      "env": {
+        "theme": "Dawn Meadow",
+        "skyTop": 2768750,
+        "skyHorizon": 15245418,
+        "sky": {
+          "image": "01_dawn_meadow",
+          "tint": 16773340,
+          "strength": 0.88
+        },
+        "surface": {
+          "tex": "Grass001",
+          "tile": 3,
+          "strength": 0.55
+        },
+        "fog": {
+          "color": 15250826,
+          "near": 120,
+          "far": 620
+        },
+        "sun": {
+          "dir": [
+            -0.4,
+            -0.75,
+            -0.5
+          ],
+          "color": 16770752,
+          "intensity": 1.05
+        },
+        "hemi": {
+          "sky": 12374256,
+          "ground": 6982218,
+          "intensity": 0.7
+        },
+        "stars": null,
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "spire",
+            "x": 171.5,
+            "z": -8.7,
+            "scale": 15,
+            "height": 60.3,
+            "color": 9083232
+          },
+          {
+            "kind": "spire",
+            "x": 125.9,
+            "z": 74.4,
+            "scale": 14.2,
+            "height": 59.2,
+            "color": 8425049
+          },
+          {
+            "kind": "hill",
+            "x": 87.2,
+            "z": 98.8,
+            "scale": 35.3,
+            "height": 36.2,
+            "color": 8425049
+          },
+          {
+            "kind": "hill",
+            "x": 32,
+            "z": 146.4,
+            "scale": 32.8,
+            "height": 31.3,
+            "color": 9806694
+          },
+          {
+            "kind": "hill",
+            "x": -64.9,
+            "z": 204.3,
+            "scale": 37.4,
+            "height": 24.1,
+            "color": 9806694
+          },
+          {
+            "kind": "hill",
+            "x": -128.3,
+            "z": 147.5,
+            "scale": 33.8,
+            "height": 36.9,
+            "color": 8425049
+          },
+          {
+            "kind": "hill",
+            "x": -127.9,
+            "z": 75.5,
+            "scale": 36.2,
+            "height": 30.7,
+            "color": 8425049
+          },
+          {
+            "kind": "hill",
+            "x": -132.3,
+            "z": 11.5,
+            "scale": 35.7,
+            "height": 23.8,
+            "color": 9806694
+          },
+          {
+            "kind": "hill",
+            "x": -142.9,
+            "z": -64.1,
+            "scale": 59.9,
+            "height": 22,
+            "color": 9806694
+          },
+          {
+            "kind": "spire",
+            "x": -98.9,
+            "z": -103.7,
+            "scale": 17,
+            "height": 65,
+            "color": 9806694
+          },
+          {
+            "kind": "hill",
+            "x": -34.5,
+            "z": -152.5,
+            "scale": 37.6,
+            "height": 25.5,
+            "color": 8425049
+          },
+          {
+            "kind": "hill",
+            "x": 58,
+            "z": -213.8,
+            "scale": 57.8,
+            "height": 43.2,
+            "color": 8425049
+          },
+          {
+            "kind": "hill",
+            "x": 122.7,
+            "z": -128,
+            "scale": 58.2,
+            "height": 24.3,
+            "color": 8425049
+          },
+          {
+            "kind": "spire",
+            "x": 167.1,
+            "z": -71.6,
+            "scale": 9.2,
+            "height": 63.9,
+            "color": 8425049
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Beginner",
+      "par": 35,
+      "medals": {
+        "gold": 10.4,
+        "silver": 19.1,
+        "bronze": 29.2
+      },
+      "startPos": {
+        "x": -14,
+        "y": 1.5,
+        "z": 14
+      },
+      "goal": {
+        "pos": {
+          "x": 12,
+          "y": 0.4,
+          "z": 12
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": -14,
+          "y": -0.4,
+          "z": 14,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": -14,
+          "y": 0,
+          "z": 4,
+          "w": 8,
+          "h": 1,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -18,
+          "y": 0.6,
+          "z": 4,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": -10,
+          "y": 0.6,
+          "z": 4,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": -2,
+          "y": 0,
+          "z": -8,
+          "w": 32,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -2,
+          "y": 0.6,
+          "z": -12,
+          "w": 32,
+          "h": 1.2,
+          "d": 0.8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": -2,
+          "y": 0.6,
+          "z": -4,
+          "w": 32,
+          "h": 1.2,
+          "d": 0.8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 12,
+          "y": 0,
+          "z": 2,
+          "w": 8,
+          "h": 1,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 8,
+          "y": 0.6,
+          "z": 2,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 16,
+          "y": 0.6,
+          "z": 2,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 24,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 12,
+          "y": -0.4,
+          "z": 12,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": -14,
+          "y": 1.5,
+          "z": 4
+        },
+        {
+          "x": -14,
+          "y": 1.5,
+          "z": -8
+        },
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": -8
+        },
+        {
+          "x": 12,
+          "y": 1.5,
+          "z": -8
+        },
+        {
+          "x": 12,
+          "y": 1.5,
+          "z": 2
+        },
+        {
+          "x": 12,
+          "y": 1.5,
+          "z": 12
+        }
+      ],
+      "env": {
+        "theme": "Daylight Plains",
+        "skyTop": 3829720,
+        "skyHorizon": 12376304,
+        "sky": {
+          "image": "02_daylight_plains",
+          "tint": 16777215,
+          "strength": 0.88
+        },
+        "surface": {
+          "tex": "Grass001",
+          "tile": 3,
+          "strength": 0.55
+        },
+        "fog": {
+          "color": 13624564,
+          "near": 160,
+          "far": 700
+        },
+        "sun": {
+          "dir": [
+            -0.3,
+            -0.85,
+            -0.4
+          ],
+          "color": 16777215,
+          "intensity": 1.15
+        },
+        "hemi": {
+          "sky": 12376304,
+          "ground": 6982218,
+          "intensity": 0.8
+        },
+        "stars": null,
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "hill",
+            "x": 186.9,
+            "z": -7.8,
+            "scale": 30.3,
+            "height": 25.5,
+            "color": 9813647
+          },
+          {
+            "kind": "hill",
+            "x": 178.9,
+            "z": 81.9,
+            "scale": 43.5,
+            "height": 26.5,
+            "color": 9089671
+          },
+          {
+            "kind": "hill",
+            "x": 78.5,
+            "z": 121.3,
+            "scale": 49.3,
+            "height": 38,
+            "color": 9813647
+          },
+          {
+            "kind": "hill",
+            "x": 36.4,
+            "z": 200.3,
+            "scale": 53.6,
+            "height": 27.6,
+            "color": 8365952
+          },
+          {
+            "kind": "hill",
+            "x": -48.5,
+            "z": 171.8,
+            "scale": 31.3,
+            "height": 35.5,
+            "color": 8365952
+          },
+          {
+            "kind": "cloud",
+            "x": -88.4,
+            "z": 138,
+            "scale": 50.4,
+            "height": 18.7,
+            "color": 9089671
+          },
+          {
+            "kind": "hill",
+            "x": -137.6,
+            "z": 61.1,
+            "scale": 35.7,
+            "height": 25.9,
+            "color": 8365952
+          },
+          {
+            "kind": "hill",
+            "x": -153,
+            "z": -4.5,
+            "scale": 38.6,
+            "height": 45.6,
+            "color": 9089671
+          },
+          {
+            "kind": "cloud",
+            "x": -121.3,
+            "z": -57.2,
+            "scale": 43.6,
+            "height": 18.4,
+            "color": 9813647
+          },
+          {
+            "kind": "hill",
+            "x": -131.3,
+            "z": -141.9,
+            "scale": 52.6,
+            "height": 34.4,
+            "color": 8365952
+          },
+          {
+            "kind": "hill",
+            "x": -28.3,
+            "z": -195,
+            "scale": 31.2,
+            "height": 42,
+            "color": 9089671
+          },
+          {
+            "kind": "hill",
+            "x": 18.3,
+            "z": -140.7,
+            "scale": 32.2,
+            "height": 37.2,
+            "color": 8365952
+          },
+          {
+            "kind": "hill",
+            "x": 121.9,
+            "z": -153.5,
+            "scale": 57.9,
+            "height": 28.5,
+            "color": 9089671
+          },
+          {
+            "kind": "cloud",
+            "x": 131.8,
+            "z": -63.6,
+            "scale": 73.1,
+            "height": 14.6,
+            "color": 9813647
+          },
+          {
+            "kind": "cloud",
+            "x": 198.6,
+            "z": -27.9,
+            "scale": 47.3,
+            "height": 18,
+            "color": 15791354
+          },
+          {
+            "kind": "cloud",
+            "x": 87.9,
+            "z": 137.5,
+            "scale": 52.7,
+            "height": 20,
+            "color": 16777215
+          },
+          {
+            "kind": "cloud",
+            "x": -60.9,
+            "z": 172,
+            "scale": 49.8,
+            "height": 16,
+            "color": 15791354
+          },
+          {
+            "kind": "cloud",
+            "x": -227.6,
+            "z": -54.7,
+            "scale": 71,
+            "height": 12,
+            "color": 15791354
+          },
+          {
+            "kind": "cloud",
+            "x": -128.7,
+            "z": -133.7,
+            "scale": 51.9,
+            "height": 20,
+            "color": 15791354
+          },
+          {
+            "kind": "cloud",
+            "x": 72.5,
+            "z": -210.9,
+            "scale": 50.7,
+            "height": 12,
+            "color": 15791354
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Descent",
+      "par": 40,
+      "medals": {
+        "gold": 9,
+        "silver": 19.9,
+        "bronze": 32.7
+      },
+      "startPos": {
+        "x": 0,
+        "y": 7,
+        "z": 20
+      },
+      "goal": {
+        "pos": {
+          "x": 0,
+          "y": -2.7,
+          "z": -26
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": 5.6,
+          "z": 20,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 5,
+          "z": 14,
+          "w": 9,
+          "h": 1,
+          "d": 8,
+          "rotX": -0.22,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -4.7,
+          "y": 5.8,
+          "z": 14,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 4.7,
+          "y": 5.8,
+          "z": 14,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 3.2,
+          "z": 6.8,
+          "w": 9,
+          "h": 1,
+          "d": 8,
+          "rotX": -0.22,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": -4.7,
+          "y": 4,
+          "z": 6.8,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 4.7,
+          "y": 4,
+          "z": 6.8,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 1.4000000000000004,
+          "z": -0.40000000000000036,
+          "w": 9,
+          "h": 1,
+          "d": 8,
+          "rotX": -0.22,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -4.7,
+          "y": 2.2,
+          "z": -0.40000000000000036,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 4.7,
+          "y": 2.2,
+          "z": -0.40000000000000036,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": -0.3999999999999997,
+          "z": -7.6000000000000005,
+          "w": 9,
+          "h": 1,
+          "d": 8,
+          "rotX": -0.22,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": -4.7,
+          "y": 0.4000000000000003,
+          "z": -7.6000000000000005,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 4.7,
+          "y": 0.4000000000000003,
+          "z": -7.6000000000000005,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": -2.1999999999999997,
+          "z": -14.8,
+          "w": 9,
+          "h": 1,
+          "d": 8,
+          "rotX": -0.22,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -4.7,
+          "y": -1.3999999999999997,
+          "z": -14.8,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 4.7,
+          "y": -1.3999999999999997,
+          "z": -14.8,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": -3.5,
+          "z": -23,
+          "w": 12,
+          "h": 1,
+          "d": 12,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": -3.5,
+          "z": -26,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 6.5,
+          "z": 14
+        },
+        {
+          "x": 0,
+          "y": 4.7,
+          "z": 6.8
+        },
+        {
+          "x": 0,
+          "y": 2.9000000000000004,
+          "z": -0.40000000000000036
+        },
+        {
+          "x": 0,
+          "y": 1.1000000000000003,
+          "z": -7.6000000000000005
+        },
+        {
+          "x": 0,
+          "y": -0.6999999999999997,
+          "z": -14.8
+        },
+        {
+          "x": 0,
+          "y": -2.5,
+          "z": -23
+        },
+        {
+          "x": 0,
+          "y": -2.7,
+          "z": -26
+        }
+      ],
+      "env": {
+        "theme": "Alpine Cliffs",
+        "skyTop": 3494014,
+        "skyHorizon": 11060446,
+        "sky": {
+          "image": "03_alpine_cliffs",
+          "tint": 15660287,
+          "strength": 0.86
+        },
+        "surface": {
+          "tex": "Rock035",
+          "tile": 3.5,
+          "strength": 0.45
+        },
+        "fog": {
+          "color": 12637416,
+          "near": 140,
+          "far": 640
+        },
+        "sun": {
+          "dir": [
+            -0.4,
+            -0.7,
+            -0.5
+          ],
+          "color": 15397631,
+          "intensity": 1
+        },
+        "hemi": {
+          "sky": 11060446,
+          "ground": 8030868,
+          "intensity": 0.65
+        },
+        "stars": null,
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "peak",
+            "x": 202.3,
+            "z": -6.7,
+            "scale": 40.3,
+            "height": 121.9,
+            "color": 10465476,
+            "capColor": 15200507
+          },
+          {
+            "kind": "peak",
+            "x": 129.9,
+            "z": 79.5,
+            "scale": 38.8,
+            "height": 129.2,
+            "color": 10465476,
+            "capColor": 15200507
+          },
+          {
+            "kind": "peak",
+            "x": 95.1,
+            "z": 125.1,
+            "scale": 33.6,
+            "height": 111.9,
+            "color": 13623021,
+            "capColor": 15200507
+          },
+          {
+            "kind": "cliff",
+            "x": 23.4,
+            "z": 160.5,
+            "scale": 59.2,
+            "height": 43.8,
+            "color": 13623021
+          },
+          {
+            "kind": "peak",
+            "x": -34.4,
+            "z": 138.5,
+            "scale": 56.8,
+            "height": 62.5,
+            "color": 10465476,
+            "capColor": 15200507
+          },
+          {
+            "kind": "peak",
+            "x": -79.8,
+            "z": 105.5,
+            "scale": 42.7,
+            "height": 68,
+            "color": 10465476,
+            "capColor": 15200507
+          },
+          {
+            "kind": "peak",
+            "x": -132,
+            "z": 76.8,
+            "scale": 35.5,
+            "height": 127.2,
+            "color": 11057870,
+            "capColor": 15200507
+          },
+          {
+            "kind": "peak",
+            "x": -172.8,
+            "z": 13.6,
+            "scale": 42.3,
+            "height": 122.6,
+            "color": 10465476,
+            "capColor": 15200507
+          },
+          {
+            "kind": "peak",
+            "x": -185.2,
+            "z": -91.6,
+            "scale": 35.9,
+            "height": 108.1,
+            "color": 10465476,
+            "capColor": 15200507
+          },
+          {
+            "kind": "cliff",
+            "x": -99,
+            "z": -110.3,
+            "scale": 64.3,
+            "height": 65.7,
+            "color": 13623021
+          },
+          {
+            "kind": "peak",
+            "x": -40.9,
+            "z": -136.7,
+            "scale": 56.4,
+            "height": 96.7,
+            "color": 13623021,
+            "capColor": 15200507
+          },
+          {
+            "kind": "peak",
+            "x": 34.1,
+            "z": -153.5,
+            "scale": 37,
+            "height": 87,
+            "color": 13623021,
+            "capColor": 15200507
+          },
+          {
+            "kind": "cliff",
+            "x": 117.4,
+            "z": -179.9,
+            "scale": 76.8,
+            "height": 61.4,
+            "color": 11057870
+          },
+          {
+            "kind": "cliff",
+            "x": 181.2,
+            "z": -97.6,
+            "scale": 61.3,
+            "height": 60.9,
+            "color": 13623021
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Bridges",
+      "par": 40,
+      "medals": {
+        "gold": 22.6,
+        "silver": 28.7,
+        "bronze": 35.9
+      },
+      "startPos": {
+        "x": -18,
+        "y": 1.5,
+        "z": 0
+      },
+      "goal": {
+        "pos": {
+          "x": 18,
+          "y": 0.4,
+          "z": 8
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": -18,
+          "y": -0.4,
+          "z": 0,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": -18,
+          "y": 0,
+          "z": 0,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -9,
+          "y": 0,
+          "z": -6,
+          "w": 10,
+          "h": 1,
+          "d": 3,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -2,
+          "y": 0,
+          "z": 2,
+          "w": 3,
+          "h": 1,
+          "d": 12,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 6,
+          "y": 0,
+          "z": -4,
+          "w": 12,
+          "h": 1,
+          "d": 3,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 14,
+          "y": 0,
+          "z": 4,
+          "w": 3,
+          "h": 1,
+          "d": 12,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 18,
+          "y": -0.4,
+          "z": 8,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        },
+        {
+          "x": 18,
+          "y": 0,
+          "z": 8,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": -16,
+          "y": 1.5,
+          "z": -3,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": -12,
+          "y": 1.5,
+          "z": -6,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": -9,
+          "y": 1.5,
+          "z": -6,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": -6,
+          "y": 1.5,
+          "z": -5.5,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": -3,
+          "y": 1.5,
+          "z": -4,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": -2,
+          "y": 1.5,
+          "z": -1,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": -2,
+          "y": 1.5,
+          "z": 2,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": -2,
+          "y": 1.5,
+          "z": 4.5,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": -2,
+          "y": 1.5,
+          "z": -2,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": -1,
+          "y": 1.5,
+          "z": -3.5,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 2,
+          "y": 1.5,
+          "z": -4,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 5,
+          "y": 1.5,
+          "z": -4,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 9,
+          "y": 1.5,
+          "z": -3.5,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 11,
+          "y": 1.5,
+          "z": -3,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 12.2,
+          "y": 1.5,
+          "z": -2.2,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 13.5,
+          "y": 1.5,
+          "z": -0.5,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 14,
+          "y": 1.5,
+          "z": 3,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 14,
+          "y": 1.5,
+          "z": 6,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 16,
+          "y": 1.5,
+          "z": 7.5,
+          "cap": 7,
+          "reach": 1.2
+        },
+        {
+          "x": 18,
+          "y": 1.5,
+          "z": 8,
+          "cap": 7,
+          "reach": 1.2
+        }
+      ],
+      "env": {
+        "theme": "Red Canyon",
+        "skyTop": 8014382,
+        "skyHorizon": 14718314,
+        "sky": {
+          "image": "04_red_canyon",
+          "tint": 16768192,
+          "strength": 0.86
+        },
+        "surface": {
+          "tex": "Rock035",
+          "tile": 3.5,
+          "strength": 0.6
+        },
+        "fog": {
+          "color": 14193770,
+          "near": 110,
+          "far": 560
+        },
+        "sun": {
+          "dir": [
+            -0.5,
+            -0.65,
+            -0.4
+          ],
+          "color": 16765088,
+          "intensity": 1
+        },
+        "hemi": {
+          "sky": 14721136,
+          "ground": 9062958,
+          "intensity": 0.6
+        },
+        "stars": null,
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "mesa",
+            "x": 217.6,
+            "z": -5.2,
+            "scale": 54.4,
+            "height": 56.4,
+            "color": 11757636
+          },
+          {
+            "kind": "mesa",
+            "x": 183,
+            "z": 87.3,
+            "scale": 37.3,
+            "height": 62.5,
+            "color": 13269841
+          },
+          {
+            "kind": "mesa",
+            "x": 112.7,
+            "z": 127,
+            "scale": 52.6,
+            "height": 63.4,
+            "color": 13269841
+          },
+          {
+            "kind": "mesa",
+            "x": 70.8,
+            "z": 204,
+            "scale": 39.6,
+            "height": 67.3,
+            "color": 12611914
+          },
+          {
+            "kind": "mesa",
+            "x": -42.3,
+            "z": 197.4,
+            "scale": 54.3,
+            "height": 52.4,
+            "color": 13269841
+          },
+          {
+            "kind": "mesa",
+            "x": -129.9,
+            "z": 146.4,
+            "scale": 51,
+            "height": 46.9,
+            "color": 13269841
+          },
+          {
+            "kind": "cliff",
+            "x": -141.9,
+            "z": 61.9,
+            "scale": 46.2,
+            "height": 76.4,
+            "color": 13269841
+          },
+          {
+            "kind": "mesa",
+            "x": -193.5,
+            "z": -7.3,
+            "scale": 49.3,
+            "height": 63,
+            "color": 12611914
+          },
+          {
+            "kind": "cliff",
+            "x": -163.4,
+            "z": -84.7,
+            "scale": 51.1,
+            "height": 65.4,
+            "color": 12611914
+          },
+          {
+            "kind": "mesa",
+            "x": -130.2,
+            "z": -149.4,
+            "scale": 48.9,
+            "height": 54,
+            "color": 12611914
+          },
+          {
+            "kind": "cliff",
+            "x": -38.7,
+            "z": -179.2,
+            "scale": 64.4,
+            "height": 50.2,
+            "color": 12611914
+          },
+          {
+            "kind": "mesa",
+            "x": 52.2,
+            "z": -164.5,
+            "scale": 45.7,
+            "height": 38.9,
+            "color": 11757636
+          },
+          {
+            "kind": "mesa",
+            "x": 90.3,
+            "z": -105.2,
+            "scale": 63.1,
+            "height": 56.3,
+            "color": 11757636
+          },
+          {
+            "kind": "cliff",
+            "x": 146.2,
+            "z": -87.4,
+            "scale": 49.6,
+            "height": 59.8,
+            "color": 13269841
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Gauntlet",
+      "par": 45,
+      "medals": {
+        "gold": 11.9,
+        "silver": 23.6,
+        "bronze": 37.2
+      },
+      "startPos": {
+        "x": 0,
+        "y": 1.5,
+        "z": 24
+      },
+      "goal": {
+        "pos": {
+          "x": 0,
+          "y": 0.4,
+          "z": -18
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": 24,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 6,
+          "w": 6,
+          "h": 1,
+          "d": 40,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -3.4,
+          "y": 0.7,
+          "z": 6,
+          "w": 0.7,
+          "h": 1.6,
+          "d": 40,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 3.4,
+          "y": 0.7,
+          "z": 6,
+          "w": 0.7,
+          "h": 1.6,
+          "d": 40,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": -18,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [
+        {
+          "x": 0,
+          "y": 1.4,
+          "z": 2,
+          "axis": "x",
+          "range": 2,
+          "speed": 1.6,
+          "radius": 1.2,
+          "phase": 0
+        },
+        {
+          "x": 0,
+          "y": 1.4,
+          "z": -8,
+          "axis": "x",
+          "range": 2,
+          "speed": 2.1,
+          "radius": 1.2,
+          "phase": 1.3
+        },
+        {
+          "x": 0,
+          "y": 1.4,
+          "z": -16,
+          "axis": "x",
+          "range": 2,
+          "speed": 1.3,
+          "radius": 1.2,
+          "phase": 2.6
+        }
+      ],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 14
+        },
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 5
+        },
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": -5
+        },
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": -13
+        },
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": -18
+        }
+      ],
+      "env": {
+        "theme": "Desert Fortress",
+        "skyTop": 6965886,
+        "skyHorizon": 15249520,
+        "sky": {
+          "image": "05_desert_fortress",
+          "tint": 16771272,
+          "strength": 0.86
+        },
+        "surface": {
+          "tex": "PavingStones070",
+          "tile": 4,
+          "strength": 0.55
+        },
+        "fog": {
+          "color": 14725240,
+          "near": 120,
+          "far": 580
+        },
+        "sun": {
+          "dir": [
+            -0.45,
+            -0.7,
+            -0.45
+          ],
+          "color": 16769192,
+          "intensity": 1.05
+        },
+        "hemi": {
+          "sky": 14198904,
+          "ground": 9071178,
+          "intensity": 0.62
+        },
+        "stars": null,
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "obelisk",
+            "x": 138,
+            "z": -2.1,
+            "scale": 19.5,
+            "height": 53.7,
+            "color": 13805161
+          },
+          {
+            "kind": "obelisk",
+            "x": 149.2,
+            "z": 52.8,
+            "scale": 19.3,
+            "height": 62.5,
+            "color": 13081695
+          },
+          {
+            "kind": "obelisk",
+            "x": 99.6,
+            "z": 153,
+            "scale": 10.5,
+            "height": 73.9,
+            "color": 14397555
+          },
+          {
+            "kind": "obelisk",
+            "x": 51.4,
+            "z": 166.8,
+            "scale": 18.7,
+            "height": 69.3,
+            "color": 13081695
+          },
+          {
+            "kind": "obelisk",
+            "x": -29.6,
+            "z": 163.4,
+            "scale": 14.3,
+            "height": 77.4,
+            "color": 14397555
+          },
+          {
+            "kind": "mesa",
+            "x": -89.9,
+            "z": 137.3,
+            "scale": 55.3,
+            "height": 55.8,
+            "color": 13081695
+          },
+          {
+            "kind": "obelisk",
+            "x": -136.1,
+            "z": 78.1,
+            "scale": 11.4,
+            "height": 61.1,
+            "color": 13081695
+          },
+          {
+            "kind": "hill",
+            "x": -213.3,
+            "z": 15.1,
+            "scale": 47.2,
+            "height": 39.1,
+            "color": 13805161
+          },
+          {
+            "kind": "obelisk",
+            "x": -141.9,
+            "z": -77.1,
+            "scale": 13.7,
+            "height": 54.1,
+            "color": 13805161
+          },
+          {
+            "kind": "mesa",
+            "x": -98.8,
+            "z": -116.9,
+            "scale": 44.3,
+            "height": 54.6,
+            "color": 13805161
+          },
+          {
+            "kind": "mesa",
+            "x": -30.2,
+            "z": -222,
+            "scale": 46.6,
+            "height": 66.5,
+            "color": 14397555
+          },
+          {
+            "kind": "mesa",
+            "x": 32.2,
+            "z": -185.1,
+            "scale": 50.4,
+            "height": 66,
+            "color": 14397555
+          },
+          {
+            "kind": "obelisk",
+            "x": 91,
+            "z": -128.4,
+            "scale": 19,
+            "height": 70.2,
+            "color": 13805161
+          },
+          {
+            "kind": "obelisk",
+            "x": 126.2,
+            "z": -47.4,
+            "scale": 19.5,
+            "height": 54.9,
+            "color": 13805161
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Spiral",
+      "par": 50,
+      "medals": {
+        "gold": 11.3,
+        "silver": 25,
+        "bronze": 40.9
+      },
+      "startPos": {
+        "x": 0,
+        "y": 11,
+        "z": 0
+      },
+      "goal": {
+        "pos": {
+          "x": 7,
+          "y": -4.8,
+          "z": 0
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": 9.6,
+          "z": 0,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 10,
+          "z": 0,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 7,
+          "y": 9.4,
+          "z": -7,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 7,
+          "y": 7.9,
+          "z": 0,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 6.4,
+          "z": 0,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 4.9,
+          "z": -7,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": 7,
+          "y": 3.4000000000000004,
+          "z": -7,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 7,
+          "y": 1.9000000000000004,
+          "z": 0,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0.40000000000000036,
+          "z": 0,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": -1.0999999999999996,
+          "z": -7,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": 7,
+          "y": -2.5999999999999996,
+          "z": -7,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 7,
+          "y": -4.1,
+          "z": 0,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": 7,
+          "y": -5.6,
+          "z": 0,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 11.45,
+          "z": -3.6
+        },
+        {
+          "x": 0,
+          "y": 6.3500000000000005,
+          "z": -7
+        },
+        {
+          "x": 7,
+          "y": 4.8500000000000005,
+          "z": -7
+        },
+        {
+          "x": 7,
+          "y": 3.3500000000000005,
+          "z": 0
+        },
+        {
+          "x": 0,
+          "y": 1.8500000000000003,
+          "z": 0
+        },
+        {
+          "x": 0,
+          "y": 0.3500000000000003,
+          "z": -7
+        },
+        {
+          "x": 7,
+          "y": -1.1499999999999997,
+          "z": -7
+        },
+        {
+          "x": 7,
+          "y": -2.6499999999999995,
+          "z": 0
+        }
+      ],
+      "env": {
+        "theme": "Sunset Towers",
+        "skyTop": 4860526,
+        "skyHorizon": 16751194,
+        "sky": {
+          "image": "06_sunset_towers",
+          "tint": 16762010,
+          "strength": 0.84
+        },
+        "surface": {
+          "tex": "PavingStones070",
+          "tile": 4,
+          "strength": 0.5
+        },
+        "fog": {
+          "color": 14191194,
+          "near": 130,
+          "far": 600
+        },
+        "sun": {
+          "dir": [
+            -0.5,
+            -0.55,
+            -0.5
+          ],
+          "color": 16756848,
+          "intensity": 0.95
+        },
+        "hemi": {
+          "sky": 9067166,
+          "ground": 4860506,
+          "intensity": 0.55
+        },
+        "stars": {
+          "count": 60,
+          "seed": 2270302462,
+          "minY": 0.55
+        },
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "spire",
+            "x": 153.3,
+            "z": -1,
+            "scale": 10.6,
+            "height": 45,
+            "color": 7358291
+          },
+          {
+            "kind": "spire",
+            "x": 187,
+            "z": 92.8,
+            "scale": 15.5,
+            "height": 59.8,
+            "color": 7358291
+          },
+          {
+            "kind": "skyline",
+            "x": 118.6,
+            "z": 155.1,
+            "scale": 28.5,
+            "height": 88.1,
+            "color": 8608358
+          },
+          {
+            "kind": "skyline",
+            "x": 34.7,
+            "z": 128.6,
+            "scale": 29.5,
+            "height": 67,
+            "color": 7358291
+          },
+          {
+            "kind": "skyline",
+            "x": -19.1,
+            "z": 128.9,
+            "scale": 21.4,
+            "height": 57.6,
+            "color": 7950428
+          },
+          {
+            "kind": "skyline",
+            "x": -81,
+            "z": 104.9,
+            "scale": 35.2,
+            "height": 81,
+            "color": 7358291
+          },
+          {
+            "kind": "skyline",
+            "x": -146.1,
+            "z": 62.7,
+            "scale": 18.9,
+            "height": 51.3,
+            "color": 7950428
+          },
+          {
+            "kind": "skyline",
+            "x": -139,
+            "z": -6.4,
+            "scale": 32.1,
+            "height": 67.5,
+            "color": 7950428
+          },
+          {
+            "kind": "skyline",
+            "x": -120.9,
+            "z": -68.6,
+            "scale": 27.2,
+            "height": 42.8,
+            "color": 7950428
+          },
+          {
+            "kind": "skyline",
+            "x": -128.7,
+            "z": -157,
+            "scale": 20.3,
+            "height": 65.4,
+            "color": 8608358
+          },
+          {
+            "kind": "spire",
+            "x": -47.1,
+            "z": -163,
+            "scale": 9.8,
+            "height": 69.6,
+            "color": 7950428
+          },
+          {
+            "kind": "spire",
+            "x": 52.4,
+            "z": -196.4,
+            "scale": 14.6,
+            "height": 71.9,
+            "color": 7950428
+          },
+          {
+            "kind": "skyline",
+            "x": 119.8,
+            "z": -129.2,
+            "scale": 37.3,
+            "height": 88.2,
+            "color": 8608358
+          },
+          {
+            "kind": "skyline",
+            "x": 178.7,
+            "z": -76.3,
+            "scale": 31.7,
+            "height": 52.2,
+            "color": 8608358
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Aerial",
+      "par": 50,
+      "medals": {
+        "gold": 10.8,
+        "silver": 24.7,
+        "bronze": 40.8
+      },
+      "startPos": {
+        "x": 0,
+        "y": 1.5,
+        "z": 22
+      },
+      "goal": {
+        "pos": {
+          "x": 0,
+          "y": 1.4,
+          "z": -26
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": 22,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 14,
+          "w": 8,
+          "h": 1,
+          "d": 12,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -4.4,
+          "y": 0.7,
+          "z": 14,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 12,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 4.4,
+          "y": 0.7,
+          "z": 14,
+          "w": 0.8,
+          "h": 1.2,
+          "d": 12,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 7,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16742144,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "z": -9,
+          "w": 7,
+          "h": 1,
+          "d": 7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 2,
+          "z": -18,
+          "w": 6,
+          "h": 1,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "z": -26,
+          "w": 7,
+          "h": 1,
+          "d": 7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0.6,
+          "z": -26,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [
+        {
+          "x": 0,
+          "y": 0.4,
+          "z": 7,
+          "radius": 2,
+          "vx": 0,
+          "vy": 16,
+          "vz": -22
+        }
+      ],
+      "enemies": [
+        {
+          "x": 0,
+          "y": 4.4,
+          "z": -9,
+          "axis": "x",
+          "range": 2,
+          "speed": 2,
+          "radius": 1,
+          "phase": 0
+        }
+      ],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 16
+        },
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 7,
+          "hint": "cannon"
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "z": -9
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "z": -18
+        },
+        {
+          "x": 0,
+          "y": 2,
+          "z": -26
+        }
+      ],
+      "env": {
+        "theme": "Cloud Kingdom",
+        "skyTop": 4885224,
+        "skyHorizon": 14478072,
+        "sky": {
+          "image": "07_cloud_kingdom",
+          "tint": 16777215,
+          "strength": 0.9
+        },
+        "surface": {
+          "tex": "Wood035",
+          "tile": 2.5,
+          "strength": 0.55
+        },
+        "fog": {
+          "color": 14084342,
+          "near": 150,
+          "far": 720
+        },
+        "sun": {
+          "dir": [
+            -0.35,
+            -0.8,
+            -0.45
+          ],
+          "color": 16777215,
+          "intensity": 1.1
+        },
+        "hemi": {
+          "sky": 14478072,
+          "ground": 8038600,
+          "intensity": 0.8
+        },
+        "stars": null,
+        "plane": {
+          "y": -18,
+          "color": 8423568
+        },
+        "backdrop": [
+          {
+            "kind": "spire",
+            "x": 168.6,
+            "z": 0.4,
+            "scale": 13.8,
+            "height": 81.9,
+            "color": 15857660
+          },
+          {
+            "kind": "cloud",
+            "x": 153.9,
+            "z": 57.2,
+            "scale": 63.2,
+            "height": 12,
+            "color": 13296115
+          },
+          {
+            "kind": "cloud",
+            "x": 138.4,
+            "z": 155.2,
+            "scale": 79.5,
+            "height": 10.4,
+            "color": 15857660
+          },
+          {
+            "kind": "cloud",
+            "x": 42.3,
+            "z": 182,
+            "scale": 50.2,
+            "height": 14.6,
+            "color": 13296115
+          },
+          {
+            "kind": "cloud",
+            "x": -21.7,
+            "z": 188.2,
+            "scale": 40.8,
+            "height": 19.3,
+            "color": 14872828
+          },
+          {
+            "kind": "cloud",
+            "x": -131.5,
+            "z": 145.2,
+            "scale": 77.4,
+            "height": 11,
+            "color": 15857660
+          },
+          {
+            "kind": "cloud",
+            "x": -140.2,
+            "z": 79.3,
+            "scale": 44.1,
+            "height": 11.5,
+            "color": 15857660
+          },
+          {
+            "kind": "cloud",
+            "x": -159.1,
+            "z": 10,
+            "scale": 70.7,
+            "height": 15.3,
+            "color": 13296115
+          },
+          {
+            "kind": "cloud",
+            "x": -181.9,
+            "z": -107.9,
+            "scale": 62.5,
+            "height": 10.6,
+            "color": 15857660
+          },
+          {
+            "kind": "spire",
+            "x": -98.3,
+            "z": -123.7,
+            "scale": 8.3,
+            "height": 70.4,
+            "color": 14872828
+          },
+          {
+            "kind": "spire",
+            "x": -42.5,
+            "z": -206,
+            "scale": 17.6,
+            "height": 54.1,
+            "color": 14872828
+          },
+          {
+            "kind": "cloud",
+            "x": 27.4,
+            "z": -216.9,
+            "scale": 72.1,
+            "height": 13.9,
+            "color": 15857660
+          },
+          {
+            "kind": "spire",
+            "x": 118.8,
+            "z": -154.6,
+            "scale": 16.8,
+            "height": 47.2,
+            "color": 13296115
+          },
+          {
+            "kind": "cloud",
+            "x": 143.1,
+            "z": -68.8,
+            "scale": 54.4,
+            "height": 13.5,
+            "color": 15857660
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Switchback",
+      "par": 55,
+      "medals": {
+        "gold": 18.9,
+        "silver": 31.6,
+        "bronze": 46.5
+      },
+      "startPos": {
+        "x": -20,
+        "y": 7,
+        "z": 18
+      },
+      "goal": {
+        "pos": {
+          "x": -20,
+          "y": 0.4,
+          "z": -22
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": -20,
+          "y": 5.6,
+          "z": 18,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": -6,
+          "y": 5.4,
+          "z": 18,
+          "w": 30,
+          "h": 1,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0.12,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": -6,
+          "y": 6.2,
+          "z": 15,
+          "w": 30,
+          "h": 1.4,
+          "d": 0.7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 8,
+          "y": 3,
+          "z": 8,
+          "w": 6,
+          "h": 1,
+          "d": 26,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -6,
+          "y": 1.2,
+          "z": -2,
+          "w": 30,
+          "h": 1,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": -0.12,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": -6,
+          "y": 2,
+          "z": -5,
+          "w": 30,
+          "h": 1.4,
+          "d": 0.7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": -20,
+          "y": 0,
+          "z": -2,
+          "w": 6,
+          "h": 1,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -20,
+          "y": 0,
+          "z": -14,
+          "w": 6,
+          "h": 1,
+          "d": 20,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -20,
+          "y": -0.4,
+          "z": -22,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [
+        {
+          "x": -20,
+          "y": 1.2,
+          "z": -12,
+          "axis": "z",
+          "range": 3,
+          "speed": 1.8,
+          "radius": 1,
+          "phase": 0
+        }
+      ],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": -20,
+          "y": 7,
+          "z": 18
+        },
+        {
+          "x": 2,
+          "y": 6,
+          "z": 18
+        },
+        {
+          "x": 8,
+          "y": 4,
+          "z": 12
+        },
+        {
+          "x": 8,
+          "y": 4,
+          "z": -2
+        },
+        {
+          "x": -6,
+          "y": 2,
+          "z": -2
+        },
+        {
+          "x": -20,
+          "y": 1,
+          "z": -2
+        },
+        {
+          "x": -20,
+          "y": 1,
+          "z": -14
+        },
+        {
+          "x": -20,
+          "y": 1,
+          "z": -22
+        }
+      ],
+      "env": {
+        "theme": "Highland Storm",
+        "skyTop": 1978432,
+        "skyHorizon": 5929610,
+        "sky": {
+          "image": "08_highland_storm",
+          "tint": 13162208,
+          "strength": 0.84
+        },
+        "surface": {
+          "tex": "Ground037",
+          "tile": 3,
+          "strength": 0.58
+        },
+        "fog": {
+          "color": 5400691,
+          "near": 75,
+          "far": 420
+        },
+        "sun": {
+          "dir": [
+            -0.45,
+            -0.78,
+            -0.35
+          ],
+          "color": 13162720,
+          "intensity": 0.8
+        },
+        "hemi": {
+          "sky": 7901340,
+          "ground": 2503740,
+          "intensity": 0.5
+        },
+        "stars": null,
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "peak",
+            "x": 183.9,
+            "z": 2,
+            "scale": 58.4,
+            "height": 100.4,
+            "color": 4611689
+          },
+          {
+            "kind": "cliff",
+            "x": 190.8,
+            "z": 98.4,
+            "scale": 56.3,
+            "height": 40,
+            "color": 3820629
+          },
+          {
+            "kind": "peak",
+            "x": 120.8,
+            "z": 184.6,
+            "scale": 44.6,
+            "height": 68.4,
+            "color": 4216416
+          },
+          {
+            "kind": "peak",
+            "x": 27.9,
+            "z": 142.8,
+            "scale": 60.3,
+            "height": 81.5,
+            "color": 3820629
+          },
+          {
+            "kind": "peak",
+            "x": -46.5,
+            "z": 146.4,
+            "scale": 56.1,
+            "height": 88.6,
+            "color": 4611689
+          },
+          {
+            "kind": "cliff",
+            "x": -91.3,
+            "z": 136.6,
+            "scale": 42.8,
+            "height": 56.4,
+            "color": 3820629
+          },
+          {
+            "kind": "peak",
+            "x": -150.4,
+            "z": 63.4,
+            "scale": 32.8,
+            "height": 126.6,
+            "color": 4611689
+          },
+          {
+            "kind": "peak",
+            "x": -179.4,
+            "z": -9.7,
+            "scale": 57.6,
+            "height": 91.1,
+            "color": 4611689
+          },
+          {
+            "kind": "cliff",
+            "x": -160.6,
+            "z": -99.5,
+            "scale": 66.2,
+            "height": 83.1,
+            "color": 3820629
+          },
+          {
+            "kind": "peak",
+            "x": -126.9,
+            "z": -164.7,
+            "scale": 58.5,
+            "height": 103.9,
+            "color": 4611689
+          },
+          {
+            "kind": "peak",
+            "x": -19.6,
+            "z": -154.8,
+            "scale": 53.9,
+            "height": 128,
+            "color": 3820629
+          },
+          {
+            "kind": "peak",
+            "x": 29.6,
+            "z": -135.8,
+            "scale": 60.4,
+            "height": 69.8,
+            "color": 3820629
+          },
+          {
+            "kind": "cliff",
+            "x": 113.9,
+            "z": -180.9,
+            "scale": 74.7,
+            "height": 55.3,
+            "color": 3820629
+          },
+          {
+            "kind": "cliff",
+            "x": 192.3,
+            "z": -103.3,
+            "scale": 42.7,
+            "height": 55.7,
+            "color": 4216416
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Ultimate",
+      "par": 70,
+      "medals": {
+        "gold": 18.5,
+        "silver": 36.7,
+        "bronze": 57.9
+      },
+      "startPos": {
+        "x": 0,
+        "y": 9,
+        "z": 26
+      },
+      "goal": {
+        "pos": {
+          "x": 10,
+          "y": 3.4,
+          "z": -30
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": 7.6,
+          "z": 26,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 8,
+          "z": 20,
+          "w": 5,
+          "h": 1,
+          "d": 10,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 7.2,
+          "z": 12,
+          "w": 5,
+          "h": 1,
+          "d": 10,
+          "rotX": -0.25,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 5.5,
+          "z": 4,
+          "w": 3,
+          "h": 1,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 5.5,
+          "z": -3,
+          "w": 3,
+          "h": 1,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 4.6,
+          "z": -12,
+          "w": 16,
+          "h": 1,
+          "d": 8,
+          "rotX": -0.18,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 6122688,
+          "deadly": false
+        },
+        {
+          "x": -8,
+          "y": 5.4,
+          "z": -12,
+          "w": 0.7,
+          "h": 1.6,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 8,
+          "y": 5.4,
+          "z": -12,
+          "w": 0.7,
+          "h": 1.6,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 10,
+          "y": 3,
+          "z": -20,
+          "w": 6,
+          "h": 1,
+          "d": 16,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 7,
+          "y": 3.7,
+          "z": -20,
+          "w": 0.7,
+          "h": 1.6,
+          "d": 16,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 13,
+          "y": 3.7,
+          "z": -20,
+          "w": 0.7,
+          "h": 1.6,
+          "d": 16,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 10,
+          "y": 2.6,
+          "z": -30,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [
+        {
+          "x": 0,
+          "y": 6.7,
+          "z": 0.5,
+          "axis": "x",
+          "range": 3,
+          "speed": 2.4,
+          "radius": 1,
+          "phase": 0
+        },
+        {
+          "x": 10,
+          "y": 4.2,
+          "z": -22,
+          "axis": "x",
+          "range": 2.2,
+          "speed": 2.6,
+          "radius": 1,
+          "phase": 1.3
+        },
+        {
+          "x": 10,
+          "y": 4.2,
+          "z": -16,
+          "axis": "x",
+          "range": 2.2,
+          "speed": 1.9,
+          "radius": 1,
+          "phase": 2.6
+        }
+      ],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 9,
+          "z": 20
+        },
+        {
+          "x": 0,
+          "y": 8,
+          "z": 12
+        },
+        {
+          "x": 0,
+          "y": 6.5,
+          "z": 4
+        },
+        {
+          "x": 0,
+          "y": 6.5,
+          "z": -3
+        },
+        {
+          "x": 0,
+          "y": 5.5,
+          "z": -12
+        },
+        {
+          "x": 4,
+          "y": 4,
+          "z": -14
+        },
+        {
+          "x": 10,
+          "y": 4,
+          "z": -20
+        },
+        {
+          "x": 10,
+          "y": 4,
+          "z": -26
+        },
+        {
+          "x": 10,
+          "y": 3.4,
+          "z": -30
+        }
+      ],
+      "env": {
+        "theme": "Volcanic Rim",
+        "skyTop": 2363416,
+        "skyHorizon": 12599328,
+        "sky": null,
+        "surface": {
+          "tex": "Rock035",
+          "tile": 3.2,
+          "strength": 0.48
+        },
+        "fog": {
+          "color": 7218200,
+          "near": 90,
+          "far": 520
+        },
+        "sun": {
+          "dir": [
+            -0.5,
+            -0.62,
+            -0.4
+          ],
+          "color": 16747080,
+          "intensity": 0.9
+        },
+        "hemi": {
+          "sky": 8007720,
+          "ground": 1839124,
+          "intensity": 0.48
+        },
+        "stars": {
+          "count": 110,
+          "seed": 3405453693,
+          "minY": 0.1
+        },
+        "plane": {
+          "y": -18,
+          "color": 787715,
+          "emissive": 4854792
+        },
+        "backdrop": [
+          {
+            "kind": "cliff",
+            "x": 199.1,
+            "z": 3.9,
+            "scale": 48.1,
+            "height": 55.2,
+            "color": 3938583
+          },
+          {
+            "kind": "obelisk",
+            "x": 158.6,
+            "z": 61.8,
+            "scale": 12.3,
+            "height": 70.5,
+            "color": 3938583
+          },
+          {
+            "kind": "peak",
+            "x": 84.3,
+            "z": 109.7,
+            "scale": 59.6,
+            "height": 73.7,
+            "color": 3938583
+          },
+          {
+            "kind": "peak",
+            "x": 31.3,
+            "z": 196.7,
+            "scale": 50.5,
+            "height": 70.7,
+            "color": 4398362
+          },
+          {
+            "kind": "obelisk",
+            "x": -57.9,
+            "z": 204.8,
+            "scale": 16.1,
+            "height": 73.6,
+            "color": 3938583
+          },
+          {
+            "kind": "cliff",
+            "x": -82.1,
+            "z": 104.2,
+            "scale": 48.2,
+            "height": 68.2,
+            "color": 4398362
+          },
+          {
+            "kind": "peak",
+            "x": -144.4,
+            "z": 80.4,
+            "scale": 32.2,
+            "height": 112.4,
+            "color": 4858395
+          },
+          {
+            "kind": "cliff",
+            "x": -199.7,
+            "z": 10.9,
+            "scale": 78.3,
+            "height": 57,
+            "color": 4858395
+          },
+          {
+            "kind": "obelisk",
+            "x": -156.4,
+            "z": -56.9,
+            "scale": 17.5,
+            "height": 68.2,
+            "color": 4858395
+          },
+          {
+            "kind": "obelisk",
+            "x": -97.5,
+            "z": -130.5,
+            "scale": 17.5,
+            "height": 64.5,
+            "color": 4858395
+          },
+          {
+            "kind": "peak",
+            "x": -52.9,
+            "z": -189.4,
+            "scale": 47.1,
+            "height": 106.3,
+            "color": 4398362
+          },
+          {
+            "kind": "cliff",
+            "x": 46.1,
+            "z": -147.3,
+            "scale": 43.8,
+            "height": 82.8,
+            "color": 3938583
+          },
+          {
+            "kind": "cliff",
+            "x": 87.9,
+            "z": -105.8,
+            "scale": 74.3,
+            "height": 63.7,
+            "color": 4858395
+          },
+          {
+            "kind": "peak",
+            "x": 157,
+            "z": -93.6,
+            "scale": 54.8,
+            "height": 81.4,
+            "color": 3938583
+          }
+        ],
+        "bands": [
+          {
+            "color": 16734750,
+            "y": 34,
+            "tilt": 0.05
+          }
+        ]
+      }
+    },
+    {
+      "name": "Chutes",
+      "par": 60,
+      "medals": {
+        "gold": 12.4,
+        "silver": 29.2,
+        "bronze": 48.8
+      },
+      "startPos": {
+        "x": 0,
+        "y": 22,
+        "z": 24
+      },
+      "goal": {
+        "pos": {
+          "x": 0,
+          "y": 0.4,
+          "z": -32
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": 20.6,
+          "z": 24,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 21,
+          "z": 16,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 16,
+          "z": 3,
+          "w": 5,
+          "h": 0.7,
+          "d": 18,
+          "rotX": -0.5,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 8015816,
+          "deadly": false
+        },
+        {
+          "x": -3.2,
+          "y": 16.8,
+          "z": 3,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 18,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 3.2,
+          "y": 16.8,
+          "z": 3,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 18,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 9,
+          "z": -8,
+          "w": 10,
+          "h": 1,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -5.4,
+          "y": 9.7,
+          "z": -8,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 5.4,
+          "y": 9.7,
+          "z": -8,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 3.5,
+          "z": -22,
+          "w": 5,
+          "h": 0.7,
+          "d": 14,
+          "rotX": -0.52,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 8015816,
+          "deadly": false
+        },
+        {
+          "x": -3.2,
+          "y": 4.3,
+          "z": -22,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 3.2,
+          "y": 4.3,
+          "z": -22,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": -32,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": -32,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 22,
+          "z": 16
+        },
+        {
+          "x": 0,
+          "y": 17,
+          "z": 6
+        },
+        {
+          "x": 0,
+          "y": 10,
+          "z": -8
+        },
+        {
+          "x": 0,
+          "y": 5,
+          "z": -20
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "z": -32
+        }
+      ],
+      "env": {
+        "theme": "Crystal Cavern",
+        "skyTop": 1051168,
+        "skyHorizon": 2759242,
+        "sky": null,
+        "surface": {
+          "tex": "Rock035",
+          "tile": 3.2,
+          "strength": 0.45
+        },
+        "fog": {
+          "color": 2168118,
+          "near": 95,
+          "far": 540
+        },
+        "sun": {
+          "dir": [
+            -0.35,
+            -0.65,
+            -0.45
+          ],
+          "color": 9338111,
+          "intensity": 0.72
+        },
+        "hemi": {
+          "sky": 5914502,
+          "ground": 1116960,
+          "intensity": 0.46
+        },
+        "stars": {
+          "count": 90,
+          "seed": 920525906,
+          "minY": 0.2
+        },
+        "plane": {
+          "y": -18,
+          "color": 1050908
+        },
+        "backdrop": [
+          {
+            "kind": "crystal",
+            "x": 214.4,
+            "z": 6.1,
+            "scale": 24.3,
+            "height": 21.8,
+            "color": 2440798,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": 194.5,
+            "z": 104.2,
+            "scale": 15.2,
+            "height": 40.6,
+            "color": 3810143,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": 100.8,
+            "z": 112.4,
+            "scale": 21.9,
+            "height": 29.2,
+            "color": 3810143,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": 19.3,
+            "z": 156.7,
+            "scale": 20.7,
+            "height": 54,
+            "color": 2440798,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": -42.6,
+            "z": 171.8,
+            "scale": 22.1,
+            "height": 32.2,
+            "color": 3810143,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": -133,
+            "z": 144.1,
+            "scale": 20.8,
+            "height": 48.3,
+            "color": 3810143,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": -154.7,
+            "z": 64.1,
+            "scale": 15,
+            "height": 38.6,
+            "color": 3810143,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": -219.8,
+            "z": -13.6,
+            "scale": 15.1,
+            "height": 29,
+            "color": 2440798,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": -134.2,
+            "z": -51.7,
+            "scale": 30.9,
+            "height": 39.8,
+            "color": 2440798,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": -124.8,
+            "z": -172.4,
+            "scale": 26,
+            "height": 42.5,
+            "color": 2890829,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": -27.5,
+            "z": -139.7,
+            "scale": 20.4,
+            "height": 31.9,
+            "color": 2890829,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": 28.4,
+            "z": -167.3,
+            "scale": 18.8,
+            "height": 41.8,
+            "color": 2890829,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": 88.3,
+            "z": -129,
+            "scale": 30.9,
+            "height": 42.7,
+            "color": 2890829,
+            "emissive": 5105919
+          },
+          {
+            "kind": "crystal",
+            "x": 138,
+            "z": -51.6,
+            "scale": 23.6,
+            "height": 29.7,
+            "color": 2440798,
+            "emissive": 5105919
+          }
+        ],
+        "bands": [
+          {
+            "color": 5105919,
+            "y": 46,
+            "tilt": -0.05
+          },
+          {
+            "color": 9329919,
+            "y": 74,
+            "tilt": 0.07
+          }
+        ]
+      }
+    },
+    {
+      "name": "Bounce",
+      "par": 65,
+      "medals": {
+        "gold": 14.3,
+        "silver": 32.2,
+        "bronze": 53.1
+      },
+      "startPos": {
+        "x": 0,
+        "y": 1.5,
+        "z": 18
+      },
+      "goal": {
+        "pos": {
+          "x": 4,
+          "y": 39.4,
+          "z": -16
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": 18,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 10,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 10,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 13,
+          "z": 1,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 13,
+          "z": 1,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": -6,
+          "y": 26,
+          "z": -8,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -6,
+          "y": 26,
+          "z": -8,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": 4,
+          "y": 39,
+          "z": -16,
+          "w": 9,
+          "h": 1,
+          "d": 9,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 4,
+          "y": 38.6,
+          "z": -16,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [
+        {
+          "x": 0,
+          "y": 0.4,
+          "z": 10,
+          "radius": 2,
+          "power": 28
+        },
+        {
+          "x": 0,
+          "y": 13.4,
+          "z": 1,
+          "radius": 2,
+          "power": 28
+        },
+        {
+          "x": -6,
+          "y": 26.4,
+          "z": -8,
+          "radius": 2,
+          "power": 28
+        }
+      ],
+      "cannons": [],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 10,
+          "hint": "spring"
+        },
+        {
+          "x": 0,
+          "y": 14,
+          "z": 1,
+          "hint": "spring"
+        },
+        {
+          "x": -6,
+          "y": 27,
+          "z": -8,
+          "hint": "spring"
+        },
+        {
+          "x": 4,
+          "y": 40,
+          "z": -16
+        }
+      ],
+      "env": {
+        "theme": "Neon City",
+        "skyTop": 657950,
+        "skyHorizon": 1714766,
+        "sky": null,
+        "surface": {
+          "tex": "PavingStones070",
+          "tile": 4,
+          "strength": 0.48
+        },
+        "fog": {
+          "color": 1186360,
+          "near": 150,
+          "far": 760
+        },
+        "sun": {
+          "dir": [
+            -0.25,
+            -0.7,
+            -0.45
+          ],
+          "color": 10137343,
+          "intensity": 0.7
+        },
+        "hemi": {
+          "sky": 3820934,
+          "ground": 527128,
+          "intensity": 0.5
+        },
+        "stars": {
+          "count": 100,
+          "seed": 2730565415,
+          "minY": 0.6
+        },
+        "plane": {
+          "y": -18,
+          "color": 527132
+        },
+        "backdrop": [
+          {
+            "kind": "skyline",
+            "x": 134.7,
+            "z": 5,
+            "scale": 35.9,
+            "height": 77.6,
+            "color": 1121090,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": 163.1,
+            "z": 66.5,
+            "scale": 37.3,
+            "height": 54.4,
+            "color": 1450576,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": 90,
+            "z": 136.7,
+            "scale": 36.7,
+            "height": 50.8,
+            "color": 1121090,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": 64.9,
+            "z": 201.3,
+            "scale": 16.7,
+            "height": 80.7,
+            "color": 1845598,
+            "emissive": 2480383
+          },
+          {
+            "kind": "spire",
+            "x": -29.6,
+            "z": 138,
+            "scale": 10,
+            "height": 81.6,
+            "color": 1845598,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": -92.8,
+            "z": 135.8,
+            "scale": 27.4,
+            "height": 34.7,
+            "color": 1845598,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": -148.6,
+            "z": 81.6,
+            "scale": 16.8,
+            "height": 50.7,
+            "color": 1450576,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": -145.4,
+            "z": 6.7,
+            "scale": 19.6,
+            "height": 40.5,
+            "color": 1845598,
+            "emissive": 2480383
+          },
+          {
+            "kind": "spire",
+            "x": -200.3,
+            "z": -81.6,
+            "scale": 17.4,
+            "height": 61.3,
+            "color": 1845598,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": -96.3,
+            "z": -137.4,
+            "scale": 27,
+            "height": 70.9,
+            "color": 1121090,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": -21.3,
+            "z": -181.8,
+            "scale": 18.5,
+            "height": 32.4,
+            "color": 1450576,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": 47,
+            "z": -179,
+            "scale": 25.3,
+            "height": 53.6,
+            "color": 1121090,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": 117,
+            "z": -130.3,
+            "scale": 36.1,
+            "height": 80.6,
+            "color": 1450576,
+            "emissive": 2480383
+          },
+          {
+            "kind": "skyline",
+            "x": 190.3,
+            "z": -81,
+            "scale": 20.5,
+            "height": 45.8,
+            "color": 1121090,
+            "emissive": 2480383
+          }
+        ],
+        "bands": [
+          {
+            "color": 2480383,
+            "y": 52,
+            "tilt": 0.04
+          },
+          {
+            "color": 16727208,
+            "y": 82,
+            "tilt": -0.06
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cannons",
+      "par": 65,
+      "medals": {
+        "gold": 14.1,
+        "silver": 32,
+        "bronze": 53
+      },
+      "startPos": {
+        "x": -20,
+        "y": 1.5,
+        "z": 2
+      },
+      "goal": {
+        "pos": {
+          "x": 40,
+          "y": 4.4,
+          "z": -30
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": -20,
+          "y": -0.4,
+          "z": 2,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": -20,
+          "y": 0,
+          "z": 2,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -20,
+          "y": 0,
+          "z": 2,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16742144,
+          "deadly": false
+        },
+        {
+          "x": 10,
+          "y": 0,
+          "z": 2,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 10,
+          "y": 0,
+          "z": 2,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16742144,
+          "deadly": false
+        },
+        {
+          "x": 10,
+          "y": 0,
+          "z": -30,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 10,
+          "y": 0,
+          "z": -30,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16742144,
+          "deadly": false
+        },
+        {
+          "x": 40,
+          "y": 4,
+          "z": -30,
+          "w": 9,
+          "h": 1,
+          "d": 9,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 40,
+          "y": 3.6,
+          "z": -30,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [
+        {
+          "x": -20,
+          "y": 0.4,
+          "z": 2,
+          "radius": 2,
+          "vx": 19,
+          "vy": 22,
+          "vz": 0
+        },
+        {
+          "x": 10,
+          "y": 0.4,
+          "z": 2,
+          "radius": 2,
+          "vx": 0,
+          "vy": 22,
+          "vz": -20
+        },
+        {
+          "x": 10,
+          "y": 0.4,
+          "z": -30,
+          "radius": 2,
+          "vx": 16,
+          "vy": 28,
+          "vz": 0
+        }
+      ],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": -20,
+          "y": 1.5,
+          "z": 2,
+          "hint": "cannon"
+        },
+        {
+          "x": 10,
+          "y": 1.5,
+          "z": 2,
+          "hint": "cannon"
+        },
+        {
+          "x": 10,
+          "y": 1.5,
+          "z": -30,
+          "hint": "cannon"
+        },
+        {
+          "x": 40,
+          "y": 5,
+          "z": -30
+        }
+      ],
+      "env": {
+        "theme": "Archipelago",
+        "skyTop": 2783944,
+        "skyHorizon": 12116208,
+        "sky": {
+          "image": "12_archipelago",
+          "tint": 16777215,
+          "strength": 0.88
+        },
+        "surface": {
+          "tex": "Grass001",
+          "tile": 3,
+          "strength": 0.55
+        },
+        "fog": {
+          "color": 10342368,
+          "near": 150,
+          "far": 760
+        },
+        "sun": {
+          "dir": [
+            -0.35,
+            -0.8,
+            -0.45
+          ],
+          "color": 16773840,
+          "intensity": 1.1
+        },
+        "hemi": {
+          "sky": 12116208,
+          "ground": 4094062,
+          "intensity": 0.78
+        },
+        "stars": null,
+        "plane": {
+          "y": -18,
+          "color": 1788513
+        },
+        "backdrop": [
+          {
+            "kind": "island",
+            "x": 149.9,
+            "z": 6.9,
+            "scale": 47.1,
+            "height": 15.4,
+            "color": 6264465
+          },
+          {
+            "kind": "island",
+            "x": 115.1,
+            "z": 64,
+            "scale": 75.6,
+            "height": 10.9,
+            "color": 6264465
+          },
+          {
+            "kind": "island",
+            "x": 107.8,
+            "z": 139.6,
+            "scale": 56.5,
+            "height": 13.9,
+            "color": 6264465
+          },
+          {
+            "kind": "island",
+            "x": 46.4,
+            "z": 163.7,
+            "scale": 76.1,
+            "height": 17.7,
+            "color": 6923670
+          },
+          {
+            "kind": "island",
+            "x": -35.7,
+            "z": 197.1,
+            "scale": 89.7,
+            "height": 12.3,
+            "color": 6923670
+          },
+          {
+            "kind": "spire",
+            "x": -83.3,
+            "z": 103.5,
+            "scale": 14.1,
+            "height": 56.2,
+            "color": 6264465
+          },
+          {
+            "kind": "spire",
+            "x": -158.9,
+            "z": 64.7,
+            "scale": 8.2,
+            "height": 47.2,
+            "color": 6923670
+          },
+          {
+            "kind": "island",
+            "x": -165.4,
+            "z": -11.6,
+            "scale": 52.3,
+            "height": 9.2,
+            "color": 6264465
+          },
+          {
+            "kind": "island",
+            "x": -178.1,
+            "z": -76.5,
+            "scale": 41.7,
+            "height": 11.8,
+            "color": 6264465
+          },
+          {
+            "kind": "island",
+            "x": -122.3,
+            "z": -180.1,
+            "scale": 55.7,
+            "height": 17.8,
+            "color": 7648670
+          },
+          {
+            "kind": "island",
+            "x": -58.2,
+            "z": -216,
+            "scale": 84.4,
+            "height": 18.2,
+            "color": 6923670
+          },
+          {
+            "kind": "island",
+            "x": 24.3,
+            "z": -198.9,
+            "scale": 66.7,
+            "height": 10,
+            "color": 6923670
+          },
+          {
+            "kind": "spire",
+            "x": 115.6,
+            "z": -155.6,
+            "scale": 16.3,
+            "height": 40.9,
+            "color": 6264465
+          },
+          {
+            "kind": "island",
+            "x": 154.5,
+            "z": -74.1,
+            "scale": 84.7,
+            "height": 11.4,
+            "color": 6264465
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Mixdown",
+      "par": 70,
+      "medals": {
+        "gold": 15.1,
+        "silver": 34.5,
+        "bronze": 57.1
+      },
+      "startPos": {
+        "x": 0,
+        "y": 18,
+        "z": 22
+      },
+      "goal": {
+        "pos": {
+          "x": 8,
+          "y": 4.4,
+          "z": -38
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": 16.6,
+          "z": 22,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 17,
+          "z": 14,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 11,
+          "z": 2,
+          "w": 5,
+          "h": 0.7,
+          "d": 16,
+          "rotX": -0.5,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 8015816,
+          "deadly": false
+        },
+        {
+          "x": -3.2,
+          "y": 11.8,
+          "z": 2,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 16,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 3.2,
+          "y": 11.8,
+          "z": 2,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 16,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "z": -8,
+          "w": 9,
+          "h": 1,
+          "d": 9,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "z": -8,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 15,
+          "z": -18,
+          "w": 7,
+          "h": 1,
+          "d": 7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 8,
+          "y": 9,
+          "z": -28,
+          "w": 5,
+          "h": 0.7,
+          "d": 14,
+          "rotX": -0.48,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 8015816,
+          "deadly": false
+        },
+        {
+          "x": 4.8,
+          "y": 9.8,
+          "z": -28,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 11.2,
+          "y": 9.8,
+          "z": -28,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 8,
+          "y": 4,
+          "z": -38,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 8,
+          "y": 3.6,
+          "z": -38,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [
+        {
+          "x": 0,
+          "y": 4.4,
+          "z": -8,
+          "radius": 2,
+          "power": 26
+        }
+      ],
+      "cannons": [],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 18,
+          "z": 14
+        },
+        {
+          "x": 0,
+          "y": 12,
+          "z": 4
+        },
+        {
+          "x": 0,
+          "y": 5,
+          "z": -8,
+          "hint": "spring"
+        },
+        {
+          "x": 0,
+          "y": 16,
+          "z": -18
+        },
+        {
+          "x": 8,
+          "y": 10,
+          "z": -26
+        },
+        {
+          "x": 8,
+          "y": 5,
+          "z": -38
+        }
+      ],
+      "env": {
+        "theme": "Aurora Tundra",
+        "skyTop": 660520,
+        "skyHorizon": 2771550,
+        "sky": {
+          "image": "13_aurora_tundra",
+          "tint": 8828159,
+          "strength": 0.55
+        },
+        "surface": {
+          "tex": "Ground037",
+          "tile": 3,
+          "strength": 0.52
+        },
+        "fog": {
+          "color": 5403783,
+          "near": 145,
+          "far": 720
+        },
+        "sun": {
+          "dir": [
+            -0.35,
+            -0.78,
+            -0.45
+          ],
+          "color": 14282751,
+          "intensity": 0.9
+        },
+        "hemi": {
+          "sky": 7248562,
+          "ground": 2504775,
+          "intensity": 0.62
+        },
+        "stars": {
+          "count": 140,
+          "seed": 2055677137,
+          "minY": 0.58
+        },
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "cliff",
+            "x": 165.1,
+            "z": 9.1,
+            "scale": 58.2,
+            "height": 53,
+            "color": 6455187
+          },
+          {
+            "kind": "peak",
+            "x": 167.6,
+            "z": 71.4,
+            "scale": 47.2,
+            "height": 60.8,
+            "color": 4217969,
+            "capColor": 13688039
+          },
+          {
+            "kind": "cliff",
+            "x": 126.5,
+            "z": 140.5,
+            "scale": 72,
+            "height": 63.9,
+            "color": 5468293
+          },
+          {
+            "kind": "cliff",
+            "x": 53.5,
+            "z": 217.4,
+            "scale": 56.6,
+            "height": 65.7,
+            "color": 6455187
+          },
+          {
+            "kind": "cliff",
+            "x": -24.1,
+            "z": 162.7,
+            "scale": 71.6,
+            "height": 77.5,
+            "color": 6455187
+          },
+          {
+            "kind": "peak",
+            "x": -134.6,
+            "z": 142.9,
+            "scale": 53.8,
+            "height": 99.9,
+            "color": 5468293,
+            "capColor": 13688039
+          },
+          {
+            "kind": "peak",
+            "x": -152.8,
+            "z": 82.6,
+            "scale": 62,
+            "height": 125.9,
+            "color": 5468293,
+            "capColor": 13688039
+          },
+          {
+            "kind": "peak",
+            "x": -186,
+            "z": 7.1,
+            "scale": 41,
+            "height": 129.6,
+            "color": 6455187,
+            "capColor": 13688039
+          },
+          {
+            "kind": "peak",
+            "x": -156,
+            "z": -70.6,
+            "scale": 34.1,
+            "height": 67.8,
+            "color": 4217969,
+            "capColor": 13688039
+          },
+          {
+            "kind": "peak",
+            "x": -94.8,
+            "z": -144.3,
+            "scale": 35.5,
+            "height": 110.2,
+            "color": 6455187,
+            "capColor": 13688039
+          },
+          {
+            "kind": "peak",
+            "x": -31.2,
+            "z": -166.5,
+            "scale": 51.5,
+            "height": 89.3,
+            "color": 6455187,
+            "capColor": 13688039
+          },
+          {
+            "kind": "cliff",
+            "x": 45.1,
+            "z": -211,
+            "scale": 67.2,
+            "height": 83,
+            "color": 5468293
+          },
+          {
+            "kind": "peak",
+            "x": 148.1,
+            "z": -152.6,
+            "scale": 56.1,
+            "height": 73.5,
+            "color": 5468293,
+            "capColor": 13688039
+          },
+          {
+            "kind": "peak",
+            "x": 119.7,
+            "z": -64.1,
+            "scale": 49.2,
+            "height": 75.4,
+            "color": 5468293,
+            "capColor": 13688039
+          }
+        ],
+        "bands": [
+          {
+            "color": 5570496,
+            "y": 58,
+            "tilt": 0.05
+          },
+          {
+            "color": 3856639,
+            "y": 86,
+            "tilt": -0.07
+          },
+          {
+            "color": 10124543,
+            "y": 110,
+            "tilt": 0.03
+          }
+        ]
+      }
+    },
+    {
+      "name": "Blitz",
+      "par": 70,
+      "medals": {
+        "gold": 14.5,
+        "silver": 34.1,
+        "bronze": 56.9
+      },
+      "startPos": {
+        "x": 0,
+        "y": 1.5,
+        "z": 20
+      },
+      "goal": {
+        "pos": {
+          "x": 0,
+          "y": 7.4,
+          "z": -40
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": 20,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 20,
+          "w": 6,
+          "h": 1,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 20,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16742144,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "z": 0,
+          "w": 5,
+          "h": 1,
+          "d": 30,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -2.9,
+          "y": 3.8,
+          "z": 0,
+          "w": 0.7,
+          "h": 1.6,
+          "d": 30,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 2.9,
+          "y": 3.8,
+          "z": 0,
+          "w": 0.7,
+          "h": 1.6,
+          "d": 30,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "z": -18,
+          "w": 6,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "z": -18,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16742144,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 7,
+          "z": -40,
+          "w": 10,
+          "h": 1,
+          "d": 10,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 6.6,
+          "z": -40,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [
+        {
+          "x": 0,
+          "y": 0.4,
+          "z": 20,
+          "radius": 2,
+          "vx": 0,
+          "vy": 15,
+          "vz": -12
+        },
+        {
+          "x": 0,
+          "y": 3.4,
+          "z": -18,
+          "radius": 2,
+          "vx": 0,
+          "vy": 18,
+          "vz": -22
+        }
+      ],
+      "enemies": [
+        {
+          "x": 0,
+          "y": 4.4,
+          "z": 8,
+          "axis": "x",
+          "range": 1.6,
+          "speed": 2.2,
+          "radius": 1,
+          "phase": 0
+        },
+        {
+          "x": 0,
+          "y": 4.4,
+          "z": -2,
+          "axis": "x",
+          "range": 1.6,
+          "speed": 2.8,
+          "radius": 1,
+          "phase": 1.3
+        },
+        {
+          "x": 0,
+          "y": 4.4,
+          "z": -12,
+          "axis": "x",
+          "range": 1.6,
+          "speed": 1.9,
+          "radius": 1,
+          "phase": 2.6
+        }
+      ],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 20,
+          "hint": "cannon"
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "z": 8
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "z": -2
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "z": -12
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "z": -18,
+          "hint": "cannon"
+        },
+        {
+          "x": 0,
+          "y": 8,
+          "z": -40
+        }
+      ],
+      "env": {
+        "theme": "Thunder Straits",
+        "skyTop": 1317930,
+        "skyHorizon": 3820126,
+        "sky": {
+          "image": "14_thunder_straits",
+          "tint": 12571364,
+          "strength": 0.84
+        },
+        "surface": {
+          "tex": "Rock035",
+          "tile": 3.5,
+          "strength": 0.45
+        },
+        "fog": {
+          "color": 4938088,
+          "near": 105,
+          "far": 620
+        },
+        "sun": {
+          "dir": [
+            -0.4,
+            -0.78,
+            -0.5
+          ],
+          "color": 12571364,
+          "intensity": 0.82
+        },
+        "hemi": {
+          "sky": 7045010,
+          "ground": 1385265,
+          "intensity": 0.5
+        },
+        "stars": null,
+        "plane": {
+          "y": -18,
+          "color": 1383973
+        },
+        "backdrop": [
+          {
+            "kind": "spire",
+            "x": 180.3,
+            "z": 11.5,
+            "scale": 15.7,
+            "height": 40.5,
+            "color": 4479336
+          },
+          {
+            "kind": "spire",
+            "x": 119.2,
+            "z": 68.7,
+            "scale": 11.6,
+            "height": 80.7,
+            "color": 3688278
+          },
+          {
+            "kind": "spire",
+            "x": 111.3,
+            "z": 168.3,
+            "scale": 10.7,
+            "height": 68.7,
+            "color": 4479336
+          },
+          {
+            "kind": "cliff",
+            "x": 37.3,
+            "z": 178.6,
+            "scale": 44.4,
+            "height": 58.3,
+            "color": 4018529
+          },
+          {
+            "kind": "stack",
+            "x": -25.7,
+            "z": 222.2,
+            "scale": 39.2,
+            "height": 40.3,
+            "color": 3688278
+          },
+          {
+            "kind": "stack",
+            "x": -94.2,
+            "z": 135.1,
+            "scale": 46.8,
+            "height": 62.6,
+            "color": 4018529
+          },
+          {
+            "kind": "stack",
+            "x": -163.3,
+            "z": 65.3,
+            "scale": 49.5,
+            "height": 59.6,
+            "color": 3688278
+          },
+          {
+            "kind": "stack",
+            "x": -205.7,
+            "z": -16.1,
+            "scale": 35.4,
+            "height": 66.2,
+            "color": 4018529
+          },
+          {
+            "kind": "stack",
+            "x": -134.3,
+            "z": -63.9,
+            "scale": 29.8,
+            "height": 68.1,
+            "color": 4479336
+          },
+          {
+            "kind": "stack",
+            "x": -119.4,
+            "z": -187.8,
+            "scale": 24.7,
+            "height": 59.4,
+            "color": 4479336
+          },
+          {
+            "kind": "cliff",
+            "x": -68.4,
+            "z": -198.6,
+            "scale": 58.3,
+            "height": 45.2,
+            "color": 3688278
+          },
+          {
+            "kind": "spire",
+            "x": 40.1,
+            "z": -130,
+            "scale": 16.3,
+            "height": 72.3,
+            "color": 3688278
+          },
+          {
+            "kind": "stack",
+            "x": 85.5,
+            "z": -106.3,
+            "scale": 45,
+            "height": 44.7,
+            "color": 4018529
+          },
+          {
+            "kind": "stack",
+            "x": 167.9,
+            "z": -99.8,
+            "scale": 32,
+            "height": 37.9,
+            "color": 4479336
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Tower",
+      "par": 75,
+      "medals": {
+        "gold": 15.7,
+        "silver": 36.7,
+        "bronze": 61.1
+      },
+      "startPos": {
+        "x": 0,
+        "y": 1.5,
+        "z": 18
+      },
+      "goal": {
+        "pos": {
+          "x": 4,
+          "y": 42.4,
+          "z": -14
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": 18,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 10,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 10,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": 4,
+          "y": 14,
+          "z": 2,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 4,
+          "y": 14,
+          "z": 2,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": -4,
+          "y": 28,
+          "z": -6,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -4,
+          "y": 28,
+          "z": -6,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": 4,
+          "y": 42,
+          "z": -14,
+          "w": 10,
+          "h": 1,
+          "d": 10,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 4,
+          "y": 41.6,
+          "z": -14,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [
+        {
+          "x": 0,
+          "y": 0.4,
+          "z": 10,
+          "radius": 2,
+          "power": 30
+        },
+        {
+          "x": 4,
+          "y": 14.4,
+          "z": 2,
+          "radius": 2,
+          "power": 30
+        },
+        {
+          "x": -4,
+          "y": 28.4,
+          "z": -6,
+          "radius": 2,
+          "power": 30
+        }
+      ],
+      "cannons": [],
+      "enemies": [],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 10,
+          "hint": "spring"
+        },
+        {
+          "x": 4,
+          "y": 15,
+          "z": 2,
+          "hint": "spring"
+        },
+        {
+          "x": -4,
+          "y": 29,
+          "z": -6,
+          "hint": "spring"
+        },
+        {
+          "x": 4,
+          "y": 43,
+          "z": -14
+        }
+      ],
+      "env": {
+        "theme": "Sky Temple",
+        "skyTop": 3824360,
+        "skyHorizon": 15259824,
+        "sky": {
+          "image": "15_sky_temple",
+          "tint": 16772816,
+          "strength": 0.62
+        },
+        "surface": {
+          "tex": "PavingStones070",
+          "tile": 4,
+          "strength": 0.55
+        },
+        "fog": {
+          "color": 12832992,
+          "near": 155,
+          "far": 760
+        },
+        "sun": {
+          "dir": [
+            -0.35,
+            -0.72,
+            -0.45
+          ],
+          "color": 16773320,
+          "intensity": 1
+        },
+        "hemi": {
+          "sky": 12175856,
+          "ground": 5001848,
+          "intensity": 0.68
+        },
+        "stars": null,
+        "plane": {
+          "y": -18,
+          "color": 8225163
+        },
+        "backdrop": [
+          {
+            "kind": "temple",
+            "x": 195.5,
+            "z": 14.2,
+            "scale": 32.4,
+            "height": 59.9,
+            "color": 10526403
+          },
+          {
+            "kind": "temple",
+            "x": 171.9,
+            "z": 76.4,
+            "scale": 35.7,
+            "height": 54.7,
+            "color": 9408437
+          },
+          {
+            "kind": "cloud",
+            "x": 131.5,
+            "z": 169.4,
+            "scale": 69.5,
+            "height": 16.5,
+            "color": 10526403
+          },
+          {
+            "kind": "spire",
+            "x": 24,
+            "z": 139.1,
+            "scale": 16,
+            "height": 51.4,
+            "color": 8228012
+          },
+          {
+            "kind": "cloud",
+            "x": -56.9,
+            "z": 179.1,
+            "scale": 55.2,
+            "height": 17.3,
+            "color": 10526403
+          },
+          {
+            "kind": "cloud",
+            "x": -84.4,
+            "z": 102.9,
+            "scale": 40.5,
+            "height": 10.6,
+            "color": 10526403
+          },
+          {
+            "kind": "temple",
+            "x": -157,
+            "z": 83.6,
+            "scale": 58.9,
+            "height": 51.5,
+            "color": 8228012
+          },
+          {
+            "kind": "temple",
+            "x": -131.6,
+            "z": 4,
+            "scale": 46,
+            "height": 62.6,
+            "color": 10526403
+          },
+          {
+            "kind": "spire",
+            "x": -197.9,
+            "z": -98.7,
+            "scale": 11.2,
+            "height": 79.8,
+            "color": 10526403
+          },
+          {
+            "kind": "spire",
+            "x": -124.3,
+            "z": -126.7,
+            "scale": 16.8,
+            "height": 77.7,
+            "color": 8228012
+          },
+          {
+            "kind": "temple",
+            "x": -39.1,
+            "z": -150.7,
+            "scale": 37.3,
+            "height": 61.9,
+            "color": 10526403
+          },
+          {
+            "kind": "temple",
+            "x": 24.7,
+            "z": -149.4,
+            "scale": 59.1,
+            "height": 45.9,
+            "color": 9408437
+          },
+          {
+            "kind": "temple",
+            "x": 85.6,
+            "z": -129.5,
+            "scale": 53.9,
+            "height": 51.7,
+            "color": 8228012
+          },
+          {
+            "kind": "temple",
+            "x": 149.7,
+            "z": -55.8,
+            "scale": 30.4,
+            "height": 37.1,
+            "color": 9408437
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Cascades",
+      "par": 80,
+      "medals": {
+        "gold": 22.7,
+        "silver": 43,
+        "bronze": 66.5
+      },
+      "startPos": {
+        "x": 18,
+        "y": 22,
+        "z": 20
+      },
+      "goal": {
+        "pos": {
+          "x": 12,
+          "y": 2.4,
+          "z": -16
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 18,
+          "y": 20.6,
+          "z": 20,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": -3,
+          "y": 14,
+          "z": 20,
+          "w": 30,
+          "h": 0.8,
+          "d": 5,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0.28,
+          "color": 8015816,
+          "deadly": false
+        },
+        {
+          "x": -3,
+          "y": 15.4,
+          "z": 17,
+          "w": 30,
+          "h": 1.4,
+          "d": 0.7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": -3,
+          "y": 15.4,
+          "z": 23,
+          "w": 30,
+          "h": 1.4,
+          "d": 0.7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": -18,
+          "y": 10,
+          "z": 12,
+          "w": 6,
+          "h": 1,
+          "d": 16,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -3,
+          "y": 5.6,
+          "z": 6,
+          "w": 30,
+          "h": 0.8,
+          "d": 5,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": -0.28,
+          "color": 8015816,
+          "deadly": false
+        },
+        {
+          "x": -3,
+          "y": 7,
+          "z": 3,
+          "w": 30,
+          "h": 1.4,
+          "d": 0.7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": -3,
+          "y": 7,
+          "z": 9,
+          "w": 30,
+          "h": 1.4,
+          "d": 0.7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 12,
+          "y": 2,
+          "z": -4,
+          "w": 6,
+          "h": 1,
+          "d": 16,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 12,
+          "y": 2,
+          "z": -16,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 12,
+          "y": 1.6,
+          "z": -16,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [],
+      "cannons": [],
+      "enemies": [
+        {
+          "x": 12,
+          "y": 3.2,
+          "z": -4,
+          "axis": "z",
+          "range": 3.5,
+          "speed": 1.8,
+          "radius": 1.1,
+          "phase": 0
+        }
+      ],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 10,
+          "y": 16,
+          "z": 20
+        },
+        {
+          "x": -14,
+          "y": 12,
+          "z": 14
+        },
+        {
+          "x": -18,
+          "y": 11,
+          "z": 8
+        },
+        {
+          "x": 0,
+          "y": 6,
+          "z": 6
+        },
+        {
+          "x": 12,
+          "y": 3,
+          "z": 2
+        },
+        {
+          "x": 12,
+          "y": 3,
+          "z": -10
+        },
+        {
+          "x": 12,
+          "y": 3,
+          "z": -16
+        }
+      ],
+      "env": {
+        "theme": "Waterfall Gorge",
+        "skyTop": 2775614,
+        "skyHorizon": 11065528,
+        "sky": {
+          "image": "16_waterfall_gorge",
+          "tint": 15007720,
+          "strength": 0.86
+        },
+        "surface": {
+          "tex": "Ground037",
+          "tile": 3,
+          "strength": 0.58
+        },
+        "fog": {
+          "color": 10143932,
+          "near": 105,
+          "far": 620
+        },
+        "sun": {
+          "dir": [
+            -0.4,
+            -0.7,
+            -0.45
+          ],
+          "color": 14876648,
+          "intensity": 0.9
+        },
+        "hemi": {
+          "sky": 12118224,
+          "ground": 4090442,
+          "intensity": 0.72
+        },
+        "stars": null,
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "cliff",
+            "x": 167.9,
+            "z": 13.4,
+            "scale": 69.2,
+            "height": 82.9,
+            "color": 6130297
+          },
+          {
+            "kind": "cliff",
+            "x": 166.1,
+            "z": 58.3,
+            "scale": 70.3,
+            "height": 64,
+            "color": 7316872
+          },
+          {
+            "kind": "cliff",
+            "x": 124.7,
+            "z": 163.2,
+            "scale": 70.2,
+            "height": 52.8,
+            "color": 7316872
+          },
+          {
+            "kind": "cliff",
+            "x": 54,
+            "z": 168.5,
+            "scale": 70.9,
+            "height": 43.3,
+            "color": 6130297
+          },
+          {
+            "kind": "stack",
+            "x": -43.4,
+            "z": 138.9,
+            "scale": 29.7,
+            "height": 67.3,
+            "color": 6130297
+          },
+          {
+            "kind": "hill",
+            "x": -94.2,
+            "z": 117.6,
+            "scale": 53.7,
+            "height": 36.5,
+            "color": 6592640
+          },
+          {
+            "kind": "cliff",
+            "x": -142.7,
+            "z": 84,
+            "scale": 49.1,
+            "height": 87.6,
+            "color": 7316872
+          },
+          {
+            "kind": "cliff",
+            "x": -160.2,
+            "z": -15.5,
+            "scale": 51.1,
+            "height": 75.4,
+            "color": 7316872
+          },
+          {
+            "kind": "stack",
+            "x": -116.6,
+            "z": -69,
+            "scale": 39.7,
+            "height": 65.2,
+            "color": 6592640
+          },
+          {
+            "kind": "hill",
+            "x": -109.8,
+            "z": -133.1,
+            "scale": 55.5,
+            "height": 39.7,
+            "color": 6130297
+          },
+          {
+            "kind": "cliff",
+            "x": -51,
+            "z": -195.6,
+            "scale": 73.3,
+            "height": 40.1,
+            "color": 7316872
+          },
+          {
+            "kind": "stack",
+            "x": 65.4,
+            "z": -187.1,
+            "scale": 32.4,
+            "height": 46.6,
+            "color": 6130297
+          },
+          {
+            "kind": "hill",
+            "x": 112.6,
+            "z": -174.6,
+            "scale": 40.2,
+            "height": 37.8,
+            "color": 7316872
+          },
+          {
+            "kind": "cliff",
+            "x": 178,
+            "z": -81.5,
+            "scale": 68.3,
+            "height": 82.8,
+            "color": 6130297
+          }
+        ],
+        "bands": null
+      }
+    },
+    {
+      "name": "Chaos",
+      "par": 90,
+      "medals": {
+        "gold": 26.2,
+        "silver": 48.7,
+        "bronze": 75
+      },
+      "startPos": {
+        "x": 0,
+        "y": 1.5,
+        "z": 26
+      },
+      "goal": {
+        "pos": {
+          "x": 0,
+          "y": 6.4,
+          "z": -44
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": 26,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 18,
+          "w": 5,
+          "h": 1,
+          "d": 10,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -2.9,
+          "y": 0.7,
+          "z": 18,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 10,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 2.9,
+          "y": 0.7,
+          "z": 18,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 10,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 8,
+          "w": 6,
+          "h": 1,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 8,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16742144,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "z": -16,
+          "w": 7,
+          "h": 1,
+          "d": 7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": -26,
+          "w": 5,
+          "h": 0.7,
+          "d": 12,
+          "rotX": -0.5,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 8015816,
+          "deadly": false
+        },
+        {
+          "x": -3.2,
+          "y": 0.8,
+          "z": -26,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 12,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 3.2,
+          "y": 0.8,
+          "z": -26,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 12,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4860552,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": -7,
+          "z": -34,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": -7,
+          "z": -34,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 6,
+          "z": -44,
+          "w": 8,
+          "h": 1,
+          "d": 8,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 5.6,
+          "z": -44,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [
+        {
+          "x": 0,
+          "y": -6.6,
+          "z": -34,
+          "radius": 2,
+          "power": 30
+        }
+      ],
+      "cannons": [
+        {
+          "x": 0,
+          "y": 0.4,
+          "z": 8,
+          "radius": 2,
+          "vx": 0,
+          "vy": 14,
+          "vz": -32
+        }
+      ],
+      "enemies": [
+        {
+          "x": 0,
+          "y": 1.4,
+          "z": 18,
+          "axis": "x",
+          "range": 1.5,
+          "speed": 2.6,
+          "radius": 1,
+          "phase": 0
+        },
+        {
+          "x": 0,
+          "y": 7.4,
+          "z": -44,
+          "axis": "x",
+          "range": 2,
+          "speed": 2.3,
+          "radius": 1,
+          "phase": 1.3
+        }
+      ],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 20
+        },
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 8,
+          "hint": "cannon"
+        },
+        {
+          "x": 0,
+          "y": 5,
+          "z": -16,
+          "flight": "carry"
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "z": -26
+        },
+        {
+          "x": 0,
+          "y": -6,
+          "z": -34,
+          "hint": "spring"
+        },
+        {
+          "x": 0,
+          "y": 7,
+          "z": -44
+        }
+      ],
+      "env": {
+        "theme": "Nether Rift",
+        "skyTop": 1706538,
+        "skyHorizon": 6957800,
+        "sky": null,
+        "surface": {
+          "tex": "Rock035",
+          "tile": 3.2,
+          "strength": 0.45
+        },
+        "fog": {
+          "color": 4727903,
+          "near": 105,
+          "far": 620
+        },
+        "sun": {
+          "dir": [
+            -0.35,
+            -0.72,
+            -0.45
+          ],
+          "color": 14137087,
+          "intensity": 0.78
+        },
+        "hemi": {
+          "sky": 7753896,
+          "ground": 1970221,
+          "intensity": 0.5
+        },
+        "stars": {
+          "count": 180,
+          "seed": 705900581,
+          "minY": 0.48
+        },
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "shard",
+            "x": 131.1,
+            "z": 11.8,
+            "scale": 33,
+            "height": 41.2,
+            "color": 5252475
+          },
+          {
+            "kind": "spire",
+            "x": 176.1,
+            "z": 81.6,
+            "scale": 16.4,
+            "height": 51,
+            "color": 3414090
+          },
+          {
+            "kind": "shard",
+            "x": 80.2,
+            "z": 120.6,
+            "scale": 32.2,
+            "height": 70,
+            "color": 5252475
+          },
+          {
+            "kind": "shard",
+            "x": 49,
+            "z": 145.5,
+            "scale": 20.6,
+            "height": 75.9,
+            "color": 5252475
+          },
+          {
+            "kind": "shard",
+            "x": -50.9,
+            "z": 205,
+            "scale": 39.3,
+            "height": 64,
+            "color": 3808085
+          },
+          {
+            "kind": "shard",
+            "x": -95.7,
+            "z": 134.3,
+            "scale": 22.8,
+            "height": 57.6,
+            "color": 6435219
+          },
+          {
+            "kind": "crystal",
+            "x": -161.3,
+            "z": 84.6,
+            "scale": 32.6,
+            "height": 24.6,
+            "color": 3414090
+          },
+          {
+            "kind": "shard",
+            "x": -172.2,
+            "z": 3.8,
+            "scale": 33.4,
+            "height": 61.7,
+            "color": 5252475
+          },
+          {
+            "kind": "shard",
+            "x": -154.5,
+            "z": -84.5,
+            "scale": 28.1,
+            "height": 54,
+            "color": 3414090
+          },
+          {
+            "kind": "crystal",
+            "x": -123.7,
+            "z": -134,
+            "scale": 25.9,
+            "height": 46.8,
+            "color": 3808085
+          },
+          {
+            "kind": "shard",
+            "x": -45,
+            "z": -134.7,
+            "scale": 35.5,
+            "height": 38.8,
+            "color": 5252475
+          },
+          {
+            "kind": "shard",
+            "x": 21.3,
+            "z": -180.9,
+            "scale": 22.3,
+            "height": 74.9,
+            "color": 3808085
+          },
+          {
+            "kind": "crystal",
+            "x": 112.5,
+            "z": -156.6,
+            "scale": 29.5,
+            "height": 50.3,
+            "color": 3414090
+          },
+          {
+            "kind": "shard",
+            "x": 165.8,
+            "z": -79.3,
+            "scale": 26.3,
+            "height": 36.7,
+            "color": 5252475
+          }
+        ],
+        "bands": [
+          {
+            "color": 9059583,
+            "y": 44,
+            "tilt": 0.06
+          },
+          {
+            "color": 13658879,
+            "y": 82,
+            "tilt": -0.05
+          }
+        ]
+      }
+    },
+    {
+      "name": "Grandmaster",
+      "par": 120,
+      "medals": {
+        "gold": 25.1,
+        "silver": 58.6,
+        "bronze": 97.7
+      },
+      "startPos": {
+        "x": 0,
+        "y": 1.5,
+        "z": 28
+      },
+      "goal": {
+        "pos": {
+          "x": -16,
+          "y": 38.4,
+          "z": -42
+        },
+        "radius": 2.2
+      },
+      "boxes": [
+        {
+          "x": 0,
+          "y": -0.4,
+          "z": 28,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3120747,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 18,
+          "w": 4,
+          "h": 1,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -2.4,
+          "y": 0.7,
+          "z": 18,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 2.4,
+          "y": 0.7,
+          "z": 18,
+          "w": 0.7,
+          "h": 1.4,
+          "d": 14,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 2373470,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 8,
+          "w": 6,
+          "h": 1,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "z": 8,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16742144,
+          "deadly": false
+        },
+        {
+          "x": -6,
+          "y": 6,
+          "z": -4,
+          "w": 5,
+          "h": 1,
+          "d": 5,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 6,
+          "y": 6,
+          "z": -4,
+          "w": 5,
+          "h": 1,
+          "d": 5,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 6,
+          "z": -10,
+          "w": 5,
+          "h": 1,
+          "d": 5,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 6,
+          "z": -10,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": 0,
+          "y": 14,
+          "z": -20,
+          "w": 5,
+          "h": 0.8,
+          "d": 14,
+          "rotX": 0.4,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 8015816,
+          "deadly": false
+        },
+        {
+          "x": 8,
+          "y": 20,
+          "z": -28,
+          "w": 7,
+          "h": 1,
+          "d": 7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": 8,
+          "y": 20,
+          "z": -28,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16742144,
+          "deadly": false
+        },
+        {
+          "x": -16,
+          "y": 25,
+          "z": -34,
+          "w": 7,
+          "h": 1,
+          "d": 7,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4882112,
+          "deadly": false
+        },
+        {
+          "x": -16,
+          "y": 25,
+          "z": -34,
+          "w": 3.4,
+          "h": 0.4,
+          "d": 3.4,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 16769088,
+          "deadly": false
+        },
+        {
+          "x": -16,
+          "y": 38,
+          "z": -42,
+          "w": 10,
+          "h": 1,
+          "d": 10,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 4157360,
+          "deadly": false
+        },
+        {
+          "x": -16,
+          "y": 37.6,
+          "z": -42,
+          "w": 6,
+          "h": 0.8,
+          "d": 6,
+          "rotX": 0,
+          "rotY": 0,
+          "rotZ": 0,
+          "color": 3112606,
+          "deadly": false
+        }
+      ],
+      "springs": [
+        {
+          "x": 0,
+          "y": 6.4,
+          "z": -10,
+          "radius": 2,
+          "power": 26
+        },
+        {
+          "x": -16,
+          "y": 25.4,
+          "z": -34,
+          "radius": 2,
+          "power": 28
+        }
+      ],
+      "cannons": [
+        {
+          "x": 0,
+          "y": 0.4,
+          "z": 8,
+          "radius": 2,
+          "vx": 0,
+          "vy": 22,
+          "vz": -34
+        },
+        {
+          "x": 8,
+          "y": 20.4,
+          "z": -28,
+          "radius": 2,
+          "vx": -28,
+          "vy": 17,
+          "vz": -6
+        }
+      ],
+      "enemies": [
+        {
+          "x": 0,
+          "y": 1.4,
+          "z": 18,
+          "axis": "x",
+          "range": 1.5,
+          "speed": 3,
+          "radius": 1,
+          "phase": 0
+        },
+        {
+          "x": 8,
+          "y": 21.4,
+          "z": -28,
+          "axis": "x",
+          "range": 2,
+          "speed": 3.2,
+          "radius": 1.1,
+          "phase": 1.3
+        }
+      ],
+      "movers": [],
+      "checkpoints": [],
+      "switches": [],
+      "gates": [],
+      "keys": [],
+      "doors": [],
+      "timedgates": [],
+      "waypoints": [
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 18
+        },
+        {
+          "x": 0,
+          "y": 1.5,
+          "z": 8,
+          "hint": "cannon"
+        },
+        {
+          "x": 0,
+          "y": 7,
+          "z": -10,
+          "hint": "spring",
+          "flight": "carry"
+        },
+        {
+          "x": 8,
+          "y": 21,
+          "z": -28,
+          "hint": "cannon",
+          "flight": "carry"
+        },
+        {
+          "x": -16,
+          "y": 26,
+          "z": -34,
+          "hint": "spring"
+        },
+        {
+          "x": -16,
+          "y": 39,
+          "z": -42
+        }
+      ],
+      "env": {
+        "theme": "Deep Space",
+        "skyTop": 328976,
+        "skyHorizon": 1052720,
+        "sky": {
+          "image": "18_deep_space",
+          "tint": 13160703,
+          "strength": 0.8
+        },
+        "surface": {
+          "tex": "PavingStones070",
+          "tile": 4,
+          "strength": 0.45
+        },
+        "fog": {
+          "color": 1119534,
+          "near": 150,
+          "far": 760
+        },
+        "sun": {
+          "dir": [
+            -0.35,
+            -0.7,
+            -0.45
+          ],
+          "color": 10135807,
+          "intensity": 0.35
+        },
+        "hemi": {
+          "sky": 2435164,
+          "ground": 526356,
+          "intensity": 0.42
+        },
+        "stars": {
+          "count": 520,
+          "seed": 2515940090,
+          "minY": 0.38
+        },
+        "plane": null,
+        "backdrop": [
+          {
+            "kind": "asteroid",
+            "x": 146.2,
+            "z": 14.5,
+            "scale": 14.5,
+            "height": 39.1,
+            "color": 1448244
+          },
+          {
+            "kind": "asteroid",
+            "x": 127.2,
+            "z": 78.7,
+            "scale": 31.4,
+            "height": 14.6,
+            "color": 3224925
+          },
+          {
+            "kind": "asteroid",
+            "x": 96.9,
+            "z": 124.2,
+            "scale": 17.7,
+            "height": 36.8,
+            "color": 1448244
+          },
+          {
+            "kind": "planet",
+            "x": 59.1,
+            "z": 198.5,
+            "scale": 115.3,
+            "height": 110.6,
+            "color": 3224925
+          },
+          {
+            "kind": "asteroid",
+            "x": -36.8,
+            "z": 171.5,
+            "scale": 33.9,
+            "height": 18,
+            "color": 2566993
+          },
+          {
+            "kind": "asteroid",
+            "x": -85.6,
+            "z": 102.2,
+            "scale": 24.8,
+            "height": 34.8,
+            "color": 2040130
+          },
+          {
+            "kind": "asteroid",
+            "x": -171.9,
+            "z": 66.2,
+            "scale": 37.7,
+            "height": 38.3,
+            "color": 2566993
+          },
+          {
+            "kind": "asteroid",
+            "x": -191.6,
+            "z": -18.1,
+            "scale": 35.4,
+            "height": 28.1,
+            "color": 2566993
+          },
+          {
+            "kind": "planet",
+            "x": -133.3,
+            "z": -76.3,
+            "scale": 104,
+            "height": 92.9,
+            "color": 2566993
+          },
+          {
+            "kind": "asteroid",
+            "x": -91.6,
+            "z": -102.3,
+            "scale": 25.7,
+            "height": 35,
+            "color": 2566993
+          },
+          {
+            "kind": "asteroid",
+            "x": -44.2,
+            "z": -177.3,
+            "scale": 29.5,
+            "height": 36.5,
+            "color": 1448244
+          },
+          {
+            "kind": "asteroid",
+            "x": 40.5,
+            "z": -193.3,
+            "scale": 24.7,
+            "height": 30.9,
+            "color": 2566993
+          },
+          {
+            "kind": "asteroid",
+            "x": 144.9,
+            "z": -154.2,
+            "scale": 33.9,
+            "height": 15.7,
+            "color": 2040130
+          },
+          {
+            "kind": "asteroid",
+            "x": 130.8,
+            "z": -69.8,
+            "scale": 17.5,
+            "height": 16.9,
+            "color": 1448244
+          }
+        ],
+        "bands": [
+          {
+            "color": 5913768,
+            "y": 66,
+            "tilt": 0.05
+          },
+          {
+            "color": 2775706,
+            "y": 100,
+            "tilt": -0.04
+          }
+        ]
+      }
+    }
+  ]
+}

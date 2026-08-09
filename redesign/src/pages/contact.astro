@@ -1,0 +1,72 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Card from '../components/ui/Card.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+
+const areas = [
+  'Austin', 'Westlake Hills', 'Lakeway', 'Bee Cave', 'Dripping Springs',
+  'Steiner Ranch', 'Round Rock', 'Cedar Park', 'Pflugerville', 'Leander',
+  'Liberty Hill', 'Georgetown', 'Kyle', 'Buda',
+];
+---
+
+<Base
+  title="Contact GreenGuard USA | Mosquito Control Austin TX · 512-560-4129"
+  description="Contact GreenGuard USA for pesticide-free mosquito control in Austin TX. Call 512-560-4129, text, or book a free property assessment online."
+>
+  <section class="bg-ivory" style="padding-top:clamp(5rem,10vw,8.5rem);padding-bottom:clamp(4rem,8vw,6.5rem);">
+    <div class="container-x"><div class="max-w-3xl reveal">
+      <Eyebrow>Contact</Eyebrow>
+      <h1 class="font-display mt-6" style="font-size:clamp(2.6rem,6vw,4.5rem);max-width:11ch;">Let's get rid of <em class="italic" style="color:var(--pine);font-weight:340;">the mosquitoes</em></h1>
+      <p class="mt-7 text-soft" style="font-size:1.125rem;max-width:36rem;">Text, call, or book online. We respond within one business day.</p>
+    </div></div>
+  </section>
+
+  <Section variant="linen">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" data-stagger>
+      <div class="reveal"><Card tone="ivory" class="h-full !p-7">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5.1 3h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L9 10.7a16 16 0 0 0 4.3 4.3l1.3-1.3a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2Z" /></svg>
+        <h2 class="font-display mt-5" style="font-size:1.35rem;">Text or Call</h2>
+        <a href="tel:5125604129" class="block mt-2 font-semibold" style="color:var(--pine);">512-560-4129</a>
+        <p class="text-sm text-soft mt-2">Fastest way to reach us</p>
+      </Card></div>
+      <div class="reveal"><Card tone="ivory" class="h-full !p-7">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2-2-2Z" /><path d="m22 6-10 7L2 6" /></svg>
+        <h2 class="font-display mt-5" style="font-size:1.35rem;">Email</h2>
+        <a href="mailto:admin@greenguard-usa.com" class="block mt-2 font-semibold break-all" style="color:var(--pine);">admin@greenguard-usa.com</a>
+        <p class="text-sm text-soft mt-2">Reply within 1 business day</p>
+      </Card></div>
+      <div class="reveal"><Card tone="ivory" class="h-full !p-7">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>
+        <h2 class="font-display mt-5" style="font-size:1.35rem;">Book Online</h2>
+        <a href="/book" class="block mt-2 font-semibold" style="color:var(--pine);">Free Property Assessment</a>
+        <p class="text-sm text-soft mt-2">Instantly confirmed</p>
+      </Card></div>
+    </div>
+  </Section>
+
+  <Section variant="ivory">
+    <div class="max-w-2xl mx-auto text-center reveal"><Eyebrow class="justify-center">Book an Appointment</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">Four ways we can help</h2></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-12" data-stagger>
+      {[
+        ['Free Assessment', 'No-obligation property walkthrough'],
+        ['CO₂ Consultation', 'Talk through the right trap setup'],
+        ['Trap Installation', 'For existing customers ready to install'],
+        ['CO₂ Tank Delivery', 'Refill or replacement service'],
+      ].map(([title, body]) => (
+        <div class="reveal"><a href="/book" class="block no-underline h-full"><Card tone="linen" class="h-full transition-shadow hover:shadow-bloom !p-6"><h3 class="font-display" style="font-size:1.2rem;">{title}</h3><p class="mt-3 text-sm text-soft">{body}</p><span class="inline-flex items-center gap-2 mt-7 text-sm font-semibold" style="color:var(--pine);">Book Online</span></Card></a></div>
+      ))}
+    </div>
+  </Section>
+
+  <Section variant="linen">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+      <div class="lg:col-span-4 reveal"><Eyebrow>Coverage</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,2.8rem);">Serving Austin and surrounding communities</h2><p class="mt-5 text-soft">Austin metro service area.</p><div class="flex flex-wrap gap-2 mt-7">{areas.map((area) => <span class="rounded-full px-3 py-1.5 text-xs font-medium" style="border:1px solid var(--hairline);">{area}</span>)}</div></div>
+      <div class="lg:col-span-8 reveal"><div class="photo-frame overflow-hidden" style="height:380px;"><iframe title="GreenGuard USA service area map" width="100%" height="100%" style="border:0;" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d220000!2d-97.9!3d30.35!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sus!4v1700000000000!5m2!1sen!2sus"></iframe></div><p class="text-soft text-xs mt-3">Don't see your city? <a href="tel:5125604129" class="underline" style="color:var(--pine);">Call us</a>. We may still be able to help.</p></div>
+    </div>
+  </Section>
+
+  <CtaBand title="Let's get rid of the mosquitoes" sub="Text, call, or book online. We respond within one business day." ctaLabel="Book Online" />
+</Base>

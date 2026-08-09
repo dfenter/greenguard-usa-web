@@ -1,0 +1,5 @@
+# Warring Banners
+Controls: tap your banner, then tap a lit hex to march (2 move points) or a red-ringed foe to open the full battle math before committing. Drag to pan, pinch/wheel to zoom. Recruit chips + End Turn sit at the bottom. Keyboard: arrows move the cursor, Enter acts, Space ends turn, 1/2/3 recruit Spear/Cavalry/Bow, +/- zoom, F refits, Esc deselects.
+Loop: one 40-hex valley, a season of 12 turns against three AI warlords (Korrund raids, Sethmoor turtles, Vaelin expands) who fight you and each other. Spear beats Cavalry beats Bow beats Spear; forest/hill give cover, rivers are impassable except at fords, and keep walls give x1.90.
+Supply: hexes you walk on become yours; any banner not connected back to your keep through your own territory is CUT OFF — drawn dashed and dimmed, fighting at x0.70 and losing 2 strength a turn.
+Win/lose: most territory at turn 12 wins the season (taking every rival keep wins outright); losing your own keep is instant defeat. Territory banks a gold legacy into the next seeded season, persisted locally.

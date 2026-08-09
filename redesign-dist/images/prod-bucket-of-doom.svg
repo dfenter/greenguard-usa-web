@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Mosquito Bucket of Doom ovitrap">
+  <rect width="400" height="400" fill="#1a2e1f"/>
+  <!-- shadow -->
+  <ellipse cx="200" cy="356" rx="120" ry="14" fill="#000" opacity="0.4"/>
+  <!-- handle (behind bucket) -->
+  <path d="M120 130 Q200 70 280 130" stroke="#888" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <!-- bucket body (trapezoid) -->
+  <defs>
+    <linearGradient id="bucket" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#0d1a10"/>
+      <stop offset="0.5" stop-color="#222"/>
+      <stop offset="1" stop-color="#0d1a10"/>
+    </linearGradient>
+  </defs>
+  <polygon points="120,140 280,140 260,346 140,346" fill="url(#bucket)"/>
+  <!-- rim -->
+  <ellipse cx="200" cy="140" rx="80" ry="14" fill="#444"/>
+  <ellipse cx="200" cy="140" rx="76" ry="11" fill="#0a0a0a"/>
+  <!-- inner water surface -->
+  <ellipse cx="200" cy="180" rx="68" ry="9" fill="#1c3d4a" opacity="0.95"/>
+  <ellipse cx="200" cy="180" rx="55" ry="6" fill="#2a5566" opacity="0.6"/>
+  <!-- ridges on bucket -->
+  <line x1="135" y1="220" x2="265" y2="220" stroke="#2a2a2a" stroke-width="2"/>
+  <line x1="138" y1="270" x2="262" y2="270" stroke="#2a2a2a" stroke-width="2"/>
+  <line x1="140" y1="320" x2="260" y2="320" stroke="#2a2a2a" stroke-width="2"/>
+  <!-- mosquito silhouette over water -->
+  <g transform="translate(184,160)" fill="#d4e6ca" opacity="0.7">
+    <ellipse cx="0" cy="0" rx="8" ry="3"/>
+    <line x1="-8" y1="0" x2="-14" y2="-6" stroke="#d4e6ca" stroke-width="1"/>
+    <line x1="-8" y1="0" x2="-14" y2="6" stroke="#d4e6ca" stroke-width="1"/>
+    <line x1="8" y1="0" x2="16" y2="-2" stroke="#d4e6ca" stroke-width="1"/>
+    <line x1="-3" y1="3" x2="-3" y2="8" stroke="#d4e6ca" stroke-width="1"/>
+    <line x1="3" y1="3" x2="3" y2="8" stroke="#d4e6ca" stroke-width="1"/>
+  </g>
+  <!-- label -->
+  <rect x="135" y="240" width="130" height="50" rx="4" fill="#7dffaa" opacity="0.92"/>
+  <text x="200" y="262" text-anchor="middle" fill="#0d1a10" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="900" letter-spacing="1">BUCKET</text>
+  <text x="200" y="280" text-anchor="middle" fill="#0d1a10" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="900" letter-spacing="1">OF DOOM</text>
+</svg>

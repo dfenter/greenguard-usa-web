@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/skyshard-vale/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#09121f">
+  <title>Skyshard Vale</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #09121f; }
+    body { touch-action: none; user-select: none; -webkit-user-select: none; }
+    button { font: inherit; color: inherit; }
+    #game-shell { position: fixed; inset: 0; overflow: hidden; background: #09121f; }
+    #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    #hud { position: absolute; z-index: 3; left: 0; right: 0; top: 0; padding: max(12px, env(safe-area-inset-top)) 14px 0; pointer-events: none; }
+    .hud-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .brand { color: #f8f0db; font-size: 14px; font-weight: 900; letter-spacing: .16em; text-shadow: 0 2px 8px #07111ccc; }
+    .brand span { color: #80d6d1; }
+    .zone { padding: 4px 8px; border: 1px solid #b9e7df55; border-radius: 8px; color: #b9e7df; font-size: 10px; font-weight: 800; letter-spacing: .14em; background: #0b2032aa; }
+    #stats { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 10px; font-size: 11px; font-weight: 800; }
+    .meter { position: relative; flex: 1; height: 14px; max-width: 170px; overflow: hidden; border: 1px solid #ffd4c066; border-radius: 7px; background: #1b2634cc; }
+    #hp-fill { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(90deg, #e86c63, #ffc77a); transition: width .12s linear; }
+    #hp-label { position: absolute; inset: 0; display: grid; place-items: center; color: #fff5e8; font-size: 9px; text-shadow: 0 1px 3px #000; }
+    .stat-pill { padding: 5px 7px; border: 1px solid #b9e7df44; border-radius: 7px; background: #0b2032b5; color: #e9f8ed; white-space: nowrap; }
+    #hint { position: absolute; z-index: 4; left: 50%; bottom: calc(160px + env(safe-area-inset-bottom)); width: min(90vw, 520px); transform: translateX(-50%); padding: 6px 12px; border: 1px solid #f8f0db38; border-radius: 8px; background: #0b1625c9; color: #f8f0db; text-align: center; font-size: 11px; line-height: 1.2; pointer-events: none; }
+    #toast { position: absolute; z-index: 5; left: 50%; top: 22%; transform: translate(-50%, -50%); padding: 10px 14px; border: 1px solid #d4f4e2aa; border-radius: 9px; background: #122437e8; color: #d4f4e2; font-size: 12px; font-weight: 900; letter-spacing: .06em; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; text-align: center; white-space: nowrap; }
+    #toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1.03); }
+    #touch-ui { position: absolute; z-index: 6; inset: 0; pointer-events: none; }
+    #stick-area { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: calc(24px + env(safe-area-inset-bottom)); width: 118px; height: 118px; border: 2px solid #d4f4e255; border-radius: 50%; background: #0f304280; pointer-events: auto; touch-action: none; }
+    #stick-area::after { content: ""; position: absolute; inset: 21px; border: 1px dashed #d4f4e22f; border-radius: 50%; }
+    #stick-thumb { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px; border: 2px solid #d4f4e2cc; border-radius: 50%; background: #6bc8c6aa; box-shadow: 0 4px 12px #0007; pointer-events: none; }
+    #actions { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: calc(26px + env(safe-area-inset-bottom)); display: flex; align-items: end; gap: 11px; pointer-events: none; }
+    .action { width: 76px; height: 76px; border: 2px solid #f8f0db88; border-radius: 50%; background: #512f4bdb; box-shadow: 0 5px 14px #0008, inset 0 0 0 5px #ffffff0b; pointer-events: auto; touch-action: none; font-size: 11px; font-weight: 900; letter-spacing: .08em; }
+    .action:active, .action.held { background: #a05764; transform: scale(.96); }
+    #skill { width: 66px; height: 66px; background: #214b69db; }
+    #skill.ready { border-color: #a6eddb; box-shadow: 0 0 16px #68d8ca55, inset 0 0 0 5px #ffffff0b; }
+    #party { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: calc(112px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
+    .chip { width: 82px; min-height: 48px; padding: 5px 7px; border: 1px solid #d4f4e255; border-radius: 10px; background: #102337d9; text-align: left; pointer-events: auto; touch-action: none; }
+    .chip b { display: block; color: #f8f0db; font-size: 11px; }
+    .chip small { color: #a3c8c7; font-size: 9px; }
+    .chip.active { border-color: #f8d285; background: #4a3a3ecf; box-shadow: 0 0 12px #f8d28538; }
+    #rotate { position: absolute; z-index: 20; inset: 0; display: none; place-items: center; padding: 30px; background: #07111ff5; color: #f8f0db; text-align: center; }
+    #rotate.visible { display: grid; }
+    #rotate .rotate-card, #modal .modal-card { width: min(86vw, 360px); padding: 25px 22px; border: 1px solid #9bdcd4aa; border-radius: 16px; background: linear-gradient(145deg, #132e40, #1d2139); box-shadow: 0 18px 40px #0009; }
+    #rotate strong { display: block; margin-bottom: 8px; color: #9de0d7; font-size: 19px; letter-spacing: .08em; }
+    #rotate p, #modal p { margin: 0; color: #cad8d4; font-size: 13px; line-height: 1.45; }
+    #modal { position: absolute; z-index: 15; inset: 0; display: none; place-items: center; padding: 20px; background: #07111fb8; }
+    #modal.visible { display: grid; }
+    #modal .modal-card { text-align: center; border-color: #f8d285aa; }
+    #modal h1 { margin: 0 0 7px; color: #f8d285; font-size: 25px; letter-spacing: .1em; }
+    #modal .result { margin: 13px 0 18px; color: #f8f0db; font-size: 15px; font-weight: 800; }
+    #restart { min-height: 52px; min-width: 170px; padding: 0 20px; border: 1px solid #f8f0db99; border-radius: 10px; background: #985d5d; font-weight: 900; letter-spacing: .08em; touch-action: none; }
+    @media (min-width: 700px) and (orientation: landscape) { #hint { bottom: 24px; } #touch-ui { opacity: .85; } }
+  </style>
+</head>
+<body>
+  <main id="game-shell">
+    <canvas id="game" aria-label="Skyshard Vale game"></canvas>
+    <div id="hud">
+      <div class="hud-row"><div class="brand">SKYSHARD <span>VALE</span></div><div id="zone" class="zone">MEADOW</div></div>
+      <div id="stats"><div class="meter"><div id="hp-fill"></div><div id="hp-label">VITAL 100 / 100</div></div><div id="score" class="stat-pill">SCORE 0000</div><div id="clock" class="stat-pill">TIME 00:00</div></div>
+    </div>
+    <div id="hint">Walk the valley. Attune shrines to earn movement gifts.</div>
+    <div id="toast" aria-live="polite"></div>
+    <div id="touch-ui">
+      <div id="stick-area" aria-label="Move"><div id="stick-thumb"></div></div>
+      <div id="party">
+        <button class="chip active" data-slot="0"><b>TAVI · BLADE</b><small>EMBER / STRIKE</small></button>
+        <button class="chip" data-slot="1"><b>SERA · BOW</b><small>FROST / RANGE</small></button>
+        <button class="chip" data-slot="2"><b>MALK · STAFF</b><small>SPARK / CHAIN</small></button>
+      </div>
+      <div id="actions"><button id="skill" class="action ready">SKILL</button><button id="attack" class="action">ATTACK</button></div>
+    </div>
+    <div id="rotate"><div class="rotate-card"><strong>TURN THE VALE UPRIGHT</strong><p>Skyshard Vale is a portrait journey. Rotate your device to continue.</p></div></div>
+    <div id="modal"><div class="modal-card"><h1>VALLEY CLEAR</h1><p>The high shard answers. Every shrine and cache is now part of your map.</p><div id="result" class="result">TIME 00:00 · SCORE 0000</div><button id="restart">WALK AGAIN</button></div></div>
+  </main>
+  <script src="./game.js"></script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Card from '../components/ui/Card.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+import Faq from '../components/ui/Faq.astro';
+
+const tiers = [
+  { name: 'Standard', price: 'From $89.99', note: '/ month', features: ['Single CO₂ cylinder exchange', 'Monthly scheduled delivery', 'Trap inspection and cleaning', 'Regulator adjustment as needed', 'Empty tank removed'] },
+  { name: 'Premium', price: 'From $139.99', note: '/ month', highlight: true, features: ['Two 20 lb cylinders per delivery', 'Monthly scheduled delivery', 'Trap inspection and cleaning', 'Priority scheduling window', 'Suitable for two-trap systems'] },
+  { name: 'Estate', price: 'From $189.99', note: '/ month', features: ['Three 20 lb cylinders per delivery', 'Monthly scheduled delivery', 'Trap inspection and cleaning', 'Priority scheduling, first available window', 'Ideal for multi-trap and Mosqitter Grand systems'] },
+];
+
+const visitIncludes = [
+  ['CO₂ Tank Exchange', 'A full CO₂ tank is connected to your regulator and the empty is removed and taken away. Your trap never stops running. Tank sizing is calibrated to your specific setup and usage pattern.'],
+  ['Trap Inspection and Cleaning', 'The technician inspects the trap for proper airflow, fan function, and catch net condition. The catch net is cleaned and reset. Any wear or component issues are flagged and addressed.'],
+  ['Regulator Check and Adjustment', 'CO₂ flow rate is verified and adjusted as needed to maintain optimal trap performance. Proper regulator settings are critical to trap efficacy and CO₂ tank longevity.'],
+  ['Attractant Replenishment', 'BG-Sweetscent attractant (Biogents) or Mosqilure (Mosqitter Grand) is checked and replenished as required. Attractant performance directly affects trap catch rates.'],
+  ['Seasonal Placement Review', 'As vegetation, shade patterns, and mosquito activity shift through the season, our technicians note any placement adjustments that would improve performance and discuss with you as needed.'],
+  ['Service Documentation', 'Every visit is logged. Trap performance, tank usage, and any observations are recorded so we can identify patterns and optimize your setup over time.'],
+];
+
+const steps = [
+  ['01', 'Schedule Your Delivery', 'Book online or call us. We confirm your delivery window and calibrate the schedule to your trap and property setup.'],
+  ['02', 'We Arrive and Swap', 'A GreenGuard USA technician arrives at your property, disconnects the empty tank, connects a full one to your regulator, and inspects the trap.'],
+  ['03', 'Empty Tank Removed', 'We take the empty tank with us. No storage required on your end, no trips to a refill station, no heavy lifting.'],
+  ['04', 'Continuous Protection', 'Your trap runs at full performance. We repeat the cycle monthly so you never experience downtime in your mosquito control coverage.'],
+];
+
+const faqs = [
+  { q: 'Do I need to be home for the delivery?', a: 'No. As long as your trap and empty tank are accessible, our technician can complete the exchange without you present. Most customers leave the area unlocked on delivery day. We notify you when the service is complete.' },
+  { q: 'How long does a CO₂ tank last?', a: 'A Biogents trap running at the lowest recommended setting uses approximately one pound of CO₂ per day. A 20-pound tank lasts roughly 20 days running continuously, or up to 27 days with a timer set to turn off between midnight and 6am. Tank consumption varies by regulator setting and trap model. Our delivery schedule is calibrated to your specific setup.' },
+  { q: 'What if I run out of CO₂ between deliveries?', a: 'We offer next-day emergency refills for customers who run dry between scheduled deliveries. The Mosqitter Grand app will alert you when CO₂ levels are getting low so you can request a top-up in advance. Call or text 512-560-4129 and we will get you sorted quickly.' },
+  { q: 'Can I cancel or pause my delivery service?', a: 'Yes. All GreenGuard USA delivery plans are month-to-month with no contracts. You can pause, modify, or cancel with 48 hours notice before your next scheduled delivery. No cancellation fees.' },
+  { q: 'Does the delivery service work with the Mosqitter Grand?', a: 'Yes. Our CO₂ delivery service supports both Biogents BG-Mosquitaire and Mosqitter Grand traps. The Estate tier is particularly well suited for Mosqitter Grand systems and multi-trap setups. We calibrate the delivery schedule and tank size to your specific trap configuration.' },
+  { q: 'What areas do you service?', a: 'We service the Austin metro area including central Austin, Westlake Hills, Lakeway, Bee Cave, Cedar Park, Round Rock, Pflugerville, Georgetown, Dripping Springs, Kyle, Buda, and Manor. If you are unsure whether we cover your area, call or text 512-560-4129.' },
+];
+---
+
+<Base
+  title="CO₂ Tank Delivery Austin TX | GreenGuard USA"
+  description="Monthly CO₂ cylinder delivery and tank exchange for Austin mosquito traps. GreenGuard USA swaps your empty tank, inspects your trap, and keeps your system running."
+>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "CO₂ Tank Delivery and Exchange",
+    "description": "Monthly CO₂ cylinder delivery and tank exchange service for Austin TX mosquito trap owners. All-electric fleet, same-day inspection included.",
+    "provider": { "@type": "LocalBusiness", "name": "GreenGuard USA", "telephone": "+1-512-560-4129", "url": "https://www.greenguard-usa.com" },
+    "areaServed": { "@type": "City", "name": "Austin", "addressRegion": "TX" },
+    "serviceType": "Mosquito Control",
+    "url": "https://www.greenguard-usa.com/co2delivery"
+  })} />
+
+  <section class="bg-ivory" style="padding-top:clamp(5rem,10vw,8.5rem);padding-bottom:clamp(4rem,8vw,7rem);"><div class="container-x"><div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center"><div class="lg:col-span-6 reveal"><Eyebrow>CO₂ Tank Delivery · Austin, TX</Eyebrow><h1 class="font-display mt-6" style="font-size:clamp(2.6rem,6vw,4.5rem);max-width:11ch;">CO₂ Delivered. <em class="italic" style="color:var(--pine);font-weight:340;">Next Day Service.</em></h1><p class="mt-7 text-soft" style="font-size:1.125rem;max-width:34rem;">GreenGuard USA delivers full CO₂ tanks to your door and swaps the empty. No hauling. No downtime. No waiting.</p><div class="flex flex-wrap gap-4 mt-9"><Btn href="/book">Book Free Assessment</Btn><Btn href="tel:5125604129" variant="ghost">Call or Text 512-560-4129</Btn></div><div class="flex flex-wrap gap-3 mt-8 text-sm text-soft">{['No hauling required', 'All-electric EV delivery', 'Month-to-month', 'Austin area only'].map((item) => <span class="rounded-full px-3.5 py-2" style="border:1px solid var(--hairline);">{item}</span>)}</div></div><div class="lg:col-span-6 reveal"><div class="photo-frame bg-linen" style="aspect-ratio:4/3;"><img src="/images/tank.jpeg" alt="CO₂ cylinder prepared for GreenGuard USA delivery" class="w-full h-full object-cover" fetchpriority="high" /></div></div></div></div></section>
+
+  <Section variant="linen"><div class="max-w-2xl mx-auto text-center reveal"><Eyebrow class="justify-center">The Process</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">Simple. Hands-off. Reliable.</h2><p class="mt-5 text-soft">Our CO₂ delivery service is designed to require nothing from you. We handle the logistics so your trap keeps running without interruption.</p></div><div class="grid grid-cols-1 md:grid-cols-4 gap-8 mt-12" data-stagger>{steps.map(([number, title, body]) => <div class="reveal"><span class="display-numeral block">{number}</span><div class="mt-4" style="width:40px;height:1px;background:var(--brass);"></div><h3 class="font-display mt-5" style="font-size:1.25rem;">{title}</h3><p class="mt-3 text-sm text-soft">{body}</p></div>)}</div></Section>
+
+  <Section variant="ivory"><div class="max-w-2xl mx-auto text-center reveal"><Eyebrow class="justify-center">Monthly Delivery Plans</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">Choose your coverage level</h2><p class="mt-5 text-soft">All plans include monthly tank exchange, technician delivery, trap inspection, and empty tank removal. Works with both Biogents and Mosqitter Grand traps.</p></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12" data-stagger>{tiers.map((tier) => <div class="reveal"><Card tone={tier.highlight ? 'linen' : 'ivory'} class={`relative h-full flex flex-col !p-7 ${tier.highlight ? 'plan-featured' : ''}`}>{tier.highlight && <span class="absolute -top-3 left-7 rounded-full px-3 py-1 text-[0.68rem] font-semibold uppercase" style="letter-spacing:.12em;background:var(--brass);color:#fff;">Most Popular</span>}<Eyebrow plain>{tier.name}</Eyebrow><p class="mt-4"><span class="font-display" style="font-size:2.15rem;color:var(--pine);">{tier.price}</span><span class="text-sm text-soft">{tier.note}</span></p><ul class="space-y-3 mt-6 mb-8 list-none p-0 flex-1">{tier.features.map((feature) => <li class="flex gap-3 text-sm"><svg class="flex-none mt-1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--pine)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5" /></svg>{feature}</li>)}</ul><Btn href="/book" variant={tier.highlight ? 'primary' : 'ghost'}>Book Free Assessment</Btn></Card></div>)}</div></Section>
+
+  <Section variant="linen"><div class="max-w-2xl reveal"><Eyebrow>Every Visit Includes</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">More than just a tank swap</h2><p class="mt-5 text-soft">Every GreenGuard USA delivery visit is a full service call. Our technicians do not just drop off a tank. They inspect, clean, and calibrate your entire system.</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-12" data-stagger>{visitIncludes.map(([title, body], index) => <div class="reveal"><Card tone="ivory" class="h-full !p-6"><span class="display-numeral block" style="font-size:3.25rem;">{String(index + 1).padStart(2, '0')}</span><h3 class="font-display mt-3" style="font-size:1.2rem;">{title}</h3><p class="mt-3 text-sm text-soft">{body}</p></Card></div>)}</div></Section>
+
+  <Section variant="ivory"><div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16"><div class="lg:col-span-4 reveal"><Eyebrow>Common Questions</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,2.8rem);">CO₂ delivery FAQ</h2></div><div class="lg:col-span-8 reveal"><Faq items={faqs} /></div></div></Section>
+
+  <CtaBand title="Keep your trap running all season." sub="Book a free property assessment and we will walk your yard, recommend the right delivery tier for your trap and property, and get your first delivery scheduled the same week." ctaLabel="Book Free Assessment" />
+
+  <style is:global>.plan-featured { border-color: var(--brass) !important; }</style>
+  <script type="application/ld+json" set:html={JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": faqs.map(({ q, a }) => ({ "@type": "Question", "name": q, "acceptedAnswer": { "@type": "Answer", "text": a } })) })} />
+</Base>

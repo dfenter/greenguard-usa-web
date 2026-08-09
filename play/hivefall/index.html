@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/hivefall/">
+<meta charset="utf-8">
+<title>Hivefall</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0b0f14">
+<style>
+  html,body{margin:0;padding:0;background:#0b0f14;height:100%;overflow:hidden;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    font-family:ui-monospace,Menlo,Consolas,monospace;color:#dfe8f2;}
+  #wrap{position:fixed;inset:0;touch-action:none;overscroll-behavior:none;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+  .veil{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    flex-direction:column;background:rgba(6,9,13,.94);z-index:9;text-align:center;padding:24px;}
+  .veil.on{display:flex;}
+  .veil h1{font-size:30px;margin:0 0 6px;letter-spacing:3px;color:#ffd15c;}
+  .veil p{font-size:14px;line-height:1.5;margin:4px 0;color:#9fb3c8;max-width:320px;}
+  .btn{margin-top:18px;min-width:200px;min-height:56px;padding:14px 22px;font:600 18px/1 ui-monospace,monospace;
+    color:#0b0f14;background:#ffd15c;border:0;border-radius:12px;letter-spacing:2px;}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+
+<div id="boot" class="veil on">
+  <h1>HIVEFALL</h1>
+  <p>Match gems to fire your wall guns. Shots launch up the column you matched.</p>
+  <p>RED cannon &middot; BLUE frost &middot; GREEN repair &middot; GOLD coins &middot; VIOLET venom</p>
+  <button id="bootBtn" class="btn">TAP TO START</button>
+</div>
+
+<div id="rot" class="veil">
+  <h1>ROTATE</h1>
+  <p>Hivefall plays in portrait. Turn your device upright to continue.</p>
+</div>
+
+<script src="./js/core.js"></script>
+<script src="./js/board.js"></script>
+<script src="./js/battle.js"></script>
+<script src="./js/game.js"></script>
+</body>
+</html>

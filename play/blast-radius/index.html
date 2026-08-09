@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/blast-radius/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#07131c">
+  <title>Blast Radius</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #061018; }
+    body { display: grid; place-items: center; overscroll-behavior: none; }
+    #game-wrap {
+      position: relative; width: 100vw; height: 100dvh; max-width: 560px; max-height: 900px;
+      overflow: hidden; background: #07131c; touch-action: none; user-select: none;
+    }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    #bomb-button {
+      position: absolute; right: 20px; bottom: 39px; width: 76px; height: 76px; border: 0;
+      border-radius: 50%; color: #07131c; background: #ffca5f; box-shadow: 0 0 0 4px #172d35, 0 8px 24px #0009;
+      font: 900 14px/1 system-ui, sans-serif; letter-spacing: .08em; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent; cursor: pointer;
+    }
+    #bomb-button::after { content: "SPACE"; display: block; margin-top: 5px; color: #71511c; font-size: 9px; letter-spacing: .12em; }
+    #bomb-button:active { transform: scale(.94); background: #ffe3a1; }
+    #hint { position: absolute; left: 16px; bottom: 61px; color: #89aab1; font-size: 11px; letter-spacing: .02em; pointer-events: none; }
+    #screen { position: absolute; inset: 0; display: grid; place-items: center; background: #061018cc; backdrop-filter: blur(4px); text-align: center; }
+    #screen[hidden] { display: none; }
+    .panel { width: min(300px, calc(100% - 40px)); padding: 26px 24px 22px; border: 1px solid #34515a; border-radius: 20px; background: linear-gradient(150deg, #102530f5, #0a1822f5); box-shadow: 0 16px 48px #0009; }
+    .panel h1 { margin: 0 0 8px; color: #ffca5f; font-size: 30px; letter-spacing: .12em; }
+    .panel p { margin: 0 0 20px; color: #a7c2c4; font-size: 14px; }
+    #restart { min-height: 48px; min-width: 170px; border: 0; border-radius: 12px; color: #07131c; background: #68e0d1; font-weight: 800; letter-spacing: .06em; cursor: pointer; }
+    @media (min-width: 561px) { #game-wrap { border-left: 1px solid #19333c; border-right: 1px solid #19333c; } }
+  </style>
+</head>
+<body>
+  <main id="game-wrap">
+    <canvas id="game" aria-label="Blast Radius game arena"></canvas>
+    <button id="bomb-button" type="button" aria-label="Plant bomb">BOMB</button>
+    <div id="hint">Swipe / arrows move · BOMB / Space plant</div>
+    <div id="screen" hidden>
+      <section class="panel">
+        <h1 id="screen-title">RUN ENDED</h1>
+        <p id="screen-copy">The arena got the last word.</p>
+        <button id="restart" type="button">RUN IT BACK</button>
+      </section>
+    </div>
+  </main>
+  <script src="./game.js"></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <base href="/play/wanderlight/">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#071522">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Wanderlight</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/favicon.png">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #071522; }
+    body { position: fixed; inset: 0; touch-action: none; overscroll-behavior: none; user-select: none; -webkit-user-select: none; font-family: monospace; }
+    #game { position: fixed; inset: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+    body > div[style*="z-index:9000"] { background:radial-gradient(circle at 50% 38%,#173c4b 0,#071522 46%,#020811 100%) !important; font-family:monospace !important; letter-spacing:.08em; }
+    body > div[style*="z-index:9000"]::before { content:'✦'; color:#f2cf75; font-size:44px; line-height:1; margin-bottom:14px; animation:lumenPulse 1.2s ease-in-out infinite; }
+    body > div[style*="z-index:9000"] > div:first-of-type { font-family:monospace !important; color:#e8f3e7 !important; text-shadow:0 0 16px #53c5b6; }
+    body > div[style*="z-index:9000"] > div:nth-of-type(2) { background:#102033 !important; border:1px solid #4e8f8b; border-radius:0 !important; height:12px !important; }
+    body > div[style*="z-index:9000"] > div:nth-of-type(2) > div { background:#f2cf75 !important; border-radius:0 !important; }
+    body > div[style*="z-index:9200"] { font-family:monospace !important; background:rgba(5,18,31,.96) !important; }
+    body > div[style*="z-index:9200"] button { font-family:monospace !important; border-radius:0 !important; border-color:#4e8f8b !important; }
+    @keyframes lumenPulse { 0%,100% { transform:scale(.92); opacity:.65; } 50% { transform:scale(1.08); opacity:1; } }
+  </style>
+</head>
+<body>
+  <main id="game" aria-label="Wanderlight game"></main>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script>
+    'use strict';
+    window.__wanderApp = { scene: null };
+    const kit = GGKit.create({
+      slug: 'wanderlight',
+      orientation: 'any',
+      validateSave(value) {
+        return value == null || (typeof value === 'object' && !Array.isArray(value) &&
+          Number.isInteger(value.v) && (value.kind === undefined || value.kind === 'journey' || value.kind === 'best'));
+      },
+      onPause() {},
+      onResume() {},
+      onRestart() {
+        if (typeof Game !== 'undefined' && Game._test && Game._test.restartJourney) Game._test.restartJourney();
+      },
+    });
+    window.__wanderKit = kit;
+    kit.registerPWA();
+  </script>
+  <script src="js/engine.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/tiles.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/dungeon.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/items.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/view.js"></script>
+  <script>
+    'use strict';
+    const game = new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: 'game',
+      backgroundColor: '#071522',
+      render: { pixelArt: true, antialias: false, roundPixels: true, clearBeforeRender: true },
+      scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+      fps: { target: 60, forceSetTimeOut: false },
+      scene: [WanderlightApp.Scene],
+    });
+  </script>
+</body>
+</html>

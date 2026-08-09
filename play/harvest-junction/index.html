@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/harvest-junction/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#f7f0df">
+  <meta name="description" content="Harvest Junction — a pocket farm-and-town logistics game.">
+  <title>Harvest Junction</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="game-shell" aria-label="Harvest Junction game">
+    <canvas id="game" width="390" height="700" aria-label="Harvest Junction game board"></canvas>
+    <div id="rotate-screen" aria-live="polite" hidden>
+      <div class="rotate-card">
+        <div class="rotate-glyph">↻</div>
+        <strong>Turn the junction upright</strong>
+        <span>Harvest Junction is portrait only.</span>
+      </div>
+    </div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

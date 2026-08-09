@@ -1,0 +1,391 @@
+---
+import Base from '../layouts/Base.astro';
+import Reviews from '../components/Reviews.astro';
+import CustomerCount from '../components/CustomerCount.astro';
+import LeadCapture from '../components/LeadCapture.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Card from '../components/ui/Card.astro';
+import Stars from '../components/ui/Stars.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+import Faq from '../components/ui/Faq.astro';
+import { getReviewMeta } from '../lib/reviews';
+
+const meta = getReviewMeta();
+
+// Original site FAQ copy, verbatim. Feeds both the rendered accordion and FAQPage JSON-LD.
+const faqs = [
+  { q: "How is CO₂ trapping different from mosquito sprays?", a: "Sprays coat your yard in pesticides that kill indiscriminately, including bees and beneficial insects. CO₂ traps use the same signal mosquitoes use to find you, drawing them in and capturing them without any chemicals. No spray drift, no residue, no bee deaths." },
+  { q: "How quickly will I see results?", a: "Most customers notice a significant reduction in mosquito activity within 2 to 4 weeks. Studies show up to 93% bite reduction after 6 months of continuous trapping as the local breeding population collapses." },
+  { q: "What does the service include?", a: "We handle everything: trap installation, monthly CO₂ tank exchanges, maintenance, and seasonal adjustments. You don't touch the equipment. We show up, swap tanks, and leave your yard protected." },
+  { q: "Do I have to sign a long-term contract?", a: "No contracts. Service runs month to month. Most customers stay because it works, not because they're locked in." },
+  { q: "Is it safe for kids, pets, and bees?", a: "Yes. CO₂ traps target only blood-seeking insects following carbon dioxide. Bees don't follow CO₂ cues, so they're completely unaffected. No pesticides means no risk to kids, pets, or your garden." },
+];
+
+const cities = [
+  ['austin-texas', 'Austin'],
+  ['cedar-park', 'Cedar Park'],
+  ['round-rock', 'Round Rock'],
+  ['westlake-hills', 'Westlake Hills'],
+  ['lakeway', 'Lakeway'],
+  ['bee-cave', 'Bee Cave'],
+  ['dripping-springs', 'Dripping Springs'],
+  ['steiner-ranch', 'Steiner Ranch'],
+  ['georgetown', 'Georgetown'],
+  ['pflugerville', 'Pflugerville'],
+  ['leander', 'Leander'],
+  ['liberty-hill', 'Liberty Hill'],
+  ['kyle', 'Kyle'],
+  ['buda', 'Buda'],
+];
+---
+
+<Base
+  title="Eco-Friendly Mosquito Control Austin TX | GreenGuard USA"
+  description="Pesticide-free CO₂ mosquito control in Austin, TX. Scientifically validated traps, safe for kids, pets, and pollinators, delivered by our all-electric fleet. Free property assessment, no contracts."
+  navOverlay={true}
+>
+  <!-- ============ HERO ============ -->
+  <section class="bg-ivory relative overflow-hidden" style="padding-top: calc(72px + clamp(2.5rem, 6vw, 5.5rem)); padding-bottom: clamp(3rem, 7vw, 6rem);">
+    <div class="container-x">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+        <!-- Copy: 6 of 12 cols -->
+        <div class="lg:col-span-6 xl:col-span-6">
+          <Eyebrow>Now Serving Austin, TX</Eyebrow>
+          <h1 class="mt-6 text-ink" style="font-size: clamp(2.5rem, 5.6vw, 4.1rem); max-width: 15ch;">
+            Reclaim Your <em class="italic" style="color: var(--pine); font-weight: 340;">Sanctuary</em>.
+            <span class="block">Start Trapping Mosquitoes.</span>
+          </h1>
+          <p class="mt-7 text-soft" style="font-size: 1.125rem; max-width: 32rem; line-height: 1.75;">
+            Pesticide-free mosquito control for Austin, TX homeowners. Precision CO₂ trap technology, scientifically validated and delivered to your door by our all-electric fleet. Protect your family with a smarter approach to mosquito control.
+          </p>
+
+          <div class="flex flex-wrap items-center gap-4 mt-9">
+            <Btn href="/book">Book Free Assessment</Btn>
+            <Btn href="https://portal.greenguard-usa.com/quote/new" variant="ghost">Quote Builder</Btn>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-3 mt-8">
+            <span class="inline-flex items-center gap-2.5">
+              <Stars rating={meta.averageRating} size={15} />
+              <span class="text-sm text-soft"><strong class="text-ink font-semibold">{Number(meta.averageRating).toFixed(1)}</strong> on Google &middot; {meta.totalReviews} reviews</span>
+            </span>
+            <CustomerCount />
+          </div>
+        </div>
+
+        <!-- Media: 6 of 12 cols, editorial offset -->
+        <div class="lg:col-span-6 relative">
+          <div class="photo-frame relative" style="aspect-ratio: 4 / 4.6; max-height: 620px;">
+            <img
+              src="/images/austintrail.jpg"
+              alt="Golden-hour boardwalk on Lady Bird Lake with the Austin skyline behind it"
+              class="w-full h-full object-cover hero-zoom"
+              fetchpriority="high"
+            />
+            <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(180deg, rgba(30,43,35,0) 45%, rgba(30,43,35,.22) 72%, rgba(30,43,35,.55) 100%);"></div>
+          </div>
+          <!-- floating proof chip -->
+          <div class="absolute hidden md:flex items-center gap-3 bg-ivory rounded-2xl shadow-card px-5 py-4" style="left: -1.5rem; bottom: 2.5rem; border: 1px solid rgba(30,43,35,.08);">
+            <span class="font-display whitespace-nowrap" style="font-size: 1.6rem; font-weight: 380; color: var(--pine); line-height: 1;">93%</span>
+            <span class="text-xs text-soft" style="max-width: 10rem; line-height: 1.45;">Proven bite reduction after 6 months of CO₂ trapping</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRUST CHIPS (original trust bar items) ============ -->
+  <Section tight class="hairline-t hairline-b">
+    <ul class="flex flex-wrap justify-center gap-x-9 gap-y-4 list-none m-0 p-0">
+      {[
+        ['M12 3c-4 4-7 6.5-7 10a7 7 0 0 0 14 0c0-3.5-3-6-7-10Z', '100% Pesticide-Free'],
+        ['M12 3 4 7v5c0 4.5 3.2 7.9 8 9 4.8-1.1 8-4.5 8-9V7l-8-4Z', 'Safe for Kids & Pets'],
+        ['M8 14a4 4 0 1 1 3-6.6A4 4 0 1 1 16 14M6 14h12l-2 5H8l-2-5Z', 'Bee Safe'],
+        ['M4 16 8 8h8l4 8M2 16h20M7 16a2 2 0 1 0 0 .01M17 16a2 2 0 1 0 0 .01', 'Next-Day CO₂ Delivery'],
+        ['M4 12.5 9.5 18 20 6.5', 'Free Assessment'],
+      ].map(([d, label]) => (
+        <li class="inline-flex items-center gap-2.5 text-sm font-medium text-ink/80">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d={d} />
+          </svg>
+          {label}
+        </li>
+      ))}
+    </ul>
+  </Section>
+
+  <!-- ============ SOCIAL PROOF ============ -->
+  <Reviews variant="linen" />
+
+  <!-- ============ RESULTS FEATURE ============ -->
+  <Section variant="ivory">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+      <div class="lg:col-span-5 lg:order-2 reveal">
+        <Eyebrow>Real Results</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 400;">
+          This is what one Austin trap catches in a week.
+        </h2>
+        <p class="mt-5 text-soft" style="max-width: 30rem;">
+          Every mosquito in that pile is one that never bit your family. No pesticides. No sprays. Just a CO₂ trap doing its job.
+        </p>
+        <p class="mt-4 text-sm" style="color: rgba(30,43,35,.5);">
+          Actual catch from a customer property in Austin, TX. Results vary by property size and mosquito pressure.
+        </p>
+        <div class="mt-7">
+          <Btn href="/results" variant="ghost">See the results</Btn>
+        </div>
+      </div>
+      <div class="lg:col-span-7 lg:order-1 reveal">
+        <div class="grid grid-cols-3 gap-4 items-end">
+          <div class="photo-frame col-span-2">
+            <video
+              id="results-video"
+              data-src="/images/results-video-short.mp4"
+              poster="/images/results-mosquito-haul.jpg"
+              muted loop playsinline
+              preload="none"
+              class="w-full h-full object-cover block"
+              style="aspect-ratio: 16 / 9;"
+              aria-label="Video of a week's mosquito catch from a single GreenGuard CO2 trap in Austin"
+            ></video>
+          </div>
+          <div class="photo-frame" style="margin-bottom: 2.5rem;">
+            <img
+              src="/images/results-mosquito-haul-2.jpg"
+              alt="Hand next to pile of mosquitoes caught by GreenGuard CO2 trap, Austin Texas mosquito control"
+              class="w-full h-full object-cover"
+              style="aspect-ratio: 3 / 4.4;"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ THE SCIENCE ============ -->
+  <Section variant="linen">
+    <div class="max-w-xl reveal">
+      <Eyebrow>The Science</Eyebrow>
+      <h2 class="font-display mt-4" style="font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 400;">
+        How CO₂ trapping works
+      </h2>
+      <p class="mt-5 text-soft">
+        Mosquitoes find you by tracking the CO₂ you exhale. We use that against them silently, continuously, without a single pesticide.
+      </p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 mt-14" data-stagger>
+      {[
+        ['01', 'CO₂ Mimics Human Breath', 'Our CO₂ traps emit a precise stream of carbon dioxide along with a customized scent bait, attracting mosquitoes using the exact signals humans naturally produce.'],
+        ['02', 'Mosquitoes Enter the Trap', 'Lured in, mosquitoes are sucked in by a fan and captured in a net. No zapping, no pesticides, no residue, just quiet, targeted control at the source.'],
+        ['03', 'We Refill. You Relax.', 'We deliver and install full CO₂ tanks to your property on a set schedule via our all-electric fleet. Your trap keeps running and your property stays protected.'],
+      ].map(([n, title, body]) => (
+        <div class="reveal">
+          <span class="display-numeral block" aria-hidden="true">{n}</span>
+          <div class="mt-4" style="width: 44px; height: 1px; background: var(--brass);"></div>
+          <h3 class="font-display mt-5" style="font-size: 1.4rem;">{title}</h3>
+          <p class="mt-3 text-soft text-[0.97rem]">{body}</p>
+        </div>
+      ))}
+    </div>
+  </Section>
+
+  <!-- ============ WHY GREENGUARD USA ============ -->
+  <Section variant="ivory">
+    <div class="text-center max-w-2xl mx-auto reveal">
+      <Eyebrow class="justify-center">Why GreenGuard USA</Eyebrow>
+      <h2 class="font-display mt-4" style="font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 400;">
+        Advanced mosquito control starts with <em class="italic" style="color: var(--pine);">smarter protection.</em>
+      </h2>
+      <p class="mt-5 text-soft">
+        Traditional mosquito sprays coat your property in pesticides. We chose a smarter, safer approach.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-14 max-w-5xl mx-auto" data-stagger>
+      {[
+        ['Zero Pesticide Residue', 'No spray drift, no groundwater contamination, no toxic residue where your kids and pets play.'],
+        ['Bees Stay Safe', 'CO₂ traps target only blood-seeking insects. Bees and your garden ecosystem are completely untouched.'],
+        ['All-Electric Delivery Fleet', 'We deliver your CO₂ in fully electric Chevy Silverado EV trucks. Zero emissions from our fleet to your door.'],
+      ].map(([title, body]) => (
+        <div class="reveal">
+          <Card tone="linen" class="h-full !p-8">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--pine)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 12.5 9.5 18 20 6.5" />
+            </svg>
+            <h3 class="font-display mt-4" style="font-size: 1.2rem;">{title}</h3>
+            <p class="mt-3 text-soft text-[0.95rem]">{body}</p>
+          </Card>
+        </div>
+      ))}
+    </div>
+    <p class="text-center mt-10 text-sm text-soft reveal">
+      <a href="/compare" class="underline" style="color: var(--pine);">Compare all options</a>.
+    </p>
+  </Section>
+
+  <!-- ============ PRICING TEASER ============ -->
+  <Section variant="linen">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 reveal">
+      <div>
+        <Eyebrow>Pricing</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 400;">
+          Simple monthly service
+        </h2>
+        <p class="mt-4 text-soft" style="max-width: 30rem;">
+          Trap rental from $159.99/mo, CO₂ delivery from $89.99/mo. No contracts.
+        </p>
+      </div>
+      <div class="flex-none">
+        <Btn href="/pricing" variant="ghost">See full pricing</Btn>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12" data-stagger>
+      {[
+        { name: 'Full-Service Rental', price: 'from $159.99', note: 'We own and maintain the trap on rental plans. Monthly tech visit and CO₂ tank service included. No upfront equipment cost.', hot: true },
+        { name: 'CO₂ Delivery', price: 'from $89.99', note: 'Single CO₂ cylinder exchange, trap inspection, empty tank removed.', hot: false },
+        { name: 'Estate Delivery', price: '$189.99', note: 'Three 20 lb cylinders per delivery, first-available priority, ideal for Mosqitter Grand and multi-trap setups.', hot: false },
+      ].map((t) => (
+        <div class="reveal">
+          <Card
+            tone="ivory"
+            class={`h-full relative !p-8 ${t.hot ? 'ring-hot' : ''}`}
+          >
+            {t.hot && (
+              <span class="absolute -top-3 left-8 text-[0.68rem] font-semibold uppercase rounded-full px-3 py-1" style="letter-spacing: 0.12em; background: var(--brass); color: #fff;">
+                Most popular
+              </span>
+            )}
+            <h3 class="font-display" style="font-size: 1.25rem;">{t.name}</h3>
+            <p class="mt-3">
+              <span class="font-display" style="font-size: 2rem; font-weight: 380; color: var(--pine);">{t.price}</span>
+              <span class="text-sm text-soft">/mo</span>
+            </p>
+            <p class="mt-3 text-sm text-soft">{t.note}</p>
+          </Card>
+        </div>
+      ))}
+    </div>
+  </Section>
+
+  <!-- ============ SEASONAL NOTE ============ -->
+  <Section tight class="hairline-t hairline-b">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-center gap-4 sm:gap-6 text-center sm:text-left">
+      <span class="inline-flex items-center gap-3 mx-auto sm:mx-0">
+        <span style="width: 28px; height: 1px; background: var(--brass);" aria-hidden="true"></span>
+        <span class="text-[0.8rem] font-semibold uppercase" style="letter-spacing: 0.14em; color: var(--brass-ink);">Now Serving Austin, TX</span>
+      </span>
+      <p class="text-[0.97rem] text-ink/80 mx-auto sm:mx-0">
+        Free property assessment. No pressure, no contracts.
+        <a href="/book" class="underline font-medium" style="color: var(--pine);">Book Free Assessment</a>.
+      </p>
+    </div>
+  </Section>
+
+  <!-- ============ SERVICE AREAS ============ -->
+  <Section variant="ivory">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+      <div class="lg:col-span-5 reveal">
+        <Eyebrow>Service Areas</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 400;">
+          Mosquito control across greater Austin, TX
+        </h2>
+        <p class="mt-5 text-soft" style="max-width: 28rem;">
+          We serve Austin and 13 surrounding communities with the same pesticide-free CO₂ trap service and all-electric fleet.
+        </p>
+        <a href="/mosquito-control-austin-texas" class="block mt-8 no-underline group">
+          <Card tone="linen" class="!p-6 transition-shadow group-hover:shadow-bloom">
+            <p class="eyebrow eyebrow--plain !text-xs">Complete Guide</p>
+            <p class="font-display mt-2 text-ink" style="font-size: 1.15rem;">Mosquito Control in Austin, TX</p>
+            <p class="text-sm text-soft mt-1.5">Species, season length, treatment options, and costs: everything Austin homeowners need to know.</p>
+          </Card>
+        </a>
+      </div>
+      <div class="lg:col-span-7 reveal">
+        <ul class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 list-none m-0 p-0 lg:mt-2">
+          {cities.map(([slug, city]) => (
+            <li class="hairline-b">
+              <a
+                href={`/mosquito-control-${slug}`}
+                class="flex items-center justify-between py-3.5 no-underline text-ink/80 hover:text-pine text-[0.95rem] font-medium"
+              >
+                {city}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ FAQ ============ -->
+  <Section variant="linen">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+      <div class="lg:col-span-4 reveal">
+        <Eyebrow>Common Questions</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(1.9rem, 4vw, 2.6rem); font-weight: 400;">
+          Frequently asked questions
+        </h2>
+        <p class="mt-5 text-sm text-soft">
+          More questions? <a href="/faq" class="underline" style="color: var(--pine);">See all FAQs</a> or <a href="/compare" class="underline" style="color: var(--pine);">compare all options</a>.
+        </p>
+      </div>
+      <div class="lg:col-span-8 reveal">
+        <Faq items={faqs} />
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ CTA BAND ============ -->
+  <CtaBand />
+
+  <LeadCapture />
+
+  <script>
+    // Lazy results video: 6MB below the fold. Attach src + play only when it
+    // nears the viewport; reduced-motion users keep the poster frame only.
+    (function () {
+      const video = document.getElementById('results-video') as HTMLVideoElement | null;
+      if (!video) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const start = () => {
+        if (!video.src) {
+          video.src = video.dataset.src || '';
+          video.play().catch(() => {});
+        }
+      };
+      if (!('IntersectionObserver' in window)) { start(); return; }
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            start();
+            io.disconnect();
+          }
+        });
+      }, { rootMargin: '400px 0px' });
+      io.observe(video);
+    })();
+  </script>
+
+  <style is:global>
+    /* is:global: the class lands on Card's root element, outside this page's scope */
+    .ring-hot { border-color: var(--brass) !important; }
+  </style>
+
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(({ q, a }) => ({
+      "@type": "Question",
+      "name": q,
+      "acceptedAnswer": { "@type": "Answer", "text": a }
+    }))
+  })} />
+</Base>

@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#070b16">
+<link rel="manifest" href="marble2-manifest.json?v=1">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23070b16'/><circle cx='96' cy='96' r='58' fill='%237a4fc8'/><circle cx='78' cy='76' r='20' fill='%23c8b0ff'/></svg>">
+<title>Marble Mania 2</title>
+<style>
+  :root{
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+    --safe-left:env(safe-area-inset-left,0px);
+    --safe-right:env(safe-area-inset-right,0px);
+  }
+  html,body{margin:0;height:100%;overflow:hidden;background:#070b16;font-family:"Trebuchet MS",Verdana,sans-serif;color:#e8ecf5;
+       overscroll-behavior:none;-webkit-text-size-adjust:100%;}
+  button{touch-action:manipulation;font-family:inherit;}
+  #c{display:block;width:100%;height:100%;touch-action:none;}
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;gap:6px;
+       padding:calc(10px + var(--safe-top)) calc(70px + var(--safe-right)) 10px calc(16px + var(--safe-left));
+       pointer-events:none;font-weight:bold;text-shadow:0 2px 4px #000;z-index:5;}
+  #hud .box{background:rgba(10,16,30,.55);border:1px solid rgba(150,130,255,.35);
+       border-radius:8px;padding:6px 12px;font-size:18px;letter-spacing:.5px;
+       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #time.warn{color:#ff5a5a;}
+  #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+       background:radial-gradient(circle at 50% 32%,rgba(44,32,84,.94),rgba(5,7,16,.975));z-index:10;text-align:center;
+       overflow-y:auto;-webkit-overflow-scrolling:touch;
+       padding:calc(24px + var(--safe-top)) calc(20px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(20px + var(--safe-left));}
+  #overlay h1{font-size:46px;margin:0 0 4px;letter-spacing:2px;color:#b79dff;
+       text-shadow:0 3px 0 #34206b,0 0 26px rgba(140,100,255,.5);line-height:1.05;}
+  #overlay .tagline{font-size:15px;letter-spacing:3px;color:#7fd7ff;margin:0 0 14px;text-transform:uppercase;}
+  #overlay h2{font-size:24px;margin:4px 0;color:#ffd47a;font-weight:bold;}
+  #overlay p{max-width:600px;line-height:1.55;color:#c6d2ea;font-size:16px;margin:8px 0;}
+  .btn{margin-top:16px;background:linear-gradient(#7a4fc8,#4c2ea0);border:none;color:#fff;
+       font-size:20px;font-weight:bold;padding:12px 30px;border-radius:30px;cursor:pointer;
+       box-shadow:0 6px 18px rgba(90,50,200,.5);letter-spacing:1px;}
+  .btn.alt{background:linear-gradient(#3a78ff,#2553d6);box-shadow:0 6px 18px rgba(40,90,220,.45);}
+  .btn.ghost{background:linear-gradient(#3d4360,#282e46);box-shadow:none;font-size:17px;padding:10px 24px;}
+  .btn:active{transform:translateY(2px);}
+  .btnrow{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;}
+  .keys{margin-top:14px;font-size:13px;color:#8ea3c8;max-width:600px;line-height:1.5;}
+  .hidden{display:none!important;}
+  .cards{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:6px;}
+  .card{width:250px;max-width:88vw;background:rgba(14,20,40,.72);border:1px solid rgba(150,130,255,.35);
+       border-radius:14px;padding:16px 16px 18px;cursor:pointer;text-align:left;color:#e8ecf5;}
+  .card:active{border-color:#b79dff;}
+  .card h3{margin:0 0 4px;font-size:20px;color:#b79dff;letter-spacing:1px;}
+  .card .sub{font-size:13px;color:#9fb0d0;line-height:1.45;}
+  .card .prog{margin-top:10px;font-size:12px;color:#7fd7ff;font-weight:bold;letter-spacing:.5px;}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;width:min(680px,94vw);margin:12px auto 0;}
+  .lv{background:rgba(14,20,40,.75);border:1px solid rgba(150,130,255,.32);border-radius:10px;
+       padding:8px 4px 7px;cursor:pointer;color:#e8ecf5;min-height:56px;}
+  .lv:disabled{opacity:.35;cursor:default;}
+  .lv .n{font-size:16px;font-weight:bold;display:block;}
+  .lv .t{font-size:10px;color:#9fb0d0;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lv .m{font-size:11px;display:block;margin-top:1px;}
+  #bootfail{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;
+       justify-content:center;text-align:center;background:radial-gradient(circle at 50% 32%,rgba(44,32,84,.96),rgba(5,7,16,.99));
+       padding:calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom));}
+  #bootfail h1{font-size:30px;margin:0 0 10px;color:#b79dff;letter-spacing:1px;line-height:1.15;}
+  #bootfail p{max-width:520px;line-height:1.55;color:#c6d2ea;font-size:16px;margin:6px 0;}
+  #bootfail .why{font-size:13px;color:#8ea3c8;}
+  .m.gold{color:#ffd257;} .m.silver{color:#d8e2f2;} .m.bronze{color:#e39a5c;}
+  #flash{position:fixed;inset:0;pointer-events:none;z-index:8;opacity:0;transition:opacity .12s;}
+  /* touch-action:none is load bearing. Without it the browser claims the
+     gesture as a pan and fires pointercancel mid-drag, so steering dies. */
+  #touch{position:fixed;inset:0;z-index:6;display:none;touch-action:none;}
+  .pill{background:rgba(10,16,30,.7);border:1px solid rgba(150,130,255,.45);color:#d6cfff;
+       font-family:inherit;font-weight:bold;font-size:14px;letter-spacing:.5px;
+       min-height:44px;min-width:44px;padding:10px 16px;border-radius:22px;cursor:pointer;
+       -webkit-tap-highlight-color:transparent;}
+  .pill:active{background:rgba(90,50,180,.7);}
+  #btns{position:fixed;z-index:7;display:flex;flex-direction:column;align-items:flex-end;gap:10px;
+       right:calc(18px + var(--safe-right));bottom:calc(26px + var(--safe-bottom));}
+  #pausebtn{position:fixed;z-index:7;right:calc(16px + var(--safe-right));top:calc(10px + var(--safe-top));
+       font-size:18px;padding:8px 14px;}
+  #stick{position:fixed;left:calc(26px + var(--safe-left));bottom:calc(26px + var(--safe-bottom));
+       width:140px;height:140px;border-radius:50%;
+       background:rgba(20,26,55,.45);border:2px solid rgba(150,130,255,.4);z-index:7;
+       touch-action:none;-webkit-tap-highlight-color:transparent;}
+  #knob{position:absolute;left:50%;top:50%;width:62px;height:62px;border-radius:50%;
+       transform:translate(-50%,-50%);
+       background:radial-gradient(circle at 40% 33%,#c8b0ff,#4c2ea0);
+       border:2px solid rgba(230,225,255,.75);box-shadow:0 4px 14px rgba(0,0,0,.45);}
+  #toast{position:fixed;top:calc(54px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:9;
+       background:rgba(10,16,30,.85);border:1px solid rgba(150,130,255,.4);color:#d6cfff;
+       padding:7px 16px;border-radius:18px;font-weight:bold;font-size:14px;pointer-events:none;}
+  #loading{position:fixed;inset:0;display:grid;place-items:center;z-index:11;background:rgba(5,7,16,.86);
+       color:#b79dff;font-size:18px;font-weight:bold;letter-spacing:2px;}
+  /* Narrow screens: shrink the HUD so LEVEL/TIME/FALLS stay on one row. */
+  @media (max-width:560px){
+    /* Three HUD boxes plus the pause button do not fit a 390px row at full
+       size, so the course name drops out and the boxes tighten. */
+    #hud{padding-right:calc(60px + var(--safe-right));padding-left:calc(10px + var(--safe-left));gap:4px;}
+    #hud .box{font-size:11px;padding:5px 7px;border-radius:6px;letter-spacing:0;}
+    #lvlname{display:none;}
+    #overlay h1{font-size:28px;letter-spacing:1px;}
+    #overlay .tagline{font-size:12px;letter-spacing:2px;}
+    #overlay h2{font-size:18px;}
+    #overlay p{font-size:14px;}
+    .grid{grid-template-columns:repeat(4,1fr);}
+    .card{width:100%;}
+    .btn{font-size:17px;padding:11px 22px;}
+  }
+  /* Short (landscape phone) screens: compact stick and overlay so nothing clips. */
+  @media (max-height:480px){
+    #hud{padding-top:calc(6px + var(--safe-top));}
+    #hud .box{font-size:12px;padding:4px 8px;}
+    #pausebtn{top:calc(6px + var(--safe-top));}
+    #stick{width:112px;height:112px;bottom:calc(14px + var(--safe-bottom));left:calc(16px + var(--safe-left));}
+    #knob{width:52px;height:52px;}
+    #btns{bottom:calc(14px + var(--safe-bottom));gap:8px;}
+    #overlay{justify-content:flex-start;padding:12px 20px;}
+    #overlay h1{font-size:26px;margin:0 0 2px;}
+    #overlay h2{font-size:16px;margin:2px 0;}
+    #overlay p{font-size:13px;line-height:1.35;margin:4px 0;}
+    .btn{margin-top:10px;padding:9px 22px;font-size:16px;}
+    .keys{margin-top:8px;font-size:11px;}
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud" class="hidden">
+  <div class="box"><span id="camp">CLASSIC</span> <span id="lvl">1</span>/18 <span id="lvlname"></span></div>
+  <div class="box">TIME <span id="time">0</span></div>
+  <div class="box">FALLS <span id="falls">0</span></div>
+</div>
+<div id="flash"></div>
+<div id="touch"></div>
+<div id="stick" class="hidden"><div id="knob"></div></div>
+<button id="pausebtn" class="pill hidden" aria-label="Pause">II</button>
+<div id="btns">
+  <button id="recenter" class="pill hidden">&#8635; Recenter</button>
+  <button id="gyrobtn" class="pill hidden">Gyro: Off</button>
+  <button id="respawnbtn" class="pill hidden">&#8634; Respawn</button>
+</div>
+<div id="toast" class="hidden"></div>
+<div id="overlay"></div>
+<div id="loading" class="hidden">LOADING&hellip;</div>
+<div id="bootfail" class="hidden">
+  <h1>Marble Mania 2 could not start</h1>
+  <p>Something went wrong loading the game. This is usually a dropped connection or a browser without WebGL.</p>
+  <p class="why" id="bootwhy"></p>
+  <button class="btn" id="bootreload">RELOAD</button>
+</div>
+
+<!-- Boot guard. Classic script on purpose: it must run even if the module
+     script below never executes (CDN down, blocked import, no WebGL). -->
+<script>
+(function(){
+  var shown = false, ok = false, watchdog = null;
+  function fail(why){
+    if(shown || ok) return; shown = true;
+    var l = document.getElementById('loading'); if(l) l.classList.add('hidden');
+    document.getElementById('bootwhy').textContent = why ? String(why) : '';
+    document.getElementById('bootfail').classList.remove('hidden');
+  }
+  document.getElementById('bootreload').addEventListener('click', function(){ location.reload(); });
+  // Capture phase: a failed <script>/module load fires error on the element, not window.
+  addEventListener('error', function(e){
+    if(e && e.target && e.target !== window && e.target.tagName === 'SCRIPT')
+      fail('The game engine script could not be loaded.');
+  }, true);
+  watchdog = setTimeout(function(){ fail('Timed out waiting for the game engine.'); }, 15000);
+  window.mm2BootFail = fail;
+  window.mm2BootOk = function(){ ok = true; clearTimeout(watchdog); };
+})();
+</script>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ---------------------------------------------------------------------------
+//  MARBLE MANIA 2 — web edition.
+//  Levels are DATA (marble2-assets/levels_*.json, produced by the marble-mania-2
+//  toolkit). Physics is an exact port of tools/sim.js (spec §3), which is itself
+//  an exact port of Marble Mania 1. Rendering follows preview/index.html.
+// ---------------------------------------------------------------------------
+
+const ASSETS = 'marble2-assets';
+const CAMPAIGNS = {
+  classic:  { key:'classic',  label:'CLASSIC',  file:'levels_classic.json',
+              blurb:'The original 18 courses, remastered with MM2 environments. Short, sharp runs.' },
+  extended: { key:'extended', label:'EXTENDED', file:'levels_extended.json',
+              blurb:'The full sequel: every course five times longer, with mazes, switch gates, key doors and checkpoints.' },
+};
+const SAVE_KEY = 'mm2web_save_v1';
+
+// ---------------------------------------------------------------------------
+//  Save state. Corrupt or foreign data is discarded silently: a bad localStorage
+//  value must never produce a broken page.
+// ---------------------------------------------------------------------------
+function freshSave(){
+  const blank = () => ({ unlocked:1, best:new Array(18).fill(0), medals:new Array(18).fill('') });
+  return { v:1, classic:blank(), extended:blank() };
+}
+function sanitize(raw){
+  const out = freshSave();
+  if(!raw || typeof raw !== 'object') return out;
+  for(const k of ['classic','extended']){
+    const src = raw[k];
+    if(!src || typeof src !== 'object') continue;
+    const n = Number(src.unlocked);
+    out[k].unlocked = Number.isFinite(n) ? Math.max(1, Math.min(18, Math.floor(n))) : 1;
+    if(Array.isArray(src.best)){
+      for(let i=0;i<18;i++){
+        const t = Number(src.best[i]);
+        out[k].best[i] = (Number.isFinite(t) && t > 0) ? t : 0;
+      }
+    }
+    if(Array.isArray(src.medals)){
+      for(let i=0;i<18;i++){
+        const m = src.medals[i];
+        out[k].medals[i] = (m === 'gold' || m === 'silver' || m === 'bronze') ? m : '';
+      }
+    }
+  }
+  return out;
+}
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return freshSave();
+    return sanitize(JSON.parse(raw));
+  }catch(_){ return freshSave(); }
+}
+function persist(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(_){ /* private mode: play on */ }
+}
+let save = loadSave();
+
+// ---------------------------------------------------------------------------
+//  Physics — exact port of marble-mania-2/tools/sim.js (spec §3).
+//  Additions for the web build only: an `ev` event list so the page can flash
+//  and toast. No constant, ordering or predicate is changed.
+// ---------------------------------------------------------------------------
+const GRAV = 28, ACCEL = 60, MAXSPEED = 24;
+const GROUND_DAMP = 2.6, AIR_DAMP = 0.25, RESTITUTION = 0.18;
+const R = 0.95;
+const FRAME_DT = 1/120, SUBSTEPS = 4;
+
+const v3 = (x=0,y=0,z=0) => ({x,y,z});
+
+function eulerMatrix(rx,ry,rz){
+  const cx=Math.cos(rx), sx=Math.sin(rx);
+  const cy=Math.cos(ry), sy=Math.sin(ry);
+  const cz=Math.cos(rz), sz=Math.sin(rz);
+  const ae=cx*cz, be=cx*sz, ce=sx*cz, de=sx*sz;
+  return [ cy*cz, -cy*sz, sy,
+           be+ce*sy, ae-de*sy, -sx*cy,
+           de-ae*sy, ce+be*sy, cx*cy ];
+}
+function applyMat(m,x,y,z){ return { x:m[0]*x+m[1]*y+m[2]*z, y:m[3]*x+m[4]*y+m[5]*z, z:m[6]*x+m[7]*y+m[8]*z }; }
+function applyMatT(m,x,y,z){ return { x:m[0]*x+m[3]*y+m[6]*z, y:m[1]*x+m[4]*y+m[7]*z, z:m[2]*x+m[5]*y+m[8]*z }; }
+function makeCollider(b){
+  return { cx:b.x, cy:b.y, cz:b.z, hx:b.w/2, hy:b.h/2, hz:b.d/2,
+           m:eulerMatrix(b.rotX||0,b.rotY||0,b.rotZ||0), deadly:!!b.deadly };
+}
+
+class Sim {
+  constructor(level){ this.level = level; this.reset(); }
+
+  reset(){
+    const L = this.level;
+    this.pos = v3(L.startPos.x, L.startPos.y, L.startPos.z);
+    this.vel = v3(0,0,0);
+    this.grounded = false;
+    this.groundNormal = v3(0,1,0);
+    this.t = 0;
+    this.falls = 0;
+    this.done = false;
+    this.timePenalty = 0;
+    this.ev = [];
+    this.respawnPos = v3(L.startPos.x, L.startPos.y, L.startPos.z);
+    this.switches = {};
+    this.keysHeld = {};
+    this.camPos = v3(this.pos.x+16, this.pos.y+20, this.pos.z+16);
+    this._staticColliders = L.boxes.map(makeCollider);
+    this._moverState = L.movers.map(mv => ({ rec:mv, cur:v3(mv.x,mv.y,mv.z), prev:v3(mv.x,mv.y,mv.z) }));
+    this._groundedMover = -1;
+  }
+
+  _respawn(){
+    this.pos.x = this.respawnPos.x; this.pos.y = this.respawnPos.y; this.pos.z = this.respawnPos.z;
+    this.vel.x = this.vel.y = this.vel.z = 0;
+    this.grounded = false;
+    this.groundNormal = v3(0,1,0);
+    this._groundedMover = -1;
+  }
+  _fellOff(){ this.falls++; this.timePenalty += 2; this.ev.push('fall'); this._respawn(); }
+
+  _activeColliders(){
+    const L = this.level;
+    const list = this._staticColliders.slice();
+    for(const g of L.gates){
+      const on = !!this.switches[g.id];
+      const present = g.mode === 'closed-when-on' ? on : !on;
+      if(present) list.push(this._gateCollider(g));
+    }
+    for(const d of L.doors){ if(!this.keysHeld[d.id]) list.push(this._gateCollider(d)); }
+    for(let i=0;i<this._moverState.length;i++){
+      const ms = this._moverState[i], mv = ms.rec;
+      list.push({ cx:ms.cur.x, cy:ms.cur.y, cz:ms.cur.z, hx:mv.w/2, hy:mv.h/2, hz:mv.d/2,
+                  m:eulerMatrix(mv.rotX||0,mv.rotY||0,mv.rotZ||0), deadly:!!mv.deadly, moverIndex:i });
+    }
+    return list;
+  }
+  _gateCollider(g){
+    return { cx:g.x, cy:g.y, cz:g.z, hx:g.w/2, hy:g.h/2, hz:g.d/2,
+             m:eulerMatrix(g.rotX||0,g.rotY||0,g.rotZ||0), deadly:!!g.deadly };
+  }
+
+  _collideSphere(colliders){
+    this.grounded = false;
+    this.groundNormal.x = 0; this.groundNormal.y = 1; this.groundNormal.z = 0;
+    this._groundedMover = -1;
+    for(const c of colliders){
+      const rx = this.pos.x-c.cx, ry = this.pos.y-c.cy, rz = this.pos.z-c.cz;
+      const local = applyMatT(c.m, rx, ry, rz);
+      const clx = Math.max(-c.hx, Math.min(c.hx, local.x));
+      const cly = Math.max(-c.hy, Math.min(c.hy, local.y));
+      const clz = Math.max(-c.hz, Math.min(c.hz, local.z));
+      const dx = local.x-clx, dy = local.y-cly, dz = local.z-clz;
+      const d2 = dx*dx+dy*dy+dz*dz;
+      if(d2 > R*R) continue;
+
+      let nlx,nly,nlz,pen;
+      if(d2 > 1e-8){
+        const d = Math.sqrt(d2);
+        nlx = dx/d; nly = dy/d; nlz = dz/d; pen = R-d;
+      } else {
+        const px = c.hx-Math.abs(local.x), py = c.hy-Math.abs(local.y), pz = c.hz-Math.abs(local.z);
+        if(px<=py && px<=pz){ nlx = Math.sign(local.x)||1; nly=0; nlz=0; pen = px+R; }
+        else if(py<=pz){ nlx=0; nly = Math.sign(local.y)||1; nlz=0; pen = py+R; }
+        else { nlx=0; nly=0; nlz = Math.sign(local.z)||1; pen = pz+R; }
+      }
+      let n = applyMat(c.m, nlx, nly, nlz);
+      const nl = Math.hypot(n.x,n.y,n.z) || 1;
+      n = { x:n.x/nl, y:n.y/nl, z:n.z/nl };
+
+      if(c.deadly){ this._fellOff(); return true; }
+
+      this.pos.x += n.x*pen; this.pos.y += n.y*pen; this.pos.z += n.z*pen;
+      const vn = this.vel.x*n.x + this.vel.y*n.y + this.vel.z*n.z;
+      if(vn < 0){
+        const j = -(1+RESTITUTION)*vn;
+        this.vel.x += n.x*j; this.vel.y += n.y*j; this.vel.z += n.z*j;
+      }
+      if(n.y > 0.5){
+        this.grounded = true;
+        this.groundNormal.x = n.x; this.groundNormal.y = n.y; this.groundNormal.z = n.z;
+        if(c.moverIndex !== undefined) this._groundedMover = c.moverIndex;
+      }
+    }
+    return false;
+  }
+
+  _accelFromInput(ix, iz){
+    let fx = this.camPos.x - this.pos.x;
+    let fz = this.camPos.z - this.pos.z;
+    const fl = Math.hypot(fx,fz) || 1;
+    fx = -(fx/fl); fz = -(fz/fl);
+    const rxv = -fz, rzv = fx;
+    let ax = fx*(-iz) + rxv*ix;
+    let az = fz*(-iz) + rzv*ix;
+    const l2 = ax*ax + az*az;
+    if(l2 > 1){ const l = Math.sqrt(l2); ax /= l; az /= l; }
+    return { ax, az };
+  }
+
+  _physics(dt, ix, iz, colliders){
+    const { ax, az } = this._accelFromInput(ix, iz);
+    this.vel.x += ax*ACCEL*dt;
+    this.vel.z += az*ACCEL*dt;
+    this.vel.y -= GRAV*dt;
+    this.pos.x += this.vel.x*dt;
+    this.pos.y += this.vel.y*dt;
+    this.pos.z += this.vel.z*dt;
+
+    if(this._collideSphere(colliders)) return false;
+
+    const f = Math.exp(-(this.grounded ? GROUND_DAMP : AIR_DAMP)*dt);
+    this.vel.x *= f; this.vel.z *= f;
+    const hs = Math.hypot(this.vel.x, this.vel.z);
+    if(hs > MAXSPEED){ const s = MAXSPEED/hs; this.vel.x *= s; this.vel.z *= s; }
+
+    if(this.pos.y < -12){ this._fellOff(); return false; }
+
+    const L = this.level;
+    const gx = this.pos.x-L.goal.pos.x, gz = this.pos.z-L.goal.pos.z;
+    const gy = Math.abs(this.pos.y-L.goal.pos.y);
+    if(gx*gx+gz*gz < L.goal.radius*L.goal.radius && gy < 3){ this.done = true; return true; }
+    return false;
+  }
+
+  _updateEnemies(){
+    for(const e of this.level.enemies){
+      const off = Math.sin(this.t*e.speed + e.phase)*e.range;
+      let ex = e.x, ey = e.y, ez = e.z;
+      if(e.axis === 'x') ex += off; else ez += off;
+      let dx = this.pos.x-ex, dy = this.pos.y-ey, dz = this.pos.z-ez;
+      const rr = R + e.radius;
+      if(dx*dx+dy*dy+dz*dz < rr*rr){
+        dy = 0;
+        let l2 = dx*dx+dz*dz;
+        if(l2 < 1e-4){ dx = 1; dz = 0; l2 = 1; }
+        const l = Math.sqrt(l2);
+        const nx = dx/l, nz = dz/l;
+        this.vel.x += nx*16; this.vel.z += nz*16; this.vel.y += 4;
+        const dist = Math.hypot(this.pos.x-ex, this.pos.y-ey, this.pos.z-ez);
+        const push = rr - dist + 0.01;
+        this.pos.x += nx*push; this.pos.z += nz*push;
+        this.ev.push('enemy');
+      }
+    }
+  }
+  _updateSprings(){
+    for(const s of this.level.springs){
+      const dx = this.pos.x-s.x, dz = this.pos.z-s.z, dy = this.pos.y-s.y;
+      if(dx*dx+dz*dz < s.radius*s.radius && dy > 0 && dy < 2.4 && this.vel.y < 4){
+        this.vel.y = s.power; this.ev.push('spring');
+      }
+    }
+  }
+  _updateCannons(){
+    for(const c of this.level.cannons){
+      const dx = this.pos.x-c.x, dz = this.pos.z-c.z, dy = this.pos.y-c.y;
+      if(dx*dx+dz*dz < c.radius*c.radius && dy > 0 && dy < 2.4){
+        this.vel.x = c.vx; this.vel.y = c.vy; this.vel.z = c.vz; this.ev.push('cannon');
+      }
+    }
+  }
+  _updateCheckpoints(){
+    for(const cp of this.level.checkpoints){
+      const dx = this.pos.x-cp.x, dz = this.pos.z-cp.z, dy = this.pos.y-cp.y;
+      if(dx*dx+dz*dz < cp.radius*cp.radius && dy > 0 && dy < 2.4){
+        if(this.respawnPos.x !== cp.respawn.x || this.respawnPos.y !== cp.respawn.y || this.respawnPos.z !== cp.respawn.z){
+          this.ev.push('checkpoint');
+        }
+        this.respawnPos.x = cp.respawn.x; this.respawnPos.y = cp.respawn.y; this.respawnPos.z = cp.respawn.z;
+      }
+    }
+  }
+  _updateSwitchpads(){
+    for(const sp of this.level.switchpads){
+      const dx = this.pos.x-sp.x, dz = this.pos.z-sp.z, dy = this.pos.y-sp.y;
+      if(dx*dx+dz*dz < sp.radius*sp.radius && dy > 0 && dy < 2.4){
+        if(!this.switches[sp.id]) this.ev.push('switch');
+        this.switches[sp.id] = true;
+      }
+    }
+  }
+  _updateKeys(){
+    for(const k of this.level.keys){
+      if(this.keysHeld[k.id]) continue;
+      const dx = this.pos.x-k.x, dy = this.pos.y-k.y, dz = this.pos.z-k.z;
+      if(dx*dx+dy*dy+dz*dz < k.radius*k.radius){ this.keysHeld[k.id] = true; this.ev.push('key'); }
+    }
+  }
+  _advanceMovers(){
+    for(const ms of this._moverState){
+      const mv = ms.rec;
+      const off = Math.sin(this.t*mv.speed + mv.phase)*mv.range;
+      ms.prev.x = ms.cur.x; ms.prev.y = ms.cur.y; ms.prev.z = ms.cur.z;
+      ms.cur.x = mv.x; ms.cur.y = mv.y; ms.cur.z = mv.z;
+      if(mv.axis === 'x') ms.cur.x += off;
+      else if(mv.axis === 'y') ms.cur.y += off;
+      else ms.cur.z += off;
+    }
+  }
+  timedGateOpen(g){
+    const p = (this.t + g.phase)/g.period;
+    return (p - Math.floor(p)) < g.duty;
+  }
+  _updateCamera(){
+    const dx = this.pos.x+16, dy = this.pos.y+20, dz = this.pos.z+16;
+    this.camPos.x += (dx-this.camPos.x)*0.08;
+    this.camPos.y += (dy-this.camPos.y)*0.08;
+    this.camPos.z += (dz-this.camPos.z)*0.08;
+  }
+
+  step(ix, iz){
+    if(this.done) return;
+    this._advanceMovers();
+    const sdt = FRAME_DT/SUBSTEPS;
+    for(let i=0;i<SUBSTEPS;i++){
+      const colliders = this._activeColliders();
+      const goal = this._physics(sdt, ix, iz, colliders);
+      if(this._groundedMover >= 0){
+        const ms = this._moverState[this._groundedMover];
+        this.pos.x += (ms.cur.x-ms.prev.x)/SUBSTEPS;
+        this.pos.y += (ms.cur.y-ms.prev.y)/SUBSTEPS;
+        this.pos.z += (ms.cur.z-ms.prev.z)/SUBSTEPS;
+      }
+      if(goal || this.done) return;
+    }
+    this._updateEnemies();
+    this._updateSprings();
+    this._updateCannons();
+    this._updateCheckpoints();
+    this._updateSwitchpads();
+    this._updateKeys();
+    this._updateCamera();
+    this.t += FRAME_DT;
+  }
+}
+
+// export.js names the switchpad array "switches"; sim.js reads level.switchpads.
+// Normalise once on load so the ported sim sees exactly the shape it expects,
+// and so a level missing an optional array can never throw.
+function normalizeLevel(raw){
+  const arr = k => Array.isArray(raw[k]) ? raw[k] : [];
+  return {
+    name: raw.name, par: raw.par, medals: raw.medals || {},
+    startPos: raw.startPos, goal: raw.goal, env: raw.env || {},
+    boxes: arr('boxes'), springs: arr('springs'), cannons: arr('cannons'),
+    enemies: arr('enemies'), movers: arr('movers'), checkpoints: arr('checkpoints'),
+    switchpads: arr('switches'), gates: arr('gates'), keys: arr('keys'),
+    doors: arr('doors'), timedgates: arr('timedgates'), waypoints: arr('waypoints'),
+  };
+}
+
+// ---------------------------------------------------------------------------
+//  Renderer / scene (follows preview/index.html)
+// ---------------------------------------------------------------------------
+const canvas = document.getElementById('c');
+const IS_TOUCH = (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches)
+                 || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
+const DPR_CAP = IS_TOUCH ? 1.5 : 2;
+
+let renderer;
+try{
+  renderer = new THREE.WebGLRenderer({canvas, antialias:!IS_TOUCH, powerPreference:'high-performance'});
+}catch(err){
+  // No WebGL, or context creation refused. Show the guard, then abort the module.
+  window.mm2BootFail('WebGL is not available in this browser.');
+  throw err;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, DPR_CAP));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070b16);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1400);
+const environmentGroup = new THREE.Group();
+const courseGroup = new THREE.Group();
+scene.add(environmentGroup, courseGroup);
+
+const darkReadabilityThemes = new Set(['Crystal Cavern','Neon City','Nether Rift']);
+const ambientBoostThemes = new Set(['Crystal Cavern','Neon City','Nether Rift','Volcanic Rim',
+  'Deep Space','Aurora Tundra','Highland Storm','Thunder Straits']);
+let darkThemeReadability = false, ambientBoost = false;
+
+const col = hex => new THREE.Color(hex);
+const textureLoader = new THREE.TextureLoader();
+const surfaceCache = new Map();
+const skyCache = new Map();
+let surfaceTexture = null, surfaceTile = 3.0;
+
+function flattenTexture(image, strength){
+  const c = document.createElement('canvas');
+  c.width = image.width; c.height = image.height;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(image, 0, 0);
+  const d = ctx.getImageData(0, 0, c.width, c.height);
+  const px = d.data;
+  const base = Math.round(255*(1-strength));
+  for(let i=0;i<px.length;i+=4){
+    px[i]   = base + px[i]*strength;
+    px[i+1] = base + px[i+1]*strength;
+    px[i+2] = base + px[i+2]*strength;
+  }
+  ctx.putImageData(d, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+async function loadSurface(surface){
+  surfaceTexture = null; surfaceTile = 3.0;
+  if(!surface || !surface.tex) return;
+  surfaceTile = surface.tile || 3.0;
+  const strength = surface.strength === undefined ? 0.55 : surface.strength;
+  const cacheKey = surface.tex + '@' + strength;
+  if(surfaceCache.has(cacheKey)){ surfaceTexture = surfaceCache.get(cacheKey); return; }
+  try{
+    const tex = await textureLoader.loadAsync(`${ASSETS}/tex/${surface.tex}.jpg`);
+    surfaceTexture = flattenTexture(tex.image, strength);
+    surfaceCache.set(cacheKey, surfaceTexture);
+  }catch(_){ surfaceTexture = null; }   // texture is decoration; colour coding still reads
+}
+
+async function loadSky(sky){
+  if(!sky || !sky.image) return null;
+  if(skyCache.has(sky.image)) return skyCache.get(sky.image);
+  try{
+    const t = await textureLoader.loadAsync(`${ASSETS}/skies/${sky.image}.jpg`);
+    skyCache.set(sky.image, t);
+    return t;
+  }catch(_){ return null; }
+}
+
+function retileBoxUVs(geometry, tile){
+  const pos = geometry.getAttribute('position');
+  const nrm = geometry.getAttribute('normal');
+  const uv  = geometry.getAttribute('uv');
+  for(let i=0;i<pos.count;i++){
+    const nx = Math.abs(nrm.getX(i)), ny = Math.abs(nrm.getY(i)), nz = Math.abs(nrm.getZ(i));
+    let a,b;
+    if(ny >= nx && ny >= nz){ a = pos.getX(i); b = pos.getZ(i); }
+    else if(nx >= nz){ a = pos.getZ(i); b = pos.getY(i); }
+    else { a = pos.getX(i); b = pos.getY(i); }
+    uv.setXY(i, a/tile, b/tile);
+  }
+  uv.needsUpdate = true;
+}
+
+function materialFor(data, fallback = 0x4778a8){
+  const c = (data && data.color !== undefined) ? data.color : fallback;
+  const deadly = !!(data && data.deadly);
+  const hasEmissive = data && data.emissive !== undefined;
+  if(hasEmissive && !deadly){
+    return new THREE.MeshBasicMaterial({ color:data.emissive, transparent:true, opacity:.92, fog:false, toneMapped:false });
+  }
+  return new THREE.MeshStandardMaterial({
+    color:c,
+    map: (surfaceTexture && !deadly) ? surfaceTexture : null,
+    roughness:.82, metalness:.08,
+    emissive: deadly ? 0x551010 : 0x000000,
+    emissiveIntensity: deadly ? .55 : 0,
+  });
+}
+
+function addReadabilityTint(mesh, data){
+  if(!darkThemeReadability) return;
+  const tint = new THREE.Mesh(
+    new THREE.PlaneGeometry(Math.max(.1, data.w*.96), Math.max(.1, data.d*.96)),
+    new THREE.MeshBasicMaterial({ color:0x8bdcff, transparent:true, opacity:.24,
+      depthWrite:false, side:THREE.DoubleSide, toneMapped:false })
+  );
+  tint.rotation.x = -Math.PI/2;
+  tint.position.y = data.h/2 + .018;
+  mesh.add(tint);
+}
+
+const courseObjects = [];
+function addBox(data, group = courseGroup, fallback = 0x4778a8, collect = true){
+  const geometry = new THREE.BoxGeometry(data.w, data.h, data.d);
+  if(surfaceTexture) retileBoxUVs(geometry, surfaceTile);
+  const mesh = new THREE.Mesh(geometry, materialFor(data, fallback));
+  mesh.position.set(data.x, data.y, data.z);
+  mesh.rotation.set(data.rotX||0, data.rotY||0, data.rotZ||0);
+  addReadabilityTint(mesh, data);
+  group.add(mesh);
+  if(collect) courseObjects.push(mesh);
+  return mesh;
+}
+
+function addMarkerRing(x, y, z, radius, ringColor, group = courseGroup){
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(radius, Math.max(.12, radius*.075), 10, 28),
+    new THREE.MeshStandardMaterial({ color:ringColor, emissive:ringColor, emissiveIntensity:.65, roughness:.35 })
+  );
+  ring.rotation.x = Math.PI/2;
+  ring.position.set(x, y, z);
+  group.add(ring);
+  return ring;
+}
+
+function makePhotoSky(env, texture){
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  const material = new THREE.ShaderMaterial({
+    side:THREE.BackSide, depthWrite:false, fog:false,
+    uniforms:{
+      skyMap:{ value:texture },
+      tint:{ value:col(env.sky.tint === undefined ? 0xffffff : env.sky.tint) },
+      strength:{ value:env.sky.strength === undefined ? 0.85 : env.sky.strength },
+      topColor:{ value:col(env.skyTop) },
+      horizonColor:{ value:col(env.skyHorizon) },
+      gradScale:{ value:darkThemeReadability ? 1/.7 : 1 },
+      gradBias:{ value:darkThemeReadability ? .65/.7 : 0 },
+      fogTint:{ value:col(env.fog.color) },
+    },
+    vertexShader:`
+      varying vec3 vDir;
+      void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+    `,
+    fragmentShader:`
+      uniform sampler2D skyMap; uniform vec3 tint; uniform float strength;
+      uniform vec3 topColor; uniform vec3 horizonColor;
+      uniform float gradScale; uniform float gradBias; uniform vec3 fogTint;
+      varying vec3 vDir;
+      void main(){
+        vec3 d = normalize(vDir);
+        float u = atan(d.z, d.x) / 6.2831853 + 0.5;
+        float v = 1.0 - acos(clamp(d.y, -1.0, 1.0)) / 3.14159265;
+        vec3 photo = texture2D(skyMap, vec2(u, v)).rgb * tint;
+        float t = clamp(d.y * gradScale + gradBias, 0.0, 1.0);
+        vec3 grad = mix(horizonColor, topColor, t);
+        vec3 sky = mix(grad, photo, strength);
+        sky = mix(fogTint, sky, smoothstep(-1.00, -0.92, d.y));
+        gl_FragColor = vec4(sky, 1.0);
+      }
+    `,
+  });
+  environmentGroup.add(new THREE.Mesh(new THREE.SphereGeometry(600, 48, 24), material));
+}
+
+function makeSky(env){
+  const geometry = new THREE.SphereGeometry(600, 64, 32);
+  const position = geometry.getAttribute('position');
+  const colors = [];
+  const top = col(env.skyTop), horizon = col(env.skyHorizon);
+  for(let i=0;i<position.count;i++){
+    const ny = position.getY(i)/600;
+    const t = darkThemeReadability ? THREE.MathUtils.clamp((ny+.65)/.7, 0, 1) : THREE.MathUtils.clamp(ny, 0, 1);
+    const c = horizon.clone().lerp(top, t);
+    colors.push(c.r, c.g, c.b);
+  }
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  environmentGroup.add(new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+    vertexColors:true, side:THREE.BackSide, fog:false, depthWrite:false,
+    toneMapped: !darkThemeReadability,
+  })));
+}
+
+function addStars(stars){
+  if(!stars || !stars.count) return;
+  let state = (stars.seed >>> 0) || 1;
+  const next = () => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state/4294967296; };
+  const radius = 565;
+  const positions = new Float32Array(stars.count*3);
+  for(let i=0;i<stars.count;i++){
+    const y = radius*(stars.minY + next()*(1-stars.minY));
+    const a = next()*Math.PI*2;
+    const r = Math.sqrt(Math.max(0, radius*radius - y*y));
+    positions[i*3] = Math.cos(a)*r; positions[i*3+1] = y; positions[i*3+2] = Math.sin(a)*r;
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  environmentGroup.add(new THREE.Points(geometry, new THREE.PointsMaterial({
+    color:0xffffff, size:2.1, sizeAttenuation:false, transparent:true, opacity:.9, depthWrite:false, fog:false })));
+}
+
+function backdropMaterial(item){
+  const base = item.color === undefined ? 0x456079 : item.color;
+  if(item.emissive !== undefined){
+    return new THREE.MeshBasicMaterial({ color:item.emissive, transparent:true,
+      opacity:item.kind === 'cloud' ? .7 : .92, fog:false, toneMapped:false });
+  }
+  return new THREE.MeshStandardMaterial({ color:base, roughness:.98, metalness:0, flatShading:true,
+    transparent:true, opacity:item.kind === 'cloud' ? .65 : .82 });
+}
+
+function addBackdrop(item, planeY){
+  const group = new THREE.Group();
+  const mat = backdropMaterial(item);
+  const scale = item.scale || 20;
+  const height = item.height || scale;
+  const baseY = planeY !== null ? planeY : 0;
+  const kind = item.kind;
+  const add = (mesh, y = baseY) => { mesh.position.y = y; group.add(mesh); return mesh; };
+
+  if(kind === 'cloud'){
+    for(let i=0;i<4;i++){
+      const puff = add(new THREE.Mesh(new THREE.SphereGeometry(scale*(.22+(i%2)*.07), 12, 8), mat), baseY + height*(.42+(i%2)*.12));
+      puff.position.x = (i-1.5)*scale*.28;
+      puff.scale.y = .45;
+    }
+  } else if(kind === 'peak' || kind === 'hill' || kind === 'spire'){
+    const cone = add(new THREE.Mesh(new THREE.ConeGeometry(scale*.52, height, kind === 'hill' ? 12 : 7), mat), baseY + height/2);
+    cone.rotation.y = (item.x + item.z)*.03;
+    if(item.capColor !== undefined && kind === 'peak'){
+      add(new THREE.Mesh(new THREE.ConeGeometry(scale*.25, height*.22, 7),
+        new THREE.MeshStandardMaterial({ color:item.capColor, roughness:1, flatShading:true })), baseY + height*.9);
+    }
+  } else if(kind === 'crystal' || kind === 'shard'){
+    const crystal = add(new THREE.Mesh(new THREE.OctahedronGeometry(scale*.5, 0), mat), baseY + height/2);
+    crystal.scale.y = height/Math.max(1, scale);
+    crystal.rotation.set(.15, (item.x-item.z)*.02, -.12);
+  } else if(kind === 'asteroid'){
+    const a = add(new THREE.Mesh(new THREE.IcosahedronGeometry(scale*.5, 1), mat), baseY + height*.65);
+    a.scale.set(1.2, Math.max(.65, height/scale), .86);
+    a.rotation.set(item.z*.01, item.x*.01, .2);
+  } else if(kind === 'planet'){
+    const planet = add(new THREE.Mesh(new THREE.SphereGeometry(scale*.45, 18, 12), mat), baseY + height*.6);
+    planet.scale.y = Math.max(.7, height/Math.max(scale,1)*.45);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(scale*.62, scale*.055, 8, 32), mat);
+    ring.rotation.set(.55, .15, -.25); ring.position.y = baseY + height*.6; group.add(ring);
+  } else if(kind === 'island'){
+    add(new THREE.Mesh(new THREE.CylinderGeometry(scale*.5, scale*.72, Math.max(5, height*.45), 8), mat), baseY + height*.22);
+    add(new THREE.Mesh(new THREE.ConeGeometry(scale*.35, height*.7, 7), mat), baseY + height*.72);
+  } else if(kind === 'mesa' || kind === 'cliff' || kind === 'skyline' || kind === 'temple' || kind === 'stack'){
+    const columns = kind === 'skyline' ? 4 : kind === 'temple' ? 3 : 2;
+    for(let i=0;i<columns;i++){
+      const w = scale*(.32+(i%2)*.12);
+      const h = height*(kind === 'skyline' ? (.48+((i*17)%5)*.1) : (.7+(i%3)*.13));
+      const block = add(new THREE.Mesh(new THREE.BoxGeometry(w, h, w*1.15), mat), baseY + h/2);
+      block.position.x = (i-(columns-1)/2)*scale*.35;
+      block.rotation.y = (i-1)*.11;
+      if(kind === 'temple' && i === columns-1){
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(w*.72, h*.25, 4), mat);
+        roof.position.set(block.position.x, baseY + h + h*.12, 0); group.add(roof);
+      }
+    }
+  } else {
+    add(new THREE.Mesh(new THREE.ConeGeometry(scale*.5, height, 8), mat), baseY + height/2);
+  }
+  group.position.set(item.x, 0, item.z);
+  environmentGroup.add(group);
+}
+
+function addPlane(plane){
+  if(!plane) return null;
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(500, 96), new THREE.MeshStandardMaterial({
+    color:plane.color, emissive:plane.emissive || 0x000000,
+    emissiveIntensity:plane.emissive ? .36 : .08,
+    roughness:.92, metalness:.04, transparent:false, side:THREE.DoubleSide }));
+  disc.rotation.x = -Math.PI/2;
+  disc.position.y = plane.y;
+  environmentGroup.add(disc);
+  return plane.y;
+}
+
+function addBand(band, index){
+  const geometry = new THREE.BufferGeometry();
+  const count = 40;
+  const positions = new Float32Array(count*2*3);
+  const width = 8 + index*2;
+  for(let i=0;i<count;i++){
+    const x = -330 + i*(660/(count-1));
+    const curve = Math.sin(i/(count-1)*Math.PI*2 + index)*13;
+    const z = -230 + x*(band.tilt || 0);
+    const p = i*6;
+    positions[p] = x;   positions[p+1] = band.y + curve - width; positions[p+2] = z;
+    positions[p+3] = x; positions[p+4] = band.y + curve + width; positions[p+5] = z;
+  }
+  const indices = [];
+  for(let i=0;i<count-1;i++) indices.push(i*2, i*2+1, i*2+2, i*2+1, i*2+3, i*2+2);
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  environmentGroup.add(new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+    color:band.color, transparent:true, opacity:.25, side:THREE.DoubleSide,
+    blending:THREE.AdditiveBlending, depthWrite:false })));
+}
+
+const sceneLights = [];
+function addLights(env){
+  scene.fog = new THREE.Fog(env.fog.color, env.fog.near, env.fog.far);
+  const hemiIntensity = ambientBoost ? Math.max(env.hemi.intensity, .85) : env.hemi.intensity;
+  const hemi = new THREE.HemisphereLight(env.hemi.sky, env.hemi.ground, hemiIntensity);
+  scene.add(hemi); sceneLights.push(hemi);
+  if(ambientBoost){
+    const amb = new THREE.AmbientLight(0xdfe8ff, .28);
+    scene.add(amb); sceneLights.push(amb);
+  }
+  const sun = new THREE.DirectionalLight(env.sun.color, env.sun.intensity);
+  sun.position.copy(new THREE.Vector3(...env.sun.dir).normalize().multiplyScalar(-180));
+  sun.target.position.set(0,0,0);
+  scene.add(sun, sun.target); sceneLights.push(sun, sun.target);
+}
+
+// ---------------------------------------------------------------------------
+//  Marble
+// ---------------------------------------------------------------------------
+// A fully metallic marble with no environment map renders as a dark ball under
+// the dim night themes, which makes the player's own avatar the hardest thing
+// on screen to find. Matching preview/index.html's marble (mostly diffuse, with
+// a standing emissive) keeps it bright on every course.
+const marble = new THREE.Mesh(
+  new THREE.SphereGeometry(R, 32, 24),
+  new THREE.MeshStandardMaterial({ color:0xf4f7ff, roughness:0.15, metalness:0.35,
+    emissive:0x8fa6ff, emissiveIntensity:0.45 })
+);
+marble.add(new THREE.Mesh(new THREE.SphereGeometry(R*1.004, 16, 12),
+  new THREE.MeshBasicMaterial({ color:0x9a6bff, wireframe:true, transparent:true,
+    opacity:0.35, toneMapped:false })));
+marble.visible = false;
+scene.add(marble);
+
+// ---------------------------------------------------------------------------
+//  World build / teardown
+// ---------------------------------------------------------------------------
+const dyn = { enemies:[], keys:[], gates:[], doors:[], timedgates:[], checkpoints:[], goalRing:null };
+
+function disposeGroup(group){
+  group.traverse(o => {
+    if(o.geometry) o.geometry.dispose();
+    if(o.material){
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      // Shared surface textures are cached and reused: dispose materials only.
+      for(const m of mats) m.dispose();
+    }
+  });
+  group.clear();
+}
+
+function clearWorld(){
+  disposeGroup(courseGroup);
+  disposeGroup(environmentGroup);
+  for(const l of sceneLights) scene.remove(l);
+  sceneLights.length = 0;
+  scene.fog = null;
+  courseObjects.length = 0;
+  dyn.enemies = []; dyn.keys = []; dyn.gates = []; dyn.doors = [];
+  dyn.timedgates = []; dyn.checkpoints = []; dyn.goalRing = null;
+}
+
+function buildCourse(level){
+  const springMaterial = new THREE.MeshStandardMaterial({ color:0xffe040, emissive:0x6a3d00, emissiveIntensity:.5, roughness:.4 });
+
+  for(const box of level.boxes) addBox(box);
+
+  for(const item of level.springs){
+    addBox({ ...item, w:item.radius*2.2, h:.35, d:item.radius*2.2, color:0xffd32f }, courseGroup, 0xffd32f);
+    for(let i=0;i<3;i++){
+      const torus = new THREE.Mesh(new THREE.TorusGeometry(item.radius*.32, .12, 8, 20), springMaterial);
+      torus.position.set(item.x, item.y + .3 + i*.22, item.z);
+      courseGroup.add(torus);
+    }
+  }
+  for(const item of level.cannons){
+    addBox({ ...item, w:item.radius*2.2, h:.35, d:item.radius*2.2, color:0xff7628 }, courseGroup, 0xff7628);
+    const direction = new THREE.Vector3(item.vx, item.vy, item.vz).normalize();
+    courseGroup.add(new THREE.ArrowHelper(direction, new THREE.Vector3(item.x, item.y + .5, item.z), item.radius*1.55, 0xffb13b, .55, .35));
+  }
+  for(const item of level.enemies){
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(item.radius || 1, 20, 14),
+      new THREE.MeshStandardMaterial({ color:0xff5268, emissive:0x6b0b20, emissiveIntensity:.65, roughness:.42 }));
+    mesh.position.set(item.x, item.y, item.z);
+    courseGroup.add(mesh);
+    dyn.enemies.push({ mesh, rec:item });
+  }
+  for(const item of level.checkpoints){
+    const ring = addMarkerRing(item.x, item.y + .12, item.z, item.radius || 2, 0x55d8ff);
+    dyn.checkpoints.push({ ring, rec:item });
+  }
+  for(const item of level.switchpads){
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(item.radius || 2, item.radius || 2, .24, 16),
+      new THREE.MeshStandardMaterial({ color:0xff5a2a, emissive:0x5a1600, emissiveIntensity:.5, roughness:.5 }));
+    mesh.position.set(item.x, item.y + .14, item.z);
+    courseGroup.add(mesh);
+  }
+  for(const item of level.gates){
+    const mesh = addBox(item, courseGroup, item.color || 0x744d9e, false);
+    dyn.gates.push({ mesh, rec:item });
+  }
+  for(const item of level.doors){
+    const mesh = addBox(item, courseGroup, item.color || 0x8a6a30, false);
+    dyn.doors.push({ mesh, rec:item });
+  }
+  for(const item of level.timedgates){
+    // The verified sim treats timed gates as non-solid, so they are drawn as a
+    // translucent energy curtain (never as a wall you would expect to stop you).
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(item.w, item.h, item.d),
+      new THREE.MeshBasicMaterial({ color:item.color || 0x63bcd8, transparent:true, opacity:.34,
+        depthWrite:false, toneMapped:false }));
+    mesh.position.set(item.x, item.y, item.z);
+    mesh.rotation.set(item.rotX||0, item.rotY||0, item.rotZ||0);
+    courseGroup.add(mesh);
+    dyn.timedgates.push({ mesh, rec:item });
+  }
+  for(const item of level.keys){
+    const key = new THREE.Mesh(new THREE.OctahedronGeometry(item.radius || 1.3, 0),
+      new THREE.MeshStandardMaterial({ color:0xffdb54, emissive:0x8a5100, emissiveIntensity:.65, roughness:.3 }));
+    key.position.set(item.x, item.y, item.z);
+    courseGroup.add(key);
+    dyn.keys.push({ mesh:key, rec:item });
+  }
+
+  addMarkerRing(level.startPos.x, level.startPos.y - .8, level.startPos.z, 1.35, 0x61e5a6);
+  const goal = level.goal.pos;
+  dyn.goalRing = addMarkerRing(goal.x, goal.y + .25, goal.z, level.goal.radius, 0x52ffbd);
+  const goalBeam = new THREE.Mesh(
+    new THREE.CylinderGeometry(level.goal.radius*.82, level.goal.radius*.82, 14, 24, 1, true),
+    new THREE.MeshBasicMaterial({ color:0x43ffb0, transparent:true, opacity:.14, side:THREE.DoubleSide, depthWrite:false }));
+  goalBeam.position.set(goal.x, goal.y + 7, goal.z);
+  courseGroup.add(goalBeam);
+}
+
+// ---------------------------------------------------------------------------
+//  Input (MM1 pattern: keyboard + stick + drag-anywhere + optional gyro)
+// ---------------------------------------------------------------------------
+const keys = {};
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if(k === 'r' && state === 'play') sim && sim._respawn();
+  if(k === 'escape' && state === 'play') pauseGame();
+  if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k)) e.preventDefault();
+});
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+let toastT = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.remove('hidden');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.add('hidden'), 1200);
+}
+
+const tilt = { enabled:false, calibrated:false, baseX:0, baseY:0, ix:0, iz:0 };
+const TILT_RANGE = 22, TILT_DEAD = 2.0;
+function readOrientation(e){
+  if(e.beta == null || e.gamma == null) return;
+  let ang = (screen.orientation && typeof screen.orientation.angle === 'number')
+            ? screen.orientation.angle : (window.orientation || 0);
+  const beta = e.beta, gamma = e.gamma;
+  let sx, sy;
+  if(ang === 90){ sx = -beta; sy = -gamma; }
+  else if(ang === 180){ sx = -gamma; sy = -beta; }
+  else if(ang === 270 || ang === -90){ sx = beta; sy = gamma; }
+  else { sx = gamma; sy = beta; }
+  if(!tilt.calibrated){ tilt.baseX = sx; tilt.baseY = sy; tilt.calibrated = true; }
+  let dx = sx - tilt.baseX, dy = sy - tilt.baseY;
+  dx = Math.abs(dx) < TILT_DEAD ? 0 : dx - Math.sign(dx)*TILT_DEAD;
+  dy = Math.abs(dy) < TILT_DEAD ? 0 : dy - Math.sign(dy)*TILT_DEAD;
+  tilt.ix = Math.max(-1, Math.min(1, dx/TILT_RANGE));
+  tilt.iz = Math.max(-1, Math.min(1, dy/TILT_RANGE));
+}
+function recenter(){ tilt.calibrated = false; toast('Recentered'); }
+async function enableTilt(){
+  if(tilt.enabled){ recenter(); return true; }
+  if(typeof DeviceOrientationEvent === 'undefined') return false;
+  try{
+    if(typeof DeviceOrientationEvent.requestPermission === 'function'){
+      const r = await DeviceOrientationEvent.requestPermission();
+      if(r !== 'granted') return false;
+    }
+  }catch(_){ return false; }
+  window.addEventListener('deviceorientation', readOrientation, true);
+  tilt.enabled = true; tilt.calibrated = false;
+  return true;
+}
+
+const touch = { active:false, dx:0, dy:0 };
+const tdiv = document.getElementById('touch');
+function setTouch(on){ tdiv.style.display = on ? 'block' : 'none'; }
+let tStart = null;
+tdiv.addEventListener('pointerdown', e => {
+  if(tilt.enabled){ recenter(); return; }
+  tStart = { x:e.clientX, y:e.clientY }; touch.active = true;
+  try{ tdiv.setPointerCapture(e.pointerId); }catch(_){ /* capture is best effort */ }
+});
+tdiv.addEventListener('pointermove', e => {
+  if(!tStart) return;
+  touch.dx = Math.max(-1, Math.min(1, (e.clientX - tStart.x)/70));
+  touch.dy = Math.max(-1, Math.min(1, (e.clientY - tStart.y)/70));
+});
+const touchEnd = () => { tStart = null; touch.active = false; touch.dx = touch.dy = 0; };
+tdiv.addEventListener('pointerup', touchEnd);
+tdiv.addEventListener('pointercancel', touchEnd);
+document.getElementById('recenter').addEventListener('click', recenter);
+
+const joy = { active:false, ix:0, iz:0, max:48 };
+const stick = document.getElementById('stick'), knob = document.getElementById('knob');
+function setKnob(dx, dy){ knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }
+function stickFrom(e){
+  const r = stick.getBoundingClientRect();
+  let dx = e.clientX - (r.left + r.width/2);
+  let dy = e.clientY - (r.top + r.height/2);
+  const d = Math.hypot(dx, dy);
+  if(d > joy.max){ dx *= joy.max/d; dy *= joy.max/d; }
+  setKnob(dx, dy);
+  joy.ix = dx/joy.max;
+  joy.iz = dy/joy.max;
+}
+stick.addEventListener('pointerdown', e => { joy.active = true; stick.setPointerCapture(e.pointerId); stickFrom(e); e.preventDefault(); });
+stick.addEventListener('pointermove', e => { if(joy.active) stickFrom(e); });
+const stickEnd = () => { joy.active = false; joy.ix = joy.iz = 0; setKnob(0,0); };
+stick.addEventListener('pointerup', stickEnd);
+stick.addEventListener('pointercancel', stickEnd);
+
+// Losing focus or being backgrounded must drop every held control. A keyup that
+// arrives while another window has focus is never delivered, so without this a
+// held arrow key steers forever after alt-tab.
+function clearInput(){
+  for(const k in keys) keys[k] = false;
+  touchEnd();
+  stickEnd();
+  tilt.ix = tilt.iz = 0;
+  tilt.calibrated = false;   // re-baseline the gyro on return
+}
+addEventListener('blur', clearInput);
+
+const gyrobtn = document.getElementById('gyrobtn');
+gyrobtn.addEventListener('click', async () => {
+  if(!tilt.enabled){
+    const ok = await enableTilt();
+    if(ok){ gyrobtn.textContent = 'Gyro: On'; document.getElementById('recenter').classList.remove('hidden'); toast('Gyro on, tilt to steer'); }
+    else toast('Gyro unavailable');
+  } else {
+    tilt.enabled = false; tilt.ix = tilt.iz = 0;
+    window.removeEventListener('deviceorientation', readOrientation, true);
+    gyrobtn.textContent = 'Gyro: Off';
+    document.getElementById('recenter').classList.add('hidden');
+    toast('Gyro off');
+  }
+});
+
+// Automation hook: when set, this input overrides every human control.
+let scriptedInput = null;
+function readInput(){
+  if(scriptedInput) return scriptedInput;
+  let ix = 0, iz = 0;
+  if(keys['arrowup'] || keys['w']) iz -= 1;
+  if(keys['arrowdown'] || keys['s']) iz += 1;
+  if(keys['arrowleft'] || keys['a']) ix -= 1;
+  if(keys['arrowright'] || keys['d']) ix += 1;
+  if(joy.active){ ix += joy.ix; iz += joy.iz; }
+  else if(tilt.enabled){ ix += tilt.ix; iz += tilt.iz; }
+  else if(touch.active){ ix += touch.dx; iz += touch.dy; }
+  return { ix, iz };
+}
+
+// ---------------------------------------------------------------------------
+//  Game state
+// ---------------------------------------------------------------------------
+let state = 'menu';                 // menu | play | paused | results
+let campaign = 'classic';
+let levels = null;                  // normalized level array for the loaded campaign
+const levelCache = {};
+let levelIndex = 0;
+let sim = null;
+let lastFalls = 0;
+
+const hud = document.getElementById('hud');
+const overlay = document.getElementById('overlay');
+const flash = document.getElementById('flash');
+const loading = document.getElementById('loading');
+const isMobile = IS_TOUCH;
+
+function doFlash(c){ flash.style.background = c; flash.style.opacity = '1'; setTimeout(() => { flash.style.opacity = '0'; }, 110); }
+// Round to tenths FIRST, then split. Splitting first lets 59.97 s render as
+// "0:60.0" once toFixed(1) rounds the seconds up past the minute boundary.
+const fmt = s => {
+  const tenths = Math.round(Math.max(0, Number(s) || 0) * 10);
+  const m = Math.floor(tenths / 600);
+  return `${m}:${((tenths - m*600)/10).toFixed(1).padStart(4,'0')}`;
+};
+// Every string that comes out of level JSON is untrusted for HTML purposes.
+const ESCAPES = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+const esc = s => String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, c => ESCAPES[c]);
+
+function showControls(on){
+  setTouch(on && isMobile);
+  stick.classList.toggle('hidden', !(on && isMobile));
+  document.getElementById('respawnbtn').classList.toggle('hidden', !(on && isMobile));
+  document.getElementById('pausebtn').classList.toggle('hidden', !on);
+  gyrobtn.classList.toggle('hidden', !(on && isMobile && typeof DeviceOrientationEvent !== 'undefined'));
+  gyrobtn.textContent = tilt.enabled ? 'Gyro: On' : 'Gyro: Off';
+  document.getElementById('recenter').classList.toggle('hidden', !(on && tilt.enabled));
+}
+
+function el(tag, cls, html){
+  const n = document.createElement(tag);
+  if(cls) n.className = cls;
+  if(html !== undefined) n.innerHTML = html;
+  return n;
+}
+function showOverlay(build){
+  state = state === 'play' ? 'menu' : state;
+  hud.classList.add('hidden');
+  showControls(false);
+  overlay.innerHTML = '';
+  build(overlay);
+  overlay.classList.remove('hidden');
+  overlay.scrollTop = 0;
+}
+
+// ---- title ----------------------------------------------------------------
+function screenTitle(){
+  state = 'menu';
+  showOverlay(o => {
+    o.appendChild(el('h1', null, 'MARBLE MANIA 2'));
+    o.appendChild(el('div', 'tagline', 'Extended Edition'));
+    o.appendChild(el('p', null, 'Eighteen courses, twice over. Roll from the start pad to the glowing goal without falling off. Springs launch you, cannons fire you across gaps, checkpoints save your progress, and switch gates and key doors stand between you and the finish.'));
+    const b = el('button', 'btn', 'PLAY');
+    b.onclick = screenCampaign;
+    o.appendChild(b);
+    o.appendChild(el('div', 'keys', 'Desktop: Arrow Keys or WASD to roll, R to respawn, Esc to pause &nbsp;&bull;&nbsp; Phone: drag anywhere or use the stick, Gyro optional'));
+  });
+}
+
+// ---- campaign select ------------------------------------------------------
+function screenCampaign(){
+  state = 'menu';
+  showOverlay(o => {
+    o.appendChild(el('h1', null, 'CHOOSE A CAMPAIGN'));
+    const cards = el('div', 'cards');
+    for(const key of ['classic','extended']){
+      const c = CAMPAIGNS[key], p = save[key];
+      const cleared = p.best.filter(t => t > 0).length;
+      const card = el('div', 'card');
+      card.appendChild(el('h3', null, c.label));
+      card.appendChild(el('div', 'sub', c.blurb));
+      card.appendChild(el('div', 'prog', `${cleared} / 18 cleared &nbsp;&bull;&nbsp; course ${p.unlocked} unlocked`));
+      card.onclick = () => openCampaign(key);
+      cards.appendChild(card);
+    }
+    o.appendChild(cards);
+    const back = el('button', 'btn ghost', 'BACK');
+    back.onclick = screenTitle;
+    o.appendChild(back);
+  });
+}
+
+async function fetchCampaign(key){
+  if(levelCache[key]) return levelCache[key];
+  const res = await fetch(`${ASSETS}/${CAMPAIGNS[key].file}`, { cache:'force-cache' });
+  if(!res.ok) throw new Error(`HTTP ${res.status} loading ${CAMPAIGNS[key].file}`);
+  const data = await res.json();
+  if(!data || !Array.isArray(data.levels) || !data.levels.length) throw new Error('level data is empty');
+  levelCache[key] = data.levels.map(normalizeLevel);
+  return levelCache[key];
+}
+
+async function openCampaign(key){
+  loading.classList.remove('hidden');
+  try{
+    levels = await fetchCampaign(key);
+    campaign = key;
+    screenLevels();
+  }catch(err){
+    screenError(err);
+  }finally{
+    loading.classList.add('hidden');
+  }
+}
+
+function screenError(err){
+  state = 'menu';
+  loading.classList.add('hidden');
+  showOverlay(o => {
+    o.appendChild(el('h1', null, 'Marble Mania 2 could not start'));
+    o.appendChild(el('p', null, 'The course pack could not be loaded. Check your connection and try again.'));
+    const why = el('p', 'keys');
+    why.textContent = String((err && err.message) || err);
+    o.appendChild(why);
+    const row = el('div', 'btnrow');
+    const r = el('button', 'btn', 'RELOAD');
+    r.onclick = () => location.reload();
+    row.appendChild(r);
+    const b = el('button', 'btn ghost', 'BACK');
+    b.onclick = screenCampaign;
+    row.appendChild(b);
+    o.appendChild(row);
+  });
+}
+
+// ---- level select ---------------------------------------------------------
+function screenLevels(){
+  state = 'menu';
+  const p = save[campaign];
+  showOverlay(o => {
+    o.appendChild(el('h1', null, CAMPAIGNS[campaign].label));
+    o.appendChild(el('div', 'tagline', 'Select a course'));
+    const grid = el('div', 'grid');
+    levels.forEach((lv, i) => {
+      const b = el('button', 'lv');
+      const locked = (i+1) > p.unlocked;
+      b.disabled = locked;
+      const best = p.best[i], medal = p.medals[i];
+      // Course names come from level JSON: textContent, never innerHTML.
+      const nEl = el('span', 'n'); nEl.textContent = String(i+1).padStart(2,'0');
+      const tEl2 = el('span', 't'); tEl2.textContent = locked ? 'LOCKED' : lv.name;
+      const mEl = el('span', 'm ' + (medal || '')); mEl.innerHTML = best > 0 ? fmt(best) : '&mdash;';
+      b.append(nEl, tEl2, mEl);
+      b.onclick = () => startLevel(i);
+      grid.appendChild(b);
+    });
+    o.appendChild(grid);
+    const row = el('div', 'btnrow');
+    const back = el('button', 'btn ghost', 'CAMPAIGNS');
+    back.onclick = screenCampaign;
+    row.appendChild(back);
+    const next = el('button', 'btn', `PLAY COURSE ${String(p.unlocked).padStart(2,'0')}`);
+    next.onclick = () => startLevel(p.unlocked - 1);
+    row.appendChild(next);
+    o.appendChild(row);
+    o.appendChild(el('div', 'keys', 'Times are your best clear per course. Medal colour shows gold, silver or bronze.'));
+  });
+}
+
+// ---- play -----------------------------------------------------------------
+// Generation counter: only the newest startLevel call may mutate live state.
+// Without it a slow texture load from an abandoned course resumes after a
+// newer course has already built, and appends its world on top.
+let levelGen = 0;
+async function startLevel(i){
+  const gen = ++levelGen;
+  if(!levels){ try{ levels = await fetchCampaign(campaign); }catch(err){ screenError(err); return; } }
+  if(gen !== levelGen) return;
+
+  const idx = Math.max(0, Math.min(levels.length - 1, i|0));
+  // Locked courses are refused here, not only in the UI: a tampered save or a
+  // direct __mm2.play call must not skip progression.
+  if(idx >= save[campaign].unlocked){
+    loading.classList.add('hidden');
+    screenLevels();
+    return;
+  }
+  levelIndex = idx;
+  const level = levels[levelIndex];
+
+  loading.classList.remove('hidden');
+  overlay.classList.add('hidden');
+  try{
+    clearWorld();
+    darkThemeReadability = darkReadabilityThemes.has(level.env.theme);
+    ambientBoost = ambientBoostThemes.has(level.env.theme);
+    await loadSurface(level.env.surface);
+    if(gen !== levelGen) return;
+    const skyTexture = await loadSky(level.env.sky);
+    if(gen !== levelGen) return;
+    if(skyTexture) makePhotoSky(level.env, skyTexture); else makeSky(level.env);
+    addLights(level.env);
+    const planeY = addPlane(level.env.plane);
+    for(const item of level.env.backdrop || []) addBackdrop(item, planeY);
+    (level.env.bands || []).forEach(addBand);
+    addStars(level.env.stars);
+    buildCourse(level);
+    sim = new Sim(level);
+  }catch(err){
+    // Never wedge on the loading overlay: drop back to the course grid.
+    if(gen !== levelGen) return;
+    console.warn('course failed to build', err);
+    clearWorld();
+    sim = null;
+    state = 'menu';
+    loading.classList.add('hidden');
+    screenLevels();
+    toast('That course could not be loaded');
+    return;
+  }
+  loading.classList.add('hidden');
+
+  lastFalls = 0;
+  marble.visible = true;
+  marble.position.set(sim.pos.x, sim.pos.y, sim.pos.z);
+  camera.position.set(sim.camPos.x, sim.camPos.y, sim.camPos.z);
+
+  document.getElementById('camp').textContent = CAMPAIGNS[campaign].label;
+  document.getElementById('lvl').textContent = levelIndex + 1;
+  document.getElementById('lvlname').textContent = '· ' + level.name;
+  document.getElementById('falls').textContent = '0';
+  hud.classList.remove('hidden');
+  overlay.classList.add('hidden');
+  showControls(true);
+  state = 'play';
+  frameClock = performance.now();
+  accumulator = 0;
+}
+
+function medalFor(level, t){
+  const m = level.medals || {};
+  if(m.gold !== undefined && t <= m.gold) return 'gold';
+  if(m.silver !== undefined && t <= m.silver) return 'silver';
+  if(m.bronze !== undefined && t <= m.bronze) return 'bronze';
+  return '';
+}
+const MEDAL_ORDER = { '':0, bronze:1, silver:2, gold:3 };
+
+function finishLevel(cleared){
+  state = 'results';
+  const level = levels[levelIndex];
+  const total = sim.t + sim.timePenalty;
+  const p = save[campaign];
+  let record = false, medal = '';
+
+  if(cleared){
+    medal = medalFor(level, total);
+    if(p.best[levelIndex] === 0 || total < p.best[levelIndex]){ p.best[levelIndex] = total; record = true; }
+    if(MEDAL_ORDER[medal] > MEDAL_ORDER[p.medals[levelIndex]]) p.medals[levelIndex] = medal;
+    if(levelIndex + 2 > p.unlocked) p.unlocked = Math.min(18, levelIndex + 2);
+    persist();
+  }
+
+  showOverlay(o => {
+    o.appendChild(el('h1', null, cleared ? 'COURSE CLEAR' : 'TIME UP'));
+    o.appendChild(el('h2', null, `${String(levelIndex+1).padStart(2,'0')} &nbsp;&bull;&nbsp; ${esc(level.name)}`));
+    if(cleared){
+      o.appendChild(el('p', null,
+        `Time <b>${fmt(total)}</b> &nbsp;&bull;&nbsp; Falls <b>${sim.falls}</b>` +
+        (sim.falls ? ` (+${sim.falls*2}s penalty)` : '') +
+        (medal ? `<br><span class="m ${medal}" style="font-size:19px;font-weight:bold;">${medal.toUpperCase()} MEDAL</span>` : '') +
+        (record ? '<br><span style="color:#7fd7ff;font-weight:bold;">NEW BEST TIME</span>' : '')));
+      o.appendChild(el('p', null,
+        `Par ${fmt(level.par)} &nbsp;&bull;&nbsp; gold ${fmt(level.medals.gold)} / silver ${fmt(level.medals.silver)} / bronze ${fmt(level.medals.bronze)}`));
+    } else {
+      o.appendChild(el('p', null, `You ran out of time on the clock. Par for this course is ${fmt(level.par)}. Falls cost 2 seconds each; you took <b>${sim.falls}</b>.`));
+    }
+    const row = el('div', 'btnrow');
+    if(cleared && levelIndex + 1 < levels.length){
+      const b = el('button', 'btn', 'NEXT COURSE');
+      b.onclick = () => startLevel(levelIndex + 1);
+      row.appendChild(b);
+    } else if(cleared){
+      o.appendChild(el('p', null, 'That was the last course in this campaign. Nicely done.'));
+    }
+    const retry = el('button', cleared ? 'btn alt' : 'btn', 'RETRY');
+    retry.onclick = () => startLevel(levelIndex);
+    row.appendChild(retry);
+    const menu = el('button', 'btn ghost', 'COURSES');
+    menu.onclick = screenLevels;
+    row.appendChild(menu);
+    o.appendChild(row);
+  });
+}
+
+function pauseGame(){
+  if(state !== 'play') return;
+  state = 'paused';
+  const level = levels[levelIndex];
+  showOverlay(o => {
+    o.appendChild(el('h1', null, 'PAUSED'));
+    o.appendChild(el('h2', null, `${CAMPAIGNS[campaign].label} ${String(levelIndex+1).padStart(2,'0')} &nbsp;&bull;&nbsp; ${esc(level.name)}`));
+    o.appendChild(el('p', null, `Elapsed ${fmt(sim.t + sim.timePenalty)} &nbsp;&bull;&nbsp; Falls ${sim.falls}`));
+    const row = el('div', 'btnrow');
+    const r = el('button', 'btn', 'RESUME'); r.onclick = resumeGame; row.appendChild(r);
+    const re = el('button', 'btn alt', 'RESTART'); re.onclick = () => startLevel(levelIndex); row.appendChild(re);
+    const m = el('button', 'btn ghost', 'COURSES'); m.onclick = screenLevels; row.appendChild(m);
+    o.appendChild(row);
+  });
+}
+function resumeGame(){
+  if(state !== 'paused') return;
+  overlay.classList.add('hidden');
+  hud.classList.remove('hidden');
+  showControls(true);
+  state = 'play';
+  frameClock = performance.now();
+  accumulator = 0;
+}
+document.getElementById('pausebtn').addEventListener('click', pauseGame);
+document.getElementById('respawnbtn').addEventListener('click', () => { if(state === 'play' && sim) sim._respawn(); });
+document.addEventListener('visibilitychange', () => { if(document.hidden){ clearInput(); pauseGame(); } });
+
+// ---------------------------------------------------------------------------
+//  Main loop
+// ---------------------------------------------------------------------------
+function resize(){
+  const w = Math.max(1, innerWidth), h = Math.max(1, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, DPR_CAP));
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+addEventListener('orientationchange', () => setTimeout(resize, 120));
+if(window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+resize();
+
+const rollAxis = new THREE.Vector3();
+const prevPos = new THREE.Vector3();
+let frameClock = performance.now();
+let accumulator = 0;
+
+function drainEvents(){
+  for(const e of sim.ev){
+    if(e === 'fall'){ doFlash('rgba(255,60,60,.35)'); }
+    else if(e === 'spring'){ doFlash('rgba(255,220,0,.4)'); toast('SPRING!'); }
+    else if(e === 'cannon'){ doFlash('rgba(255,140,0,.4)'); toast('LAUNCH!'); }
+    else if(e === 'enemy'){ doFlash('rgba(255,90,90,.18)'); }
+    else if(e === 'checkpoint'){ doFlash('rgba(85,216,255,.3)'); toast('CHECKPOINT'); }
+    else if(e === 'switch'){ doFlash('rgba(255,120,40,.3)'); toast('SWITCH ON'); }
+    else if(e === 'key'){ doFlash('rgba(255,219,84,.35)'); toast('KEY!'); }
+  }
+  sim.ev.length = 0;
+  if(sim.falls !== lastFalls){
+    lastFalls = sim.falls;
+    document.getElementById('falls').textContent = sim.falls;
+  }
+}
+
+function syncDynamics(){
+  const t = sim.t;
+  for(const e of dyn.enemies){
+    const off = Math.sin(t*e.rec.speed + e.rec.phase)*e.rec.range;
+    e.mesh.position.set(e.rec.x, e.rec.y, e.rec.z);
+    if(e.rec.axis === 'x') e.mesh.position.x += off; else e.mesh.position.z += off;
+    e.mesh.rotation.y = t*2;
+  }
+  for(const g of dyn.gates){
+    const on = !!sim.switches[g.rec.id];
+    g.mesh.visible = g.rec.mode === 'closed-when-on' ? on : !on;
+  }
+  for(const d of dyn.doors) d.mesh.visible = !sim.keysHeld[d.rec.id];
+  for(const k of dyn.keys){ k.mesh.visible = !sim.keysHeld[k.rec.id]; k.mesh.rotation.y = t*2.2; }
+  for(const g of dyn.timedgates) g.mesh.material.opacity = sim.timedGateOpen(g.rec) ? .10 : .46;
+  for(const c of dyn.checkpoints){
+    const hit = sim.respawnPos.x === c.rec.respawn.x && sim.respawnPos.y === c.rec.respawn.y && sim.respawnPos.z === c.rec.respawn.z;
+    c.ring.material.color.setHex(hit ? 0x52ffbd : 0x55d8ff);
+    c.ring.material.emissive.setHex(hit ? 0x52ffbd : 0x55d8ff);
+  }
+  if(dyn.goalRing) dyn.goalRing.rotation.z = t*1.5;
+}
+
+function frame(){
+  requestAnimationFrame(frame);
+  const now = performance.now();
+  let dt = Math.min((now - frameClock)/1000, 0.25);
+  frameClock = now;
+
+  if(state === 'play' && sim){
+    prevPos.set(sim.pos.x, sim.pos.y, sim.pos.z);
+    const { ix, iz } = readInput();
+    accumulator += dt;
+    let steps = 0;
+    while(accumulator >= FRAME_DT && steps < 480 && !sim.done){
+      sim.step(ix, iz);
+      accumulator -= FRAME_DT;
+      steps++;
+      if(sim.t + sim.timePenalty >= levels[levelIndex].par) break;
+    }
+    drainEvents();
+
+    marble.position.set(sim.pos.x, sim.pos.y, sim.pos.z);
+    const dx = sim.pos.x - prevPos.x, dz = sim.pos.z - prevPos.z;
+    const travelled = Math.hypot(dx, dz);
+    if(travelled > 1e-5){
+      rollAxis.set(-dz, 0, dx).normalize();
+      marble.rotateOnWorldAxis(rollAxis, travelled/R);
+    }
+    camera.position.set(sim.camPos.x, sim.camPos.y, sim.camPos.z);
+    camera.lookAt(sim.pos.x, sim.pos.y - 1, sim.pos.z);
+    syncDynamics();
+
+    const remaining = levels[levelIndex].par - (sim.t + sim.timePenalty);
+    const tEl = document.getElementById('time');
+    tEl.textContent = Math.ceil(Math.max(0, remaining));
+    tEl.parentElement.classList.toggle('warn', remaining < 10);
+
+    if(sim.done){ doFlash('rgba(80,255,160,.4)'); finishLevel(true); }
+    else if(remaining <= 0){ finishLevel(false); }
+  } else if(sim){
+    camera.position.set(sim.camPos.x, sim.camPos.y, sim.camPos.z);
+    camera.lookAt(sim.pos.x, sim.pos.y - 1, sim.pos.z);
+  }
+
+  renderer.render(scene, camera);
+}
+
+try{
+  screenTitle();
+  frame();
+  window.mm2BootOk();
+}catch(err){
+  window.mm2BootFail('The game failed to start: ' + ((err && err.message) || err));
+  throw err;
+}
+
+// ---------------------------------------------------------------------------
+//  PWA note: NO service worker on this page (Fable ruling 2026-08-05).
+//  marble-sw.js already registers at scope "/" for MM1; a second root-scope
+//  worker would make offline cache ownership last-opened-wins across both
+//  games. Re-enable only together with a scoped fix that also updates /marble.
+// ---------------------------------------------------------------------------
+
+// Debug + automated-verification hook.
+window.__mm2 = {
+  scene, camera, CAMPAIGNS,
+  get state(){ return state; },
+  get sim(){ return sim; },
+  get levels(){ return levels; },
+  get campaign(){ return campaign; },
+  get levelIndex(){ return levelIndex; },
+  get save(){ return save; },
+  title: screenTitle,
+  campaignSelect: screenCampaign,
+  openCampaign,
+  levelSelect: screenLevels,
+  play: async (key, i) => { if(key !== campaign || !levels){ levels = await fetchCampaign(key); campaign = key; } await startLevel(i); },
+  drive: (ix, iz) => { scriptedInput = (ix === null) ? null : { ix, iz }; },
+  reload: () => { save = loadSave(); },
+  setUnlocked: (key, n) => { save[key].unlocked = n; persist(); },
+};
+</script>
+</body>
+</html>

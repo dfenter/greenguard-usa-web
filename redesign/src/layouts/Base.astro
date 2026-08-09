@@ -1,0 +1,239 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import StickyCta from '../components/ui/StickyCta.astro'; // content-engine lane: mobile sticky CTA
+import { getReviewMeta } from '../lib/reviews';
+
+interface Props {
+  title: string;
+  description?: string;
+  canonical?: string;
+  /** true = nav starts transparent over the page's hero (hero must extend under it) */
+  navOverlay?: boolean;
+}
+
+const {
+  title,
+  description = 'CO2 trap-based mosquito control for Austin, TX. No pesticides, safe for kids, pets, and pollinators.',
+  canonical,
+  navOverlay = false,
+} = Astro.props;
+
+// Canonicals ALWAYS point at www.greenguard-usa.com: this domain is
+// new.greenguard-usa.com and all SEO signal consolidates to www. The www
+// deployment serves cleanUrls with no trailing slash (see root vercel.json),
+// so normalize to that form: strip .html and any trailing slash, keep root as "/".
+const cleanPath = Astro.url.pathname
+  .replace(/\.html$/i, '')
+  .replace(/\/+$/, '') || '/';
+const canonicalUrl = canonical ?? new URL(cleanPath, 'https://www.greenguard-usa.com').toString();
+const reviewMeta = getReviewMeta();
+const GA_ID = import.meta.env.PUBLIC_GA_MEASUREMENT_ID ?? 'G-K2R5H2Z23X';
+const AW_ID = import.meta.env.PUBLIC_GOOGLE_ADS_CONVERSION_ID ?? 'AW-16913987571';
+const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FAF7F1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content="https://www.greenguard-usa.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="GreenGuard USA" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="https://www.greenguard-usa.com/og-image.jpg" />
+    <meta name="apple-domain-verification" content="yGPgvAZrsQaBuZQN" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <script is:inline>document.documentElement.classList.add('js');</script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- LocalBusiness structured data -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "GreenGuard USA",
+      "description": "CO2 trap-based mosquito control for Austin, TX. No pesticides, safe for kids, pets, and pollinators.",
+      "url": "https://www.greenguard-usa.com",
+      "telephone": "+1-512-560-4129",
+      "email": "admin@greenguard-usa.com",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Austin",
+        "addressRegion": "TX",
+        "postalCode": "78739",
+        "addressCountry": "US"
+      },
+      "foundingDate": "2025",
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 30.2672,
+        "longitude": -97.7431
+      },
+      "hasMap": "https://maps.google.com/maps?cid=8871354689879013229",
+      "areaServed": [
+        "Austin, TX", "Westlake Hills, TX", "Lakeway, TX", "Bee Cave, TX",
+        "Cedar Park, TX", "Round Rock, TX", "Dripping Springs, TX",
+        "Steiner Ranch, TX", "Pflugerville, TX", "Leander, TX",
+        "Liberty Hill, TX", "Georgetown, TX", "Kyle, TX", "Buda, TX"
+      ],
+      "serviceType": "Mosquito Control",
+      "priceRange": "$$",
+      "openingHours": "Mo-Sa 08:00-18:00",
+      "paymentAccepted": "Credit Card, Debit Card",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": String(reviewMeta.averageRating),
+        "reviewCount": String(reviewMeta.totalReviews),
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "sameAs": [
+        "https://www.facebook.com/GreenGuardUSA",
+        "https://www.greenguard-usa.com"
+      ]
+    })}></script>
+
+    <!-- BreadcrumbList schema (built from cleanPath so names/URLs never carry .html) -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": (() => {
+        const parts = cleanPath.split('/').filter(Boolean);
+        const crumbs = [{ "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.greenguard-usa.com" }];
+        let path = '';
+        parts.forEach((part, i) => {
+          path += '/' + part;
+          const name = part.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          crumbs.push({ "@type": "ListItem", "position": i + 2, "name": name, "item": `https://www.greenguard-usa.com${path}` });
+        });
+        return crumbs;
+      })()
+    })}></script>
+
+    <slot name="head" />
+
+    <!-- Meta Pixel -->
+    <script is:inline define:vars={{ FB_PIXEL_ID }}>
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+      document,'script','https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', FB_PIXEL_ID);
+      fbq('track','PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+      src={`https://www.facebook.com/tr?id=${FB_PIXEL_ID}&ev=PageView&noscript=1`}/></noscript>
+
+    <!-- GA4 + Google Ads -->
+    <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}></script>
+    <script is:inline define:vars={{ GA_ID, AW_ID }}>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      // define:vars wraps this script in an IIFE, so the declaration above is NOT
+      // global — expose it or every window.gtag caller sitewide silently no-ops.
+      window.gtag = gtag;
+      gtag('js', new Date());
+      gtag('config', GA_ID);
+      gtag('config', AW_ID);
+    </script>
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <script>
+      // Capture UTM params + gclid + fbclid on every page load, persist to sessionStorage
+      // so they survive navigation and are available on the booking/checkout page.
+      (function() {
+        const p = new URLSearchParams(window.location.search);
+        const keys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','gclid','fbclid','ref'];
+        keys.forEach(k => { const v = p.get(k); if (v) sessionStorage.setItem('gg_' + k, v.slice(0, 200)); });
+      })();
+    </script>
+    <script>
+      document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+
+        const tel = target.closest('a[href^="tel:"]');
+        if (tel && typeof window.gtag === 'function') {
+          window.gtag('event', 'phone_call_click', {
+            event_category: 'contact',
+            event_label: (tel as HTMLAnchorElement).href.replace('tel:', ''),
+            transport_type: 'beacon',
+          });
+        }
+
+        // .btn = new design system; .btn-gold/.btn-outline = legacy pages
+        const cta = target.closest('a.btn, a.btn-gold, a.btn-outline');
+        if (cta && typeof window.gtag === 'function') {
+          window.gtag('event', 'cta_click', {
+            event_category: 'cta',
+            event_label: (cta as HTMLAnchorElement).textContent?.trim(),
+            event_destination: (cta as HTMLAnchorElement).href,
+            transport_type: 'beacon',
+          });
+        }
+      });
+    </script>
+    <Nav overlay={navOverlay} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    <StickyCta />{/* content-engine lane: mobile sticky CTA (self-hides on /book, near footer) */}
+
+    <script>
+      // Shared reveal-on-scroll. Elements: .reveal (hidden only when html.js).
+      // Parents with [data-stagger] get 80ms per-child delays automatically.
+      (function () {
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const els = Array.from(document.querySelectorAll<HTMLElement>('.reveal'));
+        if (!els.length) return;
+
+        document.querySelectorAll<HTMLElement>('[data-stagger]').forEach((parent) => {
+          Array.from(parent.children).forEach((child, i) => {
+            if (child instanceof HTMLElement && child.classList.contains('reveal')) {
+              child.style.setProperty('--reveal-delay', `${i * 80}ms`);
+            }
+          });
+        });
+
+        if (reduced || !('IntersectionObserver' in window)) {
+          els.forEach((el) => el.classList.add('is-revealed'));
+          return;
+        }
+
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              (entry.target as HTMLElement).classList.add('is-revealed');
+              io.unobserve(entry.target);
+            }
+          });
+        }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+
+        els.forEach((el) => io.observe(el));
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1367 @@
+Reading additional input from stdin...
+OpenAI Codex v0.144.5
+--------
+workdir: /Users/lucille/greenguard-usa-web/play/cube-cascade
+model: gpt-5.6-luna
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019fd478-d66f-7a20-9caa-46abd648a498
+--------
+user
+ADVERSARIAL CODE REVIEW (read-only) of ONE mobile-web canvas game: /Users/lucille/greenguard-usa-web/play/cube-cascade (isometric pyramid hopper, diagonal swipes, 3 lives, seeded levels).
+Actively try to break game logic, input handling, and state machine: touch/mouse races, per-pointer identity (pointercancel/blur), dead-end states, NaN propagation, delta-time spikes, unguarded localStorage, procgen off-by-ones, unbounded arrays, softlocks, crashes. Also check the five standing patterns: rotate overlay pauses sim (if any), restart clears ALL input, per-pointer identity, guarded storage, bounded collections.
+Report EVERY finding: "SEVERITY(CRITICAL/MAJOR/MINOR)/confidence file:line — description". CLEAN if clean. Final: one-line verdict. Concise; no fix code.
+NEVER stop to wait for a notification or monitor. Wait in a FOREGROUND until-loop in your own shell (60s sleeps). Stop only to deliver the final report or escalate a hard blocker.
+hook: SessionStart
+hook: SessionStart Completed
+codex
+I’ll inspect the game entry points, input/state transitions, persistence, and level generation, then run focused static/runtime checks where available. I’ll keep this read-only and report only evidence-backed findings with exact file/line locations.
+  → Inventory repo instructions and game source
+  • Audit input, state machine, timing, storage, and procgen
+  • Run focused checks/build/tests and trace edge cases
+  • Produce concise findings and one-line verdict
+exec
+/bin/bash -lc "pwd && rg --files -g 'AGENTS.md' -g '"'!node_modules'"' -g '"'!dist'"' -g '"'!build'"' && printf '\\n-- top-level --\\n' && rg --files -g '"'!node_modules'"' -g '"'!dist'"' -g '"'!build'"' | sed -n '1,160p' && printf '\\n-- package/config --\\n' && (test -f package.json && sed -n '1,240p' package.json || true)" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ exited 1 in 0ms:
+/Users/lucille/greenguard-usa-web/play/cube-cascade
+
+exec
+/bin/bash -lc "printf '%s\\n' '-- ls --' && ls -la && printf '%s\\n' '-- files --' && (rg --files -g '"'!node_modules'"' -g '"'!dist'"' -g '"'!build'"' || true) | sed -n '1,240p' && printf '%s\\n' '-- package/config --' && if test -f package.json; then sed -n '1,240p' package.json; fi" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+-- ls --
+total 80
+drwxr-xr-x   5 lucille  staff    160 Aug  5 19:25 .
+drwxr-xr-x  55 lucille  staff   1760 Aug  5 18:36 ..
+-rw-r--r--   1 lucille  staff    409 Aug  5 19:25 NOTES.md
+-rw-r--r--   1 lucille  staff  30819 Aug  5 19:27 game.js
+-rw-r--r--   1 lucille  staff   1294 Aug  5 19:25 index.html
+-- files --
+NOTES.md
+index.html
+game.js
+-- package/config --
+
+exec
+/bin/bash -lc "printf '%s\\n' '-- NOTES.md --' && nl -ba NOTES.md && printf '%s\\n' '-- index.html --' && nl -ba index.html && printf '%s\\n' '-- game.js 1-260 --' && nl -ba game.js | sed -n '1,260p'" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+-- NOTES.md --
+     1	Cube Cascade: swipe diagonally on the playfield or tap the four arrow buttons.
+     2	Desktop: hold diagonal arrow pairs, use WASD pairs, or press Q/E/Z/C.
+     3	Hop across every cube to light the pyramid; later levels need two hops per cube.
+     4	Orb chains, chase snakes, gremlins, edge discs, and reverting cubes cost lives.
+     5	Three lives; tap, Space, Enter, or R to instantly retry after a loss. Best score persists locally.
+-- index.html --
+     1	<!doctype html>
+     2	<html lang="en">
+     3	<head>
+     4	  <meta charset="utf-8">
+     5	  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+     6	  <meta name="theme-color" content="#07121f">
+     7	  <title>Cube Cascade</title>
+     8	  <style>
+     9	    :root { color-scheme: dark; }
+    10	    * { box-sizing: border-box; }
+    11	    html, body {
+    12	      width: 100%; height: 100%; margin: 0; overflow: hidden;
+    13	      background: #07121f; font-family: Arial, Helvetica, sans-serif;
+    14	    }
+    15	    body { overscroll-behavior: none; }
+    16	    #game {
+    17	      position: fixed; inset: 0; width: 100vw; height: 100dvh;
+    18	      overflow: hidden; touch-action: none; user-select: none;
+    19	      -webkit-user-select: none; -webkit-touch-callout: none;
+    20	    }
+    21	    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    22	    .sr-only {
+    23	      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    24	      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    25	    }
+    26	  </style>
+    27	</head>
+    28	<body>
+    29	  <main id="game" aria-label="Cube Cascade isometric pyramid hopper">
+    30	    <canvas id="screen"></canvas>
+    31	    <div class="sr-only">Swipe diagonally or use diagonal arrow keys to hop between cubes. Light every cube to advance. Three lives.</div>
+    32	  </main>
+    33	  <script src="game.js"></script>
+    34	</body>
+    35	</html>
+-- game.js 1-260 --
+     1	(() => {
+     2	  'use strict';
+     3	
+     4	  const canvas = document.getElementById('screen');
+     5	  const ctx = canvas.getContext('2d', { alpha: false });
+     6	  const TAU = Math.PI * 2;
+     7	  const BEST_KEY = 'cubeCascadeBest';
+     8	  const palette = {
+     9	    ink: '#07121f',
+    10	    panel: '#0d2233',
+    11	    line: '#29475a',
+    12	    text: '#e8f7ff',
+    13	    muted: '#8aa9b8',
+    14	    aqua: '#61f0da',
+    15	    cyan: '#78d9ff',
+    16	    gold: '#ffc66d',
+    17	    coral: '#ff6f86',
+    18	    violet: '#9d86ff',
+    19	    orb: '#ff637e',
+    20	    gremlin: '#a8f26f'
+    21	  };
+    22	
+    23	  const state = {
+    24	    mode: 'play', level: 1, score: 0, best: readBest(), lives: 3,
+    25	    size: 3, target: 1, board: [], rng: null, seed: 0,
+    26	    player: { x: 0, y: 0 }, motion: null, invuln: 0,
+    27	    shake: 0, flash: 0, flashColor: palette.coral, hint: 7,
+    28	    clearTimer: 0, failTimer: 0, particles: [],
+    29	    orbT: 0, snake: null, gremlins: [], disc: null, revertTimer: 0,
+    30	    lastTime: 0, elapsed: 0, inputLock: 0
+    31	  };
+    32	
+    33	  let view = { w: 390, h: 700, dpr: 1, layout: null };
+    34	  let pointerStart = null;
+    35	  const pressed = Object.create(null);
+    36	
+    37	  function readBest() {
+    38	    try { return Number(localStorage.getItem(BEST_KEY)) || 0; } catch (err) { return 0; }
+    39	  }
+    40	
+    41	  function saveBest() {
+    42	    if (state.score > state.best) {
+    43	      state.best = state.score;
+    44	      try { localStorage.setItem(BEST_KEY, String(state.best)); } catch (err) { /* storage is optional */ }
+    45	    }
+    46	  }
+    47	
+    48	  function makeRng(seed) {
+    49	    let value = seed >>> 0;
+    50	    return () => {
+    51	      value = (value * 1664525 + 1013904223) >>> 0;
+    52	      return value / 4294967296;
+    53	    };
+    54	  }
+    55	
+    56	  function clamp(value, low, high) { return Math.max(low, Math.min(high, value)); }
+    57	  function lerp(a, b, t) { return a + (b - a) * t; }
+    58	  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+    59	  function key(x, y) { return x + ',' + y; }
+    60	  function inBounds(x, y) { return x >= 0 && y >= 0 && x < state.size && y < state.size; }
+    61	
+    62	  function makeBoard() {
+    63	    state.board = [];
+    64	    for (let x = 0; x < state.size; x += 1) {
+    65	      const column = [];
+    66	      for (let y = 0; y < state.size; y += 1) {
+    67	        column.push({
+    68	          x, y, progress: 0, pulse: 0, flash: 0,
+    69	          tint: Math.floor(state.rng() * 22)
+    70	        });
+    71	      }
+    72	      state.board.push(column);
+    73	    }
+    74	  }
+    75	
+    76	  function cell(x, y) { return inBounds(x, y) ? state.board[x][y] : null; }
+    77	
+    78	  function startLevel(level) {
+    79	    state.mode = 'play';
+    80	    state.level = level;
+    81	    state.size = Math.min(6, 3 + Math.floor((level - 1) / 2));
+    82	    state.target = level >= 3 ? 2 : 1;
+    83	    state.seed = (0x4c415354 ^ Math.imul(level, 1103515245)) >>> 0;
+    84	    state.rng = makeRng(state.seed);
+    85	    state.player = { x: 0, y: 0 };
+    86	    state.motion = null;
+    87	    state.invuln = 1.25;
+    88	    state.clearTimer = 0;
+    89	    state.failTimer = 0;
+    90	    state.hint = level === 1 ? 7 : 2.4;
+    91	    state.orbT = 0;
+    92	    state.revertTimer = 0;
+    93	    makeBoard();
+    94	    state.snake = level >= 3 ? {
+    95	      head: { x: state.size - 1, y: state.size - 1 },
+    96	      trail: [], moveTimer: 1.1, moveEvery: Math.max(0.57, 1.08 - level * 0.035)
+    97	    } : null;
+    98	    state.gremlins = [];
+    99	    if (level >= 4) {
+   100	      const count = Math.min(2, 1 + Math.floor((level - 4) / 3));
+   101	      for (let i = 0; i < count; i += 1) {
+   102	        state.gremlins.push({
+   103	          x: state.size - 1 - i, y: i, timer: 1.6 + state.rng() * 1.4,
+   104	          tint: state.rng()
+   105	        });
+   106	      }
+   107	    }
+   108	    state.disc = level >= 2 ? {
+   109	      active: false, timer: 2.8 + state.rng() * 2, progress: 0,
+   110	      start: { x: 0, y: 0 }, dir: { x: -1, y: -1 }, duration: 1.15
+   111	    } : null;
+   112	    view.layout = makeLayout(view.w, view.h);
+   113	    burstAtCell(0, 0, palette.aqua, 12);
+   114	  }
+   115	
+   116	  function resize() {
+   117	    const w = Math.max(1, window.innerWidth);
+   118	    const h = Math.max(1, window.innerHeight);
+   119	    const longAxis = Math.max(w, h);
+   120	    const dpr = Math.min(window.devicePixelRatio || 1, 2, 960 / longAxis);
+   121	    view = { w, h, dpr: Math.max(0.75, dpr), layout: makeLayout(w, h) };
+   122	    canvas.width = Math.round(w * view.dpr);
+   123	    canvas.height = Math.round(h * view.dpr);
+   124	    canvas.style.width = w + 'px';
+   125	    canvas.style.height = h + 'px';
+   126	  }
+   127	
+   128	  function makeLayout(w, h) {
+   129	    const compact = h < 580;
+   130	    const tileW = clamp((w - 72) / Math.max(3.4, state.size + 1.25), 43, 62);
+   131	    const tileH = tileW * 0.53;
+   132	    const lift = clamp(tileH * 0.31, 7, 12);
+   133	    const boardTop = compact ? 118 : 154;
+   134	    const controlsY = h - (compact ? 75 : 92);
+   135	    return {
+   136	      cx: w * 0.5, baseY: boardTop + (state.size - 1) * lift,
+   137	      tileW, tileH, lift, side: Math.max(7, tileH * 0.25), controlsY
+   138	    };
+   139	  }
+   140	
+   141	  function tilePosition(x, y) {
+   142	    const l = view.layout;
+   143	    const height = (state.size - 1 - x) + (state.size - 1 - y);
+   144	    return {
+   145	      x: l.cx + (x - y) * l.tileW * 0.5,
+   146	      y: l.baseY + (x + y) * l.tileH * 0.48 - height * l.lift
+   147	    };
+   148	  }
+   149	
+   150	  function playerPosition() {
+   151	    if (!state.motion) return tilePosition(state.player.x, state.player.y);
+   152	    const from = tilePosition(state.motion.from.x, state.motion.from.y);
+   153	    const to = tilePosition(state.motion.to.x, state.motion.to.y);
+   154	    const t = easeOut(clamp(state.motion.time / state.motion.duration, 0, 1));
+   155	    return { x: lerp(from.x, to.x, t), y: lerp(from.y, to.y, t) - Math.sin(t * Math.PI) * 27 };
+   156	  }
+   157	
+   158	  function drawRoundedRect(x, y, w, h, radius, fill, stroke, lineWidth) {
+   159	    const r = Math.min(radius, w * 0.5, h * 0.5);
+   160	    ctx.beginPath();
+   161	    ctx.moveTo(x + r, y);
+   162	    ctx.arcTo(x + w, y, x + w, y + h, r);
+   163	    ctx.arcTo(x + w, y + h, x, y + h, r);
+   164	    ctx.arcTo(x, y + h, x, y, r);
+   165	    ctx.arcTo(x, y, x + w, y, r);
+   166	    ctx.closePath();
+   167	    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+   168	    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineWidth || 1; ctx.stroke(); }
+   169	  }
+   170	
+   171	  function drawBackground() {
+   172	    const g = ctx.createLinearGradient(0, 0, 0, view.h);
+   173	    g.addColorStop(0, '#07121f');
+   174	    g.addColorStop(0.55, '#0a1d2d');
+   175	    g.addColorStop(1, '#06101b');
+   176	    ctx.fillStyle = g;
+   177	    ctx.fillRect(0, 0, view.w, view.h);
+   178	
+   179	    const glow = ctx.createRadialGradient(view.w * 0.5, view.h * 0.32, 8, view.w * 0.5, view.h * 0.32, view.w * 0.7);
+   180	    glow.addColorStop(0, 'rgba(51, 145, 172, 0.13)');
+   181	    glow.addColorStop(1, 'rgba(51, 145, 172, 0)');
+   182	    ctx.fillStyle = glow;
+   183	    ctx.fillRect(0, 0, view.w, view.h);
+   184	
+   185	    ctx.save();
+   186	    ctx.globalAlpha = 0.22;
+   187	    for (let i = 0; i < 18; i += 1) {
+   188	      const x = (i * 83 + 31) % view.w;
+   189	      const y = (i * 137 + 22) % Math.max(100, view.h - 160);
+   190	      ctx.fillStyle = i % 3 === 0 ? palette.aqua : palette.cyan;
+   191	      ctx.fillRect(x, y, i % 2 ? 1 : 2, i % 2 ? 1 : 2);
+   192	    }
+   193	    ctx.restore();
+   194	  }
+   195	
+   196	  function drawHeader() {
+   197	    const w = view.w;
+   198	    ctx.save();
+   199	    ctx.textBaseline = 'middle';
+   200	    ctx.fillStyle = palette.text;
+   201	    ctx.font = '800 15px Arial, sans-serif';
+   202	    ctx.letterSpacing = '2px';
+   203	    ctx.fillText('CUBE CASCADE', 20, 24);
+   204	    ctx.fillStyle = palette.aqua;
+   205	    ctx.fillRect(20, 39, 45, 2);
+   206	
+   207	    ctx.fillStyle = palette.muted;
+   208	    ctx.font = '700 10px Arial, sans-serif';
+   209	    ctx.fillText('LEVEL', 20, 61);
+   210	    ctx.fillText('SCORE', w * 0.43, 61);
+   211	    ctx.fillText('BEST', w - 88, 61);
+   212	    ctx.fillStyle = palette.text;
+   213	    ctx.font = '800 18px Arial, sans-serif';
+   214	    ctx.fillText(String(state.level).padStart(2, '0'), 20, 79);
+   215	    ctx.fillText(String(state.score).padStart(5, '0'), w * 0.43, 79);
+   216	    ctx.fillText(String(state.best).padStart(5, '0'), w - 88, 79);
+   217	
+   218	    ctx.fillStyle = palette.muted;
+   219	    ctx.font = '700 10px Arial, sans-serif';
+   220	    ctx.fillText('LIVES', w - 88, 108);
+   221	    for (let i = 0; i < 3; i += 1) {
+   222	      ctx.beginPath();
+   223	      ctx.arc(w - 31 + i * 15, 107, 4.5, 0, TAU);
+   224	      ctx.fillStyle = i < state.lives ? palette.coral : '#244052';
+   225	      ctx.fill();
+   226	    }
+   227	    ctx.restore();
+   228	  }
+   229	
+   230	  function cubeColors(c) {
+   231	    if (c.progress >= state.target) return [palette.aqua, '#299b9a', '#165c6d'];
+   232	    if (state.target === 2 && c.progress === 1) return [palette.gold, '#b36553', '#643b4d'];
+   233	    const hue = 190 + c.tint;
+   234	    return ['hsl(' + hue + ', 28%, 27%)', 'hsl(' + hue + ', 28%, 20%)', 'hsl(' + hue + ', 28%, 14%)'];
+   235	  }
+   236	
+   237	  function drawCube(c) {
+   238	    const p = tilePosition(c.x, c.y);
+   239	    const l = view.layout;
+   240	    const hw = l.tileW * 0.5;
+   241	    const hh = l.tileH * 0.5;
+   242	    const s = l.side;
+   243	    const top = { x: p.x, y: p.y - hh };
+   244	    const right = { x: p.x + hw, y: p.y };
+   245	    const bottom = { x: p.x, y: p.y + hh };
+   246	    const left = { x: p.x - hw, y: p.y };
+   247	    const colors = cubeColors(c);
+   248	    const pulse = c.pulse > 0 ? Math.sin((1 - c.pulse) * Math.PI) : 0;
+   249	
+   250	    ctx.save();
+   251	    ctx.globalAlpha = 0.24;
+   252	    ctx.fillStyle = '#02080f';
+   253	    ctx.beginPath();
+   254	    ctx.ellipse(p.x, p.y + s + 4, hw * 0.78, hh * 0.28, 0, 0, TAU);
+   255	    ctx.fill();
+   256	    ctx.globalAlpha = 1;
+   257	
+   258	    ctx.beginPath();
+   259	    ctx.moveTo(left.x, left.y);
+   260	    ctx.lineTo(bottom.x, bottom.y);
+
+exec
+/bin/bash -lc "printf '%s\\n' '-- game.js 261-520 --' && nl -ba game.js | sed -n '261,520p' && printf '%s\\n' '-- game.js 521-780 --' && nl -ba game.js | sed -n '521,780p' && printf '%s\\n' '-- game.js 781-1040 --' && nl -ba game.js | sed -n '781,1040p'" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+-- game.js 261-520 --
+   261	    ctx.lineTo(bottom.x, bottom.y + s);
+   262	    ctx.lineTo(left.x, left.y + s);
+   263	    ctx.closePath();
+   264	    ctx.fillStyle = colors[2];
+   265	    ctx.fill();
+   266	
+   267	    ctx.beginPath();
+   268	    ctx.moveTo(right.x, right.y);
+   269	    ctx.lineTo(bottom.x, bottom.y);
+   270	    ctx.lineTo(bottom.x, bottom.y + s);
+   271	    ctx.lineTo(right.x, right.y + s);
+   272	    ctx.closePath();
+   273	    ctx.fillStyle = colors[1];
+   274	    ctx.fill();
+   275	
+   276	    ctx.beginPath();
+   277	    ctx.moveTo(top.x, top.y);
+   278	    ctx.lineTo(right.x, right.y);
+   279	    ctx.lineTo(bottom.x, bottom.y);
+   280	    ctx.lineTo(left.x, left.y);
+   281	    ctx.closePath();
+   282	    ctx.fillStyle = colors[0];
+   283	    ctx.fill();
+   284	    ctx.strokeStyle = c.progress >= state.target ? 'rgba(150,255,235,.75)' : 'rgba(155,216,230,.25)';
+   285	    ctx.lineWidth = 1;
+   286	    ctx.stroke();
+   287	
+   288	    if (pulse > 0) {
+   289	      ctx.strokeStyle = 'rgba(230,255,249,' + (pulse * 0.8) + ')';
+   290	      ctx.lineWidth = 2 + pulse * 2;
+   291	      ctx.beginPath();
+   292	      ctx.moveTo(top.x, top.y - pulse * 4);
+   293	      ctx.lineTo(right.x + pulse * 4, right.y);
+   294	      ctx.lineTo(bottom.x, bottom.y + pulse * 4);
+   295	      ctx.lineTo(left.x - pulse * 4, left.y);
+   296	      ctx.closePath();
+   297	      ctx.stroke();
+   298	    }
+   299	
+   300	    const markY = p.y + 2;
+   301	    for (let i = 0; i < state.target; i += 1) {
+   302	      ctx.beginPath();
+   303	      ctx.arc(p.x + (i - (state.target - 1) * 0.5) * 8, markY, 2.3, 0, TAU);
+   304	      ctx.fillStyle = i < c.progress ? palette.text : 'rgba(7,18,31,.42)';
+   305	      ctx.fill();
+   306	    }
+   307	    if (c.flash > 0) {
+   308	      ctx.globalAlpha = c.flash * 0.45;
+   309	      ctx.fillStyle = c.flash > 0.7 ? palette.coral : palette.gold;
+   310	      ctx.beginPath();
+   311	      ctx.arc(p.x, p.y, hw * 0.65, 0, TAU);
+   312	      ctx.fill();
+   313	    }
+   314	    ctx.restore();
+   315	  }
+   316	
+   317	  function drawBoard() {
+   318	    const cells = [];
+   319	    for (let x = 0; x < state.size; x += 1) {
+   320	      for (let y = 0; y < state.size; y += 1) cells.push(state.board[x][y]);
+   321	    }
+   322	    cells.sort((a, b) => (a.x + a.y) - (b.x + b.y) || a.x - b.x);
+   323	    for (const c of cells) drawCube(c);
+   324	  }
+   325	
+   326	  function edgePath() {
+   327	    const path = [];
+   328	    for (let x = 0; x < state.size; x += 1) path.push({ x, y: 0 });
+   329	    for (let y = 1; y < state.size; y += 1) path.push({ x: state.size - 1, y });
+   330	    for (let x = state.size - 2; x >= 0; x -= 1) path.push({ x, y: state.size - 1 });
+   331	    for (let y = state.size - 2; y > 0; y -= 1) path.push({ x: 0, y });
+   332	    return path;
+   333	  }
+   334	
+   335	  function pathPosition(t) {
+   336	    const path = edgePath();
+   337	    const total = path.length;
+   338	    let at = ((t % total) + total) % total;
+   339	    const index = Math.floor(at);
+   340	    const next = (index + 1) % total;
+   341	    const mix = at - index;
+   342	    const a = tilePosition(path[index].x, path[index].y);
+   343	    const b = tilePosition(path[next].x, path[next].y);
+   344	    return {
+   345	      x: lerp(a.x, b.x, mix), y: lerp(a.y, b.y, mix),
+   346	      xCell: path[index].x, yCell: path[index].y
+   347	    };
+   348	  }
+   349	
+   350	  function drawOrbChain() {
+   351	    if (state.level < 2) return;
+   352	    for (let i = 2; i >= 0; i -= 1) {
+   353	      const p = pathPosition(state.orbT - i * 0.72);
+   354	      const bob = Math.sin(state.elapsed * 6 - i) * 3;
+   355	      ctx.save();
+   356	      ctx.shadowColor = palette.orb;
+   357	      ctx.shadowBlur = 12;
+   358	      ctx.fillStyle = i === 0 ? '#ff9b89' : '#d94776';
+   359	      ctx.beginPath();
+   360	      ctx.arc(p.x, p.y - 16 + bob, 8 - i * 1.2, 0, TAU);
+   361	      ctx.fill();
+   362	      ctx.restore();
+   363	      if (i < 2) {
+   364	        const q = pathPosition(state.orbT - (i + 1) * 0.72);
+   365	        ctx.strokeStyle = 'rgba(255,116,136,.42)';
+   366	        ctx.lineWidth = 3;
+   367	        ctx.beginPath();
+   368	        ctx.moveTo(p.x, p.y - 16 + bob);
+   369	        ctx.lineTo(q.x, q.y - 16);
+   370	        ctx.stroke();
+   371	      }
+   372	    }
+   373	  }
+   374	
+   375	  function drawSnake() {
+   376	    if (!state.snake) return;
+   377	    const pieces = [state.snake.head].concat(state.snake.trail.slice(-3).reverse());
+   378	    for (let i = pieces.length - 1; i >= 0; i -= 1) {
+   379	      const p = tilePosition(pieces[i].x, pieces[i].y);
+   380	      ctx.save();
+   381	      ctx.fillStyle = i === 0 ? '#cc7aff' : '#714bb8';
+   382	      ctx.shadowColor = '#b27cff';
+   383	      ctx.shadowBlur = i === 0 ? 12 : 4;
+   384	      ctx.beginPath();
+   385	      ctx.arc(p.x, p.y - 17 - i * 1.5, 9 - i, 0, TAU);
+   386	      ctx.fill();
+   387	      ctx.fillStyle = '#1a1234';
+   388	      ctx.beginPath();
+   389	      ctx.arc(p.x - 3, p.y - 19 - i * 1.5, 1.4, 0, TAU);
+   390	      ctx.arc(p.x + 3, p.y - 19 - i * 1.5, 1.4, 0, TAU);
+   391	      ctx.fill();
+   392	      ctx.restore();
+   393	    }
+   394	  }
+   395	
+   396	  function drawGremlins() {
+   397	    for (const g of state.gremlins) {
+   398	      const p = tilePosition(g.x, g.y);
+   399	      ctx.save();
+   400	      ctx.translate(p.x, p.y - 15);
+   401	      ctx.fillStyle = palette.gremlin;
+   402	      ctx.shadowColor = palette.gremlin;
+   403	      ctx.shadowBlur = 9;
+   404	      ctx.beginPath();
+   405	      ctx.moveTo(-8, 7); ctx.lineTo(-7, -5); ctx.lineTo(-12, -10);
+   406	      ctx.lineTo(-4, -8); ctx.lineTo(0, -12); ctx.lineTo(4, -8);
+   407	      ctx.lineTo(12, -10); ctx.lineTo(7, -4); ctx.lineTo(8, 7);
+   408	      ctx.closePath(); ctx.fill();
+   409	      ctx.shadowBlur = 0;
+   410	      ctx.fillStyle = '#19331f';
+   411	      ctx.fillRect(-4, -3, 2, 3); ctx.fillRect(2, -3, 2, 3);
+   412	      ctx.restore();
+   413	    }
+   414	  }
+   415	
+   416	  function drawDisc() {
+   417	    const d = state.disc;
+   418	    if (!d || !d.active) return;
+   419	    const p = tilePosition(d.start.x, d.start.y);
+   420	    const t = clamp(d.progress, 0, 1);
+   421	    const x = p.x + d.dir.x * 62 * t;
+   422	    const y = p.y - 12 + d.dir.y * 34 * t;
+   423	    ctx.save();
+   424	    ctx.translate(x, y);
+   425	    ctx.rotate(t * Math.PI * 2);
+   426	    ctx.shadowColor = palette.cyan;
+   427	    ctx.shadowBlur = 13;
+   428	    ctx.fillStyle = '#d7fbff';
+   429	    ctx.beginPath();
+   430	    ctx.ellipse(0, 0, 15, 6, 0, 0, TAU);
+   431	    ctx.fill();
+   432	    ctx.shadowBlur = 0;
+   433	    ctx.strokeStyle = palette.cyan;
+   434	    ctx.lineWidth = 2;
+   435	    ctx.beginPath(); ctx.ellipse(0, 0, 15, 6, 0, 0, TAU); ctx.stroke();
+   436	    ctx.restore();
+   437	  }
+   438	
+   439	  function drawPlayer() {
+   440	    if (state.invuln > 0 && Math.floor(state.invuln * 14) % 2 === 0) return;
+   441	    const p = playerPosition();
+   442	    ctx.save();
+   443	    ctx.globalAlpha = 0.3;
+   444	    ctx.fillStyle = '#02070c';
+   445	    ctx.beginPath(); ctx.ellipse(p.x, p.y + 6, 15, 5, 0, 0, TAU); ctx.fill();
+   446	    ctx.globalAlpha = 1;
+   447	    ctx.shadowColor = '#ffba65'; ctx.shadowBlur = 17;
+   448	    const g = ctx.createRadialGradient(p.x - 3, p.y - 9, 1, p.x, p.y - 4, 15);
+   449	    g.addColorStop(0, '#fff3bb'); g.addColorStop(0.38, '#ffc56f'); g.addColorStop(1, '#ff6c67');
+   450	    ctx.fillStyle = g;
+   451	    ctx.beginPath();
+   452	    ctx.moveTo(p.x, p.y - 19); ctx.lineTo(p.x + 12, p.y - 7);
+   453	    ctx.lineTo(p.x, p.y + 5); ctx.lineTo(p.x - 12, p.y - 7); ctx.closePath(); ctx.fill();
+   454	    ctx.shadowBlur = 0;
+   455	    ctx.fillStyle = '#522b47';
+   456	    ctx.beginPath(); ctx.arc(p.x - 3, p.y - 9, 1.6, 0, TAU); ctx.arc(p.x + 3, p.y - 9, 1.6, 0, TAU); ctx.fill();
+   457	    ctx.restore();
+   458	  }
+   459	
+   460	  function controlRects() {
+   461	    const x = view.w * 0.5;
+   462	    const y = view.layout.controlsY;
+   463	    return [
+   464	      { name: 'up-left', x: x - 64, y: y - 28, label: '↖' },
+   465	      { name: 'up-right', x: x + 10, y: y - 28, label: '↗' },
+   466	      { name: 'down-left', x: x - 64, y: y + 30, label: '↙' },
+   467	      { name: 'down-right', x: x + 10, y: y + 30, label: '↘' }
+   468	    ];
+   469	  }
+   470	
+   471	  function drawControls() {
+   472	    const controls = controlRects();
+   473	    ctx.save();
+   474	    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+   475	    for (const c of controls) {
+   476	      drawRoundedRect(c.x, c.y, 54, 46, 15, 'rgba(18,53,70,.72)', 'rgba(109,223,222,.28)', 1);
+   477	      ctx.fillStyle = 'rgba(214,250,255,.82)';
+   478	      ctx.font = '700 23px Arial, sans-serif';
+   479	      ctx.fillText(c.label, c.x + 27, c.y + 23);
+   480	    }
+   481	    ctx.fillStyle = 'rgba(150,190,202,.75)';
+   482	    ctx.font = '700 10px Arial, sans-serif';
+   483	    ctx.fillText('SWIPE DIAGONALLY', view.w * 0.5, view.h - 18);
+   484	    ctx.restore();
+   485	  }
+   486	
+   487	  function drawProgress() {
+   488	    const total = state.size * state.size;
+   489	    let lit = 0;
+   490	    for (const column of state.board) for (const c of column) lit += c.progress >= state.target ? 1 : 0;
+   491	    const width = Math.min(210, view.w - 80);
+   492	    const x = (view.w - width) * 0.5;
+   493	    const y = 120;
+   494	    ctx.save();
+   495	    ctx.fillStyle = 'rgba(6,17,27,.62)';
+   496	    drawRoundedRect(x, y, width, 5, 3, 'rgba(42,70,83,.7)', null);
+   497	    if (lit) drawRoundedRect(x, y, width * lit / total, 5, 3, palette.aqua, null);
+   498	    ctx.fillStyle = palette.muted;
+   499	    ctx.font = '700 9px Arial, sans-serif';
+   500	    ctx.textAlign = 'center';
+   501	    ctx.fillText(lit + ' / ' + total + ' LIT', view.w * 0.5, y - 8);
+   502	    ctx.restore();
+   503	  }
+   504	
+   505	  function drawHint() {
+   506	    if (state.hint <= 0 || state.mode !== 'play') return;
+   507	    const alpha = clamp(Math.min(1, state.hint) * 0.75, 0, 0.75);
+   508	    ctx.save();
+   509	    ctx.globalAlpha = alpha;
+   510	    ctx.fillStyle = palette.text;
+   511	    ctx.font = '700 12px Arial, sans-serif';
+   512	    ctx.textAlign = 'center';
+   513	    ctx.fillText(state.level === 1 ? 'SWIPE A DIAGONAL TO HOP' : 'KEEP HOPPING — WATCH THE EDGES', view.w * 0.5, 143);
+   514	    ctx.restore();
+   515	  }
+   516	
+   517	  function drawOverlay() {
+   518	    if (state.mode === 'play') return;
+   519	    ctx.save();
+   520	    ctx.fillStyle = state.mode === 'fail' ? 'rgba(5,10,18,.78)' : 'rgba(4,18,25,.65)';
+-- game.js 521-780 --
+   521	    ctx.fillRect(0, 0, view.w, view.h);
+   522	    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+   523	    if (state.mode === 'clear') {
+   524	      ctx.fillStyle = palette.aqua;
+   525	      ctx.font = '900 28px Arial, sans-serif';
+   526	      ctx.fillText('PYRAMID CLEAR', view.w * 0.5, view.h * 0.44);
+   527	      ctx.fillStyle = palette.text;
+   528	      ctx.font = '700 12px Arial, sans-serif';
+   529	      ctx.fillText('NEXT CASCADE IN ' + Math.max(1, Math.ceil(state.clearTimer)) + '…', view.w * 0.5, view.h * 0.50);
+   530	    } else {
+   531	      ctx.fillStyle = palette.coral;
+   532	      ctx.font = '900 32px Arial, sans-serif';
+   533	      ctx.fillText('CASCADE LOST', view.w * 0.5, view.h * 0.42);
+   534	      ctx.fillStyle = palette.text;
+   535	      ctx.font = '700 13px Arial, sans-serif';
+   536	      ctx.fillText('SCORE  ' + state.score, view.w * 0.5, view.h * 0.49);
+   537	      ctx.fillStyle = palette.aqua;
+   538	      ctx.font = '800 15px Arial, sans-serif';
+   539	      ctx.fillText('TAP TO RETRY', view.w * 0.5, view.h * 0.58);
+   540	    }
+   541	    ctx.restore();
+   542	  }
+   543	
+   544	  function draw() {
+   545	    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+   546	    ctx.clearRect(0, 0, view.w, view.h);
+   547	    ctx.save();
+   548	    if (state.shake > 0) {
+   549	      const amount = state.shake * 7;
+   550	      ctx.translate((Math.random() - 0.5) * amount, (Math.random() - 0.5) * amount);
+   551	    }
+   552	    drawBackground();
+   553	    drawHeader();
+   554	    drawProgress();
+   555	    drawBoard();
+   556	    drawOrbChain();
+   557	    drawSnake();
+   558	    drawGremlins();
+   559	    drawDisc();
+   560	    drawPlayer();
+   561	    drawParticles();
+   562	    drawControls();
+   563	    drawHint();
+   564	    if (state.flash > 0) {
+   565	      ctx.fillStyle = state.flashColor;
+   566	      ctx.globalAlpha = state.flash * 0.12;
+   567	      ctx.fillRect(0, 0, view.w, view.h);
+   568	    }
+   569	    ctx.restore();
+   570	    drawOverlay();
+   571	  }
+   572	
+   573	  function drawParticles() {
+   574	    for (const p of state.particles) {
+   575	      ctx.save();
+   576	      ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
+   577	      ctx.fillStyle = p.color;
+   578	      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.5 + p.life / p.maxLife), 0, TAU); ctx.fill();
+   579	      ctx.restore();
+   580	    }
+   581	  }
+   582	
+   583	  function burstAtCell(x, y, color, amount) {
+   584	    const p = tilePosition(x, y);
+   585	    for (let i = 0; i < amount; i += 1) {
+   586	      const angle = state.rng ? state.rng() * TAU : Math.random() * TAU;
+   587	      const speed = 20 + (state.rng ? state.rng() : Math.random()) * 58;
+   588	      state.particles.push({
+   589	        x: p.x, y: p.y - 12, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 22,
+   590	        life: 0.35 + Math.random() * 0.45, maxLife: 0.8, size: 1.5 + Math.random() * 2.5, color
+   591	      });
+   592	    }
+   593	  }
+   594	
+   595	  function updateParticles(dt) {
+   596	    for (let i = state.particles.length - 1; i >= 0; i -= 1) {
+   597	      const p = state.particles[i];
+   598	      p.life -= dt;
+   599	      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 80 * dt;
+   600	      if (p.life <= 0) state.particles.splice(i, 1);
+   601	    }
+   602	    if (state.particles.length > 150) state.particles.splice(0, state.particles.length - 150);
+   603	  }
+   604	
+   605	  function markCell(x, y) {
+   606	    const c = cell(x, y);
+   607	    if (!c) return;
+   608	    const before = c.progress;
+   609	    c.progress = Math.min(state.target, c.progress + 1);
+   610	    c.pulse = 1;
+   611	    c.flash = 0;
+   612	    burstAtCell(x, y, c.progress >= state.target ? palette.aqua : palette.gold, c.progress >= state.target ? 8 : 4);
+   613	    if (c.progress > before) {
+   614	      state.score += 10 + state.level * 4;
+   615	      saveBest();
+   616	    }
+   617	    if (before < state.target && c.progress >= state.target) state.score += 12 * state.level;
+   618	  }
+   619	
+   620	  function boardComplete() {
+   621	    for (const column of state.board) for (const c of column) if (c.progress < state.target) return false;
+   622	    return true;
+   623	  }
+   624	
+   625	  function loseLife(reason) {
+   626	    if (state.mode !== 'play' || (state.invuln > 0 && reason !== 'edge')) return;
+   627	    state.lives -= 1;
+   628	    state.motion = null;
+   629	    state.invuln = 1.15;
+   630	    state.shake = 1;
+   631	    state.flash = 1;
+   632	    state.flashColor = reason === 'edge' ? palette.gold : palette.coral;
+   633	    burstAtCell(state.player.x, state.player.y, state.flashColor, 18);
+   634	    if (state.lives <= 0) {
+   635	      state.mode = 'fail'; state.failTimer = 0;
+   636	      saveBest();
+   637	    } else {
+   638	      state.player = { x: 0, y: 0 };
+   639	    }
+   640	  }
+   641	
+   642	  function collideAt(x, y) {
+   643	    if (state.invuln > 0) return false;
+   644	    if (state.level >= 2) {
+   645	      for (let i = 0; i < 3; i += 1) {
+   646	        const p = pathPosition(state.orbT - i * 0.72);
+   647	        if (Math.round(p.xCell) === x && Math.round(p.yCell) === y && Math.abs((state.orbT - i * 0.72) - Math.round(state.orbT - i * 0.72)) < 0.42) return true;
+   648	      }
+   649	    }
+   650	    if (state.snake && state.snake.head.x === x && state.snake.head.y === y) return true;
+   651	    for (const g of state.gremlins) if (g.x === x && g.y === y) return true;
+   652	    return false;
+   653	  }
+   654	
+   655	  function hop(name) {
+   656	    if (state.mode === 'fail') { restart(); return; }
+   657	    if (state.mode === 'clear') { startLevel(state.level + 1); return; }
+   658	    if (state.mode !== 'play' || state.motion || state.inputLock > 0) return;
+   659	    const dirs = {
+   660	      'up-left': { x: 0, y: -1 }, 'up-right': { x: -1, y: 0 },
+   661	      'down-left': { x: 1, y: 0 }, 'down-right': { x: 0, y: 1 }
+   662	    };
+   663	    const d = dirs[name];
+   664	    if (!d) return;
+   665	    state.hint = Math.min(state.hint, 1.5);
+   666	    const from = { x: state.player.x, y: state.player.y };
+   667	    const to = { x: from.x + d.x, y: from.y + d.y };
+   668	    if (!inBounds(to.x, to.y)) { loseLife('edge'); return; }
+   669	    state.player = to;
+   670	    markCell(to.x, to.y);
+   671	    state.motion = { from, to, time: 0, duration: 0.18 };
+   672	    state.inputLock = 0.08;
+   673	    if (collideAt(to.x, to.y)) {
+   674	      state.motion.time = state.motion.duration;
+   675	      loseLife('enemy');
+   676	      return;
+   677	    }
+   678	    if (boardComplete()) {
+   679	      state.score += state.level * 100 + state.lives * 40;
+   680	      saveBest();
+   681	      state.mode = 'clear'; state.clearTimer = 0.9; state.motion = null;
+   682	    }
+   683	  }
+   684	
+   685	  function restart() {
+   686	    state.score = 0;
+   687	    state.lives = 3;
+   688	    startLevel(1);
+   689	  }
+   690	
+   691	  function chooseSnakeStep() {
+   692	    const s = state.snake;
+   693	    if (!s) return;
+   694	    const options = [];
+   695	    const dx = state.player.x - s.head.x;
+   696	    const dy = state.player.y - s.head.y;
+   697	    if (Math.abs(dx) >= Math.abs(dy) && dx !== 0) options.push({ x: Math.sign(dx), y: 0 });
+   698	    if (dy !== 0) options.push({ x: 0, y: Math.sign(dy) });
+   699	    if (dx !== 0) options.push({ x: Math.sign(dx), y: 0 });
+   700	    options.push({ x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 0, y: -1 });
+   701	    for (const step of options) {
+   702	      const x = s.head.x + step.x; const y = s.head.y + step.y;
+   703	      if (inBounds(x, y)) {
+   704	        s.trail.push({ x: s.head.x, y: s.head.y });
+   705	        if (s.trail.length > 4) s.trail.shift();
+   706	        s.head = { x, y };
+   707	        if (x === state.player.x && y === state.player.y) loseLife('enemy');
+   708	        return;
+   709	      }
+   710	    }
+   711	  }
+   712	
+   713	  function updateEnemies(dt) {
+   714	    if (state.level >= 2) {
+   715	      state.orbT += dt * (0.62 + state.level * 0.04);
+   716	      if (state.disc) {
+   717	        const d = state.disc;
+   718	        if (!d.active) {
+   719	          d.timer -= dt;
+   720	          if (d.timer <= 0) {
+   721	            const edge = Math.floor(state.rng() * 4);
+   722	            const last = state.size - 1;
+   723	            const corners = [
+   724	              [{ x: 0, y: 0 }, { x: -1, y: -1 }],
+   725	              [{ x: last, y: 0 }, { x: 1, y: -1 }],
+   726	              [{ x: last, y: last }, { x: 1, y: 1 }],
+   727	              [{ x: 0, y: last }, { x: -1, y: 1 }]
+   728	            ];
+   729	            d.start = corners[edge][0]; d.dir = corners[edge][1]; d.progress = 0; d.active = true;
+   730	          }
+   731	        } else {
+   732	          d.progress += dt / d.duration;
+   733	          if (d.progress < 0.42 && state.player.x === d.start.x && state.player.y === d.start.y) loseLife('enemy');
+   734	          if (d.progress >= 1) { d.active = false; d.timer = 2.4 + state.rng() * 2.2; }
+   735	        }
+   736	      }
+   737	    }
+   738	    if (state.snake) {
+   739	      state.snake.moveTimer -= dt;
+   740	      if (state.snake.moveTimer <= 0) {
+   741	        state.snake.moveTimer = state.snake.moveEvery;
+   742	        chooseSnakeStep();
+   743	      }
+   744	    }
+   745	    for (const g of state.gremlins) {
+   746	      g.timer -= dt;
+   747	      if (g.timer <= 0) {
+   748	        g.timer = 1.1 + state.rng() * 1.4;
+   749	        const choices = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+   750	        const d = choices[Math.floor(state.rng() * choices.length)];
+   751	        if (inBounds(g.x + d.x, g.y + d.y)) { g.x += d.x; g.y += d.y; }
+   752	        const c = cell(g.x, g.y);
+   753	        if (c && c.progress > 0 && !(g.x === state.player.x && g.y === state.player.y)) {
+   754	          c.progress -= 1; c.flash = 1; burstAtCell(g.x, g.y, palette.coral, 5);
+   755	        }
+   756	        if (g.x === state.player.x && g.y === state.player.y) loseLife('enemy');
+   757	      }
+   758	    }
+   759	    if (state.level >= 4) {
+   760	      state.revertTimer += dt;
+   761	      const interval = Math.max(1.7, 4.8 - state.level * 0.22);
+   762	      if (state.revertTimer >= interval) {
+   763	        state.revertTimer = 0;
+   764	        const options = [];
+   765	        for (const column of state.board) for (const c of column) {
+   766	          if (c.progress > 0 && !(c.x === state.player.x && c.y === state.player.y)) options.push(c);
+   767	        }
+   768	        if (options.length) {
+   769	          const c = options[Math.floor(state.rng() * options.length)];
+   770	          c.progress -= 1; c.flash = 1; burstAtCell(c.x, c.y, palette.coral, 5);
+   771	        }
+   772	      }
+   773	    }
+   774	  }
+   775	
+   776	  function update(dt) {
+   777	    state.elapsed += dt;
+   778	    if (state.hint > 0) state.hint -= dt;
+   779	    state.shake = Math.max(0, state.shake - dt * 3.8);
+   780	    state.flash = Math.max(0, state.flash - dt * 2.8);
+-- game.js 781-1040 --
+   781	    state.invuln = Math.max(0, state.invuln - dt);
+   782	    state.inputLock = Math.max(0, state.inputLock - dt);
+   783	    updateParticles(dt);
+   784	    for (const column of state.board) for (const c of column) {
+   785	      c.pulse = Math.max(0, c.pulse - dt * 2.6);
+   786	      c.flash = Math.max(0, c.flash - dt * 1.7);
+   787	    }
+   788	    if (state.mode === 'play') {
+   789	      if (state.motion) {
+   790	        state.motion.time += dt;
+   791	        if (state.motion.time >= state.motion.duration) state.motion = null;
+   792	      }
+   793	      updateEnemies(dt);
+   794	    } else if (state.mode === 'clear') {
+   795	      state.clearTimer -= dt;
+   796	      if (state.clearTimer <= 0) startLevel(state.level + 1);
+   797	    }
+   798	  }
+   799	
+   800	  function frame(now) {
+   801	    if (!state.lastTime) state.lastTime = now;
+   802	    const dt = Math.min(0.034, Math.max(0, (now - state.lastTime) / 1000));
+   803	    state.lastTime = now;
+   804	    update(dt);
+   805	    draw();
+   806	    requestAnimationFrame(frame);
+   807	  }
+   808	
+   809	  function diagonalFromDelta(dx, dy) {
+   810	    if (Math.abs(dx) < 18 || Math.abs(dy) < 18) return null;
+   811	    if (dx < 0 && dy < 0) return 'up-left';
+   812	    if (dx > 0 && dy < 0) return 'up-right';
+   813	    if (dx < 0 && dy > 0) return 'down-left';
+   814	    return 'down-right';
+   815	  }
+   816	
+   817	  function hitControl(x, y) {
+   818	    for (const c of controlRects()) if (x >= c.x - 4 && x <= c.x + 58 && y >= c.y - 4 && y <= c.y + 50) return c.name;
+   819	    return null;
+   820	  }
+   821	
+   822	  function pointerDown(event) {
+   823	    event.preventDefault();
+   824	    const rect = canvas.getBoundingClientRect();
+   825	    const x = event.clientX - rect.left; const y = event.clientY - rect.top;
+   826	    pointerStart = { x, y, control: hitControl(x, y), id: event.pointerId };
+   827	    if (canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId);
+   828	  }
+   829	
+   830	  function pointerUp(event) {
+   831	    event.preventDefault();
+   832	    if (!pointerStart) return;
+   833	    const rect = canvas.getBoundingClientRect();
+   834	    const x = event.clientX - rect.left; const y = event.clientY - rect.top;
+   835	    const start = pointerStart; pointerStart = null;
+   836	    const dx = x - start.x; const dy = y - start.y;
+   837	    const swipe = diagonalFromDelta(dx, dy);
+   838	    if (swipe) hop(swipe);
+   839	    else if (start.control && Math.hypot(dx, dy) < 34) hop(start.control);
+   840	    else if (state.mode === 'fail') restart();
+   841	    else if (state.mode === 'clear') startLevel(state.level + 1);
+   842	  }
+   843	
+   844	  function keyboardMove() {
+   845	    const up = pressed.ArrowUp || pressed.w;
+   846	    const down = pressed.ArrowDown || pressed.s;
+   847	    const left = pressed.ArrowLeft || pressed.a;
+   848	    const right = pressed.ArrowRight || pressed.d;
+   849	    if (up && left) hop('up-left');
+   850	    else if (up && right) hop('up-right');
+   851	    else if (down && left) hop('down-left');
+   852	    else if (down && right) hop('down-right');
+   853	  }
+   854	
+   855	  function keyDown(event) {
+   856	    const k = event.key;
+   857	    const directionKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'];
+   858	    if (directionKeys.includes(k)) {
+   859	      event.preventDefault(); pressed[k] = true; keyboardMove(); return;
+   860	    }
+   861	    if (k === 'q' || k === 'e' || k === 'z' || k === 'c') {
+   862	      event.preventDefault(); hop({ q: 'up-left', e: 'up-right', z: 'down-left', c: 'down-right' }[k]); return;
+   863	    }
+   864	    if (k === ' ' || k === 'Enter' || k === 'r' || k === 'R') {
+   865	      event.preventDefault(); if (state.mode !== 'play') restart();
+   866	    }
+   867	  }
+   868	
+   869	  function keyUp(event) { delete pressed[event.key]; }
+   870	
+   871	  window.addEventListener('resize', resize, { passive: true });
+   872	  canvas.addEventListener('pointerdown', pointerDown, { passive: false });
+   873	  canvas.addEventListener('pointerup', pointerUp, { passive: false });
+   874	  canvas.addEventListener('pointercancel', () => { pointerStart = null; }, { passive: true });
+   875	  canvas.addEventListener('touchmove', event => event.preventDefault(), { passive: false });
+   876	  window.addEventListener('keydown', keyDown, { passive: false });
+   877	  window.addEventListener('keyup', keyUp, { passive: true });
+   878	
+   879	  resize();
+   880	  startLevel(1);
+   881	  requestAnimationFrame(frame);
+   882	})();
+
+exec
+/bin/bash -lc "git status --short && printf '%s\\n' '-- refs --' && (rg -n \"mode|motion|pointer|localStorage|requestAnimationFrame|state\\.|board|edgePath|chooseSnake|loseLife|startLevel|restart|blur|visibility|pagehide|keydown|keyup|pointercancel|pointercapture|NaN|Infinity\" game.js index.html NOTES.md || true)" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+git: warning: confstr() failed with code 5: couldn't get path of DARWIN_USER_TEMP_DIR; using /tmp instead
+git: error: couldn't create cache file '/tmp/xcrun_db-TkYfjfOa' (errno=Operation not permitted)
+ M ../../.vercelignore
+ M ../../_scripts/build_vercel.py
+ M ../../astro/public/prototypes.html
+ M ../../astro/public/render.html
+ M ../../scripts/deploy.sh
+ M ../../tactics3d/index.html
+ M ../../vercel.json
+ M ../../zelda/index.html
+ M ../../zelda/js/engine.js
+ M ../../zelda/js/sound.js
+ M ../../zelda/manifest.json
+ M ../../zelda/play.html
+ M ../../zelda/sw.js
+ M ../../zelda/test/play.html
+ M ../../zelda/test/smoke.js
+?? ../../.claude/
+?? ../../app/_swap_parks_chen.js
+?? ../../astro/public/models/aria_postslim.stl
+?? ../../astro/public/models/aria_postslim_engine.stl
+?? ../../horde-manifest.json
+?? ../../horde.html
+?? ../../marble2-assets/
+?? ../../marble2-manifest.json
+?? ../../marble2.html
+?? ../../photos/v5/firmware/build/
+?? ../
+?? ../../redesign-dist/
+?? ../../redesign/
+?? ../../review_evidence/
+?? ../../tactics.html
+?? ../../zelda/test/perf.js
+-- refs --
+game.js:24:    mode: 'play', level: 1, score: 0, best: readBest(), lives: 3,
+game.js:25:    size: 3, target: 1, board: [], rng: null, seed: 0,
+game.js:26:    player: { x: 0, y: 0 }, motion: null, invuln: 0,
+game.js:34:  let pointerStart = null;
+game.js:38:    try { return Number(localStorage.getItem(BEST_KEY)) || 0; } catch (err) { return 0; }
+game.js:42:    if (state.score > state.best) {
+game.js:43:      state.best = state.score;
+game.js:44:      try { localStorage.setItem(BEST_KEY, String(state.best)); } catch (err) { /* storage is optional */ }
+game.js:60:  function inBounds(x, y) { return x >= 0 && y >= 0 && x < state.size && y < state.size; }
+game.js:63:    state.board = [];
+game.js:64:    for (let x = 0; x < state.size; x += 1) {
+game.js:66:      for (let y = 0; y < state.size; y += 1) {
+game.js:69:          tint: Math.floor(state.rng() * 22)
+game.js:72:      state.board.push(column);
+game.js:76:  function cell(x, y) { return inBounds(x, y) ? state.board[x][y] : null; }
+game.js:78:  function startLevel(level) {
+game.js:79:    state.mode = 'play';
+game.js:80:    state.level = level;
+game.js:81:    state.size = Math.min(6, 3 + Math.floor((level - 1) / 2));
+game.js:82:    state.target = level >= 3 ? 2 : 1;
+game.js:83:    state.seed = (0x4c415354 ^ Math.imul(level, 1103515245)) >>> 0;
+game.js:84:    state.rng = makeRng(state.seed);
+game.js:85:    state.player = { x: 0, y: 0 };
+game.js:86:    state.motion = null;
+game.js:87:    state.invuln = 1.25;
+game.js:88:    state.clearTimer = 0;
+game.js:89:    state.failTimer = 0;
+game.js:90:    state.hint = level === 1 ? 7 : 2.4;
+game.js:91:    state.orbT = 0;
+game.js:92:    state.revertTimer = 0;
+game.js:94:    state.snake = level >= 3 ? {
+game.js:95:      head: { x: state.size - 1, y: state.size - 1 },
+game.js:98:    state.gremlins = [];
+game.js:102:        state.gremlins.push({
+game.js:103:          x: state.size - 1 - i, y: i, timer: 1.6 + state.rng() * 1.4,
+game.js:104:          tint: state.rng()
+game.js:108:    state.disc = level >= 2 ? {
+game.js:109:      active: false, timer: 2.8 + state.rng() * 2, progress: 0,
+game.js:130:    const tileW = clamp((w - 72) / Math.max(3.4, state.size + 1.25), 43, 62);
+game.js:133:    const boardTop = compact ? 118 : 154;
+game.js:136:      cx: w * 0.5, baseY: boardTop + (state.size - 1) * lift,
+game.js:143:    const height = (state.size - 1 - x) + (state.size - 1 - y);
+game.js:151:    if (!state.motion) return tilePosition(state.player.x, state.player.y);
+game.js:152:    const from = tilePosition(state.motion.from.x, state.motion.from.y);
+game.js:153:    const to = tilePosition(state.motion.to.x, state.motion.to.y);
+game.js:154:    const t = easeOut(clamp(state.motion.time / state.motion.duration, 0, 1));
+game.js:214:    ctx.fillText(String(state.level).padStart(2, '0'), 20, 79);
+game.js:215:    ctx.fillText(String(state.score).padStart(5, '0'), w * 0.43, 79);
+game.js:216:    ctx.fillText(String(state.best).padStart(5, '0'), w - 88, 79);
+game.js:224:      ctx.fillStyle = i < state.lives ? palette.coral : '#244052';
+game.js:231:    if (c.progress >= state.target) return [palette.aqua, '#299b9a', '#165c6d'];
+game.js:232:    if (state.target === 2 && c.progress === 1) return [palette.gold, '#b36553', '#643b4d'];
+game.js:284:    ctx.strokeStyle = c.progress >= state.target ? 'rgba(150,255,235,.75)' : 'rgba(155,216,230,.25)';
+game.js:301:    for (let i = 0; i < state.target; i += 1) {
+game.js:303:      ctx.arc(p.x + (i - (state.target - 1) * 0.5) * 8, markY, 2.3, 0, TAU);
+game.js:319:    for (let x = 0; x < state.size; x += 1) {
+game.js:320:      for (let y = 0; y < state.size; y += 1) cells.push(state.board[x][y]);
+game.js:326:  function edgePath() {
+game.js:328:    for (let x = 0; x < state.size; x += 1) path.push({ x, y: 0 });
+game.js:329:    for (let y = 1; y < state.size; y += 1) path.push({ x: state.size - 1, y });
+game.js:330:    for (let x = state.size - 2; x >= 0; x -= 1) path.push({ x, y: state.size - 1 });
+game.js:331:    for (let y = state.size - 2; y > 0; y -= 1) path.push({ x: 0, y });
+game.js:336:    const path = edgePath();
+game.js:351:    if (state.level < 2) return;
+game.js:353:      const p = pathPosition(state.orbT - i * 0.72);
+game.js:354:      const bob = Math.sin(state.elapsed * 6 - i) * 3;
+game.js:364:        const q = pathPosition(state.orbT - (i + 1) * 0.72);
+game.js:376:    if (!state.snake) return;
+game.js:377:    const pieces = [state.snake.head].concat(state.snake.trail.slice(-3).reverse());
+game.js:397:    for (const g of state.gremlins) {
+game.js:417:    const d = state.disc;
+game.js:440:    if (state.invuln > 0 && Math.floor(state.invuln * 14) % 2 === 0) return;
+game.js:488:    const total = state.size * state.size;
+game.js:490:    for (const column of state.board) for (const c of column) lit += c.progress >= state.target ? 1 : 0;
+game.js:506:    if (state.hint <= 0 || state.mode !== 'play') return;
+game.js:507:    const alpha = clamp(Math.min(1, state.hint) * 0.75, 0, 0.75);
+game.js:513:    ctx.fillText(state.level === 1 ? 'SWIPE A DIAGONAL TO HOP' : 'KEEP HOPPING — WATCH THE EDGES', view.w * 0.5, 143);
+game.js:518:    if (state.mode === 'play') return;
+game.js:520:    ctx.fillStyle = state.mode === 'fail' ? 'rgba(5,10,18,.78)' : 'rgba(4,18,25,.65)';
+game.js:523:    if (state.mode === 'clear') {
+game.js:529:      ctx.fillText('NEXT CASCADE IN ' + Math.max(1, Math.ceil(state.clearTimer)) + '…', view.w * 0.5, view.h * 0.50);
+game.js:536:      ctx.fillText('SCORE  ' + state.score, view.w * 0.5, view.h * 0.49);
+game.js:548:    if (state.shake > 0) {
+game.js:549:      const amount = state.shake * 7;
+game.js:564:    if (state.flash > 0) {
+game.js:565:      ctx.fillStyle = state.flashColor;
+game.js:566:      ctx.globalAlpha = state.flash * 0.12;
+game.js:574:    for (const p of state.particles) {
+game.js:586:      const angle = state.rng ? state.rng() * TAU : Math.random() * TAU;
+game.js:587:      const speed = 20 + (state.rng ? state.rng() : Math.random()) * 58;
+game.js:588:      state.particles.push({
+game.js:596:    for (let i = state.particles.length - 1; i >= 0; i -= 1) {
+game.js:597:      const p = state.particles[i];
+game.js:600:      if (p.life <= 0) state.particles.splice(i, 1);
+game.js:602:    if (state.particles.length > 150) state.particles.splice(0, state.particles.length - 150);
+game.js:609:    c.progress = Math.min(state.target, c.progress + 1);
+game.js:612:    burstAtCell(x, y, c.progress >= state.target ? palette.aqua : palette.gold, c.progress >= state.target ? 8 : 4);
+game.js:614:      state.score += 10 + state.level * 4;
+game.js:617:    if (before < state.target && c.progress >= state.target) state.score += 12 * state.level;
+game.js:620:  function boardComplete() {
+game.js:621:    for (const column of state.board) for (const c of column) if (c.progress < state.target) return false;
+game.js:625:  function loseLife(reason) {
+game.js:626:    if (state.mode !== 'play' || (state.invuln > 0 && reason !== 'edge')) return;
+game.js:627:    state.lives -= 1;
+game.js:628:    state.motion = null;
+game.js:629:    state.invuln = 1.15;
+game.js:630:    state.shake = 1;
+game.js:631:    state.flash = 1;
+game.js:632:    state.flashColor = reason === 'edge' ? palette.gold : palette.coral;
+game.js:633:    burstAtCell(state.player.x, state.player.y, state.flashColor, 18);
+game.js:634:    if (state.lives <= 0) {
+game.js:635:      state.mode = 'fail'; state.failTimer = 0;
+game.js:638:      state.player = { x: 0, y: 0 };
+game.js:643:    if (state.invuln > 0) return false;
+game.js:644:    if (state.level >= 2) {
+game.js:646:        const p = pathPosition(state.orbT - i * 0.72);
+game.js:647:        if (Math.round(p.xCell) === x && Math.round(p.yCell) === y && Math.abs((state.orbT - i * 0.72) - Math.round(state.orbT - i * 0.72)) < 0.42) return true;
+game.js:650:    if (state.snake && state.snake.head.x === x && state.snake.head.y === y) return true;
+game.js:651:    for (const g of state.gremlins) if (g.x === x && g.y === y) return true;
+game.js:656:    if (state.mode === 'fail') { restart(); return; }
+game.js:657:    if (state.mode === 'clear') { startLevel(state.level + 1); return; }
+game.js:658:    if (state.mode !== 'play' || state.motion || state.inputLock > 0) return;
+game.js:665:    state.hint = Math.min(state.hint, 1.5);
+game.js:666:    const from = { x: state.player.x, y: state.player.y };
+game.js:668:    if (!inBounds(to.x, to.y)) { loseLife('edge'); return; }
+game.js:669:    state.player = to;
+game.js:671:    state.motion = { from, to, time: 0, duration: 0.18 };
+game.js:672:    state.inputLock = 0.08;
+game.js:674:      state.motion.time = state.motion.duration;
+game.js:675:      loseLife('enemy');
+game.js:678:    if (boardComplete()) {
+game.js:679:      state.score += state.level * 100 + state.lives * 40;
+game.js:681:      state.mode = 'clear'; state.clearTimer = 0.9; state.motion = null;
+game.js:685:  function restart() {
+game.js:686:    state.score = 0;
+game.js:687:    state.lives = 3;
+game.js:688:    startLevel(1);
+game.js:691:  function chooseSnakeStep() {
+game.js:692:    const s = state.snake;
+game.js:695:    const dx = state.player.x - s.head.x;
+game.js:696:    const dy = state.player.y - s.head.y;
+game.js:707:        if (x === state.player.x && y === state.player.y) loseLife('enemy');
+game.js:714:    if (state.level >= 2) {
+game.js:715:      state.orbT += dt * (0.62 + state.level * 0.04);
+game.js:716:      if (state.disc) {
+game.js:717:        const d = state.disc;
+game.js:721:            const edge = Math.floor(state.rng() * 4);
+game.js:722:            const last = state.size - 1;
+game.js:733:          if (d.progress < 0.42 && state.player.x === d.start.x && state.player.y === d.start.y) loseLife('enemy');
+game.js:734:          if (d.progress >= 1) { d.active = false; d.timer = 2.4 + state.rng() * 2.2; }
+game.js:738:    if (state.snake) {
+game.js:739:      state.snake.moveTimer -= dt;
+game.js:740:      if (state.snake.moveTimer <= 0) {
+game.js:741:        state.snake.moveTimer = state.snake.moveEvery;
+game.js:742:        chooseSnakeStep();
+game.js:745:    for (const g of state.gremlins) {
+game.js:748:        g.timer = 1.1 + state.rng() * 1.4;
+game.js:750:        const d = choices[Math.floor(state.rng() * choices.length)];
+game.js:753:        if (c && c.progress > 0 && !(g.x === state.player.x && g.y === state.player.y)) {
+game.js:756:        if (g.x === state.player.x && g.y === state.player.y) loseLife('enemy');
+game.js:759:    if (state.level >= 4) {
+game.js:760:      state.revertTimer += dt;
+game.js:761:      const interval = Math.max(1.7, 4.8 - state.level * 0.22);
+game.js:762:      if (state.revertTimer >= interval) {
+game.js:763:        state.revertTimer = 0;
+game.js:765:        for (const column of state.board) for (const c of column) {
+game.js:766:          if (c.progress > 0 && !(c.x === state.player.x && c.y === state.player.y)) options.push(c);
+game.js:769:          const c = options[Math.floor(state.rng() * options.length)];
+game.js:777:    state.elapsed += dt;
+game.js:778:    if (state.hint > 0) state.hint -= dt;
+game.js:779:    state.shake = Math.max(0, state.shake - dt * 3.8);
+game.js:780:    state.flash = Math.max(0, state.flash - dt * 2.8);
+game.js:781:    state.invuln = Math.max(0, state.invuln - dt);
+game.js:782:    state.inputLock = Math.max(0, state.inputLock - dt);
+game.js:784:    for (const column of state.board) for (const c of column) {
+game.js:788:    if (state.mode === 'play') {
+game.js:789:      if (state.motion) {
+game.js:790:        state.motion.time += dt;
+game.js:791:        if (state.motion.time >= state.motion.duration) state.motion = null;
+game.js:794:    } else if (state.mode === 'clear') {
+game.js:795:      state.clearTimer -= dt;
+game.js:796:      if (state.clearTimer <= 0) startLevel(state.level + 1);
+game.js:801:    if (!state.lastTime) state.lastTime = now;
+game.js:802:    const dt = Math.min(0.034, Math.max(0, (now - state.lastTime) / 1000));
+game.js:803:    state.lastTime = now;
+game.js:806:    requestAnimationFrame(frame);
+game.js:822:  function pointerDown(event) {
+game.js:826:    pointerStart = { x, y, control: hitControl(x, y), id: event.pointerId };
+game.js:827:    if (canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId);
+game.js:830:  function pointerUp(event) {
+game.js:832:    if (!pointerStart) return;
+game.js:835:    const start = pointerStart; pointerStart = null;
+game.js:840:    else if (state.mode === 'fail') restart();
+game.js:841:    else if (state.mode === 'clear') startLevel(state.level + 1);
+game.js:844:  function keyboardMove() {
+game.js:859:      event.preventDefault(); pressed[k] = true; keyboardMove(); return;
+game.js:865:      event.preventDefault(); if (state.mode !== 'play') restart();
+game.js:872:  canvas.addEventListener('pointerdown', pointerDown, { passive: false });
+game.js:873:  canvas.addEventListener('pointerup', pointerUp, { passive: false });
+game.js:874:  canvas.addEventListener('pointercancel', () => { pointerStart = null; }, { passive: true });
+game.js:876:  window.addEventListener('keydown', keyDown, { passive: false });
+game.js:877:  window.addEventListener('keyup', keyUp, { passive: true });
+game.js:880:  startLevel(1);
+game.js:881:  requestAnimationFrame(frame);
+
+codex
+The source is a compact single-file game with no test/build harness. The first concrete risk is already visible: pointer identity is stored but not enforced, and restart does not reset the global input state. I’m now validating those paths and checking for less obvious state/procgen failures.
+exec
+/bin/bash -lc 'node --version && npm --version 2>/dev/null || true' in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 260ms:
+10.9.0
+
+exec
+/bin/bash -lc 'node --check game.js' in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+2026-08-06T00:30:40.443265Z ERROR codex_models_manager::manager: failed to renew cache TTL: missing field `supports_reasoning_summaries` at line 87 column 5
+exec
+/bin/bash -lc "node -e 'const fs=require(\"fs\"),vm=require(\"vm\");const source=fs.readFileSync(\"game.js\",\"utf8\").replace(\"\\n})();\",\"\\nwindow.__cube={state,hop,restart,startLevel,edgePath,pathPosition,update,pointerDown,pointerUp,keyDown,keyUp,pointerStartRef:()=>pointerStart,pressed};\\n})();\");const ch=Object.create(null),wh=Object.create(null),grad=()=>({addColorStop(){}}),ctx=new Proxy({}, {get(t,p){if(p===\"createLinearGradient\"||p===\"createRadialGradient\")return grad;if(p===\"measureText\")return()=>({width:0});if("'!(p in t))t[p]=()=>{};return t[p];}}),canvas={width:0,height:0,style:{},getContext(){return ctx},getBoundingClientRect(){return {left:0,top:0}},setPointerCapture(){},addEventListener(t,f){(ch[t]??=[]).push(f)}};const ls={getItem(){return null},setItem(){}};let raf;const wo={innerWidth:390,innerHeight:700,devicePixelRatio:1,addEventListener(t,f){(wh[t]??=[]).push(f)},requestAnimationFrame(f){raf=f}};const cx=vm.createContext({window:wo,document:{getElementById(){return canvas}},canvas,localStorage:ls,requestAnimationFrame(f){raf=f},Math,Number,String,Object,Array,Date,console});vm.runInContext(source,cx);const g=cx.window.__cube;const emit=(m,t,e)=>(m[t]||[]).forEach(f=>f(e));const ptr=(t,id,x,y)=>emit(ch,t,{pointerId:id,clientX:x,clientY:y,preventDefault(){}});const key=(t,k)=>emit(wh,t,{key:k,preventDefault(){}});console.log("initial",{mode:g.state.mode,level:g.state.level,size:g.state.size,lives:g.state.lives,board:g.state.board.length*g.state.board[0].length});ptr("pointerdown",1,100,100);ptr("pointerdown",2,200,200);ptr("pointerup",1,100,100);console.log("after-multipointer",{lives:g.state.lives,player:g.state.player,pointer:g.pointerStartRef()});g.hop("up-left");g.hop("up-left");g.hop("up-left");console.log("forced-fail",{mode:g.state.mode,lives:g.state.lives});key("keydown","ArrowDown");key("keydown","ArrowRight");console.log("after-restart-keydown",{mode:g.state.mode,level:g.state.level,pressed:Object.keys(g.pressed),score:g.state.score});key("keydown","ArrowDown");console.log("after-held-repeat",{player:g.state.player,score:g.state.score,pressed:Object.keys(g.pressed)});const c2=vm.createContext({window:{...wo,addEventListener(){},requestAnimationFrame(){}},document:{getElementById(){return canvas}},canvas,localStorage:{getItem(){return "1e309"},setItem(){}},requestAnimationFrame(){},Math,Number,String,Object,Array,Date,console});vm.runInContext(source,c2);console.log("nonfinite-best",c2.window.__cube.state.best);const bad=[];for(let level=1;level<=30;level++){g.startLevel(level);const cells=g.edgePath(),keys=cells.map(p=>p.x+","+p.y);if(new Set(keys).size!==keys.length||cells.some(p=>p.x<0||p.y<0||p.x>=g.state.size||p.y>=g.state.size))bad.push({level,size:g.state.size,path:keys})}console.log("procgen-invariants",{bad:bad.length,levels:30,final:{size:g.state.size,path:g.edgePath().length}});'"'" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+initial { mode: 'play', level: 1, size: 3, lives: 3, board: 9 }
+after-multipointer { lives: 2, player: { x: 0, y: 0 }, pointer: null }
+forced-fail { mode: 'play', lives: 3 }
+after-restart-keydown {
+  mode: 'play',
+  level: 1,
+  pressed: [ 'ArrowDown', 'ArrowRight' ],
+  score: 26
+}
+after-held-repeat {
+  player: { x: 0, y: 1 },
+  score: 26,
+  pressed: [ 'ArrowDown', 'ArrowRight' ]
+}
+nonfinite-best Infinity
+procgen-invariants { bad: 0, levels: 30, final: { size: 6, path: 20 } }
+
+exec
+/bin/bash -lc "node -e 'function rng(seed){let v=seed>>>0;return()=>{v=(v*1664525+1013904223)>>>0;return v/4294967296}}for(let l=1;l<=12;l++){const seed=(0x4c415354"'^Math.imul(l,1103515245))>>>0;const r=rng(seed);const size=Math.min(6,3+Math.floor((l-1)/2));for(let i=0;i<size*size;i++)r();if(l>=4){let c=Math.min(2,1+Math.floor((l-4)/3));for(let i=0;i<c*2;i++)r()}const timer=2.8+r()*2;const edge=Math.floor(r()*4);console.log(l,{seed,size,timer,edge})}'"'" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+1 { seed: 226958649, size: 3, timer: 2.929800064023584, edge: 3 }
+2 { seed: 3486371726, size: 3, timer: 3.188834428042173, edge: 2 }
+3 { seed: 2299770899, size: 4, timer: 3.1507538018748162, edge: 1 }
+4 { seed: 1264085728, size: 4, timer: 3.5353694257326422, edge: 2 }
+5 { seed: 77519733, size: 5, timer: 3.9282437820918856, edge: 0 }
+6 { seed: 3336865242, size: 5, timer: 3.725544845871627, edge: 2 }
+7 { seed: 2150463407, size: 6, timer: 3.517301701195538, edge: 2 }
+8 { seed: 1114841148, size: 6, timer: 4.330209728982299, edge: 1 }
+9 { seed: 62493313, size: 6, timer: 3.535948288813233, edge: 1 }
+10 { seed: 3724428054, size: 6, timer: 4.408856903854757, edge: 2 }
+11 { seed: 2680425979, size: 6, timer: 3.3505674062296746, edge: 3 }
+12 { seed: 1493892680, size: 6, timer: 4.594020853471011, edge: 2 }
+
+exec
+/bin/bash -lc "node -e 'const fs=require(\"fs\"),vm=require(\"vm\");const src=fs.readFileSync(\"game.js\",\"utf8\").replace(\"\\n})();\",\"\\nwindow.g={state,hop,pressed,pointerStart:()=>pointerStart};\\n})();\");const C=Object.create(null),W=Object.create(null),ctx=new Proxy({}, {get(t,p){if(p===\"createLinearGradient\"||p===\"createRadialGradient\")return()=>({addColorStop(){}});if("'!(p in t))t[p]=()=>{};return t[p]}}),canvas={style:{},getContext(){return ctx},getBoundingClientRect(){return {left:0,top:0}},setPointerCapture(){},addEventListener(t,f){(C[t]??=[]).push(f)}};let raf;const win={innerWidth:390,innerHeight:700,devicePixelRatio:1,addEventListener(t,f){(W[t]??=[]).push(f)}};const cx=vm.createContext({window:win,document:{getElementById(){return canvas}},localStorage:{getItem(){return null},setItem(){}},requestAnimationFrame(f){raf=f},Math,Number,String,Object,Array,console});vm.runInContext(src,cx);const g=win.g,emit=(m,t,e)=>(m[t]||[]).forEach(f=>f(e)),key=(t,k)=>emit(W,t,{key:k,preventDefault(){}});g.hop("up-left");g.hop("up-left");console.log("fail-before-restart",g.state.mode,g.state.lives);key("keydown","ArrowDown");key("keydown","ArrowRight");console.log("after-fail-restart",{mode:g.state.mode,lives:g.state.lives,score:g.state.score,pressed:Object.keys(g.pressed),player:g.state.player});key("keydown","ArrowDown");console.log("after-held-key-repeat",{player:g.state.player,score:g.state.score,pressed:Object.keys(g.pressed)});console.log("blur-handler-count",(W.blur||[]).length,"pointercancel-handler-count",(C.pointercancel||[]).length);'"'" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+fail-before-restart play 1
+after-fail-restart {
+  mode: 'play',
+  lives: 1,
+  score: 26,
+  pressed: [ 'ArrowDown', 'ArrowRight' ],
+  player: { x: 0, y: 1 }
+}
+after-held-key-repeat {
+  player: { x: 0, y: 1 },
+  score: 26,
+  pressed: [ 'ArrowDown', 'ArrowRight' ]
+}
+blur-handler-count 0 pointercancel-handler-count 1
+
+exec
+/bin/bash -lc "node -e 'const fs=require(\"fs\"),vm=require(\"vm\");const src=fs.readFileSync(\"game.js\",\"utf8\").replace(\"\\n})();\",\"\\nwindow.g={state,hop,pressed};\\n})();\");const E=Object.create(null),ctx=new Proxy({}, {get(t,p){if(p===\"createLinearGradient\"||p===\"createRadialGradient\")return()=>({addColorStop(){}});if("'!(p in t))t[p]=()=>{};return t[p]}}),canvas={style:{},getContext(){return ctx},getBoundingClientRect(){return {left:0,top:0}},setPointerCapture(){},addEventListener(t,f){(E[t]??=[]).push(f)}};const win={innerWidth:390,innerHeight:700,devicePixelRatio:1,addEventListener(t,f){(E[t]??=[]).push(f)}};const cx=vm.createContext({window:win,document:{getElementById(){return canvas}},localStorage:{getItem(){return null},setItem(){}},requestAnimationFrame(){},Math,Number,String,Object,Array,console});vm.runInContext(src,cx);const g=win.g,emit=(t,e)=>(E[t]||[]).forEach(f=>f(e));const key=k=>emit("keydown",{key:k,preventDefault(){}});g.hop("up-left");g.hop("up-left");g.hop("up-left");console.log("failed",{mode:g.state.mode,lives:g.state.lives,score:g.state.score});key("ArrowDown");key("ArrowRight");console.log("restart-via-held-pair",{mode:g.state.mode,lives:g.state.lives,score:g.state.score,pressed:Object.keys(g.pressed),player:g.state.player});key("ArrowDown");console.log("next-repeat",{score:g.state.score,player:g.state.player,pressed:Object.keys(g.pressed)});'"'" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+failed { mode: 'fail', lives: 0, score: 0 }
+restart-via-held-pair {
+  mode: 'play',
+  lives: 3,
+  score: 0,
+  pressed: [ 'ArrowDown', 'ArrowRight' ],
+  player: { x: 0, y: 0 }
+}
+next-repeat {
+  score: 26,
+  player: { x: 0, y: 1 },
+  pressed: [ 'ArrowDown', 'ArrowRight' ]
+}
+
+exec
+/bin/bash -lc "node -e 'const fs=require(\"fs\"),vm=require(\"vm\");const src=fs.readFileSync(\"game.js\",\"utf8\");let raf;const target={arcTo(...a){if(a[4]<0)throw new Error(\"IndexSizeError: negative radius\")}};const ctx=new Proxy(target,{get(t,p){if(p===\"createLinearGradient\"||p===\"createRadialGradient\")return()=>({addColorStop(){}});if("'!(p in t))t[p]=()=>{};return t[p]}}),canvas={style:{},getContext(){return ctx},getBoundingClientRect(){return {left:0,top:0}},setPointerCapture(){},addEventListener(){}};const win={innerWidth:50,innerHeight:700,devicePixelRatio:1,addEventListener(){}};const cx=vm.createContext({window:win,document:{getElementById(){return canvas}},localStorage:{getItem(){return null},setItem(){}},requestAnimationFrame(f){raf=f},Math,Number,String,Object,Array,console});vm.runInContext(src,cx);try{raf(16);console.log("narrow-render","no throw")}catch(e){console.log("narrow-render",e.message)}'"'" in /Users/lucille/greenguard-usa-web/play/cube-cascade
+ succeeded in 0ms:
+narrow-render IndexSizeError: negative radius
+
+codex
+Focused runtime probes confirmed the two high-risk input failures: a second pointer can overwrite the first gesture and make a stationary pointer-up consume a life, and restarting from the loss screen leaves held direction keys latched into the new run. The level edge path stayed unique/in-bounds through the capped sizes; the particle and snake collections are bounded, and the frame delta is clamped.
+Static audit and focused VM probes are complete; no source changes were made.
+  ✓ Inventory repo instructions and game source
+  ✓ Audit input, state machine, timing, storage, and procgen
+  ✓ Run focused checks/build/tests and trace edge cases
+  → Produce concise findings and one-line verdict
+  ✓ Inventory repo instructions and game source
+  ✓ Audit input, state machine, timing, storage, and procgen
+  ✓ Run focused checks/build/tests and trace edge cases
+  ✓ Produce concise findings and one-line verdict
+codex
+MAJOR/high game.js:822-842 — `pointerStart.id` is never checked; multi-pointer races let one pointer’s release trigger another pointer’s gesture and consume lives.
+
+MAJOR/high game.js:874 — `pointercancel` clears the global gesture for any pointer, including non-active pointers.
+
+MAJOR/high game.js:685-688 — Restart leaves `pressed`, `pointerStart`, and `inputLock` intact; held keys can immediately move the new run.
+
+MAJOR/high game.js:869-877 — No blur cleanup leaves directional keys latched after focus loss, enabling unintended hops on refocus.
+
+MAJOR/medium game.js:642-648 — Orb collisions are checked only during hops, so waiting stationary lets the moving orb chain pass harmlessly.
+
+MINOR/high game.js:37-44 — Non-finite stored scores such as `Infinity` are accepted, poisoning the best-score display and preventing future updates.
+
+MINOR/high game.js:491-496 — Viewports narrower than 80px produce a negative rounded-rect radius; Canvas `arcTo` can throw and kill rendering.
+
+MINOR/high game.js:759-770 — Reverting cubes remove progress without costing a life, contrary to `NOTES.md:4`.
+
+MINOR/medium game.js:335-347,646-648 — Negative orb-tail positions are normalized for drawing but not collision indexing, missing seam collisions early in a level.
+
+Delta-time clamping, procgen bounds, and collection caps are clean; no rotate overlay exists.
+
+VERDICT: NOT CLEAN — 9 findings, including 4 major input/state/enemy-logic issues.
+tokens used
+107,255
+MAJOR/high game.js:822-842 — `pointerStart.id` is never checked; multi-pointer races let one pointer’s release trigger another pointer’s gesture and consume lives.
+
+MAJOR/high game.js:874 — `pointercancel` clears the global gesture for any pointer, including non-active pointers.
+
+MAJOR/high game.js:685-688 — Restart leaves `pressed`, `pointerStart`, and `inputLock` intact; held keys can immediately move the new run.
+
+MAJOR/high game.js:869-877 — No blur cleanup leaves directional keys latched after focus loss, enabling unintended hops on refocus.
+
+MAJOR/medium game.js:642-648 — Orb collisions are checked only during hops, so waiting stationary lets the moving orb chain pass harmlessly.
+
+MINOR/high game.js:37-44 — Non-finite stored scores such as `Infinity` are accepted, poisoning the best-score display and preventing future updates.
+
+MINOR/high game.js:491-496 — Viewports narrower than 80px produce a negative rounded-rect radius; Canvas `arcTo` can throw and kill rendering.
+
+MINOR/high game.js:759-770 — Reverting cubes remove progress without costing a life, contrary to `NOTES.md:4`.
+
+MINOR/medium game.js:335-347,646-648 — Negative orb-tail positions are normalized for drawing but not collision indexing, missing seam collisions early in a level.
+
+Delta-time clamping, procgen bounds, and collection caps are clean; no rotate overlay exists.
+
+VERDICT: NOT CLEAN — 9 findings, including 4 major input/state/enemy-logic issues.

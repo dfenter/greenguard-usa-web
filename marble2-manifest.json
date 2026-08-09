@@ -1,0 +1,25 @@
+{
+  "name": "Marble Mania 2",
+  "short_name": "Marble 2",
+  "description": "Two 18-course campaigns of marble rolling: springs, cannons, mazes, switch gates and key doors.",
+  "start_url": "/marble2",
+  "scope": "/marble2",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070b16",
+  "theme_color": "#070b16",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23070b16'/><circle cx='96' cy='96' r='58' fill='%237a4fc8'/><circle cx='78' cy='76' r='20' fill='%23c8b0ff'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%23070b16'/><circle cx='256' cy='256' r='155' fill='%237a4fc8'/><circle cx='208' cy='202' r='54' fill='%23c8b0ff'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

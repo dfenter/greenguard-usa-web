@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/dune-runner/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#191b1a">
+  <title>Dune Runner</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Trebuchet MS", system-ui, sans-serif; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #171a18; }
+    body { overscroll-behavior: none; }
+    button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+    #app { position: relative; width: 100%; height: 100%; overflow: hidden; touch-action: none; user-select: none; }
+    #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #hud { position: absolute; inset: 0 0 auto; height: 88px; display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 18px; pointer-events: none; }
+    .hud-card { min-width: 125px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(22,25,23,.74); box-shadow: 0 7px 20px rgba(0,0,0,.18); backdrop-filter: blur(4px); }
+    .eyebrow { color: #b7c2b3; font-size: 9px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+    .value { margin-top: 2px; color: #f4e5bf; font-size: 21px; line-height: 1; font-weight: 900; letter-spacing: .03em; }
+    #brand { color: #f4e5bf; font-size: 18px; letter-spacing: .14em; font-weight: 900; text-shadow: 0 2px 0 rgba(0,0,0,.22); }
+    #brand small { display: block; margin-top: 3px; color: #8f9e8b; font-size: 9px; letter-spacing: .26em; }
+    #hud-center { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); width: min(310px, 42vw); text-align: center; }
+    #compass { position: relative; height: 38px; overflow: hidden; border: 1px solid rgba(255,255,255,.14); border-radius: 20px; background: rgba(22,25,23,.72); }
+    #compass span { position: absolute; top: 7px; color: #8f9e8b; font-size: 9px; font-weight: 800; letter-spacing: .13em; }
+    #compass .c-left { left: 12px; } #compass .c-right { right: 12px; }
+    #compass-arrow { position: absolute; left: calc(50% - 7px); top: 8px; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 19px solid #f1b84b; transform-origin: 7px 11px; transition: transform .1s linear; filter: drop-shadow(0 1px 1px #111); }
+    #compass-label { margin-top: 4px; color: #f4e5bf; font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+    #end-run { pointer-events: auto; min-width: 86px; min-height: 48px; border: 1px solid rgba(255,255,255,.2); border-radius: 11px; background: rgba(22,25,23,.76); color: #d4ded0; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+    #end-run:active { transform: translateY(1px); background: #384338; }
+    #fuel-wrap { position: absolute; left: 50%; top: 65px; transform: translateX(-50%); display: flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 10px; background: rgba(22,25,23,.62); }
+    #fuel-wrap .eyebrow { font-size: 8px; } #fuel-bar { width: 84px; height: 6px; overflow: hidden; border-radius: 5px; background: rgba(255,255,255,.15); }
+    #fuel-fill { width: 100%; height: 100%; border-radius: inherit; background: #e7c66c; transition: width .1s linear, background .2s; }
+    #raid-readout { margin-top: 5px; color: #d8e1d2; font-size: 11px; font-weight: 900; letter-spacing: .1em; text-shadow: 0 1px 2px #171a18; }
+    #hint { position: absolute; left: 50%; top: 102px; transform: translateX(-50%); padding: 7px 12px; border-radius: 9px; background: rgba(22,25,23,.62); color: #ecdfbe; font-size: 10px; font-weight: 800; letter-spacing: .1em; white-space: nowrap; opacity: 1; transition: opacity .8s; pointer-events: none; }
+    #hint.faded { opacity: 0; }
+    #status { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); min-height: 24px; padding: 5px 11px; border-radius: 8px; background: rgba(22,25,23,.62); color: #f5e2b4; font-size: 11px; font-weight: 900; letter-spacing: .08em; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    #status.show { opacity: 1; }
+    #controls { position: absolute; inset: auto 0 0; height: 172px; pointer-events: none; }
+    #steer-zone { position: absolute; left: 18px; bottom: 18px; width: 132px; height: 132px; border: 2px solid rgba(246,231,192,.38); border-radius: 50%; background: radial-gradient(circle at 50% 48%, rgba(239,211,149,.18) 0 33%, rgba(22,25,23,.24) 34% 100%); box-shadow: inset 0 0 0 10px rgba(22,25,23,.12), 0 5px 22px rgba(0,0,0,.16); pointer-events: auto; }
+    #steer-zone::before, #steer-zone::after { content: ""; position: absolute; left: 50%; top: 17px; width: 1px; height: 98px; background: rgba(246,231,192,.18); transform: translateX(-50%); }
+    #steer-zone::after { transform: translateX(-50%) rotate(90deg); }
+    #steer-knob { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; border: 2px solid #f5d386; border-radius: 50%; background: rgba(50,56,48,.9); box-shadow: 0 3px 10px rgba(0,0,0,.3); transform: translate(-50%,-50%); transition: transform .08s; }
+    #steer-label { position: absolute; left: 50%; bottom: -19px; transform: translateX(-50%); color: #f0dfb8; font-size: 9px; font-weight: 900; letter-spacing: .16em; white-space: nowrap; opacity: .82; }
+    #button-stack { position: absolute; right: 18px; bottom: 18px; display: flex; align-items: flex-end; gap: 12px; pointer-events: auto; }
+    .drive-button { min-width: 108px; min-height: 66px; padding: 8px 13px; border: 2px solid rgba(246,231,192,.42); border-radius: 14px; background: rgba(47,57,45,.92); color: #f5e5bd; box-shadow: 0 5px 18px rgba(0,0,0,.2); font-size: 12px; font-weight: 900; letter-spacing: .14em; }
+    .drive-button small { display: block; margin-top: 4px; color: #aab9a7; font-size: 8px; letter-spacing: .12em; }
+    #throttle { min-height: 86px; background: #3b5740; border-color: #a6ca87; }
+    #throttle.pressed { background: #5d7f50; transform: translateY(2px); box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+    #brake { min-width: 86px; min-height: 58px; background: rgba(81,55,44,.9); border-color: rgba(232,170,117,.5); }
+    #brake.pressed { background: #9b5d45; transform: translateY(2px); }
+    #rotate { position: absolute; z-index: 8; inset: 0; display: grid; place-items: center; background: rgba(16,20,18,.78); pointer-events: none; }
+    #rotate .rotate-card { width: min(330px, 84vw); padding: 26px 24px; border: 1px solid rgba(246,231,192,.25); border-radius: 18px; background: rgba(31,38,31,.94); text-align: center; box-shadow: 0 18px 60px rgba(0,0,0,.35); }
+    #rotate .phone { margin: 0 auto 15px; width: 38px; height: 62px; border: 3px solid #edc46e; border-radius: 9px; transform: rotate(90deg); }
+    #rotate h2 { margin: 0 0 7px; color: #f4e5bf; font-size: 22px; letter-spacing: .08em; }
+    #rotate p { margin: 0; color: #aebaaa; font-size: 12px; line-height: 1.45; }
+    #message { position: absolute; z-index: 7; inset: 0; display: grid; place-items: center; background: rgba(18,23,19,.42); pointer-events: auto; }
+    #message.hidden, #rotate.hidden { display: none; }
+    #message-card { width: min(390px, calc(100vw - 34px)); padding: 26px 24px 22px; border: 1px solid rgba(244,222,170,.27); border-radius: 19px; background: linear-gradient(145deg, rgba(45,57,43,.98), rgba(26,32,27,.98)); box-shadow: 0 20px 70px rgba(0,0,0,.4); text-align: center; }
+    #message-kicker { margin: 0 0 7px; color: #edc66e; font-size: 10px; font-weight: 900; letter-spacing: .22em; }
+    #message-title { margin: 0; color: #f5e5bd; font-size: clamp(28px, 7vw, 42px); line-height: 1; letter-spacing: .05em; }
+    #message-copy { min-height: 35px; margin: 13px 0 19px; color: #bccabb; font-size: 13px; line-height: 1.45; }
+    .message-button { width: 100%; min-height: 50px; margin-top: 7px; border-radius: 10px; background: #d49f48; color: #20251f; font-size: 11px; font-weight: 900; letter-spacing: .14em; }
+    .message-button.secondary { background: rgba(255,255,255,.1); color: #e3e4cd; }
+    .message-button:active { transform: translateY(1px); }
+    @media (orientation: portrait) { #hud { padding: 10px 11px; } #hud-center { top: 10px; width: 42vw; } #hint { top: 96px; } #controls { height: 155px; } #steer-zone { left: 12px; bottom: 12px; width: 118px; height: 118px; } #button-stack { right: 12px; bottom: 12px; gap: 8px; } .drive-button { min-width: 92px; } }
+    @media (max-height: 430px) { #hud { height: 68px; padding: 9px 13px; } #brand { font-size: 15px; } #brand small { display: none; } .hud-card { min-width: 104px; padding: 7px 9px; } .value { font-size: 17px; } #hud-center { top: 8px; } #fuel-wrap { top: 54px; } #hint { top: 75px; } #controls { height: 138px; } #steer-zone { width: 106px; height: 106px; bottom: 12px; } #steer-zone::before { height: 78px; top: 13px; } #button-stack { bottom: 12px; } .drive-button { min-height: 56px; } #throttle { min-height: 72px; } #status { bottom: 16px; } }
+  </style>
+</head>
+<body>
+  <main id="app">
+    <canvas id="game" aria-label="Dune Runner game"></canvas>
+    <section id="hud" aria-hidden="true">
+      <div>
+        <div id="brand">DUNE RUNNER<small>OPEN DESERT // SESSION</small></div>
+        <div id="raid-readout">RAID 1/5 · 0/5 FLAGS</div>
+      </div>
+      <div id="hud-center">
+        <div id="compass"><span class="c-left">W</span><span class="c-right">E</span><i id="compass-arrow"></i></div>
+        <div id="compass-label">TARGET // 000°</div>
+      </div>
+      <div class="hud-card"><div class="eyebrow">SCORE · BEST</div><div class="value"><span id="score">0</span> <span style="color:#899789;font-size:13px">/</span> <span id="best">0</span></div></div>
+      <div id="fuel-wrap"><span class="eyebrow">FUEL</span><div id="fuel-bar"><div id="fuel-fill"></div></div></div>
+      <button id="end-run" type="button">END RUN</button>
+    </section>
+    <div id="hint">DRAG LEFT TO STEER · HOLD THROTTLE · FIND THE FLAGS</div>
+    <div id="status"></div>
+    <section id="controls" aria-label="Driving controls">
+      <div id="steer-zone"><div id="steer-knob"></div><span id="steer-label">DRAG TO STEER</span></div>
+      <div id="button-stack">
+        <button id="brake" class="drive-button" type="button">BRAKE<small>REVERSE DRAG</small></button>
+        <button id="throttle" class="drive-button" type="button">THROTTLE<small>HOLD TO GO</small></button>
+      </div>
+    </section>
+    <div id="rotate" class="hidden"><div class="rotate-card"><div class="phone"></div><h2>ROTATE YOUR PHONE</h2><p>Dune Runner needs a wide view for the desert.</p></div></div>
+    <div id="message" class="hidden"><div id="message-card"><p id="message-kicker"></p><h1 id="message-title"></h1><p id="message-copy"></p><button id="message-action" class="message-button" type="button"></button><button id="message-secondary" class="message-button secondary" type="button"></button></div></div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

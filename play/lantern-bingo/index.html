@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/lantern-bingo/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#0b1018">
+  <title>Lantern Bingo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="game-shell" aria-label="Lantern Bingo game">
+    <canvas id="game" aria-label="Lantern Bingo play area"></canvas>
+    <div id="orientation" class="screen-cover" hidden role="alert">
+      <div class="cover-card">
+        <div class="cover-lantern" aria-hidden="true"></div>
+        <p class="cover-kicker">LANTERN BINGO</p>
+        <h1>Turn your screen upright</h1>
+        <p>The room is paused until the lantern is tall again.</p>
+      </div>
+    </div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

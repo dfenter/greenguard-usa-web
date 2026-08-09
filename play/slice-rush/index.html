@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/slice-rush/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#101a24">
+  <title>Lantern &amp; Ladle — Slice Rush</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="game-shell" aria-label="Lantern and Ladle restaurant arcade game">
+    <canvas id="game" tabindex="0" aria-label="Play area. Tap prep, oven, and counter stations; drag plates to tables."></canvas>
+    <div id="audioGate" class="screen-gate" role="dialog" aria-modal="true">
+      <div class="gate-card">
+        <div class="gate-mark">L&amp;L</div>
+        <p class="eyebrow">A pocket restaurant rush</p>
+        <h1>Lantern<br><span>&amp; Ladle</span></h1>
+        <p class="gate-copy">Keep the room warm. Keep the line moving.</p>
+        <button id="openKitchen" type="button">Open the kitchen <span>↗</span></button>
+        <p class="gate-note">Tap once to wake the kitchen chime</p>
+      </div>
+    </div>
+    <div id="rotateOverlay" class="screen-gate rotate-gate" hidden role="status" aria-live="polite">
+      <div class="gate-card">
+        <div class="rotate-icon">↻</div>
+        <p class="eyebrow">Portrait kitchen only</p>
+        <h1>Turn your<br><span>phone upright</span></h1>
+        <p class="gate-copy">The rush is paused until the counter is tall again.</p>
+      </div>
+    </div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

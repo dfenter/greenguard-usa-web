@@ -1,0 +1,172 @@
+---
+interface Props {
+  /** true = transparent over the page hero until scrolled (no spacer rendered) */
+  overlay?: boolean;
+}
+const { overlay = false } = Astro.props;
+
+const links = [
+  { href: '/services', label: 'Services' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/results', label: 'Results' },
+  { href: '/shop', label: 'Shop' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/about', label: 'About' },
+  { href: '/faq', label: 'FAQ' },
+];
+---
+
+<header
+  id="site-nav"
+  class:list={[
+    'fixed top-0 left-0 right-0 z-50 transition-[background-color,box-shadow,border-color] duration-300',
+    overlay ? 'nav-overlay' : 'nav-solid',
+  ]}
+>
+  <div class="container-x flex items-center justify-between" style="height:72px;">
+    <a href="/" class="no-underline flex items-baseline gap-1.5" aria-label="GreenGuard USA home">
+      <span class="font-display text-ink" style="font-size:1.35rem;font-weight:520;letter-spacing:-0.01em;">GreenGuard</span>
+      <span class="font-sans text-[0.7rem] font-semibold uppercase" style="letter-spacing:0.18em;color:var(--brass-ink);">USA</span>
+    </a>
+
+    <nav class="hidden lg:flex items-center gap-7" aria-label="Primary">
+      {links.map((l) => (
+        <a href={l.href} class="text-ink/80 hover:text-pine text-[0.9rem] font-medium no-underline">
+          {l.label}
+        </a>
+      ))}
+      <a href="/book" class="btn btn-primary !py-2.5 !px-5 !text-[0.875rem] !min-h-[44px]">Book Free Assessment</a>
+    </nav>
+
+    <button
+      id="nav-toggle"
+      type="button"
+      aria-label="Open menu"
+      aria-expanded="false"
+      aria-controls="nav-sheet"
+      class="lg:hidden flex flex-col justify-center items-center gap-[5px] w-11 h-11 -mr-2"
+    >
+      <span class="block h-px w-6 bg-ink transition-transform"></span>
+      <span class="block h-px w-6 bg-ink"></span>
+      <span class="block h-px w-6 bg-ink transition-transform"></span>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile sheet (outside header so backdrop-filter doesn't trap it) -->
+<div id="nav-scrim" class="fixed inset-0 z-[59] bg-ink/30 opacity-0 pointer-events-none transition-opacity duration-300 lg:hidden"></div>
+<div
+  id="nav-sheet"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Menu"
+  inert
+  class="fixed top-0 right-0 z-[60] h-full w-[min(22rem,88vw)] bg-ivory translate-x-full transition-transform duration-300 lg:hidden flex flex-col overflow-y-auto"
+  style="box-shadow: -8px 0 48px rgba(20,32,26,.18); border-left: 1px solid var(--hairline);"
+>
+  <div class="flex items-center justify-between px-6" style="height:72px;">
+    <span class="eyebrow eyebrow--plain">Menu</span>
+    <button
+      id="nav-close"
+      type="button"
+      aria-label="Close menu"
+      class="w-11 h-11 -mr-2 flex items-center justify-center text-ink/70 hover:text-ink text-2xl leading-none"
+    >&#x2715;</button>
+  </div>
+  <nav class="flex flex-col px-6 pb-8" aria-label="Mobile">
+    {links.map((l) => (
+      <a
+        href={l.href}
+        class="font-display text-ink no-underline hairline-b py-3.5"
+        style="font-size:1.45rem;font-weight:400;"
+      >{l.label}</a>
+    ))}
+    <a href="/book" class="btn btn-primary mt-7 w-full">Book Free Assessment</a>
+    <a href="tel:5125604129" class="mt-4 text-center text-soft text-sm no-underline hover:text-pine">
+      or text/call 512-560-4129
+    </a>
+  </nav>
+</div>
+
+{!overlay && <div style="height:72px;" aria-hidden="true"></div>}
+
+<style>
+  /* Solid pages: ivory bar with hairline from the start */
+  .nav-solid {
+    background: rgba(250, 247, 241, 0.92);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  /* Overlay pages: transparent until scrolled */
+  .nav-overlay {
+    background: transparent;
+    border-bottom: 1px solid transparent;
+  }
+  .nav-overlay.is-scrolled {
+    background: rgba(250, 247, 241, 0.92);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--hairline);
+  }
+</style>
+
+<script>
+  const nav = document.getElementById('site-nav');
+  const toggle = document.getElementById('nav-toggle');
+  const sheet = document.getElementById('nav-sheet');
+  const scrim = document.getElementById('nav-scrim');
+  const closeBtn = document.getElementById('nav-close');
+
+  // Scrolled state for overlay nav
+  if (nav?.classList.contains('nav-overlay')) {
+    const onScroll = () => nav.classList.toggle('is-scrolled', window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  let lastFocus: HTMLElement | null = null;
+
+  const focusablesIn = (root: HTMLElement) =>
+    Array.from(root.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'))
+      .filter((el) => el.offsetParent !== null || el === document.activeElement);
+
+  function openSheet() {
+    lastFocus = document.activeElement as HTMLElement;
+    sheet?.removeAttribute('inert');
+    sheet?.classList.remove('translate-x-full');
+    scrim?.classList.remove('opacity-0', 'pointer-events-none');
+    toggle?.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+    (sheet?.querySelector('a, button') as HTMLElement | null)?.focus();
+  }
+  function closeSheet() {
+    sheet?.classList.add('translate-x-full');
+    sheet?.setAttribute('inert', '');
+    scrim?.classList.add('opacity-0', 'pointer-events-none');
+    toggle?.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    lastFocus?.focus();
+  }
+  const sheetOpen = () => sheet && !sheet.classList.contains('translate-x-full');
+
+  toggle?.addEventListener('click', openSheet);
+  closeBtn?.addEventListener('click', closeSheet);
+  scrim?.addEventListener('click', closeSheet);
+  sheet?.querySelectorAll('a').forEach((a) => a.addEventListener('click', closeSheet));
+  document.addEventListener('keydown', (e) => {
+    if (!sheetOpen()) return;
+    if (e.key === 'Escape') { closeSheet(); return; }
+    if (e.key === 'Tab' && sheet) {
+      // Trap Tab inside the open aria-modal sheet
+      const items = focusablesIn(sheet);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement as HTMLElement;
+      if (!sheet.contains(active)) { e.preventDefault(); first.focus(); return; }
+      if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+</script>

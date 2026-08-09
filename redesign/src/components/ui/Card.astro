@@ -1,0 +1,15 @@
+---
+/**
+ * Soft-shadow card. tone: 'ivory' (default, use on linen sections) |
+ * 'linen' (use on ivory sections) | 'night' (translucent, for dark sections).
+ */
+interface Props {
+  tone?: 'ivory' | 'linen' | 'night';
+  class?: string;
+}
+const { tone = 'ivory', class: className = '' } = Astro.props;
+---
+
+<div class:list={['card', tone === 'linen' && 'card--linen', tone === 'night' && 'card--night', className]}>
+  <slot />
+</div>

@@ -1,0 +1,329 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Card from '../components/ui/Card.astro';
+import Stars from '../components/ui/Stars.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+import LeadCapture from '../components/LeadCapture.astro';
+import { getCollection } from 'astro:content';
+import { getReviewMeta } from '../lib/reviews';
+
+export async function getStaticPaths() {
+  const areas = await getCollection('areas');
+  return areas.map((entry) => ({
+    params: { slug: `mosquito-control-${entry.slug}` },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const { title, city, county, description, localDetail } = entry.data;
+const meta = getReviewMeta();
+
+// Sibling city pages for internal cross-linking (topical clustering).
+const allAreas = await getCollection('areas');
+const nearbyAreas = allAreas
+  .filter((a) => a.slug !== entry.slug)
+  .sort((a, b) => a.data.city.localeCompare(b.data.city));
+
+// Local-conditions photo: rotate deterministically by slug hash so neighboring
+// city pages differ, weighted toward the non-skyline greenbelt shot for these
+// suburban pages (the downtown river skyline reads "Austin proper").
+const slugHash = [...entry.slug].reduce((h, c) => h + c.charCodeAt(0), 0);
+const heroPool = [
+  { src: '/images/austintrail.jpg', alt: `Shaded Central Texas greenbelt trail near ${city}, the kind of humid, vegetated habitat where mosquitoes rest` },
+  { src: '/images/austintrail.jpg', alt: `Shaded Central Texas greenbelt trail near ${city}, the kind of humid, vegetated habitat where mosquitoes rest` },
+  { src: '/images/austinnight.jpeg', alt: `Evening settling over the Austin area: peak mosquito hours for ${city} backyards` },
+  { src: '/images/austinrive.jpg', alt: `Tree-lined Central Texas waterway near ${city}, the kind of habitat where mosquitoes breed` },
+];
+const localPhoto = heroPool[slugHash % heroPool.length];
+
+// City-scoped Service schema so each area page carries its own local signal.
+const serviceSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  serviceType: 'Mosquito Control',
+  name: `Mosquito Control in ${city}, TX`,
+  description,
+  provider: {
+    '@type': 'LocalBusiness',
+    name: 'GreenGuard USA',
+    telephone: '+1-512-560-4129',
+    url: 'https://www.greenguard-usa.com',
+  },
+  areaServed: { '@type': 'City', name: city, addressRegion: 'TX' },
+  url: `https://www.greenguard-usa.com/mosquito-control-${entry.slug}`,
+};
+---
+
+<Base
+  title={`Mosquito Control ${city}, TX | GreenGuard USA: Pesticide-Free CO₂ Traps`}
+  description={`Professional CO₂ mosquito control in ${city}, TX. Pesticide-free, no contracts, all-electric fleet. Free property assessment. Call 512-560-4129.`}
+  canonical={`https://www.greenguard-usa.com/mosquito-control-${entry.slug}`}
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+
+  <!-- ============ AREA HERO ============ -->
+  <section class="bg-linen relative overflow-hidden" style="padding-top: clamp(3.5rem, 7vw, 6rem); padding-bottom: clamp(3.5rem, 7vw, 6rem);">
+    <!-- botanical line art, decorative -->
+    <svg
+      class="absolute pointer-events-none hidden lg:block"
+      style="right: -3rem; top: -4rem; width: 26rem; opacity: .35;"
+      viewBox="0 0 200 200" fill="none" stroke="var(--sage)" stroke-width="0.7" aria-hidden="true"
+    >
+      <path d="M100 190 C 100 130, 100 90, 100 20" />
+      <path d="M100 160 C 70 150, 50 130, 46 100" />
+      <path d="M100 160 C 130 150, 150 130, 154 100" />
+      <path d="M100 120 C 76 112, 62 98, 58 74" />
+      <path d="M100 120 C 124 112, 138 98, 142 74" />
+      <path d="M100 80 C 84 74, 74 64, 70 46" />
+      <path d="M100 80 C 116 74, 126 64, 130 46" />
+    </svg>
+    <div class="container-x relative">
+      <div class="max-w-3xl">
+        <Eyebrow>Serving {city}{county ? `, ${county}` : ''}</Eyebrow>
+        <h1 class="mt-5 text-ink" style="font-size: clamp(2.3rem, 5.2vw, 3.8rem); max-width: 18ch;">
+          {title}
+        </h1>
+        <p class="mt-6 text-soft" style="font-size: 1.1rem; max-width: 34rem; line-height: 1.75;">
+          {description}
+        </p>
+        <div class="flex flex-wrap items-center gap-4 mt-9">
+          <Btn href="/book">Book Free Assessment</Btn>
+          <Btn href="tel:5125604129" variant="ghost">Call (512) 560-4129</Btn>
+        </div>
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-3 mt-8">
+          <span class="inline-flex items-center gap-2.5">
+            <Stars rating={meta.averageRating} size={15} />
+            <span class="text-sm text-soft"><strong class="text-ink font-semibold">{meta.averageRating}</strong> on Google</span>
+          </span>
+          <span class="text-sm text-soft">Pesticide-free. No contracts.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRUST CHIPS ============ -->
+  <Section tight class="hairline-t hairline-b">
+    <ul class="flex flex-wrap justify-center gap-x-10 gap-y-4 list-none m-0 p-0">
+      {[
+        ['M4 12.5 9.5 18 20 6.5', '93% Proven bite reduction'],
+        ['M12 3c-4 4-7 6.5-7 10a7 7 0 0 0 14 0c0-3.5-3-6-7-10Z', 'Zero pesticides'],
+        ['M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z', '24/7 silent protection'],
+        ['M4 16 8 8h8l4 8M2 16h20M7 16a2 2 0 1 0 0 .01M17 16a2 2 0 1 0 0 .01', 'All-electric EV fleet'],
+      ].map(([d, label]) => (
+        <li class="inline-flex items-center gap-2.5 text-sm font-medium text-ink/80">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d={d} />
+          </svg>
+          {label}
+        </li>
+      ))}
+    </ul>
+  </Section>
+
+  <!-- ============ LOCAL CONDITIONS ============ -->
+  {localDetail && (
+    <Section>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+        <div class="lg:col-span-6 reveal">
+          <Eyebrow>Local Mosquito Conditions</Eyebrow>
+          <h2 class="font-display mt-4" style="font-size: clamp(1.8rem, 3.8vw, 2.7rem); font-weight: 400;">
+            Why {city} has serious mosquito pressure
+          </h2>
+          <p class="mt-5 text-soft" style="line-height: 1.8;">{localDetail}</p>
+        </div>
+        <div class="lg:col-span-6 reveal">
+          <div class="photo-frame relative" style="aspect-ratio: 4 / 3;">
+            <img
+              src={localPhoto.src}
+              alt={localPhoto.alt}
+              class="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(180deg, rgba(30,43,35,0) 55%, rgba(30,43,35,.28) 100%);"></div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  )}
+
+  <!-- ============ WHY GREENGUARD ============ -->
+  <Section variant="linen">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+      <div class="lg:col-span-5 reveal">
+        <Eyebrow>Why GreenGuard USA</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(1.8rem, 3.8vw, 2.7rem); font-weight: 400;">
+          A smarter solution for <em class="italic" style="color: var(--pine);">{city}</em> homeowners
+        </h2>
+        <p class="mt-5 text-soft" style="max-width: 28rem; line-height: 1.8;">
+          Conventional spray treatments use broad-spectrum insecticides that drift, coat foliage, and kill non-target insects including bees and beneficial predators. CO₂ trapping is fundamentally different. It targets only blood-seeking female mosquitoes using the same CO₂ signal they rely on to locate hosts. Nothing is released into your environment.
+        </p>
+      </div>
+      <div class="lg:col-span-7 reveal">
+        <Card tone="ivory" class="!p-8">
+          <ul class="space-y-4 list-none m-0 p-0">
+            {[
+              'Targets only blood-seeking female mosquitoes. Bees and butterflies are completely unaffected.',
+              'No spray drift onto native plants, garden beds, or vegetable gardens.',
+              'All-electric EV fleet delivery, zero emissions to your door.',
+              'Month-to-month service, no long-term contracts.',
+              'Professional placement consultation included at no cost.',
+            ].map((item) => (
+              <li class="flex gap-3 text-[0.97rem] text-ink">
+                <svg class="flex-none mt-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--pine)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 12.5 9.5 18 20 6.5" />
+                </svg>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ SERVICES IN THIS AREA ============ -->
+  <Section>
+    <div class="max-w-xl reveal">
+      <Eyebrow>Our Services</Eyebrow>
+      <h2 class="font-display mt-4" style="font-size: clamp(1.8rem, 3.8vw, 2.7rem); font-weight: 400;">
+        What we offer in {city}
+      </h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12" data-stagger>
+      <div class="reveal">
+        <Card tone="linen" class="h-full flex flex-col !p-8">
+          <p class="eyebrow eyebrow--plain !text-xs">CO2 Delivery</p>
+          <h3 class="font-display mt-3" style="font-size: 1.25rem;">CO2 Tank Delivery</h3>
+          <p class="text-sm text-soft mt-3 flex-1" style="line-height: 1.65;">
+            Monthly CO2 cylinder exchange delivered to your door by our all-electric fleet. We swap the empty, you never run dry. From $89.99/mo.
+          </p>
+          <div class="mt-6"><Btn href="/services" variant="ghost" class="!text-sm">Learn More</Btn></div>
+        </Card>
+      </div>
+      <div class="reveal">
+        <Card tone="linen" class="h-full flex flex-col !p-8 relative ring-brass">
+          <span class="absolute -top-3 left-8 text-[0.68rem] font-semibold uppercase rounded-full px-3 py-1" style="letter-spacing: 0.12em; background: var(--brass); color: #fff;">
+            Most popular
+          </span>
+          <p class="eyebrow eyebrow--plain !text-xs">Full Service</p>
+          <h3 class="font-display mt-3" style="font-size: 1.25rem;">Full-Service Trap Rental</h3>
+          <p class="text-sm text-soft mt-3 flex-1" style="line-height: 1.65;">
+            We own the trap, handle CO2, maintenance, and seasonal adjustments. The completely hands-off experience. From $159.99/mo.
+          </p>
+          <div class="mt-6"><Btn href="/traprental" class="!text-sm">See Rental Plans</Btn></div>
+        </Card>
+      </div>
+      <div class="reveal">
+        <Card tone="linen" class="h-full flex flex-col !p-8">
+          <p class="eyebrow eyebrow--plain !text-xs">Consultation</p>
+          <h3 class="font-display mt-3" style="font-size: 1.25rem;">Free Property Consultation</h3>
+          <p class="text-sm text-soft mt-3 flex-1" style="line-height: 1.65;">
+            We walk your property, map mosquito pressure zones, and design the right coverage plan. No cost, no obligation.
+          </p>
+          <div class="mt-6"><Btn href="/book" variant="ghost" class="!text-sm">Book Free Assessment</Btn></div>
+        </Card>
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ SERVICE AREA DETAIL ============ -->
+  <Section variant="linen">
+    <div class="mx-auto" style="max-width: 46rem;">
+      <Eyebrow>Service Area</Eyebrow>
+      <h2 class="font-display mt-4" style="font-size: clamp(1.8rem, 3.6vw, 2.5rem); font-weight: 400;">
+        Serving {city} and surrounding areas
+      </h2>
+      <div class="prose-area mt-6">
+        <Content />
+      </div>
+      <p class="text-sm text-soft mt-6">
+        Not sure if we cover your specific address? Call or text us at{' '}
+        <a href="tel:5125604129" class="underline" style="color: var(--pine);">512-560-4129</a>{' '}
+        and we will confirm service availability and schedule your free consultation.
+      </p>
+    </div>
+  </Section>
+
+  <!-- ============ RELATED GUIDE + NEARBY AREAS ============ -->
+  <Section>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+      <div class="lg:col-span-5 reveal">
+        <a href="/mosquito-control-austin-texas" class="block no-underline group">
+          <Card tone="linen" class="!p-7 transition-shadow group-hover:shadow-bloom">
+            <p class="eyebrow eyebrow--plain !text-xs">Complete Guide</p>
+            <p class="font-display mt-2 text-ink" style="font-size: 1.2rem;">Mosquito Control in Austin, TX: The Full Guide</p>
+            <p class="text-sm text-soft mt-2">Species, season length, treatment comparison, and costs for the greater Austin area.</p>
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold mt-4" style="color: var(--pine);">
+              Read the guide
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </span>
+          </Card>
+        </a>
+      </div>
+      <div class="lg:col-span-7 reveal">
+        <Eyebrow>Nearby Service Areas</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(1.5rem, 2.8vw, 2rem); font-weight: 400;">
+          We also serve communities near {city}
+        </h2>
+        <div class="flex flex-wrap gap-2.5 mt-6">
+          {nearbyAreas.map((a) => (
+            <a
+              href={`/mosquito-control-${a.slug}`}
+              class="no-underline text-sm font-medium rounded-full px-4 py-2 text-ink/75 hover:text-pine"
+              style="border: 1px solid rgba(30,43,35,.18); min-height: 40px; display: inline-flex; align-items: center;"
+            >
+              {a.data.city}
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </Section>
+
+  <CtaBand
+    title="Ready to reclaim your outdoor space?"
+    sub={`Book a complimentary consultation. We visit your ${city} property, assess mosquito pressure, and design a custom plan, at no cost and no obligation.`}
+    ctaLabel="Book Free Assessment"
+  />
+
+  <LeadCapture />
+
+  <style is:global>
+    .ring-brass { border-color: var(--brass) !important; }
+    /* Rendered markdown from the area collection */
+    .prose-area { font-size: 1rem; line-height: 1.8; color: rgba(30, 43, 35, 0.86); }
+    .prose-area > * + * { margin-top: 1.1em; }
+    .prose-area h2, .prose-area h3 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 460;
+      color: var(--text);
+      margin-top: 1.8em;
+    }
+    .prose-area h2 { font-size: 1.35rem; }
+    .prose-area h3 { font-size: 1.15rem; }
+    .prose-area strong { font-weight: 600; color: var(--text); }
+    .prose-area a { color: var(--pine); text-decoration: underline; text-underline-offset: 3px; }
+    .prose-area ul li {
+      position: relative;
+      padding-left: 1.6rem;
+      margin-bottom: 0.55em;
+      list-style: none;
+    }
+    .prose-area ul li::before {
+      content: '';
+      position: absolute;
+      left: 0.15rem;
+      top: 0.72em;
+      width: 0.85rem;
+      height: 1px;
+      background: var(--brass);
+    }
+  </style>
+</Base>

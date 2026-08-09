@@ -1,0 +1,203 @@
+---
+import Base from '../layouts/Base.astro';
+import Reviews from '../components/Reviews.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Card from '../components/ui/Card.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+import Faq from '../components/ui/Faq.astro';
+import Stars from '../components/ui/Stars.astro';
+import { getReviewMeta } from '../lib/reviews';
+
+const meta = getReviewMeta();
+
+const options = [
+  {
+    eyebrow: 'Trap Purchase & Install',
+    name: 'Trap Purchase & Install',
+    body: 'Buy your trap outright and we install it in the optimal location. Pair with our CO₂ delivery service to keep it running all season.',
+    details: ['Biogents or Mosqitter Grand available', 'Professional placement consultation', 'Full installation & app setup', 'Pairs with monthly CO₂ delivery'],
+    href: 'https://portal.greenguard-usa.com/quote/new',
+    cta: 'Quote Your Service',
+    featured: false,
+  },
+  {
+    eyebrow: 'Monthly CO₂ Delivery',
+    name: 'Monthly CO₂ Delivery',
+    body: 'We deliver full CO₂ tanks to your door on a monthly schedule and swap out the empty. Zero hauling, zero downtime.  Your trap keeps running at full efficacy all season long.',
+    details: ['Monthly tank exchange at your door', 'Customized to match your setup', 'All-electric EV fleet delivery', 'Next-day delivery available'],
+    href: '/co2delivery',
+    cta: 'Quote Your Service',
+    featured: false,
+  },
+  {
+    eyebrow: 'Full-Service Rental',
+    name: 'Full-Service Rental',
+    body: 'We own the trap, manage all consumables, and handle every service visit. CO₂, attractant refills, catch net replacement, seasonal adjustments, completely done for you.',
+    details: ['No equipment ownership required', 'CO₂ + attractant refills covered', 'Catch net & maintenance included', 'Seasonal adjustments & support'],
+    href: '/traprental',
+    cta: 'Quote Your Service',
+    featured: false,
+  },
+];
+
+const moments = [
+  ['01', 'Free Consultation', 'We assess your property, identify mosquito pressure zones, and recommend the right trap and service plan, at no cost.'],
+  ['02', 'Professional Install', 'We place your trap in the optimal location for maximum coverage and connect your CO₂ supply. Setup takes under an hour.'],
+  ['03', 'Monthly CO₂ Delivery', 'Our EV fleet delivers full CO₂ tanks to your door on your schedule. We swap the empty and you never think about it.'],
+  ['04', 'Enjoy Your Yard', 'Within days, fewer bites. Within 2–3 months, the breeding cycle breaks. Continuous protection all season long.'],
+];
+
+const faqs = [
+  { q: 'What does every GreenGuard USA plan include?', a: 'Every GreenGuard USA plan includes CO₂ delivery by our all-electric fleet. Choose how much you want us to manage.' },
+  { q: 'What is included with Trap Purchase & Install?', a: 'Buy your trap outright and we install it in the optimal location. Pair with our CO₂ delivery service to keep it running all season.' },
+  { q: 'What is included with Monthly CO₂ Delivery?', a: 'We deliver full CO₂ tanks to your door on a monthly schedule and swap out the empty. Zero hauling, zero downtime.  Your trap keeps running at full efficacy all season long.' },
+  { q: 'What is included with Full-Service Rental?', a: 'We own the trap, manage all consumables, and handle every service visit. CO₂, attractant refills, catch net replacement, seasonal adjustments, completely done for you.' },
+];
+---
+
+<Base
+  title="Mosquito Control Services Austin | GreenGuard USA"
+  description={`Pesticide-free CO₂ mosquito traps and EV-fleet delivery in Austin. Two trap options, monthly plans from $89.99, ${meta.totalReviews} 5-star Google reviews. No long-term contracts.`}
+>
+  <section class="bg-ivory relative overflow-hidden" style="padding-top: clamp(5rem, 10vw, 8.5rem); padding-bottom: clamp(4rem, 8vw, 7rem);">
+    <div class="container-x">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+        <div class="lg:col-span-6 reveal">
+          <Eyebrow>GreenGuard USA · Austin, Texas</Eyebrow>
+          <h1 class="font-display mt-6" style="font-size: clamp(2.6rem, 6vw, 4.5rem); max-width: 12ch;">
+            Pesticide free protection.<br /><em class="italic" style="color: var(--pine); font-weight: 340;">The smarter way to fight mosquitoes</em>
+          </h1>
+          <p class="mt-7 text-soft" style="font-size: 1.125rem; max-width: 34rem;">
+            Precision-engineered protection for modern outdoor living. CO₂ delivery, maintenance, and service managed by our all-electric Austin fleet.
+          </p>
+          <div class="flex flex-wrap gap-4 mt-9">
+            <Btn href="/book">Book Free Assessment</Btn>
+            <Btn href="tel:5125604129" variant="ghost">Call or text 512-560-4129</Btn>
+          </div>
+          <div class="flex items-center gap-2.5 mt-8 text-sm text-soft">
+            <Stars rating={meta.averageRating} size={16} />
+            <span><strong class="text-ink font-semibold">{Number(meta.averageRating).toFixed(1)}</strong> on Google <span aria-hidden="true">&middot;</span> {meta.totalReviews} reviews</span>
+          </div>
+        </div>
+        <div class="lg:col-span-6 reveal">
+          <div class="photo-frame relative" style="aspect-ratio: 4 / 3.5;">
+            <img src="/images/austinrive.jpg" alt="Lush Austin river landscape" class="w-full h-full object-cover hero-zoom" fetchpriority="high" />
+            <div class="absolute inset-x-0 bottom-0 h-32" style="background: linear-gradient(180deg, rgba(20,32,26,0), rgba(20,32,26,.5));" aria-hidden="true"></div>
+            <p class="absolute left-6 bottom-5 z-10 text-ivory text-sm" style="text-shadow: 0 1px 8px rgba(20,32,26,.5);">Free · No commitment · Austin area only</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Section tight class="hairline-t hairline-b">
+      <div class="flex flex-wrap justify-center gap-x-10 gap-y-4 text-sm font-medium text-ink/80">
+      {['100% pesticide-Free', 'Safe for Kids, Pets & Bees', 'EV Fleet CO₂ Delivery', 'No Long-Term Contracts'].map((label) => (
+        <span class="inline-flex items-center gap-2.5">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5" /></svg>
+          {label}
+        </span>
+      ))}
+    </div>
+  </Section>
+
+  <Section variant="linen">
+    <div class="max-w-2xl reveal">
+      <Eyebrow>Services</Eyebrow>
+      <h2 class="font-display mt-4" style="font-size: clamp(2rem, 4vw, 3rem);">We handle the hard part. You enjoy your yard.</h2>
+      <p class="mt-5 text-soft">Every GreenGuard USA plan includes CO₂ delivery by our all-electric fleet. Choose how much you want us to manage.</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12" data-stagger>
+      {options.map((option) => (
+        <div class="reveal">
+          <Card tone={option.featured ? 'ivory' : 'linen'} class={`h-full flex flex-col relative !p-8 ${option.featured ? 'ring-featured' : ''}`}>
+            {option.featured && <span class="absolute -top-3 left-8 rounded-full px-3 py-1 text-[0.68rem] font-semibold uppercase" style="letter-spacing:.12em; background:var(--brass); color:#fff;">Quote Your Service</span>}
+            <Eyebrow plain>{option.eyebrow}</Eyebrow>
+            <h3 class="font-display mt-4" style="font-size: 1.75rem;">{option.name}</h3>
+            <p class="mt-4 text-soft">{option.body}</p>
+            <ul class="mt-6 space-y-3 list-none p-0 mb-8">
+              {option.details.map((detail) => (
+                <li class="flex gap-3 text-sm text-ink">
+                  <svg class="flex-none mt-1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--pine)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5" /></svg>
+                  {detail}
+                </li>
+              ))}
+            </ul>
+            <div class="mt-auto"><Btn href={option.href} variant="ghost">{option.cta}</Btn></div>
+          </Card>
+        </div>
+      ))}
+    </div>
+  </Section>
+
+  <Reviews variant="ivory" eyebrow="What Austin homeowners are saying" title="What Austin homeowners are saying" />
+
+  <Section variant="ivory">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+        <div class="lg:col-span-4 reveal">
+        <Eyebrow>The Process</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(2rem, 4vw, 3rem);">From consultation to mosquito-free</h2>
+      </div>
+      <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-8" data-stagger>
+        {moments.map(([number, title, body]) => (
+          <div class="reveal">
+            <span class="display-numeral block" aria-hidden="true">{number}</span>
+            <div class="mt-4" style="width: 40px; height: 1px; background: var(--brass);"></div>
+            <h3 class="font-display mt-5" style="font-size: 1.35rem;">{title}</h3>
+            <p class="mt-3 text-soft text-[0.97rem]">{body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </Section>
+
+  <Section variant="linen">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+      <div class="lg:col-span-5 reveal">
+        <div class="photo-frame" style="aspect-ratio: 4 / 4.3;">
+          <img src="/images/founderPhoto.jpg" alt="GreenGuard USA team member outdoors" class="w-full h-full object-cover" loading="lazy" />
+        </div>
+      </div>
+      <div class="lg:col-span-7 reveal">
+        <Eyebrow>Book your free consultation.</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(2rem, 4vw, 3rem); max-width: 15ch;">Tell us about your property.</h2>
+        <p class="mt-5 text-soft">Tell us about your property and we'll recommend the right trap, right plan, and right CO₂ tier, all in one visit. No pressure, no cost.</p>
+        <p class="mt-4 text-soft">We assess your property, identify mosquito pressure zones, and recommend the right trap and service plan, at no cost.</p>
+        <div class="mt-8"><Btn href="/book" variant="ghost">Book Free Assessment</Btn></div>
+      </div>
+    </div>
+  </Section>
+
+  <Section variant="ivory">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
+      <div class="lg:col-span-4 reveal">
+        <Eyebrow>Common Questions</Eyebrow>
+        <h2 class="font-display mt-4" style="font-size: clamp(2rem, 4vw, 2.75rem);">Choose how much you want us to manage.</h2>
+        <p class="mt-5 text-sm text-soft">Call or text <a class="underline" style="color:var(--pine);" href="tel:5125604129">512-560-4129</a>.</p>
+      </div>
+      <div class="lg:col-span-8 reveal"><Faq items={faqs} /></div>
+    </div>
+  </Section>
+
+  <CtaBand
+    title="Book your free consultation."
+    sub="Tell us about your property and we'll recommend the right trap, right plan, and right CO₂ tier, all in one visit. No pressure, no cost."
+    ctaLabel="Book Free Assessment"
+  />
+
+  <style is:global>
+    .ring-featured { border-color: var(--brass) !important; }
+  </style>
+
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(({ q, a }) => ({
+      "@type": "Question",
+      "name": q,
+      "acceptedAnswer": { "@type": "Answer", "text": a }
+    }))
+  })} />
+</Base>

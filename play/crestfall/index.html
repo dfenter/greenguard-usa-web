@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/crestfall/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Crestfall — The Ashen Frontier</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: #090b18;
+      color: #f8d878;
+      font-family: monospace;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      overscroll-behavior: none;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 240px;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #game {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      display: block;
+      width: min(100vw, 114.2857dvh);
+      height: min(100dvh, 87.5vw);
+      transform: translate(-50%, -50%);
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      touch-action: none;
+    }
+    #touch-ui {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      touch-action: none;
+    }
+    .touch-button, #stick {
+      pointer-events: auto;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #stick {
+      position: absolute;
+      left: max(18px, 5vw);
+      bottom: max(18px, 7vh);
+      width: clamp(116px, 19vw, 156px);
+      height: clamp(116px, 19vw, 156px);
+      border: 3px solid rgba(248, 216, 120, .6);
+      border-radius: 50%;
+      background: rgba(16, 20, 44, .52);
+      box-shadow: 0 0 0 10px rgba(0, 0, 0, .16), inset 0 0 24px rgba(0, 0, 0, .25);
+    }
+    #stick::before, #stick::after {
+      content: "";
+      position: absolute;
+      background: rgba(248, 216, 120, .18);
+    }
+    #stick::before { width: 2px; height: 72%; left: calc(50% - 1px); top: 14%; }
+    #stick::after { height: 2px; width: 72%; top: calc(50% - 1px); left: 14%; }
+    #stick-knob {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 48%;
+      height: 48%;
+      border: 2px solid rgba(255, 247, 204, .9);
+      border-radius: 50%;
+      background: rgba(110, 78, 190, .78);
+      box-shadow: 0 5px 12px rgba(0, 0, 0, .35);
+      transform: translate(-50%, -50%);
+      transition: transform .06s linear;
+    }
+    .touch-button {
+      position: absolute;
+      width: clamp(64px, 11vw, 82px);
+      height: clamp(64px, 11vw, 82px);
+      border: 2px solid rgba(255, 247, 204, .85);
+      border-radius: 50%;
+      color: #fff7cc;
+      background: rgba(110, 38, 112, .72);
+      font: 700 clamp(12px, 2.4vw, 17px)/1 monospace;
+      letter-spacing: .04em;
+      text-shadow: 0 2px 2px #000;
+      box-shadow: 0 5px 12px rgba(0, 0, 0, .34);
+    }
+    .touch-button:active, .touch-button.active { transform: scale(.94); background: rgba(216, 24, 24, .9); }
+    #jump { right: max(112px, 17vw); bottom: max(92px, 16vh); }
+    #attack { right: max(22px, 4vw); bottom: max(28px, 7vh); background: rgba(0, 88, 160, .78); }
+    #menu {
+      top: max(16px, 4vh);
+      right: max(18px, 4vw);
+      width: 52px;
+      height: 48px;
+      min-height: 48px;
+      border-radius: 12px;
+      font-size: 11px;
+      background: rgba(16, 20, 44, .72);
+    }
+    #hint {
+      position: absolute;
+      left: 50%;
+      bottom: max(12px, 3vh);
+      padding: 6px 10px;
+      color: #fff7cc;
+      background: rgba(0, 0, 0, .64);
+      font: 12px/1 monospace;
+      letter-spacing: .04em;
+      white-space: nowrap;
+      pointer-events: none;
+      transform: translateX(-50%);
+      opacity: 1;
+      transition: opacity .8s ease;
+    }
+    #rotate-hint {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      color: #fff7cc;
+      background: rgba(5, 6, 18, .9);
+      font: 700 18px/1.4 monospace;
+      letter-spacing: .08em;
+      text-align: center;
+    }
+    body.portrait #rotate-hint { display: flex; }
+    body.portrait #hint { display: none; }
+    @media (max-width: 520px) {
+      #stick { left: 18px; bottom: 24px; }
+      #jump { right: 104px; bottom: 116px; }
+      #attack { right: 18px; bottom: 36px; }
+      #menu { top: 14px; right: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main id="game-container" aria-label="Crestfall game">
+    <canvas id="game"></canvas>
+    <div id="touch-ui" aria-label="Touch controls">
+      <div id="stick" role="application" aria-label="Move stick"><div id="stick-knob"></div></div>
+      <button id="jump" class="touch-button" type="button" aria-label="Jump">JUMP</button>
+      <button id="attack" class="touch-button" type="button" aria-label="Attack">ATTACK</button>
+      <button id="menu" class="touch-button" type="button" aria-label="Open rune menu">MENU</button>
+    </div>
+    <div id="hint">DRAG TO MOVE · TAP JUMP / ATTACK</div>
+    <div id="rotate-hint">ROTATE YOUR PHONE<br>TO PLAY CRESTFALL</div>
+  </main>
+
+  <script type="module">
+    import { Game } from './src/game.js';
+
+    const canvas = document.getElementById('game');
+    const container = document.getElementById('game-container');
+
+    function fitViewport() {
+      const vw = Math.max(1, window.innerWidth);
+      const vh = Math.max(1, window.innerHeight);
+      const aspect = 256 / 224;
+      let width = vw;
+      let height = width / aspect;
+      if (height > vh) {
+        height = vh;
+        width = height * aspect;
+      }
+      canvas.style.width = `${Math.floor(width)}px`;
+      canvas.style.height = `${Math.floor(height)}px`;
+      document.body.classList.toggle('portrait', vw < vh);
+    }
+
+    fitViewport();
+    window.addEventListener('resize', fitViewport, { passive: true });
+    window.addEventListener('orientationchange', fitViewport, { passive: true });
+    container.addEventListener('touchmove', (event) => event.preventDefault(), { passive: false });
+    container.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });
+
+    const game = new Game(canvas);
+    game.input.attachTouchControls({
+      stick: document.getElementById('stick'),
+      knob: document.getElementById('stick-knob'),
+      jump: document.getElementById('jump'),
+      attack: document.getElementById('attack'),
+      menu: document.getElementById('menu'),
+    });
+    window.game = game;
+
+    window.setTimeout(() => {
+      const hint = document.getElementById('hint');
+      if (hint) hint.style.opacity = '0';
+    }, 7000);
+  </script>
+</body>
+</html>

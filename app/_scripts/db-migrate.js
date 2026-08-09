@@ -105,6 +105,21 @@ CREATE TABLE IF NOT EXISTS event_notes (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_event_notes_event ON event_notes(event_id, created_at DESC);
+
+-- Appointments the owner marked as not needing an invoice (free follow-ups,
+-- warranty visits, etc). Matched in pending-invoices by cal_booking_uid when
+-- present, else by customer_email + service_date, else customer_name + date
+-- for legacy events with no email.
+CREATE TABLE IF NOT EXISTS dismissed_appointments (
+  id               SERIAL PRIMARY KEY,
+  cal_booking_uid  TEXT,
+  customer_email   TEXT,
+  customer_name    TEXT,
+  service_date     TEXT NOT NULL,
+  dismissed_by     TEXT NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_dismissed_appt_date ON dismissed_appointments(service_date);
 `
 
 const SEED_CATEGORIES = [

@@ -1,0 +1,19 @@
+{
+  "name": "Rally Dust",
+  "short_name": "Rally Dust",
+  "description": "Stylized low-poly stage rally. Sixteen seeded dirt stages across four biomes, co-driver pace notes, medals and a ghost line of your best run.",
+  "start_url": "/play/rally-dust/",
+  "scope": "/play/rally-dust/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#120d09",
+  "theme_color": "#120d09",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

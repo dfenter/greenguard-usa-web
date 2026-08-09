@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/serpentine/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#070b16">
+  <title>Serpentine</title>
+  <style>
+    :root { color-scheme: dark; font-family: Arial, Helvetica, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #070b16; }
+    body { position: fixed; inset: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+    #game-shell { position: relative; width: 100%; height: 100dvh; overflow: hidden; touch-action: none; }
+    canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+    #hud { position: absolute; inset: env(safe-area-inset-top) 0 auto; height: 76px; padding: 15px 16px 0; display: flex; align-items: flex-start; justify-content: space-between; pointer-events: none; }
+    .brand { display: flex; align-items: center; gap: 9px; color: #e9f7ff; font-size: 11px; letter-spacing: .25em; font-weight: 800; text-shadow: 0 0 16px #48dbff66; }
+    .brand-mark { width: 12px; height: 12px; display: block; border: 3px solid #55e7ff; border-radius: 50%; box-shadow: 0 0 10px #55e7ff; }
+    .stats { display: flex; gap: 15px; text-align: right; }
+    .stat { min-width: 45px; }
+    .stat small { display: block; color: #7d91a7; font-size: 8px; letter-spacing: .16em; font-weight: 700; }
+    .stat strong { display: block; margin-top: 2px; color: #e9f7ff; font-size: 18px; line-height: 1; font-weight: 800; }
+    #tip { position: absolute; left: 0; right: 0; bottom: max(14px, env(safe-area-inset-bottom)); color: #8ea2b5; text-align: center; font-size: 11px; letter-spacing: .04em; pointer-events: none; opacity: .88; }
+    #round-message { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.94); width: min(84vw, 300px); padding: 24px 20px 21px; border: 1px solid #55e7ff88; border-radius: 16px; background: #0b1321e8; box-shadow: 0 0 34px #38dfff25, inset 0 1px #ffffff17; text-align: center; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+    #round-message.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    #round-message.dead { border-color: #ff668f99; box-shadow: 0 0 34px #ff3e7028, inset 0 1px #ffffff17; pointer-events: auto; cursor: pointer; }
+    #round-message h1 { margin: 0 0 7px; color: #eafaff; font-size: 24px; letter-spacing: .16em; font-weight: 900; }
+    #round-message.dead h1 { color: #ff93ac; }
+    #round-message p { margin: 0; color: #90a8ba; font-size: 12px; line-height: 1.5; }
+    #round-message .restart { display: block; margin-top: 16px; color: #55e7ff; font-size: 10px; letter-spacing: .18em; font-weight: 800; }
+    @media (min-width: 700px) { #hud { padding-left: 26px; padding-right: 26px; } }
+  </style>
+</head>
+<body>
+  <main id="game-shell" aria-label="Serpentine game">
+    <canvas id="game" aria-label="Snake arena. Swipe or use arrow keys to turn."></canvas>
+    <div id="hud">
+      <div class="brand"><span class="brand-mark"></span><span>SERPENTINE</span></div>
+      <div class="stats">
+        <div class="stat"><small>SCORE</small><strong id="score">1</strong></div>
+        <div class="stat"><small>ROUND</small><strong id="round">1</strong></div>
+        <div class="stat"><small>BEST</small><strong id="best">0</strong></div>
+      </div>
+    </div>
+    <div id="tip">Swipe to turn • arrows steer</div>
+    <div id="round-message" role="status" aria-live="polite">
+      <h1 id="message-title">ROUND CLEAR</h1>
+      <p id="message-copy">The arena is still breathing.</p>
+      <span class="restart">NEXT RUN IN A MOMENT</span>
+    </div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

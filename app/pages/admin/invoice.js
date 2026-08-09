@@ -51,6 +51,7 @@ function InvoiceEditorView({ customers = [] }) {
   const [draftAdding, setDraftAdding] = useState(null)  // invoiceId currently adding
   const [sentDrafts, setSentDrafts] = useState({})  // { invoiceId: { status, collectionMethod } }
   const [sendingDraft, setSendingDraft] = useState(null)  // invoiceId currently submitting
+  const [dismissing, setDismissing] = useState(null)  // needsInvoice index currently dismissing
   const searchRef = useRef(null)
   const addItemInFlight = useRef(false)
   const addCustomInFlight = useRef(false)
@@ -204,6 +205,26 @@ function InvoiceEditorView({ customers = [] }) {
     setSending(false)
     if (res.ok) { setMsg('Invoice sent to customer'); loadCustomer(); await loadPending() }
     else { const j = await res.json(); setMsg(`Error: ${j.error}`) }
+  }
+
+  async function dismissAppointment(apt, idx) {
+    if (!window.confirm(`Mark ${apt.customerName || 'this appointment'} (${apt.date}) as not needing an invoice?\n\nIt will be removed from this list.`)) return
+    setDismissing(idx)
+    try {
+      const r = await fetch('/api/admin/dismiss-appointment', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: apt.date, email: apt.email, customerName: apt.customerName, calBookingUid: apt.calBookingUid }),
+      })
+      if (r.ok) {
+        setPending((p) => p ? { ...p, needsInvoice: p.needsInvoice.filter((_, i) => i !== idx) } : p)
+        setMsg('Appointment marked as no invoice needed')
+      } else {
+        const j = await r.json().catch(() => ({}))
+        alert('Failed: ' + (j.error || r.status))
+      }
+    } finally {
+      setDismissing(null)
+    }
   }
 
   async function approveAll() {
@@ -518,6 +539,13 @@ function InvoiceEditorView({ customers = [] }) {
                       <a href={`/admin/rounds?date=${apt.date}${apt.email ? `&email=${encodeURIComponent(apt.email)}` : ''}`} style={{ ...btn('ghost'), textDecoration: 'none', fontSize: '0.75rem' }}>
                         → Rounds
                       </a>
+                      <button
+                        onClick={() => dismissAppointment(apt, i)}
+                        disabled={dismissing !== null}
+                        title="Remove from this list — no invoice needed for this appointment"
+                        style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'transparent', color: 'rgba(var(--text-rgb),0.55)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
+                        {dismissing === i ? 'Removing…' : 'No invoice'}
+                      </button>
                     </div>
                   ))}
                 </div>

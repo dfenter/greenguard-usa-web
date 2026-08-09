@@ -1,18 +1,18 @@
-const VERSION = 'zc-v15';
+const VERSION = 'zc-v16';
 const CACHE = VERSION;
 const PRECACHE = [
-  './?v=15',
-  'index.html?v=15',
-  'manifest.json?v=15',
-  'js/engine.js?v=15',
-  'js/sound.js?v=15',
-  'js/sprites.js?v=15',
-  'js/tiles.js?v=15',
-  'js/world.js?v=15',
-  'js/dungeon.js?v=15',
-  'js/entities.js?v=15',
-  'js/items.js?v=15',
-  'js/game.js?v=15',
+  './?v=16',
+  'index.html?v=16',
+  'manifest.json?v=16',
+  'js/engine.js?v=16',
+  'js/sound.js?v=16',
+  'js/sprites.js?v=16',
+  'js/tiles.js?v=16',
+  'js/world.js?v=16',
+  'js/dungeon.js?v=16',
+  'js/entities.js?v=16',
+  'js/items.js?v=16',
+  'js/game.js?v=16',
 ];
 
 self.addEventListener('install', event => {
@@ -41,7 +41,7 @@ self.addEventListener('fetch', event => {
       }
       return response;
     }).catch(() => caches.match(request).then(cached =>
-      cached || caches.match(new URL('index.html?v=15', self.location).href)
+      cached || caches.match(new URL('index.html?v=16', self.location).href)
     )));
     return;
   }

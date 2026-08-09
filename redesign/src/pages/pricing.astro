@@ -1,0 +1,197 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Card from '../components/ui/Card.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+import Faq from '../components/ui/Faq.astro';
+import Stars from '../components/ui/Stars.astro';
+import { getReviewMeta } from '../lib/reviews';
+
+const meta = getReviewMeta();
+
+const rentalTiers = [
+  {
+    label: '1 Trap', name: 'Biogents · 1 Trap', price: '159.99', note: '⅓ acre coverage',
+    features: ['Biogents BG-Mosquitaire (we own it)', 'Professional installation', 'Monthly CO₂ tank exchange', 'All maintenance and repairs covered', 'Month-to-month, no contract'],
+  },
+  {
+    label: '2 Traps', name: 'Biogents · 2 Traps', price: '266.99', note: '½ acre coverage · Save $52.99/mo vs two singles', highlight: true,
+    features: ['2 × Biogents BG-Mosquitaire (we own them)', 'Professional installation of both', 'Monthly CO₂ exchange for both tanks', 'All maintenance and repairs covered', 'Month-to-month, no contract'],
+  },
+  {
+    label: 'Mosqitter', name: 'Mosqitter Grand', price: '299.99', note: 'Up to 1 acre per unit',
+    features: ['Mosqitter Grand stainless steel trap', 'Professional installation', 'Monthly CO₂ exchange included', 'Monthly attractant replacement', 'App setup, support, and all maintenance'],
+  },
+];
+
+const deliveryTiers = [
+  { name: 'Standard', price: '$89.99', note: '1 tank/mo', desc: 'Single CO₂ cylinder exchange, trap inspection, empty tank removed.' },
+  { name: 'Premium', price: '$139.99', note: '2 × 20 lb cylinders/mo', desc: 'Two 20 lb cylinders per delivery, priority scheduling, suitable for two-trap systems.' },
+  { name: 'Estate', price: '$189.99', note: '3 × 20 lb cylinders/mo', desc: 'Three 20 lb cylinders per delivery, first-available priority, ideal for Mosqitter Grand and multi-trap setups.' },
+];
+
+const comparison = [
+  ['Yard size', 'Up to ⅓ acre', 'Up to ½ acre', 'Large / waterfront'],
+  ['Trap type', 'Biogents', 'Biogents', 'Mosqitter Grand (stainless)'],
+  ['CO₂ tank service', '✓', '✓', '✓'],
+  ['Monthly tech visit', '✓', '✓', '✓'],
+  ['Pesticide-free', '✓', '✓', '✓'],
+  ['No contract', '✓', '✓', '✓'],
+  ['Best for', 'Patios, urban lots', 'Standard Austin yards', 'Estates, lakefront'],
+];
+
+const faqs = [
+  { q: 'What is included with every rental plan?', a: 'No equipment to buy. Everything included: trap, CO₂, installation, and all maintenance.' },
+  { q: 'What does CO₂ delivery include?', a: 'Monthly CO₂ cylinder exchange, trap inspection, and empty tank removal. For customers who own their Biogents or Mosqitter Grand trap.' },
+  { q: 'What add-ons are available?', a: 'Plant-based scent-masking formula that amplifies your CO₂ trap. Available exclusively to GreenGuard USA CO₂ trap customers.' },
+  { q: 'What is the first step?', a: 'We start with a free in-person property assessment. You will see exactly where traps go, how the CO₂ delivery works, and what to expect month by month. No pressure to sign up.' },
+];
+---
+
+<Base
+  title="Mosquito Control Pricing Austin TX | GreenGuard USA"
+  description="Transparent monthly pricing for CO₂ mosquito trap rental and CO₂ delivery service in Austin. No contracts, no hidden fees."
+>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "Mosquito Control Service",
+    "description": "Pesticide-free CO₂ mosquito control for Austin TX homeowners. Trap rental from $159.99/mo, CO₂ delivery from $89.99/mo. No contracts.",
+    "provider": { "@type": "LocalBusiness", "name": "GreenGuard USA", "telephone": "+1-512-560-4129", "url": "https://www.greenguard-usa.com" },
+    "areaServed": ["Austin TX", "Cedar Park TX", "Round Rock TX", "Westlake Hills TX", "Lakeway TX", "Bee Cave TX", "Dripping Springs TX", "Georgetown TX", "Pflugerville TX", "Leander TX"],
+    "offers": [
+      { "@type": "Offer", "name": "CO₂ Trap Rental: 1 Trap", "price": "159.99", "priceCurrency": "USD" },
+      { "@type": "Offer", "name": "CO₂ Trap Rental: 2 Traps", "price": "266.99", "priceCurrency": "USD" },
+      { "@type": "Offer", "name": "CO₂ Tank Delivery", "price": "89.99", "priceCurrency": "USD" }
+    ],
+    "serviceType": "Mosquito Control",
+    "url": "https://www.greenguard-usa.com/pricing"
+  })} />
+
+  <section class="bg-ivory" style="padding-top: clamp(5rem, 10vw, 8rem); padding-bottom: clamp(4rem, 8vw, 6.5rem);">
+    <div class="container-x">
+      <div class="max-w-3xl reveal">
+        <Eyebrow>Pricing</Eyebrow>
+        <h1 class="font-display mt-6" style="font-size: clamp(2.6rem, 6vw, 4.5rem); max-width: 11ch;">Simple, honest <em class="italic" style="color:var(--pine); font-weight:340;">monthly pricing</em></h1>
+        <p class="mt-7 text-soft" style="font-size:1.125rem; max-width:39rem;">Flat monthly rate. Everything included. Cancel anytime.</p>
+        <div class="flex flex-wrap gap-4 mt-9"><Btn href="/book">Book Free Assessment</Btn><Btn href="tel:5125604129" variant="ghost">Call 512-560-4129</Btn></div>
+        <div class="flex items-center gap-2.5 mt-8 text-sm text-soft"><Stars rating={meta.averageRating} size={16} /><span><strong class="text-ink font-semibold">{Number(meta.averageRating).toFixed(1)}</strong> on Google <span aria-hidden="true">&middot;</span> {meta.totalReviews} reviews</span></div>
+      </div>
+    </div>
+  </section>
+
+  <Section variant="linen">
+    <div class="max-w-2xl reveal">
+      <Eyebrow>Full-Service Trap Rental</Eyebrow>
+      <h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">We own it, maintain it, deliver CO₂.</h2>
+      <p class="mt-5 text-soft">No equipment to buy. Everything included: trap, CO₂, installation, and all maintenance.</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12" data-stagger>
+      {rentalTiers.map((tier) => (
+        <div class="reveal">
+          <Card tone={tier.highlight ? 'ivory' : 'linen'} class={`relative h-full flex flex-col !p-7 ${tier.highlight ? 'plan-featured' : ''}`}>
+            {tier.highlight && <span class="absolute -top-3 left-7 rounded-full px-3 py-1 text-[0.68rem] font-semibold uppercase" style="letter-spacing:.12em;background:var(--brass);color:#fff;">Best Value</span>}
+            <Eyebrow plain>{tier.name}</Eyebrow>
+            <h3 class="font-display mt-3" style="font-size:1.45rem;">{tier.name}</h3>
+            <p class="mt-5"><span class="font-display" style="font-size:2.45rem;color:var(--pine);font-weight:380;">${tier.price}</span><span class="text-sm text-soft">/mo</span></p>
+            <p class="mt-2 min-h-[2.75rem] text-sm text-soft">{tier.note}</p>
+            <ul class="mt-6 space-y-3 list-none p-0 flex-1">
+              {tier.features.map((feature) => <li class="flex gap-3 text-sm"><svg class="flex-none mt-1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--pine)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5" /></svg>{feature}</li>)}
+            </ul>
+            <div class="mt-8"><Btn href="/traprental" variant={tier.highlight ? 'primary' : 'ghost'}>See Full Details</Btn></div>
+          </Card>
+        </div>
+      ))}
+    </div>
+  </Section>
+
+  <Section variant="ivory">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-end">
+      <div class="lg:col-span-5 reveal"><Eyebrow>CO₂ Delivery Only</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">Already own a trap?</h2><p class="mt-5 text-soft">Monthly CO₂ cylinder exchange, trap inspection, and empty tank removal. For customers who own their Biogents or Mosqitter Grand trap.</p><div class="mt-7"><Btn href="/co2delivery" variant="ghost">CO₂ Delivery Details</Btn></div></div>
+      <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-5" data-stagger>
+        {deliveryTiers.map((tier) => <div class="reveal"><Card tone="linen" class="h-full !p-6"><Eyebrow plain>{tier.name}</Eyebrow><p class="font-display mt-3" style="font-size:2rem;color:var(--pine);">{tier.price}<span class="text-sm text-soft">/mo</span></p><p class="mt-1 text-xs font-semibold text-soft">{tier.note}</p><p class="mt-4 text-sm text-soft">{tier.desc}</p></Card></div>)}
+      </div>
+    </div>
+  </Section>
+
+  <Section variant="linen">
+    <div class="max-w-2xl mx-auto text-center reveal"><Eyebrow class="justify-center">Plan Comparison</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">Plan comparison</h2><p class="mt-5 text-soft">All plans include monthly tech visit, CO₂ tank service, and no contract.</p></div>
+    <div class="table-scroll mt-12 overflow-x-auto reveal" style="border:1px solid var(--hairline); border-radius:24px; box-shadow:var(--shadow-card, 0 1px 2px rgba(20,32,26,.06));">
+      <table class="w-full min-w-[760px] border-collapse text-sm">
+        <caption class="sr-only">Comparison of GreenGuard USA trap rental plans</caption>
+        <thead><tr class="bg-ivory hairline-b"><th scope="col" class="text-left p-5 font-semibold text-soft">Feature</th>{rentalTiers.map((tier) => <th scope="col" class={`p-5 text-center ${tier.highlight ? 'comparison-featured' : ''}`}><span class="block text-xs uppercase font-semibold text-soft" style="letter-spacing:.12em;">{tier.label}</span><span class="block mt-1 font-display text-lg">{tier.name}</span><span class="block mt-2 font-display text-xl" style="color:var(--pine);">${tier.price}<small class="font-sans text-xs text-soft">/mo</small></span>{tier.highlight && <span class="mt-2 inline-block rounded-full px-2.5 py-1 text-[0.62rem] font-semibold uppercase" style="letter-spacing:.1em;background:var(--brass);color:#fff;">Best Value</span>}</th>)}</tr></thead>
+        <tbody>{comparison.map((row) => <tr class="hairline-b"><th scope="row" class="p-4 text-left font-semibold text-ink/70">{row[0]}</th>{row.slice(1).map((value, index) => <td class={`p-4 text-center ${index === 1 ? 'comparison-featured' : ''} ${value === '✓' ? 'font-semibold' : 'text-soft'}`} style={value === '✓' ? 'color:var(--pine);' : undefined}>{value}</td>)}</tr>)}</tbody>
+      </table>
+    </div>
+    <p class="text-center mt-5 text-sm text-soft"><a class="underline" style="color:var(--pine);" href="/compare">Full comparison including vs. chemical sprays →</a></p>
+  </Section>
+
+  <Section variant="ivory">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+      <div class="lg:col-span-4 reveal"><Eyebrow>No Surprise Fees</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,2.75rem);">What is always included</h2></div>
+      <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-5" data-stagger>
+        {[
+          ['No upfront equipment cost', 'We own and maintain the trap on rental plans.'],
+          ['Monthly CO₂ tank exchange', 'Fresh tank delivered every month. We take the empty.'],
+          ['All maintenance and repairs', 'Our equipment, our responsibility.'],
+          ['Tax shown on every invoice', '8.25% Texas sales tax. No hidden line items.'],
+        ].map(([title, body]) => <div class="reveal"><Card tone="linen" class="h-full !p-6"><h3 class="font-display" style="font-size:1.2rem;">{title}</h3><p class="mt-3 text-sm text-soft">{body}</p></Card></div>)}
+      </div>
+    </div>
+  </Section>
+
+  <Section variant="linen">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
+      <div class="lg:col-span-4 reveal"><Eyebrow>Common Questions</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,2.75rem);">Questions about pricing</h2></div>
+      <div class="lg:col-span-8 reveal"><Faq items={faqs} /></div>
+    </div>
+  </Section>
+
+  <CtaBand title="Try it before you commit" sub="We start with a free in-person property assessment. You will see exactly where traps go, how the CO₂ delivery works, and what to expect month by month. No pressure to sign up." ctaLabel="Book Free Assessment" />
+
+  <style is:global>
+    .plan-featured { border-color: var(--brass) !important; }
+    .comparison-featured { background: rgba(176,141,76,.08); border-left: 1px solid rgba(176,141,76,.24); border-right: 1px solid rgba(176,141,76,.24); }
+    .table-scroll { position: relative; }
+    .table-scroll::before {
+      content: 'Swipe to compare';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 2;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(250,247,241,.94);
+      color: var(--text-soft);
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      line-height: 1.2;
+      text-transform: uppercase;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .table-scroll::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 3rem;
+      border-radius: 0 24px 24px 0;
+      background: linear-gradient(90deg, rgba(242,237,227,0), rgba(242,237,227,.96));
+      pointer-events: none;
+    }
+    @media (min-width: 768px) {
+      .table-scroll::before, .table-scroll::after { display: none; }
+    }
+  </style>
+
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(({ q, a }) => ({ "@type": "Question", "name": q, "acceptedAnswer": { "@type": "Answer", "text": a } }))
+  })} />
+</Base>

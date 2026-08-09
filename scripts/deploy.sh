@@ -50,6 +50,15 @@ deploy_preview() {
 deploy_site() {
   echo -e "${CYAN}▲ Deploying greenguard-usa.com ...${NC}"
   cd "$REPO_ROOT"
+  if [ -d "$REPO_ROOT/redesign" ]; then
+    # prototypes viewer is canonical in astro/public (shared two-session file) — sync before build
+    cp "$REPO_ROOT/astro/public/prototypes.html" "$REPO_ROOT/redesign/public/prototypes.html"
+    rsync -a --delete "$REPO_ROOT/astro/public/models/" "$REPO_ROOT/redesign/public/models/"
+    echo -e "${CYAN}  Building redesign (new.greenguard-usa.com marketing overlay)...${NC}"
+    (cd "$REPO_ROOT/redesign" && npx astro build) || { echo -e "${RED}✗ Redesign build failed${NC}"; exit 1; }
+    rm -rf "$REPO_ROOT/redesign-dist"
+    cp -Rc "$REPO_ROOT/redesign/dist" "$REPO_ROOT/redesign-dist" 2>/dev/null || cp -R "$REPO_ROOT/redesign/dist" "$REPO_ROOT/redesign-dist"
+  fi
   vercel --prod --scope "$SCOPE"
   echo -e "${GREEN}✓ Site deployed → https://greenguard-usa.com${NC}"
 }

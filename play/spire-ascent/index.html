@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/spire-ascent/">
+<meta charset="utf-8">
+<title>Spire Ascent</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0713">
+<style>
+  html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#0a0713;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    -webkit-touch-callout:none;overscroll-behavior:none;}
+  #wrap{position:fixed;inset:0;touch-action:none;}
+  canvas{display:block;position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:100%;height:100%;touch-action:none;}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<script src="world.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

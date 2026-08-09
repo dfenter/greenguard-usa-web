@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/runeline-depths/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#090d18">
+  <title>Runeline Depths</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="gameShell" aria-label="Runeline Depths game">
+    <canvas id="game" aria-label="Orb path game board"></canvas>
+    <div class="topControls" aria-label="Game controls">
+      <button id="muteBtn" class="control" type="button" aria-label="Toggle sound">SOUND</button>
+      <button id="restartBtn" class="control" type="button">RETRY</button>
+    </div>
+    <button id="rosterBtn" class="control rosterControl" type="button">ROSTER</button>
+    <section id="rosterPanel" class="panel hidden" aria-label="Roster and team building">
+      <div class="panelCard">
+        <div class="panelHead">
+          <div>
+            <p class="eyebrow">FIELD DOSSIER</p>
+            <h2>Build your four</h2>
+          </div>
+          <button id="closeRosterBtn" class="closeBtn" type="button" aria-label="Close roster">×</button>
+        </div>
+        <p class="panelCopy">Pick a team slot, then choose a recruited creature. The leader is the leftmost slot.</p>
+        <div id="teamPicker" class="teamPicker"></div>
+        <div class="sectionLabel">RECRUITED FROM THE DEPTHS</div>
+        <div id="rosterList" class="rosterList"></div>
+        <button id="newRunBtn" class="wideBtn" type="button">NEW RUN</button>
+      </div>
+    </section>
+    <div id="rotateOverlay" class="overlay hidden" role="status">
+      <div class="rotateCard"><div class="rotateGlyph">↻</div><h2>Turn the phone upright</h2><p>Runeline Depths is a portrait descent.</p></div>
+    </div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

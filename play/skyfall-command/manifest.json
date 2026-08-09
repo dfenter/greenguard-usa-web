@@ -1,0 +1,16 @@
+{
+  "name": "Skyfall Command",
+  "short_name": "Skyfall",
+  "description": "Hold the night sky over six districts. Twelve seeded nights, escalating volleys and a boss finale.",
+  "start_url": "/play/skyfall-command/",
+  "scope": "/play/skyfall-command/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#050a1a",
+  "theme_color": "#050a1a",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

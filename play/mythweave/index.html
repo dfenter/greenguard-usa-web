@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/mythweave/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0a0710">
+<title>Mythweave</title>
+<style>
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0a0710;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+  #wrap{position:fixed;inset:0;touch-action:none;overscroll-behavior:none;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+  .ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    flex-direction:column;background:#0a0710;color:#e8dcff;text-align:center;z-index:5;padding:24px;
+    box-sizing:border-box;}
+  .ov.on{display:flex;}
+  .ov h1{font-size:30px;letter-spacing:5px;margin:0 0 6px;color:#c9a9ff;}
+  .ov p{font-size:15px;line-height:1.5;max-width:320px;color:#9d8fb8;margin:6px 0;}
+  #boot .go{margin-top:22px;min-width:200px;min-height:56px;line-height:56px;border-radius:12px;
+    background:#4b2c78;border:2px solid #a97bff;color:#fff;font-size:18px;letter-spacing:2px;}
+  #rot .ico{font-size:40px;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+
+<div id="boot" class="ov on">
+  <h1>MYTHWEAVE</h1>
+  <p>Eight myth-spirits. One shared hand. Bind them, chain them, unmake the Unwoven.</p>
+  <p style="color:#6d5f88;font-size:13px">Tap 3 command cards each turn. Three from the same spirit fires their ultimate.</p>
+  <div class="go" id="bootgo">TAP TO BEGIN</div>
+</div>
+
+<div id="rot" class="ov">
+  <div class="ico">&#8635;</div>
+  <h1 style="font-size:20px;letter-spacing:3px">ROTATE</h1>
+  <p>Mythweave is played in portrait. Turn your device upright to continue.</p>
+</div>
+
+<script src="core.js"></script>
+<script src="data.js"></script>
+<script src="battle.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/meadow-solitaire/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#1d2b1f">
+<title>Meadow Solitaire</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    width:100%; height:100%; overflow:hidden; background:#131c14;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    overscroll-behavior:none;
+  }
+  #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  canvas { display:block; touch-action:none; background:#1d2b1f; }
+  #rotate, #boot {
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    flex-direction:column; gap:14px; background:#131c14; color:#dfe9d6; z-index:20;
+    text-align:center; padding:24px; font-size:16px; line-height:1.5;
+  }
+  #boot { display:flex; cursor:pointer; }
+  #boot b { font-size:26px; letter-spacing:2px; color:#b9dc8a; }
+  #boot span { font-size:14px; color:#8fa287; max-width:300px; }
+  #boot i { font-style:normal; margin-top:10px; padding:14px 26px; border:2px solid #6f9a52;
+            border-radius:30px; color:#cfe6b0; font-size:16px; min-height:48px; min-width:150px;
+            display:flex; align-items:center; justify-content:center; }
+  #rotate b { font-size:20px; color:#b9dc8a; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<div id="rotate"><b>Rotate to portrait</b><span>Meadow Solitaire is played upright.</span></div>
+<div id="boot">
+  <b>MEADOW SOLITAIRE</b>
+  <span>40 hand-checked deals. Every deal is labelled honest: solvable, or a gamble with its real odds. No energy, no paywalls.</span>
+  <i>TAP TO PLANT</i>
+</div>
+<script src="audio.js"></script>
+<script src="deals.js"></script>
+<script src="meadow.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

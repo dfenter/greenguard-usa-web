@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/slingfang/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#0d121b">
+  <title>Slingfang</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="gameShell" aria-label="Slingfang mobile game">
+    <canvas id="gameCanvas" aria-label="Slingfang playfield"></canvas>
+    <div id="rotateLayer" class="modal-layer" aria-live="polite">
+      <div class="modal-card rotate-card">
+        <div class="modal-mark">↻</div>
+        <h1>Turn the arena</h1>
+        <p>Slingfang is a portrait hunt.</p>
+      </div>
+    </div>
+    <div id="bootLayer" class="modal-layer">
+      <div class="modal-card boot-card">
+        <div class="brand-mark">SF</div>
+        <p class="eyebrow">A pocket creature arena</p>
+        <h1>Slingfang</h1>
+        <p>Bank a shot. Wake a combo. Clear all twelve stages.</p>
+        <button id="bootButton" class="primary-button">Touch to enter</button>
+        <small>Audio is synthesized on-device and can stay muted.</small>
+      </div>
+    </div>
+    <div id="topActions" class="top-actions" aria-label="Game actions">
+      <button id="restartButton" class="small-button" type="button">Restart</button>
+    </div>
+    <div id="teamControls" class="team-controls" aria-label="Creature roster"></div>
+    <div id="announce" class="sr-status" aria-live="polite"></div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

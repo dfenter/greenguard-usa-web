@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/bubble-fury-touch/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Bubble Fury Touch</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #070b16; }
+    body { position: fixed; inset: 0; overscroll-behavior: none; }
+    #game { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+    #hud { position: absolute; inset: 0; pointer-events: none; color: #f4fbff; text-shadow: 0 2px 3px #050813; }
+    #brand { position: absolute; top: 12px; left: 16px; letter-spacing: .17em; font-size: 11px; font-weight: 800; color: #8ee8ff; }
+    #wave { position: absolute; top: 29px; left: 16px; font-size: 18px; font-weight: 900; letter-spacing: .06em; }
+    #score { position: absolute; top: 31px; right: 16px; font-size: 15px; font-weight: 800; color: #ffdf8a; }
+    #best { position: absolute; top: 51px; right: 16px; font-size: 10px; color: #8295b4; letter-spacing: .08em; }
+    #health { position: absolute; top: 60px; left: 16px; width: 145px; height: 8px; padding: 1px; border: 1px solid #436079; border-radius: 8px; background: #111d2d; }
+    #health i { display: block; width: 100%; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #ff6d72, #ffce70 65%, #b6ffb0); transition: width .12s linear; }
+    #weapon { position: absolute; left: 16px; top: 75px; font-size: 10px; color: #9ad7ea; letter-spacing: .12em; font-weight: 800; }
+    #hint { position: absolute; left: 50%; top: 84px; transform: translateX(-50%); white-space: nowrap; font-size: 10px; font-weight: 800; letter-spacing: .09em; color: #9db1ca; opacity: .86; }
+    #bossbar { position: absolute; left: 50%; top: 106px; width: min(245px, 62vw); height: 7px; transform: translateX(-50%); border: 1px solid #6e5a8d; border-radius: 7px; background: #1d1531; opacity: 0; transition: opacity .2s; }
+    #bossbar i { display: block; height: 100%; width: 100%; border-radius: 5px; background: linear-gradient(90deg, #ff7c9d, #ffb05f); }
+    #result { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(4, 7, 17, .64); pointer-events: auto; }
+    #result[hidden] { display: none; }
+    .card { width: min(300px, calc(100vw - 44px)); padding: 24px 22px 22px; border: 1px solid #3d6075; border-radius: 22px; background: linear-gradient(150deg, rgba(18, 37, 56, .97), rgba(13, 17, 36, .97)); text-align: center; box-shadow: 0 18px 60px #0009, inset 0 1px #ffffff1a; }
+    .card h1 { margin: 0 0 6px; color: #aaf4ff; font-size: 25px; letter-spacing: .08em; }
+    .card p { margin: 0 0 18px; color: #c4d2e6; font-size: 13px; }
+    #restart { min-width: 150px; min-height: 52px; border: 0; border-radius: 15px; background: #8ee8ff; color: #06121d; font-size: 14px; font-weight: 900; letter-spacing: .08em; box-shadow: 0 8px 20px #34c4ef55; }
+    #restart:active { transform: translateY(2px); background: #c2f7ff; }
+    @media (min-aspect-ratio: 1/1) { #hint { top: 74px; } }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Bubble Fury Touch game"></canvas>
+  <div id="hud" aria-hidden="true">
+    <div id="brand">BUBBLE FURY // TOUCH</div>
+    <div id="wave"></div>
+    <div id="score"></div>
+    <div id="best"></div>
+    <div id="health"><i></i></div>
+    <div id="weapon"></div>
+    <div id="hint">MOVE WITH LEFT • AIM TO FIRE</div>
+    <div id="bossbar"><i></i></div>
+  </div>
+  <div id="result" hidden>
+    <section class="card">
+      <h1 id="resultTitle">RUN OVER</h1>
+      <p id="resultText"></p>
+      <button id="restart" type="button">RESTART RUN</button>
+    </section>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>

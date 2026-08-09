@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/scrapper-squad/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#07111c">
+  <title>Scrapper Squad</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="gameShell" aria-label="Scrapper Squad game">
+    <canvas id="game" aria-label="Scrapper Squad arena"></canvas>
+    <div id="rotateOverlay" role="status" aria-live="polite" hidden>
+      <div class="rotate-card">
+        <div class="rotate-mark">↻</div>
+        <div class="rotate-title">TURN THE FIELD</div>
+        <div class="rotate-copy">Scrapper Squad is portrait-only.</div>
+      </div>
+    </div>
+  </main>
+  <script src="./js/game.js"></script>
+</body>
+</html>

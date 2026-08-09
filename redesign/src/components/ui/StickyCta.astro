@@ -1,0 +1,98 @@
+---
+/**
+ * Mobile sticky CTA bar (content-engine lane). Wired once in Base.astro.
+ * - Mobile only (hidden md:flex is never applied; bar is md:hidden).
+ * - Slides up after the visitor scrolls past 60% of the page.
+ * - Dismissible; dismissal persists for the session (sessionStorage).
+ * - Hides itself whenever the footer / dark CtaBand is on screen so it
+ *   never covers the page's own closing CTA.
+ * - Skips /book and /quote (linking to the page you are on is noise).
+ * The "Book a Free Assessment" anchor uses .btn so Base's shared
+ * cta_click listener tracks it automatically; no manual gtag here.
+ */
+---
+
+<div
+  id="sticky-cta"
+  class="fixed bottom-0 left-0 right-0 z-[60] md:hidden translate-y-full"
+  style="visibility: hidden; transition: transform .35s cubic-bezier(.2,.6,.2,1), visibility .35s; padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); background: rgba(250,247,241,.96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-top: 1px solid var(--hairline); box-shadow: 0 -8px 32px -8px rgba(20,32,26,.18);"
+  aria-hidden="true"
+>
+  <div class="flex items-center gap-2.5">
+    <a href="/book" class="btn btn-primary flex-1 !py-3 !px-4 text-center" style="min-height: 48px;">
+      Book a Free Assessment
+    </a>
+    <a
+      href="tel:5125604129"
+      aria-label="Call GreenGuard USA at (512) 560-4129"
+      class="flex-none inline-flex items-center justify-center rounded-full"
+      style="width: 48px; height: 48px; border: 1px solid rgba(30,43,35,.22); color: var(--pine); background: var(--paper);"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13.96.36 1.9.7 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.34 1.84.57 2.8.7A2 2 0 0 1 22 16.9Z" />
+      </svg>
+    </a>
+    <button
+      id="sticky-cta-dismiss"
+      type="button"
+      aria-label="Dismiss booking bar"
+      class="flex-none inline-flex items-center justify-center rounded-full text-ink/45 hover:text-ink"
+      style="width: 44px; height: 44px; background: none; border: none; cursor: pointer; font-size: 1.15rem; line-height: 1;"
+    >&#x2715;</button>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const KEY = 'gg_sticky_cta_dismissed';
+    const bar = document.getElementById('sticky-cta');
+    if (!bar) return;
+
+    // Never on the booking/quote flow itself, never once dismissed this session.
+    const path = window.location.pathname.replace(/\.html$/, '').replace(/\/$/, '');
+    if (path === '/book' || path === '/quote' || sessionStorage.getItem(KEY)) {
+      bar.remove();
+      return;
+    }
+
+    let dismissed = false;
+    let pastThreshold = false;
+    let nearEnd = false; // footer or dark CtaBand visible
+
+    function apply() {
+      const show = pastThreshold && !nearEnd && !dismissed;
+      bar!.style.transform = show ? 'translateY(0)' : 'translateY(100%)';
+      // visibility (transition-delayed on hide) keeps the off-screen bar
+      // out of the tab order; aria-hidden keeps it out of the a11y tree.
+      bar!.style.visibility = show ? 'visible' : 'hidden';
+      bar!.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+
+    function onScroll() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      pastThreshold = max > 200 && window.scrollY / max >= 0.6;
+      apply();
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Keep clear of the closing dark sections (CtaBand) and the footer.
+    const enders = document.querySelectorAll('footer, section.bg-night');
+    if ('IntersectionObserver' in window && enders.length) {
+      const visible = new Set<Element>();
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => (e.isIntersecting ? visible.add(e.target) : visible.delete(e.target)));
+        nearEnd = visible.size > 0;
+        apply();
+      }, { threshold: 0.05 });
+      enders.forEach((el) => io.observe(el));
+    }
+
+    document.getElementById('sticky-cta-dismiss')?.addEventListener('click', () => {
+      dismissed = true;
+      sessionStorage.setItem(KEY, '1');
+      apply();
+      setTimeout(() => bar!.remove(), 400);
+    });
+  })();
+</script>

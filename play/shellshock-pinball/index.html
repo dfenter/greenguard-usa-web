@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/shellshock-pinball/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07080d">
+<title>Shellshock Pinball</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#07080d;overflow:hidden;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    font-family:ui-monospace,Menlo,Consolas,monospace;}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+  canvas{display:block;touch-action:none;background:#07080d;}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<script src="engine.js"></script>
+<script src="table.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

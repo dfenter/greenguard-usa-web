@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head><base href="/play/verge-protocol/">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="theme-color" content="#08111d">
+    <title>Verge Protocol</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main id="game-shell" aria-label="Verge Protocol game">
+      <canvas id="gameCanvas" aria-label="Verge Protocol zombie tower defense game"></canvas>
+      <div id="rotateOverlay" aria-live="polite">
+        <div class="rotate-card">
+          <div class="rotate-glyph">↻</div>
+          <div class="rotate-title">PORTRAIT REQUIRED</div>
+          <div class="rotate-copy">Turn your device upright to keep the perimeter live.</div>
+        </div>
+      </div>
+      <div id="srStatus" class="sr-only" aria-live="polite"></div>
+    </main>
+    <script src="./game.js"></script>
+  </body>
+</html>

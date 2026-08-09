@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/gravity-well/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#08111d">
+  <title>Gravity Well</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: #050a12;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #050a12;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      overscroll-behavior: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #game-frame {
+      position: relative;
+      width: min(100vw, calc(100dvh * 390 / 700));
+      height: min(100dvh, calc(100vw * 700 / 390));
+      aspect-ratio: 390 / 700;
+      overflow: hidden;
+      background: #08111d;
+      box-shadow: 0 0 0 1px #17293b, 0 20px 80px #000b;
+      touch-action: none;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    #hud {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 84px;
+      padding: 15px 16px 0;
+      pointer-events: none;
+      color: #d8f4ff;
+      text-shadow: 0 2px 6px #000;
+      letter-spacing: .04em;
+    }
+
+    #title-row, #data-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    #title-row {
+      color: #85e9ff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .14em;
+    }
+
+    #data-row {
+      margin-top: 10px;
+      color: #d9e7ed;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    #fuel-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 122px;
+      justify-content: flex-end;
+    }
+
+    #fuel-bar {
+      width: 63px;
+      height: 7px;
+      overflow: hidden;
+      border: 1px solid #6b8b9a;
+      background: #162733;
+    }
+
+    #fuel-fill {
+      width: 100%;
+      height: 100%;
+      background: #70f4b0;
+      transform-origin: left center;
+    }
+
+    #hint {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 155px;
+      color: #b9dce4;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.3;
+      letter-spacing: .03em;
+      opacity: 0;
+      transition: opacity .35s ease;
+      pointer-events: none;
+      text-shadow: 0 2px 7px #000;
+    }
+
+    #hint.visible { opacity: .9; }
+
+    #state-screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 90px 28px 180px;
+      background: linear-gradient(180deg, #06111dcc, #06111de8);
+      text-align: center;
+      pointer-events: auto;
+    }
+
+    #state-screen.visible { display: grid; }
+
+    #state-card { max-width: 290px; }
+
+    #state-kicker {
+      margin-bottom: 12px;
+      color: #71f2b1;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .18em;
+    }
+
+    #state-title {
+      margin: 0;
+      color: #eafaff;
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: .08em;
+      text-shadow: 0 0 22px #73def077;
+    }
+
+    #state-copy {
+      margin: 17px 0 24px;
+      color: #c7dbe1;
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    #restart {
+      min-width: 168px;
+      min-height: 50px;
+      border: 1px solid #78eec0;
+      border-radius: 4px;
+      color: #051017;
+      background: #76efb6;
+      font: 800 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .12em;
+      box-shadow: 0 0 24px #54edb544;
+      touch-action: none;
+    }
+
+    #controls {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 11px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      align-items: end;
+      gap: 9px;
+      pointer-events: none;
+    }
+
+    .control {
+      min-width: 0;
+      min-height: 70px;
+      border: 1px solid #557181;
+      border-radius: 9px;
+      color: #dff8ff;
+      background: linear-gradient(180deg, #173345e8, #0b1b2be8);
+      box-shadow: inset 0 1px #c4effc22, 0 4px 14px #0008;
+      font: 800 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .12em;
+      pointer-events: auto;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .control::before {
+      display: block;
+      margin-bottom: 7px;
+      color: #7fe9f8;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    #left-control::before { content: '↶'; }
+    #main-control::before { content: '↑'; }
+    #right-control::before { content: '↷'; }
+
+    .control.active, .control:active {
+      color: #041016;
+      border-color: #a6ffe2;
+      background: #74eeb6;
+      box-shadow: 0 0 26px #5cf3b777, inset 0 1px #eaffff;
+    }
+
+    .control.active::before, .control:active::before { color: #041016; }
+
+    @media (min-width: 700px) {
+      #game-frame { border-radius: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <main id="game-frame" aria-label="Gravity Well precision descent game">
+    <canvas id="game" aria-label="Cavern game field"></canvas>
+    <div id="hud">
+      <div id="title-row"><span>GRAVITY WELL</span><span id="stage-readout">CAVERN 01</span></div>
+      <div id="data-row">
+        <span id="score-readout">SCORE 00000</span>
+        <span id="depth-readout">DEPTH 000</span>
+        <span id="fuel-wrap">FUEL <span id="fuel-bar"><span id="fuel-fill"></span></span></span>
+      </div>
+    </div>
+    <div id="hint">STEER WITH ◀ / ▶ · HOLD BOTH FOR MAIN BURN</div>
+    <section id="state-screen" aria-live="polite">
+      <div id="state-card">
+        <div id="state-kicker">RUN OVER</div>
+        <h1 id="state-title">CRASHED</h1>
+        <p id="state-copy"></p>
+        <button id="restart" type="button">RESTART RUN</button>
+      </div>
+    </section>
+    <nav id="controls" aria-label="Thrust controls">
+      <button class="control" id="left-control" type="button" aria-label="Rotate left and thrust">LEFT</button>
+      <button class="control" id="main-control" type="button" aria-label="Main engine straight burn">MAIN</button>
+      <button class="control" id="right-control" type="button" aria-label="Rotate right and thrust">RIGHT</button>
+    </nav>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

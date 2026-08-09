@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/driftwood-cove/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#071923">
+  <title>Driftwood Cove</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="gameShell" aria-label="Driftwood Cove game">
+    <canvas id="gameCanvas" aria-label="Driftwood Cove merge board"></canvas>
+    <div id="audioOverlay" class="screen-overlay" role="dialog" aria-modal="true">
+      <div class="overlay-card intro-card">
+        <div class="eyebrow">A FOUND-NOTE MYSTERY</div>
+        <h1>Driftwood Cove</h1>
+        <p>The fog has covered the keeper's trail. Match what the tide leaves behind and follow the notes home.</p>
+        <button id="startButton" type="button">Enter the cove</button>
+        <small>Sound is optional and begins with your first tap.</small>
+      </div>
+    </div>
+    <div id="rotateOverlay" class="screen-overlay" hidden role="alertdialog" aria-modal="true">
+      <div class="overlay-card rotate-card">
+        <div class="rotate-mark">↻</div>
+        <h2>Turn the cove upright</h2>
+        <p>Driftwood Cove is a portrait game. The fog will wait right here.</p>
+      </div>
+    </div>
+  </main>
+  <script src="game.js" defer></script>
+</body>
+</html>

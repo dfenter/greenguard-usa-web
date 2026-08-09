@@ -26,24 +26,81 @@ const Engine = (() => {
   function isCoarse() {
     return !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
   }
+  function el(id) {
+    return (typeof document !== 'undefined' && document.getElementById)
+      ? document.getElementById(id) : null;
+  }
+  function visRect(e) {
+    if (!e || !e.getBoundingClientRect) return null;
+    const r = e.getBoundingClientRect();
+    return (r.width > 0 && r.height > 0) ? r : null;
+  }
+  // The on-screen controller is the source of truth for how much room the
+  // playfield may take. We MEASURE the real control rects instead of guessing a
+  // percentage, so the canvas can never grow underneath a thumb button and can
+  // never shrink more than it has to on a short or narrow phone.
   function resize() {
-    const vw = window.innerWidth, vh = window.innerHeight;
+    const vv = window.visualViewport;
+    const vw = Math.round((vv && vv.width) || window.innerWidth);
+    const vh = Math.round((vv && vv.height) || window.innerHeight);
     const coarse = isCoarse();
     const portrait = vh >= vw;
-    // reserve bottom ~40% for controls on a touch phone in portrait
-    const availH = (coarse && portrait) ? vh * 0.60 : vh - 8;
-    const availW = vw - (coarse ? 0 : 8);
+    const body = document.body;
+    if (body && body.classList) {
+      body.classList.toggle('portrait-touch', coarse && portrait);
+      body.classList.toggle('landscape-touch', coarse && !portrait);
+    }
+
+    let availW = vw - (coarse ? 0 : 8);
+    let availH = vh - 8;
+    const wrap = el('wrap');
+    if (wrap && wrap.style) wrap.style.paddingBottom = '';
+
+    if (coarse) {
+      const ctrl = [visRect(el('dpad')), visRect(el('btn-group')),
+                    visRect(el('sys-group'))].filter(Boolean);
+      if (portrait) {
+        // Everything the player touches lives in a bottom band. The playfield
+        // gets the whole area above the topmost control, and is centred in it.
+        let top = vh;
+        for (const r of ctrl) top = Math.min(top, r.top);
+        availH = Math.max(top - 10, vh * 0.45);
+        // Reserve the control band inside #wrap so flex centring puts the
+        // playfield in the middle of the free space, not jammed against the top.
+        if (wrap && wrap.style) wrap.style.paddingBottom = Math.round(vh - availH) + 'px';
+      } else {
+        // Landscape: controls sit in left and right gutters. Keep the playfield
+        // strictly between them so a d-pad never covers the play area.
+        let left = 0, right = vw;
+        for (const r of ctrl) {
+          if (r.right <= vw * 0.5) left = Math.max(left, r.right);
+          else if (r.left >= vw * 0.5) right = Math.min(right, r.left);
+        }
+        const gutter = Math.max(left, vw - right) + 10;
+        availW = Math.max(vw - gutter * 2, vw * 0.34);
+        availH = vh - 6;
+      }
+    }
+
     let scale = Math.min(availW / SCREEN_W, availH / SCREEN_H);
     if (!coarse && scale >= 2) scale = Math.floor(scale);   // crisp pixels on desktop
     scale = Math.max(scale, 1);
     canvas.style.width = Math.round(SCREEN_W * scale) + 'px';
     canvas.style.height = Math.round(SCREEN_H * scale) + 'px';
-    document.body && document.body.classList &&
-      document.body.classList.toggle('portrait-touch', coarse && portrait);
   }
-  window.addEventListener('resize', resize);
-  window.addEventListener('orientationchange', resize);
-  resize();
+  // resize() reads control rects that themselves depend on the body class it
+  // sets, so run it twice: pass 1 lays the controls out, pass 2 measures them.
+  function relayout() { resize(); resize(); }
+  window.addEventListener('resize', relayout);
+  window.addEventListener('orientationchange', function () {
+    // iOS reports stale innerWidth/innerHeight during orientationchange.
+    relayout(); setTimeout(relayout, 120); setTimeout(relayout, 400);
+  });
+  if (window.visualViewport) {
+    // The mobile URL bar collapsing/expanding resizes the visual viewport only.
+    window.visualViewport.addEventListener('resize', relayout);
+  }
+  relayout();
 
   // ---- input ----
   const keys = {};        // held
@@ -78,68 +135,95 @@ const Engine = (() => {
   // touch: the on-screen controller. Hit-testing is done against the ACTUAL
   // control DOM elements (#dpad, #btn-a/b/start/select) so the touch zones can
   // never drift away from what the player sees. Multi-touch: move + fire at once.
+  // WebAudio on mobile only starts from inside a real user-gesture handler, and
+  // the game's first Sound call happens later inside requestAnimationFrame. Unlock
+  // synchronously on the very first input of any kind, or the game plays silent.
+  let audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    try { if (typeof Sound !== 'undefined' && Sound.unlock) Sound.unlock(); } catch (e) {}
+  }
+  window.addEventListener('keydown', unlockAudio, true);
+  window.addEventListener('pointerdown', unlockAudio, true);
+  window.addEventListener('mousedown', unlockAudio, true);
+
+  // touch: the on-screen controller. Each touch is assigned an OWNER control at
+  // touchstart and keeps it until release, the marble.html stick/drag convention.
+  // That means a thumb that slides off the d-pad keeps steering (direction is read
+  // from the pad centre, not from containment) and a thumb that slides off A never
+  // silently arms B. Multi-touch: move and attack at the same time.
+  const TOUCH_BUTTONS = ['a', 'b', 'start', 'select', 'cont', 'mute'];
   function setupTouch() {
-    const $ = id => (typeof document !== 'undefined' && document.getElementById) ? document.getElementById(id) : null;
-    const dpadEl = $('dpad'), aEl = $('btn-a'), bEl = $('btn-b'),
-          startEl = $('btn-start'), selEl = $('btn-select');
-    const touches = {};   // identifier -> {x,y}
-    window.addEventListener('touchstart', handle, {passive:false});
-    window.addEventListener('touchmove', handle, {passive:false});
+    const dpadEl = el('dpad');
+    const btnEl = {
+      a: el('btn-a'), b: el('btn-b'), start: el('btn-start'),
+      select: el('btn-select'), cont: el('btn-c'), mute: el('btn-m')
+    };
+    const owners = {};   // identifier -> {own:'dpad'|button-name, x, y}
+    window.addEventListener('touchstart', start, {passive:false});
+    window.addEventListener('touchmove', move, {passive:false});
     window.addEventListener('touchend', end, {passive:false});
     window.addEventListener('touchcancel', end, {passive:false});
-    function handle(e) {
-      // only swallow the default (scroll/zoom) when the touch is on a control
+    function start(e) {
+      unlockAudio();
       let onControl = false;
       for (const t of e.changedTouches) {
         const p = { x: t.clientX, y: t.clientY };
-        touches[t.identifier] = p;
-        if (hitAny(p)) onControl = true;
+        const own = ownerAt(p);
+        if (own) { owners[t.identifier] = { own: own, x: p.x, y: p.y }; onControl = true; }
       }
-      if (onControl) e.preventDefault();
+      if (onControl) e.preventDefault();   // only swallow scroll/zoom over a control
+      apply();
+    }
+    function move(e) {
+      let owned = false;
+      for (const t of e.changedTouches) {
+        const o = owners[t.identifier];
+        if (o) { o.x = t.clientX; o.y = t.clientY; owned = true; }
+      }
+      if (owned) e.preventDefault();
       apply();
     }
     function end(e) {
-      for (const t of e.changedTouches) delete touches[t.identifier];
+      for (const t of e.changedTouches) delete owners[t.identifier];
       apply();
     }
-    function rectOf(el) { return el && el.getBoundingClientRect ? el.getBoundingClientRect() : null; }
-    function inEl(p, el) {
-      const r = rectOf(el); if (!r) return false;
+    function inEl(p, e) {
+      const r = visRect(e); if (!r) return false;
       return p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
     }
-    function hitAny(p) {
-      return inEl(p, dpadEl) || inEl(p, aEl) || inEl(p, bEl) || inEl(p, startEl) || inEl(p, selEl);
+    function ownerAt(p) {
+      if (inEl(p, dpadEl)) return 'dpad';
+      for (const name of TOUCH_BUTTONS) if (inEl(p, btnEl[name])) return name;
+      return null;
     }
-    function setActive(el, on) { if (el && el.classList) el.classList.toggle('active', !!on); }
-    let last = { a:false, b:false, start:false, select:false };
+    function setActive(e, on) { if (e && e.classList) e.classList.toggle('active', !!on); }
+    const last = {};
     function apply() {
-      let up=false, dn=false, lt=false, rt=false, a=false, b=false, start=false, sel=false;
-      for (const id in touches) {
-        const p = touches[id];
-        if (inEl(p, dpadEl)) {
-          const r = rectOf(dpadEl);
-          const cx = r.left + r.width/2, cy = r.top + r.height/2;
-          const dx = p.x - cx, dy = p.y - cy;
+      let up = false, dn = false, lt = false, rt = false;
+      const down = {};
+      for (const id in owners) {
+        const o = owners[id];
+        if (o.own === 'dpad') {
+          const r = visRect(dpadEl); if (!r) continue;
+          const dx = o.x - (r.left + r.width / 2), dy = o.y - (r.top + r.height / 2);
           const dead = r.width * 0.16;
           if (Math.abs(dx) > dead || Math.abs(dy) > dead) {
             if (Math.abs(dx) > Math.abs(dy)) { if (dx < 0) lt = true; else rt = true; }
             else { if (dy < 0) up = true; else dn = true; }
           }
-        }
-        else if (inEl(p, aEl)) a = true;
-        else if (inEl(p, bEl)) b = true;
-        else if (inEl(p, startEl)) start = true;
-        else if (inEl(p, selEl)) sel = true;
+        } else down[o.own] = true;
       }
-      keys.up=up; keys.down=dn; keys.left=lt; keys.right=rt;
-      if (a && !last.a) pressed.a = true;
-      if (b && !last.b) pressed.b = true;
-      if (start && !last.start) pressed.start = true;
-      if (sel && !last.select) pressed.select = true;
-      keys.a=a; keys.b=b; keys.start=start; keys.select=sel;
-      last = { a, b, start, select: sel };
-      setActive(aEl, a); setActive(bEl, b); setActive(startEl, start);
-      setActive(selEl, sel); setActive(dpadEl, up||dn||lt||rt);
+      keys.up = up; keys.down = dn; keys.left = lt; keys.right = rt;
+      for (const name of TOUCH_BUTTONS) {
+        const on = !!down[name];
+        if (on && !last[name]) pressed[name] = true;   // edge press for one frame
+        last[name] = on;
+        keys[name] = on;
+        setActive(btnEl[name], on);
+      }
+      setActive(dpadEl, up || dn || lt || rt);
     }
   }
   setupTouch();

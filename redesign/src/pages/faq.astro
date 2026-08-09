@@ -1,0 +1,105 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Faq from '../components/ui/Faq.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+
+const faqs = [
+  {
+    q: 'What is GreenGuard USA?',
+    a: 'An Austin-based mosquito control company using CO₂-baited traps instead of pesticides. We rent professional-grade traps, deliver monthly CO₂ tanks, and maintain everything so you don\'t have to.',
+  },
+  {
+    q: 'How do CO₂ mosquito traps work?',
+    a: 'Mosquitoes find hosts by tracking the CO₂ in exhaled breath. Our traps release CO₂ at the same rate as a human, plus a secondary attractant. Females are pulled in by a counter-flow fan and trapped in a net.',
+  },
+  {
+    q: 'Why is CO₂ more effective than sprays or zappers?',
+    a: 'Sprays kill on contact and wear off in 2–4 weeks. They also kill bees and butterflies. Zappers attract by light, which mosquitoes ignore (they hunt by CO₂). CO₂ traps run 24/7 and target only the females that bite and lay eggs, breaking the breeding cycle.',
+  },
+  {
+    q: 'What areas do you service?',
+    a: 'Austin metro: Westlake Hills, Lakeway, Bee Cave, Dripping Springs, Steiner Ranch, Round Rock, Cedar Park, Pflugerville, Leander, Liberty Hill, Georgetown, Kyle, Buda, and surrounding communities.',
+  },
+  {
+    q: 'How long until I see results?',
+    a: '7–14 days for noticeable reduction in bites. 4–8 weeks for the breeding cycle to break and population to drop ~93% in field studies. Continuous operation is key: the trap runs 24/7.',
+  },
+  {
+    q: 'Is it safe for kids and pets?',
+    a: 'Yes. No pesticides, no toxins, no spray residue. The trap is enclosed and uses only CO₂ + a food-safe lure. Kids and pets can play near it.',
+  },
+  {
+    q: 'Does it kill bees or butterflies?',
+    a: 'No. CO₂ traps target only blood-seeking insects (mosquitoes, some midges). Pollinators are not attracted to CO₂ and ignore the trap entirely.',
+  },
+  {
+    q: 'What if I have a creek or pond?',
+    a: 'These are high mosquito-pressure properties. We typically recommend bi-weekly service or multiple traps placed along the perimeter. Free assessment first.',
+  },
+  {
+    q: 'Do I need a contract?',
+    a: 'No. Month-to-month. Cancel anytime with no penalty.',
+  },
+  {
+    q: 'What\'s included in the monthly fee?',
+    a: 'Trap rental, monthly CO₂ tank exchange, quarterly maintenance, lure replacement, and seasonal placement tuning. Texas sales tax (8.25%) is shown on every invoice.',
+  },
+];
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqs.map(f => ({
+    "@type": "Question",
+    "name": f.q,
+    "acceptedAnswer": { "@type": "Answer", "text": f.a }
+  }))
+};
+---
+
+<Base
+  title="Mosquito Control FAQ Austin TX | GreenGuard USA"
+  description="Everything Austin homeowners ask about CO₂ mosquito trapping: how it works, what it costs, how long results take, and how it compares to spray treatments."
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+
+  <!-- ============ HERO ============ -->
+  <Section variant="ivory">
+    <div class="max-w-3xl">
+      <Eyebrow>FAQ</Eyebrow>
+      <h1 class="mt-6 text-ink" style="font-size: clamp(2.6rem, 6vw, 4.2rem); max-width: 16ch;">
+        Got questions? <em class="italic" style="color: var(--pine); font-weight: 340;">We've got answers.</em>
+      </h1>
+      <p class="mt-7 text-soft" style="font-size: 1.125rem; max-width: 32rem; line-height: 1.75;">
+        Quick answers to the things most Austin homeowners ask before signing up.
+      </p>
+    </div>
+  </Section>
+
+  <!-- ============ FAQ LIST ============ -->
+  <Section variant="linen">
+    <div class="max-w-3xl mx-auto reveal">
+      <Faq items={faqs} />
+    </div>
+  </Section>
+
+  <!-- ============ STILL HAVE QUESTIONS ============ -->
+  <Section variant="ivory" tight class="hairline-t">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 py-6">
+      <div>
+        <h2 class="font-display" style="font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 420;">Still have questions?</h2>
+        <p class="mt-2 text-soft text-[0.97rem]">Text or call. We answer within a business day.</p>
+      </div>
+      <div class="flex flex-wrap gap-4">
+        <Btn href="tel:5125604129">512-560-4129</Btn>
+        <Btn href="/contact" variant="ghost">Send a message</Btn>
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ CTA BAND ============ -->
+  <CtaBand />
+</Base>

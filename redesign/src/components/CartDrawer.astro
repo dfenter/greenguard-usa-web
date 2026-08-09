@@ -1,0 +1,261 @@
+---
+// Shared cart drawer — import once per page that needs cart functionality.
+// Exposes window.addToCart(id, name, price) for add-to-cart buttons.
+---
+
+<!-- Overlay -->
+<div id="cart-overlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden"></div>
+
+<!-- Drawer -->
+<aside
+  id="cart-drawer"
+  aria-label="Shopping cart"
+  class="fixed top-0 right-0 h-full w-full max-w-[420px] z-50 flex flex-col translate-x-full transition-transform duration-300 ease-out"
+  style="background: #070e08; border-left: 1px solid rgba(122,171,130,0.18); box-shadow: -24px 0 80px rgba(0,0,0,0.6);"
+>
+  <!-- Header -->
+  <div class="flex items-start justify-between px-6 py-5" style="border-bottom: 1px solid rgba(122,171,130,0.12);">
+    <div>
+      <div class="text-white font-black text-lg tracking-tight">Your Order</div>
+      <div class="text-cream/35 text-xs mt-0.5 flex items-center gap-1.5">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-accent"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        SSL-encrypted · Powered by Stripe
+      </div>
+    </div>
+    <button id="cart-close" aria-label="Close cart" class="text-cream/30 hover:text-white transition-colors text-3xl leading-none p-0.5 mt-0.5">×</button>
+  </div>
+
+  <!-- Items -->
+  <div id="cart-items" class="flex-1 overflow-y-auto px-6 py-2"></div>
+
+  <!-- Footer -->
+  <div class="px-6 pt-4 pb-6" style="border-top: 1px solid rgba(122,171,130,0.12); background: rgba(0,0,0,0.3);">
+    <div class="flex justify-between items-baseline mb-0.5">
+      <span class="text-cream/55 text-sm font-semibold">Subtotal</span>
+      <span id="cart-subtotal" class="text-white font-black text-2xl">$0.00</span>
+    </div>
+    <p class="text-cream/30 text-xs mb-3">Tax calculated at checkout</p>
+
+    <div class="mb-4">
+      <label for="cart-zip" class="block text-cream/55 text-xs font-semibold mb-1">Delivery ZIP</label>
+      <input id="cart-zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="78704"
+        class="w-full px-3 py-2 rounded-lg text-sm text-white outline-none"
+        style="background:rgba(255,255,255,0.04);border:1px solid rgba(122,171,130,0.25);" />
+      <p id="cart-ship-note" class="text-cream/35 text-xs mt-1.5">Austin-area delivery is free. Outside Austin, shipping is added at checkout.</p>
+    </div>
+
+    <button
+      id="checkout-btn"
+      class="w-full py-4 rounded-lg font-black text-sm tracking-widest uppercase transition-all active:scale-98"
+      style="background: linear-gradient(135deg, #d4b45a 0%, #c9a84c 50%, #b8952a 100%); color: #070e08; box-shadow: 0 4px 24px rgba(201,168,76,0.3); letter-spacing: 0.12em;"
+    >
+      Proceed to Checkout
+    </button>
+    <p id="checkout-error" class="text-red-400 text-xs mt-3 hidden text-center"></p>
+
+    <div class="flex items-center justify-center gap-3 mt-4">
+      <span class="text-cream/20 text-xs">🔒 Secure</span>
+      <span class="text-cream/15 text-xs">·</span>
+      <span class="text-cream/20 text-xs">No contracts</span>
+      <span class="text-cream/15 text-xs">·</span>
+      <span class="text-cream/20 text-xs">Austin TX</span>
+    </div>
+  </div>
+</aside>
+
+<!-- Floating Cart Button -->
+<button
+  id="cart-toggle"
+  aria-label="Open cart"
+  class="fixed bottom-6 right-6 z-30 flex items-center gap-2.5 px-5 py-3.5 rounded-full font-black text-sm transition-all hover:scale-105"
+  style="background: linear-gradient(135deg, #d4b45a, #c9a84c); color: #070e08; box-shadow: 0 8px 32px rgba(201,168,76,0.35);"
+>
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+  </svg>
+  Cart
+  <span id="cart-badge" class="text-xs font-black rounded-full w-5 h-5 flex items-center justify-center hidden" style="background: #070e08; color: #c9a84c;">0</span>
+</button>
+
+<script>
+function getCart(): Array<{id: string; name: string; price: number; qty: number}> {
+  try { return JSON.parse(localStorage.getItem('gg_cart') || '[]'); } catch { return []; }
+}
+function saveCart(cart: ReturnType<typeof getCart>) {
+  localStorage.setItem('gg_cart', JSON.stringify(cart));
+  renderCart();
+}
+
+(window as any).addToCart = function(id: string, name: string, price: number | string) {
+  const cart = getCart();
+  const existing = cart.find(i => i.id === id);
+  const numPrice = parseFloat(String(price));
+  if (existing) { existing.qty++; } else { cart.push({ id, name, price: numPrice, qty: 1 }); }
+  saveCart(cart);
+  openCart();
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'add_to_cart', {
+      currency: 'USD',
+      value: numPrice,
+      items: [{ item_id: id, item_name: name, price: numPrice, quantity: 1 }],
+    });
+  }
+};
+
+(window as any).removeFromCart = function(id: string) {
+  saveCart(getCart().filter(i => i.id !== id));
+};
+
+(window as any).setQty = function(id: string, qty: number) {
+  if (qty < 1) { (window as any).removeFromCart(id); return; }
+  const cart = getCart();
+  const item = cart.find(i => i.id === id);
+  if (item) { item.qty = qty; saveCart(cart); }
+};
+
+function renderCart() {
+  const cart = getCart();
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+
+  const badge = document.getElementById('cart-badge');
+  if (badge) { badge.textContent = String(count); badge.classList.toggle('hidden', count === 0); }
+
+  const subtotalEl = document.getElementById('cart-subtotal');
+  if (subtotalEl) subtotalEl.textContent = `$${total.toFixed(2)}`;
+
+  const itemsEl = document.getElementById('cart-items');
+  if (!itemsEl) return;
+
+  if (cart.length === 0) {
+    itemsEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:3rem 0;text-align:center;">
+        <div style="font-size:3rem;opacity:0.12;margin-bottom:1rem;">🛒</div>
+        <p style="color:rgba(212,230,202,0.4);font-size:0.875rem;margin:0;">Your cart is empty</p>
+        <p style="color:rgba(212,230,202,0.25);font-size:0.75rem;margin:0.25rem 0 0;">Add a product above to get started</p>
+      </div>`;
+    return;
+  }
+
+  itemsEl.innerHTML = cart.map(item => `
+    <div style="display:flex;gap:1rem;padding:1rem 0;border-bottom:1px solid rgba(122,171,130,0.08);">
+      <div style="flex:1;min-width:0;">
+        <div style="color:#fff;font-size:0.875rem;font-weight:700;line-height:1.3;margin-bottom:0.25rem;">${item.name}</div>
+        <div style="color:#c9a84c;font-size:0.875rem;font-weight:900;">$${(item.price * item.qty).toFixed(2)}</div>
+        <div style="color:rgba(212,230,202,0.3);font-size:0.7rem;margin-top:0.125rem;">${item.qty} × $${item.price.toFixed(2)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+        <button onclick="setQty('${item.id}', ${item.qty - 1})" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border:1px solid rgba(122,171,130,0.2);border-radius:4px;background:none;color:rgba(212,230,202,0.5);cursor:pointer;font-size:1rem;font-family:inherit;">−</button>
+        <span style="color:#d4e6ca;font-size:0.875rem;font-weight:600;width:1rem;text-align:center;">${item.qty}</span>
+        <button onclick="setQty('${item.id}', ${item.qty + 1})" style="width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;border:1px solid rgba(122,171,130,0.2);border-radius:4px;background:none;color:rgba(212,230,202,0.5);cursor:pointer;font-size:1rem;font-family:inherit;">+</button>
+        <button onclick="removeFromCart('${item.id}')" style="margin-left:0.25rem;background:none;border:none;color:rgba(212,230,202,0.2);cursor:pointer;font-size:1.25rem;line-height:1;padding:0;font-family:inherit;">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function openCart() {
+  document.getElementById('cart-drawer')?.classList.remove('translate-x-full');
+  document.getElementById('cart-overlay')?.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closeCart() {
+  document.getElementById('cart-drawer')?.classList.add('translate-x-full');
+  document.getElementById('cart-overlay')?.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+async function checkout() {
+  const cart = getCart();
+  if (!cart.length) return;
+  const btn = document.getElementById('checkout-btn') as HTMLButtonElement | null;
+  const errEl = document.getElementById('checkout-error');
+  if (btn) { btn.textContent = 'Redirecting…'; btn.disabled = true; btn.style.opacity = '0.65'; }
+  if (errEl) errEl.classList.add('hidden');
+
+  if (typeof window.gtag === 'function') {
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    window.gtag('event', 'begin_checkout', {
+      currency: 'USD',
+      value: total,
+      items: cart.map(i => ({ item_id: i.id, item_name: i.name, price: i.price, quantity: i.qty })),
+    });
+  }
+
+  // Gather ad attribution so shop purchases can be attributed server-side.
+  // gclid/fbclid persisted to sessionStorage by Base.astro; _fbc/_fbp/_ga are cookies.
+  const cookie = (name: string) => {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  };
+  const ga = cookie('_ga');                      // GA1.1.<client_id>
+  const attribution = {
+    gclid: sessionStorage.getItem('gg_gclid') || '',
+    fbclid: sessionStorage.getItem('gg_fbclid') || '',
+    fbc: cookie('_fbc'),
+    fbp: cookie('_fbp'),
+    ga_client_id: ga ? ga.split('.').slice(-2).join('.') : '',
+    // _ga_<stream> is GS1.1.<session_id>.<n>... — lets the webhook's MP purchase
+    // attach to this session instead of landing in Unassigned.
+    ga_session_id: (cookie('_ga_K2R5H2Z23X') || '').split('.')[2] || '',
+  };
+
+  const zip = ((document.getElementById('cart-zip') as HTMLInputElement | null)?.value || '').trim();
+
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: cart, attribution, zip }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      localStorage.removeItem('gg_cart');
+      window.location.href = data.url;
+    } else { throw new Error(data.error || 'Checkout failed'); }
+  } catch (e: any) {
+    if (btn) { btn.textContent = 'Proceed to Checkout'; btn.disabled = false; btn.style.opacity = '1'; }
+    // Surface the server's reason (e.g. "… is out of stock") when it's a clean,
+    // customer-safe message; otherwise fall back to the support number.
+    const msg = (e && typeof e.message === 'string' && e.message.length > 0 && e.message.length < 140)
+      ? e.message : 'Something went wrong. Call 512-560-4129.';
+    if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+  }
+}
+
+// Austin-local delivery is free. Mirror of isAustinLocal() in lib/catalog.js —
+// cosmetic hint only; the server is authoritative for what shipping is charged.
+function isLocalZip(zip: string) { return /^78[67]\d\d$/.test(zip.trim()); }
+function updateShipNote() {
+  const input = document.getElementById('cart-zip') as HTMLInputElement | null;
+  const note = document.getElementById('cart-ship-note');
+  if (!input || !note) return;
+  const zip = input.value.trim();
+  if (/^\d{5}$/.test(zip)) {
+    if (isLocalZip(zip)) { note.textContent = '✓ Free local Austin delivery'; note.style.color = '#7aab82'; }
+    else { note.textContent = 'Outside Austin — shipping added at checkout.'; note.style.color = ''; }
+  } else {
+    note.textContent = 'Austin-area delivery is free. Outside Austin, shipping is added at checkout.';
+    note.style.color = '';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderCart();
+  document.getElementById('cart-toggle')?.addEventListener('click', openCart);
+  document.getElementById('cart-close')?.addEventListener('click', closeCart);
+  document.getElementById('cart-overlay')?.addEventListener('click', closeCart);
+  document.getElementById('checkout-btn')?.addEventListener('click', checkout);
+
+  const zipEl = document.getElementById('cart-zip') as HTMLInputElement | null;
+  if (zipEl) {
+    const saved = localStorage.getItem('gg_zip') || '';
+    if (saved) zipEl.value = saved;
+    updateShipNote();
+    zipEl.addEventListener('input', () => {
+      localStorage.setItem('gg_zip', zipEl.value.trim());
+      updateShipNote();
+    });
+  }
+});
+</script>

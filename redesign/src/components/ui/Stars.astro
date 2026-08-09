@@ -1,0 +1,40 @@
+---
+/**
+ * Inline SVG star row, brass fill. rating 0-5 (rounded to nearest half).
+ * size in px (default 16).
+ */
+interface Props {
+  rating?: number;
+  size?: number;
+  class?: string;
+}
+const { rating = 5, size = 16, class: className = '' } = Astro.props;
+const rounded = Math.round(rating * 2) / 2;
+const stars = [0, 1, 2, 3, 4].map((i) =>
+  rounded >= i + 1 ? 'full' : rounded >= i + 0.5 ? 'half' : 'empty'
+);
+const path = 'M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.5L12 17.2l-5.9 3.3 1.3-6.5L2.5 9.4l6.6-.8L12 2.5z';
+// unique gradient ids per component instance (Stars renders multiple times per page)
+const uid = Math.random().toString(36).slice(2, 8);
+---
+
+<span class:list={['inline-flex items-center gap-0.5', className]} role="img" aria-label={`Rated ${rating} out of 5 stars`}>
+  {stars.map((kind, i) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      {kind === 'half' && (
+        <defs>
+          <linearGradient id={`star-half-${uid}-${i}`}>
+            <stop offset="50%" stop-color="var(--brass)" />
+            <stop offset="50%" stop-color="transparent" />
+          </linearGradient>
+        </defs>
+      )}
+      <path
+        d={path}
+        fill={kind === 'full' ? 'var(--brass)' : kind === 'half' ? `url(#star-half-${uid}-${i})` : 'none'}
+        stroke="var(--brass)"
+        stroke-width="1.2"
+      />
+    </svg>
+  ))}
+</span>

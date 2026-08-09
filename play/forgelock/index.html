@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/forgelock/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#091018">
+  <title>Forgelock</title>
+  <style>
+    :root { color-scheme: dark; background: #091018; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #091018; }
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    #game { display: block; width: 100vw; height: 100vh; touch-action: none; user-select: none; -webkit-user-select: none; }
+    #rotate { display: none; position: fixed; inset: 0; z-index: 5; align-items: center; justify-content: center; padding: 32px; text-align: center; background: rgba(5, 10, 16, .94); color: #f1f7ff; letter-spacing: .08em; font-size: 16px; font-weight: 800; }
+    #rotate span { display: block; margin: 0 auto 14px; font-size: 42px; letter-spacing: 0; }
+    @media (orientation: landscape) and (max-height: 620px) { #rotate { display: flex; } }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Forgelock push-block factory puzzle"></canvas>
+  <div id="rotate"><div><span>↻</span>TURN YOUR PHONE UPRIGHT</div></div>
+  <script src="game.js"></script>
+</body>
+</html>

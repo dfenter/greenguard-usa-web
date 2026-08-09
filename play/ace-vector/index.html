@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#071126">
+<meta name="description" content="Ace Vector - an arcade dogfighter. Fourteen sorties, four ace duels, one wingman who does what you tell him.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/ace-vector/">
+<title>Ace Vector</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preload" href="assets/font_display.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/font_body.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  /* Bundled display/body type pair. Both are subset to printable ASCII, so
+     the pair costs under 3 KB and no glyph is ever fetched at runtime. */
+  @font-face {
+    font-family: 'AV Display';
+    src: url('assets/font_display.woff2') format('woff2');
+    font-weight: 400 900; font-style: normal; font-display: block;
+  }
+  @font-face {
+    font-family: 'AV Body';
+    src: url('assets/font_body.woff2') format('woff2');
+    font-weight: 400 900; font-style: normal; font-display: block;
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #071126; color: #e8f6ff;
+    font-family: 'AV Body', Verdana, Geneva, system-ui, sans-serif;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; touch-action: none; }
+  /* The canvas is full bleed; safe-area insets are applied to the HUD inside
+     the game (game.js reads them from this probe's computed style). */
+
+  /* ---------------------------------------------------------------------
+     Branded boot composition. GGKit still owns the loader lifecycle (show /
+     progress / hide are driven through kit.loader); this layer sits above
+     its default chrome so the first thing a player sees is Ace Vector art
+     direction rather than a grey progress bar on black.
+     --------------------------------------------------------------------- */
+  #av-boot {
+    position: fixed; inset: 0; z-index: 9400; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #0a1430 0%, #1d3f6e 34%, #8b5f8e 62%, #f0a06f 84%, #ffd7a1 100%);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    transition: opacity .45s ease;
+  }
+  #av-boot.gone { opacity: 0; pointer-events: none; }
+  /* Low sun, matching the dawn theme the title screen opens on. */
+  #av-boot::before {
+    content: ''; position: absolute; left: 62%; top: 58%; width: 78vh; height: 78vh;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(255,220,174,.62) 0%, rgba(255,220,174,.16) 42%, rgba(255,220,174,0) 68%);
+  }
+  /* Ridge silhouette welds the composition to the ground plane. */
+  #av-boot::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 34%;
+    background:
+      linear-gradient(180deg, rgba(45,59,99,0) 0%, rgba(45,59,99,.55) 40%, #141b33 100%);
+    clip-path: polygon(0 62%, 8% 44%, 16% 56%, 27% 33%, 38% 52%, 47% 38%, 58% 58%,
+                       68% 41%, 79% 57%, 88% 45%, 100% 60%, 100% 100%, 0 100%);
+  }
+  .av-cloud {
+    position: absolute; border-radius: 999px;
+    background: radial-gradient(circle, rgba(255,217,196,.5) 0%, rgba(255,217,196,.16) 55%, rgba(255,217,196,0) 72%);
+    animation: av-drift linear infinite;
+  }
+  @keyframes av-drift { from { transform: translateX(18vw); } to { transform: translateX(-130vw); } }
+  #av-boot .av-stage { position: relative; text-align: center; }
+  #av-boot .av-plane { display: block; margin: 0 auto 10px; width: 168px; max-width: 46vw;
+                       filter: drop-shadow(0 0 14px rgba(143,230,255,.55));
+                       animation: av-hover 2.6s ease-in-out infinite; }
+  @keyframes av-hover { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+  #av-boot h1 {
+    font-family: 'AV Display', Verdana, sans-serif; margin: 0; letter-spacing: .22em;
+    font-size: clamp(26px, 6.2vw, 46px); line-height: 1; color: #fff6dd;
+    text-shadow: 0 0 18px rgba(255,190,120,.45);
+  }
+  #av-boot h2 {
+    font-family: 'AV Display', Verdana, sans-serif; margin: 4px 0 0; letter-spacing: .34em;
+    font-size: clamp(13px, 3vw, 21px); color: #8fe6ff;
+    text-shadow: 0 0 14px rgba(143,230,255,.5);
+  }
+  #av-boot .av-track {
+    margin: 20px auto 0; width: min(64vw, 300px); height: 6px; border-radius: 3px;
+    background: rgba(8,18,39,.55); box-shadow: inset 0 0 0 1px rgba(143,230,255,.28); overflow: hidden;
+  }
+  #av-boot .av-bar {
+    width: 0%; height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #8fe6ff 0%, #fff6dd 70%, #ffd7a1 100%);
+    box-shadow: 0 0 12px rgba(143,230,255,.8); transition: width .18s ease-out;
+  }
+  #av-boot .av-status {
+    margin-top: 10px; font-family: 'AV Body', Verdana, sans-serif; letter-spacing: .18em;
+    font-size: 10px; color: #cfe8f6; opacity: .82;
+  }
+
+  /* ---------------------------------------------------------------------
+     Rotate-to-landscape overlay, skinned. GGKit still owns the behaviour:
+     it builds the element, pauses the sim and resumes on rotate, and none
+     of that is touched here. This is presentation only, matched to the
+     element GGKit stamps with z-index 9500, so the prompt reads as Ace
+     Vector rather than a system-font glyph on black.
+     --------------------------------------------------------------------- */
+  body > div[style*="9500"] {
+    background: linear-gradient(180deg, #0a1430 0%, #1d3f6e 42%, #6d4a7a 74%, #f0a06f 100%) !important;
+    color: #e8f6ff !important;
+    font-family: 'AV Body', Verdana, Geneva, system-ui, sans-serif !important;
+    gap: 4px;
+  }
+  /* Ridge silhouette, same clip path as the boot composition. */
+  body > div[style*="9500"]::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30%;
+    background: linear-gradient(180deg, rgba(45,59,99,0) 0%, rgba(45,59,99,.55) 40%, #141b33 100%);
+    clip-path: polygon(0 62%, 8% 44%, 16% 56%, 27% 33%, 38% 52%, 47% 38%, 58% 58%,
+                       68% 41%, 79% 57%, 88% 45%, 100% 60%, 100% 100%, 0 100%);
+    pointer-events: none;
+  }
+  /* An aeroplane banking through a quarter turn, in place of the glyph. */
+  body > div[style*="9500"] > div:first-child {
+    position: relative; z-index: 1;
+    width: 132px; height: 50px; font-size: 0 !important; margin-bottom: 18px !important;
+    background: no-repeat center/contain
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 76"><g fill="%230b1a33" stroke="%238fe6ff" stroke-width="3" stroke-linejoin="round"><path d="M6 40 L52 33 L104 27 L156 31 L186 38 L156 45 L104 49 L52 43 Z"/><path d="M74 30 L96 4 L112 6 L100 30 Z"/><path d="M74 46 L96 72 L112 70 L100 46 Z"/></g><path d="M150 34 L182 38 L150 42 Z" fill="%23ffd7a1"/></svg>');
+    filter: drop-shadow(0 0 12px rgba(143,230,255,.6));
+    animation: av-roll 2.6s ease-in-out infinite;
+  }
+  @keyframes av-roll {
+    0%, 12%   { transform: rotate(-90deg) scale(.86); }
+    50%, 88%  { transform: rotate(0deg) scale(1); }
+    100%      { transform: rotate(-90deg) scale(.86); }
+  }
+  /* The instruction line. */
+  body > div[style*="9500"] > div:nth-child(2) {
+    position: relative; z-index: 1;
+    font-family: 'AV Display', Verdana, Geneva, system-ui, sans-serif !important;
+    font-size: 15px !important; letter-spacing: .16em; line-height: 1.7;
+    text-transform: uppercase; color: #fff6dd !important;
+    text-shadow: 0 0 14px rgba(255,190,120,.45);
+  }
+</style>
+</head>
+<body>
+<div id="av-boot" role="status" aria-live="polite" aria-label="Loading Ace Vector">
+  <div class="av-cloud" style="left:10%;top:22%;width:38vw;height:11vh;animation-duration:23s"></div>
+  <div class="av-cloud" style="left:52%;top:40%;width:52vw;height:14vh;animation-duration:31s;animation-delay:-9s"></div>
+  <div class="av-cloud" style="left:26%;top:63%;width:44vw;height:12vh;animation-duration:17s;animation-delay:-4s"></div>
+  <div class="av-stage">
+    <svg class="av-plane" viewBox="0 0 200 76" aria-hidden="true">
+      <g fill="#0b1a33" stroke="#8fe6ff" stroke-width="2" stroke-linejoin="round">
+        <path d="M6 40 L52 33 L104 27 L156 31 L186 38 L156 45 L104 49 L52 43 Z"/>
+        <path d="M74 30 L96 4 L112 6 L100 30 Z"/>
+        <path d="M74 46 L96 72 L112 70 L100 46 Z"/>
+        <path d="M30 34 L44 20 L54 21 L46 34 Z"/>
+        <path d="M30 42 L44 56 L54 55 L46 42 Z"/>
+      </g>
+      <path d="M150 34 L182 38 L150 42 Z" fill="#ffd7a1"/>
+      <circle cx="118" cy="38" r="5" fill="#cfeeff" opacity=".9"/>
+    </svg>
+    <h1>ACE</h1>
+    <h2>VECTOR</h2>
+    <div class="av-track"><div class="av-bar" id="av-boot-bar"></div></div>
+    <div class="av-status" id="av-boot-status">SPINNING UP</div>
+  </div>
+</div>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/beastbind-cards/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0a0e15">
+<title>Beastbind Cards</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#05080d;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#05080d;}
+  #game{display:block;touch-action:none;background:#0a0e15;}
+  .ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:rgba(5,8,13,.94);color:#e8eef5;text-align:center;z-index:10;padding:24px;}
+  .ov h1{font-size:26px;margin:0 0 6px;color:#ffd98a;letter-spacing:2px;}
+  .ov p{font-size:13px;margin:4px 0;color:#8fa2b5;max-width:300px;line-height:1.5;}
+  .ov b{color:#8fd0ff;}
+  #rotate{display:none;}
+  .tapline{margin-top:18px;font-size:15px;color:#7ddc9a;font-weight:700;}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="390" height="700"></canvas></div>
+
+<div class="ov" id="start">
+  <h1>BEASTBIND CARDS</h1>
+  <p>Drag creatures out, attach energy, attack. Take <b>3 prize markers</b> to win a rank. Climb all 8 ranks to become champion.</p>
+  <p>Every 2 wins earns a free pack &mdash; rates posted, duplicates protected. No purchases, ever.</p>
+  <div class="tapline">TAP TO PLAY</div>
+</div>
+
+<div class="ov" id="rotate">
+  <h1>ROTATE</h1>
+  <p>Beastbind Cards is played in <b>portrait</b>. Turn your device upright to continue &mdash; the match is paused.</p>
+</div>
+
+<script src="cards.js"></script>
+<script src="engine.js"></script>
+<script src="ui.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

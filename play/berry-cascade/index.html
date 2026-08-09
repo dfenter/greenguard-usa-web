@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><base href="/play/berry-cascade/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#12101f">
+<title>Berry Cascade</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#0d0b16;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none;}
+  #cv{display:block;position:absolute;inset:0;touch-action:none;}
+  .ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;color:#fff;background:linear-gradient(180deg,#171129,#0d0b16);z-index:10;padding:24px;
+    touch-action:none;}
+  #rotate{display:none;background:rgba(8,6,14,0.97);z-index:20;}
+  .ttl{font-size:34px;font-weight:800;letter-spacing:1px;color:#ffd45e;margin-bottom:10px;}
+  .sub{font-size:15px;color:#b9b2d8;line-height:1.5;max-width:320px;}
+  .cta{margin-top:26px;font-size:19px;font-weight:700;color:#0d0b16;background:#7bd94a;
+    padding:16px 34px;border-radius:14px;min-height:48px;min-width:180px;display:flex;align-items:center;justify-content:center;}
+  .berries{display:flex;gap:10px;margin-bottom:18px;}
+  .berries i{width:26px;height:26px;border-radius:50%;display:block;}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="tap" class="ov">
+  <div class="berries">
+    <i style="background:#ff4d6d"></i><i style="background:#ffb020;border-radius:6px"></i>
+    <i style="background:#7bd94a"></i><i style="background:#35d0e6;border-radius:6px"></i>
+    <i style="background:#a97bff"></i>
+  </div>
+  <div class="ttl">BERRY CASCADE</div>
+  <div class="sub">Swipe to swap berries. Match 3+ to pop, 4+ to earn specials, and clear every grove goal before your moves run out. 30 groves, no lives, nothing to buy.</div>
+  <div class="cta">TAP TO PLAY</div>
+</div>
+
+<div id="rotate" class="ov">
+  <div class="ttl">↻</div>
+  <div class="sub">Berry Cascade plays in portrait.<br>Turn your device upright to keep cascading.</div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/board.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

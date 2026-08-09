@@ -1,0 +1,238 @@
+---
+import Base from '../layouts/Base.astro';
+import Reviews from '../components/Reviews.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Stars from '../components/ui/Stars.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+import { getReviewMeta, getLatestReviews } from '../lib/reviews';
+
+const meta = getReviewMeta();
+const allReviews = getLatestReviews(20);
+
+const reviewSchema = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "GreenGuard USA",
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": String(meta.averageRating),
+    "reviewCount": String(meta.totalReviews),
+    "bestRating": "5",
+    "worstRating": "1"
+  },
+  "review": allReviews.map(r => ({
+    "@type": "Review",
+    "author": { "@type": "Person", "name": r.author },
+    "reviewRating": { "@type": "Rating", "ratingValue": String(r.rating), "bestRating": "5" },
+    "reviewBody": r.text,
+  }))
+};
+
+const timeline = [
+  ['01', 'Week 1–2', 'Visible catches', 'The trap fills with mosquitoes, usually thousands in the first net change.'],
+  ['02', 'Week 3–4', 'Fewer bites', "You'll notice noticeably less biting pressure when outside."],
+  ['03', 'Week 5–6', 'Breeding cycle breaks', 'Gravid females removed before they lay eggs. Population drops sharply.'],
+  ['04', 'Week 7+', 'Maintenance mode', 'Steady-state. Outdoor use feels normal again. Quarterly tuning keeps it there.'],
+];
+
+const scienceRows = [
+  ['Targets only mosquitoes', 'Yes', 'Also kills pollinators'],
+  ['Continuous (24/7)', 'Yes', 'Wears off in 2–4 weeks'],
+  ['Breaks breeding cycle', 'Removes gravid females', 'Kills adults; eggs survive'],
+  ['Safe around kids/pets', 'No residue', 'Re-entry interval'],
+  ['Peer-reviewed efficacy', 'Biogents studies', 'Varies by product'],
+];
+---
+
+<Base
+  title="CO₂ Mosquito Trap Results & Reviews Austin TX | GreenGuard USA"
+  description={`Real results from Austin homeowners. ${meta.totalReviews} five-star reviews, 93% bite reduction in peer-reviewed studies, and mosquito-free backyards across the Austin metro.`}
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(reviewSchema)} />
+
+  <!-- ============ HERO ============ -->
+  <Section variant="ivory">
+    <div class="max-w-3xl">
+      <Eyebrow>Results</Eyebrow>
+      <h1 class="mt-6 text-ink" style="font-size: clamp(2.6rem, 6vw, 4.5rem); max-width: 14ch;">
+        Does it actually <em class="italic" style="color: var(--pine); font-weight: 340;">work?</em>
+      </h1>
+      <p class="mt-7 text-soft" style="font-size: 1.125rem; max-width: 32rem; line-height: 1.75;">
+        Short answer: yes, and we have the data to back it up.
+      </p>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-3 mt-8">
+        <span class="inline-flex items-center gap-2.5">
+          <Stars rating={meta.averageRating} size={15} />
+          <span class="text-sm text-soft"><strong class="text-ink font-semibold">{meta.averageRating}</strong> on Google &middot; {meta.totalReviews} reviews</span>
+        </span>
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ PROOF MEDIA ============ -->
+  <Section variant="linen">
+    <div class="max-w-4xl mx-auto reveal">
+      <div class="grid grid-cols-3 gap-4 items-end">
+        <div class="photo-frame col-span-2">
+          <video
+            id="proof-video"
+            data-src="/images/results-video-short.mp4"
+            poster="/images/results-mosquito-haul.jpg"
+            muted loop playsinline
+            preload="none"
+            class="w-full h-full object-cover block"
+            style="aspect-ratio: 16 / 9;"
+            aria-label="Video of a week's mosquito catch from a single GreenGuard CO2 trap in Austin"
+          ></video>
+        </div>
+        <div class="grid gap-4" style="margin-bottom: 2rem;">
+          <div class="photo-frame">
+            <img
+              src="/images/results-mosquito-haul-2.jpg"
+              alt="Hand beside a pile of mosquitoes caught by a GreenGuard CO2 trap in Austin, Texas"
+              class="w-full h-full object-cover"
+              style="aspect-ratio: 3 / 3.2;"
+              loading="lazy"
+            />
+          </div>
+          <div class="photo-frame">
+            <img
+              src="/images/results-mosquito-haul.jpg"
+              alt="A week's worth of mosquitoes collected in a GreenGuard trap net from one Austin backyard"
+              class="w-full h-full object-cover"
+              style="aspect-ratio: 3 / 3.2;"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </Section>
+
+  <!-- ============ BIG NUMBER ============ -->
+  <Section variant="ivory">
+    <div class="text-center max-w-2xl mx-auto reveal">
+      <span class="font-display block" style="font-size: clamp(5rem, 14vw, 9rem); font-weight: 300; line-height: 0.95; color: var(--pine); font-variation-settings: 'opsz' 144;" aria-hidden="true">93%</span>
+      <div class="mx-auto mt-6" style="width: 44px; height: 1px; background: var(--brass);"></div>
+      <p class="mt-6 text-soft" style="font-size: 1.125rem; line-height: 1.75;">
+        <span class="sr-only">93 percent </span>Reduction in mosquito bites documented in field studies with continuous CO₂ trap operation over 6+ weeks.
+      </p>
+    </div>
+  </Section>
+
+  <!-- ============ TIMELINE ============ -->
+  <Section variant="linen">
+    <div class="max-w-xl reveal">
+      <Eyebrow>Timeline</Eyebrow>
+      <h2 class="font-display mt-4" style="font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 400;">
+        Your results week by week
+      </h2>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 mt-14" data-stagger>
+      {timeline.map(([n, weeks, title, body]) => (
+        <div class="reveal">
+          <span class="display-numeral block" aria-hidden="true">{n}</span>
+          <div class="mt-4" style="width: 44px; height: 1px; background: var(--brass);"></div>
+          <p class="mt-5 text-[0.8rem] font-semibold uppercase" style="letter-spacing: 0.14em; color: var(--brass-ink);">{weeks}</p>
+          <h3 class="font-display mt-2" style="font-size: 1.35rem;">{title}</h3>
+          <p class="mt-3 text-soft text-[0.97rem]">{body}</p>
+        </div>
+      ))}
+    </div>
+  </Section>
+
+  <!-- ============ SCIENCE TABLE ============ -->
+  <Section variant="ivory">
+    <div class="text-center max-w-2xl mx-auto reveal">
+      <Eyebrow class="justify-center">The Science</Eyebrow>
+      <h2 class="font-display mt-4" style="font-size: clamp(1.9rem, 4vw, 2.9rem); font-weight: 400;">
+        Why CO₂ trapping outperforms sprays
+      </h2>
+    </div>
+    <div class="table-scroll mt-12 max-w-4xl mx-auto reveal">
+      <div class="overflow-x-auto">
+      <table class="w-full border-collapse text-[0.95rem]" style="min-width: 560px;">
+        <thead>
+          <tr class="hairline-b">
+            <th class="text-left py-4 pr-4 text-sm font-semibold text-soft" scope="col"><span class="sr-only">Criteria</span></th>
+            <th class="text-left py-4 px-4 font-display text-ink" style="font-size: 1.05rem;" scope="col">CO₂ Trapping</th>
+            <th class="text-left py-4 px-4 font-display" style="font-size: 1.05rem; color: rgba(30,43,35,.55);" scope="col">Spraying</th>
+          </tr>
+        </thead>
+        <tbody>
+          {scienceRows.map(([label, trap, spray]) => (
+            <tr class="hairline-b">
+              <th class="text-left py-4 pr-4 font-semibold text-ink" scope="row">{label}</th>
+              <td class="py-4 px-4">
+                <span class="inline-flex items-start gap-2 text-ink">
+                  <svg class="flex-none mt-1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--pine)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 12.5 9.5 18 20 6.5" />
+                  </svg>
+                  {trap}
+                </span>
+              </td>
+              <td class="py-4 px-4" style="color: rgba(30,43,35,.55);">{spray}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <p class="table-swipe-hint text-sm text-soft mt-3 max-w-4xl mx-auto md:hidden" aria-hidden="true">Swipe to compare &rarr;</p>
+  </Section>
+
+  <!-- ============ REVIEWS ============ -->
+  <Reviews variant="linen" />
+
+  <!-- ============ CTA BAND ============ -->
+  <CtaBand
+    title="See it work in your yard"
+    sub="Free property assessment. We'll show you exactly what to expect."
+    ctaLabel="Book Free Assessment"
+  />
+
+  <script>
+    // Lazy-load the 6MB proof video: attach src + play only when it nears the
+    // viewport. Under reduced motion (or without IO support) the poster stays.
+    (function () {
+      const video = document.getElementById('proof-video') as HTMLVideoElement | null;
+      if (!video) return;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced || !('IntersectionObserver' in window)) return;
+
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const src = video.dataset.src;
+          if (src && !video.src) {
+            video.src = src;
+            video.autoplay = true;
+            video.load();
+            video.play().catch(() => {});
+          }
+          io.unobserve(video);
+        });
+      }, { rootMargin: '300px 0px' });
+
+      io.observe(video);
+    })();
+  </script>
+
+  <style>
+    /* Right-edge fade signals more columns off-screen on small viewports */
+    .table-scroll { position: relative; }
+    .table-scroll::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 3rem;
+      pointer-events: none;
+      background: linear-gradient(90deg, rgba(250,247,241,0), var(--paper));
+      border-radius: 0 16px 16px 0;
+    }
+    @media (min-width: 768px) {
+      .table-scroll::after { display: none; }
+    }
+  </style>
+</Base>

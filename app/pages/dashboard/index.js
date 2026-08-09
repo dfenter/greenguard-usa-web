@@ -560,7 +560,7 @@ function ReschedulePicker({ onConfirm, onClose }) {
 
           <button
             disabled={!selISO}
-            onClick={() => onConfirm(new Date(selISO).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ, timeZoneName: 'short' }))}
+            onClick={() => onConfirm(new Date(selISO).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: TZ, timeZoneName: 'short' }), selISO)}
             style={{ ...BTN_PRIMARY, width: '100%', opacity: selISO ? 1 : 0.4, cursor: selISO ? 'pointer' : 'not-allowed' }}
           >
             Send Reschedule Request →
@@ -588,7 +588,12 @@ function ServiceActions({ nextBooking, subscription }) {
       })
       const d = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(d.error || 'Something went wrong')
-      setMsg({ ok: true, text: 'Request sent. Our team will follow up shortly.' })
+      setMsg({
+        ok: true,
+        text: d.rescheduled
+          ? `You're all set — your visit is rescheduled to ${d.newTime}.`
+          : 'Request sent. Our team will follow up shortly.',
+      })
     } catch (e) {
       setMsg({ ok: false, text: e.message })
     }
@@ -628,9 +633,9 @@ function ServiceActions({ nextBooking, subscription }) {
       {rescheduleOpen && !msg?.ok && (
         <ReschedulePicker
           onClose={() => setRescheduleOpen(false)}
-          onConfirm={requestedDate => {
+          onConfirm={(requestedDate, requestedIso) => {
             setRescheduleOpen(false)
-            send('reschedule', { bookingDate: nextBooking ? fmtDate(nextBooking.startTime) : null, requestedDate })
+            send('reschedule', { bookingDate: nextBooking ? fmtDate(nextBooking.startTime) : null, requestedDate, requestedIso })
           }}
         />
       )}

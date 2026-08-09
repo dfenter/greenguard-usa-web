@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <base href="/play/cloudhopper/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#071a2b">
+  <meta name="description" content="Cloudhopper is a low-poly free-flight simulator with landing strips, ring courses, and cargo hops.">
+  <title>Cloudhopper | GreenGuard Flightworks</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="stylesheet" href="style.css">
+  <script src="/play/_shared/ggkit.js"></script>
+  <script type="importmap">
+    {"imports":{"three":"/play/_shared/three/three.module.min.js"}}
+  </script>
+</head>
+<body>
+  <main id="app" aria-label="Cloudhopper flight simulator">
+    <canvas id="scene" aria-label="3D flight view"></canvas>
+    <section id="loading-screen" class="loading-screen" aria-live="polite">
+      <div class="loading-mark" aria-hidden="true"><span></span><i></i></div>
+      <div class="loading-kicker">GREENGUARD FLIGHTWORKS / REGION 03</div>
+      <h2>CLOUD<span>HOPPER</span></h2>
+      <p id="loading-stage">CALIBRATING FLIGHTWORKS</p>
+      <div class="loading-track"><i id="loading-bar"></i></div>
+      <small id="loading-percent">0%</small>
+      <div class="loading-hint">Tip: keep the nose light and land inside the pale center line.</div>
+    </section>
+
+    <section id="title-screen" class="screen screen--title">
+      <div class="title-skyline" aria-hidden="true"></div>
+      <div class="title-copy">
+        <div class="eyebrow">GREENGUARD FLIGHTWORKS / SLATE 03</div>
+        <h1>CLOUD<span>HOPPER</span></h1>
+        <p class="title-deck">Find the clean line through the blue.<br>Fly low. Read the wind. Bring it home.</p>
+        <div class="title-rule"><span></span><i>FREE FLIGHT SYSTEMS ONLINE</i><span></span></div>
+      </div>
+      <div class="title-actions">
+        <button class="button button--primary" data-action="launch">Launch first flight <span>↗</span></button>
+        <div class="button-row">
+          <button class="button button--ghost" data-action="missions">Mission board</button>
+          <button class="button button--ghost" data-action="hangar">Hangar</button>
+        </div>
+        <div class="title-utility"><button class="text-button" data-action="settings">Settings</button><button class="text-button" data-action="fullscreen">Fullscreen</button></div>
+      </div>
+      <div class="title-footer"><span>THREE.JS / PROCEDURAL REGION</span><span>BUILD 1.2.0</span></div>
+    </section>
+
+    <section id="hud" class="hud is-hidden" aria-live="polite">
+      <div class="hud-top">
+        <div class="hud-brand"><span class="hud-mark">GH</span><span><b>CLOUDHOPPER</b><small id="hud-mission">FREE FLIGHT</small></span></div>
+        <div class="hud-actions">
+          <button class="icon-button" data-action="pause" aria-label="Pause flight"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12M14 4v12"/></svg></button>
+          <button class="icon-button" data-action="settings" aria-label="Open settings"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v2M10 15v2M3 10h2M15 10h2M5 5l1.5 1.5M13.5 13.5L15 15M15 5l-1.5 1.5M6.5 13.5L5 15"/><circle cx="10" cy="10" r="3.2"/></svg></button>
+        </div>
+      </div>
+      <div class="telemetry telemetry--left">
+        <div class="telemetry-card telemetry-card--speed"><span class="telemetry-label">AIRSPEED</span><strong id="speed-value">0</strong><small>KT</small><div id="speed-arc" class="speed-arc"><i id="speed-band"></i><b id="speed-meter"></b></div></div>
+        <div class="telemetry-card"><span class="telemetry-label">ALTITUDE</span><strong id="altitude-value">25</strong><small>M</small><div class="meter"><i id="altitude-meter"></i></div></div>
+      </div>
+      <div class="telemetry telemetry--right">
+        <div class="telemetry-card telemetry-card--fuel"><span class="telemetry-label">FUEL RESERVE</span><strong id="fuel-value">100</strong><small>%</small><div class="meter"><i id="fuel-meter"></i></div></div>
+        <div class="telemetry-card telemetry-card--target"><span class="telemetry-label" id="target-label">RING COURSE</span><strong id="target-value">0 / 8</strong><small id="target-unit">GATES</small><div class="meter"><i id="target-meter"></i></div></div>
+      </div>
+      <div id="flight-alert" class="flight-alert is-hidden"><span class="alert-dot"></span><span id="alert-text">STALL WARNING</span></div>
+      <div id="objective" class="objective"><span class="objective-kicker">CURRENT OBJECTIVE</span><strong id="objective-text">Raise the nose and take the air.</strong></div>
+      <div id="launch-countdown" class="launch-countdown is-hidden" aria-live="polite">3</div>
+      <div class="flight-instruments" aria-hidden="true"><div id="horizon-cue" class="horizon-cue"><span></span><i></i></div><div id="flight-path" class="flight-path">+</div><div id="next-target-indicator" class="next-target-indicator is-hidden">GATE</div></div>
+      <div id="tutorial-card" class="tutorial-card is-hidden"><span class="tutorial-step" id="tutorial-step">01 / TAKEOFF</span><strong id="tutorial-text">Raise the throttle above 58% to lift off.</strong><small>W/S or the right rail controls power</small></div>
+      <div id="flight-controls" class="flight-controls" aria-hidden="true">
+        <div id="stick-control" class="stick-control"><div class="stick-ring"><span class="stick-center"></span><span class="stick-knob" id="stick-knob">FLY</span></div><span class="control-label">DRAG TO TILT</span></div>
+        <div id="throttle-control" class="throttle-control"><span class="control-label">POWER</span><div class="throttle-rail"><span class="throttle-ticks"></span><span class="throttle-fill" id="throttle-fill"></span><span class="throttle-knob" id="throttle-knob"><b>THR</b></span></div><span class="throttle-hint">W / S</span></div>
+      </div>
+      <div class="flight-bottom"><span class="hint-chip">ARROWS / A D <b>FLIGHT</b></span><span class="hint-chip">W / S <b>THROTTLE</b></span><span class="hint-chip">P <b>PAUSE</b></span></div>
+    </section>
+
+    <section id="result-screen" class="screen screen--panel is-hidden">
+      <div id="result-vista" class="result-vista" aria-hidden="true"><span></span></div>
+      <div class="panel-kicker" id="result-kicker">FLIGHT REPORT / STRIP 01</div>
+      <h2 id="result-title">SOFT LANDING</h2>
+      <p id="result-copy">The strip is yours. That is how you bring a hopper home.</p>
+      <div class="result-stats"><div><span>TIME</span><b id="result-time">00:00</b></div><div><span>GATES</span><b id="result-gates">8 / 8</b></div><div><span>RATING</span><b id="result-rating">A</b></div></div>
+      <div class="panel-actions"><button class="button button--primary" data-action="restart">Fly again <span>↗</span></button><button class="button button--ghost" data-action="missions">Mission board</button><button class="text-button" data-action="title">Return to title</button></div>
+    </section>
+
+    <section id="pause-screen" class="screen screen--panel is-hidden">
+      <div class="panel-kicker">FLIGHT HOLD / SYSTEM STABLE</div>
+      <h2>PAUSED</h2>
+      <p>Your route is held in place. Resume when the horizon is yours again.</p>
+      <div class="panel-actions"><button class="button button--primary" data-action="resume">Resume flight <span>↗</span></button><button class="button button--ghost" data-action="restart">Restart sortie</button><button class="text-button" data-action="title">Exit to title</button></div>
+    </section>
+
+    <section id="catalog-screen" class="screen screen--catalog is-hidden">
+      <div class="catalog-head"><div><div class="panel-kicker">GREENGUARD FLIGHTWORKS</div><h2 id="catalog-title">MISSION BOARD</h2></div><button class="icon-button" data-action="title" aria-label="Close"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button></div>
+      <div id="catalog-content" class="catalog-content"></div>
+    </section>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="cockpit-frame" aria-hidden="true"><span class="frame-wing frame-wing--left"></span><span class="frame-wing frame-wing--right"></span><span class="frame-nose"></span></div>
+    <div id="crosshair" aria-hidden="true"><span></span></div>
+  </main>
+  <script type="module" src="game.js"></script>
+</body>
+</html>

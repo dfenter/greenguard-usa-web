@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base href="/play/lunker-lake/">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#061823">
+<meta name="description" content="Lunker Lake is a portrait fishing expedition with stocked lakes, lure action, tension fights, and a persistent trophy log.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon.png">
+<title>Lunker Lake</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#061823; }
+  body { position:fixed; inset:0; box-sizing:border-box; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display:flex; align-items:center; justify-content:center; color:#e8f5f4; font-family:Avenir Next, Trebuchet MS, system-ui, sans-serif; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; overscroll-behavior:none; }
+  #game-root { width:100%; height:100%; display:flex; align-items:center; justify-content:center; min-width:0; min-height:0; }
+  canvas { display:block; touch-action:none; image-rendering:pixelated; image-rendering:crisp-edges; }
+</style>
+</head>
+<body>
+<div id="game-root"></div>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

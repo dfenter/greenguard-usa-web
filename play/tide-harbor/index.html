@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/tide-harbor/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#071923">
+  <title>Tide Harbor</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #071923; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
+    #rotate {
+      display: none; position: fixed; inset: 0; z-index: 4; place-items: center; padding: 32px;
+      pointer-events: none; color: #f5f0dd; text-align: center; background: rgba(5, 16, 24, .93); letter-spacing: .08em;
+      text-transform: uppercase; font-size: 14px; font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Tide Harbor sailing trader game"></canvas>
+  <div id="rotate">Turn your phone upright to sail</div>
+  <script src="./game.js"></script>
+</body>
+</html>

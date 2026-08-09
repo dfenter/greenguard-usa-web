@@ -1,0 +1,12 @@
+{
+  "name": "Horde Meridian",
+  "short_name": "Horde",
+  "description": "Top-down auto-fire horde survival with a build draft between waves. Seeded runs.",
+  "start_url": "/horde",
+  "scope": "/horde",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#0a0e18",
+  "theme_color": "#0a0e18",
+  "icons": []
+}

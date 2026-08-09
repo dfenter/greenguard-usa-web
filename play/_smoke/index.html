@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0f14">
+<base href="/play/_smoke/">
+<title>GG Kit Smoke</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
+<style>html,body{margin:0;padding:0;background:#0b0f14;height:100%;overflow:hidden}</style>
+</head>
+<body>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script>
+'use strict';
+const kit = GGKit.create({
+  slug: '_smoke',
+  orientation: 'any',
+  onPause() { if (game && game.scene.isActive('main')) game.scene.pause('main'); },
+  onResume() { if (game && game.scene.isPaused('main')) game.scene.resume('main'); },
+  onRestart() { if (game) game.scene.getScene('main').scene.restart(); },
+});
+kit.registerPWA();
+kit.loader.show('GG Kit Smoke');
+
+let game = null;
+const scene = {
+  key: 'main',
+  create() {
+    kit.loader.hide();
+    const w = this.scale.width, h = this.scale.height;
+    // Deliberately colorful: the smoke gate asserts >64 distinct colors.
+    for (let i = 0; i < 200; i++) {
+      const r = this.add.rectangle(Math.random() * w, Math.random() * h, 24, 24,
+        Phaser.Display.Color.HSLToColor(i / 200, 0.7, 0.55).color);
+      this.tweens.add({ targets: r, angle: 360, duration: 3000 + i * 10, repeat: -1 });
+    }
+    const label = this.add.text(w / 2, h / 2, 'GG KIT OK\ntap: shake + sfx', {
+      fontFamily: 'system-ui', fontSize: '28px', color: '#ffffff', align: 'center',
+    }).setOrigin(0.5);
+    this.cameras.main.setBackgroundColor('#13202e');
+    this.input.on('pointerdown', () => {
+      kit.juice.shake(8, 200);
+      kit.audio.sfx('blip');
+      label.setText('GG KIT OK\npointers: ' + kit.input.pointers.size);
+    });
+  },
+  update() {
+    const j = kit.juice.frame();
+    this.cameras.main.setScroll(j.dx, j.dy);
+  },
+};
+game = new Phaser.Game({
+  type: Phaser.AUTO,
+  parent: document.body,
+  backgroundColor: '#13202e',
+  scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+  scene: scene,
+});
+window.__GG_SMOKE_READY = true;
+</script>
+</body>
+</html>

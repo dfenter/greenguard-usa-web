@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch Arcade — 101 Mobile Games</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; margin: 0; }
+body { font-family: -apple-system, system-ui, sans-serif; background:#0d1117; color:#e6edf3; padding:16px; }
+header { max-width:1100px; margin:0 auto 20px; }
+h1 { font-size:1.5rem; margin-bottom:4px; }
+header p { color:#8b949e; font-size:.9rem; }
+header a { color:#58a6ff; }
+.grid { max-width:1100px; margin:0 auto; display:grid; gap:14px; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); }
+.card { background:#161b22; border:1px solid #30363d; border-radius:10px; overflow:hidden; text-decoration:none; color:inherit; display:flex; flex-direction:column; transition:border-color .15s; }
+.card:hover { border-color:#58a6ff; }
+.shotwrap { position:relative; display:block; }
+.card img { width:100%; aspect-ratio:3/4; object-fit:cover; object-position:top; background:#000; display:block; }
+.card.landscape img { aspect-ratio:16/9; }
+.playbtn { position:absolute; inset:0; display:grid; place-items:center; font-size:2.6rem; color:#fff; background:rgba(0,0,0,0); transition:background .15s; text-shadow:0 2px 12px rgba(0,0,0,.8); opacity:.85; }
+.card:hover .playbtn { background:rgba(0,0,0,.25); opacity:1; }
+.meta { padding:10px 12px 12px; position:relative; }
+.rank { position:absolute; top:-14px; right:10px; background:#1f6feb; border-radius:12px; padding:2px 9px; font-size:.75rem; font-weight:700; }
+.meta h2 { font-size:1.02rem; margin:0 0 4px; }
+.meta p { font-size:.82rem; color:#8b949e; line-height:1.35; }
+.orient { font-size:.7rem; color:#6e7681; margin-top:6px; display:inline-block; }
+</style></head><body>
+<header>
+<h1>Launch Arcade</h1>
+<p>101 playable games. Tap a screenshot to launch. Greybox art, honest mechanics; best played on a phone. <a href="/play/review-notes.html">Review notes</a></p>
+</header>
+<div class="grid">
+<a class="card landscape" href="/play/redline-gt/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/redline-gt.jpg" alt="Redline GT gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#1</span><h2>Redline GT</h2>
+<p>Pseudo-3D circuit racer: 6 tracks, gears, grip, best-lap chase</p></div></a>
+<a class="card portrait" href="/play/torque-trail/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/torque-trail.jpg" alt="Torque Trail gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#2</span><h2>Torque Trail</h2>
+<p>Off-road delivery free-roam: mud, winch physics, tire choice</p></div></a>
+<a class="card landscape" href="/play/cloudhopper/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/cloudhopper.jpg" alt="Cloudhopper gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#3</span><h2>Cloudhopper</h2>
+<p>Low-poly flight sim: stall model, fuel, rings, landing strip</p></div></a>
+<a class="card portrait" href="/play/shout-it/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/shout-it.jpg" alt="Shout It! gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#4</span><h2>Shout It!</h2>
+<p>Pass-the-phone party word game: describe, guess, beat the buzzer</p></div></a>
+<a class="card portrait" href="/play/driftlands/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/driftlands.jpg" alt="Driftlands gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#5</span><h2>Driftlands</h2>
+<p>Top-down island adventure: dungeons, gear, fog-of-war map</p></div></a>
+<a class="card landscape" href="/play/dune-runner/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/dune-runner.jpg" alt="Dune Runner gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#6</span><h2>Dune Runner</h2>
+<p>Baja desert free-roam: dune jumps, checkpoint raids, fuel runs</p></div></a>
+<a class="card landscape" href="/play/rally-dust/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/rally-dust.jpg" alt="Rally Dust gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#7</span><h2>Rally Dust</h2>
+<p>Rally time attack: drift physics, pace notes, seeded stages</p></div></a>
+<a class="card portrait" href="/play/stomp-circuit/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/stomp-circuit.jpg" alt="Stomp Circuit gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#8</span><h2>Stomp Circuit</h2>
+<p>Monster-truck freestyle: crush runs, flips, combo meter</p></div></a>
+<a class="card portrait" href="/play/tide-harbor/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/tide-harbor.jpg" alt="Tide Harbor gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#9</span><h2>Tide Harbor</h2>
+<p>Sailing trader: honest wind model, cargo routes, storm risk</p></div></a>
+<a class="card landscape" href="/play/vertol-rescue/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/vertol-rescue.jpg" alt="Vertol Rescue gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#10</span><h2>Vertol Rescue</h2>
+<p>Chopper rescue sim: hover physics, winch swings, weight matters</p></div></a>
+<a class="card portrait" href="/play/deep-ballast/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/deep-ballast.jpg" alt="Deep Ballast gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#11</span><h2>Deep Ballast</h2>
+<p>Submarine trench dives: sonar pings, air budget, hull pressure</p></div></a>
+<a class="card landscape" href="/play/ridge-glider/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/ridge-glider.jpg" alt="Ridge Glider gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#12</span><h2>Ridge Glider</h2>
+<p>Hang-glider soaring: real polar, thermals, spot landings</p></div></a>
+<a class="card portrait" href="/play/steamline/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/steamline.jpg" alt="Steamline gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#13</span><h2>Steamline</h2>
+<p>Rail routing: switches, holds, timetables, no collisions</p></div></a>
+<a class="card portrait" href="/play/lunker-lake/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/lunker-lake.jpg" alt="Lunker Lake gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#14</span><h2>Lunker Lake</h2>
+<p>Fishing sim: flick casts, lure action, reel-tension fights</p></div></a>
+<a class="card portrait" href="/play/curbside/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/curbside.jpg" alt="Curbside gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#15</span><h2>Curbside</h2>
+<p>Endless skate: flick tricks, grinds, ragdoll bails</p></div></a>
+<a class="card portrait" href="/play/blockborough/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/blockborough.jpg" alt="Blockborough gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#16</span><h2>Blockborough</h2>
+<p>Pocket city builder: zones, power, traffic, population goals</p></div></a>
+<a class="card landscape" href="/play/ace-vector/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/ace-vector.jpg" alt="Ace Vector gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#17</span><h2>Ace Vector</h2>
+<p>Arcade dogfighter: lead-pursuit aiming, wingman orders</p></div></a>
+<a class="card portrait" href="/play/wanderlight/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/wanderlight.jpg" alt="Wanderlight gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#18</span><h2>Wanderlight</h2>
+<p>Top-down adventure port with floating stick + buttons</p></div></a>
+<a class="card landscape" href="/play/crestfall/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/crestfall.jpg" alt="Crestfall gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#19</span><h2>Crestfall</h2>
+<p>Side-view action RPG port with touch combat</p></div></a>
+<a class="card portrait" href="/marble">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/marble.jpg" alt="Marble Mania gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#20</span><h2>Marble Mania</h2>
+<p>The deployed marble classic, verified for mobile</p></div></a>
+<a class="card portrait" href="/play/emberhold-tactics/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/emberhold-tactics.jpg" alt="EMBERHOLD Pocket Tactics gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#21</span><h2>EMBERHOLD Pocket Tactics</h2>
+<p>Deterministic tactics re-fit for tap play</p></div></a>
+<a class="card portrait" href="/play/bubble-fury-touch/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/bubble-fury-touch.jpg" alt="Bubble Fury Touch gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#22</span><h2>Bubble Fury Touch</h2>
+<p>Twin-stick arena cut of our arena FPS, Scuzz boss included</p></div></a>
+<a class="card portrait" href="/play/blast-radius/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/blast-radius.jpg" alt="Blast Radius gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#23</span><h2>Blast Radius</h2>
+<p>Grid-arena bomb chase: chains, powerups, escalating AI</p></div></a>
+<a class="card portrait" href="/play/hullbreaker/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/hullbreaker.jpg" alt="Hullbreaker gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#24</span><h2>Hullbreaker</h2>
+<p>Asteroid-field survival: momentum physics, upgrade drafts</p></div></a>
+<a class="card portrait" href="/play/ironclad-alley/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/ironclad-alley.jpg" alt="Ironclad Alley gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#25</span><h2>Ironclad Alley</h2>
+<p>Slow-tank duels: two-bounce ricochet shells, one-hit kills</p></div></a>
+<a class="card portrait" href="/play/descent-protocol/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/descent-protocol.jpg" alt="Descent Protocol gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#26</span><h2>Descent Protocol</h2>
+<p>Top-down corridor shooter: keycards, alert AI, seeded levels</p></div></a>
+<a class="card portrait" href="/play/horde-meridian/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/horde-meridian.jpg" alt="Horde Meridian gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#27</span><h2>Horde Meridian</h2>
+<p>Auto-fire horde survival: draft upgrades, 10-minute runs</p></div></a>
+<a class="card landscape" href="/play/dirt-rocket/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/dirt-rocket.jpg" alt="Dirt Rocket gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#28</span><h2>Dirt Rocket</h2>
+<p>Side-view motocross: landing angles, overheat boost, medals</p></div></a>
+<a class="card portrait" href="/play/ricochet-range/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/ricochet-range.jpg" alt="Ricochet Range gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#29</span><h2>Ricochet Range</h2>
+<p>Physics minigolf: bounce preview, 18 seeded holes</p></div></a>
+<a class="card portrait" href="/play/tubeshock/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/tubeshock.jpg" alt="Tubeshock gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#30</span><h2>Tubeshock</h2>
+<p>Tube shooter: projected wireframe tubes, rim defense</p></div></a>
+<a class="card portrait" href="/play/skyfall-command/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/skyfall-command.jpg" alt="Skyfall Command gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#31</span><h2>Skyfall Command</h2>
+<p>Base defense: tap-burst interceptors vs seeded volleys</p></div></a>
+<a class="card portrait" href="/play/gravity-well/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/gravity-well.jpg" alt="Gravity Well gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#32</span><h2>Gravity Well</h2>
+<p>Precision lander: fuel pars, cavern descents</p></div></a>
+<a class="card portrait" href="/play/stacklock/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/stacklock.jpg" alt="Stacklock gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#33</span><h2>Stacklock</h2>
+<p>Falling-block line clear: marathon + 40-line sprint</p></div></a>
+<a class="card portrait" href="/play/mazerunner-prime/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/mazerunner-prime.jpg" alt="Mazerunner Prime gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#34</span><h2>Mazerunner Prime</h2>
+<p>Pellet-maze chase: four distinct hunter AIs</p></div></a>
+<a class="card portrait" href="/play/corridor-crawl/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/corridor-crawl.jpg" alt="Corridor Crawl gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#35</span><h2>Corridor Crawl</h2>
+<p>Turn-based roguelike: 6 monster AIs, unidentified potions</p></div></a>
+<a class="card portrait" href="/play/spire-ascent/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/spire-ascent.jpg" alt="Spire Ascent gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#36</span><h2>Spire Ascent</h2>
+<p>Endless tower climb: wall-kicks, crumblers, rising doom</p></div></a>
+<a class="card portrait" href="/play/bulwark/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/bulwark.jpg" alt="Bulwark gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#37</span><h2>Bulwark</h2>
+<p>Maze-building tower defense: live repathing, 30 waves</p></div></a>
+<a class="card portrait" href="/play/shellshock-pinball/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/shellshock-pinball.jpg" alt="Shellshock Pinball gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#38</span><h2>Shellshock Pinball</h2>
+<p>Physics pinball on generated tables with missions</p></div></a>
+<a class="card portrait" href="/play/crossfire-hopper/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/crossfire-hopper.jpg" alt="Crossfire Hopper gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#39</span><h2>Crossfire Hopper</h2>
+<p>Traffic-and-river crossing: trains, currents, coin risk</p></div></a>
+<a class="card portrait" href="/play/vector-storm/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/vector-storm.jpg" alt="Vector Storm gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#40</span><h2>Vector Storm</h2>
+<p>Twin-stick neon arena: five enemy families, wells</p></div></a>
+<a class="card portrait" href="/play/cube-cascade/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/cube-cascade.jpg" alt="Cube Cascade gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#41</span><h2>Cube Cascade</h2>
+<p>Isometric pyramid hopper: color flips, chasing cast</p></div></a>
+<a class="card portrait" href="/play/serpentine/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/serpentine.jpg" alt="Serpentine gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#42</span><h2>Serpentine</h2>
+<p>Snake x light-cycle: decaying walls, rival AI serpents</p></div></a>
+<a class="card portrait" href="/play/breach-brick/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/breach-brick.jpg" alt="Breach &amp; Brick gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#43</span><h2>Breach &amp; Brick</h2>
+<p>Brick-breaker with structural collapse physics</p></div></a>
+<a class="card portrait" href="/play/forgelock/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/forgelock.jpg" alt="Forgelock gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#44</span><h2>Forgelock</h2>
+<p>Push-block factory puzzles, all provably solvable</p></div></a>
+<a class="card portrait" href="/play/deadline-dungeon/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/deadline-dungeon.jpg" alt="Deadline Dungeon gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#45</span><h2>Deadline Dungeon</h2>
+<p>Speedrun gauntlet: daily seed, per-room splits</p></div></a>
+<a class="card landscape" href="/play/kart-circuit-zero/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/kart-circuit-zero.jpg" alt="Kart Circuit Zero gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#46</span><h2>Kart Circuit Zero</h2>
+<p>Kart time trial: drift boosts, ghost replays</p></div></a>
+<a class="card portrait" href="/play/skyhammer/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/skyhammer.jpg" alt="Skyhammer gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#47</span><h2>Skyhammer</h2>
+<p>Vertical bullet-hell: graze scoring, grammar bosses</p></div></a>
+<a class="card landscape" href="/play/backstreet-reckoning/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/backstreet-reckoning.jpg" alt="Backstreet Reckoning gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#48</span><h2>Backstreet Reckoning</h2>
+<p>Belt-scroll brawler: lanes, grabs, weapon pickups</p></div></a>
+<a class="card portrait" href="/play/vanguard-four/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/vanguard-four.jpg" alt="Vanguard Four gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#49</span><h2>Vanguard Four</h2>
+<p>Squad arena brawler: 4 hero kits, honest bot allies</p></div></a>
+<a class="card portrait" href="/play/siegebreak/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/siegebreak.jpg" alt="Siegebreak gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#50</span><h2>Siegebreak</h2>
+<p>Hold-the-wall siege defense: hero combos, rally orders</p></div></a>
+<a class="card portrait" href="/play/aetherfall/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/aetherfall.jpg" alt="Aetherfall gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#51</span><h2>Aetherfall</h2>
+<p>ATB party JRPG slice: orbs, surge meter, reactor boss</p></div></a>
+</div>
+<header style="margin-top:28px"><h1>Chart Homages — Run 2</h1>
+<p>Original-IP takes on the 2026 top charts, redesigned to be better and completely free. Rolling out as batches clear review.</p></header>
+<div class="grid">
+<a class="card portrait" href="/play/gridfall/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/gridfall.jpg" alt="Gridfall gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#1</span><h2>Gridfall</h2>
+<p>Block-fit line clear: next-hand preview, no dead hands</p></div></a>
+<a class="card portrait" href="/play/frosthold/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/frosthold.jpg" alt="Frosthold gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#3</span><h2>Frosthold</h2>
+<p>Blizzard survival settlement: no build timers, one-evening arc</p></div></a>
+<a class="card portrait" href="/play/towerline-duel/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/towerline-duel.jpg" alt="Towerline Duel gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#4</span><h2>Towerline Duel</h2>
+<p>Lane card battler: all 24 cards by ladder, 3-minute duels</p></div></a>
+<a class="card portrait" href="/play/fallline/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/fallline.jpg" alt="Fallline gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#5</span><h2>Fallline</h2>
+<p>24-bot battle royale: 4-minute matches, kill-cam line</p></div></a>
+<a class="card portrait" href="/play/scrapper-squad/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/scrapper-squad.jpg" alt="Scrapper Squad gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#6</span><h2>Scrapper Squad</h2>
+<p>3v3 hero arena: gem hoard + heist, all brawlers free</p></div></a>
+<a class="card portrait" href="/play/starweft/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/starweft.jpg" alt="Starweft gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#10</span><h2>Starweft</h2>
+<p>Turn-based party RPG: break gauges, full cast by story</p></div></a>
+<a class="card portrait" href="/play/ridgeline-rumble/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/ridgeline-rumble.jpg" alt="Ridgeline Rumble gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#11</span><h2>Ridgeline Rumble</h2>
+<p>3v3 single-lane MOBA distilled for touch</p></div></a>
+<a class="card portrait" href="/play/fizzlift/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/fizzlift.jpg" alt="Fizzlift gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#13</span><h2>Fizzlift</h2>
+<p>Match-3 with rising-fizz dual gravity</p></div></a>
+<a class="card portrait" href="/play/bastionworks/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/bastionworks.jpg" alt="Bastionworks gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#8</span><h2>Bastionworks</h2>
+<p>Build-and-raid: no build timers, honest bot ladder</p></div></a>
+<a class="card portrait" href="/play/skyshard-vale/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/skyshard-vale.jpg" alt="Skyshard Vale gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#21</span><h2>Skyshard Vale</h2>
+<p>Elemental combo ARPG valley: abilities, not currency</p></div></a>
+<a class="card portrait" href="/play/meridian-row/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/meridian-row.jpg" alt="Meridian Row gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#7</span><h2>Meridian Row</h2>
+<p>Board-lap town builder vs AI rivals, no dice caps</p></div></a>
+<a class="card portrait" href="/play/aftergate/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/aftergate.jpg" alt="Aftergate gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#9</span><h2>Aftergate</h2>
+<p>The ad-bait gate runner, delivered honestly + base defense</p></div></a>
+<a class="card portrait" href="/play/berry-cascade/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/berry-cascade.jpg" alt="Berry Cascade gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#12</span><h2>Berry Cascade</h2>
+<p>Match-3 saga: no lives, every level proven winnable</p></div></a>
+<a class="card portrait" href="/play/chroma-tap/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/chroma-tap.jpg" alt="Chroma Tap gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#14</span><h2>Chroma Tap</h2>
+<p>Tap-blast puzzle with a next-spawn preview</p></div></a>
+<a class="card portrait" href="/play/reef-tiles/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/reef-tiles.jpg" alt="Reef Tiles gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#15</span><h2>Reef Tiles</h2>
+<p>Match-3 funding a living aquarium with real fish AI</p></div></a>
+<a class="card portrait" href="/play/terrace-tales/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/terrace-tales.jpg" alt="Terrace Tales gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#16</span><h2>Terrace Tales</h2>
+<p>Match-3 garden restore with real layout choices</p></div></a>
+<a class="card portrait" href="/play/hearth-halls/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/hearth-halls.jpg" alt="Hearth &amp; Halls gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#17</span><h2>Hearth &amp; Halls</h2>
+<p>Match-3 makeovers; NPCs react to your decor style</p></div></a>
+<a class="card portrait" href="/play/vault-raiders/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/vault-raiders.jpg" alt="Vault Raiders gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#18</span><h2>Vault Raiders</h2>
+<p>Spin-and-raid with posted odds, bots only</p></div></a>
+<a class="card portrait" href="/play/harvest-junction/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/harvest-junction.jpg" alt="Harvest Junction gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#19</span><h2>Harvest Junction</h2>
+<p>Farm-town logistics puzzle, zero wait timers</p></div></a>
+<a class="card portrait" href="/play/gravemarch/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/gravemarch.jpg" alt="Gravemarch gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#20</span><h2>Gravemarch</h2>
+<p>Active idle-ARPG: every drop table posted</p></div></a>
+<a class="card portrait" href="/play/parlor-pop/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/parlor-pop.jpg" alt="Parlor Pop gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#2</span><h2>Parlor Pop</h2>
+<p>Match-3 rooms: no lives, every level solver-margined</p></div></a>
+<a class="card portrait" href="/play/slingfang/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/slingfang.jpg" alt="Slingfang gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#22</span><h2>Slingfang</h2>
+<p>Flick-billiards creature battles with bank shots</p></div></a>
+<a class="card portrait" href="/play/sporeling-saga/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/sporeling-saga.jpg" alt="Sporeling Saga gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#23</span><h2>Sporeling Saga</h2>
+<p>Idle evolution with the whole economy on one screen</p></div></a>
+<a class="card portrait" href="/play/touchline-eleven/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/touchline-eleven.jpg" alt="Touchline Eleven gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#24</span><h2>Touchline Eleven</h2>
+<p>5-a-side arcade football: drag passes, curl shots</p></div></a>
+<a class="card portrait" href="/play/ironsight-ops/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/ironsight-ops.jpg" alt="Ironsight Ops gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#25</span><h2>Ironsight Ops</h2>
+<p>Top-down tactical bot shooter: 2-minute rounds</p></div></a>
+<a class="card portrait" href="/play/mythweave/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/mythweave.jpg" alt="Mythweave gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#26</span><h2>Mythweave</h2>
+<p>Turn-based summoner: whole roster is story loot</p></div></a>
+<a class="card portrait" href="/play/beastbind-cards/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/beastbind-cards.jpg" alt="Beastbind Cards gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#27</span><h2>Beastbind Cards</h2>
+<p>Creature card battler: posted pull rates, dupe protection</p></div></a>
+<a class="card portrait" href="/play/orbit-hearts/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/orbit-hearts.jpg" alt="Orbit Hearts gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#28</span><h2>Orbit Hearts</h2>
+<p>Branching station romance: 9 real endings</p></div></a>
+<a class="card portrait" href="/play/dominion-keys/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/dominion-keys.jpg" alt="Dominion Keys gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#29</span><h2>Dominion Keys</h2>
+<p>The pin-pull puzzles the ads promised, all provable</p></div></a>
+<a class="card portrait" href="/play/kinetic-burst/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/kinetic-burst.jpg" alt="Kinetic Burst gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#30</span><h2>Kinetic Burst</h2>
+<p>Orb-trace combo battler with visible math</p></div></a>
+<a class="card portrait" href="/play/hivefall/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/hivefall.jpg" alt="Hivefall gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#31</span><h2>Hivefall</h2>
+<p>Match-3 IS the horde combat: lane-mapped shots</p></div></a>
+<a class="card portrait" href="/play/runeline-depths/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/runeline-depths.jpg" alt="Runeline Depths gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#32</span><h2>Runeline Depths</h2>
+<p>Orb-path dungeon RPG: creatures from floors, not eggs</p></div></a>
+<a class="card portrait" href="/play/galecrests/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/galecrests.jpg" alt="Galecrests gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#33</span><h2>Galecrests</h2>
+<p>Racing-bird raising sim with honest training math</p></div></a>
+<a class="card portrait" href="/play/wayfarer-courts/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/wayfarer-courts.jpg" alt="Wayfarer Courts gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#34</span><h2>Wayfarer Courts</h2>
+<p>Turn-based party adventure with posted catch odds</p></div></a>
+<a class="card portrait" href="/play/thornmark/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/thornmark.jpg" alt="Thornmark gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#35</span><h2>Thornmark</h2>
+<p>Grind ARPG with posted drop tables, no enhance gamble</p></div></a>
+<a class="card portrait" href="/play/verge-protocol/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/verge-protocol.jpg" alt="Verge Protocol gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#36</span><h2>Verge Protocol</h2>
+<p>Zombie TD with a steerable hero and previewed waves</p></div></a>
+<a class="card portrait" href="/play/warring-banners/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/warring-banners.jpg" alt="Warring Banners gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#37</span><h2>Warring Banners</h2>
+<p>Hex-map seasons vs 3 warlords, supply lines matter</p></div></a>
+<a class="card portrait" href="/play/aegis-line/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/aegis-line.jpg" alt="Aegis Line gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#38</span><h2>Aegis Line</h2>
+<p>Auto-cover squad shooter: burst-order chains</p></div></a>
+<a class="card portrait" href="/play/silkwind/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/silkwind.jpg" alt="Silkwind gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#39</span><h2>Silkwind</h2>
+<p>Wuxia stance duels: read the tell, counter the form</p></div></a>
+<a class="card portrait" href="/play/lantern-bingo/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/lantern-bingo.jpg" alt="Lantern Bingo gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#40</span><h2>Lantern Bingo</h2>
+<p>Multi-card bingo vs a bot room, coins infinite</p></div></a>
+<a class="card portrait" href="/play/carnival-reels/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/carnival-reels.jpg" alt="Carnival Reels gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#41</span><h2>Carnival Reels</h2>
+<p>Slots toy with fully posted RTP and live odds</p></div></a>
+<a class="card landscape" href="/play/pennant-nine/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/pennant-nine.jpg" alt="Pennant Nine gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#42</span><h2>Pennant Nine</h2>
+<p>Arcade baseball: 5-minute games, 9-game pennant</p></div></a>
+<a class="card portrait" href="/play/driftwood-cove/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/driftwood-cove.jpg" alt="Driftwood Cove gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#43</span><h2>Driftwood Cove</h2>
+<p>Merge mystery cove, no energy wall</p></div></a>
+<a class="card portrait" href="/play/meadow-solitaire/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/meadow-solitaire.jpg" alt="Meadow Solitaire gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#44</span><h2>Meadow Solitaire</h2>
+<p>Tri-peaks with solver-proven FAIR/GAMBLE deals</p></div></a>
+<a class="card portrait" href="/play/willowmere/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/willowmere.jpg" alt="Willowmere gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#45</span><h2>Willowmere</h2>
+<p>Cozy lakeside life sim: styles by friendship</p></div></a>
+<a class="card portrait" href="/play/slice-rush/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/slice-rush.jpg" alt="Slice Rush gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#46</span><h2>Slice Rush</h2>
+<p>Tap-management kitchen to visible full automation</p></div></a>
+<a class="card portrait" href="/play/transit-dash/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/transit-dash.jpg" alt="Transit Dash gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#47</span><h2>Transit Dash</h2>
+<p>Endless runner where missions rotate the route</p></div></a>
+<a class="card portrait" href="/play/molehunt-manor/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/molehunt-manor.jpg" alt="Molehunt Manor gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#48</span><h2>Molehunt Manor</h2>
+<p>Solo social deduction: provably solvable moles</p></div></a>
+<a class="card portrait" href="/play/emberline-outpost/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/emberline-outpost.jpg" alt="Emberline Outpost gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#49</span><h2>Emberline Outpost</h2>
+<p>Facing-matters grid TD with a crafting base</p></div></a>
+<a class="card portrait" href="/play/fieldnotes-safari/">
+<span class="shotwrap"><img loading="lazy" src="/play/_shots/fieldnotes-safari.jpg" alt="Fieldnotes Safari gameplay">
+<span class="playbtn">&#9654;</span></span>
+<div class="meta"><span class="rank">#50</span><h2>Fieldnotes Safari</h2>
+<p>Creature collecting with posted spawn odds</p></div></a>
+</div>
+</body></html>

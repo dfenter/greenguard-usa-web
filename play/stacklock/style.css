@@ -1,0 +1,110 @@
+:root {
+  color-scheme: dark;
+  --ink: #eef5ff;
+  --muted: #7d91aa;
+  --line: rgba(151, 183, 219, .16);
+  --panel: rgba(17, 30, 52, .88);
+  --panel-hi: rgba(27, 46, 77, .92);
+  --accent: #6be7bb;
+  --accent-2: #8e7cff;
+}
+
+* { box-sizing: border-box; }
+
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+
+body {
+  background: #07101d;
+  color: var(--ink);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: .04em;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; color: inherit; }
+
+.app {
+  width: 100%;
+  max-width: 780px;
+  height: 100dvh;
+  min-height: 540px;
+  margin: 0 auto;
+  padding: 9px 10px 8px;
+  display: grid;
+  grid-template-rows: 46px 48px minmax(0, 1fr) 66px 18px;
+  gap: 6px;
+  user-select: none;
+}
+
+.topbar, .modebar, .controls, .status-line { position: relative; z-index: 2; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.wordmark { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 850; letter-spacing: .16em; }
+.mark { display: grid; place-items: center; width: 27px; height: 27px; border: 1px solid rgba(107, 231, 187, .45); border-radius: 9px 3px 9px 3px; background: linear-gradient(145deg, rgba(107,231,187,.35), rgba(142,124,255,.28)); color: #fff; font-size: 15px; letter-spacing: 0; box-shadow: 0 0 25px rgba(107,231,187,.16); }
+.run-info { display: flex; gap: 19px; text-align: right; }
+.run-info > div { display: grid; gap: 1px; }
+.label, .level-readout span { font-size: 8px; font-weight: 750; letter-spacing: .17em; color: var(--muted); }
+.run-info strong { font-size: 16px; line-height: 16px; font-weight: 760; letter-spacing: .04em; }
+
+.modebar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 2px;
+}
+.mode-button, .control-button {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(17, 30, 52, .64);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.mode-button { height: 48px; min-height: 48px; padding: 0 12px; font-size: 9px; font-weight: 800; letter-spacing: .13em; color: var(--muted); }
+.mode-button span { color: var(--accent); font-size: 8px; margin-left: 3px; }
+.mode-button.active { background: rgba(107, 231, 187, .11); border-color: rgba(107, 231, 187, .5); color: var(--ink); box-shadow: inset 0 0 18px rgba(107, 231, 187, .06); }
+.mode-button:active, .control-button:active { transform: translateY(1px) scale(.985); }
+.level-readout { margin-left: auto; display: grid; gap: 0; text-align: right; }
+.level-readout strong { font-size: 13px; line-height: 13px; color: var(--accent); }
+
+.stage {
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 18%, rgba(42, 72, 117, .22), transparent 57%), #0a1425;
+  box-shadow: 0 18px 60px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+#gameCanvas { width: 100%; height: 100%; display: block; outline: 0; touch-action: none; }
+.helper-line { position: absolute; left: 0; right: 0; bottom: 8px; padding: 0 9px; text-align: center; font-size: 8px; font-weight: 680; letter-spacing: .06em; color: rgba(211, 228, 250, .55); pointer-events: none; }
+
+.controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.control-button { min-height: 56px; display: grid; place-items: center; align-content: center; gap: 0; color: #a8bad2; font-size: 8px; font-weight: 800; letter-spacing: .13em; }
+.control-icon { height: 24px; font-size: 24px; line-height: 24px; color: var(--accent-2); letter-spacing: 0; }
+.control-button.primary { color: var(--ink); border-color: rgba(107,231,187,.4); background: linear-gradient(150deg, rgba(107,231,187,.15), rgba(142,124,255,.12)); }
+.control-button.primary .control-icon { color: var(--accent); }
+
+.status-line { min-height: 18px; text-align: center; font-size: 8px; font-weight: 750; letter-spacing: .1em; color: rgba(186, 205, 230, .65); text-transform: uppercase; }
+
+@media (min-width: 700px) {
+  .app { padding-left: 16px; padding-right: 16px; }
+  .stage { border-radius: 22px; }
+}
+
+@media (max-height: 610px) {
+  .app { min-height: 0; grid-template-rows: 39px 48px minmax(0, 1fr) 56px 15px; padding-top: 5px; padding-bottom: 5px; gap: 4px; }
+  .mode-button { height: 48px; min-height: 48px; }
+  .control-button { min-height: 48px; }
+  .control-icon { height: 19px; line-height: 19px; font-size: 19px; }
+  .helper-line { bottom: 5px; }
+}

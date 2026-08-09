@@ -1,0 +1,17 @@
+{
+  "name": "Redline GT",
+  "short_name": "Redline GT",
+  "description": "Stylized low-poly circuit racing. Six circuits, ten events, six cars and a ghost of your best lap.",
+  "start_url": "/play/redline-gt/",
+  "scope": "/play/redline-gt/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#0a0f1c",
+  "theme_color": "#0a0f1c",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" }
+  ]
+}

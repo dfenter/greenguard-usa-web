@@ -1,0 +1,185 @@
+---
+const year = new Date().getFullYear();
+
+const serviceLinks = [
+  { href: '/services', label: 'All Services' },
+  { href: '/co2delivery', label: 'CO2 Delivery' },
+  { href: '/traprental', label: 'Trap Rental' },
+  { href: '/barrier', label: 'Barrier Treatment' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/compare', label: 'Compare Plans' },
+  { href: '/shop', label: 'Shop Equipment' },
+];
+
+const areas = [
+  ['austin-texas', 'Austin'],
+  ['westlake-hills', 'Westlake Hills'],
+  ['lakeway', 'Lakeway'],
+  ['bee-cave', 'Bee Cave'],
+  ['cedar-park', 'Cedar Park'],
+  ['round-rock', 'Round Rock'],
+  ['dripping-springs', 'Dripping Springs'],
+  ['steiner-ranch', 'Steiner Ranch'],
+  ['georgetown', 'Georgetown'],
+  ['pflugerville', 'Pflugerville'],
+  ['leander', 'Leander'],
+  ['liberty-hill', 'Liberty Hill'],
+  ['kyle', 'Kyle'],
+  ['buda', 'Buda'],
+];
+
+const companyLinks = [
+  { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/results', label: 'Results' },
+  { href: '/faq', label: 'FAQ' },
+  { href: '/mosquito-control-austin-texas', label: 'Austin Guide' },
+  { href: '/contact', label: 'Contact' },
+];
+---
+
+<footer class="bg-night section-night" style="color: rgba(250,247,241,.72);">
+  <!-- Email capture band -->
+  <div class="container-x" style="padding-top: 4.5rem;">
+    <div
+      class="flex flex-col lg:flex-row lg:items-end gap-7 lg:gap-14 pb-12"
+      style="border-bottom: 1px solid var(--hairline-dark);"
+    >
+      <div class="max-w-md">
+        <p class="eyebrow eyebrow--ondark">Stay in the Loop</p>
+        <h2 class="font-display text-ivory mt-3" style="font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 400;">
+          Get seasonal tips and service updates
+        </h2>
+        <p class="text-sm mt-2" style="color: rgba(250,247,241,.55);">
+          No spam. Just useful info about protecting your Austin property from mosquitoes.
+        </p>
+      </div>
+      <form id="footer-subscribe" class="flex-1 flex flex-col sm:flex-row gap-3 max-w-xl" novalidate>
+        <label for="footer-email" class="sr-only">Email address</label>
+        <input
+          id="footer-email"
+          type="email"
+          required
+          autocomplete="email"
+          placeholder="your@email.com"
+          class="flex-1 rounded-full px-6 text-[0.95rem] text-ivory outline-none min-w-0"
+          style="background: rgba(250,247,241,.06); border: 1px solid var(--hairline-dark); min-height: 48px;"
+        />
+        <button type="submit" class="btn btn-ondark whitespace-nowrap">Subscribe</button>
+      </form>
+    </div>
+    <p id="footer-subscribe-msg" class="text-sm pt-3 hidden" style="color: var(--champagne);"></p>
+  </div>
+
+  <!-- Link columns -->
+  <div class="container-x grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-10 py-14">
+    <div class="col-span-2 md:col-span-1">
+      <a href="/" class="no-underline inline-flex items-baseline gap-1.5">
+        <span class="font-display text-ivory" style="font-size:1.3rem;font-weight:480;">GreenGuard</span>
+        <span class="font-sans text-[0.65rem] font-semibold uppercase" style="letter-spacing:0.18em;color:var(--champagne);">USA</span>
+      </a>
+      <p class="text-[0.7rem] uppercase mt-2" style="letter-spacing: 0.16em; color: var(--brass);">
+        Smart. Safe. Effective.
+      </p>
+      <p class="text-sm mt-3 leading-relaxed" style="color: rgba(250,247,241,.55); max-width: 17rem;">
+        Pesticide-free CO₂ mosquito control for the Austin area.
+      </p>
+      <a href="tel:5125604129" class="block mt-5 text-ivory no-underline font-medium hover:text-champagne">
+        512-560-4129
+      </a>
+      <a href="mailto:admin@greenguard-usa.com" class="block mt-1.5 text-sm no-underline hover:text-champagne" style="color: rgba(250,247,241,.6);">
+        admin@greenguard-usa.com
+      </a>
+    </div>
+
+    <div>
+      <p class="text-[0.72rem] font-semibold uppercase mb-4" style="letter-spacing: 0.14em; color: var(--brass);">Services</p>
+      {serviceLinks.map((l) => (
+        <a href={l.href} class="block text-sm py-1 no-underline hover:text-champagne" style="color: rgba(250,247,241,.62);">{l.label}</a>
+      ))}
+    </div>
+
+    <div>
+      <p class="text-[0.72rem] font-semibold uppercase mb-4" style="letter-spacing: 0.14em; color: var(--brass);">Areas</p>
+      <div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-x-4">
+        {areas.map(([slug, city]) => (
+          <a href={`/mosquito-control-${slug}`} class="block text-sm py-1 no-underline hover:text-champagne" style="color: rgba(250,247,241,.62);">{city}</a>
+        ))}
+      </div>
+    </div>
+
+    <div>
+      <p class="text-[0.72rem] font-semibold uppercase mb-4" style="letter-spacing: 0.14em; color: var(--brass);">Company</p>
+      {companyLinks.map((l) => (
+        <a href={l.href} class="block text-sm py-1 no-underline hover:text-champagne" style="color: rgba(250,247,241,.62);">{l.label}</a>
+      ))}
+    </div>
+  </div>
+
+  <!-- Legal -->
+  <div class="container-x" style="border-top: 1px solid var(--hairline-dark);">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 py-6 text-xs" style="color: rgba(250,247,241,.42);">
+      <span>&copy; {year} GreenGuard USA &middot; Serving Austin, TX and surrounding areas</span>
+      <span class="inline-flex items-center gap-2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--brass)" stroke-width="1.5" aria-hidden="true">
+          <path d="M12 3c-4 4-7 6.5-7 10a7 7 0 0 0 14 0c0-3.5-3-6-7-10Z" />
+        </svg>
+        EV Fleet &middot; Pesticide-Free
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Inline email capture: posts to the portal leads endpoint (same endpoint
+  // family as the homepage capture). Keep source label for attribution.
+  const footerForm = document.getElementById('footer-subscribe') as HTMLFormElement | null;
+  const footerMsg = document.getElementById('footer-subscribe-msg') as HTMLElement | null;
+  footerForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('footer-email') as HTMLInputElement | null;
+    const email = input?.value?.trim();
+    if (!email || !email.includes('@')) {
+      if (footerMsg) {
+        footerMsg.textContent = 'Please enter a valid email address.';
+        footerMsg.style.color = '#e2a49a';
+        footerMsg.classList.remove('hidden');
+      }
+      return;
+    }
+    const submitBtn = footerForm.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    const btnLabel = submitBtn?.textContent ?? 'Subscribe';
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+    let ok = false;
+    try {
+      const res = await fetch('https://portal.greenguard-usa.com/api/leads/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'site_footer' }),
+      });
+      // 409 = already subscribed; treat as success for the visitor
+      ok = res.ok || res.status === 409;
+    } catch {
+      ok = false;
+    }
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = btnLabel; }
+
+    if (ok) {
+      if (footerMsg) {
+        footerMsg.textContent = "You're in. Talk soon.";
+        footerMsg.style.color = 'var(--champagne)';
+        footerMsg.classList.remove('hidden');
+      }
+      footerForm.reset();
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'lead_capture', { event_category: 'email', event_label: 'site_footer' });
+      }
+    } else {
+      if (footerMsg) {
+        footerMsg.textContent = 'Something went wrong. Try again.';
+        footerMsg.style.color = '#e2a49a';
+        footerMsg.classList.remove('hidden');
+      }
+    }
+  });
+</script>

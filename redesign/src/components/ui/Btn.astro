@@ -1,0 +1,34 @@
+---
+/**
+ * Button / link CTA.
+ * variant: 'primary' (pine) | 'ghost' (ink outline) | 'onDark' (champagne solid) | 'ghostOnDark'
+ * href renders <a>; otherwise <button type={type}>.
+ * Anchor CTAs are auto-tracked by the shared cta_click listener in Base (a.btn).
+ */
+interface Props {
+  variant?: 'primary' | 'ghost' | 'onDark' | 'ghostOnDark';
+  href?: string;
+  type?: 'button' | 'submit';
+  id?: string;
+  class?: string;
+  ariaLabel?: string;
+}
+const { variant = 'primary', href, type = 'button', id, class: className = '', ariaLabel } = Astro.props;
+
+const variantClass = {
+  primary: 'btn-primary',
+  ghost: 'btn-ghost',
+  onDark: 'btn-ondark',
+  ghostOnDark: 'btn-ghost-ondark',
+}[variant];
+---
+
+{href ? (
+  <a id={id} href={href} class:list={['btn', variantClass, className]} aria-label={ariaLabel}>
+    <slot />
+  </a>
+) : (
+  <button id={id} type={type} class:list={['btn', variantClass, className]} aria-label={ariaLabel}>
+    <slot />
+  </button>
+)}

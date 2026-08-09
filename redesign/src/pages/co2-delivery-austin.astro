@@ -1,0 +1,60 @@
+---
+import Base from '../layouts/Base.astro';
+import Section from '../components/ui/Section.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Btn from '../components/ui/Btn.astro';
+import Card from '../components/ui/Card.astro';
+import CtaBand from '../components/ui/CtaBand.astro';
+import Faq from '../components/ui/Faq.astro';
+
+const segments = [
+  { title: 'Restaurants and Bars', body: 'Beverage-grade certified CO₂ for draft systems and soda fountains. Scheduled exchanges sized to your usage, so kegs never go flat mid-shift. Certificates of analysis available on request.', points: ['Beverage-grade certified gas', 'Draft beer and soda fountain systems', 'Scheduled route or on-call exchange'] },
+  { title: 'Pools and Spas', body: 'CO₂ for pH control keeps your water balanced without hauling acid. We deliver and swap tanks on a standing schedule matched to your feeder consumption.', points: ['pH control without muriatic acid', 'Residential and commercial pools', 'Standing schedule or on-demand'] },
+  { title: 'Mosquito Trap Owners', body: 'Our original service. Monthly CO₂ exchange plans for Biogents and Mosqitter Grand trap systems, with trap inspection included on full-service plans.', points: ['Monthly exchange plans from $89.99', 'Works with any CO₂ trap', 'See our trap delivery plans'], link: { href: '/co2delivery', label: 'View trap delivery plans' } },
+];
+
+const steps = [
+  ['01', 'Call or Text Us', 'Tell us your tank size, gas grade, and how fast you need it. We quote the exchange price on the spot. 512-560-4129.'],
+  ['02', 'We Deliver and Swap', 'A GreenGuard USA technician brings a full tank, connects it if you want us to, and takes the empty away. No hauling, no refill station lines.'],
+  ['03', 'Stay on the Route', 'Most commercial customers move to a standing exchange schedule so they never think about CO₂ again. Route customers get priority on emergency calls.'],
+];
+
+const faqs = [
+  { q: 'Do you really deliver on weekends?', a: 'Yes. Weekend and after-hours emergency delivery is available across the Austin metro for a $99 rush fee on top of the standard tank exchange price. If your draft system dies on a Saturday night, call or text 512-560-4129 and we will get a tank to you.' },
+  { q: 'Is your CO₂ food safe for beverage systems?', a: 'Yes. We supply beverage-grade certified CO₂ for restaurant and bar accounts, with certificates of analysis available from our fill supplier on request.' },
+  { q: 'What tank sizes do you carry?', a: 'We stock 20 lb cylinders as standard and can arrange larger sizes for high-volume accounts. Tell us what your system uses and we will match it.' },
+  { q: 'How much does delivery cost?', a: 'Standard scheduled deliveries are priced per exchange based on tank size, with discounts for standing route customers. Weekend and after-hours emergency calls add a flat $99 rush fee. Call or text 512-560-4129 for a quote.' },
+  { q: 'What areas do you cover?', a: 'The Austin metro area including central Austin, Westlake Hills, Lakeway, Bee Cave, Cedar Park, Round Rock, Pflugerville, Georgetown, Dripping Springs, Kyle, Buda, and Manor.' },
+  { q: 'Can you set up a recurring delivery schedule?', a: 'Yes. Most restaurants, bars, and pool accounts move to a standing exchange route after their first delivery. We calibrate the frequency to your usage so you never run dry, and route customers get priority on emergency calls.' },
+];
+---
+
+<Base
+  title="Commercial CO₂ Delivery Austin TX | Restaurants, Pools, Weekend Emergency | GreenGuard USA"
+  description="CO₂ tank delivery and exchange in Austin for restaurants, bars, and pools. Beverage-grade certified gas, standing routes, and weekend emergency delivery when your system runs dry."
+>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "Commercial CO₂ Delivery and Tank Exchange",
+    "description": "CO₂ cylinder delivery and exchange for Austin TX restaurants, bars, pools, and trap systems. Beverage-grade certified gas and weekend emergency delivery.",
+    "provider": { "@type": "LocalBusiness", "name": "GreenGuard USA", "telephone": "+1-512-560-4129", "url": "https://www.greenguard-usa.com" },
+    "areaServed": { "@type": "City", "name": "Austin", "addressRegion": "TX" },
+    "serviceType": "CO2 Gas Delivery",
+    "url": "https://www.greenguard-usa.com/co2-delivery-austin",
+    "hoursAvailable": { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Saturday", "Sunday"], "description": "Weekend emergency delivery available" }
+  })} />
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": faqs.map((f) => ({ "@type": "Question", "name": f.q, "acceptedAnswer": { "@type": "Answer", "text": f.a } })) })} />
+
+  <section class="bg-ivory" style="padding-top:clamp(5rem,10vw,8.5rem);padding-bottom:clamp(4rem,8vw,7rem);"><div class="container-x"><div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center"><div class="lg:col-span-7 reveal"><Eyebrow>Commercial CO₂ Delivery · Austin, TX</Eyebrow><h1 class="font-display mt-6" style="font-size:clamp(2.6rem,6vw,4.5rem);max-width:13ch;">CO₂ Delivered to Your Business. <em class="italic" style="color:var(--pine);font-weight:340;">Even on Weekends.</em></h1><p class="mt-7 text-soft" style="font-size:1.125rem;max-width:38rem;">Tank exchange for restaurants, bars, and pools across the Austin metro. Beverage-grade certified gas, standing routes, and emergency delivery when the big distributors are closed.</p><div class="flex flex-wrap gap-4 mt-9"><Btn href="tel:5125604129">Call or Text 512-560-4129</Btn><Btn href="tel:5125604129" variant="ghost">Emergency Line: 512-560-4129</Btn></div><p class="mt-5 text-sm text-soft">Weekend emergency delivery available. Empty tank hauled away.</p></div><div class="lg:col-span-5 reveal"><div class="photo-frame bg-linen" style="aspect-ratio:4/4.5;"><img src="/images/tank.jpeg" alt="CO₂ tank prepared for commercial delivery in Austin" class="w-full h-full object-cover" fetchpriority="high" /></div></div></div></div></section>
+
+  <Section variant="night"><div class="max-w-3xl mx-auto text-center reveal"><Eyebrow onDark>Weekend Emergency Delivery</Eyebrow><h2 class="font-display mt-4 text-ivory" style="font-size:clamp(2rem,4vw,3rem);">Draft system down on a Saturday?</h2><p class="mt-5" style="color:rgba(250,247,241,.72);">Airgas is closed. Your distributor picks up Monday. Every hour without CO₂ is lost bar revenue. We deliver evenings and weekends across the Austin metro for a flat <strong class="text-champagne">$99 rush fee</strong> on top of the standard exchange price. One call, tank swapped, taps flowing.</p><div class="mt-8"><Btn href="tel:5125604129" variant="onDark">Emergency Line: 512-560-4129</Btn></div></div></Section>
+
+  <Section variant="linen"><div class="max-w-2xl mx-auto text-center reveal"><Eyebrow class="justify-center">Who We Serve</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">One route. Every kind of CO₂ customer.</h2></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12" data-stagger>{segments.map((segment) => <div class="reveal"><Card tone="ivory" class="h-full flex flex-col !p-7"><Eyebrow plain>{segment.title}</Eyebrow><p class="mt-4 text-soft">{segment.body}</p><ul class="mt-6 space-y-3 list-none p-0 flex-1">{segment.points.map((point) => <li class="flex gap-3 text-sm"><svg class="flex-none mt-1" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--pine)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5" /></svg>{point}</li>)}</ul>{segment.link && <a href={segment.link.href} class="mt-7 text-sm font-semibold underline" style="color:var(--pine);">{segment.link.label}</a>}</Card></div>)}</div></Section>
+
+  <Section variant="ivory"><div class="max-w-2xl mx-auto text-center reveal"><Eyebrow class="justify-center">The Process</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,3rem);">From call to flowing taps</h2></div><div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12" data-stagger>{steps.map(([number, title, body]) => <div class="reveal"><span class="display-numeral block">{number}</span><div class="mt-4" style="width:40px;height:1px;background:var(--brass);"></div><h3 class="font-display mt-5" style="font-size:1.3rem;">{title}</h3><p class="mt-3 text-soft text-[0.97rem]">{body}</p></div>)}</div></Section>
+
+  <Section variant="linen"><div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16"><div class="lg:col-span-4 reveal"><Eyebrow>Common Questions</Eyebrow><h2 class="font-display mt-4" style="font-size:clamp(2rem,4vw,2.8rem);">Commercial CO₂ delivery FAQ</h2></div><div class="lg:col-span-8 reveal"><Faq items={faqs} /></div></div></Section>
+
+  <CtaBand title="Never run out of CO₂ again." sub="Call or text for a quote and get on the route. Standing customers get priority scheduling and first call on weekend emergencies." ctaLabel="Call or Text 512-560-4129" ctaHref="tel:5125604129" />
+</Base>

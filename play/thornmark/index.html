@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head><base href="/play/thornmark/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#0b0d14">
+  <title>Thornmark — Honest Field ARPG</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main id="app">
+    <canvas id="game" aria-label="Thornmark game"></canvas>
+    <div id="audioGate" class="screen-layer">
+      <div class="gate-card">
+        <div class="eyebrow">A FREE FIELD ARPG</div>
+        <h1>THORNMARK</h1>
+        <p>Two wild fields. Honest drops. No paid shortcuts.</p>
+        <button id="enterButton" type="button">ENTER THE FIELD</button>
+        <small>Tap once to unlock optional field audio.</small>
+      </div>
+    </div>
+    <div id="rotateOverlay" class="screen-layer rotate-layer" aria-live="polite">
+      <div class="rotate-card">
+        <div class="rotate-glyph">↻</div>
+        <h2>TURN YOUR DEVICE</h2>
+        <p>THORNMARK is a portrait field.</p>
+        <small>FIELD PAUSED</small>
+      </div>
+    </div>
+  </main>
+  <script src="./game.js"></script>
+</body>
+</html>
