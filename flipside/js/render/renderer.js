@@ -731,7 +731,7 @@ function projectSheet(ctx, source, depthCells, angle, layout, width, height, off
   const absoluteSine = Math.abs(sine);
   const viewDepth = angle <= 90 ? depthCells : DEPTH_GAP_CELLS - depthCells;
   const depthPerspective = 1 + (DEPTH_GAP_CELLS - viewDepth) * 0.06 * absoluteSine;
-  const depthShift = depthCells * layout.cell * sine;
+  const depthShift = (depthCells - DEPTH_GAP_CELLS * 0.5) * layout.cell * sine;
   const centerX = width * 0.5 + depthShift;
   const sourceStripWidth = width / DIORAMA_STRIPS;
   const reverseTexture = cosine < 0;
@@ -774,7 +774,7 @@ function drawSheetSpine(ctx, world, depthCells, angle, layout, width, height) {
   const absoluteSine = Math.abs(sine);
   const viewDepth = angle <= 90 ? depthCells : DEPTH_GAP_CELLS - depthCells;
   const perspective = 1 + (DEPTH_GAP_CELLS - viewDepth) * 0.06 * absoluteSine;
-  const centerX = width * 0.5 + depthCells * layout.cell * sine;
+  const centerX = width * 0.5 + (depthCells - DEPTH_GAP_CELLS * 0.5) * layout.cell * sine;
   const sheetHeight = height * perspective;
   const sheetY = (height - sheetHeight) * 0.5;
   const thickness = clamp(layout.cell * 0.18, 1.5, 6);
@@ -800,7 +800,7 @@ function drawContactShadow(ctx, angle, layout, width, height) {
   const backDepth = angle <= 90 ? DEPTH_GAP_CELLS : 0;
   const viewDepth = angle <= 90 ? DEPTH_GAP_CELLS : 0;
   const perspective = 1 + (DEPTH_GAP_CELLS - viewDepth) * 0.06 * absoluteSine;
-  const shadowX = width * 0.5 + backDepth * layout.cell * sine;
+  const shadowX = width * 0.5 + (backDepth - DEPTH_GAP_CELLS * 0.5) * layout.cell * sine;
   const shadowW = Math.max(layout.cell * 0.5,
     layout.pageW * Math.abs(Math.cos(angle * Math.PI / 180)) * perspective);
   const shadowH = layout.pageH * perspective;
