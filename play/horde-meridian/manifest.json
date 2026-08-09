@@ -1,0 +1,16 @@
+{
+  "name": "Horde Meridian",
+  "short_name": "Horde",
+  "description": "A neon survivors-genre arena run. Survive ten minutes and break the Core.",
+  "start_url": "/play/horde-meridian/",
+  "scope": "/play/horde-meridian/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#04080e",
+  "theme_color": "#04080e",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

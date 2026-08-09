@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#04080e">
+<meta name="description" content="Horde Meridian - a neon survivors-genre arena run. Survive ten minutes and break the Core.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/horde-meridian/">
+<title>Horde Meridian</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  /* Authored type system. Two CC0 faces ship with the game (see LICENSES.md);
+     nothing is fetched from a CDN and no system font is relied on for the
+     game's voice. Display carries titles, numerals and controls; Body carries
+     prose. Both are ASCII subsets, ~1.4 KB each. */
+  @font-face {
+    font-family: 'HM Display';
+    src: url('assets/hm_display.woff2') format('woff2');
+    font-weight: 100 900; font-style: normal; font-display: block;
+  }
+  @font-face {
+    font-family: 'HM Body';
+    src: url('assets/hm_body.woff2') format('woff2');
+    font-weight: 100 900; font-style: normal; font-display: block;
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #04080e; color: #e7fff7;
+    font-family: 'HM Body', 'Trebuchet MS', Verdana, system-ui, sans-serif;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; touch-action: none; }
+  /* Safe-area insets: the HUD sits inside the notch on modern phones. The
+     same env() values are read back in JS (readSafeArea) so every screen-space
+     position in the game derives from real insets. */
+  body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; }
+</style>
+</head>
+<body>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="hm_data.js"></script>
+<script src="levels/level1.js"></script>
+<script src="levels/level2.js"></script>
+<script src="levels/level3.js"></script>
+<script src="levels/level4.js"></script>
+<script src="levels/level5.js"></script>
+<script src="levels/level6.js"></script>
+<script src="levels/level7.js"></script>
+<script src="levels/level8.js"></script>
+<script src="levels/level9.js"></script>
+<script src="hm_campaign_ui.js"></script>
+<script>
+  /* Boot only once the two authored faces are resolved. Phaser rasterises a
+     Text object's canvas at construction time, so booting before the woff2
+     lands would bake the fallback stack into every cached label. This is a
+     bounded wait: font-display:block plus a hard 1200 ms ceiling, after which
+     the game starts on the fallback rather than hanging on a slow network. */
+  (function () {
+    function boot() {
+      if (window.__HM_BOOTED) return;
+      window.__HM_BOOTED = true;
+      var s = document.createElement('script');
+      s.src = 'game.js';
+      document.body.appendChild(s);
+    }
+    var done = false;
+    setTimeout(function () { if (!done) boot(); }, 1200);
+    if (document.fonts && document.fonts.load) {
+      Promise.all([
+        document.fonts.load('700 32px "HM Display"'),
+        document.fonts.load('400 16px "HM Body"')
+      ]).then(function () { done = true; boot(); }, function () { done = true; boot(); });
+    } else {
+      done = true; boot();
+    }
+  }());
+</script>
+</body>
+</html>
