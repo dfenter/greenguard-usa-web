@@ -33,7 +33,6 @@ function freshRun(g) {
   if (input.reset) input.reset();
   if (FX.reset) FX.reset();
   A.setWorld(g.world);
-  A.set3d(false);
 }
 
 const hooks = {
@@ -79,22 +78,15 @@ function frame(now) {
     game.update(G, dt, events.filter(e => e !== 'mute'));
   }
 
-  // camera <-> game phase handshake
-  const f3 = AG.flip3d;
-  if (AG.status === 'flip3d' && f3) {
-    if (f3.phase === 'enter' && !flip.active()) { flip.enter(); if (!onTitle) A.set3d(true); }
-    if (f3.exiting && flip.mode() !== 'exit') flip.exitTo(f3.changed);
-    const done = flip.update(dt);
-    if (done) {
-      if (f3.phase === 'enter') {
-        game.setFlipPhase(AG, 'held');
-      } else {
-        game.exitFlip3d(AG);
-        if (!onTitle) { A.set3d(false); A.setWorld(AG.world); }
-      }
+  // fold camera <-> game handshake (v4)
+  if (AG.status === 'folding' && AG.fold) {
+    if (!flip.active()) flip.start();
+    if (flip.update(dt)) {
+      game.finishFold(AG);
+      if (!onTitle) A.setWorld(AG.world);
     }
   } else if (flip.active()) {
-    flip.update(dt);                       // let a stray animation finish
+    flip.update(dt);                     // let a stray animation finish
   }
 
   if (AG.fx && AG.fx.length) {

@@ -549,23 +549,6 @@ export function createFx(canvas) {
     }
   }
 
-  function addLaneHopPuff(evt, G, metrics) {
-    const world = (evt && evt.world) || (G && G.world) || 'sun';
-    const point = eventPoint(evt, metrics, [COLS * 0.5, ROWS * 0.58]);
-    addPuffs(eventCells(evt), evt, G, metrics, reducedMotion() ? 1 : 2);
-    addParticles(reducedMotion() ? 3 : 8, point[0], point[1], metrics, {
-      kind: 'confetti',
-      world,
-      colors: [paletteFor(world).paper, COLORS.seam, paletteFor(world).ink],
-      spreadX: metrics.cell * 0.48,
-      spreadY: metrics.cell * 0.22,
-      speed: randomBetween(0.55, 1.35),
-      direction: -1,
-      life: reducedMotion() ? 220 : randomBetween(320, 520),
-      alpha: 0.66,
-    });
-  }
-
   function addTearStrips(evt, G, metrics) {
     const world = (evt && evt.world) || (G && G.world) || 'sun';
     const palette = paletteFor(world);
@@ -588,25 +571,43 @@ export function createFx(canvas) {
     }
   }
 
-  function addRuffle(world, metrics) {
-    const cx = metrics.left + metrics.boardWidth * 0.5;
-    const cy = metrics.top + metrics.boardHeight * 0.5;
-    const count = reducedMotion() ? 10 : 24;
-    const colors = [COLORS.seam, ...particleColors(world, 'SEAM')];
-    addParticles(count, cx, cy, metrics, {
+  function addFoldStartRuffle(evt, G, metrics) {
+    const world = evt && (evt.from === 'sun' || evt.from === 'ink')
+      ? evt.from : ((G && G.world) || 'sun');
+    const seamX = metrics.left + metrics.cell * 0.72;
+    const centerY = metrics.top + metrics.boardHeight * 0.5;
+    addParticles(reducedMotion() ? 8 : 20, seamX, centerY, metrics, {
       kind: 'spark',
       world,
-      colors,
-      spreadX: metrics.boardWidth * 0.25,
-      spreadY: metrics.boardHeight * 0.36,
+      colors: [COLORS.seam, ...particleColors(world, 'SEAM')],
+      spreadX: metrics.cell * 0.22,
+      spreadY: metrics.boardHeight * 0.45,
       size: metrics.cell * 0.08,
       width: metrics.cell * 0.35,
       height: metrics.cell * 0.06,
-      speed: randomBetween(0.7, 1.9),
+      speed: randomBetween(0.65, 1.7),
       direction: randomBetween(-1, 1),
       life: reducedMotion() ? 260 : randomBetween(380, 720),
       gravity: 0,
       alpha: 0.85,
+    });
+  }
+
+  function addFoldDoneBurst(evt, G, metrics) {
+    const world = (evt && (evt.world === 'sun' || evt.world === 'ink'))
+      ? evt.world : ((G && G.world) || 'sun');
+    const cx = metrics.left + metrics.boardWidth * 0.5;
+    const cy = metrics.top + metrics.boardHeight * 0.5;
+    addParticles(reducedMotion() ? 12 : 34, cx, cy, metrics, {
+      kind: 'confetti',
+      world,
+      colors: [paletteFor(world).paper, ...particleColors(world), COLORS.seam],
+      spreadX: metrics.boardWidth * 0.42,
+      spreadY: metrics.boardHeight * 0.34,
+      speed: randomBetween(1.2, 2.8),
+      direction: -1,
+      life: reducedMotion() ? 360 : randomBetween(620, 980),
+      alpha: 0.88,
     });
   }
 
@@ -717,7 +718,8 @@ export function createFx(canvas) {
             alpha: 0.92,
           });
         break;
-      case 'flip3d_enter':
+      case 'fold_start':
+        addFoldStartRuffle(evt, G, metrics);
         flash = {
           color: palette.paper,
           strength: reducedMotion() ? 0.045 : 0.06,
@@ -725,28 +727,8 @@ export function createFx(canvas) {
           maxLife: reducedMotion() ? 100 : 150,
         };
         break;
-      case 'flip3d_lane':
-        addLaneHopPuff(evt, G, metrics);
-        break;
-      case 'flip3d_blocked':
-        triggerShake(Math.min(metrics.cell * 0.12, 4), reducedMotion() ? 0 : 95);
-        addParticles(reducedMotion() ? 1 : 3, point[0], point[1], metrics, {
-          kind: 'spark',
-          world,
-          colors: [palette.garbageEdge, palette.ink],
-          spreadX: metrics.cell * 0.18,
-          spreadY: metrics.cell * 0.12,
-          width: metrics.cell * 0.22,
-          height: metrics.cell * 0.055,
-          speed: 0.45,
-          direction: 0,
-          life: reducedMotion() ? 120 : 180,
-          gravity: 0,
-          alpha: 0.6,
-        });
-        break;
-      case 'flip3d_exit':
-        addRuffle(world, metrics);
+      case 'fold_done':
+        addFoldDoneBurst(evt, G, metrics);
         flash = {
           color: COLORS.seam,
           strength: reducedMotion() ? 0.045 : 0.075,
@@ -754,16 +736,8 @@ export function createFx(canvas) {
           maxLife: reducedMotion() ? 110 : 180,
         };
         break;
-      case 'meter_low':
-        flash = {
-          color: COLORS.seam,
-          strength: reducedMotion() ? 0.025 : 0.045,
-          life: reducedMotion() ? 100 : 170,
-          maxLife: reducedMotion() ? 100 : 170,
-        };
-        break;
       case 'flip':
-        // Legacy page-turn events are intentionally ignored in V3.
+        // Legacy flip events are intentionally ignored in v4.
         break;
       case 'garbage':
         addParticles(reducedMotion() ? 4 : 10, metrics.left + metrics.boardWidth * 0.5,

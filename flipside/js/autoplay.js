@@ -204,27 +204,13 @@ export function createBot() {
     if (now + 1 < lastSeenMs) reset();      // game restarted -> clock rewound
     lastSeenMs = now;
 
-    if (G.status !== 'playing' && G.status !== 'flip3d') {
+    // A fold is owned by the camera handshake. Do not queue gameplay actions
+    // or a second flip while it is in progress.
+    if (G.status === 'folding') return [];
+
+    if (G.status !== 'playing') {
       if (G.status === 'title' || G.status === 'gameover' || G.status === 'won') reset();
       return [];
-    }
-
-    if (G.status === 'flip3d') {
-      const f3 = G.flip3d;
-      if (!f3 || f3.phase !== 'held') return [];
-      const p3 = G.piece;
-      if (!p3 || typeof p3 !== 'object' || typeof p3.t !== 'string') return [];
-      if (now < nextActAt) return [];
-
-      const lane = f3.lane === 'ink' ? 'ink' : 'sun';
-      const boards3 = G.boards || {};
-      const here = stackHeight(boards3[lane]);
-      const farLane = other(lane);
-      const far = stackHeight(boards3[farLane]);
-      nextActAt = now + ACTION_MS;
-      // In the side view there is no rotation or x-planning: hop to the
-      // shallower sheet when useful, then commit the piece with a hard drop.
-      return far < here ? ['left', 'hard'] : ['hard'];
     }
 
     const p = G.piece;
@@ -239,15 +225,17 @@ export function createBot() {
 
     if (now < nextActAt) return [];
 
-    // --- flip decision (once per piece, only just after it spawns) ---------
+    // --- fold decision (once per piece, only just after it spawns) ----------
     const charge = typeof G.flipCharge === 'number' ? G.flipCharge : 0;
     if (charge > 0 && flippedForKey !== key && now - lastFlipMs > FLIP_COOLDOWN_MS) {
       const farBoard = boards[other(world)];
       const far = farBoard ? stackHeight(farBoard) : 0;
       const here = stackHeight(board);
       const urgent = far >= 12 || far - here >= 5;
-      const banked = charge >= FLIP_MAX && far >= 4;
-      if (urgent || banked) {
+      // Spend a banked charge occasionally even before the far side is
+      // critical; urgent far-side pressure remains an independent trigger.
+      const chargeHigh = charge >= Math.max(2, FLIP_MAX - 1);
+      if (urgent || chargeHigh) {
         flippedForKey = key;
         lastFlipMs = now;
         nextActAt = now + ACTION_MS * 3;

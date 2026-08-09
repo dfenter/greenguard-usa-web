@@ -66,3 +66,5 @@ export const COLORS = {
   },
   seam: '#f7d774',
 };
+
+export const FOLD_MS = 700;             // v4 fold animation duration

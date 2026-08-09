@@ -107,12 +107,12 @@ const STEPS = [
   },
   {
     id: 'flip',
-    title: 'Flip into 3D',
-    body: 'Flip into 3D: the hidden side is BEHIND the paper. While flipped, ' +
-      'steer the piece between the sheets, then drop or flip back.',
+    title: 'Fold the page',
+    body: 'FLIP folds this page away — the other side unfolds into a full board. ' +
+      'The strip on the left IS the other side: each mark is one of its rows.',
     // staged: only appears once the far world has actually festered
     ready: (G, S) => S.sawGarbage,
-    done: (G, S) => S.flipRoundTrip,
+    done: (G, S) => S.folded,
     timeout: 26000,
     hero: true,
   },
@@ -210,8 +210,7 @@ export function maybeRunTutorial(G, hud) {
   const S = {
     moved: 0, rotated: 0, locked: 0,
     sawGarbage: false, stepAge: 0, prevX: null, prevRot: null,
-    prevPieces: 0, flipEntered: false, flipExited: false,
-    flipRoundTrip: false, wasIn3d: false,
+    prevPieces: 0, startWorld: G.world, folded: false,
   };
 
   let idx = 0;
@@ -285,13 +284,7 @@ export function maybeRunTutorial(G, hud) {
     }
     if (pieces > S.prevPieces) { S.locked += pieces - S.prevPieces; }
     S.prevPieces = pieces;
-    const in3d = G.status === 'flip3d';
-    if (in3d) S.flipEntered = true;
-    if (S.flipEntered && S.wasIn3d && !in3d) {
-      S.flipExited = true;
-      S.flipRoundTrip = true;
-    }
-    S.wasIn3d = in3d;
+    if (!S.folded && G.world !== S.startWorld) S.folded = true;
 
     if (!S.sawGarbage && G.boards) {
       if (hasGarbage(G.boards.sun) || hasGarbage(G.boards.ink)) S.sawGarbage = true;

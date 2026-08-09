@@ -9,10 +9,6 @@ const MUSIC_START_DELAY_SEC = 0.035;
 const MAX_MUSIC_SOURCES = 32;
 const MAX_SFX_SOURCES = 48;
 const MIN_GAIN = 0.0001;
-const MUSIC_OPEN_FILTER_HZ = 20000;
-const MUSIC_3D_FILTER_HZ = 800;
-const MUSIC_3D_DUCK = 0.85;
-const MUSIC_3D_RAMP_MS = 180;
 
 const SUN_MELODY = [0, 4, 7, 11, 14, 11, 7, 4];
 const INK_MELODY = [0, 3, 7, 10, 14, 10, 7, 3];
@@ -74,26 +70,22 @@ function createNoiseBuffer(ctx) {
   }
 }
 
-function createGraph(ctx, world, musicOn, sfxOn, active3d = false) {
+function createGraph(ctx, world, musicOn, sfxOn) {
   const musicMaster = ctx.createGain();
   const sfxMaster = ctx.createGain();
   const sunBus = ctx.createGain();
   const inkBus = ctx.createGain();
-  const music3dFilter = ctx.createBiquadFilter();
   const inkFilter = ctx.createBiquadFilter();
   const inkDelay = ctx.createDelay(1.2);
   const inkFeedback = ctx.createGain();
   const inkEcho = ctx.createGain();
   const inkReturn = ctx.createGain();
 
-  setNodeParam(musicMaster, 'gain', musicOn ? 0.15 * (active3d ? MUSIC_3D_DUCK : 1) : 0);
+  setNodeParam(musicMaster, 'gain', musicOn ? 0.15 : 0);
   setNodeParam(sfxMaster, 'gain', sfxOn ? 0.24 : 0);
   setNodeParam(sunBus, 'gain', world === 'sun' ? 1 : 0);
   setNodeParam(inkBus, 'gain', world === 'ink' ? 1 : 0);
 
-  try { music3dFilter.type = 'lowpass'; } catch (_) { /* optional */ }
-  setNodeParam(music3dFilter, 'frequency', active3d ? MUSIC_3D_FILTER_HZ : MUSIC_OPEN_FILTER_HZ);
-  setNodeParam(music3dFilter, 'Q', 0.4);
   try { inkFilter.type = 'lowpass'; } catch (_) { /* optional */ }
   setNodeParam(inkFilter, 'frequency', 1100);
   setNodeParam(inkFilter, 'Q', 0.65);
@@ -111,13 +103,11 @@ function createGraph(ctx, world, musicOn, sfxOn, active3d = false) {
   inkReturn.connect(musicMaster);
   inkDelay.connect(inkFeedback);
   inkFeedback.connect(inkDelay);
-  musicMaster.connect(music3dFilter);
-  music3dFilter.connect(ctx.destination);
+  musicMaster.connect(ctx.destination);
   sfxMaster.connect(ctx.destination);
 
   return {
     musicMaster,
-    music3dFilter,
     sfxMaster,
     sunBus,
     inkBus,
@@ -142,7 +132,6 @@ export function createAudio() {
   let muted = false;
   let musicStep = 0;
   let musicNextAt = 0;
-  let active3d = false;
   let musicSources = new Set();
   let sfxSources = new Set();
 
@@ -172,7 +161,7 @@ export function createAudio() {
   }
 
   function musicOutputGain() {
-    return audibleMusic() ? 0.15 * (active3d ? MUSIC_3D_DUCK : 1) : 0;
+    return audibleMusic() ? 0.15 : 0;
   }
 
   function rampParam(param, target, start, duration) {
@@ -422,11 +411,15 @@ export function createAudio() {
     void at;
   }
 
-  function playFlip3dEnter() {
+  function playFoldStart() {
     const at = now() + 0.004;
     scheduleNoise({
       when: at, duration: 0.44, volume: 0.05,
       filterType: 'bandpass', frequency: 360, endFrequency: 1500, q: 0.55,
+    });
+    scheduleNoise({
+      when: at + 0.07, duration: 0.2, volume: 0.026,
+      filterType: 'highpass', frequency: 1500, endFrequency: 3600, q: 0.45,
     });
     playSfxTone(240, {
       type: 'sine', duration: 0.38, volume: 0.025,
@@ -434,45 +427,15 @@ export function createAudio() {
     });
   }
 
-  function playFlip3dLane() {
-    playSfxTone(680, {
-      type: 'triangle', duration: 0.075, volume: 0.024,
-      endFrequency: 860, attack: 0.003, release: 0.052,
-    });
-  }
-
-  function playFlip3dBlocked() {
+  function playFoldDone() {
     const at = now() + 0.004;
     scheduleNoise({
-      when: at, duration: 0.13, volume: 0.038,
-      filterType: 'lowpass', frequency: 150, endFrequency: 70, q: 0.8,
+      when: at, duration: 0.17, volume: 0.03,
+      filterType: 'lowpass', frequency: 190, endFrequency: 72, q: 0.75,
     });
-    playSfxTone(112, {
-      type: 'sine', duration: 0.14, volume: 0.028,
-      endFrequency: 64, attack: 0.004, release: 0.09,
-    });
-  }
-
-  function playFlip3dExit() {
-    const at = now() + 0.004;
-    scheduleNoise({
-      when: at, duration: 0.39, volume: 0.05,
-      filterType: 'bandpass', frequency: 1700, endFrequency: 250, q: 0.55,
-    });
-    playSfxTone(320, {
-      type: 'sine', duration: 0.34, volume: 0.025,
-      endFrequency: 105, attack: 0.012, release: 0.19,
-    });
-  }
-
-  function playMeterLow() {
-    playSfxTone(920, {
-      type: 'triangle', duration: 0.065, volume: 0.022,
-      endFrequency: 760, attack: 0.002, release: 0.045,
-    });
-    playSfxTone(760, {
-      type: 'triangle', duration: 0.075, volume: 0.018,
-      delay: 0.075, endFrequency: 620, attack: 0.002, release: 0.052,
+    playSfxTone(104, {
+      type: 'sine', duration: 0.2, volume: 0.038,
+      endFrequency: 58, attack: 0.004, release: 0.14,
     });
   }
 
@@ -526,23 +489,14 @@ export function createAudio() {
         case 'tetris':
           playClear(4);
           break;
-        case 'flip3d_enter':
-          playFlip3dEnter();
+        case 'fold_start':
+          playFoldStart();
           break;
-        case 'flip3d_lane':
-          playFlip3dLane();
-          break;
-        case 'flip3d_blocked':
-          playFlip3dBlocked();
-          break;
-        case 'flip3d_exit':
-          playFlip3dExit();
-          break;
-        case 'meter_low':
-          playMeterLow();
+        case 'fold_done':
+          playFoldDone();
           break;
         case 'flip':
-          // Legacy page-turn events are intentionally ignored in V3.
+          // Legacy flip events are intentionally ignored in v4.
           break;
         case 'garbage':
           scheduleNoise({ when: at, duration: 0.38, volume: 0.06, frequency: 95, endFrequency: 48, q: 0.85 });
@@ -591,7 +545,7 @@ export function createAudio() {
         const Ctor = contextConstructor();
         if (!Ctor) return;
         ctx = new Ctor();
-        graph = createGraph(ctx, world, audibleMusic(), audibleSfx(), active3d);
+        graph = createGraph(ctx, world, audibleMusic(), audibleSfx());
         musicNextAt = now() + MUSIC_START_DELAY_SEC;
         musicStep = 0;
       }
@@ -639,20 +593,6 @@ export function createAudio() {
     }
   }
 
-  function set3d(active) {
-    try {
-      active3d = Boolean(active);
-      if (!ctx || !graph) return;
-      const at = now() + 0.004;
-      rampParam(graph.musicMaster.gain, musicOutputGain(), at, MUSIC_3D_RAMP_MS / 1000);
-      rampParam(graph.music3dFilter.frequency,
-        active3d ? MUSIC_3D_FILTER_HZ : MUSIC_OPEN_FILTER_HZ,
-        at, MUSIC_3D_RAMP_MS / 1000);
-    } catch (_) {
-      // The camera must remain usable if an audio filter is unavailable.
-    }
-  }
-
   function toggleMute() {
     try {
       muted = !muted;
@@ -689,5 +629,5 @@ export function createAudio() {
     }
   }
 
-  return { unlock, handle, setWorld, set3d, toggleMute, setEnabled, update };
+  return { unlock, handle, setWorld, toggleMute, setEnabled, update };
 }

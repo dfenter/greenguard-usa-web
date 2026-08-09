@@ -2,12 +2,12 @@
 //
 // DOM class registry used by css/style.css:
 // .hud-top, .hud-score, .hud-lines, .hud-phase, .hud-next, .hud-hold,
-// .hud-pips > .pip / .pip.full, .flip-meter > .seg / .seg.full,
+// .hud-pips > .pip / .pip.full,
 // .world-tag, .toast, .banner,
 // .screen.title/.pause/.over/.win, .screen .logo, .screen .stats,
 // .btn, .btn-primary, #btn-flip, .tc-btn, and #btn-pause.
 
-import { COLORS, FLIP3D_MS, FLIP_MAX, METER_SEGMENTS, QUEUE_LEN } from '../config.js';
+import { COLORS, FLIP_MAX, QUEUE_LEN } from '../config.js';
 
 const MINI_WIDTH = 76;
 const MINI_HEIGHT = 50;
@@ -378,10 +378,7 @@ export function createHud(G, hooks = {}) {
 
   const touchControls = document.getElementById('touch-controls');
   let flipButton = null;
-  let flipLabel = null;
-  let flipMeter = null;
   const pipElements = [];
-  const meterElements = [];
   if (touchControls) {
     touchControls.replaceChildren();
     const pauseButton = button('tc-btn btn', 'Ⅱ', 'pause');
@@ -396,7 +393,7 @@ export function createHud(G, hooks = {}) {
     flipButton = button('tc-btn btn btn-primary', '', 'flip');
     flipButton.id = 'btn-flip';
     flipButton.setAttribute('aria-label', 'Flip page');
-    flipLabel = node('span', 'flip-label', 'FLIP');
+    const flipLabel = node('span', 'flip-label', 'FLIP');
     const pips = node('span', 'hud-pips');
     pips.setAttribute('aria-label', 'Flip charges');
     for (let index = 0; index < FLIP_MAX; index += 1) {
@@ -405,16 +402,7 @@ export function createHud(G, hooks = {}) {
       pipElements.push(pip);
       pips.append(pip);
     }
-    flipMeter = node('span', 'flip-meter');
-    flipMeter.setAttribute('role', 'meter');
-    flipMeter.setAttribute('aria-label', 'Flip meter: full');
-    for (let index = 0; index < METER_SEGMENTS; index += 1) {
-      const segment = node('span', 'seg');
-      segment.setAttribute('aria-hidden', 'true');
-      meterElements.push(segment);
-      flipMeter.append(segment);
-    }
-    flipButton.append(flipLabel, pips, flipMeter);
+    flipButton.append(flipLabel, pips);
     const cwButton = button('tc-btn btn', '⟳', 'rotcw');
     cwButton.id = 'btn-rot-cw';
     cwButton.setAttribute('aria-label', 'Rotate clockwise');
@@ -434,8 +422,6 @@ export function createHud(G, hooks = {}) {
   let lastHoldKey = null;
   let lastCharge = null;
   let lastFlipAffordable = null;
-  let lastMeterFill = null;
-  let lastIn3d = null;
   let lastStatus = null;
   let lastCombo = null;
   let lastB2b = null;
@@ -475,8 +461,7 @@ export function createHud(G, hooks = {}) {
     setHidden(winScreen.screen, !visible.win);
 
     if (touchControls) {
-      const showControls = status === 'playing' || status === 'flip3d' ||
-        status === 'flipping' || status === 'clearing';
+      const showControls = status === 'playing' || status === 'folding' || status === 'clearing';
       setHidden(touchControls, !showControls);
     }
 
@@ -542,11 +527,6 @@ export function createHud(G, hooks = {}) {
 
   function updatePips(state, status) {
     const charge = Math.max(0, Math.min(FLIP_MAX, Math.floor(numberValue(state.flipCharge))));
-    const in3d = status === 'flip3d';
-    const meterMs = numberValue(state.flip3d?.meterMs ?? state.meterMs, FLIP3D_MS);
-    const meterRatio = Math.max(0, Math.min(1, meterMs / FLIP3D_MS));
-    const meterFill = meterMs <= 0 ? 0 : Math.min(METER_SEGMENTS,
-      Math.ceil(meterRatio * METER_SEGMENTS));
     const chargeChanged = charge !== lastCharge;
     if (chargeChanged) {
       lastCharge = charge;
@@ -554,34 +534,15 @@ export function createHud(G, hooks = {}) {
         pipElements[index].classList.toggle('full', index < charge);
       }
     }
-    if (meterFill !== lastMeterFill) {
-      lastMeterFill = meterFill;
-      for (let index = 0; index < meterElements.length; index += 1) {
-        meterElements[index].classList.toggle('full', index < meterFill);
-      }
-    }
-    if (flipMeter) {
-      flipMeter.dataset.segments = String(meterFill);
-      flipMeter.setAttribute('aria-valuemin', '0');
-      flipMeter.setAttribute('aria-valuemax', String(FLIP3D_MS));
-      flipMeter.setAttribute('aria-valuenow', String(Math.round(Math.max(0, meterMs))));
-      flipMeter.setAttribute('aria-label', `Flip meter: ${meterFill} of ${METER_SEGMENTS} segments`);
-    }
     if (!flipButton) return;
-    const affordable = in3d || (charge > 0 && status === 'playing');
-    if (flipLabel && in3d !== lastIn3d) flipLabel.textContent = in3d ? 'EXIT' : 'FLIP';
-    flipButton.classList.toggle('in3d', in3d);
-    if (chargeChanged || affordable !== lastFlipAffordable || in3d !== lastIn3d) {
+    const affordable = charge > 0 && status === 'playing';
+    if (chargeChanged || affordable !== lastFlipAffordable) {
       flipButton.disabled = !affordable;
       flipButton.dataset.charges = String(charge);
-      flipButton.setAttribute('aria-label', in3d
-        ? 'Exit 3D view'
-        : `Flip into 3D, ${charge} charge${charge === 1 ? '' : 's'} available`);
-      flipButton.title = in3d ? 'Exit 3D view' :
-        (affordable ? 'Flip into 3D' : 'No flip charges available');
+      flipButton.setAttribute('aria-label', `Flip page, ${charge} charge${charge === 1 ? '' : 's'} available`);
+      flipButton.title = affordable ? 'Fold to the other side' : 'No flip charges available';
       lastFlipAffordable = affordable;
     }
-    lastIn3d = in3d;
   }
 
   function updateFeedback(state, status, now) {

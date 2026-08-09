@@ -6,7 +6,7 @@
    registry: .hud-top .hud-score .hud-lines .hud-phase .hud-next .hud-hold
    .mini .hud-pips .pip .pip.full .world-tag .toast .banner
    .screen(.title/.pause/.over/.win) h1.logo .stats .btn .btn-primary
-   #btn-flip .flip-meter > .seg / .seg.full .tc-btn #btn-pause
+   #btn-flip .tc-btn #btn-pause
    Themes key off body.world-sun / body.world-ink.
    ========================================================================== */
 
@@ -692,107 +692,6 @@ body.world-ink .screen.win h1.logo { color: var(--gold); }
 }
 #btn-flip[disabled] .pip, #btn-flip.is-off .pip { border-color: var(--ink-soft); }
 
-/* thin SPM-style meter, kept beneath the charge pips */
-#btn-flip .flip-meter {
-  width: min(78%, 112px);
-  height: 6px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 1px 2px;
-  box-sizing: border-box;
-  border: 1px solid rgba(74, 58, 18, .42);
-  border-radius: 999px;
-  background: rgba(255, 246, 206, .42);
-}
-#btn-flip .flip-meter .seg {
-  flex: 1 1 0;
-  min-width: 0;
-  height: 2px;
-  border-radius: 2px;
-  background: rgba(74, 58, 18, .25);
-  transition: background-color 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
-}
-#btn-flip .flip-meter .seg.full {
-  background: #4a3a12;
-  box-shadow: 0 0 3px rgba(74, 58, 18, .5);
-}
-
-body.world-sun #btn-flip .flip-meter {
-  border-color: rgba(74, 58, 18, .48);
-  background: rgba(255, 248, 214, .48);
-}
-body.world-ink #btn-flip .flip-meter {
-  border-color: rgba(58, 47, 24, .58);
-  background: rgba(255, 235, 155, .22);
-}
-body.world-ink #btn-flip .flip-meter .seg { background: rgba(58, 47, 24, .34); }
-body.world-ink #btn-flip .flip-meter .seg.full {
-  background: #fff0ad;
-  box-shadow: 0 0 4px rgba(255, 224, 126, .72);
-}
-
-/* In 3D the hero button becomes the illuminated EXIT control. */
-#btn-flip.in3d {
-  color: #fff6cf;
-  background: linear-gradient(180deg, #55456f 0%, #383052 62%, #27223f 100%);
-  border-color: #f1ca67;
-  box-shadow:
-    0 4px 0 #9f7730,
-    0 0 0 2px rgba(247, 215, 116, .18),
-    0 0 24px rgba(247, 215, 116, .58);
-  animation: flip-3d-pulse 1.35s ease-in-out infinite;
-}
-#btn-flip.in3d:active, #btn-flip.in3d.is-active {
-  box-shadow: 0 1px 0 #9f7730, 0 0 0 2px rgba(247, 215, 116, .16),
-    0 0 18px rgba(247, 215, 116, .46);
-  animation: none;
-}
-#btn-flip.in3d .pip { border-color: rgba(255, 246, 207, .5); }
-#btn-flip.in3d .pip.full {
-  background: #fff0ad;
-  border-color: #fff0ad;
-  box-shadow: 0 0 4px rgba(255, 224, 126, .72);
-}
-#btn-flip.in3d .flip-meter {
-  border-color: rgba(255, 240, 173, .64);
-  background: rgba(20, 18, 38, .5);
-}
-#btn-flip.in3d .flip-meter .seg { background: rgba(255, 240, 173, .25); }
-#btn-flip.in3d .flip-meter .seg.full {
-  background: #ffe28a;
-  box-shadow: 0 0 5px rgba(255, 226, 138, .82);
-}
-body.world-ink #btn-flip.in3d {
-  color: #302744;
-  background: linear-gradient(180deg, #fff0b0 0%, #e8bf59 62%, #ad8130 100%);
-  border-color: #fff0ad;
-  box-shadow:
-    0 4px 0 #8b672a,
-    0 0 0 2px rgba(255, 240, 173, .18),
-    0 0 24px rgba(255, 224, 126, .68);
-}
-body.world-ink #btn-flip.in3d .pip { border-color: rgba(48, 39, 68, .5); }
-body.world-ink #btn-flip.in3d .pip.full {
-  background: #302744;
-  border-color: #302744;
-  box-shadow: none;
-}
-body.world-ink #btn-flip.in3d .flip-meter {
-  border-color: rgba(48, 39, 68, .58);
-  background: rgba(255, 247, 205, .36);
-}
-body.world-ink #btn-flip.in3d .flip-meter .seg { background: rgba(48, 39, 68, .25); }
-body.world-ink #btn-flip.in3d .flip-meter .seg.full {
-  background: #302744;
-  box-shadow: 0 0 4px rgba(48, 39, 68, .48);
-}
-
-@keyframes flip-3d-pulse {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-1px) scale(1.018); }
-}
-
 /* ==========================================================================
    NARROW PHONES (360px and below)
    ========================================================================== */
@@ -805,7 +704,6 @@ body.world-ink #btn-flip.in3d .flip-meter .seg.full {
   .hud-next { gap: 2px; padding: 3px 4px; }
   .tc-btn { height: 56px; font-size: 18px; }
   #btn-flip { height: 68px; font-size: 17px; letter-spacing: .1em; }
-  #btn-flip .flip-meter { width: 76px; }
   .btn { min-width: 150px; }
 }
 
@@ -814,7 +712,6 @@ body.world-ink #btn-flip.in3d .flip-meter .seg.full {
   :root { --hud-h: 50px; --tc-h: 76px; }
   .tc-btn { height: 52px; }
   #btn-flip { height: 62px; }
-  #btn-flip .flip-meter { width: 72px; }
 }
 
 /* ==========================================================================

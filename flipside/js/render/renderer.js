@@ -1,28 +1,23 @@
-import { COLS, COLORS, DEPTH_GAP_CELLS, ROWS, other } from '../config.js';
+import { COLS, COLORS, ROWS, other } from '../config.js';
 import { cellsOf } from '../core/pieces.js';
 import { collides } from '../core/board.js';
 import { drawBackground } from './backgrounds.js';
 
 const MAX_DPR = 2;
-const BLEED_ALPHA = 0.12;
-const DIORAMA_STRIPS = 24;
-const DIORAMA_ANGLE_EPSILON = 0.001;
-const LANE_START_ANGLE = 72;
-const LANE_CROSSFADE_DEGREES = 18;
-const HOP_MS = 120;
+const SEAM_WIDTH_CELLS = 1.2;
+const FOLD_SLICES = 24;
 const PRISM_COLORS = [
   '#57b8c9', '#6fe3ff', '#c98bc9', '#e39bff',
   '#f2c14e', '#ffd76f', '#e2695c', '#ff8f80',
 ];
 const CELL_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L', 'G'];
+const BASE_CELL_OPTIONS = {};
 
 const rgbCache = new Map();
 const darkCache = new Map();
 const cellSpriteCache = new Map();
 const ghostProbe = Array.from({ length: 4 }, () => [0, 0]);
-const lanePieceRows = new Uint8Array(ROWS);
-const laneGhostRows = new Uint8Array(ROWS);
-const laneRowsCache = {
+const seamRowsCache = {
   sun: { signature: null, fill: new Float32Array(ROWS), kind: new Uint8Array(ROWS) },
   ink: { signature: null, fill: new Float32Array(ROWS), kind: new Uint8Array(ROWS) },
 };
@@ -322,18 +317,6 @@ function drawCell(ctx, px, py, size, cell, palette, world, timeMs, unit, options
   ctx.restore();
 }
 
-function drawSilhouette(ctx, px, py, size, cell, palette, unit) {
-  if (!cell) return;
-  const inset = Math.max(unit * 1.1, size * 0.1);
-  const width = Math.max(1, size - inset * 2);
-  roundedRectPath(ctx, px + inset, py + inset, width, width, Math.min(size * 0.14, unit * 3));
-  ctx.fillStyle = rgba(cellColor(cell, palette), 0.92);
-  ctx.fill();
-  ctx.strokeStyle = rgba(palette.ink, 0.55);
-  ctx.lineWidth = Math.max(unit * 0.45, size * 0.017);
-  ctx.stroke();
-}
-
 function drawStitchGrid(ctx, layout, palette, world) {
   const { boardX: x, boardY: y, boardW: width, boardH: height, cell, unit } = layout;
   ctx.save();
@@ -342,7 +325,7 @@ function drawStitchGrid(ctx, layout, palette, world) {
   ctx.clip();
   ctx.strokeStyle = rgba(palette.ink, world === 'ink' ? 0.25 : 0.2);
   ctx.lineWidth = Math.max(unit * 0.42, 0.65);
-  ctx.setLineDash([Math.max(unit * 1.25, cell * 0.095), Math.max(unit * 1.5, cell * 0.12)]);
+  ctx.setLineDash(layout.stitchDash);
   ctx.lineCap = 'round';
   ctx.beginPath();
   for (let column = 0; column <= COLS; column += 1) {
@@ -368,37 +351,23 @@ function drawSeamAccents(ctx, board, layout) {
   ctx.clip();
   ctx.strokeStyle = 'rgba(247,215,116,0.58)';
   ctx.lineWidth = Math.max(unit * 0.55, cell * 0.018);
-  ctx.setLineDash([Math.max(unit * 2, cell * 0.14), Math.max(unit * 1.6, cell * 0.1)]);
+  ctx.setLineDash(layout.seamAccentDash);
   for (let row = 0; row < ROWS; row += 1) {
     const cells = board.grid[row];
-    if (!cells || !cells.some((cell) => cell && cell.t === 'SEAM')) continue;
+    let hasSeam = false;
+    if (cells) {
+      for (let column = 0; column < COLS; column += 1) {
+        if (cells[column] && cells[column].t === 'SEAM') {
+          hasSeam = true;
+          break;
+        }
+      }
+    }
+    if (!hasSeam) continue;
     ctx.beginPath();
     ctx.moveTo(x + unit * 1.2, y + row * cell + cell * 0.5);
     ctx.lineTo(x + width - unit * 1.2, y + row * cell + cell * 0.5);
     ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawFarBoard(ctx, board, farWorld, layout) {
-  if (!board || !Array.isArray(board.grid)) return;
-  const { boardX: x, boardY: y, cell: cellSize, boardW: width, boardH: height, unit } = layout;
-  const palette = COLORS[farWorld];
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x, y, width, height);
-  ctx.clip();
-  ctx.globalAlpha = BLEED_ALPHA;
-  for (let row = 0; row < ROWS; row += 1) {
-    const cells = board.grid[row];
-    if (!cells) continue;
-    for (let column = 0; column < COLS; column += 1) {
-      const cell = cells[column];
-      if (!cell) continue;
-      // The far side is visible through the sheet as a horizontally mirrored
-      // silhouette, like print showing through thin craft paper.
-      drawSilhouette(ctx, x + (COLS - 1 - column) * cellSize, y + row * cellSize, cellSize, cell, palette, unit);
-    }
   }
   ctx.restore();
 }
@@ -413,7 +382,7 @@ function drawBoardCells(ctx, board, world, layout, timeMs) {
     for (let column = 0; column < COLS; column += 1) {
       const value = cells[column];
       if (!value) continue;
-      drawCell(ctx, x + column * cell, y + row * cell, cell, value, palette, world, timeMs, unit);
+      drawCell(ctx, x + column * cell, y + row * cell, cell, value, palette, world, timeMs, unit, BASE_CELL_OPTIONS);
     }
   }
 }
@@ -475,15 +444,16 @@ function drawPiece(ctx, piece, board, world, layout, timeMs, ghost = false, opti
   const palette = COLORS[world];
   const { boardX: x, boardY: y, cell, unit } = layout;
   const value = { pol: world, t: piece.t, prism: piece.prism === true };
+  const cellOptions = {
+    ghost,
+    prism: !ghost && piece.prism === true,
+    goldOutline: !ghost && options.goldOutline === true,
+  };
   for (const position of positions) {
     if (!Array.isArray(position) || position.length < 2) continue;
     const [column, row] = position;
     if (column < 0 || column >= COLS || row >= ROWS) continue;
-    drawCell(ctx, x + column * cell, y + row * cell, cell, value, palette, world, timeMs, unit, {
-      ghost,
-      prism: !ghost && piece.prism === true,
-      goldOutline: !ghost && options.goldOutline === true,
-    });
+    drawCell(ctx, x + column * cell, y + row * cell, cell, value, palette, world, timeMs, unit, cellOptions);
   }
 }
 
@@ -576,29 +546,43 @@ function measureCanvas(canvas) {
 
 function makeLayout(width, height, dpr) {
   const unit = dpr;
-  // The board is the hero on portrait phones: use only a small frame margin
-  // and let height be the limiting dimension when the viewport is short.
-  // Keep this formula in lockstep with render/fx.js.
+  // The seam and the playable board share the width that the old full board
+  // used. Height remains the limiting dimension on short portrait screens.
   const framePad = Math.max(unit * 4, Math.min(width, height) * 0.015);
   const verticalMargin = Math.max(unit * 6, height * 0.028);
+  const playWidthCells = COLS + SEAM_WIDTH_CELLS;
   const cell = Math.max(1, Math.min(
-    Math.max(1, (width - framePad * 2) / COLS),
+    Math.max(1, (width - framePad * 2) / playWidthCells),
     Math.max(1, (height - verticalMargin * 2) / ROWS),
   ));
+  const seamW = cell * SEAM_WIDTH_CELLS;
   const boardW = cell * COLS;
   const boardH = cell * ROWS;
-  const boardX = Math.round((width - boardW) * 0.5);
+  const playW = seamW + boardW;
+  const playX = Math.round((width - playW) * 0.5);
+  const seamX = playX;
+  const boardX = seamX + seamW;
   const boardY = Math.round((height - boardH) * 0.5);
   return {
+    playX,
+    playW,
+    seamX,
+    seamW,
+    seamY: boardY,
+    seamH: boardH,
+    seamStitchDash: [Math.max(unit * 1.3, seamW * 0.13), Math.max(unit * 1.1, seamW * 0.1)],
+    seamGridDash: [Math.max(unit * 1.2, seamW * 0.12), Math.max(unit * 1.7, seamW * 0.18)],
+    seamAccentDash: [Math.max(unit * 2, cell * 0.14), Math.max(unit * 1.6, cell * 0.1)],
+    stitchDash: [Math.max(unit * 1.25, cell * 0.095), Math.max(unit * 1.5, cell * 0.12)],
     boardX,
     boardY,
     boardW,
     boardH,
     boardRight: boardX + boardW,
     boardBottom: boardY + boardH,
-    pageX: boardX - framePad,
+    pageX: playX - framePad,
     pageY: boardY - framePad,
-    pageW: boardW + framePad * 2,
+    pageW: playW + framePad * 2,
     pageH: boardH + framePad * 2,
     cell,
     unit,
@@ -656,8 +640,8 @@ function boardRenderSignature(board) {
   return hash >>> 0;
 }
 
-function updateLaneRows(board, world) {
-  const cache = laneRowsCache[world];
+function updateSeamRows(board, world) {
+  const cache = seamRowsCache[world];
   const signature = boardRenderSignature(board);
   if (cache.signature === signature) return cache;
 
@@ -681,37 +665,11 @@ function updateLaneRows(board, world) {
   return cache;
 }
 
-function makeLaneLayout(boardLayout) {
-  const unit = boardLayout.unit;
-  const rowHeight = Math.max(1, (boardLayout.boardH - unit * 6) / ROWS);
-  const laneCell = Math.max(
-    unit * 6,
-    Math.min(boardLayout.cell * 1.12, boardLayout.boardW / (2 + DEPTH_GAP_CELLS)),
-  );
-  const gap = DEPTH_GAP_CELLS * laneCell;
-  const pairWidth = laneCell * 2 + gap;
-  const pairX = boardLayout.boardX + (boardLayout.boardW - pairWidth) * 0.5;
-  const stripY = boardLayout.boardY + unit * 3;
-  return {
-    leftX: pairX,
-    rightX: pairX + laneCell + gap,
-    stripW: laneCell,
-    stripY,
-    stripH: rowHeight * ROWS,
-    rowHeight,
-    tagY: stripY - unit * 1.5,
-    unit,
-  };
-}
-
-function laneX(geometry, world, frontWorld) {
-  return world === frontWorld ? geometry.leftX : geometry.rightX;
-}
-
-function drawLaneStrip(ctx, board, world, x, geometry, timeMs) {
+function drawLaneStrip(ctx, board, world, layout, timeMs) {
   const palette = COLORS[world];
-  const cache = updateLaneRows(board, world);
-  const { stripY, stripH, stripW, rowHeight, unit } = geometry;
+  const cache = updateSeamRows(board, world);
+  const { seamX: x, seamY: stripY, seamW: stripW, seamH: stripH, unit } = layout;
+  const rowHeight = stripH / ROWS;
   const edgeInset = Math.max(unit * 1.1, stripW * 0.09);
   const innerX = x + edgeInset;
   const innerW = Math.max(1, stripW - edgeInset * 2);
@@ -728,8 +686,8 @@ function drawLaneStrip(ctx, board, world, x, geometry, timeMs) {
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
 
-  // Bright cut edges keep each collapsed sheet legible against the dimmed
-  // diorama, while the inner line reads as a stitched paper window.
+  // Bright cut edges keep the standing page legible; the right edge is the
+  // crease where the full playable page meets the fold seam.
   ctx.strokeStyle = rgba(palette.ink, world === 'ink' ? 0.72 : 0.58);
   ctx.lineWidth = Math.max(unit * 0.9, 1);
   ctx.strokeRect(x, stripY, stripW, stripH);
@@ -741,6 +699,23 @@ function drawLaneStrip(ctx, board, world, x, geometry, timeMs) {
   ctx.moveTo(x + stripW - unit * 0.7, stripY + unit * 0.7);
   ctx.lineTo(x + stripW - unit * 0.7, stripY + stripH - unit * 0.7);
   ctx.stroke();
+
+  ctx.fillStyle = palette.panel;
+  ctx.beginPath();
+  ctx.moveTo(x + unit * 0.35, stripY);
+  ctx.lineTo(x + stripW - unit * 0.35, stripY);
+  ctx.lineTo(x + stripW - unit * 1.15, stripY - unit * 2.3);
+  ctx.lineTo(x + unit * 1.15, stripY - unit * 2.3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = rgba(palette.ink, 0.52);
+  ctx.lineWidth = Math.max(unit * 0.45, 0.75);
+  ctx.stroke();
+  ctx.font = `700 ${Math.max(6, unit * 5.2)}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = palette.ink;
+  ctx.fillText(world === 'sun' ? 'SUN' : 'INK', x + stripW * 0.5, stripY - unit * 1.15);
 
   for (let row = 0; row < ROWS; row += 1) {
     const rowY = stripY + row * rowHeight;
@@ -770,7 +745,7 @@ function drawLaneStrip(ctx, board, world, x, geometry, timeMs) {
     if (kind === 2) {
       ctx.strokeStyle = rgba('#fff7c9', 0.92);
       ctx.lineWidth = Math.max(unit * 0.55, 0.8);
-      ctx.setLineDash([Math.max(unit * 1.3, stripW * 0.13), Math.max(unit * 1.1, stripW * 0.1)]);
+      ctx.setLineDash(layout.seamStitchDash);
       ctx.lineDashOffset = -(timeMs * 0.004 + row * unit * 0.2);
       ctx.beginPath();
       ctx.moveTo(innerX, rowY + rowHeight * 0.5);
@@ -779,7 +754,7 @@ function drawLaneStrip(ctx, board, world, x, geometry, timeMs) {
     }
   }
 
-  ctx.setLineDash([Math.max(unit * 1.2, stripW * 0.12), Math.max(unit * 1.7, stripW * 0.18)]);
+  ctx.setLineDash(layout.seamGridDash);
   ctx.lineDashOffset = 0;
   ctx.strokeStyle = rgba(palette.ink, world === 'ink' ? 0.28 : 0.22);
   ctx.lineWidth = Math.max(unit * 0.38, 0.65);
@@ -791,86 +766,6 @@ function drawLaneStrip(ctx, board, world, x, geometry, timeMs) {
   }
   ctx.stroke();
   ctx.restore();
-}
-
-function markLanePieceRows(piece, board) {
-  lanePieceRows.fill(0);
-  laneGhostRows.fill(0);
-  if (!piece) return;
-
-  const positions = cellsOf(piece);
-  for (let index = 0; index < positions.length; index += 1) {
-    const row = positions[index][1];
-    if (row >= 0 && row < ROWS) lanePieceRows[row] = 1;
-  }
-  const ghost = getGhostCells(piece, board);
-  for (let index = 0; index < ghost.length; index += 1) {
-    const row = ghost[index][1];
-    if (row >= 0 && row < ROWS) laneGhostRows[row] = 1;
-  }
-}
-
-function drawLaneProfile(ctx, rows, piece, world, x, geometry, ghost = false, yOffset = 0) {
-  if (!piece) return;
-  const palette = COLORS[world];
-  const { stripY, stripW, rowHeight, unit } = geometry;
-  const inset = Math.max(unit * 1.5, stripW * 0.15);
-  const cellX = x + inset;
-  const cellW = Math.max(1, stripW - inset * 2);
-  const color = palette.minos[piece.t] || palette.ink;
-  const cellHeight = Math.max(unit * 2, rowHeight * 0.7);
-
-  ctx.save();
-  for (let row = 0; row < ROWS; row += 1) {
-    if (!rows[row]) continue;
-    const cellY = stripY + row * rowHeight + (rowHeight - cellHeight) * 0.5 + yOffset;
-    if (ghost) {
-      ctx.fillStyle = rgba(color, world === 'ink' ? 0.18 : 0.12);
-      ctx.fillRect(cellX, cellY, cellW, cellHeight);
-      ctx.strokeStyle = rgba('#f7d774', 0.95);
-      ctx.lineWidth = Math.max(unit * 0.7, 1);
-      ctx.setLineDash([Math.max(unit * 1.2, cellW * 0.16), Math.max(unit * 1.3, cellW * 0.18)]);
-      ctx.strokeRect(cellX, cellY, cellW, cellHeight);
-    } else {
-      ctx.fillStyle = piece.prism === true ? PRISM_COLORS[4] : color;
-      ctx.fillRect(cellX, cellY, cellW, cellHeight);
-      ctx.strokeStyle = '#f7d774';
-      ctx.lineWidth = Math.max(unit * 1.05, 1.2);
-      ctx.setLineDash([]);
-      ctx.strokeRect(cellX - unit * 0.35, cellY - unit * 0.35,
-        cellW + unit * 0.7, cellHeight + unit * 0.7);
-    }
-  }
-  ctx.restore();
-}
-
-function drawLaneView(ctx, game, frontWorld, lane, geometry, timeMs, pieceX, pieceY) {
-  const hiddenWorld = other(frontWorld);
-  const frontBoard = game.boards && game.boards[frontWorld];
-  const hiddenBoard = game.boards && game.boards[hiddenWorld];
-  drawLaneStrip(ctx, frontBoard, frontWorld, geometry.leftX, geometry, timeMs);
-  drawLaneStrip(ctx, hiddenBoard, hiddenWorld, geometry.rightX, geometry, timeMs);
-
-  const frontPalette = COLORS[frontWorld];
-  const hiddenPalette = COLORS[hiddenWorld];
-  ctx.save();
-  ctx.font = `700 ${Math.max(7, geometry.unit * 7)}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
-  ctx.fillStyle = frontPalette.ink;
-  ctx.fillText(frontWorld === 'sun' ? 'SUNSIDE' : 'INKSIDE',
-    geometry.leftX + geometry.stripW * 0.5, geometry.tagY);
-  ctx.fillStyle = hiddenPalette.ink;
-  ctx.fillText(hiddenWorld === 'sun' ? 'SUNSIDE' : 'INKSIDE',
-    geometry.rightX + geometry.stripW * 0.5, geometry.tagY);
-  ctx.restore();
-
-  const piece = game.piece;
-  const pieceBoard = game.boards && game.boards[lane];
-  if (!piece || !pieceBoard) return;
-  markLanePieceRows(piece, pieceBoard);
-  drawLaneProfile(ctx, laneGhostRows, piece, lane, laneX(geometry, lane, frontWorld), geometry, true);
-  drawLaneProfile(ctx, lanePieceRows, piece, lane, pieceX, geometry, false, pieceY);
 }
 
 function samePiece(a, b) {
@@ -898,7 +793,7 @@ function makeSheetCache(world, width, height, layout) {
     paints: makePaintCache(sheetCtx, layout, COLORS[world]),
     boardSignature: null,
     overlayBoardSignature: null,
-    overlayLane: null,
+    overlayWorld: null,
     overlayPiece: null,
   };
 }
@@ -922,13 +817,13 @@ function repaintSheet(sheet, game, layout, timeMs) {
   sheet.boardSignature = signature;
 }
 
-function repaintPieceOverlay(sheet, game, lane, layout) {
+function repaintPieceOverlay(sheet, game, pieceWorld, layout) {
   if (!sheet || !sheet.pieceCtx) return;
   const board = game.boards && game.boards[sheet.world];
   const signature = boardRenderSignature(board);
-  const piece = sheet.world === lane ? game.piece : null;
+  const piece = sheet.world === pieceWorld ? game.piece : null;
   if (sheet.overlayBoardSignature === signature
-    && sheet.overlayLane === lane && samePiece(sheet.overlayPiece, piece)) return;
+    && sheet.overlayWorld === pieceWorld && samePiece(sheet.overlayPiece, piece)) return;
 
   const ctx = sheet.pieceCtx;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -938,7 +833,7 @@ function repaintPieceOverlay(sheet, game, lane, layout) {
     drawPiece(ctx, piece, board, sheet.world, layout, 0, false, { goldOutline: true });
   }
   sheet.overlayBoardSignature = signature;
-  sheet.overlayLane = lane;
+  sheet.overlayWorld = pieceWorld;
   sheet.overlayPiece = piece ? {
     t: piece.t,
     x: piece.x,
@@ -948,111 +843,54 @@ function repaintPieceOverlay(sheet, game, lane, layout) {
   } : null;
 }
 
-function projectSheet(ctx, source, depthCells, angle, layout, width, height, offsetY = 0, alpha = 1) {
-  if (!source || alpha <= 0) return;
-  const radians = angle * Math.PI / 180;
-  const cosine = Math.cos(radians);
-  const sine = Math.sin(radians);
-  const absoluteSine = Math.abs(sine);
-  const viewDepth = angle <= 90 ? depthCells : DEPTH_GAP_CELLS - depthCells;
-  const depthPerspective = 1 + (DEPTH_GAP_CELLS - viewDepth) * 0.06 * absoluteSine;
-  const depthShift = (depthCells - DEPTH_GAP_CELLS * 0.5) * layout.cell * sine;
-  const centerX = width * 0.5 + depthShift;
-  const sourceStripWidth = width / DIORAMA_STRIPS;
-  const reverseTexture = cosine < 0;
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  for (let strip = 0; strip < DIORAMA_STRIPS; strip += 1) {
-    const local = (strip + 0.5) / DIORAMA_STRIPS - 0.5;
-    const stripPerspective = depthPerspective * (1 + 0.15 * absoluteSine * local * 2);
-    const destinationWidth = Math.max(0.65, sourceStripWidth * Math.abs(cosine) * stripPerspective);
-    const destinationHeight = height * stripPerspective;
-    const destinationX = centerX + local * width * cosine - destinationWidth * 0.5;
-    const destinationY = (height - destinationHeight) * 0.5 + offsetY;
-    const sourceX = reverseTexture
-      ? width - (strip + 1) * sourceStripWidth
-      : strip * sourceStripWidth;
-    ctx.drawImage(
-      source,
-      sourceX, 0, sourceStripWidth + 0.6, height,
-      destinationX, destinationY, destinationWidth, destinationHeight,
-    );
-  }
-  ctx.restore();
-}
-
-function drawFlatSheet(ctx, source, width, height, offsetY = 0, alpha = 1) {
-  if (!source || alpha <= 0) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.drawImage(source, 0, offsetY, width, height);
-  ctx.restore();
-}
-
-function drawSheetSpine(ctx, world, depthCells, angle, layout, width, height, alpha = 1) {
-  const radians = angle * Math.PI / 180;
-  const cosine = Math.cos(radians);
-  if (Math.abs(cosine) > 0.28 || alpha <= 0) return;
-
-  const sine = Math.sin(radians);
-  const absoluteSine = Math.abs(sine);
-  const viewDepth = angle <= 90 ? depthCells : DEPTH_GAP_CELLS - depthCells;
-  const perspective = 1 + (DEPTH_GAP_CELLS - viewDepth) * 0.06 * absoluteSine;
-  const centerX = width * 0.5 + (depthCells - DEPTH_GAP_CELLS * 0.5) * layout.cell * sine;
-  const sheetHeight = height * perspective;
-  const sheetY = (height - sheetHeight) * 0.5;
-  const thickness = clamp(layout.cell * 0.18, 1.5, 6);
+function drawFlatLayout(ctx, gameState, world, seamWorld, layout, timeMs,
+  grainPattern, paints, alpha = 1) {
+  if (alpha <= 0) return;
   const palette = COLORS[world];
-
+  const board = gameState.boards && gameState.boards[world];
+  const seamBoard = gameState.boards && gameState.boards[seamWorld];
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = palette.panel;
-  ctx.fillRect(centerX - thickness * 0.5, sheetY, thickness, sheetHeight);
-  ctx.strokeStyle = rgba('#ffffff', world === 'ink' ? 0.42 : 0.72);
-  ctx.lineWidth = Math.max(layout.unit * 0.7, 1);
-  ctx.beginPath();
-  ctx.moveTo(centerX - thickness * 0.34, sheetY);
-  ctx.lineTo(centerX - thickness * 0.34, sheetY + sheetHeight);
-  ctx.stroke();
+  drawFrame(ctx, world, layout, palette, grainPattern, paints);
+  drawBoardSurface(ctx, world, layout, palette, grainPattern, paints);
+  drawLaneStrip(ctx, seamBoard, seamWorld, layout, timeMs);
+  drawStitchGrid(ctx, layout, palette, world);
+  drawSeamAccents(ctx, board, layout);
+  drawBoardCells(ctx, board, world, layout, timeMs);
+
+  const piece = gameState.piece;
+  if (piece && board) {
+    drawPiece(ctx, piece, board, world, layout, timeMs, true);
+    drawPiece(ctx, piece, board, world, layout, timeMs, false);
+  }
   ctx.restore();
 }
 
-function drawContactShadow(ctx, angle, layout, width, height, alpha = 1) {
-  const sine = Math.sin(angle * Math.PI / 180);
-  const absoluteSine = Math.abs(sine);
-  if (absoluteSine < 0.08 || alpha <= 0) return;
-
-  const backDepth = angle <= 90 ? DEPTH_GAP_CELLS : 0;
-  const viewDepth = angle <= 90 ? DEPTH_GAP_CELLS : 0;
-  const perspective = 1 + (DEPTH_GAP_CELLS - viewDepth) * 0.06 * absoluteSine;
-  const shadowX = width * 0.5 + (backDepth - DEPTH_GAP_CELLS * 0.5) * layout.cell * sine;
-  const shadowW = Math.max(layout.cell * 0.5,
-    layout.pageW * Math.abs(Math.cos(angle * Math.PI / 180)) * perspective);
-  const shadowH = layout.pageH * perspective;
-  const shadowY = (height - shadowH) * 0.5 + layout.cell * 0.22;
-
+function drawFoldCreaseShadow(ctx, layout, creaseX, strength) {
+  if (strength <= 0) return;
   ctx.save();
-  ctx.globalAlpha = 0.18 * absoluteSine * alpha;
+  ctx.globalAlpha = 0.28 * strength;
   ctx.fillStyle = '#000000';
-  ctx.shadowColor = 'rgba(0,0,0,0.38)';
-  ctx.shadowBlur = Math.max(layout.cell * 1.4, 4);
-  ctx.fillRect(shadowX - shadowW * 0.5, shadowY, shadowW, shadowH);
+  ctx.shadowColor = 'rgba(0,0,0,0.42)';
+  ctx.shadowBlur = Math.max(layout.cell * 1.6, 4);
+  ctx.fillRect(creaseX - layout.unit * 0.9, layout.boardY, layout.unit * 1.4, layout.boardH);
   ctx.restore();
 }
 
-function laneBlend(game, cam, angle) {
-  const mode = cam.mode();
-  if (mode === 'enter') {
-    return clamp((angle - LANE_START_ANGLE) / LANE_CROSSFADE_DEGREES, 0, 1);
+function projectBoardToFold(ctx, source, layout, destinationX, destinationW, alpha = 1) {
+  if (!source || destinationW <= 0 || alpha <= 0) return;
+  const sourceSlice = layout.boardW / FOLD_SLICES;
+  const destinationSlice = destinationW / FOLD_SLICES;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  for (let slice = 0; slice < FOLD_SLICES; slice += 1) {
+    const sourceX = layout.boardX + slice * sourceSlice;
+    const destX = destinationX + slice * destinationSlice;
+    ctx.drawImage(source,
+      sourceX, layout.boardY, sourceSlice + 0.8, layout.boardH,
+      destX, layout.boardY, Math.max(0.55, destinationSlice + 0.8), layout.boardH);
   }
-  if (mode === 'exit') {
-    const changed = !!(game.flip3d && game.flip3d.changed);
-    return changed
-      ? clamp((LANE_START_ANGLE + LANE_CROSSFADE_DEGREES - angle) / LANE_CROSSFADE_DEGREES, 0, 1)
-      : clamp((angle - LANE_START_ANGLE) / LANE_CROSSFADE_DEGREES, 0, 1);
-  }
-  return mode === 'held' ? 1 : 0;
+  ctx.restore();
 }
 
 export function createRenderer(canvas) {
@@ -1073,11 +911,6 @@ export function createRenderer(canvas) {
   let measuredCssHeight = 0;
   let dprMedia = null;
   let resizeObserver = null;
-  let hopLane = null;
-  let hopFromLane = null;
-  let hopElapsedMs = HOP_MS;
-  let lastDioramaTimeMs = null;
-  let laneViewLayout = makeLaneLayout(layout);
 
   function currentDpr() {
     const rawDpr = Number(globalThis.devicePixelRatio) || 1;
@@ -1141,11 +974,6 @@ export function createRenderer(canvas) {
       sun: makeSheetCache('sun', measured.width, measured.height, layout),
       ink: makeSheetCache('ink', measured.width, measured.height, layout),
     };
-    laneViewLayout = makeLaneLayout(layout);
-    hopLane = null;
-    hopFromLane = null;
-    hopElapsedMs = HOP_MS;
-    lastDioramaTimeMs = null;
     warmCellSprites(ctx, layout);
     watchDpr();
     return layout;
@@ -1153,141 +981,88 @@ export function createRenderer(canvas) {
 
   function drawNormal(gameState, width, height) {
     const world = gameState.world === 'ink' ? 'ink' : 'sun';
-    const farWorld = other(world);
-    const palette = COLORS[world];
-    const currentBoard = gameState.boards && gameState.boards[world];
-    const farBoard = gameState.boards && gameState.boards[farWorld];
     const timeMs = Number.isFinite(gameState.timeMs) ? gameState.timeMs : 0;
     const animationTimeMs = reducedMotion() ? 0 : timeMs;
-    const grainPattern = grainPatterns[world];
-    const paints = paintCaches[world] || (paintCaches[world] = makePaintCache(ctx, layout, palette));
-
-    ctx.save();
     drawBackground(ctx, world, animationTimeMs, width, height);
-    drawFrame(ctx, world, layout, palette, grainPattern, paints);
-    drawBoardSurface(ctx, world, layout, palette, grainPattern, paints);
-    drawFarBoard(ctx, farBoard, farWorld, layout);
-    drawStitchGrid(ctx, layout, palette, world);
-    drawSeamAccents(ctx, currentBoard, layout);
-    drawBoardCells(ctx, currentBoard, world, layout, animationTimeMs);
-
-    const piece = gameState.piece;
-    if (piece && currentBoard) {
-      drawPiece(ctx, piece, currentBoard, world, layout, animationTimeMs, true);
-      drawPiece(ctx, piece, currentBoard, world, layout, animationTimeMs, false);
-    }
-    ctx.restore();
+    drawFlatLayout(ctx, gameState, world, other(world), layout, animationTimeMs,
+      grainPatterns[world], paintCaches[world]);
   }
 
-  function drawDiorama(gameState, cam, width, height) {
-    const rawAngle = typeof cam.angle === 'function' ? cam.angle() : 0;
-    const angle = clamp(Number(rawAngle) || 0, 0, 180);
-    if (angle <= DIORAMA_ANGLE_EPSILON
-      || !sheetCaches.sun || !sheetCaches.ink) {
-      drawNormal(gameState, width, height);
+  function drawFoldCrossfade(gameState, from, to, progress, width, height, timeMs) {
+    const cross = clamp(progress, 0, 1);
+    drawBackground(ctx, from, timeMs, width, height);
+    if (cross > 0) {
+      ctx.save();
+      ctx.globalAlpha = cross;
+      drawBackground(ctx, to, timeMs, width, height);
+      ctx.restore();
+    }
+    drawFlatLayout(ctx, gameState, from, to, layout, timeMs,
+      grainPatterns[from], paintCaches[from], 1 - cross);
+    drawFlatLayout(ctx, gameState, to, from, layout, timeMs,
+      grainPatterns[to], paintCaches[to], cross);
+  }
+
+  function drawFold(gameState, cam, width, height) {
+    const fold = gameState.fold || {};
+    const from = fold.from === 'ink' || fold.from === 'sun'
+      ? fold.from : (gameState.world === 'ink' ? 'ink' : 'sun');
+    const to = fold.to === 'ink' || fold.to === 'sun' ? fold.to : other(from);
+    const rawProgress = typeof cam.progress === 'function' ? cam.progress() : 0;
+    const progress = clamp(Number(rawProgress) || 0, 0, 1);
+    const timeMs = Number.isFinite(gameState.timeMs) ? gameState.timeMs : 0;
+    const reduced = typeof cam.reduced === 'function' && cam.reduced();
+
+    if (reduced || !sheetCaches[from] || !sheetCaches[to]) {
+      drawFoldCrossfade(gameState, from, to, progress, width, height, timeMs);
       return;
     }
 
-    const world = gameState.world === 'ink' ? 'ink' : 'sun';
-    const farWorld = other(world);
-    const flip3d = gameState.flip3d;
-    const requestedLane = flip3d && (flip3d.lane === 'sun' || flip3d.lane === 'ink')
-      ? flip3d.lane : world;
-    const lane = requestedLane;
-    const timeMs = Number.isFinite(gameState.timeMs) ? gameState.timeMs : 0;
-    const isReduced = typeof cam.reduced === 'function' && cam.reduced();
-    const animationTimeMs = isReduced ? 0 : timeMs;
+    repaintSheet(sheetCaches[from], gameState, layout, timeMs);
+    repaintSheet(sheetCaches[to], gameState, layout, timeMs);
+    repaintPieceOverlay(sheetCaches[from], gameState, from, layout);
+    repaintPieceOverlay(sheetCaches[to], gameState, to, layout);
 
-    if (hopLane === null) {
-      hopLane = lane;
-      hopFromLane = lane;
-      hopElapsedMs = HOP_MS;
-    } else if (hopLane !== lane) {
-      hopFromLane = hopLane;
-      hopLane = lane;
-      hopElapsedMs = 0;
+    const firstBeat = progress < 0.5;
+    const beatProgress = firstBeat
+      ? clamp(progress * 2, 0, 1)
+      : clamp((progress - 0.5) * 2, 0, 1);
+    drawBackground(ctx, from, timeMs, width, height);
+    if (!firstBeat && beatProgress > 0) {
+      ctx.save();
+      ctx.globalAlpha = beatProgress;
+      drawBackground(ctx, to, timeMs, width, height);
+      ctx.restore();
     }
-    const elapsedSinceDraw = lastDioramaTimeMs === null
-      ? 0 : Math.max(0, timeMs - lastDioramaTimeMs);
-    lastDioramaTimeMs = timeMs;
-    hopElapsedMs = Math.min(HOP_MS, hopElapsedMs + elapsedSinceDraw);
-    const hopProgress = isReduced ? 1 : clamp(hopElapsedMs / HOP_MS, 0, 1);
-    const hopEased = 1 - Math.pow(1 - hopProgress, 3);
-    const hopOffsetY = -laneViewLayout.rowHeight * 0.22 * Math.sin(Math.PI * hopEased);
-    const hopFromX = laneX(laneViewLayout, hopFromLane || lane, world);
-    const hopToX = laneX(laneViewLayout, lane, world);
-    const pieceX = hopFromX + (hopToX - hopFromX) * hopEased;
-    const laneAlpha = laneBlend(gameState, cam, angle);
-    const foldAlpha = 1 - laneAlpha;
 
-    repaintSheet(sheetCaches.sun, gameState, layout, animationTimeMs);
-    repaintSheet(sheetCaches.ink, gameState, layout, animationTimeMs);
-    repaintPieceOverlay(sheetCaches.sun, gameState, lane, layout);
-    repaintPieceOverlay(sheetCaches.ink, gameState, lane, layout);
+    if (firstBeat) {
+      const foldedWidth = layout.boardW + (layout.seamW - layout.boardW) * beatProgress;
+      const foldedX = layout.boardX + (layout.seamX - layout.boardX) * beatProgress;
+      const creaseX = foldedX + foldedWidth;
 
-    ctx.save();
-    try {
-      ctx.filter = 'saturate(0.65)';
-    } catch (_) {
-      // Canvas implementations without filter support still get the dim.
-    }
-    drawBackground(ctx, world, animationTimeMs, width, height);
-    ctx.restore();
-
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(0, 0, width, height);
-
-    if (isReduced) {
-      const changed = !!(gameState.flip3d && gameState.flip3d.changed);
-      const flatWorld = cam.mode() === 'exit' && changed ? farWorld : world;
-      const flatSheet = sheetCaches[flatWorld];
-      drawFlatSheet(ctx, flatSheet.canvas, width, height, 0, foldAlpha);
-      drawFlatSheet(ctx, flatSheet.pieceCanvas, width, height, 0, foldAlpha);
-      if (laneAlpha > DIORAMA_ANGLE_EPSILON) {
-        ctx.save();
-        ctx.globalAlpha = laneAlpha;
-        drawLaneView(ctx, gameState, world, lane, laneViewLayout,
-          animationTimeMs, pieceX, hopOffsetY);
-        ctx.restore();
-      }
+      drawFrame(ctx, from, layout, COLORS[from], grainPatterns[from], paintCaches[from]);
+      drawLaneStrip(ctx, gameState.boards && gameState.boards[to], to, layout, timeMs);
+      projectBoardToFold(ctx, sheetCaches[from].canvas, layout, foldedX, foldedWidth);
+      projectBoardToFold(ctx, sheetCaches[from].pieceCanvas, layout, foldedX, foldedWidth);
+      drawFoldCreaseShadow(ctx, layout, creaseX, beatProgress);
     } else {
-      const currentSheet = sheetCaches[world];
-      const farSheet = sheetCaches[farWorld];
-      if (foldAlpha > DIORAMA_ANGLE_EPSILON && angle <= 90) {
-        projectSheet(ctx, farSheet.canvas, DEPTH_GAP_CELLS, angle, layout, width, height, 0, foldAlpha);
-        if (lane === farWorld) {
-          projectSheet(ctx, farSheet.pieceCanvas, DEPTH_GAP_CELLS, angle, layout, width, height, hopOffsetY, foldAlpha);
-        }
-        drawSheetSpine(ctx, farWorld, DEPTH_GAP_CELLS, angle, layout, width, height, foldAlpha);
-        drawContactShadow(ctx, angle, layout, width, height, foldAlpha);
-        projectSheet(ctx, currentSheet.canvas, 0, angle, layout, width, height, 0, foldAlpha);
-        if (lane === world) {
-          projectSheet(ctx, currentSheet.pieceCanvas, 0, angle, layout, width, height, hopOffsetY, foldAlpha);
-        }
-        drawSheetSpine(ctx, world, 0, angle, layout, width, height, foldAlpha);
-      } else if (foldAlpha > DIORAMA_ANGLE_EPSILON) {
-        projectSheet(ctx, currentSheet.canvas, 0, angle, layout, width, height, 0, foldAlpha);
-        if (lane === world) {
-          projectSheet(ctx, currentSheet.pieceCanvas, 0, angle, layout, width, height, hopOffsetY, foldAlpha);
-        }
-        drawSheetSpine(ctx, world, 0, angle, layout, width, height, foldAlpha);
-        drawContactShadow(ctx, angle, layout, width, height, foldAlpha);
-        projectSheet(ctx, farSheet.canvas, DEPTH_GAP_CELLS, angle, layout, width, height, 0, foldAlpha);
-        if (lane === farWorld) {
-          projectSheet(ctx, farSheet.pieceCanvas, DEPTH_GAP_CELLS, angle, layout, width, height, hopOffsetY, foldAlpha);
-        }
-        drawSheetSpine(ctx, farWorld, DEPTH_GAP_CELLS, angle, layout, width, height, foldAlpha);
-      }
-      if (laneAlpha > DIORAMA_ANGLE_EPSILON) {
+      const openingX = layout.seamX + (layout.boardX - layout.seamX) * beatProgress;
+      const openingWidth = layout.seamW + (layout.boardW - layout.seamW) * beatProgress;
+
+      drawFrame(ctx, from, layout, COLORS[from], grainPatterns[from], paintCaches[from]);
+      if (beatProgress > 0) {
         ctx.save();
-        ctx.globalAlpha = laneAlpha;
-        drawLaneView(ctx, gameState, world, lane, laneViewLayout,
-          animationTimeMs, pieceX, hopOffsetY);
+        ctx.globalAlpha = beatProgress;
+        drawFrame(ctx, to, layout, COLORS[to], grainPatterns[to], paintCaches[to]);
         ctx.restore();
       }
+      projectBoardToFold(ctx, sheetCaches[to].canvas, layout, openingX, openingWidth);
+      projectBoardToFold(ctx, sheetCaches[to].pieceCanvas, layout, openingX, openingWidth);
+      // The old world becomes the persistent seam as soon as the far page
+      // starts unfolding. It is drawn last so the handoff never mirrors.
+      drawLaneStrip(ctx, gameState.boards && gameState.boards[from], from, layout, timeMs);
+      drawFoldCreaseShadow(ctx, layout, openingX, 1 - beatProgress);
     }
-    ctx.restore();
   }
 
   function draw(gameState, cam) {
@@ -1296,15 +1071,11 @@ export function createRenderer(canvas) {
     if (currentDpr() !== dpr) resize();
     const width = measuredWidth || canvas.width || layout.width;
     const height = measuredHeight || canvas.height || layout.height;
-    const cameraActive = cam && typeof cam.active === 'function' && cam.active();
-    if (cameraActive) {
-      drawDiorama(gameState, cam, width, height);
+    const hasFold = !!(gameState.fold && cam && typeof cam.progress === 'function');
+    if (hasFold) {
+      drawFold(gameState, cam, width, height);
       return;
     }
-    hopLane = null;
-    hopFromLane = null;
-    hopElapsedMs = HOP_MS;
-    lastDioramaTimeMs = null;
     drawNormal(gameState, width, height);
   }
 

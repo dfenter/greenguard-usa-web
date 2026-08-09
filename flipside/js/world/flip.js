@@ -1,8 +1,4 @@
-import { FLIP_MS, FLIP_REDUCED_MS } from '../config.js';
-
-const HALF_TURN = 90;
-const HOLD_ANGLE = HALF_TURN;
-const FULL_TURN = 180;
+import { FLIP_REDUCED_MS, FOLD_MS } from '../config.js';
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
@@ -25,70 +21,48 @@ function prefersReducedMotion() {
 }
 
 /**
- * Camera controller for the Super Paper Mario-style dimension flip.
- * Game state owns the lane and world swap; this module owns only the camera.
+ * The v4 fold camera. Game state owns the from/to worlds; this controller
+ * owns only the two-beat animation clock.
  */
 export function createFlip() {
-  let currentAngle = 0;
-  let startAngle = 0;
-  let targetAngle = 0;
   let elapsedMs = 0;
-  let durationMs = FLIP_MS;
-  let currentMode = 'off';
+  let durationMs = FOLD_MS;
+  let running = false;
   let reducedMotion = false;
+  let easedProgress = 0;
 
-  function begin(target, mode) {
-    startAngle = currentAngle;
-    targetAngle = target;
-    elapsedMs = 0;
-    durationMs = reducedMotion ? FLIP_REDUCED_MS : FLIP_MS;
-    currentMode = mode;
-  }
-
-  function enter() {
-    if (currentMode !== 'off') return;
+  function start() {
+    if (running) return;
     reducedMotion = prefersReducedMotion();
-    currentAngle = 0;
-    begin(HOLD_ANGLE, 'enter');
+    durationMs = reducedMotion ? FLIP_REDUCED_MS : FOLD_MS;
+    elapsedMs = 0;
+    easedProgress = 0;
+    running = true;
   }
 
-  function exitTo(changedWorld) {
-    if (currentMode === 'off' || currentMode === 'exit') return;
-    begin(changedWorld === true ? FULL_TURN : 0, 'exit');
-  }
+  function update(dt) {
+    if (!running) return false;
 
-  function update(dtMs) {
-    if (currentMode === 'off' || currentMode === 'held') return false;
-
-    const dt = Number.isFinite(dtMs) ? Math.max(0, dtMs) : 0;
-    elapsedMs = Math.min(durationMs, elapsedMs + dt);
-    const progress = durationMs > 0 ? elapsedMs / durationMs : 1;
-    const eased = easeInOutCubic(progress);
-    currentAngle = startAngle + (targetAngle - startAngle) * eased;
-
-    if (progress < 1) return false;
-
-    currentAngle = targetAngle;
-    if (currentMode === 'enter') {
-      currentAngle = HOLD_ANGLE;
-      currentMode = 'held';
-      return true;
+    const delta = Number.isFinite(dt) ? Math.max(0, dt) : 0;
+    elapsedMs = Math.min(durationMs, elapsedMs + delta);
+    const linear = durationMs > 0 ? elapsedMs / durationMs : 1;
+    if (linear < 0.5) {
+      easedProgress = easeInOutCubic(linear * 2) * 0.5;
+    } else {
+      easedProgress = 0.5 + easeInOutCubic((linear - 0.5) * 2) * 0.5;
     }
 
-    // main.js swaps G.world on this completion frame. The next normal 2D
-    // draw therefore starts at angle 0 without exposing a mirrored face.
-    currentAngle = 0;
-    currentMode = 'off';
+    if (linear < 1) return false;
+    easedProgress = 1;
+    running = false;
     return true;
   }
 
   return {
-    enter,
-    exitTo,
+    start,
     update,
-    angle() { return Math.max(0, Math.min(FULL_TURN, currentAngle)); },
-    mode() { return currentMode; },
-    active() { return currentMode !== 'off'; },
+    progress() { return easedProgress; },
+    active() { return running; },
     reduced() { return reducedMotion; },
   };
 }
