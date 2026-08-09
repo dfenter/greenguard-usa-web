@@ -7,7 +7,9 @@ const MAX_DPR = 2;
 const BLEED_ALPHA = 0.12;
 const DIORAMA_STRIPS = 24;
 const DIORAMA_ANGLE_EPSILON = 0.001;
-const HOP_MS = 180;
+const LANE_START_ANGLE = 72;
+const LANE_CROSSFADE_DEGREES = 18;
+const HOP_MS = 120;
 const PRISM_COLORS = [
   '#57b8c9', '#6fe3ff', '#c98bc9', '#e39bff',
   '#f2c14e', '#ffd76f', '#e2695c', '#ff8f80',
@@ -18,6 +20,12 @@ const rgbCache = new Map();
 const darkCache = new Map();
 const cellSpriteCache = new Map();
 const ghostProbe = Array.from({ length: 4 }, () => [0, 0]);
+const lanePieceRows = new Uint8Array(ROWS);
+const laneGhostRows = new Uint8Array(ROWS);
+const laneRowsCache = {
+  sun: { signature: null, fill: new Float32Array(ROWS), kind: new Uint8Array(ROWS) },
+  ink: { signature: null, fill: new Float32Array(ROWS), kind: new Uint8Array(ROWS) },
+};
 let ghostCache = null;
 let reducedMotionState = null;
 
@@ -648,6 +656,223 @@ function boardRenderSignature(board) {
   return hash >>> 0;
 }
 
+function updateLaneRows(board, world) {
+  const cache = laneRowsCache[world];
+  const signature = boardRenderSignature(board);
+  if (cache.signature === signature) return cache;
+
+  cache.signature = signature;
+  for (let row = 0; row < ROWS; row += 1) {
+    const cells = board && board.grid ? board.grid[row] : null;
+    let filled = 0;
+    let kind = 0;
+    if (cells) {
+      for (let column = 0; column < COLS; column += 1) {
+        const cell = cells[column];
+        if (!cell) continue;
+        filled += 1;
+        if (cell.t === 'SEAM') kind = 2;
+        else if (cell.t === 'G' && kind === 0) kind = 1;
+      }
+    }
+    cache.fill[row] = filled / COLS;
+    cache.kind[row] = kind;
+  }
+  return cache;
+}
+
+function makeLaneLayout(boardLayout) {
+  const unit = boardLayout.unit;
+  const rowHeight = Math.max(1, (boardLayout.boardH - unit * 6) / ROWS);
+  const laneCell = Math.max(
+    unit * 6,
+    Math.min(boardLayout.cell * 1.12, boardLayout.boardW / (2 + DEPTH_GAP_CELLS)),
+  );
+  const gap = DEPTH_GAP_CELLS * laneCell;
+  const pairWidth = laneCell * 2 + gap;
+  const pairX = boardLayout.boardX + (boardLayout.boardW - pairWidth) * 0.5;
+  const stripY = boardLayout.boardY + unit * 3;
+  return {
+    leftX: pairX,
+    rightX: pairX + laneCell + gap,
+    stripW: laneCell,
+    stripY,
+    stripH: rowHeight * ROWS,
+    rowHeight,
+    tagY: stripY - unit * 1.5,
+    unit,
+  };
+}
+
+function laneX(geometry, world, frontWorld) {
+  return world === frontWorld ? geometry.leftX : geometry.rightX;
+}
+
+function drawLaneStrip(ctx, board, world, x, geometry, timeMs) {
+  const palette = COLORS[world];
+  const cache = updateLaneRows(board, world);
+  const { stripY, stripH, stripW, rowHeight, unit } = geometry;
+  const edgeInset = Math.max(unit * 1.1, stripW * 0.09);
+  const innerX = x + edgeInset;
+  const innerW = Math.max(1, stripW - edgeInset * 2);
+
+  ctx.save();
+  ctx.shadowColor = palette.shadow;
+  ctx.shadowBlur = Math.max(unit * 2.4, stripW * 0.14);
+  ctx.shadowOffsetX = unit * 1.2;
+  ctx.shadowOffsetY = unit * 1.8;
+  ctx.fillStyle = palette.paper;
+  ctx.fillRect(x, stripY, stripW, stripH);
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+
+  // Bright cut edges keep each collapsed sheet legible against the dimmed
+  // diorama, while the inner line reads as a stitched paper window.
+  ctx.strokeStyle = rgba(palette.ink, world === 'ink' ? 0.72 : 0.58);
+  ctx.lineWidth = Math.max(unit * 0.9, 1);
+  ctx.strokeRect(x, stripY, stripW, stripH);
+  ctx.strokeStyle = rgba('#ffffff', world === 'ink' ? 0.28 : 0.62);
+  ctx.lineWidth = Math.max(unit * 0.5, 0.8);
+  ctx.beginPath();
+  ctx.moveTo(x + unit * 0.7, stripY + unit * 0.7);
+  ctx.lineTo(x + unit * 0.7, stripY + stripH - unit * 0.7);
+  ctx.moveTo(x + stripW - unit * 0.7, stripY + unit * 0.7);
+  ctx.lineTo(x + stripW - unit * 0.7, stripY + stripH - unit * 0.7);
+  ctx.stroke();
+
+  for (let row = 0; row < ROWS; row += 1) {
+    const rowY = stripY + row * rowHeight;
+    const fill = cache.fill[row];
+    const kind = cache.kind[row];
+    const fillWidth = innerW * fill;
+    if (fillWidth > 0) {
+      const fillHeight = Math.max(unit * 2.2, rowHeight * 0.68);
+      const fillY = rowY + (rowHeight - fillHeight) * 0.5;
+      ctx.fillStyle = kind === 1
+        ? palette.garbage
+        : (kind === 2 ? COLORS.seam : rgba(palette.ink, 0.82));
+      ctx.fillRect(innerX, fillY, fillWidth, fillHeight);
+
+      if (kind === 1) {
+        ctx.strokeStyle = rgba(palette.garbageEdge, 0.62);
+        ctx.lineWidth = Math.max(unit * 0.42, 0.7);
+        ctx.beginPath();
+        ctx.moveTo(innerX + fillWidth * 0.12, fillY + fillHeight * 0.26);
+        ctx.lineTo(innerX + fillWidth * 0.78, fillY + fillHeight * 0.7);
+        ctx.moveTo(innerX + fillWidth * 0.58, fillY + fillHeight * 0.18);
+        ctx.lineTo(innerX + fillWidth * 0.94, fillY + fillHeight * 0.52);
+        ctx.stroke();
+      }
+    }
+
+    if (kind === 2) {
+      ctx.strokeStyle = rgba('#fff7c9', 0.92);
+      ctx.lineWidth = Math.max(unit * 0.55, 0.8);
+      ctx.setLineDash([Math.max(unit * 1.3, stripW * 0.13), Math.max(unit * 1.1, stripW * 0.1)]);
+      ctx.lineDashOffset = -(timeMs * 0.004 + row * unit * 0.2);
+      ctx.beginPath();
+      ctx.moveTo(innerX, rowY + rowHeight * 0.5);
+      ctx.lineTo(innerX + innerW, rowY + rowHeight * 0.5);
+      ctx.stroke();
+    }
+  }
+
+  ctx.setLineDash([Math.max(unit * 1.2, stripW * 0.12), Math.max(unit * 1.7, stripW * 0.18)]);
+  ctx.lineDashOffset = 0;
+  ctx.strokeStyle = rgba(palette.ink, world === 'ink' ? 0.28 : 0.22);
+  ctx.lineWidth = Math.max(unit * 0.38, 0.65);
+  ctx.beginPath();
+  for (let row = 0; row <= ROWS; row += 1) {
+    const rowY = stripY + row * rowHeight;
+    ctx.moveTo(x, rowY);
+    ctx.lineTo(x + stripW, rowY);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function markLanePieceRows(piece, board) {
+  lanePieceRows.fill(0);
+  laneGhostRows.fill(0);
+  if (!piece) return;
+
+  const positions = cellsOf(piece);
+  for (let index = 0; index < positions.length; index += 1) {
+    const row = positions[index][1];
+    if (row >= 0 && row < ROWS) lanePieceRows[row] = 1;
+  }
+  const ghost = getGhostCells(piece, board);
+  for (let index = 0; index < ghost.length; index += 1) {
+    const row = ghost[index][1];
+    if (row >= 0 && row < ROWS) laneGhostRows[row] = 1;
+  }
+}
+
+function drawLaneProfile(ctx, rows, piece, world, x, geometry, ghost = false, yOffset = 0) {
+  if (!piece) return;
+  const palette = COLORS[world];
+  const { stripY, stripW, rowHeight, unit } = geometry;
+  const inset = Math.max(unit * 1.5, stripW * 0.15);
+  const cellX = x + inset;
+  const cellW = Math.max(1, stripW - inset * 2);
+  const color = palette.minos[piece.t] || palette.ink;
+  const cellHeight = Math.max(unit * 2, rowHeight * 0.7);
+
+  ctx.save();
+  for (let row = 0; row < ROWS; row += 1) {
+    if (!rows[row]) continue;
+    const cellY = stripY + row * rowHeight + (rowHeight - cellHeight) * 0.5 + yOffset;
+    if (ghost) {
+      ctx.fillStyle = rgba(color, world === 'ink' ? 0.18 : 0.12);
+      ctx.fillRect(cellX, cellY, cellW, cellHeight);
+      ctx.strokeStyle = rgba('#f7d774', 0.95);
+      ctx.lineWidth = Math.max(unit * 0.7, 1);
+      ctx.setLineDash([Math.max(unit * 1.2, cellW * 0.16), Math.max(unit * 1.3, cellW * 0.18)]);
+      ctx.strokeRect(cellX, cellY, cellW, cellHeight);
+    } else {
+      ctx.fillStyle = piece.prism === true ? PRISM_COLORS[4] : color;
+      ctx.fillRect(cellX, cellY, cellW, cellHeight);
+      ctx.strokeStyle = '#f7d774';
+      ctx.lineWidth = Math.max(unit * 1.05, 1.2);
+      ctx.setLineDash([]);
+      ctx.strokeRect(cellX - unit * 0.35, cellY - unit * 0.35,
+        cellW + unit * 0.7, cellHeight + unit * 0.7);
+    }
+  }
+  ctx.restore();
+}
+
+function drawLaneView(ctx, game, frontWorld, lane, geometry, timeMs, pieceX, pieceY) {
+  const hiddenWorld = other(frontWorld);
+  const frontBoard = game.boards && game.boards[frontWorld];
+  const hiddenBoard = game.boards && game.boards[hiddenWorld];
+  drawLaneStrip(ctx, frontBoard, frontWorld, geometry.leftX, geometry, timeMs);
+  drawLaneStrip(ctx, hiddenBoard, hiddenWorld, geometry.rightX, geometry, timeMs);
+
+  const frontPalette = COLORS[frontWorld];
+  const hiddenPalette = COLORS[hiddenWorld];
+  ctx.save();
+  ctx.font = `700 ${Math.max(7, geometry.unit * 7)}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = frontPalette.ink;
+  ctx.fillText(frontWorld === 'sun' ? 'SUNSIDE' : 'INKSIDE',
+    geometry.leftX + geometry.stripW * 0.5, geometry.tagY);
+  ctx.fillStyle = hiddenPalette.ink;
+  ctx.fillText(hiddenWorld === 'sun' ? 'SUNSIDE' : 'INKSIDE',
+    geometry.rightX + geometry.stripW * 0.5, geometry.tagY);
+  ctx.restore();
+
+  const piece = game.piece;
+  const pieceBoard = game.boards && game.boards[lane];
+  if (!piece || !pieceBoard) return;
+  markLanePieceRows(piece, pieceBoard);
+  drawLaneProfile(ctx, laneGhostRows, piece, lane, laneX(geometry, lane, frontWorld), geometry, true);
+  drawLaneProfile(ctx, lanePieceRows, piece, lane, pieceX, geometry, false, pieceY);
+}
+
 function samePiece(a, b) {
   if (!a || !b) return !a && !b;
   return a.t === b.t && a.x === b.x && a.y === b.y
@@ -765,10 +990,10 @@ function drawFlatSheet(ctx, source, width, height, offsetY = 0, alpha = 1) {
   ctx.restore();
 }
 
-function drawSheetSpine(ctx, world, depthCells, angle, layout, width, height) {
+function drawSheetSpine(ctx, world, depthCells, angle, layout, width, height, alpha = 1) {
   const radians = angle * Math.PI / 180;
   const cosine = Math.cos(radians);
-  if (Math.abs(cosine) > 0.28) return;
+  if (Math.abs(cosine) > 0.28 || alpha <= 0) return;
 
   const sine = Math.sin(radians);
   const absoluteSine = Math.abs(sine);
@@ -781,6 +1006,7 @@ function drawSheetSpine(ctx, world, depthCells, angle, layout, width, height) {
   const palette = COLORS[world];
 
   ctx.save();
+  ctx.globalAlpha = alpha;
   ctx.fillStyle = palette.panel;
   ctx.fillRect(centerX - thickness * 0.5, sheetY, thickness, sheetHeight);
   ctx.strokeStyle = rgba('#ffffff', world === 'ink' ? 0.42 : 0.72);
@@ -792,10 +1018,10 @@ function drawSheetSpine(ctx, world, depthCells, angle, layout, width, height) {
   ctx.restore();
 }
 
-function drawContactShadow(ctx, angle, layout, width, height) {
+function drawContactShadow(ctx, angle, layout, width, height, alpha = 1) {
   const sine = Math.sin(angle * Math.PI / 180);
   const absoluteSine = Math.abs(sine);
-  if (absoluteSine < 0.08) return;
+  if (absoluteSine < 0.08 || alpha <= 0) return;
 
   const backDepth = angle <= 90 ? DEPTH_GAP_CELLS : 0;
   const viewDepth = angle <= 90 ? DEPTH_GAP_CELLS : 0;
@@ -807,7 +1033,7 @@ function drawContactShadow(ctx, angle, layout, width, height) {
   const shadowY = (height - shadowH) * 0.5 + layout.cell * 0.22;
 
   ctx.save();
-  ctx.globalAlpha = 0.18 * absoluteSine;
+  ctx.globalAlpha = 0.18 * absoluteSine * alpha;
   ctx.fillStyle = '#000000';
   ctx.shadowColor = 'rgba(0,0,0,0.38)';
   ctx.shadowBlur = Math.max(layout.cell * 1.4, 4);
@@ -815,15 +1041,18 @@ function drawContactShadow(ctx, angle, layout, width, height) {
   ctx.restore();
 }
 
-function reducedBlend(game, cam, angle, lane, baseWorld) {
+function laneBlend(game, cam, angle) {
   const mode = cam.mode();
-  const destination = other(baseWorld);
-  if (mode === 'enter') return clamp(angle / 78, 0, 1);
-  if (mode === 'exit') {
-    const changed = !!(game.flip3d && game.flip3d.changed) || lane !== baseWorld;
-    return changed ? clamp((angle - 78) / 102, 0, 1) : clamp((78 - angle) / 78, 0, 1);
+  if (mode === 'enter') {
+    return clamp((angle - LANE_START_ANGLE) / LANE_CROSSFADE_DEGREES, 0, 1);
   }
-  return lane === destination ? 1 : 0;
+  if (mode === 'exit') {
+    const changed = !!(game.flip3d && game.flip3d.changed);
+    return changed
+      ? clamp((LANE_START_ANGLE + LANE_CROSSFADE_DEGREES - angle) / LANE_CROSSFADE_DEGREES, 0, 1)
+      : clamp((angle - LANE_START_ANGLE) / LANE_CROSSFADE_DEGREES, 0, 1);
+  }
+  return mode === 'held' ? 1 : 0;
 }
 
 export function createRenderer(canvas) {
@@ -845,8 +1074,10 @@ export function createRenderer(canvas) {
   let dprMedia = null;
   let resizeObserver = null;
   let hopLane = null;
+  let hopFromLane = null;
   let hopElapsedMs = HOP_MS;
   let lastDioramaTimeMs = null;
+  let laneViewLayout = makeLaneLayout(layout);
 
   function currentDpr() {
     const rawDpr = Number(globalThis.devicePixelRatio) || 1;
@@ -910,7 +1141,9 @@ export function createRenderer(canvas) {
       sun: makeSheetCache('sun', measured.width, measured.height, layout),
       ink: makeSheetCache('ink', measured.width, measured.height, layout),
     };
+    laneViewLayout = makeLaneLayout(layout);
     hopLane = null;
+    hopFromLane = null;
     hopElapsedMs = HOP_MS;
     lastDioramaTimeMs = null;
     warmCellSprites(ctx, layout);
@@ -967,8 +1200,10 @@ export function createRenderer(canvas) {
 
     if (hopLane === null) {
       hopLane = lane;
+      hopFromLane = lane;
       hopElapsedMs = HOP_MS;
     } else if (hopLane !== lane) {
+      hopFromLane = hopLane;
       hopLane = lane;
       hopElapsedMs = 0;
     }
@@ -976,9 +1211,14 @@ export function createRenderer(canvas) {
       ? 0 : Math.max(0, timeMs - lastDioramaTimeMs);
     lastDioramaTimeMs = timeMs;
     hopElapsedMs = Math.min(HOP_MS, hopElapsedMs + elapsedSinceDraw);
-    const hopProgress = clamp(hopElapsedMs / HOP_MS, 0, 1);
+    const hopProgress = isReduced ? 1 : clamp(hopElapsedMs / HOP_MS, 0, 1);
     const hopEased = 1 - Math.pow(1 - hopProgress, 3);
-    const hopOffsetY = -layout.cell * 0.85 * Math.sin(Math.PI * hopEased);
+    const hopOffsetY = -laneViewLayout.rowHeight * 0.22 * Math.sin(Math.PI * hopEased);
+    const hopFromX = laneX(laneViewLayout, hopFromLane || lane, world);
+    const hopToX = laneX(laneViewLayout, lane, world);
+    const pieceX = hopFromX + (hopToX - hopFromX) * hopEased;
+    const laneAlpha = laneBlend(gameState, cam, angle);
+    const foldAlpha = 1 - laneAlpha;
 
     repaintSheet(sheetCaches.sun, gameState, layout, animationTimeMs);
     repaintSheet(sheetCaches.ink, gameState, layout, animationTimeMs);
@@ -999,41 +1239,52 @@ export function createRenderer(canvas) {
     ctx.fillRect(0, 0, width, height);
 
     if (isReduced) {
-      const blend = reducedBlend(gameState, cam, angle, lane, world);
-      const currentSheet = sheetCaches[world];
-      const farSheet = sheetCaches[farWorld];
-      drawFlatSheet(ctx, currentSheet.canvas, width, height, 0, 1 - blend);
-      drawFlatSheet(ctx, farSheet.canvas, width, height, 0, blend);
-      const laneSheet = sheetCaches[lane];
-      const laneAlpha = lane === world ? 1 - blend : blend;
-      drawFlatSheet(ctx, laneSheet.pieceCanvas, width, height, hopOffsetY, laneAlpha);
+      const changed = !!(gameState.flip3d && gameState.flip3d.changed);
+      const flatWorld = cam.mode() === 'exit' && changed ? farWorld : world;
+      const flatSheet = sheetCaches[flatWorld];
+      drawFlatSheet(ctx, flatSheet.canvas, width, height, 0, foldAlpha);
+      drawFlatSheet(ctx, flatSheet.pieceCanvas, width, height, 0, foldAlpha);
+      if (laneAlpha > DIORAMA_ANGLE_EPSILON) {
+        ctx.save();
+        ctx.globalAlpha = laneAlpha;
+        drawLaneView(ctx, gameState, world, lane, laneViewLayout,
+          animationTimeMs, pieceX, hopOffsetY);
+        ctx.restore();
+      }
     } else {
       const currentSheet = sheetCaches[world];
       const farSheet = sheetCaches[farWorld];
-      if (angle <= 90) {
-        projectSheet(ctx, farSheet.canvas, DEPTH_GAP_CELLS, angle, layout, width, height);
+      if (foldAlpha > DIORAMA_ANGLE_EPSILON && angle <= 90) {
+        projectSheet(ctx, farSheet.canvas, DEPTH_GAP_CELLS, angle, layout, width, height, 0, foldAlpha);
         if (lane === farWorld) {
-          projectSheet(ctx, farSheet.pieceCanvas, DEPTH_GAP_CELLS, angle, layout, width, height, hopOffsetY);
+          projectSheet(ctx, farSheet.pieceCanvas, DEPTH_GAP_CELLS, angle, layout, width, height, hopOffsetY, foldAlpha);
         }
-        drawSheetSpine(ctx, farWorld, DEPTH_GAP_CELLS, angle, layout, width, height);
-        drawContactShadow(ctx, angle, layout, width, height);
-        projectSheet(ctx, currentSheet.canvas, 0, angle, layout, width, height);
+        drawSheetSpine(ctx, farWorld, DEPTH_GAP_CELLS, angle, layout, width, height, foldAlpha);
+        drawContactShadow(ctx, angle, layout, width, height, foldAlpha);
+        projectSheet(ctx, currentSheet.canvas, 0, angle, layout, width, height, 0, foldAlpha);
         if (lane === world) {
-          projectSheet(ctx, currentSheet.pieceCanvas, 0, angle, layout, width, height, hopOffsetY);
+          projectSheet(ctx, currentSheet.pieceCanvas, 0, angle, layout, width, height, hopOffsetY, foldAlpha);
         }
-        drawSheetSpine(ctx, world, 0, angle, layout, width, height);
-      } else {
-        projectSheet(ctx, currentSheet.canvas, 0, angle, layout, width, height);
+        drawSheetSpine(ctx, world, 0, angle, layout, width, height, foldAlpha);
+      } else if (foldAlpha > DIORAMA_ANGLE_EPSILON) {
+        projectSheet(ctx, currentSheet.canvas, 0, angle, layout, width, height, 0, foldAlpha);
         if (lane === world) {
-          projectSheet(ctx, currentSheet.pieceCanvas, 0, angle, layout, width, height, hopOffsetY);
+          projectSheet(ctx, currentSheet.pieceCanvas, 0, angle, layout, width, height, hopOffsetY, foldAlpha);
         }
-        drawSheetSpine(ctx, world, 0, angle, layout, width, height);
-        drawContactShadow(ctx, angle, layout, width, height);
-        projectSheet(ctx, farSheet.canvas, DEPTH_GAP_CELLS, angle, layout, width, height);
+        drawSheetSpine(ctx, world, 0, angle, layout, width, height, foldAlpha);
+        drawContactShadow(ctx, angle, layout, width, height, foldAlpha);
+        projectSheet(ctx, farSheet.canvas, DEPTH_GAP_CELLS, angle, layout, width, height, 0, foldAlpha);
         if (lane === farWorld) {
-          projectSheet(ctx, farSheet.pieceCanvas, DEPTH_GAP_CELLS, angle, layout, width, height, hopOffsetY);
+          projectSheet(ctx, farSheet.pieceCanvas, DEPTH_GAP_CELLS, angle, layout, width, height, hopOffsetY, foldAlpha);
         }
-        drawSheetSpine(ctx, farWorld, DEPTH_GAP_CELLS, angle, layout, width, height);
+        drawSheetSpine(ctx, farWorld, DEPTH_GAP_CELLS, angle, layout, width, height, foldAlpha);
+      }
+      if (laneAlpha > DIORAMA_ANGLE_EPSILON) {
+        ctx.save();
+        ctx.globalAlpha = laneAlpha;
+        drawLaneView(ctx, gameState, world, lane, laneViewLayout,
+          animationTimeMs, pieceX, hopOffsetY);
+        ctx.restore();
       }
     }
     ctx.restore();
@@ -1051,6 +1302,7 @@ export function createRenderer(canvas) {
       return;
     }
     hopLane = null;
+    hopFromLane = null;
     hopElapsedMs = HOP_MS;
     lastDioramaTimeMs = null;
     drawNormal(gameState, width, height);

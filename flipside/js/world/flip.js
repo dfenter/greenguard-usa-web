@@ -1,7 +1,7 @@
 import { FLIP_MS, FLIP_REDUCED_MS } from '../config.js';
 
 const HALF_TURN = 90;
-const HOLD_ANGLE = 78;  // held side view: not a true 90 so both sheets stay readable
+const HOLD_ANGLE = HALF_TURN;
 const FULL_TURN = 180;
 
 function clamp01(value) {
