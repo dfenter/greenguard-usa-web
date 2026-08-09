@@ -746,6 +746,51 @@ def main():
         shutil.copytree(tactics3d_src, os.path.join(OUT, 'tactics3d'))
         print('  COPY  tactics3d/')
 
+    # Copy mobile game prototypes hub (served at /play/; one dir per game,
+    # authored by the ue-port-studio mobile run 2026-08-05).
+    play_src = os.path.join(REPO, 'play')
+    if os.path.isdir(play_src):
+        shutil.copytree(play_src, os.path.join(OUT, 'play'))
+        print('  COPY  play/')
+
+    # Copy FLIPSIDE papercraft Tetris (served at /flipside/; canonical source
+    # is /Users/lucille/flipside — sync index.html + css/ + js/ before deploy).
+    flipside_src = os.path.join(REPO, 'flipside')
+    if os.path.isdir(flipside_src):
+        shutil.copytree(flipside_src, os.path.join(OUT, 'flipside'))
+        print('  COPY  flipside/')
+
+    # Copy Marble Mania 2 course packs + environment art (served at
+    # /marble2-assets/; marble2.html fetches them relative to its own URL).
+    # Canonical source is /Users/lucille/marble-mania-2 (export/ + preview/).
+    marble2_src = os.path.join(REPO, 'marble2-assets')
+    if os.path.isdir(marble2_src):
+        shutil.copytree(marble2_src, os.path.join(OUT, 'marble2-assets'))
+        print('  COPY  marble2-assets/')
+
+    # Overlay the redesigned Astro marketing site (staged locally by
+    # scripts/deploy.sh site from redesign/dist -> redesign-dist/). Redesign
+    # pages win over legacy root fragments, but the game paths are PROTECTED
+    # and always come from the repo root, never the overlay.
+    overlay_src = os.path.join(REPO, 'redesign-dist')
+    if os.path.isdir(overlay_src):
+        PROTECTED = {'zelda', 'tactics3d', 'play', 'flipside', 'marble.html',
+                     'marble2.html', 'marble2-assets', 'marble2-sw.js', 'marble2-manifest.json',
+                     'horde.html', 'horde-manifest.json'}
+        copied = 0
+        for root, dirs, files in os.walk(overlay_src):
+            rel = os.path.relpath(root, overlay_src)
+            if rel == '.':
+                dirs[:] = [d for d in dirs if d not in PROTECTED]
+            for f in files:
+                if rel == '.' and f in PROTECTED:
+                    continue
+                dst_dir = os.path.join(OUT, rel) if rel != '.' else OUT
+                os.makedirs(dst_dir, exist_ok=True)
+                shutil.copy(os.path.join(root, f), os.path.join(dst_dir, f))
+                copied += 1
+        print(f'  OVERLAY redesign-dist/ ({copied} files, games protected)')
+
     # Generate Google Merchant Center product feed
     feed_path = os.path.join(OUT, 'products-feed.xml')
     open(feed_path, 'w', encoding='utf-8').write(_build_merchant_feed())
