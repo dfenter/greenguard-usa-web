@@ -51,11 +51,20 @@ const PORTAL_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguar
 // Bruce + Zeke — the "GreenGuard USA" group thread participants alongside the customer.
 const STAFF_PHONES = (process.env.STAFF_PHONES || '5127973348,5127873263').split(',').map((s) => s.trim()).filter(Boolean)
 
-function record(name, input, resultSummary, extra = {}) {
+// Tools with side effects. Their invocation is recorded to the actions file
+// BEFORE the effect runs, so a process kill mid-mutation still leaves a
+// `phase:'started'` marker. The daemon treats any such marker as proof a tool
+// ran and refuses the fresh-session retry (finding #1: no double-run).
+const MUTATING = new Set([
+  'request_service_visit', 'request_reschedule', 'escalate_to_team',
+  'send_on_my_way_sms', 'book_appointment', 'reschedule_appointment',
+  'cancel_appointment', 'add_appointment_note',
+  'create_invoice_for_visit', 'add_invoice_item', 'remove_invoice_line', 'send_invoice',
+])
+
+function record(entry) {
   if (!ACTIONS_FILE) return
-  try {
-    fs.appendFileSync(ACTIONS_FILE, JSON.stringify({ name, input, resultSummary, ...extra }) + '\n')
-  } catch {}
+  try { fs.appendFileSync(ACTIONS_FILE, JSON.stringify(entry) + '\n') } catch {}
 }
 
 const server = new McpServer({ name: 'gg', version: '1.0.0' })
@@ -63,14 +72,16 @@ const server = new McpServer({ name: 'gg', version: '1.0.0' })
 // Register a tool whose handler returns a JSON-able object. Errors are
 // returned to the model as { error } rather than crashing the run.
 function tool(name, description, shape, run) {
+  const mutating = MUTATING.has(name)
   server.registerTool(name, { description, inputSchema: shape }, async (input) => {
+    if (mutating) record({ name, phase: 'started', input })
     let out
     try {
       out = await run(input || {})
     } catch (e) {
       out = { error: String(e.message || e).slice(0, 300) }
     }
-    record(name, input, out?.error ? `error: ${out.error}` : 'ok', out?.__meta)
+    record({ name, phase: 'ended', input, resultSummary: out?.error ? `error: ${out.error}` : 'ok', ...(out?.__meta || {}) })
     if (out && out.__meta) delete out.__meta
     return { content: [{ type: 'text', text: JSON.stringify(out) }] }
   })

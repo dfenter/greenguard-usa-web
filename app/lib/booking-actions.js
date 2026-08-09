@@ -42,6 +42,13 @@ function ctDateStr(date) {
   return ctParts(new Date(date)).dateStr
 }
 
+const { escapeStripeSearch } = require('./auth')
+async function stripeCustomerByEmail(email) {
+  const q = escapeStripeSearch(String(email).trim().toLowerCase())
+  const search = await stripe.customers.search({ query: `email:"${q}"`, limit: 1 })
+  return search.data[0] || null
+}
+
 // Move an appointment. Cal.com path preferred (keeps Cal.com in sync);
 // GCal patch fallback for legacy events or when Cal.com rejects.
 // Returns { ok, via, oldStart, newStart } or { ok:false, reason }.
@@ -63,9 +70,15 @@ async function rescheduleAppointment({ bookingUid, eventId, newStartIso, duratio
   const durMs = durationMin ? durationMin * 60_000
     : (oldStart && oldEnd ? new Date(oldEnd) - new Date(oldStart) : DEFAULT_DUR_MS)
 
-  if (await hasConflict(calendar, start.getTime(), start.getTime() + durMs, eventId).catch(() => false)) {
-    return { ok: false, reason: 'Refused: that slot conflicts with another appointment.' }
+  // Fail CLOSED: a calendar read error must not be treated as "slot is free"
+  // (finding #6). Refuse rather than risk a double-book.
+  let conflict
+  try {
+    conflict = await hasConflict(calendar, start.getTime(), start.getTime() + durMs, eventId)
+  } catch (e) {
+    return { ok: false, reason: `Could not verify the slot is free (calendar error: ${e.message}). Not moving the appointment.` }
   }
+  if (conflict) return { ok: false, reason: 'Refused: that slot conflicts with another appointment.' }
 
   if (bookingUid) {
     try {
@@ -123,21 +136,38 @@ async function cancelAppointment({ bookingUid, eventId, customerEmail, serviceDa
   const svcDate = serviceDate || (ev?.start?.dateTime ? ctDateStr(ev.start.dateTime) : null)
   if (customerEmail && (bookingUid || svcDate)) {
     try {
-      const match = await findInvoiceForBooking(customerEmail, { calBookingUid: bookingUid, serviceDate: svcDate })
-      if (!match) {
-        invoiceAction = 'skipped_no_match'
-      } else {
-        // findInvoiceForBooking is cached (30s). Re-read immediately before
-        // mutating so we never void based on a stale status.
-        const invoice = await stripe.invoices.retrieve(match.id)
-        if (invoice.status === 'open') {
-          await stripe.invoices.voidInvoice(invoice.id)
-          invoiceAction = 'voided'
-        } else if (invoice.status === 'draft') {
-          await stripe.invoices.del(invoice.id)
-          invoiceAction = 'deleted'
+      // Ambiguity guard (finding #9): when we can only match by service date
+      // (no Cal.com UID), and the customer has more than one active invoice
+      // stamped with that date, we cannot know which visit is being cancelled.
+      // Refuse rather than void/delete the wrong one.
+      if (!bookingUid && svcDate) {
+        const cust = await stripeCustomerByEmail(customerEmail)
+        if (cust) {
+          const invs = await stripe.invoices.list({ customer: cust.id, limit: 100 })
+          const sameDay = invs.data.filter((i) => ['open', 'draft', 'paid'].includes(i.status) && i.metadata?.service_date === svcDate)
+          if (sameDay.length > 1) {
+            invoiceAction = 'skipped_ambiguous'
+            invoiceError = `Customer has ${sameDay.length} invoices dated ${svcDate}; cannot pick one without a booking id. Left untouched.`
+          }
+        }
+      }
+      if (invoiceAction === null) {
+        const match = await findInvoiceForBooking(customerEmail, { calBookingUid: bookingUid, serviceDate: svcDate })
+        if (!match) {
+          invoiceAction = 'skipped_no_match'
         } else {
-          invoiceAction = `skipped_${invoice.status}`
+          // findInvoiceForBooking is cached (30s). Re-read immediately before
+          // mutating so we never void based on a stale status.
+          const invoice = await stripe.invoices.retrieve(match.id)
+          if (invoice.status === 'open') {
+            await stripe.invoices.voidInvoice(invoice.id)
+            invoiceAction = 'voided'
+          } else if (invoice.status === 'draft') {
+            await stripe.invoices.del(invoice.id)
+            invoiceAction = 'deleted'
+          } else {
+            invoiceAction = `skipped_${invoice.status}`
+          }
         }
       }
     } catch (err) {
@@ -167,9 +197,14 @@ async function bookAppointment({ firstName, lastName, email, phone, address, sta
   if (invalid) return { ok: false, reason: `Refused: requested time is ${invalid}. Appointments are Mon-Fri, first start 10:00am CT, last start 5:30pm CT, on the half hour, with at least 4h notice.` }
 
   const calendar = getCalendar()
-  if (await hasConflict(calendar, start.getTime(), start.getTime() + 30 * 60_000, null).catch(() => false)) {
-    return { ok: false, reason: 'Refused: that slot conflicts with another appointment.' }
+  // Fail CLOSED on a calendar read error (finding #6).
+  let bookConflict
+  try {
+    bookConflict = await hasConflict(calendar, start.getTime(), start.getTime() + 30 * 60_000, null)
+  } catch (e) {
+    return { ok: false, reason: `Could not verify the slot is free (calendar error: ${e.message}). Not booking.` }
   }
+  if (bookConflict) return { ok: false, reason: 'Refused: that slot conflicts with another appointment.' }
 
   const created = await createDirectGCalEvent({
     firstName, lastName: lastName || '', email, phone, address, utcIso,

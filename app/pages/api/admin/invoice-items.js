@@ -178,6 +178,12 @@ export default async function handler(req, res) {
       if (itemId.startsWith('il_')) {
         if (!invoiceId) return res.status(400).json({ error: 'invoiceId required to resolve line' })
         const inv = await stripe.invoices.retrieve(invoiceId)
+        // Ownership guard (finding #8): when a customerId is supplied, the
+        // invoice must belong to it — an automated caller must not mutate a
+        // line on some other customer's invoice.
+        if (customerId && inv.customer !== customerId) {
+          return res.status(403).json({ error: 'Invoice does not belong to that customer' })
+        }
         const line = (inv.lines?.data || []).find((l) => l.id === itemId)
         invoiceItemId = line?.invoice_item
         if (!invoiceItemId) return res.status(400).json({ error: 'This line is not a removable invoice item (e.g. a subscription line).' })
@@ -224,6 +230,12 @@ export default async function handler(req, res) {
       let inv = invoiceId
         ? await stripe.invoices.retrieve(invoiceId)
         : (await stripe.invoices.list({ customer: customerId, status: 'draft', limit: 1 })).data[0]
+
+      // Ownership guard (finding #8): never finalize/send an invoice that
+      // belongs to a different customer than the one named in the request.
+      if (inv && inv.customer !== customerId) {
+        return res.status(403).json({ error: 'Invoice does not belong to that customer' })
+      }
 
       if (!inv) {
         inv = await stripe.invoices.create({ customer: customerId, auto_advance: false })

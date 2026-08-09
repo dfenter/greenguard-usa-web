@@ -193,15 +193,20 @@ function runClaude({ audience, email, message, history, context, deadlineMs }) {
 
     child.on('close', (code) => {
       clearTimeout(timer)
-      // Collect executed tools + escalation flags from the actions file.
+      // Collect tool markers + escalation flags from the actions file. Each
+      // side-effecting tool writes phase:'started' BEFORE it runs and
+      // phase:'ended' after; read-only tools write a single 'ended'. A
+      // 'started' with no matching 'ended' means the process died mid-mutation.
       let actions = []
       let escalated = false
       let escalateReason = null
+      let mutationStarted = false
       try {
         for (const line of fs.readFileSync(actionsFile, 'utf8').split('\n')) {
           if (!line.trim()) continue
           try {
             const a = JSON.parse(line)
+            if (a.phase === 'started') { mutationStarted = true; continue }
             actions.push({ name: a.name, summary: a.resultSummary })
             if (a.escalated) { escalated = true; escalateReason = a.escalateReason || null }
           } catch {}
@@ -213,21 +218,44 @@ function runClaude({ audience, email, message, history, context, deadlineMs }) {
       let parsed = null
       try { parsed = JSON.parse(stdout) } catch {}
 
+      // `started` is true if ANY tool ran OR a mutation began (even if killed
+      // before it could finish). This gates the fresh-session retry so a
+      // partially-applied mutation is never re-run.
+      const started = actions.length > 0 || mutationStarted
+
       if (killed) {
-        return resolve({ ok: false, started: actions.length > 0, error: 'budget exceeded', actions, escalated, escalateReason })
+        return resolve({ ok: false, started, error: 'budget exceeded', actions, escalated, escalateReason })
       }
       if (code !== 0 || !parsed || parsed.is_error || typeof parsed.result !== 'string') {
         const errText = (parsed?.result || stderr || stdout || '').slice(0, 400)
-        return resolve({ ok: false, started: actions.length > 0, error: `claude exit ${code}: ${errText}`, resumeFailed: !!resumeId, actions, escalated, escalateReason })
+        return resolve({ ok: false, started, error: `claude exit ${code}: ${errText}`, resumeFailed: !!resumeId, actions, escalated, escalateReason })
       }
       rememberSession(audience, email, parsed.session_id || newSessionId)
       resolve({ ok: true, reply: parsed.result, actions, escalated, escalateReason })
     })
     child.on('error', (e) => {
       clearTimeout(timer)
+      try { fs.unlinkSync(actionsFile) } catch {}
+      try { fs.unlinkSync(mcpConfigFile) } catch {}
       resolve({ ok: false, started: false, error: `spawn failed: ${e.message}` })
     })
   })
+}
+
+// ── Per-user serialization (finding #5) ──────────────────────────────────────
+// Two concurrent turns for the same audience:email would resume ONE Claude
+// session simultaneously — interleaved context and racing mutations. Chain
+// same-key runs so a user's turns execute strictly one at a time. Different
+// users still run concurrently up to MAX_CONCURRENT.
+const userLocks = new Map() // key → tail promise of the in-flight chain
+function withUserLock(key, fn) {
+  const prev = userLocks.get(key) || Promise.resolve()
+  const run = prev.then(fn, fn)          // run after prior turn settles (either way)
+  const tail = run.catch(() => {})       // swallow so the chain never rejects
+  userLocks.set(key, tail)
+  // Drop the entry once THIS is the last link, keeping the map bounded.
+  tail.then(() => { if (userLocks.get(key) === tail) userLocks.delete(key) })
+  return run
 }
 
 // ── Queue ────────────────────────────────────────────────────────────────────
@@ -242,14 +270,26 @@ function pump() {
   }
 }
 
-// ── Rate limit ───────────────────────────────────────────────────────────────
+// ── Rate limit (per email + global, finding #11) ─────────────────────────────
+// Email is attacker-controlled on the public endpoint, so per-email limiting
+// alone is bypassable by rotating the field. A global ceiling caps total spend
+// regardless, and the bucket map is pruned so it can't grow unbounded.
 const rateBuckets = new Map()
+const globalHits = []
+const MAX_RATE_KEYS = 5000
+const GLOBAL_RATE_LIMIT = 60 // requests/min across all callers
 function rateLimited(email) {
   const now = Date.now()
+  for (let i = globalHits.length - 1; i >= 0 && now - globalHits[i] >= 60_000; i--) globalHits.pop()
+  // prune stale email buckets opportunistically
+  if (rateBuckets.size > MAX_RATE_KEYS) {
+    for (const [k, v] of rateBuckets) { if (!v.length || now - v[v.length - 1] > 60_000) rateBuckets.delete(k) }
+  }
   const bucket = (rateBuckets.get(email) || []).filter((t) => now - t < 60_000)
   bucket.push(now)
   rateBuckets.set(email, bucket)
-  return bucket.length > RATE_LIMIT
+  globalHits.unshift(now)
+  return bucket.length > RATE_LIMIT || globalHits.length > GLOBAL_RATE_LIMIT
 }
 
 // ── HTTP server ──────────────────────────────────────────────────────────────
@@ -290,6 +330,17 @@ const server = http.createServer((req, res) => {
       return sendJson(res, 400, { error: 'email and message required' })
     }
     if (message.length > 2000) return sendJson(res, 400, { error: 'message too long' })
+    if (email.length > 320) return sendJson(res, 400, { error: 'email too long' })
+    // Cap history + context so a caller can't force an unbounded prompt/spend
+    // (finding #12). History is trimmed to the last 10 turns downstream anyway.
+    const capHistory = Array.isArray(history) ? history.slice(-12).map((m) => ({
+      role: m?.role, content: typeof m?.content === 'string' ? m.content.slice(0, 4000) : '',
+    })) : []
+    let capContext = context
+    if (typeof context === 'string') capContext = context.slice(0, 8000)
+    else if (context && typeof context === 'object') {
+      capContext = { text: String(context.text || '').slice(0, 8000), name: context.name, address: context.address, nextVisit: context.nextVisit }
+    }
     if (rateLimited(email.toLowerCase())) return sendJson(res, 429, { ok: false, started: false, error: 'rate limited' })
     if (queue.length >= MAX_QUEUE) return sendJson(res, 503, { ok: false, started: false, error: 'busy' })
 
@@ -299,14 +350,21 @@ const server = http.createServer((req, res) => {
       reject503: (why) => sendJson(res, 503, { ok: false, started: false, error: why }),
       run: async () => {
         const t0 = Date.now()
+        const lc = email.toLowerCase()
         log(`run ${audience} ${email}: "${message.slice(0, 80)}"`)
-        let out = await runClaude({ audience, email: email.toLowerCase(), message, history, context, deadlineMs })
-        // A dead/expired --resume session self-heals: forget and retry fresh once.
-        if (!out.ok && out.resumeFailed && !out.started && Date.now() < deadlineMs - 15_000) {
-          log(`resume failed for ${audience}:${email}, retrying fresh`)
-          forgetSession(audience, email.toLowerCase())
-          out = await runClaude({ audience, email: email.toLowerCase(), message, history, context, deadlineMs })
-        }
+        // Serialize per user so concurrent turns don't share one resume session.
+        let out = await withUserLock(`${audience}:${lc}`, async () => {
+          let r = await runClaude({ audience, email: lc, message, history: capHistory, context: capContext, deadlineMs })
+          // A dead/expired --resume session self-heals: forget and retry fresh
+          // once — ONLY when nothing started (guards against re-running a
+          // partially-applied mutation, finding #1).
+          if (!r.ok && r.resumeFailed && !r.started && Date.now() < deadlineMs - 15_000) {
+            log(`resume failed for ${audience}:${email}, retrying fresh`)
+            forgetSession(audience, lc)
+            r = await runClaude({ audience, email: lc, message, history: capHistory, context: capContext, deadlineMs })
+          }
+          return r
+        })
         log(`done ${audience} ${email}: ok=${out.ok} started=${out.started !== false} ${Date.now() - t0}ms actions=${(out.actions || []).length}${out.ok ? '' : ' err=' + out.error}`)
         if (out.ok) {
           sendJson(res, 200, { ok: true, reply: out.reply, actions: out.actions, escalated: out.escalated, escalateReason: out.escalateReason })
@@ -325,7 +383,13 @@ const server = http.createServer((req, res) => {
 function main() {
   if (!SECRET) { console.error('CHAT_DAEMON_SECRET not set in app/.env — refusing to start'); process.exit(1) }
   if (!fs.existsSync(CLAUDE_BIN)) { console.error(`claude binary not found at ${CLAUDE_BIN}`); process.exit(1) }
-  fs.mkdirSync(SCRATCH, { recursive: true })
+  fs.mkdirSync(SCRATCH, { recursive: true, mode: 0o700 })
+  try { fs.chmodSync(SCRATCH, 0o700) } catch {}
+  // Slowloris/idle-socket defense (finding #11): drop connections that don't
+  // send headers+body promptly and cap how long the funnel proxy may hold one.
+  server.headersTimeout = 10_000
+  server.requestTimeout = 15_000
+  server.setTimeout(70_000)
   server.listen(PORT, '127.0.0.1', () => log(`listening on 127.0.0.1:${PORT} (claude: ${CLAUDE_BIN})`))
 }
 
