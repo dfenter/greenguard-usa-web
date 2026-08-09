@@ -1,7 +1,7 @@
 // FLIPSIDE boot + frame loop. Orchestrator-owned; lanes do not edit.
 import * as game from './core/game.js';
 import { createInput } from './input.js';
-import { createFlip, applyFlipTransform, drawFlipOverlay } from './world/flip.js';
+import { createFlip } from './world/flip.js';
 import { createRenderer } from './render/renderer.js';
 import { createFx } from './render/fx.js';
 import { createAudio } from './audio/audio.js';
@@ -17,7 +17,7 @@ game.startRun(demoG);
 const input = createInput(window);
 input.setBoardEl(canvas);
 input.setTouchRoot(document.getElementById('touch-controls'));
-let flip = createFlip();                   // recreated on run transitions (no cross-run bleed)
+let flip = createFlip();                   // dimension-flip camera (recreated per run)
 const R = createRenderer(canvas);
 const FX = createFx(canvas);
 const A = createAudio();
@@ -33,6 +33,7 @@ function freshRun(g) {
   if (input.reset) input.reset();
   if (FX.reset) FX.reset();
   A.setWorld(g.world);
+  A.set3d(false);
 }
 
 const hooks = {
@@ -54,7 +55,8 @@ const hooks = {
 const hud = createHud(G, hooks);
 
 // QA/debug handle (used by verify harnesses; stable API)
-window.__FS = { G, demoG, hooks, game };
+const qaQueue = [];
+window.__FS = { G, demoG, hooks, game, inject: (...a) => qaQueue.push(...a) };
 
 addEventListener('resize', () => R.resize());
 R.resize();
@@ -67,6 +69,7 @@ function frame(now) {
   const onTitle = G.status === 'title';
   const AG = onTitle ? demoG : G;          // active game being simulated/drawn
   const events = input.poll();
+  if (qaQueue.length) { events.push(...qaQueue); qaQueue.length = 0; }
   for (const e of events) if (e === 'mute') hooks.toggleMute();
 
   if (onTitle) {
@@ -76,11 +79,22 @@ function frame(now) {
     game.update(G, dt, events.filter(e => e !== 'mute'));
   }
 
-  if (AG.status === 'flipping' && !flip.active()) flip.start(AG.world === 'sun' ? 1 : -1);
-  if (flip.active()) {
+  // camera <-> game phase handshake
+  const f3 = AG.flip3d;
+  if (AG.status === 'flip3d' && f3) {
+    if (f3.phase === 'enter' && !flip.active()) { flip.enter(); if (!onTitle) A.set3d(true); }
+    if (f3.exiting && flip.mode() !== 'exit') flip.exitTo(f3.changed);
     const done = flip.update(dt);
-    if (flip.pastMidpoint()) { game.finishFlip(AG); if (!onTitle) A.setWorld(AG.world); }
-    if (done && AG.status === 'flipping') AG.status = 'playing';
+    if (done) {
+      if (f3.phase === 'enter') {
+        game.setFlipPhase(AG, 'held');
+      } else {
+        game.exitFlip3d(AG);
+        if (!onTitle) { A.set3d(false); A.setWorld(AG.world); }
+      }
+    }
+  } else if (flip.active()) {
+    flip.update(dt);                       // let a stray animation finish
   }
 
   if (AG.fx && AG.fx.length) {
@@ -94,11 +108,8 @@ function frame(now) {
   ctx.save();
   const [sx, sy] = FX.shakeOffset();
   ctx.translate(sx, sy);
-  const p = flip.active() ? flip.progress() : 0;
-  if (p > 0) applyFlipTransform(ctx, p, canvas.width, canvas.height);
-  R.draw(AG, p);
+  R.draw(AG, flip);
   FX.draw(ctx, AG);
-  if (p > 0) drawFlipOverlay(ctx, p, canvas.width, canvas.height, AG.world);
   ctx.restore();
 
   hud.update(G);

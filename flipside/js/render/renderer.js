@@ -1,10 +1,13 @@
-import { COLS, COLORS, ROWS, other } from '../config.js';
+import { COLS, COLORS, DEPTH_GAP_CELLS, ROWS, other } from '../config.js';
 import { cellsOf } from '../core/pieces.js';
 import { collides } from '../core/board.js';
 import { drawBackground } from './backgrounds.js';
 
 const MAX_DPR = 2;
 const BLEED_ALPHA = 0.12;
+const DIORAMA_STRIPS = 24;
+const DIORAMA_ANGLE_EPSILON = 0.001;
+const HOP_MS = 180;
 const PRISM_COLORS = [
   '#57b8c9', '#6fe3ff', '#c98bc9', '#e39bff',
   '#f2c14e', '#ffd76f', '#e2695c', '#ff8f80',
@@ -194,6 +197,7 @@ function drawCell(ctx, px, py, size, cell, palette, world, timeMs, unit, options
   const edge = cellEdge(cell, palette);
 
   if (!ghost && !prism && !seam && options.staticSprite !== true
+    && options.goldOutline !== true
     && getCellSprite(ctx, px, py, size, cell, palette, world, unit)) {
     return;
   }
@@ -298,6 +302,13 @@ function drawCell(ctx, px, py, size, cell, palette, world, timeMs, unit, options
     ctx.beginPath();
     ctx.moveTo(x + width * 0.05, y + width * 0.52);
     ctx.lineTo(x + width * 0.95, y + width * 0.52);
+    ctx.stroke();
+  }
+  if (options.goldOutline === true) {
+    ctx.strokeStyle = '#f7d774';
+    ctx.lineWidth = Math.max(unit * 1.05, size * 0.042);
+    roundedRectPath(ctx, x - unit * 0.25, y - unit * 0.25,
+      width + unit * 0.5, width + unit * 0.5, radius + unit * 0.25);
     ctx.stroke();
   }
   ctx.restore();
@@ -450,7 +461,7 @@ function getGhostCells(piece, board) {
   return cells;
 }
 
-function drawPiece(ctx, piece, board, world, layout, timeMs, ghost = false) {
+function drawPiece(ctx, piece, board, world, layout, timeMs, ghost = false, options = {}) {
   if (!piece) return;
   const positions = ghost ? getGhostCells(piece, board) : cellsOf(piece);
   const palette = COLORS[world];
@@ -463,6 +474,7 @@ function drawPiece(ctx, piece, board, world, layout, timeMs, ghost = false) {
     drawCell(ctx, x + column * cell, y + row * cell, cell, value, palette, world, timeMs, unit, {
       ghost,
       prism: !ghost && piece.prism === true,
+      goldOutline: !ghost && options.goldOutline === true,
     });
   }
 }
@@ -617,6 +629,203 @@ function warmCellSprites(ctx, layout) {
   }
 }
 
+function boardRenderSignature(board) {
+  if (!board || !Array.isArray(board.grid)) return 0;
+  if (Number.isFinite(board.revision)) return board.revision;
+
+  let hash = 2166136261;
+  for (let row = 0; row < ROWS; row += 1) {
+    const cells = board.grid[row];
+    for (let column = 0; column < COLS; column += 1) {
+      const cell = cells && cells[column];
+      hash = Math.imul(hash ^ (cell ? 1 : 0), 16777619);
+      if (cell) {
+        hash = Math.imul(hash ^ (cell.t && cell.t.charCodeAt(0) || 0), 16777619);
+        hash = Math.imul(hash ^ (cell.pol === 'ink' ? 2 : cell.pol === 'both' ? 3 : 1), 16777619);
+      }
+    }
+  }
+  return hash >>> 0;
+}
+
+function samePiece(a, b) {
+  if (!a || !b) return !a && !b;
+  return a.t === b.t && a.x === b.x && a.y === b.y
+    && a.rot === b.rot && a.prism === (b.prism === true);
+}
+
+function makeSheetCache(world, width, height, layout) {
+  const sheetCanvas = makeScratchCanvas(width, height);
+  if (!sheetCanvas || typeof sheetCanvas.getContext !== 'function') return null;
+  const sheetCtx = sheetCanvas.getContext('2d');
+  const pieceCanvas = makeScratchCanvas(width, height);
+  const pieceCtx = pieceCanvas && typeof pieceCanvas.getContext === 'function'
+    ? pieceCanvas.getContext('2d') : null;
+  if (!sheetCtx) return null;
+
+  return {
+    world,
+    canvas: sheetCanvas,
+    ctx: sheetCtx,
+    pieceCanvas,
+    pieceCtx,
+    grainPattern: makeGrainPattern(sheetCtx, world, layout.unit),
+    paints: makePaintCache(sheetCtx, layout, COLORS[world]),
+    boardSignature: null,
+    overlayBoardSignature: null,
+    overlayLane: null,
+    overlayPiece: null,
+  };
+}
+
+function repaintSheet(sheet, game, layout, timeMs) {
+  if (!sheet || !sheet.ctx) return;
+  const world = sheet.world;
+  const board = game.boards && game.boards[world];
+  const signature = boardRenderSignature(board);
+  if (sheet.boardSignature === signature) return;
+
+  const ctx = sheet.ctx;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, layout.width, layout.height);
+  const palette = COLORS[world];
+  drawFrame(ctx, world, layout, palette, sheet.grainPattern, sheet.paints);
+  drawBoardSurface(ctx, world, layout, palette, sheet.grainPattern, sheet.paints);
+  drawStitchGrid(ctx, layout, palette, world);
+  drawSeamAccents(ctx, board, layout);
+  drawBoardCells(ctx, board, world, layout, timeMs);
+  sheet.boardSignature = signature;
+}
+
+function repaintPieceOverlay(sheet, game, lane, layout) {
+  if (!sheet || !sheet.pieceCtx) return;
+  const board = game.boards && game.boards[sheet.world];
+  const signature = boardRenderSignature(board);
+  const piece = sheet.world === lane ? game.piece : null;
+  if (sheet.overlayBoardSignature === signature
+    && sheet.overlayLane === lane && samePiece(sheet.overlayPiece, piece)) return;
+
+  const ctx = sheet.pieceCtx;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, layout.width, layout.height);
+  if (piece && board) {
+    drawPiece(ctx, piece, board, sheet.world, layout, 0, true);
+    drawPiece(ctx, piece, board, sheet.world, layout, 0, false, { goldOutline: true });
+  }
+  sheet.overlayBoardSignature = signature;
+  sheet.overlayLane = lane;
+  sheet.overlayPiece = piece ? {
+    t: piece.t,
+    x: piece.x,
+    y: piece.y,
+    rot: piece.rot,
+    prism: piece.prism === true,
+  } : null;
+}
+
+function projectSheet(ctx, source, depthCells, angle, layout, width, height, offsetY = 0, alpha = 1) {
+  if (!source || alpha <= 0) return;
+  const radians = angle * Math.PI / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const absoluteSine = Math.abs(sine);
+  const viewDepth = angle <= 90 ? depthCells : DEPTH_GAP_CELLS - depthCells;
+  const depthPerspective = 1 + (DEPTH_GAP_CELLS - viewDepth) * 0.06 * absoluteSine;
+  const depthShift = depthCells * layout.cell * sine;
+  const centerX = width * 0.5 + depthShift;
+  const sourceStripWidth = width / DIORAMA_STRIPS;
+  const reverseTexture = cosine < 0;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  for (let strip = 0; strip < DIORAMA_STRIPS; strip += 1) {
+    const local = (strip + 0.5) / DIORAMA_STRIPS - 0.5;
+    const stripPerspective = depthPerspective * (1 + 0.15 * absoluteSine * local * 2);
+    const destinationWidth = Math.max(0.65, sourceStripWidth * Math.abs(cosine) * stripPerspective);
+    const destinationHeight = height * stripPerspective;
+    const destinationX = centerX + local * width * cosine - destinationWidth * 0.5;
+    const destinationY = (height - destinationHeight) * 0.5 + offsetY;
+    const sourceX = reverseTexture
+      ? width - (strip + 1) * sourceStripWidth
+      : strip * sourceStripWidth;
+    ctx.drawImage(
+      source,
+      sourceX, 0, sourceStripWidth + 0.6, height,
+      destinationX, destinationY, destinationWidth, destinationHeight,
+    );
+  }
+  ctx.restore();
+}
+
+function drawFlatSheet(ctx, source, width, height, offsetY = 0, alpha = 1) {
+  if (!source || alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(source, 0, offsetY, width, height);
+  ctx.restore();
+}
+
+function drawSheetSpine(ctx, world, depthCells, angle, layout, width, height) {
+  const radians = angle * Math.PI / 180;
+  const cosine = Math.cos(radians);
+  if (Math.abs(cosine) > 0.28) return;
+
+  const sine = Math.sin(radians);
+  const absoluteSine = Math.abs(sine);
+  const viewDepth = angle <= 90 ? depthCells : DEPTH_GAP_CELLS - depthCells;
+  const perspective = 1 + (DEPTH_GAP_CELLS - viewDepth) * 0.06 * absoluteSine;
+  const centerX = width * 0.5 + depthCells * layout.cell * sine;
+  const sheetHeight = height * perspective;
+  const sheetY = (height - sheetHeight) * 0.5;
+  const thickness = clamp(layout.cell * 0.18, 1.5, 6);
+  const palette = COLORS[world];
+
+  ctx.save();
+  ctx.fillStyle = palette.panel;
+  ctx.fillRect(centerX - thickness * 0.5, sheetY, thickness, sheetHeight);
+  ctx.strokeStyle = rgba('#ffffff', world === 'ink' ? 0.42 : 0.72);
+  ctx.lineWidth = Math.max(layout.unit * 0.7, 1);
+  ctx.beginPath();
+  ctx.moveTo(centerX - thickness * 0.34, sheetY);
+  ctx.lineTo(centerX - thickness * 0.34, sheetY + sheetHeight);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawContactShadow(ctx, angle, layout, width, height) {
+  const sine = Math.sin(angle * Math.PI / 180);
+  const absoluteSine = Math.abs(sine);
+  if (absoluteSine < 0.08) return;
+
+  const backDepth = angle <= 90 ? DEPTH_GAP_CELLS : 0;
+  const viewDepth = angle <= 90 ? DEPTH_GAP_CELLS : 0;
+  const perspective = 1 + (DEPTH_GAP_CELLS - viewDepth) * 0.06 * absoluteSine;
+  const shadowX = width * 0.5 + backDepth * layout.cell * sine;
+  const shadowW = Math.max(layout.cell * 0.5,
+    layout.pageW * Math.abs(Math.cos(angle * Math.PI / 180)) * perspective);
+  const shadowH = layout.pageH * perspective;
+  const shadowY = (height - shadowH) * 0.5 + layout.cell * 0.22;
+
+  ctx.save();
+  ctx.globalAlpha = 0.18 * absoluteSine;
+  ctx.fillStyle = '#000000';
+  ctx.shadowColor = 'rgba(0,0,0,0.38)';
+  ctx.shadowBlur = Math.max(layout.cell * 1.4, 4);
+  ctx.fillRect(shadowX - shadowW * 0.5, shadowY, shadowW, shadowH);
+  ctx.restore();
+}
+
+function reducedBlend(game, cam, angle, lane, baseWorld) {
+  const mode = cam.mode();
+  const destination = other(baseWorld);
+  if (mode === 'enter') return clamp(angle / 78, 0, 1);
+  if (mode === 'exit') {
+    const changed = !!(game.flip3d && game.flip3d.changed) || lane !== baseWorld;
+    return changed ? clamp((angle - 78) / 102, 0, 1) : clamp((78 - angle) / 78, 0, 1);
+  }
+  return lane === destination ? 1 : 0;
+}
+
 export function createRenderer(canvas) {
   if (!canvas || typeof canvas.getContext !== 'function') {
     throw new TypeError('createRenderer(canvas) requires a canvas element');
@@ -627,6 +836,7 @@ export function createRenderer(canvas) {
   let dpr = 1;
   let grainPatterns = { sun: null, ink: null };
   let paintCaches = { sun: null, ink: null };
+  let sheetCaches = { sun: null, ink: null };
   let layout = makeLayout(390, 700, dpr);
   let measuredWidth = 0;
   let measuredHeight = 0;
@@ -634,6 +844,9 @@ export function createRenderer(canvas) {
   let measuredCssHeight = 0;
   let dprMedia = null;
   let resizeObserver = null;
+  let hopLane = null;
+  let hopElapsedMs = HOP_MS;
+  let lastDioramaTimeMs = null;
 
   function currentDpr() {
     const rawDpr = Number(globalThis.devicePixelRatio) || 1;
@@ -679,8 +892,8 @@ export function createRenderer(canvas) {
     measuredCssHeight = measured.cssHeight;
     if (canvas.width !== measured.width) canvas.width = measured.width;
     if (canvas.height !== measured.height) canvas.height = measured.height;
-    // Keep the backing-pixel coordinate system intact. main.js applies its
-    // page-turn transform using canvas.width/height before calling draw().
+    // Keep the backing-pixel coordinate system intact for both the normal
+    // painter and the offscreen sheets.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     layout = makeLayout(measured.width, measured.height, dpr);
     cellSpriteCache.clear();
@@ -693,32 +906,28 @@ export function createRenderer(canvas) {
       sun: makePaintCache(ctx, layout, COLORS.sun),
       ink: makePaintCache(ctx, layout, COLORS.ink),
     };
+    sheetCaches = {
+      sun: makeSheetCache('sun', measured.width, measured.height, layout),
+      ink: makeSheetCache('ink', measured.width, measured.height, layout),
+    };
+    hopLane = null;
+    hopElapsedMs = HOP_MS;
+    lastDioramaTimeMs = null;
     warmCellSprites(ctx, layout);
     watchDpr();
     return layout;
   }
 
-  function draw(game, flipProgress = 0) {
-    if (!game) return;
-    if (!measuredWidth || !measuredHeight) resize();
-    if (currentDpr() !== dpr) resize();
-    const width = measuredWidth || canvas.width || layout.width;
-    const height = measuredHeight || canvas.height || layout.height;
-    const world = game.world === 'ink' ? 'ink' : 'sun';
+  function drawNormal(gameState, width, height) {
+    const world = gameState.world === 'ink' ? 'ink' : 'sun';
     const farWorld = other(world);
     const palette = COLORS[world];
-    const currentBoard = game.boards && game.boards[world];
-    const farBoard = game.boards && game.boards[farWorld];
-    const timeMs = Number.isFinite(game.timeMs) ? game.timeMs : 0;
+    const currentBoard = gameState.boards && gameState.boards[world];
+    const farBoard = gameState.boards && gameState.boards[farWorld];
+    const timeMs = Number.isFinite(gameState.timeMs) ? gameState.timeMs : 0;
     const animationTimeMs = reducedMotion() ? 0 : timeMs;
     const grainPattern = grainPatterns[world];
     const paints = paintCaches[world] || (paintCaches[world] = makePaintCache(ctx, layout, palette));
-
-    // flipProgress is intentionally accepted as part of the renderer
-    // contract. The page transform itself belongs to world/flip.js; keeping
-    // the visual layers independent avoids a second transform or a jump at
-    // the midpoint.
-    void flipProgress;
 
     ctx.save();
     drawBackground(ctx, world, animationTimeMs, width, height);
@@ -729,12 +938,122 @@ export function createRenderer(canvas) {
     drawSeamAccents(ctx, currentBoard, layout);
     drawBoardCells(ctx, currentBoard, world, layout, animationTimeMs);
 
-    const piece = game.piece;
+    const piece = gameState.piece;
     if (piece && currentBoard) {
       drawPiece(ctx, piece, currentBoard, world, layout, animationTimeMs, true);
       drawPiece(ctx, piece, currentBoard, world, layout, animationTimeMs, false);
     }
     ctx.restore();
+  }
+
+  function drawDiorama(gameState, cam, width, height) {
+    const rawAngle = typeof cam.angle === 'function' ? cam.angle() : 0;
+    const angle = clamp(Number(rawAngle) || 0, 0, 180);
+    if (angle <= DIORAMA_ANGLE_EPSILON
+      || !sheetCaches.sun || !sheetCaches.ink) {
+      drawNormal(gameState, width, height);
+      return;
+    }
+
+    const world = gameState.world === 'ink' ? 'ink' : 'sun';
+    const farWorld = other(world);
+    const flip3d = gameState.flip3d;
+    const requestedLane = flip3d && (flip3d.lane === 'sun' || flip3d.lane === 'ink')
+      ? flip3d.lane : world;
+    const lane = requestedLane;
+    const timeMs = Number.isFinite(gameState.timeMs) ? gameState.timeMs : 0;
+    const isReduced = typeof cam.reduced === 'function' && cam.reduced();
+    const animationTimeMs = isReduced ? 0 : timeMs;
+
+    if (hopLane === null) {
+      hopLane = lane;
+      hopElapsedMs = HOP_MS;
+    } else if (hopLane !== lane) {
+      hopLane = lane;
+      hopElapsedMs = 0;
+    }
+    const elapsedSinceDraw = lastDioramaTimeMs === null
+      ? 0 : Math.max(0, timeMs - lastDioramaTimeMs);
+    lastDioramaTimeMs = timeMs;
+    hopElapsedMs = Math.min(HOP_MS, hopElapsedMs + elapsedSinceDraw);
+    const hopProgress = clamp(hopElapsedMs / HOP_MS, 0, 1);
+    const hopEased = 1 - Math.pow(1 - hopProgress, 3);
+    const hopOffsetY = -layout.cell * 0.85 * Math.sin(Math.PI * hopEased);
+
+    repaintSheet(sheetCaches.sun, gameState, layout, animationTimeMs);
+    repaintSheet(sheetCaches.ink, gameState, layout, animationTimeMs);
+    repaintPieceOverlay(sheetCaches.sun, gameState, lane, layout);
+    repaintPieceOverlay(sheetCaches.ink, gameState, lane, layout);
+
+    ctx.save();
+    try {
+      ctx.filter = 'saturate(0.65)';
+    } catch (_) {
+      // Canvas implementations without filter support still get the dim.
+    }
+    drawBackground(ctx, world, animationTimeMs, width, height);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(0, 0, width, height);
+
+    if (isReduced) {
+      const blend = reducedBlend(gameState, cam, angle, lane, world);
+      const currentSheet = sheetCaches[world];
+      const farSheet = sheetCaches[farWorld];
+      drawFlatSheet(ctx, currentSheet.canvas, width, height, 0, 1 - blend);
+      drawFlatSheet(ctx, farSheet.canvas, width, height, 0, blend);
+      const laneSheet = sheetCaches[lane];
+      const laneAlpha = lane === world ? 1 - blend : blend;
+      drawFlatSheet(ctx, laneSheet.pieceCanvas, width, height, hopOffsetY, laneAlpha);
+    } else {
+      const currentSheet = sheetCaches[world];
+      const farSheet = sheetCaches[farWorld];
+      if (angle <= 90) {
+        projectSheet(ctx, farSheet.canvas, DEPTH_GAP_CELLS, angle, layout, width, height);
+        if (lane === farWorld) {
+          projectSheet(ctx, farSheet.pieceCanvas, DEPTH_GAP_CELLS, angle, layout, width, height, hopOffsetY);
+        }
+        drawSheetSpine(ctx, farWorld, DEPTH_GAP_CELLS, angle, layout, width, height);
+        drawContactShadow(ctx, angle, layout, width, height);
+        projectSheet(ctx, currentSheet.canvas, 0, angle, layout, width, height);
+        if (lane === world) {
+          projectSheet(ctx, currentSheet.pieceCanvas, 0, angle, layout, width, height, hopOffsetY);
+        }
+        drawSheetSpine(ctx, world, 0, angle, layout, width, height);
+      } else {
+        projectSheet(ctx, currentSheet.canvas, 0, angle, layout, width, height);
+        if (lane === world) {
+          projectSheet(ctx, currentSheet.pieceCanvas, 0, angle, layout, width, height, hopOffsetY);
+        }
+        drawSheetSpine(ctx, world, 0, angle, layout, width, height);
+        drawContactShadow(ctx, angle, layout, width, height);
+        projectSheet(ctx, farSheet.canvas, DEPTH_GAP_CELLS, angle, layout, width, height);
+        if (lane === farWorld) {
+          projectSheet(ctx, farSheet.pieceCanvas, DEPTH_GAP_CELLS, angle, layout, width, height, hopOffsetY);
+        }
+        drawSheetSpine(ctx, farWorld, DEPTH_GAP_CELLS, angle, layout, width, height);
+      }
+    }
+    ctx.restore();
+  }
+
+  function draw(gameState, cam) {
+    if (!gameState) return;
+    if (!measuredWidth || !measuredHeight) resize();
+    if (currentDpr() !== dpr) resize();
+    const width = measuredWidth || canvas.width || layout.width;
+    const height = measuredHeight || canvas.height || layout.height;
+    const cameraActive = cam && typeof cam.active === 'function' && cam.active();
+    if (cameraActive) {
+      drawDiorama(gameState, cam, width, height);
+      return;
+    }
+    hopLane = null;
+    hopElapsedMs = HOP_MS;
+    lastDioramaTimeMs = null;
+    drawNormal(gameState, width, height);
   }
 
   if (typeof ResizeObserver === 'function') {

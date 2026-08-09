@@ -204,10 +204,29 @@ export function createBot() {
     if (now + 1 < lastSeenMs) reset();      // game restarted -> clock rewound
     lastSeenMs = now;
 
-    if (G.status !== 'playing') {
+    if (G.status !== 'playing' && G.status !== 'flip3d') {
       if (G.status === 'title' || G.status === 'gameover' || G.status === 'won') reset();
       return [];
     }
+
+    if (G.status === 'flip3d') {
+      const f3 = G.flip3d;
+      if (!f3 || f3.phase !== 'held') return [];
+      const p3 = G.piece;
+      if (!p3 || typeof p3 !== 'object' || typeof p3.t !== 'string') return [];
+      if (now < nextActAt) return [];
+
+      const lane = f3.lane === 'ink' ? 'ink' : 'sun';
+      const boards3 = G.boards || {};
+      const here = stackHeight(boards3[lane]);
+      const farLane = other(lane);
+      const far = stackHeight(boards3[farLane]);
+      nextActAt = now + ACTION_MS;
+      // In the side view there is no rotation or x-planning: hop to the
+      // shallower sheet when useful, then commit the piece with a hard drop.
+      return far < here ? ['left', 'hard'] : ['hard'];
+    }
+
     const p = G.piece;
     if (!p || typeof p !== 'object' || typeof p.t !== 'string') return [];
     const world = G.world === 'ink' ? 'ink' : 'sun';
