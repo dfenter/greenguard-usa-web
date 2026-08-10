@@ -69,7 +69,7 @@ function KPI({ label, value, sub, warn }) {
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: 8,
   border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)',
-  color: 'var(--text)', fontSize: '1rem', boxSizing: 'border-box', outline: 'none',
+  color: 'var(--text)', fontSize: '1rem', boxSizing: 'border-box',
   fontFamily: 'inherit',
 }
 

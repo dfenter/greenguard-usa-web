@@ -170,7 +170,7 @@ export default function InvoicesList() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
           <input type="search" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search customer or invoice #…"
-            style={{ flex: '1 1 200px', padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }} />
+            style={{ flex: '1 1 200px', padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem' }} />
           <button onClick={() => setFiltersOpen(!filtersOpen)} style={chip(filtersOpen, 'var(--info)')}>
             + Filters{paymentFilters.size + (datePreset ? 1 : 0) > 0 ? ` (${paymentFilters.size + (datePreset ? 1 : 0)})` : ''}
           </button>

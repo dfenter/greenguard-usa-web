@@ -106,7 +106,7 @@ function SmsComposer({ email, phone, onSent }) {
     <div style={{ marginTop: 6 }}>
       <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} maxLength={320}
         placeholder={`Text ${phone}…`}
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box' }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 8 }}>
         <span style={{ fontSize: '0.7rem', color: msg?.startsWith('✓') ? 'var(--green)' : msg ? 'var(--danger)' : 'var(--text-muted)' }}>
           {msg || `${body.length}/320`}
@@ -288,7 +288,7 @@ function CustomerPanel({ customer, onClose }) {
   const input = {
     width: '100%', padding: '8px 10px', borderRadius: 6, boxSizing: 'border-box',
     border: '1px solid rgba(var(--green-rgb),0.3)', background: 'var(--bg-card)',
-    color: 'var(--text)', fontSize: '0.85rem', outline: 'none',
+    color: 'var(--text)', fontSize: '0.85rem',
   }
   const btn = (variant) => ({
     padding: '7px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
@@ -373,14 +373,14 @@ function CustomerPanel({ customer, onClose }) {
             value={msgForm.subject}
             onChange={(e) => setMsgForm((f) => ({ ...f, subject: e.target.value }))}
             placeholder="Subject"
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.2)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }}
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.2)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
           />
           <textarea
             value={msgForm.body}
             onChange={(e) => setMsgForm((f) => ({ ...f, body: e.target.value }))}
             placeholder={`Hi ${customer.name?.split(' ')[0] || 'there'},\n\n`}
             rows={5}
-            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.2)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.2)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', resize: 'vertical' }}
           />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button
@@ -757,7 +757,7 @@ export default function Clients() {
               placeholder="Search name, email or address…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: '100%', maxWidth: 360, padding: '9px 14px', marginBottom: 16, border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', maxWidth: 360, padding: '9px 14px', marginBottom: 16, border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', boxSizing: 'border-box' }}
             />
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               {allProspects.filter((p) => {
@@ -815,7 +815,7 @@ export default function Clients() {
             style={{
               flex: '1 1 200px', padding: '9px 14px',
               border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8,
-              background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', outline: 'none',
+              background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem',
             }}
           />
           <button onClick={locateMe} disabled={locating}

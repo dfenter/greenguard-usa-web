@@ -166,7 +166,7 @@ function CustomerSearch({ onSelect }) {
         value={query}
         onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
-        style={{ width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none' }}
+        style={{ width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit' }}
       />
       {open && loading && <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, zIndex: 50, marginTop: 4, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Searching…</div>}
       {open && !loading && results.length > 0 && (
@@ -510,7 +510,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
               value={serviceDate}
               min={minDate}
               onChange={(e) => setServiceDate(e.target.value)}
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--gold-rgb),0.4)'}`, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', fontFamily: 'inherit', outline: 'none', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--gold-rgb),0.4)'}`, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', fontFamily: 'inherit', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
             />
             <span style={{ fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.5)' }}>
               Earliest available: {new Date(minDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (5-day lead time)
@@ -837,7 +837,7 @@ export default function QuoteBuilder({ mapsKey }) {
     setTimeout(() => setSent(false), 5000)
   }
 
-  const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none' }
+  const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit' }
   const lbl = { display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.45)', marginBottom: 4 }
 
   return (

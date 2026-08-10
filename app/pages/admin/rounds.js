@@ -441,7 +441,7 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total, o
                       type="number" min="0" value={qty || ''}
                       placeholder="0"
                       onChange={(e) => onChange(item.label, Math.max(0, parseInt(e.target.value) || 0))}
-                      style={{ width: 44, textAlign: 'center', padding: '4px 6px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.35)', background: qty > 0 ? 'rgba(var(--green-rgb),0.08)' : 'var(--bg-card)', color: qty > 0 ? 'var(--green)' : 'var(--text)', fontWeight: 900, fontSize: '0.95rem', outline: 'none' }}
+                      style={{ width: 44, textAlign: 'center', padding: '4px 6px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.35)', background: qty > 0 ? 'rgba(var(--green-rgb),0.08)' : 'var(--bg-card)', color: qty > 0 ? 'var(--green)' : 'var(--text)', fontWeight: 900, fontSize: '0.95rem' }}
                     />
                     <button onClick={() => onChange(item.label, qty + 1)}
                       style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(var(--green-rgb),0.3)', background: 'rgba(var(--green-rgb),0.08)', color: 'var(--green)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, }}>+</button>
@@ -531,7 +531,7 @@ function EmailModal({ stop, lineItems, grandTotal, onSend, onSkip }) {
 
   const [msg, setMsg] = useState(defaultMsg)
   const [drafting, setDrafting] = useState(false)
-  const inp = { width: '100%', padding: '10px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', outline: 'none', resize: 'vertical' }
+  const inp = { width: '100%', padding: '10px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', resize: 'vertical' }
 
   async function draftWithAI() {
     setDrafting(true)
@@ -859,7 +859,7 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
     }
   }
 
-  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 900, outline: 'none' }
+  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 900 }
 
   return (
     <>

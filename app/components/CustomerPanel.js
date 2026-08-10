@@ -132,7 +132,7 @@ function SmsComposer({ email, phone, onSent }) {
     <div style={{ marginTop: 6 }}>
       <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} maxLength={320}
         placeholder={`Text ${phone}…`}
-        style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontWeight: 700 }} />
+        style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box', fontWeight: 700 }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 8 }}>
         <span style={{ fontSize: '0.7rem', fontWeight: 700, color: msg?.startsWith('✓') ? 'var(--ok)' : msg ? 'var(--danger)' : 'var(--text-dim)' }}>
           {msg || `${body.length}/320`}
@@ -280,7 +280,7 @@ export default function CustomerPanel({ customer, onClose }) {
   const input = {
     width: '100%', padding: '9px 12px', borderRadius: 6, boxSizing: 'border-box',
     border: '1.5px solid var(--border)', background: 'var(--bg-card)',
-    color: 'var(--text)', fontSize: '0.85rem', outline: 'none', fontWeight: 700,
+    color: 'var(--text)', fontSize: '0.85rem', fontWeight: 700,
   }
   const btn = (variant) => ({
     padding: '8px 14px', borderRadius: 4, border: '2px solid', cursor: 'pointer',
@@ -350,10 +350,10 @@ export default function CustomerPanel({ customer, onClose }) {
             Email to {customer.email}
           </div>
           <input value={msgForm.subject} onChange={(e) => setMsgForm((f) => ({ ...f, subject: e.target.value }))} placeholder="Subject"
-            style={{ width: '100%', marginBottom: 8, padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', fontWeight: 700 }} />
+            style={{ width: '100%', marginBottom: 8, padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', fontWeight: 700 }} />
           <textarea value={msgForm.body} onChange={(e) => setMsgForm((f) => ({ ...f, body: e.target.value }))}
             placeholder={`Hi ${customer.name?.split(' ')[0] || 'there'},\n\n`} rows={5}
-            style={{ width: '100%', marginBottom: 8, padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none', resize: 'vertical', fontWeight: 700 }} />
+            style={{ width: '100%', marginBottom: 8, padding: '9px 12px', borderRadius: 6, border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box', resize: 'vertical', fontWeight: 700 }} />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button disabled={msgSending || !msgForm.subject || !msgForm.body}
               onClick={async () => {

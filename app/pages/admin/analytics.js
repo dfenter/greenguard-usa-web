@@ -47,19 +47,31 @@ function pctArrow(pct) {
   return <span style={{ fontSize: '0.72rem', fontWeight: 700, color: up ? 'var(--ok)' : 'var(--danger)', marginLeft: 6 }}>{up ? '↑' : '↓'}{Math.abs(pct)}%</span>
 }
 
+// Chart palette — declared once, derived from the portal tokens. Recharts SVG
+// props take literal colors; Google Maps stylers require literals too.
+const CHART = {
+  green:  '#1b5e20',  // --green
+  gold:   '#785800',  // --gold
+  info:   '#0b57d0',  // --info
+  danger: '#b3261e',  // --danger
+  purple: '#6a1b9a',
+  teal:   '#00696d',
+  rust:   '#8f3e00',
+  grey:   '#444746',
+}
 const TOOLTIP_STYLE = { background: '#ffffff', border: '1px solid rgba(27,94,32,0.65)', borderRadius: 6, fontSize: '0.8rem', color: '#111111' }
-const TICK = { fill: '#444746', fontSize: 10 }
+const TICK = { fill: CHART.grey, fontSize: 10 }
 
 const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 14 }
 const CARD = { background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.15)', borderRadius: 10, padding: '14px 16px' }
 const TD = { padding: '10px 16px', verticalAlign: 'middle' }
 
-const SEGMENT_COLORS = { 'Biogents-CO2': '#0b57d0', 'Biogents-NonCO2': '#b3261e', 'Mosqitter-Grand': '#176f2b' }
+const SEGMENT_COLORS = { 'Biogents-CO2': CHART.info, 'Biogents-NonCO2': CHART.danger, 'Mosqitter-Grand': CHART.green }
 
 const CHANNEL_COLORS = {
-  'Organic Search': '#0b57d0', 'Direct': '#b3261e', 'Organic Social': '#176f2b',
-  'Paid Search': '#785800', 'Referral': '#6a1b9a', 'Email': '#00696d',
-  'Display': '#8f3e00', 'Other': '#444746',
+  'Organic Search': CHART.info, 'Direct': CHART.danger, 'Organic Social': CHART.green,
+  'Paid Search': CHART.gold, 'Referral': CHART.purple, 'Email': CHART.teal,
+  'Display': CHART.rust, 'Other': CHART.grey,
 }
 
 function KPI({ label, value, sub, pct }) {
@@ -152,7 +164,7 @@ function RevenueTab({ activeCount, mrr, revenueToday, revenueThisMonth, revenueY
               <XAxis dataKey="month" tick={TICK} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={(v) => `$${v}`} tick={TICK} axisLine={false} tickLine={false} width={48} />
               <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`$${v.toLocaleString()}`, 'Revenue']} cursor={{ fill: 'rgba(27,94,32,0.04)' }} />
-              <Bar dataKey="total" fill="#176f2b" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="total" fill={CHART.green} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -165,13 +177,13 @@ function RevenueTab({ activeCount, mrr, revenueToday, revenueThisMonth, revenueY
             <AreaChart data={dailyRevenue}>
               <defs>
                 <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#176f2b" stopOpacity={0.18} />
-                  <stop offset="95%" stopColor="#176f2b" stopOpacity={0} />
+                  <stop offset="5%" stopColor={CHART.green} stopOpacity={0.18} />
+                  <stop offset="95%" stopColor={CHART.green} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="day" tick={TICK} axisLine={false} tickLine={false} interval={6} />
               <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`$${v}`, 'Revenue']} />
-              <Area type="monotone" dataKey="total" stroke="#176f2b" strokeWidth={2} fill="url(#ag)" dot={false} />
+              <Area type="monotone" dataKey="total" stroke={CHART.green} strokeWidth={2} fill="url(#ag)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -187,7 +199,7 @@ function RevenueTab({ activeCount, mrr, revenueToday, revenueThisMonth, revenueY
                 <span style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>{count}</span>
               </div>
               <div style={{ height: 6, background: 'rgba(var(--green-rgb),0.10)', borderRadius: 3 }}>
-                <div style={{ height: '100%', borderRadius: 3, background: SEGMENT_COLORS[type] || '#176f2b', width: totalSegmentCount > 0 ? `${Math.round((count / totalSegmentCount) * 100)}%` : '0%', transition: 'width 0.5s' }} />
+                <div style={{ height: '100%', borderRadius: 3, background: SEGMENT_COLORS[type] || CHART.green, width: totalSegmentCount > 0 ? `${Math.round((count / totalSegmentCount) * 100)}%` : '0%', transition: 'width 0.5s' }} />
               </div>
             </div>
           ))}
@@ -309,8 +321,8 @@ function TrafficTab({ ga4Configured, traffic }) {
               <XAxis dataKey="date" tick={TICK} axisLine={false} tickLine={false} interval={6} />
               <YAxis tick={TICK} axisLine={false} tickLine={false} width={36} />
               <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v, n) => [v.toLocaleString(), n === 'sessions' ? 'Sessions' : 'Users']} />
-              <Line type="monotone" dataKey="sessions" stroke="#176f2b" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="users" stroke="#785800" strokeWidth={1.5} dot={false} strokeDasharray="4 2" />
+              <Line type="monotone" dataKey="sessions" stroke={CHART.green} strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="users" stroke={CHART.gold} strokeWidth={1.5} dot={false} strokeDasharray="4 2" />
             </LineChart>
           </ResponsiveContainer>
           <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 4 }}>
@@ -333,7 +345,7 @@ function TrafficTab({ ga4Configured, traffic }) {
                 <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [v.toLocaleString(), 'Sessions']} />
                 <Bar dataKey="sessions" radius={[0, 3, 3, 0]}>
                   {sources.map((s, i) => (
-                    <rect key={i} fill={CHANNEL_COLORS[s.channel] || '#176f2b'} />
+                    <rect key={i} fill={CHANNEL_COLORS[s.channel] || CHART.green} />
                   ))}
                 </Bar>
               </BarChart>
@@ -352,7 +364,7 @@ function TrafficTab({ ga4Configured, traffic }) {
                 {sources.map((s) => (
                   <tr key={s.channel} style={{ borderBottom: '1px solid rgba(var(--green-rgb),0.08)' }}>
                     <td style={{ padding: '9px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: CHANNEL_COLORS[s.channel] || '#176f2b', flexShrink: 0, display: 'inline-block' }} />
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: CHANNEL_COLORS[s.channel] || CHART.green, flexShrink: 0, display: 'inline-block' }} />
                       {s.channel}
                     </td>
                     <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700 }}>{s.sessions.toLocaleString()}</td>
@@ -795,14 +807,14 @@ function SocialTab() {
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Write your Facebook post here…"
             rows={4}
-            style={{ width: '100%', background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 6, color: 'var(--text)', fontSize: '0.9rem', padding: '10px 12px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
+            style={{ width: '100%', background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 6, color: 'var(--text)', fontSize: '0.9rem', padding: '10px 12px', resize: 'vertical', boxSizing: 'border-box', marginBottom: 8 }}
           />
           <input
             type="url"
             value={link}
             onChange={(e) => setLink(e.target.value)}
             placeholder="Optional link URL (e.g. greenguard-usa.com)"
-            style={{ width: '100%', background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.20)', borderRadius: 6, color: 'var(--text)', fontSize: '0.85rem', padding: '8px 12px', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
+            style={{ width: '100%', background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.20)', borderRadius: 6, color: 'var(--text)', fontSize: '0.85rem', padding: '8px 12px', boxSizing: 'border-box', marginBottom: 12 }}
           />
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button onClick={handlePost} disabled={posting || !message.trim() || notConfigured} style={{ padding: '10px 22px', borderRadius: 6, border: 'none', cursor: (posting || !message.trim() || notConfigured) ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.88rem', background: (posting || !message.trim() || notConfigured) ? 'rgba(var(--gold-rgb),0.20)' : 'var(--gold)', color: (posting || !message.trim() || notConfigured) ? 'var(--text-dim)' : 'var(--bg-deep)' }}>
@@ -895,7 +907,7 @@ function MapTab({ mapsKey, customerLocations }) {
             position: pos,
             map: mapObj.current,
             title: loc.name,
-            icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 7, fillColor: '#176f2b', fillOpacity: 0.9, strokeColor: '#111111', strokeWeight: 1.5 },
+            icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 7, fillColor: CHART.green, fillOpacity: 0.9, strokeColor: '#111111', strokeWeight: 1.5 },
           })
         }
       } catch {}

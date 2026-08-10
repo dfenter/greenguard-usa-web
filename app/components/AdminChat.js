@@ -77,7 +77,7 @@ export default function AdminChat() {
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
           placeholder="Ask the ops assistant…" disabled={busy}
           style={{ flex: 1, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)',
-            border: '1px solid var(--border)', fontSize: '0.9rem', outline: 'none', fontFamily: 'inherit' }} />
+            border: '1px solid var(--border)', fontSize: '0.9rem', fontFamily: 'inherit' }} />
         <button onClick={send} disabled={busy || !input.trim()}
           style={{ padding: '10px 16px', borderRadius: 8, border: 'none', cursor: busy || !input.trim() ? 'not-allowed' : 'pointer',
             background: busy || !input.trim() ? 'rgba(var(--gold-rgb),0.20)' : 'var(--gold)', color: 'var(--text-on-accent)', fontWeight: 800, fontSize: '0.85rem' }}>

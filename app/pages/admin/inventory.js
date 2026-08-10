@@ -191,7 +191,7 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
     }
   }
 
-  const input = { width: '100%', padding: '12px 16px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none', textAlign: 'left' }
+  const input = { width: '100%', padding: '12px 16px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.95rem', fontFamily: 'inherit', textAlign: 'left' }
   const lbl = { fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.6)', display: 'block', marginBottom: 8 }
   const section = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.3)', margin: '18px 0 10px', paddingBottom: 6, borderBottom: '1px solid rgba(var(--border-rgb),0.1)' }
 

@@ -103,7 +103,7 @@ export default function AdminBooking() {
     border: '1px solid rgba(var(--border-rgb),0.25)',
     borderRadius: 8, fontSize: 15,
     background: 'var(--bg-card)', color: 'var(--text)',
-    outline: 'none',
+    
   }
 
   const label = {

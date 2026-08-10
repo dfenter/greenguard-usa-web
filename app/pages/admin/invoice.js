@@ -276,7 +276,7 @@ function InvoiceEditorView({ customers = [] }) {
     await loadPending()
   }
 
-  const input = { padding: '9px 12px', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none' }
+  const input = { padding: '9px 12px', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit' }
   const btn = (v) => ({ padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', fontFamily: 'inherit', ...(v === 'gold' ? { background: 'var(--gold)', color: 'var(--text-on-accent)' } : v === 'green' ? { background: 'var(--green)', color: 'var(--text-on-accent)' } : v === 'red' ? { background: 'rgba(var(--danger-rgb),0.12)', color: 'var(--danger)', border: '1px solid rgba(var(--danger-rgb),0.2)' } : { background: 'rgba(var(--border-rgb),0.1)', color: 'var(--green-muted)', border: '1px solid rgba(var(--border-rgb),0.2)' }) })
   const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 12, marginTop: 28 }
 

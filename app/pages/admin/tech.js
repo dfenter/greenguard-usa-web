@@ -102,7 +102,7 @@ function TechNotes() {
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save() }}
           placeholder="Quick note for the day…"
-          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none', lineHeight: 1.5 }}
+          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5 }}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
           <span style={{ fontSize: '0.72rem', color: msg ? (msg === 'Saved.' ? 'var(--green)' : 'var(--danger)') : 'var(--text-dim)' }}>

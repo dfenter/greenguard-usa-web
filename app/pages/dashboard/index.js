@@ -262,7 +262,7 @@ function SystemEditor({ initialSystems }) {
     )
   }
 
-  const inp = { padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }
+  const inp = { padding: '8px 10px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem' }
   return (
     <div style={{ marginTop: 10, padding: 14, borderRadius: 8, background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.18)' }}>
       <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 10 }}>Edit your system</div>
@@ -338,7 +338,7 @@ function CustomerMediaUpload({ email }) {
     setUploading(false)
   }
 
-  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none', marginBottom: 12 }
+  const inp = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.85rem', marginBottom: 12 }
 
   return (
     <div className="card" style={{ marginBottom: 20 }}>

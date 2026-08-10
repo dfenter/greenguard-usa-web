@@ -108,7 +108,7 @@ export default function CustomerChat() {
             flex: 1, padding: '10px 12px', borderRadius: 8,
             background: 'var(--bg-card)', color: 'var(--text)',
             border: '1px solid var(--border)', fontSize: '0.9rem',
-            outline: 'none', fontFamily: 'inherit',
+            fontFamily: 'inherit',
           }}
         />
         <button

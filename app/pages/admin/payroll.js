@@ -33,7 +33,7 @@ function fmtDay(d) {
 }
 
 const card = { background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.15)', borderRadius: 12, padding: '16px 18px' }
-const input = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.95rem', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }
+const input = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.95rem', boxSizing: 'border-box', fontFamily: 'inherit' }
 const lbl = { fontSize: '0.64rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', display: 'block', marginBottom: 5 }
 const btn = (kind = 'ghost') => {
   const map = {

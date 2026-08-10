@@ -140,7 +140,7 @@ export default function Login({ error }) {
                         border: `1px solid ${codeError ? 'rgba(var(--danger-rgb),0.6)' : 'rgba(var(--border-rgb),0.3)'}`,
                         background: 'var(--bg-card)', color: 'var(--text)',
                         fontSize: '1.4rem', fontWeight: 800, letterSpacing: '0.4em', textAlign: 'center',
-                        outline: 'none', marginBottom: 12, fontFamily: 'monospace',
+                        marginBottom: 12, fontFamily: 'monospace',
                       }}
                     />
                     {codeError && (
@@ -189,7 +189,7 @@ export default function Login({ error }) {
                     width: '100%', padding: '11px 14px', borderRadius: 4,
                     border: '1px solid rgba(var(--border-rgb),0.3)',
                     background: 'var(--bg-card)', color: 'var(--text)',
-                    fontSize: '0.95rem', outline: 'none', marginBottom: 16,
+                    fontSize: '0.95rem', marginBottom: 16,
 
                   }}
                 />

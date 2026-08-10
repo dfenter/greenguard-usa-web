@@ -32,7 +32,7 @@ const inp = {
   width: '100%', padding: '10px 14px', borderRadius: 8,
   background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)',
   color: 'var(--text)', fontSize: '0.9rem',
-  outline: 'none', boxSizing: 'border-box',
+  boxSizing: 'border-box',
 }
 const card = { background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.18)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }
 const sectionLabel = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 14 }
