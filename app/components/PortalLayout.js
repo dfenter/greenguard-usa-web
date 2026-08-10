@@ -6,6 +6,8 @@ import AdminChat from './AdminChat'
 const NAV_LINKS = [
   { href: '/dashboard',          label: 'My Account' },
   { href: '/dashboard/history',  label: 'History' },
+  { href: '/dashboard/map',      label: 'Map' },
+  { href: '/dashboard/upgrade',  label: 'Upgrade' },
   { href: '/dashboard/settings', label: 'Settings' },
 ]
 
@@ -14,7 +16,7 @@ const NAV_LINKS = [
 const ADMIN_NAV_LINKS = [
   { href: '/admin/home',         label: 'Home' },
   { href: '/admin/timesheet',    label: 'Timesheet' },
-  { href: '/admin/expenses',     label: 'Receipts' },
+  { href: '/admin/expenses',     label: 'Expenses' },
   { href: '/admin/calendar',     label: 'Calendar' },
   { href: '/admin/clients',      label: 'Clients' },
   { href: '/admin/rounds',       label: 'Rounds' },
@@ -23,7 +25,8 @@ const ADMIN_NAV_LINKS = [
   { href: '/admin/invoice',      label: 'Invoice' },
 ]
 
-export default function PortalLayout({ children, title, isAdmin = false, topPadding, logoHref }) {
+// minimal: logo-only header for logged-out contexts (e.g. the quote link page).
+export default function PortalLayout({ children, title, isAdmin = false, topPadding, logoHref, minimal = false }) {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -57,6 +60,7 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
             </span>
           </Link>
 
+          {!minimal && (
           <button
             className="hamburger"
             onClick={() => setMenuOpen((o) => !o)}
@@ -64,7 +68,9 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
           >
             <span /><span /><span />
           </button>
+          )}
 
+          {!minimal && (
           <div className={'nav-links' + (menuOpen ? ' open' : '')} style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', gap: 6, minWidth: 0 }}>
             {/* Customer links — hidden when admin */}
             {!isAdmin && NAV_LINKS.map(({ href, label }) => {
@@ -98,6 +104,7 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
               Sign out
             </button>
           </div>
+          )}
         </div>
       </nav>
 
@@ -110,7 +117,9 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
         paddingRight: 'max(20px, env(safe-area-inset-right))',
       }}>
         {title && (
-          <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 32 }}>
+          <h1 style={isAdmin
+            ? { fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: 32 }
+            : { fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(1.7rem,3.4vw,2.3rem)', letterSpacing: '0', marginBottom: 32 }}>
             {title}
           </h1>
         )}

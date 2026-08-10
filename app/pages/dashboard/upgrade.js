@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { getSessionFromRequest } from '../../lib/auth'
+import PortalLayout from '../../components/PortalLayout'
 import { findContactByEmail } from '../../lib/hubspot'
 
 function fmt$(n) { return `$${Number(n).toFixed(2)}` }
@@ -198,25 +199,13 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
         <meta name="robots" content="noindex" />
       </Head>
 
-      <div style={{ minHeight: '100vh', background: PAGE_BG, color: 'var(--text)', paddingBottom: 80 }}>
-
-        {/* ── Header ── */}
-        <div style={{ background: 'var(--bg-card)', borderBottom: '1px solid rgba(var(--border-rgb),0.15)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.02em' }}>
-              Green<span style={{ color: 'var(--green)' }}>Guard</span> USA
-            </div>
-            <div style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>Smart · Safe · Effective</div>
-          </div>
-          <Link href="/dashboard" style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textDecoration: 'none' }}>← My Dashboard</Link>
-        </div>
-
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '44px 24px 0' }}>
+      <PortalLayout>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
           {/* ── Title ── */}
           <div style={{ marginBottom: 36 }}>
             <span style={EYEBROW}>Upgrade Your Service</span>
-            <h1 style={{ fontSize: 'clamp(1.7rem,3.5vw,2.4rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 10px', lineHeight: 1.15 }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(1.8rem,3.5vw,2.5rem)', margin: '0 0 10px', lineHeight: 1.15 }}>
               {firstName ? `${firstName}, expand your` : 'Expand your'}{' '}
               <span style={{ color: 'var(--green)' }}>mosquito-free zone.</span>
             </h1>
@@ -393,7 +382,7 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
             </p>
           </div>
         </div>
-      </div>
+      </PortalLayout>
     </>
   )
 }

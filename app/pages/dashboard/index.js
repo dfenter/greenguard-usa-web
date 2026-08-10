@@ -674,7 +674,7 @@ export default function CustomerOverview({
         {/* ── Header ── */}
         <div style={{ marginBottom: 36 }}>
           <span className="tag">My Account</span>
-          <h1 style={{ fontSize: 'clamp(1.5rem,3vw,2rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 4px' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(1.7rem,3.4vw,2.3rem)', margin: '0 0 4px' }}>
             {name ? `Welcome back, ${name.split(' ')[0]}` : 'Welcome back'}
           </h1>
           <p style={{ fontSize: '0.85rem', color: 'rgba(var(--text-rgb),0.45)', margin: 0 }}>{email}</p>

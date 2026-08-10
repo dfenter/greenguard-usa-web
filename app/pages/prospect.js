@@ -31,7 +31,7 @@ export default function ProspectPage({ email, name }) {
           {/* Welcome */}
           <div style={{ marginBottom: 40 }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10 }}>Welcome</div>
-            <h1 style={{ fontSize: 'clamp(1.6rem,3vw,2.2rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 12px' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(1.8rem,3.4vw,2.4rem)', margin: '0 0 12px' }}>
               {name ? `Hi ${name.split(' ')[0]},` : 'Welcome to GreenGuard USA'}
             </h1>
             <p style={{ fontSize: '1rem', color: 'var(--text-muted)', lineHeight: 1.7, margin: 0 }}>

@@ -68,7 +68,6 @@ export default function SettingsPage({ email, contactId, initialData }) {
   return (
     <PortalLayout title="Account Settings">
       <div style={{ maxWidth: 520, margin: '0 auto' }}>
-        <h1 style={{ fontWeight: 900, fontSize: '1.6rem', color: 'var(--text)', marginBottom: 6 }}>Account Settings</h1>
         <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginBottom: 28 }}>
           Update your contact information. Changes apply to future communications and service scheduling.
         </p>

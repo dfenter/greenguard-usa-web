@@ -98,7 +98,7 @@ export default function Login({ error }) {
       }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={{ fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.02em', marginBottom: 8 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: '1.7rem', marginBottom: 8 }}>
               {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}
             </div>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: 0 }}>

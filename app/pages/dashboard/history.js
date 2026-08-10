@@ -80,7 +80,6 @@ export default function HistoryPage({ invoices, visitNotes }) {
   return (
     <PortalLayout title="Service History">
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
-        <h1 style={{ fontWeight: 900, fontSize: '1.6rem', color: 'var(--text)', marginBottom: 6 }}>Service History</h1>
         <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginBottom: 28 }}>
           Your complete service and billing record.
         </p>

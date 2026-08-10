@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import { trackEvent } from '../../lib/analytics'
+import PortalLayout from '../../components/PortalLayout'
+import { Skeleton } from '../../components/ui'
 
 function fmt$(n) { return n != null ? `$${Number(n).toFixed(2)}` : 'TBD' }
 
@@ -123,21 +125,9 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
       <Head>
         <title>{quote ? `Quote for ${quote.customerName || 'You'} · GreenGuard USA` : 'GreenGuard USA Quote'}</title>
         <meta name="robots" content="noindex" />
-        <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', padding: '0 0 80px' }}>
-        {/* Header */}
-        <div style={{ background: 'var(--bg-card)', borderBottom: '1px solid rgba(var(--border-rgb),0.15)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-0.02em' }}>
-              Green<span style={{ color: 'var(--green)' }}>Guard</span> USA
-            </div>
-            <div style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>Smart · Safe · Effective</div>
-          </div>
-          <a href="https://www.greenguard-usa.com" style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textDecoration: 'none' }}>greenguard-usa.com</a>
-        </div>
-
-        <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 24px' }}>
+      <PortalLayout minimal logoHref="https://www.greenguard-usa.com">
+        <div style={{ maxWidth: 680, margin: '0 auto' }}>
           {error && (
             <div style={{ padding: 28, borderRadius: 12, background: 'rgba(var(--danger-rgb),0.08)', border: '1px solid rgba(var(--danger-rgb),0.2)', color: 'var(--danger)', textAlign: 'center' }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 8 }}>Quote Not Found</div>
@@ -146,7 +136,7 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
           )}
 
           {!quote && !error && (
-            <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-dim)' }}>Loading your quote…</div>
+            <div style={{ padding: 60 }}><Skeleton lines={5} height={18} /></div>
           )}
 
           {quote && (
@@ -154,7 +144,7 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
               {/* Title */}
               <div style={{ marginBottom: 32 }}>
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10 }}>Service Proposal</div>
-                <h1 style={{ fontSize: 'clamp(1.6rem,3vw,2.2rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 8px' }}>
+                <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(1.8rem,3.2vw,2.4rem)', margin: '0 0 8px' }}>
                   {quote.customerName ? `Hi ${quote.customerName.split(' ')[0]},` : 'Your GreenGuard Proposal'}
                 </h1>
                 <p style={{ fontSize: '1rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
@@ -329,7 +319,7 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
             </>
           )}
         </div>
-      </div>
+      </PortalLayout>
     </>
   )
 }
