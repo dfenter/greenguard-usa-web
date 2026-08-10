@@ -57,6 +57,60 @@ function isAssessment(summary) {
   return /property assessment/i.test(summary || '')
 }
 
+// Rebooking via Cal.com cancels and recreates the event under a NEW id, so
+// event-id dedup alone re-welcomes the same customer (Amber Ellis got two,
+// Aug 9 + Aug 10). Welcomes are therefore also deduped by phone digits.
+const WELCOME_PHONE_DEDUP_MS = 30 * 24 * 60 * 60 * 1000
+function phoneKey(phone) {
+  const d = String(phone || '').replace(/\D/g, '')
+  return d.length > 10 ? d.slice(-10) : d
+}
+
+// Render a plain text-message body as a branded email — used when a customer's
+// number turns out to be unreachable (Apple-side delivery failure): the text
+// is IMPOSSIBLE, so email replaces it (owner-approved swap 2026-08-10; not a
+// double-notify).
+function textBodyToEmail(subject, textBody) {
+  const { emailShell, escapeHtml } = require('../lib/email')
+  const paras = String(textBody)
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => {
+      const link = l.match(/^https?:\/\/\S+$/)
+      const inner = link ? `<a href="${escapeHtml(l)}" style="color:#2d6a3f;">${escapeHtml(l)}</a>` : escapeHtml(l)
+      return `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#33443a;font-family:Arial,sans-serif;">${inner}</p>`
+    })
+    .join('')
+  return { subject, html: emailShell(paras) }
+}
+
+// Find a customer's email by phone from upcoming calendar events (yesterday
+// through +3 days covers every reminder the daemon can be sending). Used by
+// the daemon's failed-text email fallback for queue jobs, which carry only
+// phone + body.
+async function findEmailByPhone(phone) {
+  const gcal = require('../lib/gcal')
+  const key = phoneKey(phone)
+  if (!key) return null
+  const calendar = gcal.getCalendar()
+  const now = Date.now()
+  const res = await calendar.events.list({
+    calendarId: process.env.CALENDAR_ID || 'admin@greenguard-usa.com',
+    timeMin: new Date(now - 86400e3).toISOString(),
+    timeMax: new Date(now + 3 * 86400e3).toISOString(),
+    singleEvents: true,
+    maxResults: 250,
+    fields: 'items(summary,description,attendees)',
+  })
+  for (const ev of res.data.items || []) {
+    const desc = ev.description || ''
+    if (phoneKey(gcal.parsePhoneFromDescription(desc)) === key) {
+      return gcal.parseEmailFromDescription(desc) || gcal.parseEmailFromAttendees(ev.attendees) || null
+    }
+  }
+  return null
+}
+
 function buildWelcomeText(first, startIso) {
   return (
     `Hi ${first}, this is GreenGuard USA. Thanks for booking your property assessment ` +
@@ -138,22 +192,45 @@ async function tick(log, { dryRun = false } = {}) {
     const phone = gcal.parsePhoneFromDescription(desc)
     const email = gcal.parseEmailFromDescription(desc) || gcal.parseEmailFromAttendees(ev.attendees)
 
+    state.welcomedPhones = state.welcomedPhones || {}
+    const recentlyWelcomed = () => {
+      const t = state.welcomedPhones[phoneKey(phone)]
+      return t && now - t < WELCOME_PHONE_DEDUP_MS
+    }
+    const sendWelcome = async () => {
+      // Returns true when the customer was reached (text or email fallback).
+      try {
+        await sendViaIMessage({ to: phone, body: buildWelcomeText(first, ev.start.dateTime) })
+        state.welcomedPhones[phoneKey(phone)] = now
+        log(`[watcher] welcome text sent to ${phone} for "${summary}"`)
+        return true
+      } catch (e) {
+        if (/delivery failed/.test(e.message) && email) {
+          const { subject, html } = textBodyToEmail('Thanks for booking your assessment', buildWelcomeText(first, ev.start.dateTime))
+          await sendEmailDirect({ to: email, subject, html })
+          state.welcomedPhones[phoneKey(phone)] = now
+          log(`[watcher] welcome text undeliverable to ${phone} — sent by EMAIL to ${email} for "${summary}"`)
+          return true
+        }
+        log(`[watcher] welcome text FAILED to ${phone}: ${e.message} (will retry)`)
+        return false
+      }
+    }
+
     if (!known) {
       const createdAge = ev.created ? now - Date.parse(ev.created) : Infinity
       let welcomed = true
       if (isAssessment(summary) && createdAge < WELCOME_MAX_CREATED_AGE_MS) {
         if (!phone) {
           log(`[watcher] SKIP welcome for "${summary}" (${ev.id}): no phone in event`)
+        } else if (recentlyWelcomed()) {
+          // Cal.com reschedules recreate the event under a new id — same
+          // customer, not a new booking.
+          log(`[watcher] SKIP welcome for "${summary}" (${ev.id}): ${phone} already welcomed recently (rebooked event)`)
         } else if (dryRun) {
           log(`[watcher] DRY would text welcome to ${phone}: ${buildWelcomeText(first, ev.start.dateTime)}`)
         } else {
-          try {
-            await sendViaIMessage({ to: phone, body: buildWelcomeText(first, ev.start.dateTime) })
-            log(`[watcher] welcome text sent to ${phone} for "${summary}"`)
-          } catch (e) {
-            welcomed = false // retry next tick
-            log(`[watcher] welcome text FAILED to ${phone}: ${e.message} (will retry)`)
-          }
+          welcomed = await sendWelcome()
         }
       }
       state.events[ev.id] = { start: ev.start.dateTime, lastSeen: now, welcomed }
@@ -162,14 +239,8 @@ async function tick(log, { dryRun = false } = {}) {
 
     // Retry a previously failed welcome while the event is still fresh.
     if (known.welcomed === false) {
-      if (isAssessment(summary) && phone && !dryRun) {
-        try {
-          await sendViaIMessage({ to: phone, body: buildWelcomeText(first, ev.start.dateTime) })
-          known.welcomed = true
-          log(`[watcher] welcome text sent on retry to ${phone} for "${summary}"`)
-        } catch (e) {
-          log(`[watcher] welcome retry FAILED to ${phone}: ${e.message}`)
-        }
+      if (isAssessment(summary) && phone && !recentlyWelcomed() && !dryRun) {
+        if (await sendWelcome()) known.welcomed = true
       } else {
         known.welcomed = true // nothing sendable; stop retrying
       }
@@ -232,7 +303,7 @@ function start(log) {
   log(`[watcher] appointment watcher started — polling calendar every ${POLL_INTERVAL_MS / 60000} min`)
 }
 
-module.exports = { start, tick }
+module.exports = { start, tick, findEmailByPhone, textBodyToEmail }
 
 // ── CLI (manual test) ─────────────────────────────────────────────────────────
 if (require.main === module) {

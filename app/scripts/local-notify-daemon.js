@@ -131,6 +131,29 @@ async function processOne(id) {
     const mode = result && result.mode ? ` [${result.mode}]` : ''
     log(`sent ${kind} job ${id} to ${job.to}${mode} (${label})`)
   } catch (e) {
+    // An Apple-side delivery failure means this number is unreachable by text
+    // (not iMessage-registered and SMS relay couldn't take it) — the text is
+    // impossible, so reach the customer by email instead when the calendar has
+    // one (owner-approved swap 2026-08-10, not a double-notify). The job still
+    // reports failed either way so the failure is never invisible.
+    if (kind === 'sms' && /delivery failed/.test(e.message)) {
+      try {
+        const { findEmailByPhone, textBodyToEmail } = require('./appointment-watcher')
+        const customerPhone = String(job.to).split(',')[0].trim()
+        const email = await findEmailByPhone(customerPhone)
+        if (email) {
+          const subject = /reminder/i.test(job.body || '') ? 'Appointment reminder from GreenGuard USA' : 'A message from GreenGuard USA'
+          const { html } = textBodyToEmail(subject, job.body || '')
+          const { sendEmailDirect } = require('../lib/email')
+          await sendEmailDirect({ to: email, subject, html })
+          log(`sms job ${id} undeliverable to ${customerPhone} — content sent by EMAIL to ${email}`)
+        } else {
+          log(`sms job ${id} undeliverable to ${customerPhone} and no email found in calendar — admin alerted only`)
+        }
+      } catch (e2) {
+        log(`email fallback for sms job ${id} FAILED: ${e2.message}`)
+      }
+    }
     await notifyQueue.setJobStatus(id, 'failed-by-local', { error: e.message })
     log(`FAILED ${kind} job ${id} to ${job.to}: ${e.message} (portal backup will retry)`)
   }
