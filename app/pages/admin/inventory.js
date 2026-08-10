@@ -191,7 +191,7 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
     }
   }
 
-  const input = { width: '100%', padding: '12px 16px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', outline: 'none', textAlign: 'left' }
+  const input = { width: '100%', padding: '12px 16px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none', textAlign: 'left' }
   const lbl = { fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.6)', display: 'block', marginBottom: 8 }
   const section = { fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.3)', margin: '18px 0 10px', paddingBottom: 6, borderBottom: '1px solid rgba(var(--border-rgb),0.1)' }
 
@@ -310,7 +310,7 @@ export default function Inventory({ history: initialHistory, tankCalendar: initi
               )}
 
               <button onClick={save} disabled={saving}
-                style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 900, fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', background: saving ? 'rgba(var(--green-rgb),0.2)' : 'var(--green)', color: 'var(--text-on-accent)', opacity: saving ? 0.7 : 1 }}>
+                style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: 900, fontSize: '0.9rem', fontFamily: 'inherit', background: saving ? 'rgba(var(--green-rgb),0.2)' : 'var(--green)', color: 'var(--text-on-accent)', opacity: saving ? 0.7 : 1 }}>
                 {saving ? 'Saving…' : 'Save Daily Log'}
               </button>
           </div>

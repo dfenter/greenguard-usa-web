@@ -35,9 +35,8 @@ export function LazyLoading({ isAdmin = true, label = 'Loading…' }) {
   return (
     <PortalLayout isAdmin={isAdmin}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--text-dim)', fontSize: '0.9rem', fontWeight: 600 }}>
-        <span className="lazy-spinner" style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(var(--green-rgb),0.20)', borderTopColor: 'var(--green)', display: 'inline-block', marginRight: 10, animation: 'lazy-spin 0.7s linear infinite' }} />
+        <span className="lazy-spinner" style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(var(--green-rgb),0.20)', borderTopColor: 'var(--green)', display: 'inline-block', marginRight: 10, animation: 'spin 0.7s linear infinite' }} />
         {label}
-        <style>{`@keyframes lazy-spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     </PortalLayout>
   )

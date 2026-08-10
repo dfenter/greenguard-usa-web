@@ -372,7 +372,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
           .ctrl-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
           .ctrl-right { display:flex; gap:6px; align-items:center; }
           .view-seg { display:flex; border:1px solid rgba(var(--border-rgb),0.25); border-radius:6; overflow:hidden; }
-          .view-btn { background:transparent; color:rgba(var(--text-rgb),0.6); border:none; border-left:1px solid rgba(var(--border-rgb),0.25); padding:6px 10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:Inter,sans-serif; text-transform:capitalize; }
+          .view-btn { background:transparent; color:rgba(var(--text-rgb),0.6); border:none; border-left:1px solid rgba(var(--border-rgb),0.25); padding:6px 10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:inherit; text-transform:capitalize; }
           .view-btn:first-child { border-left:none; }
           .view-btn.active { background:var(--green); color: var(--text-on-accent); }
           @media (max-width:430px) {
@@ -411,7 +411,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
           {(viewMode === 'agenda' || viewMode === 'day') && bookings.length > 0 && (
             <button onClick={refreshMyDistance} disabled={myDistLoading}
               title="Driving distance from your current location to each stop"
-              style={{ alignSelf:'flex-start', padding:'10px 16px', borderRadius:8, border:'1px solid rgba(var(--info-rgb),0.35)', background:'rgba(var(--info-rgb),0.08)', color:'var(--info)', fontSize:'0.9rem', fontWeight:800, fontFamily:'Inter,sans-serif', cursor: myDistLoading ? 'wait' : 'pointer', opacity: myDistLoading ? 0.6 : 1 }}>
+              style={{ alignSelf:'flex-start', padding:'10px 16px', borderRadius:8, border:'1px solid rgba(var(--info-rgb),0.35)', background:'rgba(var(--info-rgb),0.08)', color:'var(--info)', fontSize:'0.9rem', fontWeight:800, fontFamily:'inherit', cursor: myDistLoading ? 'wait' : 'pointer', opacity: myDistLoading ? 0.6 : 1 }}>
               {myDistLoading ? 'Locating…' : 'My Distance'}
             </button>
           )}

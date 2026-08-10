@@ -10,8 +10,7 @@ const PREFETCH_ROUTES = [
   '/admin/clients', '/admin/quote', '/admin/invoice', '/admin/invoices',
   '/admin/route', '/admin/analytics', '/admin/books', '/admin/books/chat',
   '/admin/books/upload', '/admin/booking',
-  '/dashboard', '/dashboard/billing', '/dashboard/co2', '/dashboard/equipment',
-  '/dashboard/history', '/dashboard/map', '/dashboard/schedule',
+  '/dashboard', '/dashboard/history', '/dashboard/map',
   '/dashboard/settings', '/dashboard/upgrade',
   '/prospect',
 ]
@@ -32,7 +31,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 24, fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif", color: 'var(--text)', textAlign: 'center' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 24, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: 'var(--text)', textAlign: 'center' }}>
           <div style={{ maxWidth: 400 }}>
             <div style={{ fontWeight: 900, fontSize: '1.3rem', marginBottom: 24 }}>{process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'}</div>
             <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 8 }}>Something went wrong.</div>

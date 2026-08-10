@@ -196,7 +196,6 @@ export default function UpgradePage({ name, firstName, systemType, trapCount, up
       <Head>
         <title>Upgrade Your Service · GreenGuard USA</title>
         <meta name="robots" content="noindex" />
-        <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
       <div style={{ minHeight: '100vh', background: PAGE_BG, color: 'var(--text)', paddingBottom: 80 }}>

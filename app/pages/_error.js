@@ -8,7 +8,7 @@ export default function ErrorPage({ statusCode }) {
   return (
     <>
       <Head><title>{statusCode || 'Error'} · GreenGuard</title></Head>
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 24, fontFamily: "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif", color: 'var(--text)' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 24, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: 'var(--text)' }}>
         <div style={{ width: '100%', maxWidth: 420, textAlign: 'center' }}>
           <div style={{ fontWeight: 900, fontSize: '1.3rem', letterSpacing: '-0.02em', marginBottom: 32 }}>
             Green<span style={{ color: 'var(--green)' }}>Guard</span> USA

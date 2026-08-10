@@ -62,10 +62,10 @@ function RouteCalendar({ days, selectedDay, setSelectedDay, today }) {
       {/* Month nav */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
         <button onClick={() => setViewMonth(({ year, month }) => month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 })}
-          style={{ background: 'none', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 6, color: 'var(--green-muted)', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Inter, sans-serif', fontSize: '1rem' }}>‹</button>
+          style={{ background: 'none', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 6, color: 'var(--green-muted)', cursor: 'pointer', padding: '4px 12px', fontFamily: 'inherit', fontSize: '1rem' }}>‹</button>
         <div style={{ fontWeight: 800, fontSize: '0.95rem', flex: 1, textAlign: 'center' }}>{monthLabel}</div>
         <button onClick={() => setViewMonth(({ year, month }) => month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 })}
-          style={{ background: 'none', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 6, color: 'var(--green-muted)', cursor: 'pointer', padding: '4px 12px', fontFamily: 'Inter, sans-serif', fontSize: '1rem' }}>›</button>
+          style={{ background: 'none', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 6, color: 'var(--green-muted)', cursor: 'pointer', padding: '4px 12px', fontFamily: 'inherit', fontSize: '1rem' }}>›</button>
       </div>
 
       {/* Day labels */}
@@ -163,7 +163,7 @@ function RoutePageView({ routePlan, today, planGeneratedAt }) {
         .stop-addr { font-size: 0.82rem; color: rgba(var(--text-rgb),0.6); margin-bottom: 10px; word-break: break-word; }
         .stop-meta { font-size: 0.75rem; color: rgba(var(--text-rgb),0.38); }
         .nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; background: var(--bg-alt); border: 1px solid rgba(var(--border-rgb),0.3); border-radius: 6px; color: var(--green); font-size: 0.8rem; font-weight: 800; text-decoration: none; letter-spacing: 0.04em; white-space: nowrap; }
-        .day-tab { padding: 10px 18px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.85rem; font-family: 'Inter', sans-serif; min-height: 44px; transition: all 0.15s; }
+        .day-tab { padding: 10px 18px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.85rem; font-family: inherit; min-height: 44px; transition: all 0.15s; }
         @media (max-width: 480px) {
           .stop-card { padding: 14px 12px; gap: 10px; }
           .stop-name { font-size: 0.95rem; }

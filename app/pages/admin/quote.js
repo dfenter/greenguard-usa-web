@@ -56,10 +56,10 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
-                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>−</button>
+                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'inherit' }}>−</button>
                   <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 900, color: 'var(--green)' }}>{qty}</span>
                   <button onClick={() => onChange(item.label, qty + 1)}
-                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(var(--green-rgb),0.3)', background: 'rgba(var(--green-rgb),0.08)', color: 'var(--green)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>+</button>
+                    style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid rgba(var(--green-rgb),0.3)', background: 'rgba(var(--green-rgb),0.08)', color: 'var(--green)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, fontFamily: 'inherit' }}>+</button>
                 </div>
               </div>
             )
@@ -69,7 +69,7 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
 
       {/* Dropdown trigger */}
       <button onClick={() => setOpen((o) => !o)}
-        style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px dashed rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'rgba(var(--text-rgb),0.85)', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px dashed rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'rgba(var(--text-rgb),0.85)', cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem', fontFamily: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>{selectedItems.length > 0 ? `+ Add more ${title.toLowerCase()}` : `Select ${title.toLowerCase()}…`}</span>
         <span style={{ fontSize: '0.7rem' }}>{open ? '▲' : '▼'}</span>
       </button>
@@ -79,7 +79,7 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
         <div style={{ position: 'absolute', left: 0, right: 0, zIndex: 60, background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 10, marginTop: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', maxHeight: 360, overflowY: 'auto' }}>
           <div style={{ padding: '10px 14px 6px', borderBottom: '1px solid rgba(var(--border-rgb),0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(var(--text-rgb),0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{title}</span>
-            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(var(--text-rgb),0.45)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>×</button>
+            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(var(--text-rgb),0.45)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'inherit' }}>×</button>
           </div>
           {categories.map((cat) => (
             <div key={cat}>
@@ -104,10 +104,10 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
                     {selected && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => onChange(item.label, Math.max(0, qty - 1))}
-                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>−</button>
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(var(--border-rgb),0.3)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'inherit' }}>−</button>
                         <span style={{ minWidth: 16, textAlign: 'center', fontWeight: 900, color: 'var(--green)', fontSize: '0.9rem' }}>{qty}</span>
                         <button onClick={() => onChange(item.label, qty + 1)}
-                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(var(--green-rgb),0.3)', background: 'rgba(var(--green-rgb),0.08)', color: 'var(--green)', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>+</button>
+                          style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(var(--green-rgb),0.3)', background: 'rgba(var(--green-rgb),0.08)', color: 'var(--green)', cursor: 'pointer', fontSize: '0.95rem', lineHeight: 1, fontFamily: 'inherit' }}>+</button>
                       </div>
                     )}
                   </div>
@@ -116,7 +116,7 @@ function MultiSelect({ title, catalog, qtys, onChange }) {
             </div>
           ))}
           <div style={{ padding: '10px 14px', textAlign: 'center' }}>
-            <button onClick={() => setOpen(false)} style={{ padding: '8px 24px', borderRadius: 6, border: 'none', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'Inter, sans-serif', cursor: 'pointer' }}>Done</button>
+            <button onClick={() => setOpen(false)} style={{ padding: '8px 24px', borderRadius: 6, border: 'none', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.85rem', fontFamily: 'inherit', cursor: 'pointer' }}>Done</button>
           </div>
         </div>
       )}
@@ -165,7 +165,7 @@ function CustomerSearch({ onSelect }) {
         value={query}
         onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
-        style={{ width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }}
+        style={{ width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none' }}
       />
       {open && loading && <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, padding: '10px 14px', background: 'var(--bg-card)', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, zIndex: 50, marginTop: 4, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Searching…</div>}
       {open && !loading && results.length > 0 && (
@@ -323,7 +323,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
 
   const Q = { fontSize: '0.82rem', fontWeight: 800, color: 'rgba(var(--text-rgb),0.7)', marginBottom: 8, marginTop: 16 }
   const chip = (active) => ({ display: 'inline-block', padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.2)'}`, background: active ? 'rgba(var(--green-rgb),0.1)' : 'transparent', color: active ? 'var(--green)' : 'rgba(var(--text-rgb),0.5)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', marginRight: 8, marginBottom: 8, userSelect: 'none', transition: 'all 0.12s' })
-  const trapSelect = { padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'var(--bg-card)', color: 'var(--green)', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif', appearance: 'auto' }
+  const trapSelect = { padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(var(--border-rgb),0.3)', background: 'var(--bg-card)', color: 'var(--green)', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', fontFamily: 'inherit', appearance: 'auto' }
 
   return (
     <div>
@@ -509,7 +509,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
               value={serviceDate}
               min={minDate}
               onChange={(e) => setServiceDate(e.target.value)}
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--gold-rgb),0.4)'}`, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', fontFamily: 'Inter, sans-serif', outline: 'none', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--gold-rgb),0.4)'}`, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', fontFamily: 'inherit', outline: 'none', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
             />
             <span style={{ fontSize: '0.78rem', color: 'rgba(var(--text-rgb),0.5)' }}>
               Earliest available: {new Date(minDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (5-day lead time)
@@ -834,7 +834,7 @@ export default function QuoteBuilder({ mapsKey }) {
     setTimeout(() => setSent(false), 5000)
   }
 
-  const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
+  const input = { width: '100%', padding: '9px 12px', boxSizing: 'border-box', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none' }
   const lbl = { display: 'block', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--text-rgb),0.45)', marginBottom: 4 }
 
   return (
@@ -881,11 +881,11 @@ export default function QuoteBuilder({ mapsKey }) {
                     {mapPin && (
                       <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.3)', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
                         <button onClick={() => setMapView('satellite')}
-                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'satellite' ? 'var(--gold)' : 'var(--bg-card)', color: mapView === 'satellite' ? 'var(--text-on-accent)' : 'var(--text)' }}>
+                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'satellite' ? 'var(--gold)' : 'var(--bg-card)', color: mapView === 'satellite' ? 'var(--text-on-accent)' : 'var(--text)' }}>
                           Satellite
                         </button>
                         <button onClick={() => setMapView('street')}
-                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'street' ? 'var(--gold)' : 'var(--bg-card)', color: mapView === 'street' ? 'var(--text-on-accent)' : 'var(--text)' }}>
+                          style={{ padding: '5px 12px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.72rem', background: mapView === 'street' ? 'var(--gold)' : 'var(--bg-card)', color: mapView === 'street' ? 'var(--text-on-accent)' : 'var(--text)' }}>
                           Street
                         </button>
                       </div>
@@ -898,12 +898,12 @@ export default function QuoteBuilder({ mapsKey }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {!placingPin ? (
                           <button onClick={() => setPlacingPin(true)}
-                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.3)', background: 'transparent', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
+                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(var(--green-rgb),0.3)', background: 'transparent', color: 'var(--green)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'inherit' }}>
                             + Place Trap Location
                           </button>
                         ) : (
                           <button onClick={() => setPlacingPin(false)}
-                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'transparent', color: 'rgba(var(--text-rgb),0.5)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
+                            style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'transparent', color: 'rgba(var(--text-rgb),0.5)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'inherit' }}>
                             Cancel
                           </button>
                         )}
@@ -912,7 +912,7 @@ export default function QuoteBuilder({ mapsKey }) {
                             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.68rem', flexShrink: 0 }}>{idx + 1}</span>
                             <span style={{ color: 'rgba(var(--text-rgb),0.7)', fontWeight: 600 }}>Trap {idx + 1}</span>
                             <button onClick={() => setMachPins((prev) => prev.filter((p) => p.id !== pin.id))}
-                              style={{ background: 'none', border: 'none', color: 'rgba(var(--text-rgb),0.35)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: 0, fontFamily: 'Inter, sans-serif', marginLeft: 2 }}>×</button>
+                              style={{ background: 'none', border: 'none', color: 'rgba(var(--text-rgb),0.35)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: 0, fontFamily: 'inherit', marginLeft: 2 }}>×</button>
                           </div>
                         ))}
                       </div>
@@ -1055,7 +1055,7 @@ export default function QuoteBuilder({ mapsKey }) {
                 <button
                   onClick={payNow}
                   disabled={checkingOut || allLines.filter(l => l.amount > 0).length === 0}
-                  style={{ padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'Inter, sans-serif', background: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(var(--green-rgb),0.15)' : 'var(--green)', color: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(var(--text-rgb),0.4)' : 'var(--text-on-accent)', opacity: checkingOut ? 0.7 : 1 }}>
+                  style={{ padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.95rem', fontFamily: 'inherit', background: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(var(--green-rgb),0.15)' : 'var(--green)', color: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(var(--text-rgb),0.4)' : 'var(--text-on-accent)', opacity: checkingOut ? 0.7 : 1 }}>
                   {checkingOut ? 'Opening checkout…' : '✓ Approve & Pay Now'}
                 </button>
                 {checkoutError && <div style={{ fontSize: '0.78rem', color: 'var(--danger)', textAlign: 'center' }}>{checkoutError}</div>}
@@ -1065,15 +1065,15 @@ export default function QuoteBuilder({ mapsKey }) {
                     <div style={{ flex: 1, padding: '9px', borderRadius: 6, background: 'rgba(var(--green-rgb),0.08)', border: '1px solid rgba(var(--green-rgb),0.2)', color: 'var(--green)', fontSize: '0.82rem', fontWeight: 700, textAlign: 'center' }}>Sent ✓</div>
                   ) : (
                     <button onClick={sendQuote} disabled={sending || !customerEmail}
-                      style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', cursor: customerEmail ? 'pointer' : 'not-allowed', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: customerEmail ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.2)', color: customerEmail ? 'var(--text-on-accent)' : 'rgba(var(--text-rgb),0.3)', opacity: sending ? 0.7 : 1 }}>
+                      style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', cursor: customerEmail ? 'pointer' : 'not-allowed', fontWeight: 800, fontSize: '0.82rem', fontFamily: 'inherit', background: customerEmail ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.2)', color: customerEmail ? 'var(--text-on-accent)' : 'rgba(var(--text-rgb),0.3)', opacity: sending ? 0.7 : 1 }}>
                       {sending ? 'Sending…' : 'Email Quote'}
                     </button>
                   )}
-                  <button onClick={copyQuoteLink} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid rgba(var(--info-rgb),0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: linkCopied ? 'rgba(var(--info-rgb),0.1)' : 'transparent', color: linkCopied ? 'var(--info)' : 'rgba(var(--info-rgb),0.7)' }}>
+                  <button onClick={copyQuoteLink} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid rgba(var(--info-rgb),0.3)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'inherit', background: linkCopied ? 'rgba(var(--info-rgb),0.1)' : 'transparent', color: linkCopied ? 'var(--info)' : 'rgba(var(--info-rgb),0.7)' }}>
                     {linkCopied ? '✓ Copied!' : '🔗 Share Link'}
                   </button>
                 </div>
-                <button onClick={() => window.print()} style={{ padding: '9px', borderRadius: 8, border: '1px solid rgba(var(--border-rgb),0.25)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', background: 'transparent', color: 'rgba(var(--text-rgb),0.6)' }}>
+                <button onClick={() => window.print()} style={{ padding: '9px', borderRadius: 8, border: '1px solid rgba(var(--border-rgb),0.25)', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', fontFamily: 'inherit', background: 'transparent', color: 'rgba(var(--text-rgb),0.6)' }}>
                   Print / PDF
                 </button>
               </div>

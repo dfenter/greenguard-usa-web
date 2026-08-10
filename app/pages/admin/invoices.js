@@ -136,7 +136,7 @@ export default function InvoicesList() {
   const chip = (active, color) => ({
     padding: '5px 12px', borderRadius: 5, border: `1px solid ${active ? color : 'rgba(var(--border-rgb),0.25)'}`,
     background: active ? 'var(--bg-alt)' : 'transparent', color: active ? color : 'rgba(var(--text-rgb),0.7)',
-    fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+    fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
   })
 
   return (
@@ -160,7 +160,7 @@ export default function InvoicesList() {
         <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid rgba(var(--border-rgb),0.15)', marginBottom: 14, overflowX: 'auto' }}>
           {TABS.map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              style={{ padding: '10px 16px', background: 'transparent', border: 'none', borderBottom: tab === t.key ? '2px solid var(--green)' : '2px solid transparent', color: tab === t.key ? 'var(--green)' : 'rgba(var(--text-rgb),0.55)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>
+              style={{ padding: '10px 16px', background: 'transparent', border: 'none', borderBottom: tab === t.key ? '2px solid var(--green)' : '2px solid transparent', color: tab === t.key ? 'var(--green)' : 'rgba(var(--text-rgb),0.55)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
               {t.label}
             </button>
           ))}
@@ -260,7 +260,7 @@ export default function InvoicesList() {
           <div style={{ marginTop: 12, textAlign: 'center' }}>
             {loading
               ? <span style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.4)' }}>Loading…</span>
-              : <button onClick={() => loadPage(cursor)} style={{ padding: '7px 14px', borderRadius: 5, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'transparent', color: 'rgba(var(--text-rgb),0.7)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif' }}>
+              : <button onClick={() => loadPage(cursor)} style={{ padding: '7px 14px', borderRadius: 5, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'transparent', color: 'rgba(var(--text-rgb),0.7)', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'inherit' }}>
                   Load 100 more
                 </button>
             }

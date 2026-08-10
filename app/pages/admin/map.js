@@ -175,7 +175,7 @@ function SystemMapView({ customers, mapsKey }) {
         <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
           {FILTER_TABS.map((t) => (
             <button key={t.key} onClick={() => setFilter(t.key)}
-              style={{ padding: '6px 14px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'Inter, sans-serif', background: filter === t.key ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.1)', color: filter === t.key ? 'var(--text-on-accent)' : 'var(--gold)' }}>
+              style={{ padding: '6px 14px', borderRadius: 4, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem', fontFamily: 'inherit', background: filter === t.key ? 'var(--gold)' : 'rgba(var(--gold-rgb),0.1)', color: filter === t.key ? 'var(--text-on-accent)' : 'var(--gold)' }}>
               {t.label}
             </button>
           ))}

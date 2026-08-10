@@ -273,8 +273,8 @@ function InvoiceEditorView({ customers = [] }) {
     await loadPending()
   }
 
-  const input = { padding: '9px 12px', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'Inter, sans-serif', outline: 'none' }
-  const btn = (v) => ({ padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', fontFamily: 'Inter, sans-serif', ...(v === 'gold' ? { background: 'var(--gold)', color: 'var(--text-on-accent)' } : v === 'green' ? { background: 'var(--green)', color: 'var(--text-on-accent)' } : v === 'red' ? { background: 'rgba(var(--danger-rgb),0.12)', color: 'var(--danger)', border: '1px solid rgba(var(--danger-rgb),0.2)' } : { background: 'rgba(var(--border-rgb),0.1)', color: 'var(--green-muted)', border: '1px solid rgba(var(--border-rgb),0.2)' }) })
+  const input = { padding: '9px 12px', border: '1px solid rgba(var(--border-rgb),0.25)', borderRadius: 8, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit', outline: 'none' }
+  const btn = (v) => ({ padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', fontFamily: 'inherit', ...(v === 'gold' ? { background: 'var(--gold)', color: 'var(--text-on-accent)' } : v === 'green' ? { background: 'var(--green)', color: 'var(--text-on-accent)' } : v === 'red' ? { background: 'rgba(var(--danger-rgb),0.12)', color: 'var(--danger)', border: '1px solid rgba(var(--danger-rgb),0.2)' } : { background: 'rgba(var(--border-rgb),0.1)', color: 'var(--green-muted)', border: '1px solid rgba(var(--border-rgb),0.2)' }) })
   const SECTION = { fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 12, marginTop: 28 }
 
   return (
@@ -409,7 +409,7 @@ function InvoiceEditorView({ customers = [] }) {
                           if (r.ok) { setMsg('Draft deleted'); loadPending() }
                           else { const j = await r.json().catch(() => ({})); alert('Failed: ' + (j.error || r.status)) }
                         }}
-                          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(var(--danger-rgb),0.3)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
+                          style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(var(--danger-rgb),0.3)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'inherit' }}>
                           Cancel
                         </button>
                         {draft.hostedUrl && (
@@ -434,7 +434,7 @@ function InvoiceEditorView({ customers = [] }) {
                                     body: JSON.stringify({ action: 'delete-line', invoiceId: draft.id, itemId: line.id }),
                                   })
                                   loadPending()
-                                }} style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(var(--danger-rgb),0.25)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
+                                }} style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(var(--danger-rgb),0.25)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit' }}>
                                   ✕
                                 </button>
                               </div>
@@ -543,7 +543,7 @@ function InvoiceEditorView({ customers = [] }) {
                         onClick={() => dismissAppointment(apt, i)}
                         disabled={dismissing !== null}
                         title="Remove from this list — no invoice needed for this appointment"
-                        style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'transparent', color: 'rgba(var(--text-rgb),0.55)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
+                        style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(var(--border-rgb),0.25)', background: 'transparent', color: 'rgba(var(--text-rgb),0.55)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'inherit' }}>
                         {dismissing === i ? 'Removing…' : 'No invoice'}
                       </button>
                     </div>
@@ -708,7 +708,7 @@ function InvoiceEditorView({ customers = [] }) {
                               {isDraft && (
                                 <button
                                   onClick={() => deleteLineItem(inv.id, line.invoiceItem || line.id)}
-                                  style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(var(--danger-rgb),0.25)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
+                                  style={{ marginLeft: 10, padding: '3px 8px', borderRadius: 4, border: '1px solid rgba(var(--danger-rgb),0.25)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit' }}>
                                   ✕
                                 </button>
                               )}
