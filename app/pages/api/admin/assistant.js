@@ -8,7 +8,8 @@
 
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { getTodaysBookings, getBookingsForDate } = require('../../../lib/gcal')
-const { findContactByEmail, findContactsByNames, tanksForCustomer } = require('../../../lib/hubspot')
+const { findContactByEmail, findContactsByNames, tanksForCustomer, addNote, getContactNotes } = require('../../../lib/hubspot')
+const { invalidate } = require('../../../lib/cache')
 const { buildTankCalendarData } = require('../../../lib/tank-data')
 const { sendSms } = require('../../../lib/sms')
 const { runAssistant } = require('../../../lib/assistant')
@@ -21,7 +22,9 @@ export const config = { maxDuration: 60 }
 
 const SYSTEM = `You are the GreenGuard USA operations assistant for the owner and field tech. Be terse and direct: answer the question, surface the number, name the next stop. No marketing language, no emojis, no em dashes.
 
-You have tools to read today's route, look up a customer, check tank inventory, and send a customer an "on my way" SMS. Use them rather than guessing. When you send an SMS, confirm plainly who it went to. For anything you cannot do (booking, cancelling, invoicing, refunds), tell the user which admin page handles it (Rounds, Calendar, Invoice) instead of pretending to do it.
+You have tools to read today's route, look up a customer, check tank inventory, send a customer an "on my way" SMS, and save notes. Use them rather than guessing. When you send an SMS, confirm plainly who it went to. For anything you cannot do (booking, cancelling, invoicing, refunds), tell the user which admin page handles it (Rounds, Calendar, Invoice) instead of pretending to do it.
+
+Notes: when the user tells you something worth keeping (a day log, a reminder, a customer detail like a gate code, a dog, a broken trap, a follow-up), save it WITHOUT being asked to "add a note". If it is about a specific customer, use add_customer_note with their email (look them up first if you only have a name). Otherwise use add_tech_note for the day log. Confirm in a few words what you saved and where.
 
 Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ })}.`
 
@@ -104,6 +107,51 @@ export default async function handler(req, res) {
         const t = await buildTankCalendarData(TZ).catch(() => null)
         if (!t) return { error: 'inventory unavailable' }
         return { currentStock: t.currentStock, tanksNeededThisWeek: t.weeklyTankTotal, expectedDelivery: t.expectedDelivery }
+      },
+    },
+    {
+      name: 'add_tech_note',
+      description: "Save a note to the tech's day log (general observations, reminders, anything not tied to one customer). Shown to the owner and tech.",
+      input_schema: { type: 'object', properties: { body: { type: 'string', description: 'The note text.' } }, required: ['body'] },
+      run: async ({ body }) => {
+        const text = (body || '').trim()
+        if (!text) return { saved: false, error: 'empty note' }
+        const contact = await findContactByEmail('bruce@greenguard-usa.com').catch(() => null)
+        if (!contact?.id) return { saved: false, error: 'tech contact not found' }
+        await addNote(contact.id, `[TECH-NOTE] ${text}`)
+        return { saved: true, where: 'tech day log' }
+      },
+    },
+    {
+      name: 'add_customer_note',
+      description: 'Save a note on a specific customer (gate codes, pets, access issues, follow-ups, service details). Appears on their profile and rounds cards.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', description: 'Customer email. Look the customer up first if you only have a name.' },
+          body: { type: 'string', description: 'The note text.' },
+        },
+        required: ['email', 'body'],
+      },
+      run: async ({ email, body }) => {
+        const text = (body || '').trim()
+        if (!text) return { saved: false, error: 'empty note' }
+        const c = await findContactByEmail(email).catch(() => null)
+        if (!c?.id) return { saved: false, error: `no customer found for ${email}` }
+        await addNote(c.id, `[ADMIN-NOTE ${session.email} ${new Date().toISOString()}] ${text}`)
+        await invalidate(`hs:notes:${c.id}`).catch(() => {})
+        return { saved: true, customer: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ') || email }
+      },
+    },
+    {
+      name: 'get_customer_notes',
+      description: 'Read the most recent notes on a customer by email.',
+      input_schema: { type: 'object', properties: { email: { type: 'string' } }, required: ['email'] },
+      run: async ({ email }) => {
+        const c = await findContactByEmail(email).catch(() => null)
+        if (!c?.id) return { found: false }
+        const raw = await getContactNotes(c.id, 10).catch(() => [])
+        return { found: true, notes: raw.map((n) => ({ body: n.body, timestamp: n.timestamp || null })) }
       },
     },
     {
