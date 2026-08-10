@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import CustomerPanel from './CustomerPanel'
-
-const TZ_DISPLAY = 'America/Chicago'
+import { useToast, useConfirm } from './ui'
 
 const TZ = 'America/Chicago'
 
@@ -17,23 +16,7 @@ function fmtTime(iso) {
 // /admin/rounds, /admin/home, and /admin/tech so the three pages render an
 // identical card. Page-specific buttons go in the `actions` slot; extra body
 // content (e.g. the rounds service-logging form) goes in `children`.
-// Matches the rounds-page action buttons exactly so Navigate / Rounds / Text
-// align across /admin/home, /admin/tech, and /admin/rounds.
-export const actionBtn = {
-  flex: '1 1 70px', padding: '9px 8px', borderRadius: 6, justifyContent: 'center',
-  fontSize: '1.125rem', fontWeight: 800, textDecoration: 'none', minHeight: 36,
-  display: 'inline-flex', alignItems: 'center', fontFamily: 'inherit',
-  boxSizing: 'border-box', cursor: 'pointer',
-}
-
-export const disabledBtn = {
-  ...actionBtn,
-  border: '2px solid var(--border)',
-  color: 'var(--text-dim)',
-  background: 'var(--bg-alt)',
-  cursor: 'not-allowed',
-  opacity: 0.6,
-}
+// Action buttons use the shared .stop-btn class from globals.css.
 
 // Clearly delineated "Completed Rounds" area shared by /admin/rounds,
 // /admin/home, and /admin/tech. Finalized stops move out of the working list
@@ -44,7 +27,7 @@ export function CompletedRoundsSection({ count, children }) {
   return (
     <div style={{ marginTop: 28, borderTop: '3px solid var(--ok)', paddingTop: 16 }}>
       <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ok)', marginBottom: 12 }}>
-        ✓ Completed Rounds — {count}
+        ✓ Completed Rounds ({count})
       </div>
       <div style={{ background: 'rgba(var(--ok-rgb),0.04)', border: '1px solid rgba(var(--ok-rgb),0.25)', borderRadius: 12, padding: '14px 14px 0' }}>
         {children}
@@ -59,9 +42,16 @@ export function StopRow({ stop, index, dateStr, distance, preview = false, done 
   const roundsUrl = `/admin/rounds?date=${dateStr}&email=${encodeURIComponent(stop.email || '')}`
   const mapsUrl = stop.address ? `https://maps.apple.com/?daddr=${encodeURIComponent(stop.address)}` : null
   const canNotify = !!(stop.email || stop.phone)
+  const toast = useToast()
+  const confirm = useConfirm()
 
   async function sendOnMyWay() {
-    const eta = window.prompt('ETA in minutes (leave blank for "shortly"):', '15')
+    const eta = await confirm({
+      title: 'On My Way',
+      body: 'ETA in minutes. Leave blank to text "shortly".',
+      confirmLabel: 'Send text',
+      input: { type: 'number', placeholder: 'Minutes', presets: [10, 15, 20, 30], unit: 'min', defaultValue: '15' },
+    })
     if (eta === null) return
     const send = (force) => fetch('/api/admin/notify-eta', {
       method: 'POST',
@@ -71,39 +61,32 @@ export function StopRow({ stop, index, dateStr, distance, preview = false, done 
     let r = await send(false)
     let d = await r.json().catch(() => ({}))
     if (r.status === 409 && d.duplicate) {
-      if (!window.confirm(d.error + '\n\nSend again anyway?')) return
+      const again = await confirm({ title: 'Already notified', body: d.error, confirmLabel: 'Send again' })
+      if (!again) return
       r = await send(true); d = await r.json().catch(() => ({}))
     }
-    if (r.ok) alert('✓ SMS sent')
-    else alert('Failed: ' + (d.error || r.status))
+    if (r.ok) toast.ok('SMS sent')
+    else toast.error('Text failed: ' + (d.error || r.status))
   }
 
   const actions = preview ? null : (
     <>
       {mapsUrl ? (
-        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ ...actionBtn, border: '2px solid var(--border)', color: 'var(--text)', background: 'var(--bg-card)', fontWeight: 800 }}>Navigate</a>
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="stop-btn">Navigate</a>
       ) : (
-        <span style={disabledBtn} aria-disabled="true">Navigate</span>
+        <span className="stop-btn" aria-disabled="true">Navigate</span>
       )}
       <button
         disabled={!canNotify}
         title={canNotify ? 'Send arrival SMS' : 'No phone or email on file'}
         onClick={sendOnMyWay}
-        style={{
-          ...actionBtn,
-          border: canNotify ? '2px solid var(--border)' : '2px solid var(--border)',
-          background: canNotify ? 'var(--bg-card)' : 'var(--bg-alt)',
-          color: 'var(--text)',
-          cursor: canNotify ? 'pointer' : 'not-allowed',
-          fontWeight: 800,
-          opacity: canNotify ? 1 : 0.6,
-        }}>
+        className="stop-btn">
         📲 On My Way
       </button>
       {stop.email ? (
-        <Link href={roundsUrl} style={{ ...actionBtn, background: 'var(--bg-card)', color: 'var(--text)', border: '2px solid var(--border)', fontWeight: 900 }}>{done ? 'Review Visit' : 'Finalize Visit'}</Link>
+        <Link href={roundsUrl} className="stop-btn">{done ? 'Review Visit' : 'Finalize Visit'}</Link>
       ) : (
-        <span style={{ ...disabledBtn, fontWeight: 900 }} aria-disabled="true">Finalize Visit</span>
+        <span className="stop-btn" aria-disabled="true">Finalize Visit</span>
       )}
     </>
   )
@@ -146,15 +129,16 @@ export default function StopCard({
 
   // Accessibility: high contrast with white card background for readability.
   // Assessment cards use blue highlight with thicker border. Done/active states preserve visual hierarchy.
+  // Low-vision legibility comes from SIZE + WEIGHT (mixed case keeps word
+  // shapes readable); uppercase is reserved for small section labels.
   const isAssessment = /assessment/i.test(stop.serviceType || '')
   const card = {
     background: 'var(--bg-card)',
     border: `${isAssessment ? 4 : 2}px solid ${isAssessment ? 'var(--info)' : done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--border)'}`,
     borderLeft: `${isAssessment ? 10 : 6}px solid ${isAssessment ? 'var(--info)' : done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--border)'}`,
     borderRadius: 'var(--radius)', padding: 20, marginBottom: 14,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+    boxShadow: 'var(--shadow-sm)',
     opacity: preview ? 0.75 : cancelled ? 0.6 : 1,
-    textTransform: 'uppercase', // blind tech: all rounds-card text uppercase for legibility
   }
 
   return (
@@ -169,25 +153,25 @@ export default function StopCard({
         <div style={{ marginBottom: actions || children ? 12 : 0 }}>
           {/* Name row: number · name · address · distance */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', fontWeight: 900, fontSize: '0.975rem', background: done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--green-muted)', color: 'var(--text-on-accent)', flexShrink: 0 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', fontWeight: 'var(--w-head)', fontSize: 'var(--fs-base)', background: done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--green-muted)', color: 'var(--text-on-accent)', flexShrink: 0 }}>
               {done ? '✓' : number}
             </span>
             {preview ? (
-              <span style={{ fontWeight: 900, fontSize: '1.25rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', flexShrink: 0 }}>{name}</span>
+              <span style={{ fontWeight: 'var(--w-head)', fontSize: 'var(--fs-xl)', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', flexShrink: 0 }}>{name}</span>
             ) : (
               <button
-                style={{ fontWeight: 900, fontSize: '1.25rem', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', background: 'none', border: 'none', borderBottom: '2px solid var(--border)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
+                style={{ fontWeight: 'var(--w-head)', fontSize: 'var(--fs-xl)', color: /assessment/i.test(stop.serviceType || '') ? 'var(--info)' : 'var(--text)', background: 'none', border: 'none', borderBottom: '2px solid var(--border)', padding: 0, cursor: stop.email ? 'pointer' : 'default', flexShrink: 0, fontFamily: 'inherit' }}
                 onClick={(e) => { e.stopPropagation(); openProfile() }}
               >{name}</button>
             )}
             {stop.phone && (
-              <span style={{ fontSize: '1.063rem', color: 'var(--text)', fontWeight: 700 }}>📞 {stop.phone}</span>
+              <span style={{ fontSize: 'var(--fs-lg)', color: 'var(--text)', fontWeight: 'var(--w-emph)' }}>📞 {stop.phone}</span>
             )}
             {stop.address && (
-              <span style={{ fontSize: '1.063rem', color: 'var(--text)', fontWeight: 700 }}>📍 {stop.address}</span>
+              <span style={{ fontSize: 'var(--fs-lg)', color: 'var(--text)', fontWeight: 'var(--w-emph)' }}>📍 {stop.address}</span>
             )}
             {distance && (
-              <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text)', whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: 'var(--w-head)', fontSize: 'var(--fs-lg)', color: 'var(--text)', whiteSpace: 'nowrap' }}>
                 {distance.miles} mi · {distance.duration}
               </span>
             )}
@@ -196,7 +180,7 @@ export default function StopCard({
 
           {/* Tanks needed + trap count — pinned directly below the name */}
           {(stop.tanks > 0 || stop.traps > 0) && (
-            <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '1.125rem', color: 'var(--text)', fontWeight: 800, marginBottom: 2 }}>
+            <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: 'var(--fs-lg)', color: 'var(--text)', fontWeight: 'var(--w-head)', marginBottom: 2 }}>
               {stop.tanks > 0 && <span>🫙 {stop.tanks} tank{stop.tanks > 1 ? 's' : ''}</span>}
               {stop.traps > 0 && <span>🪤 {stop.traps} trap{stop.traps > 1 ? 's' : ''}</span>}
             </div>
@@ -204,36 +188,36 @@ export default function StopCard({
 
           {/* Booking notes from the calendar appointment description */}
           {stop.appointmentNotes && (
-            <div style={{ whiteSpace: 'pre-wrap', fontSize: '1.063rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1.5, paddingLeft: 36 }}>📝 {stop.appointmentNotes}</div>
+            <div style={{ whiteSpace: 'pre-wrap', fontSize: 'var(--fs-lg)', fontWeight: 'var(--w-emph)', color: 'var(--text)', lineHeight: 1.5, paddingLeft: 36 }}>📝 {stop.appointmentNotes}</div>
           )}
 
           {/* Per-appointment notes from the calendar dock "This appointment's notes" */}
           {eventNotes.length > 0 && (
             <div style={{ paddingLeft: 36, marginTop: 4, marginBottom: 2 }}>
               {eventNotes.map((n) => (
-                <div key={n.id} style={{ fontSize: '1.063rem', color: 'var(--text)', fontWeight: 700, lineHeight: 1.5 }}>📋 {n.body}</div>
+                <div key={n.id} style={{ fontSize: 'var(--fs-lg)', color: 'var(--text)', fontWeight: 'var(--w-emph)', lineHeight: 1.5 }}>📋 {n.body}</div>
               ))}
             </div>
           )}
 
           {/* Customer notes from HubSpot ([ADMIN-NOTE] timeline entries) */}
           {(stop.clientNotes || []).map((note, i) => (
-            <div key={i} style={{ paddingLeft: 36, fontSize: '1.063rem', color: 'var(--text)', fontWeight: 700, lineHeight: 1.5 }}>{note}</div>
+            <div key={i} style={{ paddingLeft: 36, fontSize: 'var(--fs-lg)', color: 'var(--text)', fontWeight: 'var(--w-emph)', lineHeight: 1.5 }}>{note}</div>
           ))}
 
           {/* Service info row: time · service type */}
-          <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: '1.125rem', marginTop: 4, marginBottom: 2 }}>
+          <div style={{ paddingLeft: 36, display: 'flex', flexWrap: 'wrap', gap: '3px 12px', fontSize: 'var(--fs-lg)', marginTop: 4, marginBottom: 2 }}>
             {stop.startTime && (
-              <span style={{ color: 'var(--text)', fontWeight: 800 }}>
+              <span style={{ color: 'var(--text)', fontWeight: 'var(--w-head)' }}>
                 {new Date(stop.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ })} · {fmtTime(stop.startTime)}{stop.endTime ? ` – ${fmtTime(stop.endTime)}` : ''}
               </span>
             )}
-            {stop.serviceType && <span style={{ color: 'var(--text)', fontWeight: 700 }}>{stop.serviceType}</span>}
+            {stop.serviceType && <span style={{ color: 'var(--text)', fontWeight: 'var(--w-emph)' }}>{stop.serviceType}</span>}
           </div>
 
           {/* Check in / out */}
           {(checkIn || checkOut) && (
-            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: '1.063rem', color: 'var(--text)', display: 'flex', gap: 14, fontWeight: 700 }}>
+            <div style={{ paddingLeft: 36, marginBottom: 4, fontSize: 'var(--fs-lg)', color: 'var(--text)', display: 'flex', gap: 14, fontWeight: 'var(--w-emph)' }}>
               {checkIn && <span>In: <strong>{checkIn}</strong></span>}
               {checkOut && <span>Out: <strong style={{ color: 'var(--ok)' }}>{checkOut}</strong></span>}
             </div>

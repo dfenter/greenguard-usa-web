@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
-import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import CustomerMap from '../../components/CustomerMap'
 import TankCalendar from '../../components/TankCalendar'
-import { StopRow, CompletedRoundsSection } from '../../components/StopCard'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getTodaysBookings } from '../../lib/gcal'
 import { useLazyData } from '../../components/useLazyData'
+import { fmtDayLabel, getGreeting, SectionLabel, TankKpiStrip, TodayStopsSection, QuickAccessGrid, useStopDistances, useStopInvoices } from '../../components/AdminToday'
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
@@ -41,30 +40,6 @@ export async function getServerSideProps({ req, res }) {
   }))
   return { props: { adminEmail: session.email, todayStr, tomorrowStr, initialStops } }
 }
-
-function fmtTime(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' })
-}
-
-function fmtDayLabel(dateStr) {
-  const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-}
-
-
-// KPI card — identical to the admin home page KPI cards (same markup,
-// styling, and warn behavior) so the two dashboards stay consistent.
-function KPI({ label, value, sub, warn }) {
-  return (
-    <div style={{ flex: '1 1 130px', background: 'var(--bg-card)', border: `1px solid ${warn ? 'rgba(var(--warn-rgb),0.25)' : 'rgba(var(--green-rgb),0.15)'}`, borderRadius: 10, padding: '14px 16px' }}>
-      <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: warn ? 'var(--warn)' : 'var(--text-dim)', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: '1.45rem', fontWeight: 900, lineHeight: 1, color: warn ? 'var(--warn)' : 'var(--text)' }}>{value}</div>
-      {sub && <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 4 }}>{sub}</div>}
-    </div>
-  )
-}
-
 
 function TechNotes() {
   const [notes, setNotes] = useState([])
@@ -116,9 +91,7 @@ function TechNotes() {
 
   return (
     <section style={{ marginBottom: 36 }}>
-      <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 14 }}>
-        Tech Notes
-      </div>
+      <SectionLabel style={{ marginBottom: 14 }}>Tech Notes</SectionLabel>
 
       {/* Input */}
       <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
@@ -175,56 +148,13 @@ export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, initi
 }
 
 function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [], tomorrowStops = [], mapsKey = '', tankData = null, fullTanksOnHand = null, tanksNeededThisWeek = null, expectedDeliveryThisWeek = null, lazyError = null, onRetry }) {
-  const [distances, setDistances] = useState({})
-  const [distLoading, setDistLoading] = useState(false)
-
-  function refreshDistances() {
-    const addressable = todayStops.filter((s) => s.address)
-    if (!addressable.length || !navigator.geolocation) return
-    setDistLoading(true)
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const origin = `${pos.coords.latitude},${pos.coords.longitude}`
-      try {
-        const res = await fetch('/api/admin/distances', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ origin, addresses: addressable.map((s) => ({ id: s.email || s.title, address: s.address })) }),
-        })
-        setDistances(await res.json())
-      } catch {}
-      setDistLoading(false)
-    }, () => setDistLoading(false))
-  }
-
-  useEffect(() => { refreshDistances() }, [todayStops]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Invoice status per stop (same endpoint /admin/rounds uses) — a stop with
-  // an invoice is finalized and drops into the Completed Rounds area below.
-  const [stopInvoices, setStopInvoices] = useState({})
-  useEffect(() => {
-    const payload = todayStops
-      .map((s, i) => ({ key: String(i), email: s.email, calBookingUid: s.calBookingUid, serviceDate: todayStr }))
-      .filter((s) => s.email)
-    if (payload.length === 0) { setStopInvoices({}); return }
-    let cancelled = false
-    fetch('/api/admin/stop-invoices', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stops: payload }),
-    })
-      .then((r) => r.json())
-      .then((d) => { if (!cancelled && d?.invoices) setStopInvoices(d.invoices) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [todayStops, todayStr])
+  const { distances, distLoading, refreshDistances } = useStopDistances(todayStops)
+  const stopInvoices = useStopInvoices(todayStops, todayStr)
 
   const routeMapData = todayStops
     .filter(s => s.address)
     .map((s, i) => ({ id: `stop_${i}`, name: `${i + 1}. ${s.title}`, address: s.address, status: 'active' }))
-  const greeting = (() => {
-    const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 17) return 'Good afternoon'
-    return 'Good evening'
-  })()
+  const greeting = getGreeting()
 
   const firstName = adminEmail?.split('@')[0]?.split('.')?.[0] || 'there'
   const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1)
@@ -251,43 +181,13 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [],
         </div>
 
         {/* KPI strip — same four cards as admin home, same data + styling */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
-          {(() => {
-            const tanksToday = todayStops.reduce((s, st) => s + (st.tanks || 0), 0)
-            const tanksTomorrow = tomorrowStops.reduce((s, st) => s + (st.tanks || 0), 0)
-            const onHand = fullTanksOnHand
-            const incoming = expectedDeliveryThisWeek || 0
-            const projectedTotal = (onHand ?? 0) + incoming
-            const weekNeed = tanksNeededThisWeek
-            const depotShort = onHand != null && weekNeed != null && projectedTotal < weekNeed
-            return (
-              <>
-                <KPI
-                  label="Tanks Needed Today"
-                  value={tanksToday}
-                  sub={todayStops.length === 0 ? 'no stops' : `across ${todayStops.length} stop${todayStops.length === 1 ? '' : 's'}`}
-                  warn={onHand != null && tanksToday > onHand}
-                />
-                <KPI
-                  label="Tanks Needed Tomorrow"
-                  value={tanksTomorrow}
-                  sub={tomorrowStops.length === 0 ? 'no stops' : `across ${tomorrowStops.length} stop${tomorrowStops.length === 1 ? '' : 's'}`}
-                />
-                <KPI
-                  label="Tanks at Depot"
-                  value={onHand != null ? onHand : '—'}
-                  sub={onHand == null ? 'no log yet' : incoming > 0 ? `+${incoming} Wed delivery → ${projectedTotal} projected` : 'on hand'}
-                  warn={depotShort}
-                />
-                <KPI
-                  label="Tanks Needed This Week"
-                  value={weekNeed != null ? weekNeed : '—'}
-                  sub="rolling next 7 days"
-                />
-              </>
-            )
-          })()}
-        </div>
+        <TankKpiStrip
+          todayStops={todayStops}
+          tomorrowStops={tomorrowStops}
+          fullTanksOnHand={fullTanksOnHand}
+          tanksNeededThisWeek={tanksNeededThisWeek}
+          expectedDeliveryThisWeek={expectedDeliveryThisWeek}
+        />
 
         {/* Tech Notes — moved directly below the KPI cards */}
         <TechNotes />
@@ -295,9 +195,7 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [],
         {/* Tank Calendar — above the route map per Bruce's prep flow */}
         {tankData && (
           <section style={{ marginBottom: 28, maxWidth: 520 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10 }}>
-              Tank Calendar
-            </div>
+            <SectionLabel color="var(--gold)" style={{ marginBottom: 10 }}>Tank Calendar</SectionLabel>
             <div className="card" style={{ padding: 14 }}>
               <TankCalendar
                 tankCalendar={tankData.tankCalendar}
@@ -314,85 +212,33 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [],
         {/* Route map — today's stops */}
         {routeMapData.length > 0 && (
           <section style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 10 }}>
-              Today&apos;s Route
-            </div>
+            <SectionLabel color="var(--green)" style={{ marginBottom: 10 }}>Today&apos;s Route</SectionLabel>
             <CustomerMap customers={routeMapData} mapsKey={mapsKey} height={320} compact />
           </section>
         )}
 
         {/* Today's stops */}
-        <section style={{ marginBottom: 36 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--green)' }}>
-              Today — {todayStops.length} {todayStops.length === 1 ? 'stop' : 'stops'}
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button onClick={refreshDistances} disabled={distLoading}
-                title="Recalculate driving distance from your current location to each stop"
-                style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(var(--info-rgb),0.35)', background: 'rgba(var(--info-rgb),0.08)', color: 'var(--info)', fontSize: '0.9rem', fontWeight: 800, cursor: distLoading ? 'wait' : 'pointer', opacity: distLoading ? 0.6 : 1 }}>
-                {distLoading ? 'Locating…' : 'My Distance'}
-              </button>
-              <Link href="/admin/rounds" style={{ fontSize: '0.78rem', color: 'var(--green-muted)', fontWeight: 700 }}>
-                All Rounds →
-              </Link>
-            </div>
-          </div>
-
-          {todayStops.length === 0 ? (
-            <div style={{
-              background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.15)',
-              borderRadius: 12, padding: '32px 24px', textAlign: 'center',
-              color: 'var(--text-muted)', fontSize: '0.9rem',
-            }}>
-              No stops scheduled for today.
-            </div>
-          ) : (() => {
-            const finalized = (i) => !!stopInvoices[String(i)]
-            const completed = todayStops.map((_, i) => i).filter(finalized)
-            return (
-              <>
-                {todayStops.map((stop, i) => finalized(i) ? null : (
-                  <StopRow key={stop.id || i} stop={stop} index={i} dateStr={todayStr} distance={distances[stop.email || stop.title]} />
-                ))}
-                <CompletedRoundsSection count={completed.length}>
-                  {completed.map((i) => (
-                    <StopRow key={todayStops[i].id || i} stop={todayStops[i]} index={i} dateStr={todayStr} done distance={distances[todayStops[i].email || todayStops[i].title]} />
-                  ))}
-                </CompletedRoundsSection>
-              </>
-            )
-          })()}
-        </section>
+        <TodayStopsSection
+          todayStops={todayStops}
+          todayStr={todayStr}
+          distances={distances}
+          distLoading={distLoading}
+          refreshDistances={refreshDistances}
+          stopInvoices={stopInvoices}
+        />
 
         {/* Tomorrow's rounds preview removed — the tech only works today's
             stops, and showing tomorrow's list alongside caused confusion. */}
 
         {/* Quick links */}
-        <section>
-          <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 14 }}>
-            Quick Access
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {[
-              { label: 'Timesheet', href: '/admin/timesheet', desc: 'Clock in/out, hours' },
-              { label: 'Expenses', href: '/admin/expenses', desc: 'Upload receipts' },
-              { label: 'Customer Rounds', href: '/admin/rounds', desc: 'Log service stops' },
-              { label: 'Daily Inventory', href: '/admin/inventory', desc: 'Tank & equipment counts' },
-              { label: 'Route Plan', href: '/admin/route', desc: 'Weekly route map' },
-              { label: 'Route Map', href: '/admin/map', desc: 'View all stops' },
-            ].map(({ label, href, desc }) => (
-              <Link key={href} href={href} style={{
-                display: 'block', padding: '16px 18px', borderRadius: 10,
-                background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.15)',
-                textDecoration: 'none', transition: 'border-color 0.15s',
-              }}>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', marginBottom: 3 }}>{label}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{desc}</div>
-              </Link>
-            ))}
-          </div>
-        </section>
+        <QuickAccessGrid items={[
+          { label: 'Timesheet', href: '/admin/timesheet', desc: 'Clock in/out, my hours' },
+          { label: 'Expenses', href: '/admin/expenses', desc: 'Upload receipts' },
+          { label: 'Customer Rounds', href: '/admin/rounds', desc: 'Log service stops' },
+          { label: 'Daily Inventory', href: '/admin/inventory', desc: 'Tank & equipment counts' },
+          { label: 'Route Plan', href: '/admin/route', desc: 'Weekly route map' },
+          { label: 'Route Map', href: '/admin/map', desc: 'View all stops' },
+        ]} />
 
       </PortalLayout>
     </>

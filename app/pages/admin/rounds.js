@@ -11,6 +11,7 @@ import { prefillFromBooking, slugFromTitle } from '../../lib/sku-engine'
 import SignaturePad from '../../components/SignaturePad'
 import CustomerPanel from '../../components/CustomerPanel'
 import StopCard, { CompletedRoundsSection } from '../../components/StopCard'
+import { useToast, useConfirm } from '../../components/ui'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
 export async function getServerSideProps({ req, query, res }) {
@@ -610,6 +611,8 @@ function ApptDetailModal({ stop, onClose, onOpenProfile }) {
 }
 
 function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onOpenProfile, distance }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const isDone = state.status === 'done'
   const isActive = state.status === 'active'
   // SSR detected an existing Stripe invoice for this booking. Suppress
@@ -720,7 +723,8 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
 
   async function handleComplete() {
     if (allLineItems.length === 0) {
-      if (!window.confirm('No items selected — complete with $0 total?')) return
+      const proceed = await confirm({ title: 'No items selected', body: 'Complete this visit with a $0 total?', confirmLabel: 'Complete at $0' })
+      if (!proceed) return
     }
     onUpdate({ showEmailModal: true })
   }
@@ -760,7 +764,7 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
         if (invRes.status === 409) {
           // Double-billing warning
           const warn = await invRes.json()
-          const proceed = window.confirm(`⚠️ ${warn.warning}\n\nClick OK only if this is a new visit that needs a separate invoice.`)
+          const proceed = await confirm({ title: 'Possible duplicate invoice', body: `${warn.warning} Confirm only if this is a new visit that needs a separate invoice.`, confirmLabel: 'Create separate invoice', danger: true })
           if (!proceed) {
             onUpdate({ submitting: false, showEmailModal: false })
             return
@@ -954,7 +958,12 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
                   disabled={!canNotify}
                   title={canNotify ? 'Send arrival SMS' : 'No phone or email on file'}
                   onClick={async () => {
-                    const eta = window.prompt('ETA in minutes (leave blank for "shortly"):', '15')
+                    const eta = await confirm({
+                      title: 'On My Way',
+                      body: 'ETA in minutes. Leave blank to text "shortly".',
+                      confirmLabel: 'Send text',
+                      input: { type: 'number', placeholder: 'Minutes', presets: [10, 15, 20, 30], unit: 'min', defaultValue: '15' },
+                    })
                     if (eta === null) return
                     const send = async (force) => fetch('/api/admin/notify-eta', {
                       method: 'POST',
@@ -964,12 +973,13 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
                     let r = await send(false)
                     let d = await r.json().catch(() => ({}))
                     if (r.status === 409 && d.duplicate) {
-                      if (!window.confirm(d.error + '\n\nSend again anyway?')) return
+                      const again = await confirm({ title: 'Already notified', body: d.error, confirmLabel: 'Send again' })
+                      if (!again) return
                       r = await send(true)
                       d = await r.json().catch(() => ({}))
                     }
-                    if (r.ok) alert('✓ SMS sent')
-                    else alert('Failed: ' + (d.error || r.status))
+                    if (r.ok) toast.ok('SMS sent')
+                    else toast.error('Text failed: ' + (d.error || r.status))
                   }}
                   style={{
                     flex: '1 1 70px', padding: '9px 8px', borderRadius: 6, justifyContent: 'center',
