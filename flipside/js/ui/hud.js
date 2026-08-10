@@ -8,8 +8,8 @@
 // .btn, .btn-primary, #btn-fold-left, #btn-fold-right, .tc-btn,
 // and #btn-pause.
 
-import { COLORS, FACE_W, FACES, QUEUE_LEN, ROWS, ringCol } from '../config.js';
-import * as boardOps from '../core/board.js';
+import { COLORS, FACE_W, FACES, QUEUE_LEN, ROWS, ringCol } from '../config.js?v=e886a29';
+import * as boardOps from '../core/board.js?v=e886a29';
 
 const MINI_WIDTH = 76;
 const MINI_HEIGHT = 50;
@@ -38,7 +38,23 @@ function button(className, label, action, onClick) {
   const el = node('button', className, label);
   el.type = 'button';
   if (action) el.dataset.action = action;
-  if (onClick) el.addEventListener('click', onClick);
+  if (onClick) {
+    // Menu buttons must survive mobile browsers that skip synthesizing a
+    // click after a touch (seen in the wild on the deployed build): act on
+    // pointerup directly and swallow the follow-up click if one arrives.
+    let firedAt = 0;
+    const fire = (ev) => {
+      const now = performance.now();
+      if (now - firedAt < 500) return;
+      firedAt = now;
+      onClick(ev);
+    };
+    el.addEventListener('pointerup', (ev) => {
+      if (ev.button != null && ev.button !== 0) return;
+      fire(ev);
+    });
+    el.addEventListener('click', fire);
+  }
   return el;
 }
 

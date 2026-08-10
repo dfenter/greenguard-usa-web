@@ -1,14 +1,14 @@
 // FLIPSIDE boot + frame loop. Orchestrator-owned; lanes do not edit.
-import * as game from './core/game.js';
-import { FACES } from './config.js';
-import { createInput } from './input.js';
-import { createFlip } from './world/flip.js';
-import { createRenderer } from './render/renderer.js';
-import { createFx } from './render/fx.js';
-import { createAudio } from './audio/audio.js';
-import { createHud } from './ui/hud.js';
-import { maybeRunTutorial, loadSettings, saveSettings, stopTutorial } from './ui/tutorial.js';
-import { createBot } from './autoplay.js';
+import * as game from './core/game.js?v=e886a29';
+import { FACES } from './config.js?v=e886a29';
+import { createInput } from './input.js?v=e886a29';
+import { createFlip } from './world/flip.js?v=e886a29';
+import { createRenderer } from './render/renderer.js?v=e886a29';
+import { createFx } from './render/fx.js?v=e886a29';
+import { createAudio } from './audio/audio.js?v=e886a29';
+import { createHud } from './ui/hud.js?v=e886a29';
+import { maybeRunTutorial, loadSettings, saveSettings, stopTutorial } from './ui/tutorial.js?v=e886a29';
+import { createBot } from './autoplay.js?v=e886a29';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');

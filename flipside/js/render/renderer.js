@@ -13,11 +13,11 @@ import {
   SEAM_W_CELLS,
   nextFace,
   ringCol,
-} from '../config.js';
-import { cellsOf } from '../core/pieces.js';
-import { collides } from '../core/board.js';
-import { ringDirectionToward } from '../core/game.js';
-import { drawBackground } from './backgrounds.js';
+} from '../config.js?v=e886a29';
+import { cellsOf } from '../core/pieces.js?v=e886a29';
+import { collides } from '../core/board.js?v=e886a29';
+import { ringDirectionToward } from '../core/game.js?v=e886a29';
+import { drawBackground } from './backgrounds.js?v=e886a29';
 
 const MAX_DPR = 2;
 const FOLD_SLICES = 24;

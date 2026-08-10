@@ -1,7 +1,7 @@
 // Tetromino geometry and the Guideline Super Rotation System (SRS).
 // Coordinates are relative to the top-left of the piece's 4x4 spawn box;
 // positive y moves down the board.
-import { PRISM_BAG_EVERY, RING_COLS } from '../config.js';
+import { PRISM_BAG_EVERY, RING_COLS } from '../config.js?v=e886a29';
 
 const TYPE_ORDER = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
 

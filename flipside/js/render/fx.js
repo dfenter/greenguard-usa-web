@@ -1,4 +1,4 @@
-import { COLS, FACES, ROWS, COLORS } from '../config.js';
+import { COLS, FACES, ROWS, COLORS } from '../config.js?v=e886a29';
 
 // The cap includes the 8 ambient motes reserved for each of the four worlds.
 // Dynamic effects therefore degrade gracefully once 368 particles are live.

@@ -1,4 +1,4 @@
-import { FLIP_REDUCED_MS, FOLD_MS } from '../config.js';
+import { FLIP_REDUCED_MS, FOLD_MS } from '../config.js?v=e886a29';
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
