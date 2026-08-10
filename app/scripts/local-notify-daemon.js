@@ -127,7 +127,8 @@ async function processOne(id) {
     // result.sid (SMS) unchanged when it returns to its caller.
     await notifyQueue.setJobStatus(id, 'sent-by-local', { result })
     const label = job.subject || (job.body ? job.body.slice(0, 40) : kind)
-    log(`sent ${kind} job ${id} to ${job.to} (${label})`)
+    const mode = result && result.mode ? ` [${result.mode}]` : ''
+    log(`sent ${kind} job ${id} to ${job.to}${mode} (${label})`)
   } catch (e) {
     await notifyQueue.setJobStatus(id, 'failed-by-local', { error: e.message })
     log(`FAILED ${kind} job ${id} to ${job.to}: ${e.message} (portal backup will retry)`)
