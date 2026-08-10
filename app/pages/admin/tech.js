@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
+import AdminChat from '../../components/AdminChat'
 import CustomerMap from '../../components/CustomerMap'
 import TankCalendar from '../../components/TankCalendar'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
@@ -41,100 +41,6 @@ export async function getServerSideProps({ req, res }) {
   return { props: { adminEmail: session.email, todayStr, tomorrowStr, initialStops } }
 }
 
-function TechNotes() {
-  const [notes, setNotes] = useState([])
-  const [body, setBody] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState(null)
-  const textareaRef = useRef(null)
-
-  useEffect(() => {
-    fetch('/api/admin/tech-notes')
-      .then((r) => r.json())
-      .then((d) => setNotes(d.notes || []))
-      .catch(() => {})
-  }, [])
-
-  async function save() {
-    if (!body.trim()) return
-    setSaving(true)
-    setMsg(null)
-    try {
-      const res = await fetch('/api/admin/tech-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body }),
-      })
-      if (!res.ok) throw new Error('Failed')
-      const newNote = { id: Date.now(), body: body.trim(), timestamp: new Date().toISOString() }
-      setNotes((prev) => [newNote, ...prev])
-      setBody('')
-      setMsg('Saved.')
-      setTimeout(() => setMsg(null), 2000)
-      textareaRef.current?.focus()
-    } catch {
-      setMsg('Failed to save.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  function fmtNoteTime(iso) {
-    if (!iso) return ''
-    const d = new Date(iso)
-    const now = new Date()
-    const diffH = (now - d) / 3600000
-    if (diffH < 1) return 'just now'
-    if (diffH < 24) return `${Math.floor(diffH)}h ago`
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' })
-  }
-
-  return (
-    <section style={{ marginBottom: 36 }}>
-      <SectionLabel style={{ marginBottom: 14 }}>Tech Notes</SectionLabel>
-
-      {/* Input */}
-      <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
-        <textarea
-          ref={textareaRef}
-          rows={3}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save() }}
-          placeholder="Quick note for the day…"
-          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.25)', background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5 }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-          <span style={{ fontSize: '0.72rem', color: msg ? (msg === 'Saved.' ? 'var(--green)' : 'var(--danger)') : 'var(--text-dim)' }}>
-            {msg || '⌘↵ to save'}
-          </span>
-          <button
-            onClick={save}
-            disabled={saving || !body.trim()}
-            style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: saving || !body.trim() ? 'rgba(var(--green-rgb),0.2)' : 'var(--green)', color: 'var(--text-on-accent)', fontWeight: 900, fontSize: '0.95rem', cursor: saving || !body.trim() ? 'not-allowed' : 'pointer' }}
-          >
-            {saving ? 'Saving…' : 'Save Note'}
-          </button>
-        </div>
-      </div>
-
-      {/* History */}
-      {notes.length === 0 ? (
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', textAlign: 'center', padding: '16px 0' }}>No notes this week.</div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {notes.map((n) => (
-            <div key={n.id} style={{ background: 'var(--bg-card)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 10, padding: '12px 16px' }}>
-              <div style={{ fontSize: '1rem', color: 'var(--text)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{n.body}</div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: 6 }}>{fmtNoteTime(n.timestamp)}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
 export default function TechDashboard({ adminEmail, todayStr, tomorrowStr, initialStops = [] }) {
   const { data, error, reload } = useLazyData('/api/admin/tech-data')
   const fallback = {
@@ -162,7 +68,7 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [],
   return (
     <>
       <Head><title>Today&apos;s Route · GreenGuard</title></Head>
-      <PortalLayout isAdmin>
+      <PortalLayout isAdmin floatingAssistant={false}>
 
         {lazyError && (
           <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(var(--warn-rgb),0.35)', background: 'rgba(var(--warn-rgb),0.08)', color: 'var(--warn)', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -189,8 +95,12 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [],
           expectedDeliveryThisWeek={expectedDeliveryThisWeek}
         />
 
-        {/* Tech Notes — moved directly below the KPI cards */}
-        <TechNotes />
+        {/* Ops Assistant — embedded so the tech can ask questions the moment
+            the app opens (replaces the old Tech Notes composer) */}
+        <section style={{ marginBottom: 36 }}>
+          <SectionLabel color="var(--gold)" style={{ marginBottom: 14 }}>Ops Assistant</SectionLabel>
+          <AdminChat variant="inline" />
+        </section>
 
         {/* Tank Calendar — above the route map per Bruce's prep flow */}
         {tankData && (

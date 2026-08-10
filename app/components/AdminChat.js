@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 
-// Floating ops-assistant widget for admin/tech pages. Gold-themed to
-// distinguish it from the customer (green) assistant. Posts to
-// /api/admin/assistant which runs Claude with read + SMS tools.
-export default function AdminChat() {
-  const [open, setOpen] = useState(false)
+// Ops-assistant widget for admin/tech pages. Gold-themed to distinguish it
+// from the customer (green) assistant. Posts to /api/admin/assistant which
+// runs Claude with read + SMS tools.
+// variant="floating" (default): fixed bubble that expands to a panel.
+// variant="inline": always-open panel embedded in the page flow (tech view).
+export default function AdminChat({ variant = 'floating' }) {
+  const inline = variant === 'inline'
+  const [open, setOpen] = useState(inline)
   const [messages, setMessages] = useState([
     { role: 'assistant', content: "Ops assistant. Ask me about today's route, a customer, tank inventory, or say 'text [name] I'm on my way'." },
   ])
@@ -44,18 +47,24 @@ export default function AdminChat() {
   }
 
   return (
-    <div style={{ position: 'fixed', right: 20, bottom: 88, zIndex: 95,
-      width: 'min(400px, calc(100vw - 40px))', height: 'min(560px, calc(100vh - 120px))',
-      background: 'var(--bg-card)', borderRadius: 16, overflow: 'hidden',
-      border: '1px solid var(--border-gold)', boxShadow: '0 12px 36px rgba(0,0,0,0.20)',
-      display: 'flex', flexDirection: 'column' }}>
+    <div style={inline
+      ? { background: 'var(--bg-card)', borderRadius: 'var(--radius)', overflow: 'hidden',
+          border: '1px solid var(--border-gold)', boxShadow: 'var(--shadow-sm)',
+          display: 'flex', flexDirection: 'column', height: 'min(440px, 60vh)' }
+      : { position: 'fixed', right: 20, bottom: 88, zIndex: 95,
+          width: 'min(400px, calc(100vw - 40px))', height: 'min(560px, calc(100vh - 120px))',
+          background: 'var(--bg-card)', borderRadius: 16, overflow: 'hidden',
+          border: '1px solid var(--border-gold)', boxShadow: '0 12px 36px rgba(0,0,0,0.20)',
+          display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '14px 18px', background: 'rgba(var(--gold-rgb),0.10)', borderBottom: '1px solid var(--border-gold)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontWeight: 900, color: 'var(--gold)', fontSize: '1rem' }}>Ops Assistant</div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Route · customers · inventory · SMS</div>
         </div>
+        {!inline && (
         <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.4rem' }}>×</button>
+        )}
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>

@@ -26,7 +26,8 @@ const ADMIN_NAV_LINKS = [
 ]
 
 // minimal: logo-only header for logged-out contexts (e.g. the quote link page).
-export default function PortalLayout({ children, title, isAdmin = false, topPadding, logoHref, minimal = false }) {
+// floatingAssistant={false}: page embeds its own inline AdminChat (tech view).
+export default function PortalLayout({ children, title, isAdmin = false, topPadding, logoHref, minimal = false, floatingAssistant = true }) {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -137,7 +138,7 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
       </footer>
 
       {/* Ops assistant — admin/tech only */}
-      {isAdmin && <AdminChat />}
+      {isAdmin && floatingAssistant && <AdminChat />}
 
       {/* Bottom-docked quick access for admin on mobile/tablet */}
       {isAdmin && <AdminBottomDock pathname={router.pathname} />}
