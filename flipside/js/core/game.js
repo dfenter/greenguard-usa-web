@@ -22,7 +22,6 @@ import {
   anyAbove,
   cellAt,
   clearFaceRows,
-  clearRingRow,
   collides,
   createRing,
   faceRowFull,
@@ -47,8 +46,28 @@ function wrapRingColumn(x) {
   return ((Math.trunc(Number(x) || 0) % RING_COLS) + RING_COLS) % RING_COLS;
 }
 
+/**
+ * Return the ring direction toward one or more columns from a viewed face.
+ * Exactly opposite columns use the same clockwise/right tie policy as the
+ * auto-follow behavior, so seam profiles and camera folds agree.
+ */
+export function ringDirectionToward(face, ringColumns) {
+  const start = ringCol(face, 0);
+  const columns = Array.isArray(ringColumns) ? ringColumns : [ringColumns];
+  let signedDistance = 0;
+  for (const column of columns) {
+    const relative = (wrapRingColumn(column) - start + RING_COLS) % RING_COLS;
+    signedDistance += relative <= RING_COLS * 0.5
+      ? relative
+      : relative - RING_COLS;
+  }
+  return signedDistance >= 0 ? 1 : -1;
+}
+
 function cloneCell(cell) {
-  return cell ? { w: cell.w, t: cell.t } : null;
+  return cell
+    ? { w: cell.w, t: cell.t, ...(Number.isInteger(cell.sf) ? { sf: cell.sf } : {}) }
+    : null;
 }
 
 function clonePiece(piece) {
@@ -175,13 +194,7 @@ function directionTowardPiece(G) {
   const previousCount = cells.filter(([x]) => previousWindow.has(wrapRingColumn(x))).length;
   if (nextCount !== previousCount) return nextCount > previousCount ? 1 : -1;
 
-  const start = ringCol(current, 0);
-  let signed = 0;
-  for (const [x] of cells) {
-    const relative = (wrapRingColumn(x) - start + 36) % 36;
-    signed += relative <= 18 ? relative : relative - 36;
-  }
-  return signed >= 0 ? 1 : -1;
+  return ringDirectionToward(current, cells.map(([x]) => x));
 }
 
 function beginFold(G, dir, auto = false) {
@@ -308,18 +321,13 @@ function clearPlan(G, plan) {
   const ringRows = captureRingRows(G, plan.ringRows);
   const seamWin = checkSeamWin(G, plan.seamMarks);
 
-  // A mixed ring/face clear is one union operation so row indices remain
-  // stable while every touched column collapses exactly once.
-  if (ringCount > 0 && faceCount > 0) {
-    const allMarks = plan.marks.concat(
-      plan.ringRows.flatMap((y) => FACES.map((_, face) => ({ face, y }))),
-    );
-    clearFaceRows(G.ring, allMarks);
-  } else if (ringCount > 0) {
-    [...plan.ringRows].sort((a, b) => b - a).forEach((y) => clearRingRow(G.ring, y));
-  } else {
-    clearFaceRows(G.ring, plan.marks);
-  }
+  // Expand every ring row into its four face windows, then clear the complete
+  // union once so row indices remain stable and each touched column collapses
+  // exactly once.
+  const allMarks = plan.marks.concat(
+    plan.ringRows.flatMap((y) => FACES.map((_, face) => ({ face, y }))),
+  );
+  clearFaceRows(G.ring, allMarks);
 
   for (const [face, group] of groups) {
     const count = group.length;

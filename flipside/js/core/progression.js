@@ -63,12 +63,20 @@ function randomSeamHole(G) {
   return 1 + Math.min(FACE_W - 3, Math.max(0, Math.floor(value * (FACE_W - 2))));
 }
 
-function rowHasType(G, face, y, type) {
+function rowHasOwnedSeam(G, face, y) {
   if (!G || !G.ring || !G.ring.grid || y < 0 || y >= ROWS) return false;
   return faceWindow(face).some((rc) => {
     const cell = G.ring.grid[y][rc];
-    return cell && cell.t === type;
+    return cell && cell.t === 'SEAM' && cell.sf === face;
   });
+}
+
+function stampSeamRow(G, face) {
+  const row = G.ring.grid[ROWS - 1];
+  for (const rc of faceWindow(face)) {
+    const cell = row && row[rc];
+    if (cell && cell.t === 'SEAM') cell.sf = face;
+  }
 }
 
 export function phaseFor(lines) {
@@ -95,6 +103,7 @@ export function spawnSeam(G) {
   let topOut = false;
   for (let face = 0; face < FACES.length; face += 1) {
     const didTopOut = addGarbage(G.ring, face, randomSeamHole(G), true);
+    stampSeamRow(G, face);
     if (didTopOut) {
       topOut = true;
       if (G.overFace == null) G.overFace = face;
@@ -205,7 +214,7 @@ export function checkSeamWin(G, clearedMarks) {
   for (const mark of clearedMarks) {
     if (!mark || !Number.isInteger(mark.y) || mark.y < 0 || mark.y >= ROWS) continue;
     const face = faceIndex(mark.face);
-    if (rowHasType(G, face, mark.y, 'SEAM')) seam.cleared[face] = true;
+    if (rowHasOwnedSeam(G, face, mark.y)) seam.cleared[face] = true;
   }
   return seam.cleared.every(Boolean);
 }

@@ -16,6 +16,7 @@ import {
 } from '../config.js';
 import { cellsOf } from '../core/pieces.js';
 import { collides } from '../core/board.js';
+import { ringDirectionToward } from '../core/game.js';
 import { drawBackground } from './backgrounds.js';
 
 const MAX_DPR = 2;
@@ -201,6 +202,7 @@ function drawCell(ctx, px, py, size, cell, palette, world, timeMs, unit, options
   const prism = options.prism === true || cell.prism === true;
   const seam = cell.t === 'SEAM';
   const garbage = cell.t === 'G';
+  const animate = options.animate !== false;
   const color = cellColor(cell, palette);
   const edge = cellEdge(cell, palette);
 
@@ -260,7 +262,7 @@ function drawCell(ctx, px, py, size, cell, palette, world, timeMs, unit, options
     ctx.lineTo(x + width * 0.76, y + width * 0.79);
     ctx.stroke();
   }
-  if (seam || prism) {
+  if (animate && (seam || prism)) {
     const span = width * 2.4;
     const sweep = x + ((timeMs * unit * (seam ? 0.005 : 0.006) + px + py) % span) - width * 0.65;
     ctx.fillStyle = seam ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.34)';
@@ -285,7 +287,7 @@ function drawCell(ctx, px, py, size, cell, palette, world, timeMs, unit, options
       width - unit * 0.7, width - unit * 0.7, Math.max(0, radius - unit * 0.35));
     ctx.stroke();
   }
-  if (seam) {
+  if (animate && seam) {
     ctx.strokeStyle = 'rgba(255,247,200,0.78)';
     ctx.lineWidth = Math.max(unit * 0.5, size * 0.018);
     ctx.setLineDash([Math.max(unit * 1.8, size * 0.13), Math.max(unit * 1.5, size * 0.11)]);
@@ -456,7 +458,10 @@ function ringSignature(ring) {
       const cell = row && row[rc];
       hash = Math.imul(hash ^ (cell ? 1 : 0), 16777619);
       if (cell) {
-        hash = Math.imul(hash ^ (cell.t ? cell.t.charCodeAt(0) : 0), 16777619);
+        const type = typeof cell.t === 'string' ? cell.t : '';
+        for (let i = 0; i < type.length; i += 1) {
+          hash = Math.imul(hash ^ type.charCodeAt(i), 16777619);
+        }
         hash = Math.imul(hash ^ (cell.w ? FACES.indexOf(cell.w) + 1 : 0), 16777619);
       }
     }
@@ -505,10 +510,11 @@ function drawSeamTab(ctx, world, x, y, width, palette, unit) {
   ctx.restore();
 }
 
-function drawSeamStrip(ctx, ring, seamFace, edgeColumn, layout, timeMs, seamCaches, signature) {
+function drawSeamStrip(ctx, ring, seamFace, edgeColumn, layout, timeMs, seamCaches, signature, options = {}) {
   const world = FACES[seamFace];
   const palette = COLORS[world];
   const cache = seamCaches[seamFace];
+  const animate = options.animate !== false;
   updateSeamCache(cache, ring, seamFace, signature);
   const x = edgeColumn === 0 ? layout.rightSeamX : layout.leftSeamX;
   const rowHeight = layout.cell;
@@ -553,7 +559,7 @@ function drawSeamStrip(ctx, ring, seamFace, edgeColumn, layout, timeMs, seamCach
         ctx.stroke();
       }
     }
-    if (kind === 2) {
+    if (animate && kind === 2) {
       ctx.strokeStyle = 'rgba(255,247,201,0.92)';
       ctx.lineWidth = Math.max(layout.unit * 0.55, 0.8);
       ctx.setLineDash(layout.seamStitchDash);
@@ -573,7 +579,7 @@ function drawSeamStrip(ctx, ring, seamFace, edgeColumn, layout, timeMs, seamCach
       ctx.rect(x, rowY, layout.seamW, rowHeight);
       ctx.clip();
       drawCell(ctx, x + (layout.seamW - layout.cell) * 0.5, rowY, layout.cell,
-        cell, palette, world, timeMs, layout.unit);
+        cell, palette, world, timeMs, layout.unit, { animate });
       ctx.restore();
     }
   }
@@ -593,6 +599,102 @@ function drawSeamStrip(ctx, ring, seamFace, edgeColumn, layout, timeMs, seamCach
   ctx.restore();
 }
 
+function drawSeamShimmer(ctx, px, py, size, timeMs, unit) {
+  const inset = Math.max(unit * 0.9, size * 0.065);
+  const x = px + inset;
+  const y = py + inset;
+  const width = Math.max(1, size - inset * 2);
+  const span = width * 2.4;
+  const sweep = x + ((timeMs * unit * 0.005 + px + py) % span) - width * 0.65;
+  ctx.save();
+  roundedRectPath(ctx, x, y, width, width, Math.min(size * 0.17, unit * 3.8));
+  ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath();
+  ctx.moveTo(sweep, y + width);
+  ctx.lineTo(sweep + width * 0.28, y + width);
+  ctx.lineTo(sweep + width * 0.72, y);
+  ctx.lineTo(sweep + width * 0.44, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,247,200,0.78)';
+  ctx.lineWidth = Math.max(unit * 0.5, size * 0.018);
+  ctx.setLineDash([Math.max(unit * 1.8, size * 0.13), Math.max(unit * 1.5, size * 0.11)]);
+  ctx.lineDashOffset = -(timeMs * unit * 0.004 + px * 0.2);
+  ctx.beginPath();
+  ctx.moveTo(x + width * 0.05, y + width * 0.52);
+  ctx.lineTo(x + width * 0.95, y + width * 0.52);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function seamRowHasSeam(ring, face, row) {
+  const cells = ring && ring.grid[row];
+  if (!cells) return false;
+  for (let column = 0; column < FACE_W; column += 1) {
+    if (cells[ringCol(face, column)] && cells[ringCol(face, column)].t === 'SEAM') return true;
+  }
+  return false;
+}
+
+function drawSeamStripAnimationOverlay(ctx, ring, seamFace, edgeColumn, layout, timeMs) {
+  const x = edgeColumn === 0 ? layout.rightSeamX : layout.leftSeamX;
+  const innerX = x + Math.max(layout.unit * 1.1, layout.seamW * 0.09);
+  const innerW = Math.max(1, layout.seamW - Math.max(layout.unit * 2.2, layout.seamW * 0.18));
+  const rowHeight = layout.cell;
+  for (let row = 0; row < ROWS; row += 1) {
+    if (!seamRowHasSeam(ring, seamFace, row)) continue;
+    const rowY = layout.boardY + row * rowHeight;
+    const sweepWidth = Math.max(layout.unit * 2.2, innerW * 0.34);
+    const sweep = innerX + ((timeMs * 0.004 + row * layout.unit * 0.2) % (innerW + sweepWidth)) - sweepWidth;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, rowY, layout.seamW, rowHeight);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.beginPath();
+    ctx.moveTo(sweep, rowY + rowHeight);
+    ctx.lineTo(sweep + sweepWidth * 0.28, rowY + rowHeight);
+    ctx.lineTo(sweep + sweepWidth * 0.72, rowY);
+    ctx.lineTo(sweep + sweepWidth * 0.44, rowY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,247,201,0.92)';
+    ctx.lineWidth = Math.max(layout.unit * 0.55, 0.8);
+    ctx.setLineDash(layout.seamStitchDash);
+    ctx.lineDashOffset = -(timeMs * 0.004 + row * layout.unit * 0.2);
+    ctx.beginPath();
+    ctx.moveTo(x + layout.unit * 0.4, rowY + rowHeight * 0.5);
+    ctx.lineTo(x + layout.seamW - layout.unit * 0.4, rowY + rowHeight * 0.5);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawSeamAnimationOverlay(ctx, ring, face, layout, timeMs) {
+  if (!ring) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(layout.boardX, layout.boardY, layout.boardW, layout.boardH);
+  ctx.clip();
+  for (let row = 0; row < ROWS; row += 1) {
+    const cells = ring.grid[row];
+    for (let column = 0; column < FACE_W; column += 1) {
+      const cell = cells && cells[ringCol(face, column)];
+      if (cell && cell.t === 'SEAM') {
+        drawSeamShimmer(ctx, layout.boardX + column * layout.cell,
+          layout.boardY + row * layout.cell, layout.cell, timeMs, layout.unit);
+      }
+    }
+  }
+  ctx.restore();
+  drawSeamStripAnimationOverlay(ctx, ring, nextFace(face, -1), FACE_W - 1, layout, timeMs);
+  drawSeamStripAnimationOverlay(ctx, ring, nextFace(face, 1), 0, layout, timeMs);
+}
+
 function drawFaceCells(ctx, ring, face, world, layout, timeMs) {
   if (!ring) return;
   const palette = COLORS[world];
@@ -602,7 +704,7 @@ function drawFaceCells(ctx, ring, face, world, layout, timeMs) {
       const cell = cells && cells[ringCol(face, column)];
       if (!cell) continue;
       drawCell(ctx, layout.boardX + column * layout.cell, layout.boardY + row * layout.cell,
-        layout.cell, cell, palette, world, timeMs, layout.unit);
+        layout.cell, cell, palette, world, timeMs, layout.unit, { animate: false });
     }
   }
 }
@@ -641,13 +743,7 @@ function faceLocalColumn(face, rc) {
 }
 
 function sideForRc(viewFace, rc) {
-  const previous = nextFace(viewFace, -1);
-  const following = nextFace(viewFace, 1);
-  if (faceLocalColumn(previous, rc) >= 0) return -1;
-  if (faceLocalColumn(following, rc) >= 0) return 1;
-  const rightEdge = ringCol(viewFace, FACE_W - 1);
-  const distance = wrap(rc - rightEdge, RING_COLS);
-  return distance < RING_COLS * 0.5 ? 1 : -1;
+  return ringDirectionToward(viewFace, [rc]);
 }
 
 function boardSignatureForGhost(ring) {
@@ -920,8 +1016,10 @@ export function createRenderer(canvas) {
     ctx2.setTransform(1, 0, 0, 1, 0, 0);
     ctx2.clearRect(0, 0, layout.width, layout.height);
     drawFrameShell(ctx2, face, layout, paintCaches, grainPatterns);
-    drawSeamStrip(ctx2, ring, nextFace(face, -1), FACE_W - 1, layout, timeMs, seamCaches, signature);
-    drawSeamStrip(ctx2, ring, nextFace(face, 1), 0, layout, timeMs, seamCaches, signature);
+    drawSeamStrip(ctx2, ring, nextFace(face, -1), FACE_W - 1, layout, timeMs, seamCaches, signature,
+      { animate: false });
+    drawSeamStrip(ctx2, ring, nextFace(face, 1), 0, layout, timeMs, seamCaches, signature,
+      { animate: false });
     drawStitchGrid(ctx2, layout, COLORS[world]);
     drawFaceCells(ctx2, ring, face, world, layout, timeMs);
     drawSeamAccents(ctx2, ring, face, layout);
@@ -963,6 +1061,7 @@ export function createRenderer(canvas) {
     repaintFaceSheet(face, gameState, ring, signature, animationTime);
     drawBackground(ctx, world, animationTime, width, height);
     if (faceSheets[face] && faceSheets[face].canvas) ctx.drawImage(faceSheets[face].canvas, 0, 0);
+    drawSeamAnimationOverlay(ctx, ring, face, layout, animationTime);
     drawPieceForFace(ctx, gameState.piece, ring, face, layout, animationTime, ghostState, true);
     observeRingClear(gameState, timeMs);
     drawRingRipple(ctx, layout, timeMs, ringRippleStarted);
@@ -982,9 +1081,11 @@ export function createRenderer(canvas) {
       ctx.restore();
     }
     if (faceSheets[from] && faceSheets[from].canvas) ctx.drawImage(faceSheets[from].canvas, 0, 0, width, height);
+    drawSeamAnimationOverlay(ctx, ring, from, layout, timeMs);
     ctx.save();
     ctx.globalAlpha = alpha;
     if (faceSheets[to] && faceSheets[to].canvas) ctx.drawImage(faceSheets[to].canvas, 0, 0, width, height);
+    drawSeamAnimationOverlay(ctx, ring, to, layout, timeMs);
     drawPieceForFace(ctx, gameState.piece, ring, to, layout, timeMs, ghostState, true);
     ctx.restore();
     if (alpha < 1) drawPieceForFace(ctx, gameState.piece, ring, from, layout, timeMs, ghostState, true);
