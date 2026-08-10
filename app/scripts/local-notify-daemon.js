@@ -38,6 +38,7 @@ function loadEnvFile(path) {
 }
 
 const path = require('path')
+const { execFile } = require('child_process')
 loadEnvFile(path.join(__dirname, '..', '.env'))
 loadEnvFile(path.join(__dirname, '..', '.env.local'))
 
@@ -146,7 +147,36 @@ async function pollLoop() {
     } catch (e) {
       log('poll error:', e.message)
     }
+    await maybeRenameGroups()
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+  }
+}
+
+// End-of-day pass (Dan 2026-08-10): rename the day's daemon-created group
+// threads to "GreenGuard USA". Runs once per day in the 6-11 PM window; a
+// failed attempt (screen locked, focus stolen) retries on the next poll until
+// the window closes. The script itself is a GUI no-op when every group is
+// already named, and SMS/MMS groups are skipped — Apple only supports naming
+// pure-iMessage groups. Needs the same Accessibility grant as group creation.
+const RENAME_SCRIPT = path.join(__dirname, 'rename-group-threads.applescript')
+let lastRenameDay = null
+async function maybeRenameGroups() {
+  if (process.env.GROUP_CREATE_GUI !== '1') return
+  const now = new Date()
+  const day = now.toLocaleDateString('en-CA')
+  const hour = now.getHours()
+  if (hour < 18 || hour >= 23 || lastRenameDay === day) return
+  try {
+    const out = await new Promise((resolve, reject) => {
+      execFile('osascript', [RENAME_SCRIPT, 'GreenGuard USA'], { timeout: 600000 }, (err, stdout, stderr) => {
+        if (err) return reject(new Error((stderr || err.message || '').trim()))
+        resolve((stdout || '').trim())
+      })
+    })
+    lastRenameDay = day
+    if (out !== 'no-candidates') log(`group rename pass: ${out}`)
+  } catch (e) {
+    log(`group rename pass failed (will retry next poll): ${e.message.slice(0, 160)}`)
   }
 }
 
