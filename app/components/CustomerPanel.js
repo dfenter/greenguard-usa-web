@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import DetailDock from './AppointmentDetailDock'
+import { useConfirm, Skeleton } from './ui'
 
 const TZ = 'America/Chicago'
 
@@ -181,6 +182,7 @@ function AppointmentHistoryPanel({ detail, onSchedule, scheduleBtn }) {
 // Pass id (Stripe customer ID) OR email — the API accepts either.
 
 export default function CustomerPanel({ customer, onClose }) {
+  const confirm = useConfirm()
   const router = useRouter()
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -244,7 +246,7 @@ export default function CustomerPanel({ customer, onClose }) {
 
   async function handleCancel() {
     if (!detail?.nextBooking?.calBookingId) return
-    if (!window.confirm('Cancel this appointment?')) return
+    if (!(await confirm({ title: 'Cancel this appointment?', confirmLabel: 'Cancel appointment', cancelLabel: 'Keep it', danger: true }))) return
     setCancelling(true)
     await fetch('/api/admin/cancel-booking', {
       method: 'POST',
@@ -387,7 +389,7 @@ export default function CustomerPanel({ customer, onClose }) {
 
       {/* Body */}
       <div style={{ padding: '0 20px 32px', flex: 1 }}>
-        {loading && <p style={{ color: 'var(--text-dim)', marginTop: 24, fontWeight: 700 }}>Loading…</p>}
+        {loading && <div style={{ marginTop: 24 }}><Skeleton lines={4} height={16} /></div>}
         {error && <p style={{ color: 'var(--danger)', marginTop: 24, fontWeight: 700 }}>{error}</p>}
 
         {detail && !loading && tab === 'history' && (

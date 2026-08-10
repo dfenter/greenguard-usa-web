@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
+import { useToast, useConfirm } from '../../components/ui'
 
 // Public self-serve quote builder. Mirrors /admin/quote but with no
 // auth, no customer-search panel, no admin actions (send-to-customer,
@@ -463,6 +464,8 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function QuoteBuilder({ customers, mapsKey }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -625,7 +628,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceConfig, productQtys, addonQtys, serviceDate: serviceConfig?.serviceDate || null, notes }),
     })
     const { url } = await res.json()
-    await navigator.clipboard.writeText(url).catch(() => window.prompt('Copy this link:', url))
+    await navigator.clipboard.writeText(url).catch(() => confirm({ title: 'Copy this link', input: { defaultValue: url }, confirmLabel: 'Done', alert: true }))
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 4000)
   }
@@ -731,7 +734,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     if (!customerEmail) return
     // Service date is required when this quote includes any real service (not equipment-only)
     if (serviceConfig?.system && serviceConfig.system !== 'none' && !serviceConfig.serviceDate) {
-      alert('Pick a preferred service date (at least 5 days out) before sending the quote.')
+      toast.error('Pick a preferred service date (at least 5 days out) before sending the quote.')
       return
     }
     setSending(true)

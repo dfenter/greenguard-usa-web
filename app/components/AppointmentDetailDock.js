@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useConfirm, Skeleton } from './ui'
 
 const TZ = 'America/Chicago'
 
@@ -56,6 +57,7 @@ function CalAppointmentHistory({ d, scheduleHref }) {
 }
 
 function EventNotesSection({ eventId, customerEmail }) {
+  const confirm = useConfirm()
   const [notes, setNotes] = useState([])
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
@@ -89,7 +91,7 @@ function EventNotesSection({ eventId, customerEmail }) {
   }
 
   async function del(id) {
-    if (!window.confirm('Delete this note?')) return
+    if (!(await confirm({ title: 'Delete this note?', confirmLabel: 'Delete', danger: true }))) return
     await fetch(`/api/admin/event-notes?id=${id}`, { method: 'DELETE' })
     load()
   }
@@ -191,7 +193,7 @@ export default function DetailDock({ details, loading, onClose }) {
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1, padding: 0 }}>×</button>
       </div>
 
-      {loading && <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading…</div>}
+      {loading && <div style={{ padding: 20 }}><Skeleton lines={3} height={15} /></div>}
       {!loading && d.error && <div style={{ padding: 20, color: 'var(--danger)', fontSize: '0.85rem' }}>{d.error}</div>}
       {!loading && !d.error && (
         <div style={{ padding: '14px 18px' }}>

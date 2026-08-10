@@ -3,6 +3,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
+import { useToast, useConfirm, Skeleton } from '../../components/ui'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -173,6 +174,8 @@ function AppointmentHistoryPanel({ detail, onSchedule, scheduleBtn }) {
 // ── Docked Detail Panel ────────────────────────────────────────────────────────
 
 function CustomerPanel({ customer, onClose }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const router = useRouter()
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -236,13 +239,13 @@ function CustomerPanel({ customer, onClose }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        alert('Save failed: ' + (data.error || res.status))
+        toast.error('Save failed: ' + (data.error || res.status))
         return
       }
       setEditing(false)
       fetchDetail()
     } catch (e) {
-      alert('Save failed: ' + e.message)
+      toast.error('Save failed: ' + e.message)
     } finally {
       setSaving(false)
     }
@@ -250,7 +253,7 @@ function CustomerPanel({ customer, onClose }) {
 
   async function handleCancel() {
     if (!detail?.nextBooking?.calBookingId) return
-    if (!window.confirm('Cancel this appointment?')) return
+    if (!(await confirm({ title: 'Cancel this appointment?', confirmLabel: 'Cancel appointment', cancelLabel: 'Keep it', danger: true }))) return
     setCancelling(true)
     await fetch('/api/admin/cancel-booking', {
       method: 'POST',
@@ -426,7 +429,7 @@ function CustomerPanel({ customer, onClose }) {
 
       {/* Body */}
       <div style={{ padding: '0 20px 32px', flex: 1 }}>
-        {loading && <p style={{ color: 'var(--text-muted)', marginTop: 24 }}>Loading…</p>}
+        {loading && <div style={{ marginTop: 24 }}><Skeleton lines={4} height={16} /></div>}
         {error && <p style={{ color: 'var(--danger)', marginTop: 24 }}>{error}</p>}
 
         {detail && !loading && tab === 'history' && (

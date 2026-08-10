@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
+import { useToast, useConfirm } from '../../components/ui'
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30')
@@ -27,6 +28,8 @@ export default function InvoiceEditor() {
 }
 
 function InvoiceEditorView({ customers = [] }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [email, setEmail] = useState('')
@@ -167,7 +170,7 @@ function InvoiceEditorView({ customers = [] }) {
   }
 
   async function deleteLineItem(invoiceId, itemId) {
-    if (!window.confirm('Remove this line item from the invoice?')) return
+    if (!(await confirm({ title: 'Remove line item?', confirmLabel: 'Remove', danger: true }))) return
     const res = await fetch('/api/admin/invoice-items', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete-line', invoiceId, itemId }),
@@ -177,7 +180,7 @@ function InvoiceEditorView({ customers = [] }) {
   }
 
   async function voidInvoice(invoiceId) {
-    if (!window.confirm('Void this invoice? This cannot be undone.')) return
+    if (!(await confirm({ title: 'Void this invoice?', body: 'This cannot be undone.', confirmLabel: 'Void invoice', danger: true }))) return
     const res = await fetch('/api/admin/invoice-items', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'void', invoiceId }),
@@ -187,7 +190,7 @@ function InvoiceEditorView({ customers = [] }) {
   }
 
   async function deleteDraft(invoiceId) {
-    if (!window.confirm('Delete this draft invoice? Removes it permanently.')) return
+    if (!(await confirm({ title: 'Delete this draft invoice?', body: 'This removes it permanently.', confirmLabel: 'Delete draft', danger: true }))) return
     const res = await fetch('/api/admin/invoice-items', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete-draft', invoiceId }),
@@ -208,7 +211,7 @@ function InvoiceEditorView({ customers = [] }) {
   }
 
   async function dismissAppointment(apt, idx) {
-    if (!window.confirm(`Mark ${apt.customerName || 'this appointment'} (${apt.date}) as not needing an invoice?\n\nIt will be removed from this list.`)) return
+    if (!(await confirm({ title: 'No invoice needed?', body: `Mark ${apt.customerName || 'this appointment'} (${apt.date}) as not needing an invoice? It will be removed from this list.`, confirmLabel: 'Mark no invoice' }))) return
     setDismissing(idx)
     try {
       const r = await fetch('/api/admin/dismiss-appointment', {
@@ -220,7 +223,7 @@ function InvoiceEditorView({ customers = [] }) {
         setMsg('Appointment marked as no invoice needed')
       } else {
         const j = await r.json().catch(() => ({}))
-        alert('Failed: ' + (j.error || r.status))
+        toast.error('Failed: ' + (j.error || r.status))
       }
     } finally {
       setDismissing(null)
@@ -235,7 +238,7 @@ function InvoiceEditorView({ customers = [] }) {
     let msg = `Submit ${eligible.length} draft invoice${eligible.length === 1 ? '' : 's'} totaling ${fmt$(total)}?\n\n`
     msg += `Customers with a card on file will be charged now.\nCustomers without a card will receive an email with a payment link.\n\nThis is irreversible.`
     if (empties > 0) msg += `\n\n(${empties} empty draft${empties === 1 ? '' : 's'} will be skipped.)`
-    if (!window.confirm(msg)) return
+    if (!(await confirm({ title: 'Submit all drafts', body: msg, confirmLabel: 'Submit all', danger: true }))) return
 
     setApprovingAll(true)
     const errors = []
@@ -266,9 +269,9 @@ function InvoiceEditorView({ customers = [] }) {
       })
     }
     if (errors.length) {
-      alert(`Submitted ${successes.length}/${eligible.length}.\n\nErrors:\n${errors.join('\n')}`)
+      await confirm({ title: `Submitted ${successes.length}/${eligible.length}`, body: `Errors:\n${errors.join('\n')}`, alert: true, danger: true })
     } else {
-      alert(`✓ Submitted all ${successes.length} drafts`)
+      toast.ok(`Submitted all ${successes.length} drafts`)
     }
     await loadPending()
   }
@@ -377,7 +380,7 @@ function InvoiceEditorView({ customers = [] }) {
                                 if (sendingDraft) return
                                 const who = draft.customerName || draft.customerEmail
                                 const amt = fmt$(draft.amountDue)
-                                if (!window.confirm(`Submit invoice for ${who} — ${amt}?\n\nIf they have a card on file, it will be charged now. Otherwise Stripe emails a hosted invoice link.\n\nThis is irreversible.`)) return
+                                if (!(await confirm({ title: `Submit invoice for ${who}?`, body: `${amt}. If they have a card on file it is charged now; otherwise Stripe emails a hosted invoice link. This is irreversible.`, confirmLabel: 'Submit invoice', danger: true }))) return
                                 setSendingDraft(draft.id)
                                 const r = await fetch('/api/admin/invoice-items', {
                                   method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -388,10 +391,10 @@ function InvoiceEditorView({ customers = [] }) {
                                 if (r.ok) {
                                   setSentDrafts((p) => ({ ...p, [draft.id]: { status: j.status, collectionMethod: j.collectionMethod } }))
                                   const verb = j.collectionMethod === 'send_invoice' ? `emailed to ${who}` : (j.status === 'paid' ? `charged ${amt} on card` : 'submitted')
-                                  alert(`✓ Invoice ${verb}`)
+                                  toast.ok(`Invoice ${verb}`)
                                   loadPending()
                                 } else {
-                                  alert(`Failed to submit invoice for ${who}:\n\n${j.error || ('HTTP ' + r.status)}`)
+                                  await confirm({ title: `Failed to submit invoice for ${who}`, body: j.error || ('HTTP ' + r.status), alert: true, danger: true })
                                 }
                               }}
                               disabled={isSubmitting || draft.lineCount === 0 || !!sendingDraft}
@@ -401,13 +404,13 @@ function InvoiceEditorView({ customers = [] }) {
                           )
                         })()}
                         <button onClick={async () => {
-                          if (!window.confirm(`Delete this draft invoice for ${draft.customerName || draft.customerEmail}? This permanently removes it.`)) return
+                          if (!(await confirm({ title: 'Delete this draft invoice?', body: `Permanently removes the draft for ${draft.customerName || draft.customerEmail}.`, confirmLabel: 'Delete draft', danger: true }))) return
                           const r = await fetch('/api/admin/invoice-items', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ action: 'delete-draft', invoiceId: draft.id }),
                           })
                           if (r.ok) { setMsg('Draft deleted'); loadPending() }
-                          else { const j = await r.json().catch(() => ({})); alert('Failed: ' + (j.error || r.status)) }
+                          else { const j = await r.json().catch(() => ({})); toast.error('Failed: ' + (j.error || r.status)) }
                         }}
                           style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid rgba(var(--danger-rgb),0.3)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, fontFamily: 'inherit' }}>
                           Cancel
@@ -428,7 +431,7 @@ function InvoiceEditorView({ customers = [] }) {
                                 <span style={{ color: 'rgba(var(--text-rgb),0.75)', flex: 1 }}>{line.description}</span>
                                 <span style={{ fontWeight: 700, marginLeft: 16 }}>{fmt$(line.amount)}</span>
                                 <button onClick={async () => {
-                                  if (!window.confirm('Remove this line item?')) return
+                                  if (!(await confirm({ title: 'Remove this line item?', confirmLabel: 'Remove', danger: true }))) return
                                   await fetch('/api/admin/invoice-items', {
                                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ action: 'delete-line', invoiceId: draft.id, itemId: line.id }),
@@ -474,7 +477,7 @@ function InvoiceEditorView({ customers = [] }) {
                                           loadPending()
                                         } else {
                                           const j = await r.json().catch(() => ({}))
-                                          alert('Failed: ' + (j.error || r.status))
+                                          toast.error('Failed: ' + (j.error || r.status))
                                         }
                                       } finally {
                                         draftAddInFlight.current.delete(draft.id)

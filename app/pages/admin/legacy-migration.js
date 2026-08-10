@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
+import { useToast, useConfirm } from '../../components/ui'
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -11,6 +12,8 @@ export async function getServerSideProps({ req }) {
 }
 
 export default function LegacyMigration() {
+  const toast = useToast()
+  const confirm = useConfirm()
   const [events, setEvents] = useState(null)
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState({})
@@ -21,7 +24,7 @@ export default function LegacyMigration() {
       const r = await fetch('/api/admin/legacy-events')
       const d = await r.json()
       setEvents(d.events || [])
-    } catch (e) { alert('Audit failed: ' + e.message) }
+    } catch (e) { toast.error('Audit failed: ' + e.message) }
     setLoading(false)
   }
 
@@ -43,7 +46,7 @@ export default function LegacyMigration() {
 
   async function migrateAll() {
     if (!events?.length) return
-    if (!window.confirm(`Migrate all ${events.length} legacy events? Each creates a real Cal.com booking. Customer may receive a confirmation email per booking.`)) return
+    if (!(await confirm({ title: `Migrate all ${events.length} legacy events?`, body: 'Each creates a real Cal.com booking. Customers may receive a confirmation email per booking.', confirmLabel: 'Migrate all', danger: true }))) return
     for (const ev of events) {
       // sequential to avoid Cal.com rate limits
       // eslint-disable-next-line no-await-in-loop

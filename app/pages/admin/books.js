@@ -4,6 +4,7 @@ import { useState } from 'react'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isOwnerEmail } from '../../lib/auth'
 import { q } from '../../lib/db'
+import { useToast, useConfirm } from '../../components/ui'
 
 export async function getServerSideProps({ req, res, query }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
@@ -84,6 +85,8 @@ const TYPE_COLOR = {
 }
 
 export default function BooksPage({ days, search, category, txs, summary, categories, lastRun, ytd, thisYear }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const totalIn = summary.reduce((s, r) => s + Number(r.inflow || 0), 0)
   const totalOut = summary.reduce((s, r) => s + Number(r.outflow || 0), 0)
   const net = totalIn + totalOut
@@ -97,7 +100,7 @@ export default function BooksPage({ days, search, category, txs, summary, catego
 
   async function submitExpense(e) {
     e.preventDefault()
-    if (!expForm.category_label) return alert('Pick a category.')
+    if (!expForm.category_label) return toast.error('Pick a category.')
     setExpSaving(true)
     try {
       const res = await fetch('/api/admin/books-add-expense', {
@@ -109,7 +112,7 @@ export default function BooksPage({ days, search, category, txs, summary, catego
       setShowExpense(false)
       window.location.reload()
     } catch (err) {
-      alert('Failed: ' + err.message)
+      toast.error('Failed: ' + err.message)
       setExpSaving(false)
     }
   }
@@ -141,14 +144,14 @@ export default function BooksPage({ days, search, category, txs, summary, catego
               + Add Expense
             </button>
             <button onClick={async () => {
-              if (!window.confirm('Run Gemini categorizer on the next 25 Unknown transactions?')) return
+              if (!(await confirm({ title: 'Run categorizer?', body: 'Runs the Gemini categorizer on the next 25 Unknown transactions.', confirmLabel: 'Run categorizer' }))) return
               const res = await fetch('/api/admin/books-categorize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: 25 }) })
               const j = await res.json()
               if (res.ok) {
-                alert(`✓ Categorized ${j.processed} transactions (${j.model || ''}).`)
+                toast.ok(`Categorized ${j.processed} transactions`)
                 window.location.reload()
               } else {
-                alert('Failed: ' + (j.error || res.status))
+                toast.error('Failed: ' + (j.error || res.status))
               }
             }}
               style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid rgba(var(--gold-rgb),0.35)', color: 'var(--gold)', background: 'transparent', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 800 }}>

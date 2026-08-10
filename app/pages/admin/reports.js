@@ -3,6 +3,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
+import { Skeleton } from '../../components/ui'
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -122,7 +123,7 @@ export default function ReportsPage() {
                 </div>
 
                 <div style={{ background: 'var(--bg-alt)', border: '1px solid rgba(var(--green-rgb),0.12)', borderRadius: 8, padding: 18, marginBottom: 16 }}>
-                  {loading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-dim)' }}>Loading…</div>}
+                  {loading && <div style={{ padding: 40 }}><Skeleton lines={4} height={16} /></div>}
                   {!loading && data?.monthly && (
                     <>
                       <LineChart series={series} />

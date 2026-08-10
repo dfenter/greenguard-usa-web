@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
+import { useToast, useConfirm } from '../../components/ui'
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 
@@ -529,6 +530,8 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function QuoteBuilder({ mapsKey }) {
+  const toast = useToast()
+  const confirm = useConfirm()
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -702,7 +705,7 @@ export default function QuoteBuilder({ mapsKey }) {
       body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, shippingTotal, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })), serviceDate: serviceConfig?.serviceDate || null, notes }),
     })
     const { url } = await res.json()
-    await navigator.clipboard.writeText(url).catch(() => window.prompt('Copy this link:', url))
+    await navigator.clipboard.writeText(url).catch(() => confirm({ title: 'Copy this link', input: { defaultValue: url }, confirmLabel: 'Done', alert: true }))
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 4000)
   }
@@ -821,7 +824,7 @@ export default function QuoteBuilder({ mapsKey }) {
     if (!customerEmail) return
     // Service date is required when this quote includes any real service (not equipment-only)
     if (serviceConfig?.system && serviceConfig.system !== 'none' && !serviceConfig.serviceDate) {
-      alert('Pick a preferred service date (at least 5 days out) before sending the quote.')
+      toast.error('Pick a preferred service date (at least 5 days out) before sending the quote.')
       return
     }
     setSending(true)

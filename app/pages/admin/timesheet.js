@@ -6,6 +6,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail, isOwnerEmail } from '../../lib/auth'
+import { useConfirm, Skeleton } from '../../components/ui'
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'no-store')
@@ -75,6 +76,7 @@ const inputStyle = {
 const labelStyle = { fontSize: '0.66rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-dim)', display: 'block', marginBottom: 5 }
 
 export default function Timesheet({ email, isOwner, serverToday }) {
+  const confirm = useConfirm()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState(null)
@@ -147,9 +149,11 @@ export default function Timesheet({ email, isOwner, serverToday }) {
     // Clocking out of a shift that started on an earlier day would bank the
     // whole overnight gap. Make the tech confirm it and fix the hours after.
     if (action === 'out' && data?.openClock && data.openClock.work_date !== serverToday) {
-      const ok = window.confirm(
-        `Your clock has been running since ${data.openClock.work_date}. Clocking out now records the whole span (${elapsedLabel(data.openClock.clock_in, Date.now())}).\n\nClock out anyway, then correct the hours?`
-      )
+      const ok = await confirm({
+        title: 'Clock still running',
+        body: `Your clock has been running since ${data.openClock.work_date}. Clocking out now records the whole span (${elapsedLabel(data.openClock.clock_in, Date.now())}). Clock out anyway, then correct the hours?`,
+        confirmLabel: 'Clock out anyway',
+      })
       if (!ok) return
     }
     setBusy(true)
@@ -164,7 +168,7 @@ export default function Timesheet({ email, isOwner, serverToday }) {
       if (!r.ok) {
         // Forgot to clock out on an earlier day — offer to close that shift
         // instead of dead-ending on the error.
-        if (j.code === 'STALE_CLOCK' && window.confirm(`${j.error}\n\nClock out of the ${j.workDate} shift now?`)) {
+        if (j.code === 'STALE_CLOCK' && (await confirm({ title: 'Open shift found', body: j.error, confirmLabel: `Clock out of ${j.workDate}` }))) {
           setBusy(false)
           return clock('out')
         }
@@ -272,7 +276,7 @@ export default function Timesheet({ email, isOwner, serverToday }) {
             {err}
           </div>
         ) : loading ? (
-          <div style={{ color: 'var(--text-muted)' }}>Loading…</div>
+          <Skeleton lines={3} height={18} />
         ) : (
           <>
             {/* ── Clock ─────────────────────────────────────────────── */}
@@ -401,7 +405,7 @@ export default function Timesheet({ email, isOwner, serverToday }) {
                             const warn = e.status === 'approved'
                               ? `${fmtDay(e.work_date)} has already been approved. Delete it anyway?`
                               : `Delete ${fmtDay(e.work_date)}?`
-                            if (!window.confirm(warn)) return
+                            if (!(await confirm({ title: 'Delete time entry?', body: warn, confirmLabel: 'Delete', danger: true }))) return
                             const j = await post(`/api/admin/timesheet?id=${e.id}`, {}, 'DELETE')
                             if (j) say('Deleted.')
                           }}

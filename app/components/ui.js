@@ -112,7 +112,8 @@ export function useConfirm() {
 }
 
 function ConfirmSheetImpl({ options, onClose }) {
-  const { title, body, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false, input } = options
+  // alert: acknowledge-only sheet (no cancel button) for detail-heavy notices.
+  const { title, body, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false, input, alert = false } = options
   const [value, setValue] = useState(input?.defaultValue ?? '')
   const sheetRef = useRef(null)
   const confirmRef = useRef(null)
@@ -147,7 +148,7 @@ function ConfirmSheetImpl({ options, onClose }) {
     <div className="sheet-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(cancelValue) }}>
       <div className="sheet" ref={sheetRef} role="dialog" aria-modal="true" aria-label={title}>
         {title && <h2 className="sheet-title">{title}</h2>}
-        {body && <p className="sheet-body">{body}</p>}
+        {body && <p className="sheet-body" style={{ whiteSpace: 'pre-line' }}>{body}</p>}
         {input && (
           <>
             {input.presets?.length > 0 && (
@@ -177,9 +178,9 @@ function ConfirmSheetImpl({ options, onClose }) {
           </>
         )}
         <div className="sheet-actions">
-          <button type="button" className="btn btn-quiet" onClick={() => onClose(cancelValue)}>{cancelLabel}</button>
+          {!alert && <button type="button" className="btn btn-quiet" onClick={() => onClose(cancelValue)}>{cancelLabel}</button>}
           <button type="button" ref={confirmRef} className={danger ? 'btn btn-danger' : 'btn btn-primary'} onClick={submit}>
-            {confirmLabel}
+            {alert && confirmLabel === 'Confirm' ? 'OK' : confirmLabel}
           </button>
         </div>
       </div>

@@ -11,6 +11,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail, isOwnerEmail } from '../../lib/auth'
+import { useConfirm } from '../../components/ui'
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'no-store')
@@ -76,6 +77,7 @@ const btn = (kind = 'ghost') => {
 const BLANK = { amountDollars: '', incurredOn: '', vendor: '', description: '', categoryLabel: '', paymentMethod: 'personal' }
 
 export default function Expenses({ email, isOwner, serverToday }) {
+  const confirm = useConfirm()
   const [mine, setMine] = useState(null)
   const [everyone, setEveryone] = useState(null)
   const [view, setView] = useState('mine')       // owner can flip to 'all'
@@ -387,8 +389,8 @@ export default function Expenses({ email, isOwner, serverToday }) {
                             Approve
                           </button>
                           <button style={btn('danger')} disabled={busy}
-                            onClick={() => {
-                              const reason = window.prompt('Why is this rejected? (they will see this)')
+                            onClick={async () => {
+                              const reason = await confirm({ title: 'Reject receipt', body: 'Why is this rejected? They will see this.', confirmLabel: 'Reject', danger: true, input: { placeholder: 'Reason' } })
                               if (!reason) return
                               api('/api/admin/expenses', { method: 'PATCH', body: { id: x.id, action: 'reject', reason } })
                                 .then((j) => j && say('Rejected.'))
@@ -411,8 +413,8 @@ export default function Expenses({ email, isOwner, serverToday }) {
                             {editing === x.id ? 'Close' : 'Edit'}
                           </button>
                           <button style={{ ...btn('danger'), padding: '7px 13px' }} disabled={busy}
-                            onClick={() => {
-                              if (!window.confirm(`Delete this ${usd(x.amountCents)} receipt?`)) return
+                            onClick={async () => {
+                              if (!(await confirm({ title: 'Delete receipt?', body: `Deletes this ${usd(x.amountCents)} receipt.`, confirmLabel: 'Delete', danger: true }))) return
                               api(`/api/admin/expenses?id=${x.id}`, { method: 'DELETE' }).then((j) => j && say('Deleted.'))
                             }}>
                             Delete

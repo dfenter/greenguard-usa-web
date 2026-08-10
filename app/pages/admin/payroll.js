@@ -8,6 +8,7 @@ import Link from 'next/link'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isOwnerEmail, isAdminEmail } from '../../lib/auth'
 import { suggestPeriod, PAY_FREQUENCIES } from '../../lib/payroll'
+import { useConfirm, Skeleton } from '../../components/ui'
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'no-store')
@@ -179,6 +180,7 @@ function EntryRow({ e, nameById, sel, setSel, showCheck, onHistory }) {
 const ENTRY_HEAD = ['Date', 'Who', 'Hours', 'Stops', 'Miles', 'Notes', 'Source', '']
 
 function ApproveTab({ api, busy, nameById, setMsg, today }) {
+  const confirm = useConfirm()
   const [entries, setEntries] = useState([])
   const [sel, setSel] = useState({})
   const [trail, setTrail] = useState(null)   // { entry, rows }
@@ -242,7 +244,7 @@ function ApproveTab({ api, busy, nameById, setMsg, today }) {
             <button onClick={() => setTrail(null)} style={{ ...btn('ghost'), padding: '6px 12px' }}>Close</button>
           </div>
           {trail.rows === null ? (
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>Loading…</div>
+            <Skeleton lines={3} height={16} />
           ) : trail.rows.length === 0 ? (
             <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)' }}>No changes recorded.</div>
           ) : trail.rows.map((r) => (
@@ -310,8 +312,8 @@ function ApproveTab({ api, busy, nameById, setMsg, today }) {
           </div>
           {approved.length > 0 && (
             <button style={btn('danger')} disabled={busy}
-              onClick={() => {
-                if (!window.confirm(`Send all ${approved.length} approved entries back for edits?`)) return
+              onClick={async () => {
+                if (!(await confirm({ title: 'Send back for edits?', body: `Sends all ${approved.length} approved entries back for edits.`, confirmLabel: 'Send all back', danger: true }))) return
                 act('unapprove', approved.map((e) => e.id))
               }}>Send all back</button>
           )}
@@ -334,6 +336,7 @@ function ApproveTab({ api, busy, nameById, setMsg, today }) {
 // ── Run Payroll ─────────────────────────────────────────────────────────────
 
 function RunTab({ api, busy, setMsg, today, employees, settings, state, setState, onChanged }) {
+  const confirm = useConfirm()
   const freq = settings?.defaultPayFrequency || 'biweekly'
   const period = state.period || (() => {
     const p = suggestPeriod(today, freq)
@@ -406,7 +409,7 @@ function RunTab({ api, busy, setMsg, today, employees, settings, state, setState
 
   async function doFinalize() {
     if (!draft) return
-    if (!window.confirm(`Finalize run #${draft.run.id}? This locks the hours as paid and posts the expense to the books.`)) return
+    if (!(await confirm({ title: `Finalize run #${draft.run.id}?`, body: 'This locks the hours as paid and posts the expense to the books.', confirmLabel: 'Finalize run', danger: true }))) return
     const j = await api('/api/admin/payroll-run', { method: 'POST', body: { action: 'finalize', runId: draft.run.id } })
     if (j) {
       setState((s) => ({ ...s, draft: j }))
@@ -593,6 +596,7 @@ function RunTable({ run, items, totals, form941Due }) {
 // ── History ─────────────────────────────────────────────────────────────────
 
 function HistoryTab({ api, runs, busy, setMsg, reload, taxYear }) {
+  const confirm = useConfirm()
   const [open, setOpen] = useState(null)
   const [detail, setDetail] = useState(null)
 
@@ -612,7 +616,7 @@ function HistoryTab({ api, runs, busy, setMsg, reload, taxYear }) {
       : action === 'payments-sent' ? 'Confirm you have sent the net pay for'
       : action === 'taxes-deposited' ? 'Confirm you have deposited the 941 taxes for'
       : 'Re-post'
-    if (!window.confirm(`${label} run #${runId}?`)) return
+    if (!(await confirm({ title: `${label} run #${runId}?`, confirmLabel: label.startsWith('Confirm') ? 'Confirm' : label, danger: action === 'void' }))) return
     const j = await api('/api/admin/payroll-run', { method: 'POST', body: { action, runId } })
     if (j) {
       const said = action === 'void' ? 'voided — hours released'
@@ -703,7 +707,7 @@ function FilingsTab({ api, taxYear }) {
     return () => { alive = false }
   }, [api, year])
 
-  if (!data) return <div style={{ ...card, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading…</div>
+  if (!data) return <div style={card}><Skeleton lines={3} height={16} /></div>
 
   const quarters = data.quarters.filter((q) => q.hasActivity)
   const line = (label, cents, strong = false) => (
