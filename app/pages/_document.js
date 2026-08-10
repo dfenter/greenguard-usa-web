@@ -25,19 +25,19 @@ function buildCssVars(c) {
     `--text:${c.text};` +
     `--text-muted:${c.textMuted};` +
     `--text-dim:${c.textDim};` +
-    `--ok:${c.ok || '#176f2b'};` +
+    `--ok:${c.ok || '#0f7a35'};` +
     `--danger:${c.danger || '#b3261e'};` +
     `--info:${c.info || '#0b57d0'};` +
-    `--warn:${c.warn || '#8a5300'};` +
+    `--warn:${c.warn || '#9a4a00'};` +
     `--text-on-accent:${c.textOnAccent || '#ffffff'};` +
     `--green-rgb:${hx(c.accent)};` +
     `--gold-rgb:${hx(c.gold)};` +
     `--text-rgb:${hx(c.text)};` +
     `--border-rgb:${rg(c.border)};` +
-    `--ok-rgb:${hx(c.ok || '#176f2b')};` +
+    `--ok-rgb:${hx(c.ok || '#0f7a35')};` +
     `--danger-rgb:${hx(c.danger || '#b3261e')};` +
     `--info-rgb:${hx(c.info || '#0b57d0')};` +
-    `--warn-rgb:${hx(c.warn || '#8a5300')};` +
+    `--warn-rgb:${hx(c.warn || '#9a4a00')};` +
   `}`
 }
 

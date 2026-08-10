@@ -4,6 +4,7 @@ import Head from 'next/head'
 import Script from 'next/script'
 import { useRouter } from 'next/router'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { ToastProvider, ConfirmProvider } from '../components/ui'
 
 const PREFETCH_ROUTES = [
   '/admin/home', '/admin/tech', '/admin/rounds', '/admin/inventory',
@@ -80,7 +81,11 @@ export default function App({ Component, pageProps }) {
           `}</Script>
         </>
       )}
-      <Component {...pageProps} />
+      <ToastProvider>
+        <ConfirmProvider>
+          <Component {...pageProps} />
+        </ConfirmProvider>
+      </ToastProvider>
       <SpeedInsights />
     </ErrorBoundary>
   )

@@ -30,10 +30,10 @@ module.exports = {
     textMuted:   'rgba(221,238,255,0.58)',
     textDim:     'rgba(221,238,255,0.32)',
     themeColor:  '#06111f',
-    ok:           '#176f2b',
+    ok:           '#0f7a35',
     danger:       '#b3261e',
     info:         '#0b57d0',
-    warn:         '#8a5300',
+    warn:         '#9a4a00',
     textOnAccent: '#102015',
   },
 

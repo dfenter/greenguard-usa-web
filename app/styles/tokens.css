@@ -13,10 +13,10 @@
   --text:          #111111;
   --text-muted:    rgba(17, 17, 17, 0.78);
   --text-dim:      rgba(17, 17, 17, 0.62);
-  --ok:            #176f2b;
+  --ok:            #0f7a35;
   --danger:        #b3261e;
   --info:          #0b57d0;
-  --warn:          #8a5300;
+  --warn:          #9a4a00;
   --text-on-accent: #ffffff;
 
   /* RGB breakdown for rgba() usage */
@@ -24,8 +24,8 @@
   --gold-rgb:    120, 88, 0;
   --text-rgb:    17, 17, 17;
   --border-rgb:  27, 94, 32;
-  --ok-rgb:      23, 111, 43;
+  --ok-rgb:      15, 122, 53;
   --danger-rgb:  179, 38, 30;
   --info-rgb:    11, 87, 208;
-  --warn-rgb:    138, 83, 0;
+  --warn-rgb:    154, 74, 0;
 }

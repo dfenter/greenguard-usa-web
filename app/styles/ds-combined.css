@@ -19,10 +19,10 @@
   --text:          #111111;
   --text-muted:    rgba(17, 17, 17, 0.78);
   --text-dim:      rgba(17, 17, 17, 0.62);
-  --ok:            #176f2b;
+  --ok:            #0f7a35;
   --danger:        #b3261e;
   --info:          #0b57d0;
-  --warn:          #8a5300;
+  --warn:          #9a4a00;
   --text-on-accent: #ffffff;
 
   /* RGB breakdown for rgba() usage */
@@ -30,10 +30,10 @@
   --gold-rgb:    120, 88, 0;
   --text-rgb:    17, 17, 17;
   --border-rgb:  27, 94, 32;
-  --ok-rgb:      23, 111, 43;
+  --ok-rgb:      15, 122, 53;
   --danger-rgb:  179, 38, 30;
   --info-rgb:    11, 87, 208;
-  --warn-rgb:    138, 83, 0;
+  --warn-rgb:    154, 74, 0;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -50,6 +50,41 @@
   --shadow-lg: 0 12px 32px rgba(0,0,0,0.14);
   --ring: 0 0 0 3px rgba(var(--green-rgb),0.70);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Type scale on the 19px rem base. Six bins — every font-size in the app
+     should land on one of these instead of an ad-hoc rem value. */
+  --fs-xs:   0.74rem;
+  --fs-sm:   0.84rem;
+  --fs-base: 1rem;
+  --fs-lg:   1.16rem;
+  --fs-xl:   1.37rem;
+  --fs-2xl:  1.68rem;
+
+  /* Weight discipline: body / emphasis / headings. Reserve 900 for the
+     wordmark. */
+  --w-body: 400;
+  --w-emph: 650;
+  --w-head: 800;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Brand display face — customer-facing headings/prices only. The woff2 is
+     only fetched on pages where an element actually uses it, so admin/tech
+     pages pay zero font bytes. */
+  --font-display: 'DM Serif Display', Georgia, serif;
+}
+
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dm-serif-display.woff2') format('woff2');
 }
 
 html {
@@ -389,4 +424,254 @@ html { scroll-padding-top: 96px; }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── v3 component classes ──────────────────────────────────────────
+   Class-first layer for the redesign. All rules token-expressed and
+   business-agnostic (shared by every tenant). Pair the .btn base with a
+   variant: class="btn btn-primary". The older standalone .btn-gold /
+   .btn-outline / .btn-green classes above remain untouched for
+   compatibility. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  font-weight: var(--w-head);
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), filter 0.18s var(--ease), background 0.18s var(--ease);
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled, .btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-primary {
+  background: var(--green);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover { filter: brightness(1.12); }
+.btn-danger {
+  background: var(--danger);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-sm);
+}
+.btn-danger:hover { filter: brightness(1.10); }
+.btn-quiet {
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1.5px solid rgba(var(--border-rgb), 0.45);
+}
+.btn-quiet:hover { background: var(--bg-alt); }
+
+/* Standard form control — replaces the per-page inline `input` style objects. */
+.field {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: var(--fs-base); /* ≥16px so iOS never zoom-jumps */
+  color: var(--text);
+  background: var(--bg-card);
+  border: 1.5px solid rgba(var(--border-rgb), 0.45);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+.field:focus { border-color: var(--green); }
+textarea.field { min-height: 96px; resize: vertical; }
+.field-label {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: var(--w-emph);
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+/* Stop-card action buttons (Navigate / On My Way / Finalize Visit). Class
+   version of the actionBtn/disabledBtn style objects in StopCard.js. */
+.stop-btn {
+  flex: 1 1 70px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 8px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1.125rem;
+  font-weight: var(--w-head);
+  text-decoration: none;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: background 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.stop-btn:hover { background: var(--bg-alt); }
+.stop-btn:active { transform: scale(0.98); }
+.stop-btn[aria-disabled="true"], .stop-btn:disabled {
+  color: var(--text-dim);
+  background: var(--bg-alt);
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.empty-state {
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  background: var(--bg-card);
+  border: 1px dashed rgba(var(--border-rgb), 0.35);
+  border-radius: var(--radius);
+}
+.empty-state .empty-title {
+  font-size: var(--fs-base);
+  font-weight: var(--w-emph);
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+/* Loading placeholder — solid surfaces only, no translucency. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  min-height: 14px;
+  background: var(--bg-alt);
+  border-radius: var(--radius-sm);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent);
+  animation: skeleton-sweep 1.2s infinite;
+}
+@keyframes skeleton-sweep {
+  to { transform: translateX(100%); }
+}
+
+/* Toasts — top-center, solid card, auto-dismissed by ToastProvider. */
+.toast-stack {
+  position: fixed;
+  top: calc(84px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: min(92vw, 420px);
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 12px 18px;
+  background: var(--bg-card);
+  border: 1.5px solid rgba(var(--ok-rgb), 0.5);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  font-size: var(--fs-base);
+  font-weight: var(--w-emph);
+  animation: toast-in 0.18s var(--ease);
+}
+.toast-error { border-color: rgba(var(--danger-rgb), 0.5); }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+}
+
+/* Confirm sheet — bottom sheet on mobile, centered card on desktop. */
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  animation: scrim-in 0.18s var(--ease);
+}
+@keyframes scrim-in {
+  from { opacity: 0; }
+}
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  padding: var(--space-5) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-card);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lg);
+  animation: sheet-up 0.18s var(--ease);
+}
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(24px); }
+}
+@media (min-width: 769px) {
+  .sheet-scrim { align-items: center; }
+  .sheet { margin: 0 16px; border-radius: var(--radius-lg); padding-bottom: var(--space-5); }
+}
+.sheet-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-lg);
+  font-weight: var(--w-head);
+  color: var(--text);
+}
+.sheet-body {
+  margin: 0 0 var(--space-4);
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+}
+.sheet-actions { display: flex; gap: var(--space-3); }
+.sheet-actions .btn { flex: 1; min-height: 52px; }
+.sheet-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.preset-chip {
+  min-height: 48px;
+  padding: 8px 18px;
+  background: var(--bg-card);
+  border: 1.5px solid rgba(var(--border-rgb), 0.45);
+  border-radius: var(--radius-pill);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  font-weight: var(--w-emph);
+  cursor: pointer;
+}
+.preset-chip[aria-pressed="true"] {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--text-on-accent);
+}
+
+/* Respect the OS reduced-motion setting everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

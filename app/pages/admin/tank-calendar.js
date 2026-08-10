@@ -6,6 +6,7 @@ import { getSessionFromRequest } from '../../lib/auth'
 import { findContactByEmail, upsertContact, getNotesForContact } from '../../lib/hubspot'
 import { getBookingsForWeek } from '../../lib/gcal'
 import { resolveByTitle, normalizeEventTitle } from '../../lib/sku-engine'
+import { useToast } from '../../components/ui'
 
 const INVENTORY_EMAIL = 'inventory@greenguard-usa.com'
 const SAFETY_STOCK = 3
@@ -358,7 +359,7 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
   const [formWeek, setFormWeek] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [toast, setToast] = useState(null)
+  const toast = useToast()
 
   const refresh = useCallback(async () => {
     try {
@@ -381,12 +382,10 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
       })
       if (!res.ok) throw new Error()
       setFormWeek(null)
-      setToast('Saved')
-      setTimeout(() => setToast(null), 3000)
+      toast.ok('Saved')
       await refresh()
     } catch {
-      setToast('Error — try again')
-      setTimeout(() => setToast(null), 3000)
+      toast.error('Save failed. Try again.')
     } finally {
       setSubmitting(false)
     }
@@ -415,11 +414,6 @@ export default function TankCalendarPage({ isAdmin, initialData }) {
     <>
       <Head><title>Tank Calendar · GreenGuard Admin</title></Head>
       <PortalLayout title="Tank Calendar" isAdmin={isAdmin}>
-        {toast && (
-          <div style={{ position: 'fixed', top: 70, right: 20, padding: '10px 20px', background: toast === 'Saved' ? 'rgba(var(--green-rgb),0.15)' : 'rgba(var(--danger-rgb),0.15)', border: `1px solid ${toast === 'Saved' ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--danger-rgb),0.4)'}`, borderRadius: 8, color: toast === 'Saved' ? 'var(--green)' : 'var(--danger)', fontWeight: 700, fontSize: '0.88rem', zIndex: 999 }}>
-            {toast}
-          </div>
-        )}
 
         <SummaryBar summary={summary} todayLoad={todayLoad} />
         <AlertsBanner alerts={alerts} />
