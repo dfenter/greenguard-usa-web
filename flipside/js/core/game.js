@@ -1,17 +1,15 @@
 import {
-  B2B_MULT,
-  CLEARS_PER_CHARGE,
-  COMBO_SCORE,
-  FOLDOVER_MULT,
-  FOLDOVER_WINDOW_MS,
-  FLIP_MAX,
-  FLIP_START,
+  FACES,
   LOCK_DELAY_MS,
   LOCK_RESETS_MAX,
   QUEUE_LEN,
+  RING_COLS,
+  ROWS,
+  RING_CLEAR_SCORE,
   SCORE_LINES,
   SOFT_DROP_FACTOR,
-  other,
+  nextFace,
+  ringCol,
 } from '../config.js';
 import {
   cellsOf,
@@ -22,25 +20,35 @@ import {
 } from './pieces.js';
 import {
   anyAbove,
-  clearRows,
+  cellAt,
+  clearFaceRows,
+  clearRingRow,
   collides,
-  createBoard,
-  fullRows,
+  createRing,
+  faceRowFull,
+  faceWindow,
   lockCells,
-  lockPrismFar,
+  ringRowFull,
 } from './board.js';
 import {
   checkSeamWin,
+  echoClear,
   festerCheck,
   gravityMs,
   onLinesCleared,
 } from './progression.js';
 
+const COMBO_SCORE = 50;
+const B2B_MULT = 1.5;
 const EPSILON = 1e-7;
 const MAX_TIME_STEPS = 128;
 
+function wrapRingColumn(x) {
+  return ((Math.trunc(Number(x) || 0) % RING_COLS) + RING_COLS) % RING_COLS;
+}
+
 function cloneCell(cell) {
-  return cell ? { pol: cell.pol, t: cell.t } : null;
+  return cell ? { w: cell.w, t: cell.t } : null;
 }
 
 function clonePiece(piece) {
@@ -50,24 +58,23 @@ function clonePiece(piece) {
 }
 
 function cloneCells(cells) {
-  return cells.map(([x, y]) => [x, y]);
+  return Array.isArray(cells) ? cells.map(([x, y]) => [x, y]) : [];
 }
 
 function pushFx(G, k, detail = {}) {
+  if (!Array.isArray(G.fx)) G.fx = [];
   G.fx.push({ k, ...detail });
 }
 
 function queueEntry(value) {
   if (typeof value === 'string') return { t: value, prism: false };
-  return { t: value.t, prism: value.prism === true };
+  return { t: value?.t, prism: value?.prism === true };
 }
 
-// The HUD renders holdT as a piece type string. Prism metadata lives beside
-// it so the hold slot can round-trip a prism without changing that contract.
 function setHold(G, entry) {
   const normalized = entry && typeof entry.t === 'string' ? entry : null;
   G.holdT = normalized ? normalized.t : null;
-  G.holdPrism = Boolean(normalized && normalized.prism === true);
+  G.holdPrism = Boolean(normalized?.prism);
 }
 
 function appendBag(G) {
@@ -77,8 +84,6 @@ function appendBag(G) {
 }
 
 function ensureQueue(G) {
-  // Keep one complete upcoming bag beyond the visible preview. This makes the
-  // active draw independent of the preview length and preserves bag order.
   while (G.queue.length < QUEUE_LEN + 1) appendBag(G);
 }
 
@@ -89,27 +94,19 @@ function nextQueueEntry(G) {
   return entry;
 }
 
-function boardFor(G, world = activeWorld(G)) {
-  return G.boards[world];
-}
-
-function activeWorld(G) {
-  return G.world;
-}
-
 function canControlPiece(G) {
-  return G && G.status === 'playing';
+  return Boolean(G && G.status === 'playing' && G.piece);
 }
 
-function pieceFits(G, piece, world = activeWorld(G)) {
-  return !collides(boardFor(G, world), cellsOf(piece));
+function pieceFits(G, piece) {
+  return !collides(G.ring, cellsOf(piece));
 }
 
 function isGrounded(G) {
   if (!G.piece) return false;
   const falling = clonePiece(G.piece);
   falling.y += 1;
-  return collides(boardFor(G, activeWorld(G)), cellsOf(falling));
+  return collides(G.ring, cellsOf(falling));
 }
 
 function resetPieceTimers(G) {
@@ -118,28 +115,30 @@ function resetPieceTimers(G) {
   G.lockResets = 0;
 }
 
-function endGame(G, side = activeWorld(G)) {
+function endGame(G, face = G.face) {
   if (G.status === 'gameover' || G.status === 'won') return;
+  const normalized = Number.isInteger(face)
+    ? ((face % FACES.length) + FACES.length) % FACES.length
+    : G.face;
   G.status = 'gameover';
-  G.overSide = side;
-  pushFx(G, 'gameover', { world: side, overSide: side, phase: G.phase });
+  G.overFace = normalized;
+  pushFx(G, 'gameover', { face: normalized, world: FACES[normalized], phase: G.phase });
 }
 
-function endWin(G, world) {
+function endWin(G) {
   if (G.status === 'won') return;
   G.status = 'won';
-  G.seam.active = false;
-  pushFx(G, 'seamwin', { world, phase: G.phase });
+  pushFx(G, 'seamwin', { face: G.face, world: FACES[G.face], phase: G.phase });
 }
 
 function spawnSpecific(G, entry) {
   const normalized = queueEntry(entry);
   const piece = spawnPiece(normalized.t, normalized.prism);
+  piece.x = ringCol(G.face, 3);
   G.piece = piece;
   resetPieceTimers(G);
-
-  if (!piece || !pieceFits(G, piece)) {
-    endGame(G, activeWorld(G));
+  if (!pieceFits(G, piece)) {
+    endGame(G, G.face);
     return false;
   }
   return true;
@@ -160,262 +159,278 @@ function resetLockAfterAction(G) {
   }
 }
 
-function moveHorizontal(G, dx) {
-  if (!G.piece) return false;
-  const candidate = clonePiece(G.piece);
-  candidate.x += dx;
-  if (collides(boardFor(G), cellsOf(candidate))) return false;
+function visibleInFace(G, face, cells = cellsOf(G.piece)) {
+  const window = new Set(faceWindow(face));
+  return cells.some(([x]) => window.has(wrapRingColumn(x)));
+}
 
+function directionTowardPiece(G) {
+  const current = G.face;
+  const cells = cellsOf(G.piece);
+  const next = nextFace(current, 1);
+  const previous = nextFace(current, -1);
+  const nextWindow = new Set(faceWindow(next));
+  const previousWindow = new Set(faceWindow(previous));
+  const nextCount = cells.filter(([x]) => nextWindow.has(wrapRingColumn(x))).length;
+  const previousCount = cells.filter(([x]) => previousWindow.has(wrapRingColumn(x))).length;
+  if (nextCount !== previousCount) return nextCount > previousCount ? 1 : -1;
+
+  const start = ringCol(current, 0);
+  let signed = 0;
+  for (const [x] of cells) {
+    const relative = (wrapRingColumn(x) - start + 36) % 36;
+    signed += relative <= 18 ? relative : relative - 36;
+  }
+  return signed >= 0 ? 1 : -1;
+}
+
+function beginFold(G, dir, auto = false) {
+  if (!G || G.status !== 'playing') return false;
+  const direction = dir < 0 ? -1 : 1;
+  const from = G.face;
+  const to = nextFace(from, direction);
+  G.status = 'folding';
+  G.fold = { from, to, dir: direction };
+  G.stats.folds += 1;
+  pushFx(G, 'fold_start', { from, to, dir: direction, auto: auto === true });
+  return true;
+}
+
+function maybeAutoFollow(G) {
+  if (!canControlPiece(G) || visibleInFace(G, G.face)) return false;
+  return beginFold(G, directionTowardPiece(G), true);
+}
+
+function moveHorizontal(G, dx) {
+  if (!canControlPiece(G)) return false;
+  const candidate = clonePiece(G.piece);
+  candidate.x = wrapRingColumn(candidate.x + dx);
+  if (collides(G.ring, cellsOf(candidate))) return false;
   G.piece = candidate;
   resetLockAfterAction(G);
   pushFx(G, 'move', {
-    world: G.world,
+    face: G.face,
+    world: FACES[G.face],
     piece: clonePiece(candidate),
     cells: cloneCells(cellsOf(candidate)),
   });
+  maybeAutoFollow(G);
   return true;
 }
 
 function rotatePiece(G, dir) {
-  if (!G.piece) return false;
-  const turned = rotate(
-    G.piece,
-    dir,
-    (candidateCells) => collides(boardFor(G), candidateCells),
-  );
+  if (!canControlPiece(G)) return false;
+  const turned = rotate(G.piece, dir, (candidateCells) => collides(G.ring, candidateCells));
   if (!turned) return false;
-
+  turned.x = wrapRingColumn(turned.x);
   G.piece = turned;
   resetLockAfterAction(G);
   pushFx(G, 'rotate', {
-    world: G.world,
+    face: G.face,
+    world: FACES[G.face],
     dir,
     piece: clonePiece(turned),
     cells: cloneCells(cellsOf(turned)),
   });
+  maybeAutoFollow(G);
   return true;
 }
 
-function awardCharges(G, cleared) {
-  const before = G.flipCharge;
-  const carried = G.clearsTowardCharge;
-  G.clearsTowardCharge += cleared;
-
-  let earned = Math.floor(G.clearsTowardCharge / CLEARS_PER_CHARGE);
-  G.clearsTowardCharge %= CLEARS_PER_CHARGE;
-  if (cleared === 4) earned = Math.max(earned, 2);
-
-  G.flipCharge = Math.min(FLIP_MAX, G.flipCharge + earned);
-  const amount = G.flipCharge - before;
-  if (amount > 0) {
-    pushFx(G, 'charge', {
-      amount,
-      value: G.flipCharge,
-      clears: cleared,
-      carry: carried,
-      phase: G.phase,
-    });
+function faceClearPlan(G, affectedRows) {
+  const rows = [...new Set(affectedRows.filter((y) => Number.isInteger(y) && y >= 0 && y < ROWS))]
+    .sort((a, b) => a - b);
+  const ringRows = rows.filter((y) => ringRowFull(G.ring, y));
+  const ringSet = new Set(ringRows);
+  const marks = [];
+  for (const y of rows) {
+    if (ringSet.has(y)) continue;
+    for (let face = 0; face < FACES.length; face += 1) {
+      if (faceRowFull(G.ring, face, y)) marks.push({ face, y });
+    }
   }
+  const seamMarks = marks.concat(
+    ringRows.flatMap((y) => FACES.map((_, face) => ({ face, y }))),
+  );
+  return { rows, ringRows, marks, seamMarks };
 }
 
-function garbageRows(board, amount) {
-  const rows = [];
-  for (let y = board.grid.length - 1; y >= 0 && rows.length < amount; y -= 1) {
-    const row = board.grid[y];
-    if (row.some((cell) => cell && cell.t === 'G')) rows.push(y);
+function faceGroups(marks) {
+  const groups = new Map();
+  for (const mark of marks) {
+    if (!groups.has(mark.face)) groups.set(mark.face, []);
+    groups.get(mark.face).push(mark);
   }
-  return rows.sort((a, b) => a - b);
+  return groups;
 }
 
-function echoClear(G, sourceWorld, count) {
-  if (count < 2) return;
-  const farWorld = other(sourceWorld);
-  const farBoard = boardFor(G, farWorld);
-  const rows = garbageRows(farBoard, count - 1);
-  if (!rows.length) return;
-
-  clearRows(farBoard, rows);
-  pushFx(G, 'echo', {
-    world: sourceWorld,
-    farWorld,
-    rows,
-    count: rows.length,
-    phase: G.phase,
-  });
+function captureFaceRows(G, marks) {
+  return marks.map((mark) => ({
+    ...mark,
+    cells: faceWindow(mark.face).map((rc) => cloneCell(G.ring.grid[mark.y][rc])),
+  }));
 }
 
-function collectLineResult(G, world) {
-  const board = boardFor(G, world);
-  const rows = fullRows(board);
-  return {
-    world,
-    board,
-    rows,
-    count: rows.length,
-    rowCells: rows.map((y) => board.grid[y].map(cloneCell)),
-    seamWin: rows.length > 0 && checkSeamWin(G, rows, world),
-  };
+function captureRingRows(G, rows) {
+  return rows.map((y) => ({ y, cells: G.ring.grid[y].map(cloneCell) }));
 }
 
-/**
- * Resolve every board touched by one lock as one shared scoring event.
- *
- * Prism rows are collected before any board is changed. This is important:
- * echo clearing belongs after scoring and must not erase full rows on the far
- * side before they are counted. Combo, charges, phase progression, and the
- * shared score bonus are also applied once for the lock, not once per world.
- */
-function resolveLineBatch(G, worlds) {
-  const results = worlds.map((world) => collectLineResult(G, world));
-  const active = results.filter((result) => result.count > 0);
-  const total = active.reduce((sum, result) => sum + result.count, 0);
-  const playWorld = activeWorld(G);
-
-  if (total === 0) {
+function clearPlan(G, plan) {
+  const faceCount = plan.marks.length;
+  const ringCount = plan.ringRows.length;
+  const total = faceCount + ringCount;
+  if (!total) {
     G.combo = -1;
-    return 0;
+    return { total: 0, seamWin: false };
   }
 
-  const phaseAtClear = G.phase;
-  const hasTetris = active.some((result) => result.count === 4);
-  let points = active.reduce(
-    (sum, result) => sum + (SCORE_LINES[result.count] || 0),
-    0,
-  ) * phaseAtClear;
-  if (hasTetris && G.b2b) points *= B2B_MULT;
+  const phase = G.phase;
+  const groups = faceGroups(plan.marks);
+  let facePoints = 0;
+  let hasTetris = false;
+  for (const group of groups.values()) {
+    const count = group.length;
+    facePoints += SCORE_LINES[count] || 0;
+    if (count === 4) hasTetris = true;
+  }
 
+  const wasB2B = G.b2b;
+  if (hasTetris && wasB2B) facePoints *= B2B_MULT;
+  const basePoints = (facePoints + ringCount * RING_CLEAR_SCORE) * phase;
   G.combo += 1;
-  points += COMBO_SCORE * G.combo * phaseAtClear;
+  const points = Math.round(basePoints + COMBO_SCORE * G.combo * phase);
+  G.score += points;
+  G.b2b = hasTetris;
+  G.stats.tetris += [...groups.values()].filter((group) => group.length === 4).length;
+  G.stats.rings += ringCount;
+  G.stats.maxCombo = Math.max(G.stats.maxCombo, G.combo);
 
-  const foldover = G.timeMs - G.lastFlipAt <= FOLDOVER_WINDOW_MS;
-  if (foldover) {
-    points *= FOLDOVER_MULT;
-    pushFx(G, 'foldover', {
-      world: playWorld,
-      worlds: active.map((result) => result.world),
-      rows: active.flatMap((result) => result.rows),
-      count: total,
-      phase: phaseAtClear,
-      multiplier: FOLDOVER_MULT,
-    });
+  const faceRows = captureFaceRows(G, plan.marks);
+  const ringRows = captureRingRows(G, plan.ringRows);
+  const seamWin = checkSeamWin(G, plan.seamMarks);
+
+  // A mixed ring/face clear is one union operation so row indices remain
+  // stable while every touched column collapses exactly once.
+  if (ringCount > 0 && faceCount > 0) {
+    const allMarks = plan.marks.concat(
+      plan.ringRows.flatMap((y) => FACES.map((_, face) => ({ face, y }))),
+    );
+    clearFaceRows(G.ring, allMarks);
+  } else if (ringCount > 0) {
+    [...plan.ringRows].sort((a, b) => b - a).forEach((y) => clearRingRow(G.ring, y));
+  } else {
+    clearFaceRows(G.ring, plan.marks);
   }
 
-  const awardedScore = Math.round(points);
-  G.score += awardedScore;
-  G.b2b = hasTetris;
-  G.stats.tetris += active.filter((result) => result.count === 4).length;
-  if (G.combo > G.stats.maxCombo) G.stats.maxCombo = G.combo;
-
-  // All rows were captured above; only now may either board be collapsed.
-  for (const result of active) {
-    clearRows(result.board, result.rows);
+  for (const [face, group] of groups) {
+    const count = group.length;
     pushFx(G, 'clear', {
-      world: result.world,
-      rows: result.rows.slice(),
-      cells: result.rowCells,
-      count: result.count,
-      score: Math.round((SCORE_LINES[result.count] || 0) * phaseAtClear),
-      sharedScore: awardedScore,
-      phase: phaseAtClear,
+      face,
+      world: FACES[face],
+      rows: group.map((mark) => mark.y),
+      cells: faceRows.filter((row) => row.face === face),
+      count,
+      score: Math.round((SCORE_LINES[count] || 0) * phase),
+      phase,
       combo: G.combo,
-      b2b: result.count === 4 && G.b2b,
+      b2b: count === 4 && wasB2B,
     });
-    if (result.count === 4) {
+    if (count === 4) {
       pushFx(G, 'tetris', {
-        world: result.world,
-        rows: result.rows.slice(),
-        count: result.count,
-        b2b: G.b2b,
+        face,
+        world: FACES[face],
+        rows: group.map((mark) => mark.y),
+        count,
+        b2b: wasB2B,
       });
     }
   }
+  for (const row of ringRows) pushFx(G, 'ring_clear', row);
 
-  awardCharges(G, total);
-  const sunWouldTopOut = G.boards.sun.grid[0].some((cell) => cell !== null);
-  const inkWouldTopOut = G.boards.ink.grid[0].some((cell) => cell !== null);
   const progressionTopOut = onLinesCleared(G, total);
-  if (progressionTopOut) {
-    endGame(
-      G,
-      sunWouldTopOut ? 'sun' : (inkWouldTopOut ? 'ink' : playWorld),
-    );
-    return total;
-  }
+  if (progressionTopOut) endGame(G, G.overFace == null ? G.face : G.overFace);
+  if (G.status === 'gameover') return { total, seamWin };
 
-  // Echo clears happen only after both sides have scored and collapsed.
-  for (const result of active) echoClear(G, result.world, result.count);
+  if (faceCount >= 2) echoClear(G, faceCount);
+  return { total, seamWin };
+}
 
-  if (results.some((result) => result.seamWin)) endWin(G, playWorld);
-  return total;
+function resolveLines(G, affectedRows) {
+  const result = clearPlan(G, faceClearPlan(G, affectedRows));
+  if (result.seamWin && G.status === 'playing') endWin(G);
+  return result.total;
 }
 
 function lockCurrentPiece(G) {
-  if (!G.piece || !canControlPiece(G)) return;
+  if (!canControlPiece(G)) return;
 
   const locked = clonePiece(G.piece);
   const cells = cellsOf(locked);
-  const world = activeWorld(G);
-  const farWorld = other(world);
-  const wasPrism = locked.prism === true;
+  const face = G.face;
+  const world = FACES[face];
+  lockCells(G.ring, cells, world, locked.t);
 
-  lockCells(boardFor(G, world), cells, world, locked.t);
-  if (wasPrism) lockPrismFar(boardFor(G, farWorld), cells, locked.t);
+  const drilled = [];
+  if (locked.prism) {
+    const oppositeFace = nextFace(face, 2);
+    const oppositeWorld = FACES[oppositeFace];
+    const farCells = cells.map(([x, y]) => [wrapRingColumn(x + 18), y]);
+    for (const [x, y] of farCells) {
+      if (y >= 0 && y < ROWS && cellAt(G.ring, x, y) === null) drilled.push([x, y]);
+    }
+    lockCells(G.ring, drilled, oppositeWorld, locked.t);
+    pushFx(G, 'prism_drill', {
+      face: oppositeFace,
+      world: oppositeWorld,
+      cells: cloneCells(drilled),
+    });
+  }
 
   pushFx(G, 'lock', {
+    face,
     world,
     cells: cloneCells(cells),
     piece: locked,
-    prism: wasPrism,
+    prism: locked.prism === true,
     phase: G.phase,
   });
-
   G.stats.pieces += 1;
   G.piecesSinceFester += 1;
   G.piece = null;
   resetPieceTimers(G);
 
-  // Cells above the paper are deliberately checked after locking: board.js
-  // skips those cells, while the caller owns the top-out decision.
   if (anyAbove(cells)) {
-    endGame(G, world);
+    endGame(G, face);
     return;
   }
 
-  const worlds = wasPrism ? [world, farWorld] : [world];
-  resolveLineBatch(G, worlds);
-  if (!canControlPiece(G)) return;
+  resolveLines(G, cells.map(([, y]) => y));
+  if (G.status !== 'playing') return;
 
-  const festerResult = festerCheck(G);
-  if (festerResult === true) {
-    endGame(G, G.overSide || farWorld);
+  if (festerCheck(G)) {
+    endGame(G, G.overFace == null ? face : G.overFace);
     return;
   }
-  if (festerResult && typeof festerResult === 'object' && festerResult.topedOut) {
-    endGame(G, festerResult.world || festerResult.side || farWorld);
-    return;
-  }
-  if (G.status === 'gameover') return;
+  if (G.status !== 'playing') return;
 
-  // Hold is once per falling piece, not once per run. It becomes available
-  // again only after the current piece has been committed to the board.
   G.canHold = true;
   spawnNext(G);
 }
 
 function hardDrop(G) {
-  if (!G.piece || !canControlPiece(G)) return;
+  if (!canControlPiece(G)) return;
   const dropped = clonePiece(G.piece);
   let distance = 0;
   while (true) {
     const next = clonePiece(dropped);
     next.y += 1;
-    if (collides(boardFor(G), cellsOf(next))) break;
+    if (collides(G.ring, cellsOf(next))) break;
     dropped.y += 1;
     distance += 1;
   }
   G.piece = dropped;
   pushFx(G, 'hard', {
-    world: activeWorld(G),
+    face: G.face,
+    world: FACES[G.face],
     distance,
     cells: cloneCells(cellsOf(dropped)),
     phase: G.phase,
@@ -424,46 +439,22 @@ function hardDrop(G) {
 }
 
 function hold(G) {
-  if (!G.piece || !G.canHold) return;
-
+  if (!canControlPiece(G) || !G.canHold) return;
   const outgoing = { t: G.piece.t, prism: G.piece.prism === true };
   const heldT = typeof G.holdT === 'string' ? G.holdT : null;
-  const heldPrism = heldT !== null && G.holdPrism === true;
-  let incoming;
-  if (heldT === null) {
-    setHold(G, outgoing);
-    incoming = nextQueueEntry(G);
-  } else {
-    incoming = { t: heldT, prism: heldPrism };
-    setHold(G, outgoing);
-  }
-
+  const incoming = heldT === null
+    ? nextQueueEntry(G)
+    : { t: heldT, prism: G.holdPrism === true };
+  setHold(G, outgoing);
   G.canHold = false;
   pushFx(G, 'hold', {
-    world: G.world,
+    face: G.face,
+    world: FACES[G.face],
     holdT: G.holdT,
     incoming: incoming.t,
     phase: G.phase,
   });
   spawnSpecific(G, incoming);
-}
-
-function beginFlip(G) {
-  if (!G || G.flipCharge <= 0 || G.status !== 'playing') return false;
-  const from = G.world;
-  const to = other(from);
-  G.status = 'folding';
-  G.fold = { from, to };
-  G.flipCharge = Math.max(0, G.flipCharge - 1);
-  G.stats.flips += 1;
-  pushFx(G, 'fold_start', { from, to });
-  pushFx(G, 'charge', {
-    amount: -1,
-    value: G.flipCharge,
-    world: from,
-    phase: G.phase,
-  });
-  return true;
 }
 
 function applyAction(G, action) {
@@ -493,8 +484,11 @@ function applyAction(G, action) {
     case 'hold':
       hold(G);
       break;
-    case 'flip':
-      beginFlip(G);
+    case 'flip_left':
+      beginFold(G, -1);
+      break;
+    case 'flip_right':
+      beginFold(G, 1);
       break;
     case 'pause':
       G.status = 'paused';
@@ -505,97 +499,58 @@ function applyAction(G, action) {
 }
 
 function currentGravity(G) {
-  const base = gravityMs(G.phase);
-  return Math.max(1, G.softDrop ? base / SOFT_DROP_FACTOR : base);
+  return Math.max(1, gravityMs(G.phase) / (G.softDrop ? SOFT_DROP_FACTOR : 1));
 }
 
 function consumeGravity(G) {
   const interval = currentGravity(G);
-  if (G.gravMs + EPSILON < interval) return false;
   G.gravMs -= interval;
   if (G.gravMs < EPSILON) G.gravMs = 0;
-
   const falling = clonePiece(G.piece);
   falling.y += 1;
-  if (!collides(boardFor(G), cellsOf(falling))) {
+  if (!collides(G.ring, cellsOf(falling))) {
     G.piece = falling;
     G.lockMs = 0;
+    maybeAutoFollow(G);
   }
-  // A grounded gravity tick leaves lockMs running toward the lock delay.
-  return true;
 }
 
 function advancePlaying(G, dtMs) {
-  const numericDt = Number(dtMs);
-  let remaining = Number.isFinite(numericDt) ? Math.max(0, numericDt) : 0;
-
-  // MAX_TIME_STEPS is a per-pass safety budget, not permission to throw away
-  // elapsed time. A large update starts another pass with its remainder.
-  while (remaining > EPSILON && canControlPiece(G) && G.piece) {
-    let steps = 0;
-    while (
-      remaining > EPSILON &&
-      canControlPiece(G) &&
-      G.piece &&
-      steps < MAX_TIME_STEPS
-    ) {
-      steps += 1;
-      const grounded = isGrounded(G);
-      const interval = currentGravity(G);
-      const untilGravity = Math.max(0, interval - G.gravMs);
-      const untilLock = grounded ? Math.max(0, LOCK_DELAY_MS - G.lockMs) : Infinity;
-
-      if (grounded && untilLock <= EPSILON) {
-        lockCurrentPiece(G);
-        continue;
-      }
-      if (untilGravity <= EPSILON) {
-        consumeGravity(G);
-        continue;
-      }
-
-      const slice = Math.min(remaining, untilGravity, untilLock);
-      G.gravMs += slice;
-      if (grounded) G.lockMs += slice;
-      else G.lockMs = 0;
-      remaining -= slice;
-    }
-  }
-
-  // A zero-duration update can still be used to service a timer that was
-  // exactly due after an input action.
-  let serviceSteps = 0;
-  while (
-    canControlPiece(G) &&
-    G.piece &&
-    serviceSteps < MAX_TIME_STEPS
-  ) {
+  let remaining = Number.isFinite(Number(dtMs)) ? Math.max(0, Number(dtMs)) : 0;
+  let steps = 0;
+  while (canControlPiece(G) && steps < MAX_TIME_STEPS) {
+    steps += 1;
     const grounded = isGrounded(G);
-    if (grounded && G.lockMs + EPSILON >= LOCK_DELAY_MS) {
-      serviceSteps += 1;
+    const interval = currentGravity(G);
+    const untilGravity = Math.max(0, interval - G.gravMs);
+    const untilLock = grounded ? Math.max(0, LOCK_DELAY_MS - G.lockMs) : Infinity;
+
+    if (grounded && untilLock <= EPSILON) {
       lockCurrentPiece(G);
       continue;
     }
-    if (G.gravMs + EPSILON >= currentGravity(G)) {
-      serviceSteps += 1;
+    if (untilGravity <= EPSILON) {
       consumeGravity(G);
+      if (G.status !== 'playing') break;
       continue;
     }
-    break;
+    if (remaining <= EPSILON) break;
+
+    const slice = Math.min(remaining, untilGravity, untilLock);
+    G.gravMs += slice;
+    if (grounded) G.lockMs += slice;
+    else G.lockMs = 0;
+    remaining -= slice;
   }
 }
 
 function resetRunState(G) {
-  G.boards = { sun: createBoard(), ink: createBoard() };
-  G.world = 'sun';
+  G.ring = createRing();
+  G.face = 0;
   G.piece = null;
   G.queue = [];
   G.bagIndex = 0;
-  // Bag and progression randomness belong to this run, never to the module
-  // global stream shared by unrelated games (such as attract mode).
   G.rngState = createRngState();
-  // holdT intentionally remains the HUD-friendly type string; holdPrism is
-  // its parallel flag and must always describe that held string.
   G.holdT = null;
   G.holdPrism = false;
   G.canHold = true;
@@ -604,56 +559,54 @@ function resetRunState(G) {
   G.phase = 1;
   G.combo = -1;
   G.b2b = false;
-  G.flipCharge = FLIP_START;
-  G.clearsTowardCharge = 0;
   G.piecesSinceFester = 0;
-  G.seam = { sun: false, ink: false, active: false };
-  G.overSide = null;
-  G.lastFlipAt = -1e9;
-  G.timeMs = 0;
+  G.festerCursor = 0;
+  G.seam = { active: false, cleared: [false, false, false, false] };
+  G.status = 'playing';
   G.fold = null;
+  G.overFace = null;
+  G.lastFoldAt = -1e9;
+  G.timeMs = 0;
   G.gravMs = 0;
   G.lockMs = 0;
   G.lockResets = 0;
-  G.stats = { pieces: 0, flips: 0, tetris: 0, maxCombo: 0 };
-  G.fx.length = 0;
+  G.stats = { pieces: 0, folds: 0, tetris: 0, rings: 0, maxCombo: 0 };
   G.softDrop = false;
-
+  if (!Array.isArray(G.fx)) G.fx = [];
+  G.fx.length = 0;
   ensureQueue(G);
-  G.status = 'playing';
   spawnNext(G);
 }
 
 export function createGame() {
   const G = {
-    boards: { sun: createBoard(), ink: createBoard() },
-    world: 'sun',
+    ring: createRing(),
+    face: 0,
+    fold: null,
     piece: null,
     queue: [],
     holdT: null,
+    holdPrism: false,
     canHold: true,
     score: 0,
     lines: 0,
     phase: 1,
     combo: -1,
     b2b: false,
-    flipCharge: FLIP_START,
-    clearsTowardCharge: 0,
     piecesSinceFester: 0,
-    seam: { sun: false, ink: false, active: false },
+    festerCursor: 0,
+    seam: { active: false, cleared: [false, false, false, false] },
     status: 'title',
-    overSide: null,
-    lastFlipAt: -1e9,
+    overFace: null,
+    lastFoldAt: -1e9,
     timeMs: 0,
-    fold: null,
     gravMs: 0,
     lockMs: 0,
     lockResets: 0,
-    stats: { pieces: 0, flips: 0, tetris: 0, maxCombo: 0 },
+    stats: { pieces: 0, folds: 0, tetris: 0, rings: 0, maxCombo: 0 },
     fx: [],
     bagIndex: 0,
     rngState: createRngState(),
-    holdPrism: false,
     softDrop: false,
   };
   ensureQueue(G);
@@ -661,23 +614,15 @@ export function createGame() {
 }
 
 export function startRun(G) {
+  if (!G || typeof G !== 'object') return G;
   resetRunState(G);
   return G;
 }
 
-/** Resume an ended seam run without resetting its boards, score, or stats. */
+/** Continue from the victory action as a fresh, fully reset cube run. */
 export function continueRun(G) {
   if (!G || G.status !== 'won') return G;
-
-  G.status = 'playing';
-  G.overSide = null;
-  G.seam.active = false;
-  G.phase = Math.max(9, Number.isFinite(G.phase) ? G.phase : 9);
-  G.softDrop = false;
-  G.fold = null;
-  G.canHold = true;
-  resetPieceTimers(G);
-  if (!G.piece) spawnNext(G);
+  resetRunState(G);
   return G;
 }
 
@@ -685,72 +630,35 @@ export function update(G, dtMs, events = []) {
   if (!G || !Array.isArray(events)) return;
 
   if (G.status === 'paused') {
-    for (const action of events) {
-      if (action === 'pause') {
-        G.status = 'playing';
-        break;
-      }
-    }
+    if (events.includes('pause')) G.status = 'playing';
     return;
   }
-
   if (G.status !== 'playing' && G.status !== 'folding') return;
 
-  const numericDt = Number(dtMs);
-  const dt = Number.isFinite(numericDt) ? Math.max(0, numericDt) : 0;
-  G.timeMs += dt;
-
-  // The fold owns the camera animation in main.js. Keep the game clock moving
-  // for the Foldover timestamp, but freeze every gameplay action/timer here.
-  // Pause is intentionally ignored during folding so the camera handshake
-  // cannot be stranded in a non-folding status.
   if (G.status === 'folding') return;
+  const dt = Number.isFinite(Number(dtMs)) ? Math.max(0, Number(dtMs)) : 0;
+  G.timeMs += dt;
 
   for (const action of events) {
     if (G.status !== 'playing') break;
     applyAction(G, action);
   }
-
-  if (G.status === 'playing') {
-    advancePlaying(G, dt);
-  }
+  if (G.status === 'playing') advancePlaying(G, dt);
 }
 
 export function finishFold(G) {
   if (!G || G.status !== 'folding' || !G.fold) return false;
-
   const fold = G.fold;
-  const destination = fold.to;
-  const original = G.piece ? clonePiece(G.piece) : null;
-  let carried = original;
-  let nudge = 0;
-  let fits = !original;
-
-  if (original) {
-    fits = false;
-    for (; nudge <= 2; nudge += 1) {
-      const candidate = clonePiece(original);
-      candidate.y = original.y - nudge;
-      if (!collides(boardFor(G, destination), cellsOf(candidate))) {
-        carried = candidate;
-        fits = true;
-        break;
-      }
-    }
-  }
-
-  G.world = destination;
-  G.lastFlipAt = G.timeMs;
+  G.face = fold.to;
+  G.lastFoldAt = G.timeMs;
   G.fold = null;
-
-  if (fits) {
-    G.piece = carried;
-    resetLockAfterAction(G);
-    G.status = 'playing';
-  } else {
-    endGame(G, destination);
-  }
-
-  pushFx(G, 'fold_done', { world: destination, from: fold.from, to: destination, nudge });
+  G.status = 'playing';
+  pushFx(G, 'fold_done', {
+    face: G.face,
+    world: FACES[G.face],
+    from: fold.from,
+    to: fold.to,
+    dir: fold.dir,
+  });
   return true;
 }

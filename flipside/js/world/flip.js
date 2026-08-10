@@ -21,8 +21,10 @@ function prefersReducedMotion() {
 }
 
 /**
- * The v4 fold camera. Game state owns the from/to worlds; this controller
- * owns only the two-beat animation clock.
+ * Directional cube-fold camera. Game state owns the from/to faces; this
+ * controller owns only the two-beat animation clock and the signed fold
+ * angle. Keeping that state here makes the renderer independent from the
+ * gameplay clock while preserving a small, deterministic public contract.
  */
 export function createFlip() {
   let elapsedMs = 0;
@@ -30,9 +32,11 @@ export function createFlip() {
   let running = false;
   let reducedMotion = false;
   let easedProgress = 0;
+  let direction = 1;
 
-  function start() {
+  function start(dir = 1) {
     if (running) return;
+    direction = Number(dir) < 0 ? -1 : 1;
     reducedMotion = prefersReducedMotion();
     durationMs = reducedMotion ? FLIP_REDUCED_MS : FOLD_MS;
     elapsedMs = 0;
@@ -58,11 +62,27 @@ export function createFlip() {
     return true;
   }
 
+  function angle() {
+    if (!running && easedProgress === 0) return 0;
+    const beat = easedProgress < 0.5
+      ? easedProgress * 2
+      : 1 - (easedProgress - 0.5) * 2;
+    return direction * Math.PI * 0.5 * clamp01(beat);
+  }
+
+  function mode() {
+    if (!running) return 'flat';
+    return easedProgress < 0.5 ? 'fold-out' : 'unfold-in';
+  }
+
   return {
     start,
     update,
     progress() { return easedProgress; },
+    dir() { return direction; },
     active() { return running; },
     reduced() { return reducedMotion; },
+    angle,
+    mode,
   };
 }

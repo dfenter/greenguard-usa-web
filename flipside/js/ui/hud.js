@@ -2,12 +2,14 @@
 //
 // DOM class registry used by css/style.css:
 // .hud-top, .hud-score, .hud-lines, .hud-phase, .hud-next, .hud-hold,
-// .hud-pips > .pip / .pip.full,
+// .face-compass > .fdot / .fdot.here / .fdot.danger,
 // .world-tag, .toast, .banner,
 // .screen.title/.pause/.over/.win, .screen .logo, .screen .stats,
-// .btn, .btn-primary, #btn-flip, .tc-btn, and #btn-pause.
+// .btn, .btn-primary, #btn-fold-left, #btn-fold-right, .tc-btn,
+// and #btn-pause.
 
-import { COLORS, FLIP_MAX, QUEUE_LEN } from '../config.js';
+import { COLORS, FACE_W, FACES, QUEUE_LEN, ROWS, ringCol } from '../config.js';
+import * as boardOps from '../core/board.js';
 
 const MINI_WIDTH = 76;
 const MINI_HEIGHT = 50;
@@ -243,12 +245,62 @@ function invoke(hooks, name, ...args) {
 }
 
 function worldName(world) {
-  return world === 'ink' ? 'Inkside' : 'Sunside';
+  const name = typeof world === 'string' ? world.toLowerCase() : 'sun';
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)}side`;
 }
 
 function numberValue(value, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
+}
+
+function faceForState(state) {
+  if (Number.isInteger(state?.face)) return ((state.face % FACES.length) + FACES.length) % FACES.length;
+  const legacy = FACES.indexOf(typeof state?.world === 'string' ? state.world.toLowerCase() : 'sun');
+  return legacy >= 0 ? legacy : 0;
+}
+
+function cellIsFilled(cell) {
+  return cell != null;
+}
+
+// v5 board.js exposes faceDanger(); this local fallback keeps the HUD
+// decoupled from a lane that may still be shipping that helper.
+function faceDangerFor(state, face) {
+  if (typeof boardOps.faceDanger === 'function' && state?.ring) {
+    const value = Number(boardOps.faceDanger(state.ring, face));
+    if (Number.isFinite(value)) return Math.max(0, Math.min(1, value));
+  }
+  if (typeof state?.faceDanger === 'function') {
+    const value = Number(state.faceDanger(face));
+    if (Number.isFinite(value)) return Math.max(0, Math.min(1, value));
+  }
+  if (Array.isArray(state?.faceDanger)) {
+    const value = Number(state.faceDanger[face]);
+    if (Number.isFinite(value)) return Math.max(0, Math.min(1, value));
+  }
+
+  const ring = state?.ring;
+  if (ring?.grid && Array.isArray(ring.grid)) {
+    let highest = ROWS;
+    for (let y = 0; y < Math.min(ROWS, ring.grid.length); y += 1) {
+      const row = ring.grid[y] || [];
+      for (let c = 0; c < FACE_W; c += 1) {
+        if (cellIsFilled(row[ringCol(face, c)])) highest = Math.min(highest, y);
+      }
+    }
+    return highest === ROWS ? 0 : Math.max(0, Math.min(1, (ROWS - highest) / ROWS));
+  }
+
+  const board = state?.boards?.[FACES[face]];
+  if (board?.grid) {
+    let highest = ROWS;
+    for (let y = 0; y < Math.min(ROWS, board.grid.length); y += 1) {
+      if ((board.grid[y] || []).some(cellIsFilled)) highest = y;
+    }
+    return highest === ROWS ? 0 : Math.max(0, Math.min(1, (ROWS - highest) / ROWS));
+  }
+  return 0;
 }
 
 export function createHud(G, hooks = {}) {
@@ -279,7 +331,19 @@ export function createHud(G, hooks = {}) {
   const worldTag = node('div', 'world-tag', 'SUNSIDE');
   worldTag.setAttribute('aria-live', 'polite');
 
-  top.append(score.wrap, lines.wrap, phase.wrap, hold, next, worldTag);
+  const faceCompass = node('div', 'face-compass');
+  faceCompass.setAttribute('role', 'img');
+  faceCompass.setAttribute('aria-label', 'Cube face compass');
+  const faceDots = FACES.map((face) => {
+    const dot = node('span', 'fdot');
+    dot.dataset.face = face;
+    dot.setAttribute('aria-label', worldName(face));
+    dot.title = worldName(face);
+    faceCompass.append(dot);
+    return dot;
+  });
+
+  top.append(score.wrap, lines.wrap, phase.wrap, hold, next);
 
   const toast = node('div', 'toast');
   toast.hidden = true;
@@ -291,11 +355,11 @@ export function createHud(G, hooks = {}) {
   banner.setAttribute('aria-live', 'polite');
   banner.setAttribute('aria-atomic', 'true');
 
-  const titleScreen = makeScreen('title', 'FLIPSIDE', 'A two-sided papercraft Tetris');
+  const titleScreen = makeScreen('title', 'FLIPSIDE', 'A four-face papercraft Tetris');
   const titleBest = statRow(titleScreen.stats, 'Best score');
   const titleHowTo = node('div', 'how-to');
   titleHowTo.hidden = true;
-  titleHowTo.textContent = 'Drag to move • tap to rotate • swipe down to drop • hold a piece • flip the page to survive.';
+  titleHowTo.textContent = 'Drag to move • tap to rotate • swipe down to drop • hold a piece • fold left or right to follow the ring.';
   titleScreen.stats.after(titleHowTo);
 
   const pauseScreen = makeScreen('pause', 'Paused', 'The fold is held in place.');
@@ -303,15 +367,15 @@ export function createHud(G, hooks = {}) {
   const pauseLines = statRow(pauseScreen.stats, 'Lines');
   const pausePhase = statRow(pauseScreen.stats, 'Phase');
 
-  const overScreen = makeScreen('over', 'Fold failed', 'One side of the page topped out.');
-  const overSide = statRow(overScreen.stats, 'Failed side');
+  const overScreen = makeScreen('over', 'Fold failed', 'Any face can top out the cube.');
+  const overFace = statRow(overScreen.stats, 'Failed face');
   const overScore = statRow(overScreen.stats, 'Score');
   const overLines = statRow(overScreen.stats, 'Lines');
   const overPhase = statRow(overScreen.stats, 'Phase');
   const overBest = statRow(overScreen.stats, 'Best score');
   const overPieces = statRow(overScreen.stats, 'Pieces');
 
-  const winScreen = makeScreen('win', 'You mended the Fold', 'Both sides of the page are clear.');
+  const winScreen = makeScreen('win', 'You mended the Fold', 'All four faces are stitched together.');
   const winScore = statRow(winScreen.stats, 'Score');
   const winLines = statRow(winScreen.stats, 'Lines');
   const winPhase = statRow(winScreen.stats, 'Phase');
@@ -374,11 +438,9 @@ export function createHud(G, hooks = {}) {
     button('btn btn-primary', 'Keep folding', null, () => invoke(hooks, 'keepFolding')),
   );
 
-  ui.append(top, toast, banner, titleScreen.screen, pauseScreen.screen, overScreen.screen, winScreen.screen);
+  ui.append(top, worldTag, faceCompass, toast, banner, titleScreen.screen, pauseScreen.screen, overScreen.screen, winScreen.screen);
 
   const touchControls = document.getElementById('touch-controls');
-  let flipButton = null;
-  const pipElements = [];
   if (touchControls) {
     touchControls.replaceChildren();
     const pauseButton = button('tc-btn btn', 'Ⅱ', 'pause');
@@ -390,23 +452,19 @@ export function createHud(G, hooks = {}) {
     const holdButton = button('tc-btn btn', 'HOLD', 'hold');
     holdButton.id = 'btn-hold';
     holdButton.setAttribute('aria-label', 'Hold piece');
-    flipButton = button('tc-btn btn btn-primary', '', 'flip');
-    flipButton.id = 'btn-flip';
-    flipButton.setAttribute('aria-label', 'Flip page');
-    const flipLabel = node('span', 'flip-label', 'FLIP');
-    const pips = node('span', 'hud-pips');
-    pips.setAttribute('aria-label', 'Flip charges');
-    for (let index = 0; index < FLIP_MAX; index += 1) {
-      const pip = node('span', 'pip');
-      pip.setAttribute('aria-hidden', 'true');
-      pipElements.push(pip);
-      pips.append(pip);
-    }
-    flipButton.append(flipLabel, pips);
+    const foldLeft = button('tc-btn btn btn-primary fold-hero fold-hero-left', '↶', 'flip_left');
+    foldLeft.id = 'btn-fold-left';
+    foldLeft.setAttribute('aria-label', 'Fold left around the cube');
+    foldLeft.title = 'Fold left (Q / Shift)';
+    const foldRight = button('tc-btn btn btn-primary fold-hero fold-hero-right', '↷', 'flip_right');
+    foldRight.id = 'btn-fold-right';
+    foldRight.setAttribute('aria-label', 'Fold right around the cube');
+    foldRight.title = 'Fold right (F / E)';
     const cwButton = button('tc-btn btn', '⟳', 'rotcw');
     cwButton.id = 'btn-rot-cw';
     cwButton.setAttribute('aria-label', 'Rotate clockwise');
-    touchControls.append(pauseButton, ccwButton, holdButton, flipButton, cwButton);
+    top.append(pauseButton);
+    touchControls.append(ccwButton, holdButton, foldLeft, foldRight, cwButton);
     touchControls.setAttribute('aria-label', 'Touch controls');
   }
 
@@ -420,8 +478,7 @@ export function createHud(G, hooks = {}) {
   let lastWorld = null;
   let lastQueueKey = null;
   let lastHoldKey = null;
-  let lastCharge = null;
-  let lastFlipAffordable = null;
+  let lastCompassKey = null;
   let lastStatus = null;
   let lastCombo = null;
   let lastB2b = null;
@@ -436,7 +493,7 @@ export function createHud(G, hooks = {}) {
 
   function updateThemeColor(world) {
     if (!themeColorMeta) return;
-    themeColorMeta.setAttribute('content', world === 'ink' ? '#1b1e34' : '#f6ead2');
+    themeColorMeta.setAttribute('content', COLORS[world]?.paper || COLORS.sun.paper);
   }
 
   function renderScore() {
@@ -471,7 +528,7 @@ export function createHud(G, hooks = {}) {
       state.score,
       state.lines,
       state.phase,
-      state.overSide,
+      state.overFace,
       stats.pieces,
       stats.tetris,
       bestScore,
@@ -484,8 +541,10 @@ export function createHud(G, hooks = {}) {
     setStat(pauseLines, numberValue(state.lines));
     setStat(pausePhase, numberValue(state.phase, 1));
 
-    const failed = state.overSide ? worldName(state.overSide) : 'Either side';
-    setStat(overSide, failed);
+    const failed = state.overFace != null
+      ? worldName(typeof state.overFace === 'number' ? FACES[state.overFace] : state.overFace)
+      : 'Any face';
+    setStat(overFace, failed);
     setStat(overScore, formatNumber(state.score));
     setStat(overLines, numberValue(state.lines));
     setStat(overPhase, numberValue(state.phase, 1));
@@ -525,24 +584,20 @@ export function createHud(G, hooks = {}) {
     }
   }
 
-  function updatePips(state, status) {
-    const charge = Math.max(0, Math.min(FLIP_MAX, Math.floor(numberValue(state.flipCharge))));
-    const chargeChanged = charge !== lastCharge;
-    if (chargeChanged) {
-      lastCharge = charge;
-      for (let index = 0; index < pipElements.length; index += 1) {
-        pipElements[index].classList.toggle('full', index < charge);
-      }
-    }
-    if (!flipButton) return;
-    const affordable = charge > 0 && status === 'playing';
-    if (chargeChanged || affordable !== lastFlipAffordable) {
-      flipButton.disabled = !affordable;
-      flipButton.dataset.charges = String(charge);
-      flipButton.setAttribute('aria-label', `Flip page, ${charge} charge${charge === 1 ? '' : 's'} available`);
-      flipButton.title = affordable ? 'Fold to the other side' : 'No flip charges available';
-      lastFlipAffordable = affordable;
-    }
+  function updateCompass(state) {
+    const activeFace = faceForState(state);
+    const dangerKey = faceDots.map((_, index) => faceDangerFor(state, index).toFixed(3)).join('|');
+    const key = `${activeFace}|${dangerKey}`;
+    if (key === lastCompassKey) return;
+    lastCompassKey = key;
+    faceDots.forEach((dot, index) => {
+      const danger = faceDangerFor(state, index);
+      dot.classList.toggle('here', index === activeFace);
+      dot.classList.toggle('danger', danger > 0.7);
+      dot.dataset.danger = danger.toFixed(2);
+      dot.setAttribute('aria-label', `${worldName(FACES[index])}${index === activeFace ? ', viewed' : ''}${danger > 0.7 ? ', danger' : ''}`);
+    });
+    faceCompass.setAttribute('aria-label', `Viewed face: ${worldName(FACES[activeFace])}`);
   }
 
   function updateFeedback(state, status, now) {
@@ -574,7 +629,8 @@ export function createHud(G, hooks = {}) {
   function update(state = G) {
     if (!state) return;
     const status = state.status || 'title';
-    const world = state.world === 'ink' ? 'ink' : 'sun';
+    const face = faceForState(state);
+    const world = FACES[face];
     const targetScore = Math.max(0, Math.floor(numberValue(state.score)));
     const statusChanged = status !== lastStatus;
 
@@ -593,10 +649,9 @@ export function createHud(G, hooks = {}) {
 
     if (world !== lastWorld) {
       lastWorld = world;
-      document.body.classList.toggle('world-sun', world === 'sun');
-      document.body.classList.toggle('world-ink', world === 'ink');
+      FACES.forEach((name) => document.body.classList.toggle(`world-${name}`, world === name));
       updateThemeColor(world);
-      worldTag.textContent = world === 'ink' ? 'INKSIDE' : 'SUNSIDE';
+      worldTag.textContent = `${world.toUpperCase()}SIDE`;
       worldTag.dataset.world = world;
       worldTag.setAttribute('aria-label', `Current world: ${worldName(world)}`);
     }
@@ -613,7 +668,7 @@ export function createHud(G, hooks = {}) {
     }
 
     updatePreview(state, world);
-    updatePips(state, status);
+    updateCompass(state);
 
     if (status === 'gameover' || status === 'won') {
       if (targetScore > bestScore) {

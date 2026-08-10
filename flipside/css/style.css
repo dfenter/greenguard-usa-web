@@ -4,10 +4,10 @@
    works at 360px), desktop >=900px enhances to side panels.
    Styles ONLY: #app,#game,#ui,#touch-controls and the ARCHITECTURE UI class
    registry: .hud-top .hud-score .hud-lines .hud-phase .hud-next .hud-hold
-   .mini .hud-pips .pip .pip.full .world-tag .toast .banner
+   .mini .face-compass .fdot .fdot.here .fdot.danger .world-tag .toast .banner
    .screen(.title/.pause/.over/.win) h1.logo .stats .btn .btn-primary
-   #btn-flip .tc-btn #btn-pause
-   Themes key off body.world-sun / body.world-ink.
+   #btn-fold-left #btn-fold-right .tc-btn #btn-pause
+   Themes key off body.world-sun / world-dusk / world-ink / world-dawn.
    ========================================================================== */
 
 /* ---------- tokens ---------- */
@@ -64,6 +64,32 @@ body.world-ink {
   --accent: #ff8f80;
   --grain: rgba(140, 180, 255, .05);
   --screen-veil: rgba(27, 30, 52, .84);
+}
+
+body.world-dusk {
+  --paper: #f4d7c3;
+  --panel: #eec5aa;
+  --ink: #5a3a33;
+  --ink-soft: rgba(90, 58, 51, .62);
+  --cut: rgba(90, 58, 51, .28);
+  --shadow: rgba(90, 58, 51, .16);
+  --shadow-hard: rgba(90, 58, 51, .28);
+  --accent: #de5f4e;
+  --grain: rgba(90, 58, 51, .05);
+  --screen-veil: rgba(244, 215, 195, .84);
+}
+
+body.world-dawn {
+  --paper: #dcebe2;
+  --panel: #c9dfd2;
+  --ink: #2f4a42;
+  --ink-soft: rgba(47, 74, 66, .62);
+  --cut: rgba(47, 74, 66, .28);
+  --shadow: rgba(47, 74, 66, .15);
+  --shadow-hard: rgba(47, 74, 66, .27);
+  --accent: #d96b5e;
+  --grain: rgba(47, 74, 66, .05);
+  --screen-veil: rgba(220, 235, 226, .84);
 }
 
 /* ---------- reset / page shell ---------- */
@@ -149,7 +175,7 @@ body {
 
 /* paper-card recipe used by most chrome */
 .hud-score, .hud-lines, .hud-phase, .hud-hold, .hud-next,
-.world-tag, .hud-pips, .toast, .banner, .stats {
+.world-tag, .face-compass, .toast, .banner, .stats {
   background: var(--panel);
   border: 1px solid var(--cut);
   border-radius: var(--r-card);
@@ -234,7 +260,7 @@ body {
 }
 #btn-pause:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--shadow); }
 
-/* world tag + pips (below the strip, left/right) */
+/* world tag + face compass (below the strip, left/right) */
 .world-tag {
   position: absolute;
   top: calc(var(--safe-t) + var(--hud-h) - 2px);
@@ -250,31 +276,45 @@ body {
 }
 body.world-ink .world-tag { color: #cfd6ff; }
 
-.hud-pips {
+.face-compass {
   position: absolute;
   top: calc(var(--safe-t) + var(--hud-h) - 2px);
   right: calc(var(--safe-r) + 14px);
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 9px;
+  gap: 7px;
+  min-width: 104px;
+  justify-content: space-around;
+  padding: 5px 8px;
   border-radius: 999px;
   transform: rotate(2deg);
 }
-.pip {
-  width: 9px;
-  height: 9px;
-  border-radius: 3px;
-  background: transparent;
-  border: 1.5px solid var(--ink-soft);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
-  transition: background-color 140ms ease, transform 140ms cubic-bezier(.34, 1.56, .64, 1);
+.fdot {
+  --face-color: var(--ink-soft);
+  position: relative;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: var(--face-color);
+  border: 1px solid var(--ink-soft);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22);
+  transition: transform 140ms cubic-bezier(.34, 1.56, .64, 1), box-shadow 140ms ease;
 }
-.pip.full {
-  background: var(--gold);
-  border-color: var(--gold-deep);
-  transform: scale(1.14) rotate(45deg);
-  box-shadow: 0 0 6px rgba(247, 215, 116, .55);
+.fdot[data-face="sun"] { --face-color: #f2c14e; }
+.fdot[data-face="dusk"] { --face-color: #de5f4e; }
+.fdot[data-face="ink"] { --face-color: #8fb4ff; }
+.fdot[data-face="dawn"] { --face-color: #7cb96a; }
+.fdot.here {
+  transform: scale(1.38);
+  box-shadow: 0 0 0 3px var(--panel), 0 0 0 4px var(--gold-deep), 0 2px 4px var(--shadow-hard);
+}
+.fdot.danger {
+  animation: face-danger-pulse 720ms ease-in-out infinite;
+}
+@keyframes face-danger-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(226, 105, 92, .10); }
+  50% { box-shadow: 0 0 0 5px rgba(226, 105, 92, .38); }
 }
 
 /* ==========================================================================
@@ -620,20 +660,18 @@ body.world-ink .screen.win h1.logo { color: var(--gold); }
 }
 .tc-btn[disabled], .tc-btn.is-off { opacity: .45; }
 
-/* hero FLIP button */
-#btn-flip {
+/* hero fold tabs: mirrored controls for the two free directions */
+#btn-fold-left, #btn-fold-right {
   appearance: none;
   -webkit-appearance: none;
-  flex: 1.5 1 0;
-  max-width: 148px;
-  height: 74px;
+  flex: 1.25 1 0;
+  max-width: 116px;
+  height: 68px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  font: 800 19px/1 var(--font);
-  letter-spacing: .16em;
+  font: 800 31px/1 var(--font);
+  letter-spacing: 0;
   text-transform: uppercase;
   color: #3a2f18;
   background: linear-gradient(180deg, #ffe9a8 0%, var(--gold) 56%, var(--gold-deep) 100%);
@@ -645,16 +683,22 @@ body.world-ink .screen.win h1.logo { color: var(--gold); }
   cursor: pointer;
   touch-action: none;
   transition: transform 90ms ease, box-shadow 90ms ease, filter 200ms ease;
-  animation: flip-pulse 2.1s ease-in-out infinite;
 }
-#btn-flip:active, #btn-flip.is-active {
+#btn-fold-left {
+  border-radius: 21px 12px 12px 21px;
+  transform-origin: right center;
+}
+#btn-fold-right {
+  border-radius: 12px 21px 21px 12px;
+  transform-origin: left center;
+}
+#btn-fold-left:active, #btn-fold-left.is-active,
+#btn-fold-right:active, #btn-fold-right.is-active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 var(--gold-deep);
-  animation: none;
 }
-/* grayed, folded flat when unaffordable */
-#btn-flip[disabled], #btn-flip.is-off {
-  animation: none;
+#btn-fold-left[disabled], #btn-fold-left.is-off,
+#btn-fold-right[disabled], #btn-fold-right.is-off {
   color: var(--ink-soft);
   background: var(--panel);
   border-color: var(--cut);
@@ -662,35 +706,6 @@ body.world-ink .screen.win h1.logo { color: var(--gold); }
   transform: scaleY(.92);
   filter: saturate(.15);
 }
-
-@keyframes flip-pulse {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-2px) scale(1.025); }
-}
-
-/* pips rendered inside the hero button */
-#btn-flip .hud-pips {
-  position: static;
-  transform: none;
-  display: flex;
-  gap: 4px;
-  padding: 0;
-  background: none;
-  border: 0;
-  box-shadow: none;
-}
-#btn-flip .pip {
-  width: 8px; height: 8px;
-  border-color: rgba(58, 47, 24, .5);
-  transform: none;
-}
-#btn-flip .pip.full {
-  background: #4a3a12;
-  border-color: #4a3a12;
-  box-shadow: none;
-  transform: none;
-}
-#btn-flip[disabled] .pip, #btn-flip.is-off .pip { border-color: var(--ink-soft); }
 
 /* ==========================================================================
    NARROW PHONES (360px and below)
@@ -703,7 +718,7 @@ body.world-ink .screen.win h1.logo { color: var(--gold); }
   .hud-hold .mini { width: 26px; height: 21px; }
   .hud-next { gap: 2px; padding: 3px 4px; }
   .tc-btn { height: 56px; font-size: 18px; }
-  #btn-flip { height: 68px; font-size: 17px; letter-spacing: .1em; }
+  #btn-fold-left, #btn-fold-right { height: 62px; font-size: 28px; }
   .btn { min-width: 150px; }
 }
 
@@ -711,7 +726,7 @@ body.world-ink .screen.win h1.logo { color: var(--gold); }
 @media (max-height: 620px) {
   :root { --hud-h: 50px; --tc-h: 76px; }
   .tc-btn { height: 52px; }
-  #btn-flip { height: 62px; }
+  #btn-fold-left, #btn-fold-right { height: 58px; }
 }
 
 /* ==========================================================================
@@ -760,14 +775,14 @@ body.world-ink .screen.win h1.logo { color: var(--gold); }
     font-size: 12px;
     padding: 5px 14px;
   }
-  .hud-pips {
+  .face-compass {
     top: auto;
     bottom: 26px;
     right: 50%;
     transform: translateX(50%) rotate(1deg);
     padding: 8px 14px;
   }
-  .pip { width: 12px; height: 12px; }
+  .fdot { width: 12px; height: 12px; flex-basis: 12px; }
 
   .toast { top: 26%; font-size: 18px; }
   .banner { min-width: 380px; font-size: 26px; }
@@ -785,7 +800,7 @@ body.world-ink .screen.win h1.logo { color: var(--gold); }
     background: none;
   }
   .tc-btn { flex: 1 1 40%; max-width: none; height: 56px; }
-  #btn-flip { flex: 1 1 100%; max-width: none; height: 80px; order: -1; }
+  #btn-fold-left, #btn-fold-right { flex: 1 1 50%; max-width: none; height: 80px; }
 
   .screen { gap: 18px; }
   .screen p { max-width: 44ch; font-size: 16px; }
@@ -812,14 +827,14 @@ body.world-ink .screen.win h1.logo { color: var(--gold); }
     animation-iteration-count: 1 !important;
     transition-duration: .12s !important;
   }
-  #btn-flip { animation: none; }
+  #btn-fold-left, #btn-fold-right { animation: none; }
   .toast, .banner { animation: none; opacity: 1; }
   .screen { backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 
 @media (prefers-contrast: more) {
   .hud-score, .hud-lines, .hud-phase, .hud-next, .hud-hold,
-  .world-tag, .hud-pips, .toast, .banner, .stats, .btn, .tc-btn {
+  .world-tag, .face-compass, .toast, .banner, .stats, .btn, .tc-btn {
     border-width: 2px;
   }
 }

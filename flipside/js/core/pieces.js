@@ -1,7 +1,7 @@
 // Tetromino geometry and the Guideline Super Rotation System (SRS).
 // Coordinates are relative to the top-left of the piece's 4x4 spawn box;
 // positive y moves down the board.
-import { PRISM_BAG_EVERY } from '../config.js';
+import { PRISM_BAG_EVERY, RING_COLS } from '../config.js';
 
 const TYPE_ORDER = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
 
@@ -149,7 +149,7 @@ export function cellsOf(piece) {
   const states = SHAPES[piece.t];
   if (!states) throw new RangeError(`Unknown tetromino type: ${piece.t}`);
   const state = states[normalizeRotation(piece.rot)];
-  return state.map(([dx, dy]) => [piece.x + dx, piece.y + dy]);
+  return state.map(([dx, dy]) => [((piece.x + dx) % RING_COLS + RING_COLS) % RING_COLS, piece.y + dy]);
 }
 
 export function rotate(piece, dir, collides) {

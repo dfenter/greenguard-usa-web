@@ -11,7 +11,9 @@ const MAX_SFX_SOURCES = 48;
 const MIN_GAIN = 0.0001;
 
 const SUN_MELODY = [0, 4, 7, 11, 14, 11, 7, 4];
+const DUSK_MELODY = [0, 3, 7, 10, 14, 10, 7, 3];
 const INK_MELODY = [0, 3, 7, 10, 14, 10, 7, 3];
+const DAWN_MELODY = [0, 5, 7, 12, 14, 12, 7, 5];
 const CLEAR_NOTES = [0, 4, 7, 11];
 
 function midiToHz(note) {
@@ -83,7 +85,7 @@ function createGraph(ctx, world, musicOn, sfxOn) {
 
   setNodeParam(musicMaster, 'gain', musicOn ? 0.15 : 0);
   setNodeParam(sfxMaster, 'gain', sfxOn ? 0.24 : 0);
-  setNodeParam(sunBus, 'gain', world === 'sun' ? 1 : 0);
+  setNodeParam(sunBus, 'gain', world !== 'ink' ? 1 : 0);
   setNodeParam(inkBus, 'gain', world === 'ink' ? 1 : 0);
 
   try { inkFilter.type = 'lowpass'; } catch (_) { /* optional */ }
@@ -303,7 +305,7 @@ export function createAudio() {
   function musicTone(when, frequency, options) {
     return scheduleTone({
       bucket: 'music',
-      bus: world === 'sun' ? graph.sunBus : graph.inkBus,
+      bus: world === 'ink' ? graph.inkBus : graph.sunBus,
       when,
       frequency,
       ...options,
@@ -344,7 +346,9 @@ export function createAudio() {
 
   function scheduleMusicStep(when) {
     if (!graph || !ctx) return;
-    const melody = world === 'sun' ? SUN_MELODY : INK_MELODY;
+    const melody = world === 'sun' ? SUN_MELODY :
+      world === 'dusk' ? DUSK_MELODY :
+        world === 'dawn' ? DAWN_MELODY : INK_MELODY;
     const frequency = midiToHz(60 + melody[musicStep]);
     if (world === 'sun') {
       // A triangle fundamental and a quiet octave make a warm paper-pluck.
@@ -355,11 +359,22 @@ export function createAudio() {
         type: 'sine', duration: 0.16, volume: 0.018, attack: 0.004, release: 0.09,
       });
       if (musicStep % 4 === 0) scheduleKick(when);
-    } else {
-      // The same rhythm/melody is reharmonized to minor and allowed to bloom
-      // through the persistent low-pass + feedback delay graph.
+    } else if (world === 'dusk') {
+      // Dusk keeps the day arrangement, softened into mellow seventh chords.
       musicTone(when, frequency, {
-        type: 'sawtooth', duration: 0.68, volume: 0.026, attack: 0.075, release: 0.28,
+        type: 'triangle', duration: 0.34, volume: 0.038, attack: 0.025, release: 0.19,
+      });
+      musicTone(when, frequency * 1.498, {
+        type: 'sine', duration: 0.28, volume: 0.012, attack: 0.035, release: 0.16,
+      });
+    } else {
+      // Ink is the minor/echo arrangement; dawn borrows its airy long tail.
+      musicTone(when, frequency, {
+        type: world === 'dawn' ? 'sine' : 'sawtooth',
+        duration: world === 'dawn' ? 0.76 : 0.68,
+        volume: world === 'dawn' ? 0.030 : 0.026,
+        attack: world === 'dawn' ? 0.12 : 0.075,
+        release: world === 'dawn' ? 0.38 : 0.28,
       });
       musicTone(when, frequency * 2, {
         type: 'triangle', duration: 0.55, volume: 0.013, attack: 0.095, release: 0.24,
@@ -411,19 +426,21 @@ export function createAudio() {
     void at;
   }
 
-  function playFoldStart() {
+  function playFoldStart(dir = 1) {
     const at = now() + 0.004;
+    const rising = Number(dir) < 0;
     scheduleNoise({
       when: at, duration: 0.44, volume: 0.05,
-      filterType: 'bandpass', frequency: 360, endFrequency: 1500, q: 0.55,
+      filterType: 'bandpass', frequency: rising ? 1500 : 360,
+      endFrequency: rising ? 360 : 1500, q: 0.55,
     });
     scheduleNoise({
       when: at + 0.07, duration: 0.2, volume: 0.026,
       filterType: 'highpass', frequency: 1500, endFrequency: 3600, q: 0.45,
     });
-    playSfxTone(240, {
+    playSfxTone(rising ? 150 : 240, {
       type: 'sine', duration: 0.38, volume: 0.025,
-      endFrequency: 92, attack: 0.018, release: 0.2, delay: 0,
+      endFrequency: rising ? 260 : 92, attack: 0.018, release: 0.2, delay: 0,
     });
   }
 
@@ -436,6 +453,31 @@ export function createAudio() {
     playSfxTone(104, {
       type: 'sine', duration: 0.2, volume: 0.038,
       endFrequency: 58, attack: 0.004, release: 0.14,
+    });
+  }
+
+  function playRingClear() {
+    playClear(4);
+    [1047, 1319, 1568].forEach((frequency, index) => {
+      playSfxTone(frequency, {
+        type: 'sine', duration: 0.48, volume: 0.032,
+        attack: 0.012, release: 0.34, delay: index * 0.07,
+      });
+    });
+    scheduleNoise({
+      when: now() + 0.08, duration: 0.58, volume: 0.045,
+      filterType: 'bandpass', frequency: 1300, endFrequency: 4200, q: 0.35,
+    });
+  }
+
+  function playPrismDrill() {
+    playSfxTone(112, {
+      type: 'triangle', duration: 0.42, volume: 0.048,
+      endFrequency: 42, attack: 0.006, release: 0.29,
+    });
+    playSfxTone(672, {
+      type: 'sine', duration: 0.26, volume: 0.024,
+      endFrequency: 360, attack: 0.004, release: 0.18, delay: 0.035,
     });
   }
 
@@ -490,13 +532,16 @@ export function createAudio() {
           playClear(4);
           break;
         case 'fold_start':
-          playFoldStart();
+          playFoldStart(evt.dir);
           break;
         case 'fold_done':
           playFoldDone();
           break;
-        case 'flip':
-          // Legacy flip events are intentionally ignored in v4.
+        case 'ring_clear':
+          playRingClear();
+          break;
+        case 'prism_drill':
+          playPrismDrill();
           break;
         case 'garbage':
           scheduleNoise({ when: at, duration: 0.38, volume: 0.06, frequency: 95, endFrequency: 48, q: 0.85 });
@@ -505,14 +550,6 @@ export function createAudio() {
         case 'echo':
           playSfxTone(587, { type: 'sine', duration: 0.28, volume: 0.035, release: 0.2 });
           playSfxTone(880, { type: 'sine', duration: 0.34, volume: 0.025, delay: 0.095, release: 0.25 });
-          break;
-        case 'charge':
-          playSfxTone(660, { type: 'triangle', duration: 0.13, volume: 0.04, release: 0.09 });
-          playSfxTone(990, { type: 'triangle', duration: 0.2, volume: 0.04, delay: 0.075, release: 0.14 });
-          break;
-        case 'foldover':
-          playSfxTone(740, { type: 'sine', duration: 0.2, volume: 0.036, release: 0.15 });
-          playSfxTone(1110, { type: 'sine', duration: 0.26, volume: 0.027, delay: 0.06, release: 0.19 });
           break;
         case 'levelup':
           [392, 494, 587].forEach((frequency, index) => {
@@ -577,12 +614,12 @@ export function createAudio() {
 
   function setWorld(nextWorld) {
     try {
-      if (nextWorld !== 'sun' && nextWorld !== 'ink') return;
+      if (!['sun', 'dusk', 'ink', 'dawn'].includes(nextWorld)) return;
       const previous = world;
       world = nextWorld;
       if (!ctx || !graph || previous === nextWorld) return;
       const at = now() + 0.004;
-      rampParam(graph.sunBus.gain, nextWorld === 'sun' ? 1 : 0, at, WORLD_FADE_MS / 1000);
+      rampParam(graph.sunBus.gain, nextWorld === 'ink' ? 0 : 1, at, WORLD_FADE_MS / 1000);
       rampParam(graph.inkBus.gain, nextWorld === 'ink' ? 1 : 0, at, WORLD_FADE_MS / 1000);
       rampParam(graph.inkReturn.gain, nextWorld === 'ink' ? 1 : 0, at, WORLD_FADE_MS / 1000);
       // Start the destination melody during the fade, retaining the shared

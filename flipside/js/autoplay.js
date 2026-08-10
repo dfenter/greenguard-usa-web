@@ -1,288 +1,271 @@
-// FLIPSIDE — LANE O5: attract-mode heuristic bot.
-// createBot() -> B ; B.step(G) -> string[] of input actions.
-// Runs the demo game behind the title screen. Must NEVER throw for any G.
-import { COLS, ROWS, FLIP_MAX, other } from './config.js';
-import { SHAPES } from './core/pieces.js';
+// FLIPSIDE — v5 cube attract-mode bot.
+// It plans landings on the viewed face, but reasons about the shared ring for
+// collision, and occasionally folds toward the face carrying the most danger.
+import {
+  FACE_W,
+  FACES,
+  RING_COLS,
+  ROWS,
+  nextFace,
+  ringCol,
+} from './config.js';
+import { SHAPES, cellsOf } from './core/pieces.js';
+import { cellAt, collides, faceDanger, faceWindow } from './core/board.js';
 
-// ---------------------------------------------------------------------------
-// Local SRS shape table (fallback + validation reference). Offsets are
-// [dx,dy] inside the 4x4 spawn box, matching the Piece {x,y} contract.
-// ---------------------------------------------------------------------------
-const LOCAL_SHAPES = {
-  I: [[[0,1],[1,1],[2,1],[3,1]], [[2,0],[2,1],[2,2],[2,3]],
-      [[0,2],[1,2],[2,2],[3,2]], [[1,0],[1,1],[1,2],[1,3]]],
-  O: [[[1,0],[2,0],[1,1],[2,1]], [[1,0],[2,0],[1,1],[2,1]],
-      [[1,0],[2,0],[1,1],[2,1]], [[1,0],[2,0],[1,1],[2,1]]],
-  T: [[[1,0],[0,1],[1,1],[2,1]], [[1,0],[1,1],[2,1],[1,2]],
-      [[0,1],[1,1],[2,1],[1,2]], [[1,0],[0,1],[1,1],[1,2]]],
-  S: [[[1,0],[2,0],[0,1],[1,1]], [[1,0],[1,1],[2,1],[2,2]],
-      [[1,1],[2,1],[0,2],[1,2]], [[0,0],[0,1],[1,1],[1,2]]],
-  Z: [[[0,0],[1,0],[1,1],[2,1]], [[2,0],[1,1],[2,1],[1,2]],
-      [[0,1],[1,1],[1,2],[2,2]], [[1,0],[0,1],[1,1],[0,2]]],
-  J: [[[0,0],[0,1],[1,1],[2,1]], [[1,0],[2,0],[1,1],[1,2]],
-      [[0,1],[1,1],[2,1],[2,2]], [[1,0],[1,1],[0,2],[1,2]]],
-  L: [[[2,0],[0,1],[1,1],[2,1]], [[1,0],[1,1],[1,2],[2,2]],
-      [[0,1],[1,1],[2,1],[0,2]], [[0,0],[1,0],[1,1],[1,2]]],
-};
-
-// Distinct rotation states worth searching (avoids duplicate work).
 const ROT_STATES = { I: 2, O: 1, S: 2, Z: 2, T: 4, J: 4, L: 4 };
-
-// El-Tetris style weights, mildly retuned for a watchable (not perfect) bot.
 const W_HEIGHT = -0.510066;
 const W_LINES = 0.760666;
 const W_HOLES = -0.6;
 const W_BUMPY = -0.184483;
 const W_WELL = -0.12;
 const W_MAXH = -0.22;
+const ACTION_MS = 145;
+const FOLD_COOLDOWN_MS = 1500;
 
-const ACTION_MS = 165;          // ~6 actions/sec, human-ish cadence
-const FLIP_COOLDOWN_MS = 2600;  // don't spam the page turn
+function isArray(value) { return Array.isArray(value); }
 
-function isArr(a) { return Array.isArray(a); }
-
-/** Validated [dx,dy]x4 for a type+rotation; falls back to the local table. */
-function cellsFor(t, rot) {
-  const r = ((rot | 0) % 4 + 4) % 4;
-  let s = null;
-  try {
-    const tab = SHAPES && SHAPES[t];
-    if (isArr(tab) && isArr(tab[r]) && tab[r].length === 4) {
-      let ok = true;
-      for (const c of tab[r]) {
-        if (!isArr(c) || c.length < 2 ||
-            typeof c[0] !== 'number' || typeof c[1] !== 'number') { ok = false; break; }
-      }
-      if (ok) s = tab[r];
-    }
-  } catch (_) { s = null; }
-  if (!s) {
-    const loc = LOCAL_SHAPES[t];
-    s = loc ? loc[r] : LOCAL_SHAPES.O[0];
-  }
-  return s;
+function wrapRingColumn(value) {
+  return ((Math.trunc(Number(value) || 0) % RING_COLS) + RING_COLS) % RING_COLS;
 }
 
-/** Copy of a board grid as a compact boolean occupancy matrix. */
-function occupancyOf(board) {
-  const out = new Array(ROWS);
-  const grid = board && board.grid;
-  for (let y = 0; y < ROWS; y++) {
-    const row = new Uint8Array(COLS);
-    const src = isArr(grid) ? grid[y] : null;
-    if (isArr(src)) {
-      for (let x = 0; x < COLS; x++) row[x] = src[x] ? 1 : 0;
-    }
-    out[y] = row;
-  }
-  return out;
+function cellsFor(type, rotation) {
+  const states = SHAPES[type];
+  const rot = ((rotation | 0) % 4 + 4) % 4;
+  if (states && isArray(states[rot]) && states[rot].length === 4) return states[rot];
+  return SHAPES.O[0];
 }
 
-function occCollides(occ, cells, ox, oy) {
-  for (let i = 0; i < cells.length; i++) {
-    const x = ox + cells[i][0];
-    const y = oy + cells[i][1];
-    if (x < 0 || x >= COLS) return true;
-    if (y >= ROWS) return true;
-    if (y < 0) continue;              // above the ceiling is free
-    if (occ[y][x]) return true;
-  }
-  return false;
+function localColumn(face, rc) {
+  return (wrapRingColumn(rc) - ringCol(face, 0) + RING_COLS) % RING_COLS;
 }
 
-/** Heuristic score of an occupancy matrix (higher = better). */
-function evaluate(occ, clearedLines) {
-  const heights = new Array(COLS).fill(0);
+function occupancyOf(G, face) {
+  const window = faceWindow(face);
+  return Array.from({ length: ROWS }, (_, y) => (
+    Uint8Array.from(window.map((rc) => (G.ring.grid[y][rc] ? 1 : 0)))
+  ));
+}
+
+function evaluate(occupancy, clearedLines) {
+  const heights = new Array(FACE_W).fill(0);
   let holes = 0;
-  for (let x = 0; x < COLS; x++) {
+  for (let x = 0; x < FACE_W; x += 1) {
     let top = -1;
-    for (let y = 0; y < ROWS; y++) {
-      if (occ[y][x]) { top = y; break; }
+    for (let y = 0; y < ROWS; y += 1) {
+      if (occupancy[y][x]) { top = y; break; }
     }
-    if (top < 0) { heights[x] = 0; continue; }
+    if (top < 0) continue;
     heights[x] = ROWS - top;
-    for (let y = top + 1; y < ROWS; y++) if (!occ[y][x]) holes++;
+    for (let y = top + 1; y < ROWS; y += 1) if (!occupancy[y][x]) holes += 1;
   }
-  let agg = 0, bumpy = 0, maxH = 0, wells = 0;
-  for (let x = 0; x < COLS; x++) {
-    agg += heights[x];
-    if (heights[x] > maxH) maxH = heights[x];
-    if (x < COLS - 1) bumpy += Math.abs(heights[x] - heights[x + 1]);
-    const l = x === 0 ? ROWS : heights[x - 1];
-    const r = x === COLS - 1 ? ROWS : heights[x + 1];
-    const d = Math.min(l, r) - heights[x];
-    if (d > 2) wells += d - 2;
+
+  let aggregate = 0;
+  let bumpy = 0;
+  let maxHeight = 0;
+  let wells = 0;
+  for (let x = 0; x < FACE_W; x += 1) {
+    aggregate += heights[x];
+    maxHeight = Math.max(maxHeight, heights[x]);
+    if (x < FACE_W - 1) bumpy += Math.abs(heights[x] - heights[x + 1]);
+    const left = x === 0 ? ROWS : heights[x - 1];
+    const right = x === FACE_W - 1 ? ROWS : heights[x + 1];
+    const wellDepth = Math.min(left, right) - heights[x];
+    if (wellDepth > 2) wells += wellDepth - 2;
   }
-  return W_HEIGHT * agg + W_LINES * clearedLines + W_HOLES * holes +
-         W_BUMPY * bumpy + W_WELL * wells + W_MAXH * maxH;
+  return W_HEIGHT * aggregate + W_LINES * clearedLines + W_HOLES * holes
+    + W_BUMPY * bumpy + W_WELL * wells + W_MAXH * maxHeight;
 }
 
-/** Place piece cells at (ox, restY) into a clone, clear lines, evaluate. */
-function scorePlacement(occ, cells, ox, oy) {
-  const clone = new Array(ROWS);
-  for (let y = 0; y < ROWS; y++) clone[y] = Uint8Array.from(occ[y]);
-  for (let i = 0; i < cells.length; i++) {
-    const x = ox + cells[i][0], y = oy + cells[i][1];
-    if (y >= 0 && y < ROWS && x >= 0 && x < COLS) clone[y][x] = 1;
+function scorePlacement(occupancy, cells, face, originX, originY) {
+  const clone = occupancy.map((row) => Uint8Array.from(row));
+  for (const [dx, dy] of cells) {
+    const x = originX + dx;
+    const y = originY + dy;
+    if (x >= 0 && x < FACE_W && y >= 0 && y < ROWS) clone[y][x] = 1;
   }
-  // clear full rows
+
   const kept = [];
   let cleared = 0;
-  for (let y = 0; y < ROWS; y++) {
-    let full = true;
-    for (let x = 0; x < COLS; x++) if (!clone[y][x]) { full = false; break; }
-    if (full) cleared++; else kept.push(clone[y]);
+  for (let y = 0; y < ROWS; y += 1) {
+    if (clone[y].every(Boolean)) cleared += 1;
+    else kept.push(clone[y]);
   }
-  if (cleared) {
-    const packed = new Array(ROWS);
-    for (let i = 0; i < cleared; i++) packed[i] = new Uint8Array(COLS);
-    for (let i = 0; i < kept.length; i++) packed[cleared + i] = kept[i];
-    return evaluate(packed, cleared);
-  }
-  return evaluate(clone, 0);
+  if (!cleared) return evaluate(clone, 0);
+  const packed = Array.from({ length: ROWS }, () => new Uint8Array(FACE_W));
+  for (let i = 0; i < kept.length; i += 1) packed[cleared + i] = kept[i];
+  return evaluate(packed, cleared);
 }
 
-/** Best {rot, x, score} for a piece type on this occupancy, or null. */
-function bestPlacement(occ, t) {
-  const rots = ROT_STATES[t] || 4;
+function bestPlacement(G, piece) {
+  const face = G.face;
+  const occupancy = occupancyOf(G, face);
+  const rotations = ROT_STATES[piece.t] || 4;
   let best = null;
-  for (let r = 0; r < rots; r++) {
-    const cells = cellsFor(t, r);
-    let minDx = 3, maxDx = 0;
-    for (const c of cells) {
-      if (c[0] < minDx) minDx = c[0];
-      if (c[0] > maxDx) maxDx = c[0];
-    }
-    const loX = -minDx, hiX = COLS - 1 - maxDx;
-    for (let ox = loX; ox <= hiX; ox++) {
-      // drop from above the ceiling
-      let oy = -4;
-      if (occCollides(occ, cells, ox, oy)) continue;
-      while (!occCollides(occ, cells, ox, oy + 1)) oy++;
-      // The game treats even one hidden final cell as a top-out on lock.
-      // Only plan landings whose complete tetromino is inside the board.
-      let fullyVisible = true;
-      for (const c of cells) {
-        if (oy + c[1] < 0) { fullyVisible = false; break; }
+
+  for (let rotation = 0; rotation < rotations; rotation += 1) {
+    const shape = cellsFor(piece.t, rotation);
+    const minDx = Math.min(...shape.map(([x]) => x));
+    const maxDx = Math.max(...shape.map(([x]) => x));
+    const lowX = -minDx;
+    const highX = FACE_W - 1 - maxDx;
+    for (let originX = lowX; originX <= highX; originX += 1) {
+      const candidate = {
+        ...piece,
+        x: ringCol(face, originX),
+        y: -4,
+        rot: rotation,
+      };
+      if (collides(G.ring, cellsOf(candidate))) continue;
+      while (candidate.y < ROWS + 3) {
+        const next = { ...candidate, y: candidate.y + 1 };
+        if (collides(G.ring, cellsOf(next))) break;
+        candidate.y += 1;
       }
-      if (!fullyVisible) continue;
-      const s = scorePlacement(occ, cells, ox, oy);
-      if (!best || s > best.score) best = { rot: r, x: ox, score: s };
+      const landing = cellsOf(candidate);
+      if (landing.some(([, y]) => y < 0)) continue;
+      const score = scorePlacement(occupancy, shape, face, originX, candidate.y);
+      if (!best || score > best.score) {
+        best = { rotation, x: candidate.x, score };
+      }
     }
   }
   return best;
 }
 
-function stackHeight(board) {
-  const grid = board && board.grid;
-  if (!isArr(grid)) return 0;
-  for (let y = 0; y < ROWS; y++) {
-    const row = grid[y];
-    if (!isArr(row)) continue;
-    for (let x = 0; x < COLS; x++) if (row[x]) return ROWS - y;
+function pieceVisible(G) {
+  const window = new Set(faceWindow(G.face));
+  return cellsOf(G.piece).some(([x]) => window.has(wrapRingColumn(x)));
+}
+
+function directionToPiece(G) {
+  const cells = cellsOf(G.piece);
+  const rightWindow = new Set(faceWindow(nextFace(G.face, 1)));
+  const leftWindow = new Set(faceWindow(nextFace(G.face, -1)));
+  const right = cells.filter(([x]) => rightWindow.has(wrapRingColumn(x))).length;
+  const left = cells.filter(([x]) => leftWindow.has(wrapRingColumn(x))).length;
+  if (right !== left) return right > left ? 1 : -1;
+  return 1;
+}
+
+function mostDangerousFace(G) {
+  let best = null;
+  for (let step = 1; step < FACES.length; step += 1) {
+    const face = (G.face + step) % FACES.length;
+    const danger = faceDanger(G.ring, face);
+    if (!best || danger > best.danger) best = { face, danger };
   }
-  return 0;
+  return best || { face: nextFace(G.face, 1), danger: 0 };
+}
+
+function foldDirectionToward(G, target) {
+  const right = nextFace(G.face, 1);
+  const left = nextFace(G.face, -1);
+  if (target === right) return 1;
+  if (target === left) return -1;
+  return faceDanger(G.ring, right) >= faceDanger(G.ring, left) ? 1 : -1;
 }
 
 export function createBot() {
-  let plan = null;          // { rot, x }
-  let planKey = '';         // identity of the piece the plan was made for
-  let nextActAt = -1e9;     // G.timeMs of next allowed action
+  let plan = null;
+  let planKey = '';
+  let nextActionAt = -1e9;
   let lastSeenMs = 0;
-  let flippedForKey = '';   // don't re-flip on the same piece
-  let lastFlipMs = -1e9;
-  let actsThisPiece = 0;
+  let lastFoldMs = -1e9;
+  let foldedPieceKey = '';
+  let followedPieceKey = '';
+  let actionsThisPiece = 0;
 
   function reset() {
-    plan = null; planKey = ''; nextActAt = -1e9;
-    flippedForKey = ''; lastFlipMs = -1e9; actsThisPiece = 0;
+    plan = null;
+    planKey = '';
+    nextActionAt = -1e9;
+    lastSeenMs = 0;
+    lastFoldMs = -1e9;
+    foldedPieceKey = '';
+    followedPieceKey = '';
+    actionsThisPiece = 0;
   }
 
   function stepInner(G) {
-    if (!G || typeof G !== 'object') return [];
-    const now = typeof G.timeMs === 'number' && isFinite(G.timeMs) ? G.timeMs : 0;
-    if (now + 1 < lastSeenMs) reset();      // game restarted -> clock rewound
+    if (!G || typeof G !== 'object' || !G.ring || !Array.isArray(G.ring.grid)) return [];
+    const now = Number.isFinite(G.timeMs) ? G.timeMs : 0;
+    if (now + 1 < lastSeenMs) reset();
     lastSeenMs = now;
-
-    // A fold is owned by the camera handshake. Do not queue gameplay actions
-    // or a second flip while it is in progress.
     if (G.status === 'folding') return [];
-
     if (G.status !== 'playing') {
       if (G.status === 'title' || G.status === 'gameover' || G.status === 'won') reset();
       return [];
     }
 
-    const p = G.piece;
-    if (!p || typeof p !== 'object' || typeof p.t !== 'string') return [];
-    const world = G.world === 'ink' ? 'ink' : 'sun';
-    const boards = G.boards || {};
-    const board = boards[world];
-    if (!board || !isArr(board.grid)) return [];
+    const piece = G.piece;
+    if (!piece || typeof piece.t !== 'string') return [];
+    const pieceNumber = G.stats && Number.isFinite(G.stats.pieces) ? G.stats.pieces : 0;
+    const pieceKey = `${pieceNumber}:${piece.t}:${piece.prism ? 1 : 0}`;
+    const faceKey = `${pieceKey}:${G.face}`;
+    if (now < nextActionAt) return [];
 
-    const pieces = (G.stats && typeof G.stats.pieces === 'number') ? G.stats.pieces : 0;
-    const key = world + '#' + pieces + '#' + p.t;
-
-    if (now < nextActAt) return [];
-
-    // --- fold decision (once per piece, only just after it spawns) ----------
-    const charge = typeof G.flipCharge === 'number' ? G.flipCharge : 0;
-    if (charge > 0 && flippedForKey !== key && now - lastFlipMs > FLIP_COOLDOWN_MS) {
-      const farBoard = boards[other(world)];
-      const far = farBoard ? stackHeight(farBoard) : 0;
-      const here = stackHeight(board);
-      const urgent = far >= 12 || far - here >= 5;
-      // Spend a banked charge occasionally even before the far side is
-      // critical; urgent far-side pressure remains an independent trigger.
-      const chargeHigh = charge >= Math.max(2, FLIP_MAX - 1);
-      if (urgent || chargeHigh) {
-        flippedForKey = key;
-        lastFlipMs = now;
-        nextActAt = now + ACTION_MS * 3;
-        plan = null; planKey = '';
-        return ['flip'];
-      }
+    // Manual folds can leave a piece in a seam. Fold back toward it if the
+    // camera is not already following it; the game itself also auto-follows
+    // on the next gravity/move/rotate event.
+    if (!pieceVisible(G) && followedPieceKey !== pieceKey
+        && now - lastFoldMs >= FOLD_COOLDOWN_MS) {
+      followedPieceKey = pieceKey;
+      lastFoldMs = now;
+      nextActionAt = now + ACTION_MS * 2;
+      return [directionToPiece(G) < 0 ? 'flip_left' : 'flip_right'];
     }
 
-    // --- (re)plan on a new piece ------------------------------------------
-    if (planKey !== key || !plan) {
-      let best = null;
-      try { best = bestPlacement(occupancyOf(board), p.t); } catch (_) { best = null; }
-      plan = best ? { rot: best.rot, x: best.x } : { rot: (p.rot | 0) & 3, x: p.x | 0 };
-      planKey = key;
-      actsThisPiece = 0;
+    // Occasionally move toward the most endangered unseen face. Folds are
+    // free in v5, so this decision is pressure-driven.
+    const danger = mostDangerousFace(G);
+    const hereDanger = faceDanger(G.ring, G.face);
+    const occasional = pieceNumber % 6 === 0 && danger.danger > 0.25;
+    const urgent = danger.danger > 0.78 && danger.danger > hereDanger + 0.04;
+    if (foldedPieceKey !== pieceKey && now - lastFoldMs >= FOLD_COOLDOWN_MS
+        && (occasional || urgent)) {
+      foldedPieceKey = pieceKey;
+      lastFoldMs = now;
+      nextActionAt = now + ACTION_MS * 2;
+      return [foldDirectionToward(G, danger.face) < 0 ? 'flip_left' : 'flip_right'];
     }
-    // Stuck against a wall / blocked kick: stop fidgeting and just drop.
-    if (++actsThisPiece > 14) {
-      nextActAt = now + ACTION_MS;
+
+    if (planKey !== faceKey || !plan) {
+      try { plan = bestPlacement(G, piece); } catch (_) { plan = null; }
+      if (!plan) plan = { rotation: piece.rot | 0, x: wrapRingColumn(piece.x) };
+      planKey = faceKey;
+      actionsThisPiece = 0;
+    }
+
+    if (++actionsThisPiece > 16) {
+      nextActionAt = now + ACTION_MS;
       plan = null;
       return ['hard'];
     }
 
-    // --- emit one action toward the plan -----------------------------------
-    const curRot = ((p.rot | 0) % 4 + 4) % 4;
-    const curX = p.x | 0;
-    let act = null;
-    if (curRot !== plan.rot) {
-      const cw = (plan.rot - curRot + 4) % 4;
-      act = cw === 3 ? 'rotccw' : 'rotcw';
-    } else if (curX < plan.x) {
-      act = 'right';
-    } else if (curX > plan.x) {
-      act = 'left';
+    const currentRotation = ((piece.rot | 0) % 4 + 4) % 4;
+    const targetRotation = ((plan.rotation | 0) % 4 + 4) % 4;
+    const currentX = wrapRingColumn(piece.x);
+    const targetX = wrapRingColumn(plan.x);
+    let action;
+    if (currentRotation !== targetRotation) {
+      const clockwise = (targetRotation - currentRotation + 4) % 4;
+      action = clockwise === 3 ? 'rotccw' : 'rotcw';
+    } else if (currentX !== targetX) {
+      const rightDistance = (targetX - currentX + RING_COLS) % RING_COLS;
+      action = rightDistance <= RING_COLS / 2 ? 'right' : 'left';
     } else {
-      act = 'hard';
-      plan = null;                 // piece is committed; replan on the next one
+      action = 'hard';
+      plan = null;
     }
-    nextActAt = now + ACTION_MS;
-    return [act];
+    nextActionAt = now + ACTION_MS;
+    return [action];
   }
 
   return {
     step(G) {
       try {
-        const out = stepInner(G);
-        return isArr(out) ? out : [];
+        const actions = stepInner(G);
+        return isArray(actions) ? actions : [];
       } catch (_) {
         return [];
       }

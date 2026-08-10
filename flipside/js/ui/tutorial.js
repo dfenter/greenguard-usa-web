@@ -71,8 +71,8 @@ const isTouch = (() => {
 })();
 
 // Each step: {id, title, body, ready(G,S), done(G,S), timeout}
-// ready() gates when the step may begin (used to stage the FLIP lesson until
-// the far world actually festers). done() completes it. timeout is a fallback
+// ready() gates when the step may begin (used to stage the fold lesson until
+// ring pressure actually appears). done() completes it. timeout is a fallback
 // in ms of game time so nobody gets stuck.
 const STEPS = [
   {
@@ -106,11 +106,11 @@ const STEPS = [
     timeout: 16000,
   },
   {
-    id: 'flip',
-    title: 'Fold the page',
-    body: 'FLIP folds this page away — the other side unfolds into a full board. ' +
-      'The strip on the left IS the other side: each mark is one of its rows.',
-    // staged: only appears once the far world has actually festered
+    id: 'fold',
+    title: 'Fold around the cube',
+    body: 'Folds are free and unlimited. Fold left or right to bring a neighbor ' +
+      'forward — the seams ARE the neighboring boards.',
+    // Stage the fold lesson until pressure appears on the ring.
     ready: (G, S) => S.sawGarbage,
     done: (G, S) => S.folded,
     timeout: 26000,
@@ -118,9 +118,9 @@ const STEPS = [
   },
   {
     id: 'goal',
-    title: 'Play both sides',
-    body: 'If either side tops out, the run ends. Clear 2+ lines at once to ' +
-      'burn junk off the far side. Mend the golden Seam on both sides to win.',
+    title: 'Mind the whole ring',
+    body: 'A block on your edge is a block on theirs. Ring clears tear out all ' +
+      '36 columns; prism pieces drill to the opposite face. Mend the Seam on all four faces.',
     ready: () => true,
     done: (G, S) => S.stepAge > 5200,
     timeout: 6000,
@@ -152,6 +152,12 @@ function hasGarbage(board) {
       if (c && (c.t === 'G' || c.t === 'SEAM')) return true;
     }
   }
+  return false;
+}
+
+function ringHasGarbage(G) {
+  if (G?.ring?.grid) return hasGarbage(G.ring);
+  if (G?.boards) return Object.values(G.boards).some((board) => hasGarbage(board));
   return false;
 }
 
@@ -210,7 +216,10 @@ export function maybeRunTutorial(G, hud) {
   const S = {
     moved: 0, rotated: 0, locked: 0,
     sawGarbage: false, stepAge: 0, prevX: null, prevRot: null,
-    prevPieces: 0, startWorld: G.world, folded: false,
+    prevPieces: 0,
+    startFace: Number.isInteger(G.face) ? G.face : 0,
+    startFolds: Number(G.stats?.folds) || 0,
+    folded: false,
   };
 
   let idx = 0;
@@ -284,11 +293,12 @@ export function maybeRunTutorial(G, hud) {
     }
     if (pieces > S.prevPieces) { S.locked += pieces - S.prevPieces; }
     S.prevPieces = pieces;
-    if (!S.folded && G.world !== S.startWorld) S.folded = true;
+    if (!S.folded && (
+      (Number.isInteger(G.face) && G.face !== S.startFace) ||
+      (Number(G.stats?.folds) || 0) > S.startFolds
+    )) S.folded = true;
 
-    if (!S.sawGarbage && G.boards) {
-      if (hasGarbage(G.boards.sun) || hasGarbage(G.boards.ink)) S.sawGarbage = true;
-    }
+    if (!S.sawGarbage && ringHasGarbage(G)) S.sawGarbage = true;
     S.stepAge += dt;
   }
 

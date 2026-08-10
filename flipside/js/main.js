@@ -1,5 +1,6 @@
 // FLIPSIDE boot + frame loop. Orchestrator-owned; lanes do not edit.
 import * as game from './core/game.js';
+import { FACES } from './config.js';
 import { createInput } from './input.js';
 import { createFlip } from './world/flip.js';
 import { createRenderer } from './render/renderer.js';
@@ -32,7 +33,7 @@ function freshRun(g) {
   flip = createFlip();
   if (input.reset) input.reset();
   if (FX.reset) FX.reset();
-  A.setWorld(g.world);
+  A.setWorld(FACES[g.face]);
 }
 
 const hooks = {
@@ -80,10 +81,10 @@ function frame(now) {
 
   // fold camera <-> game handshake (v4)
   if (AG.status === 'folding' && AG.fold) {
-    if (!flip.active()) flip.start();
+    if (!flip.active()) flip.start(AG.fold.dir);
     if (flip.update(dt)) {
       game.finishFold(AG);
-      if (!onTitle) A.setWorld(AG.world);
+      if (!onTitle) A.setWorld(FACES[AG.face]);
     }
   } else if (flip.active()) {
     flip.update(dt);                     // let a stray animation finish

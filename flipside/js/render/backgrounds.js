@@ -412,7 +412,7 @@ function bakeSun(w, h) {
   ];
 
   return {
-    kind: 'sun', w, h, sky, disc, rays, sunR, sunX, sunY, clouds, hills,
+    kind: 'sun', composition: 'sun', w, h, sky, disc, rays, sunR, sunX, sunY, clouds, hills,
     vignette: bakeVignette(w, h, 'sun'),
   };
 }
@@ -594,7 +594,7 @@ function bakeInk(w, h) {
     bakeInkSwirls(w, h, 88),
   ];
   return {
-    kind: 'ink', w, h, wash, stars, swirls,
+    kind: 'ink', composition: 'ink', w, h, wash, stars, swirls,
     moon: bakeMoon(moonR), moonR,
     moonX: w * 0.24, moonY: h * 0.14,
     vignette: bakeVignette(w, h, 'ink'),
@@ -602,15 +602,136 @@ function bakeInk(w, h) {
 }
 
 /* ------------------------------------------------------------------ */
+/* DUSK / DAWN tonal day variants                                     */
+/* ------------------------------------------------------------------ */
+
+function bakeMoodOverlay(w, h, world) {
+  const c = mk(w, h);
+  const g = c.getContext('2d');
+  const dusk = world === 'dusk';
+  const grad = g.createLinearGradient(0, 0, 0, h);
+  if (dusk) {
+    grad.addColorStop(0, 'rgba(209,105,91,0.12)');
+    grad.addColorStop(0.42, 'rgba(240,171,124,0.10)');
+    grad.addColorStop(1, 'rgba(73,46,88,0.27)');
+  } else {
+    grad.addColorStop(0, 'rgba(255,255,255,0.22)');
+    grad.addColorStop(0.52, 'rgba(188,231,209,0.09)');
+    grad.addColorStop(1, 'rgba(80,139,121,0.13)');
+  }
+  g.fillStyle = grad;
+  g.fillRect(0, 0, w, h);
+
+  if (dusk) {
+    g.fillStyle = 'rgba(104,54,74,0.10)';
+    g.fillRect(0, h * 0.49, w, h * 0.025);
+    g.fillStyle = 'rgba(78,47,78,0.09)';
+    g.fillRect(0, h * 0.66, w, h * 0.045);
+  } else {
+    g.fillStyle = 'rgba(255,255,255,0.16)';
+    g.fillRect(0, h * 0.36, w, h * 0.055);
+    g.fillStyle = 'rgba(161,207,187,0.12)';
+    g.fillRect(0, h * 0.57, w, h * 0.075);
+  }
+  return c;
+}
+
+function bakeLanterns(w, h) {
+  const c = mk(w, h);
+  const g = c.getContext('2d');
+  const rnd = mulberry32(5150 + ((w * 17 + h) | 0));
+  for (let i = 0; i < 7; i += 1) {
+    const x = w * (0.08 + rnd() * 0.84);
+    const y = h * (0.16 + rnd() * 0.34);
+    const r = Math.max(4, Math.min(w, h) * (0.012 + rnd() * 0.012));
+    g.strokeStyle = 'rgba(90,58,51,0.26)';
+    g.lineWidth = Math.max(1, r * 0.12);
+    g.beginPath();
+    g.moveTo(x, y - r * 2.8);
+    g.lineTo(x, y - r * 0.9);
+    g.stroke();
+    g.fillStyle = i % 2 ? 'rgba(240,179,69,0.52)' : 'rgba(230,107,83,0.48)';
+    g.beginPath();
+    g.moveTo(x - r, y - r * 0.8);
+    g.quadraticCurveTo(x - r * 1.15, y + r * 0.8, x, y + r * 1.1);
+    g.quadraticCurveTo(x + r * 1.15, y + r * 0.8, x + r, y - r * 0.8);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = 'rgba(90,58,51,0.34)';
+    g.stroke();
+  }
+  return c;
+}
+
+function bakeMist(w, h) {
+  const c = mk(w, h);
+  const g = c.getContext('2d');
+  const rnd = mulberry32(7070 + ((w * 19 + h) | 0));
+  for (let i = 0; i < 5; i += 1) {
+    const y = h * (0.34 + i * 0.12) + rnd() * h * 0.035;
+    const grad = g.createLinearGradient(0, y, w, y);
+    grad.addColorStop(0, 'rgba(255,255,255,0)');
+    grad.addColorStop(0.5, 'rgba(255,255,255,0.19)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, y - h * 0.035, w, h * 0.07);
+  }
+  g.strokeStyle = 'rgba(47,74,66,0.15)';
+  g.lineWidth = 1.1;
+  g.lineCap = 'round';
+  for (let i = 0; i < 14; i += 1) {
+    const x = rnd() * w;
+    const y = h * (0.25 + rnd() * 0.52);
+    const r = 1.5 + rnd() * 2.5;
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(x, y + r);
+    g.lineTo(x - r * 0.7, y + r * 2.2);
+    g.moveTo(x, y + r);
+    g.lineTo(x + r * 0.7, y + r * 2.2);
+    g.stroke();
+  }
+  return c;
+}
+
+function bakeDusk(w, h) {
+  const base = bakeSun(w, h);
+  return {
+    ...base,
+    kind: 'dusk',
+    world: 'dusk',
+    moodOverlay: bakeMoodOverlay(w, h, 'dusk'),
+    decor: bakeLanterns(w, h),
+    vignette: bakeVignette(w, h, 'dusk'),
+  };
+}
+
+function bakeDawn(w, h) {
+  const base = bakeSun(w, h);
+  return {
+    ...base,
+    kind: 'dawn',
+    world: 'dawn',
+    moodOverlay: bakeMoodOverlay(w, h, 'dawn'),
+    decor: bakeMist(w, h),
+    vignette: bakeVignette(w, h, 'dawn'),
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* cache                                                               */
 /* ------------------------------------------------------------------ */
 
-const cache = { sun: null, ink: null };
+const cache = { sun: null, dusk: null, ink: null, dawn: null };
 
 function layersFor(world, w, h) {
   const key = cache[world];
   if (key && key.w === w && key.h === h) return key;
-  const built = world === 'ink' ? bakeInk(w, h) : bakeSun(w, h);
+  const built = world === 'ink' ? bakeInk(w, h)
+    : (world === 'dusk' ? bakeDusk(w, h)
+      : (world === 'dawn' ? bakeDawn(w, h) : bakeSun(w, h)));
   cache[world] = built;
   return built;
 }
@@ -621,7 +742,9 @@ function layersFor(world, w, h) {
  */
 export function invalidateBackgrounds() {
   cache.sun = null;
+  cache.dusk = null;
   cache.ink = null;
+  cache.dawn = null;
 }
 
 /* wrap-tiled horizontal draw of a full-width layer */
@@ -639,7 +762,7 @@ function drawWrapped(ctx, img, x, y, w) {
 /**
  * Paint the parallax paper world behind the board.
  * @param {CanvasRenderingContext2D} ctx
- * @param {'sun'|'ink'} world
+ * @param {'sun'|'dusk'|'ink'|'dawn'} world
  * @param {number} timeMs  game time (monotonic, ms)
  * @param {number} w  logical width to fill
  * @param {number} h  logical height to fill
@@ -648,14 +771,15 @@ export function drawBackground(ctx, world, timeMs, w, h) {
   w = Math.max(1, Math.round(w));
   h = Math.max(1, Math.round(h));
   const t = reducedMotion() ? 0 : (timeMs || 0);
-  const L = layersFor(world === 'ink' ? 'ink' : 'sun', w, h);
+  const normalizedWorld = world === 'dusk' || world === 'ink' || world === 'dawn' ? world : 'sun';
+  const L = layersFor(normalizedWorld, w, h);
 
   ctx.save();
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
   ctx.imageSmoothingEnabled = true;
 
-  if (L.kind === 'sun') {
+  if (L.composition === 'sun') {
     ctx.drawImage(L.sky, 0, 0);
 
     // crayon sun: rays turn about one full revolution every ~4 minutes,
@@ -707,6 +831,16 @@ export function drawBackground(ctx, world, timeMs, w, h) {
     // paper moon with a slow bob
     const bob = Math.sin(t * 0.00028) * L.moonR * 0.06;
     ctx.drawImage(L.moon, L.moonX - L.moon.width / 2, L.moonY + bob - L.moon.height / 2);
+  }
+
+  if (L.moodOverlay) ctx.drawImage(L.moodOverlay, 0, 0);
+  if (L.decor) {
+    ctx.save();
+    ctx.globalAlpha = L.kind === 'dusk'
+      ? 0.82 + Math.sin(t * 0.0007) * 0.08
+      : 0.78 + Math.sin(t * 0.0004 + 1.2) * 0.06;
+    ctx.drawImage(L.decor, 0, 0);
+    ctx.restore();
   }
 
   // shared vignette is baked with the size-specific world layers.

@@ -1,9 +1,11 @@
-import { COLS, ROWS, COLORS } from '../config.js';
+import { COLS, FACES, ROWS, COLORS } from '../config.js';
 
 const MAX_PARTICLES = 300;
 const MAX_STRIPS = 32;
 const MAX_ARCS = 8;
 const MAX_BANNERS = 3;
+const MAX_RIPPLES = 6;
+const MAX_PRISM_DRILLS = 6;
 
 const TAU = Math.PI * 2;
 const TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
@@ -31,6 +33,11 @@ function randomItem(items) {
 
 function paletteFor(world) {
   return COLORS[world] || COLORS.sun;
+}
+
+function worldFor(value, fallback = 'sun') {
+  if (Number.isInteger(value)) return FACES[((value % FACES.length) + FACES.length) % FACES.length] || fallback;
+  return typeof value === 'string' && COLORS[value] ? value : fallback;
 }
 
 function particleColors(world, type) {
@@ -245,6 +252,62 @@ function drawTearStrip(ctx, strip, metrics) {
   ctx.restore();
 }
 
+function drawRingRipple(ctx, ripple, metrics) {
+  const progress = 1 - ripple.life / ripple.maxLife;
+  const fade = Math.sin(clamp(progress, 0, 1) * Math.PI);
+  const width = metrics.boardWidth * 1.30;
+  const left = metrics.left - (width - metrics.boardWidth) * 0.5;
+  const y = rowY(ripple.row, metrics) + Math.sin(progress * Math.PI) * metrics.cell * 0.12;
+
+  ctx.save();
+  ctx.globalAlpha = 0.86 * fade;
+  ctx.strokeStyle = COLORS.seam;
+  ctx.lineWidth = Math.max(2, metrics.cell * (0.09 + (1 - progress) * 0.08));
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const teeth = 18;
+  for (let index = 0; index <= teeth; index += 1) {
+    const x = left + width * index / teeth;
+    const wobble = Math.sin(ripple.seed + index * 1.7 + progress * 8) * metrics.cell * 0.12;
+    if (index === 0) ctx.moveTo(x, y + wobble);
+    else ctx.lineTo(x, y + wobble);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 0.38 * fade;
+  ctx.lineWidth = Math.max(1, metrics.cell * 0.035);
+  ctx.beginPath();
+  ctx.moveTo(left, y + metrics.cell * 0.18);
+  ctx.lineTo(left + width, y + metrics.cell * 0.18);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPrismDrill(ctx, drill, metrics) {
+  const progress = 1 - drill.life / drill.maxLife;
+  const fade = Math.sin(clamp(progress, 0, 1) * Math.PI);
+  const cx = metrics.left + metrics.boardWidth * 0.5;
+  const cy = metrics.top + metrics.boardHeight * 0.52;
+  const reach = metrics.boardWidth * (0.08 + easeOutCubic(progress) * 0.56);
+
+  ctx.save();
+  ctx.globalAlpha = 0.86 * fade;
+  ctx.strokeStyle = COLORS.seam;
+  ctx.lineWidth = Math.max(1, metrics.cell * 0.075);
+  ctx.setLineDash([metrics.cell * 0.25, metrics.cell * 0.14]);
+  ctx.lineDashOffset = -progress * metrics.cell * 3;
+  ctx.beginPath();
+  ctx.moveTo(cx - reach, cy);
+  ctx.lineTo(cx + reach, cy);
+  ctx.stroke();
+  ctx.globalAlpha = 0.46 * fade;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.arc(cx + Math.cos(progress * TAU) * reach, cy,
+    metrics.cell * (0.12 + progress * 0.22), 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawParticle(ctx, particle) {
   const age = 1 - particle.life / particle.maxLife;
   const fade = Math.min(1, particle.life / Math.min(180, particle.maxLife));
@@ -428,7 +491,7 @@ function makeBanner(kind, evt, world, metrics, reduced) {
   if (kind === 'gameover') {
     return {
       text: 'PAPER TORN',
-      subtext: evt && evt.world ? `${evt.world === 'sun' ? 'SUNSIDE' : 'INKSIDE'} gave way` : 'Try another fold',
+      subtext: evt && evt.world ? `${worldFor(evt.world).toUpperCase()}SIDE gave way` : 'Try another fold',
       color: palette.panel,
       edge: palette.garbageEdge,
       textColor: palette.ink,
@@ -442,7 +505,7 @@ function makeBanner(kind, evt, world, metrics, reduced) {
   const seam = phase >= 9;
   return {
     text: seam ? 'THE SEAM' : `PHASE ${phase}`,
-    subtext: seam ? 'Mend both sides' : 'The fold tightens',
+    subtext: seam ? 'Mend all four faces' : 'The fold tightens',
     color: seam ? COLORS.seam : palette.panel,
     edge: seam ? '#a67f2e' : palette.garbageEdge,
     textColor: seam ? '#3b2f1a' : palette.ink,
@@ -458,6 +521,8 @@ export function createFx(canvas) {
   const strips = [];
   const arcs = [];
   const banners = [];
+  const ringRipples = [];
+  const prismDrills = [];
   let flash = null;
   let finale = null;
   let shakeTime = 0;
@@ -526,7 +591,7 @@ export function createFx(canvas) {
   }
 
   function addPuffs(cells, evt, G, metrics, countPerCell = 2) {
-    const world = (evt && evt.world) || (G && G.world) || 'sun';
+    const world = worldFor(evt && evt.world, worldFor(G && (G.face ?? G.world)));
     const points = cells.length ? cells : [[COLS * 0.5, ROWS * 0.68]];
     const limit = Math.min(points.length, 6);
     for (let i = 0; i < limit; i += 1) {
@@ -550,7 +615,7 @@ export function createFx(canvas) {
   }
 
   function addTearStrips(evt, G, metrics) {
-    const world = (evt && evt.world) || (G && G.world) || 'sun';
+    const world = worldFor(evt && evt.world, worldFor(G && (G.face ?? G.world)));
     const palette = paletteFor(world);
     const rows = eventRows(evt);
     const lineRows = rows.length ? rows : [Math.round(ROWS * 0.65)];
@@ -571,9 +636,41 @@ export function createFx(canvas) {
     }
   }
 
+  function addRingRipple(evt, metrics) {
+    const rawRow = Number(evt?.y ?? evt?.row);
+    addBounded(ringRipples, {
+      row: Number.isFinite(rawRow) ? Math.max(0, Math.min(ROWS - 1, rawRow)) : Math.round(ROWS * 0.65),
+      life: reducedMotion() ? 300 : 760,
+      maxLife: reducedMotion() ? 300 : 760,
+      seed: Math.random() * TAU,
+    }, MAX_RIPPLES);
+  }
+
+  function addPrismDrill(evt, G, metrics) {
+    const world = worldFor(evt && evt.world, worldFor(G && (G.face ?? G.world)));
+    const point = eventPoint(evt, metrics, [COLS * 0.5, ROWS * 0.52]);
+    addBounded(prismDrills, {
+      life: reducedMotion() ? 260 : 620,
+      maxLife: reducedMotion() ? 260 : 620,
+    }, MAX_PRISM_DRILLS);
+    addParticles(reducedMotion() ? 4 : 12, point[0], point[1], metrics, {
+      kind: 'spark',
+      world,
+      colors: [COLORS.seam, ...particleColors(world)],
+      spreadX: metrics.boardWidth * 0.42,
+      spreadY: metrics.cell * 0.16,
+      width: metrics.cell * 0.34,
+      height: metrics.cell * 0.07,
+      speed: randomBetween(0.7, 1.8),
+      direction: randomBetween(-1, 1),
+      life: reducedMotion() ? 210 : 460,
+      gravity: 0,
+      alpha: 0.85,
+    });
+  }
+
   function addFoldStartRuffle(evt, G, metrics) {
-    const world = evt && (evt.from === 'sun' || evt.from === 'ink')
-      ? evt.from : ((G && G.world) || 'sun');
+    const world = worldFor(evt && evt.from, worldFor(G && (G.face ?? G.world)));
     const seamX = metrics.left + metrics.cell * 0.72;
     const centerY = metrics.top + metrics.boardHeight * 0.5;
     addParticles(reducedMotion() ? 8 : 20, seamX, centerY, metrics, {
@@ -594,8 +691,7 @@ export function createFx(canvas) {
   }
 
   function addFoldDoneBurst(evt, G, metrics) {
-    const world = (evt && (evt.world === 'sun' || evt.world === 'ink'))
-      ? evt.world : ((G && G.world) || 'sun');
+    const world = worldFor(evt && evt.world, worldFor(G && (G.face ?? G.world)));
     const cx = metrics.left + metrics.boardWidth * 0.5;
     const cy = metrics.top + metrics.boardHeight * 0.5;
     addParticles(reducedMotion() ? 12 : 34, cx, cy, metrics, {
@@ -612,7 +708,7 @@ export function createFx(canvas) {
   }
 
   function addEcho(evt, G, metrics) {
-    const world = (evt && evt.world) || (G && G.world) || 'sun';
+    const world = worldFor(evt && evt.world, worldFor(G && (G.face ?? G.world)));
     addBounded(arcs, {
       life: reducedMotion() ? 360 : 620,
       maxLife: reducedMotion() ? 360 : 620,
@@ -636,34 +732,15 @@ export function createFx(canvas) {
     });
   }
 
-  function addChargeSparks(evt, G, metrics) {
-    const world = (evt && evt.world) || (G && G.world) || 'sun';
-    const point = eventPoint(evt, metrics, [COLS * 0.5, ROWS * 0.82]);
-    addParticles(reducedMotion() ? 4 : 8, point[0], point[1], metrics, {
-      kind: 'spark',
-      world,
-      colors: [COLORS.seam, paletteFor(world).ink],
-      spreadX: metrics.cell * 0.48,
-      spreadY: metrics.cell * 0.20,
-      width: metrics.cell * 0.26,
-      height: metrics.cell * 0.07,
-      speed: randomBetween(0.7, 1.4),
-      direction: -1,
-      life: reducedMotion() ? 250 : 420,
-      gravity: 0,
-      alpha: 0.78,
-    });
-  }
-
   function setBanner(kind, evt, G, metrics) {
-    const world = (evt && evt.world) || (G && G.world) || 'sun';
+    const world = worldFor(evt && evt.world, worldFor(G && (G.face ?? G.world)));
     addBounded(banners, makeBanner(kind, evt, world, metrics, reducedMotion()), MAX_BANNERS);
   }
 
   function handle(evt, G) {
     if (!evt || typeof evt.k !== 'string') return;
     const metrics = boardMetrics(canvas);
-    const world = (evt.world === 'sun' || evt.world === 'ink') ? evt.world : ((G && G.world) || 'sun');
+    const world = worldFor(evt.world, worldFor(G && (G.face ?? G.world)));
     const cells = eventCells(evt);
     const point = eventPoint(evt, metrics);
     const palette = paletteFor(world);
@@ -736,8 +813,24 @@ export function createFx(canvas) {
           maxLife: reducedMotion() ? 110 : 180,
         };
         break;
-      case 'flip':
-        // Legacy flip events are intentionally ignored in v4.
+      case 'ring_clear':
+        addRingRipple(evt, metrics);
+        addTearStrips(evt, G, metrics);
+        addParticles(reducedMotion() ? 10 : 34, metrics.left + metrics.boardWidth * 0.5,
+          eventPoint(evt, metrics)[1], metrics, {
+            world,
+            colors: [COLORS.seam, '#fff0a8', palette.paper, palette.ink],
+            spreadX: metrics.boardWidth * 0.56,
+            spreadY: metrics.cell * 0.24,
+            speed: randomBetween(1.2, 3.2),
+            direction: -1,
+            life: reducedMotion() ? 420 : randomBetween(760, 1250),
+            alpha: 0.92,
+          });
+        triggerShake(Math.min(metrics.cell * 0.44, 18), reducedMotion() ? 0 : 340);
+        break;
+      case 'prism_drill':
+        addPrismDrill(evt, G, metrics);
         break;
       case 'garbage':
         addParticles(reducedMotion() ? 4 : 10, metrics.left + metrics.boardWidth * 0.5,
@@ -780,31 +873,6 @@ export function createFx(canvas) {
           life: reducedMotion() ? 220 : 360,
           alpha: 0.50,
         });
-        break;
-      case 'foldover':
-        flash = {
-          color: COLORS.seam,
-          strength: reducedMotion() ? 0.08 : 0.16,
-          life: reducedMotion() ? 120 : 190,
-          maxLife: reducedMotion() ? 120 : 190,
-        };
-        addParticles(reducedMotion() ? 4 : 10, point[0], point[1], metrics, {
-          kind: 'spark',
-          world,
-          colors: [COLORS.seam, palette.ink],
-          spreadX: metrics.cell * 0.75,
-          spreadY: metrics.cell * 0.25,
-          width: metrics.cell * 0.24,
-          height: metrics.cell * 0.06,
-          speed: 1.1,
-          direction: -1,
-          gravity: 0,
-          life: reducedMotion() ? 240 : 400,
-          alpha: 0.72,
-        });
-        break;
-      case 'charge':
-        addChargeSparks(evt, G, metrics);
         break;
       case 'seamwin':
         finale = {
@@ -878,6 +946,26 @@ export function createFx(canvas) {
     arcs.length = write;
 
     write = 0;
+    for (let i = 0; i < ringRipples.length; i += 1) {
+      const ripple = ringRipples[i];
+      ripple.life -= dt;
+      if (ripple.life <= 0) continue;
+      ringRipples[write] = ripple;
+      write += 1;
+    }
+    ringRipples.length = write;
+
+    write = 0;
+    for (let i = 0; i < prismDrills.length; i += 1) {
+      const drill = prismDrills[i];
+      drill.life -= dt;
+      if (drill.life <= 0) continue;
+      prismDrills[write] = drill;
+      write += 1;
+    }
+    prismDrills.length = write;
+
+    write = 0;
     for (let i = 0; i < banners.length; i += 1) {
       const banner = banners[i];
       banner.life -= dt;
@@ -909,6 +997,8 @@ export function createFx(canvas) {
     strips.length = 0;
     arcs.length = 0;
     banners.length = 0;
+    ringRipples.length = 0;
+    prismDrills.length = 0;
     flash = null;
     finale = null;
     shakeTime = 0;
@@ -920,12 +1010,15 @@ export function createFx(canvas) {
   function draw(ctx) {
     if (!ctx) return;
     const metrics = boardMetrics(canvas);
-    if (!particles.length && !strips.length && !arcs.length && !banners.length && !flash && !finale) return;
+    if (!particles.length && !strips.length && !arcs.length && !banners.length &&
+        !ringRipples.length && !prismDrills.length && !flash && !finale) return;
 
     ctx.save();
     ctx.setLineDash([]);
     for (const strip of strips) drawTearStrip(ctx, strip, metrics);
     for (const arc of arcs) drawEchoArc(ctx, arc, metrics);
+    for (const ripple of ringRipples) drawRingRipple(ctx, ripple, metrics);
+    for (const drill of prismDrills) drawPrismDrill(ctx, drill, metrics);
     if (finale) drawFinale(ctx, finale, metrics);
     if (flash) drawFlash(ctx, flash, metrics);
     for (const particle of particles) drawParticle(ctx, particle);

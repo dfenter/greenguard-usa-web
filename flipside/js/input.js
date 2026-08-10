@@ -27,11 +27,18 @@ const BUTTON_SPECS = [
     classes: ['tc-btn--hold', 'tc-hold'],
   },
   {
-    id: 'btn-flip',
-    action: 'flip',
-    label: 'FLIP',
-    ariaLabel: 'Flip the page',
-    classes: ['tc-btn--flip', 'tc-flip'],
+    id: 'btn-fold-left',
+    action: 'flip_left',
+    label: '↶',
+    ariaLabel: 'Fold left around the cube',
+    classes: ['tc-btn--fold-left', 'tc-fold-left', 'fold-left'],
+  },
+  {
+    id: 'btn-fold-right',
+    action: 'flip_right',
+    label: '↷',
+    ariaLabel: 'Fold right around the cube',
+    classes: ['tc-btn--fold-right', 'tc-fold-right', 'fold-right'],
   },
   {
     id: 'btn-rot-cw',
@@ -101,7 +108,8 @@ function buttonAction(value) {
 
   const id = typeof button.id === 'string' ? button.id : '';
   if (id === 'btn-pause') return 'pause';
-  if (id === 'btn-flip') return 'flip';
+  if (id === 'btn-fold-left') return 'flip_left';
+  if (id === 'btn-fold-right') return 'flip_right';
   if (id === 'btn-hold') return 'hold';
   if (id === 'btn-rot-ccw') return 'rotccw';
   if (id === 'btn-rot-cw') return 'rotcw';
@@ -109,17 +117,23 @@ function buttonAction(value) {
   const dataAction = typeof button.getAttribute === 'function'
     ? button.getAttribute('data-input-action') || button.getAttribute('data-action')
     : null;
-  if (dataAction === 'pause' || dataAction === 'flip' || dataAction === 'hold' ||
+  if (dataAction === 'pause' || dataAction === 'flip_left' || dataAction === 'flip_right' ||
+      dataAction === 'fold-left' || dataAction === 'fold-right' || dataAction === 'hold' ||
       dataAction === 'rotccw' || dataAction === 'rotcw' || dataAction === 'rot-ccw' ||
       dataAction === 'rot-cw') {
-    return dataAction === 'rot-ccw' ? 'rotccw' : dataAction === 'rot-cw' ? 'rotcw' : dataAction;
+    if (dataAction === 'rot-ccw') return 'rotccw';
+    if (dataAction === 'rot-cw') return 'rotcw';
+    if (dataAction === 'fold-left') return 'flip_left';
+    if (dataAction === 'fold-right') return 'flip_right';
+    return dataAction;
   }
 
   const classes = button.classList;
   if (classes?.contains('rot-ccw') || classes?.contains('tc-rot-ccw')) return 'rotccw';
   if (classes?.contains('rot-cw') || classes?.contains('tc-rot-cw')) return 'rotcw';
   if (classes?.contains('hold') || classes?.contains('tc-hold')) return 'hold';
-  if (classes?.contains('flip') || classes?.contains('tc-flip')) return 'flip';
+  if (classes?.contains('fold-left') || classes?.contains('tc-fold-left')) return 'flip_left';
+  if (classes?.contains('fold-right') || classes?.contains('tc-fold-right')) return 'flip_right';
   if (classes?.contains('pause') || classes?.contains('tc-pause')) return 'pause';
   return null;
 }
@@ -131,8 +145,7 @@ function findButton(root, spec) {
     `#${spec.id}`,
     `[data-input-action="${spec.action}"]`,
     `[data-action="${spec.action}"]`,
-    `.tc-${spec.action === 'rotccw' ? 'rot-ccw' : spec.action === 'rotcw' ? 'rot-cw' : spec.action}`,
-    `.${spec.action === 'rotccw' ? 'rot-ccw' : spec.action === 'rotcw' ? 'rot-cw' : spec.action}`,
+    ...spec.classes.map((className) => `.${className}`),
   ];
   for (const selector of selectors) {
     const found = root.querySelector(selector);
