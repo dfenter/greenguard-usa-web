@@ -1,14 +1,22 @@
 import { COLS, FACES, ROWS, COLORS } from '../config.js';
 
-const MAX_PARTICLES = 300;
+// The cap includes the 8 ambient motes reserved for each of the four worlds.
+// Dynamic effects therefore degrade gracefully once 368 particles are live.
+const MAX_PARTICLES = 400;
+const AMBIENT_MOTES_PER_WORLD = 8;
+const AMBIENT_MOTE_TOTAL = FACES.length * AMBIENT_MOTES_PER_WORLD;
+const DYNAMIC_PARTICLE_CAP = MAX_PARTICLES - AMBIENT_MOTE_TOTAL;
 const MAX_STRIPS = 32;
 const MAX_ARCS = 8;
 const MAX_BANNERS = 3;
 const MAX_RIPPLES = 6;
 const MAX_PRISM_DRILLS = 6;
+const MAX_SEAM_FLASHES = 4;
 
 const TAU = Math.PI * 2;
 const TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+const EMPTY_DASH = [];
+const METRICS_CACHE = new WeakMap();
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -79,8 +87,13 @@ function canvasSize(canvas) {
  * events still work when a lane sends pixel-space x/y values instead.
  */
 function boardMetrics(canvas) {
-  const { width, height } = canvasSize(canvas);
+  const width = Math.max(1, Number(canvas && canvas.width) || Number(canvas && canvas.clientWidth) || 390);
+  const height = Math.max(1, Number(canvas && canvas.height) || Number(canvas && canvas.clientHeight) || 844);
   const rawDpr = Number(globalThis.devicePixelRatio) || 1;
+  const cached = canvas && typeof canvas === 'object' ? METRICS_CACHE.get(canvas) : null;
+  if (cached && cached.width === width && cached.height === height && cached.dpr === rawDpr) {
+    return cached.metrics;
+  }
   const unit = Math.max(1, Math.min(2, rawDpr));
   const framePad = Math.max(unit * 4, Math.min(width, height) * 0.015);
   const verticalMargin = Math.max(unit * 6, height * 0.028);
@@ -90,7 +103,10 @@ function boardMetrics(canvas) {
   ));
   const boardWidth = cell * COLS;
   const boardHeight = cell * ROWS;
-  return {
+  const bannerHeight = Math.max(38, height * 0.072);
+  const bannerFontSize = Math.max(13, Math.min(27, bannerHeight * 0.37));
+  const bannerSubSize = Math.max(9, bannerFontSize * 0.43);
+  const metrics = {
     width,
     height,
     cell,
@@ -98,7 +114,22 @@ function boardMetrics(canvas) {
     boardHeight,
     left: (width - boardWidth) * 0.5,
     top: (height - boardHeight) * 0.5,
+    tearDash: [Math.max(1, cell * 0.12), Math.max(1, cell * 0.09)],
+    rippleDash: [Math.max(1, cell * 0.25), Math.max(1, cell * 0.15)],
+    prismDash: [Math.max(1, cell * 0.25), Math.max(1, cell * 0.14)],
+    echoDash: [Math.max(1, cell * 0.26), Math.max(1, cell * 0.18)],
+    finaleDash: [Math.max(1, cell * 0.23), Math.max(1, cell * 0.15)],
+    ghostDash: [Math.max(1, cell * 0.18), Math.max(1, cell * 0.13)],
+    bannerHeight,
+    bannerFontSize,
+    bannerSubSize,
+    bannerFont: `800 ${bannerFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
+    bannerSubFont: `700 ${bannerSubSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
   };
+  if (canvas && typeof canvas === 'object') {
+    METRICS_CACHE.set(canvas, { width, height, dpr: rawDpr, metrics });
+  }
+  return metrics;
 }
 
 function isCoordinate(value) {
@@ -130,7 +161,8 @@ function eventCells(evt) {
 function eventRows(evt) {
   if (!evt) return [];
   const source = Array.isArray(evt.rows) ? evt.rows :
-    (Number.isFinite(Number(evt.row)) ? [evt.row] : []);
+    (Number.isFinite(Number(evt.row)) ? [evt.row] :
+      (Number.isFinite(Number(evt.y)) ? [evt.y] : []));
   return source
     .map((row) => Number(row))
     .filter((row) => Number.isFinite(row) && row >= 0 && row < ROWS)
@@ -204,6 +236,8 @@ function makeParticle(x, y, metrics, options = {}) {
     color: options.color || '#fff',
     secondary: options.secondary || null,
     alpha: options.alpha == null ? 1 : options.alpha,
+    tumble: options.tumble == null ? randomBetween(0.7, 1.3) : options.tumble,
+    wobble: options.wobble == null ? randomBetween(0.8, 1.2) : options.wobble,
     seed: Math.random() * TAU,
   };
 }
@@ -230,24 +264,35 @@ function drawTearStrip(ctx, strip, metrics) {
   const progress = 1 - strip.life / strip.maxLife;
   const inT = easeOutCubic(clamp(progress * 2.6, 0, 1));
   const outT = clamp((progress - 0.68) / 0.32, 0, 1);
-  const alpha = (1 - outT) * 0.92;
+  const alpha = (1 - outT) * 0.94;
   const width = lerp(metrics.cell * 1.6, strip.width, inT);
   const height = lerp(metrics.cell * 0.08, strip.height, inT);
-  const x = metrics.left + (metrics.boardWidth - width) * 0.5 + Math.sin(strip.seed) * metrics.cell * 0.04;
-  const y = strip.y + Math.sin(progress * Math.PI) * metrics.cell * 0.05;
+  const anchorX = strip.x + Math.sin(strip.seed + progress * 7) * metrics.cell * 0.04;
+  const x = strip.side < 0 ? anchorX - width : anchorX;
+  const y = strip.y + Math.sin(progress * Math.PI + strip.seed) * metrics.cell * 0.08;
+  const centerX = x + width * 0.5;
+  const curl = Math.sin(progress * Math.PI * 1.4 + strip.seed) * metrics.cell * 0.12;
 
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.translate(x + width * 0.5, y);
-  ctx.rotate(strip.rotation * (1 - progress) * 0.25);
-  ctx.translate(-(x + width * 0.5), -y);
-  tornPath(ctx, x, y, width, height, strip.seed, 12);
+  ctx.translate(centerX, y);
+  ctx.rotate(strip.rotation + strip.spin * progress * 36);
+  ctx.translate(-centerX, -y);
+  tornPath(ctx, x, y + curl, width, height, strip.seed, 12);
   ctx.fillStyle = strip.color;
   ctx.fill();
   ctx.globalAlpha = alpha * 0.55;
   ctx.strokeStyle = strip.edge;
   ctx.lineWidth = Math.max(1, metrics.cell * 0.035);
-  ctx.setLineDash([metrics.cell * 0.12, metrics.cell * 0.09]);
+  ctx.setLineDash(metrics.tearDash);
+  ctx.stroke();
+  ctx.setLineDash(EMPTY_DASH);
+  ctx.globalAlpha = alpha * 0.28;
+  ctx.strokeStyle = '#fff8df';
+  ctx.lineWidth = Math.max(1, metrics.cell * 0.02);
+  ctx.beginPath();
+  ctx.moveTo(x + width * 0.12, y - height * 0.12);
+  ctx.lineTo(x + width * 0.82, y + height * 0.10);
   ctx.stroke();
   ctx.restore();
 }
@@ -293,14 +338,14 @@ function drawPrismDrill(ctx, drill, metrics) {
   ctx.globalAlpha = 0.86 * fade;
   ctx.strokeStyle = COLORS.seam;
   ctx.lineWidth = Math.max(1, metrics.cell * 0.075);
-  ctx.setLineDash([metrics.cell * 0.25, metrics.cell * 0.14]);
+  ctx.setLineDash(metrics.prismDash);
   ctx.lineDashOffset = -progress * metrics.cell * 3;
   ctx.beginPath();
   ctx.moveTo(cx - reach, cy);
   ctx.lineTo(cx + reach, cy);
   ctx.stroke();
   ctx.globalAlpha = 0.46 * fade;
-  ctx.setLineDash([]);
+  ctx.setLineDash(EMPTY_DASH);
   ctx.beginPath();
   ctx.arc(cx + Math.cos(progress * TAU) * reach, cy,
     metrics.cell * (0.12 + progress * 0.22), 0, TAU);
@@ -347,9 +392,31 @@ function drawParticle(ctx, particle) {
       ctx.lineTo(-length * 0.35, 0);
       ctx.stroke();
     }
+  } else if (particle.kind === 'flutter') {
+    const fold = 0.28 + Math.abs(Math.sin(particle.seed + age * 8 * particle.tumble)) * 0.72;
+    const sway = Math.sin(particle.seed + age * 5 * particle.wobble) * particle.width * 0.16;
+    ctx.scale(fold, 0.78 + Math.sin(particle.seed + age * 9) * 0.16);
+    ctx.fillStyle = particle.color;
+    ctx.beginPath();
+    ctx.moveTo(-particle.width * 0.5, -particle.height * 0.5);
+    ctx.lineTo(particle.width * 0.5, -particle.height * 0.34);
+    ctx.lineTo(particle.width * 0.34 + sway, particle.height * 0.5);
+    ctx.lineTo(-particle.width * 0.5, particle.height * 0.34);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = alpha * 0.42;
+    ctx.strokeStyle = particle.secondary || '#fff';
+    ctx.lineWidth = Math.max(1, particle.height * 0.09);
+    ctx.beginPath();
+    ctx.moveTo(0, -particle.height * 0.38);
+    ctx.lineTo(0, particle.height * 0.38);
+    ctx.stroke();
   } else {
-    const flip = 0.72 + Math.sin(particle.seed + age * 12) * 0.24;
-    ctx.scale(1, flip);
+    // Confetti tumbles on two axes so the paper reads as a cut piece, not a
+    // flat rectangle sliding through space.
+    const tumble = 0.22 + Math.abs(Math.sin(particle.seed + age * 13 * particle.tumble)) * 0.78;
+    const flip = 0.70 + Math.sin(particle.seed + age * 12 * particle.wobble) * 0.24;
+    ctx.scale(tumble, flip);
     ctx.fillStyle = particle.color;
     ctx.fillRect(-particle.width * 0.5, -particle.height * 0.5, particle.width, particle.height);
     ctx.globalAlpha = alpha * 0.42;
@@ -357,7 +424,42 @@ function drawParticle(ctx, particle) {
     ctx.lineWidth = Math.max(1, particle.height * 0.09);
     ctx.strokeRect(-particle.width * 0.5, -particle.height * 0.5,
       particle.width, particle.height);
+    ctx.globalAlpha = alpha * 0.24;
+    ctx.beginPath();
+    ctx.moveTo(0, -particle.height * 0.42);
+    ctx.lineTo(0, particle.height * 0.42);
+    ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawAmbientMote(ctx, mote, metrics, calm) {
+  const x = metrics.left + mote.u * metrics.boardWidth;
+  const y = metrics.top + mote.v * metrics.boardHeight;
+  const pulse = calm ? 0.82 : 0.72 + Math.sin(mote.phase + mote.clock * 0.0014) * 0.16;
+  const fold = calm ? 0.78 : 0.30 + Math.abs(Math.sin(mote.phase + mote.clock * 0.0031)) * 0.70;
+  const size = metrics.cell * mote.size;
+
+  ctx.save();
+  ctx.globalAlpha = mote.alpha * pulse;
+  ctx.translate(x, y);
+  ctx.rotate(mote.rotation);
+  ctx.scale(fold, 0.75 + Math.sin(mote.phase + mote.clock * 0.0021) * 0.15);
+  ctx.fillStyle = mote.color;
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.58, -size * 0.40);
+  ctx.lineTo(size * 0.52, -size * 0.26);
+  ctx.lineTo(size * 0.30, size * 0.48);
+  ctx.lineTo(-size * 0.54, size * 0.33);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha *= 0.44;
+  ctx.strokeStyle = mote.edge;
+  ctx.lineWidth = Math.max(0.65, metrics.cell * 0.018);
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.05, -size * 0.34);
+  ctx.lineTo(-size * 0.05, size * 0.32);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -375,7 +477,7 @@ function drawEchoArc(ctx, arc, metrics) {
   ctx.strokeStyle = arc.color;
   ctx.lineWidth = Math.max(1, metrics.cell * 0.08);
   ctx.lineCap = 'round';
-  ctx.setLineDash([metrics.cell * 0.26, metrics.cell * 0.18]);
+  ctx.setLineDash(metrics.echoDash);
   ctx.beginPath();
   ctx.moveTo(startX, y);
   ctx.quadraticCurveTo(metrics.left + metrics.boardWidth * 0.5,
@@ -383,7 +485,7 @@ function drawEchoArc(ctx, arc, metrics) {
   ctx.stroke();
   ctx.globalAlpha = 0.42 * fade;
   ctx.lineWidth = Math.max(1, metrics.cell * 0.035);
-  ctx.setLineDash([]);
+  ctx.setLineDash(EMPTY_DASH);
   ctx.beginPath();
   ctx.arc(metrics.left + metrics.boardWidth * 0.5, y - lift * direction,
     metrics.cell * 0.20, Math.PI, TAU);
@@ -398,11 +500,10 @@ function drawBanner(ctx, banner, metrics) {
   const alpha = easeOutCubic(fadeIn) * (1 - fadeOut);
   const scale = easeOutCubic(clamp(progress * 3.5, 0, 1));
   const width = Math.min(metrics.width * 0.82, Math.max(metrics.width * 0.48, metrics.width * 0.006 * banner.text.length + metrics.width * 0.27));
-  const height = Math.max(38, metrics.height * 0.072);
+  const height = metrics.bannerHeight;
   const targetY = metrics.top + metrics.boardHeight * 0.17;
   const y = targetY - (1 - scale) * metrics.height * 0.025;
-  const fontSize = Math.max(13, Math.min(27, height * 0.37));
-  const subSize = Math.max(9, fontSize * 0.43);
+  const fontSize = metrics.bannerFontSize;
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -422,14 +523,26 @@ function drawBanner(ctx, banner, metrics) {
   ctx.globalAlpha = alpha * 0.8;
   ctx.stroke();
 
+  if (banner.gold) {
+    ctx.save();
+    ctx.globalAlpha = alpha * (banner.reduced ? 0.16 : 0.30);
+    ctx.strokeStyle = '#fff5bd';
+    ctx.lineWidth = Math.max(1, height * 0.08);
+    ctx.beginPath();
+    ctx.moveTo((metrics.width - width) * 0.5 - width * 0.12, y + height * 0.45);
+    ctx.lineTo((metrics.width + width) * 0.5 + width * 0.12, y - height * 0.45);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = banner.textColor;
-  ctx.font = `800 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+  ctx.font = metrics.bannerFont;
   ctx.globalAlpha = alpha;
   ctx.fillText(banner.text, metrics.width * 0.5, y - (banner.subtext ? fontSize * 0.18 : 0));
   if (banner.subtext) {
-    ctx.font = `700 ${subSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    ctx.font = metrics.bannerSubFont;
     ctx.globalAlpha = alpha * 0.82;
     ctx.fillText(banner.subtext, metrics.width * 0.5, y + fontSize * 0.38);
   }
@@ -458,18 +571,125 @@ function drawFinale(ctx, finale, metrics) {
   ctx.globalAlpha = 0.72 * fade;
   ctx.strokeStyle = COLORS.seam;
   ctx.lineWidth = Math.max(1, metrics.cell * 0.10);
-  ctx.setLineDash([metrics.cell * 0.23, metrics.cell * 0.15]);
+  ctx.setLineDash(metrics.finaleDash);
   ctx.lineDashOffset = -progress * metrics.cell * 2;
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, TAU);
   ctx.stroke();
   ctx.globalAlpha = 0.58 * fade;
   ctx.lineWidth = Math.max(1, metrics.cell * 0.045);
-  ctx.setLineDash([]);
+  ctx.setLineDash(EMPTY_DASH);
   ctx.beginPath();
   ctx.moveTo(cx, metrics.top + metrics.cell * 0.25);
   ctx.lineTo(cx, metrics.top + metrics.boardHeight - metrics.cell * 0.25);
   ctx.stroke();
+  ctx.restore();
+}
+
+function drawRingBurst(ctx, burst, metrics) {
+  const progress = 1 - burst.life / burst.maxLife;
+  const fade = Math.sin(clamp(progress, 0, 1) * Math.PI);
+  const cx = metrics.left + metrics.boardWidth * 0.5;
+  const cy = rowY(burst.row, metrics);
+  const radius = metrics.cell * (0.45 + easeOutCubic(clamp(progress * 1.18, 0, 1)) * 6.6);
+  const inner = radius * 0.13;
+  const rays = 22;
+
+  ctx.save();
+  ctx.globalAlpha = 0.72 * fade;
+  ctx.strokeStyle = COLORS.seam;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = Math.max(1, metrics.cell * 0.065 * (1 - progress * 0.42));
+  ctx.beginPath();
+  for (let index = 0; index < rays; index += 1) {
+    const angle = burst.seed + index * TAU / rays;
+    const startX = cx + Math.cos(angle) * inner;
+    const startY = cy + Math.sin(angle) * inner;
+    const endX = cx + Math.cos(angle) * radius;
+    const endY = cy + Math.sin(angle) * radius;
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 0.52 * fade;
+  ctx.fillStyle = '#fff0a8';
+  ctx.beginPath();
+  ctx.arc(cx, cy, metrics.cell * (0.16 + (1 - progress) * 0.18), 0, TAU);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawSeamFlash(ctx, flash, metrics) {
+  if (flash.delay > 0) return;
+  const progress = 1 - flash.life / flash.maxLife;
+  const fade = Math.sin(clamp(progress, 0, 1) * Math.PI);
+  let x1 = metrics.left;
+  let y1 = metrics.top;
+  let x2 = metrics.left + metrics.boardWidth;
+  let y2 = metrics.top;
+  if (flash.index === 0) {
+    x2 = x1;
+    y2 = metrics.top + metrics.boardHeight;
+  } else if (flash.index === 2) {
+    x1 = metrics.left + metrics.boardWidth;
+    x2 = x1;
+    y2 = metrics.top + metrics.boardHeight;
+  } else if (flash.index === 3) {
+    y1 = metrics.top + metrics.boardHeight;
+    y2 = y1;
+  }
+  const pulse = 1 + Math.sin(progress * Math.PI) * 0.4;
+
+  ctx.save();
+  ctx.globalAlpha = 0.22 * fade;
+  ctx.strokeStyle = COLORS.seam;
+  ctx.lineWidth = Math.max(3, metrics.cell * 0.24 * pulse);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.globalAlpha = 0.90 * fade;
+  ctx.lineWidth = Math.max(1, metrics.cell * 0.075 * pulse);
+  ctx.strokeStyle = '#fff0a8';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawAutoFollowGhost(ctx, ghost, metrics, calm) {
+  if (!ghost || ghost.life <= 0) return;
+  const progress = 1 - ghost.life / ghost.maxLife;
+  const fade = Math.sin(clamp(progress, 0, 1) * Math.PI);
+  const dir = ghost.dir < 0 ? -1 : 1;
+  const x = dir < 0 ? metrics.left - metrics.cell * 0.18 : metrics.left + metrics.boardWidth + metrics.cell * 0.18;
+  const y = metrics.top + metrics.boardHeight * 0.50;
+  const pulse = calm ? 1 : 1 + Math.sin(progress * TAU * 1.5) * 0.10;
+  const length = metrics.cell * (calm ? 0.40 : 0.52) * pulse;
+
+  ctx.save();
+  ctx.globalAlpha = (calm ? 0.38 : 0.70) * fade;
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+  ctx.strokeStyle = COLORS.seam;
+  ctx.lineWidth = Math.max(1, metrics.cell * 0.065);
+  ctx.lineCap = 'round';
+  ctx.setLineDash(metrics.ghostDash);
+  ctx.beginPath();
+  ctx.moveTo(-length, 0);
+  ctx.lineTo(length * 0.42, 0);
+  ctx.stroke();
+  ctx.setLineDash(EMPTY_DASH);
+  ctx.fillStyle = COLORS.seam;
+  ctx.beginPath();
+  ctx.moveTo(length * 0.72, 0);
+  ctx.lineTo(length * 0.18, -length * 0.42);
+  ctx.lineTo(length * 0.28, 0);
+  ctx.lineTo(length * 0.18, length * 0.42);
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 }
 
@@ -501,6 +721,20 @@ function makeBanner(kind, evt, world, metrics, reduced) {
       reduced,
     };
   }
+  if (kind === 'tetris') {
+    return {
+      text: 'TETRIS!',
+      subtext: 'FOUR ROWS TORN',
+      color: COLORS.seam,
+      edge: '#a67f2e',
+      textColor: '#3b2f1a',
+      life: reduced ? 900 : 1450,
+      maxLife: reduced ? 900 : 1450,
+      seed: Math.random() * TAU,
+      reduced,
+      gold: true,
+    };
+  }
   const phase = Number(evt && evt.phase) || 1;
   const seam = phase >= 9;
   return {
@@ -518,19 +752,47 @@ function makeBanner(kind, evt, world, metrics, reduced) {
 
 export function createFx(canvas) {
   const particles = [];
+  const ambientMotes = [];
   const strips = [];
   const arcs = [];
   const banners = [];
   const ringRipples = [];
   const prismDrills = [];
+  const seamFlashes = [];
+  const shakePoint = [0, 0];
   let flash = null;
   let finale = null;
+  let ringBurst = null;
+  let autoFollowGhost = null;
+  let visualSlowMo = 0;
+  let ambientClock = 0;
   let shakeTime = 0;
   let shakeDuration = 0;
   let shakeAmplitude = 0;
   let shakePhase = 0;
   let reducedMotionState = readReducedMotion(canvas);
   const media = reducedMotionState.media;
+
+  for (let face = 0; face < FACES.length; face += 1) {
+    const world = FACES[face];
+    const palette = paletteFor(world);
+    for (let index = 0; index < AMBIENT_MOTES_PER_WORLD; index += 1) {
+      ambientMotes.push({
+        world,
+        u: randomBetween(0.04, 0.96),
+        v: randomBetween(0.04, 0.96),
+        du: randomBetween(-0.000012, 0.000012),
+        dv: randomBetween(-0.000010, 0.000010),
+        size: randomBetween(0.11, 0.22),
+        alpha: randomBetween(0.14, 0.30),
+        rotation: randomBetween(-0.6, 0.6),
+        phase: randomBetween(0, TAU),
+        clock: 0,
+        color: randomItem([palette.paper, palette.panel, COLORS.seam]),
+        edge: palette.ink,
+      });
+    }
+  }
 
   if (media && typeof media.addEventListener === 'function') {
     media.addEventListener('change', (event) => {
@@ -558,16 +820,31 @@ export function createFx(canvas) {
   }
 
   function addParticles(count, x, y, metrics, options = {}) {
-    const available = MAX_PARTICLES - particles.length;
+    const available = DYNAMIC_PARTICLE_CAP - particles.length;
     const amount = Math.max(0, Math.min(available, Math.round(count)));
     if (!amount) return;
     const colors = options.colors || particleColors(options.world, options.type);
     for (let i = 0; i < amount; i += 1) {
       const spreadX = options.spreadX == null ? metrics.cell * 0.5 : options.spreadX;
       const spreadY = options.spreadY == null ? metrics.cell * 0.5 : options.spreadY;
+      let particleX = x + randomBetween(-spreadX, spreadX);
+      let particleY = y + randomBetween(-spreadY, spreadY);
+      let particleVx = options.vx;
+      let particleVy = options.vy;
+      let particleRotation = options.rotation;
+      if (options.radial) {
+        const angle = (i / amount) * TAU + randomBetween(-0.12, 0.12);
+        const radius = randomBetween(0.10, 0.92) * (options.radialRadius || metrics.cell * 0.22);
+        const speed = randomBetween(0.72, 1.18) * (options.radialSpeed || 2.2) * metrics.cell / 1000;
+        particleX = x + Math.cos(angle) * radius;
+        particleY = y + Math.sin(angle) * radius;
+        particleVx = Math.cos(angle) * speed;
+        particleVy = Math.sin(angle) * speed;
+        particleRotation = angle;
+      }
       const particle = makeParticle(
-        x + randomBetween(-spreadX, spreadX),
-        y + randomBetween(-spreadY, spreadY),
+        particleX,
+        particleY,
         metrics,
         {
           kind: options.kind || 'confetti',
@@ -577,15 +854,19 @@ export function createFx(canvas) {
           size: options.size,
           width: options.width,
           height: options.height,
-          vx: options.vx,
-          vy: options.vy,
+          vx: particleVx,
+          vy: particleVy,
+          rotation: particleRotation,
           gravity: options.gravity,
           drag: options.drag,
           speed: options.speed,
           direction: options.direction,
           alpha: options.alpha,
+          tumble: options.tumble,
+          wobble: options.wobble,
         },
       );
+      if (options.radial) particle.vx = particleVx;
       particles.push(particle);
     }
   }
@@ -620,19 +901,28 @@ export function createFx(canvas) {
     const rows = eventRows(evt);
     const lineRows = rows.length ? rows : [Math.round(ROWS * 0.65)];
     for (const row of lineRows) {
-      const strip = {
-        y: rowY(row, metrics),
-        width: metrics.boardWidth,
-        height: metrics.cell * randomBetween(0.42, 0.72),
-        rotation: randomBetween(-0.025, 0.025),
-        seed: Math.random() * TAU,
-        life: reducedMotion() ? 250 : randomBetween(420, 620),
-        maxLife: 0,
-        color: palette.paper,
-        edge: palette.ink,
-      };
-      strip.maxLife = strip.life;
-      addBounded(strips, strip, MAX_STRIPS);
+      // A clear starts as one sheet-wide flash, then peels into two torn
+      // halves. Each half gets its own outward drift and tumble.
+      for (const side of [-1, 1]) {
+        const life = reducedMotion() ? 270 : randomBetween(470, 680);
+        addBounded(strips, {
+          y: rowY(row, metrics),
+          x: metrics.left + metrics.boardWidth * 0.5,
+          side,
+          width: metrics.boardWidth * randomBetween(0.42, 0.57),
+          height: metrics.cell * randomBetween(0.42, 0.72),
+          rotation: side * randomBetween(0.035, 0.11),
+          spin: side * randomBetween(0.008, 0.016),
+          vx: side * randomBetween(0.85, 1.65) * metrics.cell / 1000,
+          vy: randomBetween(-0.42, 0.18) * metrics.cell / 1000,
+          gravity: randomBetween(0.0000007, 0.0000018) * metrics.cell,
+          seed: Math.random() * TAU,
+          life,
+          maxLife: life,
+          color: palette.paper,
+          edge: palette.ink,
+        }, MAX_STRIPS);
+      }
     }
   }
 
@@ -644,6 +934,40 @@ export function createFx(canvas) {
       maxLife: reducedMotion() ? 300 : 760,
       seed: Math.random() * TAU,
     }, MAX_RIPPLES);
+  }
+
+  function addRingSpectacle(evt, G, metrics) {
+    const world = worldFor(evt && evt.world, worldFor(G && (G.face ?? G.world)));
+    const rawRow = Number(evt?.y ?? evt?.row);
+    const row = Number.isFinite(rawRow) ? Math.max(0, Math.min(ROWS - 1, rawRow)) : Math.round(ROWS * 0.65);
+    const life = reducedMotion() ? 520 : 820;
+    ringBurst = { row, life, maxLife: life, seed: Math.random() * TAU };
+    visualSlowMo = 120;
+    for (let index = 0; index < FACES.length; index += 1) {
+      const flashLife = reducedMotion() ? 210 : 260;
+      addBounded(seamFlashes, {
+        index,
+        delay: index * (reducedMotion() ? 48 : 78),
+        life: flashLife,
+        maxLife: flashLife,
+      }, MAX_SEAM_FLASHES);
+    }
+    const point = [metrics.left + metrics.boardWidth * 0.5, rowY(row, metrics)];
+    addParticles(reducedMotion() ? 10 : 34, point[0], point[1], metrics, {
+      kind: 'spark',
+      world,
+      colors: [COLORS.seam, '#fff0a8', paletteFor(world).paper],
+      radial: true,
+      radialRadius: metrics.cell * 0.30,
+      radialSpeed: reducedMotion() ? 1.4 : 3.4,
+      spreadX: 0,
+      spreadY: 0,
+      width: metrics.cell * 0.34,
+      height: metrics.cell * 0.065,
+      gravity: 0,
+      life: reducedMotion() ? 320 : randomBetween(680, 1050),
+      alpha: 0.94,
+    });
   }
 
   function addPrismDrill(evt, G, metrics) {
@@ -671,7 +995,10 @@ export function createFx(canvas) {
 
   function addFoldStartRuffle(evt, G, metrics) {
     const world = worldFor(evt && evt.from, worldFor(G && (G.face ?? G.world)));
-    const seamX = metrics.left + metrics.cell * 0.72;
+    const direction = evt && evt.dir < 0 ? -1 : 1;
+    const seamX = direction < 0
+      ? metrics.left + metrics.cell * 0.18
+      : metrics.left + metrics.boardWidth - metrics.cell * 0.18;
     const centerY = metrics.top + metrics.boardHeight * 0.5;
     addParticles(reducedMotion() ? 8 : 20, seamX, centerY, metrics, {
       kind: 'spark',
@@ -694,7 +1021,20 @@ export function createFx(canvas) {
     const world = worldFor(evt && evt.world, worldFor(G && (G.face ?? G.world)));
     const cx = metrics.left + metrics.boardWidth * 0.5;
     const cy = metrics.top + metrics.boardHeight * 0.5;
-    addParticles(reducedMotion() ? 12 : 34, cx, cy, metrics, {
+    addParticles(reducedMotion() ? 6 : 16, cx, cy, metrics, {
+      kind: 'flutter',
+      world,
+      colors: [paletteFor(world).paper, paletteFor(world).panel, COLORS.seam],
+      spreadX: metrics.boardWidth * 0.36,
+      spreadY: metrics.boardHeight * 0.30,
+      speed: randomBetween(0.45, 1.25),
+      direction: -1,
+      life: reducedMotion() ? 420 : randomBetween(760, 1180),
+      gravity: 0.0000003 * metrics.cell,
+      alpha: 0.78,
+      tumble: reducedMotion() ? 0.5 : 1.0,
+    });
+    addParticles(reducedMotion() ? 8 : 22, cx, cy, metrics, {
       kind: 'confetti',
       world,
       colors: [paletteFor(world).paper, ...particleColors(world), COLORS.seam],
@@ -748,7 +1088,7 @@ export function createFx(canvas) {
 
     switch (evt.k) {
       case 'lock':
-        addPuffs(cells, evt, G, metrics, 2);
+        addPuffs(cells, evt, G, metrics, 3);
         break;
       case 'hard':
         triggerShake(Math.min(metrics.cell * 0.17, 7), reducedMotion() ? 0 : 130);
@@ -780,8 +1120,16 @@ export function createFx(canvas) {
             life: reducedMotion() ? 260 : randomBetween(420, 650),
             alpha: 0.82,
           });
+        flash = {
+          color: palette.paper,
+          strength: reducedMotion() ? 0.035 : 0.065,
+          life: reducedMotion() ? 70 : 105,
+          maxLife: reducedMotion() ? 70 : 105,
+        };
+        triggerShake(Math.min(metrics.cell * 0.055, 2.5), reducedMotion() ? 0 : 78);
         break;
       case 'tetris':
+        setBanner('tetris', evt, G, metrics);
         triggerShake(Math.min(metrics.cell * 0.34, 14), reducedMotion() ? 0 : 260);
         addParticles(reducedMotion() ? 10 : 36, metrics.left + metrics.boardWidth * 0.5,
           metrics.top + metrics.boardHeight * 0.52, metrics, {
@@ -797,6 +1145,14 @@ export function createFx(canvas) {
         break;
       case 'fold_start':
         addFoldStartRuffle(evt, G, metrics);
+        if (evt.auto) {
+          const ghostLife = reducedMotion() ? 500 : 760;
+          autoFollowGhost = {
+            dir: evt.dir < 0 ? -1 : 1,
+            life: ghostLife,
+            maxLife: ghostLife,
+          };
+        }
         flash = {
           color: palette.paper,
           strength: reducedMotion() ? 0.045 : 0.06,
@@ -815,6 +1171,7 @@ export function createFx(canvas) {
         break;
       case 'ring_clear':
         addRingRipple(evt, metrics);
+        addRingSpectacle(evt, G, metrics);
         addTearStrips(evt, G, metrics);
         addParticles(reducedMotion() ? 10 : 34, metrics.left + metrics.boardWidth * 0.5,
           eventPoint(evt, metrics)[1], metrics, {
@@ -827,7 +1184,13 @@ export function createFx(canvas) {
             life: reducedMotion() ? 420 : randomBetween(760, 1250),
             alpha: 0.92,
           });
-        triggerShake(Math.min(metrics.cell * 0.44, 18), reducedMotion() ? 0 : 340);
+        flash = {
+          color: COLORS.seam,
+          strength: reducedMotion() ? 0.08 : 0.15,
+          life: reducedMotion() ? 140 : 220,
+          maxLife: reducedMotion() ? 140 : 220,
+        };
+        triggerShake(Math.min(metrics.cell * 0.58, 24), reducedMotion() ? 0 : 420);
         break;
       case 'prism_drill':
         addPrismDrill(evt, G, metrics);
@@ -909,7 +1272,24 @@ export function createFx(canvas) {
   }
 
   function update(dtMs) {
-    const dt = clamp(Number(dtMs) || 0, 0, 50);
+    const realDt = clamp(Number(dtMs) || 0, 0, 50);
+    const slowed = visualSlowMo > 0;
+    const visualScale = slowed ? (reducedMotion() ? 0.62 : 0.25) : 1;
+    const dt = realDt * visualScale;
+    if (visualSlowMo > 0) visualSlowMo = Math.max(0, visualSlowMo - realDt);
+    ambientClock += dt;
+    if (ambientClock > 1000000000) ambientClock = 0;
+    for (let i = 0; i < ambientMotes.length; i += 1) {
+      const mote = ambientMotes[i];
+      mote.clock = ambientClock;
+      const drift = reducedMotion() ? 0.16 : 1;
+      mote.u += mote.du * dt * drift;
+      mote.v += mote.dv * dt * drift;
+      if (mote.u < -0.04) mote.u = 1.04;
+      else if (mote.u > 1.04) mote.u = -0.04;
+      if (mote.v < -0.04) mote.v = 1.04;
+      else if (mote.v > 1.04) mote.v = -0.04;
+    }
     let write = 0;
     for (let i = 0; i < particles.length; i += 1) {
       const particle = particles[i];
@@ -930,6 +1310,9 @@ export function createFx(canvas) {
       const strip = strips[i];
       strip.life -= dt;
       if (strip.life <= 0) continue;
+      strip.x += strip.vx * dt;
+      strip.y += strip.vy * dt;
+      strip.vy += strip.gravity * dt;
       strips[write] = strip;
       write += 1;
     }
@@ -954,6 +1337,29 @@ export function createFx(canvas) {
       write += 1;
     }
     ringRipples.length = write;
+
+    write = 0;
+    for (let i = 0; i < seamFlashes.length; i += 1) {
+      const seamFlash = seamFlashes[i];
+      if (seamFlash.delay > 0) {
+        seamFlash.delay -= dt;
+      } else {
+        seamFlash.life -= dt;
+      }
+      if (seamFlash.delay <= 0 && seamFlash.life <= 0) continue;
+      seamFlashes[write] = seamFlash;
+      write += 1;
+    }
+    seamFlashes.length = write;
+
+    if (ringBurst) {
+      ringBurst.life -= dt;
+      if (ringBurst.life <= 0) ringBurst = null;
+    }
+    if (autoFollowGhost) {
+      autoFollowGhost.life -= dt;
+      if (autoFollowGhost.life <= 0) autoFollowGhost = null;
+    }
 
     write = 0;
     for (let i = 0; i < prismDrills.length; i += 1) {
@@ -999,41 +1405,56 @@ export function createFx(canvas) {
     banners.length = 0;
     ringRipples.length = 0;
     prismDrills.length = 0;
+    seamFlashes.length = 0;
     flash = null;
     finale = null;
+    ringBurst = null;
+    autoFollowGhost = null;
+    visualSlowMo = 0;
+    shakePoint[0] = 0;
+    shakePoint[1] = 0;
     shakeTime = 0;
     shakeDuration = 0;
     shakeAmplitude = 0;
     shakePhase = 0;
   }
 
-  function draw(ctx) {
+  function draw(ctx, G) {
     if (!ctx) return;
     const metrics = boardMetrics(canvas);
-    if (!particles.length && !strips.length && !arcs.length && !banners.length &&
-        !ringRipples.length && !prismDrills.length && !flash && !finale) return;
+    const world = worldFor(G && (G.face ?? G.world));
 
     ctx.save();
-    ctx.setLineDash([]);
-    for (const strip of strips) drawTearStrip(ctx, strip, metrics);
-    for (const arc of arcs) drawEchoArc(ctx, arc, metrics);
-    for (const ripple of ringRipples) drawRingRipple(ctx, ripple, metrics);
-    for (const drill of prismDrills) drawPrismDrill(ctx, drill, metrics);
+    ctx.setLineDash(EMPTY_DASH);
+    for (let i = 0; i < ambientMotes.length; i += 1) {
+      const mote = ambientMotes[i];
+      if (mote.world === world) drawAmbientMote(ctx, mote, metrics, reducedMotion());
+    }
+    for (let i = 0; i < strips.length; i += 1) drawTearStrip(ctx, strips[i], metrics);
+    for (let i = 0; i < arcs.length; i += 1) drawEchoArc(ctx, arcs[i], metrics);
+    for (let i = 0; i < ringRipples.length; i += 1) drawRingRipple(ctx, ringRipples[i], metrics);
+    if (ringBurst) drawRingBurst(ctx, ringBurst, metrics);
+    for (let i = 0; i < seamFlashes.length; i += 1) drawSeamFlash(ctx, seamFlashes[i], metrics);
+    for (let i = 0; i < prismDrills.length; i += 1) drawPrismDrill(ctx, prismDrills[i], metrics);
     if (finale) drawFinale(ctx, finale, metrics);
     if (flash) drawFlash(ctx, flash, metrics);
-    for (const particle of particles) drawParticle(ctx, particle);
-    for (const banner of banners) drawBanner(ctx, banner, metrics);
+    for (let i = 0; i < particles.length; i += 1) drawParticle(ctx, particles[i]);
+    if (autoFollowGhost) drawAutoFollowGhost(ctx, autoFollowGhost, metrics, reducedMotion());
+    for (let i = 0; i < banners.length; i += 1) drawBanner(ctx, banners[i], metrics);
     ctx.restore();
   }
 
   function shakeOffset() {
-    if (reducedMotion() || shakeTime <= 0 || shakeDuration <= 0) return [0, 0];
+    if (reducedMotion() || shakeTime <= 0 || shakeDuration <= 0) {
+      shakePoint[0] = 0;
+      shakePoint[1] = 0;
+      return shakePoint;
+    }
     const envelope = (shakeTime / shakeDuration) ** 2;
     const phase = shakePhase + (shakeDuration - shakeTime) * 0.075;
-    return [
-      Math.sin(phase * 1.71) * shakeAmplitude * envelope,
-      Math.cos(phase * 2.13) * shakeAmplitude * envelope * 0.74,
-    ];
+    shakePoint[0] = Math.sin(phase * 1.71) * shakeAmplitude * envelope;
+    shakePoint[1] = Math.cos(phase * 2.13) * shakeAmplitude * envelope * 0.74;
+    return shakePoint;
   }
 
   return { handle, update, draw, shakeOffset, reset };

@@ -1,8 +1,11 @@
+import { FACES, WIN_PHASE } from '../config.js';
+
 // FLIPSIDE procedural audio.  The module is deliberately silent until the
 // first user gesture calls unlock(), so loading the game never creates an
 // AudioContext or triggers a browser autoplay warning.
 
 const WORLD_FADE_MS = 400;
+const LAYER_FADE_MS = 720;
 const MUSIC_STEP_SEC = 0.5;
 const MUSIC_LOOKAHEAD_SEC = 0.14;
 const MUSIC_START_DELAY_SEC = 0.035;
@@ -15,6 +18,69 @@ const DUSK_MELODY = [0, 3, 7, 10, 14, 10, 7, 3];
 const INK_MELODY = [0, 3, 7, 10, 14, 10, 7, 3];
 const DAWN_MELODY = [0, 5, 7, 12, 14, 12, 7, 5];
 const CLEAR_NOTES = [0, 4, 7, 11];
+const PHASE_UP_NOTES = [0, 4, 7];
+const GOLD_CASCADE = [12, 16, 19, 23, 24];
+const GOLD_CASCADE_CALM = [12, 19, 24];
+const VICTORY_NOTES = [60, 64, 67, 72, 76];
+const GAMEOVER_NOTES = [392, 330, 262];
+
+const LAYER_BASE = 0;
+const LAYER_BASS = 1;
+const LAYER_COUNTER = 2;
+
+// Each face gets its own small arrangement.  The shared step clock keeps the
+// four moods musically related while their voicings and register make the
+// fold around the cube feel like a change of paper stock, not a hard cut.
+const WORLD_ARRANGEMENTS = {
+  sun: {
+    rootMidi: 60, melody: SUN_MELODY,
+    bass: [-12, -12, -5, -12, -10, -12, -5, -12],
+    counter: [12, 16, 14, 16, 19, 16, 14, 16],
+    baseType: 'triangle', baseDuration: 0.23, baseVolume: 0.052,
+    baseAttack: 0.006, baseRelease: 0.13, baseRatio: 2, baseOvertone: 0.018,
+    bassType: 'sine', bassDuration: 0.34, bassVolume: 0.045,
+    bassAttack: 0.012, bassRelease: 0.23,
+    counterType: 'sine', counterDuration: 0.24, counterVolume: 0.034,
+    counterAttack: 0.014, counterRelease: 0.16, counterDelay: 0.018,
+    kickEvery: 4, kickStart: 135, kickEnd: 53, kickVolume: 0.075,
+  },
+  dusk: {
+    rootMidi: 58, melody: DUSK_MELODY,
+    bass: [-12, -12, -9, -12, -2, -12, -9, -12],
+    counter: [10, 14, 17, 14, 10, 14, 17, 14],
+    baseType: 'triangle', baseDuration: 0.34, baseVolume: 0.038,
+    baseAttack: 0.025, baseRelease: 0.19, baseRatio: 1.498, baseOvertone: 0.012,
+    bassType: 'sine', bassDuration: 0.48, bassVolume: 0.036,
+    bassAttack: 0.028, bassRelease: 0.31,
+    counterType: 'triangle', counterDuration: 0.34, counterVolume: 0.025,
+    counterAttack: 0.032, counterRelease: 0.22, counterDelay: 0.03,
+    kickEvery: 8, kickStart: 108, kickEnd: 48, kickVolume: 0.043,
+  },
+  ink: {
+    rootMidi: 57, melody: INK_MELODY,
+    bass: [-12, -12, -5, -12, -2, -12, -5, -12],
+    counter: [12, 15, 19, 15, 12, 15, 19, 15],
+    baseType: 'sawtooth', baseDuration: 0.68, baseVolume: 0.026,
+    baseAttack: 0.075, baseRelease: 0.28, baseRatio: 2, baseOvertone: 0.013,
+    bassType: 'triangle', bassDuration: 0.62, bassVolume: 0.033,
+    bassAttack: 0.06, bassRelease: 0.38,
+    counterType: 'sine', counterDuration: 0.52, counterVolume: 0.022,
+    counterAttack: 0.09, counterRelease: 0.3, counterDelay: 0.055,
+    kickEvery: 0,
+  },
+  dawn: {
+    rootMidi: 62, melody: DAWN_MELODY,
+    bass: [-12, -12, -5, -12, -7, -12, -5, -12],
+    counter: [17, 19, 24, 19, 17, 19, 24, 19],
+    baseType: 'sine', baseDuration: 0.76, baseVolume: 0.03,
+    baseAttack: 0.12, baseRelease: 0.38, baseRatio: 2, baseOvertone: 0.013,
+    bassType: 'sine', bassDuration: 0.58, bassVolume: 0.031,
+    bassAttack: 0.09, bassRelease: 0.36,
+    counterType: 'triangle', counterDuration: 0.64, counterVolume: 0.023,
+    counterAttack: 0.13, counterRelease: 0.38, counterDelay: 0.045,
+    kickEvery: 8, kickStart: 96, kickEnd: 44, kickVolume: 0.032,
+  },
+};
 
 function midiToHz(note) {
   return 440 * Math.pow(2, (note - 69) / 12);
@@ -72,21 +138,44 @@ function createNoiseBuffer(ctx) {
   }
 }
 
-function createGraph(ctx, world, musicOn, sfxOn) {
+function prefersReducedMotion() {
+  try {
+    return Boolean(globalThis.matchMedia &&
+      globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (_) {
+    return false;
+  }
+}
+
+function phaseBlend(phase) {
+  const clamped = Math.min(WIN_PHASE, Math.max(1, Number(phase) || 1));
+  const t = (clamped - 1) / (WIN_PHASE - 1);
+  return t * t * (3 - 2 * t);
+}
+
+function layerGain(layer, phase, calm) {
+  if (layer === LAYER_BASE) return 1;
+  const blend = phaseBlend(phase);
+  if (layer === LAYER_BASS) {
+    return (0.055 + blend * 0.945) * (calm ? 0.72 : 1);
+  }
+  return (0.018 + blend * 0.982) * (calm ? 0.54 : 1);
+}
+
+function createGraph(ctx, world, musicOn, sfxOn, phase, calm) {
   const musicMaster = ctx.createGain();
   const sfxMaster = ctx.createGain();
-  const sunBus = ctx.createGain();
-  const inkBus = ctx.createGain();
   const inkFilter = ctx.createBiquadFilter();
   const inkDelay = ctx.createDelay(1.2);
   const inkFeedback = ctx.createGain();
   const inkEcho = ctx.createGain();
   const inkReturn = ctx.createGain();
+  const moodBuses = [];
+  const layerBuses = [];
+  const activeMood = FACES.indexOf(world);
 
   setNodeParam(musicMaster, 'gain', musicOn ? 0.15 : 0);
   setNodeParam(sfxMaster, 'gain', sfxOn ? 0.24 : 0);
-  setNodeParam(sunBus, 'gain', world !== 'ink' ? 1 : 0);
-  setNodeParam(inkBus, 'gain', world === 'ink' ? 1 : 0);
 
   try { inkFilter.type = 'lowpass'; } catch (_) { /* optional */ }
   setNodeParam(inkFilter, 'frequency', 1100);
@@ -96,8 +185,19 @@ function createGraph(ctx, world, musicOn, sfxOn) {
   setNodeParam(inkEcho, 'gain', 0.22);
   setNodeParam(inkReturn, 'gain', world === 'ink' ? 1 : 0);
 
-  sunBus.connect(musicMaster);
-  inkBus.connect(inkFilter);
+  for (let mood = 0; mood < FACES.length; mood += 1) {
+    const moodBus = ctx.createGain();
+    const layers = [ctx.createGain(), ctx.createGain(), ctx.createGain()];
+    moodBuses.push(moodBus);
+    layerBuses.push(layers);
+    setNodeParam(moodBus, 'gain', mood === activeMood ? 1 : 0);
+    for (let layer = 0; layer < layers.length; layer += 1) {
+      setNodeParam(layers[layer], 'gain', layerGain(layer, phase, calm));
+      layers[layer].connect(moodBus);
+    }
+    if (FACES[mood] === 'ink') moodBus.connect(inkFilter);
+    else moodBus.connect(musicMaster);
+  }
   inkFilter.connect(musicMaster);
   inkFilter.connect(inkDelay);
   inkDelay.connect(inkEcho);
@@ -111,8 +211,11 @@ function createGraph(ctx, world, musicOn, sfxOn) {
   return {
     musicMaster,
     sfxMaster,
-    sunBus,
-    inkBus,
+    moodBuses,
+    layerBuses,
+    // Keep these aliases local-contract friendly for older QA harnesses.
+    sunBus: moodBuses[FACES.indexOf('sun')],
+    inkBus: moodBuses[FACES.indexOf('ink')],
     inkReturn,
     noiseBuffer: createNoiseBuffer(ctx),
   };
@@ -136,6 +239,8 @@ export function createAudio() {
   let musicNextAt = 0;
   let musicSources = new Set();
   let sfxSources = new Set();
+  let musicPhase = 1;
+  let calmMode = prefersReducedMotion();
 
   function contextConstructor() {
     try {
@@ -183,6 +288,34 @@ export function createAudio() {
     } catch (_) {
       try { param.value = target; } catch (__) { /* unavailable AudioParam */ }
     }
+  }
+
+  function applyLayerGains() {
+    if (!ctx || !graph || !graph.layerBuses) return;
+    const at = now() + 0.004;
+    for (let mood = 0; mood < graph.layerBuses.length; mood += 1) {
+      const layers = graph.layerBuses[mood];
+      rampParam(layers[LAYER_BASS].gain, layerGain(LAYER_BASS, musicPhase, calmMode),
+        at, LAYER_FADE_MS / 1000);
+      rampParam(layers[LAYER_COUNTER].gain, layerGain(LAYER_COUNTER, musicPhase, calmMode),
+        at, LAYER_FADE_MS / 1000);
+    }
+  }
+
+  function setMusicPhase(nextPhase) {
+    const value = Number(nextPhase);
+    if (!Number.isFinite(value)) return;
+    const next = Math.min(WIN_PHASE, Math.max(1, Math.floor(value)));
+    if (next === musicPhase) return;
+    musicPhase = next;
+    applyLayerGains();
+  }
+
+  function refreshCalmMode() {
+    const next = prefersReducedMotion();
+    if (next === calmMode) return;
+    calmMode = next;
+    applyLayerGains();
   }
 
   function applyOutputLevels(fadeMusic) {
@@ -302,19 +435,20 @@ export function createAudio() {
     }
   }
 
-  function musicTone(when, frequency, options) {
+  function musicTone(when, frequency, layer, options) {
+    const mood = FACES.indexOf(world);
     return scheduleTone({
       bucket: 'music',
-      bus: world === 'ink' ? graph.inkBus : graph.sunBus,
+      bus: graph.layerBuses[mood][layer],
       when,
       frequency,
       ...options,
     });
   }
 
-  function scheduleKick(when) {
+  function scheduleKick(when, arrangement) {
     if (!ctx || !graph) return;
-    const bus = graph.sunBus;
+    const bus = graph.layerBuses[FACES.indexOf(world)][LAYER_BASS];
     const bucket = musicSources;
     if (bucket.size >= MAX_MUSIC_SOURCES) return;
     let oscillator = null;
@@ -323,10 +457,10 @@ export function createAudio() {
       oscillator = ctx.createOscillator();
       amp = ctx.createGain();
       oscillator.type = 'sine';
-      setParam(oscillator.frequency, 'setValueAtTime', 135, when);
-      setParam(oscillator.frequency, 'exponentialRampToValueAtTime', 53, when + 0.18);
+      setParam(oscillator.frequency, 'setValueAtTime', arrangement.kickStart, when);
+      setParam(oscillator.frequency, 'exponentialRampToValueAtTime', arrangement.kickEnd, when + 0.18);
       setParam(amp.gain, 'setValueAtTime', MIN_GAIN, when);
-      setParam(amp.gain, 'linearRampToValueAtTime', 0.075, when + 0.004);
+      setParam(amp.gain, 'linearRampToValueAtTime', arrangement.kickVolume, when + 0.004);
       setParam(amp.gain, 'exponentialRampToValueAtTime', MIN_GAIN, when + 0.22);
       oscillator.connect(amp);
       amp.connect(bus);
@@ -346,39 +480,43 @@ export function createAudio() {
 
   function scheduleMusicStep(when) {
     if (!graph || !ctx) return;
-    const melody = world === 'sun' ? SUN_MELODY :
-      world === 'dusk' ? DUSK_MELODY :
-        world === 'dawn' ? DAWN_MELODY : INK_MELODY;
-    const frequency = midiToHz(60 + melody[musicStep]);
-    if (world === 'sun') {
-      // A triangle fundamental and a quiet octave make a warm paper-pluck.
-      musicTone(when, frequency, {
-        type: 'triangle', duration: 0.23, volume: 0.052, attack: 0.006, release: 0.13,
+    const arrangement = WORLD_ARRANGEMENTS[world];
+    const step = musicStep % arrangement.melody.length;
+    const frequency = midiToHz(arrangement.rootMidi + arrangement.melody[step]);
+
+    musicTone(when, frequency, LAYER_BASE, {
+      type: arrangement.baseType,
+      duration: arrangement.baseDuration,
+      volume: arrangement.baseVolume,
+      attack: arrangement.baseAttack,
+      release: arrangement.baseRelease,
+    });
+    musicTone(when, frequency * arrangement.baseRatio, LAYER_BASE, {
+      type: 'sine', duration: arrangement.baseDuration * 0.7,
+      volume: arrangement.baseOvertone, attack: arrangement.baseAttack * 0.7,
+      release: arrangement.baseRelease * 0.7,
+    });
+
+    // Early phases leave room for the paper clicks and fold whooshes.  The
+    // layer buses still fade continuously, so phase changes never step a
+    // waveform or pop.
+    if (musicPhase >= 3 || step % 2 === 0) {
+      musicTone(when, midiToHz(arrangement.rootMidi + arrangement.bass[step]), LAYER_BASS, {
+        type: arrangement.bassType, duration: arrangement.bassDuration,
+        volume: arrangement.bassVolume, attack: arrangement.bassAttack,
+        release: arrangement.bassRelease,
       });
-      musicTone(when, frequency * 2, {
-        type: 'sine', duration: 0.16, volume: 0.018, attack: 0.004, release: 0.09,
-      });
-      if (musicStep % 4 === 0) scheduleKick(when);
-    } else if (world === 'dusk') {
-      // Dusk keeps the day arrangement, softened into mellow seventh chords.
-      musicTone(when, frequency, {
-        type: 'triangle', duration: 0.34, volume: 0.038, attack: 0.025, release: 0.19,
-      });
-      musicTone(when, frequency * 1.498, {
-        type: 'sine', duration: 0.28, volume: 0.012, attack: 0.035, release: 0.16,
-      });
-    } else {
-      // Ink is the minor/echo arrangement; dawn borrows its airy long tail.
-      musicTone(when, frequency, {
-        type: world === 'dawn' ? 'sine' : 'sawtooth',
-        duration: world === 'dawn' ? 0.76 : 0.68,
-        volume: world === 'dawn' ? 0.030 : 0.026,
-        attack: world === 'dawn' ? 0.12 : 0.075,
-        release: world === 'dawn' ? 0.38 : 0.28,
-      });
-      musicTone(when, frequency * 2, {
-        type: 'triangle', duration: 0.55, volume: 0.013, attack: 0.095, release: 0.24,
-      });
+    }
+    if (musicPhase >= 4 || step % 2 === 0) {
+      musicTone(when + arrangement.counterDelay,
+        midiToHz(arrangement.rootMidi + arrangement.counter[step]), LAYER_COUNTER, {
+          type: arrangement.counterType, duration: arrangement.counterDuration,
+          volume: arrangement.counterVolume, attack: arrangement.counterAttack,
+          release: arrangement.counterRelease,
+        });
+    }
+    if (!calmMode && arrangement.kickEvery && musicStep % arrangement.kickEvery === 0) {
+      scheduleKick(when, arrangement);
     }
   }
 
@@ -410,36 +548,37 @@ export function createAudio() {
   }
 
   function playClear(rows) {
-    const at = now() + 0.006;
+    const volume = calmMode ? 0.032 : 0.045;
     for (let i = 0; i < rows; i += 1) {
       playSfxTone(midiToHz(72 + CLEAR_NOTES[i]), {
-        type: 'sine', duration: 0.16 + i * 0.025, volume: 0.045,
+        type: 'sine', duration: 0.16 + i * 0.025, volume,
         attack: 0.004, release: 0.11, delay: 0.035 * i,
       });
     }
     if (rows >= 4) {
       playSfxTone(midiToHz(84), {
-        type: 'triangle', duration: 0.34, volume: 0.045,
+        type: 'triangle', duration: 0.34, volume: volume * 0.9,
         attack: 0.008, release: 0.22, delay: 0.1,
       });
     }
-    void at;
   }
 
   function playFoldStart(dir = 1) {
     const at = now() + 0.004;
     const rising = Number(dir) < 0;
     scheduleNoise({
-      when: at, duration: 0.44, volume: 0.05,
+      when: at, duration: calmMode ? 0.28 : 0.44, volume: calmMode ? 0.028 : 0.05,
       filterType: 'bandpass', frequency: rising ? 1500 : 360,
       endFrequency: rising ? 360 : 1500, q: 0.55,
     });
-    scheduleNoise({
-      when: at + 0.07, duration: 0.2, volume: 0.026,
-      filterType: 'highpass', frequency: 1500, endFrequency: 3600, q: 0.45,
-    });
+    if (!calmMode) {
+      scheduleNoise({
+        when: at + 0.07, duration: 0.2, volume: 0.026,
+        filterType: 'highpass', frequency: 1500, endFrequency: 3600, q: 0.45,
+      });
+    }
     playSfxTone(rising ? 150 : 240, {
-      type: 'sine', duration: 0.38, volume: 0.025,
+      type: 'sine', duration: calmMode ? 0.27 : 0.38, volume: calmMode ? 0.018 : 0.025,
       endFrequency: rising ? 260 : 92, attack: 0.018, release: 0.2, delay: 0,
     });
   }
@@ -447,25 +586,29 @@ export function createAudio() {
   function playFoldDone() {
     const at = now() + 0.004;
     scheduleNoise({
-      when: at, duration: 0.17, volume: 0.03,
+      when: at, duration: calmMode ? 0.12 : 0.17, volume: calmMode ? 0.018 : 0.03,
       filterType: 'lowpass', frequency: 190, endFrequency: 72, q: 0.75,
     });
     playSfxTone(104, {
-      type: 'sine', duration: 0.2, volume: 0.038,
+      type: 'sine', duration: calmMode ? 0.15 : 0.2, volume: calmMode ? 0.026 : 0.038,
       endFrequency: 58, attack: 0.004, release: 0.14,
     });
   }
 
   function playRingClear() {
     playClear(4);
-    [1047, 1319, 1568].forEach((frequency, index) => {
-      playSfxTone(frequency, {
-        type: 'sine', duration: 0.48, volume: 0.032,
-        attack: 0.012, release: 0.34, delay: index * 0.07,
+    const cascade = calmMode ? GOLD_CASCADE_CALM : GOLD_CASCADE;
+    const root = midiToHz(60);
+    for (let i = 0; i < cascade.length; i += 1) {
+      playSfxTone(root * Math.pow(2, cascade[i] / 12), {
+        type: 'sine', duration: calmMode ? 0.34 : 0.48,
+        volume: calmMode ? 0.022 : 0.032,
+        attack: 0.012, release: calmMode ? 0.23 : 0.34, delay: i * 0.07,
       });
-    });
+    }
     scheduleNoise({
-      when: now() + 0.08, duration: 0.58, volume: 0.045,
+      when: now() + 0.08, duration: calmMode ? 0.3 : 0.58,
+      volume: calmMode ? 0.018 : 0.045,
       filterType: 'bandpass', frequency: 1300, endFrequency: 4200, q: 0.35,
     });
   }
@@ -482,29 +625,81 @@ export function createAudio() {
   }
 
   function playGameOver() {
-    [392, 330, 262].forEach((frequency, index) => {
+    // Filtered, pre-baked noise is the paper sheet folding into a soft
+    // crumple; the descending tones keep the existing game-over identity.
+    scheduleNoise({
+      when: now() + 0.008,
+      duration: calmMode ? 0.38 : 0.84,
+      volume: calmMode ? 0.025 : 0.06,
+      filterType: calmMode ? 'lowpass' : 'bandpass',
+      frequency: calmMode ? 820 : 1800,
+      endFrequency: calmMode ? 260 : 180,
+      q: calmMode ? 0.5 : 0.8,
+    });
+    for (let index = 0; index < 3; index += 1) {
+      const frequency = GAMEOVER_NOTES[index];
       playSfxTone(frequency, {
-        type: 'triangle', duration: 0.28, volume: 0.05,
+        type: 'triangle', duration: calmMode ? 0.22 : 0.28,
+        volume: calmMode ? 0.032 : 0.05,
         attack: 0.012, release: 0.19, delay: index * 0.16,
       });
-    });
+    }
   }
 
   function playWin() {
-    [523, 659, 784, 1047].forEach((frequency, index) => {
-      playSfxTone(frequency, {
-        type: 'triangle', duration: 0.38, volume: 0.052,
-        attack: 0.012, release: 0.27, delay: index * 0.11,
+    const count = calmMode ? 4 : VICTORY_NOTES.length;
+    const root = midiToHz(VICTORY_NOTES[0]);
+    for (let index = 0; index < count; index += 1) {
+      playSfxTone(midiToHz(VICTORY_NOTES[index]), {
+        type: 'triangle', duration: calmMode ? 0.3 : 0.38,
+        volume: calmMode ? 0.034 : 0.052,
+        attack: 0.012, release: calmMode ? 0.2 : 0.27, delay: index * 0.11,
       });
+    }
+    if (!calmMode) {
+      // A quiet octave bloom is the final held chord of the fanfare.
+      playSfxTone(root * 2, {
+        type: 'sine', duration: 0.62, volume: 0.024,
+        attack: 0.04, release: 0.46, delay: 0.43,
+      });
+      scheduleNoise({
+        when: now() + 0.34, duration: 0.66, volume: 0.035,
+        filterType: 'highpass', frequency: 1800, endFrequency: 5200, q: 0.5,
+      });
+    }
+  }
+
+  function playPhaseUp(phase) {
+    const rootMidi = 60 + Math.min(5, Math.max(0, Number(phase) - 1));
+    const volume = calmMode ? 0.028 : 0.045;
+    for (let index = 0; index < PHASE_UP_NOTES.length; index += 1) {
+      playSfxTone(midiToHz(rootMidi + PHASE_UP_NOTES[index]), {
+        type: 'triangle', duration: calmMode ? 0.2 : 0.25, volume,
+        attack: 0.008, release: calmMode ? 0.13 : 0.17,
+        delay: index * (calmMode ? 0.08 : 0.07),
+      });
+    }
+  }
+
+  function playUiTick(primary = false) {
+    playSfxTone(primary ? 690 : 540, {
+      type: 'triangle', duration: calmMode ? 0.04 : 0.055,
+      volume: calmMode ? 0.014 : 0.022, attack: 0.002,
+      release: calmMode ? 0.026 : 0.036, endFrequency: primary ? 760 : 600,
     });
-    scheduleNoise({
-      when: now() + 0.34, duration: 0.66, volume: 0.035,
-      filterType: 'highpass', frequency: 1800, endFrequency: 5200, q: 0.5,
-    });
+    if (primary && !calmMode) {
+      playSfxTone(920, {
+        type: 'sine', duration: 0.06, volume: 0.012,
+        attack: 0.003, release: 0.04, delay: 0.024,
+      });
+    }
   }
 
   function handle(evt, G) {
     try {
+      refreshCalmMode();
+      if (G && isFiniteNumber(Number(G.phase))) setMusicPhase(G.phase);
+      if (evt && isFiniteNumber(Number(evt.phase))) setMusicPhase(evt.phase);
       if (!evt || !evt.k || !ctx || !graph || !audibleSfx()) return;
       const at = now() + 0.004;
       switch (evt.k) {
@@ -552,15 +747,29 @@ export function createAudio() {
           playSfxTone(880, { type: 'sine', duration: 0.34, volume: 0.025, delay: 0.095, release: 0.25 });
           break;
         case 'levelup':
-          [392, 494, 587].forEach((frequency, index) => {
-            playSfxTone(frequency, { type: 'triangle', duration: 0.25, volume: 0.04, delay: index * 0.07, release: 0.17 });
-          });
+        case 'phase_up':
+          playPhaseUp(evt.phase || musicPhase);
           break;
         case 'gameover':
           playGameOver();
           break;
         case 'seamwin':
+        case 'victory':
           playWin();
+          break;
+        case 'button':
+        case 'button_tick':
+        case 'ui_tick':
+        case 'menu_tick':
+        case 'click':
+          playUiTick(Boolean(evt.primary || evt.tier === 'primary'));
+          break;
+        case 'pause':
+        case 'resume':
+        case 'start':
+        case 'restart':
+        case 'toggle':
+          playUiTick(evt.k === 'start' || evt.k === 'restart');
           break;
         default:
           break;
@@ -572,6 +781,7 @@ export function createAudio() {
 
   function unlock() {
     try {
+      refreshCalmMode();
       if (ctx && ctx.state === 'closed') {
         ctx = null;
         graph = null;
@@ -582,7 +792,7 @@ export function createAudio() {
         const Ctor = contextConstructor();
         if (!Ctor) return;
         ctx = new Ctor();
-        graph = createGraph(ctx, world, audibleMusic(), audibleSfx());
+        graph = createGraph(ctx, world, audibleMusic(), audibleSfx(), musicPhase, calmMode);
         musicNextAt = now() + MUSIC_START_DELAY_SEC;
         musicStep = 0;
       }
@@ -614,13 +824,16 @@ export function createAudio() {
 
   function setWorld(nextWorld) {
     try {
-      if (!['sun', 'dusk', 'ink', 'dawn'].includes(nextWorld)) return;
+      refreshCalmMode();
+      if (!FACES.includes(nextWorld)) return;
       const previous = world;
       world = nextWorld;
       if (!ctx || !graph || previous === nextWorld) return;
       const at = now() + 0.004;
-      rampParam(graph.sunBus.gain, nextWorld === 'ink' ? 0 : 1, at, WORLD_FADE_MS / 1000);
-      rampParam(graph.inkBus.gain, nextWorld === 'ink' ? 1 : 0, at, WORLD_FADE_MS / 1000);
+      for (let mood = 0; mood < graph.moodBuses.length; mood += 1) {
+        rampParam(graph.moodBuses[mood].gain,
+          FACES[mood] === nextWorld ? 1 : 0, at, WORLD_FADE_MS / 1000);
+      }
       rampParam(graph.inkReturn.gain, nextWorld === 'ink' ? 1 : 0, at, WORLD_FADE_MS / 1000);
       // Start the destination melody during the fade, retaining the shared
       // step position so the two worlds feel like one piece of music.
@@ -642,6 +855,7 @@ export function createAudio() {
 
   function setEnabled(settings) {
     try {
+      refreshCalmMode();
       if (settings && Object.prototype.hasOwnProperty.call(settings, 'music')) {
         music = Boolean(settings.music);
       }
@@ -657,8 +871,9 @@ export function createAudio() {
     }
   }
 
-  function update(_dtMs) {
+  function update(_dtMs, G) {
     try {
+      if (G && isFiniteNumber(Number(G.phase))) setMusicPhase(G.phase);
       if (!ctx || !graph || ctx.state === 'closed') return;
       scheduleMusic();
     } catch (_) {

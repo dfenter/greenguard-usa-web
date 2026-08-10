@@ -21,6 +21,13 @@ import { drawBackground } from './backgrounds.js';
 
 const MAX_DPR = 2;
 const FOLD_SLICES = 24;
+const IDLE_SHEEN_PERIOD = 9000;
+const IDLE_SHEEN_LENGTH = 1350;
+const LOCK_SETTLE_MS = 90;
+const HARD_TRAIL_MS = 56;
+const CLEAR_FLASH_MS = 180;
+const CLEAR_SETTLE_MS = 40;
+const FOLD_DONE_MS = 620;
 const CELL_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L', 'G'];
 const PRISM_COLORS = [
   '#57b8c9', '#6fe3ff', '#c98bc9', '#e39bff',
@@ -32,6 +39,13 @@ const darkCache = new Map();
 const cellSpriteCache = new Map();
 const profileRowsLeft = new Uint8Array(ROWS);
 const profileRowsRight = new Uint8Array(ROWS);
+const grainMarks = [
+  [0.16, 0.23, 0.39, 0.20],
+  [0.63, 0.31, 0.78, 0.34],
+  [0.28, 0.62, 0.47, 0.59],
+  [0.72, 0.78, 0.88, 0.74],
+  [0.10, 0.48, 0.22, 0.46],
+];
 let reducedMotionState = null;
 
 function clamp(value, min, max) {
@@ -104,6 +118,14 @@ function darken(hex, amount = 0.22) {
   return result;
 }
 
+function easeOutBack(value) {
+  const t = clamp(value, 0, 1);
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  const n = t - 1;
+  return 1 + c3 * n * n * n + c1 * n * n;
+}
+
 function roundedRectPath(ctx, x, y, width, height, radius) {
   const r = Math.max(0, Math.min(radius, width * 0.5, height * 0.5));
   ctx.beginPath();
@@ -122,13 +144,13 @@ function roundedRectPath(ctx, x, y, width, height, radius) {
 function makeScratchCanvas(width, height) {
   const w = Math.max(1, Math.ceil(width));
   const h = Math.max(1, Math.ceil(height));
-  if (typeof OffscreenCanvas === 'function') return new OffscreenCanvas(w, h);
   if (typeof document !== 'undefined') {
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
     return canvas;
   }
+  if (typeof OffscreenCanvas === 'function') return new OffscreenCanvas(w, h);
   return null;
 }
 
@@ -250,8 +272,31 @@ function drawCell(ctx, px, py, size, cell, palette, world, timeMs, unit, options
   ctx.clip();
   ctx.fillStyle = rgba('#ffffff', world === 'ink' ? 0.12 : 0.16);
   ctx.fillRect(x, y, width, Math.max(unit * 1.4, width * 0.1));
-  ctx.fillStyle = rgba(world === 'ink' ? '#000000' : '#4a3f33', world === 'ink' ? 0.08 : 0.045);
-  ctx.fillRect(x, y + width - Math.max(unit * 1.1, width * 0.075), width, Math.max(unit * 1.1, width * 0.075));
+  const cut = Math.max(unit * 1.1, width * 0.075);
+  ctx.fillStyle = rgba(world === 'ink' ? '#000000' : '#4a3f33', world === 'ink' ? 0.13 : 0.075);
+  ctx.fillRect(x, y + width - cut, width, cut);
+  ctx.strokeStyle = rgba('#ffffff', world === 'ink' ? 0.10 : 0.22);
+  ctx.lineWidth = Math.max(unit * 0.35, size * 0.014);
+  ctx.beginPath();
+  ctx.moveTo(x + width * 0.10, y + width * 0.055);
+  ctx.lineTo(x + width * 0.88, y + width * 0.055);
+  ctx.moveTo(x + width * 0.055, y + width * 0.10);
+  ctx.lineTo(x + width * 0.055, y + width * 0.82);
+  ctx.stroke();
+  // The paper grain is deliberately baked into the cell sprite. This keeps
+  // the 6% texture visible on blocks without paying for a pattern lookup on
+  // every frame.
+  ctx.strokeStyle = rgba(world === 'ink' ? '#ffffff' : '#4a3f33', world === 'ink' ? 0.055 : 0.06);
+  ctx.lineWidth = Math.max(unit * 0.22, size * 0.009);
+  ctx.lineCap = 'round';
+  for (let mark = 0; mark < grainMarks.length; mark += 1) {
+    const grain = grainMarks[mark];
+    const skew = ((cell.t.charCodeAt(0) + mark * 7) % 5) * unit * 0.08;
+    ctx.beginPath();
+    ctx.moveTo(x + grain[0] * width, y + grain[1] * width);
+    ctx.lineTo(x + grain[2] * width + skew, y + grain[3] * width);
+    ctx.stroke();
+  }
   if (garbage) {
     ctx.strokeStyle = rgba(edge, world === 'ink' ? 0.5 : 0.42);
     ctx.lineWidth = Math.max(unit * 0.45, size * 0.018);
@@ -273,6 +318,17 @@ function drawCell(ctx, px, py, size, cell, palette, world, timeMs, unit, options
     ctx.lineTo(sweep + width * 0.44, y);
     ctx.closePath();
     ctx.fill();
+    if (prism) {
+      const interference = x + ((timeMs * unit * 0.0014 + px * 0.32 + py * 0.17) % (width * 2.8)) - width * 0.9;
+      ctx.fillStyle = 'rgba(255,255,255,0.20)';
+      ctx.beginPath();
+      ctx.moveTo(interference, y + width);
+      ctx.lineTo(interference + width * 0.18, y + width);
+      ctx.lineTo(interference + width * 0.56, y);
+      ctx.lineTo(interference + width * 0.38, y);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
   ctx.restore();
 
@@ -813,6 +869,36 @@ function drawGoldProfiles(ctx, positions, viewFace, layout) {
   drawRows(profileRowsRight, false);
 }
 
+function drawPrismMotes(ctx, positions, face, layout, timeMs) {
+  const phase = timeMs * 0.00125;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,248,205,0.82)';
+  ctx.lineCap = 'round';
+  for (let i = 0; i < positions.length; i += 1) {
+    const rc = wrap(positions[i][0], RING_COLS);
+    const column = faceLocalColumn(face, rc);
+    const row = positions[i][1];
+    if (column < 0 || row < 0 || row >= ROWS) continue;
+    const cx = layout.boardX + (column + 0.5) * layout.cell;
+    const cy = layout.boardY + (row + 0.5) * layout.cell;
+    for (let mote = 0; mote < 2; mote += 1) {
+      const orbit = phase + i * 1.71 + mote * 3.07;
+      const mx = cx + Math.sin(orbit) * layout.cell * (0.25 + mote * 0.07);
+      const my = cy + Math.cos(orbit * 0.83) * layout.cell * (0.24 + mote * 0.06);
+      const alpha = 0.30 + (Math.sin(orbit * 1.6) + 1) * 0.16;
+      ctx.globalAlpha = reducedMotion() ? 0.34 : alpha;
+      ctx.lineWidth = Math.max(layout.unit * 0.45, layout.cell * 0.018);
+      ctx.beginPath();
+      ctx.moveTo(mx - layout.cell * 0.10, my);
+      ctx.lineTo(mx + layout.cell * 0.10, my);
+      ctx.moveTo(mx, my - layout.cell * 0.10);
+      ctx.lineTo(mx, my + layout.cell * 0.10);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
 function drawPieceForFace(ctx, piece, ring, face, layout, timeMs, ghostState, withProfiles = false) {
   if (!piece || !ring) return;
   const world = FACES[face];
@@ -836,6 +922,7 @@ function drawPieceForFace(ctx, piece, ring, face, layout, timeMs, ghostState, wi
     drawCell(ctx, layout.boardX + column * layout.cell, layout.boardY + row * layout.cell,
       layout.cell, value, palette, world, timeMs, layout.unit);
   }
+  if (piece.prism === true) drawPrismMotes(ctx, active, face, layout, timeMs);
   if (withProfiles) drawGoldProfiles(ctx, active, face, layout);
 }
 
@@ -844,6 +931,19 @@ function drawFrameShell(ctx, face, layout, paints, grainPattern) {
   const palette = COLORS[world];
   drawFrame(ctx, world, layout, palette, paints[face], grainPattern[face]);
   drawBoardSurface(ctx, world, layout, paints[face], grainPattern[face]);
+}
+
+// Keep cached sheets on the same canvas implementation as the visible canvas
+// when a document is available. Some browser builds accept an OffscreenCanvas
+// as a drawImage source but silently discard its pixels after the source has
+// been painted. The renderer must not depend on that implementation detail.
+function blitSheet(ctx, source, alpha = 1) {
+  if (!source || alpha <= 0) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(source, 0, 0);
+  ctx.restore();
 }
 
 function projectImage(ctx, source, layout, destinationX, destinationW, alpha = 1) {
@@ -902,6 +1002,340 @@ function drawRingRipple(ctx, layout, timeMs, startedAt) {
   ctx.restore();
 }
 
+function drawIdleSheen(ctx, ring, face, layout, timeMs) {
+  if (!ring || reducedMotion()) return;
+  const cycle = ((timeMs % IDLE_SHEEN_PERIOD) + IDLE_SHEEN_PERIOD) % IDLE_SHEEN_PERIOD;
+  if (cycle > IDLE_SHEEN_LENGTH) return;
+  const progress = cycle / IDLE_SHEEN_LENGTH;
+  const sweep = -0.24 + progress * 1.48;
+  const band = 0.16;
+  const world = FACES[face];
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(layout.boardX, layout.boardY, layout.boardW, layout.boardH);
+  ctx.clip();
+  for (let row = 0; row < ROWS; row += 1) {
+    const cells = ring.grid[row];
+    if (!cells) continue;
+    for (let column = 0; column < FACE_W; column += 1) {
+      const cell = cells[ringCol(face, column)];
+      if (!cell) continue;
+      const along = column / Math.max(1, FACE_W - 1) * 0.72
+        + row / Math.max(1, ROWS - 1) * 0.28;
+      const distance = Math.abs(along - sweep);
+      if (distance >= band) continue;
+      const alpha = (1 - distance / band) * 0.12;
+      const px = layout.boardX + column * layout.cell;
+      const py = layout.boardY + row * layout.cell;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      roundedRectPath(ctx, px + layout.cell * 0.06, py + layout.cell * 0.06,
+        layout.cell * 0.88, layout.cell * 0.88, layout.cell * 0.12);
+      ctx.clip();
+      ctx.fillStyle = world === 'ink' ? '#dff7ff' : '#fffdf4';
+      ctx.beginPath();
+      ctx.moveTo(px - layout.cell * 0.20, py + layout.cell * 1.08);
+      ctx.lineTo(px + layout.cell * 0.12, py + layout.cell * 1.08);
+      ctx.lineTo(px + layout.cell * 1.16, py - layout.cell * 0.12);
+      ctx.lineTo(px + layout.cell * 0.84, py - layout.cell * 0.12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+function faceDangerLevel(ring, face) {
+  if (!ring || !Array.isArray(ring.grid)) return 0;
+  let danger = 0;
+  for (let column = 0; column < FACE_W; column += 1) {
+    const rc = ringCol(face, column);
+    for (let row = 0; row < ROWS; row += 1) {
+      if (ring.grid[row] && ring.grid[row][rc]) {
+        danger = Math.max(danger, (ROWS - row) / ROWS);
+        break;
+      }
+    }
+  }
+  return danger;
+}
+
+function drawDangerVignette(ctx, ring, face, layout, timeMs, gradient) {
+  const danger = faceDangerLevel(ring, face);
+  if (danger <= 0.70) return;
+  const strength = clamp((danger - 0.70) / 0.30, 0, 1);
+  const pulse = reducedMotion() ? 0.35 : 0.52 + Math.sin(timeMs * Math.PI * 2 / 3200) * 0.48;
+  ctx.save();
+  ctx.globalAlpha = (0.34 + strength * 0.66) * (0.07 + pulse * 0.10);
+  ctx.fillStyle = gradient || 'rgba(170,35,43,0.75)';
+  ctx.fillRect(layout.leftSeamX - layout.cell, layout.pageY,
+    layout.pageW + layout.cell * 2, layout.boardH * 0.48);
+  ctx.globalAlpha *= 0.52;
+  ctx.strokeStyle = '#b7444d';
+  ctx.lineWidth = Math.max(layout.unit * 0.8, layout.cell * 0.025);
+  ctx.beginPath();
+  ctx.moveTo(layout.leftSeamX, layout.boardY - layout.unit * 0.5);
+  for (let i = 0; i <= 8; i += 1) {
+    const x = layout.leftSeamX + layout.pageW * i / 8;
+    const y = layout.boardY - layout.unit * (0.4 + (i % 3) * 0.55);
+    ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawFaceCellsOffset(ctx, ring, face, world, layout, timeMs, maxRow, offset) {
+  if (!ring || maxRow < 0) return;
+  const palette = COLORS[world];
+  for (let row = 0; row <= maxRow && row < ROWS; row += 1) {
+    const cells = ring.grid[row];
+    for (let column = 0; column < FACE_W; column += 1) {
+      const cell = cells && cells[ringCol(face, column)];
+      if (!cell) continue;
+      drawCell(ctx, layout.boardX + column * layout.cell,
+        layout.boardY + row * layout.cell + offset, layout.cell,
+        cell, palette, world, timeMs, layout.unit, { animate: false });
+    }
+  }
+}
+
+function drawClearReveal(ctx, ring, face, layout, paint, grainPattern, timeMs, clearState) {
+  if (!clearState || clearState.count <= 0) return;
+  const age = timeMs - clearState.startedAt;
+  if (age < 0 || age > CLEAR_FLASH_MS) return;
+
+  if (age < CLEAR_SETTLE_MS && ring) {
+    const maxRow = clearState.maxRow - 1;
+    if (maxRow >= 0) {
+      const settle = -layout.cell * 0.11 * (1 - easeOutBack(age / CLEAR_SETTLE_MS));
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(layout.boardX, layout.boardY, layout.boardW,
+        Math.max(0, clearState.maxRow * layout.cell));
+      ctx.clip();
+      drawBoardSurface(ctx, FACES[face], layout, paint, grainPattern);
+      drawStitchGrid(ctx, layout, COLORS[FACES[face]]);
+      drawFaceCellsOffset(ctx, ring, face, FACES[face], layout, timeMs, maxRow, settle);
+      ctx.restore();
+    }
+  }
+
+  const flash = Math.sin(clamp(age / CLEAR_FLASH_MS, 0, 1) * Math.PI);
+  for (let i = 0; i < clearState.count; i += 1) {
+    const row = clearState.rows[i];
+    const y = layout.boardY + row * layout.cell;
+    ctx.save();
+    ctx.globalAlpha = flash * (reducedMotion() ? 0.28 : 0.52);
+    ctx.fillStyle = '#fffdf2';
+    ctx.fillRect(layout.leftSeamX, y, layout.pageW, layout.cell);
+    ctx.globalAlpha *= 0.62;
+    ctx.strokeStyle = '#fff8df';
+    ctx.lineWidth = Math.max(layout.unit * 0.9, layout.cell * 0.035);
+    ctx.beginPath();
+    ctx.moveTo(layout.leftSeamX, y + layout.cell * 0.48);
+    for (let tooth = 1; tooth <= 12; tooth += 1) {
+      const x = layout.leftSeamX + layout.pageW * tooth / 12;
+      ctx.lineTo(x, y + layout.cell * (0.42 + (tooth % 2) * 0.12));
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawLockPolish(ctx, ring, face, layout, timeMs, lockState) {
+  if (!lockState || lockState.count <= 0 || reducedMotion()) return;
+  const age = timeMs - lockState.startedAt;
+  if (age < 0 || age > LOCK_SETTLE_MS) return;
+  const t = clamp(age / LOCK_SETTLE_MS, 0, 1);
+  const squash = 0.92 + easeOutBack(t) * 0.08;
+  const trailT = clamp(age / HARD_TRAIL_MS, 0, 1);
+  const palette = COLORS[FACES[face]];
+
+  for (let i = 0; i < lockState.count; i += 1) {
+    const rc = lockState.columns[i];
+    const row = lockState.rows[i];
+    const column = faceLocalColumn(face, rc);
+    if (column < 0 || row < 0 || row >= ROWS) continue;
+    const cell = ring && ring.grid[row] && ring.grid[row][rc];
+    if (!cell) continue;
+    const px = layout.boardX + column * layout.cell;
+    const py = layout.boardY + row * layout.cell;
+    if (trailT < 1) {
+      for (let trail = 1; trail <= 3; trail += 1) {
+        ctx.save();
+        ctx.globalAlpha = (1 - trailT) * (0.18 - trail * 0.035);
+        drawCell(ctx, px, py - layout.cell * (trail * 0.18) * (1 - trailT), layout.cell,
+          cell, palette, FACES[face], timeMs, layout.unit, { ghost: true });
+        ctx.restore();
+      }
+    }
+    const cx = px + layout.cell * 0.5;
+    const cy = py + layout.cell * 0.5;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, squash);
+    ctx.translate(-cx, -cy);
+    drawCell(ctx, px, py, layout.cell, cell, palette, FACES[face], timeMs, layout.unit,
+      { animate: false });
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = (1 - t) * 0.18;
+    ctx.fillStyle = palette.ink;
+    ctx.fillRect(px + layout.cell * 0.18, py + layout.cell * 0.87,
+      layout.cell * 0.64, Math.max(layout.unit * 0.7, layout.cell * 0.035));
+    ctx.restore();
+  }
+}
+
+function pieceIsOffFace(piece, face) {
+  if (!piece) return false;
+  const positions = cellsOf(piece);
+  for (let i = 0; i < positions.length; i += 1) {
+    if (faceLocalColumn(face, wrap(positions[i][0], RING_COLS)) >= 0) return false;
+  }
+  return true;
+}
+
+function drawAutoFoldArrow(ctx, piece, face, direction, layout, progress) {
+  if (!piece || !pieceIsOffFace(piece, face) || reducedMotion()) return;
+  const edgeX = direction < 0 ? layout.leftSeamX : layout.rightSeamX;
+  const centerY = layout.boardY + layout.boardH * 0.5;
+  const startX = layout.boardX + layout.boardW * 0.5;
+  const endX = edgeX + direction * layout.seamW * 0.38;
+  const alpha = 0.62 * (1 - clamp(progress * 2.5, 0, 1));
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = COLORS.seam;
+  ctx.fillStyle = '#fff0a8';
+  ctx.lineWidth = Math.max(layout.unit * 1.1, layout.cell * 0.045);
+  ctx.lineCap = 'round';
+  ctx.setLineDash([layout.cell * 0.22, layout.cell * 0.14]);
+  ctx.beginPath();
+  ctx.moveTo(startX, centerY);
+  ctx.lineTo(endX, centerY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(endX, centerY);
+  ctx.lineTo(endX - direction * layout.cell * 0.34, centerY - layout.cell * 0.22);
+  ctx.lineTo(endX - direction * layout.cell * 0.34, centerY + layout.cell * 0.22);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawFoldPolish(ctx, gameState, layout, from, direction, progress, cameraAngle, timeMs, highlightGradient) {
+  const reduced = reducedMotion();
+  const edgeX = direction < 0 ? layout.leftSeamX : layout.rightSeamX;
+  const ramp = Math.sin(clamp(progress, 0, 1) * Math.PI);
+  const width = layout.cell * 4;
+  ctx.save();
+  ctx.globalAlpha = (reduced ? 0.48 : 0.86) * (0.18 + ramp * 0.82);
+  ctx.fillStyle = highlightGradient || 'rgba(255,247,190,0.24)';
+  ctx.fillRect(edgeX - width, layout.boardY - layout.cell, width * 2,
+    layout.boardH + layout.cell * 2);
+  ctx.restore();
+
+  if (!reduced) {
+    const beat = progress < 0.5 ? progress * 2 : (progress - 0.5) * 2;
+    const streakAlpha = (0.12 + ramp * 0.23) * (progress < 0.5 ? 1 - beat * 0.4 : 0.6 + beat * 0.4);
+    ctx.save();
+    ctx.globalAlpha = streakAlpha;
+    ctx.strokeStyle = '#fff7d0';
+    ctx.lineCap = 'round';
+    for (let streak = 0; streak < 5; streak += 1) {
+      const y = layout.boardY + layout.boardH * (0.18 + streak * 0.16);
+      const length = layout.boardW * (0.09 + (1 - beat) * 0.17) * (1 - streak * 0.07);
+      const fromX = direction < 0 ? edgeX : edgeX - length;
+      const toX = direction < 0 ? edgeX + length : edgeX;
+      ctx.lineWidth = Math.max(layout.unit * 0.55, layout.cell * (0.018 + streak * 0.002));
+      ctx.beginPath();
+      ctx.moveTo(fromX, y + Math.sin(timeMs * 0.004 + streak) * layout.unit * 0.8);
+      ctx.lineTo(toX, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.globalAlpha = reduced ? 0.18 : 0.28 + ramp * 0.42;
+  ctx.strokeStyle = COLORS.seam;
+  ctx.lineWidth = Math.max(layout.unit * 1.1, layout.cell * 0.055);
+  ctx.beginPath();
+  ctx.moveTo(edgeX, layout.boardY - layout.cell * 0.5);
+  ctx.lineTo(edgeX, layout.boardBottom + layout.cell * 0.5);
+  ctx.stroke();
+  ctx.restore();
+  drawAutoFoldArrow(ctx, gameState.piece, from, direction, layout, progress);
+  if (Number.isFinite(cameraAngle) && Math.abs(cameraAngle) > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.18, Math.abs(cameraAngle) * 0.06);
+    ctx.fillStyle = '#7a4f35';
+    ctx.fillRect(edgeX - direction * layout.unit * 0.9, layout.boardY,
+      layout.unit * 1.8, layout.boardH);
+    ctx.restore();
+  }
+}
+
+function drawFoldDonePolish(ctx, layout, timeMs, lastFoldAt) {
+  if (!Number.isFinite(lastFoldAt)) return;
+  const age = timeMs - lastFoldAt;
+  if (age < 0 || age > FOLD_DONE_MS) return;
+  const progress = clamp(age / FOLD_DONE_MS, 0, 1);
+  const fade = reducedMotion() ? 0.22 : (1 - progress) * (0.78 - progress * 0.18);
+  const cx = layout.boardX + layout.boardW * 0.5;
+  const cy = layout.boardY + layout.boardH * 0.48;
+  ctx.save();
+  ctx.globalAlpha = fade * 0.55;
+  ctx.strokeStyle = COLORS.seam;
+  ctx.lineWidth = Math.max(layout.unit * 0.8, layout.cell * 0.035);
+  ctx.setLineDash([layout.cell * 0.20, layout.cell * 0.14]);
+  roundedRectPath(ctx, layout.leftSeamX, layout.boardY,
+    layout.boardW + layout.seamW * 2, layout.boardH, layout.cell * 0.2);
+  ctx.stroke();
+  if (!reducedMotion()) {
+    ctx.setLineDash([]);
+    for (let flutter = 0; flutter < 7; flutter += 1) {
+      const angle = flutter * 0.91 + 0.25;
+      const distance = layout.cell * (1.4 + progress * 7.0 + flutter * 0.35);
+      const x = cx + Math.cos(angle) * distance;
+      const y = cy + Math.sin(angle) * distance * 0.58;
+      ctx.save();
+      ctx.globalAlpha = fade * (0.82 - flutter * 0.07);
+      ctx.translate(x, y);
+      ctx.rotate(angle + progress * 1.6);
+      ctx.fillStyle = flutter % 2 ? '#fff0a8' : '#f7d774';
+      ctx.fillRect(-layout.cell * 0.10, -layout.cell * 0.035,
+        layout.cell * 0.20, layout.cell * 0.07);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
+function makeDangerGradient(ctx, layout) {
+  const gradient = ctx.createLinearGradient(0, layout.pageY, 0,
+    layout.boardY + layout.boardH * 0.52);
+  gradient.addColorStop(0, 'rgba(174,38,48,0.88)');
+  gradient.addColorStop(0.32, 'rgba(174,38,48,0.28)');
+  gradient.addColorStop(1, 'rgba(174,38,48,0)');
+  return gradient;
+}
+
+function makeFoldGradient(ctx, layout, direction) {
+  const edgeX = direction < 0 ? layout.leftSeamX : layout.rightSeamX;
+  const width = layout.cell * 4;
+  const gradient = ctx.createLinearGradient(edgeX - width, layout.boardY,
+    edgeX + width, layout.boardY);
+  gradient.addColorStop(0, 'rgba(255,247,190,0)');
+  gradient.addColorStop(0.5, 'rgba(255,247,190,0.36)');
+  gradient.addColorStop(1, 'rgba(255,247,190,0)');
+  return gradient;
+}
+
 export function createRenderer(canvas) {
   if (!canvas || typeof canvas.getContext !== 'function') {
     throw new TypeError('createRenderer(canvas) requires a canvas element');
@@ -920,10 +1354,25 @@ export function createRenderer(canvas) {
   let grainPatterns = [];
   let paintCaches = [];
   let faceSheets = [];
+  let dangerGradients = [];
+  let foldGradients = [];
   let seamCaches = newSeamCaches();
   let ghostState = createGhostState();
   let ringCountSeen = -1;
   let ringRippleStarted = -1;
+  let previousRefs = new Array(ROWS * RING_COLS).fill(null);
+  let previousRefSet = new Set();
+  let currentRefSet = new Set();
+  const missingRows = new Uint8Array(ROWS);
+  const lockColumns = new Int16Array(24);
+  const lockRows = new Int16Array(24);
+  const clearRows = new Int16Array(ROWS);
+  const currentRefs = new Array(ROWS * RING_COLS).fill(null);
+  let snapshotReady = false;
+  let piecesSeen = -1;
+  let linesSeen = -1;
+  const lockState = { count: 0, startedAt: -1 };
+  const clearState = { count: 0, maxRow: -1, startedAt: -1 };
 
   function currentDpr() {
     return clamp(Number(globalThis.devicePixelRatio) || 1, 1, MAX_DPR);
@@ -964,6 +1413,103 @@ export function createRenderer(canvas) {
     };
   }
 
+  function resetRingTracking() {
+    previousRefs.fill(null);
+    currentRefs.fill(null);
+    previousRefSet.clear();
+    currentRefSet.clear();
+    snapshotReady = false;
+    piecesSeen = -1;
+    linesSeen = -1;
+    lockState.count = 0;
+    lockState.startedAt = -1;
+    clearState.count = 0;
+    clearState.maxRow = -1;
+    clearState.startedAt = -1;
+  }
+
+  function observeRingState(gameState, timeMs) {
+    const ring = ringOf(gameState);
+    if (!ring) {
+      resetRingTracking();
+      return;
+    }
+    const stats = gameState.stats || {};
+    const pieces = Number.isFinite(Number(stats.pieces)) ? Number(stats.pieces) : 0;
+    const lines = Number.isFinite(Number(gameState.lines)) ? Number(gameState.lines) : 0;
+    currentRefSet.clear();
+    for (let row = 0; row < ROWS; row += 1) {
+      const cells = ring.grid[row];
+      for (let rc = 0; rc < RING_COLS; rc += 1) {
+        const cell = cells && cells[rc];
+        currentRefs[row * RING_COLS + rc] = cell;
+        if (cell) currentRefSet.add(cell);
+      }
+    }
+
+    const freshRun = !snapshotReady || pieces < piecesSeen || lines < linesSeen;
+    if (!freshRun && lines > linesSeen) {
+      missingRows.fill(0);
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let rc = 0; rc < RING_COLS; rc += 1) {
+          const oldCell = previousRefs[row * RING_COLS + rc];
+          if (oldCell && !currentRefSet.has(oldCell)) missingRows[row] += 1;
+        }
+      }
+      clearState.count = 0;
+      clearState.maxRow = -1;
+      for (let row = 0; row < ROWS; row += 1) {
+        if (missingRows[row] < 4 || clearState.count >= ROWS) continue;
+        clearRows[clearState.count] = row;
+        clearState.maxRow = Math.max(clearState.maxRow, row);
+        clearState.count += 1;
+      }
+      if (clearState.count === 0) {
+        let bestRow = ROWS - 1;
+        let bestMissing = 0;
+        for (let row = 0; row < ROWS; row += 1) {
+          if (missingRows[row] > bestMissing) {
+            bestMissing = missingRows[row];
+            bestRow = row;
+          }
+        }
+        clearRows[0] = bestRow;
+        clearState.count = 1;
+        clearState.maxRow = bestRow;
+      }
+      clearState.startedAt = timeMs;
+    } else if (freshRun) {
+      clearState.count = 0;
+      clearState.maxRow = -1;
+    }
+
+    if (!freshRun && pieces > piecesSeen) {
+      lockState.count = 0;
+      lockState.startedAt = timeMs;
+      for (let row = 0; row < ROWS; row += 1) {
+        for (let rc = 0; rc < RING_COLS; rc += 1) {
+          const cell = ring.grid[row] && ring.grid[row][rc];
+          if (!cell || previousRefSet.has(cell) || lockState.count >= lockColumns.length) continue;
+          lockColumns[lockState.count] = rc;
+          lockRows[lockState.count] = row;
+          lockState.count += 1;
+        }
+      }
+    } else if (freshRun) {
+      lockState.count = 0;
+    }
+
+    const oldPrevious = previousRefSet;
+    previousRefSet = currentRefSet;
+    currentRefSet = oldPrevious;
+    for (let index = 0; index < currentRefs.length; index += 1) {
+      previousRefs[index] = currentRefs[index];
+    }
+    snapshotReady = true;
+    piecesSeen = pieces;
+    linesSeen = lines;
+  }
+
   function resize() {
     const measured = measureCanvas();
     if (measured.width === measuredWidth && measured.height === measuredHeight
@@ -984,9 +1530,12 @@ export function createRenderer(canvas) {
     grainPatterns = new Array(FACES.length);
     paintCaches = new Array(FACES.length);
     faceSheets = new Array(FACES.length);
+    dangerGradients = new Array(FACES.length);
+    foldGradients = [makeFoldGradient(ctx, layout, -1), makeFoldGradient(ctx, layout, 1)];
     for (let face = 0; face < FACES.length; face += 1) {
       grainPatterns[face] = makeGrainPattern(ctx, FACES[face], dpr);
       paintCaches[face] = makePaintCache(ctx, layout, COLORS[FACES[face]]);
+      dangerGradients[face] = makeDangerGradient(ctx, layout);
       const sheetCanvas = makeScratchCanvas(measured.width, measured.height);
       faceSheets[face] = {
         canvas: sheetCanvas,
@@ -999,11 +1548,23 @@ export function createRenderer(canvas) {
     }
     for (let i = 0; i < CELL_TYPES.length; i += 1) {
       const type = CELL_TYPES[i];
-      getCellSprite(ctx, 0, 0, layout.cell, { t: type }, COLORS.sun, 'sun', dpr);
-      getCellSprite(ctx, 0, 0, layout.cell, { t: type }, COLORS.dusk, 'dusk', dpr);
-      getCellSprite(ctx, 0, 0, layout.cell, { t: type }, COLORS.ink, 'ink', dpr);
-      getCellSprite(ctx, 0, 0, layout.cell, { t: type }, COLORS.dawn, 'dawn', dpr);
+      // Warm the sprite cache on a scratch target. Drawing the warm-up onto
+      // the live canvas leaves a tiny permanent block at the origin before
+      // the first board sheet is composited.
+      const warmup = makeScratchCanvas(layout.cell + dpr * 8, layout.cell + dpr * 8);
+      const warmupCtx = warmup && warmup.getContext('2d');
+      if (warmupCtx) {
+        getCellSprite(warmupCtx, dpr * 4, dpr * 4, layout.cell,
+          { t: type }, COLORS.sun, 'sun', dpr);
+        getCellSprite(warmupCtx, dpr * 4, dpr * 4, layout.cell,
+          { t: type }, COLORS.dusk, 'dusk', dpr);
+        getCellSprite(warmupCtx, dpr * 4, dpr * 4, layout.cell,
+          { t: type }, COLORS.ink, 'ink', dpr);
+        getCellSprite(warmupCtx, dpr * 4, dpr * 4, layout.cell,
+          { t: type }, COLORS.dawn, 'dawn', dpr);
+      }
     }
+    resetRingTracking();
     watchDpr();
     return layout;
   }
@@ -1014,6 +1575,8 @@ export function createRenderer(canvas) {
     const world = FACES[face];
     const ctx2 = sheet.ctx;
     ctx2.setTransform(1, 0, 0, 1, 0, 0);
+    ctx2.globalCompositeOperation = 'source-over';
+    ctx2.globalAlpha = 1;
     ctx2.clearRect(0, 0, layout.width, layout.height);
     drawFrameShell(ctx2, face, layout, paintCaches, grainPatterns);
     drawSeamStrip(ctx2, ring, nextFace(face, -1), FACE_W - 1, layout, timeMs, seamCaches, signature,
@@ -1031,6 +1594,8 @@ export function createRenderer(canvas) {
     if (!sheet || !sheet.pieceCtx) return;
     const pieceCtx = sheet.pieceCtx;
     pieceCtx.setTransform(1, 0, 0, 1, 0, 0);
+    pieceCtx.globalCompositeOperation = 'source-over';
+    pieceCtx.globalAlpha = 1;
     pieceCtx.clearRect(0, 0, layout.width, layout.height);
     drawPieceForFace(pieceCtx, gameState.piece, ring, face, layout, timeMs, ghostState, true);
   }
@@ -1058,13 +1623,19 @@ export function createRenderer(canvas) {
     const signature = ringSignature(ring);
     const timeMs = Number.isFinite(gameState.timeMs) ? gameState.timeMs : 0;
     const animationTime = reducedMotion() ? 0 : timeMs;
+    observeRingState(gameState, timeMs);
     repaintFaceSheet(face, gameState, ring, signature, animationTime);
     drawBackground(ctx, world, animationTime, width, height);
-    if (faceSheets[face] && faceSheets[face].canvas) ctx.drawImage(faceSheets[face].canvas, 0, 0);
+    if (faceSheets[face] && faceSheets[face].canvas) blitSheet(ctx, faceSheets[face].canvas);
+    drawClearReveal(ctx, ring, face, layout, paintCaches[face], grainPatterns[face], timeMs, clearState);
     drawSeamAnimationOverlay(ctx, ring, face, layout, animationTime);
+    drawIdleSheen(ctx, ring, face, layout, animationTime);
+    drawLockPolish(ctx, ring, face, layout, timeMs, lockState);
     drawPieceForFace(ctx, gameState.piece, ring, face, layout, animationTime, ghostState, true);
     observeRingClear(gameState, timeMs);
-    drawRingRipple(ctx, layout, timeMs, ringRippleStarted);
+    drawDangerVignette(ctx, ring, face, layout, animationTime, dangerGradients[face]);
+    drawFoldDonePolish(ctx, layout, timeMs, gameState.lastFoldAt);
+    drawRingRipple(ctx, layout, animationTime, ringRippleStarted);
   }
 
   function drawCrossfade(gameState, from, to, progress, width, height, timeMs) {
@@ -1080,11 +1651,14 @@ export function createRenderer(canvas) {
       drawBackground(ctx, FACES[to], timeMs, width, height);
       ctx.restore();
     }
-    if (faceSheets[from] && faceSheets[from].canvas) ctx.drawImage(faceSheets[from].canvas, 0, 0, width, height);
+    if (faceSheets[from] && faceSheets[from].canvas) blitSheet(ctx, faceSheets[from].canvas);
     drawSeamAnimationOverlay(ctx, ring, from, layout, timeMs);
     ctx.save();
     ctx.globalAlpha = alpha;
-    if (faceSheets[to] && faceSheets[to].canvas) ctx.drawImage(faceSheets[to].canvas, 0, 0, width, height);
+    if (faceSheets[to] && faceSheets[to].canvas) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(faceSheets[to].canvas, 0, 0);
+    }
     drawSeamAnimationOverlay(ctx, ring, to, layout, timeMs);
     drawPieceForFace(ctx, gameState.piece, ring, to, layout, timeMs, ghostState, true);
     ctx.restore();
@@ -1109,6 +1683,8 @@ export function createRenderer(canvas) {
 
     if (reduced || (typeof cam.mode === 'function' && cam.mode() === 'crossfade')) {
       drawCrossfade(gameState, from, to, progress, width, height, timeMs);
+      drawFoldPolish(ctx, gameState, layout, from, direction, progress, cameraAngle, timeMs,
+        foldGradients[direction < 0 ? 0 : 1]);
       return;
     }
 
@@ -1145,6 +1721,8 @@ export function createRenderer(canvas) {
       drawCreaseShadow(ctx, layout, direction < 0 ? destinationX : destinationX + destinationW,
         Math.max(1 - beat, Math.abs(cameraAngle) / (Math.PI * 0.5)));
     }
+    drawFoldPolish(ctx, gameState, layout, from, direction, progress, cameraAngle, timeMs,
+      foldGradients[direction < 0 ? 0 : 1]);
   }
 
   function draw(gameState, cam) {

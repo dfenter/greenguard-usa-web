@@ -7,9 +7,12 @@
 // Contract: drawBackground(ctx, world, timeMs, w, h)
 //
 // Sunside : cream sky wash, faint pencil hatching, layered doodle hills,
-//           a crayon sun with slowly turning rays, drifting cut-paper clouds.
-// Inkside : indigo wash, paper moon with a torn crater edge, ink-splat stars
-//           that twinkle in three phase banks, slow drifting ink swirls.
+//           a crayon sun with slowly turning rays, drifting cut-paper clouds,
+//           distant meadow detail and a baked god-ray light pass.
+// Duskside: the sun composition recolored with long shadow bands and lantern
+//           glow. Dawnside adds rising mist bands and dew sparkle.
+// Inkside : indigo wash, paper moon with a torn crater edge, ink-splat stars,
+//           slow drifting ink swirls, an aurora ribbon and a twinkle pass.
 //
 // Parallax is <= 3 moving layers per world and all motion is gentle: nothing
 // here should compete with the board for attention.
@@ -75,7 +78,7 @@ function mixHex(a, b, t) {
 }
 
 /* ------------------------------------------------------------------ */
-/* shared: paper grain tile (baked once, reused by both worlds)        */
+/* shared: paper grain tile (baked once, reused by every world)        */
 /* ------------------------------------------------------------------ */
 let grainTile = null;
 function getGrainTile() {
@@ -314,6 +317,64 @@ function bakeHillBand(w, h, opt) {
   return c;
 }
 
+// A third, near-horizon layer. It is intentionally simple and low contrast:
+// small cut-paper grasses give Sunside depth without competing with the board.
+function bakeSunThirdLayer(w, h) {
+  const c = mk(w, h);
+  const g = c.getContext('2d');
+  const rnd = mulberry32(31337 + ((w * 13 + h) | 0));
+  const horizon = h * 0.70;
+  g.fillStyle = 'rgba(143,191,106,0.14)';
+  g.fillRect(0, horizon + h * 0.035, w, h - horizon);
+  g.strokeStyle = 'rgba(74,63,51,0.16)';
+  g.lineWidth = 1.25;
+  g.lineCap = 'round';
+  const stems = Math.max(18, Math.round(w / 13));
+  for (let i = 0; i < stems; i++) {
+    const x = (i / stems) * w + rnd() * 10;
+    const y = horizon + rnd() * h * 0.045;
+    const height = h * (0.018 + rnd() * 0.035);
+    g.beginPath();
+    g.moveTo(x, y + h * 0.045);
+    g.quadraticCurveTo(x + (rnd() - 0.5) * 5, y + height * 0.35, x + (rnd() - 0.5) * 8, y - height);
+    g.stroke();
+  }
+  paintGrain(g, w, h, 0.18);
+  return c;
+}
+
+// Wide, soft shafts of paper light. The layer is full-size and horizontally
+// tileable so its gentle drift never needs a re-bake.
+function bakeSunGodRays(w, h) {
+  const c = mk(w, h);
+  const g = c.getContext('2d');
+  const sourceX = w * 0.78;
+  const sourceY = h * 0.13;
+  const bottom = h * 0.82;
+  const rays = [
+    [-0.24, 0.015, 'rgba(255,246,190,0.10)'],
+    [-0.14, 0.022, 'rgba(255,244,180,0.075)'],
+    [-0.06, 0.014, 'rgba(255,255,220,0.10)'],
+    [0.05, 0.024, 'rgba(255,238,164,0.065)'],
+    [0.15, 0.016, 'rgba(255,250,206,0.085)'],
+    [0.26, 0.028, 'rgba(255,233,159,0.06)'],
+  ];
+  for (let i = 0; i < rays.length; i++) {
+    const [spread, widthRatio, color] = rays[i];
+    const x = sourceX + spread * w;
+    const spreadAtBottom = widthRatio * w;
+    g.fillStyle = color;
+    g.beginPath();
+    g.moveTo(sourceX - w * 0.012, sourceY);
+    g.lineTo(sourceX + w * 0.012, sourceY);
+    g.lineTo(x + spreadAtBottom, bottom);
+    g.lineTo(x - spreadAtBottom, bottom);
+    g.closePath();
+    g.fill();
+  }
+  return c;
+}
+
 // A horizontally tileable strip of cut-paper clouds.
 function bakeCloudStrip(w, h, seed, scale, alpha) {
   const c = mk(w, h);
@@ -357,7 +418,9 @@ function bakeCloudStrip(w, h, seed, scale, alpha) {
   return c;
 }
 
-function bakeVignette(w, h, world) {
+let vignetteLayer = null;
+
+function bakeVignette(w, h) {
   const c = mk(w, h);
   const g = c.getContext('2d');
   const vg = g.createRadialGradient(
@@ -365,10 +428,21 @@ function bakeVignette(w, h, world) {
     w * 0.5, h * 0.5, Math.max(w, h) * 0.78,
   );
   vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, world === 'ink' ? 'rgba(6,8,20,0.45)' : 'rgba(74,63,51,0.16)');
+  // One restrained edge treatment across all four pages. The paper palette
+  // underneath supplies the mood; sharing this canvas keeps the pass cheap
+  // during fold crossfades as well.
+  vg.addColorStop(1, 'rgba(28,32,38,0.21)');
   g.fillStyle = vg;
   g.fillRect(0, 0, w, h);
   return c;
+}
+
+function getVignette(w, h) {
+  if (vignetteLayer && vignetteLayer.width === w && vignetteLayer.height === h) {
+    return vignetteLayer;
+  }
+  vignetteLayer = bakeVignette(w, h);
+  return vignetteLayer;
 }
 
 function bakeSun(w, h) {
@@ -378,6 +452,8 @@ function bakeSun(w, h) {
   const sunR = Math.max(26, Math.min(w, h) * 0.085);
   const disc = bakeSunDisc(sunR);
   const rays = bakeSunRays(sunR);
+  const third = bakeSunThirdLayer(w, h);
+  const lightPass = bakeSunGodRays(w, h);
   const sunX = w * 0.78, sunY = h * 0.15;
 
   const clouds = [
@@ -413,7 +489,9 @@ function bakeSun(w, h) {
 
   return {
     kind: 'sun', composition: 'sun', w, h, sky, disc, rays, sunR, sunX, sunY, clouds, hills,
-    vignette: bakeVignette(w, h, 'sun'),
+    third, thirdY: 0, thirdSpeed: 0.00125, thirdAmp: 5,
+    lightPass, lightSpeed: 0.00042, lightAlpha: 0.82,
+    vignette: getVignette(w, h),
   };
 }
 
@@ -580,6 +658,68 @@ function bakeInkSwirls(w, h, seed) {
   return c;
 }
 
+// A broad, translucent ribbon gives the night page a third depth plane. Its
+// curves are baked once; only the strip's horizontal drift changes at runtime.
+function bakeAuroraRibbon(w, h) {
+  const c = mk(w, h);
+  const g = c.getContext('2d');
+  const bands = [
+    { y: h * 0.22, amp: h * 0.055, width: h * 0.075, color: '104,232,220', alpha: 0.11 },
+    { y: h * 0.30, amp: h * 0.042, width: h * 0.055, color: '168,130,255', alpha: 0.08 },
+  ];
+  for (let i = 0; i < bands.length; i++) {
+    const band = bands[i];
+    const grad = g.createLinearGradient(0, band.y - band.width, 0, band.y + band.width);
+    grad.addColorStop(0, `rgba(${band.color},0)`);
+    grad.addColorStop(0.5, `rgba(${band.color},${band.alpha})`);
+    grad.addColorStop(1, `rgba(${band.color},0)`);
+    g.fillStyle = grad;
+    g.beginPath();
+    g.moveTo(-w * 0.08, band.y);
+    g.bezierCurveTo(w * 0.16, band.y - band.amp, w * 0.28, band.y + band.amp, w * 0.50, band.y);
+    g.bezierCurveTo(w * 0.72, band.y - band.amp, w * 0.86, band.y + band.amp, w * 1.08, band.y - h * 0.01);
+    g.lineTo(w * 1.08, band.y + band.width);
+    g.bezierCurveTo(w * 0.86, band.y + band.amp + band.width, w * 0.72, band.y - band.amp + band.width, w * 0.50, band.y + band.width);
+    g.bezierCurveTo(w * 0.28, band.y + band.amp + band.width, w * 0.16, band.y - band.amp + band.width, -w * 0.08, band.y + band.width);
+    g.closePath();
+    g.fill();
+  }
+  return c;
+}
+
+// Larger four-point sparkles are kept on their own baked layer so their
+// twinkle is an alpha pulse, not a per-frame star redraw.
+function bakeInkTwinklePass(w, h) {
+  const c = mk(w, h);
+  const g = c.getContext('2d');
+  const rnd = mulberry32(6161 + ((w * 23 + h) | 0));
+  const count = Math.max(12, Math.min(28, Math.round(w / 24)));
+  for (let i = 0; i < count; i++) {
+    const x = rnd() * w;
+    const y = rnd() * h * 0.72;
+    const r = 1.1 + rnd() * 2.1;
+    const arm = r * (3.2 + rnd() * 2.8);
+    const glow = g.createRadialGradient(x, y, 0, x, y, arm * 1.5);
+    glow.addColorStop(0, 'rgba(207,230,255,0.36)');
+    glow.addColorStop(1, 'rgba(140,180,255,0)');
+    g.fillStyle = glow;
+    g.fillRect(x - arm * 1.5, y - arm * 1.5, arm * 3, arm * 3);
+    g.strokeStyle = 'rgba(235,242,255,0.72)';
+    g.lineWidth = Math.max(0.8, r * 0.52);
+    g.beginPath();
+    g.moveTo(x - arm, y);
+    g.lineTo(x + arm, y);
+    g.moveTo(x, y - arm);
+    g.lineTo(x, y + arm);
+    g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.92)';
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fill();
+  }
+  return c;
+}
+
 function bakeInk(w, h) {
   const wash = bakeInkWash(w, h);
   const density = Math.max(24, Math.round((w * h) / 5200));
@@ -593,11 +733,15 @@ function bakeInk(w, h) {
     bakeInkSwirls(w, h, 55),
     bakeInkSwirls(w, h, 88),
   ];
+  const third = bakeAuroraRibbon(w, h);
+  const lightPass = bakeInkTwinklePass(w, h);
   return {
     kind: 'ink', composition: 'ink', w, h, wash, stars, swirls,
     moon: bakeMoon(moonR), moonR,
     moonX: w * 0.24, moonY: h * 0.14,
-    vignette: bakeVignette(w, h, 'ink'),
+    third, thirdY: 0, thirdSpeed: 0.00055, thirdAmp: h * 0.008,
+    lightPass, lightSpeed: 0.00078, lightAlpha: 0.86,
+    vignette: getVignette(w, h),
   };
 }
 
@@ -636,6 +780,34 @@ function bakeMoodOverlay(w, h, world) {
   return c;
 }
 
+// Duskside's third depth plane: stretched shadow shapes that feel like the
+// last long rays of evening falling across the paper landscape.
+function bakeDuskShadowBands(w, h) {
+  const c = mk(w, h);
+  const g = c.getContext('2d');
+  const bands = [
+    { y: h * 0.39, spread: h * 0.07, color: 'rgba(91,49,73,0.075)' },
+    { y: h * 0.53, spread: h * 0.11, color: 'rgba(74,44,74,0.09)' },
+    { y: h * 0.68, spread: h * 0.14, color: 'rgba(58,39,67,0.105)' },
+  ];
+  for (let i = 0; i < bands.length; i++) {
+    const band = bands[i];
+    const grad = g.createLinearGradient(0, band.y - band.spread, 0, band.y + band.spread);
+    grad.addColorStop(0, 'rgba(58,39,67,0)');
+    grad.addColorStop(0.5, band.color);
+    grad.addColorStop(1, 'rgba(58,39,67,0)');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.moveTo(-w * 0.12, band.y - band.spread * 0.3);
+    g.lineTo(w * 1.08, band.y - band.spread * 0.9);
+    g.lineTo(w * 1.08, band.y + band.spread * 0.28);
+    g.lineTo(-w * 0.12, band.y + band.spread * 0.9);
+    g.closePath();
+    g.fill();
+  }
+  return c;
+}
+
 function bakeLanterns(w, h) {
   const c = mk(w, h);
   const g = c.getContext('2d');
@@ -644,6 +816,12 @@ function bakeLanterns(w, h) {
     const x = w * (0.08 + rnd() * 0.84);
     const y = h * (0.16 + rnd() * 0.34);
     const r = Math.max(4, Math.min(w, h) * (0.012 + rnd() * 0.012));
+    const glow = g.createRadialGradient(x, y, 0, x, y, r * 6.5);
+    glow.addColorStop(0, 'rgba(255,202,105,0.24)');
+    glow.addColorStop(0.38, 'rgba(244,151,86,0.12)');
+    glow.addColorStop(1, 'rgba(244,151,86,0)');
+    g.fillStyle = glow;
+    g.fillRect(x - r * 6.5, y - r * 6.5, r * 13, r * 13);
     g.strokeStyle = 'rgba(90,58,51,0.26)';
     g.lineWidth = Math.max(1, r * 0.12);
     g.beginPath();
@@ -696,6 +874,36 @@ function bakeMist(w, h) {
   return c;
 }
 
+function bakeDewSparkles(w, h) {
+  const c = mk(w, h);
+  const g = c.getContext('2d');
+  const rnd = mulberry32(8080 + ((w * 29 + h) | 0));
+  const count = Math.max(16, Math.min(34, Math.round(w / 18)));
+  for (let i = 0; i < count; i++) {
+    const x = rnd() * w;
+    const y = h * (0.32 + rnd() * 0.48);
+    const r = 1 + rnd() * 2.4;
+    const halo = g.createRadialGradient(x, y, 0, x, y, r * 4.2);
+    halo.addColorStop(0, 'rgba(238,255,247,0.46)');
+    halo.addColorStop(1, 'rgba(190,239,216,0)');
+    g.fillStyle = halo;
+    g.fillRect(x - r * 4.2, y - r * 4.2, r * 8.4, r * 8.4);
+    g.fillStyle = 'rgba(248,255,250,0.78)';
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.60)';
+    g.lineWidth = Math.max(0.8, r * 0.42);
+    g.beginPath();
+    g.moveTo(x - r * 2.4, y);
+    g.lineTo(x + r * 2.4, y);
+    g.moveTo(x, y - r * 2.4);
+    g.lineTo(x, y + r * 2.4);
+    g.stroke();
+  }
+  return c;
+}
+
 function bakeDusk(w, h) {
   const base = bakeSun(w, h);
   return {
@@ -703,8 +911,9 @@ function bakeDusk(w, h) {
     kind: 'dusk',
     world: 'dusk',
     moodOverlay: bakeMoodOverlay(w, h, 'dusk'),
-    decor: bakeLanterns(w, h),
-    vignette: bakeVignette(w, h, 'dusk'),
+    third: bakeDuskShadowBands(w, h), thirdY: 0, thirdSpeed: 0.00026, thirdAmp: 4,
+    lightPass: bakeLanterns(w, h), lightSpeed: 0.00034, lightAlpha: 0.86,
+    vignette: getVignette(w, h),
   };
 }
 
@@ -715,8 +924,9 @@ function bakeDawn(w, h) {
     kind: 'dawn',
     world: 'dawn',
     moodOverlay: bakeMoodOverlay(w, h, 'dawn'),
-    decor: bakeMist(w, h),
-    vignette: bakeVignette(w, h, 'dawn'),
+    third: bakeMist(w, h), thirdY: 0, thirdSpeed: 0.00040, thirdAmp: h * 0.012,
+    lightPass: bakeDewSparkles(w, h), lightSpeed: 0.00062, lightAlpha: 0.82,
+    vignette: getVignette(w, h),
   };
 }
 
@@ -745,6 +955,7 @@ export function invalidateBackgrounds() {
   cache.dusk = null;
   cache.ink = null;
   cache.dawn = null;
+  vignetteLayer = null;
 }
 
 /* wrap-tiled horizontal draw of a full-width layer */
@@ -804,8 +1015,21 @@ export function drawBackground(ctx, world, timeMs, w, h) {
       const sway = Math.sin(t * hb.speed * 0.35) * hb.amp;
       ctx.drawImage(hb.img, sway - hb.amp, hb.y);
     }
+
+    // Third parallax plane: a quiet foreground meadow or, for the tonal
+    // variants, their baked shadow/mist treatment.
+    if (L.third) {
+      const y = L.thirdY + Math.sin(t * 0.00011 + 0.8) * L.thirdAmp;
+      drawWrapped(ctx, L.third, t * L.thirdSpeed, y, w);
+    }
   } else {
     ctx.drawImage(L.wash, 0, 0);
+
+    // Inkside's aurora is the third parallax plane, behind the stars and moon.
+    ctx.save();
+    ctx.globalAlpha = 0.86;
+    drawWrapped(ctx, L.third, t * L.thirdSpeed, Math.sin(t * 0.00009) * L.thirdAmp, w);
+    ctx.restore();
 
     // ink swirls drift in opposite directions, very slowly
     ctx.save();
@@ -833,15 +1057,17 @@ export function drawBackground(ctx, world, timeMs, w, h) {
     ctx.drawImage(L.moon, L.moonX - L.moon.width / 2, L.moonY + bob - L.moon.height / 2);
   }
 
-  if (L.moodOverlay) ctx.drawImage(L.moodOverlay, 0, 0);
-  if (L.decor) {
+  // Every world gets one baked light pass. Its only live animation is a
+  // restrained alpha shimmer and a sub-pixel parallax drift.
+  if (L.lightPass) {
     ctx.save();
-    ctx.globalAlpha = L.kind === 'dusk'
-      ? 0.82 + Math.sin(t * 0.0007) * 0.08
-      : 0.78 + Math.sin(t * 0.0004 + 1.2) * 0.06;
-    ctx.drawImage(L.decor, 0, 0);
+    const pulse = 0.94 + 0.06 * Math.sin(t * 0.00043 + 1.1);
+    ctx.globalAlpha = L.lightAlpha * pulse;
+    drawWrapped(ctx, L.lightPass, t * L.lightSpeed, Math.cos(t * 0.00007) * h * 0.006, w);
     ctx.restore();
   }
+
+  if (L.moodOverlay) ctx.drawImage(L.moodOverlay, 0, 0);
 
   // shared vignette is baked with the size-specific world layers.
   ctx.drawImage(L.vignette, 0, 0);

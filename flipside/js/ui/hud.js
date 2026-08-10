@@ -48,7 +48,7 @@ function statRow(stats, label) {
   const value = node('strong');
   row.append(name, value);
   stats.append(row);
-  return { el: value, last: null };
+  return { el: value, last: null, row };
 }
 
 function setStat(ref, value) {
@@ -229,7 +229,19 @@ function makeScreen(kind, title, subtitle = '') {
   screen.setAttribute('role', 'dialog');
   screen.setAttribute('aria-modal', 'true');
 
-  const heading = node('h1', 'logo', title);
+  const heading = node('h1', 'logo');
+  if (kind === 'title') {
+    heading.classList.add('logo-cutouts');
+    heading.setAttribute('aria-label', title);
+    Array.from(title).forEach((character, index) => {
+      const letter = node('span', 'logo-letter', character === ' ' ? '\u00a0' : character);
+      letter.dataset.index = String(index);
+      letter.setAttribute('aria-hidden', 'true');
+      heading.append(letter);
+    });
+  } else {
+    heading.textContent = title;
+  }
   screen.append(heading);
   if (subtitle) screen.append(node('p', 'screen-subtitle', subtitle));
   const stats = node('div', 'stats');
@@ -349,14 +361,24 @@ export function createHud(G, hooks = {}) {
   toast.hidden = true;
   toast.setAttribute('aria-live', 'polite');
   toast.setAttribute('aria-atomic', 'true');
+  const toastFlame = node('span', 'combo-flame');
+  toastFlame.setAttribute('aria-hidden', 'true');
+  const toastCopy = node('span', 'toast-copy');
+  toast.append(toastFlame, toastCopy);
 
   const banner = node('div', 'banner phase-up');
   banner.hidden = true;
   banner.setAttribute('aria-live', 'polite');
   banner.setAttribute('aria-atomic', 'true');
+  const waxSeal = node('span', 'wax-seal');
+  waxSeal.setAttribute('aria-hidden', 'true');
+  const bannerCopy = node('span', 'banner-copy');
+  banner.append(waxSeal, bannerCopy);
 
   const titleScreen = makeScreen('title', 'FLIPSIDE', 'A four-face papercraft Tetris');
   const titleBest = statRow(titleScreen.stats, 'Best score');
+  titleScreen.stats.classList.add('best-score-card');
+  titleBest.row.classList.add('best-score-row');
   const titleHowTo = node('div', 'how-to');
   titleHowTo.hidden = true;
   titleHowTo.textContent = 'Drag to move • tap to rotate • swipe down to drop • hold a piece • fold left or right to follow the ring.';
@@ -473,6 +495,8 @@ export function createHud(G, hooks = {}) {
   let lastScoreTarget = null;
   let lastRenderedScore = null;
   let lastDisplayedText = null;
+  let lastScoreBucket = null;
+  let scorePopToggle = false;
   let lastLines = null;
   let lastPhase = null;
   let lastWorld = null;
@@ -482,6 +506,7 @@ export function createHud(G, hooks = {}) {
   let lastStatus = null;
   let lastCombo = null;
   let lastB2b = null;
+  let toastPopToggle = false;
   let bannerUntil = 0;
   let toastUntil = 0;
   let lastBestCommitted = bestScore;
@@ -503,6 +528,22 @@ export function createHud(G, hooks = {}) {
     if (text === lastDisplayedText) return;
     lastDisplayedText = text;
     score.value.textContent = text;
+  }
+
+  function snapScoreAtBoundary() {
+    scorePopToggle = !scorePopToggle;
+    score.value.classList.toggle('score-pop-a', scorePopToggle);
+    score.value.classList.toggle('score-pop-b', !scorePopToggle);
+  }
+
+  function setToast(text, comboLevel = 0) {
+    toastCopy.textContent = text;
+    toast.dataset.comboLevel = String(Math.max(0, comboLevel));
+    toast.classList.toggle('combo-ticker', comboLevel > 0);
+    toast.classList.toggle('b2b-toast', comboLevel <= 0);
+    toastPopToggle = !toastPopToggle;
+    toast.classList.toggle('toast-pop-a', toastPopToggle);
+    toast.classList.toggle('toast-pop-b', !toastPopToggle);
   }
 
   function updateScreens(state, status) {
@@ -603,7 +644,11 @@ export function createHud(G, hooks = {}) {
   function updateFeedback(state, status, now) {
     const phaseNumber = Math.max(1, Math.floor(numberValue(state.phase, 1)));
     if (lastPhase !== null && phaseNumber > lastPhase) {
-      banner.textContent = phaseNumber >= 9 ? 'THE SEAM' : `PHASE ${phaseNumber}`;
+      const finalPhase = phaseNumber >= 9;
+      bannerCopy.textContent = finalPhase ? 'THE SEAM' : `PHASE ${phaseNumber}`;
+      waxSeal.textContent = String(phaseNumber);
+      banner.dataset.phase = String(phaseNumber);
+      banner.classList.toggle('phase-final', finalPhase);
       bannerUntil = now + BANNER_MS;
     }
     lastPhase = phaseNumber;
@@ -612,10 +657,10 @@ export function createHud(G, hooks = {}) {
     const b2b = Boolean(state.b2b);
     if (status === 'playing') {
       if (b2b && !lastB2b) {
-        toast.textContent = 'BACK-TO-BACK';
+        setToast('BACK-TO-BACK');
         toastUntil = now + TOAST_MS;
       } else if (combo > 0 && combo !== lastCombo) {
-        toast.textContent = `COMBO ×${Math.floor(combo) + 1}`;
+        setToast(`COMBO ×${Math.floor(combo) + 1}`, Math.min(8, Math.floor(combo) + 1));
         toastUntil = now + TOAST_MS;
       }
     }
@@ -637,14 +682,21 @@ export function createHud(G, hooks = {}) {
     if (statusChanged && status === 'playing' && targetScore === 0) {
       displayedScore = 0;
       lastDisplayedText = null;
+      lastScoreBucket = 0;
     }
-    if (lastScoreTarget === null) displayedScore = targetScore;
+    if (lastScoreTarget === null) {
+      displayedScore = targetScore;
+      lastScoreBucket = Math.floor(displayedScore / 1000);
+    }
     lastScoreTarget = targetScore;
     if (displayedScore !== targetScore) {
       const delta = targetScore - displayedScore;
       const step = Math.max(1, Math.ceil(Math.abs(delta) * 0.18));
       displayedScore += Math.sign(delta) * Math.min(Math.abs(delta), step);
     }
+    const scoreBucket = Math.floor(displayedScore / 1000);
+    if (lastScoreBucket !== null && scoreBucket > lastScoreBucket) snapScoreAtBoundary();
+    lastScoreBucket = scoreBucket;
     renderScore();
 
     if (world !== lastWorld) {
