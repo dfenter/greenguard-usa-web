@@ -8,7 +8,7 @@
 
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { getTodaysBookings, getBookingsForDate } = require('../../../lib/gcal')
-const { findContactByEmail, findContactsByNames, tanksForCustomer, addNote, getContactNotes } = require('../../../lib/hubspot')
+const { findContactByEmail, findContactsByNames, tanksForCustomer, addNote, getContactNotes, upsertContact } = require('../../../lib/hubspot')
 const { invalidate } = require('../../../lib/cache')
 const { buildTankCalendarData } = require('../../../lib/tank-data')
 const { sendSms } = require('../../../lib/sms')
@@ -116,8 +116,9 @@ export default async function handler(req, res) {
       run: async ({ body }) => {
         const text = (body || '').trim()
         if (!text) return { saved: false, error: 'empty note' }
-        const contact = await findContactByEmail('bruce@greenguard-usa.com').catch(() => null)
-        if (!contact?.id) return { saved: false, error: 'tech contact not found' }
+        let contact = await findContactByEmail('bruce@greenguard-usa.com').catch(() => null)
+        if (!contact?.id) contact = await upsertContact({ email: 'bruce@greenguard-usa.com', name: 'Bruce (Tech)' }).catch(() => null)
+        if (!contact?.id) return { saved: false, error: 'tech contact unavailable' }
         await addNote(contact.id, `[TECH-NOTE] ${text}`)
         return { saved: true, where: 'tech day log' }
       },

@@ -58,7 +58,7 @@ const STAFF_PHONES = (process.env.STAFF_PHONES || '5127973348,5127873263').split
 const MUTATING = new Set([
   'request_service_visit', 'request_reschedule', 'escalate_to_team',
   'send_on_my_way_sms', 'book_appointment', 'reschedule_appointment',
-  'cancel_appointment', 'add_appointment_note',
+  'cancel_appointment', 'add_appointment_note', 'add_tech_note', 'add_customer_note',
   'create_invoice_for_visit', 'add_invoice_item', 'remove_invoice_line', 'send_invoice',
 ])
 
@@ -201,7 +201,8 @@ function registerCustomerTools() {
 // ── Admin tier ───────────────────────────────────────────────────────────────
 function registerAdminTools() {
   const { getTodaysBookings, getBookingsForDate, getUpcomingBookingsForEmail } = require('../lib/gcal')
-  const { findContactByEmail, findContactsByNames, tanksForCustomer } = require('../lib/hubspot')
+  const { findContactByEmail, findContactsByNames, tanksForCustomer, addNote, getContactNotes, upsertContact } = require('../lib/hubspot')
+  const { invalidate } = require('../lib/cache')
   const { buildTankCalendarData } = require('../lib/tank-data')
   const { sendSms } = require('../lib/sms')
   const { stripe, getInvoices } = require('../lib/stripe')
@@ -325,6 +326,40 @@ function registerAdminTools() {
   tool('add_appointment_note', 'Append a NOTE to an appointment. Written to the calendar event description and the admin notes panel. Never goes to the customer.', {
     eventId: z.string(), note: z.string(), customerEmail: z.string().optional(),
   }, async ({ eventId, note, customerEmail }) => actions.appendEventNote({ eventId, note, customerEmail, authorEmail: USER_EMAIL }))
+
+  tool('add_tech_note', "Save a note to the tech's day log (general observations, reminders, anything not tied to one customer or appointment).", {
+    body: z.string().describe('The note text.'),
+  }, async ({ body }) => {
+    const text = (body || '').trim()
+    if (!text) return { saved: false, error: 'empty note' }
+    let contact = await findContactByEmail('bruce@greenguard-usa.com').catch(() => null)
+    if (!contact?.id) contact = await upsertContact({ email: 'bruce@greenguard-usa.com', name: 'Bruce (Tech)' }).catch(() => null)
+    if (!contact?.id) return { saved: false, error: 'tech contact unavailable' }
+    await addNote(contact.id, `[TECH-NOTE] ${text}`)
+    return { saved: true, where: 'tech day log' }
+  })
+
+  tool('add_customer_note', 'Save a note on a specific customer (gate codes, pets, access issues, follow-ups, service details). Appears on their profile and rounds cards. For notes about one APPOINTMENT use add_appointment_note instead.', {
+    email: z.string().describe('Customer email. Look the customer up first if you only have a name.'),
+    body: z.string().describe('The note text.'),
+  }, async ({ email, body }) => {
+    const text = (body || '').trim()
+    if (!text) return { saved: false, error: 'empty note' }
+    const c = await findContactByEmail(email).catch(() => null)
+    if (!c?.id) return { saved: false, error: `no customer found for ${email}` }
+    await addNote(c.id, `[ADMIN-NOTE ${USER_EMAIL} ${new Date().toISOString()}] ${text}`)
+    await invalidate(`hs:notes:${c.id}`).catch(() => {})
+    return { saved: true, customer: [c.properties?.firstname, c.properties?.lastname].filter(Boolean).join(' ') || email }
+  })
+
+  tool('get_customer_notes', 'Read the most recent notes on a customer by email.', {
+    email: z.string(),
+  }, async ({ email }) => {
+    const c = await findContactByEmail(email).catch(() => null)
+    if (!c?.id) return { found: false }
+    const raw = await getContactNotes(c.id, 10).catch(() => [])
+    return { found: true, notes: raw.map((n) => ({ body: n.body, timestamp: n.timestamp || null })) }
+  })
 
   tool('list_customer_invoices', 'List a customer\'s Stripe invoices with ids, status, amounts, and line items. Use before editing or sending an invoice.', { email: z.string() }, async ({ email }) => {
     const customer = await stripeCustomerForEmail(email)
