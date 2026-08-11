@@ -1,27 +1,15 @@
 {
-  "version": 1,
-  "id": "ion-reef",
-  "name": "Ion Reef",
-  "theme": "coastal",
-  "timeOfDay": "dusk",
-  "width": 15,
-  "sampleCount": 144,
-  "signature": "Tidal superstructure with luminous reef pylons",
-  "controlPoints": [
-    {"x":-12,"z":-112,"elevation":18,"banking":-4,"curb":false},
-    {"x":92,"z":-93,"elevation":21,"banking":21,"curb":true},
-    {"x":135,"z":-27,"elevation":25,"banking":31,"curb":true},
-    {"x":95,"z":43,"elevation":33,"banking":-14,"curb":true},
-    {"x":24,"z":122,"elevation":42,"banking":-8,"curb":false},
-    {"x":-81,"z":126,"elevation":37,"banking":-22,"curb":true},
-    {"x":-143,"z":58,"elevation":30,"banking":20,"curb":true},
-    {"x":-121,"z":-29,"elevation":24,"banking":-24,"curb":true},
-    {"x":-67,"z":-98,"elevation":19,"banking":8,"curb":false}
+  "version":1,"id":"ion-reef","name":"Ion Reef","width":17,"sampleCount":256,"frame":"transport","theme":"coastal","timeOfDay":"dusk",
+  "controlPoints":[
+    {"x":-100,"z":-860,"elevation":38,"banking":-8},{"x":420,"z":-820,"elevation":54,"banking":18,"curb":true},{"x":820,"z":-600,"elevation":76,"banking":34,"curb":true},{"x":980,"z":-240,"elevation":102,"banking":46,"curb":true},{"x":900,"z":120,"elevation":128,"banking":62,"curb":true},{"x":900,"z":300,"elevation":28,"banking":82,"curb":true},{"x":820,"z":500,"elevation":28,"banking":94,"curb":true},{"x":900,"z":700,"elevation":112,"banking":86,"curb":true},{"x":800,"z":890,"elevation":168,"banking":54,"curb":true},{"x":520,"z":1030,"elevation":204,"banking":24},{"x":100,"z":1060,"elevation":218,"banking":-12},{"x":-340,"z":930,"elevation":184,"banking":-30,"curb":true},{"x":-720,"z":680,"elevation":128,"banking":-44,"curb":true},{"x":-950,"z":330,"elevation":76,"banking":-54,"curb":true},{"x":-1040,"z":-80,"elevation":48,"banking":-42,"curb":true},{"x":-910,"z":-470,"elevation":58,"banking":-28,"curb":true},{"x":-600,"z":-760,"elevation":72,"banking":-16,"curb":true},{"x":-260,"z":-900,"elevation":48,"banking":-4}
   ],
-  "turns": [{"number":1,"at":0.16,"name":"Reef Hook","type":"hairpin"},{"number":2,"at":0.43,"name":"Tide Rail","type":"sweeper"},{"number":3,"at":0.76,"name":"Salt Chicane","type":"chicane"}],
-  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
-  "distanceMarkers": [{"at":0.25,"label":"2"},{"at":0.5,"label":"3"},{"at":0.75,"label":"4"}],
-  "racingLine": [{"at":0,"lateral":-1},{"at":0.17,"lateral":2.5},{"at":0.38,"lateral":-2.1},{"at":0.64,"lateral":2.2},{"at":0.85,"lateral":-1.6}],
-  "features": [{"type":"pit","at":0.08,"lateral":2},{"type":"dash","at":0.29,"lateral":0},{"type":"ramp","at":0.57,"lateral":-1},{"type":"split","at":0.81,"name":"Breakwater lane"}],
-  "pickups": [{"at":0.13,"lateral":-2},{"at":0.26,"lateral":2},{"at":0.42,"lateral":0},{"at":0.59,"lateral":-2},{"at":0.74,"lateral":2},{"at":0.92,"lateral":0}]
+  "turns":[
+    {"number":1,"at":0.12,"name":"Reef Hook","type":"hairpin"},{"number":2,"at":0.27,"name":"Tidal Wall","type":"wall"},{"number":3,"at":0.41,"name":"Breakwater Loop","type":"loop"},{"number":4,"at":0.58,"name":"Saltwater Corkscrew","type":"corkscrew"},{"number":5,"at":0.75,"name":"Pylon Chicane","type":"chicane"},{"number":6,"at":0.9,"name":"Deep Blue Dive","type":"dive"}
+  ],
+  "sectors":[{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers":[{"at":0.09,"label":"3"},{"at":0.12,"label":"2"},{"at":0.15,"label":"1"},{"at":0.84,"label":"BRAKE"}],
+  "racingLine":[{"at":0,"lateral":-2.8},{"at":0.15,"lateral":4.1},{"at":0.31,"lateral":-3.8},{"at":0.48,"lateral":3.6},{"at":0.65,"lateral":-3.4},{"at":0.82,"lateral":3},{"at":0.95,"lateral":-1.8}],
+  "rails":[{"from":0.06,"to":0.17,"side":1,"name":"tidal charge rail"},{"from":0.39,"to":0.52,"side":-1,"name":"reef battery rail"},{"from":0.73,"to":0.87,"side":1,"name":"breakwater charger"}],
+  "features":[{"type":"pit","at":0.08,"lateral":5.6},{"type":"dash","at":0.2,"lateral":0},{"type":"ramp","at":0.4,"lateral":-1.2},{"type":"split","at":0.53,"name":"reef underpass"},{"type":"dash","at":0.62,"lateral":0},{"type":"pit","at":0.77,"lateral":-5.6},{"type":"ramp","at":0.92,"lateral":1}],
+  "pickups":[{"at":0.12,"lateral":-3.4},{"at":0.27,"lateral":3.4},{"at":0.43,"lateral":0},{"at":0.59,"lateral":-3.4},{"at":0.75,"lateral":3.4},{"at":0.91,"lateral":0}]
 }

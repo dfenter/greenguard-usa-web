@@ -532,6 +532,11 @@ export function createTrack(trackJSON, options = {}) {
     out.tangent.lerpVectors(a.tangent, b.tangent, mix).normalize();
     out.right.lerpVectors(a.right, b.right, mix).normalize();
     out.up.lerpVectors(a.up, b.up, mix).normalize();
+    // Lerped vectors drift off-perpendicular where adjacent frames differ
+    // sharply (hairpin cusps, loop entries); re-orthonormalize around the
+    // tangent so queries always return a valid frame.
+    out.right.crossVectors(out.up, out.tangent).normalize();
+    out.up.crossVectors(out.tangent, out.right).normalize();
     out.bank = THREE.MathUtils.lerp(a.bank, b.bank, mix);
     return out;
   }

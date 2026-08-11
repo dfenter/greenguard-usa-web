@@ -1,28 +1,15 @@
 {
-  "version": 1,
-  "id": "suncut-switchbacks",
-  "name": "Suncut Switchbacks",
-  "theme": "desert",
-  "timeOfDay": "noon",
-  "width": 14,
-  "sampleCount": 144,
-  "signature": "Dry canyon hairpins with a sawtooth descent",
-  "controlPoints": [
-    {"x":0,"z":-112,"elevation":48,"banking":0,"curb":false},
-    {"x":112,"z":-92,"elevation":45,"banking":20,"curb":true},
-    {"x":124,"z":-29,"elevation":40,"banking":-26,"curb":true},
-    {"x":45,"z":-5,"elevation":35,"banking":22,"curb":true},
-    {"x":133,"z":46,"elevation":29,"banking":-25,"curb":true},
-    {"x":102,"z":112,"elevation":22,"banking":20,"curb":true},
-    {"x":-4,"z":137,"elevation":27,"banking":-9,"curb":false},
-    {"x":-110,"z":91,"elevation":31,"banking":-22,"curb":true},
-    {"x":-128,"z":8,"elevation":39,"banking":25,"curb":true},
-    {"x":-78,"z":-72,"elevation":45,"banking":-14,"curb":true}
+  "version":1,"id":"suncut-switchbacks","name":"Suncut Switchbacks","width":15,"sampleCount":256,"frame":"transport","theme":"desert","timeOfDay":"noon",
+  "controlPoints":[
+    {"x":-80,"z":-760,"elevation":86,"banking":0},{"x":420,"z":-740,"elevation":92,"banking":22,"curb":true},{"x":780,"z":-520,"elevation":78,"banking":-28,"curb":true},{"x":900,"z":-220,"elevation":54,"banking":30,"curb":true},{"x":740,"z":-20,"elevation":34,"banking":-34,"curb":true},{"x":900,"z":190,"elevation":20,"banking":36,"curb":true},{"x":770,"z":380,"elevation":12,"banking":-30,"curb":true},{"x":900,"z":590,"elevation":30,"banking":42,"curb":true},{"x":900,"z":780,"elevation":34,"banking":78,"curb":true},{"x":830,"z":970,"elevation":110,"banking":84,"curb":true},{"x":640,"z":1120,"elevation":172,"banking":82,"curb":true},{"x":240,"z":1180,"elevation":202,"banking":-12},{"x":-220,"z":1060,"elevation":180,"banking":-26,"curb":true},{"x":-610,"z":820,"elevation":126,"banking":-38,"curb":true},{"x":-900,"z":520,"elevation":94,"banking":28,"curb":true},{"x":-1020,"z":110,"elevation":72,"banking":-30,"curb":true},{"x":-890,"z":-300,"elevation":78,"banking":28,"curb":true},{"x":-600,"z":-620,"elevation":96,"banking":-22,"curb":true},{"x":-260,"z":-790,"elevation":98,"banking":-10}
   ],
-  "turns": [{"number":1,"at":0.14,"name":"Red Cut","type":"hairpin"},{"number":2,"at":0.39,"name":"Sun Needle","type":"hairpin"},{"number":3,"at":0.69,"name":"Echo Bowl","type":"hairpin"}],
-  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
-  "distanceMarkers": [{"at":0.24,"label":"2"},{"at":0.5,"label":"3"},{"at":0.76,"label":"4"}],
-  "racingLine": [{"at":0,"lateral":2},{"at":0.16,"lateral":-2.7},{"at":0.38,"lateral":2.5},{"at":0.6,"lateral":-2.4},{"at":0.81,"lateral":2}],
-  "features": [{"type":"dash","at":0.07,"lateral":0},{"type":"pit","at":0.34,"lateral":2},{"type":"ramp","at":0.55,"lateral":-1},{"type":"split","at":0.86,"name":"Dry wash"}],
-  "pickups": [{"at":0.12,"lateral":-2},{"at":0.27,"lateral":2},{"at":0.45,"lateral":-1},{"at":0.62,"lateral":2},{"at":0.77,"lateral":-2},{"at":0.91,"lateral":0}]
+  "turns":[
+    {"number":1,"at":0.1,"name":"Red Cut","type":"hairpin"},{"number":2,"at":0.24,"name":"Sun Needle Wall","type":"wall"},{"number":3,"at":0.39,"name":"Sawtooth Loop","type":"loop"},{"number":4,"at":0.58,"name":"Heat Haze Corkscrew","type":"corkscrew"},{"number":5,"at":0.77,"name":"Echo Bowl Hairpin","type":"hairpin"},{"number":6,"at":0.9,"name":"Dry Wash Drop","type":"dive"}
+  ],
+  "sectors":[{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers":[{"at":0.08,"label":"3"},{"at":0.11,"label":"2"},{"at":0.14,"label":"1"},{"at":0.75,"label":"BRAKE"}],
+  "racingLine":[{"at":0,"lateral":3},{"at":0.13,"lateral":-4},{"at":0.28,"lateral":3.8},{"at":0.45,"lateral":-3.7},{"at":0.63,"lateral":3.2},{"at":0.8,"lateral":-3},{"at":0.94,"lateral":2}],
+  "rails":[{"from":0.05,"to":0.15,"side":1,"name":"sun charge rail"},{"from":0.34,"to":0.47,"side":-1,"name":"needle charger"},{"from":0.73,"to":0.87,"side":1,"name":"dry wash rail"}],
+  "features":[{"type":"dash","at":0.06,"lateral":0},{"type":"pit","at":0.22,"lateral":-5},{"type":"ramp","at":0.4,"lateral":1.2},{"type":"dash","at":0.56,"lateral":0},{"type":"pit","at":0.71,"lateral":5},{"type":"ramp","at":0.9,"lateral":-1.2}],
+  "pickups":[{"at":0.12,"lateral":-3.3},{"at":0.27,"lateral":3.3},{"at":0.43,"lateral":-1},{"at":0.59,"lateral":3.3},{"at":0.76,"lateral":-3.3},{"at":0.92,"lateral":0}]
 }

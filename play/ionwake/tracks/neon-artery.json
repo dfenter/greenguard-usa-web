@@ -1,28 +1,15 @@
 {
-  "version": 1,
-  "id": "neon-artery",
-  "name": "Neon Artery",
-  "theme": "night-city",
-  "timeOfDay": "night",
-  "width": 13,
-  "sampleCount": 144,
-  "signature": "Dense elevated city chicanes beneath moving holo boards",
-  "controlPoints": [
-    {"x":-10,"z":-94,"elevation":12,"banking":0,"curb":false},
-    {"x":74,"z":-91,"elevation":14,"banking":-12,"curb":true},
-    {"x":111,"z":-35,"elevation":18,"banking":22,"curb":true},
-    {"x":38,"z":-2,"elevation":21,"banking":-18,"curb":true},
-    {"x":112,"z":42,"elevation":24,"banking":19,"curb":true},
-    {"x":68,"z":98,"elevation":19,"banking":-20,"curb":true},
-    {"x":-42,"z":112,"elevation":17,"banking":-6,"curb":false},
-    {"x":-109,"z":64,"elevation":23,"banking":24,"curb":true},
-    {"x":-48,"z":18,"elevation":26,"banking":-22,"curb":true},
-    {"x":-116,"z":-35,"elevation":15,"banking":12,"curb":true}
+  "version":1,"id":"neon-artery","name":"Neon Artery","width":14,"sampleCount":256,"frame":"transport","theme":"night-city","timeOfDay":"night",
+  "controlPoints":[
+    {"x":-120,"z":-680,"elevation":48,"banking":0},{"x":360,"z":-700,"elevation":60,"banking":-18,"curb":true},{"x":680,"z":-520,"elevation":82,"banking":24,"curb":true},{"x":780,"z":-300,"elevation":98,"banking":34,"curb":true},{"x":680,"z":-80,"elevation":115,"banking":-26,"curb":true},{"x":840,"z":120,"elevation":142,"banking":30,"curb":true},{"x":680,"z":300,"elevation":164,"banking":-28,"curb":true},{"x":780,"z":480,"elevation":168,"banking":38,"curb":true},{"x":780,"z":660,"elevation":64,"banking":75,"curb":true},{"x":780,"z":840,"elevation":64,"banking":88,"curb":true},{"x":710,"z":1010,"elevation":130,"banking":86,"curb":true},{"x":400,"z":1100,"elevation":178,"banking":-16},{"x":20,"z":1030,"elevation":148,"banking":-34,"curb":true},{"x":-380,"z":820,"elevation":104,"banking":-18},{"x":-760,"z":500,"elevation":72,"banking":22,"curb":true},{"x":-900,"z":100,"elevation":52,"banking":-26,"curb":true},{"x":-780,"z":-300,"elevation":46,"banking":22,"curb":true},{"x":-490,"z":-590,"elevation":54,"banking":-20,"curb":true},{"x":-140,"z":-760,"elevation":60,"banking":-8}
   ],
-  "turns": [{"number":1,"at":0.15,"name":"Signal Teeth","type":"chicane"},{"number":2,"at":0.42,"name":"Data Hook","type":"chicane"},{"number":3,"at":0.76,"name":"Skyline Fold","type":"hairpin"}],
-  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
-  "distanceMarkers": [{"at":0.23,"label":"2"},{"at":0.51,"label":"3"},{"at":0.79,"label":"4"}],
-  "racingLine": [{"at":0,"lateral":-1.7},{"at":0.14,"lateral":2.4},{"at":0.32,"lateral":-2.3},{"at":0.54,"lateral":2.2},{"at":0.77,"lateral":-2.2},{"at":0.92,"lateral":1}],
-  "features": [{"type":"pit","at":0.1,"lateral":-2},{"type":"dash","at":0.25,"lateral":0},{"type":"ramp","at":0.58,"lateral":1},{"type":"split","at":0.7,"name":"Market flyover"}],
-  "pickups": [{"at":0.13,"lateral":2},{"at":0.29,"lateral":-2},{"at":0.43,"lateral":0},{"at":0.59,"lateral":2},{"at":0.76,"lateral":-2},{"at":0.92,"lateral":0}]
+  "turns":[
+    {"number":1,"at":0.11,"name":"Signal Teeth","type":"chicane"},{"number":2,"at":0.26,"name":"Data Wall","type":"wall"},{"number":3,"at":0.43,"name":"Skyline Corkscrew","type":"corkscrew"},{"number":4,"at":0.62,"name":"Artery Loop","type":"loop"},{"number":5,"at":0.79,"name":"Market Hairpin","type":"hairpin"}
+  ],
+  "sectors":[{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers":[{"at":0.08,"label":"3"},{"at":0.11,"label":"2"},{"at":0.14,"label":"1"},{"at":0.77,"label":"BRAKE"}],
+  "racingLine":[{"at":0,"lateral":-2.4},{"at":0.13,"lateral":3.4},{"at":0.27,"lateral":-3.4},{"at":0.44,"lateral":3.3},{"at":0.62,"lateral":-3.1},{"at":0.8,"lateral":2.8},{"at":0.93,"lateral":-1.8}],
+  "rails":[{"from":0.04,"to":0.13,"side":-1,"name":"market charge rail"},{"from":0.35,"to":0.48,"side":1,"name":"skyline charger"},{"from":0.72,"to":0.86,"side":-1,"name":"artery edge rail"}],
+  "features":[{"type":"pit","at":0.09,"lateral":-4.4},{"type":"dash","at":0.2,"lateral":0},{"type":"ramp","at":0.37,"lateral":1},{"type":"dash","at":0.55,"lateral":0},{"type":"pit","at":0.69,"lateral":4.4},{"type":"ramp","at":0.89,"lateral":-1}],
+  "pickups":[{"at":0.12,"lateral":3},{"at":0.26,"lateral":-3},{"at":0.4,"lateral":0},{"at":0.57,"lateral":3},{"at":0.74,"lateral":-3},{"at":0.91,"lateral":0}]
 }

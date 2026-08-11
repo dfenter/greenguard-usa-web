@@ -54,3 +54,20 @@ Deferred:
 
 - In-browser smoke test and 4x-throttle median could not run in this sandbox. The local preview server was blocked from binding, and no browser connection was available.
 - Audio is intentionally compact synthesized WAV data for the offline payload. A longer authored soundtrack pass can replace the two stem motifs without changing the GGKit routing.
+
+## Fix round 2 (owner rejection, 2026-08-11)
+
+Owner verdicts addressed: title-side anti-grav machine kit in
+machines.js (hover hulls, thruster glow, repulsor pods, no wheels;
+engine GT meshes hidden), corner physics tightened so a full-throttle
+no-steer run burns its energy and finishes last (verified: energy 0,
+stability 0, P8 still on lap 1), physical rival contact (impulse
+shove, speed scrub, energy drain, sparks; contactCount in the
+window.__iw hook), all 9 tracks rebuilt at 3x+ length on transport
+frames with named set pieces per track (loops, corkscrews, vertical
+walls, dives; see turns metadata), glowing charge rails (rails list
+per track, drawn on the track map), dash plates, jump ramps, and a
+harder cup ramp. New state fields: stability, contactCount,
+onChargeRail. The implement lane lost its network connection during
+final reporting; Fable verified and finished the round (this note,
+frame validation on all 9 tracks).

@@ -1,27 +1,15 @@
 {
-  "version": 1,
-  "id": "cinder-highroad",
-  "name": "Cinder Highroad",
-  "theme": "desert",
-  "timeOfDay": "dusk",
-  "width": 15,
-  "sampleCount": 144,
-  "signature": "Canyon high-road with a jump gap and hot wind",
-  "controlPoints": [
-    {"x":-20,"z":-108,"elevation":34,"banking":0,"curb":false},
-    {"x":84,"z":-90,"elevation":39,"banking":9,"curb":true},
-    {"x":145,"z":-27,"elevation":42,"banking":28,"curb":true},
-    {"x":95,"z":42,"elevation":48,"banking":-20,"curb":true},
-    {"x":148,"z":114,"elevation":54,"banking":-8,"curb":false},
-    {"x":28,"z":139,"elevation":44,"banking":-24,"curb":true},
-    {"x":-98,"z":112,"elevation":29,"banking":-10,"curb":false},
-    {"x":-150,"z":28,"elevation":24,"banking":18,"curb":true},
-    {"x":-115,"z":-67,"elevation":28,"banking":-18,"curb":true}
+  "version":1,"id":"cinder-highroad","name":"Cinder Highroad","width":16,"sampleCount":256,"frame":"transport","theme":"desert","timeOfDay":"dusk",
+  "controlPoints":[
+    {"x":-180,"z":-720,"elevation":64,"banking":0},{"x":360,"z":-700,"elevation":78,"banking":12,"curb":true},{"x":760,"z":-470,"elevation":96,"banking":28,"curb":true},{"x":900,"z":-80,"elevation":112,"banking":34,"curb":true},{"x":820,"z":240,"elevation":128,"banking":22,"curb":true},{"x":820,"z":430,"elevation":42,"banking":48,"curb":true},{"x":760,"z":620,"elevation":42,"banking":58,"curb":true},{"x":820,"z":810,"elevation":120,"banking":78,"curb":true},{"x":720,"z":970,"elevation":188,"banking":72,"curb":true},{"x":470,"z":1030,"elevation":214,"banking":-18},{"x":80,"z":940,"elevation":184,"banking":-34,"curb":true},{"x":-380,"z":760,"elevation":126,"banking":-26,"curb":true},{"x":-820,"z":460,"elevation":68,"banking":18,"curb":true},{"x":-960,"z":20,"elevation":28,"banking":-24,"curb":true},{"x":-820,"z":-400,"elevation":46,"banking":20,"curb":true},{"x":-500,"z":-680,"elevation":92,"banking":-22,"curb":true},{"x":-120,"z":-820,"elevation":110,"banking":-12}
   ],
-  "turns": [{"number":1,"at":0.16,"name":"Ashpin","type":"hairpin"},{"number":2,"at":0.46,"name":"Gapfall","type":"jump"},{"number":3,"at":0.75,"name":"Cinder Bowl","type":"sweeper"}],
-  "sectors": [{"id":1,"at":0},{"id":2,"at":0.33},{"id":3,"at":0.66}],
-  "distanceMarkers": [{"at":0.22,"label":"2"},{"at":0.49,"label":"3"},{"at":0.78,"label":"4"}],
-  "racingLine": [{"at":0,"lateral":-1},{"at":0.16,"lateral":2.8},{"at":0.38,"lateral":-2.4},{"at":0.55,"lateral":1.8},{"at":0.78,"lateral":-1.7}],
-  "features": [{"type":"pit","at":0.09,"lateral":2},{"type":"dash","at":0.31,"lateral":0},{"type":"ramp","at":0.48,"lateral":0},{"type":"split","at":0.62,"name":"Canyon underpass"}],
-  "pickups": [{"at":0.14,"lateral":-2},{"at":0.29,"lateral":2},{"at":0.42,"lateral":0},{"at":0.6,"lateral":-2},{"at":0.74,"lateral":2},{"at":0.9,"lateral":0}]
+  "turns":[
+    {"number":1,"at":0.13,"name":"Ashpin Hairpin","type":"hairpin"},{"number":2,"at":0.27,"name":"Cinder Wall Run","type":"wall"},{"number":3,"at":0.41,"name":"Gapfall Superdrop","type":"dive"},{"number":4,"at":0.58,"name":"Sunwheel Corkscrew","type":"corkscrew"},{"number":5,"at":0.79,"name":"Basin Chicane","type":"chicane"}
+  ],
+  "sectors":[{"id":1,"at":0},{"id":2,"at":0.33},{"id":3,"at":0.66}],
+  "distanceMarkers":[{"at":0.1,"label":"3"},{"at":0.13,"label":"2"},{"at":0.16,"label":"1"},{"at":0.74,"label":"BRAKE"}],
+  "racingLine":[{"at":0,"lateral":-2.4},{"at":0.15,"lateral":3.9},{"at":0.32,"lateral":-3.6},{"at":0.5,"lateral":3.4},{"at":0.68,"lateral":-3.2},{"at":0.86,"lateral":2.6}],
+  "rails":[{"from":0.05,"to":0.16,"side":1,"name":"amber canyon rail"},{"from":0.38,"to":0.49,"side":-1,"name":"drop charge rail"},{"from":0.72,"to":0.84,"side":1,"name":"cinder edge charger"}],
+  "features":[{"type":"pit","at":0.1,"lateral":-5.2},{"type":"dash","at":0.22,"lateral":0},{"type":"ramp","at":0.4,"lateral":1.2},{"type":"dash","at":0.56,"lateral":0},{"type":"pit","at":0.68,"lateral":5.2},{"type":"ramp","at":0.9,"lateral":-1.5}],
+  "pickups":[{"at":0.14,"lateral":-3},{"at":0.26,"lateral":3},{"at":0.41,"lateral":0},{"at":0.58,"lateral":-3},{"at":0.74,"lateral":3},{"at":0.91,"lateral":0}]
 }

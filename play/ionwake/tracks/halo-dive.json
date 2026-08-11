@@ -1,27 +1,15 @@
 {
-  "version": 1,
-  "id": "halo-dive",
-  "name": "Halo Dive",
-  "theme": "alpine",
-  "timeOfDay": "dusk",
-  "width": 15,
-  "sampleCount": 144,
-  "signature": "High ridge crest into a long elevation dive",
-  "controlPoints": [
-    {"x":-8,"z":-106,"elevation":72,"banking":4,"curb":false},
-    {"x":96,"z":-82,"elevation":79,"banking":18,"curb":true},
-    {"x":131,"z":-12,"elevation":91,"banking":27,"curb":true},
-    {"x":94,"z":55,"elevation":84,"banking":-20,"curb":true},
-    {"x":18,"z":126,"elevation":45,"banking":-10,"curb":false},
-    {"x":-83,"z":124,"elevation":26,"banking":-18,"curb":true},
-    {"x":-140,"z":52,"elevation":18,"banking":21,"curb":true},
-    {"x":-114,"z":-37,"elevation":35,"banking":-26,"curb":true},
-    {"x":-57,"z":-100,"elevation":64,"banking":8,"curb":false}
+  "version":1,"id":"halo-dive","name":"Halo Dive","width":16,"sampleCount":256,"frame":"transport","theme":"alpine","timeOfDay":"dusk",
+  "controlPoints":[
+    {"x":-120,"z":-820,"elevation":210,"banking":8},{"x":390,"z":-780,"elevation":232,"banking":24,"curb":true},{"x":760,"z":-560,"elevation":246,"banking":38,"curb":true},{"x":900,"z":-220,"elevation":252,"banking":54,"curb":true},{"x":860,"z":40,"elevation":244,"banking":64,"curb":true},{"x":850,"z":210,"elevation":256,"banking":82,"curb":true},{"x":850,"z":410,"elevation":256,"banking":92,"curb":true},{"x":790,"z":600,"elevation":188,"banking":94,"curb":true},{"x":700,"z":790,"elevation":72,"banking":76,"curb":true},{"x":470,"z":930,"elevation":34,"banking":-14},{"x":100,"z":990,"elevation":56,"banking":-28,"curb":true},{"x":-320,"z":900,"elevation":94,"banking":-34,"curb":true},{"x":-700,"z":650,"elevation":146,"banking":-42,"curb":true},{"x":-900,"z":280,"elevation":174,"banking":20,"curb":true},{"x":-1000,"z":-120,"elevation":188,"banking":-26,"curb":true},{"x":-850,"z":-520,"elevation":196,"banking":22,"curb":true},{"x":-540,"z":-760,"elevation":208,"banking":-20,"curb":true},{"x":-200,"z":-880,"elevation":216,"banking":-8}
   ],
-  "turns": [{"number":1,"at":0.15,"name":"Halo Crest","type":"sweeper"},{"number":2,"at":0.42,"name":"Long Fall","type":"dive"},{"number":3,"at":0.78,"name":"Snowglass","type":"hairpin"}],
-  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
-  "distanceMarkers": [{"at":0.24,"label":"2"},{"at":0.5,"label":"3"},{"at":0.76,"label":"4"}],
-  "racingLine": [{"at":0,"lateral":-1.5},{"at":0.2,"lateral":2.5},{"at":0.44,"lateral":-2},{"at":0.66,"lateral":2.2},{"at":0.87,"lateral":-1.5}],
-  "features": [{"type":"pit","at":0.12,"lateral":2},{"type":"ramp","at":0.28,"lateral":0},{"type":"dash","at":0.5,"lateral":0},{"type":"split","at":0.73,"name":"Cloud shelf"}],
-  "pickups": [{"at":0.1,"lateral":-2},{"at":0.23,"lateral":2},{"at":0.39,"lateral":0},{"at":0.56,"lateral":-2},{"at":0.72,"lateral":2},{"at":0.9,"lateral":0}]
+  "turns":[
+    {"number":1,"at":0.12,"name":"Halo Crest","type":"banked"},{"number":2,"at":0.28,"name":"North Wall","type":"wall"},{"number":3,"at":0.43,"name":"Cloudring Loop","type":"loop"},{"number":4,"at":0.61,"name":"Long Fall","type":"dive"},{"number":5,"at":0.8,"name":"Snowglass Chicane","type":"chicane"},{"number":6,"at":0.92,"name":"Ridge Corkscrew","type":"corkscrew"}
+  ],
+  "sectors":[{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers":[{"at":0.1,"label":"3"},{"at":0.13,"label":"2"},{"at":0.16,"label":"1"},{"at":0.57,"label":"DROP"}],
+  "racingLine":[{"at":0,"lateral":-2.8},{"at":0.15,"lateral":4},{"at":0.31,"lateral":-3.7},{"at":0.48,"lateral":3.4},{"at":0.66,"lateral":-3.2},{"at":0.84,"lateral":2.7}],
+  "rails":[{"from":0.06,"to":0.17,"side":-1,"name":"halo charge rail"},{"from":0.39,"to":0.51,"side":1,"name":"cloudring charger"},{"from":0.74,"to":0.88,"side":-1,"name":"snowglass rail"}],
+  "features":[{"type":"pit","at":0.11,"lateral":5.2},{"type":"ramp","at":0.28,"lateral":0},{"type":"dash","at":0.45,"lateral":0},{"type":"pit","at":0.63,"lateral":-5.2},{"type":"dash","at":0.79,"lateral":0},{"type":"ramp","at":0.94,"lateral":1}],
+  "pickups":[{"at":0.1,"lateral":-3.2},{"at":0.23,"lateral":3.2},{"at":0.4,"lateral":0},{"at":0.57,"lateral":-3.2},{"at":0.73,"lateral":3.2},{"at":0.9,"lateral":0}]
 }

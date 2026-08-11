@@ -1,27 +1,15 @@
 {
-  "version": 1,
-  "id": "blackline-crest",
-  "name": "Blackline Crest",
-  "theme": "alpine",
-  "timeOfDay": "night",
-  "width": 14,
-  "sampleCount": 144,
-  "signature": "Frozen ridge split route with an over-under crest",
-  "controlPoints": [
-    {"x":0,"z":-118,"elevation":54,"banking":0,"curb":false},
-    {"x":104,"z":-89,"elevation":56,"banking":14,"curb":true},
-    {"x":139,"z":-20,"elevation":61,"banking":28,"curb":true},
-    {"x":78,"z":37,"elevation":68,"banking":-24,"curb":true},
-    {"x":118,"z":108,"elevation":74,"banking":10,"curb":false},
-    {"x":4,"z":142,"elevation":81,"banking":-19,"curb":true},
-    {"x":-103,"z":99,"elevation":73,"banking":-6,"curb":false},
-    {"x":-145,"z":8,"elevation":60,"banking":25,"curb":true},
-    {"x":-80,"z":-63,"elevation":57,"banking":-28,"curb":true}
+  "version":1,"id":"blackline-crest","name":"Blackline Crest","width":17,"sampleCount":256,"frame":"transport","theme":"alpine","timeOfDay":"night",
+  "controlPoints":[
+    {"x":0,"z":-900,"elevation":188,"banking":0},{"x":520,"z":-820,"elevation":204,"banking":20,"curb":true},{"x":880,"z":-560,"elevation":228,"banking":36,"curb":true},{"x":1020,"z":-180,"elevation":246,"banking":48,"curb":true},{"x":960,"z":180,"elevation":264,"banking":62,"curb":true},{"x":880,"z":360,"elevation":264,"banking":90,"curb":true},{"x":880,"z":560,"elevation":196,"banking":92,"curb":true},{"x":820,"z":760,"elevation":196,"banking":100,"curb":true},{"x":890,"z":960,"elevation":278,"banking":74,"curb":true},{"x":640,"z":1120,"elevation":336,"banking":42,"curb":true},{"x":240,"z":1180,"elevation":372,"banking":16},{"x":-220,"z":1060,"elevation":348,"banking":-18,"curb":true},{"x":-620,"z":820,"elevation":282,"banking":-34,"curb":true},{"x":-940,"z":500,"elevation":224,"banking":-48,"curb":true},{"x":-1080,"z":100,"elevation":196,"banking":-58,"curb":true},{"x":-980,"z":-340,"elevation":212,"banking":-46,"curb":true},{"x":-720,"z":-670,"elevation":232,"banking":-28,"curb":true},{"x":-360,"z":-860,"elevation":208,"banking":-14}
   ],
-  "turns": [{"number":1,"at":0.17,"name":"Darkpin","type":"hairpin"},{"number":2,"at":0.48,"name":"Crest Split","type":"split"},{"number":3,"at":0.81,"name":"Black Sweep","type":"banked"}],
-  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
-  "distanceMarkers": [{"at":0.25,"label":"2"},{"at":0.5,"label":"3"},{"at":0.75,"label":"4"}],
-  "racingLine": [{"at":0,"lateral":1.4},{"at":0.19,"lateral":-2.6},{"at":0.42,"lateral":2.4},{"at":0.63,"lateral":-2.2},{"at":0.84,"lateral":1.7}],
-  "features": [{"type":"dash","at":0.1,"lateral":0},{"type":"pit","at":0.37,"lateral":-2},{"type":"ramp","at":0.49,"lateral":1},{"type":"split","at":0.49,"name":"Over-crest bypass"}],
-  "pickups": [{"at":0.15,"lateral":-2},{"at":0.3,"lateral":2},{"at":0.46,"lateral":0},{"at":0.61,"lateral":-2},{"at":0.75,"lateral":2},{"at":0.9,"lateral":0}]
+  "turns":[
+    {"number":1,"at":0.11,"name":"Darkpin","type":"hairpin"},{"number":2,"at":0.25,"name":"Crest Split","type":"split"},{"number":3,"at":0.39,"name":"Blackline Loop","type":"loop"},{"number":4,"at":0.53,"name":"Over-Crest Corkscrew","type":"corkscrew"},{"number":5,"at":0.7,"name":"Knife-Edge Wall","type":"wall"},{"number":6,"at":0.86,"name":"Abyss Dive","type":"dive"}
+  ],
+  "sectors":[{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers":[{"at":0.08,"label":"3"},{"at":0.11,"label":"2"},{"at":0.14,"label":"1"},{"at":0.82,"label":"BRAKE"}],
+  "racingLine":[{"at":0,"lateral":2.8},{"at":0.14,"lateral":-4.2},{"at":0.3,"lateral":3.9},{"at":0.47,"lateral":-3.8},{"at":0.64,"lateral":3.5},{"at":0.81,"lateral":-3.1},{"at":0.94,"lateral":2}],
+  "rails":[{"from":0.04,"to":0.14,"side":-1,"name":"blackline charge edge"},{"from":0.36,"to":0.5,"side":1,"name":"crest battery rail"},{"from":0.74,"to":0.88,"side":-1,"name":"abyss charger"}],
+  "features":[{"type":"dash","at":0.09,"lateral":0},{"type":"pit","at":0.23,"lateral":-5.6},{"type":"ramp","at":0.4,"lateral":1.4},{"type":"split","at":0.5,"name":"over-crest bypass"},{"type":"dash","at":0.61,"lateral":0},{"type":"pit","at":0.76,"lateral":5.6},{"type":"ramp","at":0.9,"lateral":-1}],
+  "pickups":[{"at":0.13,"lateral":-3.4},{"at":0.27,"lateral":3.4},{"at":0.41,"lateral":0},{"at":0.58,"lateral":-3.4},{"at":0.74,"lateral":3.4},{"at":0.9,"lateral":0}]
 }

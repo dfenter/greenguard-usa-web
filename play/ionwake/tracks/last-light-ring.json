@@ -1,27 +1,15 @@
 {
-  "version": 1,
-  "id": "last-light-ring",
-  "name": "Last Light Ring",
-  "theme": "night-city",
-  "timeOfDay": "night",
-  "width": 16,
-  "sampleCount": 144,
-  "signature": "Final orbital ring with a cathedral dive and launch rail",
-  "controlPoints": [
-    {"x":0,"z":-135,"elevation":91,"banking":11,"curb":false},
-    {"x":101,"z":-100,"elevation":94,"banking":24,"curb":true},
-    {"x":151,"z":-19,"elevation":97,"banking":36,"curb":true},
-    {"x":106,"z":75,"elevation":90,"banking":29,"curb":true},
-    {"x":15,"z":142,"elevation":68,"banking":-12,"curb":false},
-    {"x":-93,"z":119,"elevation":45,"banking":-21,"curb":true},
-    {"x":-152,"z":27,"elevation":42,"banking":24,"curb":true},
-    {"x":-113,"z":-76,"elevation":63,"banking":-27,"curb":true},
-    {"x":-47,"z":-127,"elevation":84,"banking":-7,"curb":false}
+  "version":1,"id":"last-light-ring","name":"Last Light Ring","width":18,"sampleCount":256,"frame":"transport","theme":"night-city","timeOfDay":"night",
+  "controlPoints":[
+    {"x":0,"z":-980,"elevation":270,"banking":14},{"x":540,"z":-900,"elevation":286,"banking":30,"curb":true},{"x":900,"z":-650,"elevation":302,"banking":48,"curb":true},{"x":1080,"z":-260,"elevation":320,"banking":64,"curb":true},{"x":1020,"z":140,"elevation":338,"banking":78,"curb":true},{"x":930,"z":350,"elevation":338,"banking":100,"curb":true},{"x":930,"z":560,"elevation":256,"banking":108,"curb":true},{"x":850,"z":760,"elevation":256,"banking":112,"curb":true},{"x":940,"z":970,"elevation":342,"banking":88,"curb":true},{"x":760,"z":1140,"elevation":414,"banking":54,"curb":true},{"x":360,"z":1250,"elevation":462,"banking":28},{"x":-100,"z":1200,"elevation":448,"banking":-12},{"x":-520,"z":1000,"elevation":390,"banking":-28,"curb":true},{"x":-860,"z":700,"elevation":324,"banking":-44,"curb":true},{"x":-1080,"z":300,"elevation":286,"banking":-60,"curb":true},{"x":-1160,"z":-120,"elevation":278,"banking":-52,"curb":true},{"x":-1030,"z":-540,"elevation":302,"banking":-38,"curb":true},{"x":-720,"z":-830,"elevation":326,"banking":-24,"curb":true},{"x":-340,"z":-1000,"elevation":292,"banking":-8}
   ],
-  "turns": [{"number":1,"at":0.13,"name":"Last Light Arc","type":"sweeper"},{"number":2,"at":0.47,"name":"Cathedral Dive","type":"dive"},{"number":3,"at":0.79,"name":"Launch Rail","type":"hairpin"}],
-  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
-  "distanceMarkers": [{"at":0.25,"label":"2"},{"at":0.5,"label":"3"},{"at":0.75,"label":"4"}],
-  "racingLine": [{"at":0,"lateral":2},{"at":0.19,"lateral":-2.6},{"at":0.45,"lateral":1.8},{"at":0.65,"lateral":-2.6},{"at":0.87,"lateral":1.5}],
-  "features": [{"type":"dash","at":0.05,"lateral":0},{"type":"pit","at":0.33,"lateral":3},{"type":"ramp","at":0.58,"lateral":0},{"type":"split","at":0.73,"name":"Cathedral lower deck"}],
-  "pickups": [{"at":0.12,"lateral":-2},{"at":0.25,"lateral":2},{"at":0.4,"lateral":0},{"at":0.56,"lateral":-2},{"at":0.72,"lateral":2},{"at":0.9,"lateral":0}]
+  "turns":[
+    {"number":1,"at":0.1,"name":"Last Light Arc","type":"banked"},{"number":2,"at":0.23,"name":"Cathedral Wall","type":"wall"},{"number":3,"at":0.38,"name":"Halo Loop","type":"loop"},{"number":4,"at":0.53,"name":"Cathedral Corkscrew","type":"corkscrew"},{"number":5,"at":0.69,"name":"Near-Vertical Cathedral Dive","type":"dive"},{"number":6,"at":0.82,"name":"Launch Rail Hairpin","type":"hairpin"},{"number":7,"at":0.93,"name":"Final Gravity Chicane","type":"chicane"}
+  ],
+  "sectors":[{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers":[{"at":0.08,"label":"3"},{"at":0.11,"label":"2"},{"at":0.14,"label":"1"},{"at":0.67,"label":"DROP"},{"at":0.8,"label":"BRAKE"}],
+  "racingLine":[{"at":0,"lateral":3.2},{"at":0.13,"lateral":-4.4},{"at":0.29,"lateral":4.2},{"at":0.46,"lateral":-4},{"at":0.63,"lateral":3.7},{"at":0.8,"lateral":-3.5},{"at":0.94,"lateral":2.3}],
+  "rails":[{"from":0.04,"to":0.15,"side":-1,"name":"last light charge rail"},{"from":0.37,"to":0.51,"side":1,"name":"cathedral battery rail"},{"from":0.72,"to":0.88,"side":-1,"name":"launch edge charger"}],
+  "features":[{"type":"dash","at":0.05,"lateral":0},{"type":"pit","at":0.2,"lateral":-5.9},{"type":"ramp","at":0.38,"lateral":1.5},{"type":"dash","at":0.56,"lateral":0},{"type":"pit","at":0.7,"lateral":5.9},{"type":"ramp","at":0.83,"lateral":-1.4},{"type":"dash","at":0.94,"lateral":0}],
+  "pickups":[{"at":0.11,"lateral":-3.6},{"at":0.25,"lateral":3.6},{"at":0.4,"lateral":0},{"at":0.57,"lateral":-3.6},{"at":0.73,"lateral":3.6},{"at":0.9,"lateral":0}]
 }

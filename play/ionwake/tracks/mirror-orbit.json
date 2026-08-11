@@ -1,27 +1,15 @@
 {
-  "version": 1,
-  "id": "mirror-orbit",
-  "name": "Mirror Orbit",
-  "theme": "night-city",
-  "timeOfDay": "dusk",
-  "width": 16,
-  "sampleCount": 144,
-  "signature": "Orbital ring with a long banked outer sweeper",
-  "controlPoints": [
-    {"x":0,"z":-126,"elevation":62,"banking":12,"curb":false},
-    {"x":91,"z":-94,"elevation":63,"banking":22,"curb":true},
-    {"x":139,"z":-14,"elevation":66,"banking":31,"curb":true},
-    {"x":112,"z":82,"elevation":71,"banking":36,"curb":true},
-    {"x":28,"z":132,"elevation":75,"banking":28,"curb":false},
-    {"x":-76,"z":113,"elevation":72,"banking":17,"curb":false},
-    {"x":-139,"z":36,"elevation":68,"banking":-4,"curb":true},
-    {"x":-118,"z":-63,"elevation":64,"banking":-22,"curb":true},
-    {"x":-56,"z":-118,"elevation":62,"banking":-10,"curb":false}
+  "version":1,"id":"mirror-orbit","name":"Mirror Orbit","width":17,"sampleCount":256,"frame":"transport","theme":"night-city","timeOfDay":"dusk",
+  "controlPoints":[
+    {"x":-40,"z":-820,"elevation":92,"banking":16},{"x":500,"z":-760,"elevation":104,"banking":28,"curb":true},{"x":880,"z":-520,"elevation":122,"banking":42,"curb":true},{"x":1020,"z":-120,"elevation":138,"banking":56,"curb":true},{"x":960,"z":260,"elevation":144,"banking":62,"curb":true},{"x":820,"z":520,"elevation":150,"banking":72,"curb":true},{"x":820,"z":700,"elevation":80,"banking":82,"curb":true},{"x":740,"z":880,"elevation":80,"banking":90,"curb":true},{"x":820,"z":1060,"elevation":150,"banking":70,"curb":true},{"x":640,"z":1210,"elevation":214,"banking":34},{"x":190,"z":1260,"elevation":238,"banking":18},{"x":-300,"z":1130,"elevation":220,"banking":-16,"curb":true},{"x":-720,"z":850,"elevation":166,"banking":-32,"curb":true},{"x":-980,"z":440,"elevation":112,"banking":-46,"curb":true},{"x":-1030,"z":-10,"elevation":86,"banking":-52,"curb":true},{"x":-900,"z":-470,"elevation":100,"banking":-40,"curb":true},{"x":-590,"z":-760,"elevation":128,"banking":-28,"curb":true},{"x":-180,"z":-900,"elevation":104,"banking":-12}
   ],
-  "turns": [{"number":1,"at":0.14,"name":"Lumen Arc","type":"sweeper"},{"number":2,"at":0.45,"name":"Gravity Bowl","type":"banked"},{"number":3,"at":0.77,"name":"Mirror Hairpin","type":"hairpin"}],
-  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.68}],
-  "distanceMarkers": [{"at":0.25,"label":"2"},{"at":0.5,"label":"3"},{"at":0.75,"label":"4"}],
-  "racingLine": [{"at":0,"lateral":2.2},{"at":0.22,"lateral":-2.7},{"at":0.48,"lateral":1.4},{"at":0.7,"lateral":-2.3},{"at":0.92,"lateral":1.5}],
-  "features": [{"type":"dash","at":0.06,"lateral":0},{"type":"pit","at":0.3,"lateral":3},{"type":"ramp","at":0.63,"lateral":-1},{"type":"split","at":0.82,"name":"Outer rail"}],
-  "pickups": [{"at":0.11,"lateral":-2},{"at":0.24,"lateral":2},{"at":0.4,"lateral":0},{"at":0.56,"lateral":-2},{"at":0.71,"lateral":2},{"at":0.88,"lateral":0}]
+  "turns":[
+    {"number":1,"at":0.12,"name":"Lumen Arc","type":"banked"},{"number":2,"at":0.26,"name":"Mirror Wall","type":"wall"},{"number":3,"at":0.4,"name":"Orbit Loop","type":"loop"},{"number":4,"at":0.61,"name":"Prism Corkscrew","type":"corkscrew"},{"number":5,"at":0.82,"name":"Glassknife Hairpin","type":"hairpin"}
+  ],
+  "sectors":[{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.68}],
+  "distanceMarkers":[{"at":0.1,"label":"3"},{"at":0.13,"label":"2"},{"at":0.16,"label":"1"},{"at":0.79,"label":"BRAKE"}],
+  "racingLine":[{"at":0,"lateral":2.8},{"at":0.16,"lateral":-4.1},{"at":0.34,"lateral":3.8},{"at":0.51,"lateral":-3.4},{"at":0.7,"lateral":2.9},{"at":0.88,"lateral":-2.7}],
+  "rails":[{"from":0.08,"to":0.2,"side":-1,"name":"mirror charge ribbon"},{"from":0.42,"to":0.54,"side":1,"name":"orbital edge rail"},{"from":0.77,"to":0.9,"side":-1,"name":"glassline charger"}],
+  "features":[{"type":"dash","at":0.07,"lateral":0},{"type":"pit","at":0.24,"lateral":-5.4},{"type":"ramp","at":0.39,"lateral":1.4},{"type":"dash","at":0.58,"lateral":0},{"type":"pit","at":0.72,"lateral":5.4},{"type":"ramp","at":0.93,"lateral":-1.2}],
+  "pickups":[{"at":0.13,"lateral":-3.2},{"at":0.28,"lateral":3.2},{"at":0.43,"lateral":0},{"at":0.59,"lateral":-3.2},{"at":0.75,"lateral":3.2},{"at":0.9,"lateral":0}]
 }
