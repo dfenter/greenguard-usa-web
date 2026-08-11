@@ -402,24 +402,74 @@ class IonwakeApp {
     this.racer = null; this.course = null; this.player = null; this.ghostCraft = null; this.rivals = []; this.sparks = null;
     this.mode = 'title'; this.countdown = 0; this.accumulator = 0; this.simClock = 0; this.viewClock = 0; this.lastTime = 0;
     this.pointerClaims = new Map(); this.previousKeys = new Set(); this.toastText = ''; this.toastTimer = 0; this.landingText = ''; this.tutorialTimer = 0; this.scriptInput = null; this.worldPacket = { carState: {}, rivals: [] };
-    this.sim = { progress: .04, distance: .04, lap: 1, lapTime: 0, totalTime: 0, speed: 0, steering: 0, energy: 100, acceleration: 0, lateral: 0, boost: 0, airborne: 0, jumpQuality: '', contactTimer: 0, scrapeTimer: 0, railTimer: 0, stability: 1, spinTimer: 0, headingOffset: 0, cameraNudge: 0, previousProgress: .04, finished: false };
+    this.sim = { progress: .04, distance: .04, lap: 1, lapTime: 0, totalTime: 0, speed: 0, steering: 0, energy: 100, acceleration: 0, lateral: 0, boost: 0, airborne: 0, jumpQuality: '', contactTimer: 0, scrapeTimer: 0, railTimer: 0, stability: 1, spinTimer: 0, spinStart: 1, spinDirection: 1, wallHold: 0, headingOffset: 0, cameraNudge: 0, previousProgress: .04, finished: false };
     this.raceResult = null; this.ghost = null; this.activeField = 8; this.lastForced = { track: null, cup: null, race: null };
     this.bindInput(); this.resize(); window.addEventListener('resize', () => this.resize());
     this.applyForceSwitches(); this.syncState(); this.render();
   }
 
   bindInput() {
-    sceneCanvas.addEventListener('pointerdown', (event) => {
+    // Window-level and registered after GGKit's own pointerdown handler, so
+    // this runs second and tags the pointer object GGKit just stored. The old
+    // canvas-level listener ran FIRST and its claimed object was immediately
+    // overwritten by GGKit's handler, which is why touch steering was dead.
+    window.addEventListener('pointerdown', (event) => {
+      if (event.target !== sceneCanvas) return;
       const rect = sceneCanvas.getBoundingClientRect();
       const localX = event.clientX - rect.left; const localY = event.clientY - rect.top;
       let pointer = kit.input.pointers.get(event.pointerId);
-      if (!pointer) pointer = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, downAt: performance.now(), zone: 'claimed' };
-      pointer.zone = 'claimed'; pointer.gameZone = this.mode === 'race' || this.mode === 'countdown' ? (localX > rect.width - 148 && localY > rect.height - 118 ? 'boost' : 'steer') : 'menu'; pointer.baseX = localX;
-      kit.input.pointers.set(event.pointerId, pointer); this.pointerClaims.set(event.pointerId, { x: localX, y: localY, zone: pointer.gameZone });
+      if (!pointer) {
+        pointer = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, downAt: performance.now(), zone: 'claimed' };
+        kit.input.pointers.set(event.pointerId, pointer);
+      }
+      pointer.zone = 'claimed'; pointer.gameZone = this.mode === 'race' || this.mode === 'countdown' ? (localX > rect.width - 148 && localY > rect.height - 118 ? 'boost' : 'steer') : 'menu'; pointer.baseX = event.clientX;
+      this.pointerClaims.set(event.pointerId, { x: localX, y: localY, zone: pointer.gameZone });
       if (sceneCanvas.setPointerCapture) { try { sceneCanvas.setPointerCapture(event.pointerId); } catch (e) {} }
     }, { passive: true });
-    sceneCanvas.addEventListener('pointerup', (event) => this.finishPointer(event), { passive: true });
-    sceneCanvas.addEventListener('pointercancel', (event) => this.finishPointer(event), { passive: true });
+    window.addEventListener('pointerup', (event) => this.finishPointer(event), { passive: true });
+    window.addEventListener('pointercancel', (event) => this.finishPointer(event), { passive: true });
+    this.bindTilt();
+  }
+
+  openSettings() {
+    return kit.openSettings();
+  }
+
+  bindTilt() {
+    // Every settings entry point (keyboard O, GGKit pause overlay) gets the
+    // tilt row: wrap the shell once here.
+    const baseOpenSettings = kit.openSettings;
+    kit.openSettings = (extraRows) => baseOpenSettings([...(extraRows || []), (box, row) => {
+      row('Tilt steer', () => this.tiltEnabled, (value) => this.setTilt(value));
+    }]);
+    this.tiltReading = null; this.tiltZero = 0;
+    try { this.tiltEnabled = localStorage.getItem('ionwake-tilt') === '1'; } catch (e) { this.tiltEnabled = false; }
+    this.onTilt = (event) => {
+      const angle = (screen.orientation && Number(screen.orientation.angle)) || 0;
+      // Landscape steering tilt is the device beta axis; the two landscape
+      // orientations are mirrored.
+      let value = angle === 270 || angle === -90 ? -(Number(event.beta) || 0) : (Number(event.beta) || 0);
+      if (angle === 0 || angle === 180) value = Number(event.gamma) || 0;
+      this.tiltReading = value;
+    };
+    if (this.tiltEnabled) window.addEventListener('deviceorientation', this.onTilt, { passive: true });
+  }
+
+  setTilt(enabled) {
+    const apply = (granted) => {
+      this.tiltEnabled = granted;
+      try { localStorage.setItem('ionwake-tilt', granted ? '1' : '0'); } catch (e) {}
+      window.removeEventListener('deviceorientation', this.onTilt);
+      if (granted) {
+        this.tiltZero = null;
+        window.addEventListener('deviceorientation', this.onTilt, { passive: true });
+        this.toast('TILT STEERING ON - HOLD PHONE LEVEL', 1.4);
+      }
+    };
+    if (!enabled) { apply(false); return; }
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then((answer) => apply(answer === 'granted')).catch(() => apply(false));
+    } else apply(true);
   }
 
   finishPointer(event) {
@@ -481,7 +531,7 @@ class IonwakeApp {
       const rival = createMachineKit({ id: MACHINES[(i + 1) % MACHINES.length].id, name: 'AI ' + (i + 1), paint: rivalPalette[i], accent: 0xeaf7ff, scale: .92 });
       this.racer.world.rivals[i].root.add(rival.root); this.rivals.push(rival);
     }
-    this.sim = { progress: .04, distance: .04, lap: 1, lapTime: 0, totalTime: 0, speed: 0, steering: 0, energy: machine.shield, acceleration: 0, lateral: 0, boost: 0, airborne: 0, jumpQuality: '', contactTimer: 0, scrapeTimer: 0, railTimer: 0, stability: 1, spinTimer: 0, headingOffset: 0, cameraNudge: 0, previousProgress: .04, finished: false };
+    this.sim = { progress: .04, distance: .04, lap: 1, lapTime: 0, totalTime: 0, speed: 0, steering: 0, energy: machine.shield, acceleration: 0, lateral: 0, boost: 0, airborne: 0, jumpQuality: '', contactTimer: 0, scrapeTimer: 0, railTimer: 0, stability: 1, spinTimer: 0, spinStart: 1, spinDirection: 1, wallHold: 0, headingOffset: 0, cameraNudge: 0, previousProgress: .04, finished: false };
     this.ai = this.rivals.map((_, i) => ({ progress: wrap01(.04 - (i + 1) * .013), distance: .04 - (i + 1) * .013, speed: 0, lateral: lineLateral(data, .04 - (i + 1) * .013), aggression: .38 + i * .08, skill: .93 + (i % 4) * .022, maxSpeed: MACHINES[(i + 1) % MACHINES.length].top / 3.6, energy: 100, eliminated: false, contactTimer: 0 }));
     this.countdown = 3.15; this.mode = 'countdown'; this.simClock = 0; this.accumulator = 0; this.activeField = 8; this.raceResult = null; this.tutorialTimer = this.save.tutorialDone ? 0 : 5;
     this.toastText = ''; this.toastTimer = 0; kit.audio.resume(); kit.audio.music(this.trackIndex % 2 ? 'stemB' : 'stemA', 320); sfx(kit, 'countdown', { volume: .35 });
@@ -504,10 +554,13 @@ class IonwakeApp {
     if (kit.input.keyDown('ArrowRight') || kit.input.keyDown('KeyD')) steer += 1;
     boost = kit.input.keyDown('Space') || kit.input.keyDown('ShiftLeft') || kit.input.keyDown('KeyX');
     brake = kit.input.keyDown('ArrowDown') || kit.input.keyDown('KeyS');
-    const rect = sceneCanvas.getBoundingClientRect();
     for (const pointer of kit.input.pointers.values()) {
       if (pointer.gameZone === 'boost') boost = true;
       if (pointer.gameZone === 'steer') steer += clamp((pointer.x - pointer.baseX) / 90, -1, 1);
+    }
+    if (this.tiltEnabled && this.tiltReading != null) {
+      if (this.tiltZero == null) this.tiltZero = this.tiltReading;
+      steer += clamp((this.tiltReading - this.tiltZero) / 20, -1, 1);
     }
     return { steer: clamp(steer, -1, 1), boost, brake };
   }
@@ -524,7 +577,9 @@ class IonwakeApp {
     if (this.mode !== 'race' || kit.paused) return;
     this.simClock += dt; this.sim.totalTime += dt; this.sim.lapTime += dt;
     const machine = this.selectedMachine(); const input = this.input(); const data = this.tracks[this.trackIndex] || fallbackTrack(this.trackIndex); const track = this.racer.world.track;
-    const previous = this.sim.progress; const targetSteer = input.steer * machine.handling;
+    const previous = this.sim.progress;
+    const spinning = this.sim.spinTimer > 0;
+    const targetSteer = (spinning ? 0 : input.steer) * machine.handling;
     this.sim.steering += (targetSteer - this.sim.steering) * (1 - Math.exp(-dt * 8));
     const maxSpeed = machine.top / 3.6; const boost = input.boost && this.sim.energy > 2 && this.sim.airborne <= 0;
     const targetSpeed = maxSpeed * (boost ? 1.14 : 1);
@@ -534,41 +589,42 @@ class IonwakeApp {
     if (boost) this.sim.energy = Math.max(0, this.sim.energy - machine.boost * dt); else this.sim.energy = Math.min(machine.shield, this.sim.energy);
     const challenge = trackChallenge(track, this.sim.progress);
     const speedRatio = clamp(this.sim.speed / Math.max(1, maxSpeed), 0, 1);
-    const directionalSteer = this.sim.steering * challenge.sign;
-    const steeringMatch = challenge.demand < .14 ? 1 : clamp(directionalSteer / Math.max(.24, challenge.demand * (.56 + speedRatio * .42)), 0, 1);
-    if (challenge.demand > .14) {
-      const cornerCap = challenge.safeSpeed + steeringMatch * Math.max(0, maxSpeed - challenge.safeSpeed);
-      if (this.sim.speed > cornerCap) this.sim.speed = Math.max(0, this.sim.speed - (this.sim.speed - cornerCap) * (2.4 + challenge.demand * 4.6) * dt);
-      if (steeringMatch < .45 && !input.brake) {
-        this.sim.speed = Math.max(0, this.sim.speed - (7 + challenge.demand * 26) * dt);
-        this.sim.energy = Math.max(0, this.sim.energy - (3 + challenge.demand * 10) * dt);
-        this.sim.stability = Math.max(0, this.sim.stability - (0.34 + challenge.demand * .62) * dt);
-        this.sim.lateral += challenge.sign * (1.2 + challenge.demand * 2.7) * dt;
-      } else {
-        this.sim.stability = Math.min(1, this.sim.stability + dt * (.24 + steeringMatch * .2));
-      }
-    } else this.sim.stability = Math.min(1, this.sim.stability + dt * .34);
-    if (input.brake) this.sim.stability = Math.min(1, this.sim.stability + dt * .08);
-    if (this.sim.stability < .27 && this.sim.spinTimer <= 0) {
-      this.sim.spinTimer = .72; this.sim.headingOffset = challenge.sign * .82; this.sim.speed *= .42;
-      this.sim.energy = Math.max(0, this.sim.energy - 9); this.sim.lateral += challenge.sign * 2.4;
-      this.sparkAtPlayer(0xff5e54, 14); this.toast('SPINOUT - STEER THE LINE', .9); sfx(kit, 'contact', { volume: .38 });
-    }
-    if (this.sim.spinTimer > 0) { this.sim.spinTimer = Math.max(0, this.sim.spinTimer - dt); this.sim.headingOffset *= Math.max(0, 1 - dt * 1.8); }
-    else this.sim.headingOffset *= Math.max(0, 1 - dt * 4.5);
+    // Real cornering: the turn shoves the machine toward the outside wall,
+    // scaled by curvature and speed. You hold the line by steering against
+    // it (braking eases the push); there is no hidden grading and corners
+    // themselves never bleed speed. The wall is the punishment.
+    if (!spinning) this.sim.lateral += challenge.sign * challenge.demand * (3.2 + speedRatio * 12) * (input.brake ? .5 : 1) * dt;
+    this.sim.stability = Math.min(1, this.sim.stability + dt * .3);
+    if (this.sim.spinTimer > 0) {
+      this.sim.spinTimer = Math.max(0, this.sim.spinTimer - dt);
+      const spun = 1 - this.sim.spinTimer / this.sim.spinStart;
+      // One full 360 over the spin, easing out; heading lands back at zero.
+      this.sim.headingOffset = this.sim.spinDirection * Math.PI * 2 * (1 - Math.pow(1 - spun, 2.2));
+      if (this.sim.spinTimer === 0) this.sim.headingOffset = 0;
+    } else this.sim.headingOffset *= Math.max(0, 1 - dt * 4.5);
     const lateralResponse = (7.3 + this.sim.speed * .065) * machine.handling;
     this.sim.lateral += this.sim.steering * lateralResponse * dt;
     this.sim.lateral *= 1 - dt * (this.sim.steering ? .32 : 1.25);
     const edge = track.width * .5 - .55;
-    if (Math.abs(this.sim.lateral) > edge) {
-      const wallOver = Math.abs(this.sim.lateral) - edge; this.sim.lateral = Math.sign(this.sim.lateral) * (edge + wallOver * .18);
-      this.sim.speed = Math.max(0, this.sim.speed - (18 + wallOver * 24) * dt); this.sim.energy = Math.max(0, this.sim.energy - (12 + wallOver * 18) * dt);
-      this.sim.stability = Math.max(0, this.sim.stability - dt * .24);
-      this.sim.scrapeTimer -= dt;
-      if (this.sim.scrapeTimer <= 0) { this.sim.scrapeTimer = .16; this.sparkAtPlayer(0xffc96a, 5); sfx(kit, 'scrape', { volume: .2 }); }
-    }
-    const magnetic = track.width * .5 - .95;
-    if (Math.abs(this.sim.lateral) > magnetic) this.sim.lateral -= Math.sign(this.sim.lateral) * .04 * dt;
+    if (Math.abs(this.sim.lateral) > edge && this.sim.airborne <= 0) {
+      const wallOver = Math.abs(this.sim.lateral) - edge;
+      const side = Math.sign(this.sim.lateral);
+      this.sim.lateral = side * edge;
+      // How hard the corner + your own steering are driving you into it.
+      const approach = challenge.demand * speedRatio + Math.max(0, this.sim.steering * side) * .45;
+      this.sim.wallHold = (this.sim.wallHold || 0) + dt;
+      if (!spinning && (approach > .5 || wallOver > 1.6 || this.sim.wallHold > .8)) {
+        this.triggerSpin(-side, 'WALL HIT - SPINOUT');
+      } else if (!spinning) {
+        // Glancing scrape: sparks, a shove back onto the road, a light
+        // energy tax and a mild drag. It slows you; it never parks you.
+        this.sim.lateral -= side * 2.4 * dt;
+        this.sim.speed = Math.max(this.sim.speed * (1 - dt * .55), this.sim.speed - 26 * dt);
+        this.sim.energy = Math.max(0, this.sim.energy - 9 * dt);
+        this.sim.scrapeTimer -= dt;
+        if (this.sim.scrapeTimer <= 0) { this.sim.scrapeTimer = .16; this.sparkAtPlayer(0xffc96a, 5); sfx(kit, 'scrape', { volume: .2 }); }
+      }
+    } else this.sim.wallHold = 0;
     const distanceStep = this.sim.speed * dt / Math.max(1, track.length); this.sim.distance += distanceStep; this.sim.progress = wrap01(this.sim.distance); this.sim.previousProgress = previous;
     if (this.sim.airborne > 0) { this.sim.airborne = Math.max(0, this.sim.airborne - dt); if (this.sim.airborne === 0) this.land(); }
     this.handleTrackEvents(previous, this.sim.progress, dt);
@@ -606,11 +662,15 @@ class IonwakeApp {
     for (let i = 0; i < this.ai.length; i += 1) {
       const rival = this.ai[i]; if (rival.eliminated) continue;
       rival.contactTimer = Math.max(0, rival.contactTimer - dt);
-      const rubber = clamp((this.sim.distance - rival.distance) * .32, -.11, .12);
+      // Catch-up is strong, lead protection is weak: a clean player can hold
+      // the front, but spinouts get punished by traffic actually arriving.
+      // distance is in laps (normalized): a quarter-lap deficit should max
+      // out the catch-up, so the scale is ~18, not sub-1.
+      const rubber = clamp((this.sim.distance - rival.distance) * 18, -.06, .25);
       const challenge = trackChallenge(track, rival.progress);
-      const ideal = rival.maxSpeed * (.81 + rival.skill * .14 + rubber - challenge.demand * .2 + Math.sin(this.simClock * (1.3 + rival.aggression) + i) * .012);
+      const ideal = rival.maxSpeed * (.9 + rival.skill * .12 + rubber - challenge.demand * .12 + Math.sin(this.simClock * (1.3 + rival.aggression) + i) * .012);
       rival.speed += (ideal - rival.speed) * (1 - Math.exp(-dt * (3.2 + rival.aggression)));
-      rival.speed = clamp(rival.speed, 18, rival.maxSpeed + 5);
+      rival.speed = clamp(rival.speed, 18, rival.maxSpeed + 5 + Math.max(0, rubber) * 40);
       rival.distance += rival.speed * dt / Math.max(1, track.length); rival.progress = wrap01(.04 + rival.distance);
       let wanted = lineLateral(data, rival.progress) + Math.sin(this.simClock * (1.1 + rival.aggression) + i * 1.7) * (.12 + rival.aggression * .22);
       for (let j = 0; j < this.ai.length; j += 1) {
@@ -651,6 +711,16 @@ class IonwakeApp {
     }
   }
 
+  triggerSpin(direction, message) {
+    if (this.sim.spinTimer > 0) return;
+    this.sim.spinStart = 1.05; this.sim.spinTimer = 1.05;
+    this.sim.spinDirection = direction || 1;
+    this.sim.speed *= .55;
+    this.sim.energy = Math.max(0, this.sim.energy - 10);
+    this.sim.cameraNudge = this.sim.spinDirection * .8;
+    this.sparkAtPlayer(0xff5e54, 18); this.toast(message || 'SPINOUT', 1); sfx(kit, 'contact', { volume: .42 });
+  }
+
   applyContact(index) {
     const rival = this.ai[index]; const direction = Math.sign(this.sim.lateral - rival.lateral) || (index % 2 ? 1 : -1);
     this.sim.contactTimer = .28; rival.contactTimer = .28;
@@ -660,7 +730,9 @@ class IonwakeApp {
     this.sim.stability = Math.max(0, this.sim.stability - .16); this.sim.cameraNudge = direction;
     this.save.contacts += 1; state.lastContact = { rival: index + 1, at: this.sim.totalTime };
     this.sparkAtPlayer(0xff8b59, 11); this.sparkAtRival(index, 0xffd27a, 8); sfx(kit, 'contact', { volume: .38 });
-    this.toast('MACHINE CONTACT', .52);
+    const closing = Math.abs(this.sim.speed - rival.speed);
+    if (closing > 26 || this.sim.stability <= .2) this.triggerSpin(direction, 'SLAMMED - SPINOUT');
+    else this.toast('MACHINE CONTACT', .52);
   }
 
   applyContactPair(leftIndex, rightIndex) {
@@ -707,7 +779,7 @@ class IonwakeApp {
 
   syncState() {
     const track = this.tracks[this.trackIndex] || fallbackTrack(this.trackIndex); const standings = this.mode === 'race' || this.mode === 'countdown' ? this.standings() : [];
-    state.mode = this.mode; state.cup = this.cup; state.track = this.trackIndex; state.trackId = track.id; state.lap = this.sim.lap; state.pos = standings.length ? standings.findIndex((entry) => entry.player) + 1 : (this.raceResult ? this.raceResult.position : 8); state.energy = Math.round(this.sim.energy); state.speed = Math.round(this.sim.speed * 3.6); state.race = this.raceMode; state.machine = this.selectedMachine().id; state.stability = Math.round(this.sim.stability * 100); state.contactCount = this.save.contacts; state.onChargeRail = !!(this.course && this.course.onRail(this.sim.progress, this.sim.lateral, this.racer ? this.racer.world.track.width : 14));
+    state.mode = this.mode; state.cup = this.cup; state.track = this.trackIndex; state.trackId = track.id; state.lap = this.sim.lap; state.pos = standings.length ? standings.findIndex((entry) => entry.player) + 1 : (this.raceResult ? this.raceResult.position : 8); state.energy = Math.round(this.sim.energy); state.speed = Math.round(this.sim.speed * 3.6); state.race = this.raceMode; state.machine = this.selectedMachine().id; state.stability = Math.round(this.sim.stability * 100); state.contactCount = this.save.contacts; state.steering = Number(this.sim.steering.toFixed(2)); state.spinning = this.sim.spinTimer > 0; const aiList = (this.ai || []).filter((r) => !r.eliminated); state.gap = aiList.length ? Number((this.sim.distance - Math.max(...aiList.map((r) => r.distance))).toFixed(4)) : 0; state.rivalTop = aiList.length ? Math.round(Math.max(...aiList.map((r) => r.speed)) * 3.6) : 0; state.onChargeRail = !!(this.course && this.course.onRail(this.sim.progress, this.sim.lateral, this.racer ? this.racer.world.track.width : 14));
   }
 
   runScriptedTest(kind = 'no-steer') {
@@ -765,7 +837,7 @@ class IonwakeApp {
 
   handleKeys() {
     if (this.keyPressed('KeyR')) return kit.restart();
-    if (this.keyPressed('KeyO')) return kit.openSettings();
+    if (this.keyPressed('KeyO')) return this.openSettings();
     if (this.keyPressed('Escape') && (this.mode === 'race' || this.mode === 'countdown')) { kit.pause('user'); return; }
     if (this.mode === 'title') {
       if (this.keyPressed('Digit1')) return this.startRace('grand-prix', CUPS[this.cup].tracks[0]);

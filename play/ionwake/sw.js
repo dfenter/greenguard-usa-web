@@ -1,6 +1,6 @@
 /* Ionwake service worker, authored from /play/_shared/sw-template.js. */
 const SLUG = 'ionwake';
-const VERSION = '2';
+const VERSION = '3';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/ionwake/',
