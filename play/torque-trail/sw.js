@@ -1,6 +1,6 @@
 /* sw-template.js filled for Torque Trail. */
 const SLUG = 'torque-trail';
-const VERSION = '2026-08-07-fix1c';
+const VERSION = '2026-08-11-gt1';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/torque-trail/',
@@ -9,8 +9,19 @@ const ASSETS = [
   '/play/torque-trail/manifest.json',
   '/play/torque-trail/icon.png',
   '/play/torque-trail/icon512.png',
-  '/play/torque-trail/assets/cars/SUV.obj',
-  '/play/torque-trail/assets/cars/SUV.mtl',
+  '/play/torque-trail/tracks/frontier-main.json',
+  '/play/torque-trail/tracks/job-mire-seals.json',
+  '/play/torque-trail/tracks/job-ridge-lanterns.json',
+  '/play/torque-trail/tracks/job-silt-medicine.json',
+  '/play/torque-trail/tracks/job-survey-cores.json',
+  '/play/torque-trail/tracks/job-field-radios.json',
+  '/play/torque-trail/tracks/job-mire-fuel.json',
+  '/play/torque-trail/tracks/job-quarry-bearings.json',
+  '/play/torque-trail/tracks/job-quarry-relays.json',
+  '/play/torque-trail/tracks/job-stone-samples.json',
+  '/play/torque-trail/tracks/job-lantern-batteries.json',
+  '/play/torque-trail/tracks/job-ridge-mesh.json',
+  '/play/torque-trail/tracks/job-long-haul.json',
   '/play/torque-trail/assets/music/quiet-range.mp3',
   '/play/torque-trail/assets/music/open-trail.mp3',
   '/play/torque-trail/assets/sfx/click.mp3',
@@ -24,8 +35,7 @@ const ASSETS = [
   '/play/torque-trail/assets/sfx/wood.mp3',
   '/play/torque-trail/assets/sfx/payout.mp3',
   '/play/_shared/ggkit.js',
-  '/play/_shared/three/three.module.min.js',
-  '/play/_shared/three/OBJLoader.js'
+  '/play/_shared/three/three.module.min.js'
 ];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "id": "job-ridge-lanterns",
+  "name": "Northern Ridge Lanterns",
+  "closed": false,
+  "theme": "coastal",
+  "timeOfDay": "dusk",
+  "width": 19,
+  "sampleCount": 168,
+  "turns": [{ "number": 1, "at": 0.42, "name": "High Meadow Sweep", "type": "sweeper" }, { "number": 2, "at": 0.82, "name": "Stonecross Turn", "type": "hairpin" }],
+  "controlPoints": [
+    { "x": -126, "z": 102, "elevation": 1.429, "banking": 0 },
+    { "x": -92, "z": 116, "elevation": 3.377, "banking": 2 },
+    { "x": -45, "z": 122, "elevation": 0.892, "banking": -2, "curb": true },
+    { "x": 5, "z": 112, "elevation": 2.364, "banking": 3 },
+    { "x": 53, "z": 96, "elevation": 1.730, "banking": -1 },
+    { "x": 103, "z": 34, "elevation": -1.940, "banking": 0, "curb": true }
+  ],
+  "sectors": [{ "id": 1, "at": 0 }, { "id": 2, "at": 0.5 }],
+  "distanceMarkers": [{ "at": 0.32, "label": "2" }, { "at": 0.66, "label": "1" }],
+  "racingLine": [{ "at": 0, "lateral": 0 }, { "at": 0.42, "lateral": 1.3 }, { "at": 0.82, "lateral": -1.1 }]
+}

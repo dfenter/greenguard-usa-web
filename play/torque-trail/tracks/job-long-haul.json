@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "job-long-haul",
+  "name": "Expedition Long Haul",
+  "closed": false,
+  "theme": "desert",
+  "timeOfDay": "dusk",
+  "width": 19,
+  "sampleCount": 192,
+  "turns": [{ "number": 1, "at": 0.28, "name": "Silt Run", "type": "crest" }, { "number": 2, "at": 0.7, "name": "Quarry Gate", "type": "switchback" }],
+  "controlPoints": [
+    { "x": 20, "z": 76, "elevation": 1.390, "banking": 0 },
+    { "x": 52, "z": 68, "elevation": 0.683, "banking": 1 },
+    { "x": 103, "z": 34, "elevation": -1.940, "banking": -2 },
+    { "x": 112, "z": -10, "elevation": 2.760, "banking": 3, "curb": true },
+    { "x": 116, "z": -73, "elevation": 1.710, "banking": -2 },
+    { "x": 78, "z": -96, "elevation": 1.514, "banking": 2, "curb": true },
+    { "x": 28, "z": -104, "elevation": 1.894, "banking": -1 },
+    { "x": -28, "z": -102, "elevation": -0.897, "banking": 0 }
+  ],
+  "sectors": [{ "id": 1, "at": 0 }, { "id": 2, "at": 0.36 }, { "id": 3, "at": 0.72 }],
+  "distanceMarkers": [{ "at": 0.25, "label": "3" }, { "at": 0.5, "label": "2" }, { "at": 0.78, "label": "1" }],
+  "racingLine": [{ "at": 0, "lateral": 0 }, { "at": 0.3, "lateral": -1 }, { "at": 0.72, "lateral": 1.2 }, { "at": 0.9, "lateral": -0.8 }]
+}

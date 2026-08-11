@@ -1,99 +1,225 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/dune-runner/">
+<head>
+  <base href="/play/dune-runner/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#191b1a">
-  <title>Dune Runner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#121a22">
+  <meta name="description" content="Dune Runner is a low-poly open-world buggy checkpoint raid across four authored desert regions.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <title>Dune Runner // Fleet F1</title>
   <style>
-    :root { color-scheme: dark; font-family: "Trebuchet MS", system-ui, sans-serif; }
+    :root {
+      color-scheme: dark;
+      --ink: #081018;
+      --panel: rgba(8, 16, 24, .82);
+      --panel-hi: rgba(18, 31, 42, .92);
+      --cream: #fff0c7;
+      --muted: #a7b4ba;
+      --gold: #ffca67;
+      --cyan: #83e4e1;
+      --orange: #ff8c4a;
+      --green: #a8e18d;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #171a18; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--ink); }
     body { overscroll-behavior: none; }
-    button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+    button { appearance: none; border: 0; color: inherit; font: inherit; cursor: pointer; }
+    button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
     #app { position: relative; width: 100%; height: 100%; overflow: hidden; touch-action: none; user-select: none; }
-    #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-    #hud { position: absolute; inset: 0 0 auto; height: 88px; display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 18px; pointer-events: none; }
-    .hud-card { min-width: 125px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(22,25,23,.74); box-shadow: 0 7px 20px rgba(0,0,0,.18); backdrop-filter: blur(4px); }
-    .eyebrow { color: #b7c2b3; font-size: 9px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
-    .value { margin-top: 2px; color: #f4e5bf; font-size: 21px; line-height: 1; font-weight: 900; letter-spacing: .03em; }
-    #brand { color: #f4e5bf; font-size: 18px; letter-spacing: .14em; font-weight: 900; text-shadow: 0 2px 0 rgba(0,0,0,.22); }
-    #brand small { display: block; margin-top: 3px; color: #8f9e8b; font-size: 9px; letter-spacing: .26em; }
-    #hud-center { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); width: min(310px, 42vw); text-align: center; }
-    #compass { position: relative; height: 38px; overflow: hidden; border: 1px solid rgba(255,255,255,.14); border-radius: 20px; background: rgba(22,25,23,.72); }
-    #compass span { position: absolute; top: 7px; color: #8f9e8b; font-size: 9px; font-weight: 800; letter-spacing: .13em; }
-    #compass .c-left { left: 12px; } #compass .c-right { right: 12px; }
-    #compass-arrow { position: absolute; left: calc(50% - 7px); top: 8px; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 19px solid #f1b84b; transform-origin: 7px 11px; transition: transform .1s linear; filter: drop-shadow(0 1px 1px #111); }
-    #compass-label { margin-top: 4px; color: #f4e5bf; font-size: 10px; font-weight: 800; letter-spacing: .14em; }
-    #end-run { pointer-events: auto; min-width: 86px; min-height: 48px; border: 1px solid rgba(255,255,255,.2); border-radius: 11px; background: rgba(22,25,23,.76); color: #d4ded0; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
-    #end-run:active { transform: translateY(1px); background: #384338; }
-    #fuel-wrap { position: absolute; left: 50%; top: 65px; transform: translateX(-50%); display: flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 10px; background: rgba(22,25,23,.62); }
-    #fuel-wrap .eyebrow { font-size: 8px; } #fuel-bar { width: 84px; height: 6px; overflow: hidden; border-radius: 5px; background: rgba(255,255,255,.15); }
-    #fuel-fill { width: 100%; height: 100%; border-radius: inherit; background: #e7c66c; transition: width .1s linear, background .2s; }
-    #raid-readout { margin-top: 5px; color: #d8e1d2; font-size: 11px; font-weight: 900; letter-spacing: .1em; text-shadow: 0 1px 2px #171a18; }
-    #hint { position: absolute; left: 50%; top: 102px; transform: translateX(-50%); padding: 7px 12px; border-radius: 9px; background: rgba(22,25,23,.62); color: #ecdfbe; font-size: 10px; font-weight: 800; letter-spacing: .1em; white-space: nowrap; opacity: 1; transition: opacity .8s; pointer-events: none; }
-    #hint.faded { opacity: 0; }
-    #status { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); min-height: 24px; padding: 5px 11px; border-radius: 8px; background: rgba(22,25,23,.62); color: #f5e2b4; font-size: 11px; font-weight: 900; letter-spacing: .08em; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    #game { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+    #fallback { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 50% 20%, #354b52, #101821 68%); }
+    #fallback.hidden { display: none; }
+    .fallback-card { width: min(470px, 100%); padding: 28px; border: 1px solid rgba(255,240,199,.25); border-radius: 20px; background: rgba(9,17,24,.92); box-shadow: 0 22px 70px rgba(0,0,0,.4); }
+    .fallback-card h1 { margin: 0 0 8px; color: var(--cream); font-size: 30px; letter-spacing: .08em; }
+    .fallback-card p { margin: 0; color: var(--muted); line-height: 1.5; }
+    #hud { position: absolute; z-index: 8; inset: 0 0 auto; min-height: 68px; padding: max(8px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left)); pointer-events: none; }
+    .hud-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    #hud-right { display: flex; align-items: flex-start; gap: 8px; pointer-events: auto; }
+    .hud-card { min-width: 92px; padding: 8px 10px; border: 1px solid rgba(255,240,199,.19); border-radius: 10px; background: var(--panel); backdrop-filter: blur(8px); box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+    .eyebrow { color: #9eb0b4; font-size: 8px; font-weight: 950; letter-spacing: .18em; text-transform: uppercase; }
+    .value { margin-top: 3px; color: var(--cream); font-size: 19px; font-weight: 950; line-height: 1; letter-spacing: .05em; }
+    #score-best .best { color: #91a2a6; font-size: 10px; }
+    #score-best .value > span:first-child { color: var(--gold); font-size: 12px; }
+    #fuel-card { min-width: 128px; }
+    #fuel-top { display: flex; justify-content: space-between; align-items: baseline; }
+    #fuel-top > span:first-child { color: var(--cyan); font-size: 12px; font-weight: 950; }
+    #fuel-number { color: var(--cream); font-size: 11px; font-weight: 900; }
+    #fuel-bar { height: 7px; margin-top: 7px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.13); }
+    #fuel-fill { width: 100%; height: 100%; border-radius: inherit; background: var(--gold); transition: width .1s linear, background .18s; }
+    .icon-button { min-width: 42px; min-height: 42px; border: 1px solid rgba(255,240,199,.19); border-radius: 12px; background: var(--panel); color: var(--cream); font-size: 17px; backdrop-filter: blur(8px); }
+    #route-toggle { pointer-events: auto; }
+    #end-run { min-width: 42px; min-height: 42px; padding: 0 8px; border: 1px solid rgba(255,240,199,.19); border-radius: 12px; background: var(--panel); color: var(--cream); font-size: 8px; font-weight: 950; letter-spacing: .1em; }
+    #livery-button { min-width: 42px; min-height: 42px; padding: 0 7px; border: 1px solid rgba(255,240,199,.19); border-radius: 12px; background: var(--panel); color: var(--cream); font-size: 8px; font-weight: 950; letter-spacing: .08em; }
+    #route-dock { position: absolute; left: max(14px, env(safe-area-inset-left)); top: 70px; width: min(530px, 54vw); padding: 9px 10px; border: 1px solid rgba(255,240,199,.17); border-radius: 14px; background: rgba(8,16,24,.68); backdrop-filter: blur(8px); pointer-events: auto; box-shadow: 0 12px 28px rgba(0,0,0,.15); }
+    #app.play-live #route-dock { display: none; }
+    #app.play-live.route-open #route-dock { display: block; }
+    #region-tabs, #event-tabs { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+    #region-tabs::-webkit-scrollbar, #event-tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: 1 0 auto; min-height: 28px; padding: 6px 8px; border: 1px solid rgba(255,240,199,.11); border-radius: 8px; background: rgba(255,255,255,.045); color: #aebbc0; font-size: 8px; font-weight: 950; letter-spacing: .1em; white-space: nowrap; }
+    .tab.active { border-color: rgba(255,202,103,.7); background: rgba(255,202,103,.16); color: var(--cream); }
+    .tab.locked { opacity: .42; }
+    #event-tabs { margin-top: 6px; }
+    #event-tabs .tab { color: var(--cyan); }
+    #event-tabs .tab.active { color: var(--cream); }
+    #route-meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 7px; color: #ced7d2; font-size: 9px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    #route-meta span:last-child { color: var(--gold); text-align: right; }
+    #coach-strip { position: absolute; z-index: 7; left: 50%; top: 72px; max-width: min(78vw, 480px); height: 26px; padding: 6px 11px; overflow: hidden; transform: translateX(-50%); border: 1px solid rgba(255,240,199,.11); border-radius: 7px; background: rgba(8,16,24,.52); color: #c2ceca; font-size: 8px; font-weight: 900; letter-spacing: .1em; line-height: 1; text-align: center; text-overflow: ellipsis; white-space: nowrap; opacity: 1; transition: opacity .7s; pointer-events: none; }
+    #app:not(.play-live) #coach-strip { display: none; }
+    #coach-strip.faded { opacity: 0; }
+    #run-readout { position: absolute; z-index: 7; left: 50%; top: 10px; transform: translateX(-50%); min-width: 190px; padding: 7px 11px; border: 1px solid rgba(255,240,199,.13); border-radius: 8px; background: rgba(8,16,24,.58); color: var(--cream); font-size: 9px; font-weight: 950; letter-spacing: .1em; text-align: center; backdrop-filter: blur(8px); pointer-events: none; }
+    #run-readout strong { color: var(--gold); }
+    #compass { position: absolute; z-index: 7; right: max(14px, env(safe-area-inset-right)); top: 72px; width: 66px; padding: 5px 6px; border: 1px solid rgba(255,240,199,.13); border-radius: 8px; background: rgba(8,16,24,.52); color: var(--cream); text-align: center; pointer-events: none; }
+    #compass-label { display: none; }
+    #compass-arrow { display: block; width: 0; height: 0; margin: 1px auto 2px; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 15px solid var(--gold); filter: drop-shadow(0 2px 5px rgba(0,0,0,.4)); transform-origin: 50% 70%; transition: transform .12s ease-out; }
+    #compass-distance { color: var(--cream); font-size: 8px; font-weight: 950; letter-spacing: .06em; }
+    #banner { position: absolute; z-index: 15; left: 50%; top: 28%; width: min(38vw, 480px); min-height: 64px; display: grid; place-items: center; padding: 10px 18px; transform: translate(-50%, -50%) scale(.86) rotate(-1deg); opacity: 0; border-top: 1px solid rgba(255,240,199,.45); border-bottom: 1px solid rgba(255,240,199,.45); background: linear-gradient(90deg, transparent, rgba(8,16,24,.84) 16%, rgba(8,16,24,.9) 84%, transparent); text-align: center; pointer-events: none; }
+    #banner.show { animation: banner-hit 1.25s cubic-bezier(.16,1.3,.36,1) both; }
+    #banner.reduced-motion.show { animation: none; opacity: 1; transform: translate(-50%, -50%); }
+    #banner-kicker { color: var(--cyan); font-size: 9px; font-weight: 950; letter-spacing: .25em; }
+    #banner-title { margin-top: 4px; color: var(--cream); font-size: clamp(18px, 3.2vw, 32px); font-weight: 950; line-height: .95; letter-spacing: .08em; }
+    #banner-copy { margin-top: 4px; color: #c7d1cb; font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+    @keyframes banner-hit { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.7) rotate(-4deg); } 16% { opacity: 1; transform: translate(-50%, -50%) scale(1.09) rotate(1deg); } 33% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); } 80% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(.98) rotate(0); } }
+    #status { position: absolute; z-index: 9; left: max(14px, env(safe-area-inset-left)); bottom: 204px; max-width: min(42vw, 280px); min-height: 24px; padding: 6px 10px; overflow: hidden; border-radius: 7px; background: rgba(8,16,24,.72); color: var(--cream); font-size: 9px; font-weight: 950; letter-spacing: .08em; opacity: 0; text-overflow: ellipsis; white-space: nowrap; transition: opacity .18s; pointer-events: none; }
     #status.show { opacity: 1; }
-    #controls { position: absolute; inset: auto 0 0; height: 172px; pointer-events: none; }
-    #steer-zone { position: absolute; left: 18px; bottom: 18px; width: 132px; height: 132px; border: 2px solid rgba(246,231,192,.38); border-radius: 50%; background: radial-gradient(circle at 50% 48%, rgba(239,211,149,.18) 0 33%, rgba(22,25,23,.24) 34% 100%); box-shadow: inset 0 0 0 10px rgba(22,25,23,.12), 0 5px 22px rgba(0,0,0,.16); pointer-events: auto; }
-    #steer-zone::before, #steer-zone::after { content: ""; position: absolute; left: 50%; top: 17px; width: 1px; height: 98px; background: rgba(246,231,192,.18); transform: translateX(-50%); }
+    #contact-flash { position: absolute; z-index: 14; inset: 0; background: radial-gradient(circle at 50% 54%, rgba(255,247,190,.52), rgba(255,167,77,.12) 28%, transparent 65%); opacity: 0; pointer-events: none; }
+    #contact-flash.pop { animation: contact-pop .16s ease-out both; }
+    @keyframes contact-pop { 0% { opacity: 0; transform: scale(.96); } 25% { opacity: .82; transform: scale(1.01); } 100% { opacity: 0; transform: scale(1); } }
+    #controls { position: absolute; z-index: 9; inset: auto 0 0; height: 190px; padding: 0 max(18px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); pointer-events: none; }
+    #steer-zone { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); width: 132px; height: 132px; border: 2px solid rgba(255,240,199,.42); border-radius: 50%; background: radial-gradient(circle at 50% 48%, rgba(131,228,225,.15) 0 31%, rgba(8,16,24,.22) 32% 100%); box-shadow: inset 0 0 0 10px rgba(8,16,24,.15), 0 7px 26px rgba(0,0,0,.22); pointer-events: auto; }
+    #steer-zone::before, #steer-zone::after { content: ""; position: absolute; left: 50%; top: 18px; width: 1px; height: 96px; background: rgba(255,240,199,.19); transform: translateX(-50%); }
     #steer-zone::after { transform: translateX(-50%) rotate(90deg); }
-    #steer-knob { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; border: 2px solid #f5d386; border-radius: 50%; background: rgba(50,56,48,.9); box-shadow: 0 3px 10px rgba(0,0,0,.3); transform: translate(-50%,-50%); transition: transform .08s; }
-    #steer-label { position: absolute; left: 50%; bottom: -19px; transform: translateX(-50%); color: #f0dfb8; font-size: 9px; font-weight: 900; letter-spacing: .16em; white-space: nowrap; opacity: .82; }
-    #button-stack { position: absolute; right: 18px; bottom: 18px; display: flex; align-items: flex-end; gap: 12px; pointer-events: auto; }
-    .drive-button { min-width: 108px; min-height: 66px; padding: 8px 13px; border: 2px solid rgba(246,231,192,.42); border-radius: 14px; background: rgba(47,57,45,.92); color: #f5e5bd; box-shadow: 0 5px 18px rgba(0,0,0,.2); font-size: 12px; font-weight: 900; letter-spacing: .14em; }
-    .drive-button small { display: block; margin-top: 4px; color: #aab9a7; font-size: 8px; letter-spacing: .12em; }
-    #throttle { min-height: 86px; background: #3b5740; border-color: #a6ca87; }
-    #throttle.pressed { background: #5d7f50; transform: translateY(2px); box-shadow: 0 2px 10px rgba(0,0,0,.18); }
-    #brake { min-width: 86px; min-height: 58px; background: rgba(81,55,44,.9); border-color: rgba(232,170,117,.5); }
-    #brake.pressed { background: #9b5d45; transform: translateY(2px); }
-    #rotate { position: absolute; z-index: 8; inset: 0; display: grid; place-items: center; background: rgba(16,20,18,.78); pointer-events: none; }
-    #rotate .rotate-card { width: min(330px, 84vw); padding: 26px 24px; border: 1px solid rgba(246,231,192,.25); border-radius: 18px; background: rgba(31,38,31,.94); text-align: center; box-shadow: 0 18px 60px rgba(0,0,0,.35); }
-    #rotate .phone { margin: 0 auto 15px; width: 38px; height: 62px; border: 3px solid #edc46e; border-radius: 9px; transform: rotate(90deg); }
-    #rotate h2 { margin: 0 0 7px; color: #f4e5bf; font-size: 22px; letter-spacing: .08em; }
-    #rotate p { margin: 0; color: #aebaaa; font-size: 12px; line-height: 1.45; }
-    #message { position: absolute; z-index: 7; inset: 0; display: grid; place-items: center; background: rgba(18,23,19,.42); pointer-events: auto; }
-    #message.hidden, #rotate.hidden { display: none; }
-    #message-card { width: min(390px, calc(100vw - 34px)); padding: 26px 24px 22px; border: 1px solid rgba(244,222,170,.27); border-radius: 19px; background: linear-gradient(145deg, rgba(45,57,43,.98), rgba(26,32,27,.98)); box-shadow: 0 20px 70px rgba(0,0,0,.4); text-align: center; }
-    #message-kicker { margin: 0 0 7px; color: #edc66e; font-size: 10px; font-weight: 900; letter-spacing: .22em; }
-    #message-title { margin: 0; color: #f5e5bd; font-size: clamp(28px, 7vw, 42px); line-height: 1; letter-spacing: .05em; }
-    #message-copy { min-height: 35px; margin: 13px 0 19px; color: #bccabb; font-size: 13px; line-height: 1.45; }
-    .message-button { width: 100%; min-height: 50px; margin-top: 7px; border-radius: 10px; background: #d49f48; color: #20251f; font-size: 11px; font-weight: 900; letter-spacing: .14em; }
-    .message-button.secondary { background: rgba(255,255,255,.1); color: #e3e4cd; }
-    .message-button:active { transform: translateY(1px); }
-    @media (orientation: portrait) { #hud { padding: 10px 11px; } #hud-center { top: 10px; width: 42vw; } #hint { top: 96px; } #controls { height: 155px; } #steer-zone { left: 12px; bottom: 12px; width: 118px; height: 118px; } #button-stack { right: 12px; bottom: 12px; gap: 8px; } .drive-button { min-width: 92px; } }
-    @media (max-height: 430px) { #hud { height: 68px; padding: 9px 13px; } #brand { font-size: 15px; } #brand small { display: none; } .hud-card { min-width: 104px; padding: 7px 9px; } .value { font-size: 17px; } #hud-center { top: 8px; } #fuel-wrap { top: 54px; } #hint { top: 75px; } #controls { height: 138px; } #steer-zone { width: 106px; height: 106px; bottom: 12px; } #steer-zone::before { height: 78px; top: 13px; } #button-stack { bottom: 12px; } .drive-button { min-height: 56px; } #throttle { min-height: 72px; } #status { bottom: 16px; } }
+    #steer-knob { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; border: 2px solid var(--gold); border-radius: 50%; background: rgba(20,38,45,.92); box-shadow: 0 4px 14px rgba(0,0,0,.35); transform: translate(-50%, -50%); transition: transform .06s; }
+    #button-stack { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); display: flex; align-items: flex-end; gap: 10px; pointer-events: auto; }
+    .drive-button { min-width: 92px; min-height: 62px; padding: 9px 12px; border: 2px solid rgba(255,240,199,.31); border-radius: 13px; background: rgba(20,38,45,.92); color: var(--cream); box-shadow: 0 7px 20px rgba(0,0,0,.23); font-size: 10px; font-weight: 950; letter-spacing: .12em; }
+    #throttle { min-height: 84px; border-color: rgba(168,225,141,.78); background: rgba(50,91,61,.96); }
+    #brake { border-color: rgba(255,140,74,.5); background: rgba(82,49,43,.92); }
+    .drive-button.pressed { transform: translateY(2px); filter: brightness(1.2); }
+    #result { position: absolute; z-index: 25; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(5,11,16,.48); pointer-events: auto; }
+    #result.hidden { display: none; }
+    #result-card { width: min(470px, 92vw); padding: 26px 25px 22px; border: 1px solid rgba(255,240,199,.28); border-radius: 20px; background: linear-gradient(145deg, rgba(24,43,52,.98), rgba(8,16,24,.98)); box-shadow: 0 24px 90px rgba(0,0,0,.45); text-align: center; }
+    #result-kicker { margin: 0 0 8px; color: var(--cyan); font-size: 9px; font-weight: 950; letter-spacing: .25em; }
+    #result-title { margin: 0; color: var(--cream); font-size: clamp(28px, 7vw, 48px); line-height: .95; letter-spacing: .05em; }
+    #result-copy { min-height: 38px; margin: 14px 0 18px; color: #c4d0cc; font-size: 13px; line-height: 1.45; }
+    .result-button { width: 100%; min-height: 48px; margin-top: 7px; border-radius: 10px; background: var(--gold); color: #111b1f; font-size: 10px; font-weight: 950; letter-spacing: .16em; }
+    .result-button.secondary { background: rgba(255,255,255,.1); color: var(--cream); }
+    .screen { position: absolute; z-index: 30; inset: 0; display: grid; place-items: center; padding: 20px; background: linear-gradient(145deg, rgba(7,17,25,.76), rgba(12,29,34,.86)); pointer-events: auto; }
+    .screen.hidden { display: none; }
+    .screen-card { width: min(500px, 92vw); padding: 30px 27px 25px; border: 1px solid rgba(255,240,199,.3); border-radius: 22px; background: linear-gradient(145deg, rgba(24,47,56,.98), rgba(8,16,24,.98)); box-shadow: 0 26px 90px rgba(0,0,0,.5); text-align: center; }
+    .screen-kicker { margin: 0 0 9px; color: var(--cyan); font-size: 9px; font-weight: 950; letter-spacing: .28em; }
+    .screen-title { margin: 0; color: var(--cream); font-size: clamp(32px, 8vw, 64px); line-height: .9; letter-spacing: .08em; }
+    .screen-copy { margin: 15px auto 20px; max-width: 410px; color: #c4d0cc; font-size: 13px; line-height: 1.5; }
+    .screen-button { width: 100%; min-height: 50px; margin-top: 8px; border-radius: 11px; background: var(--gold); color: #111b1f; font-size: 10px; font-weight: 950; letter-spacing: .16em; }
+    .screen-button.secondary { background: rgba(255,255,255,.1); color: var(--cream); }
+    #tutorial-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 18px 0 12px; }
+    .tutorial-step { min-height: 84px; padding: 12px 8px; border: 1px solid rgba(255,240,199,.16); border-radius: 11px; background: rgba(255,255,255,.05); color: #dbe2d9; font-size: 9px; font-weight: 900; line-height: 1.35; }
+    .tutorial-step.active { border-color: rgba(255,202,103,.75); background: rgba(255,202,103,.14); color: var(--cream); }
+    #pause-panel { z-index: 35; background: rgba(5,11,16,.72); }
+    #rotate-note { display: none; }
+    @media (max-height: 480px) {
+      #route-dock { top: 64px; width: min(470px, 52vw); }
+      #coach-strip { top: 66px; }
+      #controls { height: 150px; }
+      #steer-zone { width: 106px; height: 106px; }
+      #steer-zone::before, #steer-zone::after { height: 74px; top: 14px; }
+      #throttle { min-height: 68px; }
+      .drive-button { min-height: 52px; }
+    }
+    @media (max-width: 540px) {
+      #hud { min-height: 82px; padding-top: max(8px, env(safe-area-inset-top)); padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+      .hud-row { justify-content: space-between; }
+      #hud-right { width: auto; flex: 1; justify-content: flex-end; gap: 5px; }
+      .hud-card { min-width: 0; padding: 7px 8px; border-radius: 10px; }
+      #score-best { flex: 0 0 82px; }
+      #fuel-card { flex: 1 1 auto; min-width: 0; }
+      .eyebrow { font-size: 7px; letter-spacing: .1em; }
+      .value { font-size: 16px; }
+      #fuel-number { font-size: 10px; }
+      #fuel-card .eyebrow { display: none; }
+      .icon-button, #end-run, #livery-button { min-width: 34px; min-height: 38px; }
+      #end-run { padding: 0 5px; font-size: 7px; }
+      #route-dock { left: max(8px, env(safe-area-inset-left)); top: 62px; width: calc(100% - 16px); padding: 7px; }
+      #route-meta { font-size: 7px; }
+      #compass { top: 68px; right: max(8px, env(safe-area-inset-right)); width: 60px; padding: 4px; }
+      #coach-strip { top: 66px; max-width: 72vw; font-size: 7px; }
+      #run-readout { top: 14px; min-width: 0; max-width: 42vw; padding: 7px 9px; font-size: 8px; letter-spacing: .08em; }
+      #tutorial-steps { gap: 5px; }
+      .tutorial-step { min-height: 76px; font-size: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #banner.show { animation: none; opacity: 1; transform: translate(-50%, -50%); }
+      #banner { transition: opacity .2s; }
+      #coach-strip, #status { transition: none; }
+    }
   </style>
+  <script>
+    (function () {
+      var pendingEvent = null;
+      var pendingRegion = null;
+      var bootState = { mode: 'boot', fuel: 100, checkpoint: 0, region: 'dawn-dune-sea', score: 0 };
+      window.__dr = {
+        state: bootState,
+        forceEvent: function (value) { pendingEvent = value; bootState.pendingEvent = value; return value; },
+        forceRegion: function (value) { pendingRegion = value; bootState.pendingRegion = value; return value; },
+        _boot: function () { return { event: pendingEvent, region: pendingRegion }; }
+      };
+    }());
+  </script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script type="importmap">
+    { "imports": { "three": "/play/_shared/three/three.module.min.js" } }
+  </script>
 </head>
 <body>
   <main id="app">
-    <canvas id="game" aria-label="Dune Runner game"></canvas>
-    <section id="hud" aria-hidden="true">
-      <div>
-        <div id="brand">DUNE RUNNER<small>OPEN DESERT // SESSION</small></div>
-        <div id="raid-readout">RAID 1/5 · 0/5 FLAGS</div>
+    <canvas id="game" aria-label="Dune Runner 3D driving game"></canvas>
+    <div id="fallback" class="hidden"><div class="fallback-card"><h1>DUNE RUNNER</h1><p id="fallback-copy">This route needs a WebGL-capable browser. The route probe remains available for the fleet harness.</p></div></div>
+    <header id="hud">
+      <div class="hud-row">
+        <button id="route-toggle" class="icon-button" type="button" aria-label="Open route selector">≡</button>
+        <div id="hud-right">
+          <div id="score-best" class="hud-card" aria-label="Score and best score"><div class="value"><span aria-hidden="true">✦</span> <span id="score">0</span> <span class="best">/ <span id="best">0</span></span></div></div>
+          <div id="fuel-card" class="hud-card" aria-label="Fuel"><div id="fuel-top"><span aria-hidden="true">⛽</span><span id="fuel-number">100%</span></div><div id="fuel-bar"><div id="fuel-fill"></div></div></div>
+          <button id="livery-button" type="button" aria-label="Change buggy livery"><span aria-hidden="true">◇</span></button>
+          <button id="end-run" type="button" aria-label="Bank session score"><span aria-hidden="true">⇩</span></button>
+          <button id="settings" class="icon-button" type="button" aria-label="Open settings">⚙</button>
+          <button id="pause-button" class="icon-button" type="button" aria-label="Pause route">Ⅱ</button>
+        </div>
       </div>
-      <div id="hud-center">
-        <div id="compass"><span class="c-left">W</span><span class="c-right">E</span><i id="compass-arrow"></i></div>
-        <div id="compass-label">TARGET // 000°</div>
-      </div>
-      <div class="hud-card"><div class="eyebrow">SCORE · BEST</div><div class="value"><span id="score">0</span> <span style="color:#899789;font-size:13px">/</span> <span id="best">0</span></div></div>
-      <div id="fuel-wrap"><span class="eyebrow">FUEL</span><div id="fuel-bar"><div id="fuel-fill"></div></div></div>
-      <button id="end-run" type="button">END RUN</button>
+    </header>
+    <div id="run-readout"><strong id="event-name">CHECKPOINT RAID</strong> <span id="checkpoint-readout">CP 1/6</span> <span id="timer-readout">70.0s</span></div>
+    <div id="compass" aria-label="Next checkpoint direction"><span id="compass-label">NEXT FLAG</span><span id="compass-arrow"></span><span id="compass-distance">0m</span></div>
+    <section id="route-dock" aria-label="Region and event selector">
+      <nav id="region-tabs"></nav>
+      <nav id="event-tabs"></nav>
+      <div id="route-meta"><span id="landmark-label">LANDMARK // DUNE ARCH</span><span id="medal-label">MEDAL // UNSET</span></div>
     </section>
-    <div id="hint">DRAG LEFT TO STEER · HOLD THROTTLE · FIND THE FLAGS</div>
-    <div id="status"></div>
+    <div id="coach-strip">STEER // THROTTLE // COAST TO REFUEL</div>
+    <div id="banner"><div><div id="banner-kicker"></div><div id="banner-title"></div><div id="banner-copy"></div></div></div>
+    <div id="contact-flash"></div>
+    <div id="status" role="status" aria-live="polite"></div>
     <section id="controls" aria-label="Driving controls">
-      <div id="steer-zone"><div id="steer-knob"></div><span id="steer-label">DRAG TO STEER</span></div>
+      <div id="steer-zone" aria-label="Steering pad"><div id="steer-knob"></div></div>
       <div id="button-stack">
-        <button id="brake" class="drive-button" type="button">BRAKE<small>REVERSE DRAG</small></button>
-        <button id="throttle" class="drive-button" type="button">THROTTLE<small>HOLD TO GO</small></button>
+        <button id="brake" class="drive-button" type="button">BRAKE</button>
+        <button id="throttle" class="drive-button" type="button">THROTTLE</button>
       </div>
     </section>
-    <div id="rotate" class="hidden"><div class="rotate-card"><div class="phone"></div><h2>ROTATE YOUR PHONE</h2><p>Dune Runner needs a wide view for the desert.</p></div></div>
-    <div id="message" class="hidden"><div id="message-card"><p id="message-kicker"></p><h1 id="message-title"></h1><p id="message-copy"></p><button id="message-action" class="message-button" type="button"></button><button id="message-secondary" class="message-button secondary" type="button"></button></div></div>
+    <section id="result" class="hidden" aria-live="polite">
+      <div id="result-card"><p id="result-kicker"></p><h1 id="result-title"></h1><p id="result-copy"></p><button id="result-action" class="result-button" type="button"></button><button id="result-secondary" class="result-button secondary" type="button">RETURN TO ROUTE</button></div>
+    </section>
+    <section id="title-screen" class="screen" aria-label="Dune Runner title screen">
+      <div class="screen-card"><p class="screen-kicker">FLEET F1 // OPEN DESERT</p><h1 class="screen-title">DUNE<br>RUNNER</h1><p class="screen-copy">Thread the flags, choose the fast line, and coast into an oasis before the tank runs dry.</p><button id="title-play" class="screen-button" type="button">TAKE THE WHEEL</button></div>
+    </section>
+    <section id="tutorial-screen" class="screen hidden" aria-label="Driving tutorial">
+      <div class="screen-card"><p class="screen-kicker">FIRST RAID // FIELD BRIEF</p><h1 class="screen-title">LEARN THE LINE</h1><p class="screen-copy">Try each control. The route starts after the field brief, so you can learn by doing.</p><div id="tutorial-steps"><button class="tutorial-step active" type="button" data-step="steer">DRAG LEFT<br>STEER THE BUGGY</button><button class="tutorial-step" type="button" data-step="throttle">HOLD THROTTLE<br>CROSS THE CRESTS</button><button class="tutorial-step" type="button" data-step="coast">RELEASE BOTH<br>COAST IN OASIS</button></div><button id="tutorial-start" class="screen-button" type="button">START CHECKPOINT RAID</button></div>
+    </section>
+    <section id="pause-panel" class="screen hidden" aria-label="Paused route">
+      <div class="screen-card"><p class="screen-kicker">ROUTE PAUSED</p><h1 class="screen-title">HOLD</h1><p class="screen-copy">Your route is safe. Choose a next move.</p><button id="pause-resume" class="screen-button" type="button">RESUME</button><button id="pause-restart" class="screen-button secondary" type="button">RESTART EVENT</button><button id="pause-bank" class="screen-button secondary" type="button">BANK SESSION</button></div>
+    </section>
   </main>
-  <script src="game.js"></script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>

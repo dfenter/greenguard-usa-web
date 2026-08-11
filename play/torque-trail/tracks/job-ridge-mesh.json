@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "id": "job-ridge-mesh",
+  "name": "Ridge Bridge Mesh",
+  "closed": false,
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "width": 19,
+  "sampleCount": 120,
+  "turns": [{ "number": 1, "at": 0.5, "name": "Stonecross Turn", "type": "hairpin" }],
+  "controlPoints": [
+    { "x": 103, "z": 34, "elevation": -1.940, "banking": 0 },
+    { "x": 112, "z": -10, "elevation": 2.760, "banking": 3, "curb": true },
+    { "x": 114, "z": -46, "elevation": 2.549, "banking": 0 },
+    { "x": 116, "z": -73, "elevation": 1.710, "banking": -2 }
+  ],
+  "sectors": [{ "id": 1, "at": 0 }, { "id": 2, "at": 0.5 }],
+  "distanceMarkers": [{ "at": 0.42, "label": "2" }, { "at": 0.78, "label": "1" }],
+  "racingLine": [{ "at": 0, "lateral": 0 }, { "at": 0.48, "lateral": -1 }, { "at": 0.82, "lateral": 0.7 }]
+}

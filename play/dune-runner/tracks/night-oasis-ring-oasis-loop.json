@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "id": "night-oasis-ring-oasis-loop",
+  "name": "Night Oasis Ring Oasis Loop",
+  "closed": false,
+  "width": 7.2,
+  "sampleCount": 192,
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "accent": 7530205,
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.143,
+      "name": "NIGHT TURN 1",
+      "type": "sweeper"
+    },
+    {
+      "number": 2,
+      "at": 0.286,
+      "name": "NIGHT TURN 2",
+      "type": "sweeper"
+    },
+    {
+      "number": 3,
+      "at": 0.429,
+      "name": "NIGHT TURN 3",
+      "type": "sweeper"
+    },
+    {
+      "number": 4,
+      "at": 0.571,
+      "name": "NIGHT TURN 4",
+      "type": "sweeper"
+    },
+    {
+      "number": 5,
+      "at": 0.714,
+      "name": "NIGHT TURN 5",
+      "type": "sweeper"
+    },
+    {
+      "number": 6,
+      "at": 0.857,
+      "name": "NIGHT TURN 6",
+      "type": "sweeper"
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.34
+    },
+    {
+      "id": 3,
+      "at": 0.67
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.25,
+      "label": "1"
+    },
+    {
+      "at": 0.5,
+      "label": "2"
+    },
+    {
+      "at": 0.75,
+      "label": "3"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.18,
+      "lateral": 0.35
+    },
+    {
+      "at": 0.37,
+      "lateral": -0.28
+    },
+    {
+      "at": 0.58,
+      "lateral": 0.25
+    },
+    {
+      "at": 0.78,
+      "lateral": -0.22
+    }
+  ],
+  "controlPoints": [
+    {
+      "x": 80,
+      "z": 76,
+      "elevation": 0.412,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 88,
+      "z": 63,
+      "elevation": 0.413,
+      "banking": 3.975,
+      "curb": false
+    },
+    {
+      "x": 98,
+      "z": 49,
+      "elevation": 0.08,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": 113,
+      "z": 42,
+      "elevation": 0.013,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": 128,
+      "z": 50,
+      "elevation": -0.228,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": 129,
+      "z": 66,
+      "elevation": 0.074,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": 118,
+      "z": 77,
+      "elevation": -0.13,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": 99,
+      "z": 81,
+      "elevation": 0.242,
+      "banking": 0,
+      "curb": false
+    }
+  ],
+  "objectiveAnchors": [
+    {
+      "index": 0,
+      "x": 80,
+      "z": 76
+    },
+    {
+      "index": 1,
+      "x": 88,
+      "z": 63
+    },
+    {
+      "index": 2,
+      "x": 98,
+      "z": 49
+    },
+    {
+      "index": 3,
+      "x": 113,
+      "z": 42
+    },
+    {
+      "index": 4,
+      "x": 128,
+      "z": 50
+    },
+    {
+      "index": 5,
+      "x": 129,
+      "z": 66
+    },
+    {
+      "index": 6,
+      "x": 118,
+      "z": 77
+    },
+    {
+      "index": 7,
+      "x": 99,
+      "z": 81
+    }
+  ]
+}

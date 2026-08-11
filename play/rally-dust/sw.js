@@ -9,7 +9,7 @@
  * itself being served from the old cache.
  */
 const SLUG = 'rally-dust';
-const VERSION = '3';
+const VERSION = '5';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/rally-dust/',
@@ -17,18 +17,28 @@ const ASSETS = [
   '/play/rally-dust/game.js',
   '/play/rally-dust/stage.js',
   '/play/rally-dust/cars.js',
-  '/play/rally-dust/fx.js',
   '/play/rally-dust/audio.js',
   '/play/rally-dust/hud.js',
+  '/play/rally-dust/sw.js',
   '/play/rally-dust/manifest.json',
   '/play/rally-dust/icon.png',
   '/play/rally-dust/icon512.png',
-  '/play/rally-dust/assets/cars/SportsCar.obj',
-  '/play/rally-dust/assets/cars/SportsCar.mtl',
-  '/play/rally-dust/assets/cars/NormalCar2.obj',
-  '/play/rally-dust/assets/cars/NormalCar2.mtl',
-  '/play/rally-dust/assets/cars/SUV.obj',
-  '/play/rally-dust/assets/cars/SUV.mtl',
+  '/play/rally-dust/tracks/r1s1.json',
+  '/play/rally-dust/tracks/r1s2.json',
+  '/play/rally-dust/tracks/r1s3.json',
+  '/play/rally-dust/tracks/r1s4.json',
+  '/play/rally-dust/tracks/r2s1.json',
+  '/play/rally-dust/tracks/r2s2.json',
+  '/play/rally-dust/tracks/r2s3.json',
+  '/play/rally-dust/tracks/r2s4.json',
+  '/play/rally-dust/tracks/r3s1.json',
+  '/play/rally-dust/tracks/r3s2.json',
+  '/play/rally-dust/tracks/r3s3.json',
+  '/play/rally-dust/tracks/r3s4.json',
+  '/play/rally-dust/tracks/r4s1.json',
+  '/play/rally-dust/tracks/r4s2.json',
+  '/play/rally-dust/tracks/r4s3.json',
+  '/play/rally-dust/tracks/r4s4.json',
   '/play/rally-dust/assets/sfx/impact.mp3',
   '/play/rally-dust/assets/sfx/gravel.mp3',
   '/play/rally-dust/assets/sfx/slide.mp3',
@@ -47,7 +57,6 @@ const ASSETS = [
   '/play/rally-dust/assets/music/stage_b.mp3',
   '/play/_shared/ggkit.js',
   '/play/_shared/three/three.module.min.js',
-  '/play/_shared/three/OBJLoader.js',
 ];
 
 self.addEventListener('install', (e) => {

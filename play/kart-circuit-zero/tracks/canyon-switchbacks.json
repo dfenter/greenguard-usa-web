@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "id": "canyon-switchbacks",
+  "name": "Canyon Switchbacks",
+  "closed": true,
+  "width": 17.4,
+  "sampleCount": 216,
+  "theme": "desert",
+  "timeOfDay": "dusk",
+  "sourceSeed": 3511,
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.15,
+      "name": "Red Arch snap",
+      "type": "hairpin"
+    },
+    {
+      "number": 2,
+      "at": 0.29,
+      "name": "Blind right",
+      "type": "hairpin"
+    },
+    {
+      "number": 3,
+      "at": 0.48,
+      "name": "Mesa S",
+      "type": "chicane"
+    },
+    {
+      "number": 4,
+      "at": 0.68,
+      "name": "Switchback pair",
+      "type": "hairpin"
+    },
+    {
+      "number": 5,
+      "at": 0.84,
+      "name": "Canyon exit",
+      "type": "sweeper"
+    }
+  ],
+  "controlPoints": [
+    {
+      "x": -30,
+      "z": -185,
+      "elevation": -0.54,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 170,
+      "z": -177,
+      "elevation": -1.43,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 320,
+      "z": -65,
+      "elevation": -1.24,
+      "banking": 7,
+      "curb": true
+    },
+    {
+      "x": 205,
+      "z": 28,
+      "elevation": -0.12,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": 350,
+      "z": 150,
+      "elevation": 1.09,
+      "banking": 9,
+      "curb": true
+    },
+    {
+      "x": 220,
+      "z": 250,
+      "elevation": 1.48,
+      "banking": 5,
+      "curb": true
+    },
+    {
+      "x": 35,
+      "z": 205,
+      "elevation": 0.76,
+      "banking": -7,
+      "curb": true
+    },
+    {
+      "x": -120,
+      "z": 315,
+      "elevation": -0.54,
+      "banking": 10,
+      "curb": true
+    },
+    {
+      "x": -335,
+      "z": 247,
+      "elevation": -1.43,
+      "banking": -10,
+      "curb": true
+    },
+    {
+      "x": -270,
+      "z": 92,
+      "elevation": -1.24,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": -432,
+      "z": -15,
+      "elevation": -0.12,
+      "banking": -7,
+      "curb": true
+    },
+    {
+      "x": -280,
+      "z": -130,
+      "elevation": 1.09,
+      "banking": 7,
+      "curb": true
+    },
+    {
+      "x": -370,
+      "z": -265,
+      "elevation": 1.48,
+      "banking": -9,
+      "curb": true
+    },
+    {
+      "x": -110,
+      "z": -328,
+      "elevation": 0.76,
+      "banking": 0,
+      "curb": false
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.28
+    },
+    {
+      "id": 3,
+      "at": 0.81
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.16,
+      "label": "3"
+    },
+    {
+      "at": 0.34,
+      "label": "2"
+    },
+    {
+      "at": 0.54,
+      "label": "1"
+    },
+    {
+      "at": 0.74,
+      "label": "LAST"
+    },
+    {
+      "at": 0.9,
+      "label": "100"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.15,
+      "lateral": -2.2
+    },
+    {
+      "at": 0.29,
+      "lateral": 2.4
+    },
+    {
+      "at": 0.48,
+      "lateral": -1.8
+    },
+    {
+      "at": 0.68,
+      "lateral": 2.3
+    },
+    {
+      "at": 0.84,
+      "lateral": -1.4
+    },
+    {
+      "at": 0.96,
+      "lateral": 0
+    }
+  ]
+}

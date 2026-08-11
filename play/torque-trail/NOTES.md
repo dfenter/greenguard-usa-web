@@ -90,3 +90,11 @@ Complete delivery work across the mud bog, rock crawl, and ridge trail. Earn pay
 
 - Production HTTPS ship-hygiene evidence -> deploy and production gate capture are forbidden by this fix-round scope, so only local static checks were run.
 - Asset ledger `Used by` metadata -> `/play/_assets/LEDGER.md` is outside the permitted edit paths; no new assets were added and the title LICENSES.md remains complete.
+
+## GGRacer retrofit
+
+- `game.js` is now the title adapter. The preserved simulation owns controls, terrain classification, truck handling, bogging, winch recovery, job completion, GGKit saves, modes, UI, and audio. GGRacer owns the rendered road, environment, truck presentation, chase camera, lighting, headlights, suspension motion, and speed FX.
+- The old title-side terrain, road ribbon, OBJ vehicle, camera, and particle render paths were removed. Depot rings, gold delivery beacons, and winch anchor rings remain title-side meshes and are positioned from `trackQueries.closestPoint()` and `sampleRacingLine()` on the active stage.
+- `tracks/frontier-main.json` and the twelve `tracks/job-*.json` files were authored from the existing `ROAD_PATHS` vertices. Their elevation values are the existing `heightAt(x, z)` terrain samples, banking stays gentle, every stage is point-to-point with `closed: false`, and all twelve shipped jobs remain selectable and drivable.
+- Theme progression is deliberate: early pump-seal and radio work uses desert, Silt and Lantern House work uses coastal, survey, fuel, and core work uses alpine, and the tier 5 and tier 6 quarry runs use night-city with `timeOfDay: night` so GGRacer headlights read clearly. Quality tier 2 is forced for the title showcase path and the engine's dense parallax dressing remains active.
+- The adapter gap is that the shared carkit exposes a GT-bar truck-like silhouette rather than a title-specific cargo-bed mesh. Torque Trail feeds its livery, speed, steering, braking, pitch, roll, and terrain-derived `suspension` state into that supported vehicle; changing the shared carkit was outside this retrofit contract.

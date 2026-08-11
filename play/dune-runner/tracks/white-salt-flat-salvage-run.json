@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "id": "white-salt-flat-salvage-run",
+  "name": "White Salt Flat Salvage Run",
+  "closed": false,
+  "width": 7.2,
+  "sampleCount": 192,
+  "theme": "coastal",
+  "timeOfDay": "dusk",
+  "accent": 9234397,
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.143,
+      "name": "WHITE TURN 1",
+      "type": "sweeper"
+    },
+    {
+      "number": 2,
+      "at": 0.286,
+      "name": "WHITE TURN 2",
+      "type": "sweeper"
+    },
+    {
+      "number": 3,
+      "at": 0.429,
+      "name": "WHITE TURN 3",
+      "type": "sweeper"
+    },
+    {
+      "number": 4,
+      "at": 0.571,
+      "name": "WHITE TURN 4",
+      "type": "sweeper"
+    },
+    {
+      "number": 5,
+      "at": 0.714,
+      "name": "WHITE TURN 5",
+      "type": "sweeper"
+    },
+    {
+      "number": 6,
+      "at": 0.857,
+      "name": "WHITE TURN 6",
+      "type": "sweeper"
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.34
+    },
+    {
+      "id": 3,
+      "at": 0.67
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.25,
+      "label": "1"
+    },
+    {
+      "at": 0.5,
+      "label": "2"
+    },
+    {
+      "at": 0.75,
+      "label": "3"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.18,
+      "lateral": 0.35
+    },
+    {
+      "at": 0.37,
+      "lateral": -0.28
+    },
+    {
+      "at": 0.58,
+      "lateral": 0.25
+    },
+    {
+      "at": 0.78,
+      "lateral": -0.22
+    }
+  ],
+  "controlPoints": [
+    {
+      "x": -130,
+      "z": 78,
+      "elevation": 0.032,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -114,
+      "z": 76,
+      "elevation": -0.32,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": -96,
+      "z": 78,
+      "elevation": 0.162,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": -79,
+      "z": 69,
+      "elevation": -0.197,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": -88,
+      "z": 56,
+      "elevation": 0.064,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": -106,
+      "z": 48,
+      "elevation": -0.058,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": -127,
+      "z": 52,
+      "elevation": 0.156,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": -132,
+      "z": 66,
+      "elevation": 0.052,
+      "banking": 0,
+      "curb": false
+    }
+  ],
+  "objectiveAnchors": [
+    {
+      "index": 0,
+      "x": -130,
+      "z": 78
+    },
+    {
+      "index": 1,
+      "x": -114,
+      "z": 76
+    },
+    {
+      "index": 2,
+      "x": -96,
+      "z": 78
+    },
+    {
+      "index": 3,
+      "x": -79,
+      "z": 69
+    },
+    {
+      "index": 4,
+      "x": -88,
+      "z": 56
+    },
+    {
+      "index": 5,
+      "x": -106,
+      "z": 48
+    },
+    {
+      "index": 6,
+      "x": -127,
+      "z": 52
+    },
+    {
+      "index": 7,
+      "x": -132,
+      "z": 66
+    }
+  ]
+}

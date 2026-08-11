@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "id": "job-survey-cores",
+  "name": "Survey Core Run",
+  "closed": false,
+  "theme": "alpine",
+  "timeOfDay": "dusk",
+  "width": 18,
+  "sampleCount": 144,
+  "turns": [{ "number": 1, "at": 0.58, "name": "Waterline Crest", "type": "crest" }],
+  "controlPoints": [
+    { "x": -56, "z": 18, "elevation": -1.760, "banking": 0 },
+    { "x": -28, "z": 22, "elevation": -2.452, "banking": 2 },
+    { "x": 20, "z": 76, "elevation": 1.390, "banking": -3, "curb": true },
+    { "x": 52, "z": 68, "elevation": 0.683, "banking": 1 },
+    { "x": 103, "z": 34, "elevation": -1.940, "banking": -2, "curb": true }
+  ],
+  "sectors": [{ "id": 1, "at": 0 }, { "id": 2, "at": 0.5 }],
+  "distanceMarkers": [{ "at": 0.36, "label": "2" }, { "at": 0.72, "label": "1" }],
+  "racingLine": [{ "at": 0, "lateral": 0 }, { "at": 0.45, "lateral": -1 }, { "at": 0.8, "lateral": 0.9 }]
+}

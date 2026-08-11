@@ -1,0 +1,890 @@
+{
+  "version": 1,
+  "id": "r4s4",
+  "name": "LAST LANTERN",
+  "description": "Nightfall Run seeded stage 16.",
+  "closed": false,
+  "width": 20.02,
+  "sampleCount": 320,
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "sourceSeed": 14114434,
+  "sourceBiome": "coast",
+  "sourceStageId": "R4S4",
+  "sourceDifficulty": 9,
+  "controlPoints": [
+    {
+      "x": 0,
+      "z": 0,
+      "elevation": 8.189,
+      "banking": 0.03,
+      "curb": false
+    },
+    {
+      "x": 1.733,
+      "z": -0.129,
+      "elevation": 8.189,
+      "banking": 0.04,
+      "curb": false
+    },
+    {
+      "x": 3.467,
+      "z": -0.256,
+      "elevation": 8.189,
+      "banking": 0.05,
+      "curb": false
+    },
+    {
+      "x": 10.4,
+      "z": -0.757,
+      "elevation": 8.189,
+      "banking": 0.07,
+      "curb": false
+    },
+    {
+      "x": 13.868,
+      "z": -1.001,
+      "elevation": 8.189,
+      "banking": 0.07,
+      "curb": false
+    },
+    {
+      "x": 17.336,
+      "z": -1.241,
+      "elevation": 8.189,
+      "banking": 0.08,
+      "curb": false
+    },
+    {
+      "x": 34.68,
+      "z": -2.359,
+      "elevation": 7.63,
+      "banking": 0.1,
+      "curb": false
+    },
+    {
+      "x": 46.826,
+      "z": -3.051,
+      "elevation": 6.658,
+      "banking": 0.11,
+      "curb": false
+    },
+    {
+      "x": 52.033,
+      "z": -3.322,
+      "elevation": 6.244,
+      "banking": -0.08,
+      "curb": false
+    },
+    {
+      "x": 60.709,
+      "z": -3.803,
+      "elevation": 5.559,
+      "banking": -2.69,
+      "curb": false
+    },
+    {
+      "x": 69.294,
+      "z": -5.093,
+      "elevation": 4.88,
+      "banking": -2.69,
+      "curb": false
+    },
+    {
+      "x": 77.469,
+      "z": -7.992,
+      "elevation": 4.209,
+      "banking": -3.99,
+      "curb": true
+    },
+    {
+      "x": 84.828,
+      "z": -12.586,
+      "elevation": 3.547,
+      "banking": -2.69,
+      "curb": false
+    },
+    {
+      "x": 91.317,
+      "z": -18.358,
+      "elevation": 2.893,
+      "banking": -2.69,
+      "curb": false
+    },
+    {
+      "x": 97.476,
+      "z": -24.489,
+      "elevation": 2.249,
+      "banking": 0.14,
+      "curb": false
+    },
+    {
+      "x": 101.186,
+      "z": -28.152,
+      "elevation": 1.868,
+      "banking": 0.15,
+      "curb": false
+    },
+    {
+      "x": 109.902,
+      "z": -36.64,
+      "elevation": 0.993,
+      "banking": 0.15,
+      "curb": false
+    },
+    {
+      "x": 122.491,
+      "z": -48.622,
+      "elevation": -0.22,
+      "banking": 0.14,
+      "curb": false
+    },
+    {
+      "x": 135.24,
+      "z": -60.434,
+      "elevation": -1.387,
+      "banking": 0.14,
+      "curb": false
+    },
+    {
+      "x": 148.139,
+      "z": -72.083,
+      "elevation": -2.51,
+      "banking": 0.13,
+      "curb": false
+    },
+    {
+      "x": 158.604,
+      "z": -81.236,
+      "elevation": -3.376,
+      "banking": 2.85,
+      "curb": false
+    },
+    {
+      "x": 161.36,
+      "z": -83.352,
+      "elevation": -3.588,
+      "banking": 2.85,
+      "curb": false
+    },
+    {
+      "x": 173.779,
+      "z": -89.434,
+      "elevation": -4.421,
+      "banking": 4.24,
+      "curb": true
+    },
+    {
+      "x": 177.174,
+      "z": -90.177,
+      "elevation": -4.626,
+      "banking": 2.85,
+      "curb": false
+    },
+    {
+      "x": 191.033,
+      "z": -90.302,
+      "elevation": -5.428,
+      "banking": 2.85,
+      "curb": false
+    },
+    {
+      "x": 194.487,
+      "z": -89.912,
+      "elevation": -5.626,
+      "banking": 0.41,
+      "curb": false
+    },
+    {
+      "x": 204.842,
+      "z": -88.681,
+      "elevation": -6.209,
+      "banking": 0.06,
+      "curb": false
+    },
+    {
+      "x": 211.743,
+      "z": -87.839,
+      "elevation": -6.592,
+      "banking": 0.05,
+      "curb": false
+    },
+    {
+      "x": 228.988,
+      "z": -85.679,
+      "elevation": -7.529,
+      "banking": 0.03,
+      "curb": false
+    },
+    {
+      "x": 230.712,
+      "z": -85.46,
+      "elevation": -7.621,
+      "banking": 0.03,
+      "curb": false
+    },
+    {
+      "x": 244.503,
+      "z": -83.691,
+      "elevation": -7.891,
+      "banking": 0.01,
+      "curb": false
+    },
+    {
+      "x": 246.227,
+      "z": -83.469,
+      "elevation": -7.672,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 261.741,
+      "z": -81.471,
+      "elevation": -5.837,
+      "banking": -0.02,
+      "curb": false
+    },
+    {
+      "x": 263.465,
+      "z": -81.25,
+      "elevation": -5.983,
+      "banking": -0.02,
+      "curb": false
+    },
+    {
+      "x": 278.982,
+      "z": -79.277,
+      "elevation": -9.666,
+      "banking": -0.04,
+      "curb": false
+    },
+    {
+      "x": 280.706,
+      "z": -79.06,
+      "elevation": -9.997,
+      "banking": -0.04,
+      "curb": false
+    },
+    {
+      "x": 292.78,
+      "z": -77.566,
+      "elevation": -10.822,
+      "banking": -0.06,
+      "curb": false
+    },
+    {
+      "x": 297.956,
+      "z": -76.939,
+      "elevation": -11.081,
+      "banking": -0.07,
+      "curb": false
+    },
+    {
+      "x": 315.219,
+      "z": -74.923,
+      "elevation": -11.939,
+      "banking": -0.09,
+      "curb": false
+    },
+    {
+      "x": 332.497,
+      "z": -73.047,
+      "elevation": -12.789,
+      "banking": -0.11,
+      "curb": false
+    },
+    {
+      "x": 349.793,
+      "z": -71.341,
+      "elevation": -13.633,
+      "banking": -0.12,
+      "curb": false
+    },
+    {
+      "x": 367.107,
+      "z": -69.829,
+      "elevation": -14.469,
+      "banking": -0.13,
+      "curb": false
+    },
+    {
+      "x": 372.305,
+      "z": -69.416,
+      "elevation": -14.718,
+      "banking": -0.14,
+      "curb": false
+    },
+    {
+      "x": 384.44,
+      "z": -68.549,
+      "elevation": -15.295,
+      "banking": -1.68,
+      "curb": false
+    },
+    {
+      "x": 386.176,
+      "z": -68.469,
+      "elevation": -15.376,
+      "banking": -2.23,
+      "curb": false
+    },
+    {
+      "x": 401.694,
+      "z": -69.909,
+      "elevation": -16.107,
+      "banking": -2.23,
+      "curb": false
+    },
+    {
+      "x": 403.367,
+      "z": -70.379,
+      "elevation": -16.187,
+      "banking": -3.31,
+      "curb": true
+    },
+    {
+      "x": 417.394,
+      "z": -77.181,
+      "elevation": -16.901,
+      "banking": -2.23,
+      "curb": false
+    },
+    {
+      "x": 418.845,
+      "z": -78.136,
+      "elevation": -16.979,
+      "banking": -2.23,
+      "curb": false
+    },
+    {
+      "x": 430.305,
+      "z": -86.01,
+      "elevation": -17.595,
+      "banking": -0.14,
+      "curb": false
+    },
+    {
+      "x": 431.731,
+      "z": -87.003,
+      "elevation": -17.67,
+      "banking": -0.14,
+      "curb": false
+    },
+    {
+      "x": 445.92,
+      "z": -97.041,
+      "elevation": -18.409,
+      "banking": -0.13,
+      "curb": false
+    },
+    {
+      "x": 459.983,
+      "z": -107.253,
+      "elevation": -19.109,
+      "banking": -0.12,
+      "curb": false
+    },
+    {
+      "x": 473.931,
+      "z": -117.622,
+      "elevation": -19.762,
+      "banking": -0.1,
+      "curb": false
+    },
+    {
+      "x": 487.777,
+      "z": -128.127,
+      "elevation": -20.359,
+      "banking": -0.09,
+      "curb": false
+    },
+    {
+      "x": 498.832,
+      "z": -136.558,
+      "elevation": -20.792,
+      "banking": 2.69,
+      "curb": false
+    },
+    {
+      "x": 501.7,
+      "z": -138.521,
+      "elevation": -20.893,
+      "banking": 2.69,
+      "curb": false
+    },
+    {
+      "x": 514.34,
+      "z": -144.16,
+      "elevation": -21.27,
+      "banking": 4,
+      "curb": true
+    },
+    {
+      "x": 517.746,
+      "z": -144.851,
+      "elevation": -21.356,
+      "banking": 2.69,
+      "curb": false
+    },
+    {
+      "x": 531.613,
+      "z": -145.007,
+      "elevation": -21.67,
+      "banking": 2.69,
+      "curb": false
+    },
+    {
+      "x": 535.072,
+      "z": -144.666,
+      "elevation": -21.74,
+      "banking": 0.3,
+      "curb": false
+    },
+    {
+      "x": 545.447,
+      "z": -143.617,
+      "elevation": -21.93,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 552.364,
+      "z": -142.919,
+      "elevation": -22.039,
+      "banking": 0.01,
+      "curb": false
+    },
+    {
+      "x": 569.655,
+      "z": -141.162,
+      "elevation": -22.248,
+      "banking": 0.03,
+      "curb": false
+    },
+    {
+      "x": 586.941,
+      "z": -139.355,
+      "elevation": -22.363,
+      "banking": 0.06,
+      "curb": false
+    },
+    {
+      "x": 604.217,
+      "z": -137.461,
+      "elevation": -22.382,
+      "banking": -1.02,
+      "curb": false
+    },
+    {
+      "x": 607.675,
+      "z": -137.113,
+      "elevation": -22.374,
+      "banking": -2.13,
+      "curb": false
+    },
+    {
+      "x": 621.52,
+      "z": -137.615,
+      "elevation": -22.304,
+      "banking": -5.93,
+      "curb": false
+    },
+    {
+      "x": 636.556,
+      "z": -145.787,
+      "elevation": -22.131,
+      "banking": -8.81,
+      "curb": true
+    },
+    {
+      "x": 644.231,
+      "z": -161.129,
+      "elevation": -21.865,
+      "banking": -5.93,
+      "curb": false
+    },
+    {
+      "x": 645.454,
+      "z": -174.96,
+      "elevation": -21.589,
+      "banking": -0.24,
+      "curb": false
+    },
+    {
+      "x": 645.556,
+      "z": -178.434,
+      "elevation": -21.512,
+      "banking": 0.12,
+      "curb": false
+    },
+    {
+      "x": 646.206,
+      "z": -195.802,
+      "elevation": -21.078,
+      "banking": 0.15,
+      "curb": false
+    },
+    {
+      "x": 647.087,
+      "z": -213.16,
+      "elevation": -20.57,
+      "banking": 0.15,
+      "curb": false
+    },
+    {
+      "x": 647.506,
+      "z": -220.099,
+      "elevation": -20.349,
+      "banking": 0.15,
+      "curb": false
+    },
+    {
+      "x": 648.208,
+      "z": -230.503,
+      "elevation": -19.999,
+      "banking": 1.63,
+      "curb": false
+    },
+    {
+      "x": 648.532,
+      "z": -233.964,
+      "elevation": -19.877,
+      "banking": 3.06,
+      "curb": false
+    },
+    {
+      "x": 652.172,
+      "z": -247.311,
+      "elevation": -19.373,
+      "banking": 3.06,
+      "curb": false
+    },
+    {
+      "x": 653.867,
+      "z": -250.344,
+      "elevation": -19.242,
+      "banking": 4.55,
+      "curb": true
+    },
+    {
+      "x": 663.375,
+      "z": -260.387,
+      "elevation": -18.704,
+      "banking": 3.06,
+      "curb": false
+    },
+    {
+      "x": 666.187,
+      "z": -262.431,
+      "elevation": -18.566,
+      "banking": 3.06,
+      "curb": false
+    },
+    {
+      "x": 677.713,
+      "z": -270.206,
+      "elevation": -18.002,
+      "banking": 0.11,
+      "curb": false
+    },
+    {
+      "x": 692.219,
+      "z": -279.779,
+      "elevation": -17.281,
+      "banking": 0.1,
+      "curb": false
+    },
+    {
+      "x": 706.81,
+      "z": -289.221,
+      "elevation": -16.55,
+      "banking": 0.08,
+      "curb": false
+    },
+    {
+      "x": 721.468,
+      "z": -298.561,
+      "elevation": -15.821,
+      "banking": 0.05,
+      "curb": false
+    },
+    {
+      "x": 733.228,
+      "z": -305.979,
+      "elevation": -15.246,
+      "banking": 0.03,
+      "curb": false
+    },
+    {
+      "x": 736.171,
+      "z": -307.828,
+      "elevation": -15.104,
+      "banking": 0.03,
+      "curb": false
+    },
+    {
+      "x": 745.007,
+      "z": -313.366,
+      "elevation": -14.222,
+      "banking": 0.01,
+      "curb": false
+    },
+    {
+      "x": 750.9,
+      "z": -317.054,
+      "elevation": -12.506,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 759.741,
+      "z": -322.584,
+      "elevation": -10.592,
+      "banking": -0.01,
+      "curb": false
+    },
+    {
+      "x": 765.634,
+      "z": -326.272,
+      "elevation": -11.099,
+      "banking": -0.02,
+      "curb": false
+    },
+    {
+      "x": 774.467,
+      "z": -331.814,
+      "elevation": -12.894,
+      "banking": -0.04,
+      "curb": false
+    },
+    {
+      "x": 780.351,
+      "z": -335.518,
+      "elevation": -13.106,
+      "banking": -0.05,
+      "curb": false
+    },
+    {
+      "x": 786.228,
+      "z": -339.231,
+      "elevation": -12.863,
+      "banking": -0.05,
+      "curb": false
+    },
+    {
+      "x": 795.03,
+      "z": -344.823,
+      "elevation": -12.512,
+      "banking": -0.07,
+      "curb": false
+    },
+    {
+      "x": 800.886,
+      "z": -348.569,
+      "elevation": -12.287,
+      "banking": -0.08,
+      "curb": false
+    },
+    {
+      "x": 809.651,
+      "z": -354.219,
+      "elevation": -11.962,
+      "banking": -0.97,
+      "curb": false
+    },
+    {
+      "x": 812.555,
+      "z": -356.13,
+      "elevation": -11.857,
+      "banking": -2.52,
+      "curb": false
+    },
+    {
+      "x": 822.995,
+      "z": -365.237,
+      "elevation": -11.456,
+      "banking": -2.52,
+      "curb": false
+    },
+    {
+      "x": 825.075,
+      "z": -368.02,
+      "elevation": -11.36,
+      "banking": -3.75,
+      "curb": true
+    },
+    {
+      "x": 830.846,
+      "z": -380.62,
+      "elevation": -10.995,
+      "banking": -2.52,
+      "curb": false
+    },
+    {
+      "x": 832.087,
+      "z": -383.866,
+      "elevation": -10.908,
+      "banking": -2.52,
+      "curb": false
+    },
+    {
+      "x": 840.355,
+      "z": -394.841,
+      "elevation": -10.578,
+      "banking": 7.3,
+      "curb": false
+    },
+    {
+      "x": 856.405,
+      "z": -401.111,
+      "elevation": -10.201,
+      "banking": 0.45,
+      "curb": false
+    },
+    {
+      "x": 873.339,
+      "z": -405.024,
+      "elevation": -9.861,
+      "banking": -0.15,
+      "curb": false
+    },
+    {
+      "x": 890.218,
+      "z": -409.166,
+      "elevation": -9.704,
+      "banking": -0.15,
+      "curb": false
+    },
+    {
+      "x": 905.36,
+      "z": -413.088,
+      "elevation": -9.704,
+      "banking": -0.12,
+      "curb": false
+    },
+    {
+      "x": 907.039,
+      "z": -413.535,
+      "elevation": -9.704,
+      "banking": -0.09,
+      "curb": false
+    },
+    {
+      "x": 908.718,
+      "z": -413.984,
+      "elevation": -9.704,
+      "banking": -0.07,
+      "curb": false
+    }
+  ],
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.0702,
+      "name": "LEFT 3",
+      "type": "turn"
+    },
+    {
+      "number": 2,
+      "at": 0.18409,
+      "name": "RIGHT 3 TIGHTENS",
+      "type": "turn"
+    },
+    {
+      "number": 3,
+      "at": 0.26365,
+      "name": "JUMP",
+      "type": "jump"
+    },
+    {
+      "number": 4,
+      "at": 0.39158,
+      "name": "LEFT 5 TIGHTENS",
+      "type": "turn"
+    },
+    {
+      "number": 5,
+      "at": 0.5117,
+      "name": "RIGHT 3 TIGHTENS",
+      "type": "turn"
+    },
+    {
+      "number": 6,
+      "at": 0.62402,
+      "name": "LEFT HAIRPIN",
+      "type": "hairpin"
+    },
+    {
+      "number": 7,
+      "at": 0.72075,
+      "name": "RIGHT 2 TIGHTENS",
+      "type": "turn"
+    },
+    {
+      "number": 8,
+      "at": 0.83619,
+      "name": "JUMP",
+      "type": "jump"
+    },
+    {
+      "number": 9,
+      "at": 0.90796,
+      "name": "CAUTION CHICANE",
+      "type": "chicane"
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.25
+    },
+    {
+      "id": 3,
+      "at": 0.5
+    },
+    {
+      "id": 4,
+      "at": 0.75
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.22,
+      "label": "3"
+    },
+    {
+      "at": 0.46,
+      "label": "2"
+    },
+    {
+      "at": 0.7,
+      "label": "1"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.25,
+      "lateral": 0
+    },
+    {
+      "at": 0.5,
+      "lateral": 0
+    },
+    {
+      "at": 0.75,
+      "lateral": 0
+    },
+    {
+      "at": 1,
+      "lateral": 0
+    }
+  ]
+}

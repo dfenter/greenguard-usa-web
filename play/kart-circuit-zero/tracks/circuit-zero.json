@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "id": "circuit-zero",
+  "name": "Circuit Zero",
+  "closed": true,
+  "width": 17.4,
+  "sampleCount": 216,
+  "theme": "alpine",
+  "timeOfDay": "dusk",
+  "sourceSeed": 44021,
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.14,
+      "name": "Snowline sweep",
+      "type": "sweeper"
+    },
+    {
+      "number": 2,
+      "at": 0.28,
+      "name": "Zero bend",
+      "type": "hairpin"
+    },
+    {
+      "number": 3,
+      "at": 0.46,
+      "name": "Split apex",
+      "type": "chicane"
+    },
+    {
+      "number": 4,
+      "at": 0.63,
+      "name": "Summit switchback",
+      "type": "hairpin"
+    },
+    {
+      "number": 5,
+      "at": 0.82,
+      "name": "Final reveal",
+      "type": "sweeper"
+    }
+  ],
+  "controlPoints": [
+    {
+      "x": 0,
+      "z": -315,
+      "elevation": 0.1,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 232,
+      "z": -292,
+      "elevation": 2.01,
+      "banking": 4,
+      "curb": false
+    },
+    {
+      "x": 392,
+      "z": -164,
+      "elevation": 2.41,
+      "banking": 10,
+      "curb": true
+    },
+    {
+      "x": 302,
+      "z": -24,
+      "elevation": 1,
+      "banking": -9,
+      "curb": true
+    },
+    {
+      "x": 478,
+      "z": 110,
+      "elevation": -1.17,
+      "banking": 11,
+      "curb": true
+    },
+    {
+      "x": 342,
+      "z": 258,
+      "elevation": -2.46,
+      "banking": 7,
+      "curb": true
+    },
+    {
+      "x": 95,
+      "z": 232,
+      "elevation": -1.89,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": 8,
+      "z": 370,
+      "elevation": 0.1,
+      "banking": 12,
+      "curb": true
+    },
+    {
+      "x": -180,
+      "z": 276,
+      "elevation": 2.01,
+      "banking": -11,
+      "curb": true
+    },
+    {
+      "x": -412,
+      "z": 315,
+      "elevation": 2.41,
+      "banking": 9,
+      "curb": true
+    },
+    {
+      "x": -372,
+      "z": 128,
+      "elevation": 1,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": -508,
+      "z": -17,
+      "elevation": -1.17,
+      "banking": 7,
+      "curb": true
+    },
+    {
+      "x": -352,
+      "z": -178,
+      "elevation": -2.46,
+      "banking": -9,
+      "curb": true
+    },
+    {
+      "x": -224,
+      "z": -290,
+      "elevation": -1.89,
+      "banking": 0,
+      "curb": false
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.18
+    },
+    {
+      "id": 3,
+      "at": 0.77
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.16,
+      "label": "3"
+    },
+    {
+      "at": 0.34,
+      "label": "2"
+    },
+    {
+      "at": 0.54,
+      "label": "1"
+    },
+    {
+      "at": 0.74,
+      "label": "LAST"
+    },
+    {
+      "at": 0.9,
+      "label": "100"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.14,
+      "lateral": -1.8
+    },
+    {
+      "at": 0.28,
+      "lateral": 2.5
+    },
+    {
+      "at": 0.46,
+      "lateral": -2
+    },
+    {
+      "at": 0.63,
+      "lateral": 2.4
+    },
+    {
+      "at": 0.82,
+      "lateral": -1.7
+    },
+    {
+      "at": 0.95,
+      "lateral": 0
+    }
+  ]
+}

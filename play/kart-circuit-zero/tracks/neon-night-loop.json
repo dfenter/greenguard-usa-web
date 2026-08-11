@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "id": "neon-night-loop",
+  "name": "Neon Night Loop",
+  "closed": true,
+  "width": 17.4,
+  "sampleCount": 216,
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "sourceSeed": 9901,
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.16,
+      "name": "Aurora bank",
+      "type": "sweeper"
+    },
+    {
+      "number": 2,
+      "at": 0.34,
+      "name": "Skyway hairpin",
+      "type": "hairpin"
+    },
+    {
+      "number": 3,
+      "at": 0.58,
+      "name": "Violet chicane",
+      "type": "chicane"
+    },
+    {
+      "number": 4,
+      "at": 0.78,
+      "name": "Neon apex",
+      "type": "hairpin"
+    }
+  ],
+  "controlPoints": [
+    {
+      "x": -34,
+      "z": -292,
+      "elevation": -1.15,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 180,
+      "z": -260,
+      "elevation": -2.5,
+      "banking": 3,
+      "curb": false
+    },
+    {
+      "x": 350,
+      "z": -138,
+      "elevation": -1.35,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": 385,
+      "z": 45,
+      "elevation": 1.15,
+      "banking": 10,
+      "curb": true
+    },
+    {
+      "x": 305,
+      "z": 205,
+      "elevation": 2.5,
+      "banking": 7,
+      "curb": true
+    },
+    {
+      "x": 120,
+      "z": 285,
+      "elevation": 1.35,
+      "banking": 3,
+      "curb": false
+    },
+    {
+      "x": -80,
+      "z": 300,
+      "elevation": -1.15,
+      "banking": -5,
+      "curb": true
+    },
+    {
+      "x": -255,
+      "z": 218,
+      "elevation": -2.5,
+      "banking": -9,
+      "curb": true
+    },
+    {
+      "x": -360,
+      "z": 55,
+      "elevation": -1.35,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": -325,
+      "z": -125,
+      "elevation": 1.15,
+      "banking": -3,
+      "curb": false
+    },
+    {
+      "x": -185,
+      "z": -245,
+      "elevation": 2.5,
+      "banking": 5,
+      "curb": true
+    },
+    {
+      "x": 12,
+      "z": -315,
+      "elevation": 1.35,
+      "banking": 8,
+      "curb": true
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.25
+    },
+    {
+      "id": 3,
+      "at": 0.72
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.16,
+      "label": "3"
+    },
+    {
+      "at": 0.34,
+      "label": "2"
+    },
+    {
+      "at": 0.54,
+      "label": "1"
+    },
+    {
+      "at": 0.74,
+      "label": "LAST"
+    },
+    {
+      "at": 0.9,
+      "label": "100"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0.6
+    },
+    {
+      "at": 0.16,
+      "lateral": -1.6
+    },
+    {
+      "at": 0.34,
+      "lateral": 2.1
+    },
+    {
+      "at": 0.58,
+      "lateral": -1.7
+    },
+    {
+      "at": 0.78,
+      "lateral": 1.8
+    },
+    {
+      "at": 0.94,
+      "lateral": 0
+    }
+  ]
+}

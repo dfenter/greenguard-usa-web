@@ -7,20 +7,17 @@
 // game, and the surface model, jumps, ghost line and livery meta are new.
 //
 // Structure:
-//   stage.js  stage table, seeded generation, merged static geometry
-//   cars.js   livery roster, OBJ rigging, blob shadow, ghost shell
-//   fx.js     pooled particle systems (dust plume, spray, debris, streaks)
+//   stage.js  stage table and seeded simulation layout
+//   cars.js   livery roster and handling data
+//   GGRacer   shared track, environment, vehicle and speed FX renderer
 //   audio.js  synthesised engine, co-driver voice chips, music director
 //   hud.js    2D overlay primitives
-import * as THREE from 'three';
+import { createRacerWorld } from '../_shared/racer/engine.js';
 import {
   STAGES, RALLIES, BIOMES, SURFACES, STAGE_LIMIT, WORLD_SCALE,
-  buildLayout, featureText, buildRoad, buildTerrain, buildProps, buildGates,
-  buildGhostLine, buildSky, buildStars, mulberry, worldYaw, roadSlope,
+  buildLayout, featureText, roadSlope, worldYaw,
 } from './stage.js';
-import { buildHorizon } from './stage.js';
-import { CARS, carById, buildCar, buildGhost } from './cars.js';
-import { ParticleSystem, StreakSystem, SkidTrail, AtmosphereField } from './fx.js';
+import { CARS, carById } from './cars.js';
 import { EngineSynth, CoDriver, MusicDirector, captureAudioContext } from './audio.js';
 import { Hud, EASE, clamp, lerp, formatTime, formatDelta, rgba, hexStr } from './hud.js';
 
@@ -57,26 +54,6 @@ const hud = new Hud(hudCanvas);
     '--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);}';
   document.head.appendChild(s);
 })();
-
-const renderer = new THREE.WebGLRenderer({
-  canvas: sceneCanvas, antialias: false, alpha: false,
-  powerPreference: 'high-performance', stencil: false, depth: true,
-});
-renderer.setClearColor(0x120d09, 1);
-renderer.shadowMap.enabled = false;              // blob shadows only
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-// No filmic tone mapping: ACES turns the authored flat-shaded palette to mud
-// at these light levels. The look is stylized, not photoreal.
-renderer.toneMapping = THREE.NoToneMapping;
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(64, 16 / 9, 0.6, 2400);
-scene.add(camera);
-const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
-scene.add(sun, hemi);
-const worldGroup = new THREE.Group();
-scene.add(worldGroup);
 
 // --------------------------------------------------------------- save data
 function validateSave(o) {
@@ -186,8 +163,9 @@ function sfx(name, opts) { kit.audio.sfx(name, opts); }
 let mode = 'title';
 let stageDef = STAGES[0];
 let world = null;
-let carRig = null;
-let ghostRig = null;
+let racer = null;
+let racerTrackJSON = null;
+let carRig = currentCar();
 let loading = false;
 let rallyRun = null;          // { rally, stageIdx, times: [] } while chaining
 let listRally = 0;            // rally being browsed on the stage screen
@@ -210,16 +188,11 @@ const run = {
 
 // Cosmetic springs. Render side only; never fed back into the sim.
 const view = {
-  camPos: new THREE.Vector3(),
-  camLook: new THREE.Vector3(),
-  camVel: new THREE.Vector3(),
-  fov: 64,
-  finishLift: 0,          // results choreography: the camera pulls up and back
+  // Cosmetic springs only. GGRacer owns the chase camera and car rig.
   lean: 0, leanVel: 0,
   pitch: 0, pitchVel: 0,
   susp: 0, suspVel: 0,
   flash: 0,
-  started: false,
 };
 
 // `kind` and `dist` drive the pace-note card's urgency states: every call used
@@ -282,176 +255,81 @@ function resize() {
   const rect = sceneCanvas.getBoundingClientRect();
   W = Math.max(320, rect.width);
   H = Math.max(220, rect.height);
-  // Both canvases are full screen and both composite every frame, so their
-  // pixel count is the largest single term in the frame time on a throttled
-  // phone. A 1280 px backing store still supersamples an 844 px landscape
-  // viewport and cuts fill cost by about a third against 1600.
-  const cap = Math.min(1.5, window.devicePixelRatio || 1);
-  dpr = Math.min(cap, 1024 / Math.max(W, 1));
-  // The overlay is type and vector shapes, not sampled art: it stays legible at
-  // 1x and its fill was the single largest 2D term in the throttled trace.
-  const hdpr = Math.min(dpr, 1.0);
-  renderer.setPixelRatio(dpr);
-  renderer.setSize(W, H, false);
-  camera.aspect = W / H;
-  camera.updateProjectionMatrix();
-  hud.resize(W, H, hdpr);
+  dpr = Math.min(1.5, 1024 / Math.max(W, 1), window.devicePixelRatio || 1);
+  hud.resize(W, H, Math.min(dpr, 1.0));
+  if (racer) racer.world.resize();
 }
 window.addEventListener('resize', resize, { passive: true });
 window.addEventListener('orientationchange', resize, { passive: true });
 
-// ------------------------------------------------------------- world build
+// ------------------------------------------------------------- GGRacer adapter
 function disposeWorld() {
-  worldGroup.traverse((o) => {
-    if (o.isMesh || o.isPoints || o.isLineSegments) {
-      if (o.geometry) o.geometry.dispose();
-      const m = o.material;
-      if (Array.isArray(m)) m.forEach((x) => x.dispose && x.dispose());
-      else if (m && m.dispose) m.dispose();
-    }
-  });
-  worldGroup.clear();
-  if (world && world.fx) {
-    for (const k in world.fx) if (world.fx[k] && world.fx[k].dispose) world.fx[k].dispose();
-  }
+  if (racer) racer.world.dispose();
+  racer = null;
+  racerTrackJSON = null;
   world = null;
-  carRig = null;
-  ghostRig = null;
-}
-
-// Cooperative yield. Building a stage is several hundred milliseconds of merge
-// work; run as one task it lands in the feel trace as a single enormous stall,
-// so every phase hands the frame back before the next one starts.
-function yieldFrame() {
-  return new Promise((res) => requestAnimationFrame(() => setTimeout(res, 0)));
-}
-
-// Per-surface emitter families. The same plume in a different tint was the
-// whole VFX vocabulary; each surface now throws its own SHAPE of material with
-// its own mass, spread, gravity and life.
-const SURFACE_FX = [
-  // gravel
-  { plume: 'dust', grit: 'grit', rate: 1.0, plumeLife: 0.62, gritLife: 0.3, lift: 1.0 },
-  // hardpack
-  { plume: 'dust', grit: 'grit', rate: 0.62, plumeLife: 0.5, gritLife: 0.24, lift: 0.8 },
-  // sand
-  { plume: 'dust', grit: 'grit', rate: 1.35, plumeLife: 0.86, gritLife: 0.34, lift: 1.3 },
-  // mud
-  { plume: 'dust', grit: 'clod', rate: 0.7, plumeLife: 0.34, gritLife: 0.5, lift: 0.45 },
-  // snow
-  { plume: 'powder', grit: 'powder', rate: 1.3, plumeLife: 1.15, gritLife: 0.6, lift: 1.5 },
-  // tarmac
-  { plume: 'wet', grit: 'wet', rate: 0.3, plumeLife: 0.26, gritLife: 0.22, lift: 0.5 },
-];
-
-function atmosphereFor(biome) {
-  if (biome.id === 'pine') {
-    return new AtmosphereField(70, { size: 6.5, color: 0xdcd0bc, opacity: 0.1, fall: -0.5, drift: 1.6, range: 42 });
-  }
-  if (biome.id === 'canyon') {
-    return new AtmosphereField(70, { size: 5.5, color: 0xe8a473, opacity: 0.11, fall: -0.3, drift: 2.2, range: 44 });
-  }
-  if (biome.id === 'alpine') {
-    return new AtmosphereField(110, { size: 0.6, shape: 'flake', color: 0xffffff, opacity: 0.7, fall: -3.4, drift: 2.6, range: 34 });
-  }
-  return new AtmosphereField(80, { size: 0.5, shape: 'flake', color: biome.accent, opacity: 0.5, fall: -1.1, drift: 1.9, range: 36, additive: true });
+  carRig = currentCar();
 }
 
 async function buildWorld(def) {
-  const biome = BIOMES[def.biome];
   const layout = buildLayout(def);
-  const rng = mulberry(def.seed + 7717);
-
-  const sky = buildSky(biome);
-  worldGroup.add(sky.mesh);
-  if (biome.stars) worldGroup.add(buildStars(biome, mulberry(def.seed + 401)).mesh);
-  const horizon = buildHorizon(layout, biome, rng);
-  worldGroup.add(horizon.mesh);
-  await yieldFrame();
-
-  const terrain = buildTerrain(layout, biome, mulberry(def.seed + 55));
-  worldGroup.add(terrain.mesh);
-  await yieldFrame();
-
-  const road = buildRoad(layout, biome);
-  worldGroup.add(road.group);
-  await yieldFrame();
-
-  const props = buildProps(layout, biome, rng);
-  worldGroup.add(props.mesh);
-  await yieldFrame();
-
-  const gates = buildGates(layout, biome);
-  worldGroup.add(gates.mesh);
-
-  // Collision buckets keyed by path node, so a contact test only ever looks at
-  // the handful of trees and rocks beside the car.
   const buckets = new Map();
-  for (const c of props.collide) {
-    const key = c.node >> 3;
+  // Collision buckets remain title simulation data. GGRacer owns every visible
+  // track, environment, vehicle and speed-effect mesh.
+  for (const hazard of layout.trees) {
+    const hazardState = { x: hazard.x, y: hazard.y, r: hazard.size * 0.9, node: hazard.node, kind: 'tree' };
+    const key = hazard.node >> 3;
     let list = buckets.get(key);
     if (!list) { list = []; buckets.set(key, list); }
-    list.push(c);
+    list.push(hazardState);
+  }
+  for (const hazard of layout.rocks) {
+    const hazardState = { x: hazard.x, y: hazard.y, r: hazard.size * 1.3, node: hazard.node, kind: 'rock' };
+    const key = hazard.node >> 3;
+    let list = buckets.get(key);
+    if (!list) { list = []; buckets.set(key, list); }
+    list.push(hazardState);
   }
 
-  sun.color.setHex(biome.sun.color);
-  sun.intensity = biome.sun.intensity;
-  sun.position.set(biome.sun.dir[0], biome.sun.dir[1], biome.sun.dir[2]).normalize().multiplyScalar(600);
-  hemi.color.setHex(biome.hemi.sky);
-  hemi.groundColor.setHex(biome.hemi.ground);
-  hemi.intensity = biome.hemi.intensity;
-  scene.fog = new THREE.FogExp2(biome.fog, biome.fogDensity);
-  renderer.setClearColor(biome.fog, 1);
-
-  // Surface-authored emitters. Dry billow, hard chip, wet clod, snow powder
-  // and road spray are five separate families, not one pool with a tint.
-  // Sized against the 5.7 m chase distance: at 2.4 m a puff leaving the rear
-  // wheel filled a third of the frame and read as a white blob rather than a
-  // dust column, so the billow is smaller and thinner and gets its density from
-  // count instead of from footprint.
-  const dust = new ParticleSystem(130, 1.45, 0xd8bd8a, {
-    gravity: -2.2, drag: 1.5, opacity: 0.34, shape: 'puff', alphaTest: 0.2, fadeColor: biome.fog,
-  });
-  const grit = new ParticleSystem(90, 0.5, 0xd8bd8a, {
-    gravity: -24, drag: 0.9, opacity: 0.98, shape: 'grit', alphaTest: 0.3, fadeColor: biome.fog,
-  });
-  const clod = new ParticleSystem(60, 0.75, 0x4a3a26, {
-    gravity: -34, drag: 0.6, opacity: 1, shape: 'clod', alphaTest: 0.4, fadeColor: 0x2a2016,
-  });
-  const powder = new ParticleSystem(110, 1.15, 0xffffff, {
-    gravity: -1.1, drag: 2.4, opacity: 0.45, shape: 'flake', alphaTest: 0.18, fadeColor: biome.fog,
-  });
-  const wet = new ParticleSystem(70, 0.9, 0xcfe4f2, {
-    gravity: -16, drag: 1.2, opacity: 0.55, shape: 'spray', alphaTest: 0.25, fadeColor: biome.fog,
-  });
-  const debris = new ParticleSystem(70, 0.7, 0xffcf7a, {
-    gravity: -24, drag: 1.1, opacity: 1, additive: true, shape: 'grit', alphaTest: 0.3, fadeColor: 0x662200,
-  });
-  const streaks = new StreakSystem(60, biome.accent);
-  const skid = new SkidTrail(200, 0x201709);
-  const air = atmosphereFor(biome);
-  worldGroup.add(dust.pts, grit.pts, clod.pts, powder.pts, wet.pts,
-    debris.pts, streaks.lines, skid.mesh, air.pts);
-  await yieldFrame();
-
+  const response = await fetch('./tracks/' + def.id.toLowerCase() + '.json');
+  if (!response.ok) throw new Error('missing GGRacer track JSON for ' + def.id);
+  racerTrackJSON = await response.json();
   const spec = currentCar();
-  const rig = await buildCar(spec);
-  rig.baseY = rig.chassis.position.y;
-  worldGroup.add(rig.root);
-  // Roof lamps only glow on the dark stages.
-  const night = biome.timeOfDay === 'night' || biome.timeOfDay === 'dusk';
-  rig.pod.lampMat.emissiveIntensity = night ? 1.25 : 0.15;
+  racer = createRacerWorld({
+    canvas: sceneCanvas,
+    trackJSON: racerTrackJSON,
+    theme: racerTrackJSON.theme,
+    timeOfDay: racerTrackJSON.timeOfDay,
+    // The sole adapter actor is reserved for the saved ghost. Rally sim
+    // packets still contain no rivals and no AI is advanced.
+    rivalCount: 1,
+    ggkit: kit,
+    paint: spec.body,
+    accent: spec.accentTrim,
+    seed: def.seed,
+  });
 
-  // Ghost car plus the ghost line ribbon, only when the save validates.
+  const ghostActor = racer.world.rivals[0];
+  if (ghostActor) {
+    ghostActor.setLivery({
+      paint: racerTrackJSON.theme === 'night-city' ? 0x7de4eb : 0xf2c34e,
+      accent: racerTrackJSON.theme === 'night-city' ? 0xd5fbff : 0xfff0b0,
+    });
+    ghostActor.root.traverse((object) => {
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        if (!material) continue;
+        material.transparent = true;
+        material.opacity = Math.min(Number(material.opacity) || 1, 0.28);
+        material.depthWrite = false;
+      }
+    });
+    ghostActor.root.visible = false;
+  }
+
   const rec = stageRecord(def.id);
   const gdata = validateGhost(rec.ghost);
-  let ghost = null;
-  let line = null;
   if (gdata) {
-    ghost = await buildGhost(spec, biome.accent);
-    worldGroup.add(ghost.root);
-    line = buildGhostLine(layout, gdata, biome.accent);
-    if (line) worldGroup.add(line.mesh);
     ghostPlay = gdata;
     ghostPerm = ghostPermanent(gdata);
   } else {
@@ -460,55 +338,29 @@ async function buildWorld(def) {
   }
 
   world = {
-    def, biome, layout, buckets, line, horizon,
-    fx: { dust, grit, clod, powder, wet, debris, streaks, skid, air },
-    sky, terrain, road, props, gates,
-    banners: props.banners || [],
-    // The results overlay used to fire five nodes BEFORE the finish arch. Both
-    // the gate geometry and the completion test now key off the same index.
+    def,
+    biome: BIOMES[def.biome],
+    layout,
+    buckets,
     lastNode: layout.path.length - 9,
     notes: mergeNotes(layout),
+    ghostActor,
   };
-  carRig = rig;
-  ghostRig = ghost;
+  carRig = spec;
 }
 
-// The pools the surface model emits into, resolved once per surface change.
-function surfacePool(name) {
-  const fx = world.fx;
-  if (name === 'clod') return fx.clod;
-  if (name === 'powder') return fx.powder;
-  if (name === 'wet') return fx.wet;
-  if (name === 'grit') return fx.grit;
-  return fx.dust;
-}
-
-// Pace-note stream: corner calls and surface changes merged into one sorted
-// list so the co-driver reads the road in order. Precomputed, never filtered
-// on a gameplay frame.
 function mergeNotes(layout) {
   const list = layout.features.concat(layout.surfaceNotes);
   list.sort((a, b) => a.index - b.index);
-  return list.map((f) => ({ index: f.index, text: featureText(f), kind: f.kind }));
+  return list.map((feature) => ({
+    index: feature.index,
+    text: featureText(feature),
+    kind: feature.kind,
+  }));
 }
 
-// Compile every program and upload every buffer the stage will touch while the
-// loading screen is still up. Pools start hidden, so without this the first
-// plume, the first spark and the first skid quad each pay a program link
-// mid-stage: the worst kind of spike in the feel trace.
 function prewarmScene() {
   if (!world) return;
-  const fx = world.fx;
-  const hidden = [fx.dust.pts, fx.grit.pts, fx.clod.pts, fx.powder.pts, fx.wet.pts,
-    fx.debris.pts, fx.streaks.lines, fx.skid.mesh];
-  const was = hidden.map((o) => o.visible);
-  hidden.forEach((o) => { o.visible = true; });
-  if (ghostRig) ghostRig.root.visible = true;
-  try {
-    renderer.compile(scene, camera);
-    renderer.render(scene, camera);
-  } catch (e) { /* prewarm is best effort; never block the stage on it */ }
-  hidden.forEach((o, i) => { o.visible = was[i]; });
   hud.warmFonts([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 26, 28, 32, 36, 44, 52, 64]);
 }
 
@@ -569,9 +421,7 @@ function resetSim() {
   view.lean = 0; view.leanVel = 0;
   view.pitch = 0; view.pitchVel = 0;
   view.susp = 0; view.suspVel = 0;
-  view.fov = 64; view.flash = 0; view.started = false; view.finishLift = 0;
-
-  note.text = ''; note.next = ''; note.t = 0; note.cursor = 0; note.dist = 0;
+  view.flash = 0; note.text = ''; note.next = ''; note.t = 0; note.cursor = 0; note.dist = 0;
   message = ''; messageTime = 0; messageKind = '';
   ceremonyT = 0;
   // Sample zero is the grid, taken at time zero. Recording only started after
@@ -594,25 +444,10 @@ function resetSim() {
   acc = 0;
   lastTime = performance.now();
 
-  const fx = world.fx;
-  fx.dust.reset(); fx.grit.reset(); fx.clod.reset(); fx.powder.reset();
-  fx.wet.reset(); fx.debris.reset(); fx.streaks.reset(); fx.skid.reset();
-  fx.air.reset(car.x * WORLD_SCALE, roadY() + 6, car.y * WORLD_SCALE);
-  applySurfaceTint();
-  if (carRig && carRig.setDirt) carRig.setDirt(0, SURFACES[car.surface].dust);
+  if (racer && racer.world.fx.setReducedMotion) racer.world.fx.setReducedMotion(!motionOn());
 }
 
-// Every emitter is tinted from the surface under the car, once per change.
-function applySurfaceTint() {
-  const surf = SURFACES[car.surface];
-  const fx = world.fx;
-  fx.dust.setColor(surf.dust);
-  fx.grit.setColor(surf.edge);
-  fx.clod.setColor(surf.road);
-  fx.powder.setColor(surf.dust);
-  fx.wet.setColor(surf.dust);
-}
-
+// Surface colouring and dirt accumulation are owned by GGRacer's shared FX lane.
 // Prototype nearestOnRoad(), verbatim in its search window and its maths.
 function nearestOnRoad() {
   const path = world.layout.path;
@@ -642,7 +477,7 @@ function nearestOnRoad() {
 // all 1.0 on gravel, so gravel drives exactly as the prototype did.
 function stepSim(dt) {
   const def = world.def;
-  const spec = carRig.spec;
+  const spec = carRig;
   const path = world.layout.path;
   // The recce runs the same model with no clock, no limit and no penalty.
   const isRecce = mode === 'recce';
@@ -831,6 +666,7 @@ function hitRock(obj) {
   view.suspVel -= 8;
   juiceShake(Math.min(H * 0.018, 10), 240);
   juiceHitStop(50);
+  if (racer) racer.world.fx.impact(8);
   markAccent('rock', obj, 0.1);
   sfx('impact', { volume: 0.8, rate: 0.95 + Math.random() * 0.2 });
   setMessage('ROCK  -  SPEED LOST', 'bad', 1.2);
@@ -842,6 +678,7 @@ function landed(forwardSpeed) {
   view.suspVel -= 14 + forwardSpeed * 0.03;
   juiceShake(Math.min(H * 0.016, 9), 200);
   juiceHitStop(45);
+  if (racer) racer.world.fx.impact(7);
   markAccent('land', null, 0.12);
   sfx('land', { volume: 0.5, rate: 0.9 + Math.random() * 0.2 });
   const surf = SURFACES[car.surface];
@@ -870,44 +707,29 @@ function triggerReset(reason, obj) {
   flashScreen(0.2);
   juiceShake(Math.min(H * 0.02, 12), 300);
   juiceHitStop(60);
+  if (racer) racer.world.fx.impact(10);
   markAccent(reason === 'CONTACT' ? 'tree' : 'ground', obj, 0.12);
   sfx(reason === 'CONTACT' ? 'impact' : 'reset', { volume: 0.8, rate: 0.9 + Math.random() * 0.2 });
   setMessage(reason + '   PLUS 3 SECONDS', 'bad', 3);
   burstDust(20, 3, SURFACES[car.surface]);
-  world.fx.skid.break();
   car.dirt = Math.min(1, car.dirt + 0.3);
   proximity = 0;
 }
 
 // Surface-authored burst. Gravel throws chips, mud throws clods, snow throws
 // powder and tarmac throws spray, each into its own pool with its own mass.
-function burstDust(n, force, surf) {
-  const S = WORLD_SCALE;
-  const px = car.x * S, pz = car.y * S;
-  const py = roadY();
-  const cfg = SURFACE_FX[car.surface] || SURFACE_FX[0];
-  const plume = surfacePool(cfg.plume);
-  const chips = surfacePool(cfg.grit);
-  applySurfaceTint();
-  world.fx.debris.setColor(surf.dust);
+// Shared GGRacer supplies pooled dust and impact FX. The rally sim still
+// decides when a jump, rock, landing or reset occurs.
+function burstDust(n, force) {
+  if (!racer || !racer.world.fx) return;
+  const position = { x: car.x * WORLD_SCALE, y: roadY() + 0.4, z: car.y * WORLD_SCALE };
   const count = Math.round(n * (motionOn() ? 1 : 0.5));
-  for (let i = 0; i < count; i++) {
-    const a = Math.random() * TAU;
-    const sp = 2 + Math.random() * 8 * force;
-    plume.emit(
-      px + (Math.random() - 0.5) * 2.2, py + 0.4 + Math.random() * 0.7, pz + (Math.random() - 0.5) * 2.2,
-      Math.cos(a) * sp, (1.5 + Math.random() * 4) * cfg.lift, Math.sin(a) * sp,
-      cfg.plumeLife * (0.8 + Math.random() * 0.7));
-    if (i % 2 === 0) {
-      chips.emit(
-        px, py + 0.35, pz,
-        Math.cos(a) * sp * 1.7, 3 + Math.random() * 7, Math.sin(a) * sp * 1.7,
-        cfg.gritLife * (0.8 + Math.random() * 0.6));
-      world.fx.debris.emit(
-        px, py + 0.35, pz,
-        Math.cos(a) * sp * 1.4, 3 + Math.random() * 6, Math.sin(a) * sp * 1.4,
-        0.22 + Math.random() * 0.24);
-    }
+  for (let i = 0; i < count; i += 1) {
+    racer.world.fx.spawnDust(position, {
+      x: (Math.random() - 0.5) * force * 5,
+      y: 2 + Math.random() * force * 2,
+      z: (Math.random() - 0.5) * force * 5,
+    });
   }
 }
 
@@ -1069,279 +891,118 @@ function closeRally() {
 }
 
 // ------------------------------------------------------------------- view
-const _desired = new THREE.Vector3();
-const _look = new THREE.Vector3();
-const ZERO_SHAKE = { dx: 0, dy: 0, frozen: false };
+// The title sends the unchanged rally state to GGRacer every frame. No title
+// code writes camera Euler components; the shared chase camera owns lookAt and
+// quaternion-space roll.
+const racerFrame = {
+  carState: {
+    progress: 0, speed: 0, steering: 0, acceleration: 0, lateralG: 0,
+    suspension: 0, brake: 0, boost: 0, pitch: 0, roll: 0,
+    position: { x: 0, y: 0, z: 0 }, yaw: 0,
+  },
+  rivals: [{
+    progress: 0, speed: 0, steering: 0, acceleration: 0, lateralG: 0,
+    suspension: 0, brake: 0, boost: 0, pitch: 0, roll: 0,
+    position: { x: 0, y: -100, z: 0 }, yaw: 0,
+  }],
+};
+const ghostState = {
+  visible: false,
+  progress: 0,
+  speed: 0,
+  lateral: 0,
+  position: { x: 0, y: -100, z: 0 },
+  yaw: 0,
+};
 
-function spring(obj, valKey, velKey, target, stiffness, damping, dt) {
-  const a = (target - obj[valKey]) * stiffness - obj[velKey] * damping;
-  obj[velKey] += a * dt;
-  obj[valKey] += obj[velKey] * dt;
+function spring(obj, valueKey, velocityKey, target, stiffness, damping, dt) {
+  const acceleration = (target - obj[valueKey]) * stiffness - obj[velocityKey] * damping;
+  obj[velocityKey] += acceleration * dt;
+  obj[valueKey] += obj[velocityKey] * dt;
 }
 
-function updateView(dt, frozen, shake) {
+function updateView(dt, frozen) {
+  if (!racer || !world) return { px: car.x * WORLD_SCALE, py: roadY(), pz: car.y * WORLD_SCALE, speedFrac: 0 };
   const S = WORLD_SCALE;
-  const px = car.x * S;
-  const pz = car.y * S;
-  const py = roadY() + car.air * S;
-
-  // The nose points where the car is sliding, not where the road goes.
+  const path = world.layout.path;
+  const speedFrac = clamp(car.speed / (world.def.maxSpeed * carRig.topSpeed), 0, 1);
   const slideYaw = clamp(Math.atan2(car.sideSpeed, Math.max(60, car.speed)) * 0.9, -0.55, 0.55);
   const heading = car.heading - slideYaw;
-  const yaw = worldYaw(heading);
-
-  carRig.root.position.set(px, py, pz);
-  carRig.root.rotation.y = yaw;
-
   if (!frozen) {
-    // Finish beat: on the result the camera eases up and back off the car for
-    // the ceremony, and drops straight back on the grid. This is the first
-    // thing the results choreography does, before the clock counts up.
-    const wantLift = (mode === 'result' || mode === 'summary') ? 2.35 : 0;
-    view.finishLift += (wantLift - view.finishLift) * Math.min(1, dt * 2.2);
-    // Cosmetic springs: lean into the slide, pitch under braking, suspension
-    // travel on landing. Underdamped with one visible overshoot.
-    const targetLean = clamp(car.sideSpeed / 260, -1, 1) * 0.16 + input.steer * 0.03;
-    const targetPitch = (input.brake ? -1 : 0.35) * 0.04 * (0.35 + car.speed / 325);
-    spring(view, 'lean', 'leanVel', targetLean, 260, 16, dt);
-    spring(view, 'pitch', 'pitchVel', targetPitch, 230, 15, dt);
-    spring(view, 'susp', 'suspVel', 0, 190, 13, dt);
+    spring(view, 'lean', 'leanVel', clamp(car.sideSpeed / 260, -1, 1) * 0.16 + input.steer * 0.03, 260, 16, Math.min(dt, 0.05));
+    spring(view, 'pitch', 'pitchVel', (input.brake ? -1 : 0.35) * 0.04 * (0.35 + car.speed / 325), 230, 15, Math.min(dt, 0.05));
+    spring(view, 'susp', 'suspVel', 0, 190, 13, Math.min(dt, 0.05));
   }
+  const actor = racerFrame.carState;
+  actor.progress = clamp(car.nearest / Math.max(1, path.length - 1), 0, 1);
+  actor.speed = car.speed * S;
+  actor.steering = input.steer;
+  actor.acceleration = input.brake ? -2 : 1;
+  actor.lateralG = car.sideSpeed * S * 0.02;
+  actor.suspension = view.susp;
+  actor.brake = input.brake ? 1 : 0;
+  actor.boost = 0;
+  actor.pitch = view.pitch + car.bounce * 0.06;
+  actor.roll = motionOn() ? view.lean : 0;
+  actor.position.x = car.x * S;
+  actor.position.y = roadY() + car.air * S;
+  actor.position.z = car.y * S;
+  actor.yaw = worldYaw(heading);
 
-  carRig.chassis.rotation.z = view.lean;
-  carRig.chassis.rotation.x = view.pitch + car.bounce * 0.06;
-  carRig.chassis.rotation.y = Math.PI;
-  // Suspension travel: the chassis squats on landing and rebounds once.
-  carRig.chassis.position.y = carRig.baseY + clamp(view.susp * 0.006, -0.16, 0.22);
-
-  // Wheels: shared axle spin, front pair also steers with the input.
-  const steerAngle = clamp(input.steer, -1, 1) * 0.42 + clamp(car.sideSpeed / 400, -0.35, 0.35);
-  for (const w of carRig.wheelGroups) {
-    w.rotation.x = -car.wheelSpin;
-    w.rotation.y = w.userData.front ? steerAngle : 0;
+  const ghost = racerFrame.rivals[0];
+  if (ghostState.visible) {
+    ghost.progress = ghostState.progress;
+    ghost.speed = ghostState.speed;
+    ghost.steering = 0;
+    ghost.acceleration = 0;
+    ghost.lateralG = 0;
+    ghost.brake = 0;
+    ghost.boost = 0;
+    ghost.position.x = ghostState.position.x;
+    ghost.position.y = ghostState.position.y;
+    ghost.position.z = ghostState.position.z;
+    ghost.yaw = ghostState.yaw;
+  } else {
+    ghost.progress = 0.99;
+    ghost.speed = 0;
+    ghost.position.x = 0;
+    ghost.position.y = -100;
+    ghost.position.z = 0;
+    ghost.yaw = 0;
   }
-
-  carRig.shadow.position.set(px, roadY() + 0.06, pz);
-  carRig.shadow.rotation.z = -yaw;
-  const shadowScale = clamp(1 - car.air * S * 0.25, 0.45, 1);
-  carRig.shadow.scale.set(shadowScale, 1, shadowScale);
-  carRig.shadow.material.opacity = 0.48 * shadowScale;
-
-  // Reset flash: the body glows hot for a beat after a penalty.
-  const hot = clamp(car.resetTime / 3, 0, 1);
-  for (const m of carRig.materials) {
-    if (!m.emissive) continue;
-    if (m.userData.baseEmissive == null) {
-      m.userData.baseEmissive = m.emissiveIntensity || 0;
-      m.userData.baseEmissiveHex = m.emissive.getHex();
-    }
-    if (hot > 0.01 && m.userData.baseEmissive < 0.5) {
-      m.emissive.setHex(0xff5a2a);
-      m.emissiveIntensity = m.userData.baseEmissive + hot * 0.8;
-    } else if (m.emissiveIntensity !== m.userData.baseEmissive && m.userData.baseEmissive < 0.5) {
-      m.emissive.setHex(m.userData.baseEmissiveHex);
-      m.emissiveIntensity = m.userData.baseEmissive;
-    }
-  }
-
-  // --- chase camera
-  // A lower, offset three-quarter chase. The old high centred rig cropped the
-  // tyre contact patches and the wheel animation out of frame; sitting the
-  // camera down and off to one side puts the contact patch, the suspension
-  // travel and the flank livery back in the shot.
-  const speedFrac = clamp(car.speed / 325, 0, 1);
-  const back = 5.7 + speedFrac * 2.4 + view.finishLift * 1.4;
-  const up = 1.62 + speedFrac * 0.34 + car.air * S * 0.35 + view.finishLift;
-  const side = 1.35 - speedFrac * 0.35;
-  // The camera trails the CAR HEADING, not the slide yaw, so a big drift shows
-  // the flank of the car instead of chasing the nose around.
-  const camYaw = worldYaw(car.heading);
-  const desired = _desired.set(
-    px - Math.sin(camYaw) * back + Math.cos(camYaw) * side,
-    py + up,
-    pz - Math.cos(camYaw) * back - Math.sin(camYaw) * side
-  );
-
-  if (!view.started) {
-    view.camPos.copy(desired);
-    view.started = true;
-  } else if (!frozen) {
-    const k = 58, c = 14.6;
-    const ax = (desired.x - view.camPos.x) * k - view.camVel.x * c;
-    const ay = (desired.y - view.camPos.y) * k - view.camVel.y * c;
-    const az = (desired.z - view.camPos.z) * k - view.camVel.z * c;
-    view.camVel.x += ax * dt; view.camVel.y += ay * dt; view.camVel.z += az * dt;
-    view.camPos.x += view.camVel.x * dt;
-    view.camPos.y += view.camVel.y * dt;
-    view.camPos.z += view.camVel.z * dt;
-  }
-
-  // Velocity lookahead on the look-at only.
-  const path = world.layout.path;
-  const aheadIdx = clamp(car.nearest + 12 + Math.round(speedFrac * 22), 0, path.length - 1);
-  const ap = path[aheadIdx];
-  // A 0.7 weight here threw the car to the edge of frame through a long
-  // corner; 0.55 keeps the road readable while the car stays the subject.
-  const lookX = lerp(px, ap.x * S, 0.55);
-  const lookZ = lerp(pz, ap.y * S, 0.55);
-  const lookY = lerp(py, ap.elev * S, 0.5) + 1.6;
-  view.camLook.lerp(_look.set(lookX, lookY, lookZ), frozen ? 1 : Math.min(1, dt * 8.5));
-
-  const sh = shake || ZERO_SHAKE;
-  camera.position.copy(view.camPos);
-  camera.position.x += sh.dx * 0.045;
-  camera.position.y += sh.dy * 0.035;
-  camera.lookAt(view.camLook);
-  camera.rotation.z += view.lean * 0.38;
-
-  const targetFov = 64 + (motionOn() ? speedFrac * 5 : 0);
-  view.fov += (targetFov - view.fov) * Math.min(1, dt * 4.0);
-  if (Math.abs(camera.fov - view.fov) > 0.01) {
-    camera.fov = view.fov;
-    camera.updateProjectionMatrix();
-  }
-
-  world.sky.mesh.position.copy(camera.position);
-  return { px, py, pz, heading, speedFrac };
+  racer.world.update(racerFrame, Number(dt) || 1 / 60);
+  if (world.ghostActor) world.ghostActor.root.visible = ghostState.visible;
+  return {
+    px: actor.position.x,
+    py: actor.position.y,
+    pz: actor.position.z,
+    heading,
+    speedFrac,
+  };
 }
 
-// ------------------------------------------------------------------- fx
+// GGRacer owns dust, skid, impact, streak and car animation pools. The title
+// retains only the rally-specific surface audio cadence.
 let skidSfxAt = 0;
 let gravelSfxAt = 0;
-let lastTintSurface = -1;
-
 function updateFx(dt, place) {
-  const fx = world.fx;
-  const { px, py, pz, speedFrac } = place;
-  const surf = SURFACES[car.surface];
-  const cfg = SURFACE_FX[car.surface] || SURFACE_FX[0];
-  const sinH = Math.sin(car.heading), cosH = Math.cos(car.heading);
-  const airborne = car.airborne;
-  const reduced = !motionOn();
-
-  if (car.surface !== lastTintSurface) { lastTintSurface = car.surface; applySurfaceTint(); }
-
-  const plume = surfacePool(cfg.plume);
-  const chips = surfacePool(cfg.grit);
-
+  if (!racer || !world) return;
   const slide = Math.abs(car.sideSpeed);
   const offRoad = Math.abs(car.lateral) > world.layout.path[car.nearest].roadHalf;
-  // A rally car throws a rooster tail whenever it is moving on a loose
-  // surface, not only when it is sideways; the slide only makes it bigger.
-  const cruise = clamp((speedFrac - 0.28) / 0.72, 0, 1) * 0.42;
-  const kick = airborne ? 0
-    : (offRoad ? 1 : Math.max(cruise, clamp(slide / 120, 0, 1))) * surf.grit * cfg.rate;
-
-  // Wheel-local emission. The plume comes off the two driven wheels rather than
-  // one point behind the car, so a slide throws material from the loaded side.
-  const halfTrack = 0.95;
-  if (kick > 0.06 && speedFrac > 0.10 && car.resetTime <= 0) {
-    const n = kick > 0.7 ? 3 : kick > 0.35 ? 2 : 1;
-    for (let i = 0; i < n; i++) {
-      // Bias emission toward the outside wheel of the slide.
-      const bias = clamp(car.sideSpeed / 160, -1, 1);
-      const side = (Math.random() * 2 - 1 + bias * 0.7) > 0 ? halfTrack : -halfTrack;
-      const rx = px - cosH * 2.1 - sinH * side;
-      const rz = pz - sinH * 2.1 + cosH * side;
-      plume.emit(
-        rx, py + 0.26, rz,
-        -cosH * (1.5 + Math.random() * 4) + (Math.random() - 0.5) * 4,
-        (1.1 + Math.random() * 2.6 * kick) * cfg.lift,
-        -sinH * (1.5 + Math.random() * 4) + (Math.random() - 0.5) * 4,
-        cfg.plumeLife * (0.8 + Math.random() * 0.8));
-      // Hard material thrown forward off the wheel, faster and shorter lived.
-      if (Math.random() < kick * 0.7) {
-        chips.emit(
-          rx, py + 0.18, rz,
-          -cosH * (7 + Math.random() * 12) + (Math.random() - 0.5) * 9,
-          (2.5 + Math.random() * 5) * cfg.lift,
-          -sinH * (7 + Math.random() * 12) + (Math.random() - 0.5) * 9,
-          cfg.gritLife * (0.8 + Math.random() * 0.7));
-      }
-    }
-  }
-
-  // Beat two of the impact language: a short, localized contact accent that
-  // fires AT the contact point rather than as another global camera move.
-  if (hitAccent.t > 0) {
-    hitAccent.t -= dt;
-    const power = clamp(hitAccent.t / Math.max(hitAccent.life, 0.001), 0, 1);
-    const burst = hitAccent.kind === 'land' ? 3 : 2;
-    for (let i = 0; i < burst; i++) {
-      const a = Math.random() * TAU;
-      const sp = 4 + Math.random() * 12 * power;
-      chips.emit(hitAccent.x, hitAccent.y, hitAccent.z,
-        Math.cos(a) * sp, 3 + Math.random() * 6, Math.sin(a) * sp,
-        cfg.gritLife * (0.7 + Math.random() * 0.5));
-      fx.debris.emit(hitAccent.x, hitAccent.y, hitAccent.z,
-        Math.cos(a) * sp * 1.3, 4 + Math.random() * 7, Math.sin(a) * sp * 1.3,
-        0.16 + Math.random() * 0.16);
-    }
-  }
-
-  // Skid ruts while the tail is out or the car is scrubbing off the road.
-  if (!airborne && car.resetTime <= 0 && (slide > 45 || offRoad) && speedFrac > 0.18) {
-    const ax = px - cosH * 1.9 - sinH * halfTrack;
-    const az = pz - sinH * 1.9 + cosH * halfTrack;
-    const bx = px - cosH * 1.9 + sinH * halfTrack;
-    const bz = pz - sinH * 1.9 - cosH * halfTrack;
-    fx.skid.push(ax, py + 0.09, az, bx, py + 0.09, bz);
+  const speedFrac = place.speedFrac;
+  if (!car.airborne && car.resetTime <= 0 && (slide > 45 || offRoad) && speedFrac > 0.18) {
+    racer.world.fx.spawnSkid(
+      { x: place.px, y: place.py, z: place.pz },
+      worldYaw(car.heading),
+    );
     const now = performance.now();
-    if (offRoad) {
-      if (now - gravelSfxAt > 380) {
-        gravelSfxAt = now;
-        sfx('gravel', { volume: 0.22 + speedFrac * 0.2, rate: 0.75 + speedFrac * 0.45 });
-      }
-    } else if (now - skidSfxAt > 400) {
+    if (offRoad && now - gravelSfxAt > 380) {
+      gravelSfxAt = now;
+      sfx('gravel', { volume: 0.22 + speedFrac * 0.2, rate: 0.75 + speedFrac * 0.45 });
+    } else if (!offRoad && now - skidSfxAt > 400) {
       skidSfxAt = now;
       sfx('slide', { volume: 0.2 + clamp(slide / 300, 0, 1) * 0.24, rate: 0.85 + speedFrac * 0.4 });
     }
-  } else {
-    fx.skid.break();
-  }
-
-  // Speed streaks past the camera at high pace. Reduced motion turns them off
-  // along with the FOV kick and the flashes.
-  if (speedFrac > 0.66 && !reduced) {
-    const rate = (speedFrac - 0.66) / 0.34;
-    if (Math.random() < rate * 0.8) {
-      const ang = Math.random() * TAU;
-      const r = 3.2 + Math.random() * 6.2;
-      const sp = 38 + speedFrac * 86;
-      fx.streaks.emit(
-        px + Math.cos(ang) * r + cosH * 22,
-        py + 1.4 + Math.sin(ang) * r * 0.55,
-        pz + Math.sin(ang) * r + sinH * 22,
-        -cosH * sp, 0, -sinH * sp,
-        0.24 + Math.random() * 0.14,
-        3.4 + rate * 7);
-    }
-  }
-
-  // Dirt accumulates on the body over the stage and is thrown on by contact.
-  car.dirt = clamp(car.dirt + dt * 0.028 * (offRoad ? 3.4 : kick), 0, 1);
-  if (carRig.setDirt) carRig.setDirt(car.dirt, surf.dust);
-
-  fx.dust.update(dt);
-  fx.grit.update(dt);
-  fx.clod.update(dt);
-  fx.powder.update(dt);
-  fx.wet.update(dt);
-  fx.debris.update(dt);
-  fx.streaks.update(dt);
-  fx.air.update(dt, px, py + 3, pz);
-}
-
-// Banners answer the wind on the render clock, not the sim clock: a stage with
-// no moving dressing reads as a diorama.
-function updateDressing(t) {
-  const list = world.banners;
-  for (let i = 0; i < list.length; i++) {
-    const b = list[i];
-    const w = Math.sin(t * 1.9 + b.phase);
-    b.group.rotation.z = w * 0.11;
-    b.mesh.rotation.y = Math.sin(t * 2.7 + b.phase * 1.3) * 0.16;
-    b.mesh.scale.z = 1 + w * 0.06;
   }
 }
 
@@ -1362,13 +1023,15 @@ function updateGhostRecord(dt) {
 }
 
 function updateGhostPlayback() {
-  if (!ghostRig || !ghostPlay || !ghostPlay.length) {
-    if (ghostRig) ghostRig.root.visible = false;
+  if (!ghostPlay || !ghostPlay.length || !world) {
+    ghostState.visible = false;
     return;
   }
-  // The ghost replays at its recorded cadence: sample k was taken at k/HZ.
   const idx = run.time * GHOST_HZ;
-  if (idx >= ghostPlay.length - 1) { ghostRig.root.visible = false; return; }
+  if (idx >= ghostPlay.length - 1) {
+    ghostState.visible = false;
+    return;
+  }
   const i = Math.floor(idx);
   const f = idx - i;
   const a = ghostPlay[i], b = ghostPlay[i + 1];
@@ -1378,27 +1041,20 @@ function updateGhostPlayback() {
   const n = path.length - 1;
   const fi = clamp(frac, 0, 1) * n;
   const pi = Math.min(n - 1, Math.floor(fi));
-  const t = fi - pi;
+  const mix = fi - pi;
   const p0 = path[pi], p1 = path[pi + 1];
   const h = p0.heading;
   const nx = -Math.sin(h), nz = Math.cos(h);
-  const gx = (p0.x + (p1.x - p0.x) * t) + nx * lat;
-  const gz = (p0.y + (p1.y - p0.y) * t) + nz * lat;
-  const gy = (p0.elev + (p1.elev - p0.elev) * t) * WORLD_SCALE;
-  ghostRig.root.visible = true;
-  ghostRig.root.position.set(gx * WORLD_SCALE, gy + 0.02, gz * WORLD_SCALE);
-  ghostRig.root.rotation.y = worldYaw(h);
-  const d = ghostRig.root.position.distanceTo(carRig.root.position);
-  ghostRig.mat.opacity = clamp((d - 4) / 10, 0, 1) * 0.3;
+  ghostState.visible = true;
+  ghostState.progress = frac;
+  ghostState.lateral = lat;
+  ghostState.position.x = ((p0.x + (p1.x - p0.x) * mix) + nx * lat) * WORLD_SCALE;
+  ghostState.position.y = (p0.elev + (p1.elev - p0.elev) * mix) * WORLD_SCALE + 0.03;
+  ghostState.position.z = ((p0.y + (p1.y - p0.y) * mix) + nz * lat) * WORLD_SCALE;
+  ghostState.yaw = worldYaw(h);
+  ghostState.speed = Math.max(0, ((b[0] - a[0]) * n * world.layout.step * WORLD_SCALE) * GHOST_HZ);
 }
 
-// Seconds ahead (negative) or behind (positive) the ghost at this point.
-//
-// A run that contains an off-road reset has a NON-monotonic fraction track: the
-// same stage fraction is reached, lost and reached again. Binary searching the
-// raw track picked an arbitrary crossing and reported nonsense. `ghostPerm` is
-// the suffix minimum of the track, which is monotonic by construction, and the
-// index it finds is the moment the ghost passed this point for the last time.
 function ghostDelta() {
   if (!ghostPlay || !ghostPlay.length || !ghostPerm) return null;
   const frac = car.nearest / (world.layout.path.length - 1);
@@ -1621,31 +1277,17 @@ function onZone(z) {
   }
 }
 
-// Swap the livery on the menu backdrop without rebuilding the stage. The OBJ
-// is already parsed and cached, so this is a material and rig rebuild only.
+// Swap the livery on the GGRacer car without rebuilding the simulation.
 let swapping = false;
 async function swapCar(spec) {
-  if (!world || swapping) return;
+  if (swapping) return;
   swapping = true;
   try {
-    const rig = await buildCar(spec);
-    rig.baseY = rig.chassis.position.y;
-    const night = world.biome.timeOfDay === 'night' || world.biome.timeOfDay === 'dusk';
-    rig.pod.lampMat.emissiveIntensity = night ? 1.25 : 0.15;
-    if (carRig) {
-      worldGroup.remove(carRig.root);
-      carRig.root.traverse((o) => {
-        if (o.isMesh && o.geometry) o.geometry.dispose();
-      });
-      carRig.materials.forEach((m) => m.dispose && m.dispose());
-      (carRig.geometries || []).forEach((g) => g.dispose && g.dispose());
+    carRig = spec;
+    if (racer && racer.world.mainCar) {
+      racer.world.mainCar.setLivery({ paint: spec.body, accent: spec.accentTrim });
     }
-    carRig = rig;
-    worldGroup.add(rig.root);
-    view.started = false;
     setMessage(spec.name.toUpperCase() + ' READY', 'good', 2);
-  } catch (e) {
-    setMessage('LIVERY UNAVAILABLE', 'bad', 2);
   } finally {
     swapping = false;
   }
@@ -1811,8 +1453,9 @@ const loader = (function makeLoader() {
 }());
 
 // ------------------------------------------------------------- lifecycle
-function onPause() { engine.suspend(); }
+function onPause() { engine.suspend(); if (racer) racer.world.setPaused(true); }
 function onResume() {
+  if (racer) racer.world.setPaused(false);
   if (mode === 'stage') engine.start();
   // Visibility resumes before the next frame is scheduled. Without resetting
   // the frame clock the first resumed frame carried the whole background
@@ -2225,7 +1868,7 @@ function drawStageHud(dt) {
   const gx = pad + s.left + gaugeR + 4;
   const gy = H - pad - s.bottom - gaugeR - 4;
   const A0 = Math.PI * 0.78, A1 = Math.PI * 2.22;
-  const maxSpeed = def.maxSpeed * carRig.spec.topSpeed;
+  const maxSpeed = def.maxSpeed * carRig.topSpeed;
   const speedFrac = clamp(car.speed / maxSpeed, 0, 1);
   hud.arc(gx, gy, gaugeR, A0, A1, speedFrac, 7, 'rgba(255,255,255,0.10)', accent, 0.86);
   hud.arcTicks(gx, gy, gaugeR - 11, A0, A1, 8, 5, 'rgba(255,255,255,0.22)', 1.5);
@@ -2628,7 +2271,6 @@ function endRecce() {
   save.tutorialDone = true;
   persist();
   resetSim();
-  view.started = false;
   countdown = 3.6;
   countdownStep = -1;
   mode = 'countdown';
@@ -2688,8 +2330,7 @@ function menuDrive(dt) {
   if (car.nearest >= path.length - 24) {
     const start = path[8];
     car.x = start.x; car.y = start.y; car.nearest = 8;
-    view.started = false;
-  }
+    }
   car.surface = path[car.nearest].surface;
 }
 
@@ -2767,18 +2408,11 @@ function frame(now) {
       view.flash = Math.max(0, view.flash - dt * 2.2);
     }
 
-    const place = updateView(juice.frozen ? 0 : dt, juice.frozen, juice);
+    if (mode === 'stage' || mode === 'countdown') updateGhostPlayback();
+    else ghostState.visible = false;
+    const place = updateView(juice.frozen ? 0 : dt, juice.frozen);
     if (mode === 'stage' || mode === 'countdown') {
       if (!juice.frozen && !window.__noFx) updateFx(dt, place);
-      // The profiling switch has to name the emitters that actually exist. The
-      // surface rebuild replaced the single plume/spray pair with the per
-      // surface family, and the stale names threw once per frame.
-      if (window.__noFx) {
-        const f = world.fx;
-        f.dust.reset(); f.grit.reset(); f.clod.reset(); f.powder.reset();
-        f.wet.reset(); f.debris.reset(); f.streaks.reset(); f.skid.reset();
-      }
-      updateGhostPlayback();
       updateEngineModel(dt);
       engine.update(
         1500 + engineRpm * 5600,
@@ -2792,12 +2426,10 @@ function frame(now) {
   // fresh literal on every single frame, which is the one allocation the render
   // loop had left.
   _rd.mode = mode; _rd.speed = car.speed; _rd.off = car.offroad; _rd.reset = car.resetTime;
-  _rd.dust = world ? world.fx.dust.pts.visible : 0;
-  _rd.grit = world ? world.fx.grit.pts.visible : 0;
-  _rd.streak = world ? world.fx.streaks.lines.visible : 0;
-  _rd.skid = world ? world.fx.skid.mesh.visible : 0;
+  _rd.dust = racer ? 1 : 0;
+  _rd.grit = 0; _rd.streak = 0; _rd.skid = 0;
   _rd.tut = tutorial.active; _rd.dpr = dpr;
-  if (world && !window.__noRender) renderer.render(scene, camera);
+  if (racer && !window.__noRender) racer.world.render();
   if (!window.__noHud) drawHud(dt); else hud.clear();
 }
 

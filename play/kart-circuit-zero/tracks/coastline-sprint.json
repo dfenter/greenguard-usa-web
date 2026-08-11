@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "id": "coastline-sprint",
+  "name": "Coastline Sprint",
+  "closed": true,
+  "width": 17.4,
+  "sampleCount": 216,
+  "theme": "coastal",
+  "timeOfDay": "dusk",
+  "sourceSeed": 7129,
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.14,
+      "name": "Sea-wall sweeper",
+      "type": "sweeper"
+    },
+    {
+      "number": 2,
+      "at": 0.31,
+      "name": "Tidal hairpin",
+      "type": "hairpin"
+    },
+    {
+      "number": 3,
+      "at": 0.56,
+      "name": "Breakwater drift",
+      "type": "sweeper"
+    },
+    {
+      "number": 4,
+      "at": 0.74,
+      "name": "Lighthouse cutback",
+      "type": "hairpin"
+    }
+  ],
+  "controlPoints": [
+    {
+      "x": -60,
+      "z": -155,
+      "elevation": 1.87,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 155,
+      "z": -185,
+      "elevation": 2.37,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 345,
+      "z": -78,
+      "elevation": 0.5,
+      "banking": 4,
+      "curb": true
+    },
+    {
+      "x": 390,
+      "z": 95,
+      "elevation": -1.87,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": 270,
+      "z": 218,
+      "elevation": -2.37,
+      "banking": 6,
+      "curb": true
+    },
+    {
+      "x": 45,
+      "z": 260,
+      "elevation": -0.5,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -120,
+      "z": 205,
+      "elevation": 1.87,
+      "banking": -5,
+      "curb": true
+    },
+    {
+      "x": -305,
+      "z": 248,
+      "elevation": 2.37,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": -435,
+      "z": 120,
+      "elevation": 0.5,
+      "banking": -6,
+      "curb": true
+    },
+    {
+      "x": -450,
+      "z": -58,
+      "elevation": -1.87,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -330,
+      "z": -190,
+      "elevation": -2.37,
+      "banking": 3,
+      "curb": true
+    },
+    {
+      "x": -145,
+      "z": -235,
+      "elevation": -0.5,
+      "banking": 5,
+      "curb": true
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.22
+    },
+    {
+      "id": 3,
+      "at": 0.77
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.16,
+      "label": "3"
+    },
+    {
+      "at": 0.34,
+      "label": "2"
+    },
+    {
+      "at": 0.54,
+      "label": "1"
+    },
+    {
+      "at": 0.74,
+      "label": "LAST"
+    },
+    {
+      "at": 0.9,
+      "label": "100"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0.4
+    },
+    {
+      "at": 0.14,
+      "lateral": -1.2
+    },
+    {
+      "at": 0.31,
+      "lateral": 1.9
+    },
+    {
+      "at": 0.56,
+      "lateral": -1.4
+    },
+    {
+      "at": 0.74,
+      "lateral": 2.1
+    },
+    {
+      "at": 0.9,
+      "lateral": 0
+    }
+  ]
+}

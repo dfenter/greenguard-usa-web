@@ -14,19 +14,24 @@ anyway.
 
 | Class | Files | License |
 |---|---|---|
-| Vehicle models (OBJ + MTL) | 6 | CC0 |
+| Legacy vehicle models (OBJ + MTL, not runtime) | 6 | CC0 |
 | Music | 3 | CC0 |
 | Sound effects | 13 | CC0 |
 | Icon art | 2 | Original studio work |
 | **Total shipped asset files** | **24** | |
 
-Code files (`index.html`, `game.js`, `stage.js`, `cars.js`, `fx.js`,
-`audio.js`, `hud.js`, `sw.js`, `manifest.json`) are original GreenGuard Studio
+Code files (`index.html`, `game.js`, `stage.js`, `cars.js`, `audio.js`, `hud.js`,
+`sw.js`, `manifest.json`, and the generated `tracks/*.json` authoring data) are original GreenGuard Studio
 work. The engine is vendored in `/play/_shared/` and is covered by
 `/play/_shared/LICENSES.md` (three.js r160.1, MIT; OBJLoader from the same
 release; GGKit original work).
 
-## Vehicle models
+## Legacy vehicle models
+
+The six OBJ/MTL files remain in the title directory as CC0 source assets, but
+the GGRacer retrofit no longer loads them at runtime. The shared GGRacer
+vehicle is generated from original code under `/play/_shared/racer/`, so these
+files are not part of the active render payload or service-worker precache.
 
 Pack: **Quaternius Cars Pack**, CC0 1.0.
 Evidence: https://quaternius.com/packs/cars.html (page states CC0 and links

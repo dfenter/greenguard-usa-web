@@ -1,52 +1,170 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/kart-circuit-zero/">
+<head>
+  <base href="/play/kart-circuit-zero/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#08141f">
+  <meta name="description" content="Kart Circuit Zero. Seeded spline time trials, drift boosts, shortcuts, medals, and a best-run ghost.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Kart Circuit Zero</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
   <style>
-    :root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#10231f}
-    body{touch-action:none;user-select:none}
-    #game{display:block;width:100vw;height:100vh;touch-action:none}
-    #hud{position:fixed;inset:0;pointer-events:none;color:#f6f1d4;text-shadow:0 2px 3px #07110f}
-    .row{position:absolute;top:clamp(12px,3vw,26px);display:flex;align-items:center;gap:10px}
-    #left{left:clamp(14px,3vw,32px)}
-    #right{right:clamp(14px,3vw,32px);text-align:right}
-    .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#a9c2ad;font-weight:800}
-    .big{font-size:clamp(22px,4vw,37px);line-height:1;font-weight:900;letter-spacing:.02em}
-    #time{font-variant-numeric:tabular-nums}
-    #hint{position:absolute;left:50%;top:clamp(70px,14vh,110px);transform:translateX(-50%);padding:8px 13px;border:1px solid #ffffff28;border-radius:20px;background:#06131088;color:#dce4be;font-size:12px;letter-spacing:.03em;white-space:nowrap;transition:opacity .35s}
-    #hint.fade{opacity:.18}
-    button{font:inherit;color:inherit;border:0;cursor:pointer}
-    #trackButton{pointer-events:auto;background:#f1d35e;color:#17281f;font-size:12px;font-weight:900;padding:9px 12px;border-radius:9px;box-shadow:0 3px 0 #a88d31;min-height:48px}
-    #drift{pointer-events:auto;position:absolute;right:clamp(18px,5vw,70px);bottom:clamp(18px,5vw,48px);width:clamp(92px,15vw,142px);height:clamp(64px,13vw,106px);border-radius:50%;background:radial-gradient(circle at 38% 30%,#fff5a8,#f4cf42 48%,#b48a26);color:#1c2a1a;font-weight:1000;font-size:clamp(14px,2.5vw,21px);letter-spacing:.08em;box-shadow:0 7px 0 #765d22,0 0 0 5px #f4d86132;transition:transform .08s,filter .08s}
-    #drift.held{transform:translateY(5px) scale(.96);filter:saturate(1.35) brightness(1.1);box-shadow:0 2px 0 #765d22,0 0 24px #fff18d}
-    #rotate{display:none;position:fixed;z-index:8;inset:0;align-items:center;justify-content:center;text-align:center;background:#0c1c18eF;color:#f6f1d4;padding:28px}
-    #rotate .card{max-width:310px;padding:26px;border:1px solid #ffffff25;border-radius:20px;background:#162e27;box-shadow:0 18px 50px #0008}
-    #rotate .icon{font-size:48px;display:block;margin-bottom:12px}
-    #rotate p{margin:0;color:#b9cab3;font-size:14px}
-    #finish{display:none;position:fixed;z-index:7;inset:0;align-items:center;justify-content:center;background:#0713109a;color:#f8f2d6;text-align:center;padding:18px}
-    #finish.show{display:flex}
-    #finish .card{width:min(390px,90vw);padding:25px 24px 22px;border:1px solid #ffffff2b;border-radius:22px;background:linear-gradient(145deg,#244d3d,#122b24);box-shadow:0 20px 60px #0009}
-    #resultTitle{margin:0 0 6px;font-size:clamp(28px,7vw,44px);letter-spacing:.02em}
-    #resultTime{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;color:#f4d55e}
-    #medal{height:30px;margin:8px 0 16px;font-weight:800;color:#c7d5ad}
-    #restart{background:#f1d35e;color:#17281f;font-weight:900;border-radius:10px;padding:13px 18px;min-height:48px;min-width:150px;box-shadow:0 4px 0 #a88d31}
-    @media (orientation:portrait){#rotate{display:flex}}
+    :root {
+      color-scheme: dark;
+      --ink: #edf7ff;
+      --muted: #98b3c5;
+      --panel: rgba(7, 18, 29, .86);
+      --line: rgba(226, 244, 255, .16);
+      --cyan: #61e6ff;
+      --gold: #ffd16b;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #08141f; }
+    body { touch-action: none; user-select: none; -webkit-user-select: none; overscroll-behavior: none; }
+    button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+    #shell, #scene, #hud { position: fixed; inset: 0; width: 100%; height: 100%; }
+    #shell { overflow: hidden; background: #08141f; }
+    #scene { display: block; touch-action: none; }
+    #hud { pointer-events: none; }
+    .hidden { display: none !important; }
+    .ui-button {
+      min-height: 46px; padding: 11px 17px; border: 1px solid rgba(228, 247, 255, .22); border-radius: 12px;
+      background: rgba(8, 27, 41, .86); color: var(--ink); font-weight: 850; letter-spacing: .05em;
+      text-transform: uppercase; box-shadow: 0 5px 0 rgba(0, 0, 0, .24); transition: transform .12s, filter .12s, border-color .12s;
+    }
+    .ui-button:hover, .ui-button:focus-visible { filter: brightness(1.18); border-color: var(--cyan); outline: none; }
+    .ui-button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0, 0, 0, .24); }
+    .ui-button.primary { background: linear-gradient(135deg, #ffe49a, #ffaf55); color: #102031; border-color: #ffe7ad; }
+    .ui-button.mode.active { background: rgba(74, 215, 238, .18); border-color: var(--cyan); color: #c9f7ff; }
+    #raceHud { position: absolute; inset: 0; pointer-events: none; color: var(--ink); text-shadow: 0 2px 4px #00101dcc; }
+    .hud-top { position: absolute; top: calc(12px + var(--safe-top)); display: flex; align-items: flex-start; }
+    #hudLeft { left: calc(14px + var(--safe-left)); }
+    #hudRight { right: calc(14px + var(--safe-right)); text-align: right; align-items: flex-end; }
+    .eyebrow { color: var(--muted); font-size: 10px; letter-spacing: .18em; font-weight: 850; text-transform: uppercase; }
+    .hud-value { font-size: clamp(22px, 3.1vw, 35px); font-weight: 950; line-height: 1; font-variant-numeric: tabular-nums; }
+    #circuitLabel { color: #c7e9f2; font-size: 14px; letter-spacing: .08em; }
+    #lapValue { font-size: clamp(22px, 3vw, 31px); }
+    #hudCenter { position: absolute; top: calc(12px + var(--safe-top)); left: 50%; transform: translateX(-50%); text-align: center; }
+    #timeValue { font-size: clamp(24px, 3.4vw, 38px); }
+    #deltaValue { color: #99f5e9; font-size: 14px; font-weight: 850; letter-spacing: .04em; }
+    .speed-unit { color: var(--muted); font-size: 14px; letter-spacing: .08em; }
+    #positionChip { display: inline-block; margin-top: 4px; padding: 3px 7px; border: 1px solid rgba(97, 230, 255, .35); border-radius: 99px; background: rgba(5, 23, 36, .64); color: #b9f5ff; font-size: 14px; font-weight: 900; letter-spacing: .08em; }
+    #coach { position: absolute; top: calc(64px + var(--safe-top)); left: 50%; display: flex; width: min(94vw, 760px); height: 30px; transform: translateX(-50%); align-items: center; justify-content: center; padding: 0 12px; overflow: hidden; border-bottom: 1px solid rgba(218, 243, 255, .12); background: linear-gradient(90deg, transparent, rgba(3, 17, 27, .42) 18%, rgba(3, 17, 27, .42) 82%, transparent); color: #d4e8ee; font-size: 14px; line-height: 1; text-align: center; white-space: nowrap; text-overflow: ellipsis; letter-spacing: .03em; opacity: 0; transition: opacity .18s, transform .18s; }
+    #coach.visible { opacity: 1; }
+    #coach.fade { opacity: .14; }
+    #coach.event { top: calc(64px + var(--safe-top)); left: calc(14px + var(--safe-left)); width: min(46vw, 280px); transform: none; justify-content: flex-start; border: 1px solid rgba(218, 243, 255, .2); border-radius: 7px; background: rgba(3, 17, 27, .82); color: #f0fbff; text-align: left; }
+    #boostPanel { position: absolute; left: 50%; bottom: calc(20px + var(--safe-bottom)); width: min(184px, 42vw); transform: translateX(-50%); padding: 7px 11px 8px; border: 1px solid rgba(255, 255, 255, .18); border-radius: 12px; background: rgba(4, 16, 27, .72); text-align: center; }
+    #boostIcon { margin-right: 5px; color: var(--gold); font-size: 14px; }
+    #boostTier { font-size: 14px; font-weight: 950; letter-spacing: .12em; }
+    #boostBar { height: 7px; margin-top: 5px; overflow: hidden; border-radius: 10px; background: rgba(191, 222, 239, .16); }
+    #boostFill { width: 0%; height: 100%; border-radius: inherit; background: #61e6ff; transition: width .08s, background .12s; }
+    #driftButton { position: absolute; right: calc(20px + var(--safe-right)); bottom: calc(18px + var(--safe-bottom)); width: clamp(98px, 14vw, 150px); height: clamp(72px, 12vw, 105px); border: 2px solid rgba(255, 234, 175, .72); border-radius: 50%; background: radial-gradient(circle at 35% 28%, #fff5b8, #ffc958 48%, #bd702b 100%); color: #1b2530; font-size: clamp(13px, 2.1vw, 20px); font-weight: 1000; letter-spacing: .1em; box-shadow: 0 8px 0 #714322, 0 0 0 5px rgba(255, 210, 93, .15); pointer-events: auto; transition: transform .08s, filter .08s; }
+    #driftButton.held { transform: translateY(6px) scale(.96); filter: saturate(1.3) brightness(1.14); box-shadow: 0 2px 0 #714322, 0 0 28px rgba(255, 225, 105, .75); }
+    #pauseButton { position: absolute; right: calc(19px + var(--safe-right)); top: calc(98px + var(--safe-top)); min-width: 46px; min-height: 42px; padding: 8px; pointer-events: auto; }
+    #titleScreen, #resultScreen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: calc(26px + var(--safe-top)) calc(20px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(20px + var(--safe-left)); pointer-events: auto; }
+    .panel { width: min(940px, 94vw); max-height: 92vh; overflow: auto; touch-action: pan-y; padding: clamp(20px, 4vw, 38px); border: 1px solid rgba(221, 243, 255, .19); border-radius: 26px; background: linear-gradient(145deg, rgba(9, 32, 48, .94), rgba(5, 16, 28, .94)); box-shadow: 0 26px 80px rgba(0, 0, 0, .45); }
+    .title-mark { display: flex; align-items: center; gap: 13px; margin-bottom: 5px; }
+    .title-mark .bolt { width: 38px; height: 38px; transform: skewX(-12deg); border-radius: 9px; background: linear-gradient(135deg, #68ebff, #845fff); box-shadow: 0 0 30px rgba(91, 221, 255, .4); }
+    h1 { margin: 0; font-size: clamp(32px, 7vw, 70px); line-height: .92; letter-spacing: -.06em; font-weight: 1000; }
+    h2 { margin: 0; font-size: clamp(23px, 4vw, 36px); letter-spacing: -.04em; }
+    .subhead { margin: 12px 0 22px; max-width: 640px; color: #b4ced9; line-height: 1.5; font-size: 14px; }
+    .mode-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 20px; }
+    .mode { flex: 1 1 150px; text-align: left; }
+    .mode small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; font-weight: 650; letter-spacing: .02em; text-transform: none; }
+    #circuitGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 12px 0 20px; }
+    .circuit-card { min-height: 105px; padding: 12px; border: 1px solid rgba(225, 245, 255, .15); border-radius: 15px; background: rgba(19, 50, 66, .56); text-align: left; }
+    .circuit-card.selected { border-color: var(--circuit, var(--cyan)); box-shadow: inset 0 0 0 1px var(--circuit, var(--cyan)), 0 0 24px color-mix(in srgb, var(--circuit, #61e6ff) 26%, transparent); }
+    .circuit-card.locked { filter: grayscale(.55); opacity: .62; }
+    .circuit-card .number { color: var(--circuit, var(--cyan)); font-size: 11px; font-weight: 950; letter-spacing: .12em; }
+    .circuit-card strong { display: block; margin-top: 7px; font-size: 13px; }
+    .circuit-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.25; }
+    #menuFooter { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; justify-content: space-between; }
+    #menuTip { color: #8fa9b7; font-size: 11px; }
+    #resultScreen { background: rgba(1, 10, 17, .28); }
+    #resultPanel { width: min(540px, 92vw); text-align: center; }
+    #resultKicker { color: var(--cyan); font-size: 11px; font-weight: 950; letter-spacing: .2em; }
+    #resultTitle { margin: 7px 0 2px; font-size: clamp(31px, 7vw, 58px); }
+    #resultTime { color: var(--gold); font-size: clamp(30px, 6vw, 50px); font-weight: 1000; font-variant-numeric: tabular-nums; }
+    #resultMedal { min-height: 25px; margin: 5px 0 16px; color: #d9e8ed; font-weight: 850; letter-spacing: .08em; }
+    #resultDetail { margin: 0 auto 20px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
+    #banner { position: absolute; z-index: 5; top: 38%; left: 50%; width: 60vw; min-width: 320px; max-width: 900px; padding: 18px 24px; transform: translate(-50%, -50%) scaleX(.58) scaleY(.82); border-top: 1px solid rgba(255, 255, 255, .55); border-bottom: 1px solid rgba(255, 255, 255, .55); background: linear-gradient(90deg, transparent, rgba(6, 23, 37, .94) 15%, rgba(6, 23, 37, .94) 85%, transparent); color: #f4fbff; text-align: center; opacity: 0; pointer-events: none; }
+    #banner.show { animation: banner-beat .86s cubic-bezier(.18, .9, .22, 1) both; }
+    #bannerTitle { font-size: clamp(25px, 5.4vw, 64px); line-height: .95; font-weight: 1000; letter-spacing: .08em; }
+    #bannerSub { margin-top: 8px; color: #b5e9f0; font-size: 14px; font-weight: 800; letter-spacing: .17em; }
+    @keyframes banner-beat { 0% { opacity: 0; transform: translate(-50%, -50%) scaleX(.58) scaleY(.82); } 18% { opacity: 1; transform: translate(-50%, -50%) scaleX(1.08) scaleY(1.06); } 34% { transform: translate(-50%, -50%) scaleX(.98) scaleY(1); } 78% { opacity: 1; transform: translate(-50%, -50%) scaleX(1) scaleY(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scaleX(1) scaleY(1); } }
+    @media (max-width: 760px) { #circuitGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } #coach { width: 80vw; } }
+    @media (max-width: 520px) {
+      #hudLeft { top: calc(10px + var(--safe-top)); left: calc(10px + var(--safe-left)); }
+      #hudRight { top: calc(10px + var(--safe-top)); right: calc(10px + var(--safe-right)); }
+      #hudCenter { top: calc(10px + var(--safe-top)); }
+      #coach { top: calc(64px + var(--safe-top)); width: 94vw; }
+      #coach.event { top: calc(64px + var(--safe-top)); left: calc(10px + var(--safe-left)); }
+      #boostPanel { left: 44%; bottom: calc(104px + var(--safe-bottom)); width: min(160px, 40vw); }
+      #driftButton { right: calc(10px + var(--safe-right)); bottom: calc(10px + var(--safe-bottom)); width: 112px; height: 82px; }
+      #pauseButton { right: calc(8px + var(--safe-right)); top: calc(98px + var(--safe-top)); }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } #banner.show { animation: banner-fade .35s linear both; } }
+    @keyframes banner-fade { from { opacity: 0; } to { opacity: 1; } }
   </style>
 </head>
 <body>
-  <canvas id="game" aria-label="Kart Circuit Zero game"></canvas>
-  <div id="hud">
-    <div id="left" class="row"><div><div class="eyebrow" id="trackName">CIRCUIT 01</div><div class="big" id="lap">LAP 1 / 3</div></div></div>
-    <div id="right" class="row"><div><div class="eyebrow">TIME <span id="bestText"></span></div><div class="big" id="time">00:00.00</div></div><button id="trackButton" aria-label="Next circuit">NEXT</button></div>
-    <div id="hint">Drag left/right to steer · hold DRIFT, release to boost</div>
-    <button id="drift" aria-label="Hold to drift">DRIFT</button>
-  </div>
-  <div id="finish"><div class="card"><h1 id="resultTitle">RUN COMPLETE</h1><div id="resultTime">00:00.00</div><div id="medal"></div><button id="restart">RACE AGAIN</button></div></div>
-  <div id="rotate"><div class="card"><span class="icon">↻</span><strong>ROTATE TO RACE</strong><p>This circuit needs a little more road. Turn your phone sideways.</p></div></div>
-  <script src="game.js"></script>
+  <main id="shell">
+    <canvas id="scene" aria-label="Kart Circuit Zero 3D racing view"></canvas>
+    <div id="hud" aria-live="polite">
+      <section id="raceHud" class="hidden">
+        <div id="hudLeft" class="hud-top"><div><div class="eyebrow" id="circuitLabel">01 · COAST</div><div class="hud-value" id="lapValue">1 / 3</div></div></div>
+        <div id="hudCenter"><div class="hud-value" id="timeValue">00:00.00</div><div id="deltaValue">GHOST --</div></div>
+        <div id="hudRight" class="hud-top"><div><div class="hud-value"><span id="speedValue">0</span><span class="speed-unit"> KM/H</span></div><div id="positionChip">P1 / 1</div></div></div>
+        <div id="coach" class="hidden" aria-live="polite"></div>
+        <div id="boostPanel" aria-label="Drift boost charge"><span id="boostIcon" aria-hidden="true">⚡</span><span id="boostTier">READY</span><div id="boostBar" role="meter" aria-label="Drift boost charge"><div id="boostFill"></div></div></div>
+        <button id="driftButton" aria-label="Hold to drift">DRIFT</button>
+        <button id="pauseButton" class="ui-button" aria-label="Open settings">||</button>
+      </section>
+      <div id="banner"><div id="bannerTitle">3</div><div id="bannerSub">GET READY</div></div>
+    </div>
+    <section id="titleScreen">
+      <div class="panel">
+        <div class="title-mark"><div class="bolt" aria-hidden="true"></div><div class="eyebrow">FLEET F2 / AAA BUILD</div></div>
+        <h1>KART CIRCUIT<br>ZERO</h1>
+        <p class="subhead">Seeded spline circuits, weighty drag steering, hold-and-release drift boosts, generous route drops, and a ghost built from your own input trace.</p>
+        <div class="eyebrow">SELECT THE RUN</div>
+        <div class="mode-row">
+          <button class="ui-button mode active" data-mode="timeTrial">TIME TRIAL<small>Chase bronze, silver, and gold.</small></button>
+          <button class="ui-button mode" data-mode="ghostRace">GHOST RACE<small>Beat your saved best-run ghost.</small></button>
+          <button class="ui-button mode" data-mode="cup">CIRCUIT CUP<small>Chain all circuits for placement.</small></button>
+        </div>
+        <div class="eyebrow">SELECT CIRCUIT</div>
+        <div id="circuitGrid"></div>
+        <div id="menuFooter"><span id="menuTip">Keyboard: left/right or A/D steer, Space drifts, R restarts.</span><div><button id="liveryButton" class="ui-button">LIVERY: SEAFOAM</button> <button id="startButton" class="ui-button primary">RACE NOW</button></div></div>
+      </div>
+    </section>
+    <section id="resultScreen" class="hidden">
+      <div id="resultPanel" class="panel">
+        <div id="resultKicker">CIRCUIT CLEAR</div>
+        <h2 id="resultTitle">RUN COMPLETE</h2>
+        <div id="resultTime">00:00.00</div>
+        <div id="resultMedal">BRONZE MEDAL</div>
+        <p id="resultDetail">Your best run is now available as a ghost.</p>
+        <div class="result-actions"><button id="resultNext" class="ui-button primary">RACE AGAIN</button><button id="resultMenu" class="ui-button">CIRCUIT SELECT</button></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    window.__kc = { state: { mode: 'menu', lap: 1, circuit: 0, time: 0, ghostDelta: 0 }, forceCircuit: null, forceMode: null };
+  </script>
+  <script type="importmap">{"imports":{"three":"/play/_shared/three/three.module.min.js"}}</script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>

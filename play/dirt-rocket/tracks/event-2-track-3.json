@@ -1,0 +1,263 @@
+{
+  "version": 1,
+  "id": "event-2-track-3",
+  "name": "Dune Pressure · Track 3",
+  "description": "Open stage converted from Dirt Rocket quarry elevation profile, seed 18481.",
+  "closed": false,
+  "width": 11.5,
+  "sampleCount": 240,
+  "theme": "coastal",
+  "timeOfDay": "dusk",
+  "sourceFamily": "quarry",
+  "sourceSeed": 18481,
+  "sourceStartX": 42,
+  "sourceFinishX": 2624,
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.1441,
+      "name": "LEDGE RUN",
+      "type": "crest"
+    },
+    {
+      "number": 2,
+      "at": 0.2448,
+      "name": "SIGNATURE GAP",
+      "type": "jump"
+    },
+    {
+      "number": 3,
+      "at": 0.5066,
+      "name": "HIGH LINE",
+      "type": "chicane"
+    },
+    {
+      "number": 4,
+      "at": 0.6886,
+      "name": "STONE LIP",
+      "type": "jump"
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.34
+    },
+    {
+      "id": 3,
+      "at": 0.68
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.24,
+      "label": "3"
+    },
+    {
+      "at": 0.48,
+      "label": "2"
+    },
+    {
+      "at": 0.72,
+      "label": "1"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.25,
+      "lateral": 0
+    },
+    {
+      "at": 0.5,
+      "lateral": 0
+    },
+    {
+      "at": 0.75,
+      "lateral": 0
+    },
+    {
+      "at": 1,
+      "lateral": 0
+    }
+  ],
+  "controlPoints": [
+    {
+      "x": -0.62,
+      "z": 0,
+      "elevation": 0,
+      "banking": -0.66
+    },
+    {
+      "x": -3.38,
+      "z": 87.98,
+      "elevation": 0,
+      "banking": -1.63
+    },
+    {
+      "x": -5.88,
+      "z": 175.96,
+      "elevation": 0,
+      "banking": -2.24
+    },
+    {
+      "x": -7.42,
+      "z": 263.94,
+      "elevation": 0.7,
+      "banking": -2.2
+    },
+    {
+      "x": -7.54,
+      "z": 351.92,
+      "elevation": 0.776,
+      "banking": -1.61
+    },
+    {
+      "x": -6.2,
+      "z": 439.9,
+      "elevation": 0.533,
+      "banking": -1.31
+    },
+    {
+      "x": -3.82,
+      "z": 527.88,
+      "elevation": 0.25,
+      "banking": -0.2
+    },
+    {
+      "x": -1.06,
+      "z": 615.85,
+      "elevation": 1.891,
+      "banking": 1.42,
+      "curb": true
+    },
+    {
+      "x": 1.41,
+      "z": 703.83,
+      "elevation": -0.073,
+      "banking": 1.75
+    },
+    {
+      "x": 3.19,
+      "z": 791.81,
+      "elevation": 0.305,
+      "banking": 2.46
+    },
+    {
+      "x": 4.24,
+      "z": 879.79,
+      "elevation": -1.793,
+      "banking": 1.27
+    },
+    {
+      "x": 4.78,
+      "z": 967.77,
+      "elevation": 1.49,
+      "banking": 3.14
+    },
+    {
+      "x": 5.08,
+      "z": 1055.75,
+      "elevation": 1.731,
+      "banking": 0.68
+    },
+    {
+      "x": 5.25,
+      "z": 1143.73,
+      "elevation": 1.452,
+      "banking": -0.16
+    },
+    {
+      "x": 5.11,
+      "z": 1231.71,
+      "elevation": 1.86,
+      "banking": -0.99
+    },
+    {
+      "x": 4.36,
+      "z": 1319.69,
+      "elevation": 2.012,
+      "banking": -2.11
+    },
+    {
+      "x": 2.74,
+      "z": 1407.67,
+      "elevation": 0.942,
+      "banking": -2.6
+    },
+    {
+      "x": 0.26,
+      "z": 1495.65,
+      "elevation": 1.397,
+      "banking": -2.71
+    },
+    {
+      "x": -2.68,
+      "z": 1583.63,
+      "elevation": 1.726,
+      "banking": -1.71
+    },
+    {
+      "x": -5.41,
+      "z": 1671.61,
+      "elevation": 2.495,
+      "banking": -0.41,
+      "curb": true
+    },
+    {
+      "x": -7.2,
+      "z": 1759.59,
+      "elevation": 0.418,
+      "banking": 0.5
+    },
+    {
+      "x": -7.57,
+      "z": 1847.56,
+      "elevation": -1.289,
+      "banking": 0.31
+    },
+    {
+      "x": -6.51,
+      "z": 1935.54,
+      "elevation": 1.518,
+      "banking": 2.99
+    },
+    {
+      "x": -4.39,
+      "z": 2023.52,
+      "elevation": 1.655,
+      "banking": 2.22
+    },
+    {
+      "x": -1.88,
+      "z": 2111.5,
+      "elevation": 1.392,
+      "banking": 2.12
+    },
+    {
+      "x": 0.42,
+      "z": 2199.48,
+      "elevation": 1.378,
+      "banking": 1.46
+    },
+    {
+      "x": 2.17,
+      "z": 2287.46,
+      "elevation": 1.378,
+      "banking": 0.45
+    },
+    {
+      "x": 3.36,
+      "z": 2375.44,
+      "elevation": 1.378,
+      "banking": -0.66
+    }
+  ]
+}

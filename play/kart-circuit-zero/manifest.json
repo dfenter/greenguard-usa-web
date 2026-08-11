@@ -1,0 +1,15 @@
+{
+  "name": "Kart Circuit Zero",
+  "short_name": "Circuit Zero",
+  "start_url": "/play/kart-circuit-zero/",
+  "scope": "/play/kart-circuit-zero/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#08141f",
+  "theme_color": "#08141f",
+  "description": "Seeded spline kart time trials with drift boosts and ghost replays.",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

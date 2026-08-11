@@ -15,8 +15,8 @@ slide, beat the clock.
 
 Every stage is a point to point run against a 90 second limit. Beat the stage
 par for a medal, and beat all four stages of a rally to be scored on the rally
-total. Your quickest run on a stage is saved as a ghost car and a glowing
-ghost line on the road, so the next attempt has something to chase. Stage gold
+total. Your quickest run on a stage is saved as a ghost car and ghost timing
+line, so the next attempt has something to chase. Stage gold
 medals unlock liveries in the garage.
 
 Deep off road, or a tree, costs you three seconds and a restart from the last
@@ -69,7 +69,7 @@ named regression checks for this title:
 - Drift-weighted surface model: gravel, hardpack, sand, mud, snow and tarmac,
   each with its own lateral stick, turn authority and drive. Gravel is exactly
   the prototype's tuning, so the design document remains the baseline.
-- Ghost car plus a ghost line ribbon drawn on the road from the best run.
+- Ghost actor plus saved ghost timing and delta UI from the best run.
 - Livery meta progression unlocked by stage gold medals.
 - Per-stage medals alongside the prototype's rally-total medal.
 - Synthesised co-driver voice chips under every pace note.
@@ -80,7 +80,7 @@ named regression checks for this title:
 
 - 4 rallies x 4 stages = **16 stages**, all seeded and deterministic.
 - 4 biomes with distinct time of day, palette, fog, props and surface mix:
-  Pine Coast (dawn), Ember Basin (dusk), Frost Ridge (noon), Nightfall Run
+  Pine Coast (dawn), Ember Basin (dusk), Frost Ridge (day), Nightfall Run
   (night).
 - Stage pars run 66 to 85 seconds; the sum of all pars is **1,204 seconds, or
   20 minutes 4 seconds of driving on a clean run**, before countdowns, results,
@@ -109,31 +109,23 @@ named regression checks for this title:
 
 ### Visual systems
 
-- Particle systems: five surface-authored emitter families rather than one
-  tinted pool. Dry billow (soft puff), hard grit chip, wet clay clod, snow
-  powder and road spray, each with its own sprite shape, size, mass, gravity
-  and opacity curve, plus additive impact debris and speed streaks. Emission is
-  wheel-local, biased to the loaded side of a slide. Plus the skid rut ribbon.
-  All are fixed size pools with no allocation in the update path.
-- HUD: speed arc, drift arc and a tachometer arc with a redline band and an
-  overrun state. The rev model is shared with the engine synth, so the needle
-  and the note can never disagree.
-- Pace-note card urgency: hazard colour, direction arrow, grade pill, a live
-  distance countdown and an imminent state inside the last stretch.
-- Display type is a drawing treatment, not a font download: heaviest system
-  weight, forward rake, hard shadow plate and a stencil slot clipped clean
-  through the wordmark so the stage runs behind the letters.
-- Player animation states: wheel spin, front-axle steer yaw, spring-damped
-  chassis lean, spring-damped pitch under braking, suspension travel that
-  squats on landing, and a livery-tinted roof light pod that lights on the
-  dark stages.
-- One directional light plus a hemisphere ambient. No shadow maps anywhere;
-  the car sits on a blob shadow. Fog colour matches the horizon band.
+- GGRacer supplies the textured chase road, banking and elevation, open-stage
+  start/finish gantries, sector gates, distance boards, themed horizon,
+  terrain, dense roadside dressing, GT-bar car, headlights and pooled speed FX.
+- The title HUD remains a 2D overlay with speed, drift, tachometer, stage clock,
+  split/ghost delta, pace-note card, medals and mode-specific controls.
+- Rally Dust's simulation still emits title-owned surface audio and uses the
+  shared FX hooks for dust, impact and skid accents. GGKit remains the sole
+  lifecycle, input, save and audio owner.
+- Nightfall Run uses the shared night-city lighting and headlight cones. The
+  four title biomes map one-to-one onto the four engine themes in the retrofit
+  table below.
 
 ### Known limitations
 
 - The ghost is replayed from stage fraction and lateral offset only, so it
-  reproduces the line rather than the exact yaw of the recorded run.
+  reproduces the line rather than the exact yaw of the recorded run. The
+  shared engine's one adapter actor is used for this ghost; no rival AI runs.
 - Stage geometry is generated at load rather than streamed, so switching
   stages costs a short loading screen (with real progress) instead of an
   instant restart.
@@ -143,6 +135,8 @@ named regression checks for this title:
   a timeout forward into the rally total.
 
 ---
+
+## Historical pre-retrofit notes
 
 ## Fix round 1
 
@@ -340,3 +334,65 @@ uncontended box before reading any spike count from it.
 ### Disputed
 
 None. Every finding checked out against the code.
+
+## GT graphics uplift
+
+- Added glossy, sheen-mapped multi-part rally shells with tapered tinted greenhouses, bumpers, lights, mirrors, wheel arches, and authored tire/rim/hub assemblies; existing wheel pivots still drive spin and steering, with pooled contact shadows retained.
+- Added generated canvas road grain with center/edge paint and tire-wear lines, generated terrain grain, lower chase framing, reduced-motion-gated corner roll, and preserved sun/hemisphere/fog/gradient-sky lighting plus merged dense dressing.
+- Perf tradeoff: a small generated texture overlay and a handful of per-car kit meshes add draw calls, while road/terrain/dressing geometry remains merged and all runtime FX/camera paths stay allocation-free; no external payloads were added.
+
+## GGRacer retrofit - 2026-08-11
+
+Rally Dust now uses `createRacerWorld()` from `/play/_shared/racer/` for the
+complete visible driving layer. The title-owned simulation remains in
+`stage.js` and the fixed-step sections of `game.js`: seeded layout generation,
+collision buckets, handling, jumps, pace-note timing, medals, rally chaining,
+ghost samples, input identity, saves and audio are still title-owned. The
+render adapter sends the existing car position, heading, speed, slide and
+cosmetic suspension channels to GGRacer each frame. No title code writes
+camera Euler components after `lookAt`; chase-camera roll is engine-owned.
+
+The old title-side road, terrain, props, car OBJ rig, ghost shell, particle
+families, sky and camera paths were removed. `cars.js` is now roster and
+handling data only. `stage.js` is now simulation and query data only.
+
+### Track JSON provenance
+
+`tracks/r1s1.json` through `tracks/r4s4.json` are generated directly from the
+existing `buildLayout(stage)` output. Their control points use the existing
+seeded centerline positions and elevations in metres, with feature apexes
+retained as curb/banking points. Each `turns` entry uses the same feature index
+and `featureText()` wording as the co-driver stream. All sixteen tracks use
+`closed: false`; the title still finishes at `path.length - 9`, matching the
+finish-side timing gate and the prior stage range. The title simulation does
+not consume the JSON, so pace-note timing remains keyed to the original seeded
+path rather than a resampled render spline.
+
+### Theme assignment
+
+| Stages | Title biome | GGRacer theme | Time of day |
+|---|---|---|---|
+| R1S1-R1S4 | Pine Coast | alpine | dawn |
+| R2S1-R2S4 | Ember Basin | desert | dusk |
+| R3S1-R3S4 | Frost Ridge | coastal | day |
+| R4S1-R4S4 | Nightfall Run | night-city | night |
+
+The final rally gives four clearly lit night stages, including readable
+headlights. At showcase quality the shared environment supplies populated
+parallax horizon and roadside dressing on every converted stage.
+
+### Deliberate engine gap
+
+The shared road generator currently renders asphalt for every track. Rally Dust
+needs the exact trackJSON option `surface: "dirt"`, which should select a
+generated dirt/gravel road texture and material response while preserving the
+existing curb, wear-strip and edge-line geometry. The retrofit does not fake
+dirt with title-side geometry. Rally Dust continues to use its original
+surface simulation and gravel audio/FX channels until that shared option
+exists.
+
+The engine has no dedicated ghost actor slot, so the adapter reserves one
+non-simulated engine actor for the saved ghost. Rally Dust advances no rival
+simulation or AI and has no rival entries in its stage state. Ghost delta and
+split timing UI remain title-owned, and the ghost actor is hidden when no valid
+saved run is present.

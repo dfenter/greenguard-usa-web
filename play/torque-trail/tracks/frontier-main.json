@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "frontier-main",
+  "name": "Frontier Mainline",
+  "closed": false,
+  "theme": "desert",
+  "timeOfDay": "dusk",
+  "width": 18,
+  "sampleCount": 216,
+  "turns": [
+    { "number": 1, "at": 0.18, "name": "Bramblehook Bend", "type": "sweeper" },
+    { "number": 2, "at": 0.42, "name": "Silt Crossing", "type": "crest" },
+    { "number": 3, "at": 0.73, "name": "Quarry Descent", "type": "switchback" }
+  ],
+  "controlPoints": [
+    { "x": -126, "z": 102, "elevation": 1.429, "banking": 0 },
+    { "x": -105, "z": 85, "elevation": 1.138, "banking": 2 },
+    { "x": -80, "z": 54, "elevation": -1.449, "banking": -2, "curb": true },
+    { "x": -56, "z": 18, "elevation": -1.760, "banking": 0 },
+    { "x": -28, "z": 22, "elevation": -2.452, "banking": 2 },
+    { "x": 20, "z": 76, "elevation": 1.390, "banking": -3, "curb": true },
+    { "x": 52, "z": 68, "elevation": 0.683, "banking": 1 },
+    { "x": 103, "z": 34, "elevation": -1.940, "banking": -2 },
+    { "x": 112, "z": -10, "elevation": 2.760, "banking": 3, "curb": true },
+    { "x": 116, "z": -73, "elevation": 1.710, "banking": -2 },
+    { "x": 78, "z": -96, "elevation": 1.514, "banking": 2, "curb": true },
+    { "x": 28, "z": -104, "elevation": 1.894, "banking": -1 },
+    { "x": -28, "z": -102, "elevation": -0.897, "banking": 0 },
+    { "x": -70, "z": -82, "elevation": -0.016, "banking": 2 },
+    { "x": -80, "z": -25, "elevation": 0.128, "banking": -2 },
+    { "x": -56, "z": 18, "elevation": -1.760, "banking": 0 }
+  ],
+  "sectors": [{ "id": 1, "at": 0 }, { "id": 2, "at": 0.34 }, { "id": 3, "at": 0.68 }],
+  "distanceMarkers": [{ "at": 0.25, "label": "3" }, { "at": 0.5, "label": "2" }, { "at": 0.75, "label": "1" }],
+  "racingLine": [{ "at": 0, "lateral": 0 }, { "at": 0.22, "lateral": 1.2 }, { "at": 0.5, "lateral": -1.1 }, { "at": 0.78, "lateral": 0.8 }]
+}

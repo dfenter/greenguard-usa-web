@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "id": "redglass-wash-wreck-raid",
+  "name": "Redglass Wash Wreck Raid",
+  "closed": false,
+  "width": 7.2,
+  "sampleCount": 192,
+  "theme": "desert",
+  "timeOfDay": "dusk",
+  "accent": 16751713,
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.143,
+      "name": "REDGLASS TURN 1",
+      "type": "sweeper"
+    },
+    {
+      "number": 2,
+      "at": 0.286,
+      "name": "REDGLASS TURN 2",
+      "type": "sweeper"
+    },
+    {
+      "number": 3,
+      "at": 0.429,
+      "name": "REDGLASS TURN 3",
+      "type": "sweeper"
+    },
+    {
+      "number": 4,
+      "at": 0.571,
+      "name": "REDGLASS TURN 4",
+      "type": "sweeper"
+    },
+    {
+      "number": 5,
+      "at": 0.714,
+      "name": "REDGLASS TURN 5",
+      "type": "sweeper"
+    },
+    {
+      "number": 6,
+      "at": 0.857,
+      "name": "REDGLASS TURN 6",
+      "type": "sweeper"
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.34
+    },
+    {
+      "id": 3,
+      "at": 0.67
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.25,
+      "label": "1"
+    },
+    {
+      "at": 0.5,
+      "label": "2"
+    },
+    {
+      "at": 0.75,
+      "label": "3"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.18,
+      "lateral": 0.35
+    },
+    {
+      "at": 0.37,
+      "lateral": -0.28
+    },
+    {
+      "at": 0.58,
+      "lateral": 0.25
+    },
+    {
+      "at": 0.78,
+      "lateral": -0.22
+    }
+  ],
+  "controlPoints": [
+    {
+      "x": 80,
+      "z": -27,
+      "elevation": 2.082,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 92,
+      "z": -34,
+      "elevation": 0.311,
+      "banking": 8,
+      "curb": true
+    },
+    {
+      "x": 107,
+      "z": -33,
+      "elevation": 0.644,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": 127,
+      "z": -41,
+      "elevation": 2.351,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": 123,
+      "z": -55,
+      "elevation": 0.49,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": 108,
+      "z": -64,
+      "elevation": 0.069,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": 89,
+      "z": -63,
+      "elevation": 0.206,
+      "banking": -8,
+      "curb": true
+    },
+    {
+      "x": 78,
+      "z": -51,
+      "elevation": 2.208,
+      "banking": 0,
+      "curb": false
+    }
+  ],
+  "objectiveAnchors": [
+    {
+      "index": 0,
+      "x": 80,
+      "z": -27
+    },
+    {
+      "index": 1,
+      "x": 92,
+      "z": -34
+    },
+    {
+      "index": 2,
+      "x": 107,
+      "z": -33
+    },
+    {
+      "index": 3,
+      "x": 127,
+      "z": -41
+    },
+    {
+      "index": 4,
+      "x": 123,
+      "z": -55
+    },
+    {
+      "index": 5,
+      "x": 108,
+      "z": -64
+    },
+    {
+      "index": 6,
+      "x": 89,
+      "z": -63
+    },
+    {
+      "index": 7,
+      "x": 78,
+      "z": -51
+    }
+  ]
+}

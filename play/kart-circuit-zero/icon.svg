@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#081528"/><stop offset="1" stop-color="#21184f"/></linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#72f0ff"/><stop offset="1" stop-color="#9b68ff"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="92" fill="url(#sky)"/>
+  <circle cx="365" cy="122" r="60" fill="#ffe29b" opacity=".95"/>
+  <path d="M0 350C95 266 151 288 216 329s123 30 174-32 83-69 122-57v272H0z" fill="#122f45"/>
+  <path d="M-10 432c97-56 167-84 238-64 64 18 129 52 294-48v192H-10z" fill="#101f37"/>
+  <path d="M170 52h98l-44 128h76L182 390l22-153h-71z" fill="url(#bolt)"/>
+  <path d="M113 416h292" stroke="#74efff" stroke-width="9" stroke-linecap="round" opacity=".78"/>
+</svg>

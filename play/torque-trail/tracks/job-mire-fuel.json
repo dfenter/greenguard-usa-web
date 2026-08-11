@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "id": "job-mire-fuel",
+  "name": "Mirelight Fuel Drums",
+  "closed": false,
+  "theme": "alpine",
+  "timeOfDay": "dusk",
+  "width": 19,
+  "sampleCount": 180,
+  "turns": [{ "number": 1, "at": 0.4, "name": "Silt Crest", "type": "crest" }, { "number": 2, "at": 0.82, "name": "Quarry Gate", "type": "hairpin" }],
+  "controlPoints": [
+    { "x": -56, "z": 18, "elevation": -1.760, "banking": 0 },
+    { "x": -28, "z": 22, "elevation": -2.452, "banking": 2 },
+    { "x": 20, "z": 76, "elevation": 1.390, "banking": -3, "curb": true },
+    { "x": 52, "z": 68, "elevation": 0.683, "banking": 1 },
+    { "x": 103, "z": 34, "elevation": -1.940, "banking": -2 },
+    { "x": 112, "z": -10, "elevation": 2.760, "banking": 3, "curb": true },
+    { "x": 116, "z": -73, "elevation": 1.710, "banking": -2 }
+  ],
+  "sectors": [{ "id": 1, "at": 0 }, { "id": 2, "at": 0.5 }, { "id": 3, "at": 0.82 }],
+  "distanceMarkers": [{ "at": 0.28, "label": "3" }, { "at": 0.55, "label": "2" }, { "at": 0.8, "label": "1" }],
+  "racingLine": [{ "at": 0, "lateral": 0 }, { "at": 0.42, "lateral": -1.1 }, { "at": 0.78, "lateral": 1.2 }]
+}

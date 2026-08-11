@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "id": "job-mire-seals",
+  "name": "Mirelight Pump Seals",
+  "closed": false,
+  "theme": "desert",
+  "timeOfDay": "dusk",
+  "width": 18,
+  "sampleCount": 144,
+  "turns": [{ "number": 1, "at": 0.55, "name": "Mirelight Drop", "type": "crest" }],
+  "controlPoints": [
+    { "x": -126, "z": 102, "elevation": 1.429, "banking": 0 },
+    { "x": -105, "z": 85, "elevation": 1.138, "banking": 2 },
+    { "x": -80, "z": 54, "elevation": -1.449, "banking": -2, "curb": true },
+    { "x": -56, "z": 18, "elevation": -1.760, "banking": 0 }
+  ],
+  "sectors": [{ "id": 1, "at": 0 }, { "id": 2, "at": 0.5 }],
+  "distanceMarkers": [{ "at": 0.34, "label": "2" }, { "at": 0.68, "label": "1" }],
+  "racingLine": [{ "at": 0, "lateral": 0 }, { "at": 0.45, "lateral": -1 }, { "at": 0.78, "lateral": 0.8 }]
+}
