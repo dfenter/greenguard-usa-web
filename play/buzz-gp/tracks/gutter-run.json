@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "gutter-run", "name": "Gutter Run", "width": 12, "sampleCount": 160,
+  "theme": "coastal", "timeOfDay": "dusk", "landmark": "half-pipe gutter banks and downspout launch",
+  "controlPoints": [
+    {"x":0,"z":-118,"elevation":0,"banking":0,"curb":false},{"x":70,"z":-105,"elevation":-3,"banking":18,"curb":true},{"x":111,"z":-51,"elevation":-6,"banking":28,"curb":true},{"x":91,"z":21,"elevation":-4,"banking":-24,"curb":false},{"x":33,"z":105,"elevation":0,"banking":-12,"curb":true},{"x":-51,"z":101,"elevation":-2,"banking":15,"curb":false},{"x":-110,"z":56,"elevation":-5,"banking":-22,"curb":true},{"x":-105,"z":-27,"elevation":-2,"banking":-15,"curb":false},{"x":-61,"z":-97,"elevation":0,"banking":10,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.2,"name":"Downspout Dive","type":"bank"},{"number":2,"at":0.49,"name":"Gutter Wall","type":"half-pipe"},{"number":3,"at":0.73,"name":"Drain Turn","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.34},{"id":3,"at":0.68}], "distanceMarkers": [{"at":0.5,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":-0.5},{"at":0.24,"lateral":2.2},{"at":0.5,"lateral":-1.8},{"at":0.76,"lateral":1.8}],
+  "itemRows": [0.08,0.19,0.32,0.45,0.58,0.7,0.82,0.94], "shortcuts": [{"at":0.86,"lateral":-4.2,"length":0.09,"name":"Drain lip"}],
+  "hazards": [{"at":0.27,"kind":"water","lanes":[-2.8,2.8]},{"at":0.59,"kind":"drain","lanes":[0]}], "jumpRamps": [{"at":0.42,"lateral":0,"boost":0.19}],
+  "dressing": ["gutter","downspout","fence"]
+}

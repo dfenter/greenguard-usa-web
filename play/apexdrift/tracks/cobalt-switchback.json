@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "cobalt-switchback",
+  "name": "Cobalt Switchback",
+  "theme": "alpine",
+  "timeOfDay": "dusk",
+  "landmark": "Mountain pass switchback ladder above the cloud shelf",
+  "width": 13,
+  "sampleCount": 224,
+  "controlPoints": [
+    {"x":0,"z":-105,"elevation":5,"banking":0},
+    {"x":78,"z":-88,"elevation":17,"banking":-10,"curb":true},
+    {"x":94,"z":-28,"elevation":27,"banking":14,"curb":true},
+    {"x":18,"z":-4,"elevation":34,"banking":16,"curb":true},
+    {"x":-72,"z":22,"elevation":43,"banking":-16,"curb":true},
+    {"x":-90,"z":78,"elevation":51,"banking":-12,"curb":true},
+    {"x":-16,"z":105,"elevation":58,"banking":11,"curb":true},
+    {"x":72,"z":79,"elevation":64,"banking":12,"curb":true},
+    {"x":101,"z":20,"elevation":70,"banking":-13,"curb":true},
+    {"x":45,"z":-58,"elevation":74,"banking":-8}
+  ],
+  "turns": [{"number":1,"at":0.14,"name":"Blue Wall","type":"switchback"},{"number":2,"at":0.38,"name":"Ladder Left","type":"hairpin"},{"number":3,"at":0.6,"name":"Ladder Right","type":"hairpin"},{"number":4,"at":0.82,"name":"Cloud Shelf","type":"sweeper"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers": [{"at":0.11,"label":"3"},{"at":0.15,"label":"2"},{"at":0.19,"label":"1"}],
+  "racingLine": [{"at":0,"lateral":0.8},{"at":0.2,"lateral":-2.4},{"at":0.4,"lateral":2.5},{"at":0.62,"lateral":-2.3},{"at":0.84,"lateral":2.1}]
+}

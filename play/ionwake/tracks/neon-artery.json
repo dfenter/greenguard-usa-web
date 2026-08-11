@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "neon-artery",
+  "name": "Neon Artery",
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "width": 13,
+  "sampleCount": 144,
+  "signature": "Dense elevated city chicanes beneath moving holo boards",
+  "controlPoints": [
+    {"x":-10,"z":-94,"elevation":12,"banking":0,"curb":false},
+    {"x":74,"z":-91,"elevation":14,"banking":-12,"curb":true},
+    {"x":111,"z":-35,"elevation":18,"banking":22,"curb":true},
+    {"x":38,"z":-2,"elevation":21,"banking":-18,"curb":true},
+    {"x":112,"z":42,"elevation":24,"banking":19,"curb":true},
+    {"x":68,"z":98,"elevation":19,"banking":-20,"curb":true},
+    {"x":-42,"z":112,"elevation":17,"banking":-6,"curb":false},
+    {"x":-109,"z":64,"elevation":23,"banking":24,"curb":true},
+    {"x":-48,"z":18,"elevation":26,"banking":-22,"curb":true},
+    {"x":-116,"z":-35,"elevation":15,"banking":12,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.15,"name":"Signal Teeth","type":"chicane"},{"number":2,"at":0.42,"name":"Data Hook","type":"chicane"},{"number":3,"at":0.76,"name":"Skyline Fold","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers": [{"at":0.23,"label":"2"},{"at":0.51,"label":"3"},{"at":0.79,"label":"4"}],
+  "racingLine": [{"at":0,"lateral":-1.7},{"at":0.14,"lateral":2.4},{"at":0.32,"lateral":-2.3},{"at":0.54,"lateral":2.2},{"at":0.77,"lateral":-2.2},{"at":0.92,"lateral":1}],
+  "features": [{"type":"pit","at":0.1,"lateral":-2},{"type":"dash","at":0.25,"lateral":0},{"type":"ramp","at":0.58,"lateral":1},{"type":"split","at":0.7,"name":"Market flyover"}],
+  "pickups": [{"at":0.13,"lateral":2},{"at":0.29,"lateral":-2},{"at":0.43,"lateral":0},{"at":0.59,"lateral":2},{"at":0.76,"lateral":-2},{"at":0.92,"lateral":0}]
+}

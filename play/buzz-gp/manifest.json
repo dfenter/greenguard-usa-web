@@ -1,0 +1,14 @@
+{
+  "name": "Buzz Grand Prix",
+  "short_name": "Buzz GP",
+  "start_url": "/play/buzz-gp/",
+  "scope": "/play/buzz-gp/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#102d32",
+  "theme_color": "#ffca3a",
+  "description": "An original backyard insect mascot kart racer.",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

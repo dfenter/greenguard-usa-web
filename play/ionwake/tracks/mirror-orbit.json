@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "mirror-orbit",
+  "name": "Mirror Orbit",
+  "theme": "night-city",
+  "timeOfDay": "dusk",
+  "width": 16,
+  "sampleCount": 144,
+  "signature": "Orbital ring with a long banked outer sweeper",
+  "controlPoints": [
+    {"x":0,"z":-126,"elevation":62,"banking":12,"curb":false},
+    {"x":91,"z":-94,"elevation":63,"banking":22,"curb":true},
+    {"x":139,"z":-14,"elevation":66,"banking":31,"curb":true},
+    {"x":112,"z":82,"elevation":71,"banking":36,"curb":true},
+    {"x":28,"z":132,"elevation":75,"banking":28,"curb":false},
+    {"x":-76,"z":113,"elevation":72,"banking":17,"curb":false},
+    {"x":-139,"z":36,"elevation":68,"banking":-4,"curb":true},
+    {"x":-118,"z":-63,"elevation":64,"banking":-22,"curb":true},
+    {"x":-56,"z":-118,"elevation":62,"banking":-10,"curb":false}
+  ],
+  "turns": [{"number":1,"at":0.14,"name":"Lumen Arc","type":"sweeper"},{"number":2,"at":0.45,"name":"Gravity Bowl","type":"banked"},{"number":3,"at":0.77,"name":"Mirror Hairpin","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.68}],
+  "distanceMarkers": [{"at":0.25,"label":"2"},{"at":0.5,"label":"3"},{"at":0.75,"label":"4"}],
+  "racingLine": [{"at":0,"lateral":2.2},{"at":0.22,"lateral":-2.7},{"at":0.48,"lateral":1.4},{"at":0.7,"lateral":-2.3},{"at":0.92,"lateral":1.5}],
+  "features": [{"type":"dash","at":0.06,"lateral":0},{"type":"pit","at":0.3,"lateral":3},{"type":"ramp","at":0.63,"lateral":-1},{"type":"split","at":0.82,"name":"Outer rail"}],
+  "pickups": [{"at":0.11,"lateral":-2},{"at":0.24,"lateral":2},{"at":0.4,"lateral":0},{"at":0.56,"lateral":-2},{"at":0.71,"lateral":2},{"at":0.88,"lateral":0}]
+}

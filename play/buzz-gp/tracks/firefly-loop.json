@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "firefly-loop", "name": "Firefly Loop", "width": 13, "sampleCount": 160,
+  "theme": "night-city", "timeOfDay": "night", "landmark": "lantern meadows and floating firefly bulbs",
+  "controlPoints": [
+    {"x":0,"z":-116,"elevation":0,"banking":0,"curb":false},{"x":70,"z":-100,"elevation":4,"banking":8,"curb":true},{"x":110,"z":-32,"elevation":2,"banking":-14,"curb":true},{"x":83,"z":48,"elevation":8,"banking":18,"curb":false},{"x":5,"z":108,"elevation":2,"banking":-12,"curb":true},{"x":-78,"z":91,"elevation":5,"banking":14,"curb":false},{"x":-113,"z":18,"elevation":4,"banking":-18,"curb":true},{"x":-98,"z":-58,"elevation":0,"banking":-6,"curb":false},{"x":-51,"z":-103,"elevation":2,"banking":9,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.17,"name":"Glow Garden","type":"sweeper"},{"number":2,"at":0.52,"name":"Lantern Bend","type":"hairpin"},{"number":3,"at":0.82,"name":"Moon Mower","type":"chicane"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.34},{"id":3,"at":0.68}], "distanceMarkers": [{"at":0.5,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":0.2},{"at":0.2,"lateral":-1.3},{"at":0.52,"lateral":1.8},{"at":0.82,"lateral":-1.2}],
+  "itemRows": [0.08,0.18,0.3,0.44,0.57,0.69,0.81,0.94], "shortcuts": [{"at":0.57,"lateral":4.3,"length":0.1,"name":"Glow grass cut"}],
+  "hazards": [{"at":0.34,"kind":"lamp","lanes":[-2.8,2.8]},{"at":0.72,"kind":"moth","lanes":[0]}], "jumpRamps": [{"at":0.65,"lateral":1.2,"boost":0.2}],
+  "dressing": ["lantern","firefly","grass"]
+}

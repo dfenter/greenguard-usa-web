@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "queens-throne", "name": "Queen's Throne", "width": 14, "sampleCount": 176,
+  "theme": "alpine", "timeOfDay": "dawn", "landmark": "the rose throne finale with crown gate",
+  "controlPoints": [
+    {"x":0,"z":-128,"elevation":0,"banking":0,"curb":true},{"x":72,"z":-114,"elevation":5,"banking":9,"curb":false},{"x":121,"z":-52,"elevation":11,"banking":-16,"curb":true},{"x":102,"z":29,"elevation":4,"banking":22,"curb":true},{"x":41,"z":111,"elevation":14,"banking":-17,"curb":false},{"x":-41,"z":120,"elevation":2,"banking":-9,"curb":true},{"x":-112,"z":74,"elevation":12,"banking":19,"curb":false},{"x":-125,"z":-9,"elevation":8,"banking":-22,"curb":true},{"x":-89,"z":-89,"elevation":2,"banking":-7,"curb":false},{"x":-33,"z":-120,"elevation":0,"banking":10,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.1,"name":"Crown Crest","type":"crest"},{"number":2,"at":0.37,"name":"Rose Ribbon","type":"chicane"},{"number":3,"at":0.7,"name":"Throne Hairpin","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.34},{"id":3,"at":0.68}], "distanceMarkers": [{"at":0.5,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":0.6},{"at":0.22,"lateral":-1.7},{"at":0.48,"lateral":1.3},{"at":0.73,"lateral":-1.8}],
+  "itemRows": [0.06,0.15,0.27,0.4,0.53,0.66,0.78,0.9], "shortcuts": [{"at":0.62,"lateral":4.7,"length":0.11,"name":"Rose hedge cut"}],
+  "hazards": [{"at":0.3,"kind":"thorn","lanes":[-3,3]},{"at":0.75,"kind":"crown","lanes":[0]}], "jumpRamps": [{"at":0.46,"lateral":-1.5,"boost":0.21}],
+  "dressing": ["rose","crown","throne"]
+}

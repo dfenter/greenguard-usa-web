@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "pond-skim", "name": "Pond Skim", "width": 13, "sampleCount": 160,
+  "theme": "coastal", "timeOfDay": "noon", "landmark": "lilypad splits and cattail splashdown",
+  "controlPoints": [
+    {"x":0,"z":-115,"elevation":1,"banking":0,"curb":false},{"x":64,"z":-105,"elevation":4,"banking":8,"curb":true},{"x":108,"z":-39,"elevation":2,"banking":-16,"curb":true},{"x":83,"z":42,"elevation":0,"banking":18,"curb":false},{"x":2,"z":107,"elevation":3,"banking":-10,"curb":true},{"x":-78,"z":91,"elevation":5,"banking":14,"curb":false},{"x":-116,"z":20,"elevation":2,"banking":-12,"curb":true},{"x":-103,"z":-52,"elevation":0,"banking":-20,"curb":false},{"x":-50,"z":-102,"elevation":2,"banking":6,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.2,"name":"Lily Split","type":"split"},{"number":2,"at":0.53,"name":"Cattail Curl","type":"hairpin"},{"number":3,"at":0.85,"name":"Pond Edge","type":"sweeper"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.34},{"id":3,"at":0.68}], "distanceMarkers": [{"at":0.5,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":-0.4},{"at":0.2,"lateral":2.3},{"at":0.53,"lateral":-2.1},{"at":0.84,"lateral":0.6}],
+  "itemRows": [0.08,0.19,0.31,0.44,0.57,0.69,0.82,0.94], "shortcuts": [{"at":0.23,"lateral":-4.5,"length":0.09,"name":"Lily pad line"}],
+  "hazards": [{"at":0.28,"kind":"lilypad","lanes":[-3,3]},{"at":0.61,"kind":"splash","lanes":[0]}], "jumpRamps": [{"at":0.7,"lateral":2,"boost":0.18}],
+  "dressing": ["pond","lily","cattail"]
+}

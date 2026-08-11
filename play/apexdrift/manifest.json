@@ -1,0 +1,15 @@
+{
+  "name": "apexdrift",
+  "short_name": "apexdrift",
+  "start_url": "/play/apexdrift/",
+  "scope": "/play/apexdrift/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#100b1e",
+  "theme_color": "#100b1e",
+  "description": "Sunset arcade drift racing from GreenGuard USA.",
+  "icons": [
+    {"src":"/play/apexdrift/icon-192.svg","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},
+    {"src":"/play/apexdrift/icon-512.svg","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}

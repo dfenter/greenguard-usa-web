@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "blackline-crest",
+  "name": "Blackline Crest",
+  "theme": "alpine",
+  "timeOfDay": "night",
+  "width": 14,
+  "sampleCount": 144,
+  "signature": "Frozen ridge split route with an over-under crest",
+  "controlPoints": [
+    {"x":0,"z":-118,"elevation":54,"banking":0,"curb":false},
+    {"x":104,"z":-89,"elevation":56,"banking":14,"curb":true},
+    {"x":139,"z":-20,"elevation":61,"banking":28,"curb":true},
+    {"x":78,"z":37,"elevation":68,"banking":-24,"curb":true},
+    {"x":118,"z":108,"elevation":74,"banking":10,"curb":false},
+    {"x":4,"z":142,"elevation":81,"banking":-19,"curb":true},
+    {"x":-103,"z":99,"elevation":73,"banking":-6,"curb":false},
+    {"x":-145,"z":8,"elevation":60,"banking":25,"curb":true},
+    {"x":-80,"z":-63,"elevation":57,"banking":-28,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.17,"name":"Darkpin","type":"hairpin"},{"number":2,"at":0.48,"name":"Crest Split","type":"split"},{"number":3,"at":0.81,"name":"Black Sweep","type":"banked"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers": [{"at":0.25,"label":"2"},{"at":0.5,"label":"3"},{"at":0.75,"label":"4"}],
+  "racingLine": [{"at":0,"lateral":1.4},{"at":0.19,"lateral":-2.6},{"at":0.42,"lateral":2.4},{"at":0.63,"lateral":-2.2},{"at":0.84,"lateral":1.7}],
+  "features": [{"type":"dash","at":0.1,"lateral":0},{"type":"pit","at":0.37,"lateral":-2},{"type":"ramp","at":0.49,"lateral":1},{"type":"split","at":0.49,"name":"Over-crest bypass"}],
+  "pickups": [{"at":0.15,"lateral":-2},{"at":0.3,"lateral":2},{"at":0.46,"lateral":0},{"at":0.61,"lateral":-2},{"at":0.75,"lateral":2},{"at":0.9,"lateral":0}]
+}

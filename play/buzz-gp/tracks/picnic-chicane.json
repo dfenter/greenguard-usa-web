@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "picnic-chicane", "name": "Picnic Chicane", "width": 13, "sampleCount": 160,
+  "theme": "coastal", "timeOfDay": "dusk", "landmark": "plates and watermelon bridge",
+  "controlPoints": [
+    {"x":-12,"z":-118,"elevation":0,"banking":0,"curb":true},{"x":72,"z":-108,"elevation":3,"banking":-7,"curb":false},{"x":112,"z":-48,"elevation":1,"banking":10,"curb":true},{"x":70,"z":11,"elevation":7,"banking":18,"curb":true},{"x":115,"z":73,"elevation":3,"banking":-15,"curb":false},{"x":17,"z":111,"elevation":0,"banking":-8,"curb":true},{"x":-81,"z":88,"elevation":4,"banking":12,"curb":true},{"x":-112,"z":12,"elevation":2,"banking":-18,"curb":false},{"x":-75,"z":-78,"elevation":0,"banking":5,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.16,"name":"Plate Stack","type":"chicane"},{"number":2,"at":0.4,"name":"Melon Bridge","type":"crest"},{"number":3,"at":0.82,"name":"Napkin Hairpin","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.33},{"id":3,"at":0.66}], "distanceMarkers": [{"at":0.48,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":-0.7},{"at":0.18,"lateral":1.4},{"at":0.42,"lateral":-1.1},{"at":0.8,"lateral":1.1}],
+  "itemRows": [0.07,0.16,0.3,0.43,0.55,0.67,0.79,0.91], "shortcuts": [{"at":0.7,"lateral":-4.4,"length":0.1,"name":"Blanket bypass"}],
+  "hazards": [{"at":0.21,"kind":"plate","lanes":[-3.2,0,3.2]},{"at":0.46,"kind":"melon","lanes":[0]}], "jumpRamps": [{"at":0.54,"lateral":-2.2,"boost":0.16}],
+  "dressing": ["picnic","plate","watermelon"]
+}

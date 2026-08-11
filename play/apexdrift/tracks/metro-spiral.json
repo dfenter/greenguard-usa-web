@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "metro-spiral",
+  "name": "Metro Spiral",
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "landmark": "Neon rail line with a descending inner spiral",
+  "width": 13,
+  "sampleCount": 208,
+  "controlPoints": [
+    {"x":-12,"z":-106,"elevation":8,"banking":0},
+    {"x":70,"z":-88,"elevation":13,"banking":7},
+    {"x":112,"z":-25,"elevation":18,"banking":14,"curb":true},
+    {"x":78,"z":40,"elevation":21,"banking":-15,"curb":true},
+    {"x":-2,"z":72,"elevation":17,"banking":-18,"curb":true},
+    {"x":-76,"z":44,"elevation":12,"banking":11,"curb":true},
+    {"x":-108,"z":-18,"elevation":7,"banking":13,"curb":true},
+    {"x":-75,"z":-80,"elevation":4,"banking":-8},
+    {"x":-22,"z":-112,"elevation":5,"banking":-3}
+  ],
+  "turns": [{"number":1,"at":0.15,"name":"Skyrail Sweep","type":"sweeper"},{"number":2,"at":0.39,"name":"Inner Spiral","type":"hairpin"},{"number":3,"at":0.65,"name":"Platform Hook","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.33},{"id":3,"at":0.66}],
+  "distanceMarkers": [{"at":0.12,"label":"3"},{"at":0.16,"label":"2"},{"at":0.2,"label":"1"}],
+  "racingLine": [{"at":0,"lateral":1.4},{"at":0.22,"lateral":-2.2},{"at":0.46,"lateral":2.2},{"at":0.7,"lateral":-2.1},{"at":0.9,"lateral":1.6}]
+}

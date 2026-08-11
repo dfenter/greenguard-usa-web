@@ -1,0 +1,8 @@
+{
+  "version": 1, "id": "battle-lily-pad", "name": "Lily Pad Lockup", "width": 18, "sampleCount": 144,
+  "theme": "coastal", "timeOfDay": "dusk", "mode": "battle", "landmark": "pond arena with four lily-pad lanes",
+  "controlPoints": [{"x":0,"z":-94,"elevation":0,"banking":0,"curb":false},{"x":74,"z":-62,"elevation":2,"banking":10,"curb":true},{"x":96,"z":18,"elevation":0,"banking":-12,"curb":false},{"x":47,"z":86,"elevation":3,"banking":14,"curb":true},{"x":-43,"z":89,"elevation":1,"banking":-10,"curb":false},{"x":-99,"z":28,"elevation":2,"banking":-16,"curb":true},{"x":-83,"z":-57,"elevation":0,"banking":10,"curb":false}],
+  "turns": [{"number":1,"at":0.2,"name":"Lily Gate","type":"arena"},{"number":2,"at":0.58,"name":"Pond Wall","type":"arena"}], "sectors": [{"id":1,"at":0},{"id":2,"at":0.5}],
+  "racingLine": [{"at":0,"lateral":0},{"at":0.25,"lateral":-2},{"at":0.5,"lateral":2},{"at":0.75,"lateral":-2}], "itemRows": [0.12,0.25,0.38,0.51,0.64,0.77,0.9],
+  "hazards": [{"at":0.3,"kind":"lilypad","lanes":[-4,4]},{"at":0.72,"kind":"splash","lanes":[0]}], "jumpRamps": [{"at":0.45,"lateral":0,"boost":0.2}], "dressing": ["pond","lily","reeds"]
+}

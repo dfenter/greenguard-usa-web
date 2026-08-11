@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "anthill-spiral", "name": "Anthill Spiral", "width": 12, "sampleCount": 160,
+  "theme": "alpine", "timeOfDay": "dusk", "landmark": "elevation ladder around the red anthill",
+  "controlPoints": [
+    {"x":0,"z":-118,"elevation":0,"banking":0,"curb":true},{"x":76,"z":-101,"elevation":8,"banking":12,"curb":false},{"x":111,"z":-35,"elevation":17,"banking":22,"curb":true},{"x":81,"z":38,"elevation":29,"banking":-20,"curb":false},{"x":10,"z":107,"elevation":38,"banking":-10,"curb":true},{"x":-72,"z":97,"elevation":25,"banking":17,"curb":false},{"x":-112,"z":34,"elevation":13,"banking":-24,"curb":true},{"x":-104,"z":-48,"elevation":6,"banking":-16,"curb":false},{"x":-55,"z":-106,"elevation":0,"banking":7,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.19,"name":"First Ladder","type":"climb"},{"number":2,"at":0.48,"name":"Ant Crown","type":"crest"},{"number":3,"at":0.79,"name":"Tunnel Drop","type":"drop"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.34},{"id":3,"at":0.68}], "distanceMarkers": [{"at":0.5,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":0.2},{"at":0.2,"lateral":-1.2},{"at":0.5,"lateral":1.5},{"at":0.79,"lateral":-1.4}],
+  "itemRows": [0.08,0.2,0.32,0.45,0.58,0.7,0.83,0.95], "shortcuts": [{"at":0.48,"lateral":4.1,"length":0.1,"name":"Hill tunnel"}],
+  "hazards": [{"at":0.29,"kind":"ant","lanes":[-2.7,2.7]},{"at":0.66,"kind":"rock","lanes":[0]}], "jumpRamps": [{"at":0.58,"lateral":0,"boost":0.23}],
+  "dressing": ["anthill","rock","grass"]
+}

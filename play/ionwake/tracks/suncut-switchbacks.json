@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "suncut-switchbacks",
+  "name": "Suncut Switchbacks",
+  "theme": "desert",
+  "timeOfDay": "noon",
+  "width": 14,
+  "sampleCount": 144,
+  "signature": "Dry canyon hairpins with a sawtooth descent",
+  "controlPoints": [
+    {"x":0,"z":-112,"elevation":48,"banking":0,"curb":false},
+    {"x":112,"z":-92,"elevation":45,"banking":20,"curb":true},
+    {"x":124,"z":-29,"elevation":40,"banking":-26,"curb":true},
+    {"x":45,"z":-5,"elevation":35,"banking":22,"curb":true},
+    {"x":133,"z":46,"elevation":29,"banking":-25,"curb":true},
+    {"x":102,"z":112,"elevation":22,"banking":20,"curb":true},
+    {"x":-4,"z":137,"elevation":27,"banking":-9,"curb":false},
+    {"x":-110,"z":91,"elevation":31,"banking":-22,"curb":true},
+    {"x":-128,"z":8,"elevation":39,"banking":25,"curb":true},
+    {"x":-78,"z":-72,"elevation":45,"banking":-14,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.14,"name":"Red Cut","type":"hairpin"},{"number":2,"at":0.39,"name":"Sun Needle","type":"hairpin"},{"number":3,"at":0.69,"name":"Echo Bowl","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers": [{"at":0.24,"label":"2"},{"at":0.5,"label":"3"},{"at":0.76,"label":"4"}],
+  "racingLine": [{"at":0,"lateral":2},{"at":0.16,"lateral":-2.7},{"at":0.38,"lateral":2.5},{"at":0.6,"lateral":-2.4},{"at":0.81,"lateral":2}],
+  "features": [{"type":"dash","at":0.07,"lateral":0},{"type":"pit","at":0.34,"lateral":2},{"type":"ramp","at":0.55,"lateral":-1},{"type":"split","at":0.86,"name":"Dry wash"}],
+  "pickups": [{"at":0.12,"lateral":-2},{"at":0.27,"lateral":2},{"at":0.45,"lateral":-1},{"at":0.62,"lateral":2},{"at":0.77,"lateral":-2},{"at":0.91,"lateral":0}]
+}

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "neon-overpass",
+  "name": "Neon Overpass",
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "landmark": "Tunnel mouth, stacked overpass, and wet neon loop",
+  "width": 14,
+  "sampleCount": 216,
+  "controlPoints": [
+    {"x":0,"z":-102,"elevation":0,"banking":0},
+    {"x":78,"z":-88,"elevation":2,"banking":5},
+    {"x":118,"z":-28,"elevation":4,"banking":11,"curb":true},
+    {"x":96,"z":38,"elevation":5,"banking":-8,"curb":true},
+    {"x":34,"z":95,"elevation":9,"banking":-12,"curb":true},
+    {"x":-50,"z":90,"elevation":7,"banking":4},
+    {"x":-111,"z":40,"elevation":5,"banking":12,"curb":true},
+    {"x":-112,"z":-35,"elevation":4,"banking":-12,"curb":true},
+    {"x":-62,"z":-93,"elevation":3,"banking":-5}
+  ],
+  "turns": [{"number":1,"at":0.15,"name":"Tunnel Dive","type":"sweeper"},{"number":2,"at":0.42,"name":"Overpass Stack","type":"elevated"},{"number":3,"at":0.76,"name":"Neon Hairpin","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.68}],
+  "distanceMarkers": [{"at":0.18,"label":"3"},{"at":0.22,"label":"2"},{"at":0.26,"label":"1"}],
+  "racingLine": [{"at":0,"lateral":-1.5},{"at":0.2,"lateral":2.5},{"at":0.46,"lateral":1.1},{"at":0.68,"lateral":-2.4},{"at":0.88,"lateral":-1.2}]
+}

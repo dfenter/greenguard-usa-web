@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <base href="/play/apexdrift/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#100b1e">
+  <meta name="description" content="Apexdrift is a sunset arcade drift racer from GreenGuard USA.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="/play/apexdrift/manifest.json">
+  <link rel="icon" href="/play/apexdrift/favicon.svg" type="image/svg+xml">
+  <title>apexdrift</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #fff3de;
+      --muted: #d1a7a2;
+      --hot: #ffbd62;
+      --cyan: #75f2e2;
+      --pink: #ff688d;
+      --panel: rgba(17, 12, 29, .78);
+      --line: rgba(255, 240, 215, .2);
+      --safe-top: max(14px, env(safe-area-inset-top));
+      --safe-right: max(16px, env(safe-area-inset-right));
+      --safe-bottom: max(14px, env(safe-area-inset-bottom));
+      --safe-left: max(16px, env(safe-area-inset-left));
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #100b1e; }
+    body { color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; user-select: none; }
+    button { font: inherit; color: inherit; }
+    #shell { position: fixed; inset: 0; overflow: hidden; background: #100b1e; }
+    #scene { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+    #vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 46%, transparent 38%, rgba(10, 6, 18, .44) 118%); mix-blend-mode: multiply; }
+    #sun-glow { position: absolute; width: 48vw; height: 48vw; max-width: 470px; max-height: 470px; left: 53%; top: 19%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(255, 224, 153, .2), rgba(255, 129, 92, 0) 70%); pointer-events: none; }
+    #hud { position: absolute; inset: 0; pointer-events: none; padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left); }
+    .hud-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .hud-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .chip { min-height: 32px; display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); box-shadow: 0 5px 22px rgba(8, 2, 15, .22); backdrop-filter: blur(10px); font-size: 12px; line-height: 1; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
+    #logo { color: var(--hot); font-weight: 900; letter-spacing: .16em; }
+    #race-meta { color: var(--muted); max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
+    #mode-button, #settings-button { pointer-events: auto; cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; min-width: 44px; min-height: 40px; padding: 8px 12px; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+    #mode-button:active, #settings-button:active, .touch-button:active, .menu-button:active { transform: translateY(1px); }
+    #speed-cluster { position: absolute; left: var(--safe-left); top: calc(var(--safe-top) + 54px); display: flex; align-items: baseline; gap: 7px; text-shadow: 0 4px 18px rgba(0, 0, 0, .55); }
+    #speed { font-size: clamp(35px, 8vw, 66px); line-height: .82; font-weight: 900; letter-spacing: -.08em; }
+    #speed-unit { color: var(--muted); font-size: 11px; letter-spacing: .16em; }
+    #race-stats { position: absolute; right: var(--safe-right); top: calc(var(--safe-top) + 54px); display: flex; gap: 8px; }
+    #pos strong, #lap strong { color: var(--hot); font-size: 18px; }
+    #nitro { position: absolute; left: 50%; top: calc(var(--safe-top) + 54px); transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 10px; background: rgba(17, 12, 29, .62); }
+    #nitro-label { color: var(--muted); font-size: 10px; letter-spacing: .12em; margin-right: 3px; }
+    .nitro-pip { width: 22px; height: 8px; border-radius: 5px; background: rgba(255, 243, 222, .15); border: 1px solid rgba(255, 243, 222, .18); }
+    .nitro-pip.on { background: linear-gradient(90deg, var(--hot), var(--pink)); box-shadow: 0 0 12px rgba(255, 189, 98, .6); }
+    #drift-chip { position: absolute; right: var(--safe-right); top: calc(var(--safe-top) + 104px); display: none; color: var(--cyan); border-color: rgba(117, 242, 226, .42); }
+    #drift-chip.visible { display: inline-flex; }
+    #drift-score { color: var(--ink); font-weight: 800; }
+    #toast { position: absolute; left: 50%; top: calc(var(--safe-top) + 106px); transform: translateX(-50%); opacity: 0; transition: opacity .16s ease; color: var(--hot); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; text-shadow: 0 3px 14px #000; white-space: nowrap; }
+    #toast.visible { opacity: 1; }
+    #tutorial { position: absolute; left: 50%; top: var(--safe-top); transform: translateX(-50%); max-width: min(92vw, 600px); min-height: 30px; padding: 7px 12px; border: 1px solid rgba(117, 242, 226, .3); border-radius: 999px; color: rgba(255, 243, 222, .86); background: rgba(12, 22, 34, .52); font-size: 12px; text-align: center; opacity: 0; transition: opacity .3s ease; pointer-events: none; }
+    #tutorial.visible { opacity: 1; }
+    #controls { position: absolute; inset: 0; pointer-events: none; }
+    .touch-button { position: absolute; bottom: calc(var(--safe-bottom) + 16px); width: 76px; height: 58px; border: 1px solid rgba(255, 243, 222, .22); border-radius: 16px; background: rgba(17, 12, 29, .3); color: rgba(255, 243, 222, .86); pointer-events: auto; touch-action: none; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+    #steer-left { left: var(--safe-left); }
+    #steer-right { left: calc(var(--safe-left) + 84px); }
+    #brake { right: calc(var(--safe-right) + 84px); }
+    #nitro-button { right: var(--safe-right); color: var(--hot); border-color: rgba(255, 189, 98, .4); }
+    #fallback { position: absolute; z-index: 20; left: var(--safe-left); top: var(--safe-top); max-width: 320px; padding: 12px 14px; border: 1px solid rgba(255, 189, 98, .55); border-radius: 12px; background: rgba(16, 9, 27, .93); color: var(--ink); box-shadow: 0 12px 36px rgba(0,0,0,.35); }
+    #fallback[hidden] { display: none; }
+    #fallback-title { color: var(--hot); font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+    #fallback-state { margin-top: 6px; color: var(--muted); font-size: 12px; letter-spacing: .05em; }
+    #fallback-error { margin-top: 8px; color: #ff9ca6; font-size: 12px; }
+    .overlay { position: absolute; z-index: 30; inset: 0; display: none; align-items: center; justify-content: center; padding: calc(var(--safe-top) + 20px) var(--safe-right) calc(var(--safe-bottom) + 20px) var(--safe-left); background: rgba(10, 6, 18, .66); backdrop-filter: blur(9px); }
+    .overlay.visible { display: flex; }
+    .panel { width: min(92vw, 620px); max-height: 88vh; overflow: auto; padding: 24px; border: 1px solid rgba(255, 243, 222, .22); border-radius: 22px; background: linear-gradient(145deg, rgba(31, 16, 38, .95), rgba(10, 17, 34, .95)); box-shadow: 0 18px 70px rgba(0,0,0,.42); }
+    .panel h1, .panel h2 { margin: 0; color: var(--hot); letter-spacing: .12em; text-transform: uppercase; }
+    .panel h1 { font-size: clamp(28px, 8vw, 54px); line-height: .9; }
+    .panel h2 { font-size: 18px; }
+    .panel p { color: var(--muted); line-height: 1.45; }
+    .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 18px 0; }
+    .menu-button { min-height: 52px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.06); cursor: pointer; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+    .menu-button.selected { color: #17101e; border-color: var(--hot); background: var(--hot); }
+    #trackCards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 12px 0 18px; }
+    .track-card { min-height: 64px; padding: 8px; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.04); cursor: pointer; }
+    .track-card.selected { border-color: var(--cyan); background: rgba(117, 242, 226, .12); }
+    .track-card strong { display: block; font-size: 11px; color: var(--ink); }
+    .track-card small { color: var(--muted); font-size: 10px; }
+    #menuFooter { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    #selectedCar { color: var(--muted); font-size: 12px; }
+    .primary { min-height: 48px; padding: 10px 18px; border: 0; border-radius: 999px; color: #17101e; background: linear-gradient(100deg, var(--hot), #ff7b86); cursor: pointer; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    .secondary { min-height: 42px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: rgba(255,255,255,.06); cursor: pointer; }
+    #garageList { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .car-card { min-height: 104px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.04); cursor: pointer; }
+    .car-card.locked { opacity: .48; cursor: not-allowed; }
+    .car-swatch { width: 40px; height: 10px; margin-bottom: 8px; border-radius: 999px; background: var(--swatch); box-shadow: 0 0 12px var(--swatch); }
+    .car-card strong { display: block; font-size: 11px; }
+    .car-card small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.25; }
+    #resultPanel { text-align: center; }
+    #resultPanel h2 { font-size: clamp(24px, 6vw, 42px); }
+    #podium { display: flex; align-items: end; justify-content: center; gap: 8px; min-height: 130px; margin: 16px 0; }
+    .podium-place { width: 88px; padding: 8px 5px; border: 1px solid rgba(255,255,255,.13); border-radius: 10px 10px 4px 4px; background: rgba(255,255,255,.07); font-size: 11px; }
+    .podium-place.first { height: 122px; border-color: var(--hot); }
+    .podium-place.second { height: 94px; }
+    .podium-place.third { height: 74px; }
+    .medal { color: var(--hot); font-size: 24px; }
+    #resultCopy { color: var(--muted); }
+    @media (max-width: 600px) {
+      .chip { padding-inline: 8px; font-size: 10px; }
+      #race-meta { display: none; }
+      #nitro { top: calc(var(--safe-top) + 50px); }
+      #race-stats { top: calc(var(--safe-top) + 94px); }
+      #drift-chip { top: calc(var(--safe-top) + 136px); }
+      #toast { top: calc(var(--safe-top) + 136px); }
+      #speed-cluster { top: calc(var(--safe-top) + 58px); }
+      .panel { padding: 18px; }
+      #garageList { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main id="shell">
+    <canvas id="scene" aria-label="Apexdrift 3D drift race"></canvas>
+    <div id="sun-glow"></div>
+    <div id="vignette"></div>
+    <div id="fallback" aria-live="polite">
+      <div id="fallback-title">APEXDRIFT / BOOT</div>
+      <div id="fallback-state">TRACK <span id="boot-track">TIDEGLASS 180</span> · CUP <span id="boot-cup">1</span> · READY</div>
+      <div id="fallback-error"></div>
+    </div>
+    <section id="hud" aria-live="polite">
+      <div class="hud-row">
+        <div class="hud-group"><span id="logo" class="chip">APEXDRIFT</span><span id="race-meta" class="chip">GRAND PRIX / TIDEGLASS 180</span></div>
+        <div class="hud-group"><button id="mode-button" type="button">MODE</button><button id="settings-button" type="button" aria-label="Open settings">⚙</button></div>
+      </div>
+      <div id="speed-cluster"><span id="speed">000</span><span id="speed-unit">KM/H</span></div>
+      <div id="nitro" aria-label="Nitro charges"><span id="nitro-label">N₂</span><span class="nitro-pip"></span><span class="nitro-pip"></span><span class="nitro-pip"></span></div>
+      <div id="race-stats"><span id="pos" class="chip">POS <strong>8</strong>/8</span><span id="lap" class="chip">LAP <strong>1</strong>/3</span></div>
+      <div id="drift-chip" class="chip">DRIFT <span id="drift-score">0</span></div>
+      <div id="toast"></div>
+      <div id="tutorial"></div>
+    </section>
+    <section id="controls" aria-label="Touch controls">
+      <button id="steer-left" class="touch-button" type="button" aria-label="Steer left">◀</button>
+      <button id="steer-right" class="touch-button" type="button" aria-label="Steer right">▶</button>
+      <button id="brake" class="touch-button" type="button" aria-label="Tap brake to drift">DRIFT</button>
+      <button id="nitro-button" class="touch-button" type="button" aria-label="Use nitro">N₂</button>
+    </section>
+    <section id="menu" class="overlay" aria-hidden="true">
+      <div class="panel">
+        <h1>apexdrift</h1>
+        <p>Hold the line. Tap the brake. Let the mountain disappear behind you.</p>
+        <div class="menu-grid">
+          <button class="menu-button selected" data-mode="grand-prix" type="button">Grand Prix</button>
+          <button class="menu-button" data-mode="time-attack" type="button">Time Attack</button>
+          <button class="menu-button" data-mode="drift-trial" type="button">Drift Trial</button>
+        </div>
+        <div id="track-cards"></div>
+        <div id="menu-footer"><span id="selected-car">CAR 01 / SUNSET GT</span><button id="garage-button" class="secondary" type="button">Garage</button><button id="start-button" class="primary" type="button">Drive</button></div>
+        <div id="garage-list" hidden></div>
+      </div>
+    </section>
+    <section id="result" class="overlay" aria-hidden="true">
+      <div id="result-panel" class="panel">
+        <div class="medal" id="medal">◆</div>
+        <h2 id="result-title">PODIUM</h2>
+        <div id="podium"></div>
+        <p id="result-copy">Clean exit bonus secured.</p>
+        <button id="result-button" class="primary" type="button">Next race</button>
+      </div>
+    </section>
+  </main>
+  <script>
+    const apexQuery = new URLSearchParams(location.search);
+    window.__ad = {
+      state: {
+        mode: apexQuery.get('forceMode') || 'grand-prix',
+        cup: Math.max(1, Math.min(3, Number(apexQuery.get('forceCup')) || 1)),
+        track: apexQuery.get('forceTrack') || 'tideglass-180',
+        lap: 1,
+        pos: 8,
+        nitro: 3,
+        drifting: false,
+        driftScore: 0,
+      },
+      forceTrack: apexQuery.get('forceTrack') || 'tideglass-180',
+      forceCup: Math.max(1, Math.min(3, Number(apexQuery.get('forceCup')) || 1)),
+    };
+    document.getElementById('boot-track').textContent = window.__ad.state.track.toUpperCase().replaceAll('-', ' ');
+    document.getElementById('boot-cup').textContent = String(window.__ad.state.cup);
+  </script>
+  <script type="importmap">{"imports":{"three":"/play/_shared/three/three.module.min.js"}}</script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script type="module" src="/play/apexdrift/game.js"></script>
+</body>
+</html>

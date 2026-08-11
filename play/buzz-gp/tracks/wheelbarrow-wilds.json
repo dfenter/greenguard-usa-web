@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "wheelbarrow-wilds", "name": "Wheelbarrow Wilds", "width": 13, "sampleCount": 160,
+  "theme": "alpine", "timeOfDay": "dusk", "landmark": "wheelbarrow rollers, garden gloves, and a dirt-bank shortcut",
+  "controlPoints": [
+    {"x":0,"z":-121,"elevation":0,"banking":0,"curb":true},{"x":70,"z":-108,"elevation":3,"banking":11,"curb":false},{"x":115,"z":-45,"elevation":7,"banking":-18,"curb":true},{"x":96,"z":36,"elevation":2,"banking":22,"curb":false},{"x":26,"z":111,"elevation":9,"banking":-15,"curb":true},{"x":-61,"z":98,"elevation":4,"banking":13,"curb":false},{"x":-115,"z":43,"elevation":1,"banking":-22,"curb":true},{"x":-108,"z":-42,"elevation":6,"banking":-16,"curb":false},{"x":-55,"z":-104,"elevation":0,"banking":8,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.17,"name":"Barrow Roll","type":"bank"},{"number":2,"at":0.48,"name":"Glove Chicane","type":"chicane"},{"number":3,"at":0.76,"name":"Dirt Bank","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.34},{"id":3,"at":0.68}], "distanceMarkers": [{"at":0.5,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":-0.4},{"at":0.2,"lateral":1.4},{"at":0.5,"lateral":-1.5},{"at":0.77,"lateral":1.7}],
+  "itemRows": [0.08,0.19,0.31,0.44,0.57,0.7,0.82,0.94], "shortcuts": [{"at":0.78,"lateral":-4.3,"length":0.11,"name":"Dirt bank"}],
+  "hazards": [{"at":0.29,"kind":"glove","lanes":[-2.8,2.8]},{"at":0.6,"kind":"barrow","lanes":[0]}], "jumpRamps": [{"at":0.4,"lateral":-1,"boost":0.2}],
+  "dressing": ["wheelbarrow","glove","dirt"]
+}

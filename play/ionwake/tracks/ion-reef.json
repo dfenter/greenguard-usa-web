@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "ion-reef",
+  "name": "Ion Reef",
+  "theme": "coastal",
+  "timeOfDay": "dusk",
+  "width": 15,
+  "sampleCount": 144,
+  "signature": "Tidal superstructure with luminous reef pylons",
+  "controlPoints": [
+    {"x":-12,"z":-112,"elevation":18,"banking":-4,"curb":false},
+    {"x":92,"z":-93,"elevation":21,"banking":21,"curb":true},
+    {"x":135,"z":-27,"elevation":25,"banking":31,"curb":true},
+    {"x":95,"z":43,"elevation":33,"banking":-14,"curb":true},
+    {"x":24,"z":122,"elevation":42,"banking":-8,"curb":false},
+    {"x":-81,"z":126,"elevation":37,"banking":-22,"curb":true},
+    {"x":-143,"z":58,"elevation":30,"banking":20,"curb":true},
+    {"x":-121,"z":-29,"elevation":24,"banking":-24,"curb":true},
+    {"x":-67,"z":-98,"elevation":19,"banking":8,"curb":false}
+  ],
+  "turns": [{"number":1,"at":0.16,"name":"Reef Hook","type":"hairpin"},{"number":2,"at":0.43,"name":"Tide Rail","type":"sweeper"},{"number":3,"at":0.76,"name":"Salt Chicane","type":"chicane"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers": [{"at":0.25,"label":"2"},{"at":0.5,"label":"3"},{"at":0.75,"label":"4"}],
+  "racingLine": [{"at":0,"lateral":-1},{"at":0.17,"lateral":2.5},{"at":0.38,"lateral":-2.1},{"at":0.64,"lateral":2.2},{"at":0.85,"lateral":-1.6}],
+  "features": [{"type":"pit","at":0.08,"lateral":2},{"type":"dash","at":0.29,"lateral":0},{"type":"ramp","at":0.57,"lateral":-1},{"type":"split","at":0.81,"name":"Breakwater lane"}],
+  "pickups": [{"at":0.13,"lateral":-2},{"at":0.26,"lateral":2},{"at":0.42,"lateral":0},{"at":0.59,"lateral":-2},{"at":0.74,"lateral":2},{"at":0.92,"lateral":0}]
+}

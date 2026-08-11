@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "compost-canyon", "name": "Compost Canyon", "width": 13, "sampleCount": 160,
+  "theme": "alpine", "timeOfDay": "noon", "landmark": "towering compost walls and leaf slides",
+  "controlPoints": [
+    {"x":0,"z":-120,"elevation":0,"banking":0,"curb":false},{"x":76,"z":-98,"elevation":9,"banking":12,"curb":true},{"x":112,"z":-24,"elevation":16,"banking":22,"curb":true},{"x":78,"z":49,"elevation":10,"banking":-18,"curb":false},{"x":-4,"z":110,"elevation":2,"banking":-8,"curb":true},{"x":-84,"z":92,"elevation":8,"banking":18,"curb":false},{"x":-114,"z":25,"elevation":13,"banking":-18,"curb":true},{"x":-98,"z":-48,"elevation":6,"banking":-10,"curb":false},{"x":-58,"z":-102,"elevation":0,"banking":4,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.18,"name":"Leaffall Left","type":"sweeper"},{"number":2,"at":0.55,"name":"Wormhole","type":"hairpin"},{"number":3,"at":0.79,"name":"Pileup Point","type":"drop"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.34},{"id":3,"at":0.68}], "distanceMarkers": [{"at":0.5,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":0.4},{"at":0.2,"lateral":-1.7},{"at":0.56,"lateral":1.2},{"at":0.8,"lateral":-1.2}],
+  "itemRows": [0.09,0.2,0.31,0.44,0.57,0.68,0.8,0.93], "shortcuts": [{"at":0.31,"lateral":4.5,"length":0.08,"name":"Leaf chute"}],
+  "hazards": [{"at":0.38,"kind":"compost","lanes":[-2.6,2.6]},{"at":0.73,"kind":"branch","lanes":[0]}], "jumpRamps": [{"at":0.62,"lateral":2,"boost":0.2}],
+  "dressing": ["leaf","log","compost"]
+}

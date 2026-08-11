@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "cinder-highroad",
+  "name": "Cinder Highroad",
+  "theme": "desert",
+  "timeOfDay": "dusk",
+  "width": 15,
+  "sampleCount": 144,
+  "signature": "Canyon high-road with a jump gap and hot wind",
+  "controlPoints": [
+    {"x":-20,"z":-108,"elevation":34,"banking":0,"curb":false},
+    {"x":84,"z":-90,"elevation":39,"banking":9,"curb":true},
+    {"x":145,"z":-27,"elevation":42,"banking":28,"curb":true},
+    {"x":95,"z":42,"elevation":48,"banking":-20,"curb":true},
+    {"x":148,"z":114,"elevation":54,"banking":-8,"curb":false},
+    {"x":28,"z":139,"elevation":44,"banking":-24,"curb":true},
+    {"x":-98,"z":112,"elevation":29,"banking":-10,"curb":false},
+    {"x":-150,"z":28,"elevation":24,"banking":18,"curb":true},
+    {"x":-115,"z":-67,"elevation":28,"banking":-18,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.16,"name":"Ashpin","type":"hairpin"},{"number":2,"at":0.46,"name":"Gapfall","type":"jump"},{"number":3,"at":0.75,"name":"Cinder Bowl","type":"sweeper"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.33},{"id":3,"at":0.66}],
+  "distanceMarkers": [{"at":0.22,"label":"2"},{"at":0.49,"label":"3"},{"at":0.78,"label":"4"}],
+  "racingLine": [{"at":0,"lateral":-1},{"at":0.16,"lateral":2.8},{"at":0.38,"lateral":-2.4},{"at":0.55,"lateral":1.8},{"at":0.78,"lateral":-1.7}],
+  "features": [{"type":"pit","at":0.09,"lateral":2},{"type":"dash","at":0.31,"lateral":0},{"type":"ramp","at":0.48,"lateral":0},{"type":"split","at":0.62,"name":"Canyon underpass"}],
+  "pickups": [{"at":0.14,"lateral":-2},{"at":0.29,"lateral":2},{"at":0.42,"lateral":0},{"at":0.6,"lateral":-2},{"at":0.74,"lateral":2},{"at":0.9,"lateral":0}]
+}

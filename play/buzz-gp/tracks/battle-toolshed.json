@@ -1,0 +1,8 @@
+{
+  "version": 1, "id": "battle-toolshed", "name": "Toolshed Tangle", "width": 18, "sampleCount": 144,
+  "theme": "night-city", "timeOfDay": "night", "mode": "battle", "landmark": "lantern-lit shed arena with tool ramps",
+  "controlPoints": [{"x":0,"z":-95,"elevation":0,"banking":0,"curb":true},{"x":79,"z":-60,"elevation":5,"banking":18,"curb":false},{"x":99,"z":20,"elevation":2,"banking":-15,"curb":true},{"x":44,"z":90,"elevation":4,"banking":12,"curb":false},{"x":-48,"z":83,"elevation":0,"banking":-14,"curb":true},{"x":-100,"z":24,"elevation":6,"banking":-18,"curb":false},{"x":-80,"z":-65,"elevation":1,"banking":12,"curb":true}],
+  "turns": [{"number":1,"at":0.2,"name":"Rake Rack","type":"arena"},{"number":2,"at":0.63,"name":"Jar Wall","type":"arena"}], "sectors": [{"id":1,"at":0},{"id":2,"at":0.5}],
+  "racingLine": [{"at":0,"lateral":0},{"at":0.25,"lateral":2},{"at":0.5,"lateral":-2},{"at":0.75,"lateral":2}], "itemRows": [0.1,0.24,0.39,0.53,0.67,0.81,0.93],
+  "hazards": [{"at":0.34,"kind":"hammer","lanes":[-4,4]},{"at":0.75,"kind":"spark","lanes":[0]}], "jumpRamps": [{"at":0.5,"lateral":-1,"boost":0.2}], "dressing": ["tool","lantern","jar"]
+}

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "voltspire",
+  "name": "Voltspire Switchbacks",
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "width": 14,
+  "sampleCount": 144,
+  "signature": "Neon night-city switchbacks through a tower canyon",
+  "controlPoints": [
+    {"x":0,"z":-90,"elevation":9,"banking":0,"curb":false},
+    {"x":82,"z":-72,"elevation":11,"banking":8,"curb":true},
+    {"x":122,"z":-8,"elevation":16,"banking":22,"curb":true},
+    {"x":70,"z":66,"elevation":22,"banking":-18,"curb":true},
+    {"x":0,"z":103,"elevation":27,"banking":-6,"curb":false},
+    {"x":-73,"z":69,"elevation":25,"banking":-24,"curb":true},
+    {"x":-124,"z":8,"elevation":18,"banking":18,"curb":true},
+    {"x":-84,"z":-59,"elevation":12,"banking":-20,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.12,"name":"Prism Hook","type":"hairpin"},{"number":2,"at":0.36,"name":"Crown Cut","type":"switchback"},{"number":3,"at":0.68,"name":"Tower Fold","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers": [{"at":0.25,"label":"2"},{"at":0.5,"label":"3"},{"at":0.75,"label":"4"}],
+  "racingLine": [{"at":0,"lateral":1.8},{"at":0.14,"lateral":-2.4},{"at":0.36,"lateral":2.2},{"at":0.64,"lateral":-2.1},{"at":0.86,"lateral":1.2}],
+  "features": [{"type":"dash","at":0.08,"lateral":0},{"type":"pit","at":0.43,"lateral":-2},{"type":"ramp","at":0.73,"lateral":1},{"type":"split","at":0.57,"name":"Skyline bypass"}],
+  "pickups": [{"at":0.16,"lateral":-2},{"at":0.27,"lateral":2},{"at":0.39,"lateral":0},{"at":0.53,"lateral":-2},{"at":0.69,"lateral":2},{"at":0.87,"lateral":0}]
+}

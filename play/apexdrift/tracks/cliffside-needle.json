@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "cliffside-needle",
+  "name": "Cliffside Needle",
+  "theme": "alpine",
+  "timeOfDay": "dusk",
+  "landmark": "Needle bridge and cliffside cut-through",
+  "width": 13,
+  "sampleCount": 208,
+  "controlPoints": [
+    {"x":0,"z":-98,"elevation":18,"banking":0},
+    {"x":88,"z":-72,"elevation":24,"banking":7},
+    {"x":110,"z":-8,"elevation":31,"banking":13,"curb":true},
+    {"x":44,"z":33,"elevation":38,"banking":-16,"curb":true},
+    {"x":-45,"z":24,"elevation":43,"banking":-13,"curb":true},
+    {"x":-106,"z":68,"elevation":51,"banking":12,"curb":true},
+    {"x":-70,"z":111,"elevation":58,"banking":10},
+    {"x":24,"z":101,"elevation":64,"banking":-8},
+    {"x":104,"z":60,"elevation":70,"banking":-14,"curb":true},
+    {"x":68,"z":-50,"elevation":56,"banking":-4,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.12,"name":"Needle Left","type":"hairpin"},{"number":2,"at":0.35,"name":"Cliff Cut","type":"switchback"},{"number":3,"at":0.57,"name":"Bridge Hook","type":"hairpin"},{"number":4,"at":0.84,"name":"Long Drop","type":"sweeper"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.68}],
+  "distanceMarkers": [{"at":0.1,"label":"3"},{"at":0.14,"label":"2"},{"at":0.18,"label":"1"}],
+  "racingLine": [{"at":0,"lateral":1.2},{"at":0.22,"lateral":-2.2},{"at":0.43,"lateral":2.3},{"at":0.67,"lateral":-2.3},{"at":0.9,"lateral":1.4}]
+}

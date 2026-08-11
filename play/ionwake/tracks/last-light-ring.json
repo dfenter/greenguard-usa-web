@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "last-light-ring",
+  "name": "Last Light Ring",
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "width": 16,
+  "sampleCount": 144,
+  "signature": "Final orbital ring with a cathedral dive and launch rail",
+  "controlPoints": [
+    {"x":0,"z":-135,"elevation":91,"banking":11,"curb":false},
+    {"x":101,"z":-100,"elevation":94,"banking":24,"curb":true},
+    {"x":151,"z":-19,"elevation":97,"banking":36,"curb":true},
+    {"x":106,"z":75,"elevation":90,"banking":29,"curb":true},
+    {"x":15,"z":142,"elevation":68,"banking":-12,"curb":false},
+    {"x":-93,"z":119,"elevation":45,"banking":-21,"curb":true},
+    {"x":-152,"z":27,"elevation":42,"banking":24,"curb":true},
+    {"x":-113,"z":-76,"elevation":63,"banking":-27,"curb":true},
+    {"x":-47,"z":-127,"elevation":84,"banking":-7,"curb":false}
+  ],
+  "turns": [{"number":1,"at":0.13,"name":"Last Light Arc","type":"sweeper"},{"number":2,"at":0.47,"name":"Cathedral Dive","type":"dive"},{"number":3,"at":0.79,"name":"Launch Rail","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers": [{"at":0.25,"label":"2"},{"at":0.5,"label":"3"},{"at":0.75,"label":"4"}],
+  "racingLine": [{"at":0,"lateral":2},{"at":0.19,"lateral":-2.6},{"at":0.45,"lateral":1.8},{"at":0.65,"lateral":-2.6},{"at":0.87,"lateral":1.5}],
+  "features": [{"type":"dash","at":0.05,"lateral":0},{"type":"pit","at":0.33,"lateral":3},{"type":"ramp","at":0.58,"lateral":0},{"type":"split","at":0.73,"name":"Cathedral lower deck"}],
+  "pickups": [{"at":0.12,"lateral":-2},{"at":0.25,"lateral":2},{"at":0.4,"lateral":0},{"at":0.56,"lateral":-2},{"at":0.72,"lateral":2},{"at":0.9,"lateral":0}]
+}

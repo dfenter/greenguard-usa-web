@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "garden-sprint", "name": "Garden Sprint", "width": 13, "sampleCount": 160,
+  "theme": "coastal", "timeOfDay": "noon", "landmark": "flower rows and sprinkler arcs",
+  "controlPoints": [
+    {"x":0,"z":-112,"elevation":0,"banking":0,"curb":false},{"x":62,"z":-94,"elevation":2,"banking":5,"curb":true},{"x":104,"z":-36,"elevation":4,"banking":12,"curb":true},{"x":91,"z":42,"elevation":1,"banking":-8,"curb":false},{"x":28,"z":99,"elevation":0,"banking":-12,"curb":true},{"x":-48,"z":89,"elevation":3,"banking":4,"curb":false},{"x":-106,"z":35,"elevation":1,"banking":-10,"curb":true},{"x":-98,"z":-45,"elevation":0,"banking":7,"curb":false},{"x":-52,"z":-100,"elevation":2,"banking":0,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.12,"name":"Marigold Bend","type":"sweeper"},{"number":2,"at":0.48,"name":"Sprinkler Gate","type":"chicane"},{"number":3,"at":0.76,"name":"Compost Cut","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.34},{"id":3,"at":0.68}], "distanceMarkers": [{"at":0.5,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":0.5},{"at":0.25,"lateral":-1.2},{"at":0.5,"lateral":1.4},{"at":0.75,"lateral":-0.8}],
+  "itemRows": [0.08,0.17,0.26,0.39,0.51,0.63,0.75,0.88], "shortcuts": [{"at":0.58,"lateral":4.6,"length":0.09,"name":"Rose bed cut"}],
+  "hazards": [{"at":0.36,"kind":"sprinkler","lanes":[-2.8,2.8]},{"at":0.7,"kind":"mower","lanes":[0]}], "jumpRamps": [{"at":0.22,"lateral":0,"boost":0.18}],
+  "dressing": ["flower","sprinkler","fence"]
+}

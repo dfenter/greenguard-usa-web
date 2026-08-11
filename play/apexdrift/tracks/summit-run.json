@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "summit-run",
+  "name": "Summit Run",
+  "theme": "alpine",
+  "timeOfDay": "dusk",
+  "landmark": "Summit tunnel, snow gates, and the high road",
+  "width": 14,
+  "sampleCount": 208,
+  "controlPoints": [
+    {"x":-8,"z":-112,"elevation":38,"banking":0},
+    {"x":74,"z":-94,"elevation":42,"banking":7},
+    {"x":118,"z":-34,"elevation":46,"banking":12,"curb":true},
+    {"x":84,"z":34,"elevation":52,"banking":-9,"curb":true},
+    {"x":30,"z":98,"elevation":60,"banking":-12,"curb":true},
+    {"x":-54,"z":94,"elevation":64,"banking":4},
+    {"x":-112,"z":45,"elevation":69,"banking":12,"curb":true},
+    {"x":-108,"z":-34,"elevation":65,"banking":-11,"curb":true},
+    {"x":-65,"z":-92,"elevation":55,"banking":-5}
+  ],
+  "turns": [{"number":1,"at":0.18,"name":"Snowline Sweeper","type":"sweeper"},{"number":2,"at":0.46,"name":"Summit Gate","type":"hairpin"},{"number":3,"at":0.77,"name":"High Road","type":"sweeper"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.33},{"id":3,"at":0.66}],
+  "distanceMarkers": [{"at":0.2,"label":"3"},{"at":0.24,"label":"2"},{"at":0.28,"label":"1"}],
+  "racingLine": [{"at":0,"lateral":-1.6},{"at":0.24,"lateral":2.2},{"at":0.48,"lateral":-2.4},{"at":0.7,"lateral":-1.3},{"at":0.88,"lateral":2.2}]
+}

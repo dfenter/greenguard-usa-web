@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "halo-dive",
+  "name": "Halo Dive",
+  "theme": "alpine",
+  "timeOfDay": "dusk",
+  "width": 15,
+  "sampleCount": 144,
+  "signature": "High ridge crest into a long elevation dive",
+  "controlPoints": [
+    {"x":-8,"z":-106,"elevation":72,"banking":4,"curb":false},
+    {"x":96,"z":-82,"elevation":79,"banking":18,"curb":true},
+    {"x":131,"z":-12,"elevation":91,"banking":27,"curb":true},
+    {"x":94,"z":55,"elevation":84,"banking":-20,"curb":true},
+    {"x":18,"z":126,"elevation":45,"banking":-10,"curb":false},
+    {"x":-83,"z":124,"elevation":26,"banking":-18,"curb":true},
+    {"x":-140,"z":52,"elevation":18,"banking":21,"curb":true},
+    {"x":-114,"z":-37,"elevation":35,"banking":-26,"curb":true},
+    {"x":-57,"z":-100,"elevation":64,"banking":8,"curb":false}
+  ],
+  "turns": [{"number":1,"at":0.15,"name":"Halo Crest","type":"sweeper"},{"number":2,"at":0.42,"name":"Long Fall","type":"dive"},{"number":3,"at":0.78,"name":"Snowglass","type":"hairpin"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.67}],
+  "distanceMarkers": [{"at":0.24,"label":"2"},{"at":0.5,"label":"3"},{"at":0.76,"label":"4"}],
+  "racingLine": [{"at":0,"lateral":-1.5},{"at":0.2,"lateral":2.5},{"at":0.44,"lateral":-2},{"at":0.66,"lateral":2.2},{"at":0.87,"lateral":-1.5}],
+  "features": [{"type":"pit","at":0.12,"lateral":2},{"type":"ramp","at":0.28,"lateral":0},{"type":"dash","at":0.5,"lateral":0},{"type":"split","at":0.73,"name":"Cloud shelf"}],
+  "pickups": [{"at":0.1,"lateral":-2},{"at":0.23,"lateral":2},{"at":0.39,"lateral":0},{"at":0.56,"lateral":-2},{"at":0.72,"lateral":2},{"at":0.9,"lateral":0}]
+}

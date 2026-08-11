@@ -1,0 +1,13 @@
+{
+  "version": 1, "id": "hosepipe-heights", "name": "Hosepipe Heights", "width": 13, "sampleCount": 160,
+  "theme": "coastal", "timeOfDay": "dawn", "landmark": "hosepipe corkscrews and a misty rainbow jump",
+  "controlPoints": [
+    {"x":0,"z":-120,"elevation":0,"banking":0,"curb":true},{"x":75,"z":-107,"elevation":7,"banking":15,"curb":false},{"x":112,"z":-44,"elevation":15,"banking":20,"curb":true},{"x":82,"z":34,"elevation":23,"banking":-23,"curb":false},{"x":4,"z":108,"elevation":30,"banking":-11,"curb":true},{"x":-76,"z":94,"elevation":16,"banking":18,"curb":false},{"x":-114,"z":27,"elevation":8,"banking":-20,"curb":true},{"x":-103,"z":-51,"elevation":3,"banking":-12,"curb":false},{"x":-55,"z":-104,"elevation":0,"banking":9,"curb":true}
+  ],
+  "turns": [{"number":1,"at":0.2,"name":"Hose Rise","type":"climb"},{"number":2,"at":0.5,"name":"Rainbow Rail","type":"crest"},{"number":3,"at":0.79,"name":"Nozzle Drop","type":"drop"}],
+  "sectors": [{"id":1,"at":0.0},{"id":2,"at":0.34},{"id":3,"at":0.68}], "distanceMarkers": [{"at":0.5,"label":"2"}],
+  "racingLine": [{"at":0,"lateral":-0.3},{"at":0.2,"lateral":1.5},{"at":0.5,"lateral":-1.7},{"at":0.8,"lateral":1.1}],
+  "itemRows": [0.09,0.2,0.32,0.45,0.58,0.7,0.83,0.95], "shortcuts": [{"at":0.35,"lateral":-4.4,"length":0.08,"name":"Hose loop"}],
+  "hazards": [{"at":0.28,"kind":"spray","lanes":[-2.8,2.8]},{"at":0.7,"kind":"nozzle","lanes":[0]}], "jumpRamps": [{"at":0.54,"lateral":0,"boost":0.24}],
+  "dressing": ["hose","rainbow","spray"]
+}

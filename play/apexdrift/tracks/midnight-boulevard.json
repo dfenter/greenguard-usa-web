@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "midnight-boulevard",
+  "name": "Midnight Boulevard",
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "landmark": "Avenue lights, tunnel switch, and the final city gate",
+  "width": 15,
+  "sampleCount": 208,
+  "controlPoints": [
+    {"x":0,"z":-108,"elevation":1,"banking":0},
+    {"x":90,"z":-84,"elevation":2,"banking":4},
+    {"x":122,"z":-18,"elevation":3,"banking":12,"curb":true},
+    {"x":92,"z":54,"elevation":5,"banking":12,"curb":true},
+    {"x":26,"z":98,"elevation":4,"banking":-4},
+    {"x":-56,"z":88,"elevation":3,"banking":-13,"curb":true},
+    {"x":-116,"z":30,"elevation":2,"banking":-14,"curb":true},
+    {"x":-112,"z":-45,"elevation":1,"banking":7,"curb":true},
+    {"x":-65,"z":-96,"elevation":1,"banking":5}
+  ],
+  "turns": [{"number":1,"at":0.17,"name":"Boulevard 180","type":"sweeper"},{"number":2,"at":0.5,"name":"Tunnel Switch","type":"hairpin"},{"number":3,"at":0.8,"name":"Final Gate","type":"sweeper"}],
+  "sectors": [{"id":1,"at":0},{"id":2,"at":0.34},{"id":3,"at":0.68}],
+  "distanceMarkers": [{"at":0.19,"label":"3"},{"at":0.23,"label":"2"},{"at":0.27,"label":"1"}],
+  "racingLine": [{"at":0,"lateral":-1.2},{"at":0.2,"lateral":2.4},{"at":0.45,"lateral":1.7},{"at":0.67,"lateral":-2.6},{"at":0.88,"lateral":-1.2}]
+}
