@@ -150,10 +150,31 @@ export default async function handler(req, res) {
       ...(shippingCents > 0 && { shipping_address_collection: { allowed_countries: ['US'] } }),
       billing_address_collection: 'required',
       allow_promotion_codes: true,
+      // Save the card so open invoices can be charged without re-asking for it.
+      // Checkout shows the card-on-file consent language automatically.
+      payment_intent_data: { setup_future_usage: 'off_session' },
     }
 
-    // Pre-fill customer email if we have it
-    if (customerEmail) sessionConfig.customer_email = customerEmail
+    // Reuse an existing Stripe customer for this email so the saved card and
+    // invoice history land on one record; otherwise let Checkout create one.
+    let existingCustomerId = null
+    if (customerEmail) {
+      try {
+        const found = await stripe.customers.search({
+          query: `email:"${customerEmail.replace(/"/g, '')}"`,
+          limit: 1,
+        })
+        existingCustomerId = found.data[0]?.id || null
+      } catch (e) {
+        console.error('quote checkout: customer lookup failed', e.message)
+      }
+    }
+    if (existingCustomerId) {
+      sessionConfig.customer = existingCustomerId
+    } else {
+      sessionConfig.customer_creation = 'always'
+      if (customerEmail) sessionConfig.customer_email = customerEmail
+    }
 
     sessionConfig.success_url = `${APP_URL}/quote/${token}?accepted=1`
     sessionConfig.cancel_url = `${APP_URL}/quote/${token}`
@@ -161,7 +182,7 @@ export default async function handler(req, res) {
     // Idempotency key: same JTI + email always returns the same session
     const crypto = require('crypto')
     const idempotencyKey = crypto.createHash('sha256')
-      .update(`quote-checkout:${quote.jti}:${customerEmail || ''}`)
+      .update(`quote-checkout-v2:${quote.jti}:${customerEmail || ''}`)
       .digest('hex')
 
     const session = await stripe.checkout.sessions.create(sessionConfig, { idempotencyKey })
