@@ -6,7 +6,7 @@
 const SLUG = 'redline-gt';
 // Bump on every deploy that changes a cached file. Frame-budget restoration
 // keeps the polished look while moving cars/backgrounds onto cheap paths.
-const VERSION = '12';
+const VERSION = '14';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/redline-gt/',
@@ -15,23 +15,16 @@ const ASSETS = [
   '/play/redline-gt/track.js',
   '/play/redline-gt/sw.js',
   '/play/redline-gt/cars.js',
-  '/play/redline-gt/fx.js',
   '/play/redline-gt/audio.js',
   '/play/redline-gt/hud.js',
+  '/play/redline-gt/tracks/copper-halo.json',
+  '/play/redline-gt/tracks/moonlit-weave.json',
+  '/play/redline-gt/tracks/ember-switchback.json',
+  '/play/redline-gt/tracks/glassbreak-ridge.json',
+  '/play/redline-gt/tracks/stormneedle-run.json',
+  '/play/redline-gt/tracks/obsidian-crown.json',
   '/play/redline-gt/manifest.json',
   '/play/redline-gt/icon.png',
-  '/play/redline-gt/assets/cars/SportsCar.obj',
-  '/play/redline-gt/assets/cars/SportsCar.mtl',
-  '/play/redline-gt/assets/cars/SportsCar2.obj',
-  '/play/redline-gt/assets/cars/SportsCar2.mtl',
-  '/play/redline-gt/assets/cars/NormalCar1.obj',
-  '/play/redline-gt/assets/cars/NormalCar1.mtl',
-  '/play/redline-gt/assets/cars/NormalCar2.obj',
-  '/play/redline-gt/assets/cars/NormalCar2.mtl',
-  '/play/redline-gt/assets/cars/SUV.obj',
-  '/play/redline-gt/assets/cars/SUV.mtl',
-  '/play/redline-gt/assets/cars/Taxi.obj',
-  '/play/redline-gt/assets/cars/Taxi.mtl',
   '/play/redline-gt/assets/sfx/collide.mp3',
   '/play/redline-gt/assets/sfx/scrape.mp3',
   '/play/redline-gt/assets/sfx/skid.mp3',

@@ -1,0 +1,446 @@
+{
+  "version": 1,
+  "id": "ember-switchback",
+  "name": "Ember Switchback",
+  "width": 14.8,
+  "sampleCount": 256,
+  "description": "Short straights. Long commitment.",
+  "theme": "coastal",
+  "timeOfDay": "dusk",
+  "sourceSeed": 53,
+  "sourceDifficulty": 3,
+  "controlPoints": [
+    {
+      "x": -0.3,
+      "z": 8.657,
+      "elevation": -0.003,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -7.41,
+      "z": 77.65,
+      "elevation": -0.122,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -22.57,
+      "z": 145.547,
+      "elevation": -1.265,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -49.441,
+      "z": 219.307,
+      "elevation": -0.343,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -89.974,
+      "z": 276.638,
+      "elevation": 0.341,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -156.678,
+      "z": 320.775,
+      "elevation": 0.452,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -225.264,
+      "z": 343.857,
+      "elevation": -0.447,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -288.592,
+      "z": 377.378,
+      "elevation": -0.223,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": -350.197,
+      "z": 428.599,
+      "elevation": 0.895,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -415.452,
+      "z": 458.032,
+      "elevation": 0.877,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": -497.034,
+      "z": 453.723,
+      "elevation": 0.726,
+      "banking": -2.693,
+      "curb": true
+    },
+    {
+      "x": -564.845,
+      "z": 423.391,
+      "elevation": 0.745,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -640.148,
+      "z": 386.821,
+      "elevation": 0.537,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -709.145,
+      "z": 359.385,
+      "elevation": -1.364,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -779.088,
+      "z": 334.651,
+      "elevation": -0.534,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -855.257,
+      "z": 300.219,
+      "elevation": 1.344,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -917.141,
+      "z": 258.633,
+      "elevation": 2.343,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -977.296,
+      "z": 199.76,
+      "elevation": 0.825,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -1023.708,
+      "z": 140.882,
+      "elevation": -0.044,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -1064.461,
+      "z": 77.872,
+      "elevation": -0.919,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -1112.588,
+      "z": 8.563,
+      "elevation": 0.041,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -1161.595,
+      "z": -48.155,
+      "elevation": -0.199,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -1201.083,
+      "z": -121.912,
+      "elevation": -0.784,
+      "banking": 2.693,
+      "curb": true
+    },
+    {
+      "x": -1198.891,
+      "z": -195.632,
+      "elevation": -0.894,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": -1168.1,
+      "z": -272.942,
+      "elevation": 1.597,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -1148.486,
+      "z": -344.422,
+      "elevation": 0.814,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -1132.944,
+      "z": -417.095,
+      "elevation": 0.289,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -1099.022,
+      "z": -492.674,
+      "elevation": 0.34,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -1051.449,
+      "z": -547.853,
+      "elevation": 0.021,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -982.652,
+      "z": -590.493,
+      "elevation": -0.204,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -915.645,
+      "z": -615.59,
+      "elevation": -0.211,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -847.263,
+      "z": -636.097,
+      "elevation": 1.697,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -769.962,
+      "z": -657.656,
+      "elevation": 2.318,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -700.823,
+      "z": -674.819,
+      "elevation": 0.839,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -621.871,
+      "z": -686.303,
+      "elevation": -0.037,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -551.351,
+      "z": -687.462,
+      "elevation": 1.207,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -475.711,
+      "z": -667.53,
+      "elevation": 0.802,
+      "banking": 2.693,
+      "curb": false
+    },
+    {
+      "x": -420.437,
+      "z": -626.47,
+      "elevation": 0.096,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -373.973,
+      "z": -575.441,
+      "elevation": -0.684,
+      "banking": -2.693,
+      "curb": true
+    },
+    {
+      "x": -309.707,
+      "z": -532.021,
+      "elevation": -1.206,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": -245.049,
+      "z": -506.186,
+      "elevation": -0.189,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -186.066,
+      "z": -456.608,
+      "elevation": 1.439,
+      "banking": -2.693,
+      "curb": true
+    },
+    {
+      "x": -152.927,
+      "z": -396.247,
+      "elevation": 0.481,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -122.493,
+      "z": -334.404,
+      "elevation": 0.192,
+      "banking": -2.693,
+      "curb": false
+    },
+    {
+      "x": -84.017,
+      "z": -267.09,
+      "elevation": -0.306,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -50.032,
+      "z": -207.131,
+      "elevation": -0.568,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -19.027,
+      "z": -136.122,
+      "elevation": 0.26,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -3.263,
+      "z": -69.042,
+      "elevation": 1.035,
+      "banking": 0,
+      "curb": false
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.333333
+    },
+    {
+      "id": 3,
+      "at": 0.666667
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.12,
+      "label": "3"
+    },
+    {
+      "at": 0.24,
+      "label": "2"
+    },
+    {
+      "at": 0.36,
+      "label": "1"
+    },
+    {
+      "at": 0.62,
+      "label": "3"
+    },
+    {
+      "at": 0.74,
+      "label": "2"
+    },
+    {
+      "at": 0.86,
+      "label": "1"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.055,
+      "lateral": -1
+    },
+    {
+      "at": 0.13,
+      "lateral": 1.15
+    },
+    {
+      "at": 0.19,
+      "lateral": -0.75
+    },
+    {
+      "at": 0.245,
+      "lateral": 0
+    },
+    {
+      "at": 0.5,
+      "lateral": 0.6
+    },
+    {
+      "at": 0.75,
+      "lateral": -0.6
+    }
+  ],
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.055,
+      "name": "Loaded sweeper",
+      "type": "sweeper"
+    },
+    {
+      "number": 2,
+      "at": 0.13,
+      "name": "Hairpin",
+      "type": "hairpin"
+    },
+    {
+      "number": 3,
+      "at": 0.19,
+      "name": "S transition",
+      "type": "chicane"
+    },
+    {
+      "number": 4,
+      "at": 0.245,
+      "name": "Crest",
+      "type": "crest"
+    }
+  ]
+}

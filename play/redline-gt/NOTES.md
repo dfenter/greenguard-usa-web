@@ -9,6 +9,34 @@ Best laps and best total times persist in localStorage on this device.
 
 ## Dev notes
 
+### GGRacer retrofit - pilot
+
+Redline GT now rides the approved shared GGRacer presentation layer. The title
+still owns the simulation, controls, modes, scoring, save validation, ghost
+recording, and GGKit audio flow. `game.js` is the title adapter and HUD plus
+the preserved simulation loop. `track.js` is simulation-only seeded layout and
+arc-length sampling. `cars.js` is simulation-only roster and handling data.
+The deleted `fx.js` and the old Three track and vehicle render paths are no
+longer part of the title.
+
+The six files under `tracks/` were generated from the existing `TRACKS` seed,
+difficulty, `buildLayout()`, and `buildCenterline()` data. Each uses 48 sampled
+control points with the existing elevation and banking channels converted to
+GGRacer units, so the title's checkpoint and lap timing still use the original
+arc-length centerline. Reverse events reverse the authored JSON in the title
+adapter while retaining their existing reverse simulation.
+
+Theme progression is deliberate: Copper Halo uses desert, Moonlit Weave uses
+night-city, Ember Switchback uses coastal, Glassbreak Ridge uses alpine,
+Stormneedle Run uses coastal night, and Obsidian Crown uses night-city night.
+Quality tier 2 therefore receives a populated GGRacer parallax environment on
+every circuit, and the night circuits use the engine's headlight treatment.
+
+The adapter gap is that GGRacer has no first-class ghost actor or ghost-style
+option. The title uses the fourth engine rival slot, feeds it the saved
+arc-length ghost sample, and lowers its material opacity with depth writing
+disabled. No shared engine file was changed.
+
 ### Prototype behaviours preserved
 
 The pseudo-3D prototype in worker-archive/play-prototypes/redline-gt/ is the
@@ -581,5 +609,10 @@ events.
   updateCarLights received the rival state (no lightState) and threw
   every frame. Added lightState: rr.lightState to the rival push
   (same class as the feature-round shield omission). sw v12.
-  Re-verified: zero console errors, content gates green, steering
-  proof PASS, median 16.7ms at 4x throttle once box load allows.
+Re-verified: zero console errors, content gates green, steering
+proof PASS, median 16.7ms at 4x throttle once box load allows.
+
+## GT graphics uplift
+
+- Visuals: authored multi-part lower shells and tapered greenhouses now sit over the source cars, with Phong specular paint, per-car livery blades, wheel arches, mirrors, bumpers, emissive head/taillight geometry, four independent spinning/steering rimmed wheels, and the existing pooled contact shadows. Road and terrain now use cached code-generated canvas grain with wheel-path wear; merged distance-marker boards, curbs, gantry, fog, sun/hemisphere fill, horizon layers, pooled clouds, and merged trackside dressing complete the PS2-era chase read. The chase camera is lower; speed FOV and corner roll remain, with roll reduced-motion gated. No HUD or gameplay logic changed.
+- Performance tradeoffs: no external visual assets were added and no per-frame allocations were introduced. Road/terrain textures are 96px cached canvases; dressing remains merged/chunked or instanced; imported base car meshes stay Lambert while Phong is limited to the authored shell pieces. Payload is 1,960,362 bytes and the largest file is 385,612 bytes. A live browser/throttle capture was unavailable in this workspace, so the <=17.5ms 4x median is not claimed as measured here.

@@ -20,11 +20,14 @@ anyway.
 | Icon / UI art | 1 | Original studio work |
 | **Total shipped asset files** | **27** | |
 
-Code files (`index.html`, `game.js`, `track.js`, `cars.js`, `fx.js`,
-`audio.js`, `hud.js`, `sw.js`, `manifest.json`) are original GreenGuard Studio
+Code files (`index.html`, `game.js`, `track.js`, `cars.js`, `audio.js`, `hud.js`,
+`sw.js`, `manifest.json`, and `tracks/*.json`) are original GreenGuard Studio
 work. The engine is vendored in `/play/_shared/` and is covered by
 `/play/_shared/LICENSES.md` (three.js r160.1, MIT; OBJLoader from the same
-release; GGKit original work).
+release; GGKit original work). GGRacer's procedural car kit means this title
+no longer loads the Quaternius OBJ files at runtime. The retained files under
+`assets/cars/` remain listed below for provenance, but they are not precached
+or referenced by the retrofit.
 
 ## Vehicle models
 
@@ -107,13 +110,13 @@ bed) so it can track RPM continuously. Original work.
 |---|---|
 | icon.png | Original GreenGuard Studio artwork (tachometer glyph, 192x192, drawn for this title) |
 
-The floating supply cells, shield bubble, slick patch, bolt geometry, item
-glyphs and pickup effects introduced in feature round 1 are procedural meshes,
-materials and canvas drawings authored in `game.js`. The polish-round route
-branches, boost pads, secret caches, cloud layers, crowd points, light shafts
-and horizon layers are likewise procedural and authored in `game.js` or
-`track.js`. They add no shipped asset files and carry no third-party visual or
-audio provenance.
+The floating supply-cell HUD glyph, shield feedback, slick patch, bolt
+feedback, and pickup effects are procedural canvas or state feedback authored
+in `game.js`. The route branches, boost pads, and secret caches remain title
+simulation records. The road, cars, environment, horizon dressing, lights,
+and speed FX are now procedural GGRacer output from `/play/_shared/racer/`.
+They add no shipped asset files and carry no third-party visual or audio
+provenance.
 
 All HUD art (gauges, chips, pedals, wordmark, medals, ceremony) is drawn
 procedurally in `hud.js` and `game.js` at runtime. No third-party image, font

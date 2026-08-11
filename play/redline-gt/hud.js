@@ -331,6 +331,9 @@ export class Hud {
     this.text(label, x + w / 2, y + h / 2 + 0.5,
       o.size || Math.max(12, Math.min(16, w * 0.14)), fg, 'center', UI.weight.medium, 0.6);
     c.restore();
+    // restore() reverts ctx.font to its save()-time value; drop the cache so
+    // the next text() call re-applies its font instead of trusting a stale hit.
+    this._font = '';
     if (!disabled) this.zone(id, x, y, w, h, o.data);
     return { x, y, w, h };
   }

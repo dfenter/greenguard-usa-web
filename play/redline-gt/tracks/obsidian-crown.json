@@ -1,0 +1,446 @@
+{
+  "version": 1,
+  "id": "obsidian-crown",
+  "name": "Obsidian Crown",
+  "width": 14.8,
+  "sampleCount": 256,
+  "description": "The crown circuit. No wasted motion.",
+  "theme": "night-city",
+  "timeOfDay": "night",
+  "sourceSeed": 149,
+  "sourceDifficulty": 6,
+  "controlPoints": [
+    {
+      "x": -2.12,
+      "z": 9.18,
+      "elevation": -0.002,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -17.899,
+      "z": 100.713,
+      "elevation": 0.074,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -23.759,
+      "z": 190.98,
+      "elevation": 0.685,
+      "banking": -3.38,
+      "curb": false
+    },
+    {
+      "x": -6.777,
+      "z": 273.094,
+      "elevation": 0.524,
+      "banking": -3.38,
+      "curb": true
+    },
+    {
+      "x": 42.311,
+      "z": 328.377,
+      "elevation": 0.73,
+      "banking": -3.38,
+      "curb": true
+    },
+    {
+      "x": 106.69,
+      "z": 354.617,
+      "elevation": -0.492,
+      "banking": 3.38,
+      "curb": true
+    },
+    {
+      "x": 161.695,
+      "z": 413.58,
+      "elevation": 1.385,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 208.012,
+      "z": 472.767,
+      "elevation": 1.239,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": 273.705,
+      "z": 486.888,
+      "elevation": 0.919,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 341.031,
+      "z": 479.05,
+      "elevation": 1.063,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 408.741,
+      "z": 483.157,
+      "elevation": 0.745,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 474.351,
+      "z": 504.289,
+      "elevation": -1.376,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 544.612,
+      "z": 535.365,
+      "elevation": 1.06,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 611.356,
+      "z": 549.936,
+      "elevation": 3.502,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 678.89,
+      "z": 545.241,
+      "elevation": 1.312,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 744.94,
+      "z": 529.33,
+      "elevation": 1.242,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 811.347,
+      "z": 515.784,
+      "elevation": 1.45,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 878.696,
+      "z": 523.885,
+      "elevation": 1.002,
+      "banking": 3.38,
+      "curb": true
+    },
+    {
+      "x": 948.118,
+      "z": 557.204,
+      "elevation": -0.019,
+      "banking": -3.38,
+      "curb": false
+    },
+    {
+      "x": 1013.976,
+      "z": 553.188,
+      "elevation": -0.669,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": 1068.802,
+      "z": 508.466,
+      "elevation": 2.237,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": 1132.797,
+      "z": 486.74,
+      "elevation": 1.905,
+      "banking": -3.38,
+      "curb": true
+    },
+    {
+      "x": 1199.81,
+      "z": 499.356,
+      "elevation": 1.756,
+      "banking": -3.38,
+      "curb": false
+    },
+    {
+      "x": 1267.292,
+      "z": 501.275,
+      "elevation": 1.006,
+      "banking": -3.38,
+      "curb": false
+    },
+    {
+      "x": 1334.018,
+      "z": 466.456,
+      "elevation": -0.155,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 1381.234,
+      "z": 411.074,
+      "elevation": 0.222,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 1424.863,
+      "z": 351.445,
+      "elevation": 3.265,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 1469.201,
+      "z": 292.587,
+      "elevation": 1.882,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 1509.383,
+      "z": 229.505,
+      "elevation": 0.979,
+      "banking": -3.38,
+      "curb": false
+    },
+    {
+      "x": 1539.204,
+      "z": 158.152,
+      "elevation": -0.224,
+      "banking": -3.38,
+      "curb": false
+    },
+    {
+      "x": 1534.254,
+      "z": 64.229,
+      "elevation": 0.915,
+      "banking": -3.38,
+      "curb": true
+    },
+    {
+      "x": 1485.173,
+      "z": -19.138,
+      "elevation": 0.572,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 1437.908,
+      "z": -103.329,
+      "elevation": 0.424,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 1382.315,
+      "z": -184.102,
+      "elevation": 1.648,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": 1286.27,
+      "z": -230.946,
+      "elevation": 0.081,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 1177.297,
+      "z": -252.779,
+      "elevation": 0.781,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 1061.128,
+      "z": -287.433,
+      "elevation": 0.638,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 960.268,
+      "z": -329.248,
+      "elevation": 0.706,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 856.711,
+      "z": -365.666,
+      "elevation": 2.373,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 747.444,
+      "z": -385.507,
+      "elevation": 5.022,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 635.478,
+      "z": -383.926,
+      "elevation": 3.175,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 524.495,
+      "z": -368.092,
+      "elevation": 1.361,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 403.617,
+      "z": -344.266,
+      "elevation": 1.099,
+      "banking": 3.38,
+      "curb": false
+    },
+    {
+      "x": 291.774,
+      "z": -339.879,
+      "elevation": 3.093,
+      "banking": 3.38,
+      "curb": true
+    },
+    {
+      "x": 180.639,
+      "z": -332.788,
+      "elevation": 0.611,
+      "banking": -3.38,
+      "curb": true
+    },
+    {
+      "x": 93.367,
+      "z": -272.312,
+      "elevation": -0.176,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": 62.807,
+      "z": -182.028,
+      "elevation": 0.51,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": 33.459,
+      "z": -90.867,
+      "elevation": 1.279,
+      "banking": -3.38,
+      "curb": false
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.333333
+    },
+    {
+      "id": 3,
+      "at": 0.666667
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.12,
+      "label": "3"
+    },
+    {
+      "at": 0.24,
+      "label": "2"
+    },
+    {
+      "at": 0.36,
+      "label": "1"
+    },
+    {
+      "at": 0.62,
+      "label": "3"
+    },
+    {
+      "at": 0.74,
+      "label": "2"
+    },
+    {
+      "at": 0.86,
+      "label": "1"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.055,
+      "lateral": -1
+    },
+    {
+      "at": 0.13,
+      "lateral": 1.15
+    },
+    {
+      "at": 0.19,
+      "lateral": -0.75
+    },
+    {
+      "at": 0.245,
+      "lateral": 0
+    },
+    {
+      "at": 0.5,
+      "lateral": 0.6
+    },
+    {
+      "at": 0.75,
+      "lateral": -0.6
+    }
+  ],
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.055,
+      "name": "Loaded sweeper",
+      "type": "sweeper"
+    },
+    {
+      "number": 2,
+      "at": 0.13,
+      "name": "Hairpin",
+      "type": "hairpin"
+    },
+    {
+      "number": 3,
+      "at": 0.19,
+      "name": "S transition",
+      "type": "chicane"
+    },
+    {
+      "number": 4,
+      "at": 0.245,
+      "name": "Crest",
+      "type": "crest"
+    }
+  ]
+}

@@ -1,0 +1,446 @@
+{
+  "version": 1,
+  "id": "copper-halo",
+  "name": "Copper Halo",
+  "width": 14.8,
+  "sampleCount": 256,
+  "description": "A forgiving loop under a warm sky.",
+  "theme": "desert",
+  "timeOfDay": "dusk",
+  "sourceSeed": 17,
+  "sourceDifficulty": 1,
+  "controlPoints": [
+    {
+      "x": -0.072,
+      "z": 9.341,
+      "elevation": 0.007,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -4.629,
+      "z": 74.497,
+      "elevation": -0.038,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -16.103,
+      "z": 138.705,
+      "elevation": 1.097,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -34.547,
+      "z": 201.135,
+      "elevation": 0.446,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -67.525,
+      "z": 267.324,
+      "elevation": 0.164,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -110.747,
+      "z": 314.742,
+      "elevation": 0.183,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -165.265,
+      "z": 347.27,
+      "elevation": 0.111,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -226.243,
+      "z": 362.521,
+      "elevation": -0.267,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -296.795,
+      "z": 375.971,
+      "elevation": -0.312,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": -356.304,
+      "z": 397.218,
+      "elevation": 0.116,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -416.168,
+      "z": 417.179,
+      "elevation": 0.313,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -478.334,
+      "z": 419.82,
+      "elevation": 0.377,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -545.6,
+      "z": 399.137,
+      "elevation": 0.319,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -601.602,
+      "z": 373.745,
+      "elevation": 0.244,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -657.419,
+      "z": 347.973,
+      "elevation": 0.165,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -713.536,
+      "z": 322.809,
+      "elevation": -1.284,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -775.544,
+      "z": 290.07,
+      "elevation": -0.788,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -825.916,
+      "z": 255.419,
+      "elevation": -0.001,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -869.935,
+      "z": 213.387,
+      "elevation": 0.92,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -905.161,
+      "z": 164.019,
+      "elevation": 1.102,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -934.483,
+      "z": 101.361,
+      "elevation": 0.126,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -951.605,
+      "z": 43.325,
+      "elevation": -0.78,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -963.44,
+      "z": -16.051,
+      "elevation": -1.111,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -975.858,
+      "z": -75.307,
+      "elevation": -0.69,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -993.956,
+      "z": -142.081,
+      "elevation": -0.453,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -1009.112,
+      "z": -200.617,
+      "elevation": -1.029,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -1005.615,
+      "z": -260.757,
+      "elevation": -1.365,
+      "banking": 2.235,
+      "curb": true
+    },
+    {
+      "x": -976.611,
+      "z": -313.982,
+      "elevation": -1.495,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": -922.216,
+      "z": -358.936,
+      "elevation": 0.308,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -873.318,
+      "z": -396.892,
+      "elevation": 0.116,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -829.115,
+      "z": -439.848,
+      "elevation": 0.045,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -785.997,
+      "z": -483.845,
+      "elevation": -0.127,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -728.158,
+      "z": -524.513,
+      "elevation": -0.329,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -669.791,
+      "z": -546.717,
+      "elevation": -0.662,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -607.398,
+      "z": -555.823,
+      "elevation": -1.224,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -543.941,
+      "z": -555.786,
+      "elevation": -0.62,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -471.461,
+      "z": -549.028,
+      "elevation": 0.516,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -408.392,
+      "z": -539.05,
+      "elevation": 0.637,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -346.018,
+      "z": -524.722,
+      "elevation": -0.252,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -285.103,
+      "z": -504.446,
+      "elevation": -0.76,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -219.5,
+      "z": -471.114,
+      "elevation": -0.896,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -171.472,
+      "z": -427.655,
+      "elevation": 0.244,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -137.568,
+      "z": -372.101,
+      "elevation": -0.204,
+      "banking": 2.235,
+      "curb": false
+    },
+    {
+      "x": -119.249,
+      "z": -309.37,
+      "elevation": -0.976,
+      "banking": -2.235,
+      "curb": false
+    },
+    {
+      "x": -99.267,
+      "z": -237.339,
+      "elevation": -1.635,
+      "banking": -2.235,
+      "curb": true
+    },
+    {
+      "x": -71.55,
+      "z": -178.227,
+      "elevation": -1.744,
+      "banking": 0,
+      "curb": true
+    },
+    {
+      "x": -35.428,
+      "z": -123.86,
+      "elevation": -1.269,
+      "banking": 0,
+      "curb": false
+    },
+    {
+      "x": -8.083,
+      "z": -64.684,
+      "elevation": -0.339,
+      "banking": 0,
+      "curb": false
+    }
+  ],
+  "sectors": [
+    {
+      "id": 1,
+      "at": 0
+    },
+    {
+      "id": 2,
+      "at": 0.333333
+    },
+    {
+      "id": 3,
+      "at": 0.666667
+    }
+  ],
+  "distanceMarkers": [
+    {
+      "at": 0.12,
+      "label": "3"
+    },
+    {
+      "at": 0.24,
+      "label": "2"
+    },
+    {
+      "at": 0.36,
+      "label": "1"
+    },
+    {
+      "at": 0.62,
+      "label": "3"
+    },
+    {
+      "at": 0.74,
+      "label": "2"
+    },
+    {
+      "at": 0.86,
+      "label": "1"
+    }
+  ],
+  "racingLine": [
+    {
+      "at": 0,
+      "lateral": 0
+    },
+    {
+      "at": 0.055,
+      "lateral": -1
+    },
+    {
+      "at": 0.13,
+      "lateral": 1.15
+    },
+    {
+      "at": 0.19,
+      "lateral": -0.75
+    },
+    {
+      "at": 0.245,
+      "lateral": 0
+    },
+    {
+      "at": 0.5,
+      "lateral": 0.6
+    },
+    {
+      "at": 0.75,
+      "lateral": -0.6
+    }
+  ],
+  "turns": [
+    {
+      "number": 1,
+      "at": 0.055,
+      "name": "Loaded sweeper",
+      "type": "sweeper"
+    },
+    {
+      "number": 2,
+      "at": 0.13,
+      "name": "Hairpin",
+      "type": "hairpin"
+    },
+    {
+      "number": 3,
+      "at": 0.19,
+      "name": "S transition",
+      "type": "chicane"
+    },
+    {
+      "number": 4,
+      "at": 0.245,
+      "name": "Crest",
+      "type": "crest"
+    }
+  ]
+}

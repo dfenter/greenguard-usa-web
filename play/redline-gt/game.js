@@ -2,23 +2,20 @@
 //
 // The pseudo-3D prototype is the design document: its six seeded circuits,
 // handling constants, gear/RPM model, medal thresholds and ghost-lap feature
-// are carried forward. Rendering is rebuilt as a true 3D chase-cam game.
+// are carried forward. GGRacer is the only 3D renderer used by this title.
 //
 // Structure:
-//   track.js  circuit generation + merged static geometry
-//   cars.js   vehicle roster, OBJ rigging, blob shadow, ghost shell
-//   fx.js     pooled particle systems (dust, streaks, sparks, skid ribbon)
+//   track.js  seeded circuit generation + simulation sampler
+//   cars.js   vehicle roster and handling data
+//   racer     shared GGRacer track, environment, vehicle, and FX rendering
 //   audio.js  synthesised engine + layered music stems
 //   hud.js    2D overlay primitives
-import * as THREE from 'three';
+import { createRacerWorld } from '../_shared/racer/engine.js';
 import {
   TRACKS, SEG_LEN, ROAD_HALF, buildLayout, buildCenterline, sampleCenterline,
-  buildTrackMeshes, buildGround, buildProps, buildObstacles, buildStartLine,
-  buildSky, buildStars, buildLandmarks, buildItemRows, buildRaceFeatures,
-  buildHorizonLayers, buildClouds, buildLightShafts, makeRandom,
+  buildRaceFeatures, buildItemRows, makeRandom,
 } from './track.js';
-import { CARS, buildCar, buildGhost } from './cars.js';
-import { ParticleSystem, StreakSystem, SkidTrail, RainSystem } from './fx.js';
+import { CARS } from './cars.js';
 import { EngineSynth, MusicDirector } from './audio.js';
 import { Hud, UI, EASE, clamp, lerp, formatTime, formatDelta, rgba, hexStr } from './hud.js';
 
@@ -26,9 +23,9 @@ import { Hud, UI, EASE, clamp, lerp, formatTime, formatDelta, rgba, hexStr } fro
 const LAPS = 3;
 const FIELD_SIZE = 4;
 // Input is screen-facing: dragging left and pressing LEFT both produce +1.
-// The track normal (track.js: nx=dz, nz=-dx) is the LEFT-hand normal
-// (up x tangent), so positive sim.lateral already displaces the car to its
-// left. A +1 (left) input must therefore stay positive all the way through.
+// The track normal (track.js: nx=dz, nz=-dx) is the prototype's lateral
+// normal. A +1 (left) input must stay positive in the simulation; the visual
+// heading response below independently maps screen-left to a negative yaw.
 const LEFT_INPUT = 1;
 // v4: the ghost record gained an arc-length channel, so a v3 ghost cannot be
 // replayed by the new playback path and the save version steps past it.
@@ -66,8 +63,6 @@ function vrand() {
   _cosSeed = (_cosSeed * 1664525 + 1013904223) >>> 0;
   return _cosSeed / 4294967296;
 }
-function vrandSeed(n) { _cosSeed = ((n >>> 0) || 1) >>> 0; }
-function vsign() { return vrand() > 0.5 ? 1 : -1; }
 
 // Championship ladder. Six circuits forward plus four reverse variants gives
 // the content gate its >=10 medal events; reverse runs invert the layout and
@@ -110,32 +105,11 @@ const hud = new Hud(hudCanvas);
   document.head.appendChild(s);
 })();
 
-const renderer = new THREE.WebGLRenderer({
-  canvas: sceneCanvas, antialias: false, alpha: false, powerPreference: 'high-performance',
-  stencil: false, depth: true,
-});
-renderer.setClearColor(0x0a0f1c, 1);
-renderer.shadowMap.enabled = false;               // blob shadows only (feel gate)
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-// No filmic tone mapping: ACES desaturates the authored flat-shaded palette
-// into mud at these light levels. The look is stylized, not photoreal, so the
-// vertex colours ship to screen essentially as written.
-renderer.toneMapping = THREE.NoToneMapping;
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(62, 16 / 9, 0.6, 2600);
-scene.add(camera);
-
-// Keep the lit scene to one directional plus one ambient source. Lambert cars
-// get their shape from the directional's vertex lighting; the ambient source
-// fills the shadow side without turning every fragment into a Phong light list.
-const sun = new THREE.DirectionalLight(0xffffff, 1.1);
-const ambient = new THREE.AmbientLight(0xffffff, 0.7);
-scene.add(sun, ambient);
-
-// Persistent world containers, rebuilt per event.
-const worldGroup = new THREE.Group();
-scene.add(worldGroup);
+// GGRacer owns the WebGL renderer, scene, track geometry, environment, cars,
+// chase camera, and speed FX. The title only sends it a frame packet.
+let racer = null;
+let racerTrackJSON = null;
+let playerSpec = CARS[0];
 
 // --------------------------------------------------------------- save data
 // Any persisted time above this is not a real lap or race, it is a corrupted
@@ -263,9 +237,7 @@ function sfx(name, opts) { kit.audio.sfx(name, opts); }
 // 'title' | 'garage' | 'select' | 'countdown' | 'race' | 'finish'
 let mode = 'title';
 let event = EVENTS[0];
-let track = null;         // built world for the current event
-let carRig = null;        // player vehicle rig
-let ghostRig = null;      // ghost shell
+let track = null;         // simulation track for the current event
 let loading = false;
 
 const sim = {
@@ -339,9 +311,6 @@ function rollItem(position) {
 
 // Cosmetic springs (render-side only; never feed back into sim).
 const view = {
-  camPos: new THREE.Vector3(),
-  camLook: new THREE.Vector3(),
-  camVel: new THREE.Vector3(),
   fov: 62,
   dip: 0, dipVel: 0,
   lean: 0, leanVel: 0,
@@ -430,370 +399,120 @@ function resize() {
   const rect = sceneCanvas.getBoundingClientRect();
   W = Math.max(320, rect.width);
   H = Math.max(220, rect.height);
-  // Buffer budget. Both canvases are full-screen and both are composited every
-  // frame, so their pixel count is the largest single term in the frame time
-  // on a throttled phone. A 1280 px wide backing store is still supersampled
-  // against an 844 CSS px landscape viewport and reads sharp on a 3x screen,
-  // and it cuts the fill and upload cost by about a third against 1600.
-  // Fix round 1: the 1280 px cap was still the largest single term in the
-  // throttled frame budget, because BOTH canvases are full-screen and both
-  // composite every frame. The 3D view drops to 1120 px and the HUD, which is
-  // flat vector art with no fine detail to lose, to 1000 px. Together that is
-  // about a third off the per-frame fill and upload cost, which is what buys
-  // the spike headroom the feel gate asks for.
-  const cap = Math.min(1.6, window.devicePixelRatio || 1);
-  dpr = Math.min(cap, 1120 / Math.max(W, 1));
-  const hudDpr = Math.min(cap, 1000 / Math.max(W, 1));
-  renderer.setPixelRatio(dpr);
-  renderer.setSize(W, H, false);
-  camera.aspect = W / H;
-  camera.updateProjectionMatrix();
+  const hudDpr = Math.min(Math.min(1.6, window.devicePixelRatio || 1), 1000 / Math.max(W, 1));
   hud.resize(W, H, hudDpr);
+  if (racer) racer.world.resize();
 }
 window.addEventListener('resize', resize, { passive: true });
 window.addEventListener('orientationchange', resize, { passive: true });
 
-// ------------------------------------------------------------- world build
 function disposeWorld() {
-  worldGroup.traverse((o) => {
-    if (o.isMesh || o.isPoints || o.isLineSegments) {
-      if (o.geometry) o.geometry.dispose();
-      const m = o.material;
-      if (Array.isArray(m)) m.forEach((x) => x.dispose && x.dispose());
-      else if (m && m.dispose) m.dispose();
-    }
-  });
-  worldGroup.clear();
-  if (track && track.fx) {
-    track.fx.dust.dispose();
-    track.fx.sparks.dispose();
-    track.fx.streaks.dispose();
-    track.fx.skid.dispose();
-    track.fx.shards.dispose();
-    if (track.fx.itemBurst) track.fx.itemBurst.dispose();
-    if (track.fx.rain) track.fx.rain.dispose();
-  }
+  if (racer) racer.world.dispose();
+  racer = null;
+  racerTrackJSON = null;
   track = null;
-  carRig = null;
-  ghostRig = null;
 }
 
-// The shield is a procedural, wireframe energy bubble parented to the car. It
-// is a gameplay read, not an imported texture, and remains visible while a
-// one-hit charge is held.
-function addShieldVisual(rig, color) {
-  const shield = new THREE.Group();
-  const shell = new THREE.Mesh(
-    new THREE.SphereGeometry(2.85, 12, 8),
-    new THREE.MeshBasicMaterial({
-      color, transparent: true, opacity: 0.15, wireframe: true,
-      depthWrite: false, fog: true,
-    })
-  );
-  const band = new THREE.Mesh(
-    new THREE.TorusGeometry(2.88, 0.06, 6, 18),
-    new THREE.MeshBasicMaterial({
-      color, transparent: true, opacity: 0.75,
-      depthWrite: false, fog: true,
-    })
-  );
-  band.rotation.x = Math.PI / 2;
-  shield.position.y = 1.05;
-  shield.add(shell, band);
-  shield.visible = false;
-  shield.userData.energy = 0;
-  shield.userData.shell = shell;
-  shield.userData.band = band;
-  rig.root.add(shield);
-  rig.shield = shield;
-}
-
-function updateShieldVisual(shield, active, dt) {
-  if (!shield) return;
-  const target = active ? 1 : 0;
-  shield.userData.energy += (target - shield.userData.energy) * Math.min(1, dt * 8);
-  const energy = shield.userData.energy;
-  shield.visible = energy > 0.015;
-  shield.scale.setScalar(0.94 + energy * 0.06);
-  shield.userData.shell.material.opacity = 0.15 * energy;
-  shield.userData.band.material.opacity = 0.75 * energy;
-}
-
-// All item presentation is generated from a small fixed pool. A cell is an
-// octahedral prism with a spinning halo, so it reads as a new supply-cell
-// language even on the oldest circuit palette.
-function buildItemWorld(center, cfg) {
-  const group = new THREE.Group();
+function buildItemWorld(center) {
   const rows = buildItemRows(center);
   const cells = [];
-  const cellGeo = new THREE.OctahedronGeometry(0.76, 0);
-  const edgeGeo = new THREE.EdgesGeometry(cellGeo);
-  const cellMat = new THREE.MeshBasicMaterial({
-    color: cfg.accent, transparent: true, opacity: 0.82,
-    depthWrite: false, fog: true,
-  });
-  const edgeMat = new THREE.LineBasicMaterial({
-    color: 0xffe3a5, transparent: true, opacity: 0.9,
-    depthWrite: false, fog: true,
-  });
-  const haloGeo = new THREE.TorusGeometry(1.04, 0.055, 6, 16);
-  const haloMat = new THREE.MeshBasicMaterial({
-    color: cfg.accent, transparent: true, opacity: 0.68,
-    depthWrite: false, fog: true,
-  });
-  const sample = {};
-  for (let r = 0; r < rows.length; r++) {
-    const row = rows[r];
-    for (let laneIndex = 0; laneIndex < 3; laneIndex++) {
-      const lane = row.lanes[laneIndex];
-      const p = sampleCenterline(center, row.dist, sample);
-      const root = new THREE.Group();
-      root.position.set(
-        p.x + p.nx * lane * ROAD_HALF,
-        p.y + p.bank * lane * ROAD_HALF + 1.55,
-        p.z + p.nz * lane * ROAD_HALF
-      );
-      root.rotation.y = p.heading;
-      const core = new THREE.Mesh(cellGeo, cellMat);
-      core.rotation.y = Math.PI * 0.25;
-      const edges = new THREE.LineSegments(edgeGeo, edgeMat);
-      edges.rotation.y = Math.PI * 0.25;
-      const halo = new THREE.Mesh(haloGeo, haloMat);
-      halo.rotation.x = Math.PI / 2;
-      root.add(core, edges, halo);
-      group.add(root);
-      cells.push({
-        dist: row.dist, lane, root, core, halo,
-        baseY: root.position.y, available: true, respawn: 0, visibility: 1,
-        pulse: (r + laneIndex) * 0.7,
-      });
+  for (let i = 0; i < rows.length; i += 1) {
+    for (let laneIndex = 0; laneIndex < 3; laneIndex += 1) {
+      cells.push({ dist: rows[i].dist, lane: rows[i].lanes[laneIndex], available: true,
+        respawn: 0, visibility: 1, pulse: 0 });
     }
   }
-
   const patches = [];
-  const patchGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.07, 8);
-  const patchMat = new THREE.MeshBasicMaterial({
-    color: 0xec71b5, transparent: true, opacity: 0.82,
-    depthWrite: false, fog: true,
-  });
-  const patchRingGeo = new THREE.RingGeometry(0.68, 1.4, 8);
-  const patchRingMat = new THREE.MeshBasicMaterial({
-    color: 0xffa1cf, transparent: true, opacity: 0.78,
-    depthWrite: false, fog: true, side: THREE.DoubleSide,
-  });
-  for (let i = 0; i < 10; i++) {
-    const root = new THREE.Group();
-    const disc = new THREE.Mesh(patchGeo, patchMat);
-    const ring = new THREE.Mesh(patchRingGeo, patchRingMat);
-    ring.rotation.x = -Math.PI / 2;
-    root.add(disc, ring);
-    root.visible = false;
-    group.add(root);
-    patches.push({ root, ring, active: false, expiring: false, visualScale: 0, life: 0, s: 0, lane: 0, owner: -2, ownerSafe: 0 });
-  }
-
-  const boltGeo = new THREE.OctahedronGeometry(0.3, 0);
-  const homingMat = new THREE.MeshBasicMaterial({
-    color: 0xff785f, transparent: true, opacity: 0.96,
-    depthWrite: false, fog: true,
-  });
-  const twinMat = new THREE.MeshBasicMaterial({
-    color: 0xffc45f, transparent: true, opacity: 0.96,
-    depthWrite: false, fog: true,
-  });
+  for (let i = 0; i < 10; i += 1) patches.push({ active: false, expiring: false,
+    visualScale: 0, life: 0, s: 0, lane: 0, owner: -2, ownerSafe: 0 });
   const projectiles = [];
-  for (let i = 0; i < 8; i++) {
-    const root = new THREE.Mesh(boltGeo, i % 2 ? twinMat : homingMat);
-    root.visible = false;
-    group.add(root);
-    projectiles.push({
-      root, active: false, visualActive: false, homing: false, distance: 0, lane: 0,
-      speed: 0, life: 0, visualScale: 0, owner: -2, target: -2, telegraphed: false,
-    });
-  }
-  group.renderOrder = 4;
-  return { group, cells, patches, projectiles, nextPatch: 0, nextProjectile: 0 };
+  for (let i = 0; i < 8; i += 1) projectiles.push({ active: false, visualActive: false,
+    homing: false, distance: 0, lane: 0, speed: 0, life: 0, visualScale: 0,
+    owner: -2, target: -2, telegraphed: false });
+  return { cells, patches, projectiles, nextPatch: 0, nextProjectile: 0 };
+}
+
+function reverseTrackJSON(data) {
+  const points = data.controlPoints.slice().reverse().map((point) => ({
+    x: point.x, z: point.z, elevation: point.elevation, banking: -(point.banking || 0), curb: point.curb,
+  }));
+  const reverseAt = (value) => {
+    const at = (1 - Number(value || 0)) % 1;
+    return at < 0 ? at + 1 : at;
+  };
+  const remapMarkers = (items) => (items || []).map((item) =>
+    Object.assign({}, item, { at: reverseAt(item.at) })
+  ).sort((a, b) => a.at - b.at);
+  const sectors = remapMarkers(data.sectors);
+  const distanceMarkers = remapMarkers(data.distanceMarkers);
+  const racingLine = remapMarkers(data.racingLine);
+  const turns = remapMarkers(data.turns);
+  return Object.assign({}, data, { id: data.id + '-reverse', name: data.name + ' Reverse',
+    controlPoints: points, sectors, distanceMarkers, racingLine, turns });
+}
+
+function racerSlug(cfg) {
+  return cfg.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function tintGhostActor(actor) {
+  if (!actor || !actor.root) return;
+  actor.root.traverse((object) => {
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    for (const material of materials) {
+      if (!material) continue;
+      material.transparent = true;
+      material.opacity = Math.min(Number(material.opacity) || 1, 0.28);
+      material.depthWrite = false;
+    }
+  });
 }
 
 async function buildWorld(ev) {
   const cfg = TRACKS[ev.trackIndex];
   const layout = buildLayout(cfg);
   let center = buildCenterline(layout);
-
-  // Reverse variant: walk the same centreline backwards. Geometry is identical
-  // asphalt, the racing line is not.
   if (ev.reverse) center = reverseCenterline(center);
-
-  // Reverse variants get their own dressing seed, so the roadside composition
-  // is genuinely re-laid rather than the forward grove list read backwards.
-  const rng = makeRandom(cfg.seed + (ev.reverse ? 977 : 0));
-  vrandSeed(cfg.seed * 31 + (ev.reverse ? 7717 : 13));
-
-  const sky = buildSky(cfg);
-  worldGroup.add(sky.mesh);
-  if (cfg.stars) {
-    const st = buildStars(cfg, makeRandom(cfg.seed + 401));
-    worldGroup.add(st.mesh);
-  }
-
-  const landmarks = buildLandmarks(cfg, center, makeRandom(cfg.seed + 613));
-  worldGroup.add(landmarks.mesh);
-  const horizonLayers = buildHorizonLayers(cfg, center, makeRandom(cfg.seed + 719));
-  worldGroup.add(horizonLayers.mesh);
-  const clouds = buildClouds(cfg, center, makeRandom(cfg.seed + 821));
-  worldGroup.add(clouds.group);
-  const shafts = buildLightShafts(cfg, center);
-  worldGroup.add(shafts.group);
-
-  const ground = buildGround(cfg, center, makeRandom(cfg.seed + 55));
-  worldGroup.add(ground.mesh);
-
-  const road = buildTrackMeshes(cfg, center);
-  worldGroup.add(road.group);
-
-  const props = buildProps(cfg, center, rng);
-  worldGroup.add(props.mesh);
-
-  const obstacles = buildObstacles(cfg, center);
-  worldGroup.add(obstacles.mesh);
-
-  const startLine = buildStartLine(cfg, center);
-  worldGroup.add(startLine.mesh);
-
+  const response = await fetch('./tracks/' + racerSlug(cfg) + '.json');
+  if (!response.ok) throw new Error('missing GGRacer track JSON for ' + cfg.name);
+  const authored = await response.json();
+  racerTrackJSON = ev.reverse ? reverseTrackJSON(authored) : authored;
   const features = buildRaceFeatures(cfg, center);
-  worldGroup.add(features.group);
-
-  const itemWorld = buildItemWorld(center, cfg);
-  worldGroup.add(itemWorld.group);
-
-  // Lighting + fog tuned per time of day.
-  sun.color.setHex(cfg.sun.color);
-  sun.intensity = cfg.sun.intensity;
-  sun.position.set(cfg.sun.dir[0], cfg.sun.dir[1], cfg.sun.dir[2]).normalize().multiplyScalar(600);
-  ambient.color.setHex(cfg.hemi.sky);
-  ambient.intensity = cfg.hemi.intensity;
-  scene.fog = new THREE.FogExp2(cfg.fog, cfg.fogDensity);
-  renderer.setClearColor(cfg.fog, 1);
-
-  // Particle systems: dust kickup, collision sparks, directional shard burst,
-  // speed streaks, skid ribbon, and weather where the circuit declares it.
-  const dustColor = new THREE.Color(cfg.groundAlt).lerp(new THREE.Color(0xffffff), 0.35);
-  const dust = new ParticleSystem(170, 1.6, dustColor.getHex(), {
-    gravity: -6, drag: 2.2, opacity: 0.72, fadeColor: cfg.fog,
-  });
-  const sparks = new ParticleSystem(90, 0.75, 0xffd76a, {
-    gravity: -26, drag: 1.1, opacity: 1, additive: true, fadeColor: 0x772200,
-  });
-  // Impact shards are heavier and slower than sparks so the burst has a
-  // readable direction rather than a symmetric puff.
-  const shards = new ParticleSystem(48, 1.15, 0xfff0d0, {
-    gravity: -34, drag: 0.6, opacity: 1, additive: true, fadeColor: 0x552200,
-  });
-  const streaks = new StreakSystem(110, cfg.accent);
-  const skid = new SkidTrail(220);
-  const itemBurst = new ParticleSystem(110, 1.05, cfg.accent, {
-    gravity: -10, drag: 1.4, opacity: 0.9, additive: true, fadeColor: cfg.fog,
-  });
-  worldGroup.add(dust.pts, sparks.pts, shards.pts, streaks.lines, skid.mesh, itemBurst.pts);
-  let rain = null;
-  if (cfg.rain) {
-    rain = new RainSystem(260, cfg.sky.bot);
-    worldGroup.add(rain.lines);
-  }
-  skid.dustColor = dustColor;
-
+  const items = buildItemWorld(center);
   const carSpec = currentCar();
-  const rig = await buildCar(carSpec);
-  addShieldVisual(rig, 0x72e6ef);
-  worldGroup.add(rig.root);
-
-  // Four-car field: the rivals use the same authored track and the same OBJ
-  // rig as the player, but each receives a distinct livery and pace profile.
-  // Three visible cars is the minimum race read; the fourth slot is the player.
-  const rivalSpecs = [CARS[1], CARS[2], CARS[3]];
-  const rivalRigs = await Promise.all(rivalSpecs.map((spec) => buildCar(spec)));
+  playerSpec = carSpec;
   const grid = [10.5, 6.5, 2.8];
   const gridLat = [-0.42, 0.42, -0.12];
-  const rivals = [];
-  for (let i = 0; i < rivalRigs.length; i++) {
-    const rr = rivalRigs[i];
-    addShieldVisual(rr, 0x72e6ef);
-    rr.root.visible = false;
-    worldGroup.add(rr.root);
-    rivals.push({
-      root: rr.root, chassis: rr.chassis, wheelGroups: rr.wheelGroups,
-      shield: rr.shield, spec: rr.spec, distance: grid[i], gridDistance: grid[i],
-      paintMats: rr.paintMats, headMats: rr.headMats, tailMats: rr.tailMats,
-      lightState: rr.lightState, wheelRadius: rr.wheelRadius,
-      lateral: gridLat[i], gridLateral: gridLat[i], speed: 0,
-      wheelSpin: 0, pace: 0.95 + i * 0.018, line: gridLat[i],
-      shielded: false, boostTimer: 0, gripTimer: 0, spinTimer: 0,
-      spinPhase: 0, spinDir: 1, itemIndex: -1, itemUseDelay: 0, itemFlash: 0,
-      desiredLateral: gridLat[i], visualHeading: 0, visualReady: false,
-      visualScale: 1, braking: false, prevSpeed: 0,
-      shortcutIndex: -1, shortcutLap: -1,
-    });
-  }
-
-  // Ghost, only if the saved lap validates.
+  const rivalSpecs = [CARS[1], CARS[2], CARS[3]];
+  const rivals = rivalSpecs.map((spec, i) => ({
+    spec, distance: grid[i], gridDistance: grid[i], lateral: gridLat[i], gridLateral: gridLat[i],
+    speed: 0, pace: 0.95 + i * 0.018, line: gridLat[i], desiredLateral: gridLat[i],
+    shielded: false, boostTimer: 0, gripTimer: 0, spinTimer: 0, spinPhase: 0, spinDir: 1,
+    itemIndex: -1, itemUseDelay: 0, itemFlash: 0, braking: false, prevSpeed: 0,
+    shortcutIndex: -1, shortcutLap: -1,
+  }));
   const rec = eventRecord(ev.id);
-  let ghost = null;
-  const gdata = validateGhost(rec.ghost);
-  if (gdata) {
-    ghost = await buildGhost(carSpec, cfg.accent);
-    worldGroup.add(ghost.root);
-    ghostPlay = gdata;
-  } else {
-    ghostPlay = null;
-  }
-
-  track = {
-    cfg, ev, layout, center, obstacles: obstacles.list, features,
-    fx: { dust, sparks, shards, streaks, skid, rain, itemBurst },
-    sky, ground, road, props, startLine, landmarks, horizonLayers, clouds, shafts, items: itemWorld,
-    rivals,
-    maxSpeed: 650 + cfg.difficulty * 34,     // prototype constant, preserved
-  };
-  carRig = rig;
-  ghostRig = ghost;
+  ghostPlay = validateGhost(rec.ghost);
+  racer = createRacerWorld({
+    canvas: sceneCanvas,
+    trackJSON: racerTrackJSON,
+    theme: racerTrackJSON.theme || 'desert',
+    timeOfDay: racerTrackJSON.timeOfDay || (racerTrackJSON.theme === 'night-city' ? 'night' : 'dusk'),
+    rivalCount: 4,
+    ggkit: kit,
+    paint: carSpec.body,
+    accent: carSpec.accent,
+    seed: cfg.seed + (ev.reverse ? 977 : 0),
+  });
+  tintGhostActor(racer.world.rivals[3]);
+  track = { cfg, ev, layout, center, features, items, rivals,
+    maxSpeed: 650 + cfg.difficulty * 34, ghostActor: racer.world.rivals[3] };
 }
 
-// Compile every shader program and upload every buffer the race will touch
-// while the loading screen is still up. Particle pools start hidden and the
-// ghost shell starts far away, so without this the first drift, the first
-// spark and the first skid quad each paid a program link mid-race: that was
-// the single worst spike in the feel trace.
 function prewarmScene() {
-  if (!track) return;
-  const fx = track.fx;
-  const hidden = [fx.dust.pts, fx.sparks.pts, fx.shards.pts, fx.streaks.lines, fx.skid.mesh, fx.itemBurst.pts];
-  if (fx.rain) hidden.push(fx.rain.lines);
-  // Rival roots are hidden during the loader and menu, but their first visible
-  // frame is still part of the race feel gate. Compile their meshes here too.
-  if (track.rivals) for (const r of track.rivals) hidden.push(r.root);
-  const was = hidden.map((o) => o.visible);
-  hidden.forEach((o) => { o.visible = true; });
-  if (ghostRig) ghostRig.root.visible = true;
-  // The world is emitted as frustum-cullable chunks, so a chunk that has never
-  // been on screen has never had its vertex buffer uploaded: the upload then
-  // lands on the frame the chunk first comes into view, once per chunk, all
-  // through the lap. That was the recurring render spike in the trace.
-  // Culling is switched off for one prewarm frame so every chunk draws once
-  // and every buffer is resident before the countdown starts.
-  const culled = [];
-  worldGroup.traverse((o) => {
-    if ((o.isMesh || o.isPoints || o.isLineSegments) && o.frustumCulled) {
-      culled.push(o);
-      o.frustumCulled = false;
-    }
-  });
-  try {
-    renderer.compile(scene, camera);
-    renderer.render(scene, camera);
-  } catch (e) { /* prewarm is best effort; never block the race on it */ }
-  for (const o of culled) o.frustumCulled = true;
-  hidden.forEach((o, i) => { o.visible = was[i]; });
-  // Resolve the HUD font stack and glyph cache off the same loading frame.
+  if (!racer) return;
+  racer.world.update(racerFrame, 1 / 60);
+  racer.world.render();
   hud.warmFonts([10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 26, 28, 32, 36, 44, 52, 64]);
 }
 
@@ -884,6 +603,14 @@ function resetSim() {
 
   ghostRecord = [];
   ghostAccum = 0;
+  ghostState.visible = false;
+  ghostState.progress = 0;
+  ghostState.speed = 0;
+  ghostState.lateral = 0;
+  ghostState.position.x = 0;
+  ghostState.position.y = 0;
+  ghostState.position.z = 0;
+  ghostState.yaw = 0;
 
   itemState.heldIndex = -1;
   itemState.rouletteTarget = -1;
@@ -898,10 +625,6 @@ function resetSim() {
   input.steerPointerId = null; input.touchThrottle = false; input.touchBrake = false;
 
   resetRivals();
-  if (carRig && carRig.shield) {
-    carRig.shield.userData.energy = 0;
-    carRig.shield.visible = false;
-  }
 
   message = ''; messageTime = 0; messageKind = '';
   finishInfo = null; ceremonyT = 0;
@@ -909,96 +632,44 @@ function resetSim() {
   if (track) {
     for (let i = 0; i < track.features.boostPads.length; i++) {
       const pad = track.features.boostPads[i];
-      pad.lastLap = -1; pad.pulse = 0; pad.root.scale.setScalar(1); pad.glow.scale.setScalar(1);
+      pad.lastLap = -1; pad.pulse = 0;
     }
     for (let i = 0; i < track.features.secrets.length; i++) {
       const secret = track.features.secrets[i];
       secret.lastLap = -1; secret.pulse = 0; secret.revealed = false;
       secret.rewardScale = 0;
-      secret.reward.visible = false; secret.root.scale.setScalar(1);
+      secret.rewardScale = 0;
     }
     track.items.nextPatch = 0;
     track.items.nextProjectile = 0;
-    track.fx.dust.reset();
-    track.fx.sparks.reset();
-    track.fx.itemBurst.reset();
-    track.fx.streaks.reset();
-    track.fx.skid.reset();
     const cells = track.items.cells;
     for (let i = 0; i < cells.length; i++) {
       cells[i].available = true;
       cells[i].respawn = 0;
       cells[i].visibility = 1;
-      cells[i].root.visible = true;
-      cells[i].root.scale.setScalar(1);
     }
     for (let i = 0; i < track.items.patches.length; i++) {
       const p = track.items.patches[i];
-      p.active = false; p.expiring = false; p.visualScale = 0; p.life = 0; p.root.visible = false;
+      p.active = false; p.expiring = false; p.visualScale = 0; p.life = 0;
     }
     for (let i = 0; i < track.items.projectiles.length; i++) {
       track.items.projectiles[i].active = false;
       track.items.projectiles[i].visualActive = false;
       track.items.projectiles[i].life = 0;
       track.items.projectiles[i].visualScale = 0;
-      track.items.projectiles[i].root.visible = false;
     }
   }
 }
 
 // The screen-facing control already matches the world convention: the road
-// normal is the left-hand normal, so +1 (left input) pushes sim.lateral
-// positive, which IS leftward displacement. Identity, applied exactly once;
-// the round-2 negation here inverted play steering (its trace verified the
-// cosmetic nose yaw, not the lateral position that places the car).
+// normal is the prototype-defined lateral normal, so +1 (left input) pushes
+// sim.lateral positive. Identity, applied exactly once; the round-2 negation
+// here inverted play steering (its trace verified the cosmetic nose yaw, not
+// the lateral position that places the car).
 function worldSteer(screenSteer) { return screenSteer; }
 
 function angleDelta(current, target) {
   return Math.atan2(Math.sin(target - current), Math.cos(target - current));
-}
-
-// Lamps and paint highlights are shared by the player and every rival. The
-// sweep is a tiny emissive modulation over Lambert paint, not a texture pass,
-// so the bodies keep a moving highlight without adding a per-frame object.
-function setEmissive(m, hex, intensity) {
-  const u = m.userData;
-  if (u.lastEmissiveHex !== hex) {
-    m.emissive.setHex(hex);
-    u.lastEmissiveHex = hex;
-  }
-  if (u.lastEmissiveIntensity !== intensity) {
-    m.emissiveIntensity = intensity;
-    u.lastEmissiveIntensity = intensity;
-  }
-}
-
-function updateCarLights(rig, braking, headOn, phase) {
-  const tailMats = rig.tailMats || [];
-  const headMats = rig.headMats || [];
-  const paintMats = rig.paintMats || [];
-  const state = rig.lightState;
-  // Lamps only change on a brake/night-state transition. The slow paint sweep
-  // is quantized to 24 Hz, which keeps its read while avoiding four material
-  // uniform writes on every render frame for every car.
-  const paintPhase = Math.floor(phase * 24) / 24;
-  const lampsChanged = state.braking !== braking || state.headOn !== headOn;
-  const paintChanged = state.paintPhase !== paintPhase;
-  if (!lampsChanged && !paintChanged) return;
-  for (const m of tailMats) {
-    setEmissive(m, 0xff2a1c, m.userData.baseEmissive * (braking ? 2.35 : 0.8));
-  }
-  for (const m of headMats) {
-    setEmissive(m, 0xffe9a8, m.userData.baseEmissive * (headOn ? 2.8 : 0.24));
-  }
-  if (paintChanged) {
-    for (const m of paintMats) {
-      const sweep = 0.02 + Math.max(0, Math.sin(paintPhase * 1.45 + (m.userData.paintPhase || 0))) * 0.055;
-      setEmissive(m, 0x789ab2, m.userData.basePaintEmissive + sweep);
-    }
-  }
-  state.braking = braking;
-  state.headOn = headOn;
-  state.paintPhase = paintPhase;
 }
 
 function resetRivals() {
@@ -1020,12 +691,8 @@ function resetRivals() {
     r.itemUseDelay = 0;
     r.itemFlash = 0;
     r.desiredLateral = r.gridLateral;
-    r.visualHeading = 0; r.visualReady = false; r.visualScale = 1;
     r.braking = false; r.prevSpeed = 0;
     r.shortcutIndex = -1; r.shortcutLap = -1;
-    r.shield.visible = false;
-    r.shield.userData.energy = 0;
-    r.root.visible = false;
   }
 }
 
@@ -1043,12 +710,10 @@ function racePosition() {
 
 function updateRivals(dt) {
   if (!track || !track.rivals) return;
-  const active = mode === 'countdown' || mode === 'race' || mode === 'finish';
   const length = track.center.totalLength;
   const pd = playerDistance();
   for (let i = 0; i < track.rivals.length; i++) {
     const r = track.rivals[i];
-    r.root.visible = active;
     if (mode === 'race') {
       r.boostTimer = Math.max(0, r.boostTimer - dt);
       r.gripTimer = Math.max(0, r.gripTimer - dt);
@@ -1060,10 +725,6 @@ function updateRivals(dt) {
         r.speed = Math.max(70, r.speed * Math.max(0, 1 - dt * 0.62));
       }
       const gap = pd - r.distance;
-      // Rubber banding is deliberately mild: an underperforming rival gains
-      // only a few percent, and a leader still gets to pull away on a clean
-      // line. The periodic term makes each car breathe instead of matching
-      // speed robotically.
       const rubber = clamp(gap / Math.max(length * 0.7, 1), -0.045, 0.055);
       const target = track.maxSpeed * r.spec.topSpeed * (r.pace + rubber
         + Math.sin(r.distance * 0.009 + i * 2.1) * 0.018);
@@ -1074,8 +735,7 @@ function updateRivals(dt) {
       r.speed = Math.min(r.speed, track.maxSpeed * r.spec.topSpeed * (r.boostTimer > 0 ? 1.22 : 1));
       const s = r.distance % length;
       const lapNo = Math.floor(r.distance / length);
-      if (r.shortcutIndex < 0 && track.features && track.features.shortcuts.length
-        && (i + lapNo) % 3 === 0) {
+      if (r.shortcutIndex < 0 && track.features.shortcuts.length && (i + lapNo) % 3 === 0) {
         for (let k = 0; k < track.features.shortcuts.length; k++) {
           const sc = track.features.shortcuts[k];
           if (sc.lastAiLap === lapNo && sc.lastAiRival === i) continue;
@@ -1090,9 +750,7 @@ function updateRivals(dt) {
         }
       }
       const shortcut = r.shortcutIndex >= 0 ? track.features.shortcuts[r.shortcutIndex] : null;
-      if (shortcut && (lapNo !== r.shortcutLap || s > shortcut.exit)) {
-        r.shortcutIndex = -1;
-      }
+      if (shortcut && (lapNo !== r.shortcutLap || s > shortcut.exit)) r.shortcutIndex = -1;
       r.distance += r.speed * 0.10 * dt * (r.shortcutIndex >= 0 ? 1.12 : 1);
       const sample = sampleCenterline(track.center, s, _rivalSamples[i]);
       const curveLine = clamp(sample.curve * 0.43, -0.7, 0.7);
@@ -1104,8 +762,6 @@ function updateRivals(dt) {
       r.line += (routeLine - r.line) * Math.min(1, dt * 2.4);
       r.desiredLateral = r.line + Math.sin(r.distance * 0.012 + i) * 0.06;
     }
-    // Physical overlap avoidance on the shared racing line. It handles both
-    // rival-rival overlap and the player's rear quarter without allocations.
     for (let j = 0; j < track.rivals.length; j++) {
       if (j === i) continue;
       const other = track.rivals[j];
@@ -1121,32 +777,11 @@ function updateRivals(dt) {
     }
     r.desiredLateral = clamp(r.desiredLateral, -1.3, 1.3);
     r.lateral += (r.desiredLateral - r.lateral) * Math.min(1, dt * 3.6);
-    const sample = sampleCenterline(track.center, r.distance % length, _rivalSamples[i]);
-    const x = sample.x + sample.nx * r.lateral * ROAD_HALF;
-    const z = sample.z + sample.nz * r.lateral * ROAD_HALF;
-    const jump = sample.feature === 'crest' ? Math.sin((r.distance % 132) / 132 * Math.PI) * 0.35 : 0;
-    r.root.position.set(x, sample.y + jump, z);
-    const spinVisual = r.spinTimer > 0 ? Math.sin(r.spinPhase) * 0.34 * (r.spinTimer / 0.62) * r.spinDir : 0;
-    const targetHeading = sample.heading + (r.lateral - r.line) * 0.18 + spinVisual;
-    if (!r.visualReady) { r.visualHeading = targetHeading; r.visualReady = true; }
-    else r.visualHeading += angleDelta(r.visualHeading, targetHeading) * Math.min(1, dt * 12);
-    r.root.rotation.y = r.visualHeading;
-    const targetScale = 1 + (r.itemFlash > 0 ? 0.035 : 0) + (r.boostTimer > 0 ? 0.025 : 0);
-    r.visualScale += (targetScale - r.visualScale) * Math.min(1, dt * 10);
-    r.root.scale.setScalar(r.visualScale);
-    updateShieldVisual(r.shield, r.shielded && active, dt);
-    r.wheelSpin += r.speed * 0.10 * dt / r.wheelRadius;
-    for (const w of r.wheelGroups) {
-      w.rotation.x = -r.wheelSpin;
-      w.rotation.y = w.userData.front ? (sample.curve * 0.11) : 0;
-      w.position.y = w.userData.baseY;
-    }
-    updateCarLights(r, r.braking, track.cfg.timeOfDay === 'dusk' || track.cfg.timeOfDay === 'night' || !!track.cfg.rain, view.clock + i * 0.8);
   }
 }
 
 function triggerTrackBoost(label) {
-  const topSpeed = track.maxSpeed * carRig.spec.topSpeed;
+  const topSpeed = track.maxSpeed * playerSpec.topSpeed;
   sim.boostTimer = Math.max(sim.boostTimer, 0.92);
   sim.speed = Math.min(topSpeed * 1.22, sim.speed + 42);
   sim.boostPulse = 1;
@@ -1241,82 +876,14 @@ function updateTrackFeatures(dt) {
 
 function updateTrackFeatureVisuals(dt) {
   if (!track || !track.features) return;
-  const features = track.features;
-  const reduced = reducedMotion();
-  for (let i = 0; i < features.boostPads.length; i++) {
-    const pad = features.boostPads[i];
-    pad.pulse = Math.max(0, pad.pulse - dt * 2.7);
-    const breathe = reduced ? 1 : 1 + Math.sin(view.clock * 3.2 + i) * 0.035;
-    const pulse = reduced ? 0 : pad.pulse;
-    pad.root.scale.setScalar(breathe + pulse * 0.1);
-    pad.glow.scale.set(1 + pulse * 0.42, 1 + pulse * 0.42, 1);
-  }
-  for (let i = 0; i < features.secrets.length; i++) {
-    const secret = features.secrets[i];
+  for (const pad of track.features.boostPads) pad.pulse = Math.max(0, pad.pulse - dt * 2.7);
+  for (const secret of track.features.secrets) {
     secret.pulse = Math.max(0, secret.pulse - dt * 2.5);
     const near = loopGap(playerDistance(), secret.dist) < 16 && Math.abs(sim.lateral - secret.lane) < 0.75;
     secret.revealed = secret.revealed || near;
     const target = secret.revealed ? 1 : 0;
     secret.rewardScale += (target - secret.rewardScale) * Math.min(1, dt * 7);
-    secret.reward.visible = secret.rewardScale > 0.02;
-    secret.reward.scale.setScalar(secret.rewardScale);
-    const tellPulse = reduced ? 1 : 1 + Math.sin(view.clock * 4.2 + i) * 0.14;
-    secret.tell.scale.setScalar(tellPulse + secret.pulse * 0.35);
   }
-}
-
-// Crowd is one global Points geometry. Animate its colors, rather than running
-// a custom vertex shader over every point, and only upload the tiny buffer every
-// fourth render frame. Reduced motion freezes it at the authored colors.
-function updateCrowdVisuals() {
-  if (!track || !track.props || !track.props.crowd) return;
-  const crowd = track.props.crowd;
-  const animate = !reducedMotion();
-  if (!animate && !crowd.lastAnimated) return;
-  const data = crowd.colors.array;
-  const base = crowd.baseColors;
-  const phase = crowd.phases;
-  if (animate) {
-    for (let i = 0; i < phase.length; i++) {
-      const b = 0.88 + Math.abs(Math.sin(view.clock * 5.2 + phase[i])) * 0.12;
-      const p = i * 3;
-      data[p] = base[p] * b;
-      data[p + 1] = base[p + 1] * b;
-      data[p + 2] = base[p + 2] * b;
-    }
-  } else {
-    data.set(base);
-  }
-  crowd.colors.needsUpdate = true;
-  crowd.lastAnimated = animate;
-}
-
-// Four instanced cloud shapes share one draw call. Drift is evaluated from the
-// precomputed pool records and uploaded only on the same low-frequency cadence
-// as the crowd, so clouds retain motion without seven per-frame transforms.
-function updateCloudPool() {
-  if (!track || !track.clouds) return;
-  const field = track.clouds;
-  const animate = !reducedMotion();
-  if (!animate && field.lastAnimated === false) return;
-  const span = 900;
-  const half = span * 0.5;
-  const t = animate ? view.clock : 0;
-  const dummy = field.dummy;
-  for (let i = 0; i < field.clouds.length; i++) {
-    const cloud = field.clouds[i];
-    const rawX = cloud.originX + (animate ? cloud.speed * t : 0);
-    const wrapped = ((rawX - cloud.centerX + half) % span + span) % span - half;
-    dummy.position.set(cloud.centerX + wrapped,
-      cloud.baseY + (animate ? Math.sin(view.clock * 0.22 + cloud.phase) * 0.7 : 0),
-      cloud.z);
-    dummy.scale.set(cloud.scaleX, cloud.scaleY, cloud.scaleZ);
-    dummy.rotation.set(0, cloud.yaw, 0);
-    dummy.updateMatrix();
-    field.mesh.setMatrixAt(i, dummy.matrix);
-  }
-  field.mesh.instanceMatrix.needsUpdate = true;
-  field.lastAnimated = animate;
 }
 
 // Prototype handling model, ported to arc-length space. All named constants
@@ -1324,7 +891,7 @@ function updateCloudPool() {
 function stepSim(dt) {
   const cfg = track.cfg;
   const maxSpeed = track.maxSpeed;
-  const car = carRig.spec;
+  const car = playerSpec;
   const topSpeed = maxSpeed * car.topSpeed;
   sim.boostTimer = Math.max(0, sim.boostTimer - dt);
   sim.gripTimer = Math.max(0, sim.gripTimer - dt);
@@ -1411,7 +978,7 @@ function stepSim(dt) {
   const worldSpeed = sim.speed * 0.10;
   sim.s += worldSpeed * dt;
   sim.lapDist += worldSpeed * dt;
-  sim.wheelSpin += worldSpeed * dt / carRig.wheelRadius;
+  sim.wheelSpin += worldSpeed * dt / playerSpec.wheelRadius;
   updateTrackFeatures(dt);
 
   sim.lapTime += dt;
@@ -1505,33 +1072,17 @@ function racePositionForDistance(distance) {
 }
 
 function emitItemBurstAt(distance, lane, itemIndex) {
-  if (!track || !track.fx.itemBurst) return;
-  const p = sampleCenterline(track.center, distance, _sampC);
-  const lat = lane * ROAD_HALF;
-  const x = p.x + p.nx * lat;
-  const y = p.y + p.bank * lat + 0.9;
-  const z = p.z + p.nz * lat;
-  track.fx.itemBurst.baseCol.setHex(itemIndex >= 0 ? ITEM_DEFS[itemIndex].color : track.cfg.accent);
-  const count = reducedMotion() ? 8 : 18;
-  for (let i = 0; i < count; i++) {
-    const a = vrand() * Math.PI * 2;
-    const speed = 4 + vrand() * 8;
-    track.fx.itemBurst.emit(
-      x + (vrand() - 0.5) * 0.5, y + vrand() * 0.6, z + (vrand() - 0.5) * 0.5,
-      Math.cos(a) * speed, 2.5 + vrand() * 4.5, Math.sin(a) * speed,
-      0.35 + vrand() * 0.3
-    );
-  }
+  // Item feedback remains in the HUD. GGRacer owns all world FX, so the old
+  // title particle burst is intentionally not recreated here.
+  itemState.useFlash = Math.max(itemState.useFlash, reducedMotion() ? 0.18 : 0.35);
 }
 
 function setShield(actor, active) {
   if (actor < 0) {
     sim.shielded = active;
-    if (carRig && carRig.shield && !active) carRig.shield.userData.energy = 0;
   } else {
     const r = track.rivals[actor];
     r.shielded = active;
-    if (r.shield && !active) r.shield.userData.energy = 0;
   }
 }
 
@@ -1563,8 +1114,9 @@ function beginPlayerSpin(side, messageText) {
   if (!reducedMotion()) view.flash = 0.14;
   kit.juice.shake(Math.min(H * 0.02, 12), 220);
   kit.juice.hitStop(45);
-  emitSparks();
-  emitShards(sim.spinDir);
+  // GGRacer owns world impact FX; keep the title-side feedback channel alive
+  // without reviving the deleted particle renderer.
+  itemState.useFlash = Math.max(itemState.useFlash, 0.35);
   sfx('collide', { volume: 0.72, rate: 1.05 });
   setMessage(messageText || 'BOLT IMPACT  -  RECOVER', 'bad', 1.2);
 }
@@ -1617,31 +1169,15 @@ function pickUpItem(actor, cell) {
 
 function updateItemCells(dt) {
   const cells = track.items.cells;
-  const reduced = reducedMotion();
   for (let i = 0; i < cells.length; i++) {
     const cell = cells[i];
     if (!cell.available) {
       cell.respawn -= dt;
-      if (cell.respawn <= 0) {
-        cell.available = true;
-        cell.respawn = 0;
-      }
+      if (cell.respawn <= 0) { cell.available = true; cell.respawn = 0; }
     }
     const targetVisibility = cell.available ? 1 : 0;
     cell.visibility += (targetVisibility - cell.visibility) * Math.min(1, dt * 9);
-    cell.root.visible = cell.visibility > 0.015;
-    if (!cell.root.visible) continue;
-    if (reduced) {
-      cell.root.rotation.y = 0;
-      cell.root.position.y = cell.baseY;
-      cell.root.scale.setScalar(cell.visibility);
-    } else {
-      cell.pulse += dt;
-      cell.root.rotation.y += dt * 0.72;
-      cell.halo.rotation.z += dt * 1.4;
-      cell.root.position.y = cell.baseY + Math.sin(cell.pulse) * 0.16;
-      cell.root.scale.setScalar(cell.visibility * (1 + Math.sin(cell.pulse * 1.7) * 0.045));
-    }
+    cell.pulse += reducedMotion() ? 0 : dt;
   }
 }
 
@@ -1702,12 +1238,6 @@ function dropSlick(owner) {
   patch.lane = actorLateral(owner);
   patch.owner = owner;
   patch.ownerSafe = 0.8;
-  patch.root.visible = true;
-  patch.root.scale.setScalar(0);
-  const p = sampleCenterline(track.center, patch.s, _sampC);
-  const lat = patch.lane * ROAD_HALF;
-  patch.root.position.set(p.x + p.nx * lat, p.y + p.bank * lat + 0.08, p.z + p.nz * lat);
-  patch.root.rotation.y = p.heading;
   emitItemBurstAt(patch.s, patch.lane, 2);
 }
 
@@ -1728,15 +1258,13 @@ function spawnBolt(owner, homing, laneOffset) {
   bolt.owner = owner;
   bolt.target = target;
   bolt.telegraphed = false;
-  bolt.root.visible = true;
-  bolt.root.scale.setScalar(0);
   return true;
 }
 
 function useActorItem(actor, itemIndex) {
   if (itemIndex < 0) return false;
   if (actor < 0) {
-    const topSpeed = track.maxSpeed * carRig.spec.topSpeed;
+    const topSpeed = track.maxSpeed * playerSpec.topSpeed;
     if (itemIndex === 0) {
       sim.boostTimer = 1.35;
       sim.speed = Math.min(topSpeed * 1.22, sim.speed + 120);
@@ -1827,22 +1355,18 @@ function updateSlickPatches(dt) {
     if (!patch.active) continue;
     if (patch.expiring) {
       patch.visualScale = Math.max(0, patch.visualScale - dt * 6);
-      patch.root.scale.setScalar(patch.visualScale);
       if (patch.visualScale <= 0.01) {
         patch.active = false;
-        patch.root.visible = false;
       }
       continue;
     }
     patch.life -= dt;
     patch.ownerSafe = Math.max(0, patch.ownerSafe - dt);
-    if (!reducedMotion()) patch.ring.rotation.z += dt * 1.6;
     if (patch.life <= 0) {
       patch.expiring = true;
       continue;
     }
     patch.visualScale += (1 - patch.visualScale) * Math.min(1, dt * 9);
-    patch.root.scale.setScalar(patch.visualScale);
     if ((patch.owner !== -1 || patch.ownerSafe <= 0)
       && loopGap(pd, patch.s) < 4.1 && Math.abs(sim.lateral - patch.lane) < 0.42) {
       patch.expiring = true;
@@ -1870,16 +1394,13 @@ function updateProjectiles(dt) {
     if (!bolt.active && !bolt.visualActive) continue;
     if (!bolt.active) {
       bolt.visualScale = Math.max(0, bolt.visualScale - dt * 10);
-      bolt.root.scale.setScalar(bolt.visualScale);
       if (bolt.visualScale <= 0.01) {
         bolt.visualActive = false;
-        bolt.root.visible = false;
       }
       continue;
     }
     bolt.life -= dt;
     bolt.visualScale += (1 - bolt.visualScale) * Math.min(1, dt * 12);
-    bolt.root.scale.setScalar(bolt.visualScale);
     if (bolt.life <= 0) {
       bolt.active = false;
       continue;
@@ -1903,12 +1424,6 @@ function updateProjectiles(dt) {
       emitItemBurstAt(targetDistance, targetLane, bolt.homing ? 3 : 4);
       continue;
     }
-    const p = sampleCenterline(track.center, bolt.distance, _sampB);
-    const lat = bolt.lane * ROAD_HALF;
-    bolt.root.visible = true;
-    bolt.root.position.set(p.x + p.nx * lat, p.y + p.bank * lat + 1.2, p.z + p.nz * lat);
-    bolt.root.rotation.y = p.heading;
-    if (!reducedMotion()) bolt.root.rotation.z += dt * 8;
   }
 }
 
@@ -2029,11 +1544,22 @@ function finishRace() {
 }
 
 // ------------------------------------------------------------------- view
-// Scratch vectors: the camera solve used to allocate two Vector3 per frame,
-// which was the bulk of the steady-state garbage in the feel trace.
-const _desired = new THREE.Vector3();
-const _look = new THREE.Vector3();
-const ZERO_SHAKE = { dx: 0, dy: 0, frozen: false };
+// The title keeps cosmetic motion channels for HUD and engine car state. Camera
+// placement, roll, FOV, speed streaks, particles, and shadows belong to GGRacer.
+const ghostState = {
+  visible: false, progress: 0, speed: 0, lateral: 0,
+  position: { x: 0, y: 0, z: 0 }, yaw: 0,
+};
+function actorFrame() {
+  return {
+    progress: 0, speed: 0, steering: 0, acceleration: 0, lateralG: 0,
+    suspension: 0, brake: 0, boost: 0, position: { x: 0, y: 0, z: 0 }, yaw: 0,
+  };
+}
+const racerFrame = {
+  carState: actorFrame(),
+  rivals: [actorFrame(), actorFrame(), actorFrame(), actorFrame()],
+};
 
 function updateView(dt, frozen, shake) {
   if (!frozen) view.clock += dt;
@@ -2042,355 +1568,92 @@ function updateView(dt, frozen, shake) {
   const px = node.x + node.nx * lat;
   const pz = node.z + node.nz * lat;
   const py = node.y;
-
-  // Car heading follows the road with a lateral-rate yaw offset so the nose
-  // points where the car is actually sliding.
   const steer = worldSteer(input.steer);
-  const slide = clamp(sim.lateral * 0.22 + steer * 0.16 + sim.drifting * steer * 0.34, -0.7, 0.7);
-  const heading = node.heading + slide;
-
+  // Screen-left is a negative yaw delta in the world convention. This is the
+  // only title-side steering-to-heading mapping sent to GGRacer.
+  const slide = clamp(-steer * 0.16 - sim.drifting * steer * 0.34, -0.7, 0.7);
   const spinVisual = sim.spinTimer > 0
     ? Math.sin(sim.spinPhase) * 0.34 * (sim.spinTimer / 0.72) * sim.spinDir : 0;
-  const targetHeading = heading + spinVisual;
+  const targetHeading = node.heading + slide + spinVisual;
   if (!view.carHeadingReady) { view.carHeading = targetHeading; view.carHeadingReady = true; }
   else view.carHeading += angleDelta(view.carHeading, targetHeading) * Math.min(1, dt * 13);
-  const jumpLift = sim.jumpT > 0 ? Math.sin((0.62 - sim.jumpT) / 0.62 * Math.PI) * 1.35 : 0;
-  const crestTarget = node.feature === 'crest' ? clamp(sim.speed / track.maxSpeed, 0, 1) * 0.28 : 0;
-  carRig.root.position.set(px, py + jumpLift + view.suspension, pz);
-  carRig.root.rotation.y = view.carHeading;
-  const targetCarScale = sim.boostTimer > 0 && !reducedMotion() ? 1.025 : 1;
-  view.carScale += (targetCarScale - view.carScale) * Math.min(1, dt * 10);
-  carRig.root.scale.setScalar(view.carScale);
-  updateShieldVisual(carRig.shield, sim.shielded && mode !== 'finish', dt);
-
+  const speedFrac = clamp(sim.speed / track.maxSpeed, 0, 1);
+  const crestTarget = node.feature === 'crest' ? speedFrac * 0.28 : 0;
   if (!frozen) {
-    // Cosmetic springs: lean into the corner, pitch under accel/brake.
-    // Underdamped, one visible overshoot (house rule 1).
-    const targetLean = -clamp(steer * 0.9 + sim.lateral * 0.35, -1, 1) * 0.13
-      - sim.drifting * steer * 0.06;
+    const targetLean = -clamp(steer * 0.9 + sim.lateral * 0.35, -1, 1) * 0.13 - sim.drifting * steer * 0.06;
     const accelSign = input.brake ? -1 : (input.throttle ? 1 : -0.15);
     const targetPitch = -accelSign * 0.045 * (0.35 + sim.speed / track.maxSpeed);
-
     spring(view, 'lean', 'leanVel', targetLean, 280, 17, dt);
     spring(view, 'pitch', 'pitchVel', targetPitch, 240, 16, dt);
     spring(view, 'dip', 'dipVel', 0, 200, 14, dt);
     spring(view, 'suspension', 'suspensionVel', crestTarget, 170, 16, dt);
     spring(view, 'boostKick', 'boostKickVel', sim.boostTimer > 0 ? 1 : 0, 125, 18, dt);
-    // Impact follow-through: under-damped so the chassis kicks, swings back
-    // past centre once, and settles. This is the third beat of the hit.
     spring(view, 'recoil', 'recoilVel', 0, 150, 7.5, dt);
   }
+  view.hitFlashPart = Math.max(0, view.hitFlashPart - 1);
+  return { node, px, py, pz, heading: view.carHeading, speedFrac };
+}
 
-  carRig.chassis.rotation.z = view.lean + view.recoil * 0.045;
-  carRig.chassis.rotation.x = view.pitch;
-  // Verified model-forward convention lives in cars.js and is applied once
-  // there; the chassis yaw is left alone so it cannot be flipped twice.
-  carRig.chassis.rotation.y = 0;
+function setActorFrame(frame, sample, lateral, speed, steering, brake, boost, yaw) {
+  const lat = lateral * ROAD_HALF;
+  frame.progress = sample.progress == null ? 0 : sample.progress;
+  frame.speed = speed * 0.10;
+  frame.steering = steering || 0;
+  frame.acceleration = 0;
+  frame.lateralG = steering * frame.speed * 0.014;
+  frame.suspension = 0;
+  frame.brake = brake || 0;
+  frame.boost = boost || 0;
+  frame.position.x = sample.x + sample.nx * lat;
+  frame.position.y = sample.y;
+  frame.position.z = sample.z + sample.nz * lat;
+  frame.yaw = Number.isFinite(yaw) ? yaw : sample.heading;
+}
 
-  // Wheels: spin on the shared axle angle, front pair also steers.
-  const steerAngle = clamp(steer, -1, 1) * 0.42 + sim.drifting * clamp(-steer, -1, 1) * 0.2;
-  for (const w of carRig.wheelGroups) {
-    w.rotation.x = -sim.wheelSpin;
-    w.rotation.y = w.userData.front ? steerAngle : 0;
-    w.position.y = w.userData.baseY - view.suspension * 0.18;
+function updateRacerFrame(dt, place) {
+  if (!racer || !track || !place) return;
+  const length = track.center.totalLength;
+  const player = racerFrame.carState;
+  setActorFrame(player, place.node, sim.lateral, sim.speed, input.steer,
+    input.brake ? 1 : 0, sim.boostTimer > 0 ? 1 : 0, place.heading);
+  player.progress = ((sim.s % length) + length) % length / length;
+  player.position.y += sim.jumpT > 0 ? Math.sin((0.62 - sim.jumpT) / 0.62 * Math.PI) * 1.35 : 0;
+  player.suspension = view.suspension;
+  player.pitch = view.pitch;
+  player.roll = view.lean + view.recoil * 0.045;
+  for (let i = 0; i < track.rivals.length; i += 1) {
+    const rival = track.rivals[i];
+    const sample = sampleCenterline(track.center, rival.distance % length, _rivalSamples[i]);
+    setActorFrame(racerFrame.rivals[i], sample, rival.lateral, rival.speed, 0,
+      rival.braking ? 1 : 0, rival.boostTimer > 0 ? 1 : 0, sample.heading);
+    racerFrame.rivals[i].progress = (rival.distance % length + length) % length / length;
   }
-
-  // Contact shadow is parented under the wheel footprint in cars.js, so it
-  // inherits the car's position and heading and can never drift off the tyres.
-  // Only the pitch squash is applied here.
-  const shadowScale = 1 - Math.abs(view.pitch) * 0.4;
-  carRig.shadow.scale.set(shadowScale, 1, 1);
-
-  // Damage / impact state on the body materials:
-  //   view.hitFlashPart  three frames of hot white on the struck flank
-  //   sim.damage         the longer ember cool-down after the hit
-  if (carRig.bodyParts.length) {
-    // Damage is a presentation channel; 24 Hz quantization keeps its material
-    // uniform writes on the same cadence as the paint sweep.
-    const d = Math.round(sim.damage * 24) / 24;
-    const partFlash = view.hitFlashPart > 0;
-    updateCarLights(carRig, input.brake, track.cfg.timeOfDay === 'dusk'
-      || track.cfg.timeOfDay === 'night' || !!track.cfg.rain, view.clock);
-    for (const m of carRig.materials) {
-      if (!m.emissive) continue;
-      const isTail = m.userData.role === 'tail';
-      const isHead = m.userData.role === 'head';
-      const isPaint = m.userData.role === 'paint';
-      if (partFlash && !isTail && !isHead) {
-        setEmissive(m, 0xffffff, m.userData.baseEmissive + 1.6);
-      } else if (d > 0.01 && !isTail && !isHead) {
-        setEmissive(m, 0xff6a3a, m.userData.baseEmissive + d * 0.7);
-      } else if (!isPaint && !isTail && !isHead) {
-        setEmissive(m, m.userData.baseEmissiveHex, m.userData.baseEmissive);
-      }
-    }
+  const ghost = racerFrame.rivals[3];
+  if (ghostState.visible) {
+    ghost.progress = ghostState.progress;
+    ghost.speed = ghostState.speed;
+    ghost.steering = 0;
+    ghost.acceleration = 0;
+    ghost.lateralG = 0;
+    ghost.brake = 0;
+    ghost.boost = 0;
+    ghost.position.x = ghostState.position.x;
+    ghost.position.y = ghostState.position.y;
+    ghost.position.z = ghostState.position.z;
+    ghost.yaw = ghostState.yaw;
+  } else {
+    ghost.progress = 0.99;
+    ghost.speed = 0;
+    ghost.position.x = 0; ghost.position.y = -100; ghost.position.z = 0;
   }
-  if (view.hitFlashPart > 0) view.hitFlashPart--;
-
-  // --- chase camera (house rule 4)
-  const speedFrac = clamp(sim.speed / track.maxSpeed, 0, 1);
-  // Close enough that the car is the dominant read in frame; the pull-back
-  // with speed is what sells pace rather than a permanently distant framing.
-  let back = 5.6 + speedFrac * 2.0;
-  let up = 1.95 + speedFrac * 0.4 + view.dip;
-  // Rear THREE-QUARTER framing: the camera sits slightly off the centreline
-  // and slightly high, so the frame shows the rear bumper, the taillights, the
-  // near flank and both offside wheels rather than a flat tail-on silhouette.
-  // The offset eases with the corner so it never fights the racing line.
-  let sideOff = 1.15 - clamp(sim.lateral, -1, 1) * 0.35;
-  let side = 1;
-
-  if (mode === 'garage') {
-    // Garage turntable: an eased orbit around the selected car, close and low.
-    view.orbit += dt * 0.55;
-    back = 6.2; up = 1.9;
-    const ox = Math.sin(view.orbit), oz = Math.cos(view.orbit);
-    const desiredG = _desired.set(px + ox * back, py + up, pz + oz * back);
-    if (!view.started) { view.camPos.copy(desiredG); view.started = true; }
-    else {
-      view.camPos.lerp(desiredG, Math.min(1, dt * 3.4));
-    }
-    view.camLook.lerp(_look.set(px, py + 0.85, pz), Math.min(1, dt * 6));
-    camera.position.copy(view.camPos);
-    camera.lookAt(view.camLook);
-    if (Math.abs(camera.fov - 46) > 0.01) { camera.fov = 46; camera.updateProjectionMatrix(); }
-    track.sky.mesh.position.copy(camera.position);
-    return { node, px, py, pz, heading, speedFrac };
-  }
-
-  if (mode === 'finish') {
-    // Distinct finish angle: the camera swings wide and low into a hero
-    // three-quarter as the ceremony settles.
-    const t = EASE.outCubic(clamp(ceremonyT / 1.4, 0, 1));
-    back = 5.6 + t * 1.4;
-    up = 1.95 - t * 0.55;
-    sideOff = 1.15 + t * 3.4;
-    side = -1;
-  }
-
-  // Position basis follows the car heading, NOT the input, so camera-relative
-  // steering never fights itself.
-  const desired = _desired.set(
-    px - Math.sin(heading) * back + Math.cos(heading) * sideOff * side,
-    py + up,
-    pz - Math.cos(heading) * back - Math.sin(heading) * sideOff * side
-  );
-
-  if (!view.started) {
-    view.camPos.copy(desired);
-    view.started = true;
-  } else if (!frozen) {
-    // Critically-damped-ish spring on position.
-    const k = 62, c = 15.2;
-    const ax = (desired.x - view.camPos.x) * k - view.camVel.x * c;
-    const ay = (desired.y - view.camPos.y) * k - view.camVel.y * c;
-    const az = (desired.z - view.camPos.z) * k - view.camVel.z * c;
-    view.camVel.x += ax * dt; view.camVel.y += ay * dt; view.camVel.z += az * dt;
-    view.camPos.x += view.camVel.x * dt;
-    view.camPos.y += view.camVel.y * dt;
-    view.camPos.z += view.camVel.z * dt;
-  }
-
-  // Velocity lookahead on the LOOK-AT only.
-  const ahead = sampleCenterline(track.center, sim.s + 14 + speedFrac * 26, _sampB);
-  const lookX = lerp(px, ahead.x + ahead.nx * lat * 0.5, 0.72);
-  const lookZ = lerp(pz, ahead.z + ahead.nz * lat * 0.5, 0.72);
-  const lookY = lerp(py, ahead.y, 0.6) + 1.5;
-  view.camLook.lerp(_look.set(lookX, lookY, lookZ), frozen ? 1 : Math.min(1, dt * 9));
-
-  // The juice sample is taken once per frame by the caller; sampling it twice
-  // advanced the kit's shake clock at double rate.
-  const sh = shake || ZERO_SHAKE;
-  camera.position.copy(view.camPos);
-  camera.position.x += sh.dx * 0.045;
-  camera.position.y += sh.dy * 0.035;
-  camera.lookAt(view.camLook);
-  // Slight roll into the corner sells weight without disorienting.
-  camera.rotation.z += view.lean * 0.42;
-
-  // Speed FOV, capped at +5 deg per house rule 4.
-  const targetFov = 62 + speedFrac * 5 + view.boostKick * 3;
-  view.fov += (targetFov - view.fov) * Math.min(1, dt * 4.2);
-  if (Math.abs(camera.fov - view.fov) > 0.01) {
-    camera.fov = view.fov;
-    camera.updateProjectionMatrix();
-  }
-
-  // Sky dome rides with the camera so it never clips at the far plane.
-  track.sky.mesh.position.copy(camera.position);
-
-  return { node, px, py, pz, heading, speedFrac };
+  if (track.ghostActor) track.ghostActor.root.visible = ghostState.visible;
+  racer.world.update(racerFrame, dt);
 }
 
 function spring(obj, valKey, velKey, target, stiffness, damping, dt) {
   const a = (target - obj[valKey]) * stiffness - obj[velKey] * damping;
   obj[velKey] += a * dt;
   obj[valKey] += obj[velKey] * dt;
-}
-
-// ------------------------------------------------------------------- fx
-const _v = new THREE.Vector3();
-
-function updateFx(dt, place) {
-  const fx = track.fx;
-  const { px, py, pz, heading, speedFrac } = place;
-  const sinH = Math.sin(heading), cosH = Math.cos(heading);
-  const reduced = reducedMotion();
-
-  // Rear tyre haze. This runs whenever the driven wheels are working, not only
-  // when the car is already sliding, so pace reads from the rear of the car at
-  // any speed instead of only in a drift.
-  const kick = sim.offRoad ? 1 : (sim.drifting > 0.2 ? sim.drifting * 0.9 : 0);
-  const haze = clamp(speedFrac - 0.3, 0, 1) * (input.throttle ? 0.55 : 0.2);
-  const emitAmt = Math.max(kick, haze);
-  if (emitAmt > 0.04 && speedFrac > 0.1) {
-    const n = emitAmt > 0.6 ? 3 : emitAmt > 0.25 ? 2 : 1;
-    for (let i = 0; i < n; i++) {
-      const s = vsign() * 1.05;
-      const rx = px - sinH * 2.0 + cosH * s;
-      const rz = pz - cosH * 2.0 - sinH * s;
-      const spread = 2 + emitAmt * 5;
-      fx.dust.emit(
-        rx, py + 0.22, rz,
-        -sinH * (2 + vrand() * spread) + (vrand() - 0.5) * 5,
-        (1.2 + vrand() * 3.0) * (0.4 + emitAmt),
-        -cosH * (2 + vrand() * spread) + (vrand() - 0.5) * 5,
-        (0.35 + vrand() * 0.4) * (0.5 + emitAmt)
-      );
-    }
-  }
-
-  // Exhaust pulse on gear change / hard throttle: a short, tight puff at the
-  // tailpipe height, separate from the tyre haze.
-  if (input.throttle && speedFrac > 0.18 && vrand() < 0.22) {
-    fx.dust.emit(
-      px - sinH * 2.35 + cosH * 0.42, py + 0.55, pz - cosH * 2.35 - sinH * 0.42,
-      -sinH * 3.5, 1.1 + vrand() * 0.8, -cosH * 3.5,
-      0.22 + vrand() * 0.16
-    );
-  }
-
-  // Skid ribbon while drifting or scrubbing off-road.
-  if ((sim.drifting > 0.3 || sim.offRoad) && speedFrac > 0.2) {
-    const halfTrack = 0.95;
-    const ax = px - sinH * 1.9 + cosH * halfTrack;
-    const az = pz - cosH * 1.9 - sinH * halfTrack;
-    const bx = px - sinH * 1.9 - cosH * halfTrack;
-    const bz = pz - cosH * 1.9 + sinH * halfTrack;
-    fx.skid.setSurface(!!sim.offRoad, fx.skid.dustColor);
-    fx.skid.push(ax, py + 0.09, az, bx, py + 0.09, bz);
-    if (!fx.skidSfxAt || performance.now() - fx.skidSfxAt > 420) {
-      fx.skidSfxAt = performance.now();
-      // Tarmac drift and off-road scrub are different surfaces, so they get
-      // different samples rather than one pitched loop.
-      if (sim.offRoad) {
-        sfx('scrape', { volume: 0.2 + speedFrac * 0.22, rate: 0.7 + speedFrac * 0.5 });
-      } else {
-        sfx('skid', { volume: 0.22 + sim.drifting * 0.2, rate: 0.85 + speedFrac * 0.4 });
-      }
-    }
-  } else {
-    fx.skid.break();
-  }
-
-  // Peripheral speed streaks. They start at roughly half pace rather than 62%,
-  // and stay outside the centre of frame so they read as speed instead of
-  // clutter. Fully suppressed under reduced motion.
-  const STREAK_FROM = 0.46;
-  if (!reduced && speedFrac > STREAK_FROM) {
-    const rate = (speedFrac - STREAK_FROM) / (1 - STREAK_FROM);
-    const bursts = rate > 0.6 ? 2 : 1;
-    for (let b = 0; b < bursts; b++) {
-      if (vrand() > rate * 0.9) continue;
-      const ang = vrand() * Math.PI * 2;
-      // Radius floor keeps the streaks in the periphery.
-      const r = 5.0 + vrand() * 6.0;
-      const fx0 = px + Math.cos(ang) * r;
-      const fy0 = py + 1.4 + Math.sin(ang) * r * 0.5;
-      const fz0 = pz + Math.sin(ang) * r;
-      const sp = 40 + speedFrac * 110;
-      fx.streaks.emit(
-        fx0 + sinH * 24, fy0, fz0 + cosH * 24,
-        -sinH * sp, 0, -cosH * sp,
-        0.22 + vrand() * 0.15,
-        3.5 + rate * 9
-      );
-    }
-  }
-
-  // Nitro has its own readable tail beat, separate from the ambient speed
-  // streaks. The same pooled line system serves player and AI readability
-  // without adding an asset or a per-frame object.
-  if (!reduced && sim.boostTimer > 0 && speedFrac > 0.18) {
-    const boostSide = vsign() * 0.5;
-    fx.streaks.emit(
-      px - sinH * 2.5 + cosH * boostSide, py + 0.42, pz - cosH * 2.5 - sinH * boostSide,
-      -sinH * 42, 0, -cosH * 42, 0.18, 3.2
-    );
-  }
-
-  // Weather. Rain follows the camera and is gated on reduced motion; the
-  // puddle spray rides the same intensity so wet asphalt throws water.
-  if (fx.rain) {
-    fx.rain.enabled = !reduced;
-    const intensity = reduced ? 0 : 0.75 + Math.sin(performance.now() / 5200) * 0.2;
-    fx.rain.update(dt, camera.position.x, camera.position.y, camera.position.z, intensity);
-    if (!reduced && speedFrac > 0.25 && vrand() < 0.5) {
-      const s = vsign() * 1.0;
-      fx.dust.emit(
-        px - sinH * 1.9 + cosH * s, py + 0.16, pz - cosH * 1.9 - sinH * s,
-        -sinH * 5 + (vrand() - 0.5) * 3, 1.8 + vrand() * 2.2, -cosH * 5 + (vrand() - 0.5) * 3,
-        0.2 + vrand() * 0.2
-      );
-    }
-  }
-
-  fx.dust.update(dt);
-  fx.sparks.update(dt);
-  fx.shards.update(dt);
-  fx.itemBurst.update(dt);
-  fx.streaks.update(dt);
-  fx.skid.update(dt);
-}
-
-function emitSparks() {
-  if (!track) return;
-  const node = sampleCenterline(track.center, sim.s, _sampC);
-  const lat = sim.lateral * ROAD_HALF;
-  const px = node.x + node.nx * lat, pz = node.z + node.nz * lat, py = node.y;
-  for (let i = 0; i < 22; i++) {
-    const a = vrand() * Math.PI * 2;
-    const sp = 4 + vrand() * 13;
-    track.fx.sparks.emit(
-      px + (vrand() - 0.5) * 1.6,
-      py + 0.5 + vrand() * 0.8,
-      pz + (vrand() - 0.5) * 1.6,
-      Math.cos(a) * sp, 3 + vrand() * 8, Math.sin(a) * sp,
-      0.28 + vrand() * 0.34
-    );
-  }
-}
-
-// Directional shard burst: heavier debris thrown away from the struck flank,
-// which is what makes a contact read as a hit rather than a flash.
-function emitShards(side) {
-  if (!track) return;
-  const node = sampleCenterline(track.center, sim.s, _sampC);
-  const lat = sim.lateral * ROAD_HALF;
-  const px = node.x + node.nx * lat, pz = node.z + node.nz * lat, py = node.y;
-  const h = node.heading;
-  const sinH = Math.sin(h), cosH = Math.cos(h);
-  // Outward normal of the struck flank, in world XZ.
-  const nx = cosH * side, nz = -sinH * side;
-  for (let i = 0; i < 14; i++) {
-    const spread = (vrand() - 0.5) * 0.9;
-    const sp = 7 + vrand() * 12;
-    track.fx.shards.emit(
-      px + nx * 0.9, py + 0.45 + vrand() * 0.7, pz + nz * 0.9,
-      (nx + spread * -sinH) * sp, 4 + vrand() * 7, (nz + spread * -cosH) * sp,
-      0.32 + vrand() * 0.3
-    );
-  }
 }
 
 // ------------------------------------------------------------------ ghost
@@ -2426,39 +1689,29 @@ function ghostSeek(ch, value) {
 }
 
 function updateGhostPlayback() {
-  if (!ghostRig || !ghostPlay || !ghostPlay.length) {
-    if (ghostRig) ghostRig.root.visible = false;
-    return;
-  }
+  ghostState.visible = false;
+  if (!ghostPlay || !ghostPlay.length) return;
   const last = ghostPlay[ghostPlay.length - 1];
   const t = sim.lapTime;
-  if (t >= last[0]) {
-    // The recorded lap is over: park the ghost on the line rather than
-    // vanishing it mid-corner.
-    ghostRig.root.visible = false;
-    return;
-  }
+  if (t >= last[0]) return;
   const lo = ghostSeek(0, t);
   const a = ghostPlay[lo], b = ghostPlay[Math.min(lo + 1, ghostPlay.length - 1)];
   const span = b[0] - a[0];
   const f = span > 0 ? clamp((t - a[0]) / span, 0, 1) : 0;
-  // Both position channels come from the recording, so a lap with heavy
-  // braking replays with that braking.
   const gs = lerp(a[1], b[1], f);
   const ghostLat = lerp(a[2], b[2], f);
-
   const node = sampleCenterline(track.center, gs, _sampC);
   const lat = ghostLat * ROAD_HALF;
-  ghostRig.root.visible = true;
-  ghostRig.root.position.set(node.x + node.nx * lat, node.y + 0.02, node.z + node.nz * lat);
-  ghostRig.root.rotation.y = node.heading;
-  // Fade out when very close so it never blocks the player's view.
-  const d = ghostRig.root.position.distanceTo(carRig.root.position);
-  ghostRig.mat.opacity = clamp((d - 4) / 10, 0, 1) * 0.3;
+  ghostState.visible = true;
+  ghostState.progress = ((gs % track.center.totalLength) + track.center.totalLength) % track.center.totalLength / track.center.totalLength;
+  ghostState.speed = span > 0 ? (b[1] - a[1]) / span : 0;
+  ghostState.lateral = ghostLat;
+  ghostState.position.x = node.x + node.nx * lat;
+  ghostState.position.y = node.y + 0.02;
+  ghostState.position.z = node.z + node.nz * lat;
+  ghostState.yaw = node.heading;
 }
 
-// Delta is now a like-for-like comparison at the SAME point on the road: the
-// time the ghost took to reach the player's current lap distance.
 function ghostDelta() {
   if (!ghostPlay || !ghostPlay.length) return null;
   const last = ghostPlay[ghostPlay.length - 1];
@@ -2736,11 +1989,13 @@ let paused = false;
 
 function onPause() {
   paused = true;
+  if (racer) racer.world.setPaused(true);
   engine.suspend();
   music.setPaused(true);
 }
 function onResume() {
   paused = false;
+  if (racer) racer.world.setPaused(false);
   engine.resume();
   music.setPaused(false);
   if (mode === 'race') engine.start();
@@ -2749,30 +2004,12 @@ function onRestart() {
   if (track) startEvent(event);
 }
 
-// Preview car swap for the garage turntable. The OBJ parse is cached, so the
-// swap costs a geometry clone and a material build, not a fetch.
+// Garage selection is HUD-only. The selected livery and handling data are fed to
+// the next GGRacer world when an event starts.
 let previewToken = 0;
 async function setPreviewCar(spec) {
-  if (!track || !spec) return;
-  const token = ++previewToken;
-  let rig;
-  try { rig = await buildCar(spec); } catch (e) { return; }
-  if (token !== previewToken || !track) return;
-  if (carRig) {
-    worldGroup.remove(carRig.root);
-    carRig.root.traverse((o) => { if (o.isMesh && o.geometry) o.geometry.dispose(); });
-    carRig.materials.forEach((m) => m.dispose && m.dispose());
-  }
-  // Locked cars present as a darkened silhouette with the livery only hinted,
-  // so the garage reads unlock state on the object itself.
-  if (!carUnlocked(spec)) {
-    rig.materials.forEach((m) => {
-      m.color.multiplyScalar(0.18);
-      m.emissiveIntensity = 0;
-    });
-  }
-  worldGroup.add(rig.root);
-  carRig = rig;
+  if (spec && carUnlocked(spec)) playerSpec = spec;
+  previewToken += 1;
 }
 
 // ------------------------------------------------------------------ loader
@@ -3435,7 +2672,7 @@ function drawRaceHud(dt) {
   hud.arcTicks(gx, gy, gaugeR - 11, A0, A1, 8, 5, 'rgba(255,255,255,0.22)', 1.5);
 
   // speed inner arc
-  const speedFrac = clamp(sim.speed / (track.maxSpeed * carRig.spec.topSpeed), 0, 1);
+  const speedFrac = clamp(sim.speed / (track.maxSpeed * playerSpec.topSpeed), 0, 1);
   hud.arc(gx, gy, gaugeR - 17, A0, A1, speedFrac, 5,
     'rgba(255,255,255,0.08)', 'rgba(232,242,252,0.92)');
 
@@ -3775,7 +3012,7 @@ function updateTutorial(dt) {
   if (!tutorial.active) return;
   tutorial.timer += dt;
   if (sim.offRoad) tutorial.seen.rumble = true;
-  if (ghostRig && ghostRig.root.visible) tutorial.seen.ghost = true;
+  if (ghostState.visible) tutorial.seen.ghost = true;
   if (sim.lap > 1) tutorial.seen.lap = true;
   const step = tutorial.steps[tutorial.step];
   if (!step) { tutorial.active = false; save.tutorialDone = true; persist(); return; }
@@ -3818,9 +3055,6 @@ function updateWeather(dt) {
   }
   if (view.lightning > 0) {
     view.lightning = Math.max(0, view.lightning - dt * 5.5);
-    sun.intensity = track.cfg.sun.intensity * (1 + view.lightning * 2.2);
-  } else if (sun.intensity !== track.cfg.sun.intensity) {
-    sun.intensity = track.cfg.sun.intensity;
   }
 }
 
@@ -3839,12 +3073,10 @@ function syncAudioPrefs() {
 let lastTime = performance.now();
 let acc = 0;
 let musicPoll = 0;
-let renderFrame = 0;
 const FIXED = 1 / 120;
 
 function frame(now) {
   requestAnimationFrame(frame);
-  const frameNo = renderFrame++;
   // Section timing hook. Off unless a profiler creates window.__prof; the cost
   // when absent is one property read per frame.
   const prof = window.__prof;
@@ -3941,23 +3173,14 @@ function frame(now) {
     }
 
     if (mode !== 'loading') {
-      // Secondary motion and background pools are deliberately low-frequency;
-      // the road, cars and gameplay still update every frame.
-      if ((frameNo & 3) === 0) {
-        if (track.props && track.props.mat.userData.wind) {
-          track.props.mat.userData.wind.value = reducedMotion() ? 0 : now / 700;
-        }
-        updateCrowdVisuals();
-        updateCloudPool();
-      }
       updateTrackFeatureVisuals(dt);
       const place = updateView(juice.frozen ? 0 : dt, juice.frozen, juice);
       updateRivals(juice.frozen ? 0 : dt);
       if (mode === 'race' && !juice.frozen) updateItemWorld(dt);
       else if (mode === 'countdown' && !juice.frozen) updateItemCells(dt);
+      if (mode === 'race' || mode === 'countdown') updateGhostPlayback();
+      updateRacerFrame(juice.frozen ? 0 : dt, place);
       if (mode === 'race' || mode === 'countdown') {
-        if (!juice.frozen) updateFx(dt, place);
-        updateGhostPlayback();
         engine.update(sim.rpm, input.throttle ? 1 : (input.brake ? 0.1 : 0.3),
           clamp(sim.speed / track.maxSpeed, 0, 1));
       }
@@ -3965,7 +3188,7 @@ function frame(now) {
   }
 
   if (prof) tSim = performance.now();
-  if (track) renderer.render(scene, camera);
+  if (racer) racer.world.render();
   if (prof) tRender = performance.now();
   drawHud(dt);
   if (prof) {
@@ -4016,7 +3239,7 @@ function menuDrive(dt) {
   if (!track) return;
   if (mode !== 'title' && mode !== 'garage' && mode !== 'select' && mode !== 'credits') return;
   sim.s += 7.5 * dt;
-  sim.wheelSpin += 7.5 * dt / (carRig ? carRig.wheelRadius : 0.35);
+  sim.wheelSpin += 7.5 * dt / playerSpec.wheelRadius;
   sim.lateral = Math.sin(sim.s * 0.012) * 0.25;
   sim.speed = 300;
   sim.rpm = 2600;
