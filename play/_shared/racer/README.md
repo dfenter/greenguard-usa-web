@@ -74,7 +74,11 @@ The returned surface is:
 }
 ```
 
-`controlPoints` are a closed Catmull–Rom spline in metres. `elevation` is Y
+`controlPoints` are a Catmull–Rom spline in metres — a closed circuit loop by
+default, or a point-to-point stage with `"closed": false` (rally/route
+titles). An open stage clamps progress to `[0, 1]` instead of wrapping, keeps
+its endpoints separate, and gets a START gantry at progress 0 plus a FINISH
+gantry at progress 1. `elevation` is Y
 height in metres; `banking` is degrees; `curb` marks a corner apex for the
 red/white curb pool. `sectors.at` and `racingLine.at` are normalized progress
 in `[0, 1)`. `racingLine.lateral` is metres from the centerline, positive on

@@ -20,7 +20,9 @@ via import map `three`)
   lighting rig, fog/sky, camera director. Exposes createRacerWorld(opts).
 - track.js   - spline track system. Catmull-Rom control points (JSON
   per title) -> smooth center line -> extruded road ribbon with WIDTH,
-  BANKING, and ELEVATION per point; generated asphalt texture with
+  BANKING, and ELEVATION per point; circuit loop by default or
+  point-to-point stage via "closed": false (progress clamps instead of
+  wrapping; START and FINISH gantries at the endpoints); generated asphalt texture with
   center/edge lines and wear strip; red/white curb meshes on corner
   apexes; barrier walls or post+rail per theme; start/finish gantry;
   sector gates + checkpoint API; minimap polyline export; racing-line

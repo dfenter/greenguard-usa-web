@@ -74,11 +74,12 @@ function makeRoadTexture() {
   return texture;
 }
 
-function makeRimGeometry(samples, width, yOffset, outerOffset) {
+function makeRimGeometry(samples, width, yOffset, outerOffset, closed = true) {
   const count = samples.length;
+  const segments = closed ? count : count - 1;
   const positions = new Float32Array(count * 2 * 3);
   const uvs = new Float32Array(count * 2 * 2);
-  const indices = new Uint16Array(count * 6);
+  const indices = new Uint16Array(segments * 6);
   const left = new THREE.Vector3();
   const right = new THREE.Vector3();
   const p = new THREE.Vector3();
@@ -101,13 +102,15 @@ function makeRimGeometry(samples, width, yOffset, outerOffset) {
     uvs[uv + 1] = distance / 24;
     uvs[uv + 2] = 1;
     uvs[uv + 3] = distance / 24;
-    const j = (i + 1) % count;
-    indices[i * 6] = i * 2;
-    indices[i * 6 + 1] = j * 2;
-    indices[i * 6 + 2] = i * 2 + 1;
-    indices[i * 6 + 3] = i * 2 + 1;
-    indices[i * 6 + 4] = j * 2;
-    indices[i * 6 + 5] = j * 2 + 1;
+    if (i < segments) {
+      const j = (i + 1) % count;
+      indices[i * 6] = i * 2;
+      indices[i * 6 + 1] = j * 2;
+      indices[i * 6 + 2] = i * 2 + 1;
+      indices[i * 6 + 3] = i * 2 + 1;
+      indices[i * 6 + 4] = j * 2;
+      indices[i * 6 + 5] = j * 2 + 1;
+    }
     distance += sample.length;
   }
   const geometry = new THREE.BufferGeometry();
@@ -118,11 +121,12 @@ function makeRimGeometry(samples, width, yOffset, outerOffset) {
   return geometry;
 }
 
-function makeRoadGeometry(samples, width, thickness) {
+function makeRoadGeometry(samples, width, thickness, closed = true) {
   const count = samples.length;
+  const segments = closed ? count : count - 1;
   const positions = new Float32Array(count * 4 * 3);
   const uvs = new Float32Array(count * 4 * 2);
-  const indices = new Uint16Array(count * 24);
+  const indices = new Uint16Array(segments * 24);
   const p = new THREE.Vector3();
   const edge = new THREE.Vector3();
   let distance = 0;
@@ -150,19 +154,21 @@ function makeRoadGeometry(samples, width, thickness) {
     uvs[uv + 2] = 1; uvs[uv + 3] = distance / 32;
     uvs[uv + 4] = 0; uvs[uv + 5] = distance / 32;
     uvs[uv + 6] = 1; uvs[uv + 7] = distance / 32;
-    const j = (i + 1) % count;
-    const a = i * 4;
-    const b = j * 4;
-    const k = i * 24;
-    // Top, bottom, left side, right side.
-    indices[k] = a; indices[k + 1] = b; indices[k + 2] = a + 1;
-    indices[k + 3] = a + 1; indices[k + 4] = b; indices[k + 5] = b + 1;
-    indices[k + 6] = a + 2; indices[k + 7] = a + 3; indices[k + 8] = b + 2;
-    indices[k + 9] = a + 3; indices[k + 10] = b + 3; indices[k + 11] = b + 2;
-    indices[k + 12] = a; indices[k + 13] = a + 2; indices[k + 14] = b;
-    indices[k + 15] = a + 2; indices[k + 16] = b + 2; indices[k + 17] = b;
-    indices[k + 18] = a + 1; indices[k + 19] = b + 1; indices[k + 20] = a + 3;
-    indices[k + 21] = a + 3; indices[k + 22] = b + 1; indices[k + 23] = b + 3;
+    if (i < segments) {
+      const j = (i + 1) % count;
+      const a = i * 4;
+      const b = j * 4;
+      const k = i * 24;
+      // Top, bottom, left side, right side.
+      indices[k] = a; indices[k + 1] = b; indices[k + 2] = a + 1;
+      indices[k + 3] = a + 1; indices[k + 4] = b; indices[k + 5] = b + 1;
+      indices[k + 6] = a + 2; indices[k + 7] = a + 3; indices[k + 8] = b + 2;
+      indices[k + 9] = a + 3; indices[k + 10] = b + 3; indices[k + 11] = b + 2;
+      indices[k + 12] = a; indices[k + 13] = a + 2; indices[k + 14] = b;
+      indices[k + 15] = a + 2; indices[k + 16] = b + 2; indices[k + 17] = b;
+      indices[k + 18] = a + 1; indices[k + 19] = b + 1; indices[k + 20] = a + 3;
+      indices[k + 21] = a + 3; indices[k + 22] = b + 1; indices[k + 23] = b + 3;
+    }
     distance += sample.length;
   }
   const geometry = new THREE.BufferGeometry();
@@ -340,7 +346,10 @@ export function createTrack(trackJSON, options = {}) {
   const width = Number(data.width) || 12;
   const controlPoints = data.controlPoints.map(pointFromJSON);
   const banks = data.controlPoints.map(bankFromJSON);
-  const curve = new THREE.CatmullRomCurve3(controlPoints, true, 'catmullrom', 0.5);
+  // closed: false gives a point-to-point stage (rally/route titles); the
+  // default stays a circuit loop.
+  const closed = data.closed !== false;
+  const curve = new THREE.CatmullRomCurve3(controlPoints, closed, 'catmullrom', 0.5);
   const sampleCount = clamp(Number(data.sampleCount) || controlPoints.length * 18, 96, 320);
   const samples = new Array(sampleCount);
   const point = new THREE.Vector3();
@@ -349,16 +358,16 @@ export function createTrack(trackJSON, options = {}) {
   const up = new THREE.Vector3();
   let previous = null;
   for (let i = 0; i < sampleCount; i += 1) {
-    const t = i / sampleCount;
+    const t = closed ? i / sampleCount : i / (sampleCount - 1);
     curve.getPointAt(t, point);
     curve.getTangentAt(t, tangent).normalize();
     right.set(tangent.z, 0, -tangent.x);
     if (right.lengthSq() < EPS) right.set(1, 0, 0);
     right.normalize();
     up.crossVectors(tangent, right).normalize();
-    const controlT = t * controlPoints.length;
-    const controlIndex = Math.floor(controlT) % controlPoints.length;
-    const nextIndex = (controlIndex + 1) % controlPoints.length;
+    const controlT = t * (closed ? controlPoints.length : controlPoints.length - 1);
+    const controlIndex = Math.min(Math.floor(controlT), controlPoints.length - 1) % controlPoints.length;
+    const nextIndex = closed ? (controlIndex + 1) % controlPoints.length : Math.min(controlIndex + 1, controlPoints.length - 1);
     const bank = THREE.MathUtils.lerp(banks[controlIndex], banks[nextIndex], controlT - Math.floor(controlT));
     right.applyAxisAngle(tangent, bank);
     up.applyAxisAngle(tangent, bank);
@@ -375,7 +384,8 @@ export function createTrack(trackJSON, options = {}) {
     previous = point.clone();
   }
   // The closing segment is useful for UVs, frame queries, and distance tests.
-  samples[0].length = samples[sampleCount - 1].position.distanceTo(samples[0].position);
+  // An open stage has no closing segment; its first sample keeps length 0.
+  if (closed) samples[0].length = samples[sampleCount - 1].position.distanceTo(samples[0].position);
 
   const root = new THREE.Group();
   root.name = data.name || data.id || 'GGRacer Track';
@@ -388,11 +398,11 @@ export function createTrack(trackJSON, options = {}) {
     roughness: 0.86,
     metalness: 0.08,
   });
-  const road = new THREE.Mesh(makeRoadGeometry(samples, width, 0.24), roadMaterial);
+  const road = new THREE.Mesh(makeRoadGeometry(samples, width, 0.24, closed), roadMaterial);
   road.name = 'textured extruded asphalt ribbon';
   root.add(road);
   const rumbleMaterial = new THREE.MeshStandardMaterial({ color: 0xeee4d1, roughness: 0.82 });
-  const rumble = new THREE.Mesh(makeRimGeometry(samples, 0.55, 0.075, width * 0.5 + 0.12), rumbleMaterial);
+  const rumble = new THREE.Mesh(makeRimGeometry(samples, 0.55, 0.075, width * 0.5 + 0.12, closed), rumbleMaterial);
   rumble.name = 'contrasting edge rumble strips';
   root.add(rumble);
 
@@ -401,7 +411,10 @@ export function createTrack(trackJSON, options = {}) {
   for (let c = 0; c < curbPoints.length; c += 1) {
     const center = Math.round((curbPoints[c] / controlPoints.length) * sampleCount);
     for (let offset = -3; offset <= 3; offset += 1) {
-      curbSamples.push(samples[(center + offset + sampleCount) % sampleCount]);
+      const curbIndex = closed
+        ? (center + offset + sampleCount) % sampleCount
+        : clamp(center + offset, 0, sampleCount - 1);
+      curbSamples.push(samples[curbIndex]);
     }
   }
   buildCurbs(root, samples, width, curbSamples);
@@ -410,7 +423,8 @@ export function createTrack(trackJSON, options = {}) {
 
   const gateGroup = new THREE.Group();
   gateGroup.name = 'sector gates and start gantry';
-  buildGate(gateGroup, samples[0], width, options.gateColor || 0xe8b54d, 'START / FINISH');
+  buildGate(gateGroup, samples[0], width, options.gateColor || 0xe8b54d, closed ? 'START / FINISH' : 'START');
+  if (!closed) buildGate(gateGroup, samples[sampleCount - 1], width, options.gateColor || 0xe8b54d, 'FINISH');
   const sectors = Array.isArray(data.sectors) && data.sectors.length
     ? data.sectors : [{ id: 1, at: 0.25 }, { id: 2, at: 0.5 }, { id: 3, at: 0.75 }];
   for (let i = 0; i < sectors.length; i += 1) {
@@ -444,10 +458,10 @@ export function createTrack(trackJSON, options = {}) {
   const checkpointResult = { sector: 0, crossed: false };
 
   function sampleAt(progress, out = frameCache) {
-    const t = wrap01(progress);
-    const scaled = t * sampleCount;
-    const index = Math.floor(scaled) % sampleCount;
-    const next = (index + 1) % sampleCount;
+    const t = closed ? wrap01(progress) : clamp(Number(progress) || 0, 0, 1);
+    const scaled = t * (closed ? sampleCount : sampleCount - 1);
+    const index = Math.min(Math.floor(scaled), sampleCount - 1) % sampleCount;
+    const next = closed ? (index + 1) % sampleCount : Math.min(index + 1, sampleCount - 1);
     const mix = scaled - Math.floor(scaled);
     const a = samples[index];
     const b = samples[next];
@@ -460,9 +474,13 @@ export function createTrack(trackJSON, options = {}) {
     return out;
   }
 
+  function normProgress(progress) {
+    return closed ? wrap01(progress) : clamp(Number(progress) || 0, 0, 1);
+  }
+
   function lineLateral(progress) {
     if (!racingLine.length) return 0;
-    const t = wrap01(progress);
+    const t = normProgress(progress);
     let before = racingLine[racingLine.length - 1];
     let after = racingLine[0];
     for (let i = 0; i < racingLine.length; i += 1) {
@@ -507,7 +525,7 @@ export function createTrack(trackJSON, options = {}) {
   }
 
   function getSector(progress) {
-    const t = wrap01(progress);
+    const t = normProgress(progress);
     let sector = 0;
     for (let i = 0; i < sectors.length; i += 1) {
       if (t >= Number(sectors[i].at || 0)) sector = i;
@@ -520,7 +538,7 @@ export function createTrack(trackJSON, options = {}) {
     const previous = Number(state.sector ?? -1);
     const crossed = sector !== previous;
     state.sector = sector;
-    state.progress = wrap01(progress);
+    state.progress = normProgress(progress);
     checkpointResult.sector = sector;
     checkpointResult.crossed = crossed;
     return checkpointResult;
