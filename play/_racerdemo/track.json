@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "mirage-eight",
+  "name": "Mirage Eight",
+  "width": 12,
+  "sampleCount": 216,
+  "description": "An eight-turn desert circuit with a rising banked hairpin and a fast chicane.",
+  "controlPoints": [
+    { "x": -12, "z": -124, "elevation": 0, "banking": 0 },
+    { "x": 42, "z": -112, "elevation": 1, "banking": 3 },
+    { "x": 82, "z": -74, "elevation": 4, "banking": 10, "curb": true },
+    { "x": 86, "z": -19, "elevation": 8, "banking": 16, "curb": true },
+    { "x": 48, "z": 17, "elevation": 12, "banking": -24, "curb": true },
+    { "x": -10, "z": 26, "elevation": 14, "banking": -30, "curb": true },
+    { "x": -67, "z": 7, "elevation": 10, "banking": -18, "curb": true },
+    { "x": -88, "z": 49, "elevation": 7, "banking": 14, "curb": true },
+    { "x": -59, "z": 103, "elevation": 3, "banking": 19, "curb": true },
+    { "x": -3, "z": 125, "elevation": 1, "banking": 2 },
+    { "x": 53, "z": 107, "elevation": -1, "banking": -16, "curb": true },
+    { "x": 79, "z": 73, "elevation": 0, "banking": -20, "curb": true },
+    { "x": 51, "z": 49, "elevation": 1, "banking": 15, "curb": true },
+    { "x": 22, "z": 67, "elevation": 1, "banking": -18, "curb": true },
+    { "x": -14, "z": 49, "elevation": 0, "banking": 12, "curb": true },
+    { "x": -30, "z": 12, "elevation": 0, "banking": -14, "curb": true },
+    { "x": -65, "z": -23, "elevation": 1, "banking": 11, "curb": true },
+    { "x": -60, "z": -87, "elevation": 1, "banking": 9, "curb": true }
+  ],
+  "turns": [
+    { "number": 1, "at": 0.09, "name": "Red Mesa", "type": "sweeper" },
+    { "number": 2, "at": 0.18, "name": "High Desert", "type": "sweeper" },
+    { "number": 3, "at": 0.29, "name": "Switchback", "type": "hairpin", "banking": -30 },
+    { "number": 4, "at": 0.41, "name": "Canyon Drop", "type": "left" },
+    { "number": 5, "at": 0.56, "name": "Sunrise Bend", "type": "left" },
+    { "number": 6, "at": 0.66, "name": "City Gate", "type": "right" },
+    { "number": 7, "at": 0.72, "name": "S-Cut", "type": "chicane" },
+    { "number": 8, "at": 0.85, "name": "Long Return", "type": "right" }
+  ],
+  "sectors": [
+    { "id": 1, "at": 0.0 },
+    { "id": 2, "at": 0.34 },
+    { "id": 3, "at": 0.68 }
+  ],
+  "distanceMarkers": [
+    { "at": 0.24, "label": "3" },
+    { "at": 0.48, "label": "2" },
+    { "at": 0.72, "label": "1" }
+  ],
+  "racingLine": [
+    { "at": 0.0, "lateral": 0.2 },
+    { "at": 0.09, "lateral": -0.7 },
+    { "at": 0.18, "lateral": 0.8 },
+    { "at": 0.29, "lateral": -1.45 },
+    { "at": 0.41, "lateral": 0.85 },
+    { "at": 0.56, "lateral": -0.8 },
+    { "at": 0.66, "lateral": 0.8 },
+    { "at": 0.72, "lateral": -0.72 },
+    { "at": 0.85, "lateral": 0.6 },
+    { "at": 0.96, "lateral": -0.15 }
+  ]
+}
