@@ -76,7 +76,15 @@ The returned surface is:
 
 `controlPoints` are a Catmull–Rom spline in metres — a closed circuit loop by
 default, or a point-to-point stage with `"closed": false` (rally/route
-titles). An open stage clamps progress to `[0, 1]` instead of wrapping, keeps
+titles). `"frame": "transport"` switches the road frame to parallel transport,
+which is what allows loops, corkscrews, vertical walls, and dives: the frame
+rolls with the track through vertical features and relaxes back to
+world-upright on non-steep sections, and closed loops unwind any residual
+twist so there is no seam kink. In transport mode a title should drive the
+car by `progress` (plus optional `lateral` metres from the racing line,
+`hover` metres above the deck, and `headingOffset` radians of slide about the
+local up) and let the engine orient the machine with the full track frame —
+the chase camera follows the car's up through inversions. An open stage clamps progress to `[0, 1]` instead of wrapping, keeps
 its endpoints separate, and gets a START gantry at progress 0 plus a FINISH
 gantry at progress 1. `elevation` is Y
 height in metres; `banking` is degrees; `curb` marks a corner apex for the

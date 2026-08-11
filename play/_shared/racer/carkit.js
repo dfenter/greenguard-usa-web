@@ -187,7 +187,12 @@ export function createGTCar(options = {}) {
     root.position.x = position.x || 0;
     root.position.y = position.y || 0;
     root.position.z = position.z || 0;
-    root.rotation.y = Number(state.yaw) || 0;
+    if (state.useFrame && state.quaternion) {
+      // Full track-frame orientation (banked walls, loops, dives).
+      root.quaternion.copy(state.quaternion);
+    } else {
+      root.rotation.y = Number(state.yaw) || 0;
+    }
     const speed = Number(state.speed) || 0;
     const steering = Number(state.steering) || 0;
     const targetLean = Number(state.roll ?? (-steering * 0.09 - (Number(state.lateralG) || 0) * 0.035));

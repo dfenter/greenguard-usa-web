@@ -58,6 +58,8 @@ function isPosition(value) {
 function makeState() {
   return {
     position: new THREE.Vector3(),
+    quaternion: new THREE.Quaternion(),
+    useFrame: false,
     yaw: 0,
     speed: 0,
     steering: 0,
@@ -72,8 +74,13 @@ function makeState() {
   };
 }
 
+const FRAME_MATRIX = new THREE.Matrix4();
+const HEADING_TWIST = new THREE.Quaternion();
+const FRAME_UP = new THREE.Vector3();
+
 function copyState(source, target, track, frame) {
   const sourceState = source || {};
+  target.useFrame = false;
   if (isPosition(sourceState.position)) {
     target.position.x = sourceState.position.x;
     target.position.y = Number(sourceState.position.y) || 0;
@@ -83,6 +90,22 @@ function copyState(source, target, track, frame) {
     target.progress = Number(sourceState.progress) || 0;
     track.sampleRacingLine(target.progress, frame);
     target.position.copy(frame.position);
+    const lateral = Number(sourceState.lateral);
+    if (Number.isFinite(lateral) && lateral) target.position.addScaledVector(frame.right, lateral);
+    const hover = Number(sourceState.hover);
+    if (Number.isFinite(hover) && hover) target.position.addScaledVector(frame.up, hover);
+    // Orient the car with the full track frame so banked walls, loops, and
+    // dives carry the machine with them; headingOffset is the title's slide/
+    // drift angle about the local up.
+    FRAME_MATRIX.makeBasis(frame.right, frame.up, frame.tangent);
+    target.quaternion.setFromRotationMatrix(FRAME_MATRIX);
+    const headingOffset = Number(sourceState.headingOffset);
+    if (Number.isFinite(headingOffset) && headingOffset) {
+      FRAME_UP.copy(frame.up);
+      HEADING_TWIST.setFromAxisAngle(FRAME_UP, headingOffset);
+      target.quaternion.premultiply(HEADING_TWIST);
+    }
+    target.useFrame = true;
   }
   target.yaw = Number(sourceState.yaw);
   if (!Number.isFinite(target.yaw)) target.yaw = Math.atan2(frame.tangent.x, frame.tangent.z);
@@ -157,6 +180,7 @@ export function createRacerWorld(options = {}) {
   const cameraLook = new THREE.Vector3();
   const cameraFrame = new THREE.Vector3();
   const cameraLookFrame = new THREE.Vector3();
+  const cameraUp = new THREE.Vector3(0, 1, 0);
   const trackFrame = { position: new THREE.Vector3(), tangent: new THREE.Vector3(), right: new THREE.Vector3(), up: new THREE.Vector3() };
   const mainState = makeState();
   const fallbackFrame = { carState: mainState, rivals: [] };
@@ -209,6 +233,8 @@ export function createRacerWorld(options = {}) {
       camera.fov += (wantedFov - camera.fov) * Math.min(1, dt * 8);
       camera.updateProjectionMatrix();
     }
+    cameraUp.set(0, 1, 0).applyQuaternion(mainCar.root.quaternion);
+    camera.up.lerp(cameraUp, 0.35).normalize();
     camera.lookAt(cameraLook);
     // Roll about the local view axis. Writing camera.rotation.z after lookAt
     // flips the view 180 degrees whenever lookAt lands on the flipped Euler

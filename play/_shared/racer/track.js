@@ -87,15 +87,15 @@ function makeRimGeometry(samples, width, yOffset, outerOffset, closed = true) {
   for (let i = 0; i < count; i += 1) {
     const sample = samples[i];
     const next = samples[(i + 1) % count];
-    p.copy(sample.position);
+    p.copy(sample.position).addScaledVector(sample.up, yOffset);
     left.copy(sample.right).multiplyScalar(width * 0.5 + outerOffset);
     right.copy(sample.right).multiplyScalar(-width * 0.5 - outerOffset);
     const base = i * 6;
     positions[base] = p.x + left.x;
-    positions[base + 1] = p.y + yOffset;
+    positions[base + 1] = p.y + left.y;
     positions[base + 2] = p.z + left.z;
     positions[base + 3] = p.x + right.x;
-    positions[base + 4] = p.y + yOffset;
+    positions[base + 4] = p.y + right.y;
     positions[base + 5] = p.z + right.z;
     const uv = i * 4;
     uvs[uv] = 0;
@@ -132,22 +132,23 @@ function makeRoadGeometry(samples, width, thickness, closed = true) {
   let distance = 0;
   for (let i = 0; i < count; i += 1) {
     const sample = samples[i];
-    p.copy(sample.position);
     const next = samples[(i + 1) % count];
     edge.copy(sample.right).multiplyScalar(width * 0.5);
     const offset = i * 12;
-    // top-left, top-right, bottom-left, bottom-right
+    // top-left, top-right, bottom-left, bottom-right (frame-space up)
+    p.copy(sample.position).addScaledVector(sample.up, 0.02);
     positions[offset] = p.x + edge.x;
-    positions[offset + 1] = p.y + 0.02;
+    positions[offset + 1] = p.y + edge.y;
     positions[offset + 2] = p.z + edge.z;
     positions[offset + 3] = p.x - edge.x;
-    positions[offset + 4] = p.y + 0.02;
+    positions[offset + 4] = p.y - edge.y;
     positions[offset + 5] = p.z - edge.z;
+    p.copy(sample.position).addScaledVector(sample.up, -thickness);
     positions[offset + 6] = p.x + edge.x;
-    positions[offset + 7] = p.y - thickness;
+    positions[offset + 7] = p.y + edge.y;
     positions[offset + 8] = p.z + edge.z;
     positions[offset + 9] = p.x - edge.x;
-    positions[offset + 10] = p.y - thickness;
+    positions[offset + 10] = p.y - edge.y;
     positions[offset + 11] = p.z - edge.z;
     const uv = i * 8;
     uvs[uv] = 0; uvs[uv + 1] = distance / 32;
@@ -184,6 +185,12 @@ function instanceMatrix(position, quaternion, scale, matrix) {
   return matrix;
 }
 
+const FRAME_BASIS = new THREE.Matrix4();
+function frameQuaternion(sample, quaternion) {
+  FRAME_BASIS.makeBasis(sample.right, sample.up, sample.tangent);
+  return quaternion.setFromRotationMatrix(FRAME_BASIS);
+}
+
 function buildBarrier(group, samples, width, palette) {
   const max = Math.ceil(samples.length / 3) * 2;
   const post = new THREE.InstancedMesh(
@@ -203,14 +210,13 @@ function buildBarrier(group, samples, width, palette) {
   let index = 0;
   for (let i = 0; i < samples.length; i += 3) {
     const sample = samples[i];
-    const yaw = Math.atan2(sample.tangent.x, sample.tangent.z);
-    quaternion.setFromAxisAngle(UP, yaw);
+    frameQuaternion(sample, quaternion);
     for (const side of [-1, 1]) {
       position.copy(sample.position).addScaledVector(sample.right, side * (width * 0.5 + 1.15));
-      position.y += 0.64;
+      position.addScaledVector(sample.up, 0.64);
       instanceMatrix(position, quaternion, scale, matrix);
       post.setMatrixAt(index, matrix);
-      position.y += 0.18;
+      position.addScaledVector(sample.up, 0.18);
       instanceMatrix(position, quaternion, scale, matrix);
       rail.setMatrixAt(index, matrix);
       index += 1;
@@ -245,12 +251,11 @@ function buildCurbs(group, samples, width, curbSamples) {
   let whiteIndex = 0;
   for (let i = 0; i < curbSamples.length; i += 1) {
     const sample = curbSamples[i];
-    const yaw = Math.atan2(sample.tangent.x, sample.tangent.z);
-    quaternion.setFromAxisAngle(UP, yaw);
+    frameQuaternion(sample, quaternion);
     const stripe = i % 2 === 0 ? red : white;
     for (const side of [-1, 1]) {
       position.copy(sample.position).addScaledVector(sample.right, side * (width * 0.5 + 0.32));
-      position.y += 0.11;
+      position.addScaledVector(sample.up, 0.11);
       instanceMatrix(position, quaternion, scale, matrix);
       const slot = stripe === red ? redIndex++ : whiteIndex++;
       stripe.setMatrixAt(slot, matrix);
@@ -275,14 +280,13 @@ function buildGate(group, frame, width, color, label) {
   const left = new THREE.Mesh(postGeometry, material);
   const right = new THREE.Mesh(postGeometry, material);
   const top = new THREE.Mesh(topGeometry, material);
-  const lateralYaw = Math.atan2(-frame.right.z, frame.right.x);
-  top.rotation.y = lateralYaw;
-  left.position.copy(frame.position).addScaledVector(frame.right, -width * 0.5 - 0.46);
-  right.position.copy(frame.position).addScaledVector(frame.right, width * 0.5 + 0.46);
-  left.position.y += 2.05;
-  right.position.y += 2.05;
-  top.position.copy(frame.position);
-  top.position.y += 4.08;
+  // Parts are authored in gate-local space; the group carries the track frame
+  // so gates stand correctly on banked, vertical, and inverted sections.
+  gate.position.copy(frame.position);
+  gate.quaternion.copy(frameQuaternion(frame, new THREE.Quaternion()));
+  left.position.set(-width * 0.5 - 0.46, 2.05, 0);
+  right.position.set(width * 0.5 + 0.46, 2.05, 0);
+  top.position.set(0, 4.08, 0);
   gate.add(left, right, top);
   if (label && typeof document !== 'undefined') {
     const canvas = document.createElement('canvas');
@@ -295,9 +299,7 @@ function buildGate(group, frame, width, color, label) {
       new THREE.PlaneGeometry(width * 0.72, 0.68),
       new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), toneMapped: false, side: THREE.DoubleSide }),
     );
-    board.position.copy(frame.position);
-    board.position.y += 3.45;
-    board.rotation.y = lateralYaw;
+    board.position.set(0, 3.45, 0);
     gate.add(board);
   }
   group.add(gate);
@@ -315,7 +317,8 @@ function buildDistanceMarkers(group, samples, width, markers, color) {
       new THREE.MeshStandardMaterial({ color: 0x20242d, roughness: 0.62 }),
     );
     post.position.copy(frame.position).addScaledVector(frame.right, side * (width * 0.5 + 1.35));
-    post.position.y += 0.78;
+    post.position.addScaledVector(frame.up, 0.78);
+    post.quaternion.copy(frameQuaternion(frame, new THREE.Quaternion()));
     const boardCanvas = typeof document !== 'undefined' ? document.createElement('canvas') : null;
     let boardMaterial;
     if (boardCanvas) {
@@ -331,9 +334,8 @@ function buildDistanceMarkers(group, samples, width, markers, color) {
       boardMaterial = new THREE.MeshStandardMaterial({ color, roughness: 0.58, side: THREE.DoubleSide });
     }
     const board = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 0.92), boardMaterial);
-    board.position.copy(post.position);
-    board.position.y += 0.64;
-    board.rotation.y = Math.atan2(frame.tangent.x, frame.tangent.z);
+    board.position.copy(post.position).addScaledVector(frame.up, 0.64);
+    board.quaternion.copy(post.quaternion);
     group.add(post, board);
   }
 }
@@ -351,26 +353,55 @@ export function createTrack(trackJSON, options = {}) {
   const closed = data.closed !== false;
   const curve = new THREE.CatmullRomCurve3(controlPoints, closed, 'catmullrom', 0.5);
   const sampleCount = clamp(Number(data.sampleCount) || controlPoints.length * 18, 96, 320);
+  // frame: "transport" propagates the road frame along the spline (parallel
+  // transport) instead of forcing up skyward, which is what makes loops,
+  // corkscrews, vertical walls, and dives possible. The default stays the
+  // horizontal frame every flat title was built against.
+  const transport = data.frame === 'transport';
   const samples = new Array(sampleCount);
   const point = new THREE.Vector3();
   const tangent = new THREE.Vector3();
   const right = new THREE.Vector3();
   const up = new THREE.Vector3();
+  const prevTangent = new THREE.Vector3();
+  const swing = new THREE.Quaternion();
+  const gravityRight = new THREE.Vector3();
+  const gravityUp = new THREE.Vector3();
+  const gravityCross = new THREE.Vector3();
   let previous = null;
   for (let i = 0; i < sampleCount; i += 1) {
     const t = closed ? i / sampleCount : i / (sampleCount - 1);
     curve.getPointAt(t, point);
     curve.getTangentAt(t, tangent).normalize();
-    right.set(tangent.z, 0, -tangent.x);
-    if (right.lengthSq() < EPS) right.set(1, 0, 0);
-    right.normalize();
-    up.crossVectors(tangent, right).normalize();
-    const controlT = t * (closed ? controlPoints.length : controlPoints.length - 1);
-    const controlIndex = Math.min(Math.floor(controlT), controlPoints.length - 1) % controlPoints.length;
-    const nextIndex = closed ? (controlIndex + 1) % controlPoints.length : Math.min(controlIndex + 1, controlPoints.length - 1);
-    const bank = THREE.MathUtils.lerp(banks[controlIndex], banks[nextIndex], controlT - Math.floor(controlT));
-    right.applyAxisAngle(tangent, bank);
-    up.applyAxisAngle(tangent, bank);
+    if (transport && i > 0) {
+      // Rotate the previous up by the minimal rotation between tangents.
+      swing.setFromUnitVectors(prevTangent, tangent);
+      up.applyQuaternion(swing).normalize();
+      // Gravity relaxation: wherever the road is not steep, ease the
+      // transported up back toward world-upright. Loops and vertical walls
+      // keep their transported roll; the twist a corkscrew leaves behind
+      // bleeds out over the following flat metres instead of inverting the
+      // rest of the lap.
+      const flatness = 1 - Math.min(1, Math.abs(tangent.y) / 0.82);
+      if (flatness > 0) {
+        gravityRight.set(tangent.z, 0, -tangent.x);
+        if (gravityRight.lengthSq() < EPS) gravityRight.set(1, 0, 0);
+        gravityRight.normalize();
+        gravityUp.crossVectors(tangent, gravityRight).normalize();
+        const twist = Math.atan2(gravityCross.crossVectors(up, gravityUp).dot(tangent), up.dot(gravityUp));
+        if (Number.isFinite(twist) && Math.abs(twist) > 1e-5) {
+          up.applyAxisAngle(tangent, twist * flatness * 0.1);
+        }
+      }
+      right.crossVectors(up, tangent).normalize();
+      up.crossVectors(tangent, right).normalize();
+    } else {
+      right.set(tangent.z, 0, -tangent.x);
+      if (right.lengthSq() < EPS) right.set(1, 0, 0);
+      right.normalize();
+      up.crossVectors(tangent, right).normalize();
+    }
+    prevTangent.copy(tangent);
     const length = previous ? point.distanceTo(previous) : 0;
     samples[i] = {
       t,
@@ -378,10 +409,41 @@ export function createTrack(trackJSON, options = {}) {
       tangent: tangent.clone(),
       right: right.clone(),
       up: up.clone(),
-      bank,
+      bank: 0,
       length,
     };
     previous = point.clone();
+  }
+  if (transport && closed) {
+    // Parallel transport around a closed loop rarely lands on the frame it
+    // started with; measure the residual twist and unwind it gradually so the
+    // road has no seam kink at the start line.
+    swing.setFromUnitVectors(samples[sampleCount - 1].tangent, samples[0].tangent);
+    const endUp = samples[sampleCount - 1].up.clone().applyQuaternion(swing);
+    let defect = Math.atan2(
+      endUp.clone().cross(samples[0].up).dot(samples[0].tangent) * -1,
+      endUp.dot(samples[0].up),
+    );
+    if (!Number.isFinite(defect)) defect = 0;
+    for (let i = 0; i < sampleCount; i += 1) {
+      const unwind = defect * (i / sampleCount);
+      samples[i].right.applyAxisAngle(samples[i].tangent, unwind);
+      samples[i].up.applyAxisAngle(samples[i].tangent, unwind);
+    }
+  }
+  // Banking is authored roll about the tangent, applied after the base frame
+  // (and after loop closure) so it means the same thing in both frame modes.
+  for (let i = 0; i < sampleCount; i += 1) {
+    const t = samples[i].t;
+    const controlT = t * (closed ? controlPoints.length : controlPoints.length - 1);
+    const controlIndex = Math.min(Math.floor(controlT), controlPoints.length - 1) % controlPoints.length;
+    const nextIndex = closed ? (controlIndex + 1) % controlPoints.length : Math.min(controlIndex + 1, controlPoints.length - 1);
+    const bank = THREE.MathUtils.lerp(banks[controlIndex], banks[nextIndex], controlT - Math.floor(controlT));
+    samples[i].bank = bank;
+    if (bank) {
+      samples[i].right.applyAxisAngle(samples[i].tangent, bank);
+      samples[i].up.applyAxisAngle(samples[i].tangent, bank);
+    }
   }
   // The closing segment is useful for UVs, frame queries, and distance tests.
   // An open stage has no closing segment; its first sample keeps length 0.

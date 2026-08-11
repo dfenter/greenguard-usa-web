@@ -22,7 +22,11 @@ via import map `three`)
   per title) -> smooth center line -> extruded road ribbon with WIDTH,
   BANKING, and ELEVATION per point; circuit loop by default or
   point-to-point stage via "closed": false (progress clamps instead of
-  wrapping; START and FINISH gantries at the endpoints); generated asphalt texture with
+  wrapping; START and FINISH gantries at the endpoints); "frame":
+  "transport" for anti-grav geometry (loops, corkscrews, vertical
+  walls, huge dives — gravity-relaxed parallel transport frames, full
+  frame-quaternion car orientation, camera up follows through
+  inversions; carState progress/lateral/hover/headingOffset drive it); generated asphalt texture with
   center/edge lines and wear strip; red/white curb meshes on corner
   apexes; barrier walls or post+rail per theme; start/finish gantry;
   sector gates + checkpoint API; minimap polyline export; racing-line
