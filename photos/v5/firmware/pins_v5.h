@@ -1,5 +1,5 @@
 // ============================================================
-// GreenGuard CO2 Trap Timer — Rev 5.0 pin map
+// GreenGuard CO2 Trap Timer — Rev 5.1 pin map
 // AUTHORITATIVE SOURCE: /photos/v5/NETLIST.md Section 2.
 // ATtiny84A-SSU (SOIC-14). Direct register I/O everywhere;
 // Arduino pin numbers are NOT used in this firmware.
@@ -9,10 +9,10 @@
 //   1   | VCC  | +3V3          |
 //   2   | PB0  | DRV_IN1       | DRV8871 IN1 = valve OPEN pulse
 //   3   | PB1  | DRV_IN2_MCU   | DRV8871 IN2 = valve CLOSE pulse
-//         (via R16 1K into the D6/one-shot diode-OR node)
+//         (through U7 takeover mux; /VM_OK low forces DRV_IN2=1)
 //   4   | PB3  | /RESET        | ISP only (R1 10K pull-up)
 //   5   | PB2  | /ALERT        | INT0: DS3231M /INT (open-drain)
-//         shared with TPS3839 supervisor via D3 (BAT54)
+//         shared with TPS3700 /VM_OK via D3 (BAT54)
 //   6   | PA7  | TM_DIO        | TM1637 data   (dedicated, NOT I2C)
 //   7   | PA6  | SDA           | USI I2C SDA   (= ISP MOSI, J3.4)
 //   8   | PA5  | MISO          | spare — ISP MISO / TP1 only
@@ -48,6 +48,8 @@
 // ── Battery-sense scaling ────────────────────────────────────
 // Divider R7=100K / R8=33K → ratio 33/133 = 0.24812.
 // ADC LSB at pin = 3300 mV / 1023 = 3.2258 mV → at VM = 13.0 mV/LSB.
-#define VM_MV_PER_LSB 13U
+// Nominal VREF is the 3.3 V LDO rail; 100K/33K makes VM/Vpin = 133/33.
+// Keep the calculation integer-only: 3300 mV / 1023 × 133 / 33 = 13 mV/LSB.
+#define VM_MV_PER_LSB ((uint16_t)((3300UL * 133UL) / (33UL * 1023UL)))
 
 #endif // PINS_V5_H

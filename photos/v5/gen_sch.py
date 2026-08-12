@@ -8,6 +8,8 @@ Runs a geometric self-check so no two different nets ever touch.
 """
 import re, uuid, math, os, sys
 
+from hardware_constants import F1_VALUE, R6_VALUE, R13_VALUE, R16_VALUE
+
 KICAD_SYM_DIR = "/Applications/KiCad/KiCad.app/Contents/SharedSupport/symbols"
 OUT_DIR = "/Users/lucille/greenguard-usa-web/photos/v5"
 PROJ = "co2_timer_v5"
@@ -117,8 +119,27 @@ DS3231M_PINS = [
 
 MCP1703CB_PINS = [
     ("1", "GND",  "power_in",  0.00, -7.62, 90),
-    ("2", "VIN",  "power_in", -7.62,  0.00, 0),
-    ("3", "VOUT", "power_out", 7.62,  0.00, 180),
+    # MCP1703A SOT-23A datasheet pinout: 1=GND, 2=VOUT, 3=VIN.
+    ("2", "VOUT", "power_out", -7.62,  0.00, 0),
+    ("3", "VIN",  "power_in", 7.62,  0.00, 180),
+]
+
+TPS3700_PINS = [
+    ("1", "OUTA",  "open_collector", -10.16, -5.08, 0),
+    ("2", "GND",   "power_in",        0.00,  10.16, 270),
+    ("3", "INA+",  "input",          -10.16,  2.54, 0),
+    ("4", "INB-",  "input",          -10.16, -2.54, 0),
+    ("5", "VDD",   "power_in",        0.00, -10.16, 90),
+    ("6", "OUTB",  "open_collector",  10.16,  5.08, 180),
+]
+
+MUX_PINS = [
+    ("1", "B2", "bidirectional", -5.08, -2.54, 0),
+    ("2", "GND", "power_in",        0.00,  5.08, 270),
+    ("3", "B1", "bidirectional", -5.08,  2.54, 0),
+    ("4", "A",  "bidirectional",  5.08,  0.00, 180),
+    ("5", "VCC", "power_in",        0.00, -5.08, 90),
+    ("6", "S",  "input",            5.08, -2.54, 180),
 ]
 
 SW4_PINS = [
@@ -149,8 +170,16 @@ def custom_symbols(prefix):
                       (-12.7, -12.7, 12.7, 12.7), DS3231M_PINS)
     out += box_symbol(prefix + "MCP1703A-3302E-CB", "U", "MCP1703A-3302E/CB",
                       "Package_TO_SOT_SMD:SOT-23",
-                      "250mA 16V LDO 3.3V, SOT-23A: 1=GND 2=VIN 3=VOUT",
+                      "250mA 16V LDO 3.3V, SOT-23A: 1=GND 2=VOUT 3=VIN",
                       (-5.08, -5.08, 5.08, 5.08), MCP1703CB_PINS)
+    out += box_symbol(prefix + "TPS3700DDCR", "U", "TPS3700DDCR",
+                      "Package_TO_SOT_SMD:SOT-23-6",
+                      "18V VM supervisor; OUTA undervoltage output, INA+ divider input, INB- grounded",
+                      (-7.62, -7.62, 7.62, 7.62), TPS3700_PINS)
+    out += box_symbol(prefix + "SN74LVC1G3157", "U", "SN74LVC1G3157DCKR",
+                      "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+                      "SPDT takeover mux; B2=MCU pass-through, B1=fail-safe level, A=DRV input, S=/VM_OK",
+                      (-3.81, -3.81, 3.81, 3.81), MUX_PINS)
     out += box_symbol(prefix + "SW_Push_4P", "SW", "SW_Push_4P",
                       "Button_Switch_SMD:SW_SPST_TL3342",
                       "4-pin SMD tactile switch: pins 1-2 common, 3-4 common",
@@ -171,9 +200,7 @@ STD = {
     "Connector:TestPoint": ("Connector", "TestPoint", None),
     "Connector:Screw_Terminal_01x02": ("Connector", "Screw_Terminal_01x02", None),
     "Connector_Generic:Conn_01x04": ("Connector_Generic", "Conn_01x04", None),
-    "74xGxx:74LVC1G123": ("74xGxx", "74LVC1G123", None),
     "Driver_Motor:DRV8871DDA": ("Driver_Motor", "DRV8871DDA", None),
-    "Power_Supervisor:TPS3839DBZ": ("Power_Supervisor", "TPS3839DBZ", None),
     "power:GND": ("power", "GND", None),
     "power:+3V3": ("power", "+3V3", None),
     "power:PWR_FLAG": ("power", "PWR_FLAG", None),
@@ -183,6 +210,8 @@ CUSTOM_PINS = {
     "co2v5:ATtiny84A-SSU": None,  # filled below from parent lib block
     "co2v5:DS3231M_SO16": [(n, t, x, y, a, False) for (n, _, t, x, y, a) in DS3231M_PINS],
     "co2v5:MCP1703A-3302E-CB": [(n, t, x, y, a, False) for (n, _, t, x, y, a) in MCP1703CB_PINS],
+    "co2v5:TPS3700DDCR": [(n, t, x, y, a, False) for (n, _, t, x, y, a) in TPS3700_PINS],
+    "co2v5:SN74LVC1G3157": [(n, t, x, y, a, False) for (n, _, t, x, y, a) in MUX_PINS],
     "co2v5:SW_Push_4P": [(n, t, x, y, a, False) for (n, _, t, x, y, a) in SW4_PINS],
 }
 
@@ -331,8 +360,11 @@ C_FP = "Capacitor_SMD:C_0603_1608Metric"
 C0805_FP = "Capacitor_SMD:C_0805_2012Metric"
 C1206_FP = "Capacitor_SMD:C_1206_3216Metric"
 SMA_FP = "Diode_SMD:D_SMA"
+SOD323_FP = "Diode_SMD:D_SOD-323"
 SOT23_FP = "Package_TO_SOT_SMD:SOT-23"
 TERM_FP = "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal"
+SC1_FP = "co2v5:CP_CHP_10x5_P7.50mm"
+SW_FP = "co2v5:PTS645SM43SMTR92LFS"
 
 r1, r2, r3, r4, r5 = 38.1, 111.76, 182.88, 254.0, 325.12
 
@@ -355,19 +387,21 @@ place("J6", "Connector:Screw_Terminal_01x02", 101.6, r1, 0, "BAT2_9V", TERM_FP,
       {"1": "VBAT2_IN", "2": "GND"})
 D("D5", 139.7, r1, "SS34", "VIN_OR", "VBAT2_IN", fp=SMA_FP)
 place("J5", "Connector:Barrel_Jack_Switch", 177.8, r1, 0, "DC_9-12V",
-      "Connector_BarrelJack:BarrelJack_Horizontal",
+      "co2v5:BarrelJack_CUI_PJ-002A",
       {"1": "VIN_DC", "2": "GND", "3": "GND"})
 D("D4", 215.9, r1, "SS34", "VIN_OR", "VIN_DC", fp=SMA_FP)
-place("F1", "Device:Polyfuse", 254.0, r1, 0, "PPTC 1.1A MF-R110",
+place("F1", "Device:Polyfuse", 254.0, r1, 0, F1_VALUE,
       "Fuse:Fuse_1812_4532Metric", {"1": "VIN_OR", "2": "VM"})
 place("TVS1", "Device:D_Zener", 292.1, r1, 0, "SMAJ15A", SMA_FP,
       {"1": "VIN_DC", "2": "GND"})
 place("TVS2", "Device:D_Zener", 330.2, r1, 0, "SMAJ15A", SMA_FP,
       {"1": "VM", "2": "GND"})
-place("C1", "Device:C_Polarized", 368.3, r1, 0, "470uF 16V 105C low-ESR",
+place("C1", "Device:C_Polarized", 368.3, r1, 0, "1000uF 25V 105C low-ESR",
+      "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm", {"1": "VM", "2": "GND"})
+place("C19", "Device:C_Polarized", 393.7, r1, 0, "1000uF 25V 105C low-ESR",
       "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm", {"1": "VM", "2": "GND"})
 place("U3", "co2v5:MCP1703A-3302E-CB", 406.4, r1, 0, "MCP1703A-3302E/CB", SOT23_FP,
-      {"1": "GND", "2": "VM", "3": "+3V3"})
+      {"1": "GND", "2": "+3V3", "3": "VM"})
 C("C2", 444.5, r1, "1uF X7R 25V", "VM", "GND", fp=C0805_FP)
 C("C3", 482.6, r1, "1uF X7R 16V", "+3V3", "GND", fp=C0805_FP)
 C("C12", 520.7, r1, "10uF X7R 16V", "+3V3", "GND", fp=C0805_FP)
@@ -376,7 +410,7 @@ C("C12", 520.7, r1, "10uF X7R 16V", "+3V3", "GND", fp=C0805_FP)
 add_text("MCU / ISP / DISPLAY / VM SENSE", 12.7, r2 - 40.64)
 place("U1", "co2v5:ATtiny84A-SSU", 50.8, r2, 0, "ATtiny84A-SSU",
       "Package_SO:SOIC-14_3.9x8.7mm_P1.27mm",
-      {"1": "+3V3", "2": "DRV_IN1", "3": "DRV_IN2_MCU", "4": "/RESET",
+      {"1": "+3V3", "2": "DRV_IN1_MCU", "3": "DRV_IN2_MCU", "4": "/RESET",
        "5": "/ALERT", "6": "TM_DIO", "7": "SDA", "8": "MISO", "9": "SCL",
        "10": "TM_CLK", "11": "BTN_SET", "12": "BTN_UP", "13": "VM_SENSE",
        "14": "GND"})
@@ -416,7 +450,7 @@ add_wire(520.7, r2, 530.86, r2, "VBAT_RTC")
 add_glabel("VBAT_RTC", 530.86, r2, 0)
 
 # --- Row 3: RTC + backup supercap + pull-ups, supervisor
-add_text("RTC + SUPERCAP BACKUP / SUPERVISOR", 12.7, r3 - 33.02)
+add_text("RTC + SUPERCAP BACKUP / VM SUPERVISOR", 12.7, r3 - 33.02)
 place("U2", "co2v5:DS3231M_SO16", 50.8, r3, 0, "DS3231M+TRL",
       "Package_SO:SOIC-16W_7.5x10.3mm_P1.27mm",
       {"16": "SCL", "15": "SDA", "4": ("NC",), "1": ("NC",), "3": "/ALERT",
@@ -428,52 +462,49 @@ R("R2", 139.7, r3, "10K", "SDA", "+3V3")
 R("R3", 165.1, r3, "10K", "SCL", "+3V3")
 R("R4", 190.5, r3, "10K", "/ALERT", "+3V3")
 R("R5", 215.9, r3, "220R", "+3V3", "VBAT_CHG")
-D("D2", 254.0, r3, "BAT54", "VBAT_RTC", "VBAT_CHG")
-place("SC1", "Device:C_Polarized", 292.1, r3, 0, "1F 5.5V PB-5R0V105-R",
-      "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm", {"1": "VBAT_RTC", "2": "GND"})
-place("U5", "Power_Supervisor:TPS3839DBZ", 342.9, r3, 0, "TPS3839K33DBZR", SOT23_FP,
-      {"1": "GND", "2": "/SUPV", "3": "+3V3"})
-C("C13", 381.0, r3, "100nF X7R", "+3V3", "GND")
-D("D3", 419.1, r3, "BAT54", "/SUPV", "/ALERT")
+D("D2", 254.0, r3, "BAT54", "VBAT_RTC", "VBAT_CHG", fp=SOD323_FP)
+place("SC1", "Device:C_Polarized", 292.1, r3, 0, "0.1F 5.5V CHP5R5L104R-TW",
+      SC1_FP, {"1": "VBAT_RTC", "2": "GND"})
+place("U5", "co2v5:TPS3700DDCR", 342.9, r3, 0, "TPS3700DDCR", "Package_TO_SOT_SMD:SOT-23-6",
+      {"1": "/VM_OK", "2": "GND", "3": "VM_DIV", "4": "GND", "5": "VM", "6": ("NC",)})
+C("C9", 381.0, r3, "100nF X7R", "VM", "GND")
+D("D3", 419.1, r3, "BAT54", "/VM_OK", "/ALERT", fp=SOD323_FP)
 place("TP2", "Connector:TestPoint", 457.2, r3, 0, "TP_SUPV",
-      "TestPoint:TestPoint_Pad_D1.5mm", {"1": "/SUPV"})
+      "TestPoint:TestPoint_Pad_D1.5mm", {"1": "/VM_OK"})
+R("R13", 482.6, r3, R13_VALUE, "VM", "VM_DIV")
+R("R16", 508.0, r3, R16_VALUE, "VM_DIV", "GND")
+R("R17", 533.4, r3, "100K", "/VM_OK", "GND")
+R("R18", 558.8, r3, "10K", "/VM_OK", "+3V3")
 
-# --- Row 4: motor driver + solenoid + one-shot
-add_text("SOLENOID DRIVER / HW CLOSE ONE-SHOT", 12.7, r4 - 33.02)
+# --- Row 4: motor driver + solenoid + fail-safe mux takeover
+add_text("SOLENOID DRIVER / FAIL-SAFE MUX TAKEOVER", 12.7, r4 - 33.02)
 place("U4", "Driver_Motor:DRV8871DDA", 50.8, r4, 0, "DRV8871DDAR",
       "Package_SO:Texas_HTSOP-8-1EP_3.9x4.9mm_P1.27mm_EP2.95x4.9mm_Mask2.4x3.1mm_ThermalVias",
       {"1": "GND", "2": "DRV_IN2", "3": "DRV_IN1", "4": "ILIM", "5": "VM",
        "6": "SOL_OUT1", "7": "GND", "8": "SOL_OUT2", "9": "GND"})
-R("R6", 114.3, r4, "43K 1%", "ILIM", "GND")
+R("R6", 114.3, r4, R6_VALUE, "ILIM", "GND")
 C("C4", 139.7, r4, "10uF X7R 25V", "VM", "GND", fp=C1206_FP)
 C("C5", 165.1, r4, "100nF X7R 25V", "VM", "GND")
 R("R14", 190.5, r4, "100K", "DRV_IN1", "GND")
 R("R15", 215.9, r4, "100K", "DRV_IN2", "GND")
-R("R16", 241.3, r4, "1K", "DRV_IN2_MCU", "DRV_IN2")
+place("U6", "co2v5:SN74LVC1G3157", 342.9, r4, 0, "SN74LVC1G3157DCKR", "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      {"1": "DRV_IN1_MCU", "2": "GND", "3": "GND", "4": "DRV_IN1", "5": "+3V3", "6": "/VM_OK"})
+place("U7", "co2v5:SN74LVC1G3157", 393.7, r4, 0, "SN74LVC1G3157DCKR", "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      {"1": "DRV_IN2_MCU", "2": "GND", "3": "+3V3", "4": "DRV_IN2", "5": "+3V3", "6": "/VM_OK"})
 place("J2", "Connector:Screw_Terminal_01x02", 281.94, r4, 0, "SOLENOID", TERM_FP,
       {"1": "SOL_OUT1", "2": "SOL_OUT2"})
-D("D6", 320.04, r4, "BAT54", "DRV_IN2", "ONESHOT_Q")
-place("U6", "74xGxx:74LVC1G123", 368.3, r4, 0, "SN74LVC1G123DCUR",
-      "Package_SO:VSSOP-8_2.3x2mm_P0.5mm",
-      {"1": "/SUPV", "2": "+3V3", "3": "+3V3", "5": "ONESHOT_Q",
-       "6": "OS_CEXT", "7": "OS_RC"}, unit=1)
-place("U6", "74xGxx:74LVC1G123", 419.1, r4, 0, "SN74LVC1G123DCUR",
-      "Package_SO:VSSOP-8_2.3x2mm_P0.5mm",
-      {"4": "GND", "8": "+3V3"}, unit=2)
-C("C8", 444.5, r4, "100nF X7R", "+3V3", "GND")
-C("C9", 469.9, r4, "470nF X7R", "OS_CEXT", "OS_RC")
-R("R13", 495.3, r4, "100K 1%", "OS_RC", "+3V3")
+C("C18", 444.5, r4, "100nF X7R", "+3V3", "GND")
 
 # --- Row 5: buttons
 add_text("BUTTONS (RC DEBOUNCE + ESD SERIES R)", 12.7, r5 - 20.32)
 place("SW1", "co2v5:SW_Push_4P", 50.8, r5, 0, "UP",
-      "Button_Switch_SMD:SW_SPST_TL3342",
+      SW_FP,
       {"1": "BTN_UP_SW", "2": "BTN_UP_SW", "3": "GND", "4": "GND"})
 R("R11", 88.9, r5, "10K", "BTN_UP_SW", "+3V3")
 R("R9", 114.3, r5, "100R", "BTN_UP_SW", "BTN_UP")
 C("C10", 139.7, r5, "100nF X7R", "BTN_UP", "GND")
 place("SW2", "co2v5:SW_Push_4P", 190.5, r5, 0, "SET",
-      "Button_Switch_SMD:SW_SPST_TL3342",
+      SW_FP,
       {"1": "BTN_SET_SW", "2": "BTN_SET_SW", "3": "GND", "4": "GND"})
 R("R12", 228.6, r5, "10K", "BTN_SET_SW", "+3V3")
 R("R10", 254.0, r5, "100R", "BTN_SET_SW", "BTN_SET")
@@ -527,13 +558,13 @@ sch.append('(kicad_sch\n\t(version 20250114)\n\t(generator "eeschema")\n'
            '\t(generator_version "10.0")\n\t(uuid "%s")\n\t(paper "A2")\n' % U())
 sch.append('''\t(title_block
 \t\t(title "GreenGuard CO2 Trap Timer")
-\t\t(date "2026-07-09")
+\t\t(date "2026-08-11")
 \t\t(rev "5.0")
 \t\t(company "GreenGuard USA")
 \t\t(comment 1 "ATtiny84A + DS3231M(+supercap) + TM1637 + DRV8871 bistable solenoid")
-\t\t(comment 2 "HW fail-safe: TPS3839 supervisor -> 74LVC1G123 one-shot -> DRV IN2 (CLOSE) diode-OR")
-\t\t(comment 3 "All 9V/12V sources OR-ed (SS34) then fused (F1 PPTC 1.1A); C1 470uF pulse reservoir")
-\t\t(comment 4 "Netlist authority: NETLIST.md Rev 5.0 2026-07-09")
+\t\t(comment 2 "HW fail-safe: TPS3700 VM supervisor -> /VM_OK selects two SN74LVC1G3157 muxes for deterministic takeover")
+\t\t(comment 3 "All 9V/12V sources OR-ed (SS34) then fused (F1); C1+C19 are 2x1000uF VM reservoir/sag support")
+\t\t(comment 4 "Netlist authority: NETLIST.md Rev 2026-08-11")
 \t)
 ''')
 sch.append('\t(lib_symbols\n')

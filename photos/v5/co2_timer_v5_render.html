@@ -280,7 +280,7 @@ footer{background:#060d07;border-top:1px solid rgba(122,171,130,.08);padding:20p
       <li><span>RTC</span><span>DS3231M ±5 ppm + supercap</span></li>
       <li><span>Valve</span><span>Bistable latching · internal</span></li>
       <li><span>Driver</span><span>DRV8871 H-bridge</span></li>
-      <li><span>Fail-safe</span><span>One-shot force-close</span></li>
+      <li><span>Fail-safe</span><span>TPS3700 + dual mux takeover</span></li>
       <li><span>Power</span><span>2× 9 V (internal) + DC jack</span></li>
       <li><span>Enclosure</span><span>1554CGY · 120×65×40 mm</span></li>
     </ul>
@@ -425,7 +425,7 @@ footer{background:#060d07;border-top:1px solid rgba(122,171,130,.08);padding:20p
     <tr><td>Enclosure</td><td>Hammond 1554CGY ABS — 120 × 65 × 40 mm (4.72 × 2.56 × 1.57 in), lid on 4 corner screws</td></tr>
     <tr><td>Solenoid valve</td><td><b>Bistable / latching, internal</b> — CO₂-compatible seals; 50 ms open/close pulse; zero hold current; wired to J2</td></tr>
     <tr><td>Valve driver</td><td>DRV8871DDAR single H-bridge (45 V), R<sub>ILIM</sub> ≈ 1.49 A — U4</td></tr>
-    <tr><td>Fail-safe</td><td>TPS3839 supervisor + SN74LVC1G123 one-shot force a close pulse even with a dead MCU (470 µF reservoir)</td></tr>
+    <tr><td>Fail-safe</td><td>TPS3700 VM supervisor + dual SN74LVC1G3157 muxes hold the bridge at CLOSE with a dead or reset MCU</td></tr>
     <tr><td>CO₂ IN / OUT</td><td>Two M10 panel-mount barb fittings on the rear end wall — 6 mm OD / 4 mm ID tubing; internal runs to the valve</td></tr>
     <tr><td>Display</td><td>TM1637 — 4-digit red 0.36″, front end face, shows HH:MM</td></tr>
     <tr><td>Buttons</td><td>UP (SW1) + SET (SW2), front end face</td></tr>

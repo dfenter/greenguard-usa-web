@@ -1,5 +1,5 @@
 // ============================================================
-// GreenGuard CO2 Trap Timer — Rev 5.0
+// GreenGuard CO2 Trap Timer — Rev 5.1
 // Schedule: ON 5:30 AM / OFF 11:30 PM (user-adjustable, EEPROM)
 //
 // Hardware (see /photos/v5/NETLIST.md — authoritative):
@@ -8,10 +8,15 @@
 //                           /INT on PB2 (INT0, shared "/ALERT")
 //   U4 DRV8871DDAR          H-bridge, bistable latching solenoid
 //                           PB0=IN1(OPEN)  PB1=IN2(CLOSE)
-//   U5 TPS3839G30           2.93 V supervisor -> /ALERT via D3
-//   U6 SN74LVC1G123         HARDWARE close one-shot on brown-out
-//                           (fires with the MCU dead — the MCU's
-//                            brown-out handling here is advisory)
+//   U5 TPS3700DDCR          VM supervisor (180K/10K divider,
+//                           nominal trip 7.50 V falling / 7.60 V rising;
+//                           datasheet-corner acceptance is 7.21–7.75 V
+//                           falling and 7.38–7.82 V rising)
+//                           open-drain /VM_OK -> /ALERT via D3
+//   U6/U7 SN74LVC1G3157     HARDWARE takeover muxes: /VM_OK low
+//                           forces IN1=0 / IN2=1 (= CLOSE) at the
+//                           bridge, MCU disconnected — works with
+//                           the MCU dead; firmware is advisory
 //   TM1637 module on J4     PA7=DIO, PA3=CLK (dedicated pins)
 //   Buttons SW1(UP)=PA1, SW2(SET)=PA2, active low, RC debounced
 //   VM battery sense: PA0/ADC0 via 100K/33K (13.0 mV/LSB)
@@ -32,12 +37,17 @@
 //  * USI TWI master has bus timeouts, 9-clock bus recovery, and
 //    3-attempt NACK retry; persistent failure sets g_rtcFault
 //    and the schedule fails SAFE (valve closed).
-//  * /ALERT is shared: DS3231M alarm vs supervisor brown-out is
+//  * /ALERT is shared: DS3231M alarm vs supervisor trip is
 //    disambiguated by reading the RTC status register (A1F/A2F).
-//    No flag (or dead bus) while /ALERT is low = brown-out →
-//    immediate CLOSE pulse. (U6 has already done it in hardware.)
-//  * ADC monitors VM: below VM_CLOSE_MV the valve force-closes
-//    and re-opening is locked out until VM > VM_REOPEN_MV.
+//    No flag (or dead bus) while /ALERT is low = VM trip →
+//    immediate CLOSE pulse. (The muxes already hold CLOSE in
+//    hardware; the firmware pulse is confirmation + journal.)
+//  * ADC monitors VM: below VM_CLOSE_MV (8.2 V) the valve force-
+//    closes and re-opening is locked out until VM > VM_REOPEN_MV
+//    (8.6 V) sustained VM_REOPEN_HOLD_MS while awake, or three
+//    consecutive WDT-reset hops while asleep; latch in .noinit. A
+//    non-WDT boot in the 8.2–8.6 V band restores that lockout after
+//    the first battery sample instead of clearing it unconditionally.
 //  * Display: full brightness on activity, dims after 10 s,
 //    blanks after 30 s; any button wakes it.
 //  * UX: hold SET 2 s → settings wizard (clock → ON time →
@@ -62,13 +72,19 @@
 #define MENU_TIMEOUT_MS     30000UL
 #define BATT_VIEW_MS        2000UL
 #define ADC_PERIOD_MS       5000UL
+#define WDT_HOP_THRESHOLD   3       // consecutive setup entries without a clean loop pass
 
 #define BRIGHT_FULL         7       // TM1637 level 0..7
 #define BRIGHT_DIM          1
 
-#define VM_CLOSE_MV         7000U   // force close + lockout below this
-#define VM_REOPEN_MV        8000U   // lockout clears above this (hysteresis)
-#define VM_WARN_MV          7600U   // "Lo" nag on display below this
+#define VM_CLOSE_MV         8200U   // force close + lockout below this
+                                    // Threshold ladder (design 2026-08-11): fw release 8.6 >
+                                    // fw close 8.2 > HW release (wc 7.82) > HW trip (wc 7.21)
+                                    // > VM min 6.5 > DRV8871 UVLO wc 6.4. 3.3 V VREF, LDO ±2%:
+                                    // ~7.92–8.49 V worst-case — always above the HW trip.
+#define VM_REOPEN_MV        8600U   // lockout clears above this, sustained (see below)
+#define VM_REOPEN_HOLD_MS   5000UL  // ...for at least this long (release debounce)
+#define VM_WARN_MV          8400U   // "Lo" nag on display below this
 
 // Defaults (used when EEPROM settings are blank/corrupt)
 #define DEF_ON_H    5
@@ -78,11 +94,15 @@
 
 // ── EEPROM map (EESAVE programmed → survives reflash) ────────
 // 0x00..0x06  settings: magic, onH, onM, offH, offM, dst, xor-ck
-// 0x10..0x4F  valve-state journal: 32 slots × [seq, 0x50|state]
+// 0x0F           valve journal format magic (below the slot array)
+// 0x10..0x6F  valve-state journal: 32 slots × [seq, val, valInv]
 #define EE_SET_BASE   ((uint8_t*)0x00)
 #define EE_SET_MAGIC  0xA5
+#define EE_VS_FORMAT_ADDR  ((uint8_t*)0x0F)
+#define EE_VS_FORMAT_MAGIC 0xA6
 #define EE_VS_BASE    ((uint8_t*)0x10)
 #define EE_VS_SLOTS   32
+#define EE_VS_STRIDE  3
 #define VS_VAL_TAG    0x50          // valid values: 0x50=closed, 0x51=open
 
 // ── Reset-cause capture + WDT prescaler, before main() ───────
@@ -90,6 +110,12 @@
 // from the instant of reset. Set the 2 s prescaler as early as
 // possible (.init3 runs before .data/.bss copy, hence .noinit).
 uint8_t g_resetFlags __attribute__((section(".noinit")));
+uint8_t g_wdtHops    __attribute__((section(".noinit")));
+uint8_t g_reopenHops __attribute__((section(".noinit")));
+uint8_t g_lockNoinit __attribute__((section(".noinit")));  // 0xA0|state: lockout latch
+                                                           // must survive 2 s WDT hops
+                                                           // (RAM latch leaked the
+                                                           // 8.2-8.6 V hysteresis band)
 
 void early_wdt_init(void) __attribute__((naked, used, section(".init3")));
 void early_wdt_init(void) {
@@ -107,7 +133,9 @@ static bool  g_valveOpen   = false;  // commanded state (mirrors EEPROM)
 static bool  g_valveKnown  = false;  // false until journal read or first pulse
 static bool  g_rtcFault    = false;  // sticky-ish: cleared by next good access
 static bool  g_timeInvalid = false;  // DS3231M OSF was set → clock needs setting
+static bool  g_alarmFault  = false;  // sticky until alarms are programmed successfully
 static bool  g_vmLockout   = false;  // low-battery close latch (hysteresis)
+static bool  g_rescueHold  = false;  // rescue boot may not reopen this boot
 static uint16_t g_vmMv     = 9999;   // last VM reading, mV
 
 // Settings (RAM copy of EEPROM)
@@ -288,8 +316,17 @@ static bool rtc_write1(uint8_t reg, uint8_t v) { return rtc_write(reg, &v, 1); }
 static bool rtc_get_time_std(uint8_t *h, uint8_t *m) {
     uint8_t b[3];
     if (!rtc_read(0x00, b, 3)) return false;
+    uint8_t st;
+    if (!rtc_read(0x0F, &st, 1)) return false;
+    g_timeInvalid = (st & 0x80) != 0;
+    uint8_t hb = b[2] & 0x3F;
+    if ((b[1] & 0x0F) > 9 || (b[1] >> 4) > 5 ||
+        (hb & 0x0F) > 9 || (hb >> 4) > 2 || bcd2dec(hb) > 23) {
+        g_rtcFault = true;
+        return false;
+    }
     *m = bcd2dec(b[1]);
-    *h = bcd2dec(b[2] & 0x3F);       // 24-h mode
+    *h = bcd2dec(hb);                 // 24-h mode
     return true;
 }
 
@@ -324,8 +361,9 @@ static bool rtc_program_alarms(void) {
     ok &= rtc_write1(0x0E, 0x07);    // INTCN=1, A2IE=1, A1IE=1
     // Clear pending alarm flags, PRESERVE OSF (bit7)
     uint8_t st;
-    if (rtc_read(0x0F, &st, 1)) ok &= rtc_write1(0x0F, st & 0x7C);
+    if (rtc_read(0x0F, &st, 1)) ok &= rtc_write1(0x0F, st & 0xFC);
     else ok = false;
+    if (ok) g_alarmFault = false;
     return ok;
 }
 
@@ -425,33 +463,58 @@ static void settingsSave(void) {
 }
 
 // Journal: each write advances one slot with seq+1, so wear is spread
-// across 32 cells (~3.2M state changes at 100k/cell). The newest slot
-// is the valid one whose successor does not continue the sequence.
-static bool vsIsValid(uint8_t val) { return (val & 0xFE) == VS_VAL_TAG; }
+// across 32 cells (~3.2M state changes at 100k/cell). Sequence 0xFF is
+// reserved as the erased sentinel; the next sequence after 0xFE is 0.
+// The newest slot is the sole valid slot whose successor is invalid or does
+// not carry the expected successor sequence. A fully continuous ring has
+// zero breaks and is ambiguous; corruption creates two or more breaks. Both
+// cases invalidate the journal so boot reconciliation force-pulses closed.
+static bool vsIsValid(uint8_t val, uint8_t valInv) {
+    return (val & 0xFE) == VS_VAL_TAG && valInv == (uint8_t)~val;
+}
+
+static uint8_t vsNextSeq(uint8_t seq) {
+    uint8_t next = (uint8_t)(seq + 1);
+    return next == 0xFF ? 0 : next;
+}
 
 static bool vsLoad(bool *open) {
-    bool found = false;
+    if (eeprom_read_byte(EE_VS_FORMAT_ADDR) != EE_VS_FORMAT_MAGIC) return false;
+    uint8_t breakCount = 0;
+    uint8_t breakSlot = 0;
     for (uint8_t i = 0; i < EE_VS_SLOTS; i++) {
-        uint8_t seq = eeprom_read_byte(EE_VS_BASE + 2 * i);
-        uint8_t val = eeprom_read_byte(EE_VS_BASE + 2 * i + 1);
-        if (!vsIsValid(val)) continue;
-        uint8_t j    = (uint8_t)((i + 1) % EE_VS_SLOTS);
-        uint8_t seqN = eeprom_read_byte(EE_VS_BASE + 2 * j);
-        uint8_t valN = eeprom_read_byte(EE_VS_BASE + 2 * j + 1);
-        if (!vsIsValid(valN) || seqN != (uint8_t)(seq + 1)) {
-            vs_slot = i; vs_seq = seq;
-            *open = (val & 0x01);
-            found = true;              // keep scanning: last break point wins
+        uint8_t seq    = eeprom_read_byte(EE_VS_BASE + EE_VS_STRIDE * i);
+        uint8_t val    = eeprom_read_byte(EE_VS_BASE + EE_VS_STRIDE * i + 1);
+        uint8_t valInv = eeprom_read_byte(EE_VS_BASE + EE_VS_STRIDE * i + 2);
+        if (seq == 0xFF || !vsIsValid(val, valInv)) continue;
+        uint8_t j = (uint8_t)((i + 1) % EE_VS_SLOTS);
+        uint8_t nextSeq = eeprom_read_byte(EE_VS_BASE + EE_VS_STRIDE * j);
+        uint8_t nextVal = eeprom_read_byte(EE_VS_BASE + EE_VS_STRIDE * j + 1);
+        uint8_t nextInv = eeprom_read_byte(EE_VS_BASE + EE_VS_STRIDE * j + 2);
+        bool successorValid = nextSeq != 0xFF && vsIsValid(nextVal, nextInv);
+        if (successorValid && nextSeq == vsNextSeq(seq)) continue;
+        if (breakCount < 2) {
+            breakCount++;
+            breakSlot = i;
         }
     }
-    return found;
+    if (breakCount != 1) return false;
+
+    uint8_t val = eeprom_read_byte(EE_VS_BASE + EE_VS_STRIDE * breakSlot + 1);
+    vs_slot = breakSlot;
+    vs_seq = eeprom_read_byte(EE_VS_BASE + EE_VS_STRIDE * breakSlot);
+    *open = (val & 0x01) != 0;
+    return true;
 }
 
 static void vsStore(bool open) {
     vs_slot = (uint8_t)((vs_slot + 1) % EE_VS_SLOTS);
-    vs_seq++;
-    eeprom_update_byte(EE_VS_BASE + 2 * vs_slot,     vs_seq);
-    eeprom_update_byte(EE_VS_BASE + 2 * vs_slot + 1, (uint8_t)(VS_VAL_TAG | (open ? 1 : 0)));
+    vs_seq = vsNextSeq(vs_seq);
+    uint8_t val = (uint8_t)(VS_VAL_TAG | (open ? 1 : 0));
+    eeprom_update_byte(EE_VS_FORMAT_ADDR, EE_VS_FORMAT_MAGIC);
+    eeprom_update_byte(EE_VS_BASE + EE_VS_STRIDE * vs_slot + 2, (uint8_t)~val);
+    eeprom_update_byte(EE_VS_BASE + EE_VS_STRIDE * vs_slot + 1, val);
+    eeprom_update_byte(EE_VS_BASE + EE_VS_STRIDE * vs_slot,     vs_seq);
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -500,6 +563,7 @@ static uint16_t adcReadVmMv(void) {
 // loaded before the first call, so a low battery does NOT cause a
 // close-pulse on every 2 s WDT hop once the valve is known closed.
 static void checkBattery(void) {
+    static uint32_t reopenSince = 0;  // millis() when VM first exceeded reopen level
     g_vmMv = adcReadVmMv();
     if (!g_vmLockout && g_vmMv < VM_CLOSE_MV) {
         _delay_ms(10);
@@ -507,10 +571,28 @@ static void checkBattery(void) {
         if (v2 < VM_CLOSE_MV) {
             g_vmMv = v2;
             g_vmLockout = true;
+            g_lockNoinit = 0xA1;              // latch survives WDT hops
+            g_reopenHops = 0;
             valveSet(false, !g_valveKnown);   // close while VM can still drive the coil
         }
-    } else if (g_vmLockout && g_vmMv > VM_REOPEN_MV) {
-        g_vmLockout = false;         // schedule may reopen on next evaluation
+        reopenSince = 0;
+    } else if (g_vmLockout) {
+        // Release only after VM holds above the reopen level for
+        // VM_REOPEN_HOLD_MS of continuous awake time (design 2026-08-11).
+        // millis() restarts on WDT hops, so release can only complete in a
+        // sustained-awake period (button wake / display session) or on a
+        // fresh power-up with a healthy battery — both intentional.
+        if (g_vmMv > VM_REOPEN_MV) {
+            uint32_t now = millis();
+            if (reopenSince == 0) reopenSince = now ? now : 1;
+            else if (now - reopenSince >= VM_REOPEN_HOLD_MS) {
+                g_vmLockout  = false;   // schedule may reopen on next evaluation
+                g_lockNoinit = 0xA0;
+                reopenSince  = 0;
+            }
+        } else {
+            reopenSince = 0;
+        }
     }
 }
 
@@ -529,7 +611,8 @@ static bool inWindow(uint8_t h, uint8_t m) {
 static void evaluateSchedule(void) {
     uint8_t h, m;
     bool desired = false;                            // fail SAFE = closed
-    if (!g_vmLockout && rtc_get_time_local(&h, &m) && !g_timeInvalid)
+    if (!g_vmLockout && !g_alarmFault && !g_rescueHold &&
+        rtc_get_time_local(&h, &m) && !g_timeInvalid)
         desired = inWindow(h, m);
     valveSet(desired, false);
 }
@@ -547,8 +630,8 @@ static void valveLoadJournal(void) {
 // schedule-correct state (or is unknown).
 static void reconcile(void) {
     uint8_t h, m;
-    bool haveTime = rtc_get_time_local(&h, &m) && !g_timeInvalid;
-    bool desired  = (haveTime && !g_vmLockout) ? inWindow(h, m) : false;
+    bool haveTime = !g_alarmFault && rtc_get_time_local(&h, &m) && !g_timeInvalid;
+    bool desired  = (haveTime && !g_vmLockout && !g_rescueHold) ? inWindow(h, m) : false;
     // force=!known: unknown → single pulse to a known state;
     // known → pulse only on mismatch (no pulse on the 2 s WDT hops)
     valveSet(desired, !g_valveKnown);
@@ -569,11 +652,19 @@ ISR(PCINT0_vect) { /* wake from power-down only (buttons) */ }
 static void serviceAlert(void) {
     g_alertFlag = 0;
     uint8_t st;
-    if (rtc_read(0x0F, &st, 1) && (st & 0x03)) {
+    // Classification is by INDEPENDENT measurement, not by alarm flags
+    // alone: /ALERT low can be the supervisor even while A1F/A2F happens
+    // to be set (stale or coincident alarm). A live VM sample below the
+    // firmware close threshold means the supervisor path wins — the muxes
+    // have physically forced CLOSE, so evaluating the schedule here could
+    // journal OPEN against a closed valve.
+    g_vmMv = adcReadVmMv();
+    bool supvLow = !(PINB & _BV(BIT_ALERT)) && (g_vmMv < VM_CLOSE_MV);
+    if (!supvLow && rtc_read(0x0F, &st, 1) && (st & 0x03)) {
         // RTC alarm: clear A1F/A2F (preserve OSF), act on schedule
-        rtc_write1(0x0F, st & 0x7C);
+        if (!rtc_write1(0x0F, st & 0xFC)) g_alarmFault = true; // sticky: close on alarm-clear failure
         evaluateSchedule();
-    } else if (!(PINB & _BV(BIT_ALERT))) {
+    } else if (supvLow || !(PINB & _BV(BIT_ALERT))) {
         // /ALERT low with no alarm flag (or dead bus) = supervisor
         // brown-out. U6 already forced the close in hardware; this is
         // the firmware's immediate confirmation pulse + lockout.
@@ -581,6 +672,8 @@ static void serviceAlert(void) {
         // re-pulse the coil / rewrite the EEPROM journal every loop.
         if (!g_vmLockout) valveSet(false, !g_valveKnown);
         g_vmLockout = true;
+        g_lockNoinit = 0xA1;
+        g_reopenHops = 0;
     }
     // Re-enable INT0 only when the line has released
     if (PINB & _BV(BIT_ALERT)) {
@@ -602,6 +695,11 @@ typedef struct {
     uint8_t  evRelease;
     uint16_t relHoldMs;   // held duration at last release
 } Btn;
+
+// Explicit prototypes: the Arduino builder hoists auto-generated prototypes
+// above this typedef, where Btn is not yet visible.
+static void btnPoll1(Btn *b, uint8_t raw);
+static uint16_t btnHeldMs(const Btn *b);
 
 static Btn btnUp, btnSet;
 
@@ -732,7 +830,10 @@ static void runMenu(void) {
 
     if (clockTouched || g_timeInvalid) rtc_set_time_local(h, m);
     settingsSave();
-    rtc_program_alarms();
+    if (!rtc_program_alarms()) {
+        g_alarmFault = true;
+        valveSet(false, true);
+    }
 
     // 3× flash confirm
     for (uint8_t i = 0; i < 3; i++) {
@@ -763,7 +864,7 @@ static void displayRefresh(void) {
         return;
     }
 
-    if (g_rtcFault || g_timeInvalid) {
+    if (g_rtcFault || g_timeInvalid || g_alarmFault) {
         showTag(SEG_E, SEG_r, SEG_r, SEG_BLANK);
         return;
     }
@@ -814,8 +915,21 @@ static void enterSleep(void) {
 // ═════════════════════════════════════════════════════════════
 void setup() {
     // WDT: already at 2 s via .init3. g_resetFlags holds MCUSR.
-    bool quietBoot = (g_resetFlags & _BV(WDRF)) &&
-                     !(g_resetFlags & (_BV(EXTRF) | _BV(PORF) | _BV(BORF)));
+    bool wdtOnly = (g_resetFlags & _BV(WDRF)) &&
+                   !(g_resetFlags & (_BV(EXTRF) | _BV(PORF) | _BV(BORF)));
+    g_rescueHold = false;
+    if (!wdtOnly) {
+        g_wdtHops = 0;                  // never trust .noinit on PORF/BORF
+        g_reopenHops = 0;
+    }
+    else if (g_wdtHops < 0xFF) g_wdtHops++;
+    bool quietBoot = wdtOnly && g_wdtHops <= WDT_HOP_THRESHOLD;
+
+    // Restore the low-battery lockout latch across WDT hops. Other reset
+    // types start with the RAM latch clear, then the first battery sample
+    // below reasserts lockout if VM is still in the 8.2–8.6 V band.
+    if (wdtOnly && (g_lockNoinit & 0xFE) == 0xA0) g_vmLockout = (g_lockNoinit == 0xA1);
+    else g_lockNoinit = 0xA0;
 
     // ── Pins ──────────────────────────────────────────────────
     // PORTB: driver inputs low outputs; /ALERT input (external pull-up)
@@ -833,14 +947,41 @@ void setup() {
     twi_init();
     settingsLoad();
     valveLoadJournal();                    // BEFORE checkBattery (see note there)
+    if (!quietBoot) {
+        valveSet(false, true);
+        g_rescueHold = wdtOnly && g_wdtHops > WDT_HOP_THRESHOLD;
+    }
 
     // ── Battery: lockout state is derived fresh each boot ─────
     checkBattery();
+    if (!wdtOnly && !g_vmLockout && g_vmMv < VM_REOPEN_MV) {
+        g_vmLockout = true;
+        g_lockNoinit = 0xA1;  // power-cycle in the 8.2–8.6 V band boots LOCKED;
+                              // release only via the sustained-8.6 V/5 s path.
+        g_reopenHops = 0;
+    }
+    if (wdtOnly && g_vmLockout) {
+        if (g_vmMv > VM_REOPEN_MV) {
+            if (g_reopenHops < 0xFF) g_reopenHops++;
+        } else {
+            g_reopenHops = 0;
+        }
+        if (g_reopenHops >= 3) {
+            g_vmLockout = false;
+            g_lockNoinit = 0xA0;
+            g_reopenHops = 0;
+        }
+    } else if (!g_vmLockout) {
+        g_reopenHops = 0;
+    }
 
     // ── RTC: OSF check, alarm (re)programming ─────────────────
     uint8_t st;
     if (rtc_read(0x0F, &st, 1)) g_timeInvalid = (st & 0x80) != 0;
-    rtc_program_alarms();                  // idempotent; also clears stale A1F/A2F
+    if (!rtc_program_alarms()) {
+        g_alarmFault = true;
+        valveSet(false, true);
+    }
 
     // ── Correct the valve (single pulse only on mismatch) ─────
     reconcile();
@@ -869,6 +1010,14 @@ void setup() {
 void loop() {
     wdt_reset();
     btnPoll();
+#ifdef TEST_HANG
+    // FA TEST ONLY: both buttons held for >5 s deliberately stop servicing
+    // the watchdog so T3 exercises the real WDT-reset/reconciliation path.
+    if (btnUp.stable && btnSet.stable && btnHeldMs(&btnUp) > 5000 &&
+        btnHeldMs(&btnSet) > 5000) {
+        for (;;) { /* intentional hang; never include TEST_HANG in production */ }
+    }
+#endif
     uint32_t now = millis();
 
     // ── /ALERT service + re-arm ───────────────────────────────
@@ -888,6 +1037,13 @@ void loop() {
         bool wasLocked = g_vmLockout;
         checkBattery();
         if (wasLocked && !g_vmLockout) evaluateSchedule();   // recovered → resync
+    }
+
+    // Alarm edges are a wake hint; this periodic pass is the reliable schedule path.
+    static uint32_t lastSched = 0;
+    if (now - lastSched >= 30000UL) {
+        lastSched = now;
+        evaluateSchedule();
     }
 
     // ── Buttons ───────────────────────────────────────────────
@@ -916,6 +1072,12 @@ void loop() {
         static uint32_t lastDraw = 0;
         if (now - lastDraw >= 250) { lastDraw = now; displayRefresh(); }
     }
+
+    // A completed pass proves this was not a hung setup/loop hop:
+    // release the rescue hold so the schedule can resume (the 30 s
+    // periodic evaluateSchedule reopens if the window is active).
+    g_wdtHops = 0;
+    g_rescueHold = false;
 
     // ── Sleep when idle (blank after 30 s; wake on button) ────
     if (idle > DISPLAY_OFF_MS && !btnUp.stable && !btnSet.stable && !g_alertFlag) {

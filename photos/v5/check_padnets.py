@@ -240,6 +240,8 @@ def main():
     pad_passed = 0
 
     for refdes, exp_entry in sorted(expected_db.items()):
+        if refdes.startswith('_'):
+            continue
         if refdes not in actual_db:
             missing_refs.append(refdes)
             continue

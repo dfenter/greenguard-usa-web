@@ -4,6 +4,9 @@ gen_pcb_altB.py — programmatic generator for co2_timer_v5_altB.kicad_pcb
 GreenGuard CO2 Timer v5, SECOND-ATTEMPT (insurance) PCB implementation.
 (Named *_altB because the concurrent first-attempt agent owns gen_pcb.py.)
 
+STATUS: SUPERSEDED ARCHIVE. This alternate board/generator predates the released
+v5.1 TPS3700 + dual-mux design; do not fabricate or regenerate it for release.
+
 Strategy: emit the .kicad_pcb s-expression from Python.
   * Footprint instances are copied verbatim from the KiCad 10 standard libraries
     (canonical geometry incl. silkscreen polarity marks and courtyards), with
@@ -1191,6 +1194,5 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
 
 

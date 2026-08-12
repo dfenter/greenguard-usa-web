@@ -1,102 +1,74 @@
-# CO2 Timer v3 -> v5 Cost Delta
+# CO2 Timer v5.1 — Cost Reconciliation
 
-GreenGuard USA | Timer-001 | BOM Engineer output | 2026-07-09
+**GreenGuard USA | Timer-001 | 2026-08-11**
 
-All costs are estimated unit cost @ qty 200. v3 costs derived from v3 BOM + typical Digi-Key/LCSC pricing.
+This document separates the Bittele PCBA line from the finished product. The
+Bittele numbers below cover PCBA only; they do not include the valve, Hammond
+enclosure, barbs, mounting hardware, batteries, snaps, tubing, or final
+assembly labor.
 
----
+## Current cost records
 
-## Summary
+| Record | Quantity tier | Amount | Scope |
+|---|---:|---:|---|
+| Legacy planning estimate | 500 | $9.50-$11.50 / unit | Superseded electronics estimate; not a Bittele quote |
+| Bittele Q101474A1 V03/V04 | 100 | $83.53 / unit | PCBA only |
+| Bittele Q101474A1 V03/V04 | 1,000 | $59.75 / unit | PCBA only |
+| Bittele Q101474A1 V03/V04 | 5,000 | $54.35 / unit | PCBA only |
+| Bittele Q101474A1 V03/V04 | 10,000 | $53.80 / unit | PCBA only |
 
-| Metric | v3 | v5 | Delta |
-|--------|----|----|-------|
-| Estimated BOM cost @ qty200 | ~$8.10 | ~$10.28 | +$2.18 (+27%) |
-| Component count (installed) | 31 (incl. DIP socket) | 48 (excl. J3 DNP) | +17 |
-| SMT parts | 12 | 36 | +24 |
-| THT parts | 19 | 12 | -7 |
-| New ICs | — | U5 supervisor, U6 one-shot | +2 |
-| New passives | — | SC1 supercap, R9-R16, C8-C14 | +15 |
+The current `co2_timer_v5_BOM.csv` hardware-lane rows sum to **$12.57 at
+qty200**, excluding the DNP J3 row. That distributor-style component estimate
+is not interchangeable with the Bittele PCBA quote and is not added to it.
 
----
+## Redesign delta
 
-## Line-by-Line Changes
+The adopted redesign delta is **+$0.21 per electronics unit** relative to the
+superseded v5 electronics concept. This is the decision-file delta for the
+following as-built changes:
 
-### Removed (v3 only)
+- VM supervision is TPS3700DDCR with the 180K/10K divider at the approximately
+  7.50 V falling trip and 7.60 V release.
+- Dual SN74LVC1G3157DCKR muxes own both bridge inputs and force `IN1=0,
+  IN2=1` on a supervisor trip.
+- The VM reservoir is C1+C19, two 1000 uF / 25 V capacitors.
+- The old timing-dependent takeover parts and deleted references are absent.
 
-| v3 RefDes | Part | Reason Removed | v3 Cost |
-|-----------|------|---------------|---------|
-| U1 (DIP-14) | ATtiny84A-PU + DIP-14 socket | Replaced by SOIC-14 (U1 + U1_SOCKET removed) | ~$1.55 + $0.30 = $1.85 |
-| U4 (v3) | DRV8833PWP TSSOP-16 | Replaced by DRV8871DDAR HSOP-8 (single H-bridge, simpler, solenoid-optimized) | ~$1.50 |
-| D1-D5 (1N4007 THT x5) | 1N4007 DO-41 | Replaced by SS34 SMA Schottky (lower V_F, SMT, faster switching); D3 was flyback (removed — DRV8871 has internal clamp, verify if additional flyback needed) | ~$0.08 x5 = $0.40 |
-| C1 (v3) | 100uF/16V electrolytic | Upsized to 470uF for larger solenoid pulse reservoir | ~$0.30 |
-| SW1/SW2 (v3 THT) | PTS645SM43SMTR92LFS THT 6x6 | Same MPN but THT; v5 uses SMD version | same MPN, minor cost parity |
-| R5, R7 (v3 4K7) | Pull-down/misc resistors | Some rationalized; see v5 R-map | ~$0.02 each |
+R6=43K produces approximately 1.49 A ILIM. That current limit is deliberately
+oversized for valve margin; it is not a promise that the final valve draws
+1.49 A. The final valve current and pulse are gated by T0 qualification.
 
-### Added (v5 only)
+## Final-assembly additions — NOT Bittele scope
 
-| v5 RefDes | Part | Reason Added | v5 Cost |
-|-----------|------|-------------|---------|
-| U5 TPS3839K33DBZR | Voltage supervisor 2.93V | Safety: closes solenoid on supply collapse even with MCU dead | +$0.62 |
-| U6 SN74LVC1G123DCUR | One-shot monostable | Drives CLOSE pulse to DRV8871 on U5 trip; ~47ms hardware guarantee | +$0.38 |
-| SC1 1F/5.5V supercap | Eaton PB-5R0V105-R | RTC VBAT backup; replaces implied coin cell (which was absent in v3/v4) | +$0.85 |
-| D2, D3, D6 BAT54 x3 | BAT54 SOD-123 Schottky | Trickle-charge isolation (D2), supervisor /ALERT isolation (D3), one-shot OR (D6) | +$0.30 total |
-| TVS1, TVS2 SMAJ15A x2 | SMAJ15A SMA TVS | Transient protection at J5 input and VM rail; missing from v3 | +$0.36 total |
-| C9 470nF | One-shot Cext timing | U6 timing network | +$0.04 |
-| C12 10uF 0805 | 3.3V bulk cap | 3.3V rail hold-up; v3 lacked dedicated bulk on 3.3V | +$0.08 |
-| C13, C14 100nF x2 | U5/ADC decoupling | Standard decoupling for new ICs | +$0.04 |
-| R6 43K | DRV8871 ILIM set | Current limiting for DRV8871; DRV8833 did not require this | +$0.02 |
-| R7/R8 100K/33K | VM ADC divider | Battery monitoring (new feature in v5) | +$0.04 |
-| R9-R12 (100R ESD + 10K pull-up x2) | Button ESD/pull-up | Added proper ESD series R + explicit pull-ups (v3 used internal MCU pull-ups only) | +$0.08 |
-| R13 100K | U6 Rext | One-shot timing | +$0.02 |
-| R14, R15, R16 | DRV8871 pull-downs + isolation | Prevent rogue valve open during MCU reset/ISP; safe diode-OR from one-shot | +$0.06 |
-| R5 220R (v5) | Supercap trickle | Trickle-charge current limit for SC1 | +$0.02 (v3 had no supercap circuit) |
+These items are outside every Bittele PCBA amount above and are not included in
+the electronics delta unless separately stated.
 
-### Changed (same function, different part)
+| Item | Current requirement | Cost status |
+|---|---|---|
+| Valve | Class specification; production MPN `TBD — qualified sample lot`; estimated $4-$7 at volume | $4-$7 at volume for the class estimate; qualification required |
+| Enclosure | Hammond 1554C2GY, retained 1554CGY family, polycarbonate IP68 | `TBD — supplier quote` |
+| CO2 barbs | 2 x 6 mm barb fittings | `TBD — supplier quote` |
+| Valve mounting | Bracket, fasteners, or approved mounting pad for the qualified sample | `TBD — first-article dry-fit / supplier quote` |
+| Battery supply | 2 x 9 V battery plus snap | `TBD — supplier quote` |
+| Tubing | Tubing sized for the 6 mm barbs; exact cut length set during dry-fit | `TBD — first-article dry-fit / supplier quote` |
 
-| v3 | v5 | Change | Cost Delta |
-|----|----|----|------------|
-| ATtiny84A-PU DIP-14 + socket | ATtiny84A-SSU SOIC-14 | Eliminates DIP socket ($0.30), reduces board area, enables full SMT assembly | -$0.30 socket, chip ~same: net ~-$0.20 |
-| DRV8833PWP TSSOP-16 dual H-bridge | DRV8871DDAR HSOP-8 single H-bridge | Simpler footprint, solenoid-optimized current limiting, lower cost | -$0.40 |
-| 1N4007 THT Schottky x5 | SS34 SMA Schottky x3 (D1, D4, D5) | SMT; lower V_F (0.5V vs 1.1V) saves ~0.3V VM headroom per OR diode; reduced from 5 to 3 (D2/D3 are new BAT54 for new circuits; D3 v3 flyback removed as DRV8871 has internal recirculation diodes) | -$0.20 net (SMT Schottky cheaper at qty) |
-| 0805 resistors + caps | 0603 resistors + caps (most) | Lower cost at LCSC; 0603 is JLCPCB basic library preference; 0805 retained only where voltage/current requires (C2/C3 LDO caps, C4 VM bulk) | -$0.05 approx |
-| 100uF/16V C1 | 470uF/16V C1 | Larger reservoir for faster/heavier solenoid; Panasonic EEU-FR1C series 105C | +$0.25 |
+The finished-unit calculation is therefore:
 
----
+```text
+finished unit = Bittele PCBA quote at the selected tier
+              + final-assembly additions above
+              + shipping, tax, and assembly labor when quoted
+```
 
-## Where the $2.18 Goes
+No finished-unit total is asserted until the valve sample lot, enclosure,
+fittings, mounting hardware, battery snaps, and tubing are quoted and the
+first-article dry-fit passes.
 
-| Category | Delta |
-|----------|-------|
-| U5 supervisor + U6 one-shot (safety hardware) | +$1.00 |
-| SC1 supercap (RTC backup, was absent in v3) | +$0.85 |
-| TVS1 + TVS2 (transient protection, absent in v3) | +$0.36 |
-| Additional diodes (D2/D3/D6 BAT54) | +$0.30 |
-| Additional passives (R/C for new circuits) | +$0.27 |
-| Savings: DIP->SOIC U1 (no socket), DRV8833->DRV8871, 1N4007->SS34, 0805->0603 | -$0.60 |
-| **Net** | **+$2.18** |
+## Cost decisions
 
----
-
-## Cost vs. Target
-
-Target range: $9.50-$11.50/unit @ qty 100-500.  
-Estimated v5 BOM @ qty 200: **$10.28** — within target.  
-At qty 100 (LCSC price tier ~15-20% higher for some parts): ~$11.20 — still within upper bound.  
-At qty 500 (price breaks on U1/U2/passives): ~$9.40 — slightly below lower bound (favorable).
-
-The $2.18 delta vs. v3 is justified entirely by safety features absent in v3:
-1. Hardware solenoid-close guarantee on supply collapse (U5 + U6) — prevents CO2 leak if batteries die suddenly
-2. RTC backup that actually works (supercap SC1 — v3/v4 had DS3231M VBAT wired wrong AND no backup supply)
-3. Transient protection on VM and barrel input (absent in v3)
-4. Corrected DS3231M wiring (v3/v4 silicon defect, zero cost fix)
-
----
-
-## LCSC TBD-verify Items (must resolve before submitting to JLCPCB)
-
-1. U5 TPS3839K33DBZR — search TI SOT-23-3 supervisor at LCSC; if unavailable, MCP809 SOT-23 is close substitute (verify pin order differs from TPS3839 before PCB layout)
-2. SC1 1F/5.5V supercap — Eaton PB-5R0V105-R; confirm LCSC availability or substitute KEMET FT0H105ZF; both are D14/P5mm radial but verify body height fits Hammond 1554CGY 40mm internal height with PCB standoffs
-3. C1 470uF EEU-FR1C471B — confirm LCSC stock; C TBD-verify means LCSC part number was not confirmed at BOM compile time
-4. C9 470nF 0603 — common value; confirm C1525 or equivalent
-5. R6 43K 1%, R8 33K 1% — 1% 0603 at these values is LCSC basic catalog; verify against RC0603FR series
-6. J5 DC-005 barrel: confirm DC-005 footprint LCSC part matches CUI PJ-002A footprint pin-for-pin (center tip, sleeve, switch); dozens of DC-005 clones exist on LCSC with identical PCB footprints
+- Retain the Bittele PCBA comparison exactly as quoted; do not describe it as
+  an enclosure or box-build price.
+- Retain the +$0.21 electronics redesign delta.
+- Carry the valve as a class estimate only. Its production MPN and measured
+  coil resistance remain `TBD — qualified sample lot` until T0.
+- Do not roll unquoted final-assembly items into a false BOM total.

@@ -1,5 +1,30 @@
 # FAB Package Verification Report
 
+> **SUPERSEDED:** The verification dated 2026-07-12 below is retained as an
+> audit record only. It does not describe the 2026-08-11 v5.1 as-built design
+> and must not be used for ordering or bench acceptance.
+
+## Current source status — 2026-08-11 rev 5.1
+
+- NETLIST truth is the 2026-08-11 revision: DRC 0/0 and pad oracle 172/172.
+- The current electronics use TPS3700 VM supervision, dual
+  SN74LVC1G3157 takeover muxes, and C1+C19 at 1000 uF each.
+- The current firmware reference image is ~6.2 KB; use the SHA-256 recorded in
+  `firmware/README.md` §3 and `SHA256SUMS`. Fuses remain `0xE2/0xC5/0xFF` and
+  the ISP flow is unchanged.
+- The owned source documents and mirrored package documents are synchronized in
+  this pass. The regenerated board, firmware image, SHA256SUMS, and ZIP remain
+  orchestrator outputs and must be refreshed together before shipment.
+- The first-article plan is five Bittele builds/tests shipped to GreenGuard,
+  followed by our T0-T8 real-valve bench and enclosure dry-fit. The remaining
+  95 units are held for written approval.
+
+The superseded report is preserved below without deletion.
+
+---
+
+## Superseded historical record — 2026-07-12
+
 **Date:** July 12, 2026  
 **Package:** `GreenGuard_CO2_Timer_v5_FabPackage.zip`  
 **Status:** ✓ VERIFIED COMPLETE

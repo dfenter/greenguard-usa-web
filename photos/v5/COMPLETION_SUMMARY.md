@@ -1,3 +1,8 @@
+> **SUPERSEDED — 2026-08-11 — Rev 5.1**
+>
+> This historical record is superseded by `README_FINAL.md` and the Rev 5.1
+> summary in `NETLIST.md`. **Do not use this document for manufacturing.**
+
 # CO2 Timer v5 — Design Completion Summary
 
 **Status: DESIGN PHASE COMPLETE | Manufacturing-Ready**

@@ -1,125 +1,125 @@
-# CO2 Trap Timer v5 — Fabrication Specification
+# CO2 Trap Timer v5.1 — Fabrication Specification
 
-**GreenGuard USA | Timer-001 Rev 5.0 | 2026-07-09**
+**GreenGuard USA | Timer-001 Rev 5.1 | 2026-08-11**
 
----
+This specification follows the 2026-08-11 as-built NETLIST and BOM. The
+generated `fab_package/` copy is rebuilt separately after this source document
+is approved.
 
-## PCB Fabrication
+## PCB fabrication
 
 | Parameter | Requirement |
 |---|---|
 | Board dimensions | 70 x 50 mm |
-| Layers | 2 (F.Cu + B.Cu) |
+| Layers | 2: F.Cu + B.Cu |
 | Material | FR-4, Tg >= 130 C |
 | Board thickness | 1.6 mm |
-| Copper weight | 1 oz (35 um) both layers |
-| Min trace width | 0.20 mm |
-| Min trace spacing | 0.20 mm |
-| Min drill (PTH) | 0.30 mm drill / 0.50 mm pad |
-| Min drill (NPTH) | 0.80 mm |
-| Surface finish | HASL lead-free (ENIG on request) |
+| Copper weight | 1 oz / 35 um, both layers |
+| Minimum trace width | 0.20 mm; use >=1 mm for VM and solenoid-current paths |
+| Minimum trace spacing | 0.20 mm |
+| Surface finish | ENIG (per Bittele quote) |
 | Solder mask | Green, both sides |
 | Silkscreen | White, both sides |
 | IPC class | Class 2 |
 | Edge finish | Routed, no V-score |
 | Controlled impedance | None required |
-| Pilot quantity | 10 boards |
-| Production quantity | 200 boards |
 
----
+The generated `gerbers/co2_timer_v5-job.gbrjob` finish field is set to `ENIG`
+post-export; verify this generated artifact before upload.
 
-## PCB Assembly
+As-built verification: DRC is 0 errors / 0 unconnected and the pad oracle is
+172/172. Do not regenerate from the superseded pre-redesign reference set.
 
-| Parameter | Requirement |
-|---|---|
-| SMT side | Top (F.Cu) only |
-| SMT components | U1, U2, U3, U4, U5, U6, D1–D6, TVS1, TVS2, F1, SW1, SW2, C2–C14, SC1, R1–R16 |
-| THT components | C1, J1, J2, J4, J5, J6 (turnkey) — J3 = DNP, do not install |
-| Solder paste | SAC305 or equivalent no-clean |
-| Reflow profile | Per IPC J-STD-020, component Tg >= 260 C peak |
-| IPC class | Class 2 |
+## Assembly scope and reference inventory
 
-Note on refdes list: the SMT and THT rows above are verified against `co2_timer_v5_BOM.csv`. SC1 (supercap, radial THT) is listed as SMT top in this table because the BOM designates it as "THT — hand solder." Refer to the special assembly notes for C1 and SC1 hand-solder instructions. J3 is intentionally omitted from all assembly rows (DNP — present on programming jig only).
+### Bittele / PCBA lane
+
+- SMT: U1-U7, D1-D5, TVS1/TVS2, F1, SW1/SW2, C2-C7, C9-C12, C14, C18,
+  and R1-R18.
+- THT hand-solder: C1, C19, SC1, J1, J2, J4, J5, and J6.
+- J3 is DNP and is for the ISP fixture only.
 
 ### Special assembly notes
 
-- **U1 (ATtiny84A-SSU, SOIC-14, SMT):** U1 is placed and reflowed with the rest of the SMT components in the normal pick-and-place run. The buyer programs U1 IN-CIRCUIT after board assembly via J3 (programming jig). Do not consign pre-programmed chips; do not use a socket. WDTON fuse must be burned by the buyer during in-circuit programming (always-on ~2 s watchdog). Program at 3.3 V only (J3.2 = VCC rail); never program at 5 V. Program SCK <= 125 kHz because the DS3231M (U2) sits on the I2C/ISP-shared bus during programming.
+- **U3 MCP1703A-3302E/CB:** pin 1 GND, pin 2 VOUT=`+3V3`, pin 3 VIN=`VM`.
+  Do not reverse the SOT-23A VIN/VOUT assignment.
+- **U4 DRV8871DDAR:** solder the exposed pad to the board GND thermal pad
+  with the specified thermal-via field. Pin 7 is PGND/GND.
+- **U5 TPS3700DDCR:** mount the SOT-23-6 in the verified orientation. It is
+  powered directly from VM and uses R13=180K 1% and R16=10K 1% for the
+  approximately 7.50 V falling trip and 7.60 V release; T1 acceptance is
+  falling **7.21–7.75 V** and rising **7.38–7.82 V**, including the 1% divider
+  and TI threshold corners.
+- **U6/U7 SN74LVC1G3157DCKR:** verify both muxes and `/VM_OK` routing. A
+  healthy rail passes the MCU inputs; a supervisor trip selects the fixed
+  close levels `IN1=0, IN2=1`.
+- **C1/C19:** each is EEU-FR1E102, 1000 uF / 25 V / 105 C, D10 x 20 mm,
+  P5.00 mm. Hand-solder vertically, observe polarity, and preserve the
+  as-built VM-side clearance. The pair is reservoir/sag support, not a claim
+  of unassisted valve closure after source removal.
+- **SC1:** use the as-built CDA CHP5R5L104R-TW, 0.1 F / 5.5 V, 10 x 5 x 12
+  mm, P7.50 mm vertical radial part. Observe polarity and the R5/D2 charge
+  path.
+- **J3:** do not populate on shipped boards. The ISP flow remains 3.3 V only,
+  with SCK at or below 125 kHz.
+- **J5:** center-positive PJ-002A barrel jack, hand-soldered. It requires a
+  **REGULATED 9-12 VDC adapter with <=13 V open-circuit voltage**. Print this
+  line on the user-facing product/assembly note: **"J5: REGULATED 9-12 VDC
+  ONLY; <=13 V OCV."** An adapter with the wrong open-circuit behavior is a
+  system-level reject; do not try to solve it by changing the TVS selection.
+- **TVS1/TVS2:** retain SMAJ15A as specified by the BOM. TVS1 protects the
+  barrel-input side and TVS2 protects VM. The regulated-adapter constraint is
+  mandatory because the regulator and TVS operating limits still apply.
+- **D2/D3:** BAT54WS-7-F on SOD-323 lands. D2 is the RTC charge-path diode;
+  D3 is advisory `/ALERT` isolation from `/VM_OK`.
 
-- **U4 (DRV8871DDAR, HSOP-8 PowerPAD):** The exposed thermal pad (PAD, electrically GND) on the underside of U4 MUST be soldered to the GND thermal pad on the PCB. The GND pad under U4 must be backed by a grid of thermal vias stitching to the B.Cu GND pour. Confirm the reflow profile achieves solder paste collapse under the exposed pad. A cold joint or missing EP bond will cause U4 to fail under solenoid drive current.
+## Fail-safe electrical integration
 
-- **J3 (ISP header, 2x3, 2.54 mm):** DNP in all production and pilot assemblies. J3 is present on the PCB footprint and is wired correctly for in-circuit programming (pin 1=MISO, pin 2=VCC, pin 3=SCK, pin 4=MOSI, pin 5=/RESET, pin 6=GND). It is installed only on the buyer's programming jig boards, not on shipped product. Do not populate J3. Do not include J3 in the THT hand-solder step.
+The board-level chain is:
 
-- **C1 (470 uF / 16 V / 105 C, radial THT electrolytic):** Hand solder after reflow. Observe polarity: positive lead to square pad (marked + on silkscreen). 470 uF low-ESR 105 C grade required (solenoid pulse reservoir; replaces v3 100 uF). Verify ESR <= 100 mohm.
+1. TPS3700DDCR senses VM through R13/R16.
+2. At the approximately 7.50 V falling trip, `/VM_OK` goes low.
+3. U6 forces DRV_IN1 low and U7 forces DRV_IN2 high.
+4. DRV8871 receives the close command and remains in that commanded state
+   while VM is below the approximately 7.60 V release condition.
 
-- **SC1 (1F / 5.5 V supercap, radial THT):** Hand solder after reflow. Observe polarity per silkscreen. Eaton PB-5R0V105-R or KEMET FT0H105ZF (verify body dimensions fit footprint CP_Radial_D14.0mm_P5.00mm before order). SC1 provides RTC (U2) VBAT backup; trickle-charged via R5 + D2 to approximately 3.05 V, which is within the DS3231M VBAT range of 2.3–5.5 V.
+The valve is a separate final-assembly item, not a Bittele PCBA item. Its
+class specification is: **2-way direct-acting bistable latching solenoid,
+6VDC single-coil polarity-reversing, 1.0-1.5 mm orifice, zero minimum
+differential, coil 17-30 ohm**, qualified by **24-72 h CO2 bubble leak-down at
+1-2 psi**. Production MPN is `TBD — qualified sample lot`.
 
-- **J1, J2, J6 (screw terminals, 5.08 mm pitch):** Angled connectors. All three connect to components enclosed INSIDE the case (no wall penetrations): J1 = BAT1 (internal 9 V cell in a base-tray clip), J6 = BAT2 (internal 9 V cell), J2 = solenoid (internal bistable valve, tubing to the rear CO₂ barbs). Silkscreen polarity: J1/J6 marked +/-, J2 marked SOL+/SOL-. See CO2_Timer_Enclosure_Drilling_v5.md → Internal Component Layout.
+The drive class is a 6 V coil from VM=7.5-12 V for 30-50 ms. R6=43K sets
+approximately 1.49 A ILIM; this is deliberately oversized for margin. Do not
+select a valve or dummy by an invented resistance value: the dummy must match
+the qualified valve measured coil resistance within +/-20%.
 
-- **J4 (1x4, 2.54 mm pin header, TM1637 display connector):** Hand solder. Front face per enclosure drilling doc (X = 18 mm from front edge). Pin 1 = VCC, pin 2 = GND, pin 3 = TM_DIO (PA7), pin 4 = TM_CLK (PA3).
+## Mechanical interface handoff
 
-- **J5 (DC barrel jack, 5.5/2.1 mm):** Hand solder. Center positive. Front face per enclosure drilling doc (X = 52 mm, Y = 20 mm). Pin 3 (insertion switch) ties to GND. Install protective rubber dust cap after assembly. Verify DC-005 footprint pin order against LCSC part before order (PJ-002A or compatible).
+Use the root `CO2_Timer_Enclosure_Drilling_v5.md` as the current drilling
+source. The retained enclosure is the Hammond 1554CGY family, resolved to
+ordering MPN **Hammond 1554C2GY**, 2-series polycarbonate IP68, 120 x 65 x 40
+mm, with 3.0 mm nominal walls. Keep the existing panel coordinates. The
+internal micro valve is approximately 40 mm with barbs and must be dry-fitted
+in the rear-corner slot with two 6 mm barb fittings, tubing, the PCB, and both
+9 V cells before production release.
 
-- **TVS1 / TVS2 (SMAJ15A, DO-214AC):** SMT. TVS1 is placed at J5 input (15 V standoff; MCP1703A VIN abs max is 16 V — if the specified DC adapter has an unloaded open-circuit voltage > 15 V, upgrade TVS1 to SMAJ18A and re-verify MCP1703A margin). TVS2 is placed on the VM rail near U4 to clamp inductive solenoid kickback.
+## Mounting and layout constraints
 
-- **D1, D4, D5 (SS34, DO-214AC):** SMT. OR-diode power input network. Reversed diodes will block input power entirely. Cathode to VIN_OR per silkscreen.
+- Four M3 clearance holes at the as-built PCB corner positions: (3,3),
+  (67,3), (3,47), and (67,47) mm.
+- Preserve the C1/C19 vertical-can clearance and the 10 mm standoff envelope.
+- Keep the U4 exposed-pad thermal-via field and wide VM/solenoid paths clear of
+  solder-mask or mechanical obstructions.
+- Keep J5, SW1, SW2, and J4 at the front edge; J1, J2, and J6 remain internal
+  wiring points as documented by the enclosure source.
 
-- **D2, D3, D6 (BAT54, SOD-123):** SMT. D2: supercap trickle-charge series diode. D3: TPS3839 push-pull supervisor isolation into open-drain /ALERT net (anode = /ALERT, cathode = /SUPV). D6: one-shot Q to DRV_IN2 diode-OR (anode = ONESHOT_Q, cathode = DRV_IN2). Observe polarity per silkscreen.
+## DRC and release record
 
-- **SW1, SW2 (6x6 mm SMD tact):** SMT; replaces v3 THT switches. SW1 = UP (front face, X = 18 mm, Y = 30 mm from top-left). SW2 = SET (X = 34 mm, Y = 30 mm). Silkscreen labels: UP and SET.
-
-- **CPL note:** Use the SMT-only CPL file (excluding THT refdes and J3 DNP) for the SMT placement run. THT assembly (C1, SC1, J1, J2, J4, J5, J6) is covered separately.
-
----
-
-## Mechanical
-
-| Parameter | Value |
+| Check | Current result |
 |---|---|
-| Mounting holes | 4x M3 clearance (3.2 mm dia), 4x 10 mm standoffs |
-| Mounting hole positions | 3 mm from each corner: (3,3), (67,3), (3,47), (67,47) |
-| Target enclosure | Hammond 1554CGY (120 x 65 x 40 mm ABS) |
-| PCB clearance in enclosure | 21 mm L/R, 3.5 mm T/B |
-
----
-
-## Layout Requirements
-
-- **U4 PowerPAD:** Thermal via grid under the HSOP-8 exposed pad, stitching to B.Cu GND pour. Verify paste aperture in the stencil covers the pad fully. See special assembly note above.
-- **Power traces (VM, VIN_OR, SOL_OUT1, SOL_OUT2, VBAT1_IN, VBAT2_IN, VIN_DC):** Minimum 1 mm trace width.
-- **B.Cu:** Full GND copper pour with stitching vias throughout.
-- **Decoupling caps:** Place at the supply pin of each IC (C6 at U1 pin 1, C7 at U2 pin 2, C2/C3 at U3 pins 2/3, C4/C5 at U4 pin 5, C13 at U5 pin 3, C8 at U6 pin 8).
-- **C1 and SC1:** Radial THT bodies; ensure clearance for D10 mm (C1) and D14 mm (SC1) cans.
-- **J3 footprint:** Retain on PCB copper and silkscreen; DNP per assembly doc.
-
----
-
-## Gerber File Index
-
-*Placeholder — populate filenames at Gerber export.*
-
-| File | Layer |
-|---|---|
-| `[to be filled at export]` | Front copper |
-| `[to be filled at export]` | Back copper |
-| `[to be filled at export]` | Front solder mask |
-| `[to be filled at export]` | Back solder mask |
-| `[to be filled at export]` | Front solder paste (stencil) |
-| `[to be filled at export]` | Front silkscreen |
-| `[to be filled at export]` | Back silkscreen |
-| `[to be filled at export]` | Board outline |
-| `[to be filled at export]` | Plated through-holes |
-| `[to be filled at export]` | Non-plated holes |
-
----
-
-## DRC Status
-
-*Placeholder — update after final DRC run in KiCad before handover.*
-
-| Check | Result |
-|---|---|
-| Unconnected nets | [to be filled] |
-| Physical violations | [to be filled] |
-| Informational items | [to be filled] |
-| Tool / version | KiCad [version] |
-| Date of DRC run | [to be filled] |
+| DRC errors / unconnected | 0 / 0 |
+| DRC warnings (accepted) | 129 — 58 lib-footprint mismatch (footprints are generated inline under library names; intentional), 39 dangling vias (plane-connected, no broken nets — verified), 15 silk overlaps, 12 silk-over-copper, 5 lib-footprint issues (same inline-generation cause) |
+| Pad oracle | 172 / 172 |
+| Board revision | 2026-08-12 as-built |
+| Generated package | Rebuild after source-document approval |

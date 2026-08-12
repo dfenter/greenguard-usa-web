@@ -1,507 +1,65 @@
 {
-  "U1": {
-    "refdes": "U1",
-    "footprint": "Package_SO:SOIC-14_3.9x8.7mm_P1.27mm",
-    "pads": {
-      "1":  "+3V3",
-      "2":  "DRV_IN1",
-      "3":  "DRV_IN2_MCU",
-      "4":  "/RESET",
-      "5":  "/ALERT",
-      "6":  "TM_DIO",
-      "7":  "SDA",
-      "8":  "MISO",
-      "9":  "SCL",
-      "10": "TM_CLK",
-      "11": "BTN_SET",
-      "12": "BTN_UP",
-      "13": "VM_SENSE",
-      "14": "GND"
-    }
+  "_header": {
+    "derives_from": "NETLIST.md rev 2026-08-11",
+    "description": "Generated oracle for corrected CO2 Timer v5 hardware netlist; do not edit independently."
   },
-  "U2": {
-    "refdes": "U2",
-    "footprint": "Package_SO:SO-16_W7.5mm_P1.27mm",
-    "pads": {
-      "1":  "NC",
-      "2":  "+3V3",
-      "3":  "/ALERT",
-      "4":  "NC",
-      "5":  "GND",
-      "6":  "GND",
-      "7":  "GND",
-      "8":  "GND",
-      "9":  "GND",
-      "10": "GND",
-      "11": "GND",
-      "12": "GND",
-      "13": "GND",
-      "14": "VBAT_RTC",
-      "15": "SDA",
-      "16": "SCL"
-    }
-  },
-  "U3": {
-    "refdes": "U3",
-    "footprint": "Package_TO_SOT_SMD:SOT-23",
-    "pads": {
-      "1": "GND",
-      "2": "VM",
-      "3": "+3V3"
-    }
-  },
-  "U4": {
-    "refdes": "U4",
-    "footprint": "Package_SO:HSOP-8_3.9x4.9mm_P1.27mm_PowerPAD",
-    "pads": {
-      "1":   "GND",
-      "2":   "DRV_IN2",
-      "3":   "DRV_IN1",
-      "4":   "ILIM",
-      "5":   "VM",
-      "6":   "SOL_OUT1",
-      "7":   "GND",
-      "8":   "SOL_OUT2",
-      "PAD": "GND"
-    }
-  },
-  "U5": {
-    "refdes": "U5",
-    "footprint": "Package_TO_SOT_SMD:SOT-23",
-    "pads": {
-      "1": "GND",
-      "2": "/SUPV",
-      "3": "+3V3"
-    }
-  },
-  "U6": {
-    "refdes": "U6",
-    "footprint": "Package_SO:VSSOP-8_2.4x2mm_P0.5mm",
-    "pads": {
-      "1": "/SUPV",
-      "2": "+3V3",
-      "3": "+3V3",
-      "4": "GND",
-      "5": "ONESHOT_Q",
-      "6": "OS_CEXT",
-      "7": "OS_RC",
-      "8": "+3V3"
-    }
-  },
-  "D1": {
-    "refdes": "D1",
-    "footprint": "Diode_SMD:D_SMA",
-    "pads": {
-      "A": "VBAT1_IN",
-      "K": "VIN_OR"
-    }
-  },
-  "D2": {
-    "refdes": "D2",
-    "footprint": "Package_TO_SOT_SMD:SOT-23",
-    "pads": {
-      "A": "VBAT_CHG",
-      "K": "VBAT_RTC"
-    }
-  },
-  "D3": {
-    "refdes": "D3",
-    "footprint": "Package_TO_SOT_SMD:SOT-23",
-    "pads": {
-      "A": "/ALERT",
-      "K": "/SUPV"
-    }
-  },
-  "D4": {
-    "refdes": "D4",
-    "footprint": "Diode_SMD:D_SMA",
-    "pads": {
-      "A": "VIN_DC",
-      "K": "VIN_OR"
-    }
-  },
-  "D5": {
-    "refdes": "D5",
-    "footprint": "Diode_SMD:D_SMA",
-    "pads": {
-      "A": "VBAT2_IN",
-      "K": "VIN_OR"
-    }
-  },
-  "D6": {
-    "refdes": "D6",
-    "footprint": "Package_TO_SOT_SMD:SOT-23",
-    "pads": {
-      "A": "ONESHOT_Q",
-      "K": "DRV_IN2"
-    }
-  },
-  "TVS1": {
-    "refdes": "TVS1",
-    "footprint": "Diode_SMD:D_SMA",
-    "pads": {
-      "A": "GND",
-      "K": "VIN_DC"
-    }
-  },
-  "TVS2": {
-    "refdes": "TVS2",
-    "footprint": "Diode_SMD:D_SMA",
-    "pads": {
-      "A": "GND",
-      "K": "VM"
-    }
-  },
-  "F1": {
-    "refdes": "F1",
-    "footprint": "Fuse:Fuse_1812_4532Metric",
-    "pads": {
-      "1": "VIN_OR",
-      "2": "VM"
-    }
-  },
-  "R1": {
-    "refdes": "R1",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "/RESET",
-      "2": "+3V3"
-    }
-  },
-  "R2": {
-    "refdes": "R2",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "SDA",
-      "2": "+3V3"
-    }
-  },
-  "R3": {
-    "refdes": "R3",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "SCL",
-      "2": "+3V3"
-    }
-  },
-  "R4": {
-    "refdes": "R4",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "/ALERT",
-      "2": "+3V3"
-    }
-  },
-  "R5": {
-    "refdes": "R5",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "+3V3",
-      "2": "VBAT_CHG"
-    }
-  },
-  "R6": {
-    "refdes": "R6",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "ILIM",
-      "2": "GND"
-    }
-  },
-  "R7": {
-    "refdes": "R7",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "VM",
-      "2": "VM_SENSE"
-    }
-  },
-  "R8": {
-    "refdes": "R8",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "VM_SENSE",
-      "2": "GND"
-    }
-  },
-  "R9": {
-    "refdes": "R9",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "BTN_UP_SW",
-      "2": "BTN_UP"
-    }
-  },
-  "R10": {
-    "refdes": "R10",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "BTN_SET_SW",
-      "2": "BTN_SET"
-    }
-  },
-  "R11": {
-    "refdes": "R11",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "BTN_UP_SW",
-      "2": "+3V3"
-    }
-  },
-  "R12": {
-    "refdes": "R12",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "BTN_SET_SW",
-      "2": "+3V3"
-    }
-  },
-  "R13": {
-    "refdes": "R13",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "OS_RC",
-      "2": "+3V3"
-    }
-  },
-  "R14": {
-    "refdes": "R14",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "DRV_IN1",
-      "2": "GND"
-    }
-  },
-  "R15": {
-    "refdes": "R15",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "DRV_IN2",
-      "2": "GND"
-    }
-  },
-  "R16": {
-    "refdes": "R16",
-    "footprint": "Resistor_SMD:R_0603_1608Metric",
-    "pads": {
-      "1": "DRV_IN2_MCU",
-      "2": "DRV_IN2"
-    }
-  },
-  "C1": {
-    "refdes": "C1",
-    "footprint": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
-    "pads": {
-      "+": "VM",
-      "-": "GND"
-    }
-  },
-  "C2": {
-    "refdes": "C2",
-    "footprint": "Capacitor_SMD:C_0805_2012Metric",
-    "pads": {
-      "1": "VM",
-      "2": "GND"
-    }
-  },
-  "C3": {
-    "refdes": "C3",
-    "footprint": "Capacitor_SMD:C_0805_2012Metric",
-    "pads": {
-      "1": "+3V3",
-      "2": "GND"
-    }
-  },
-  "C4": {
-    "refdes": "C4",
-    "footprint": "Capacitor_SMD:C_1206_3216Metric",
-    "pads": {
-      "1": "VM",
-      "2": "GND"
-    }
-  },
-  "C5": {
-    "refdes": "C5",
-    "footprint": "Capacitor_SMD:C_0603_1608Metric",
-    "pads": {
-      "1": "VM",
-      "2": "GND"
-    }
-  },
-  "C6": {
-    "refdes": "C6",
-    "footprint": "Capacitor_SMD:C_0603_1608Metric",
-    "pads": {
-      "1": "+3V3",
-      "2": "GND"
-    }
-  },
-  "C7": {
-    "refdes": "C7",
-    "footprint": "Capacitor_SMD:C_0603_1608Metric",
-    "pads": {
-      "1": "+3V3",
-      "2": "GND"
-    }
-  },
-  "C8": {
-    "refdes": "C8",
-    "footprint": "Capacitor_SMD:C_0603_1608Metric",
-    "pads": {
-      "1": "+3V3",
-      "2": "GND"
-    }
-  },
-  "C9": {
-    "refdes": "C9",
-    "footprint": "Capacitor_SMD:C_0603_1608Metric",
-    "pads": {
-      "1": "OS_CEXT",
-      "2": "OS_RC"
-    }
-  },
-  "C10": {
-    "refdes": "C10",
-    "footprint": "Capacitor_SMD:C_0603_1608Metric",
-    "pads": {
-      "1": "BTN_UP",
-      "2": "GND"
-    }
-  },
-  "C11": {
-    "refdes": "C11",
-    "footprint": "Capacitor_SMD:C_0603_1608Metric",
-    "pads": {
-      "1": "BTN_SET",
-      "2": "GND"
-    }
-  },
-  "C12": {
-    "refdes": "C12",
-    "footprint": "Capacitor_SMD:C_0805_2012Metric",
-    "pads": {
-      "1": "+3V3",
-      "2": "GND"
-    }
-  },
-  "C13": {
-    "refdes": "C13",
-    "footprint": "Capacitor_SMD:C_0603_1608Metric",
-    "pads": {
-      "1": "+3V3",
-      "2": "GND"
-    }
-  },
-  "C14": {
-    "refdes": "C14",
-    "footprint": "Capacitor_SMD:C_0603_1608Metric",
-    "pads": {
-      "1": "VM_SENSE",
-      "2": "GND"
-    }
-  },
-  "SC1": {
-    "refdes": "SC1",
-    "footprint": "Capacitor_THT:CP_Radial_D5.0mm_P2.00mm",
-    "pads": {
-      "+": "VBAT_RTC",
-      "-": "GND"
-    }
-  },
-  "SW1": {
-    "refdes": "SW1",
-    "footprint": "Button_Switch_SMD:SW_SPST_SKQG_WithStem",
-    "pads": {
-      "1": "BTN_UP_SW",
-      "2": "BTN_UP_SW",
-      "3": "GND",
-      "4": "GND"
-    }
-  },
-  "SW2": {
-    "refdes": "SW2",
-    "footprint": "Button_Switch_SMD:SW_SPST_SKQG_WithStem",
-    "pads": {
-      "1": "BTN_SET_SW",
-      "2": "BTN_SET_SW",
-      "3": "GND",
-      "4": "GND"
-    }
-  },
-  "J1": {
-    "refdes": "J1",
-    "footprint": "Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled",
-    "pads": {
-      "1": "VBAT1_IN",
-      "2": "GND"
-    }
-  },
-  "J2": {
-    "refdes": "J2",
-    "footprint": "Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled",
-    "pads": {
-      "1": "SOL_OUT1",
-      "2": "SOL_OUT2"
-    }
-  },
-  "J3": {
-    "refdes": "J3",
-    "footprint": "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical",
-    "pads": {
-      "1": "MISO",
-      "2": "+3V3",
-      "3": "SCL",
-      "4": "SDA",
-      "5": "/RESET",
-      "6": "GND"
-    }
-  },
-  "J4": {
-    "refdes": "J4",
-    "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
-    "pads": {
-      "1": "+3V3",
-      "2": "GND",
-      "3": "TM_DIO",
-      "4": "TM_CLK"
-    }
-  },
-  "J5": {
-    "refdes": "J5",
-    "footprint": "Connector_BarrelJack:BarrelJack_CUI_PJ-002A",
-    "pads": {
-      "1": "VIN_DC",
-      "2": "GND",
-      "3": "GND"
-    }
-  },
-  "J6": {
-    "refdes": "J6",
-    "footprint": "Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled",
-    "pads": {
-      "1": "VBAT2_IN",
-      "2": "GND"
-    }
-  },
-  "TP1": {
-    "refdes": "TP1",
-    "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
-    "pads": {
-      "1": "MISO"
-    }
-  },
-  "TP2": {
-    "refdes": "TP2",
-    "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
-    "pads": {
-      "1": "/SUPV"
-    }
-  },
-  "TP3": {
-    "refdes": "TP3",
-    "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
-    "pads": {
-      "1": "VM"
-    }
-  }
+  "U1": {"refdes":"U1","footprint":"Package_SO:SOIC-14_3.9x8.7mm_P1.27mm","pads":{"1":"+3V3","2":"DRV_IN1_MCU","3":"DRV_IN2_MCU","4":"/RESET","5":"/ALERT","6":"TM_DIO","7":"SDA","8":"MISO","9":"SCL","10":"TM_CLK","11":"BTN_SET","12":"BTN_UP","13":"VM_SENSE","14":"GND"}},
+  "U2": {"refdes":"U2","footprint":"Package_SO:SO-16_W7.5mm_P1.27mm","pads":{"1":"NC","2":"+3V3","3":"/ALERT","4":"NC","5":"GND","6":"GND","7":"GND","8":"GND","9":"GND","10":"GND","11":"GND","12":"GND","13":"GND","14":"VBAT_RTC","15":"SDA","16":"SCL"}},
+  "U3": {"refdes":"U3","footprint":"Package_TO_SOT_SMD:SOT-23","pads":{"1":"GND","2":"+3V3","3":"VM"}},
+  "U4": {"refdes":"U4","footprint":"Package_SO:HSOP-8_3.9x4.9mm_P1.27mm_PowerPAD","pads":{"1":"GND","2":"DRV_IN2","3":"DRV_IN1","4":"ILIM","5":"VM","6":"SOL_OUT1","7":"GND","8":"SOL_OUT2","PAD":"GND"}},
+  "U5": {"refdes":"U5","footprint":"Package_TO_SOT_SMD:SOT-23-6","pads":{"1":"/VM_OK","2":"GND","3":"VM_DIV","4":"GND","5":"VM","6":"NC"}},
+  "U6": {"refdes":"U6","footprint":"Package_TO_SOT_SMD:SOT-363_SC-70-6","pads":{"1":"DRV_IN1_MCU","2":"GND","3":"GND","4":"DRV_IN1","5":"+3V3","6":"/VM_OK"}},
+  "U7": {"refdes":"U7","footprint":"Package_TO_SOT_SMD:SOT-363_SC-70-6","pads":{"1":"DRV_IN2_MCU","2":"GND","3":"+3V3","4":"DRV_IN2","5":"+3V3","6":"/VM_OK"}},
+  "D1": {"refdes":"D1","footprint":"Diode_SMD:D_SMA","pads":{"A":"VBAT1_IN","K":"VIN_OR"}},
+  "D2": {"refdes":"D2","footprint":"Diode_SMD:D_SOD-323","pads":{"A":"VBAT_CHG","K":"VBAT_RTC"}},
+  "D3": {"refdes":"D3","footprint":"Diode_SMD:D_SOD-323","pads":{"A":"/ALERT","K":"/VM_OK"}},
+  "D4": {"refdes":"D4","footprint":"Diode_SMD:D_SMA","pads":{"A":"VIN_DC","K":"VIN_OR"}},
+  "D5": {"refdes":"D5","footprint":"Diode_SMD:D_SMA","pads":{"A":"VBAT2_IN","K":"VIN_OR"}},
+  "TVS1": {"refdes":"TVS1","footprint":"Diode_SMD:D_SMA","pads":{"A":"GND","K":"VIN_DC"}},
+  "TVS2": {"refdes":"TVS2","footprint":"Diode_SMD:D_SMA","pads":{"A":"GND","K":"VM"}},
+  "F1": {"refdes":"F1","footprint":"Fuse:Fuse_1812_4532Metric","pads":{"1":"VIN_OR","2":"VM"}},
+  "R1": {"refdes":"R1","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"/RESET","2":"+3V3"}},
+  "R2": {"refdes":"R2","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"SDA","2":"+3V3"}},
+  "R3": {"refdes":"R3","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"SCL","2":"+3V3"}},
+  "R4": {"refdes":"R4","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"/ALERT","2":"+3V3"}},
+  "R5": {"refdes":"R5","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"+3V3","2":"VBAT_CHG"}},
+  "R6": {"refdes":"R6","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"ILIM","2":"GND"}},
+  "R7": {"refdes":"R7","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"VM","2":"VM_SENSE"}},
+  "R8": {"refdes":"R8","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"VM_SENSE","2":"GND"}},
+  "R9": {"refdes":"R9","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"BTN_UP_SW","2":"BTN_UP"}},
+  "R10": {"refdes":"R10","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"BTN_SET_SW","2":"BTN_SET"}},
+  "R11": {"refdes":"R11","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"BTN_UP_SW","2":"+3V3"}},
+  "R12": {"refdes":"R12","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"BTN_SET_SW","2":"+3V3"}},
+  "R13": {"refdes":"R13","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"VM","2":"VM_DIV"}},
+  "R14": {"refdes":"R14","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"DRV_IN1","2":"GND"}},
+  "R15": {"refdes":"R15","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"DRV_IN2","2":"GND"}},
+  "R16": {"refdes":"R16","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"VM_DIV","2":"GND"}},
+  "R17": {"refdes":"R17","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"/VM_OK","2":"GND"}},
+  "R18": {"refdes":"R18","footprint":"Resistor_SMD:R_0603_1608Metric","pads":{"1":"/VM_OK","2":"+3V3"}},
+  "C1": {"refdes":"C1","footprint":"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm","pads":{"+":"VM","-":"GND"}},
+  "C19": {"refdes":"C19","footprint":"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm","pads":{"+":"VM","-":"GND"}},
+  "C2": {"refdes":"C2","footprint":"Capacitor_SMD:C_0805_2012Metric","pads":{"1":"VM","2":"GND"}},
+  "C3": {"refdes":"C3","footprint":"Capacitor_SMD:C_0805_2012Metric","pads":{"1":"+3V3","2":"GND"}},
+  "C4": {"refdes":"C4","footprint":"Capacitor_SMD:C_1206_3216Metric","pads":{"1":"VM","2":"GND"}},
+  "C5": {"refdes":"C5","footprint":"Capacitor_SMD:C_0603_1608Metric","pads":{"1":"VM","2":"GND"}},
+  "C6": {"refdes":"C6","footprint":"Capacitor_SMD:C_0603_1608Metric","pads":{"1":"+3V3","2":"GND"}},
+  "C7": {"refdes":"C7","footprint":"Capacitor_SMD:C_0603_1608Metric","pads":{"1":"+3V3","2":"GND"}},
+  "C9": {"refdes":"C9","footprint":"Capacitor_SMD:C_0603_1608Metric","pads":{"1":"VM","2":"GND"}},
+  "C10": {"refdes":"C10","footprint":"Capacitor_SMD:C_0603_1608Metric","pads":{"1":"BTN_UP","2":"GND"}},
+  "C11": {"refdes":"C11","footprint":"Capacitor_SMD:C_0603_1608Metric","pads":{"1":"BTN_SET","2":"GND"}},
+  "C12": {"refdes":"C12","footprint":"Capacitor_SMD:C_0805_2012Metric","pads":{"1":"+3V3","2":"GND"}},
+  "C14": {"refdes":"C14","footprint":"Capacitor_SMD:C_0603_1608Metric","pads":{"1":"VM_SENSE","2":"GND"}},
+  "C18": {"refdes":"C18","footprint":"Capacitor_SMD:C_0603_1608Metric","pads":{"1":"+3V3","2":"GND"}},
+  "SC1": {"refdes":"SC1","footprint":"co2v5:CP_CHP_10x5_P7.50mm","pads":{"+":"VBAT_RTC","-":"GND"}},
+  "SW1": {"refdes":"SW1","footprint":"co2v5:PTS645SM43SMTR92LFS","pads":{"1":"BTN_UP_SW","2":"BTN_UP_SW","3":"GND","4":"GND"}},
+  "SW2": {"refdes":"SW2","footprint":"co2v5:PTS645SM43SMTR92LFS","pads":{"1":"BTN_SET_SW","2":"BTN_SET_SW","3":"GND","4":"GND"}},
+  "J1": {"refdes":"J1","footprint":"Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled","pads":{"1":"VBAT1_IN","2":"GND"}},
+  "J2": {"refdes":"J2","footprint":"Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled","pads":{"1":"SOL_OUT1","2":"SOL_OUT2"}},
+  "J3": {"refdes":"J3","footprint":"Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical","pads":{"1":"MISO","2":"+3V3","3":"SCL","4":"SDA","5":"/RESET","6":"GND"}},
+  "J4": {"refdes":"J4","footprint":"Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical","pads":{"1":"+3V3","2":"GND","3":"TM_DIO","4":"TM_CLK"}},
+  "J5": {"refdes":"J5","footprint":"co2v5:BarrelJack_CUI_PJ-002A","pads":{"1":"VIN_DC","2":"GND","3":"GND"}},
+  "J6": {"refdes":"J6","footprint":"Connector_Phoenix_MKDS:PhoenixContact_MKDS_1,5_2-5.08mm_Angled","pads":{"1":"VBAT2_IN","2":"GND"}},
+  "TP1": {"refdes":"TP1","footprint":"TestPoint:TestPoint_Pad_D1.5mm","pads":{"1":"MISO"}},
+  "TP2": {"refdes":"TP2","footprint":"TestPoint:TestPoint_Pad_D1.5mm","pads":{"1":"/VM_OK"}},
+  "TP3": {"refdes":"TP3","footprint":"TestPoint:TestPoint_Pad_D1.5mm","pads":{"1":"VM"}}
 }

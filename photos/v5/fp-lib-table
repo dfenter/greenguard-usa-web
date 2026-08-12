@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "co2v5")(type "KiCad")(uri "${KIPRJMOD}/co2v5.pretty")(options "")(descr "CO2 Timer v5 verified custom footprints"))
+)
