@@ -73,10 +73,32 @@ on run argv
 		set end of expectedHandles to "+" & digits
 	end repeat
 
+	-- Launch/activate Messages and WAIT for the process to actually exist and
+	-- come forward. `activate` returns immediately; when Messages was not
+	-- already running (or was slow after wake), the following `set frontmost`
+	-- hit a process that wasn't ready yet — "Application isn't running" (-600),
+	-- seen on the Om 8/12 and Melanie 8/11 reminders.
 	tell application "Messages" to activate
-	delay 2
+	repeat 30 times
+		try
+			tell application "System Events"
+				if exists (process "Messages") then
+					if frontmost of process "Messages" then exit repeat
+					set frontmost of process "Messages" to true
+				end if
+			end tell
+		end try
+		delay 1
+	end repeat
 	tell application "System Events"
+		if not (exists (process "Messages")) then error "MESSAGES_NOT_READY: process never appeared"
 		tell process "Messages"
+			-- Window must exist before menu-driven compose; after a cold launch
+			-- the process is up seconds before its window is.
+			repeat 20 times
+				if (count of windows) > 0 then exit repeat
+				delay 1
+			end repeat
 			set frontmost to true
 			delay 0.5
 			click menu item "New Message" of menu 1 of menu bar item "File" of menu bar 1
@@ -135,8 +157,13 @@ on run argv
 
 	-- VERIFY the thread now exists (send actually happened) before touching
 	-- any rename UI — renaming without this check can hit the wrong chat.
+	-- Wait up to ~90s: a brand-new group can take far longer than the original
+	-- 16s to register in the Messages database, especially the first send to a
+	-- number that must fall back to SMS relay. The old short timeout reported
+	-- SEND_NOT_CONFIRMED for groups that HAD been created, and the caller then
+	-- re-sent individually — the duplicate 1:1 texts seen on 8/10 and 8/12.
 	set chatFound to false
-	repeat 8 times
+	repeat 30 times
 		tell application "Messages"
 			repeat with c in chats
 				try

@@ -126,12 +126,26 @@ async function sendViaIMessage({ to, body }) {
     }
   }
   try {
-    const mode = await runOsascript([CREATE_GROUP_SCRIPT, dest, body], 240000)
+    const mode = await runOsascript([CREATE_GROUP_SCRIPT, dest, body], 300000)
     return await verified(mode)
   } catch (e) {
     if (/delivery failed/.test(e.message)) throw e
-    // Creation failed (screen busy, no Accessibility, UI changed) — never drop
-    // the message: individual sends.
+    // Creation failed (screen busy, Messages not ready, UI changed). Before
+    // falling back, check whether the GUI script already delivered the body —
+    // it types and sends BEFORE the steps that most often fail, so a blind
+    // retry double-texts the customer (seen 8/10-8/12). Only send individually
+    // when chat.db shows the body never went out.
+    let alreadySent = false
+    try {
+      const { checked, failed } = await checkDelivery(body, sentAtSec - 10)
+      alreadySent = checked > 0 && failed.length === 0
+    } catch {
+      // chat.db unreadable: fall through and send (a duplicate beats a miss).
+    }
+    if (alreadySent) {
+      return { ok: true, channel: 'imessage', to: dest, sid: null, mode: `sent-group (creation reported "${e.message.slice(0, 60)}" but message was delivered)` }
+    }
+    // Never drop the message: individual sends.
     const mode = await runOsascript([IMESSAGE_SCRIPT, dest, body], 60000).catch((e2) => {
       throw new Error(`iMessage send failed: ${e2.message}`)
     })
