@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact | SparkBridge</title>
+<meta name="description" content="Start a free unlimited evaluation, ask the engineers a technical question, or talk site and fleet licensing and the integrator margin.">
+<link rel="canonical" href="https://new.greenguard-usa.com/sparkbridge-mqtt/contact">
+<meta property="og:title" content="Contact SparkBridge: evaluations, technical questions and licensing">
+<meta property="og:description" content="Start a free unlimited evaluation, ask the engineers a technical question, or talk site and fleet licensing and the integrator margin.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge-mqtt/sb.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge-mqtt/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge-mqtt/">Overview</a>
+        <a href="/sparkbridge-mqtt/modules">Modules</a>
+        <a href="/sparkbridge-mqtt/technology">Technology</a>
+        <a href="/sparkbridge-mqtt/use-cases">Use cases</a>
+        <a href="/sparkbridge-mqtt/compare">Compare</a>
+        <a href="/sparkbridge-mqtt/pricing">Pricing</a>
+        <a href="/sparkbridge-mqtt/resources">Resources</a>
+        <a href="/sparkbridge-mqtt/contact" aria-current="page">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="crumb mono" id="crumb">spBv1.0/<b>sparkbridge</b>/NDATA/<b id="crumb-sec">contact</b></div>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Contact</div>
+    <h1>Get in touch</h1>
+    <p>Development use is free, so you can settle the technical question before the commercial one.</p>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="cards">
+      <div class="card"><span class="tag">Evaluate</span><h3>Start an evaluation</h3><p>Install the three modules, point the Edge at a folder of tags, and watch them appear on the other end. Takes an afternoon and costs nothing.</p>
+        <p style="margin-top:14px"><a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20evaluation">Request an evaluation</a></p></div>
+      <div class="card"><span class="tag">Technical</span><h3>Ask an engineer</h3><p>Architecture, capacity sizing for your estate, conformance detail, or how a number on this site was measured. You will get the engineer who wrote it.</p>
+        <p style="margin-top:14px"><a class="btn ghost dark" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20technical%20question">Ask a question</a></p></div>
+      <div class="card"><span class="tag">Commercial</span><h3>Licensing and partners</h3><p>Site licences, unlimited-site pricing for a fleet, and the 40% integrator margin with deal registration.</p>
+        <p style="margin-top:14px"><a class="btn ghost dark" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20licensing">Talk licensing</a></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/what-to-send</div>
+      <h2>What to Include</h2>
+      <p>None of it is required. Any of it helps us give you a straight answer on day one.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>If you can share</th><th>What it lets us tell you</th></tr></thead>
+        <tbody>
+          <tr><td>Number of sites and roughly how many tags each publishes</td><td>Whether the fleet fits a single host, and where the projection ceiling lands on your hardware.</td></tr>
+          <tr><td>Ignition version on the gateways</td><td>Whether the config pages will be available (8.1.19+) or configuration is by system property.</td></tr>
+          <tr><td>Link type between sites and centre</td><td>How to size the store-and-forward buffer and which durability mode fits.</td></tr>
+          <tr><td>Whether a UNS or file transfer is in scope</td><td>The application-topic authorization to set up before go-live, so publishes are never silently denied.</td></tr>
+          <tr><td>Any per-gateway quote you already hold</td><td>A side-by-side cost comparison for your actual site count.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="tail">
+  <div class="wrap">
+    <h2>Try It on One Site</h2>
+    <p>That is the whole ask. An afternoon on your bench, at no cost, and you will know.</p>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge">Email us</a>
+      <a class="btn ghost" href="/sparkbridge-mqtt/pricing">See pricing</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.0+</span>
+    <span class="mono"><a href="/sparkbridge-mqtt/pricing">Pricing</a> · <a href="/sparkbridge-mqtt/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+  var secName=document.getElementById('crumb-sec');
+  var paths=[].slice.call(document.querySelectorAll('.sec-head .path'));
+  if(!secName||!paths.length) return;
+  function onScroll(){
+    var best=secName.textContent, y=window.scrollY+120, found=null;
+    paths.forEach(function(p){
+      var top=p.getBoundingClientRect().top+window.scrollY;
+      if(top<=y) found=p.textContent.split('/').pop();
+    });
+    if(found&&secName.textContent!==found) secName.textContent=found;
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+})();
+</script>
+</body>
+</html>

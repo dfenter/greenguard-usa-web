@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof and Docs | SparkBridge</title>
+<meta name="description" content="TCK conformance results with assertion counts, the engineering assurance base, and the documents available on request.">
+<link rel="canonical" href="https://new.greenguard-usa.com/sparkbridge-mqtt/resources">
+<meta property="og:title" content="SparkBridge resources: TCK conformance, test evidence and documents">
+<meta property="og:description" content="TCK conformance results with assertion counts, the engineering assurance base, and the documents available on request.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge-mqtt/sb.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge-mqtt/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge-mqtt/">Overview</a>
+        <a href="/sparkbridge-mqtt/modules">Modules</a>
+        <a href="/sparkbridge-mqtt/technology">Technology</a>
+        <a href="/sparkbridge-mqtt/use-cases">Use cases</a>
+        <a href="/sparkbridge-mqtt/compare">Compare</a>
+        <a href="/sparkbridge-mqtt/pricing">Pricing</a>
+        <a href="/sparkbridge-mqtt/resources" aria-current="page">Resources</a>
+        <a href="/sparkbridge-mqtt/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="crumb mono" id="crumb">spBv1.0/<b>sparkbridge</b>/NDATA/<b id="crumb-sec">resources</b></div>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Resources</div>
+    <h1>Proven in the field</h1>
+    <p>Every claim on this site is backed by a test you can run yourself. The evidence ships with the product.</p>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NBIRTH/conformance</div>
+      <h2>Tested Against the Official Suite</h2>
+      <p>The Eclipse Sparkplug project publishes an official test kit that checks whether a product really follows the specification. SparkBridge runs it against a live system: broker, host and edge together.</p>
+    </div>
+    <div class="tck">
+      <div class="c"><div class="pass">OVERALL PASS</div><h3>SendComplexData</h3><p>Template definitions and instances with parameters, DataSet, PropertySet</p><span class="n">49</span><p>assertions</p></div>
+      <div class="c"><div class="pass">OVERALL PASS</div><h3>ReceiveCommand</h3><p>NCMD and DCMD handling, rebirth actions, NDEATH will message</p><span class="n">15</span><p>assertions</p></div>
+      <div class="c"><div class="pass">OVERALL PASS</div><h3>PrimaryHost</h3><p>Birth gated on host STATE, stale offline STATE rejected, session termination</p><span class="n">26</span><p>assertions</p></div>
+      <div class="c"><div class="pass">OVERALL PASS</div><h3>MultipleBroker</h3><p>Server walk measured at about 0.6 s, device registrations carried across</p><span class="n">20</span><p>assertions</p></div>
+    </div>
+    <p class="note">Conformance here is verified against the official suite rather than asserted, on a live broker, host and edge together. Every assertion count above is reproducible on your own hardware.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/assurance</div>
+      <h2>How It Is Tested</h2>
+      <p>Everything below ships with the product and can be re-run on your own hardware.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><span class="tag">Tests</span><h3>360+ automated tests</h3><p>Live gateway integration, property-based codec testing, a 50,000-case malformed-input fuzz of the decoder, corrupt-buffer and chaos suites, and negative TLS tests confirming untrusted certificates are rejected.</p></div>
+      <div class="card"><span class="tag">Load</span><h3>Nine load scenarios</h3><p>Codec scaling, latency distribution, fan-in, sustained soak with heap-stability checks, outage and replay, multi-broker scale-out, 5,000-node fleet tracking, churn endurance, and the 500,000-metric capacity acceptance.</p></div>
+      <div class="card"><span class="tag">Review</span><h3>Four independent code reviews</h3><p>Independent review passes over correctness, security, QA and performance, including a deliberate re-review of the fixes themselves, which re-opened half of them and found two defects the fixes had introduced. All closed.</p></div>
+      <div class="card"><span class="tag">Analysis</span><h3>Code analysis</h3><p>Clean high-priority static analysis, 89% mutation-test strength on the pure-logic core, and dependency auditing against known vulnerabilities.</p></div>
+      <div class="card"><span class="tag">Versions</span><h3>Ignition 8.1.0+</h3><p>Compiled against the 8.1.0 API so the floor is enforced by the build, not asserted in a manifest. Runtime-verified on 8.1.38; config pages need 8.1.19+.</p></div>
+      <div class="card"><span class="tag">Honesty</span><h3>Direct support</h3><p>You deal with the engineers who wrote the code. Support and updates are included with Enterprise licences and optional on a site licence.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/documents</div>
+      <h2>Documents on Request</h2>
+      <p>Ask and we will send them straight over.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Document</th><th>What is in it</th></tr></thead>
+        <tbody>
+          <tr><td><b>Technical whitepaper</b></td><td>The full argument: how Sparkplug came to exist, what it leaves to the implementation, the capability and performance comparison, a real 40-site Gateway Network hub measured against the consolidated alternative, and the conformance position stated precisely.</td></tr>
+          <tr><td><b>Installation guide</b></td><td>Fresh install of the three modules, broker choice, the minimum secure configuration, and the application-topic authorization step that a UNS deployment must not skip.</td></tr>
+          <tr><td><b>Production configuration</b></td><td>Every tuning and hardening property with its default and its effect: security posture, store-and-forward durability, capacity budgets, MQTT 5 knobs.</td></tr>
+          <tr><td><b>Performance methodology</b></td><td>Harness, machine, and reproduction commands for every published figure, including the correction where an earlier benchmark measured ingest rather than end-to-end throughput.</td></tr>
+          <tr><td><b>Device modeling guide</b></td><td>Turning folder structure into Sparkplug Devices, the write-back allowlist, and how a schema change becomes a DDEATH and DBIRTH without disturbing the session.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="tail">
+  <div class="wrap">
+    <h2>Ask for the Whitepaper</h2>
+    <p>The whitepaper carries the full conformance record, the measurement methodology, and the 40-site estate analysis, including which TCK cases were run and which are still roadmap. If a number on this site matters to your decision, ask how it was measured.</p>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge-mqtt/contact">Request the whitepaper</a>
+      <a class="btn ghost" href="/sparkbridge-mqtt/pricing">See pricing</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.0+</span>
+    <span class="mono"><a href="/sparkbridge-mqtt/pricing">Pricing</a> · <a href="/sparkbridge-mqtt/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+  var secName=document.getElementById('crumb-sec');
+  var paths=[].slice.call(document.querySelectorAll('.sec-head .path'));
+  if(!secName||!paths.length) return;
+  function onScroll(){
+    var best=secName.textContent, y=window.scrollY+120, found=null;
+    paths.forEach(function(p){
+      var top=p.getBoundingClientRect().top+window.scrollY;
+      if(top<=y) found=p.textContent.split('/').pop();
+    });
+    if(found&&secName.textContent!==found) secName.textContent=found;
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+})();
+</script>
+</body>
+</html>

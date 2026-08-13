@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkBridge | MQTT for Ignition</title>
+<meta name="description" content="A three-module Sparkplug B / 3.0 suite for Inductive Automation Ignition: an Edge that publishes plant data as it changes, a Host that reconstructs the estate centrally, and a Provider that supplies the broker.">
+<link rel="canonical" href="https://new.greenguard-usa.com/sparkbridge-mqtt/">
+<meta property="og:title" content="SparkBridge: MQTT Sparkplug B modules for Ignition">
+<meta property="og:description" content="A three-module Sparkplug B / 3.0 suite for Inductive Automation Ignition: an Edge that publishes plant data as it changes, a Host that reconstructs the estate centrally, and a Provider that supplies the broker.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge-mqtt/sb.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge-mqtt/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge-mqtt/" aria-current="page">Overview</a>
+        <a href="/sparkbridge-mqtt/modules">Modules</a>
+        <a href="/sparkbridge-mqtt/technology">Technology</a>
+        <a href="/sparkbridge-mqtt/use-cases">Use cases</a>
+        <a href="/sparkbridge-mqtt/compare">Compare</a>
+        <a href="/sparkbridge-mqtt/pricing">Pricing</a>
+        <a href="/sparkbridge-mqtt/resources">Resources</a>
+        <a href="/sparkbridge-mqtt/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="crumb mono" id="crumb">spBv1.0/<b>sparkbridge</b>/NDATA/<b id="crumb-sec">overview</b></div>
+  </div>
+</div>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Sparkplug B / 3.0 modules for Ignition</div>
+      <h1>Stop polling. Start publishing.</h1>
+      <ul class="thesis">
+        <li>Each site describes its own data.</li>
+        <li>Stale values are flagged, not guessed at.</li>
+        <li>Nothing is lost while the connection is down.</li>
+      </ul>
+      <p class="lede">SparkBridge is three modules for Inductive Automation Ignition: an <b>Edge</b> that sends plant data as it changes, a <b>Host</b> that rebuilds the full picture on a central server, and a <b>Provider</b> that runs the MQTT broker.</p>
+      <div class="cta-row">
+        <a class="btn" href="#modules">See the modules</a>
+        <a class="btn ghost" href="/sparkbridge-mqtt/pricing">See pricing</a>
+      </div>
+      <p class="hero-foot mono">Sparkplug 3.0 conformant · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.0+ · free for development</p>
+    </div>
+
+    <div class="scope" aria-label="Example Sparkplug session">
+      <div class="scope-head">
+        <span class="live"><span class="dot"></span>spBv1.0/#</span>
+        <span>one edge node, one session</span>
+      </div>
+      <pre class="stream" id="stream" aria-hidden="true"></pre>
+      <div class="scope-foot">A session births, streams only what changed, dies, and rebirths.</div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/why</div>
+      <h2>Why Polling Costs You</h2>
+      <p>Most of the time the answer is “nothing changed”. That traffic grows with how many tags you have and how many systems want them, not with what the plant actually did. Sparkplug turns it around: a site sends a value once when it changes, and any number of systems can subscribe to it.</p>
+    </div>
+    <div class="two">
+      <div>
+        <div class="k">Polling</div>
+        <h3>Cost grows with every tag and every dashboard</h3>
+        <p>A central server asks every site for every tag, over and over. Adding a dashboard or a historian adds more load at the plant. One real server carrying 40 sites sat at 50–75% CPU, used 14 GB of memory, and could not ride out a network outage.</p>
+      </div>
+      <div>
+        <div class="k good">Sending on change</div>
+        <h3>Cost grows only with what the plant does</h3>
+        <p>A site sends a value when it changes, stamped with the time it was read. It describes its own tags once when it connects, so anything that wants the data just subscribes. Adding the next system becomes a subscription rather than a project.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="modules">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NBIRTH/modules</div>
+      <h2>Three Modules</h2>
+      <p>Install only what a site needs. The Edge and the Host work independently, and both interoperate with any other vendor’s Sparkplug software.</p>
+    </div>
+
+    <div class="mods">
+
+      <article class="mod">
+        <div class="mod-top">
+          <span class="topic mono">spBv1.0/{group}/NDATA/{edge_node}</span>
+          <span class="role">Edge Node · publisher</span>
+        </div>
+        <div class="mod-body">
+          <div>
+            <h3>Edge</h3>
+            <p class="one">Publishes Ignition tag data as Sparkplug, and keeps publishing into a disk buffer when the link drops.</p>
+            <div class="modstat"><b>250,000</b><span>tags per edge node, and up to 8 independent nodes on one gateway</span></div>
+          </div>
+          <div class="feats">
+            <div class="fgroup">
+              <h4>Discovery and capacity</h4>
+              <ul>
+                <li><b>250,000 tag budget</b><span>Scalar leaves and unfolded UDT members count against one budget. A UDT is admitted whole or skipped whole, never half.</span></li>
+                <li><b>Bulk chunked subscribe</b><span>10,000 paths per chunk, so a large site subscribes without stalling the gateway's tag system.</span></li>
+                <li><b>Rescan recovery</b><span>A failed browse subtree is retried by full rediscovery. A pass that could not read the tree never retires devices on the strength of what it could not see.</span></li>
+              </ul>
+            </div>
+            <div class="fgroup">
+              <h4>Outage behaviour</h4>
+              <ul>
+                <li><b>Disk store and forward</b><span>50 MB default buffer, batched fsync at about 2,697 messages/s durable; per-record fsync available where the trade is worth it.</span></li>
+                <li><b>True historical replay</b><span>Buffered values keep their capture timestamps and carry <code>is_historical</code>, so a historian backfills the real curve instead of a block of arrival-time data.</span></li>
+                <li><b>Bounded reconnect</b><span>Paho's 128-second backoff is capped to 10, so recovery after a WAN restore is bounded rather than arbitrary.</span></li>
+              </ul>
+            </div>
+            <div class="fgroup">
+              <h4>Modeling</h4>
+              <ul>
+                <li><b>Sparse Templates</b><span>Definitions deduplicated ahead of instances; BIRTH carries the full instance, NDATA only the members that moved, explicit null transitions retained.</span></li>
+                <li><b>Device modeling</b><span>Folders at a configured depth become Sparkplug Devices with their own DBIRTH and DDEATH, hot-reloaded on rescan without disturbing the MQTT session.</span></li>
+                <li><b>Metadata folding</b><span>Units, description and ranges ride the birth certificate as a PropertySet, taking roughly a third of points out of the steady-state stream while making the model more self-describing.</span></li>
+              </ul>
+            </div>
+            <div class="fgroup">
+              <h4>On the wire</h4>
+              <ul>
+                <li><b>Report by exception</b><span>Fractional deadband and a 100 ms coalescing window; NDATA is alias-only, so a metric name is paid for once per session.</span></li>
+                <li><b>Primary host lifecycle</b><span>Births are gated on the host's STATE, and a valid host-offline terminates the session and walks to the next server.</span></li>
+                <li><b>Write-back is deny by default</b><span>DCMD is rejected unless a <code>device/metric</code> pattern opts it in.</span></li>
+                <li><b>Up to 8 edge nodes</b><span>Each with its own transport, subscriptions, buffer and birth sequence state.</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="mod">
+        <div class="mod-top">
+          <span class="topic mono">spBv1.0/+/NBIRTH/# → [SparkBridge]</span>
+          <span class="role">Host Application · consumer</span>
+        </div>
+        <div class="mod-body">
+          <div>
+            <h3>Host</h3>
+            <p class="one">Subscribes to the namespace, learns each node's model from its birth certificate, and projects it into an Ignition tag provider.</p>
+            <div class="modstat"><b>500,000</b><span>wire metrics resident in under 4 GiB, measured. Enough for a consolidated 40-site estate with margin</span></div>
+          </div>
+          <div class="feats">
+            <div class="fgroup">
+              <h4>Model and projection</h4>
+              <ul>
+                <li><b>Self-learning tags</b><span>The model arrives in the birth certificate. Tags appear as sites come online; there is no central tag configuration to maintain or drift.</span></li>
+                <li><b>Template expansion</b><span>Templates expand into member tags, and folded metadata projects onto standard engineering properties: units, documentation, and the low and high range.</span></li>
+                <li><b>Aware-broker priming</b><span>Against a Sparkplug Aware broker, a late-joining host learns the estate from retained certificates instead of asking every edge to rebirth at once.</span></li>
+              </ul>
+            </div>
+            <div class="fgroup">
+              <h4>Scale</h4>
+              <ul>
+                <li><b>500,000 wire metrics</b><span>Resident in under 4 GiB, with per-metric cost flat from 250,000 through 1,000,000, with no cliff to discover in production.</span></li>
+                <li><b>Sharded ingest</b><span>Per-node order preserved while sites decode in parallel, with bounded queues and a gateway-wide byte budget that several connections cannot multiply.</span></li>
+                <li><b>Shared-subscription scale-out</b><span>MQTT 5 consumers share one broker stream: about 20x delivered ingest with four consumers against one.</span></li>
+                <li><b>Simultaneous multi-server</b><span>A session on every configured server, retained STATE per server stamped with that server's connect time, and commands routed only to where the edge was last heard.</span></li>
+              </ul>
+            </div>
+            <div class="fgroup">
+              <h4>Correctness under failure</h4>
+              <ul>
+                <li><b>Rebirth with a cooldown</b><span>A sequence gap asks for a rebirth once per node per window, so a lossy link cannot be amplified into a fleet-wide rebirth storm.</span></li>
+                <li><b>Death that means death</b><span>An NDEATH stales the node and evicts its devices, but a death on one server does not retire a session another server is still delivering.</span></li>
+                <li><b>Confirmed write-back</b><span>A command reports success when the edge reflects the commanded value, not when the broker accepts the publish.</span></li>
+                <li><b>Bounded decoding</b><span>Payload size, metric count, template nesting depth, dataset cells and property entries are all capped on every input path.</span></li>
+              </ul>
+            </div>
+            <div class="fgroup">
+              <h4>Operations</h4>
+              <ul>
+                <li><b>Status and inventory</b><span>A live dashboard and a node inventory that says which sites are alive, dead, or stale, and how much of the model each carries.</span></li>
+                <li><b>Prometheus metrics</b><span>Wire metrics and projected leaves counted separately, replay volume distinguished from live data, and latency histograms.</span></li>
+                <li><b>Hot reload</b><span>Configuration changes apply in about five seconds with no gateway restart.</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="mod">
+        <div class="mod-top">
+          <span class="topic mono">tcp://:1883 · ssl://:8883</span>
+          <span class="role">Broker · infrastructure</span>
+        </div>
+        <div class="mod-body">
+          <div>
+            <h3>Provider</h3>
+            <p class="one">Supplies the broker: an embedded one for a single node, or control of a HiveMQ CE companion for MQTT 5 and shared subscriptions.</p>
+            <div class="modstat"><b>No client tier</b><span>Commercial brokers are commonly licensed by connected-client count. This one has no such dial.</span></div>
+          </div>
+          <div class="feats">
+            <div class="fgroup">
+              <h4>Broker</h4>
+              <ul>
+                <li><b>Zero-config embedded</b><span>Moquette on loopback for a single node. Nothing else to install, and no MQTT 5 features to configure.</span></li>
+                <li><b>HiveMQ CE companion</b><span>For scale: MQTT 5, shared subscriptions and Sparkplug Aware certificates. The Provider stands aside and manages posture instead of binding the ports.</span></li>
+              </ul>
+            </div>
+            <div class="fgroup">
+              <h4>Identity</h4>
+              <ul>
+                <li><b>Per-site scoping</b><span>An edge credential is bound to one group and node. An unlisted edge user is denied outright.</span></li>
+                <li><b>Client-ID binding</b><span>A scoped credential must present its own deterministic client ID, so one site cannot evict another's broker session.</span></li>
+                <li><b>Host and edge are split</b><span>Edge identities cannot publish NCMD, DCMD or STATE at all. Command injection is structurally unavailable, not merely discouraged.</span></li>
+              </ul>
+            </div>
+            <div class="fgroup">
+              <h4>Application topics</h4>
+              <ul>
+                <li><b>Denied by default</b><span>UNS, file-transfer and bridge topics are authorized per identity by prefix, so one site's credential cannot forge another site's data.</span></li>
+                <li><b>Level-bounded prefixes</b><span>Matching respects topic boundaries, and a filter may wildcard below a granted prefix but never across or above it.</span></li>
+              </ul>
+            </div>
+            <div class="fgroup">
+              <h4>Transport and posture</h4>
+              <ul>
+                <li><b>TLS and mTLS</b><span>Hostname verification is mandatory; disabling it requires an explicit development-only flag that has no production use.</span></li>
+                <li><b>Read-only posture page</b><span>The effective security settings are shown in the gateway UI and cannot be widened from the web at all.</span></li>
+                <li><b>Builds against the Ignition 8.1.0 API</b><span>The minimum version is enforced by the compiler, not declared in a manifest, so no later API can slip in. Runtime-verified on 8.1.38.</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<section id="beyond">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NBIRTH/beyond-spec</div>
+      <h2>Beyond the Standard</h2>
+      <p>Any Sparkplug product gives you these four things. They are the baseline, and the real differences start above them.</p>
+    </div>
+
+    <div class="floor">What Sparkplug 3.0 already guarantees</div>
+    <div class="chips">
+      <div class="chip"><b>Self-describing data</b><span>Each site publishes a birth certificate: every point with its name, type, units and current value.</span></div>
+      <div class="chip"><b>Connection-state awareness</b><span>Birth and death semantics enforced by the broker, so stale values are marked rather than trusted.</span></div>
+      <div class="chip"><b>Report by exception</b><span>Only changes move, so load tracks process activity rather than database size.</span></div>
+      <div class="chip"><b>Typed equipment models</b><span>A pump or a skid crosses the wire as an object with named members, not loose points.</span></div>
+    </div>
+
+    <div class="floor">What the specification leaves out, and what that costs you</div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Left open by the standard</th><th>What SparkBridge does about it</th></tr></thead>
+        <tbody>
+          <tr><td><b>How an edge should survive an outage</b><br><span class="sub">A WAN cut is when data is most valuable and most easily lost.</span></td>
+              <td>Disk-backed buffering with the original capture timestamps preserved and the historical flag carried through replay, so your historian backfills the real curve. Measured lossless: 400,000 of 400,000 recovered.</td></tr>
+          <tr><td><b>How a host should absorb a fleet</b><br><span class="sub">The ceiling nobody quotes until you hit it.</span></td>
+              <td>Ingest sharded per site, shared-subscription scale-out, and simultaneous multi-server sessions. 500,000 metrics resident in under 4 GiB, with the per-metric cost measured flat to a million.</td></tr>
+          <tr><td><b>How identities should be scoped</b><br><span class="sub">One compromised site is the whole estate's problem.</span></td>
+              <td>An edge credential is bound to its own group and node, cannot issue commands at all, and cannot write another site's UNS data. Proven live against the deployed broker ACL.</td></tr>
+          <tr><td><b>How to change configuration without downtime</b><br><span class="sub">Restarts are outages you scheduled.</span></td>
+              <td>Settings hot-reload in about five seconds. Device folders added or removed become a DBIRTH or DDEATH without disturbing the MQTT session.</td></tr>
+          <tr><td><b>How any of it should be observed</b><br><span class="sub">"It looks fine" is not an operational posture.</span></td>
+              <td>A live dashboard, node inventory, Prometheus metrics that separate wire metrics from projected tags, replay volume counted apart from live data, and latency histograms.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="mqtt5">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/mqtt5</div>
+      <h2>Built for What Comes Next</h2>
+      <p>The group that maintains Sparkplug has said where the next version is heading. The right-hand column is already built and shipping, so choosing SparkBridge now will not turn into a migration project later.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Anticipated direction</th><th>SparkBridge today</th></tr></thead>
+        <tbody>
+          <tr><td><b>MQTT 5 as the baseline transport</b></td><td>Full v5 client mode behind a configuration flag: will delay, message expiry, receive maximum, topic aliases, noLocal and reason-code surfacing. No regression against 3.1.1, and mixed v3 and v5 fleets interoperate through the broker.</td></tr>
+          <tr><td><b>Shared subscriptions for host scale-out</b></td><td>Implemented and measured at about 20x delivered ingest with four consumers. This is the largest single advantage over a 3.1.1-only implementation, because it removes the single-wildcard-subscriber ceiling.</td></tr>
+          <tr><td><b>Session and message expiry, reason codes</b></td><td>Per-publish expiry for live data, with births, deaths and STATE never expiring. A denied publish surfaces as a diagnosable reason code rather than silence.</td></tr>
+          <tr><td><b>Topic aliases</b></td><td>Long <code>spBv1.0/…</code> topics compress to a two-byte alias on repeat, with the broker's per-client maximum raised to match.</td></tr>
+          <tr><td><b>Sparkplug Aware brokers</b></td><td>Consumed today: a late-joining host primes its model from the broker's retained certificates instead of triggering an estate-wide rebirth.</td></tr>
+          <tr><td><b>Deeper historical replay semantics</b></td><td>Shipped ahead of the standard: original capture timestamps and the historical flag survive replay, per-metric timestamps reach the tag system, and backfill is counted separately from live data.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cta-row" style="margin-top:32px">
+      <a class="btn" href="/sparkbridge-mqtt/pricing">See pricing</a>
+      <a class="btn ghost dark" href="#measured">See the measurements</a>
+    </div>
+  </div>
+</section>
+
+<section id="measured">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/measured</div>
+      <h2>Performance Quantified</h2>
+      <p>Every number below comes from the test suite that ships with the product. The end-to-end and latency figures were captured on a modest <b>2-physical-core</b> machine with nothing else running, doing the full work of writing values into tags. The ingest, codec and replay figures come from an 8-core development host. Both machines are modest, and bigger hardware goes further.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <caption>Quiet-box gate, 2026-08-11, plus the sharded-projector capture</caption>
+        <thead><tr><th>Dimension</th><th>SparkBridge, measured</th><th>Commercial modules</th></tr></thead>
+        <tbody>
+          <tr><td>Projected end to end, through to a visible tag</td><td class="num">44,769 updates/s</td><td class="np">not published</td></tr>
+          <tr><td>Wire ingest, before projection</td><td class="num">59,900 updates/s, zero loss</td><td class="np">not published</td></tr>
+          <tr><td>End-to-end latency, warm and paced</td><td class="num">p50 0.216 ms · p99 0.517 ms</td><td class="np">not published</td></tr>
+          <tr><td>Host capacity, resident state</td><td class="num">500,000 metrics in &lt; 4 GiB</td><td class="np">not published</td></tr>
+          <tr><td>Codec throughput, single thread</td><td class="num">3.9M metric-updates/s</td><td class="np">not published</td></tr>
+          <tr><td>Outage replay</td><td class="num">400,000 of 400,000 in 20.33 s</td><td class="np">not published</td></tr>
+          <tr><td>Outage buffering, durable</td><td class="num">2,697 messages/s</td><td class="np">not published</td></tr>
+          <tr><td>Host scale-out, 4 shared consumers vs 1</td><td class="num">approx. 20x ingest</td><td>not offered</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>Ingest and end to end are different ceilings, and the difference is roughly 3x.</b> The ingest row stops after decode and validate. The end-to-end row continues through projection to a value visible on a tag. Both are real; only the second describes what an operator sees. Where this page compares anything, it uses the end-to-end figure. The commercial modules do not publish load or capacity benchmarks, so there is no figure to compare against.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NBIRTH/conformance</div>
+      <h2>Tested Against the Official Suite</h2>
+      <p>The Eclipse Sparkplug project publishes an official test kit that checks whether a product really follows the specification. SparkBridge runs it against a live system (broker, host and edge together) rather than claiming conformance on its own say-so.</p>
+    </div>
+    <div class="tck">
+      <div class="c"><div class="pass">OVERALL PASS</div><h3>SendComplexData</h3><p>Template definitions and instances with parameters, DataSet, PropertySet</p><span class="n">49</span><p>assertions</p></div>
+      <div class="c"><div class="pass">OVERALL PASS</div><h3>ReceiveCommand</h3><p>NCMD and DCMD handling, rebirth actions, NDEATH will message</p><span class="n">15</span><p>assertions</p></div>
+      <div class="c"><div class="pass">OVERALL PASS</div><h3>PrimaryHost</h3><p>Birth gated on host STATE, stale offline STATE rejected, session termination</p><span class="n">26</span><p>assertions</p></div>
+      <div class="c"><div class="pass">OVERALL PASS</div><h3>MultipleBroker</h3><p>Server walk measured at about 0.6 s, device registrations carried across</p><span class="n">20</span><p>assertions</p></div>
+    </div>
+    <p class="note">Conformance here is verified, not asserted. The suite runs against a live broker, host and edge together, and every assertion count above is reproducible on your own hardware.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NCMD/security</div>
+      <h2>One Site Cannot Touch Another</h2>
+      <p>The Sparkplug specification does not say how to handle security, so it leaves the important questions open: what stops a hacked site from pretending to be another one, or sending commands to your equipment? Here is what SparkBridge does about it.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Control</th><th>How it behaves</th></tr></thead>
+        <tbody>
+          <tr><td>Per-site identity scoping</td><td>An edge credential is bound to its own group and node. An unlisted edge user is denied; unscoped credentials require an explicit development-only opt-out.</td></tr>
+          <tr><td>Command injection</td><td>Structurally prevented. Edge identities cannot publish NCMD, DCMD or STATE. Proven live against the deployed broker ACL.</td></tr>
+          <tr><td>Application topics</td><td>The UNS tree, file-transfer manifests and bridge traffic are authorized per identity and <b>denied by default</b>, so one site's credential cannot forge another site's data.</td></tr>
+          <tr><td>API authentication</td><td>Separate read, write and admin bearer tokens, fail-closed. Query-string tokens are rejected on sensitive routes.</td></tr>
+          <tr><td>Malformed input</td><td>Bounded decoding on every path: payload size, metric count, template nesting depth, dataset cells and property entries, plus a 50,000-case fuzz of the decoder.</td></tr>
+          <tr><td>Secret handling</td><td>A permission-restricted file, not JVM arguments visible to any local user through <code>ps</code>. A configured but unreadable secrets file fails the module closed.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Assurance base: more than 360 automated tests including live gateway integration, property-based codec testing, corrupt-buffer and chaos suites, and negative TLS tests; load and endurance scenarios you can run yourself; and repeated independent adversarial review cycles whose findings are fixed, tested and re-verified rather than filed.</p>
+  </div>
+</section>
+
+<section id="cost">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/cost</div>
+      <h2>What It Costs</h2>
+      <p>Free to use for development and testing. When you go live you buy a licence once per site and keep it. There is no charge per tag, per device or per connected client.</p>
+    </div>
+
+    <div class="tiers">
+      <div class="tier">
+        <div class="top">
+          <span class="badge">Evaluate</span>
+          <h3>Development</h3>
+          <div class="price">Free<small>Unlimited, non-production. No time limit and no feature gate.</small></div>
+        </div>
+        <p class="why">Every module and every capability, on as many test gateways as you want.</p>
+      </div>
+      <div class="tier feature">
+        <div class="top">
+          <span class="badge">Most deployments</span>
+          <h3>Single site</h3>
+          <div class="price">$1,995<small>Once, per production gateway. Support and updates $399/yr, optional.</small></div>
+        </div>
+        <p class="why">The licence does not expire, and the software keeps running whether or not you renew support.</p>
+      </div>
+      <div class="tier">
+        <div class="top">
+          <span class="badge">Fleet</span>
+          <h3>Enterprise</h3>
+          <div class="price">$12k–$20k<small>Unlimited sites for one organisation, support included.</small></div>
+        </div>
+        <p class="why">Past roughly seven sites this costs less than licensing them one at a time.</p>
+      </div>
+      <div class="tier">
+        <div class="top">
+          <span class="badge">Partners</span>
+          <h3>Integrator</h3>
+          <div class="price">40% off<small>List price, for resale, with deal registration.</small></div>
+        </div>
+        <p class="why">For systems integrators putting this in front of the plants that need it.</p>
+      </div>
+    </div>
+
+    <div class="cta-row" style="margin-top:30px">
+      <a class="btn" href="/sparkbridge-mqtt/pricing">Full pricing and FAQ</a>
+      <a class="btn ghost dark" href="/sparkbridge-mqtt/contact">Start free</a>
+    </div>
+
+    <p class="note"><b>Support is direct.</b> You deal with the engineers who wrote the code, not a ticket queue. Builds against the Ignition 8.1.0 API and is runtime-verified on 8.1.38, with the gateway config pages on 8.1.19 and newer. Full compatibility and support detail is on the <a href="/sparkbridge-mqtt/pricing">pricing page</a>.</p>
+  </div>
+</section>
+
+<section class="tail">
+  <div class="wrap">
+    <h2>Try It on One Site</h2>
+    <p>Install the three modules, point the Edge at a folder of tags, and watch them appear on the other end. It takes an afternoon, and development use is free.</p>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20evaluation">Start an evaluation</a>
+      <a class="btn ghost" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20technical%20questions">Ask an engineer</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+  // The signature element: one real Sparkplug session, in order. Births establish the model,
+  // data carries only what changed, the will fires, and the node rebirths.
+  var SESSION = [
+    ['STATE','spBv1.0/STATE/SparkBridge','online=true'],
+    ['NBIRTH','spBv1.0/Plant1/NBIRTH/Edge1','seq=0  bdSeq=7  metrics=1284'],
+    ['DBIRTH','spBv1.0/Plant1/DBIRTH/Edge1/Pump-02','seq=1  metrics=36'],
+    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=2  Zone1/PV=68.4 degF'],
+    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=3  Zone1/SP=70.0'],
+    ['DDATA','spBv1.0/Plant1/DDATA/Edge1/Pump-02','seq=4  Suction=112.7 psi'],
+    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=5  Zone1/PV=68.9 degF'],
+    ['NCMD','spBv1.0/Plant1/NCMD/Edge1','Zone1/SP=72.0  from host'],
+    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=6  Zone1/SP=72.0  confirmed'],
+    ['DDATA','spBv1.0/Plant1/DDATA/Edge1/Pump-02','seq=7  Suction=113.1 psi'],
+    ['NDEATH','spBv1.0/Plant1/NDEATH/Edge1','bdSeq=7  link lost'],
+    ['NDATA','(offline)','buffering to disk  ·  4,812 records held'],
+    ['NBIRTH','spBv1.0/Plant1/NBIRTH/Edge1','seq=0  bdSeq=8  session restored'],
+    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=1  replay  is_historical=true'],
+    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=2  replay  4,812 of 4,812  zero loss']
+  ];
+  var el = document.getElementById('stream');
+  if(!el) return;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function line(row, i){
+    var t = String(i).padStart(2,'0');
+    var s = document.createElement('span');
+    s.className = 'ln';
+    s.innerHTML = '<span class="t">'+t+'</span>  <span class="'+row[0]+'">'+row[0].padEnd(6,' ')
+      .replace(/ /g,'&nbsp;')+'</span>  '+row[1]+'  <span class="v">'+row[2]+'</span>';
+    return s;
+  }
+  if(reduce){
+    SESSION.forEach(function(r,i){ el.appendChild(line(r,i+1)); });
+    return;
+  }
+  var i = 0, MAX = 13;
+  for(; i < 6; i++) el.appendChild(line(SESSION[i], i+1));  // never show an empty panel
+  function tick(){
+    el.appendChild(line(SESSION[i % SESSION.length], (i % SESSION.length)+1));
+    while(el.children.length > MAX) el.removeChild(el.firstChild);
+    i++;
+    var pause = SESSION[(i-1) % SESSION.length][0] === 'NDEATH' ? 1100 : 620;
+    setTimeout(tick, pause);
+  }
+  tick();
+
+  // The section marker is a topic path, so it should update like one.
+  var secName = document.getElementById('crumb-sec');
+  var paths = [].slice.call(document.querySelectorAll('.sec-head .path'));
+  function onScroll(){
+    var best = 'overview', y = window.scrollY + 120;
+    paths.forEach(function(p){
+      var top = p.getBoundingClientRect().top + window.scrollY;
+      if(top <= y) best = p.textContent.split('/').pop();
+    });
+    if(secName.textContent !== best) secName.textContent = best;
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.0+</span>
+    <span class="mono"><a href="/sparkbridge-mqtt/pricing">Pricing</a> · <a href="/sparkbridge-mqtt/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+  var secName=document.getElementById('crumb-sec');
+  var paths=[].slice.call(document.querySelectorAll('.sec-head .path'));
+  if(!secName||!paths.length) return;
+  function onScroll(){
+    var best=secName.textContent, y=window.scrollY+120, found=null;
+    paths.forEach(function(p){
+      var top=p.getBoundingClientRect().top+window.scrollY;
+      if(top<=y) found=p.textContent.split('/').pop();
+    });
+    if(found&&secName.textContent!==found) secName.textContent=found;
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+})();
+</script>
+</body>
+</html>

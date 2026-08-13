@@ -1,0 +1,252 @@
+:root{
+  /* Palette is the protocol's own semantics: message types carry meaning on the wire,
+     so they carry meaning on the page. DATA is deliberately the quiet one. */
+  --ink:#0E1519;
+  --panel:#16212A;
+  --panel-2:#1E2C37;
+  --paper:#E9EDEF;
+  --paper-2:#DDE3E6;
+  --rule:#C3CDD2;
+  --rule-dark:#2C3B47;
+  --muted:#4A5A64; /* 5.2:1 on --paper-2; #5D6E78 failed AA on .band sections */
+  --muted-dark:#8DA2AE;
+  --birth:#0E7C86;   /* BIRTH  — establishing */
+  --death:#B23A2F;   /* DEATH  — alarm */
+  --cmd:#D9902B;     /* CMD    — control */
+  --state:#6A5A9E;   /* STATE  — host liveness */
+  --maxw:1180px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:17px;line-height:1.6;
+}
+h1,h2,h3{font-family:Archivo,system-ui,sans-serif;margin:0;line-height:1.02;letter-spacing:-.02em}
+p{margin:0 0 1em}
+a{color:inherit}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+/* Grid children default to min-width:auto, so the nowrap session lines below would set an
+   intrinsic floor and push the whole page wider than the viewport on a phone. */
+.hero-grid>*,.two>*,.mod-body>*,.tck>*,.mods>*,.feats>*,.chips>*{min-width:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+
+/* ---- topic bar: the section marker IS a topic path (this page's one risk) ---- */
+.topicbar{
+  position:sticky;top:0;z-index:50;background:var(--ink);color:var(--paper);
+  border-bottom:1px solid var(--rule-dark);
+}
+.topicbar .wrap{display:flex;align-items:center;gap:16px;height:44px;justify-content:space-between}
+.brand{font-family:Archivo;font-weight:800;letter-spacing:-.03em;font-size:17px;text-decoration:none;white-space:nowrap}
+.brand span{color:var(--birth)}
+.crumb{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--muted-dark);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumb b{color:var(--paper);font-weight:500}
+.topicbar a.skip{position:absolute;left:-9999px}
+.topicbar a.skip:focus{left:24px;background:var(--birth);color:#fff;padding:6px 10px}
+
+/* ---- hero ---- */
+.hero{background:var(--ink);color:var(--paper);padding:76px 0 68px;border-bottom:1px solid var(--rule-dark)}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:start}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--birth);margin-bottom:22px}
+.hero h1{font-size:clamp(40px,6.1vw,74px);font-weight:800}
+.thesis{margin:26px 0 0;padding:0;list-style:none;border-left:2px solid var(--rule-dark)}
+.thesis li{font-family:"IBM Plex Mono",monospace;font-size:14px;color:var(--muted-dark);padding:5px 0 5px 16px}
+.hero p.lede{margin-top:28px;color:#C6D2D9;max-width:46ch}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.hero-foot{margin:24px 0 0;font-size:12px;color:var(--muted-dark);letter-spacing:.02em}
+.btn{
+  display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:13.5px;letter-spacing:.02em;
+  padding:12px 20px;text-decoration:none;border:1px solid var(--birth);background:var(--birth);color:#fff;
+}
+.btn:hover{background:#0a666e;border-color:#0a666e}
+.btn.ghost{background:transparent;color:var(--paper);border-color:var(--rule-dark)}
+.btn.ghost:hover{border-color:var(--paper);background:rgba(255,255,255,.05)}
+.btn.ghost.dark{color:var(--ink);border-color:var(--muted)}
+.btn.ghost.dark:hover{border-color:var(--ink);background:rgba(0,0,0,.04)}
+.tbl .sub{color:var(--muted);font-size:13px}
+:focus-visible{outline:2px solid var(--cmd);outline-offset:2px}
+
+/* ---- the session stream: the signature element ---- */
+.scope{background:var(--panel);border:1px solid var(--rule-dark);min-width:0;max-width:100%}
+.scope-head{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:9px 14px;border-bottom:1px solid var(--rule-dark);
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted-dark);
+}
+.scope-head .live{display:inline-flex;align-items:center;gap:7px;color:var(--birth)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--birth);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+/* Newest line sits at the bottom and older ones clip off the top, the way a terminal reads.
+   Clipping at the bottom instead left a half-height line looking like a rendering fault. */
+.stream{margin:0;padding:14px;height:322px;overflow:hidden;max-width:100%;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 34px);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 34px);
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.85}
+.stream .ln{flex:0 0 auto}
+.stream .ln{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8DA2AE}
+.stream .t{color:#63798A}
+.stream .NBIRTH,.stream .DBIRTH{color:var(--birth)}
+.stream .NDEATH,.stream .DDEATH{color:var(--death)}
+.stream .NCMD,.stream .DCMD{color:var(--cmd)}
+.stream .STATE{color:#9C8ACB}
+.stream .v{color:#D6E0E6}
+.scope-foot{border-top:1px solid var(--rule-dark);padding:9px 14px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted-dark)}
+
+/* ---- sections ---- */
+section{padding:78px 0}
+.sec-head{margin-bottom:38px;max-width:62ch}
+.sec-head .path{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);margin-bottom:14px;letter-spacing:.02em}
+.sec-head h2{font-size:clamp(27px,3.4vw,40px);font-weight:700}
+.sec-head p{margin-top:16px;color:#3C4A53}
+
+.band{background:var(--paper-2);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:44px}
+.two h3{font-size:19px;margin-bottom:10px}
+.two p{color:#3C4A53;margin:0}
+.two .k{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--death);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.two .k.good{color:var(--birth)}
+
+/* ---- module certificates ---- */
+.mods{display:grid;gap:22px}
+.mod{background:#fff;border:1px solid var(--rule)}
+.mod-top{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;padding:13px 22px;background:var(--ink);color:var(--paper)}
+.mod-top .topic{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--birth)}
+.mod-top .role{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted-dark);text-transform:uppercase;letter-spacing:.08em}
+.mod-body{padding:26px 22px 24px;display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:34px}
+.mod-body h3{font-size:26px;margin-bottom:10px}
+.mod-body .one{color:#3C4A53;margin:0 0 14px}
+.modstat{margin-top:18px;border-left:2px solid var(--birth);padding:2px 0 2px 14px}
+.modstat b{display:block;font-family:Archivo,sans-serif;font-size:30px;letter-spacing:-.02em;line-height:1.05}
+.modstat span{display:block;font-size:13px;color:var(--muted);margin-top:4px;line-height:1.45}
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:24px 32px}
+.fgroup h4{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--birth);margin:0 0 6px;font-weight:500}
+.fgroup ul{list-style:none;margin:0;padding:0}
+.fgroup li{padding:9px 0;border-bottom:1px solid var(--rule);font-size:14.5px}
+.fgroup li:last-child{border-bottom:0}
+.fgroup li b{display:block;font-weight:600}
+.fgroup li span{color:var(--muted);font-size:13px;display:block;margin-top:2px;line-height:1.5}
+/* what the standard already guarantees — quiet, because the point is what comes after */
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 34px}
+.chip{background:#fff;border:1px solid var(--rule);padding:14px}
+.chip b{display:block;font-size:14.5px;margin-bottom:4px}
+.chip span{font-size:13px;color:var(--muted);line-height:1.5}
+.floor{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);display:flex;align-items:center;gap:14px;margin:0 0 22px}
+.floor:after{content:"";flex:1;height:1px;background:var(--rule)}
+
+/* ---- data tables ---- */
+.tbl{width:100%;border-collapse:collapse;font-size:15px}
+.tbl caption{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);padding-bottom:12px}
+.tbl th,.tbl td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+.tbl th{font-family:"IBM Plex Mono",monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:500}
+.tbl td.num{font-family:"IBM Plex Mono",monospace;font-size:14px;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .np{color:var(--muted);font-style:italic}
+.scroller{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.note{font-size:14px;color:var(--muted);margin-top:18px;max-width:70ch}
+
+/* ---- conformance ---- */
+.tck{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.tck .c{background:#fff;border:1px solid var(--rule);padding:18px}
+.tck .c .pass{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--birth);letter-spacing:.07em}
+.tck .c h3{font-size:16px;margin:8px 0 6px;letter-spacing:-.01em}
+.tck .c p{font-size:13.5px;color:var(--muted);margin:0}
+.tck .c .n{font-family:"IBM Plex Mono",monospace;font-size:26px;display:block;margin-top:12px}
+
+/* ---- cta ---- */
+.tail{background:var(--ink);color:var(--paper);padding:76px 0}
+.tail h2{font-size:clamp(28px,4vw,46px);font-weight:800;max-width:20ch}
+.tail p{color:#C6D2D9;max-width:52ch;margin-top:18px}
+footer{background:var(--ink);color:var(--muted-dark);border-top:1px solid var(--rule-dark);padding:26px 0;font-size:13.5px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+footer a{color:var(--muted-dark)}
+
+@media (max-width:980px){
+  .hero-grid{grid-template-columns:1fr;gap:38px}
+  .mod-body{grid-template-columns:1fr;gap:22px}
+  .tck{grid-template-columns:1fr 1fr}
+  .feats{grid-template-columns:1fr 1fr}
+  .chips{grid-template-columns:1fr 1fr}
+  .two{grid-template-columns:1fr;gap:26px}
+}
+@media (max-width:620px){
+  body{font-size:16px}
+  section{padding:56px 0}
+  .hero{padding:52px 0 46px}
+  .feats{grid-template-columns:1fr}
+  .chips{grid-template-columns:1fr}
+  .tck{grid-template-columns:1fr}
+  .crumb{display:none}
+  .stream{height:280px;font-size:11.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  .dot{animation:none}
+  *{scroll-behavior:auto!important}
+}
+
+/* ---- site nav (multi-page) ------------------------------------------------ */
+.topicbar .wrap{gap:12px}
+.nav{display:flex;align-items:center;gap:2px;flex:1;justify-content:center}
+.nav a{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.02em;color:var(--muted-dark);
+  text-decoration:none;padding:6px 9px;white-space:nowrap;border-bottom:2px solid transparent;
+}
+.nav a:hover{color:var(--paper)}
+.nav a[aria-current="page"]{color:var(--paper);border-bottom-color:var(--birth)}
+.navtoggle{display:none;background:none;border:1px solid var(--rule-dark);color:var(--paper);
+  font-family:"IBM Plex Mono",monospace;font-size:12px;padding:5px 10px;cursor:pointer}
+@media (max-width:980px){
+  .nav{position:absolute;top:44px;left:0;right:0;background:var(--ink);flex-direction:column;
+    align-items:stretch;border-bottom:1px solid var(--rule-dark);padding:6px 0;display:none;z-index:60}
+  .nav.open{display:flex}
+  .nav a{padding:10px 24px;border-bottom:0}
+  .nav a[aria-current="page"]{border-left:2px solid var(--birth)}
+  .navtoggle{display:block}
+  .topicbar .wrap{position:relative;justify-content:space-between}
+}
+
+/* ---- page header (sub-pages: lighter than the home hero) ------------------- */
+.phead{background:var(--ink);color:var(--paper);padding:60px 0 54px;border-bottom:1px solid var(--rule-dark)}
+.phead h1{font-size:clamp(32px,5vw,58px);font-weight:800;max-width:20ch}
+.phead p{margin-top:20px;color:#C6D2D9;max-width:56ch;font-size:18px}
+
+/* ---- pricing -------------------------------------------------------------- */
+.tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:start}
+.tier{background:#fff;border:1px solid var(--rule);display:flex;flex-direction:column;height:100%}
+.tier.feature{border-color:var(--birth);box-shadow:0 0 0 1px var(--birth)}
+.tier .top{padding:20px 20px 16px;border-bottom:1px solid var(--rule)}
+.tier .badge{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--birth);margin-bottom:10px;display:block;min-height:14px}
+.tier h3{font-size:19px;margin-bottom:12px;letter-spacing:-.01em}
+.tier .price{font-family:Archivo,sans-serif;font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.tier .price small{display:block;font-family:"IBM Plex Sans",sans-serif;font-size:13px;font-weight:400;
+  color:var(--muted);margin-top:8px;letter-spacing:0;line-height:1.5}
+.tier .why{padding:16px 20px;font-size:14px;color:#3C4A53;border-bottom:1px solid var(--rule);flex:1}
+.tier ul{list-style:none;margin:0;padding:16px 20px;font-size:14px}
+.tier ul li{padding:6px 0 6px 18px;position:relative;color:#3C4A53}
+.tier ul li:before{content:"";position:absolute;left:0;top:13px;width:8px;height:1px;background:var(--birth)}
+.tier .act{padding:0 20px 20px}
+.tier .act .btn{display:block;text-align:center}
+@media (max-width:980px){.tiers{grid-template-columns:1fr 1fr}}
+@media (max-width:620px){.tiers{grid-template-columns:1fr}}
+
+/* ---- generic cards / lists used across sub-pages -------------------------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:#fff;border:1px solid var(--rule);padding:22px}
+.card h3{font-size:18px;margin-bottom:8px}
+.card p{font-size:14.5px;color:#3C4A53;margin:0}
+.card .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--birth);display:block;margin-bottom:9px}
+@media (max-width:980px){.cards{grid-template-columns:1fr 1fr}}
+@media (max-width:620px){.cards{grid-template-columns:1fr}}
+.cards>*,.tiers>*{min-width:0}
+.faq{border-top:1px solid var(--rule)}
+.faq details{border-bottom:1px solid var(--rule)}
+.faq summary{padding:16px 0;font-weight:600;cursor:pointer;font-size:16px;list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:before{content:"+";font-family:"IBM Plex Mono",monospace;color:var(--birth);margin-right:12px}
+.faq details[open] summary:before{content:"–"}
+.faq p{padding:0 0 18px 26px;color:#3C4A53;font-size:15px;margin:0;max-width:78ch}

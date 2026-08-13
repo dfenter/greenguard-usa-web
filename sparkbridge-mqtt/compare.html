@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How We Compare | SparkBridge</title>
+<meta name="description" content="A capability matrix that says 'not published' where no public figure exists, measured numbers with the machine stated, and the six things the commercial modules do not document at all.">
+<link rel="canonical" href="https://new.greenguard-usa.com/sparkbridge-mqtt/compare">
+<meta property="og:title" content="SparkBridge compared with the commercial Sparkplug modules">
+<meta property="og:description" content="A capability matrix that says 'not published' where no public figure exists, measured numbers with the machine stated, and the six things the commercial modules do not document at all.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge-mqtt/sb.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge-mqtt/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge-mqtt/">Overview</a>
+        <a href="/sparkbridge-mqtt/modules">Modules</a>
+        <a href="/sparkbridge-mqtt/technology">Technology</a>
+        <a href="/sparkbridge-mqtt/use-cases">Use cases</a>
+        <a href="/sparkbridge-mqtt/compare" aria-current="page">Compare</a>
+        <a href="/sparkbridge-mqtt/pricing">Pricing</a>
+        <a href="/sparkbridge-mqtt/resources">Resources</a>
+        <a href="/sparkbridge-mqtt/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="crumb mono" id="crumb">spBv1.0/<b>sparkbridge</b>/NDATA/<b id="crumb-sec">compare</b></div>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Compare</div>
+    <h1>How we compare</h1>
+    <p>Both suites speak Sparkplug. The difference is what happens at scale, what you can measure, and what you pay as you grow.</p>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/why-sparkbridge</div>
+      <h2>Why Teams Switch</h2>
+      <p>Six capabilities we could not find in the commercial modules' published documentation.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><span class="tag">Scale</span><h3>Shared-subscription scale-out</h3><p>Four consumers share one broker stream and deliver about 20x the ingest of one. We have found no competing Ignition module that removes the single-subscriber ceiling.</p></div>
+      <div class="card"><span class="tag">Speed</span><h3>Published, measured numbers</h3><p>Load and endurance scenarios you can run yourself, with the hardware stated. No competing module publishes comparable figures.</p></div>
+      <div class="card"><span class="tag">Uptime</span><h3>Change settings without a restart</h3><p>Configuration hot-reloads in about five seconds. No scheduled outage to add a site or change a deadband.</p></div>
+      <div class="card"><span class="tag">Bandwidth</span><h3>Metadata folding</h3><p>Units, ranges and descriptions ride the birth certificate instead of the data stream, taking roughly a third of points out of steady-state traffic.</p></div>
+      <div class="card"><span class="tag">Security</span><h3>Per-site scoping as standard</h3><p>An edge credential is locked to its own site, cannot issue commands, and cannot write another site's data. Proven live against the broker.</p></div>
+      <div class="card"><span class="tag">Licensing</span><h3>No client-count tiers</h3><p>The broker is not licensed by how many clients connect, so there is no 50 or 250 ceiling to design around.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/capability</div>
+      <h2>Feature by Feature</h2>
+      <p>Where a row says “not published”, no public figure exists for that product. Every SparkBridge number is measured and reproducible from the test suite that ships with it.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Capability</th><th>Commercial modules</th><th>SparkBridge</th></tr></thead>
+        <tbody>
+          <tr><td>Core Sparkplug B / 3.0</td><td>Yes</td><td>Yes, TCK-verified against a live stack</td></tr>
+          <tr><td>Templates / UDT modeling</td><td>Yes</td><td>Yes. TCK SendComplexDataTest, 49 assertions, PASS</td></tr>
+          <tr><td>Store and forward with historical replay</td><td>Yes</td><td>Yes, disk-backed, capture timestamps and <code>is_historical</code> preserved and counted</td></tr>
+          <tr><td>Multiple brokers for HA</td><td>Yes</td><td>Both models: server-set failover and simultaneous multi-server sessions</td></tr>
+          <tr><td>UNS / ISA-95 publishing</td><td>Yes</td><td>Yes, dual Sparkplug plus JSON, configurable or empty prefix</td></tr>
+          <tr><td>MQTT 5 transport</td><td class="np">not published as supported</td><td>Full v5 client mode, benchmarked</td></tr>
+          <tr><td>Shared-subscription host scale-out</td><td class="np">not published as offered</td><td>About 20x ingest with 4 consumers</td></tr>
+          <tr><td>Config change without restart</td><td class="np">documented as requiring a restart for many settings</td><td>Hot reload in about 5 seconds</td></tr>
+          <tr><td>Metadata folding to birth properties</td><td class="np">not published as offered</td><td>About a third of points leave the steady-state stream</td></tr>
+          <tr><td>Prometheus metrics</td><td class="np">not published</td><td>Yes, wire metrics and projected leaves counted separately</td></tr>
+          <tr><td>Broker licensing model</td><td class="np">commonly licensed by connected-client count</td><td>No client-count dial: neither the embedded broker nor the HiveMQ CE companion meters connections</td></tr>
+          <tr><td>Per-identity application-topic ACL</td><td class="np">not published</td><td>Denied by default, per identity by prefix</td></tr>
+          <tr><td>Published load and capacity benchmarks</td><td class="np">not published</td><td>Nine documented scenarios, reproducible from the shipped suite</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/numbers</div>
+      <h2>Performance Quantified</h2>
+      <p>End-to-end and latency figures measured on a modest 2-physical-core machine with nothing else running, doing the full work of writing values into tags. Ingest, codec and replay figures come from an 8-core development host. Bigger hardware goes further.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Dimension</th><th>SparkBridge, measured</th></tr></thead>
+        <tbody>
+          <tr><td>Projected end to end, through to a visible tag</td><td class="num">44,769 updates/s</td></tr>
+          <tr><td>Wire ingest, before projection</td><td class="num">59,900 updates/s, zero loss</td></tr>
+          <tr><td>End-to-end latency, warm and paced</td><td class="num">p50 0.216 ms · p99 0.517 ms</td></tr>
+          <tr><td>Host capacity, resident state</td><td class="num">500,000 metrics in &lt; 4 GiB</td></tr>
+          <tr><td>Codec throughput, single thread</td><td class="num">3.9M metric-updates/s</td></tr>
+          <tr><td>Outage replay</td><td class="num">400,000 of 400,000 in 20.33 s</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>Ingest and end to end are different ceilings, roughly 3x apart.</b> The ingest row stops after decode and validate; the end-to-end row continues through projection to a value visible on a tag. Only the second describes what an operator sees, and it is the one used wherever this site compares anything.</p>
+  </div>
+</section>
+<section class="tail">
+  <div class="wrap">
+    <h2>Compare It With Your Quote</h2>
+    <p>If you have per-gateway pricing in hand for your own estate, that is the number worth comparing against, not a modelled one. The development licence costs nothing, so the technical comparison can be made before any commercial one.</p>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge-mqtt/pricing">See pricing</a>
+      <a class="btn ghost" href="/sparkbridge-mqtt/technology">Read the technology</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.0+</span>
+    <span class="mono"><a href="/sparkbridge-mqtt/pricing">Pricing</a> · <a href="/sparkbridge-mqtt/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+  var secName=document.getElementById('crumb-sec');
+  var paths=[].slice.call(document.querySelectorAll('.sec-head .path'));
+  if(!secName||!paths.length) return;
+  function onScroll(){
+    var best=secName.textContent, y=window.scrollY+120, found=null;
+    paths.forEach(function(p){
+      var top=p.getBoundingClientRect().top+window.scrollY;
+      if(top<=y) found=p.textContent.split('/').pop();
+    });
+    if(found&&secName.textContent!==found) secName.textContent=found;
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+})();
+</script>
+</body>
+</html>

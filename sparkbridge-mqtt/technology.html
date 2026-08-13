@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How It Works | SparkBridge</title>
+<meta name="description" content="How Sparkplug turns a plant into a subscription: birth certificates, connection-state awareness, report by exception, typed models, and where the standard is heading.">
+<link rel="canonical" href="https://new.greenguard-usa.com/sparkbridge-mqtt/technology">
+<meta property="og:title" content="SparkBridge technology: Sparkplug B, MQTT 5 and the UNS">
+<meta property="og:description" content="How Sparkplug turns a plant into a subscription: birth certificates, connection-state awareness, report by exception, typed models, and where the standard is heading.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge-mqtt/sb.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge-mqtt/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge-mqtt/">Overview</a>
+        <a href="/sparkbridge-mqtt/modules">Modules</a>
+        <a href="/sparkbridge-mqtt/technology" aria-current="page">Technology</a>
+        <a href="/sparkbridge-mqtt/use-cases">Use cases</a>
+        <a href="/sparkbridge-mqtt/compare">Compare</a>
+        <a href="/sparkbridge-mqtt/pricing">Pricing</a>
+        <a href="/sparkbridge-mqtt/resources">Resources</a>
+        <a href="/sparkbridge-mqtt/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+    <div class="crumb mono" id="crumb">spBv1.0/<b>sparkbridge</b>/NDATA/<b id="crumb-sec">technology</b></div>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Technology</div>
+    <h1>How it works</h1>
+    <p>MQTT moves data around. Sparkplug adds what the data means, which site sent it, and whether it can still be trusted. Here is how that works.</p>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NBIRTH/sparkplug</div>
+      <h2>What Sparkplug Gives You</h2>
+      <p>MQTT moves messages but says nothing about what is inside them. Sparkplug fills that gap, and gives every site the same four guarantees.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><span class="tag">NBIRTH</span><h3>Every site describes itself</h3><p>On connection each site publishes a birth certificate: every point, its name, datatype, engineering units and current value. Consumers learn the model from the stream. There is no schema registry to fall out of date.</p></div>
+      <div class="card"><span class="tag">NDEATH</span><h3>You know when a site goes offline</h3><p>Sessions carry birth and death semantics enforced by the broker. When a site drops, every consumer knows within seconds and values are marked stale rather than left to look current.</p></div>
+      <div class="card"><span class="tag">NDATA</span><h3>Only changes are sent</h3><p>Only changes move. Steady-state load tracks what the process did, not how many tags exist. A structural property, not a tuning parameter that decays.</p></div>
+      <div class="card"><span class="tag">Template</span><h3>Equipment arrives as whole objects</h3><p>A pump, a loop, a skid crosses the wire as an object with named members, not a bag of loose points.</p></div>
+      <div class="card"><span class="tag">seq</span><h3>You can tell if a message went missing</h3><p>A rolling sequence number on every message means a consumer can prove it missed something and ask for a rebirth, rather than quietly carrying a hole.</p></div>
+      <div class="card"><span class="tag">STATE</span><h3>Sites wait until the server is ready</h3><p>Edges gate their births on the host's retained STATE, so a host restart does not produce an estate-wide stampede of uncoordinated births.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/lifecycle</div>
+      <h2>One Connection, Start to Finish</h2>
+      <p>All of the above happens in the life of a single connection. This is the order it happens in.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Message</th><th>What it establishes</th></tr></thead>
+        <tbody>
+          <tr><td class="num">STATE</td><td>The host announces itself, retained, so any edge connecting later knows the consumer is alive before it births.</td></tr>
+          <tr><td class="num">NBIRTH</td><td>The edge publishes its whole model with <code>seq=0</code> and a birth-death sequence number that identifies this session uniquely.</td></tr>
+          <tr><td class="num">DBIRTH</td><td>Each device below the node announces its own metrics, so a device can be retired later without disturbing the node.</td></tr>
+          <tr><td class="num">NDATA / DDATA</td><td>Only changed values, alias-only on the wire, so the metric name was paid for once in the birth.</td></tr>
+          <tr><td class="num">NCMD / DCMD</td><td>The host writes back. SparkBridge confirms the write when the edge reflects the value, not when the broker accepts the publish.</td></tr>
+          <tr><td class="num">NDEATH</td><td>Registered as an MQTT Will at connect time, so the broker publishes it even when the edge cannot. Consumers stale the node's values.</td></tr>
+          <tr><td class="num">Rebirth</td><td>A sequence gap makes the host ask for the model again, rate-limited per node so a lossy link cannot be amplified into a fleet-wide storm.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NDATA/mqtt5</div>
+      <h2>MQTT 5 and Beyond</h2>
+      <p>The group that maintains Sparkplug has said where the next version is heading. Everything in the right-hand column already ships and can be switched on today.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Anticipated direction</th><th>SparkBridge today</th></tr></thead>
+        <tbody>
+          <tr><td><b>MQTT 5 as the baseline transport</b></td><td>Full v5 client mode behind a flag: will delay, message expiry, receive maximum, topic aliases, noLocal, reason-code surfacing. No regression against 3.1.1; mixed v3 and v5 fleets interoperate through the broker.</td></tr>
+          <tr><td><b>Shared subscriptions for host scale-out</b></td><td>Measured at about 20x delivered ingest with four consumers. The largest single advantage over a 3.1.1-only implementation, because it removes the single-wildcard-subscriber ceiling.</td></tr>
+          <tr><td><b>Session and message expiry, reason codes</b></td><td>Per-publish expiry for live data, with births, deaths and STATE never expiring. A denied publish surfaces as a diagnosable reason code rather than silence.</td></tr>
+          <tr><td><b>Topic aliases</b></td><td>Long <code>spBv1.0/…</code> topics compress to a two-byte alias on repeat.</td></tr>
+          <tr><td><b>Sparkplug Aware brokers</b></td><td>Consumed today: a late-joining host primes from the broker's retained certificates instead of triggering an estate-wide rebirth.</td></tr>
+          <tr><td><b>Deeper historical replay</b></td><td>Shipped ahead of the standard: capture timestamps and the historical flag survive replay, and backfill is counted separately from live data.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">spBv1.0/sparkbridge/NBIRTH/uns</div>
+      <h2>The Unified Namespace, Explained</h2>
+      <p>One up-to-date picture of the plant that every system reads from. You get it as a result of publishing properly, with no second project to fund.</p>
+    </div>
+    <div class="two">
+      <div>
+        <div class="k good">What comes as standard</div>
+        <h3>It builds itself</h3>
+        <p>Because each site describes itself when it connects, the picture fills in as sites come online. Anything new (a dashboard, a historian, an analytics tool) subscribes and finds what is there, rather than needing to be configured tag by tag.</p>
+      </div>
+      <div>
+        <div class="k good">What SparkBridge adds</div>
+        <h3>Plain JSON as well as Sparkplug</h3>
+        <p>The Edge can also send the same values as plain JSON on a readable path, for tools that cannot read the Sparkplug format. Sparkplug for the systems that need types and connection state; JSON for the ones that just need a simple feed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="tail">
+  <div class="wrap">
+    <h2>The Standard Is Only the Start</h2>
+    <p>Conformance is table stakes. What decides an estate's operating cost is everything the standard leaves open: buffering, scale-out, identity scoping, hot reload, and observability.</p>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge-mqtt/modules">See the modules</a>
+      <a class="btn ghost" href="/sparkbridge-mqtt/#measured">Read the measurements</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.0+</span>
+    <span class="mono"><a href="/sparkbridge-mqtt/pricing">Pricing</a> · <a href="/sparkbridge-mqtt/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+  var secName=document.getElementById('crumb-sec');
+  var paths=[].slice.call(document.querySelectorAll('.sec-head .path'));
+  if(!secName||!paths.length) return;
+  function onScroll(){
+    var best=secName.textContent, y=window.scrollY+120, found=null;
+    paths.forEach(function(p){
+      var top=p.getBoundingClientRect().top+window.scrollY;
+      if(top<=y) found=p.textContent.split('/').pop();
+    });
+    if(found&&secName.textContent!==found) secName.textContent=found;
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+})();
+</script>
+</body>
+</html>
