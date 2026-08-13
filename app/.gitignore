@@ -24,3 +24,4 @@ npm-debug.log*
 scripts/appointment-watcher-state.json
 scripts/chat-daemon-state.json
 scripts/funnel-setup.log
+app/scripts/deferred-groups.json

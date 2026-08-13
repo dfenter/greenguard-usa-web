@@ -17,10 +17,35 @@
 --   VERIFY the field value, and retype on mismatch.
 -- - Sheet buttons go stale after any click inside the sheet: re-walk
 --   `entire contents` before every interaction; retry Done until closed.
+-- Abort only when a HUMAN is at the keyboard. The original guard aborted
+-- whenever any other app was frontmost, but the daemon runs headless with the
+-- screen unlocked, so an idle VS Code/Finder window in front was enough to
+-- kill creation (Donald Schrader 8/13 — nobody was using the Mac). Now: if
+-- Messages lost focus but the human has been idle a while, take focus back
+-- and continue; only a recently-active human aborts the run.
+on humanIdleSeconds()
+	try
+		set t to do shell script "ioreg -n IOHIDSystem -r -d 1 | awk '/HIDIdleTime/ {print int($NF/1000000000); exit}'"
+		return t as integer
+	on error
+		return 0
+	end try
+end humanIdleSeconds
+
 on assertFront()
 	tell application "System Events"
 		set fp to name of first application process whose frontmost is true
-		if fp is not "Messages" then error "ABORT: focus stolen by " & fp
+		if fp is "Messages" then return
+	end tell
+	if my humanIdleSeconds() < 60 then
+		error "ABORT: human active at keyboard (frontmost " & fp & ")"
+	end if
+	-- Nobody is using the Mac: reclaim focus and keep going.
+	tell application "Messages" to activate
+	delay 1.5
+	tell application "System Events"
+		set fp2 to name of first application process whose frontmost is true
+		if fp2 is not "Messages" then error "ABORT: could not take focus (frontmost " & fp2 & ")"
 	end tell
 end assertFront
 

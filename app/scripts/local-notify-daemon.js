@@ -170,6 +170,14 @@ async function pollLoop() {
     } catch (e) {
       log('poll error:', e.message)
     }
+    // Create any group threads that couldn't be made while the Mac was in use
+    // (customer already got a 1:1 text; this upgrades them for future sends).
+    try {
+      const { retryDeferredGroups } = require('./imessage')
+      await retryDeferredGroups(log)
+    } catch (e) {
+      log('deferred group retry error:', e.message)
+    }
     await maybeRenameGroups()
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
   }

@@ -6,6 +6,7 @@
  * control Messages. Do not call this from a different launchd job — it would
  * need its own Automation approval and time out with AppleEvent -1712.
  */
+const fs = require('fs')
 const path = require('path')
 const { execFile } = require('child_process')
 const { normalizePhone } = require('../lib/sms')
@@ -35,6 +36,64 @@ function runOsascript(args, timeout) {
 // like when the flag is off or creation fails — it falls back to individual
 // 1:1 sends so nobody misses the message.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// Deferred group creation (2026-08-13). GUI creation needs the Mac free; when
+// it can't run, the customer still gets a 1:1 text on time and the participant
+// set is parked here. retryDeferredGroups() (called by the daemon when the Mac
+// is idle) creates the thread with a low-key message, after which every future
+// send for that customer routes into the group.
+const DEFERRED_PATH = path.join(__dirname, 'deferred-groups.json')
+function readDeferred() {
+  try { return JSON.parse(fs.readFileSync(DEFERRED_PATH, 'utf8')) } catch { return {} }
+}
+function deferGroupCreation(dest) {
+  try {
+    const all = readDeferred()
+    if (!all[dest]) {
+      all[dest] = { queuedAt: Date.now(), attempts: 0 }
+      fs.writeFileSync(DEFERRED_PATH, JSON.stringify(all, null, 1))
+    }
+  } catch { /* best effort */ }
+}
+
+async function humanIdleSeconds() {
+  try {
+    const out = await new Promise((resolve, reject) => {
+      execFile('/bin/sh', ['-c', "ioreg -n IOHIDSystem -r -d 1 | awk '/HIDIdleTime/ {print int($NF/1000000000); exit}'"], { timeout: 10000 },
+        (err, stdout) => (err ? reject(err) : resolve(stdout)))
+    })
+    return parseInt(String(out).trim(), 10) || 0
+  } catch { return 0 }
+}
+
+// Create any parked group threads, newest first. Only runs when the human has
+// been idle for IDLE_REQUIRED_SEC so it never fights someone at the keyboard.
+const IDLE_REQUIRED_SEC = 300
+async function retryDeferredGroups(log) {
+  const all = readDeferred()
+  const pending = Object.keys(all)
+  if (!pending.length) return
+  if ((await humanIdleSeconds()) < IDLE_REQUIRED_SEC) return
+  for (const dest of pending) {
+    // Thread may already exist (a later reminder created it) — a probe send
+    // with nofallback tells us without sending anything if it doesn't.
+    try {
+      const body = 'GreenGuard USA: this thread now includes your service techs, so you can reach us here anytime.'
+      const mode = await runOsascript([CREATE_GROUP_SCRIPT, dest, body], 300000)
+      log(`deferred group created for ${dest} [${mode}]`)
+      delete all[dest]
+    } catch (e) {
+      all[dest].attempts = (all[dest].attempts || 0) + 1
+      log(`deferred group creation failed for ${dest} (attempt ${all[dest].attempts}): ${e.message.slice(0, 120)}`)
+      if (all[dest].attempts >= 10) {
+        delete all[dest]
+        log(`giving up on deferred group for ${dest} — create it by hand in Messages`)
+      }
+      break // Mac likely busy again; try the rest on the next pass
+    }
+  }
+  try { fs.writeFileSync(DEFERRED_PATH, JSON.stringify(all, null, 1)) } catch { /* best effort */ }
+}
 
 // Post-send delivery verification (2026-08-10). AppleScript "success" only
 // means Messages ACCEPTED the text — Apple-side failures (number not
@@ -145,6 +204,13 @@ async function sendViaIMessage({ to, body }) {
     if (alreadySent) {
       return { ok: true, channel: 'imessage', to: dest, sid: null, mode: `sent-group (creation reported "${e.message.slice(0, 60)}" but message was delivered)` }
     }
+    // GUI creation needs an idle Mac (keystrokes go to the frontmost app, so
+    // assertFront aborts when someone is working — Donald Schrader 8/13, and
+    // reminders fire during business hours when the Mac is usually in use).
+    // The customer still gets their reminder now via 1:1; remember the group
+    // so an idle-time pass can create the thread later, after which every
+    // future send for them is a group text.
+    if (/focus stolen|MESSAGES_NOT_READY/.test(e.message)) deferGroupCreation(dest)
     // Never drop the message: individual sends.
     const mode = await runOsascript([IMESSAGE_SCRIPT, dest, body], 60000).catch((e2) => {
       throw new Error(`iMessage send failed: ${e2.message}`)
@@ -153,4 +219,4 @@ async function sendViaIMessage({ to, body }) {
   }
 }
 
-module.exports = { sendViaIMessage }
+module.exports = { sendViaIMessage, retryDeferredGroups }
