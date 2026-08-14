@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Modules | SparkBridge</title>
+<meta name="description" content="Three independently installable Ignition modules implementing Sparkplug B / 3.0: Edge (publisher), Host (consumer) and Provider (broker).">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/modules">
+<meta property="og:title" content="SparkBridge modules: Edge, Host and Provider for Ignition">
+<meta property="og:description" content="Three independently installable Ignition modules implementing Sparkplug B / 3.0: Edge (publisher), Host (consumer) and Provider (broker).">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/modules" aria-current="page">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/spec">Spec</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Modules</div>
+    <h1>Edge, Host and Provider</h1>
+    <p>Three modules for Ignition. Install the ones a site needs, and each works with any conformant Sparkplug software on the other side.</p>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="cards">
+      <div class="card"><span class="tag">Edge Node · publisher</span><h3>Edge</h3><p>Publishes Ignition tag data as Sparkplug and keeps publishing into a disk buffer when the link drops.</p></div>
+      <div class="card"><span class="tag">Host Application · consumer</span><h3>Host</h3><p>Subscribes to the namespace, learns each node's model from its birth certificate, projects it into a tag provider.</p></div>
+      <div class="card"><span class="tag">Broker · infrastructure</span><h3>Provider</h3><p>Embedded broker for one node, or control of a HiveMQ CE companion for MQTT 5 and shared subscriptions.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">edge</div>
+      <h2>Edge</h2>
+      <p>A site publishes once and every system that wants the data subscribes. The Edge is built for what comes after that: link outages, model changes, and tag counts in six figures.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Capability</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td><b>250,000 tag budget</b></td><td>Scalar leaves and unfolded UDT members count against one budget. A UDT is admitted whole or skipped whole, never half. Subscriptions install in 10,000-path chunks so a large site does not stall the tag system.</td></tr>
+          <tr><td><b>Store and forward</b></td><td>Disk-backed, 50 MB default, batched fsync measured at about 2,697 messages/s durable; per-record fsync available. Buffered values keep their capture timestamps and carry <code>is_historical</code>, so a historian backfills the real curve. Measured lossless: 400,000 of 400,000 replayed in 20.33 s.</td></tr>
+          <tr><td><b>Device modeling</b></td><td>Folders at a configured depth become Sparkplug Devices with their own DBIRTH and DDEATH, hot-reloaded on rescan without disturbing the session. Write-back is deny-by-default: a DCMD is rejected unless a device/metric pattern opts it in.</td></tr>
+          <tr><td><b>Sparse Templates</b></td><td>Definitions deduplicated ahead of instances; BIRTH carries the full instance, NDATA only the members that moved, explicit null transitions retained.</td></tr>
+          <tr><td><b>Metadata folding</b></td><td>Units, description and ranges ride the birth certificate as a PropertySet, so roughly a third of points leave the steady-state stream while the model becomes more self-describing, not less.</td></tr>
+          <tr><td><b>Up to 8 edge nodes</b></td><td>Each with its own transport, subscriptions, buffer and birth sequence state, so one site's problem is not another's.</td></tr>
+          <tr><td><b>Primary host lifecycle</b></td><td>Births gated on the host's STATE; a valid host-offline terminates the session and walks to the next server. Verified by the TCK PrimaryHostTest.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">host</div>
+      <h2>Host</h2>
+      <p>The Host is where fleet scale is won or lost, so this is where the engineering went.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Capability</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td><b>Self-learning tags</b></td><td>The model arrives in the birth certificate; tags appear as sites come online. Templates expand into member tags and folded metadata projects onto standard engineering properties.</td></tr>
+          <tr><td><b>500,000 wire metrics</b></td><td>Resident in under 4 GiB, with per-metric cost measured flat from 250,000 through 1,000,000, with no cliff waiting in production.</td></tr>
+          <tr><td><b>Sharded ingest</b></td><td>Per-node order preserved while sites decode in parallel, bounded queues, and a control-divert path so a death or a command never queues behind a deep backlog of data.</td></tr>
+          <tr><td><b>Shared-subscription scale-out</b></td><td>MQTT 5 consumers share one broker stream: about 20x delivered ingest with four consumers against one.</td></tr>
+          <tr><td><b>Simultaneous multi-server</b></td><td>A session on every configured server, retained STATE per server stamped with that server's connect time, and commands routed only to where the edge was last heard.</td></tr>
+          <tr><td><b>Confirmed write-back</b></td><td>A command reports success when the edge reflects the commanded value, not when the broker accepts the publish.</td></tr>
+          <tr><td><b>Observability</b></td><td>Live dashboard, node inventory, Prometheus metrics that separate wire metrics from projected tags and replay volume from live data, and latency histograms.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">provider</div>
+      <h2>Provider</h2>
+      <p>Sparkplug leaves security to the implementation, so the broker is where your security posture is set.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Capability</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td><b>Two broker shapes</b></td><td>Embedded Moquette on loopback for a single node, nothing to install; or a HiveMQ CE companion for MQTT 5, shared subscriptions and Sparkplug Aware certificates. Neither is licensed by connected-client count.</td></tr>
+          <tr><td><b>Per-site identity scoping</b></td><td>An edge credential is bound to one group and node; an unlisted edge user is denied. A scoped credential must present its own deterministic client ID, so one site cannot evict another's session.</td></tr>
+          <tr><td><b>No command injection</b></td><td>Edge identities cannot publish NCMD, DCMD or STATE at all. Structurally unavailable, proven live against the deployed ACL.</td></tr>
+          <tr><td><b>Application-topic ACL</b></td><td>UNS, file-transfer and bridge topics are authorized per identity by prefix and denied by default, so one site's credential cannot forge another site's data.</td></tr>
+          <tr><td><b>TLS and mTLS</b></td><td>Hostname verification mandatory; disabling it requires an explicit development-only flag with no production use.</td></tr>
+          <tr><td><b>Read-only posture page</b></td><td>The effective security settings are shown in the gateway UI and cannot be widened from the web.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="tail">
+  <div class="wrap">
+    <h2>Install Just One</h2>
+    <p>The Edge talks to any conformant host and the Host consumes any conformant edge, so you can start with one and add the others when it suits you.</p>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/pricing">See pricing</a>
+      <a class="btn ghost" href="/sparkbridge/compare">How it compares</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

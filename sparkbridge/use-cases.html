@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where It Is Used | SparkBridge</title>
+<meta name="description" content="Five shapes this takes: wide-area SCADA over metered links, consolidating a fleet onto one host, standing up a Unified Namespace, feeding analytics and AI, and moving OT data to IT without opening the plant.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/use-cases">
+<meta property="og:title" content="SparkBridge use cases: wide-area SCADA, fleet consolidation, UNS, OT to IT">
+<meta property="og:description" content="Five shapes this takes: wide-area SCADA over metered links, consolidating a fleet onto one host, standing up a Unified Namespace, feeding analytics and AI, and moving OT data to IT without opening the plant.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases" aria-current="page">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/spec">Spec</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Use cases</div>
+    <h1>Where it is used</h1>
+    <p>The same architecture works for a wellhead, a bottling line or a pump station. Here is where it earns its keep.</p>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">wide area</div>
+      <h2>Remote Sites, Expensive Links</h2>
+      <p>Cellular, satellite or radio links. You pay for the data, the connection drops, and it always drops during the event you most needed to record.</p>
+    </div>
+    <div class="two">
+      <div>
+        <div class="k">The problem</div>
+        <h3>Polling wastes the connection</h3>
+        <p>Polling spends your data allowance asking questions whose answer is usually “nothing changed”, and an outage leaves a gap in the history that no later poll can fill.</p>
+      </div>
+      <div>
+        <div class="k good">What changes</div>
+        <h3>Send changes, store during outages</h3>
+        <p>Normal traffic tracks what the plant is doing. If the link drops, the site saves readings to disk with their original timestamps and sends them when it reconnects, so the history shows the real curve rather than a flat line and a jump.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">consolidation</div>
+      <h2>Many Sites, One Server</h2>
+      <p>A real example: one central server carrying 40 sites, sitting at 50–75% CPU, using 14 GB of memory, unable to ride out a network outage, and getting worse every time someone added a dashboard.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><span class="tag">Sizing</span><h3>280k–300k metrics</h3><p>That estate's consolidated published metrics, sized from real gateway backups.</p></div>
+      <div class="card"><span class="tag">Envelope</span><h3>500k in under 4 GiB</h3><p>The measured single-host capacity, with per-metric cost flat to a million. The fleet fits with margin on every dimension.</p></div>
+      <div class="card"><span class="tag">Consumers</span><h3>Cost does not grow</h3><p>Adding a dashboard, a historian or an ML pipeline adds a subscriber, not load at the source.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">uns</div>
+      <h2>One Source of Plant Data</h2>
+      <p>This just means every system reads the same up-to-date picture of the plant from one place. You get it by publishing properly, not by buying something else.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><span class="tag">Discovery</span><h3>The namespace populates itself</h3><p>Each site describes itself at birth, so a new consumer subscribes and discovers the estate rather than being configured for it.</p></div>
+      <div class="card"><span class="tag">Dual publish</span><h3>Sparkplug and JSON</h3><p>The same values a second time on a readable ISA-95 style path for consumers that will never speak protobuf.</p></div>
+      <div class="card"><span class="tag">Isolation</span><h3>Per-site write scope</h3><p>Application topics are authorized per identity and denied by default, so a site can write its own subtree and nobody else's.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">analytics</div>
+      <h2>Feeding Dashboards and AI</h2>
+      <p>All of these need the same thing: a complete, current, cheap-to-read picture of the plant, including a clear signal about which values can no longer be trusted.</p>
+    </div>
+    <div class="two">
+      <div>
+        <div class="k good">Why this matters more than speed</div>
+        <h3>You know which values are stale</h3>
+        <p>A model trained on values that silently went stale learns the wrong thing. Sparkplug marks the loss of a session explicitly, and SparkBridge passes per-metric source timestamps through to the tag system rather than stamping arrival time, so backfill lands on the real curve.</p>
+      </div>
+      <div>
+        <div class="k good">Why it stays affordable</div>
+        <h3>Adding another consumer costs nothing</h3>
+        <p>An architecture whose cost scales with process activity rather than tag count and consumer count is a durable advantage when compute and data-centre capacity are the constrained resources.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">ot it</div>
+      <h2>Plant to IT, Safely</h2>
+      <p>The real security question is not “can we get data out of the plant”. It is “if one site is compromised, what can it do to the rest”.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Concern</th><th>How the architecture answers it</th></tr></thead>
+        <tbody>
+          <tr><td>Inbound firewall rules</td><td>The edge connects outbound to the broker. No inbound port into the plant network is required for data to flow.</td></tr>
+          <tr><td>A compromised site publishing as another</td><td>An edge credential is bound to its own group and node; an unlisted user is denied, and the client ID is bound to the credential.</td></tr>
+          <tr><td>A compromised site issuing commands</td><td>Edge identities cannot publish NCMD, DCMD or STATE at all. Command injection is structurally unavailable rather than discouraged.</td></tr>
+          <tr><td>A compromised site forging enterprise data</td><td>Application topics (the UNS tree, file-transfer manifests) are authorized per identity and denied by default.</td></tr>
+          <tr><td>Credentials on the box</td><td>Secrets live in a permission-restricted file, not in JVM arguments visible to any local user through <code>ps</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="tail">
+  <div class="wrap">
+    <h2>Start With One Site</h2>
+    <p>Try it on one site and see for yourself. Development use is free and takes an afternoon to set up.</p>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Start an evaluation</a>
+      <a class="btn ghost" href="/sparkbridge/pricing">See pricing</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

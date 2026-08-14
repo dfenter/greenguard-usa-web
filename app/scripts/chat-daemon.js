@@ -96,6 +96,7 @@ Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'lon
 
 // ── Public SparkBridge product assistant (no auth: rate-limited, docs-only) ──
 const SB_ORIGINS = new Set([
+  'https://mqtt.greenguard-usa.com',
   'https://new.greenguard-usa.com',
   'https://greenguard-usa.com',
   'https://www.greenguard-usa.com',

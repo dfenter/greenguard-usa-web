@@ -768,13 +768,14 @@ def main():
         shutil.copytree(marble2_src, os.path.join(OUT, 'marble2-assets'))
         print('  COPY  marble2-assets/')
 
-    # Copy the SparkBridge product site (served at /sparkbridge-mqtt/; index.html is the
-    # overview, one file per sub-page, shared sb.css). Self-contained — nothing here is
-    # generated, so it is a straight directory copy like the game dirs above.
-    sparkbridge_src = os.path.join(REPO, 'sparkbridge-mqtt')
+    # Copy the SparkBridge product site (canonical home mqtt.greenguard-usa.com/sparkbridge;
+    # index.html is the overview, one file per sub-page, shared sb.css; spec.html is generated
+    # by _spec_build.py from the SparkBridge repo's normative doc). The old /sparkbridge-mqtt
+    # path 301s to the new home via vercel.json.
+    sparkbridge_src = os.path.join(REPO, 'sparkbridge')
     if os.path.isdir(sparkbridge_src):
-        shutil.copytree(sparkbridge_src, os.path.join(OUT, 'sparkbridge-mqtt'))
-        print('  COPY  sparkbridge-mqtt/')
+        shutil.copytree(sparkbridge_src, os.path.join(OUT, 'sparkbridge'))
+        print('  COPY  sparkbridge/')
 
     # Overlay the redesigned Astro marketing site (staged locally by
     # scripts/deploy.sh site from redesign/dist -> redesign-dist/). Redesign
@@ -784,7 +785,7 @@ def main():
     if os.path.isdir(overlay_src):
         PROTECTED = {'zelda', 'tactics3d', 'play', 'flipside', 'marble.html',
                      'marble2.html', 'marble2-assets', 'marble2-sw.js', 'marble2-manifest.json',
-                     'horde.html', 'horde-manifest.json', 'sparkbridge-mqtt'}
+                     'horde.html', 'horde-manifest.json', 'sparkbridge'}
         copied = 0
         for root, dirs, files in os.walk(overlay_src):
             rel = os.path.relpath(root, overlay_src)

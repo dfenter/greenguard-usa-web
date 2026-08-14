@@ -4,56 +4,138 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
-    { "source": "/home",     "destination": "/",         "permanent": true },
-    { "source": "/index",    "destination": "/",         "permanent": true },
-    { "source": "/services-v2", "destination": "/services", "permanent": false },
-
-    { "source": "/co2-tank-delivery-austin",             "destination": "/co2delivery",            "permanent": true },
-    { "source": "/co2-trap-rental-austin",               "destination": "/traprental",             "permanent": true },
-    { "source": "/greenguard-barrier-treatment",         "destination": "/barrier",                "permanent": true },
-    { "source": "/mosquito-bucket-of-doom-instructions", "destination": "/product-bucket-of-doom", "permanent": true },
-    { "source": "/co2-mosquito-trap-placement",          "destination": "/trapplacement",          "permanent": true },
-
-    { "source": "/mosquito-control-austin",              "destination": "/mosquito-control-austin-texas", "permanent": false }
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "mqtt.greenguard-usa.com"
+        }
+      ],
+      "destination": "/sparkbridge",
+      "permanent": false
+    },
+    {
+      "source": "/sparkbridge-mqtt",
+      "destination": "https://mqtt.greenguard-usa.com/sparkbridge",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge-mqtt/:path*",
+      "destination": "https://mqtt.greenguard-usa.com/sparkbridge/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/index",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/services-v2",
+      "destination": "/services",
+      "permanent": false
+    },
+    {
+      "source": "/co2-tank-delivery-austin",
+      "destination": "/co2delivery",
+      "permanent": true
+    },
+    {
+      "source": "/co2-trap-rental-austin",
+      "destination": "/traprental",
+      "permanent": true
+    },
+    {
+      "source": "/greenguard-barrier-treatment",
+      "destination": "/barrier",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-bucket-of-doom-instructions",
+      "destination": "/product-bucket-of-doom",
+      "permanent": true
+    },
+    {
+      "source": "/co2-mosquito-trap-placement",
+      "destination": "/trapplacement",
+      "permanent": true
+    },
+    {
+      "source": "/mosquito-control-austin",
+      "destination": "/mosquito-control-austin-texas",
+      "permanent": false
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options",        "value": "SAMEORIGIN" },
-        { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
       ]
     },
     {
       "source": "/zelda/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     },
     {
       "source": "/tactics3d/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     },
     {
       "source": "/reviews.json",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
       ]
     },
     {
       "source": "/products-feed.xml",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=3600" },
-        { "key": "Content-Type", "value": "application/atom+xml; charset=UTF-8" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/atom+xml; charset=UTF-8"
+        }
       ]
     },
     {
       "source": "/:path((?!_next).*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     }
   ]

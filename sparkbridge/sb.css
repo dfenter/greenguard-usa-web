@@ -1,0 +1,395 @@
+/* SparkBridge — "Wire and Signal" design system (2026-08 redesign).
+   Vernacular: the electrical panel. Machined-aluminum ground, graphite enclosure
+   bands, and ONE accent — cable-marker yellow — used as the wire-marker tags that
+   open every section along a vertical wire rail. Display type is signage
+   (Saira SemiCondensed), body is Public Sans, data is Spline Sans Mono.
+   Single committed look: light, precise, panel-shop. */
+:root{
+  --graphite:#161A1F;   /* enclosure: bands, footer, buttons */
+  --graphite-2:#20262D; /* raised surface on graphite */
+  --bone:#EEF0F2;       /* page ground (machined aluminum) */
+  --bone-2:#E3E6E9;     /* recessed ground */
+  --steel:#C8CDD3;      /* rules, hairlines */
+  --steel-dark:#39414A; /* rules on graphite */
+  --ink:#1B1F24;        /* text on bone */
+  --ink-soft:#4C555F;   /* secondary text (5.9:1 on bone) */
+  --paper:#F6F7F8;      /* cards on bone */
+  --paper-dim:#B9C2CB;  /* secondary text on graphite */
+  --marker:#F2C230;     /* cable-marker yellow: THE accent */
+  --marker-ink:#161A1F; /* text on marker */
+  --ok:#2F8F5B;         /* tiny status dots only */
+  --bad:#B2452F;        /* tiny status dots only */
+  --maxw:1240px;
+  --rail-x:26px;        /* wire-rail offset inside .wrap */
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--bone);color:var(--ink);
+  font-family:"Public Sans",system-ui,-apple-system,sans-serif;
+  font-size:16.5px;line-height:1.62;
+}
+h1,h2,h3{
+  font-family:"Saira SemiCondensed","Saira",system-ui,sans-serif;
+  margin:0;line-height:1.04;letter-spacing:.005em;font-weight:700;
+  text-transform:uppercase;
+}
+p{margin:0 0 1em}
+a{color:inherit}
+img{max-width:100%}
+.mono{font-family:"Spline Sans Mono",ui-monospace,monospace}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+:focus-visible{outline:2px solid var(--marker);outline-offset:2px}
+.wrap>*{min-width:0}
+
+/* ---- masthead ---- */
+.topicbar{position:sticky;top:0;z-index:50;background:var(--graphite);color:#fff;border-bottom:3px solid var(--marker)}
+.topicbar .wrap{display:flex;align-items:center;gap:20px;height:56px}
+.brand{
+  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:19px;letter-spacing:.02em;
+  text-transform:uppercase;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;
+}
+.brand::before{content:"";width:14px;height:14px;margin-right:10px;background:var(--marker);clip-path:polygon(0 0,100% 0,100% 62%,62% 62%,62% 100%,0 100%)}
+.brand span{color:var(--marker)}
+.nav{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+.nav a{
+  font-family:"Spline Sans Mono",monospace;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--paper-dim);text-decoration:none;padding:7px 11px;
+}
+.nav a:hover{color:#fff}
+.nav a[aria-current="page"]{color:var(--marker-ink);background:var(--marker)}
+.topicbar a.skip{position:absolute;left:-9999px}
+.topicbar a.skip:focus{left:24px;top:14px;background:var(--marker);color:var(--marker-ink);padding:6px 10px;z-index:60}
+.navtoggle{display:none;margin-left:auto;background:none;border:1px solid var(--steel-dark);color:#fff;font:inherit;font-size:13px;padding:7px 14px;cursor:pointer}
+
+/* ---- cable-marker tag: the signature ---- */
+.cmark{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--marker-ink);
+  background:var(--marker);padding:4px 12px 4px 10px;border-radius:2px;
+  position:relative;
+}
+.cmark::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--marker-ink);opacity:.8}
+/* crimp notches, like a slip-on wire marker */
+.cmark::after{
+  content:"";position:absolute;left:-5px;top:50%;transform:translateY(-50%);
+  width:5px;height:12px;background:var(--marker);
+  clip-path:polygon(100% 0,0 25%,100% 50%,0 75%,100% 100%);
+}
+
+/* ---- wire rail down the page ---- */
+.railed{position:relative}
+.railed::before{
+  content:"";position:absolute;top:0;bottom:0;left:calc(50% - min(50%, calc(var(--maxw)/2)) + var(--rail-x));
+  width:2px;background:linear-gradient(var(--steel) 60%, transparent 0) 0 0/2px 9px repeat-y;
+}
+@media (max-width:900px){.railed::before{display:none}}
+
+/* ---- page head (interior pages) ---- */
+.phead{background:var(--graphite);color:#fff;padding:64px 0 52px;position:relative}
+.phead .eyebrow{margin-bottom:20px}
+.phead h1{font-size:clamp(38px,5.4vw,64px);max-width:20ch}
+.phead p{margin:20px 0 0;color:var(--paper-dim);max-width:62ch;font-size:17.5px}
+.eyebrow{display:inline-block;width:max-content;max-width:100%}
+.phead .eyebrow, .eyebrow{ /* eyebrows render as cable markers everywhere */
+  font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--marker-ink);background:var(--marker);padding:4px 12px;border-radius:2px;
+}
+
+/* ---- sections ---- */
+main section{padding:66px 0}
+main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
+.band{background:var(--graphite);color:#fff}
+.band .sec-head h2,.band h2{color:#fff}
+.band .sec-head p{color:var(--paper-dim)}
+.sec-head{margin-bottom:34px;max-width:78ch}
+.sec-head .path{ /* legacy topic-path markers become cable tags with plain labels */
+  display:inline-flex;align-items:center;
+  font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--marker-ink);background:var(--marker);
+  padding:4px 12px;border-radius:2px;margin-bottom:16px;
+}
+.sec-head h2{font-size:clamp(28px,3.6vw,42px);margin:0 0 12px}
+.sec-head p{color:var(--ink-soft);margin:0;font-size:16.5px}
+.band .sec-head p{color:var(--paper-dim)}
+
+/* ---- buttons ---- */
+.btn{
+  display:inline-block;font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:15px;
+  letter-spacing:.05em;text-transform:uppercase;padding:13px 24px;text-decoration:none;
+  background:var(--graphite);color:#fff;border:1px solid var(--graphite);
+  border-left:6px solid var(--marker);
+}
+.btn:hover{background:var(--graphite-2)}
+.btn.ghost{background:transparent;color:#fff;border-color:var(--steel-dark);border-left-color:var(--marker)}
+.btn.ghost:hover{border-color:#fff}
+.btn.ghost.dark{color:var(--ink);border-color:var(--steel);border-left-color:var(--marker)}
+.btn.ghost.dark:hover{border-color:var(--ink)}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+
+/* ---- faceplate cards ---- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.card{
+  background:var(--paper);border:1px solid var(--steel);border-top:1px solid #fff;
+  box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(22,26,31,.06);
+  padding:22px 24px;min-width:0;
+}
+.band .card{background:var(--graphite-2);border-color:var(--steel-dark);border-top-color:var(--steel-dark);box-shadow:none}
+.card h3{font-size:20px;margin:10px 0 10px;letter-spacing:.02em}
+.card p{margin:0;font-size:14.8px;color:var(--ink-soft)}
+.band .card p{color:var(--paper-dim)}
+.tag{
+  display:inline-block;font-family:"Spline Sans Mono",monospace;font-size:10.5px;font-weight:500;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--ink-soft);
+  border:1px solid var(--steel);padding:3px 9px;border-radius:2px;
+}
+.band .tag{color:var(--paper-dim);border-color:var(--steel-dark)}
+
+/* ---- tables (engraved data plates) ---- */
+.scroller{overflow-x:auto}
+.tbl{border-collapse:collapse;width:100%;font-size:14.5px;background:var(--paper);border:1px solid var(--steel)}
+.tbl th,.tbl td{padding:11px 16px;text-align:left;border-bottom:1px solid var(--steel);vertical-align:top}
+.tbl th{
+  font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.1em;
+  text-transform:uppercase;background:var(--bone-2);color:var(--ink-soft);
+}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .num{font-family:"Spline Sans Mono",monospace;white-space:nowrap}
+.tbl .np{color:var(--ink-soft);font-size:13px}
+.tbl .sub{color:var(--ink-soft);font-size:13px}
+.band .tbl{background:var(--graphite-2);border-color:var(--steel-dark)}
+.band .tbl th{background:var(--graphite);color:var(--paper-dim)}
+.band .tbl th,.band .tbl td{border-color:var(--steel-dark)}
+.k.good{color:var(--ok);font-weight:600}
+.pass{color:var(--ok);font-family:"Spline Sans Mono",monospace;font-size:13px}
+.badge{
+  display:inline-block;font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.08em;
+  border:1px solid var(--steel);padding:2px 8px;border-radius:2px;color:var(--ink-soft);
+}
+
+/* ---- generic two-up + feature groups ---- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
+.two>*{min-width:0}
+.fgroup{margin-bottom:26px}
+.fgroup h3{font-size:19px;margin-bottom:8px}
+.fgroup p{color:var(--ink-soft);font-size:15px}
+.why{border-left:3px solid var(--marker);padding:4px 0 4px 16px;margin:14px 0;color:var(--ink-soft);font-size:15px}
+.note{font-size:13.5px;color:var(--ink-soft);margin-top:18px}
+.band .note{color:var(--paper-dim)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips>*{min-width:0}
+
+/* ---- pricing ---- */
+.tier{background:var(--paper);border:1px solid var(--steel);border-top:4px solid var(--marker);padding:26px 28px}
+.price{font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:44px;line-height:1.1;margin:12px 0}
+.price small{display:block;font-family:"Public Sans",sans-serif;font-weight:400;font-size:13.5px;color:var(--ink-soft);margin-top:8px;text-transform:none;letter-spacing:0}
+
+/* ---- hero (index) ---- */
+.hero{background:var(--graphite);color:#fff;padding:78px 0 70px;position:relative;overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
+.hero-grid>*{min-width:0}
+.hero h1{font-size:clamp(44px,6vw,84px);letter-spacing:.005em}
+.hero h1 em{font-style:normal;color:var(--marker)}
+.hero p.lede{margin-top:26px;color:var(--paper-dim);max-width:52ch;font-size:17.5px}
+.thesis{margin:26px 0 0;padding:0;list-style:none}
+.thesis li{
+  font-family:"Spline Sans Mono",monospace;font-size:13.5px;color:var(--paper-dim);
+  padding:7px 0 7px 18px;position:relative;
+}
+.thesis li::before{content:"";position:absolute;left:0;top:.72em;width:8px;height:2px;background:var(--marker)}
+.hero-foot{margin:26px 0 0;font-size:12.5px;color:var(--paper-dim);letter-spacing:.02em}
+
+/* ---- the analyzer trace (hero signature) ---- */
+.trace{background:var(--graphite-2);border:1px solid var(--steel-dark);min-width:0}
+.trace-head{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px;
+  border-bottom:1px solid var(--steel-dark);
+  font-family:"Spline Sans Mono",monospace;font-size:11.5px;color:var(--paper-dim);letter-spacing:.06em;
+}
+.trace-head .live{display:inline-flex;align-items:center;gap:7px;color:var(--marker)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--marker);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.trace-rows{padding:18px 16px 8px}
+.trow{display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:center;margin-bottom:16px}
+.trow .lbl{font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.08em;color:var(--paper-dim);text-align:right}
+.trow .line{position:relative;height:18px;border-bottom:1px solid var(--steel-dark)}
+.tick{
+  position:absolute;bottom:-1px;width:2px;height:12px;background:var(--paper-dim);
+  opacity:0;animation:tick-in .3s ease-out forwards;
+}
+.tick.birth{background:var(--marker);height:18px;width:3px}
+.tick.death{background:var(--bad);height:18px;width:3px}
+.tick.cmd{height:15px;background:#fff}
+.trace-foot{padding:0 16px 14px;font-family:"Spline Sans Mono",monospace;font-size:11px;color:var(--paper-dim)}
+@keyframes tick-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .dot{animation:none}
+  .tick{animation:none;opacity:1;transform:none}
+}
+
+/* ---- misc index groups keep working ---- */
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.feats>*{min-width:0}
+.mods{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.mods>*{min-width:0}
+.mod-body>*{min-width:0}
+.tck{display:grid;grid-template-columns:1fr 1fr;gap:36px}
+.tck>*{min-width:0}
+.faq{max-width:78ch}
+.faq h3{font-size:18px;margin:22px 0 6px}
+.faq p{color:var(--ink-soft);font-size:15px}
+
+/* ---- footer ---- */
+footer{background:var(--graphite);color:var(--paper-dim);border-top:3px solid var(--marker);padding:26px 0;margin-top:0}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 32px;justify-content:space-between;align-items:center}
+footer .mono{font-size:12px;letter-spacing:.03em}
+footer a{color:var(--paper-dim)}
+footer a:hover{color:#fff}
+
+/* ---- responsive ---- */
+@media (max-width:900px){
+  .hero-grid,.two,.tck{grid-template-columns:1fr}
+  .nav{
+    display:none;position:absolute;top:56px;left:0;right:0;background:var(--graphite);
+    flex-direction:column;padding:8px 16px 16px;border-bottom:3px solid var(--marker);
+  }
+  .nav.open{display:flex}
+  .navtoggle{display:block}
+}
+
+/* ---- Ask the Engineer (sb-chat.js) ---- */
+#sbchat-fab{
+  position:fixed;right:22px;bottom:22px;z-index:90;display:inline-flex;align-items:center;gap:9px;
+  font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:14.5px;letter-spacing:.05em;text-transform:uppercase;
+  padding:12px 18px;border:1px solid var(--graphite);border-left:6px solid var(--marker);
+  background:var(--graphite);color:#fff;cursor:pointer;box-shadow:0 8px 28px rgba(22,26,31,.35);
+}
+#sbchat-fab:hover{background:var(--graphite-2)}
+#sbchat-fab .sbchat-dot{width:8px;height:8px;border-radius:50%;background:var(--marker);animation:pulse 2s infinite}
+#sbchat-panel[hidden]{display:none}
+#sbchat-panel{
+  position:fixed;right:22px;bottom:76px;z-index:91;width:min(400px,calc(100vw - 32px));
+  height:min(560px,calc(100vh - 120px));display:flex;flex-direction:column;
+  background:var(--bone);border:1px solid var(--steel);box-shadow:0 16px 48px rgba(22,26,31,.35);
+}
+#sbchat-panel header{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+  background:var(--graphite);color:#fff;padding:13px 16px;border-bottom:3px solid var(--marker);
+}
+#sbchat-panel header strong{font-family:"Saira SemiCondensed",sans-serif;font-size:16px;letter-spacing:.04em;text-transform:uppercase;display:block}
+#sbchat-panel .sbchat-sub{display:block;font-size:11px;color:var(--paper-dim);margin-top:2px}
+#sbchat-close{background:none;border:0;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:0 2px}
+#sbchat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.sbchat-m{max-width:88%;padding:9px 12px;font-size:14px;line-height:1.5;border:1px solid var(--steel);background:var(--paper)}
+.sbchat-m.me{align-self:flex-end;background:var(--bone-2)}
+.sbchat-m.eng{align-self:flex-start;border-left:3px solid var(--marker)}
+.sbchat-m a{color:var(--ink);text-decoration-color:var(--marker);text-decoration-thickness:2px}
+.sbchat-thinking span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--marker);margin-right:3px;animation:pulse 1.2s infinite}
+.sbchat-thinking span:nth-child(2){animation-delay:.2s}
+.sbchat-thinking span:nth-child(3){animation-delay:.4s}
+.sbchat-thinking em{color:var(--ink-soft);font-size:12.5px}
+#sbchat-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--steel);background:var(--bone-2)}
+#sbchat-in{flex:1;resize:none;border:1px solid var(--steel);padding:8px 10px;font:inherit;font-size:14px;background:var(--paper);color:var(--ink)}
+#sbchat-in:focus-visible{outline:2px solid var(--marker);outline-offset:1px}
+#sbchat-send{
+  font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:14px;letter-spacing:.05em;text-transform:uppercase;
+  padding:0 18px;border:1px solid var(--graphite);border-left:5px solid var(--marker);background:var(--graphite);color:#fff;cursor:pointer;
+}
+#sbchat-send:disabled{opacity:.55;cursor:default}
+.sbchat-foot{font-size:10.5px;color:var(--ink-soft);padding:6px 12px 10px;background:var(--bone-2)}
+@media (max-width:640px){#sbchat-fab{right:14px;bottom:14px}#sbchat-panel{right:8px;bottom:64px}}
+@media (prefers-reduced-motion:reduce){#sbchat-fab .sbchat-dot,.sbchat-thinking span{animation:none}}
+
+/* ---- spec page (generated by _spec_build.py) ---- */
+.spec-mast .mast{display:flex;flex-wrap:wrap;gap:0;margin:26px 0 22px;padding:0;border:1px solid var(--steel-dark);background:var(--graphite-2);width:max-content;max-width:100%}
+.spec-mast .mast>div{display:flex;flex-direction:column;gap:2px;padding:10px 18px;border-right:1px solid var(--steel-dark);min-width:0}
+.spec-mast .mast>div:last-child{border-right:0}
+.spec-mast .mast dt{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--paper-dim)}
+.spec-mast .mast dd{margin:0;font-size:13.5px;color:#fff;font-family:"Spline Sans Mono",monospace}
+.spec-mast .mast dd.normative{color:var(--marker);font-weight:600}
+.rfc{font-family:"Spline Sans Mono",monospace;font-size:.82em;font-weight:600;letter-spacing:.04em;padding:0 4px;background:var(--bone-2);border:1px solid var(--steel)}
+.band .rfc{background:var(--graphite-2);border-color:var(--steel-dark);color:#fff}
+.classcards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:26px}
+.ccard{background:var(--paper);border:1px solid var(--steel);border-top:4px solid var(--steel);padding:20px 22px}
+.ccard.s{border-top-color:var(--marker)}
+.ccard.r{border-top-color:var(--graphite)}
+.ccard.c{border-top-color:var(--steel)}
+.ccard .ctag{font-family:"Spline Sans Mono",monospace;font-size:11.5px;letter-spacing:.08em;color:var(--ink-soft)}
+.ccard h3{font-size:20px;margin:6px 0 10px}
+.ccard p{margin:0;font-size:14.5px;color:var(--ink-soft)}
+.specgrid{display:grid;grid-template-columns:230px minmax(0,1fr);gap:44px;align-items:start}
+.spectoc{position:sticky;top:76px;display:flex;flex-direction:column;gap:2px;font-family:"Spline Sans Mono",monospace;font-size:12.5px;border-left:2px solid var(--steel);padding-left:14px}
+.spectoc .toct{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+.spectoc a{text-decoration:none;color:var(--ink-soft);padding:3px 0}
+.spectoc a:hover{color:var(--ink)}
+.specdoc{max-width:76ch;font-size:15.5px}
+.specdoc h2{font-size:26px;margin:44px 0 14px;padding-top:18px;border-top:1px solid var(--steel)}
+.specdoc h2:first-child{margin-top:0;border-top:0;padding-top:0}
+.specdoc h3{font-size:19px;margin:28px 0 10px}
+.specdoc code{font-family:"Spline Sans Mono",monospace;font-size:.86em;background:var(--bone-2);padding:1px 5px;border:1px solid var(--steel)}
+.specdoc pre{background:var(--graphite);color:#E7EAED;padding:14px 16px;overflow-x:auto;font-size:13px}
+.specdoc pre code{background:transparent;border:0;color:inherit;padding:0}
+.specdoc table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto;background:var(--paper)}
+.specdoc th,.specdoc td{border:1px solid var(--steel);padding:8px 12px;text-align:left;vertical-align:top}
+.specdoc th{background:var(--bone-2);font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.04em}
+.specdoc li{margin-bottom:.45em}
+@media (max-width:960px){
+  .classcards{grid-template-columns:1fr}
+  .specgrid{grid-template-columns:1fr}
+  .spectoc{position:static;flex-direction:row;flex-wrap:wrap;gap:4px 14px;border-left:0;padding-left:0}
+  .spectoc .toct{width:100%}
+  .spec-mast .mast{flex-direction:column}
+  .spec-mast .mast>div{border-right:0;border-bottom:1px solid var(--steel-dark)}
+  .spec-mast .mast>div:last-child{border-bottom:0}
+}
+
+/* ---- pricing tiers grid + TCK result plates + closing band ---- */
+.tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.tiers>*{min-width:0}
+.tier.feature{border-top-color:var(--graphite);background:var(--graphite);color:#fff}
+.tier.feature h3{color:#fff}
+.tier.feature .price{color:#fff}
+.tier.feature .price small{color:var(--paper-dim)}
+.tier.feature .badge{color:var(--marker);border-color:var(--steel-dark)}
+.tier.feature .why{color:var(--paper-dim)}
+.tck-grid,.tckcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.c{
+  background:var(--paper);border:1px solid var(--steel);border-top:1px solid #fff;
+  box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(22,26,31,.06);padding:20px 22px;min-width:0;
+}
+.band .c{background:var(--graphite-2);border-color:var(--steel-dark);border-top-color:var(--steel-dark);box-shadow:none}
+.c h3{font-size:18px;margin:8px 0 6px}
+.c p{font-size:13.5px;color:var(--ink-soft);margin:0 0 4px}
+.band .c p{color:var(--paper-dim)}
+.c .n{font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:40px;line-height:1;display:block;margin-top:10px}
+section.tail{background:var(--graphite);color:#fff;text-align:left}
+section.tail h2{font-size:clamp(30px,4vw,48px)}
+section.tail p{color:var(--paper-dim);max-width:60ch}
+
+/* ---- module deep-dive plates (index) ---- */
+.mod{background:var(--graphite-2);border:1px solid var(--steel-dark);padding:24px 26px;min-width:0}
+.mod .sig{font-family:"Spline Sans Mono",monospace;font-size:12px;color:var(--paper-dim);display:block;margin-bottom:8px}
+.modstat{margin:16px 0 6px}
+.modstat b{
+  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:34px;line-height:1.05;
+  display:block;color:var(--marker);
+}
+.modstat span{font-size:13.5px;color:var(--paper-dim)}
+.mod-body h4,.mod-body summary{font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:15px;letter-spacing:.04em;text-transform:uppercase;margin:18px 0 8px;cursor:pointer}
+.mod-body ul{margin:0 0 12px;padding-left:0;list-style:none}
+.mod-body li{margin-bottom:10px;font-size:14px;color:var(--paper-dim)}
+.mod-body li b{display:block;color:#fff;font-weight:600;font-size:13.5px;letter-spacing:.02em;margin-bottom:2px}
+
+/* spec class cards: they live inside a .band section and .ccard.c collides with
+   the TCK plate class .c — pin their own ground and ink explicitly */
+.ccard, .band .ccard, .band .ccard.c{
+  background:var(--paper);color:var(--ink);
+  border:1px solid var(--steel);box-shadow:none;padding:20px 22px;
+}
+.ccard h3, .band .ccard h3{color:var(--ink)}
+.ccard p, .band .ccard p{color:var(--ink-soft)}
+.ccard.s, .band .ccard.s{border-top:4px solid var(--marker)}
+.ccard.r, .band .ccard.r{border-top:4px solid var(--graphite)}
+.ccard.c, .band .ccard.c{border-top:4px solid var(--steel)}
