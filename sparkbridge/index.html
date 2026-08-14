@@ -359,15 +359,40 @@
     <div class="sec-head">
       <div class="path">conformance</div>
       <h2>Tested Against the Official Suite</h2>
-      <p>The Eclipse Sparkplug project publishes an official test kit that checks whether a product really follows the specification. SparkBridge runs it against a live system (broker, host and edge together) rather than claiming conformance on its own say-so.</p>
+      <p>The Eclipse Foundation, who publish the Sparkplug specification itself, also publish its
+      official examiner: a test kit that watches a product on the wire and fails it for any
+      deviation from the standard. Here is what that looked like, in plain terms.</p>
     </div>
-    <div class="tck">
-      <div class="c"><div class="pass">OVERALL PASS</div><h3>SendComplexData</h3><p>Template definitions and instances with parameters, DataSet, PropertySet</p><span class="n">49</span><p>assertions</p></div>
-      <div class="c"><div class="pass">OVERALL PASS</div><h3>ReceiveCommand</h3><p>NCMD and DCMD handling, rebirth actions, NDEATH will message</p><span class="n">15</span><p>assertions</p></div>
-      <div class="c"><div class="pass">OVERALL PASS</div><h3>PrimaryHost</h3><p>Birth gated on host STATE, stale offline STATE rejected, session termination</p><span class="n">26</span><p>assertions</p></div>
-      <div class="c"><div class="pass">OVERALL PASS</div><h3>MultipleBroker</h3><p>Server walk measured at about 0.6 s, device registrations carried across</p><span class="n">20</span><p>assertions</p></div>
+    <div class="two">
+      <div>
+        <h4>What was tested</h4>
+        <p>Not a simulation and not a paper claim. A complete live system was stood up, broker,
+        host and edge together on a real Ignition gateway, and the official kit connected to it
+        like any other participant, watching every message. It then put the system through the
+        situations that break integrations in the field: publishing complex equipment models with
+        parameters and datasets, receiving and acting on commands, losing the central server
+        mid-session, and being forced to walk from one broker to another without losing its
+        devices.</p>
+        <h4>How it judges</h4>
+        <p>The kit reads every byte the modules put on the wire and checks it against the
+        specification: message order, sequence numbers, birth and death certificates, retained
+        state, timing. There is no partial credit; a single wrong byte or out-of-order message
+        fails the scenario.</p>
+      </div>
+      <div>
+        <h4>The result</h4>
+        <p>All four edge scenarios pass end to end, 110 individual checks in total. The host
+        session checks run clean as well. Every run is scripted and repeatable: the same harness
+        ships with the product, so the result can be reproduced on your own hardware rather than
+        taken on trust.</p>
+        <h4>What this is not</h4>
+        <p>It is not yet a formal certification. The official listing with the Eclipse Foundation
+        is a separate administrative step, membership, paperwork and a published report, and it is the
+        next step on the roadmap. The engineering half, passing the examiner, is done and repeatable
+        today.</p>
+      </div>
     </div>
-    <p class="note">Conformance here is verified, not asserted. These Edge Node profile cases ran against a live broker, host and edge together, and every assertion count above is reproducible on your own hardware. The full execution record, including the host cases and the one still on the roadmap, is in the whitepaper.</p>
+    <p class="note">The full execution record, including the host cases and the one still on the roadmap, is in the whitepaper.</p>
   </div>
 </section>
 
