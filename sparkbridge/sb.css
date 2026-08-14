@@ -445,3 +445,37 @@ caption{
 .band + .band, .band + .tail, .band + footer, section.tail + footer{border-top:1px solid var(--steel-dark)}
 section.tail h2{margin-bottom:12px}
 section.tail .cta-row{margin-top:26px}
+
+/* ---- connection lifeline (technology page): the wire as the page structure ---- */
+.lifeline{list-style:none;margin:0;padding:0;position:relative}
+.lifeline::before{
+  content:"";position:absolute;top:10px;bottom:10px;left:130px;width:2px;
+  background:linear-gradient(var(--steel) 60%, transparent 0) 0 0/2px 9px repeat-y;
+}
+.lifeline li{
+  display:grid;grid-template-columns:104px 1fr;gap:44px;align-items:start;
+  position:relative;padding:0 0 34px;
+}
+.lifeline li:last-child{padding-bottom:0}
+.lifeline li::before{
+  content:"";position:absolute;left:126px;top:8px;width:10px;height:10px;border-radius:50%;
+  background:var(--bone);border:2px solid var(--steel);
+}
+.lifeline li:has(.lc-birth)::before{background:var(--marker);border-color:var(--marker)}
+.lifeline li:has(.lc-death)::before{background:var(--bad);border-color:var(--bad)}
+.lifeline li:has(.lc-cmd)::before{background:var(--graphite);border-color:var(--graphite)}
+.lc{
+  font-family:"Spline Sans Mono",monospace;font-size:12px;font-weight:500;letter-spacing:.08em;
+  justify-self:end;text-align:right;padding:3px 0;color:var(--ink-soft);
+}
+.lc-birth{color:#1E7A3E;font-weight:600}
+.lc-death{color:var(--bad);font-weight:600}
+.lc-cmd{color:var(--ink);font-weight:600}
+.lifeline h3{font-size:20px;margin:0 0 8px}
+.lifeline p{margin:0;max-width:72ch;color:var(--ink-soft);font-size:15.5px}
+@media (max-width:760px){
+  .lifeline::before{left:8px}
+  .lifeline li{grid-template-columns:1fr;gap:6px;padding-left:30px}
+  .lifeline li::before{left:4px}
+  .lc{justify-self:start;text-align:left}
+}

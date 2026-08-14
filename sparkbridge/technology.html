@@ -48,42 +48,72 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">sparkplug</div>
-      <h2>What Sparkplug Gives You</h2>
-      <p>MQTT moves messages but says nothing about what is inside them. Sparkplug fills that gap, and gives every site the same four guarantees.</p>
-    </div>
-    <div class="cards">
-      <div class="card"><span class="tag">NBIRTH</span><h3>Every site describes itself</h3><p>On connection each site publishes a birth certificate: every point, its name, datatype, engineering units and current value. Consumers learn the model from the stream. There is no schema registry to fall out of date.</p></div>
-      <div class="card"><span class="tag">NDEATH</span><h3>You know when a site goes offline</h3><p>Sessions carry birth and death semantics enforced by the broker. When a site drops, every consumer knows within seconds and values are marked stale rather than left to look current.</p></div>
-      <div class="card"><span class="tag">NDATA</span><h3>Only changes are sent</h3><p>Only changes move. Steady-state load tracks what the process did, not how many tags exist. A structural property, not a tuning parameter that decays.</p></div>
-      <div class="card"><span class="tag">Template</span><h3>Equipment arrives as whole objects</h3><p>A pump, a loop, a skid crosses the wire as an object with named members, not a bag of loose points.</p></div>
-      <div class="card"><span class="tag">seq</span><h3>You can tell if a message went missing</h3><p>A rolling sequence number on every message means a consumer can prove it missed something and ask for a rebirth, rather than quietly carrying a hole.</p></div>
-      <div class="card"><span class="tag">STATE</span><h3>Sites wait until the server is ready</h3><p>Edges gate their births on the host's retained STATE, so a host restart does not produce an estate-wide stampede of uncoordinated births.</p></div>
-    </div>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <div class="sec-head">
       <div class="path">lifecycle</div>
-      <h2>One Connection, Start to Finish</h2>
-      <p>All of the above happens in the life of a single connection. This is the order it happens in.</p>
+      <h2>The Life of One Connection</h2>
+      <p>MQTT moves messages but says nothing about what is inside them. Sparkplug defines the
+      whole life of a connection, and every guarantee it gives you is delivered by one specific
+      message in that life. Read it top to bottom: this is the order it happens on the wire.</p>
     </div>
-    <div class="scroller">
-      <table class="tbl">
-        <thead><tr><th>Message</th><th>What it establishes</th></tr></thead>
-        <tbody>
-          <tr><td class="num">STATE</td><td>The host announces itself, retained, so any edge connecting later knows the consumer is alive before it births.</td></tr>
-          <tr><td class="num">NBIRTH</td><td>The edge publishes its whole model with <code>seq=0</code> and a birth-death sequence number that identifies this session uniquely.</td></tr>
-          <tr><td class="num">DBIRTH</td><td>Each device below the node announces its own metrics, so a device can be retired later without disturbing the node.</td></tr>
-          <tr><td class="num">NDATA / DDATA</td><td>Only changed values, alias-only on the wire, so the metric name was paid for once in the birth.</td></tr>
-          <tr><td class="num">NCMD / DCMD</td><td>The host writes back. SparkBridge confirms the write when the edge reflects the value, not when the broker accepts the publish.</td></tr>
-          <tr><td class="num">NDEATH</td><td>Registered as an MQTT Will at connect time, so the broker publishes it even when the edge cannot. Consumers stale the node's values.</td></tr>
-          <tr><td class="num">Rebirth</td><td>A sequence gap makes the host ask for the model again, rate-limited per node so a lossy link cannot be amplified into a fleet-wide storm.</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <ol class="lifeline">
+      <li>
+        <span class="lc lc-state">STATE</span>
+        <div><h3>The server speaks first</h3>
+        <p>The host announces itself with a retained STATE message, so any site connecting later
+        knows the consumer is alive before it says a word. Edges gate their births on it: a host
+        restart never triggers an estate-wide stampede of uncoordinated births.</p></div>
+      </li>
+      <li>
+        <span class="lc lc-birth">NBIRTH</span>
+        <div><h3>The site introduces itself, completely</h3>
+        <p>The edge publishes its whole model in one birth certificate: every point with its name,
+        datatype, engineering units and current value, stamped <code>seq=0</code> and a session
+        number that identifies this connection uniquely. Consumers learn the model from the stream
+        itself. There is no schema registry to fall out of date.</p></div>
+      </li>
+      <li>
+        <span class="lc lc-birth">DBIRTH</span>
+        <div><h3>Equipment arrives as whole objects</h3>
+        <p>Each device under the node announces its own metrics: a pump, a loop, a skid crosses
+        the wire as an object with named members, not a bag of loose points, and can be retired
+        later without disturbing the rest of the node.</p></div>
+      </li>
+      <li>
+        <span class="lc lc-data">NDATA</span>
+        <div><h3>Then, only what changes</h3>
+        <p>From here on, only changed values move, alias-only on the wire because the metric name
+        was paid for once at birth. Steady-state load tracks what the process actually did, not
+        how many tags exist. That is a structural property of the protocol, not a tuning
+        parameter that decays.</p></div>
+      </li>
+      <li>
+        <span class="lc lc-data">seq</span>
+        <div><h3>Every message counts itself</h3>
+        <p>A rolling sequence number rides every message, so a consumer can prove it missed
+        something rather than quietly carrying a hole. A gap makes the host ask for the model
+        again, rate-limited per node so one lossy link cannot amplify into a fleet-wide storm.</p></div>
+      </li>
+      <li>
+        <span class="lc lc-cmd">NCMD</span>
+        <div><h3>Writing back is confirmed at the plant</h3>
+        <p>Commands flow the other way on the same connection. SparkBridge reports a write as
+        successful when the site reflects the commanded value, not when the broker merely accepts
+        the publish.</p></div>
+      </li>
+      <li>
+        <span class="lc lc-death">NDEATH</span>
+        <div><h3>Silence is never mistaken for health</h3>
+        <p>The death certificate is registered with the broker as an MQTT Will at connect time, so
+        it is published even when the site cannot say goodbye. Every consumer knows within
+        seconds, and values are marked stale instead of being left to look current.</p></div>
+      </li>
+      <li>
+        <span class="lc lc-birth">NBIRTH</span>
+        <div><h3>And the loop closes</h3>
+        <p>When the site returns it simply births again with a new session number, and everything
+        above repeats. Recovery is not an add-on procedure; it is the same three messages the
+        protocol always speaks.</p></div>
+      </li>
+    </ol>
   </div>
 </section>
 
@@ -119,12 +149,12 @@
     </div>
     <div class="two">
       <div>
-        <div class="k good">What comes as standard</div>
+        <div class="floor">What comes as standard</div>
         <h3>It builds itself</h3>
         <p>Because each site describes itself when it connects, the picture fills in as sites come online. Anything new (a dashboard, a historian, an analytics tool) subscribes and finds what is there, rather than needing to be configured tag by tag.</p>
       </div>
       <div>
-        <div class="k good">What SparkBridge adds</div>
+        <div class="floor">What SparkBridge adds</div>
         <h3>Plain JSON as well as Sparkplug</h3>
         <p>The Edge can also send the same values as plain JSON on a readable path, for tools that cannot read the Sparkplug format. Sparkplug for the systems that need types and connection state; JSON for the ones that just need a simple feed.</p>
       </div>
