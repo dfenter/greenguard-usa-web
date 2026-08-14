@@ -49,6 +49,38 @@ on assertFront()
 	end tell
 end assertFront
 
+-- Focus must be IN the compose field before the body is typed. Tab from the
+-- last recipient normally moves there, but when a recipient-autocomplete
+-- popup is still open (slow Contacts resolution), Tab accepts the suggestion
+-- and focus STAYS in the To field — the body then types into To and the
+-- post-type verify fails (BODY_NOT_TYPED, Melissa/Mosqitter 8/14). Verify the
+-- focused element and, if wrong, focus the compose field directly. The field
+-- description is "Message" for iMessage compose and "Text Message" when every
+-- recipient is SMS-only.
+on focusMessageField()
+	tell application "System Events"
+		tell process "Messages"
+			try
+				set fe to value of attribute "AXFocusedUIElement"
+				set fd to description of fe
+				if fd is "Message" or fd is "Text Message" then return
+			end try
+			set els to entire contents of window 1
+			repeat with e in els
+				try
+					set d to description of e
+					if role of e is "AXTextField" and (d is "Message" or d is "Text Message") then
+						set focused of e to true
+						delay 0.5
+						return
+					end if
+				end try
+			end repeat
+		end tell
+	end tell
+	error "BODY_FIELD_NOT_FOUND: compose field not found after Tab"
+end focusMessageField
+
 on clickSheetButton(btnDesc)
 	tell application "System Events"
 		tell process "Messages"
@@ -139,6 +171,7 @@ on run argv
 			my assertFront()
 			keystroke tab
 			delay 0.8
+			my focusMessageField()
 			set n to count of bodyLines
 			repeat with i from 1 to n
 				my assertFront()
@@ -156,7 +189,7 @@ on run argv
 			set els0 to entire contents of window 1
 			repeat with e in els0
 				try
-					if description of e is "Message" and (value of e) contains (item 1 of bodyLines) then
+					if (description of e is "Message" or description of e is "Text Message") and (value of e) contains (item 1 of bodyLines) then
 						set msgField to e
 						set bodyOK to true
 						exit repeat

@@ -210,7 +210,11 @@ async function sendViaIMessage({ to, body }) {
     // The customer still gets their reminder now via 1:1; remember the group
     // so an idle-time pass can create the thread later, after which every
     // future send for them is a group text.
-    if (/focus stolen|MESSAGES_NOT_READY/.test(e.message)) deferGroupCreation(dest)
+    // NB the abort text changed in 777b8b8 ("human active at keyboard" /
+    // "could not take focus") — matching the old "focus stolen" alone made
+    // this deferral dead code. BODY_NOT_TYPED / BODY_FIELD_NOT_FOUND are
+    // compose-focus races, equally worth an idle-time retry.
+    if (/ABORT:|MESSAGES_NOT_READY|BODY_NOT_TYPED|BODY_FIELD_NOT_FOUND/.test(e.message)) deferGroupCreation(dest)
     // Never drop the message: individual sends.
     const mode = await runOsascript([IMESSAGE_SCRIPT, dest, body], 60000).catch((e2) => {
       throw new Error(`iMessage send failed: ${e2.message}`)
