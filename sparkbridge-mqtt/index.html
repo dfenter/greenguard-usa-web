@@ -53,12 +53,12 @@
       <p class="hero-foot mono">Sparkplug 3.0 conformant · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.0+ · free for development</p>
     </div>
 
-    <div class="scope" aria-label="Example Sparkplug session">
+    <div class="scope" role="img" aria-label="Example Sparkplug session: a node births, streams only what changed, dies, and rebirths">
       <div class="scope-head">
         <span class="live"><span class="dot"></span>spBv1.0/#</span>
         <span>one edge node, one session</span>
       </div>
-      <pre class="stream" id="stream" aria-hidden="true"></pre>
+      <pre class="stream" id="stream" aria-hidden="true"><span class="ln"><span class="t">01</span>  <span class="STATE">STATE&nbsp;</span>  spBv1.0/STATE/SparkBridge  <span class="v">online=true</span></span><span class="ln"><span class="t">02</span>  <span class="NBIRTH">NBIRTH</span>  spBv1.0/Plant1/NBIRTH/Edge1  <span class="v">seq=0  bdSeq=7  metrics=1284</span></span><span class="ln"><span class="t">03</span>  <span class="DBIRTH">DBIRTH</span>  spBv1.0/Plant1/DBIRTH/Edge1/Pump-02  <span class="v">seq=1  metrics=36</span></span><span class="ln"><span class="t">04</span>  <span class="NDATA">NDATA&nbsp;</span>  spBv1.0/Plant1/NDATA/Edge1  <span class="v">seq=2  Zone1/PV=68.4 degF</span></span><span class="ln"><span class="t">05</span>  <span class="NDATA">NDATA&nbsp;</span>  spBv1.0/Plant1/NDATA/Edge1  <span class="v">seq=3  Zone1/SP=70.0</span></span><span class="ln"><span class="t">06</span>  <span class="DDATA">DDATA&nbsp;</span>  spBv1.0/Plant1/DDATA/Edge1/Pump-02  <span class="v">seq=4  Suction=112.7 psi</span></span></pre>
       <div class="scope-foot">A session births, streams only what changed, dies, and rebirths.</div>
     </div>
   </div>
@@ -156,7 +156,7 @@
           <div>
             <h3>Host</h3>
             <p class="one">Subscribes to the namespace, learns each node's model from its birth certificate, and projects it into an Ignition tag provider.</p>
-            <div class="modstat"><b>500,000</b><span>wire metrics resident in under 4 GiB, measured. Enough for a consolidated 40-site estate with margin</span></div>
+            <div class="modstat"><b>500,000</b><span>wire metrics resident in under 4 GiB, measured. A consolidated 40-site estate fits with margin; fan-in above roughly eight busy edges is spread across brokers or shared consumers, both of which ship</span></div>
           </div>
           <div class="feats">
             <div class="fgroup">
@@ -351,7 +351,7 @@
       <div class="c"><div class="pass">OVERALL PASS</div><h3>PrimaryHost</h3><p>Birth gated on host STATE, stale offline STATE rejected, session termination</p><span class="n">26</span><p>assertions</p></div>
       <div class="c"><div class="pass">OVERALL PASS</div><h3>MultipleBroker</h3><p>Server walk measured at about 0.6 s, device registrations carried across</p><span class="n">20</span><p>assertions</p></div>
     </div>
-    <p class="note">Conformance here is verified, not asserted. The suite runs against a live broker, host and edge together, and every assertion count above is reproducible on your own hardware.</p>
+    <p class="note">Conformance here is verified, not asserted. These Edge Node profile cases ran against a live broker, host and edge together, and every assertion count above is reproducible on your own hardware. The full execution record, including the host cases and the one still on the roadmap, is in the whitepaper.</p>
   </div>
 </section>
 
@@ -477,6 +477,7 @@
       .replace(/ /g,'&nbsp;')+'</span>  '+row[1]+'  <span class="v">'+row[2]+'</span>';
     return s;
   }
+  el.innerHTML = '';  // drop the static no-JS seed before taking over
   if(reduce){
     SESSION.forEach(function(r,i){ el.appendChild(line(r,i+1)); });
     return;
@@ -492,19 +493,8 @@
   }
   tick();
 
-  // The section marker is a topic path, so it should update like one.
-  var secName = document.getElementById('crumb-sec');
-  var paths = [].slice.call(document.querySelectorAll('.sec-head .path'));
-  function onScroll(){
-    var best = 'overview', y = window.scrollY + 120;
-    paths.forEach(function(p){
-      var top = p.getBoundingClientRect().top + window.scrollY;
-      if(top <= y) best = p.textContent.split('/').pop();
-    });
-    if(secName.textContent !== best) secName.textContent = best;
-  }
-  window.addEventListener('scroll', onScroll, {passive:true});
-  onScroll();
+  // The scroll-spy that keeps the crumb in step with the section lives in the shared shell
+  // script below; a second copy used to run here, both writing #crumb-sec on every scroll.
 })();
 </script>
 
