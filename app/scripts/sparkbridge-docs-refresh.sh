@@ -12,7 +12,8 @@ REPO="/Users/lucille/Github/SparkBridge"
 DEST="$HOME/.sparkbridge-chat-docs"
 mkdir -p "$DEST"
 chmod 700 "$DEST"
-rm -f "$DEST"/*.md "$DEST"/*.txt 2>/dev/null || true
+# Wipe the copied docs but PRESERVE the hand-maintained facts file.
+find "$DEST" -maxdepth 1 -name '*.md' ! -name 'SITE-FACTS.md' -delete 2>/dev/null || true
 
 # Customer-facing docs only. Never docs/internal (review ledgers, research memos).
 cp "$REPO/README.md"          "$DEST/README.md"
