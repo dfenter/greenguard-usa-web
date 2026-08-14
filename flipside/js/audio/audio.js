@@ -1,4 +1,4 @@
-import { FACES, WIN_PHASE } from '../config.js?v=e886a29';
+import { FACES, WIN_PHASE } from '../config.js?v=43ddf0f';
 
 // FLIPSIDE procedural audio.  The module is deliberately silent until the
 // first user gesture calls unlock(), so loading the game never creates an

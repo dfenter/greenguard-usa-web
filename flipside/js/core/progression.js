@@ -6,14 +6,14 @@ import {
   PHASES,
   ROWS,
   WIN_PHASE,
-} from '../config.js?v=e886a29';
-import { rng } from './pieces.js?v=e886a29';
+} from '../config.js?v=43ddf0f';
+import { rng } from './pieces.js?v=43ddf0f';
 import {
   addGarbage,
   clearFaceRows,
   faceDanger,
   faceWindow,
-} from './board.js?v=e886a29';
+} from './board.js?v=43ddf0f';
 
 function clampPhase(phase) {
   const value = Number(phase);

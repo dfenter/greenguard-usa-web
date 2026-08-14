@@ -17,7 +17,7 @@
 // Parallax is <= 3 moving layers per world and all motion is gentle: nothing
 // here should compete with the board for attention.
 
-import { COLORS } from '../config.js?v=e886a29';
+import { COLORS } from '../config.js?v=43ddf0f';
 
 let reducedMotionState = null;
 

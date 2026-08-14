@@ -10,14 +10,14 @@ import {
   SOFT_DROP_FACTOR,
   nextFace,
   ringCol,
-} from '../config.js?v=e886a29';
+} from '../config.js?v=43ddf0f';
 import {
   cellsOf,
   createRngState,
   makeBag,
   rotate,
   spawnPiece,
-} from './pieces.js?v=e886a29';
+} from './pieces.js?v=43ddf0f';
 import {
   anyAbove,
   cellAt,
@@ -28,14 +28,14 @@ import {
   faceWindow,
   lockCells,
   ringRowFull,
-} from './board.js?v=e886a29';
+} from './board.js?v=43ddf0f';
 import {
   checkSeamWin,
   echoClear,
   festerCheck,
   gravityMs,
   onLinesCleared,
-} from './progression.js?v=e886a29';
+} from './progression.js?v=43ddf0f';
 
 const COMBO_SCORE = 50;
 const B2B_MULT = 1.5;

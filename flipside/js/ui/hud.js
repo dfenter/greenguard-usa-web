@@ -8,8 +8,8 @@
 // .btn, .btn-primary, #btn-fold-left, #btn-fold-right, .tc-btn,
 // and #btn-pause.
 
-import { COLORS, FACE_W, FACES, QUEUE_LEN, ROWS, ringCol } from '../config.js?v=e886a29';
-import * as boardOps from '../core/board.js?v=e886a29';
+import { COLORS, FACE_W, FACES, QUEUE_LEN, ROWS, ringCol } from '../config.js?v=43ddf0f';
+import * as boardOps from '../core/board.js?v=43ddf0f';
 
 const MINI_WIDTH = 76;
 const MINI_HEIGHT = 50;

@@ -1,14 +1,14 @@
 // FLIPSIDE boot + frame loop. Orchestrator-owned; lanes do not edit.
-import * as game from './core/game.js?v=e886a29';
-import { FACES } from './config.js?v=e886a29';
-import { createInput } from './input.js?v=e886a29';
-import { createFlip } from './world/flip.js?v=e886a29';
-import { createRenderer } from './render/renderer.js?v=e886a29';
-import { createFx } from './render/fx.js?v=e886a29';
-import { createAudio } from './audio/audio.js?v=e886a29';
-import { createHud } from './ui/hud.js?v=e886a29';
-import { maybeRunTutorial, loadSettings, saveSettings, stopTutorial } from './ui/tutorial.js?v=e886a29';
-import { createBot } from './autoplay.js?v=e886a29';
+import * as game from './core/game.js?v=43ddf0f';
+import { FACES } from './config.js?v=43ddf0f';
+import { createInput } from './input.js?v=43ddf0f';
+import { createFlip } from './world/flip.js?v=43ddf0f';
+import { createRenderer } from './render/renderer.js?v=43ddf0f';
+import { createFx } from './render/fx.js?v=43ddf0f';
+import { createAudio } from './audio/audio.js?v=43ddf0f';
+import { createHud } from './ui/hud.js?v=43ddf0f';
+import { maybeRunTutorial, loadSettings, saveSettings, stopTutorial } from './ui/tutorial.js?v=43ddf0f';
+import { createBot } from './autoplay.js?v=43ddf0f';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');

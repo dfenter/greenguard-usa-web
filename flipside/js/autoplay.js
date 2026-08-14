@@ -8,9 +8,9 @@ import {
   ROWS,
   nextFace,
   ringCol,
-} from './config.js?v=e886a29';
-import { SHAPES, cellsOf } from './core/pieces.js?v=e886a29';
-import { cellAt, collides, faceDanger, faceWindow } from './core/board.js?v=e886a29';
+} from './config.js?v=43ddf0f';
+import { SHAPES, cellsOf } from './core/pieces.js?v=43ddf0f';
+import { cellAt, collides, faceDanger, faceWindow } from './core/board.js?v=43ddf0f';
 
 const ROT_STATES = { I: 2, O: 1, S: 2, Z: 2, T: 4, J: 4, L: 4 };
 const W_HEIGHT = -0.510066;

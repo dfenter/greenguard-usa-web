@@ -13,11 +13,11 @@ import {
   SEAM_W_CELLS,
   nextFace,
   ringCol,
-} from '../config.js?v=e886a29';
-import { cellsOf } from '../core/pieces.js?v=e886a29';
-import { collides } from '../core/board.js?v=e886a29';
-import { ringDirectionToward } from '../core/game.js?v=e886a29';
-import { drawBackground } from './backgrounds.js?v=e886a29';
+} from '../config.js?v=43ddf0f';
+import { cellsOf } from '../core/pieces.js?v=43ddf0f';
+import { collides } from '../core/board.js?v=43ddf0f';
+import { ringDirectionToward } from '../core/game.js?v=43ddf0f';
+import { drawBackground } from './backgrounds.js?v=43ddf0f';
 
 const MAX_DPR = 2;
 const FOLD_SLICES = 24;
@@ -1371,8 +1371,8 @@ export function createRenderer(canvas) {
   let snapshotReady = false;
   let piecesSeen = -1;
   let linesSeen = -1;
-  const lockState = { count: 0, startedAt: -1 };
-  const clearState = { count: 0, maxRow: -1, startedAt: -1 };
+  const lockState = { count: 0, startedAt: -1, columns: lockColumns, rows: lockRows };
+  const clearState = { count: 0, maxRow: -1, startedAt: -1, rows: clearRows };
 
   function currentDpr() {
     return clamp(Number(globalThis.devicePixelRatio) || 1, 1, MAX_DPR);

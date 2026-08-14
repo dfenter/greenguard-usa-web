@@ -1,4 +1,4 @@
-import { ARR_MS, COLS, DAS_MS, KEYS } from './config.js?v=e886a29';
+import { ARR_MS, COLS, DAS_MS, KEYS } from './config.js?v=43ddf0f';
 
 const POINTER_SLOP_PX = 12;
 const SOFT_DRAG_DISTANCE_PX = 22;

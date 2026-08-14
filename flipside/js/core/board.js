@@ -1,4 +1,4 @@
-import { FACES, FACE_W, RING_COLS, ROWS, ringCol } from '../config.js?v=e886a29';
+import { FACES, FACE_W, RING_COLS, ROWS, ringCol } from '../config.js?v=43ddf0f';
 
 const WALL = 'WALL';
 
