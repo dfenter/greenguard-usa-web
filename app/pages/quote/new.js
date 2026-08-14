@@ -195,7 +195,8 @@ function CustomerSearch({ customers, onSelect }) {
 // of truth shared with the server (/api/quote/create-link recomputes from it).
 const {
   BG_RENTAL_PRICE, BG_HOOKUP_PER_TRAP, BG_NONCO2_PER_TRAP, STARTER_NONCO2_PER_TRAP, MQ_PRICE, TANK_PRICE,
-  serviceAddons, buildServiceLines, buildProductLines, buildAddonLines,
+  serviceAddons, buildServiceLines, buildProductLines, buildAddonLines, buildQuoteOptions, firstAvailableServiceDate,
+  isLocalDeliveryAddress, shippingForQtys,
 } = require('../../lib/quote-pricing')
 const { productsForQuote } = require('../../lib/catalog')
 const PRODUCTS = productsForQuote()
@@ -203,12 +204,9 @@ const SERVICE_ADDONS = serviceAddons()
 
 // ── Guided service configurator ────────────────────────────────────────────────
 
-// Earliest service date allowed = today + 5 days (ISO YYYY-MM-DD in local TZ)
-function minServiceDate() {
-  const d = new Date()
-  d.setDate(d.getDate() + 5)
-  return d.toLocaleDateString('en-CA')
-}
+// Systems quoted with BOTH a rental and a purchase option (customer picks at
+// acceptance). Tank delivery and equipment-only quotes stay single-option.
+const DUAL_SYSTEMS = new Set(['biogents-co2', 'biogents-nonco2', 'mosqitter'])
 
 function SystemIcon({ iconPath, emoji }) {
   const [failed, setFailed] = useState(false)
@@ -231,34 +229,25 @@ function SystemIcon({ iconPath, emoji }) {
 
 function ServiceConfigurator({ onChange, onConfigChange }) {
   const [system, setSystem] = useState(null)        // 'biogents-co2' | 'biogents-nonco2' | 'mosqitter' | 'tank' | 'none'
-  const [plan, setPlan] = useState(null)            // 'rental' | 'purchase'
   const [trapCount, setTrapCount] = useState(1)
-  // Default to Yes for the public quote builder — virtually every Biogents
-  // purchase customer pairs it with our CO₂ tank delivery (it's how the
-  // trap stays running). Admin builders can flip to No if needed.
-  const [onTankService, setOnTankService] = useState(true)
-  const [mqPlan, setMqPlan] = useState(null)        // 'rental' | 'purchase'
   const [mqCount, setMqCount] = useState(1)
   const [mqInstall, setMqInstall] = useState(false)
   const [tankCount, setTankCount] = useState(2)
   const [tankHookup, setTankHookup] = useState(false)
-  const minDate = minServiceDate()
-  // Default to the earliest available date (today + 5 days). Customer can
-  // still pick something later; the date input min= prevents earlier picks.
-  const [serviceDate, setServiceDate] = useState(minDate)
+  // The quote always uses the first available service date (today + 5 days) —
+  // no picker. Scheduling is confirmed after the customer accepts.
+  const minDate = firstAvailableServiceDate()
 
   useEffect(() => {
     // Lines are built by the shared canonical builder so the on-screen preview
     // is byte-for-byte what the server recomputes in /api/quote/create-link.
-    const cfg = { system, plan, trapCount, onTankService, mqPlan, mqCount, mqInstall, tankCount, tankHookup, serviceDate }
-    onChange(buildServiceLines(cfg))
+    // Dual-plan systems carry no single-plan lines — both options are built
+    // from this config by buildQuoteOptions (hookup always included on
+    // purchase; every purchase customer is on our CO₂ tank service).
+    const cfg = { system, trapCount, onTankService: true, mqCount, mqInstall, tankCount, tankHookup, serviceDate: minDate }
+    onChange(DUAL_SYSTEMS.has(system) ? [] : buildServiceLines(cfg))
     if (onConfigChange) onConfigChange(cfg)
-  }, [system, plan, trapCount, onTankService, mqPlan, mqCount, mqInstall, tankCount, tankHookup, serviceDate])
-
-  // Reset date and clamp if user picks earlier than min
-  useEffect(() => {
-    if (serviceDate && serviceDate < minDate) setServiceDate('')
-  }, [serviceDate, minDate])
+  }, [system, trapCount, mqCount, mqInstall, tankCount, tankHookup])
 
   const Q = { fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: 8, marginTop: 16 }
   const chip = (active) => ({ display: 'inline-block', padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.2)'}`, background: active ? 'rgba(var(--green-rgb),0.1)' : 'transparent', color: active ? 'var(--green)' : 'var(--text-dim)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', marginRight: 8, marginBottom: 8, userSelect: 'none', transition: 'all 0.12s' })
@@ -280,7 +269,7 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
           return (
             <div
               key={val}
-              onClick={() => { setSystem(val); setPlan(null); setOnTankService(null); setMqPlan(null); setMqInstall(false); setTankHookup(false) }}
+              onClick={() => { setSystem(val); setMqInstall(false); setTankHookup(false) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '14px 18px', borderRadius: 10,
@@ -305,67 +294,30 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         </div>
       )}
 
-      {/* Q2: Biogents CO₂ — rental or purchase */}
+      {/* Biogents CO₂ — trap count. No rental/purchase question: the quote
+          carries BOTH options and the customer compares them side by side. */}
       {system === 'biogents-co2' && (
-        <>
-          <div style={Q}>Customer Rental or Purchase?</div>
-          <div>
-            <span onClick={() => { setPlan('rental'); setOnTankService(null) }} style={chip(plan === 'rental')}>📅 Customer Rental — we provide the trap, tank, timer, bait pack, and CO₂ refill</span>
-            <span onClick={() => setPlan('purchase')} style={chip(plan === 'purchase')}>🛒 Purchase — customer buys the trap</span>
-          </div>
-        </>
-      )}
-
-      {/* Q3: Biogents CO₂ — trap count */}
-      {system === 'biogents-co2' && plan && (
         <>
           <div style={Q}>How many traps?</div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
             ))}
-            {plan === 'rental' && BG_RENTAL_PRICE[trapCount] && (
+            {BG_RENTAL_PRICE[trapCount] && (
               <span style={{ fontSize: '0.85rem', color: 'var(--green)', fontWeight: 900, marginLeft: 14 }}>
-                ${BG_RENTAL_PRICE[trapCount].toFixed(2)}/mo
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 6 }}>(${(BG_RENTAL_PRICE[trapCount] / trapCount).toFixed(2)}/trap)</span>
+                from ${BG_RENTAL_PRICE[trapCount].toFixed(2)}/mo
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 6 }}>(${(BG_RENTAL_PRICE[trapCount] / trapCount).toFixed(2)}/trap rental)</span>
               </span>
             )}
-            {plan === 'owned' && (
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginLeft: 14 }}>Hookup fee applies if on tank service</span>
-            )}
+          </div>
+          <div style={{ marginTop: 10, fontSize: '0.78rem', color: 'var(--text-muted)', padding: '8px 12px', borderRadius: 6, background: 'rgba(var(--info-rgb),0.06)', border: '1px solid rgba(var(--info-rgb),0.15)', lineHeight: 1.5 }}>
+            Your quote includes both paths: monthly rental (trap, tank, timer, bait and CO₂ refills included) and equipment purchase with monthly CO₂ tank exchange, hookup and maintenance.
           </div>
         </>
       )}
 
-      {/* Q4: Biogents CO₂ purchase — add hookup & maintenance fee? The
-          monthly CO₂ tank exchange line shows regardless of this answer;
-          this just adds the per-trap hookup fee on top. */}
-      {system === 'biogents-co2' && plan === 'purchase' && trapCount && (
-        <>
-          <div style={Q}>Include tank hookup and trap maintenance</div>
-          <div>
-            <span onClick={() => setOnTankService(true)} style={chip(onTankService === true)}>Yes — we hook up &amp; maintain (recommended)</span>
-            <span onClick={() => setOnTankService(false)} style={chip(onTankService === false)}>No — tank exchange drop off only</span>
-          </div>
-          {onTankService === true && (
-            <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'rgba(var(--gold-rgb),0.7)', padding: '8px 12px', borderRadius: 6, background: 'rgba(var(--gold-rgb),0.06)', border: '1px solid rgba(var(--gold-rgb),0.15)' }}>
-              $10/trap/mo × {trapCount} trap{trapCount > 1 ? 's' : ''} = ${(BG_HOOKUP_PER_TRAP * trapCount).toFixed(2)}/mo
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Biogents Non-CO₂ — starter rental or customer-owned */}
+      {/* Biogents Non-CO₂ — trap count; quote carries rental + purchase options */}
       {system === 'biogents-nonco2' && (
-        <>
-          <div style={Q}>Starter Rental or Customer-Owned?</div>
-          <div>
-            <span onClick={() => setPlan('rental')} style={chip(plan === 'rental')}>🌱 Starter Rental — we provide the trap, attractant &amp; maintenance ($49.99/trap/mo)</span>
-            <span onClick={() => setPlan('purchase')} style={chip(plan === 'purchase')}>🛒 Customer-Owned — maintenance only ($10/trap/mo)</span>
-          </div>
-        </>
-      )}
-      {system === 'biogents-nonco2' && plan && (
         <>
           <div style={Q}>How many traps?</div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -373,39 +325,36 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
               <button key={n} onClick={() => setTrapCount(n)} style={trapBtn(n)}>{n}</button>
             ))}
             <span style={{ fontSize: '0.85rem', color: 'var(--green)', fontWeight: 900, marginLeft: 14 }}>
-              ${((plan === 'rental' ? STARTER_NONCO2_PER_TRAP : BG_NONCO2_PER_TRAP) * trapCount).toFixed(2)}/mo
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 6 }}>(${plan === 'rental' ? STARTER_NONCO2_PER_TRAP : BG_NONCO2_PER_TRAP}/trap — no CO₂ tanks)</span>
+              from ${(BG_NONCO2_PER_TRAP * trapCount).toFixed(2)}/mo
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 6 }}>(no CO₂ tanks)</span>
             </span>
+          </div>
+          <div style={{ marginTop: 10, fontSize: '0.78rem', color: 'var(--text-muted)', padding: '8px 12px', borderRadius: 6, background: 'rgba(var(--info-rgb),0.06)', border: '1px solid rgba(var(--info-rgb),0.15)', lineHeight: 1.5 }}>
+            Your quote includes both paths: starter rental (${STARTER_NONCO2_PER_TRAP}/trap/mo, trap and attractant included) and trap purchase with ${BG_NONCO2_PER_TRAP}/trap/mo maintenance.
           </div>
         </>
       )}
 
-      {/* Mosqitter plan */}
+      {/* Mosqitter — unit count + install; quote carries rental + purchase options */}
       {system === 'mosqitter' && (
         <>
-          <div style={Q}>Customer Rental or Purchase?</div>
-          <div>
-            <span onClick={() => setMqPlan('rental')} style={chip(mqPlan === 'rental')}>📅 Customer Rental — ${MQ_PRICE.rental}/mo · all-in</span>
-            <span onClick={() => setMqPlan('purchase')} style={chip(mqPlan === 'purchase')}>🛒 Purchase — ${MQ_PRICE.service}/mo · service only</span>
+          <div style={Q}>How many units?</div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <button key={n} onClick={() => setMqCount(n)} style={{ ...trapBtn(n), border: `1px solid ${mqCount === n ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.2)'}`, background: mqCount === n ? 'rgba(var(--green-rgb),0.12)' : 'transparent', color: mqCount === n ? 'var(--green)' : 'var(--text-dim)' }}>{n}</button>
+            ))}
+            <span style={{ fontSize: '0.82rem', color: 'var(--green)', fontWeight: 900, marginLeft: 14 }}>
+              from ${(MQ_PRICE.service * mqCount).toFixed(2)}/mo
+            </span>
           </div>
-          {mqPlan && (
-            <>
-              <div style={Q}>How many units?</div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <button key={n} onClick={() => setMqCount(n)} style={{ ...trapBtn(n), width: 42, height: 42, border: `1px solid ${mqCount === n ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.2)'}`, background: mqCount === n ? 'rgba(var(--green-rgb),0.12)' : 'transparent', color: mqCount === n ? 'var(--green)' : 'var(--text-dim)' }}>{n}</button>
-                ))}
-                <span style={{ fontSize: '0.82rem', color: 'var(--green)', fontWeight: 900, marginLeft: 14 }}>
-                  ${((mqPlan === 'rental' ? MQ_PRICE.rental : MQ_PRICE.service) * mqCount).toFixed(2)}/mo
-                </span>
-              </div>
-              <div style={Q}>Installation needed?</div>
-              <div>
-                <span onClick={() => setMqInstall(true)} style={chip(mqInstall)}>Yes — +${(MQ_PRICE.install * mqCount).toFixed(2)} one-time</span>
-                <span onClick={() => setMqInstall(false)} style={chip(!mqInstall)}>No</span>
-              </div>
-            </>
-          )}
+          <div style={Q}>Installation needed?</div>
+          <div>
+            <span onClick={() => setMqInstall(true)} style={chip(mqInstall)}>Yes, +${(MQ_PRICE.install * mqCount).toFixed(2)} one-time</span>
+            <span onClick={() => setMqInstall(false)} style={chip(!mqInstall)}>No</span>
+          </div>
+          <div style={{ marginTop: 10, fontSize: '0.78rem', color: 'var(--text-muted)', padding: '8px 12px', borderRadius: 6, background: 'rgba(var(--info-rgb),0.06)', border: '1px solid rgba(var(--info-rgb),0.15)', lineHeight: 1.5 }}>
+            Your quote includes both paths: all-in rental (${MQ_PRICE.rental}/mo per unit) and equipment purchase with ${MQ_PRICE.service}/mo per unit full service.
+          </div>
         </>
       )}
 
@@ -434,29 +383,61 @@ function ServiceConfigurator({ onChange, onConfigChange }) {
         </>
       )}
 
-      {/* Service date — required for any real service (not for equipment-only) */}
+      {/* First available service date — shown, not chosen. Scheduling is
+          confirmed with the customer after they accept the quote. */}
       {system && system !== 'none' && (
         <>
-          <div style={{ ...Q, marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(var(--border-rgb),0.12)' }}>Preferred service date</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-            <input
-              type="date"
-              value={serviceDate}
-              min={minDate}
-              onChange={(e) => setServiceDate(e.target.value)}
-              style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: `1px solid ${serviceDate ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--gold-rgb),0.4)'}`, background: 'var(--bg-card)', color: 'var(--text)', fontSize: '1rem', minHeight: 48, WebkitAppearance: 'none', appearance: 'none', boxSizing: 'border-box' }}
-            />
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-              Earliest available: {new Date(minDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} (5-day lead time)
-            </span>
-          </div>
-          {!serviceDate && (
-            <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--gold)', fontWeight: 700 }}>
-              ⚠ Pick a service date before sending the quote.
+          <div style={{ ...Q, marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(var(--border-rgb),0.12)' }}>First available service date</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 8, border: '1px solid rgba(var(--green-rgb),0.3)', background: 'rgba(var(--green-rgb),0.06)' }}>
+            <span style={{ fontSize: '1.1rem' }}>📅</span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text)' }}>
+                {new Date(minDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>We confirm your exact time window after you approve the quote.</div>
             </div>
-          )}
+          </div>
         </>
       )}
+    </div>
+  )
+}
+
+// ── Dual-option preview card (rental vs purchase) ──────────────────────────────
+
+function OptionPreview({ title, tagline, opt, accent, localDelivery }) {
+  const lines = [...opt.serviceLines, ...opt.productLines, ...opt.addonLines]
+  return (
+    <div style={{ borderRadius: 10, border: `1px solid rgba(var(--${accent}-rgb),0.3)`, padding: '12px 14px', marginBottom: 10, background: `rgba(var(--${accent}-rgb),0.04)` }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: `var(--${accent})`, marginBottom: 2 }}>{title}</div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginBottom: 8 }}>{tagline}</div>
+      {lines.map((l, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: '0.78rem' }}>
+          <span style={{ color: 'var(--text-muted)', flex: 1, paddingRight: 8 }}>{l.label}</span>
+          <span style={{ fontWeight: 700, color: `var(--${accent})`, whiteSpace: 'nowrap' }}>${(l.amount || 0).toFixed(2)}{l.recurring ? '/mo' : ''}</span>
+        </div>
+      ))}
+      <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid rgba(var(--${accent}-rgb),0.2)`, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 700 }}>Monthly</span>
+          <span style={{ fontWeight: 900, color: `var(--${accent})` }}>${opt.recurringTotal.toFixed(2)}/mo</span>
+        </div>
+        {localDelivery ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+            <span style={{ color: 'var(--text-dim)', fontWeight: 600 }}>🚚 Delivery</span>
+            <span style={{ fontWeight: 800, color: 'var(--green)' }}>Free Local Delivery</span>
+          </div>
+        ) : opt.shippingTotal > 0 ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+            <span style={{ color: 'var(--text-dim)', fontWeight: 600 }}>🚚 Shipping</span>
+            <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>${opt.shippingTotal.toFixed(2)}</span>
+          </div>
+        ) : null}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 700 }}>Due today (incl. tax)</span>
+          <span style={{ fontWeight: 900, color: 'var(--gold)' }}>${opt.total.toFixed(2)}</span>
+        </div>
+      </div>
     </div>
   )
 }
@@ -637,30 +618,19 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     setCheckingOut(true)
     setCheckoutError(null)
     try {
-      // Generate the quote token first
+      // Mint the quote token, then send the customer to their quote page where
+      // both options are compared and they choose rental or purchase to pay.
       const linkRes = await fetch('/api/quote/create-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // Send config + selections only — the server recomputes all prices.
-        body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceConfig, productQtys, addonQtys, serviceDate: serviceConfig?.serviceDate || null, notes }),
+        body: JSON.stringify({ customerName, customerEmail, customerAddress, serviceConfig, productQtys, addonQtys, notes }),
       })
-      const { token } = await linkRes.json()
-      if (!token) throw new Error('Could not generate quote token')
-      // Send token to checkout
-      const checkRes = await fetch('/api/quote/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      })
-      const data = await checkRes.json()
-      if (data.url) {
-        window.open(data.url, '_blank')
-      } else {
-        throw new Error(data.error || 'Checkout failed')
-      }
+      const data = await linkRes.json()
+      if (!data.url) throw new Error(data.error || 'Could not generate your quote')
+      window.location.href = data.url
     } catch (e) {
       setCheckoutError(e.message)
-    } finally {
       setCheckingOut(false)
     }
   }
@@ -678,70 +648,34 @@ export default function QuoteBuilder({ customers, mapsKey }) {
     })
   }
 
-  // Auto-populate products when service config changes (quote page only)
-  // Rentals include everything in the monthly fee — never auto-add equipment or addons for them
-  useEffect(() => {
-    if (!serviceConfig) return
-    const { system, plan, trapCount, mqPlan, mqCount } = serviceConfig
-    const isBiogentsPurchase = (system === 'biogents-co2' && plan === 'purchase') || (system === 'biogents-nonco2' && plan !== 'rental')
-    const isMosqitterPurchase = system === 'mosqitter' && mqPlan === 'purchase'
-
-    setProductQtys((prev) => {
-      const next = { ...prev }
-      // Clear previous auto-adds
-      delete next['Biogents BG-Mosquitaire']
-      delete next['Biogents Timer']
-      delete next['Mosqitter Grand']
-      delete next['CO₂ Tank — 20lb (empty)']
-      // Only auto-add purchased equipment — rentals include hardware in monthly fee
-      if (isBiogentsPurchase && trapCount > 0) {
-        next['Biogents BG-Mosquitaire'] = trapCount
-        if (system === 'biogents-co2') {
-          // Timer + tank only apply to CO₂ systems; Non-CO₂ traps never use a timer
-          next['Biogents Timer'] = trapCount
-          next['CO₂ Tank — 20lb (empty)'] = trapCount
-        }
-      } else if (isMosqitterPurchase) {
-        next['Mosqitter Grand'] = mqCount || 1
-      }
-      return next
-    })
-    // Auto-populate add-ons (bait packs per trap) — only for purchased Biogents systems
-    setAddonQtys((prev) => {
-      const next = { ...prev }
-      delete next['Generic Bait Pack']
-      if (isBiogentsPurchase && trapCount > 0) {
-        next['Generic Bait Pack'] = trapCount
-      }
-      return next
-    })
-  }, [serviceConfig])
-
   // Same shared builders the server uses, so preview == server recomputation.
+  // Purchase equipment is no longer auto-added to the shared product picker —
+  // it lives inside the purchase option built by buildQuoteOptions.
   const productLines = buildProductLines(productQtys)
   const addonLines = buildAddonLines(addonQtys)
+  // Austin metro (786xx/787xx) ships free — mirrors the server's rule so the
+  // preview matches what create-link recomputes.
+  const localDelivery = isLocalDeliveryAddress(customerAddress)
+  const quoteOptions = buildQuoteOptions({ serviceConfig, productQtys, addonQtys, localDelivery })
 
   const allLines = [...serviceLines, ...productLines, ...addonLines]
   const recurringTotal = allLines.filter((l) => l.recurring).reduce((s, l) => s + (l.amount || 0), 0)
   const oneTimeTotal = allLines.filter((l) => !l.recurring).reduce((s, l) => s + (l.amount || 0), 0)
   const subtotal = recurringTotal + oneTimeTotal
   const taxAmount = taxRate > 0 ? Math.round(subtotal * taxRate) / 100 : 0
-  const grandTotal = subtotal + taxAmount
+  const shippingTotal = localDelivery ? 0 : shippingForQtys(productQtys)
+  const grandTotal = subtotal + taxAmount + shippingTotal
   const hasRecurring = serviceLines.some((l) => l.recurring)
   const hasOneTime = allLines.some((l) => !l.recurring)
+  const canProceed = quoteOptions ? true : allLines.some((l) => l.amount > 0)
 
   async function sendQuote() {
     if (!customerEmail) return
-    // Service date is required when this quote includes any real service (not equipment-only)
-    if (serviceConfig?.system && serviceConfig.system !== 'none' && !serviceConfig.serviceDate) {
-      toast.error('Pick a preferred service date (at least 5 days out) before sending the quote.')
-      return
-    }
     setSending(true)
     await fetch('/api/admin/send-quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: customerEmail, name: customerName, customerAddress, lineItems: allLines, serviceLines, addonLines, productLines, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, serviceDate: serviceConfig?.serviceDate || null, notes, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })) }),
+      body: JSON.stringify({ to: customerEmail, name: customerName, customerAddress, lineItems: allLines, serviceLines, addonLines, productLines, options: quoteOptions, total: subtotal, recurringTotal, oneTimeTotal, taxRate: taxRate, taxAmount, serviceDate: serviceConfig?.serviceDate || null, notes, machPins: machPins.map(({ lat, lng }) => ({ lat, lng })) }),
     })
     setSending(false); setSent(true)
     setTimeout(() => setSent(false), 5000)
@@ -877,6 +811,17 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               {customerEmail && <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 2 }}>{customerEmail}</div>}
               {customerAddress && <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: 12 }}>{customerAddress}</div>}
 
+              {quoteOptions && (
+                <div style={{ borderTop: '1px solid rgba(var(--border-rgb),0.12)', paddingTop: 12 }}>
+                  <OptionPreview title="Option 1 · Monthly Rental" tagline="Everything included, no upfront equipment" opt={quoteOptions.rental} accent="green" localDelivery={localDelivery} />
+                  <OptionPreview title="Option 2 · Purchase & Service" tagline="Own the equipment, we keep it running" opt={quoteOptions.purchase} accent="info" localDelivery={localDelivery} />
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                    The customer compares both options on their quote page and pays for the one they choose. Tax 8.25% (Austin, TX) included in totals.
+                  </div>
+                </div>
+              )}
+
+              {!quoteOptions && (
               <div style={{ borderTop: '1px solid rgba(var(--border-rgb),0.12)', paddingTop: 12 }}>
                 {allLines.length === 0 && <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem', fontStyle: 'italic' }}>Select a service to begin</p>}
 
@@ -906,13 +851,16 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Tax — fixed 8.25% Austin rate */}
+              {!quoteOptions && (
               <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 600 }}>
                 Tax: {taxRate}% (Austin, TX)
               </div>
+              )}
 
-              {allLines.length > 0 && (
+              {!quoteOptions && allLines.length > 0 && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '2px solid rgba(var(--border-rgb),0.2)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {hasRecurring && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -924,6 +872,18 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>One-time subtotal</span>
                       <span style={{ fontWeight: 900, color: 'var(--info)' }}>${oneTimeTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {shippingTotal > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: 600 }}>🚚 Shipping</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>${shippingTotal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {localDelivery && shippingTotal === 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: 600 }}>🚚 Delivery</span>
+                      <span style={{ fontWeight: 800, color: 'var(--green)' }}>Free Local Delivery</span>
                     </div>
                   )}
                   {taxAmount > 0 && (
@@ -947,9 +907,9 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                 {/* Pay Now — opens Stripe checkout directly */}
                 <button
                   onClick={payNow}
-                  disabled={checkingOut || allLines.filter(l => l.amount > 0).length === 0}
-                  style={{ padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.95rem', background: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'rgba(var(--green-rgb),0.15)' : 'var(--green)', color: checkingOut || allLines.filter(l => l.amount > 0).length === 0 ? 'var(--text-dim)' : 'var(--text-on-accent)', opacity: checkingOut ? 0.7 : 1 }}>
-                  {checkingOut ? 'Opening checkout…' : '✓ Approve & Pay Now'}
+                  disabled={checkingOut || !canProceed}
+                  style={{ padding: '13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.95rem', background: checkingOut || !canProceed ? 'rgba(var(--green-rgb),0.15)' : 'var(--green)', color: checkingOut || !canProceed ? 'var(--text-dim)' : 'var(--text-on-accent)', opacity: checkingOut ? 0.7 : 1 }}>
+                  {checkingOut ? 'Preparing your quote…' : quoteOptions ? '✓ View My Quote & Choose an Option' : '✓ View My Quote & Pay'}
                 </button>
                 {checkoutError && <div style={{ fontSize: '0.78rem', color: 'var(--danger)', textAlign: 'center' }}>{checkoutError}</div>}
 

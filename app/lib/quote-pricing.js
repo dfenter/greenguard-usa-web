@@ -12,8 +12,9 @@
 const { SKU_PRICES } = require('./sku-engine')
 const { productsForQuote, addonsForQuote } = require('./catalog')
 
-// Per-trap pricing for Biogents CO₂ rental (1–6 traps; volume discount at 4+)
-const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750 }
+// Per-trap pricing for Biogents CO₂ rental (volume discount at 4+; extends to
+// 10 traps to cover the admin builder's larger commercial quotes)
+const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750, 7: 875, 8: 1000, 9: 1125, 10: 1250 }
 // Hookup & maintenance fee, per trap
 const BG_HOOKUP_PER_TRAP = 10.00
 // Biogents Non-CO₂ (customer owns trap), per trap
@@ -178,9 +179,123 @@ function buildQuoteLines({ serviceConfig, productQtys, addonQtys } = {}) {
   }
 }
 
+// ── Dual-option quotes (rental vs purchase) ─────────────────────────────────
+// Every quote for a two-plan system carries BOTH options so the customer can
+// compare and pick one at acceptance time. Built here (shared client/server)
+// so the on-screen comparison, the emailed quote, and the amount billed at
+// checkout are always the same numbers.
+
+const DUAL_PLAN_SYSTEMS = new Set(['biogents-co2', 'biogents-nonco2', 'mosqitter'])
+const TX_TAX_RATE = 0.0825
+const round2 = (n) => Math.round(n * 100) / 100
+
+// Local delivery = Austin metro (786xx / 787xx ZIPs — same rule as the shop
+// checkout). Local customers get free delivery; everyone else pays the
+// per-item catalog shipping rates on shipped equipment.
+function isLocalDeliveryAddress(address) {
+  return /\b78[67]\d{2}(-\d{4})?\b/.test(String(address || ''))
+}
+
+// Per-item shipping (catalog `shipping` per unit) for a { label: qty } map.
+function shippingForQtys(productQtys = {}) {
+  const byLabel = new Map(productsForQuote().map((p) => [p.label, p]))
+  let s = 0
+  for (const [label, qty] of Object.entries(productQtys)) {
+    const item = byLabel.get(label)
+    if (item && item.shipping > 0) s += item.shipping * _clampInt(qty, 0, 99, 0)
+  }
+  return round2(s)
+}
+
+// First available service date = today + 5 days (ISO YYYY-MM-DD, local TZ).
+// The quote no longer asks the customer to pick a date — it commits to the
+// earliest slot and we confirm scheduling after acceptance.
+function firstAvailableServiceDate() {
+  const d = new Date()
+  d.setDate(d.getDate() + 5)
+  return d.toLocaleDateString('en-CA')
+}
+
+// Equipment the PURCHASE option always includes, per unit. Server-authoritative:
+// the purchase option is never sent without the hardware that makes it work.
+function purchaseEquipment(cfg = {}) {
+  const { system } = cfg
+  const tc = _clampInt(cfg.trapCount, 1, 20, 1)
+  const mq = _clampInt(cfg.mqCount, 1, 20, 1)
+  if (system === 'biogents-co2') {
+    return {
+      productQtys: { 'Biogents BG-Mosquitaire': tc, 'Biogents Timer': tc, 'CO₂ Tank — 20lb (empty)': tc },
+      addonQtys: { 'Generic Bait Pack': tc },
+    }
+  }
+  if (system === 'biogents-nonco2') {
+    return { productQtys: { 'Biogents Non-CO₂ Trap': tc }, addonQtys: {} }
+  }
+  if (system === 'mosqitter') {
+    return { productQtys: { 'Mosqitter Grand': mq }, addonQtys: {} }
+  }
+  return { productQtys: {}, addonQtys: {} }
+}
+
+function _mergeQtys(a = {}, b = {}) {
+  const out = { ...a }
+  for (const [k, v] of Object.entries(b)) out[k] = (out[k] || 0) + v
+  return out
+}
+
+function _optionTotals(serviceLines, productLines, addonLines, shippingTotal = 0) {
+  const all = [...serviceLines, ...productLines, ...addonLines]
+  const recurringTotal = round2(all.filter((l) => l.recurring).reduce((s, l) => s + (l.amount || 0), 0))
+  const oneTimeTotal = round2(all.filter((l) => !l.recurring).reduce((s, l) => s + (l.amount || 0), 0))
+  const subtotal = round2(recurringTotal + oneTimeTotal)
+  // Shipping is added after tax — TX delivery charges are exempt.
+  const taxAmount = round2(subtotal * TX_TAX_RATE)
+  return {
+    serviceLines, productLines, addonLines,
+    recurringTotal, oneTimeTotal, subtotal, taxAmount,
+    shippingTotal: round2(shippingTotal),
+    total: round2(subtotal + taxAmount + shippingTotal),
+  }
+}
+
+// Build BOTH plan options for a two-plan system. Customer-picked extra
+// products/add-ons apply to both; purchase equipment is added only to the
+// purchase option. onTankService is forced TRUE — every purchase customer is
+// on our CO₂ tank service, so hookup & maintenance is always included.
+// Returns null for single-plan systems ('tank', 'none') — those keep the
+// classic single-option quote shape.
+// localDelivery: Austin-metro customers ship free ("Free Local Delivery");
+// everyone else pays catalog per-item shipping on shipped equipment.
+function buildQuoteOptions({ serviceConfig, productQtys, addonQtys, localDelivery = true } = {}) {
+  const cfg = serviceConfig || {}
+  if (!DUAL_PLAN_SYSTEMS.has(cfg.system)) return null
+
+  const rentalCfg = { ...cfg, plan: 'rental', mqPlan: 'rental', onTankService: true }
+  const rental = _optionTotals(
+    buildServiceLines(rentalCfg),
+    buildProductLines(productQtys || {}),
+    buildAddonLines(addonQtys || {}),
+    localDelivery ? 0 : shippingForQtys(productQtys || {}),
+  )
+
+  const equip = purchaseEquipment(cfg)
+  const purchaseCfg = { ...cfg, plan: 'purchase', mqPlan: 'purchase', onTankService: true }
+  const purchaseQtys = _mergeQtys(productQtys, equip.productQtys)
+  const purchase = _optionTotals(
+    buildServiceLines(purchaseCfg),
+    buildProductLines(purchaseQtys),
+    buildAddonLines(_mergeQtys(addonQtys, equip.addonQtys)),
+    localDelivery ? 0 : shippingForQtys(purchaseQtys),
+  )
+
+  return { rental, purchase, localDelivery: localDelivery === true }
+}
+
 module.exports = {
   BG_RENTAL_PRICE, BG_HOOKUP_PER_TRAP, BG_NONCO2_PER_TRAP, STARTER_NONCO2_PER_TRAP, MQ_PRICE, TANK_PRICE,
   QUOTE_LOCAL_SERVICES, serviceAddons,
   buildServiceLines, buildProductLines, buildAddonLines, buildQuoteLines,
+  buildQuoteOptions, purchaseEquipment, firstAvailableServiceDate, DUAL_PLAN_SYSTEMS,
+  isLocalDeliveryAddress, shippingForQtys,
   allowedAmountCents, isAllowedQuoteAmount,
 }

@@ -5,12 +5,13 @@
 
 const { client: getClient } = require('./claude')
 
-const DEFAULT_MODEL = process.env.ASSISTANT_MODEL || 'claude-opus-4-8'
+const DEFAULT_MODEL = process.env.ASSISTANT_MODEL || 'claude-opus-5'
 
 async function runAssistant({
   system,
   history = [],
   userMessage,
+  images = [], // [{ media_type, data (base64) }] — sent as vision blocks ahead of the text
   tools = [],
   model = DEFAULT_MODEL,
   maxTokens = 1024,
@@ -25,13 +26,22 @@ async function runAssistant({
       .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
       .slice(-10)
       .map((m) => ({ role: m.role, content: m.content })),
-    { role: 'user', content: userMessage },
+    {
+      role: 'user',
+      content: Array.isArray(images) && images.length
+        ? [
+            ...images.map((i) => ({ type: 'image', source: { type: 'base64', media_type: i.media_type, data: i.data } })),
+            { type: 'text', text: userMessage },
+          ]
+        : userMessage,
+    },
   ]
 
   const actions = []
   for (let turn = 0; turn < maxTurns; turn++) {
     const resp = await client.messages.create({
       model, max_tokens: maxTokens, system,
+      output_config: { effort: 'low' },
       ...(toolDefs.length ? { tools: toolDefs } : {}),
       messages,
     })

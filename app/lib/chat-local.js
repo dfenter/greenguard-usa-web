@@ -14,7 +14,7 @@
 
 const TIMEOUT_MS = 52_000
 
-async function tryLocalChat({ audience, email, message, history, context, timeoutMs = TIMEOUT_MS }) {
+async function tryLocalChat({ audience, email, message, history, context, images, timeoutMs = TIMEOUT_MS }) {
   const base = (process.env.CHAT_DAEMON_URL || '').replace(/\/$/, '')
   const secret = process.env.CHAT_DAEMON_SECRET
   if (!base || !secret) return null
@@ -24,7 +24,7 @@ async function tryLocalChat({ audience, email, message, history, context, timeou
     resp = await fetch(`${base}/chat/${audience}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-gg-chat-secret': secret },
-      body: JSON.stringify({ email, message, history, context }),
+      body: JSON.stringify({ email, message, history, context, images }),
       signal: AbortSignal.timeout(timeoutMs),
     })
   } catch (e) {

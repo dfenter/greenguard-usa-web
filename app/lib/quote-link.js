@@ -29,6 +29,30 @@ function sanitizeLines(lines) {
   }))
 }
 
+// A dual-option quote carries a rental and a purchase variant; each is a full
+// line set + totals. Same allowlist projection as the top-level fields.
+function sanitizeOption(opt) {
+  if (!opt || typeof opt !== 'object') return null
+  return {
+    serviceLines: sanitizeLines(opt.serviceLines),
+    productLines: sanitizeLines(opt.productLines),
+    addonLines: sanitizeLines(opt.addonLines),
+    recurringTotal: safeNumber(opt.recurringTotal),
+    oneTimeTotal: safeNumber(opt.oneTimeTotal),
+    subtotal: safeNumber(opt.subtotal),
+    taxAmount: safeNumber(opt.taxAmount),
+    shippingTotal: safeNumber(opt.shippingTotal),
+    total: safeNumber(opt.total),
+  }
+}
+
+function sanitizeOptions(options) {
+  if (!options || typeof options !== 'object') return null
+  const rental = sanitizeOption(options.rental)
+  const purchase = sanitizeOption(options.purchase)
+  return rental && purchase ? { rental, purchase } : null
+}
+
 /**
  * Verify a quote JWT and return only the customer-facing quote allowlist.
  * JWT claims such as jti/type/iat/exp/source never leave this helper.
@@ -45,6 +69,8 @@ async function verifyAndSanitizeQuoteToken(token) {
     serviceLines: sanitizeLines(payload.serviceLines),
     addonLines: sanitizeLines(payload.addonLines),
     productLines: sanitizeLines(payload.productLines),
+    options: sanitizeOptions(payload.options),
+    localDelivery: payload.localDelivery === true,
     total: safeNumber(payload.total),
     recurringTotal: safeNumber(payload.recurringTotal),
     oneTimeTotal: safeNumber(payload.oneTimeTotal),

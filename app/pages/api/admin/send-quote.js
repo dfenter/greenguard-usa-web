@@ -68,6 +68,7 @@ export default async function handler(req, res) {
     to, name, lineItems = [], total, taxRate = 0, taxAmount = 0, shippingTotal = 0, notes,
     customerAddress, serviceLines = [], addonLines = [], productLines = [],
     recurringTotal = 0, oneTimeTotal = 0, serviceDate, machPins = [],
+    options = null, localDelivery = false,
   } = req.body || {}
   if (!to) return res.status(400).json({ error: 'to required' })
 
@@ -79,6 +80,8 @@ export default async function handler(req, res) {
   const token = await new SignJWT({
     customerName: name, customerEmail: to, customerAddress,
     serviceLines, addonLines, productLines,
+    options: options || null,
+    localDelivery: localDelivery === true,
     total, recurringTotal, oneTimeTotal, taxRate, taxAmount,
     shippingTotal: shippingTotal || 0, serviceDate, machPins, type: 'quote',
   })
@@ -104,6 +107,48 @@ export default async function handler(req, res) {
   const sectionStyle = 'margin:0 0 24px;padding:16px 18px;background:#f7fbf6;border-radius:10px;border:1px solid #e3eedb;'
   const sectionTitle = (color) => `font-size:0.7rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:${color};margin:0 0 10px;`
 
+  // Which system photo headlines the proposal — inferred from the line labels.
+  function systemPhotoUrl() {
+    const labels = [...serviceLines, ...(options?.rental?.serviceLines || [])].map((l) => l?.label || '').join(' ')
+    if (/mosqitter/i.test(labels)) return `${APP_URL}/system-icons/mosqitter.jpg`
+    if (/non-co/i.test(labels)) return `${APP_URL}/system-icons/biogents-nonco2.webp`
+    if (/tank/i.test(labels) && !/trap|rental/i.test(labels)) return `${APP_URL}/system-icons/tank.jpeg`
+    return `${APP_URL}/system-icons/biogents-co2.jpg`
+  }
+
+  // One option card (Rental or Purchase) for the comparison email. Table-based
+  // so it renders correctly in Outlook / Gmail / iOS Mail.
+  function optionCardHtml({ eyebrow, title, tagline, opt, accent, accentSoft, badge }) {
+    const allOpt = [...(opt.serviceLines || []), ...(opt.productLines || []), ...(opt.addonLines || [])]
+    const monthly = allOpt.filter((l) => l.recurring && (l.amount || 0) > 0)
+    const oneTime = allOpt.filter((l) => !l.recurring && (l.amount || 0) > 0)
+    const rows = (lines, suffix) => lines.map((l) => `
+      <tr>
+        <td style="padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05);color:#444;font-size:0.85rem;font-family:Arial,sans-serif;">${escapeHtml(l.label)}</td>
+        <td style="padding:7px 0;border-bottom:1px solid rgba(0,0,0,0.05);text-align:right;font-weight:700;color:${accent};font-size:0.85rem;white-space:nowrap;font-family:Arial,sans-serif;">${fmt$(l.amount)}${suffix}</td>
+      </tr>`).join('')
+    return `
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;">
+      <tr><td style="border:2px solid ${accentSoft};border-radius:12px;padding:20px 22px;background:#ffffff;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${accent};font-family:Arial,sans-serif;">${eyebrow}</td>
+          ${badge ? `<td align="right"><span style="display:inline-block;background:#c9a84c;color:#111800;font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:20px;font-family:Arial,sans-serif;">${badge}</span></td>` : ''}
+        </tr></table>
+        <p style="margin:6px 0 2px;font-size:19px;font-weight:900;color:#111f14;font-family:Arial,sans-serif;">${title}</p>
+        <p style="margin:0 0 14px;font-size:13px;color:#6b7f6e;line-height:1.55;font-family:Arial,sans-serif;">${tagline}</p>
+        <p style="margin:0;font-size:26px;font-weight:900;color:${accent};font-family:Arial,sans-serif;">${fmt$(opt.recurringTotal)}<span style="font-size:13px;color:#6b7f6e;font-weight:700;"> /month</span></p>
+        <p style="margin:2px 0 8px;font-size:13px;font-weight:700;color:#3a4b3e;font-family:Arial,sans-serif;">${fmt$(opt.total)} due today <span style="font-weight:400;color:#8a9a8d;">(first month${(opt.oneTimeTotal || 0) > 0 ? ' + equipment' : ''}, tax included)</span></p>
+        ${localDelivery
+          ? `<p style="margin:0 0 14px;"><span style="display:inline-block;background:#eaf6ec;border:1px solid #bfe3c8;color:#0d8a3c;font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;font-family:Arial,sans-serif;">&#128666; Free Local Delivery</span></p>`
+          : (opt.shippingTotal || 0) > 0
+            ? `<p style="margin:0 0 14px;font-size:12px;color:#8a9a8d;font-family:Arial,sans-serif;">&#128666; Includes ${fmt$(opt.shippingTotal)} shipping</p>`
+            : '<p style="margin:0 0 6px;"></p>'}
+        ${monthly.length ? `<p style="margin:0 0 4px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8a9a8d;font-family:Arial,sans-serif;">Monthly service</p><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:${oneTime.length ? '12px' : '0'};">${rows(monthly, '/mo')}</table>` : ''}
+        ${oneTime.length ? `<p style="margin:0 0 4px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8a9a8d;font-family:Arial,sans-serif;">Yours to keep (one-time)</p><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">${rows(oneTime, '')}</table>` : ''}
+      </td></tr>
+    </table>`
+  }
+
   const monthlyHtml = recurringLines.length > 0 ? `
     <div style="${sectionStyle}">
       <div style="${sectionTitle('#0d8a3c')}">Monthly Recurring</div>
@@ -115,7 +160,9 @@ export default async function handler(req, res) {
     <div style="${sectionStyle}background:#f6f9fb;border-color:#dde6ed;">
       <div style="${sectionTitle('#1565c0')}">One-Time Charges (Due With First Visit)</div>
       <table style="width:100%;border-collapse:collapse;">${lineRows(oneTimeLines, '#1565c0')}</table>
-      ${parseFloat(shippingTotal || 0) > 0 ? spreadRow({ label: '🚚 Shipping', amount: fmt$(shippingTotal), color: '#666', size: '0.85rem', pad: '6px 0' }) : ''}
+      ${parseFloat(shippingTotal || 0) > 0
+        ? spreadRow({ label: '🚚 Shipping', amount: fmt$(shippingTotal), color: '#666', size: '0.85rem', pad: '6px 0' })
+        : (localDelivery ? spreadRow({ label: '🚚 Delivery', amount: 'Free Local Delivery', color: '#0d8a3c', weight: 700, size: '0.85rem', pad: '6px 0' }) : '')}
       ${taxAmount > 0 ? spreadRow({ label: `Tax (${taxRate}%)`, amount: fmt$(taxAmount), color: '#666', size: '0.85rem', pad: '6px 0' }) : ''}
       ${spreadRow({ label: 'Total due with first visit', amount: fmt$(dueToday), color: '#1565c0', weight: 800, borderTop: true, pad: '10px 0 0' })}
     </div>` : ''
@@ -130,10 +177,42 @@ export default async function handler(req, res) {
 
   const serviceDateHtml = serviceDate ? `
     <div style="${sectionStyle}background:#fefaf2;border-color:#f0e3c1;">
-      <div style="${sectionTitle('#c9a84c')}">Requested First Service</div>
+      <div style="${sectionTitle('#c9a84c')}">First Available Service Date</div>
       <p style="margin:0;color:#3a2e0f;font-size:1rem;font-weight:700;">${formatServiceDate(serviceDate)}</p>
-      <p style="margin:6px 0 0;color:#776644;font-size:0.82rem;">We'll confirm this date by reply once you approve the quote.</p>
+      <p style="margin:6px 0 0;color:#776644;font-size:0.82rem;">We confirm your exact time window as soon as you approve the quote.</p>
     </div>` : ''
+
+  // Dual-option comparison — hero photo, both option cards, break-even note.
+  let comparisonHtml = ''
+  if (options?.rental && options?.purchase) {
+    const r = options.rental, p = options.purchase
+    const monthlySavings = (r.recurringTotal || 0) - (p.recurringTotal || 0)
+    const breakEven = monthlySavings > 0 ? Math.ceil((p.oneTimeTotal || 0) / monthlySavings) : null
+    comparisonHtml = `
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;">
+      <tr><td style="border-radius:12px;overflow:hidden;">
+        <img src="${systemPhotoUrl()}" alt="Your GreenGuard mosquito control system" width="524" style="display:block;width:100%;max-width:524px;border-radius:12px;border:1px solid #dde8de;" />
+      </td></tr>
+    </table>
+    <p style="margin:0 0 4px;font-size:18px;font-weight:900;color:#111f14;font-family:Arial,sans-serif;">Two ways to get protected</p>
+    <p style="margin:0 0 16px;font-size:13px;color:#6b7f6e;font-family:Arial,sans-serif;">Same equipment, same service standard. Compare both and choose on your quote page.</p>
+    ${optionCardHtml({
+      eyebrow: 'Option 1', title: 'Monthly Rental',
+      tagline: 'We provide and maintain everything: trap, CO&#8322; tank, timer, bait and refills. Cancel anytime, nothing to buy.',
+      opt: r, accent: '#0d8a3c', accentSoft: '#bfe3c8', badge: 'Most popular',
+    })}
+    ${optionCardHtml({
+      eyebrow: 'Option 2', title: 'Purchase &amp; Service',
+      tagline: 'Own your equipment outright. We deliver fresh CO&#8322; every month, hook it up and keep it catching.',
+      opt: p, accent: '#1565c0', accentSoft: '#c4d9f0',
+    })}
+    ${breakEven && breakEven > 1 && breakEven < 61 ? `
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;"><tr>
+      <td bgcolor="#fdfaee" style="border-radius:10px;border:1px solid #f0e3c1;padding:14px 16px;">
+        <p style="margin:0;font-size:13px;color:#3a2e0f;line-height:1.6;font-family:Arial,sans-serif;"><strong style="color:#a8842c;">Worth knowing:</strong> purchasing runs ${fmt$(monthlySavings)} less per month, so the equipment pays for itself in about ${breakEven} months. Renting keeps your upfront cost at one month of service.</p>
+      </td>
+    </tr></table>` : ''}`
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -153,15 +232,17 @@ export default async function handler(req, res) {
         <h2 style="margin:0 0 4px;font-size:20px;font-weight:900;color:#111f14;font-family:Arial,sans-serif;">Service Quote${name ? ` for ${name}` : ''}</h2>
         <p style="margin:0 0 20px;font-size:13px;color:#6b7f6e;font-family:Arial,sans-serif;">This quote is valid for 30 days from today.</p>
         ${serviceDateHtml}
-        ${monthlyHtml}
-        ${oneTimeHtml}
+        ${comparisonHtml || `${monthlyHtml}${oneTimeHtml}`}
         ${mapHtml}
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
           <tr>
             <td bgcolor="#1a3320" style="border-radius:8px;padding:16px 20px;">
-              <p style="margin:0 0 8px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7dbc8a;font-family:Arial,sans-serif;">Summary</p>
+              <p style="margin:0 0 8px;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7dbc8a;font-family:Arial,sans-serif;">At a Glance</p>
+              ${comparisonHtml ? `
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:14px;color:#ffffff;font-family:Arial,sans-serif;padding:3px 0;">Monthly Rental</td><td align="right" style="font-size:14px;font-weight:800;color:#ffffff;white-space:nowrap;font-family:Arial,sans-serif;padding:3px 0;">${fmt$(options.rental.recurringTotal)}/mo &nbsp;&#183;&nbsp; ${fmt$(options.rental.total)} today</td></tr></table>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:14px;color:#a8edc0;font-family:Arial,sans-serif;padding:3px 0;">Purchase &amp; Service</td><td align="right" style="font-size:14px;font-weight:800;color:#a8edc0;white-space:nowrap;font-family:Arial,sans-serif;padding:3px 0;">${fmt$(options.purchase.recurringTotal)}/mo &nbsp;&#183;&nbsp; ${fmt$(options.purchase.total)} today</td></tr></table>` : `
               ${oneTimeLines.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:14px;color:#ffffff;font-family:Arial,sans-serif;padding:3px 0;">Due with first visit</td><td align="right" style="font-size:14px;font-weight:800;color:#ffffff;white-space:nowrap;font-family:Arial,sans-serif;padding:3px 0;">${fmt$(dueToday)}</td></tr></table>` : ''}
-              ${recurringLines.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:14px;color:#a8edc0;font-family:Arial,sans-serif;padding:3px 0;">Then monthly</td><td align="right" style="font-size:14px;font-weight:800;color:#a8edc0;white-space:nowrap;font-family:Arial,sans-serif;padding:3px 0;">${fmt$(monthlyAfter)}/mo</td></tr></table>` : ''}
+              ${recurringLines.length > 0 ? `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:14px;color:#a8edc0;font-family:Arial,sans-serif;padding:3px 0;">Then monthly</td><td align="right" style="font-size:14px;font-weight:800;color:#a8edc0;white-space:nowrap;font-family:Arial,sans-serif;padding:3px 0;">${fmt$(monthlyAfter)}/mo</td></tr></table>` : ''}`}
             </td>
           </tr>
         </table>
@@ -172,7 +253,7 @@ export default async function handler(req, res) {
               <table cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center" bgcolor="#c9a84c" style="border-radius:6px;">
-                    <a href="${quoteUrl}" style="display:inline-block;padding:16px 40px;font-size:16px;font-weight:800;color:#111800;text-decoration:none;font-family:Arial,sans-serif;">Review &amp; Approve Quote &rarr;</a>
+                    <a href="${quoteUrl}" style="display:inline-block;padding:16px 40px;font-size:16px;font-weight:800;color:#111800;text-decoration:none;font-family:Arial,sans-serif;">${comparisonHtml ? 'Compare Options &amp; Get Started &rarr;' : 'Review &amp; Approve Quote &rarr;'}</a>
                   </td>
                 </tr>
               </table>

@@ -23,6 +23,7 @@ const SKU_LABELS = {
   'TIMER-INSTALL': 'Timer Installation',
   'CO2-ADDON': 'CO₂ Add-on',
   'WKD-SURCH': 'Weekend Surcharge',
+  'LONG-DIST': 'Long Distance Charge',
   BAIT: 'Generic Bait Pack',
   'BG-SWEETSCENT': 'BG Sweet Scent',
   BARRIER: 'Barrier Treatment',
@@ -52,7 +53,7 @@ const SKU_GROUPS = [
   },
   {
     label: 'Add-ons',
-    skus: ['TIMER-INSTALL', 'CO2-ADDON', 'BAIT', 'BG-SWEETSCENT', 'BARRIER', 'TANK-STRAPS', 'WKD-SURCH'],
+    skus: ['TIMER-INSTALL', 'CO2-ADDON', 'BAIT', 'BG-SWEETSCENT', 'BARRIER', 'TANK-STRAPS', 'WKD-SURCH', 'LONG-DIST'],
   },
   {
     label: 'Service',

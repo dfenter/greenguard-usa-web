@@ -28,6 +28,7 @@ const SKU_PRICES = {
   CHK: 0,
   'WKD-SURCH': 25.00,
   'RUSH-FEE': 99.99,
+  'LONG-DIST': 199.99,
   BAIT: 10.00,
   'BG-SWEETSCENT': 10.00,
   'CO2-ADDON': 49.99,

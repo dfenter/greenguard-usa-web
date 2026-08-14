@@ -39,10 +39,24 @@ export default async function handler(req, res) {
 
   const {
     customerEmail, customerName, customerAddress,
-    serviceLines = [], addonLines = [], productLines = [],
-    recurringTotal = 0, oneTimeTotal = 0, taxRate = 0, taxAmount = 0,
-    shippingTotal = 0,
   } = quote
+  let shippingTotal = quote.shippingTotal || 0
+
+  // Dual-option quote: bill the option the customer selected (rental is the
+  // default). The option lines were computed server-side at quote creation and
+  // ride inside the signed JWT, so they're as trusted as the legacy top-level
+  // lines.
+  let { serviceLines = [], addonLines = [], productLines = [] } = quote
+  let chosenOption = null
+  if (quote.options && quote.options.rental && quote.options.purchase) {
+    const requested = req.body?.option === 'purchase' ? 'purchase' : 'rental'
+    const opt = quote.options[requested]
+    serviceLines = opt.serviceLines || []
+    addonLines = opt.addonLines || []
+    productLines = opt.productLines || []
+    if (opt.shippingTotal != null) shippingTotal = opt.shippingTotal
+    chosenOption = requested
+  }
 
   // Attribution data passed from the browser's sessionStorage
   const attribution = req.body?.attribution || {}
@@ -131,6 +145,7 @@ export default async function handler(req, res) {
       metadata: {
         source: 'quote',
         quote_jti: quote.jti || '',
+        quote_option: chosenOption || '',
         customerAddress: customerAddress || '',
         customerName: customerName || '',
         gclid: String(attribution.gclid || '').slice(0, 100),
@@ -182,7 +197,7 @@ export default async function handler(req, res) {
     // Idempotency key: same JTI + email always returns the same session
     const crypto = require('crypto')
     const idempotencyKey = crypto.createHash('sha256')
-      .update(`quote-checkout-v2:${quote.jti}:${customerEmail || ''}`)
+      .update(`quote-checkout-v3:${quote.jti}:${chosenOption || 'single'}:${customerEmail || ''}`)
       .digest('hex')
 
     const session = await stripe.checkout.sessions.create(sessionConfig, { idempotencyKey })

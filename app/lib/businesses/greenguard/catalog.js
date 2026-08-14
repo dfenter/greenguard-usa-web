@@ -139,6 +139,15 @@ const ADDONS = [
     quoteCategory: 'One-Time Services',
     oneTime: true,
   },
+  {
+    // Travel charge for stops outside the normal Austin-MSA service radius.
+    sku: 'LONG-DIST',
+    label: 'Long Distance Charge',
+    price: 199.99,
+    surfaces: { rounds: true, quote: true },
+    quoteCategory: 'One-Time Services',
+    oneTime: true,
+  },
 ]
 
 // Equipment sold during visit — one-time purchases of physical hardware.
@@ -239,7 +248,7 @@ function addonsForQuote() {
 }
 
 function productsForQuote() {
-  return PRODUCTS.filter((p) => p.surfaces.quote).map((p) => ({ label: p.label, price: p.price, category: p.quoteCategory || 'Accessories', oneTime: true }))
+  return PRODUCTS.filter((p) => p.surfaces.quote).map((p) => ({ label: p.label, price: p.price, category: p.quoteCategory || 'Accessories', oneTime: true, shipping: p.shipping || 0 }))
 }
 
 function inventoryItems() {

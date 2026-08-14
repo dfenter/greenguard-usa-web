@@ -18,7 +18,22 @@ const { tryLocalChat, STARTED_BUT_FAILED_REPLY } = require('../../../lib/chat-lo
 const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 
 // The local (Mac daemon) path can take up to ~52s; default lambda cap is lower.
-export const config = { maxDuration: 60 }
+// Body limit raised for photo attachments (base64 JPEGs, downscaled client-side).
+export const config = { maxDuration: 60, api: { bodyParser: { sizeLimit: '8mb' } } }
+
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const MAX_IMAGES = 2
+const MAX_IMAGE_B64 = 2_500_000 // ~1.8MB binary per image
+
+function sanitizeImages(images) {
+  if (!Array.isArray(images) || !images.length) return []
+  return images.slice(0, MAX_IMAGES).flatMap((i) => {
+    if (!i || !IMAGE_TYPES.has(i.media_type)) return []
+    const data = String(i.data || '')
+    if (!data || data.length > MAX_IMAGE_B64 || !/^[A-Za-z0-9+/=]+$/.test(data)) return []
+    return [{ media_type: i.media_type, data }]
+  })
+}
 
 const SYSTEM = `You are the GreenGuard USA operations assistant for the owner and field tech. Be terse and direct: answer the question, surface the number, name the next stop. No marketing language, no emojis, no em dashes.
 
@@ -43,14 +58,15 @@ export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)
   if (!session || !isAdminEmail(session.email)) return res.status(403).json({ error: 'Forbidden' })
 
-  const { message, history = [] } = req.body || {}
+  const { message, history = [], images: rawImages } = req.body || {}
   if (!message || typeof message !== 'string') return res.status(400).json({ error: 'message required' })
   if (message.length > 2000) return res.status(400).json({ error: 'message too long' })
+  const images = sanitizeImages(rawImages)
 
   // Local-first: the Mac chat daemon is the FULL admin assistant (book,
   // reschedule, cancel, invoices). This API fallback stays read-only + SMS,
   // so mutations only ever run through the Mac's guarded tool set.
-  const local = await tryLocalChat({ audience: 'admin', email: session.email, message, history })
+  const local = await tryLocalChat({ audience: 'admin', email: session.email, message, history, images })
   if (local) {
     if (!local.ok) return res.status(200).json({ reply: STARTED_BUT_FAILED_REPLY, actions: [] })
     return res.status(200).json({ reply: local.reply, actions: local.actions })
@@ -185,7 +201,7 @@ export default async function handler(req, res) {
   ]
 
   try {
-    const { reply, actions } = await runAssistant({ system: SYSTEM, history, userMessage: message, tools, maxTokens: 900 })
+    const { reply, actions } = await runAssistant({ system: SYSTEM, history, userMessage: message, images, tools, maxTokens: 900 })
     return res.status(200).json({ reply, actions })
   } catch (e) {
     console.error('admin assistant error:', e.message)

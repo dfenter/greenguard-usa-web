@@ -6,11 +6,115 @@ import { Skeleton } from '../../components/ui'
 
 function fmt$(n) { return n != null ? `$${Number(n).toFixed(2)}` : 'TBD' }
 
+function fmtDate(s) {
+  if (!s) return null
+  return new Date(s + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+}
+
+// Infer which system photo to show from the quote's line labels.
+function systemPhoto(quote) {
+  const labels = [
+    ...(quote.serviceLines || []),
+    ...(quote.options?.rental?.serviceLines || []),
+  ].map((l) => l.label || '').join(' ')
+  if (/mosqitter/i.test(labels)) return { src: '/system-icons/mosqitter.jpg', alt: 'Mosqitter Grand mosquito control system' }
+  if (/non-co/i.test(labels)) return { src: '/system-icons/biogents-nonco2.webp', alt: 'Biogents non-CO₂ mosquito trap' }
+  if (/tank/i.test(labels) && !/trap|rental/i.test(labels)) return { src: '/system-icons/tank.jpeg', alt: 'CO₂ tank delivery service' }
+  return { src: '/system-icons/biogents-co2.jpg', alt: 'Biogents CO₂ mosquito trap' }
+}
+
+// ── Option card (rental vs purchase comparison) ────────────────────────────────
+
+function OptionCard({ id, title, tagline, opt, selected, onSelect, badge, photo, localDelivery }) {
+  const oneTime = [...opt.serviceLines, ...opt.productLines, ...opt.addonLines].filter((l) => !l.recurring)
+  const recurring = [...opt.serviceLines, ...opt.productLines, ...opt.addonLines].filter((l) => l.recurring)
+  return (
+    <div
+      onClick={() => onSelect(id)}
+      role="radio"
+      aria-checked={selected}
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(id) } }}
+      style={{
+        flex: '1 1 280px', cursor: 'pointer', position: 'relative',
+        borderRadius: 14, overflow: 'hidden',
+        border: selected ? '2px solid var(--green)' : '1px solid rgba(var(--border-rgb),0.2)',
+        background: 'var(--bg-card)',
+        boxShadow: selected ? '0 12px 36px rgba(23,111,43,0.18)' : '0 2px 10px rgba(0,0,0,0.05)',
+        transition: 'box-shadow 0.15s, border-color 0.15s, transform 0.15s',
+        transform: selected ? 'translateY(-2px)' : 'none',
+      }}
+    >
+      {badge && (
+        <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 2, background: 'var(--gold)', color: 'var(--text-on-accent)', fontSize: '0.62rem', fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 20 }}>
+          {badge}
+        </div>
+      )}
+      {photo && (
+        <div style={{ height: 130, overflow: 'hidden', background: '#122419' }}>
+          <img src={photo.src} alt={photo.alt} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92 }} />
+        </div>
+      )}
+      <div style={{ padding: '18px 20px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <span aria-hidden="true" style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, border: `2px solid ${selected ? 'var(--green)' : 'rgba(var(--border-rgb),0.4)'}`, background: selected ? 'var(--green)' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-on-accent)', fontSize: '0.7rem', fontWeight: 900 }}>{selected ? '✓' : ''}</span>
+          <span style={{ fontSize: '1.05rem', fontWeight: 900, letterSpacing: '-0.01em' }}>{title}</span>
+        </div>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>{tagline}</div>
+
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
+          <span style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--green)', letterSpacing: '-0.03em' }}>{fmt$(opt.recurringTotal)}</span>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: 700 }}>/month</span>
+        </div>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700, marginBottom: 6 }}>
+          {fmt$(opt.total)} due today <span style={{ color: 'var(--text-dim)', fontWeight: 500 }}>(first month{opt.oneTimeTotal > 0 ? ' + equipment' : ''}, tax included)</span>
+        </div>
+        {localDelivery ? (
+          <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--green)', background: 'rgba(var(--green-rgb),0.08)', border: '1px solid rgba(var(--green-rgb),0.25)', borderRadius: 20, padding: '4px 12px', marginBottom: 14 }}>
+            🚚 Free Local Delivery
+          </div>
+        ) : opt.shippingTotal > 0 ? (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600, marginBottom: 14 }}>
+            🚚 Includes {fmt$(opt.shippingTotal)} shipping
+          </div>
+        ) : (
+          <div style={{ marginBottom: 8 }} />
+        )}
+
+        {recurring.length > 0 && (
+          <div style={{ marginBottom: oneTime.length ? 10 : 0 }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 6px' }}>Monthly service</div>
+            {recurring.map((l, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '5px 0', borderBottom: '1px solid rgba(var(--border-rgb),0.07)', fontSize: '0.82rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>{l.label}</span>
+                <span style={{ fontWeight: 700, color: 'var(--green)', whiteSpace: 'nowrap' }}>{fmt$(l.amount)}/mo</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {oneTime.length > 0 && (
+          <div>
+            <div style={{ fontSize: '0.62rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', margin: '0 0 6px' }}>Yours to keep (one-time)</div>
+            {oneTime.map((l, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '5px 0', borderBottom: '1px solid rgba(var(--border-rgb),0.07)', fontSize: '0.82rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>{l.label}</span>
+                <span style={{ fontWeight: 700, color: 'var(--info)', whiteSpace: 'nowrap' }}>{fmt$(l.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function QuotePage({ token, accepted, initialQuote, initialError }) {
   const [quote, setQuote] = useState(initialQuote || null)
   const [error, setError] = useState(initialError || null)
   const [paying, setPaying] = useState(false)
   const [payError, setPayError] = useState(null)
+  // Dual-option quotes: which plan the customer has selected to pay for.
+  const [selectedOption, setSelectedOption] = useState('rental')
 
   useEffect(() => {
     let active = true
@@ -96,7 +200,7 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
       const res = await fetch('/api/quote/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, attribution }),
+        body: JSON.stringify({ token, attribution, option: quote?.options ? selectedOption : undefined }),
       })
       const data = await res.json()
       if (data.url) {
@@ -113,6 +217,7 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
 
   // Can pay if at least one line item has a known amount
   function canPay(q) {
+    if (q.options) return true
     const lines = [...(q.serviceLines || []), ...(q.addonLines || []), ...(q.productLines || [])]
     return lines.some(l => l.amount > 0)
   }
@@ -127,7 +232,7 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
         <meta name="robots" content="noindex" />
       </Head>
       <PortalLayout minimal logoHref="https://www.greenguard-usa.com">
-        <div style={{ maxWidth: 680, margin: '0 auto' }}>
+        <div style={{ maxWidth: quote?.options ? 920 : 680, margin: '0 auto' }}>
           {error && (
             <div style={{ padding: 28, borderRadius: 12, background: 'rgba(var(--danger-rgb),0.08)', border: '1px solid rgba(var(--danger-rgb),0.2)', color: 'var(--danger)', textAlign: 'center' }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 8 }}>Quote Not Found</div>
@@ -142,29 +247,85 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
           {quote && (
             <>
               {/* Title */}
-              <div style={{ marginBottom: 32 }}>
+              <div style={{ marginBottom: 28 }}>
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10 }}>Service Proposal</div>
                 <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(1.8rem,3.2vw,2.4rem)', margin: '0 0 8px' }}>
                   {quote.customerName ? `Hi ${quote.customerName.split(' ')[0]},` : 'Your GreenGuard Proposal'}
                 </h1>
                 <p style={{ fontSize: '1rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
-                  Here&apos;s your custom quote for pesticide-free CO₂ mosquito control service.
+                  {quote.options
+                    ? 'Here is your quote for pesticide-free mosquito control. There are two ways to get started: pick the one that fits and you are on the schedule.'
+                    : 'Here’s your custom quote for pesticide-free CO₂ mosquito control service.'}
                 </p>
               </div>
 
-              {/* Customer info */}
-              {(quote.customerEmail || quote.customerAddress) && (
-                <div style={{ ...card, display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+              {/* Customer info + first available service date */}
+              {(quote.customerEmail || quote.customerAddress || quote.serviceDate) && (
+                <div style={{ ...card, display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                   {quote.customerEmail && (
                     <div><span style={lbl}>Email</span><div style={{ fontWeight: 600 }}>{quote.customerEmail}</div></div>
                   )}
                   {quote.customerAddress && (
                     <div><span style={lbl}>Property</span><div style={{ fontWeight: 600 }}>{quote.customerAddress}</div></div>
                   )}
+                  {quote.serviceDate && (
+                    <div>
+                      <span style={lbl}>First Available Service</span>
+                      <div style={{ fontWeight: 800, color: 'var(--green)' }}>{fmtDate(quote.serviceDate)}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: 2 }}>We confirm your exact time window after you approve.</div>
+                    </div>
+                  )}
                 </div>
               )}
 
+              {/* Rental vs Purchase comparison */}
+              {quote.options && (() => {
+                const photo = systemPhoto(quote)
+                const { rental, purchase } = quote.options
+                const monthlySavings = rental.recurringTotal - purchase.recurringTotal
+                const breakEvenMonths = monthlySavings > 0 ? Math.ceil(purchase.oneTimeTotal / monthlySavings) : null
+                return (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, margin: '4px 0 14px' }}>
+                      <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: '1.4rem', margin: 0 }}>Two ways to get protected</h2>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Same equipment, same service standard, your choice.</span>
+                    </div>
+                    <div role="radiogroup" aria-label="Choose rental or purchase" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'stretch' }}>
+                      <OptionCard
+                        id="rental"
+                        title="Monthly Rental"
+                        tagline="We provide and maintain everything: trap, CO₂ tank, timer, bait and refills. Cancel anytime, nothing to buy."
+                        opt={rental}
+                        selected={selectedOption === 'rental'}
+                        onSelect={setSelectedOption}
+                        badge="Most popular"
+                        photo={photo}
+                        localDelivery={quote.localDelivery}
+                      />
+                      <OptionCard
+                        id="purchase"
+                        title="Purchase & Service"
+                        tagline="Own your equipment outright. We deliver fresh CO₂ every month, hook it up and keep it catching."
+                        opt={purchase}
+                        selected={selectedOption === 'purchase'}
+                        onSelect={setSelectedOption}
+                        photo={photo}
+                        localDelivery={quote.localDelivery}
+                      />
+                    </div>
+                    {breakEvenMonths && breakEvenMonths > 1 && breakEvenMonths < 61 && (
+                      <div style={{ marginTop: 14, padding: '12px 16px', borderRadius: 10, background: 'rgba(var(--gold-rgb),0.07)', border: '1px solid rgba(var(--gold-rgb),0.25)', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                        <strong style={{ color: 'var(--gold)' }}>Worth knowing:</strong> purchasing costs {fmt$(rental.recurringTotal - purchase.recurringTotal)} less per month, so the equipment pays for itself in about {breakEvenMonths} months. Renting keeps your upfront cost at one month of service.
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* Recurring services */}
+              {!quote.options && (
+              <>
+              {null}
               {quote.serviceLines?.filter(l => l.recurring).length > 0 && (
                 <div style={card}>
                   <span style={lbl}>Monthly Service</span>
@@ -223,6 +384,12 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
                     <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>{fmt$(quote.shippingTotal)}</span>
                   </div>
                 )}
+                {quote.localDelivery && !(quote.shippingTotal > 0) && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text-dim)' }}>🚚 Delivery</span>
+                    <span style={{ fontWeight: 800, color: 'var(--green)' }}>Free Local Delivery</span>
+                  </div>
+                )}
                 {quote.taxAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                     <span style={{ fontWeight: 600, color: 'var(--text-dim)' }}>Tax ({quote.taxRate}%)</span>
@@ -236,6 +403,8 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
                   </div>
                 )}
               </div>
+              </>
+              )}
 
               {/* Notes */}
               {quote.notes && (
@@ -283,7 +452,13 @@ export default function QuotePage({ token, accepted, initialQuote, initialError 
                         opacity: paying ? 0.7 : 1,
                       }}
                     >
-                      {paying ? 'Redirecting to secure checkout…' : canPay(quote) ? '✓ Accept Quote & Pay Securely' : 'Contact us to finalize pricing'}
+                      {paying
+                        ? 'Redirecting to secure checkout…'
+                        : !canPay(quote)
+                          ? 'Contact us to finalize pricing'
+                          : quote.options
+                            ? `✓ Start with ${selectedOption === 'rental' ? 'Monthly Rental' : 'Purchase & Service'} · Pay ${fmt$(quote.options[selectedOption].total)}`
+                            : '✓ Accept Quote & Pay Securely'}
                     </button>
                     {canPay(quote) && !paying && (
                       <div style={{ textAlign: 'center', marginTop: 8, fontSize: '0.75rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>

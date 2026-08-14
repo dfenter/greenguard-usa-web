@@ -43,3 +43,4 @@ GITHUB_APPEAL.md
 # Large media — use cloud storage / LFS, never commit
 *.mp4
 ad_pipeline/assets/
+app/scripts/deferred-groups.json

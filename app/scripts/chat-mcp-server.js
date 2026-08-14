@@ -60,6 +60,7 @@ const MUTATING = new Set([
   'send_on_my_way_sms', 'book_appointment', 'reschedule_appointment',
   'cancel_appointment', 'add_appointment_note', 'add_tech_note', 'add_customer_note',
   'create_invoice_for_visit', 'add_invoice_item', 'remove_invoice_line', 'send_invoice',
+  'cancel_invoice',
 ])
 
 function record(entry) {
@@ -412,6 +413,21 @@ function registerAdminTools() {
   }, async ({ itemId, invoiceId }) => {
     await portalPost('/api/admin/invoice-items', { action: 'delete-line', itemId, invoiceId })
     return { ok: true }
+  })
+
+  tool('cancel_invoice', 'Cancel a Stripe invoice: deletes it if draft, voids it if open (irreversible, number stays on record). Paid invoices cannot be cancelled - refunds are handled outside chat. Get the invoiceId from list_customer_invoices first.', {
+    invoiceId: z.string().describe('Stripe invoice id (in_...) from list_customer_invoices'),
+  }, async ({ invoiceId }) => {
+    const inv = await stripe.invoices.retrieve(invoiceId).catch(() => null)
+    if (!inv) return { error: 'No invoice found with that id' }
+    if (inv.status === 'paid') return { error: 'Invoice is already paid - cannot cancel. Refunds are handled in the Stripe dashboard.' }
+    if (inv.status === 'void') return { ok: true, alreadyVoid: true }
+    if (inv.status === 'draft') {
+      await portalPost('/api/admin/invoice-items', { action: 'delete-draft', invoiceId })
+      return { ok: true, deleted: true, was: 'draft' }
+    }
+    await portalPost('/api/admin/invoice-items', { action: 'void', invoiceId })
+    return { ok: true, voided: true, was: inv.status, amount: (inv.amount_due || 0) / 100 }
   })
 
   tool('send_invoice', 'Finalize a draft invoice and send it to the customer (Stripe emails the payment link, or auto-charges a card on file).', {

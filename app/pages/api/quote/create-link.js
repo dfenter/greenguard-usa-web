@@ -7,7 +7,7 @@
 // and integer quantities, both validated/clamped here. Rate-limited via KV.
 
 const { newJti } = require('../../../lib/auth')
-const { buildQuoteLines } = require('../../../lib/quote-pricing')
+const { buildQuoteLines, buildQuoteOptions, firstAvailableServiceDate, isLocalDeliveryAddress, shippingForQtys } = require('../../../lib/quote-pricing')
 const { SignJWT } = require('jose')
 
 const VALID_SYSTEMS = new Set(['biogents-co2', 'biogents-nonco2', 'mosqitter', 'tank', 'none'])
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
   const {
     customerName, customerEmail, customerAddress,
-    serviceConfig, productQtys, addonQtys, serviceDate, notes,
+    serviceConfig, productQtys, addonQtys, notes,
   } = req.body || {}
 
   if (!customerEmail || !customerName) {
@@ -87,12 +87,25 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid Mosqitter plan selection' })
   }
 
+  const cleanProductQtys = sanitizeQtys(productQtys)
+  const cleanAddonQtys = sanitizeQtys(addonQtys)
+
   // AUTHORITATIVE recompute — every price comes from the catalog, not the client.
-  const { serviceLines, productLines, addonLines } = buildQuoteLines({
+  // Two-plan systems get BOTH options (rental + purchase, hookup always
+  // included on purchase); the top-level lines stay the rental option so older
+  // consumers keep working.
+  // Austin metro (786xx/787xx) = free local delivery; otherwise catalog
+  // per-item shipping on shipped equipment, computed server-side.
+  const localDelivery = isLocalDeliveryAddress(customerAddress)
+  const options = buildQuoteOptions({
     serviceConfig: cfg,
-    productQtys: sanitizeQtys(productQtys),
-    addonQtys: sanitizeQtys(addonQtys),
+    productQtys: cleanProductQtys,
+    addonQtys: cleanAddonQtys,
+    localDelivery,
   })
+  const { serviceLines, productLines, addonLines } = options
+    ? options.rental
+    : buildQuoteLines({ serviceConfig: cfg, productQtys: cleanProductQtys, addonQtys: cleanAddonQtys })
 
   const allLines = [...serviceLines, ...productLines, ...addonLines]
   if (allLines.length === 0 || !allLines.some((l) => Number(l.amount) > 0)) {
@@ -101,11 +114,18 @@ export default async function handler(req, res) {
   if (allLines.length > 60) {
     return res.status(400).json({ error: 'Too many line items' })
   }
-  for (const l of allLines) {
+  // Cap-check every line in every option (both plans of a dual quote).
+  const optionLines = options
+    ? [...options.purchase.serviceLines, ...options.purchase.productLines, ...options.purchase.addonLines]
+    : []
+  for (const l of [...allLines, ...optionLines]) {
     const amt = Number(l.amount)
     if (!Number.isFinite(amt) || amt < 0 || amt > MAX_LINE) {
       return res.status(400).json({ error: 'Computed line amount out of range' })
     }
+  }
+  if (options && options.purchase.subtotal > MAX_TOTAL) {
+    return res.status(400).json({ error: 'Quote total exceeds maximum' })
   }
 
   const recurringTotal = round2(allLines.filter((l) => l.recurring).reduce((s, l) => s + (l.amount || 0), 0))
@@ -122,9 +142,12 @@ export default async function handler(req, res) {
     customerEmail,
     customerAddress: customerAddress ? String(customerAddress).slice(0, 300) : '',
     serviceLines, addonLines, productLines,
+    options: options || null,
     total: subtotal, recurringTotal, oneTimeTotal,
     taxRate: TX_TAX_RATE, taxAmount,
-    serviceDate: serviceDate || null,
+    shippingTotal: options ? options.rental.shippingTotal : (localDelivery ? 0 : shippingForQtys(cleanProductQtys)),
+    localDelivery,
+    serviceDate: firstAvailableServiceDate(),
     notes: notes ? String(notes).slice(0, 5000) : '',
     type: 'quote',
     source: 'public-self-serve',

@@ -48,7 +48,7 @@ const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 const RUN_BUDGET_MS = 50_000
 const MAX_CONCURRENT = 2
 const MAX_QUEUE = 3
-const MAX_BODY = 64 * 1024
+const MAX_BODY = 8 * 1024 * 1024 // raised from 64KB for photo attachments (admin chat)
 const RATE_LIMIT = 10           // requests/min/email
 const SESSION_TTL_MS = 24 * 3600_000
 
@@ -74,8 +74,17 @@ ${context || '(none)'}`
 
 const ADMIN_SYSTEM = () => `You are the GreenGuard USA operations assistant for the owner and field techs. You are a full administrative assistant: you can read routes, look up customers, check tank inventory, text customers, book, reschedule and cancel appointments, take notes, and create, edit and send Stripe invoices. Be terse and direct: answer the question, surface the number, do the task. No marketing language, no emojis, no em dashes.
 
+YOUR TOOLS, BY JOB:
+- Routes: get_todays_route, get_route_for_date (stops carry eventId + calBookingUid for later mutations).
+- Customers: lookup_customer (by email or name; returns upcoming appointments with event ids), get_customer_notes.
+- Scheduling: book_appointment, reschedule_appointment, cancel_appointment (cancel also cleans up the visit's invoice automatically).
+- Invoices: list_customer_invoices (always FIRST, to get invoiceId and line ids) -> then create_invoice_for_visit (new or top-up), add_invoice_item (SKU line on a draft), remove_invoice_line (drop a line), send_invoice (finalize + send), cancel_invoice (delete draft / void open; paid cannot be cancelled).
+- Comms: send_on_my_way_sms.
+- Notes: add_appointment_note, add_customer_note, add_tech_note.
+- Inventory: get_tank_inventory.
+
 RULES:
-1. Use tools rather than guessing. Look up the customer or route first to get event ids and emails before mutating anything.
+1. Use tools rather than guessing. Look up the customer or route first to get event ids and emails before mutating anything. For invoice work, list_customer_invoices first to get the invoiceId; "cancel/void/delete an invoice" = cancel_invoice.
 2. Scheduling: appointments are Mon-Fri, first start 10:00am CT, last start 5:30pm CT, on the half hour. The tools enforce this; if refused, relay the reason and offer the nearest valid slot.
 3. Customers are NEVER notified about reschedules or cancellations, and you never offer to notify them. Booking and calendar changes are silent by design.
 4. Billing is one-time invoices only, never subscriptions. Invoices go through the guarded pipeline; if a tool reports an invoice already exists for a visit, say so instead of forcing a duplicate.
@@ -112,11 +121,23 @@ function forgetSession(audience, email) {
 }
 
 // ── Claude run ───────────────────────────────────────────────────────────────
-function runClaude({ audience, email, message, history, context, deadlineMs }) {
+function runClaude({ audience, email, message, history, context, images, deadlineMs }) {
   return new Promise((resolve) => {
     const reqId = crypto.randomUUID()
     const actionsFile = path.join(SCRATCH, `actions-${reqId}.jsonl`)
     const mcpConfigFile = path.join(SCRATCH, `mcp-${reqId}.json`)
+
+    // Photo attachments: written to scratch, viewed by the CLI via a Read
+    // permission scoped to the scratch dir only (nothing else is readable).
+    const imageFiles = []
+    for (const [n, img] of (images || []).entries()) {
+      const ext = img.media_type === 'image/png' ? 'png' : img.media_type === 'image/webp' ? 'webp' : 'jpg'
+      const f = path.join(SCRATCH, `img-${reqId}-${n}.${ext}`)
+      try {
+        fs.writeFileSync(f, Buffer.from(img.data, 'base64'), { mode: 0o600 })
+        imageFiles.push(f)
+      } catch {}
+    }
     const childEnv = {
       ...process.env,
       // app/.env carries ANTHROPIC_API_KEY for the portal's API fallback. The
@@ -164,6 +185,9 @@ function runClaude({ audience, email, message, history, context, deadlineMs }) {
         .join('\n')
       if (h) prompt = `Earlier in this conversation:\n${h}\n\nNew message: ${message}`
     }
+    if (imageFiles.length) {
+      prompt += `\n\n[${imageFiles.length === 1 ? 'A photo is' : imageFiles.length + ' photos are'} attached to this message, saved at:\n${imageFiles.join('\n')}\nView ${imageFiles.length === 1 ? 'it' : 'them'} with the Read tool before answering.]`
+    }
 
     const args = [
       '-p',
@@ -171,8 +195,10 @@ function runClaude({ audience, email, message, history, context, deadlineMs }) {
       '--system-prompt', system,
       '--mcp-config', mcpConfigFile,
       '--strict-mcp-config',
-      '--allowedTools', 'mcp__gg',
-      '--disallowedTools', 'Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch,Task,NotebookEdit,TodoWrite,KillShell,BashOutput',
+      // Read is allowed ONLY inside the scratch dir (attached photos); the
+      // gitignore-style `//` prefix makes the rule an absolute filesystem path.
+      '--allowedTools', `mcp__gg,Read(/${SCRATCH}/**)`,
+      '--disallowedTools', 'Bash,Write,Edit,Glob,Grep,WebFetch,WebSearch,Task,NotebookEdit,TodoWrite,KillShell,BashOutput',
       '--max-turns', '12',
       ...(resumeId ? ['--resume', resumeId] : ['--session-id', newSessionId]),
     ]
@@ -214,6 +240,7 @@ function runClaude({ audience, email, message, history, context, deadlineMs }) {
       } catch {}
       try { fs.unlinkSync(actionsFile) } catch {}
       try { fs.unlinkSync(mcpConfigFile) } catch {}
+      for (const f of imageFiles) { try { fs.unlinkSync(f) } catch {} }
 
       let parsed = null
       try { parsed = JSON.parse(stdout) } catch {}
@@ -237,6 +264,7 @@ function runClaude({ audience, email, message, history, context, deadlineMs }) {
       clearTimeout(timer)
       try { fs.unlinkSync(actionsFile) } catch {}
       try { fs.unlinkSync(mcpConfigFile) } catch {}
+      for (const f of imageFiles) { try { fs.unlinkSync(f) } catch {} }
       resolve({ ok: false, started: false, error: `spawn failed: ${e.message}` })
     })
   })
@@ -325,7 +353,7 @@ const server = http.createServer((req, res) => {
     if (size > MAX_BODY) return
     let body
     try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { return sendJson(res, 400, { error: 'bad json' }) }
-    const { email, message, history, context } = body || {}
+    const { email, message, history, context, images } = body || {}
     if (!email || typeof email !== 'string' || !message || typeof message !== 'string') {
       return sendJson(res, 400, { error: 'email and message required' })
     }
@@ -341,6 +369,18 @@ const server = http.createServer((req, res) => {
     else if (context && typeof context === 'object') {
       capContext = { text: String(context.text || '').slice(0, 8000), name: context.name, address: context.address, nextVisit: context.nextVisit }
     }
+    // Photo attachments: admin chat only (the endpoint is public internet
+    // behind the shared secret; customers have no image use case). Max 2,
+    // ~1.8MB binary each, known image types only.
+    const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+    const capImages = audience === 'admin' && Array.isArray(images)
+      ? images.slice(0, 2).flatMap((i) => {
+          if (!i || !IMAGE_TYPES.has(i.media_type)) return []
+          const data = String(i.data || '')
+          if (!data || data.length > 2_500_000 || !/^[A-Za-z0-9+/=]+$/.test(data)) return []
+          return [{ media_type: i.media_type, data }]
+        })
+      : []
     if (rateLimited(email.toLowerCase())) return sendJson(res, 429, { ok: false, started: false, error: 'rate limited' })
     if (queue.length >= MAX_QUEUE) return sendJson(res, 503, { ok: false, started: false, error: 'busy' })
 
@@ -354,14 +394,14 @@ const server = http.createServer((req, res) => {
         log(`run ${audience} ${email}: "${message.slice(0, 80)}"`)
         // Serialize per user so concurrent turns don't share one resume session.
         let out = await withUserLock(`${audience}:${lc}`, async () => {
-          let r = await runClaude({ audience, email: lc, message, history: capHistory, context: capContext, deadlineMs })
+          let r = await runClaude({ audience, email: lc, message, history: capHistory, context: capContext, images: capImages, deadlineMs })
           // A dead/expired --resume session self-heals: forget and retry fresh
           // once — ONLY when nothing started (guards against re-running a
           // partially-applied mutation, finding #1).
           if (!r.ok && r.resumeFailed && !r.started && Date.now() < deadlineMs - 15_000) {
             log(`resume failed for ${audience}:${email}, retrying fresh`)
             forgetSession(audience, lc)
-            r = await runClaude({ audience, email: lc, message, history: capHistory, context: capContext, deadlineMs })
+            r = await runClaude({ audience, email: lc, message, history: capHistory, context: capContext, images: capImages, deadlineMs })
           }
           return r
         })

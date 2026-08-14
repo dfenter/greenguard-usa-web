@@ -12,13 +12,15 @@ export default async function handler(req, res) {
     const session = await requireAdmin(req, res)
     if (!session) return
 
-    const { customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, total, recurringTotal, oneTimeTotal, taxRate, taxAmount, shippingTotal, serviceDate, notes } = req.body || {}
+    const { customerName, customerEmail, customerAddress, serviceLines, addonLines, productLines, options, localDelivery, total, recurringTotal, oneTimeTotal, taxRate, taxAmount, shippingTotal, serviceDate, notes } = req.body || {}
 
     const jti = newJti()
 
     const token = await new SignJWT({
       customerName, customerEmail, customerAddress,
       serviceLines, addonLines, productLines,
+      options: options || null,
+      localDelivery: localDelivery === true,
       total, recurringTotal, oneTimeTotal, taxRate, taxAmount,
       shippingTotal: shippingTotal || 0,
       serviceDate: serviceDate || null,
