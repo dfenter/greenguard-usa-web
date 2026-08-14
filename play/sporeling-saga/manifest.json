@@ -1,0 +1,14 @@
+{
+  "name": "Sporeling Saga",
+  "short_name": "Sporeling Saga",
+  "start_url": "/play/sporeling-saga/",
+  "scope": "/play/sporeling-saga/",
+  "display": "standalone",
+  "background_color": "#061013",
+  "theme_color": "#08151a",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/play/sporeling-saga/icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/play/sporeling-saga/icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

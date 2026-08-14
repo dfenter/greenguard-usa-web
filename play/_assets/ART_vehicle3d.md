@@ -60,3 +60,42 @@ track from freepd-music. All through ggkit.audio buses.
 - Cloudhopper: horizon + cloud layer (billboard sprites) + terrain tiles;
   stall/fuel model carried verbatim; cockpit frame overlay for
   first-person feel; landscape orientation.
+
+## GRAN TURISMO BAR (owner directive 2026-08-11, ALL driving/racing titles)
+
+Owner verdict: "racing game and driving game graphics look primitive -
+get into the 2000's at least, think Gran Turismo." The target is PS2-era
+racer fidelity built from Three.js primitives and generated textures.
+Flat-shaded boxes on an untextured plane are REJECTED on sight.
+
+Mandatory:
+1. CAR BODIES: no single-box cars. Authored multi-part shells: beveled
+   lower body + tapered greenhouse/cabin with tinted windows, wheel
+   arches, bumpers, visible headlight/taillight geometry (emissive at
+   dusk/night), side mirrors where visible. Paint uses MeshPhongMaterial
+   or MeshStandardMaterial with strong specular highlight and a subtle
+   fresnel/eng-map style sheen; livery accents per vehicle.
+2. WHEELS: separate cylinders with dark tire + bright rim face that
+   VISIBLY ROTATES with speed, steer with input on the front axle, and
+   compress with suspension over bumps. A soft dark contact-shadow blob
+   sits under every vehicle.
+3. ROAD/TRACK: textured surface (generated canvas texture: asphalt or
+   terrain grain, center/edge markings, tire wear line), skid marks on
+   hard cornering, curbs or edge posts on corners, start/finish gantry
+   or arch, distance-marker boards on racing titles.
+4. WORLD DEPTH: gradient sky dome or large sky sphere with horizon haze,
+   scene fog tuned so distant geometry fades believably, sun as a
+   directional light + hemisphere fill (no flat ambient-only scenes),
+   layered trackside dressing (trees/rocks/buildings/crowd boards as
+   cheap billboards or low-poly clusters) dense enough that the horizon
+   is never empty in a normal camera frame.
+5. CAMERA + SPEED FEEL: low chase camera with lag/spring, FOV widens
+   with speed, slight camera roll in corners; optional speed-line or
+   near-ground blur cue at top speed (reduced-motion gated).
+6. BUDGETS STILL APPLY: everything generated in code or from in-repo
+   assets; keep draw calls pooled/merged (merged geometry or instancing
+   for dressing), 4x-throttle median <=17.5ms unchanged.
+
+Test: a 3-second chase-cam screenshot of any race should read as "a
+2000s console racer" - car with readable bodywork and spinning wheels,
+textured road, populated horizon - never "colored boxes on a plane."

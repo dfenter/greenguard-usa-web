@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <base href="/play/duelsteel/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#070a12">
+  <meta name="description" content="Duelsteel, an original 3D weapon duel fighter for mobile.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Duelsteel</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <style>
+    :root{color-scheme:dark;background:#070a12;color:#eef3fb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#070a12;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none}
+    body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+    #app{position:fixed;inset:0;overflow:hidden;background:#070a12;padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+    canvas{display:block;width:100%;height:100%;touch-action:none}
+    button{font:inherit;color:inherit}
+    #boot{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#172033 0,#0b0f1a 42%,#070a12 100%);transition:opacity .35s ease}
+    #boot.is-hidden{opacity:0;pointer-events:none}
+    .boot-card{width:min(82vw,360px);padding:25px 24px;border:1px solid #34455d;background:rgba(10,15,25,.86);box-shadow:0 20px 80px #0008;text-align:center}
+    .boot-mark{font-size:14px;letter-spacing:.28em;color:#e2b86b;margin-bottom:12px}
+    .boot-card h1{font-family:Georgia,serif;letter-spacing:.04em;font-size:clamp(34px,10vw,58px);line-height:.95;margin:0 0 12px}
+    .boot-card p{font-size:14px;color:#9aaac1;margin:0 0 18px}
+    .boot-line{height:3px;background:#26364d;overflow:hidden}.boot-line i{display:block;width:100%;height:100%;background:#e2b86b}
+    @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+  </style>
+  <script type="importmap">{"imports":{"three":"/play/_shared/three/three.module.min.js"}}</script>
+</head>
+<body>
+  <main id="app" aria-label="Duelsteel 3D weapon duel">
+    <section id="boot" aria-live="polite">
+      <div class="boot-card">
+        <div class="boot-mark">DUELSTEEL // 01</div>
+        <h1>DUELSTEEL</h1>
+        <p id="boot-copy">Forging the arena...</p>
+        <div class="boot-line"><i></i></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    window.__ds = window.__ds || {state:{ready:false,mode:'menu',scene:'boot',p1:'Auren Vale',p2:'Korr Vey',fighter1:'longsword',fighter2:'war-axe',stage:'sunken-temple',round:1,hp:[100,100],timer:60},forceMatch:null,forceStage:null,forceWin:false,aiVsAi:false};
+  </script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script type="module" src="game.js"></script>
+</body>
+</html>

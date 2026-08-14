@@ -1,22 +1,21 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/bastionworks/">
+<head>
+  <base href="/play/bastionworks/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="Bastionworks build and raid strategy game">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icon512.png">
   <title>Bastionworks</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main id="gameShell">
-    <canvas id="gameCanvas" aria-label="Bastionworks game"></canvas>
-    <section id="rotateOverlay" aria-live="polite" aria-hidden="true">
-      <div class="overlayCard"><div class="rotateGlyph">↻</div><strong>TURN YOUR DEVICE UPRIGHT</strong><span>The battle is paused while rotated.</span></div>
-    </section>
-    <section id="audioOverlay" aria-live="polite">
-      <div class="overlayCard introCard"><div class="eyebrow">A FREE BASE &amp; RAID GAME</div><h1>BASTION<span>WORKS</span></h1><p>Raise a scrappy stronghold. Crack twelve rival villages. Keep every haul.</p><button id="startButton" type="button">TAP TO ENTER</button><small>One tap enables the battle chimes.</small></div>
-    </section>
-  </main>
+  <main id="gameShell" aria-label="Bastionworks game"></main>
+  <script src="/play/_shared/phaser.min.js" defer></script>
+  <script src="/play/_shared/ggkit.js" defer></script>
   <script src="game.js" defer></script>
 </body>
 </html>

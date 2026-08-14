@@ -1,0 +1,16 @@
+{
+  "name": "Chroma Tap",
+  "short_name": "Chroma",
+  "description": "A tap-blast puzzle. Collapse groups, build rockets, bombs and orbs, clear every crate, balloon and gear.",
+  "start_url": "/play/chroma-tap/",
+  "scope": "/play/chroma-tap/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#101728",
+  "theme_color": "#101728",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

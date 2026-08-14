@@ -1,23 +1,30 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/meridian-row/">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#080a10">
-<title>Meridian Row</title>
-<style>
-html,body{margin:0;padding:0;background:#080a10;width:100%;height:100%;overflow:hidden;position:fixed;}
-body{display:flex;align-items:center;justify-content:center;touch-action:none;
- -webkit-user-select:none;-moz-user-select:none;user-select:none;
- -webkit-tap-highlight-color:transparent;overscroll-behavior:none;}
-canvas{display:block;touch-action:none;}
-</style>
+<head>
+  <base href="/play/meridian-row/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#07101c">
+  <meta name="description" content="Meridian Row, an original local town-board lap race with tricks, pickups, and sticker albums.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Meridian Row</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <style>
+    :root{background:#07101c;color:#eef7ff;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07101c;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none}
+    #game{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+    #game canvas{display:block;touch-action:none}
+  </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<script src="util.js"></script>
-<script src="audio.js"></script>
-<script src="game.js"></script>
-<script src="main.js"></script>
+  <main id="game" aria-label="Meridian Row game"></main>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

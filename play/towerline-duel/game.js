@@ -1,1119 +1,1139 @@
-(() => {
+/* Towerline Duel - fleet F9 AAA rebuild.
+ * Phaser renders the presentation. GGKit owns lifecycle, input identity,
+ * save validation, audio buses, orientation, and accessibility settings.
+ * The simulation is fixed-step and the renderer never writes sim state.
+ */
+(function () {
   'use strict';
 
-  const W = 390;
-  const H = 700;
-  const ARENA = { top: 111, bottom: 548, left: 22, right: 368, laneCenters: [112, 278] };
-  const STORAGE_KEY = 'towerline-duel-save-v1';
-  const MAX_PARTICLES = 180;
-  const MAX_ENTITIES = 52;
-  const MAX_PROJECTILES = 60;
-  const MAX_FLOATERS = 28;
-  const MAX_ACTIONS = 12;
-  const MAX_TIMEOUTS = 12;
-  const MAX_POINTERS = 8;
-  const MAX_KEYS = 16;
-  const TAU = Math.PI * 2;
-
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  const rotateOverlay = document.getElementById('rotateOverlay');
-
-  const COLORS = {
-    ink: '#07101d',
-    panel: '#101d2e',
-    panel2: '#162941',
-    line: '#28445b',
-    text: '#e9fbff',
-    muted: '#8eafba',
-    mint: '#58e0c9',
-    gold: '#ffd36a',
-    coral: '#ff6d72',
-    violet: '#a98dff',
-    blue: '#6db8ff',
-    enemy: '#ff6f78',
-    player: '#59e5cb'
+  var W = 390;
+  var H = 844;
+  var STEP = 1 / 60;
+  var MAX_SIM_STEPS_PER_FRAME = 6;
+  var MAX_UNITS = 64;
+  var MAX_PROJECTILES = 24;
+  var MAX_FX = 96;
+  var MAX_WAVES = 7;
+  var RESULT_STATUSES = { victory: true, defeat: true };
+  var TAU = Math.PI * 2;
+  var MODE_NAMES = { ladder: 'LADDER', draft: 'DRAFT DUEL', gauntlet: 'GAUNTLET' };
+  var TEAM = { player: 0x43c7f4, enemy: 0xff665c };
+  var PALETTE = {
+    ink: 0x07111d, ink2: 0x0b1a29, panel: 0x10283a, panel2: 0x15354a,
+    line: 0x2b5367, text: 0xe9fbff, muted: 0x91aeba, teal: 0x43c7f4,
+    blue: 0x3864e8, coral: 0xff665c, wine: 0xb72e4d, amber: 0xe0a34a,
+    bone: 0xd8c38c, moss: 0x788b5a, violet: 0xb78cff, white: 0xf6ffff,
   };
 
-  const ROLE_COLORS = {
-    swarm: '#f1c55f',
-    tank: '#d88762',
-    ranged: '#6eb9ff',
-    splash: '#b08bff',
-    rush: '#5ee2c3',
-    building: '#d6e0e8',
-    spell: '#ff78bd'
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function hex(value) { return typeof value === 'number' ? value : Number('0x' + String(value).replace('#', '')); }
+  function getCard(id) { return CARDS[id] || CARDS[0]; }
+  function getArena(key) { return ARENAS[key] || ARENAS.openField; }
+  function modeSafe(value) { return value === 'draft' || value === 'gauntlet' || value === 'ladder' ? value : null; }
+  function intSafe(value, fallback, min, max) {
+    var n = Number(value);
+    return Number.isFinite(n) && Math.floor(n) === n ? clamp(n, min, max) : fallback;
+  }
+  function formatTime(seconds) {
+    var t = Math.max(0, Math.ceil(seconds));
+    return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+  }
+  function tier(score) { return score >= 0.84 ? 'gold' : score >= 0.52 ? 'silver' : 'bronze'; }
+  function titleCase(value) { return String(value).charAt(0).toUpperCase() + String(value).slice(1); }
+
+  var CARDS = [
+    { id: 'rivetlings', name: 'Rivetlings', short: 'RIVETS', role: 'swarm', counter: 'rush', cost: 2, hp: 70, damage: 17, count: 3, speed: 44, range: 22, attack: 0.72, color: 0xf1c55f, text: 'Three quick bodies' },
+    { id: 'midge-mob', name: 'Midge Mob', short: 'MIDGES', role: 'swarm', counter: 'rush', cost: 3, hp: 56, damage: 15, count: 4, speed: 39, range: 24, attack: 0.6, color: 0xe9b457, text: 'Four lane scrappers' },
+    { id: 'shard-sprites', name: 'Shard Sprites', short: 'SPRITES', role: 'swarm', counter: 'ranged', cost: 4, hp: 52, damage: 22, count: 3, speed: 52, range: 28, attack: 0.66, color: 0xffdb76, text: 'Fast bladelets' },
+    { id: 'bulwark', name: 'Bulwark', short: 'BULWARK', role: 'tank', counter: 'building', cost: 5, hp: 580, damage: 43, count: 1, speed: 20, range: 28, attack: 1.25, color: 0xd88762, text: 'Slow lane wall' },
+    { id: 'gravelback', name: 'Gravelback', short: 'GRAVEL', role: 'tank', counter: 'building', cost: 4, hp: 430, damage: 34, count: 1, speed: 26, range: 27, attack: 1.05, color: 0xbd755c, text: 'Steady anchor' },
+    { id: 'iron-cask', name: 'Iron Cask', short: 'CASK', role: 'tank', counter: 'building', cost: 6, hp: 760, damage: 56, count: 1, speed: 15, range: 30, attack: 1.5, color: 0xa96559, text: 'Heavy answer' },
+    { id: 'needlewing', name: 'Needlewing', short: 'NEEDLE', role: 'ranged', counter: 'tank', cost: 3, hp: 150, damage: 37, count: 1, speed: 29, range: 154, attack: 1.02, color: 0x6eb9ff, text: 'Long reach' },
+    { id: 'prism-scout', name: 'Prism Scout', short: 'PRISM', role: 'ranged', counter: 'tank', cost: 4, hp: 190, damage: 50, count: 1, speed: 25, range: 178, attack: 1.24, color: 0x77c6ff, text: 'Focused beam' },
+    { id: 'longbeam', name: 'Longbeam', short: 'BEAM', role: 'ranged', counter: 'tank', cost: 5, hp: 235, damage: 76, count: 1, speed: 18, range: 208, attack: 1.58, color: 0x9ad8ff, text: 'Piercing shot' },
+    { id: 'cinder-orbiter', name: 'Cinder Orbiter', short: 'CINDER', role: 'splash', counter: 'swarm', cost: 4, hp: 200, damage: 35, splash: 56, count: 1, speed: 25, range: 132, attack: 1.18, color: 0xb08bff, text: 'Burns clusters' },
+    { id: 'gale-mortar', name: 'Gale Mortar', short: 'GALE', role: 'splash', counter: 'swarm', cost: 5, hp: 255, damage: 58, splash: 74, count: 1, speed: 16, range: 182, attack: 1.5, color: 0xc0a4ff, text: 'Wide pressure' },
+    { id: 'quillburst', name: 'Quillburst', short: 'QUILL', role: 'splash', counter: 'swarm', cost: 3, hp: 120, damage: 27, splash: 50, count: 1, speed: 34, range: 108, attack: 0.9, color: 0x9877f1, text: 'Cheap burst' },
+    { id: 'volt-hound', name: 'Volt Hound', short: 'HOUND', role: 'rush', counter: 'ranged', cost: 3, hp: 185, damage: 94, count: 1, speed: 86, range: 24, attack: 1.34, color: 0x5ee2c3, text: 'First bite' },
+    { id: 'skitter-dash', name: 'Skitter Dash', short: 'SKITTER', role: 'rush', counter: 'ranged', cost: 2, hp: 108, damage: 60, count: 1, speed: 108, range: 22, attack: 1.03, color: 0x54cfb4, text: 'Lane sprint' },
+    { id: 'razor-kite', name: 'Razor Kite', short: 'RAZOR', role: 'rush', counter: 'ranged', cost: 4, hp: 235, damage: 138, count: 1, speed: 72, range: 25, attack: 1.52, color: 0x84f0d7, text: 'Tower dive' },
+    { id: 'spark-nest', name: 'Spark Nest', short: 'NEST', role: 'building', counter: 'rush', cost: 4, hp: 380, damage: 30, count: 1, speed: 0, range: 154, attack: 0.88, color: 0xd6e0e8, building: true, text: 'Lane turret' },
+    { id: 'pulse-mill', name: 'Pulse Mill', short: 'MILL', role: 'building', counter: 'rush', cost: 5, hp: 490, damage: 46, count: 1, speed: 0, range: 178, attack: 1.12, color: 0xb9cbd7, building: true, text: 'Reliable anchor' },
+    { id: 'bramble-beacon', name: 'Bramble Beacon', short: 'BEACON', role: 'building', counter: 'rush', cost: 3, hp: 270, damage: 21, count: 1, speed: 0, range: 114, attack: 0.7, color: 0xa9d5c0, building: true, text: 'Slow field' },
+    { id: 'tether-post', name: 'Tether Post', short: 'TETHER', role: 'building', counter: 'rush', cost: 2, hp: 220, damage: 11, count: 1, speed: 0, range: 98, attack: 0.55, color: 0xa8c4d4, building: true, text: 'Buys seconds' },
+    { id: 'aegis-relay', name: 'Aegis Relay', short: 'AEGIS', role: 'building', counter: 'rush', cost: 6, hp: 650, damage: 62, count: 1, speed: 0, range: 202, attack: 1.65, color: 0xe1eef2, building: true, text: 'Fortified anchor' },
+    { id: 'static-bloom', name: 'Static Bloom', short: 'STATIC', role: 'spell', counter: 'ranged', cost: 3, damage: 132, radius: 68, spell: 'shock', color: 0xff78bd, text: 'Burst and lock' },
+    { id: 'frostline', name: 'Frostline', short: 'FROST', role: 'spell', counter: 'rush', cost: 2, damage: 72, radius: 78, spell: 'freeze', color: 0x72d9ff, text: 'Pocket slow' },
+    { id: 'meteor-knot', name: 'Meteor Knot', short: 'METEOR', role: 'spell', counter: 'tank', cost: 5, damage: 242, radius: 54, spell: 'meteor', color: 0xff9b6b, text: 'Pinpoint impact' },
+    { id: 'mend-field', name: 'Mend Field', short: 'MEND', role: 'spell', counter: 'splash', cost: 3, heal: 178, radius: 78, spell: 'heal', color: 0x65e6a6, text: 'Restore bodies' },
+  ];
+
+  var WAVE_PATTERNS = [
+    { name: 'SCOUT SCREEN', cards: [0, 6], lanes: [0, 1], formation: 'split', boss: false },
+    { name: 'CROSS CURRENT', cards: [1, 13, 9], lanes: [0, 1, 0], formation: 'cross', boss: false },
+    { name: 'BREACH STACK', cards: [3, 0, 0], lanes: [0, 0, 1], formation: 'stack', boss: false },
+    { name: 'RELAY BREAKER', cards: [7, 12, 17], lanes: [1, 0, 1], formation: 'cross', boss: true },
+    { name: 'CROWN PUSH', cards: [5, 10, 14, 1], lanes: [0, 1, 0, 1], formation: 'stack', boss: true },
+    { name: 'LAST CIRCUIT', cards: [8, 17, 19, 5], lanes: [1, 0, 1, 0], formation: 'split', boss: true },
+  ];
+  var TUTORIAL_STEPS = [
+    { at: 5, text: 'Build cards snap to open sockets. Adjacency creates a link' },
+    { at: 12, text: 'Counters: splash beats swarms, ranged beats tanks' },
+    { at: 22, text: 'Card cooldowns are short. Stage, undo, then commit' },
+    { at: 35, text: 'Enemy lanes pulse before every formation arrives' },
+    { at: 52, text: 'Boss charges flash red. Freeze or focus the boss' },
+  ];
+
+  var ARENAS = {
+    openField: { key: 'openField', name: 'Open Field', signature: 'Ladder meadow', lanes: 2, accent: 0x43c7f4, ground: 0x123348, river: 0x1a6370, motif: 'meadow' },
+    brassworks: { key: 'brassworks', name: 'Brassworks', signature: 'Draft constructed', lanes: 2, accent: 0xe0a34a, ground: 0x3a2c2d, river: 0x805b36, motif: 'brass' },
+    skyglass: { key: 'skyglass', name: 'Skyglass Basin', signature: 'Draft constructed', lanes: 2, accent: 0xb78cff, ground: 0x25264d, river: 0x4d4f91, motif: 'sky' },
+    mossworks: { key: 'mossworks', name: 'Mossworks', signature: 'Gauntlet ascent', lanes: 2, accent: 0x78b87b, ground: 0x1e3b36, river: 0x376d61, motif: 'moss' },
+    nightrelay: { key: 'nightrelay', name: 'Night Relay', signature: 'Gauntlet pressure', lanes: 2, accent: 0xff78bd, ground: 0x281d3b, river: 0x5b386f, motif: 'night' },
+    crown: { key: 'crown', name: 'Towerline Crown', signature: 'Champion finale', lanes: 3, accent: 0xffd36a, ground: 0x3b2d26, river: 0x8a603b, motif: 'crown' },
   };
 
-  // Every card is an original name and a flat-power rule. The role matchup
-  // cycle is intentionally visible in the forge: swarm > tank > ranged > rush > swarm.
-  const CARDS = [
-    { id: 'rivetlings', name: 'Rivetlings', short: 'Rivets', role: 'swarm', cost: 2, hp: 62, damage: 18, count: 4, speed: 42, range: 20, attack: .72, color: '#f1c55f', counter: 'tank', blurb: 'four quick bodies' },
-    { id: 'midge-mob', name: 'Midge Mob', short: 'Midges', role: 'swarm', cost: 3, hp: 48, damage: 14, count: 6, speed: 36, range: 22, attack: .58, color: '#e9b457', counter: 'tank', blurb: 'six tiny scrappers' },
-    { id: 'shard-sprites', name: 'Shard Sprites', short: 'Sprites', role: 'swarm', cost: 4, hp: 42, damage: 20, count: 5, speed: 49, range: 30, attack: .65, color: '#ffdb76', counter: 'tank', blurb: 'darting bladelets' },
-    { id: 'bulwark', name: 'Bulwark', short: 'Bulwark', role: 'tank', cost: 5, hp: 560, damage: 42, count: 1, speed: 19, range: 26, attack: 1.25, color: '#d88762', counter: 'ranged', blurb: 'slow, stubborn wall' },
-    { id: 'gravelback', name: 'Gravelback', short: 'Gravel', role: 'tank', cost: 4, hp: 420, damage: 32, count: 1, speed: 25, range: 25, attack: 1.05, color: '#bd755c', counter: 'ranged', blurb: 'steady lane anchor' },
-    { id: 'iron-cask', name: 'Iron Cask', short: 'Cask', role: 'tank', cost: 6, hp: 740, damage: 53, count: 1, speed: 14, range: 28, attack: 1.5, color: '#a96559', counter: 'ranged', blurb: 'the heavy answer' },
-    { id: 'needlewing', name: 'Needlewing', short: 'Needle', role: 'ranged', cost: 3, hp: 135, damage: 36, count: 1, speed: 27, range: 150, attack: 1.05, color: '#6eb9ff', counter: 'rush', blurb: 'long reach, light shell' },
-    { id: 'prism-scout', name: 'Prism Scout', short: 'Prism', role: 'ranged', cost: 4, hp: 180, damage: 48, count: 1, speed: 24, range: 175, attack: 1.25, color: '#77c6ff', counter: 'rush', blurb: 'focused beam' },
-    { id: 'longbeam', name: 'Longbeam', short: 'Beam', role: 'ranged', cost: 5, hp: 220, damage: 74, count: 1, speed: 17, range: 205, attack: 1.6, color: '#9ad8ff', counter: 'rush', blurb: 'patient, piercing shot' },
-    { id: 'cinder-orbiter', name: 'Cinder Orbiter', short: 'Cinder', role: 'splash', cost: 4, hp: 185, damage: 34, splash: 55, count: 1, speed: 24, range: 130, attack: 1.2, color: '#b08bff', counter: 'swarm', blurb: 'burns clustered foes' },
-    { id: 'gale-mortar', name: 'Gale Mortar', short: 'Gale', role: 'splash', cost: 5, hp: 240, damage: 56, splash: 72, count: 1, speed: 15, range: 180, attack: 1.5, color: '#c0a4ff', counter: 'swarm', blurb: 'wide pressure arc' },
-    { id: 'quillburst', name: 'Quillburst', short: 'Quill', role: 'splash', cost: 3, hp: 110, damage: 26, splash: 48, count: 1, speed: 32, range: 105, attack: .92, color: '#9877f1', counter: 'swarm', blurb: 'cheap burst runner' },
-    { id: 'volt-hound', name: 'Volt Hound', short: 'Hound', role: 'rush', cost: 3, hp: 170, damage: 92, count: 1, speed: 83, range: 22, attack: 1.35, color: '#5ee2c3', counter: 'swarm', blurb: 'fast first bite' },
-    { id: 'skitter-dash', name: 'Skitter Dash', short: 'Skitter', role: 'rush', cost: 2, hp: 100, damage: 58, count: 1, speed: 104, range: 21, attack: 1.05, color: '#54cfb4', counter: 'swarm', blurb: 'cheap lane sprint' },
-    { id: 'razor-kite', name: 'Razor Kite', short: 'Razor', role: 'rush', cost: 4, hp: 220, damage: 135, count: 1, speed: 70, range: 24, attack: 1.55, color: '#84f0d7', counter: 'swarm', blurb: 'all-in tower dive' },
-    { id: 'spark-nest', name: 'Spark Nest', short: 'Nest', role: 'building', cost: 4, hp: 360, damage: 28, count: 1, speed: 0, range: 150, attack: .9, color: '#d6e0e8', counter: 'rush', building: true, blurb: 'holds a lane in place' },
-    { id: 'pulse-mill', name: 'Pulse Mill', short: 'Mill', role: 'building', cost: 5, hp: 470, damage: 44, count: 1, speed: 0, range: 175, attack: 1.15, color: '#b9cbd7', counter: 'rush', building: true, blurb: 'reliable lane turret' },
-    { id: 'bramble-beacon', name: 'Bramble Beacon', short: 'Beacon', role: 'building', cost: 3, hp: 250, damage: 20, count: 1, speed: 0, range: 110, attack: .7, color: '#a9d5c0', counter: 'rush', building: true, blurb: 'cheap slow field' },
-    { id: 'tether-post', name: 'Tether Post', short: 'Tether', role: 'building', cost: 2, hp: 210, damage: 10, count: 1, speed: 0, range: 95, attack: .55, color: '#a8c4d4', counter: 'rush', building: true, blurb: 'buys precious seconds' },
-    { id: 'aegis-relay', name: 'Aegis Relay', short: 'Aegis', role: 'building', cost: 6, hp: 620, damage: 60, count: 1, speed: 0, range: 200, attack: 1.7, color: '#e1eef2', counter: 'rush', building: true, blurb: 'fortified late anchor' },
-    { id: 'static-bloom', name: 'Static Bloom', short: 'Static', role: 'spell', cost: 3, damage: 125, radius: 70, spell: 'shock', color: '#ff78bd', blurb: 'burst + brief lock' },
-    { id: 'frostline', name: 'Frostline', short: 'Frost', role: 'spell', cost: 2, damage: 70, radius: 78, spell: 'freeze', color: '#72d9ff', blurb: 'slow a whole pocket' },
-    { id: 'meteor-knot', name: 'Meteor Knot', short: 'Meteor', role: 'spell', cost: 5, damage: 240, radius: 54, spell: 'meteor', color: '#ff9b6b', blurb: 'heavy pinpoint impact' },
-    { id: 'mend-field', name: 'Mend Field', short: 'Mend', role: 'spell', cost: 3, heal: 175, radius: 78, spell: 'heal', color: '#65e6a6', blurb: 'restore friendly bodies' }
+  var RUNG_TABLE = [
+    { name: 'Seedline', arena: 'openField', deck: [0, 3, 6, 1, 16, 13, 21, 22], skill: 0.32, gap: 1.55, unlock: [0, 1, 2] },
+    { name: 'Copper Reach', arena: 'openField', deck: [3, 4, 6, 16, 18, 0, 21, 22], skill: 0.42, gap: 1.38, unlock: [3, 4, 5] },
+    { name: 'Prism Yard', arena: 'openField', deck: [6, 7, 9, 3, 16, 19, 21, 23], skill: 0.51, gap: 1.28, unlock: [6, 7, 8] },
+    { name: 'Gale Cut', arena: 'openField', deck: [9, 10, 11, 1, 4, 16, 21, 22], skill: 0.61, gap: 1.16, unlock: [9, 10, 11] },
+    { name: 'Green Rush', arena: 'openField', deck: [12, 13, 14, 0, 2, 18, 21, 22], skill: 0.68, gap: 1.04, unlock: [12, 13, 14] },
+    { name: 'Relay Ring', arena: 'openField', deck: [17, 19, 20, 5, 7, 14, 21, 23], skill: 0.76, gap: 0.94, unlock: [15, 16, 17] },
+    { name: 'Black Current', arena: 'openField', deck: [5, 8, 10, 14, 16, 20, 21, 22], skill: 0.84, gap: 0.82, unlock: [18, 19, 20] },
+    { name: 'Crown Circuit', arena: 'crown', deck: [2, 5, 8, 10, 14, 19, 21, 23], skill: 0.93, gap: 0.7, unlock: [21, 22, 23] },
   ];
 
-  const LADDER = [
-    { name: 'Seedline', style: 'warm-up swarm', deck: [0, 3, 6, 1, 16, 13, 21, 22], skill: .34, gap: 1.55, accent: '#f1c55f' },
-    { name: 'Copper Reach', style: 'patient wall', deck: [3, 4, 6, 16, 18, 0, 21, 22], skill: .43, gap: 1.38, accent: '#d88762' },
-    { name: 'Prism Yard', style: 'ranged lattice', deck: [6, 7, 9, 3, 16, 19, 21, 23], skill: .52, gap: 1.28, accent: '#6eb9ff' },
-    { name: 'Gale Cut', style: 'splash tempo', deck: [9, 10, 11, 1, 4, 16, 21, 22], skill: .61, gap: 1.15, accent: '#b08bff' },
-    { name: 'Green Rush', style: 'tower dive', deck: [12, 13, 14, 0, 2, 18, 21, 22], skill: .68, gap: 1.02, accent: '#5ee2c3' },
-    { name: 'Relay Ring', style: 'fortified counter', deck: [17, 19, 20, 5, 7, 14, 21, 23], skill: .76, gap: .92, accent: '#d6e0e8' },
-    { name: 'Black Current', style: 'spell control', deck: [5, 8, 10, 14, 16, 20, 21, 22], skill: .84, gap: .8, accent: '#ff78bd' },
-    { name: 'Crown Circuit', style: 'adaptive grandmaster', deck: [2, 5, 8, 10, 14, 19, 21, 23], skill: .93, gap: .68, accent: '#ffd36a' }
+  var DRAFT_TABLE = [
+    { name: 'Brassworks Draft', arena: 'brassworks', enemy: [3, 6, 9, 17, 18, 21, 22, 12], note: 'Siege pieces and a patient wall', skill: 0.7, gap: 1.03 },
+    { name: 'Skyglass Draft', arena: 'skyglass', enemy: [1, 7, 10, 13, 16, 19, 20, 23], note: 'Ranged lattice with cold control', skill: 0.78, gap: 0.92 },
+    { name: 'Foundry Draft', arena: 'brassworks', enemy: [2, 5, 8, 11, 14, 17, 21, 23], note: 'A full-power constructed test', skill: 0.9, gap: 0.8 },
   ];
 
-  let screen = 'menu';
-  let progress = loadProgress();
-  let game = null;
-  let selectedDeckSlot = 0;
-  let pointerMap = new Map();
-  let activeDrag = null;
-  let keys = new Set();
-  let queuedActions = [];
-  let scheduledTimeouts = new Set();
-  let orientationPaused = false;
-  let hiddenPaused = false;
-  let lastFrame = performance.now();
-  let cssWidth = 390;
-  let cssHeight = 700;
-  let audio = null;
+  var GAUNTLET_TABLE = [
+    { name: 'Mossworks', arena: 'mossworks', enemy: [0, 3, 6, 16, 21, 13, 1, 22], skill: 0.5, gap: 1.34 },
+    { name: 'Relay Marsh', arena: 'mossworks', enemy: [1, 4, 7, 17, 20, 12, 21, 22], skill: 0.61, gap: 1.18 },
+    { name: 'Night Relay', arena: 'nightrelay', enemy: [2, 5, 9, 18, 19, 14, 21, 23], skill: 0.7, gap: 1.03 },
+    { name: 'Redline Switch', arena: 'nightrelay', enemy: [5, 8, 10, 17, 20, 14, 21, 23], skill: 0.79, gap: 0.9 },
+    { name: 'Crown Approach', arena: 'nightrelay', enemy: [2, 5, 8, 10, 14, 19, 21, 23], skill: 0.87, gap: 0.78 },
+    { name: 'Towerline Crown', arena: 'crown', enemy: [2, 5, 8, 10, 14, 19, 21, 23], skill: 0.95, gap: 0.68 },
+  ];
 
-  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
-  function rand(min, max) { return min + Math.random() * (max - min); }
-  function card(id) { return CARDS[id] || CARDS[0]; }
-  function isLandscape() { return window.innerWidth > window.innerHeight; }
-  function safeInt(value, fallback, min, max) {
-    const n = Number(value);
-    return Number.isFinite(n) && Number.isInteger(n) ? clamp(n, min, max) : fallback;
+  var priorTD = window.__td;
+  var query = new URLSearchParams(window.location.search);
+  var priorModeValue = priorTD && typeof priorTD.forceMode === 'string' ? priorTD.forceMode : (priorTD && priorTD.state && priorTD.state.forceMode);
+  var priorRungValue = priorTD && priorTD.forceRung != null ? priorTD.forceRung : (priorTD && priorTD.state && priorTD.state.forceRung);
+  var rawForceRung = window.__TD_FORCE_RUNG || query.get('forceRung') || priorRungValue;
+  var bootForceMode = modeSafe(window.__TD_FORCE_MODE || query.get('forceMode') || priorModeValue);
+  var bootForceRung = rawForceRung == null || rawForceRung === '' ? null : intSafe(rawForceRung, 1, 1, 8);
+  var bootFallback = { forceMode: bootForceMode, forceRung: bootForceRung };
+
+  function defaultSave() {
+    return { version: 1, rung: 1, deck: [0, 1, 2, 0, 1, 2, 0, 1], medals: {}, streak: 0, gauntletBest: 0, draftWins: 0, drops: 0 };
   }
-
-  function defaultDeck() { return [0, 1, 2, 0, 1, 2, 0, 1]; }
-
-  function validDeck(value) {
-    return Array.isArray(value) && value.length === 8 && value.every((id) => Number.isInteger(id) && id >= 0 && id < CARDS.length);
+  function validDeck(deck) {
+    return Array.isArray(deck) && deck.length === 8 && deck.every(function (id) { return Number.isInteger(id) && id >= 0 && id < CARDS.length; });
   }
-
-  function loadProgress() {
-    const fallback = { rung: 1, deck: defaultDeck() };
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return fallback;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return fallback;
-      const rung = safeInt(parsed.rung, 1, 1, 8);
-      const deck = validDeck(parsed.deck) ? parsed.deck.slice() : fallback.deck.slice();
-      return { rung, deck };
-    } catch (error) {
-      return fallback;
-    }
+  function validMedal(value) {
+    var tiers = { bronze: true, silver: true, gold: true };
+    return value && typeof value === 'object' && tiers[value.rung] && tiers[value.streak] && tiers[value.tower];
   }
-
-  function saveProgress() {
-    try {
-      const payload = { rung: safeInt(progress.rung, 1, 1, 8), deck: validDeck(progress.deck) ? progress.deck.slice() : defaultDeck() };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    } catch (error) {
-      // Storage is a convenience only; a private window or a full quota must not break play.
-    }
-  }
-
-  function clearScheduledTimeouts() {
-    scheduledTimeouts.forEach((id) => clearTimeout(id));
-    scheduledTimeouts.clear();
-  }
-
-  function schedule(fn, ms) {
-    if (scheduledTimeouts.size >= MAX_TIMEOUTS) return null;
-    const id = setTimeout(() => { scheduledTimeouts.delete(id); fn(); }, ms);
-    scheduledTimeouts.add(id);
-    return id;
-  }
-
-  function resetInput() {
-    pointerMap.forEach((_, pointerId) => {
-      try { canvas.releasePointerCapture(pointerId); } catch (error) { /* pointer may already be gone */ }
-    });
-    pointerMap.clear();
-    activeDrag = null;
-    keys.clear();
-    queuedActions.length = 0;
-    clearScheduledTimeouts();
-  }
-
-  function queueAction(action) {
-    if (queuedActions.length >= MAX_ACTIONS) queuedActions.shift();
-    queuedActions.push(action);
-  }
-
-  function unlockAudio() {
-    if (!audio) {
-      try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        audio = new AudioContext();
-      } catch (error) { return; }
-    }
-    if (audio.state === 'suspended') audio.resume().catch(() => {});
-  }
-
-  function tone(frequency, duration, type = 'sine', volume = .035) {
-    if (!audio || audio.state !== 'running') return;
-    try {
-      const oscillator = audio.createOscillator();
-      const gain = audio.createGain();
-      oscillator.type = type;
-      oscillator.frequency.value = frequency;
-      gain.gain.setValueAtTime(volume, audio.currentTime);
-      gain.gain.exponentialRampToValueAtTime(.001, audio.currentTime + duration);
-      oscillator.connect(gain).connect(audio.destination);
-      oscillator.start();
-      oscillator.stop(audio.currentTime + duration);
-    } catch (error) { /* audio is decorative */ }
-  }
-
-  function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    cssWidth = Math.max(1, rect.width);
-    cssHeight = Math.max(1, rect.height);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2, 960 / Math.max(cssWidth, cssHeight));
-    canvas.width = Math.max(1, Math.round(cssWidth * dpr));
-    canvas.height = Math.max(1, Math.round(cssHeight * dpr));
-    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
-    orientationPaused = isLandscape();
-    rotateOverlay.setAttribute('aria-hidden', orientationPaused ? 'false' : 'true');
-    lastFrame = performance.now();
-  }
-
-  function mapPointer(event) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: clamp((event.clientX - rect.left) / Math.max(1, rect.width) * W, 0, W),
-      y: clamp((event.clientY - rect.top) / Math.max(1, rect.height) * H, 0, H)
-    };
-  }
-
-  function pointIn(x, y, rect) { return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h; }
-
-  function startGame(rung = progress.rung) {
-    resetInput();
-    unlockAudio();
-    const rungIndex = clamp(rung, 1, 8) - 1;
-    const bot = LADDER[rungIndex];
-    game = {
-      rung: rungIndex + 1,
-      bot,
-      time: 180,
-      overtime: false,
-      status: 'playing',
-      playerTower: 1000,
-      enemyTower: 1000,
-      playerEnergy: 5,
-      enemyEnergy: 5,
-      maxEnergy: 10,
-      units: [],
-      projectiles: [],
-      particles: [],
-      floaters: [],
-      hand: progress.deck.slice(0, 4),
-      deckIndex: 4,
-      selectedHand: 0,
-      laneFocus: 0,
-      aiTimer: .65,
-      pulse: 0,
-      shake: 0,
-      flash: 0,
-      nextEntityId: 1,
-      message: 'Drag a card into a lane · 1–4 choose · ←→ lane · Space deploy',
-      messageTime: 6,
-      lastTowerHit: 0
-    };
-    screen = 'game';
-    lastFrame = performance.now();
-    tone(260, .12, 'triangle', .045);
-  }
-
-  function goMenu() {
-    resetInput();
-    game = null;
-    screen = 'menu';
-  }
-
-  function openForge() {
-    resetInput();
-    screen = 'forge';
-  }
-
-  function createEntity(cardId, team, lane, y) {
-    if (!game || game.units.length >= MAX_ENTITIES) return null;
-    const c = card(cardId);
-    const entity = {
-      id: game.nextEntityId,
-      cardId,
-      team,
-      lane,
-      x: ARENA.laneCenters[lane] + rand(-7, 7),
-      y,
-      hp: c.hp,
-      maxHp: c.hp,
-      attackTimer: rand(.05, .3),
-      freeze: 0,
-      slow: 0,
-      hit: 0,
-      building: Boolean(c.building),
-      phase: rand(0, TAU)
-    };
-    game.nextEntityId = (game.nextEntityId % 99999) + 1;
-    game.units.push(entity);
-    return entity;
-  }
-
-  function spend(team, cost) {
-    if (team === 'player') game.playerEnergy -= cost;
-    else game.enemyEnergy -= cost;
-  }
-
-  function deployCard(cardId, team, lane, targetY) {
-    const c = card(cardId);
-    if (!game || game.status !== 'playing') return false;
-    const energy = team === 'player' ? game.playerEnergy : game.enemyEnergy;
-    if (energy + .001 < c.cost) {
-      if (team === 'player') {
-        game.message = 'Need more energy';
-        game.messageTime = 1.2;
-        tone(115, .08, 'square', .022);
-      }
-      return false;
-    }
-    spend(team, c.cost);
-    const safeLane = clamp(lane | 0, 0, 1);
-    if (c.role === 'spell') {
-      castSpell(c, team, safeLane, clamp(targetY || (team === 'player' ? 330 : 340), ARENA.top + 12, ARENA.bottom - 12));
-    } else {
-      const baseY = c.building ? (team === 'player' ? 485 : 173) : (team === 'player' ? 518 : 141);
-      const direction = team === 'player' ? -1 : 1;
-      const count = clamp(c.count || 1, 1, 6);
-      for (let i = 0; i < count; i += 1) {
-        const offset = (i - (count - 1) / 2) * 12;
-        createEntity(cardId, team, safeLane, baseY + offset * direction);
-      }
-      burst(ARENA.laneCenters[safeLane], baseY, c.color, c.building ? 12 : 7);
-      if (team === 'player') {
-        game.message = `${c.name} deployed · ${c.blurb}`;
-        game.messageTime = 1.7;
-        tone(390 + c.cost * 22, .09, 'triangle', .028);
-      }
-    }
+  function validateSave(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    if (value.version !== 1 || !Number.isInteger(value.rung) || value.rung < 1 || value.rung > 8 || !validDeck(value.deck)) return false;
+    if (!value.medals || typeof value.medals !== 'object' || Array.isArray(value.medals)) return false;
+    if (!Object.keys(value.medals).every(function (key) { return /^[1-8]$/.test(key) && validMedal(value.medals[key]); })) return false;
+    if (!Number.isInteger(value.streak) || value.streak < 0 || value.streak > 999) return false;
+    if (!Number.isInteger(value.gauntletBest) || value.gauntletBest < 0 || value.gauntletBest > GAUNTLET_TABLE.length) return false;
+    if (!Number.isInteger(value.draftWins) || value.draftWins < 0 || value.draftWins > 999) return false;
+    if (!Number.isInteger(value.drops) || value.drops < 0 || value.drops > 999) return false;
     return true;
   }
 
-  function rotateHand() {
-    if (!game) return;
-    game.hand[game.selectedHand] = progress.deck[game.deckIndex % progress.deck.length];
-    game.deckIndex = (game.deckIndex + 1) % progress.deck.length;
-    game.selectedHand = clamp(game.selectedHand, 0, 3);
+  var activeDuel = null;
+  var progress;
+  var tdState = {
+    mode: bootForceMode || 'menu', rung: bootForceRung || 1, hand: [], deck: [], elixir: 0,
+    coreHP: { player: 1000, enemy: 1000 }, forceMode: bootForceMode, forceRung: bootForceRung,
+    arena: 'openField', inMatch: false, status: 'boot', medal: null, wave: 0, selectedLane: 0, cooldowns: [], synergies: 0,
+  };
+  var tdApi = {
+    state: tdState,
+    setForceMode: function (value) { bootFallback.forceMode = modeSafe(value); tdState.forceMode = bootFallback.forceMode; return tdState.forceMode; },
+    setForceRung: function (value) { bootFallback.forceRung = intSafe(value, tdState.forceRung || 1, 1, 8); tdState.forceRung = bootFallback.forceRung; return tdState.forceRung; },
+  };
+  Object.defineProperty(tdApi, 'forceMode', { configurable: true, get: function () { return bootFallback.forceMode; }, set: function (value) { tdApi.setForceMode(value); } });
+  Object.defineProperty(tdApi, 'forceRung', { configurable: true, get: function () { return bootFallback.forceRung; }, set: function (value) { tdApi.setForceRung(value); } });
+  window.__td = tdApi;
+  window.__TD_BOOT_FALLBACK = bootFallback;
+
+  function saveProgress() { if (progress) kit.save.set(progress); }
+  function unlockedCount() { return clamp(progress.rung * 3, 3, CARDS.length); }
+  function normalizeProgress(value) {
+    var base = defaultSave();
+    if (!validateSave(value)) return base;
+    var next = JSON.parse(JSON.stringify(value));
+    var available = clamp(next.rung * 3, 3, CARDS.length);
+    next.deck = next.deck.map(function (id) { return id < available ? id : 0; });
+    return next;
+  }
+  function updateStateFromProgress() {
+    tdState.deck = progress ? progress.deck.slice() : [];
+    tdState.rung = progress ? progress.rung : bootFallback.forceRung;
+    tdState.hand = progress ? progress.deck.slice(0, 4) : [];
   }
 
-  function deployPlayer(cardIndex, lane, targetY) {
-    if (!game || game.status !== 'playing') return;
-    const index = clamp(cardIndex | 0, 0, 3);
-    const id = game.hand[index];
-    if (deployCard(id, 'player', lane, targetY)) {
-      game.selectedHand = index;
-      rotateHand();
-    }
+  var kit = GGKit.create({
+    slug: 'towerline-duel',
+    orientation: 'portrait',
+    validateSave: validateSave,
+    onPause: function () { if (activeDuel) activeDuel.setLifecyclePaused(true); },
+    onResume: function () { if (activeDuel) activeDuel.setLifecyclePaused(false); },
+    onRestart: function () { if (activeDuel) activeDuel.restartMatch(); },
+  });
+  progress = normalizeProgress(kit.save.get(null));
+  updateStateFromProgress();
+  kit.audio.register({
+    deploy: 'assets/deploy_thud.mp3',
+    clash: 'assets/clash_clang.mp3',
+    spell: 'assets/spell_cast.mp3',
+    victory: 'assets/victory_fanfare.mp3',
+    select: 'assets/select_click.mp3',
+    confirm: 'assets/confirm_ping.mp3',
+    cancel: 'assets/cancel_tick.mp3',
+    hit: 'assets/hit_snap.mp3',
+    kill: 'assets/kill_crack.mp3',
+    warning: 'assets/warning_pulse.mp3',
+    wave: 'assets/wave_clear.mp3',
+    music: 'assets/music_bed.mp3',
+    danger: 'assets/danger_layer.mp3',
+    victoryMusic: 'assets/victory_layer.mp3',
+  });
+  var sfxLast = {};
+  function playSfx(name, gap) {
+    var now = performance.now();
+    var minGap = gap || 70;
+    if (now - (sfxLast[name] || -1e9) < minGap) return;
+    sfxLast[name] = now;
+    kit.audio.sfx(name, { volume: name === 'victory' ? 0.72 : 0.5 });
+  }
+  function setTextIfChanged(object, value) {
+    var textValue = String(value);
+    if (!object || object.__tdText === textValue) return;
+    object.__tdText = textValue;
+    object.setText(textValue);
+  }
+  function setColorIfChanged(object, value) {
+    if (!object || object.__tdColor === value) return;
+    object.__tdColor = value;
+    object.setColor(value);
+  }
+  function seedKitPointer(pointer) {
+    var id = pointer && pointer.id != null ? pointer.id : 0;
+    var event = pointer && pointer.event;
+    var x = event && Number.isFinite(event.clientX) ? event.clientX : pointer.x;
+    var y = event && Number.isFinite(event.clientY) ? event.clientY : pointer.y;
+    if (!kit.input.pointers.has(id)) kit.input.pointers.set(id, { x: x, y: y, startX: x, startY: y, downAt: performance.now(), zone: null });
+    return id;
+  }
+  kit.input.gamepadEdge = function (action) {
+    if (!navigator.getGamepads) return false;
+    var pads = navigator.getGamepads(); var pad = null;
+    for (var i = 0; i < pads.length; i += 1) if (pads[i] && pads[i].connected) { pad = pads[i]; break; }
+    if (!pad) return false;
+    var down = false;
+    if (action === 'confirm') down = !!(pad.buttons[0] && pad.buttons[0].pressed);
+    if (action === 'cancel') down = !!(pad.buttons[1] && pad.buttons[1].pressed);
+    if (action === 'left') down = !!((pad.buttons[14] && pad.buttons[14].pressed) || (pad.axes[0] || 0) < -0.55);
+    if (action === 'right') down = !!((pad.buttons[15] && pad.buttons[15].pressed) || (pad.axes[0] || 0) > 0.55);
+    if (action === 'up') down = !!((pad.buttons[12] && pad.buttons[12].pressed) || (pad.axes[1] || 0) < -0.55);
+    if (action === 'down') down = !!((pad.buttons[13] && pad.buttons[13].pressed) || (pad.axes[1] || 0) > 0.55);
+    var key = 'pad:' + action; var was = !!kit.__tdPadState && !!kit.__tdPadState[key]; if (!kit.__tdPadState) kit.__tdPadState = {};
+    kit.__tdPadState[key] = down; return down && !was;
+  };
+  function pointerDesign(pointer) {
+    var x = Number.isFinite(pointer.worldX) ? pointer.worldX : pointer.x;
+    var y = Number.isFinite(pointer.worldY) ? pointer.worldY : pointer.y;
+    return { x: clamp(x, 0, W), y: clamp(y, 0, H) };
+  }
+  function edgeKey(scene, code) {
+    if (!scene.__tdKeys) scene.__tdKeys = {};
+    var down = kit.input.keyDown(code);
+    var was = !!scene.__tdKeys[code];
+    scene.__tdKeys[code] = down;
+    return down && !was;
+  }
+  function makeTexture(scene, key, width, height, draw) {
+    if (scene.textures.exists(key)) return;
+    var g = scene.make.graphics({ x: 0, y: 0, add: false });
+    draw(g);
+    g.generateTexture(key, width, height);
+    g.destroy();
+  }
+  function addLabel(scene, x, y, value, size, color, originX, weight) {
+    return scene.add.text(x, y, value, {
+      fontFamily: 'Trebuchet MS, system-ui, sans-serif', fontSize: Math.max(14, size) + 'px',
+      color: color || '#e9fbff', fontStyle: weight || 'normal', resolution: 2,
+      lineSpacing: 2,
+    }).setOrigin(originX == null ? 0.5 : originX, 0.5);
+  }
+  function addPanel(scene, x, y, w, h, fill, stroke, radius) {
+    var r = scene.add.rectangle(x, y, w, h, fill == null ? PALETTE.panel : fill, 1);
+    r.setStrokeStyle(1.5, stroke == null ? PALETTE.line : stroke, 0.95);
+    r.setOrigin(0.5);
+    return r;
   }
 
-  function castSpell(c, team, lane, targetY) {
-    const enemyTeam = team === 'player' ? 'enemy' : 'player';
-    const centerX = ARENA.laneCenters[lane];
-    burst(centerX, targetY, c.color, c.spell === 'meteor' ? 24 : 14);
-    game.flash = .14;
-    game.shake = Math.max(game.shake, c.spell === 'meteor' ? 8 : 4);
-    if (c.spell === 'heal') {
-      game.units.forEach((unit) => {
-        if (unit.team === team && unit.lane === lane && Math.abs(unit.y - targetY) <= c.radius) {
-          unit.hp = Math.min(unit.maxHp, unit.hp + c.heal);
-          unit.hit = .15;
+  function bakeTextures(scene) {
+    makeTexture(scene, 'td-background', W, H, function (g) {
+      g.fillStyle(PALETTE.ink, 1); g.fillRect(0, 0, W, H);
+      for (var i = 0; i < H; i += 12) {
+        var t = i / H;
+        g.fillStyle(Phaser.Display.Color.GetColor(7 + Math.round(9 * t), 17 + Math.round(15 * t), 29 + Math.round(21 * t)), 1);
+        g.fillRect(0, i, W, 12);
+      }
+      g.lineStyle(1, PALETTE.teal, 0.08);
+      for (var x = -H; x < W + H; x += 34) { g.lineBetween(x, 0, x - H, H); }
+      g.fillStyle(PALETTE.teal, 0.05); g.fillCircle(42, 168, 90);
+      g.fillStyle(PALETTE.violet, 0.04); g.fillCircle(350, 640, 120);
+    });
+    Object.keys(ARENAS).forEach(function (key) {
+      var arena = getArena(key);
+      makeTexture(scene, 'td-board-' + key, 358, 552, function (g) {
+        g.fillStyle(0x07131f, 1); g.fillRoundedRect(0, 0, 358, 552, 22);
+        g.lineStyle(2, arena.accent, 0.58); g.strokeRoundedRect(1, 1, 356, 550, 22);
+        g.fillStyle(arena.ground, 0.9); g.fillRoundedRect(10, 10, 338, 532, 16);
+        var laneWidth = 338 / arena.lanes;
+        for (var lane = 0; lane < arena.lanes; lane += 1) {
+          var laneFill = lane % 2 ? 0x0d1b2b : 0x102438;
+          g.fillStyle(laneFill, 0.64); g.fillRect(11 + lane * laneWidth, 12, laneWidth - 2, 528);
+          g.lineStyle(1, arena.accent, 0.24); g.strokeRect(11 + lane * laneWidth, 12, laneWidth - 2, 528);
+          for (var row = 0; row < 10; row += 1) {
+            g.lineStyle(1, PALETTE.white, 0.045);
+            g.lineBetween(12 + lane * laneWidth, 30 + row * 49, 10 + (lane + 1) * laneWidth, 30 + row * 49);
+          }
+        }
+        g.fillStyle(arena.river, 0.62); g.fillRect(10, 264, 338, 26);
+        g.lineStyle(2, arena.accent, 0.55); g.lineBetween(10, 264, 348, 264); g.lineBetween(10, 290, 348, 290);
+        g.fillStyle(0x07111d, 0.58); g.fillRoundedRect(16, 20, 326, 24, 8); g.fillRoundedRect(16, 508, 326, 24, 8);
+        g.lineStyle(3, arena.accent, 0.58); g.lineBetween(22, 32, 336, 32); g.lineBetween(22, 520, 336, 520);
+        for (var rail = 0; rail < arena.lanes; rail += 1) { var railX = 16 + (rail + 0.5) * laneWidth; g.lineStyle(2, PALETTE.white, 0.16); g.lineBetween(railX, 46, railX, 250); g.lineBetween(railX, 304, railX, 506); g.fillStyle(arena.accent, 0.22); g.fillCircle(railX, 74, 12); g.fillCircle(railX, 474, 12); }
+        g.fillStyle(PALETTE.bone, 0.25);
+        if (arena.motif === 'meadow') { g.fillCircle(42, 70, 13); g.fillCircle(316, 470, 16); g.fillCircle(308, 78, 9); }
+        if (arena.motif === 'brass') { g.fillRect(32, 50, 26, 26); g.fillRect(298, 465, 30, 18); g.lineStyle(3, PALETTE.amber, 0.4); g.lineBetween(70, 72, 122, 120); g.lineBetween(290, 470, 242, 420); }
+        if (arena.motif === 'sky') { g.fillStyle(PALETTE.violet, 0.28); g.fillCircle(44, 462, 20); g.fillCircle(314, 72, 18); g.lineStyle(2, PALETTE.white, 0.15); g.lineBetween(26, 108, 92, 168); g.lineBetween(330, 420, 266, 480); }
+        if (arena.motif === 'moss') { g.fillStyle(PALETTE.moss, 0.36); g.fillCircle(34, 92, 21); g.fillCircle(324, 458, 24); g.fillCircle(318, 104, 12); }
+        if (arena.motif === 'night') { g.fillStyle(PALETTE.violet, 0.32); g.fillCircle(36, 82, 8); g.fillCircle(322, 470, 10); g.lineStyle(2, PALETTE.violet, 0.28); g.lineBetween(24, 114, 110, 190); g.lineBetween(334, 420, 250, 498); }
+        if (arena.motif === 'crown') {
+          g.fillStyle(PALETTE.gold || PALETTE.amber, 0.34); g.fillTriangle(28, 56, 44, 28, 60, 56); g.fillTriangle(298, 496, 314, 468, 330, 496);
+          g.lineStyle(2, arena.accent, 0.45); g.lineBetween(122, 12, 122, 542); g.lineBetween(238, 12, 238, 542);
         }
       });
-      if (team === 'player') addFloater(centerX, targetY - 20, `+${c.heal}`, COLORS.mint);
-      tone(680, .16, 'sine', .035);
-      return;
-    }
-    let affected = 0;
-    game.units.forEach((unit) => {
-      if (unit.team === enemyTeam && unit.lane === lane && Math.abs(unit.y - targetY) <= c.radius) {
-        unit.hp -= c.damage;
-        unit.hit = .2;
-        affected += 1;
-        if (c.spell === 'shock') unit.freeze = Math.max(unit.freeze, 1.1);
-        if (c.spell === 'freeze') unit.slow = Math.max(unit.slow, 2.2);
-      }
     });
-    const towerY = enemyTeam === 'enemy' ? 79 : 579;
-    if (Math.abs(targetY - towerY) < 52) damageTower(enemyTeam, c.damage * (c.spell === 'meteor' ? .58 : .2), c.color);
-    if (team === 'player') addFloater(centerX, targetY - 20, affected ? `${affected} tagged` : 'impact', c.color);
-    tone(c.spell === 'meteor' ? 92 : 260, c.spell === 'meteor' ? .22 : .12, 'sawtooth', .032);
-  }
-
-  function matchupMultiplier(attacker, target) {
-    const a = card(attacker.cardId);
-    const t = card(target.cardId);
-    let mult = 1;
-    if (a.counter === t.role) mult *= 1.36;
-    if (a.role === 'splash' && t.role === 'swarm') mult *= 1.22;
-    if (a.role === 'building' && t.role === 'rush') mult *= 1.22;
-    if (a.role === 'tank' && t.role === 'building') mult *= .88;
-    return mult;
-  }
-
-  function findTarget(attacker) {
-    const opponents = game.units.filter((unit) => unit.team !== attacker.team && unit.lane === attacker.lane && unit.hp > 0);
-    let best = null;
-    let bestDistance = Infinity;
-    opponents.forEach((opponent) => {
-      const distance = Math.abs(opponent.y - attacker.y);
-      const isAhead = attacker.team === 'player' ? opponent.y < attacker.y + 14 : opponent.y > attacker.y - 14;
-      if (isAhead && distance < bestDistance) {
-        best = opponent;
-        bestDistance = distance;
-      }
+    makeTexture(scene, 'td-core', 76, 76, function (g) {
+      g.fillStyle(0x07111d, 1); g.fillCircle(38, 38, 32); g.lineStyle(4, PALETTE.white, 0.9); g.strokeCircle(38, 38, 28);
+      g.fillStyle(PALETTE.white, 0.92); g.fillTriangle(38, 12, 58, 30, 51, 58); g.fillTriangle(38, 12, 18, 30, 25, 58);
+      g.fillStyle(0x07111d, 1); g.fillCircle(38, 37, 8); g.fillRect(35, 42, 6, 13);
     });
-    return best;
-  }
-
-  function hitUnit(target, damage, attacker, splash = 0) {
-    if (!target || target.hp <= 0) return;
-    const amount = damage * matchupMultiplier(attacker, target);
-    target.hp -= amount;
-    target.hit = .16;
-    burst(target.x, target.y, card(attacker.cardId).color, 3);
-    if (splash > 0) {
-      game.units.forEach((near) => {
-        if (near !== target && near.team !== attacker.team && near.lane === target.lane && Math.abs(near.y - target.y) <= splash) {
-          near.hp -= damage * .62;
-          near.hit = .12;
-        }
+    makeTexture(scene, 'td-core-ring', 100, 100, function (g) { g.lineStyle(3, PALETTE.coral, 0.95); g.strokeCircle(50, 50, 43); g.lineStyle(1, PALETTE.amber, 0.45); g.strokeCircle(50, 50, 48); });
+    makeTexture(scene, 'td-spark', 16, 16, function (g) { g.fillStyle(PALETTE.white, 1); g.fillTriangle(8, 0, 16, 8, 8, 16); g.fillTriangle(0, 8, 8, 0, 8, 16); });
+    makeTexture(scene, 'td-bolt', 18, 18, function (g) { g.fillStyle(PALETTE.white, 1); g.fillTriangle(10, 0, 3, 10, 8, 10); g.fillTriangle(8, 8, 15, 8, 6, 18); });
+    makeTexture(scene, 'td-reticle', 220, 220, function (g) { g.lineStyle(3, PALETTE.white, 0.84); g.strokeCircle(110, 110, 95); g.lineStyle(1, PALETTE.white, 0.62); g.strokeCircle(110, 110, 60); g.lineBetween(110, 8, 110, 34); g.lineBetween(110, 186, 110, 212); g.lineBetween(8, 110, 34, 110); g.lineBetween(186, 110, 212, 110); });
+    makeTexture(scene, 'td-range', 220, 220, function (g) { g.lineStyle(2, PALETTE.teal, 0.65); g.strokeCircle(110, 110, 96); g.lineStyle(1, PALETTE.white, 0.18); g.strokeCircle(110, 110, 80); });
+    makeTexture(scene, 'td-socket', 64, 64, function (g) { g.fillStyle(0x07111d, 0.72); g.fillCircle(32, 32, 25); g.lineStyle(2, PALETTE.amber, 0.8); g.strokeCircle(32, 32, 22); g.lineStyle(1, PALETTE.white, 0.35); g.lineBetween(32, 8, 32, 18); g.lineBetween(32, 46, 32, 56); g.lineBetween(8, 32, 18, 32); g.lineBetween(46, 32, 56, 32); });
+    makeTexture(scene, 'td-crest', 64, 64, function (g) { g.fillStyle(0x07111d, 1); g.lineStyle(3, PALETTE.teal, 1); g.strokeCircle(32, 32, 27); g.fillTriangle(32, 10, 52, 24, 45, 51); g.fillTriangle(32, 10, 12, 24, 19, 51); g.fillStyle(PALETTE.white, 0.9); g.fillCircle(32, 30, 7); g.fillRect(29, 35, 6, 12); });
+    makeTexture(scene, 'td-tower', 64, 64, function (g) { g.fillStyle(0x07111d, 1); g.lineStyle(3, PALETTE.white, 1); g.fillRoundedRect(10, 20, 44, 35, 6); g.strokeRoundedRect(10, 20, 44, 35, 6); g.fillStyle(PALETTE.white, 1); g.fillTriangle(8, 20, 18, 6, 28, 20); g.fillTriangle(24, 20, 34, 6, 44, 20); g.fillTriangle(40, 20, 50, 6, 58, 20); g.fillStyle(0x07111d, 1); g.fillRect(28, 29, 8, 18); g.fillCircle(32, 27, 4); });
+    var roles = ['swarm', 'tank', 'ranged', 'splash', 'rush', 'building', 'spell'];
+    roles.forEach(function (role) {
+      makeTexture(scene, 'td-unit-' + role, 52, 52, function (g) {
+        g.fillStyle(0xdffcff, 1); g.lineStyle(3, 0x07111d, 1);
+        if (role === 'tank') { g.fillTriangle(26, 4, 47, 42, 5, 42); g.strokeTriangle(26, 4, 47, 42, 5, 42); }
+        else if (role === 'rush') { g.fillTriangle(48, 26, 11, 5, 11, 47); g.strokeTriangle(48, 26, 11, 5, 11, 47); }
+        else if (role === 'building') { g.fillRect(7, 8, 38, 36); g.strokeRect(7, 8, 38, 36); g.fillStyle(0x07111d, 1); g.fillRect(21, 13, 10, 26); }
+        else if (role === 'ranged') { g.fillCircle(26, 26, 18); g.strokeCircle(26, 26, 18); g.fillStyle(0x07111d, 1); g.fillRect(24, 6, 4, 40); }
+        else if (role === 'splash') { g.fillCircle(26, 26, 18); g.strokeCircle(26, 26, 18); g.fillStyle(0x07111d, 1); g.fillCircle(26, 26, 6); g.fillTriangle(26, 2, 30, 16, 22, 16); }
+        else { g.fillCircle(26, 26, role === 'swarm' ? 15 : 18); g.strokeCircle(26, 26, role === 'swarm' ? 15 : 18); }
       });
+    });
+  }
+
+  function modeLabel(mode) { return MODE_NAMES[mode] || 'TOWERLINE DUEL'; }
+  function rungSpec(rung) { return RUNG_TABLE[clamp(rung, 1, 8) - 1] || RUNG_TABLE[0]; }
+  function draftSpec(index) { return DRAFT_TABLE[clamp(index, 0, DRAFT_TABLE.length - 1)] || DRAFT_TABLE[0]; }
+  function gauntletSpec(index) { return GAUNTLET_TABLE[clamp(index, 0, GAUNTLET_TABLE.length - 1)] || GAUNTLET_TABLE[0]; }
+
+  class BaseScene extends Phaser.Scene {
+    constructor(key) { super({ key: key }); }
+    createBase() {
+      this.add.image(W / 2, H / 2, 'td-background').setDepth(-100);
+      this.__tdKeys = {};
+    }
+    button(x, y, w, h, label, sub, accent, onTap) {
+      var bg = addPanel(this, x, y, w, h, PALETTE.panel, accent || PALETTE.line, 14);
+      var icon = this.add.circle(x - w / 2 + 22, y, 7, accent || PALETTE.teal, 0.95);
+      var title = addLabel(this, x - w / 2 + 42, y - (sub ? 10 : 0), label, 17, '#e9fbff', 0, 'bold');
+      if (sub) addLabel(this, x - w / 2 + 42, y + 14, sub, 14, '#91aeba', 0, 'normal');
+      var zone = this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
+      zone.on('pointerdown', function (pointer) {
+        if (kit.paused) return;
+        seedKitPointer(pointer);
+        if (onTap) onTap();
+        playSfx('select', 90);
+      });
+      return { bg: bg, icon: icon, title: title, zone: zone };
+    }
+    topBar(title, right) {
+      addLabel(this, 18, 26, title, 22, '#e9fbff', 0, 'bold');
+      if (right) addLabel(this, W - 18, 26, right, 14, '#91aeba', 1, 'bold');
+      var line = this.add.rectangle(W / 2, 54, W - 32, 1, PALETTE.line, 0.8);
+      line.setOrigin(0.5);
+    }
+    backButton(onTap) { return this.button(56, 78, 88, 46, 'BACK', '', PALETTE.muted, onTap); }
+    setStateMenu(mode) {
+      tdState.mode = mode || 'menu'; tdState.inMatch = false; tdState.status = 'menu';
+      tdState.rung = progress.rung; tdState.deck = progress.deck.slice(); tdState.hand = progress.deck.slice(0, 4);
+      tdState.elixir = 0; tdState.coreHP = { player: 1000, enemy: 1000 };
+      tdState.forceMode = bootFallback.forceMode; tdState.forceRung = bootFallback.forceRung;
     }
   }
 
-  function fire(attacker, target) {
-    const c = card(attacker.cardId);
-    const distance = Math.abs(target.y - attacker.y);
-    const damage = c.damage || 0;
-    if (c.range > 40 && distance > 32) {
-      if (game.projectiles.length >= MAX_PROJECTILES) game.projectiles.shift();
-      game.projectiles.push({ x: attacker.x, y: attacker.y, tx: target.x, ty: target.y, life: .13, maxLife: .13, attackerId: attacker.id, targetId: target.id, damage, splash: c.splash || 0, color: c.color });
-    } else {
-      hitUnit(target, damage, attacker, c.splash || 0);
-    }
-    attacker.attackTimer = c.attack;
-    attacker.hit = .08;
-  }
-
-  function damageTower(which, amount, color = COLORS.coral) {
-    if (!game || game.status !== 'playing') return;
-    if (game.overtime) {
-      if (which === 'enemy') game.enemyTower = 0;
-      else game.playerTower = 0;
-    } else if (which === 'enemy') {
-      game.enemyTower = Math.max(0, game.enemyTower - amount);
-    } else {
-      game.playerTower = Math.max(0, game.playerTower - amount);
-    }
-    const x = W / 2;
-    const y = which === 'enemy' ? 79 : 579;
-    burst(x, y, color, game.overtime ? 25 : 12);
-    game.shake = Math.max(game.shake, game.overtime ? 13 : 6);
-    game.flash = .12;
-    game.lastTowerHit = .35;
-    addFloater(x, y + (which === 'enemy' ? 30 : -30), `-${Math.round(amount)}`, color);
-    tone(which === 'enemy' ? 150 : 105, .14, 'square', .035);
-    if (game.enemyTower <= 0) finishGame('victory');
-    if (game.playerTower <= 0) finishGame('defeat');
-  }
-
-  function finishGame(result) {
-    if (!game || game.status !== 'playing') return;
-    game.status = result;
-    resetInput();
-    if (result === 'victory') {
-      if (game.rung >= progress.rung) progress.rung = Math.min(8, game.rung + (game.rung < 8 ? 1 : 0));
-      saveProgress();
-      if (game.rung >= 8) screen = 'champion';
-      tone(520, .18, 'triangle', .05);
-      schedule(() => tone(780, .26, 'triangle', .045), 110);
-    } else {
-      tone(100, .22, 'sawtooth', .045);
+  class BootScene extends BaseScene {
+    constructor() { super('boot'); }
+    create() {
+      kit.loader.show('Towerline Duel');
+      kit.loader.progress(0.25);
+      bakeTextures(this);
+      kit.loader.progress(0.62);
+      kit.audio.preload().then(function () {
+        kit.loader.progress(1);
+        kit.loader.hide();
+        var forced = modeSafe(tdState.forceMode || bootFallback.forceMode);
+        if (forced) this.scene.start('duel', { mode: forced, rung: intSafe(tdState.forceRung || bootFallback.forceRung, 1, 1, 8), forced: true });
+        else this.scene.start('menu');
+      }.bind(this));
     }
   }
 
-  function beginOvertime() {
-    if (!game || game.overtime || game.status !== 'playing') return;
-    game.overtime = true;
-    game.time = 0;
-    game.message = 'SUDDEN DEATH · next core hit decides it';
-    game.messageTime = 5;
-    game.flash = .28;
-    game.shake = 8;
-    burst(W / 2, 337, COLORS.gold, 28);
-    tone(230, .3, 'sawtooth', .04);
+  class MenuScene extends BaseScene {
+    constructor() { super('menu'); }
+    create() {
+      this.createBase(); this.setStateMenu('menu');
+      addLabel(this, W / 2, 49, 'TOWERLINE', 31, '#e9fbff', 0.5, 'bold');
+      addLabel(this, W / 2, 84, 'DUEL', 44, '#43c7f4', 0.5, 'bold');
+      addLabel(this, W / 2, 116, 'CARD COMMAND / LANE CONTROL', 14, '#91aeba', 0.5, 'bold');
+      var trophy = addPanel(this, 195, 166, 358, 58, 0x0e2232, PALETTE.amber, 16);
+      addLabel(this, 32, 154, 'TROPHY ROAD', 14, '#e0a34a', 0, 'bold');
+      addLabel(this, 32, 178, 'RUNG ' + progress.rung + ' / 8', 19, '#e9fbff', 0, 'bold');
+      addLabel(this, 358, 166, String(unlockedCount()).padStart(2, '0') + ' CARDS', 14, '#91aeba', 1, 'bold');
+      addLabel(this, 358, 184, progress.streak + ' WIN STREAK', 14, '#43c7f4', 1, 'bold');
+      this.button(W / 2, 270, 358, 82, 'LADDER', 'Trophy road / three card unlocks', PALETTE.teal, function () { this.scene.start('ladder'); }.bind(this));
+      this.button(W / 2, 372, 358, 82, 'DRAFT DUEL', 'Hand-authored decks / constructed arenas', PALETTE.violet, function () { this.scene.start('mode', { mode: 'draft' }); }.bind(this));
+      this.button(W / 2, 474, 358, 82, 'GAUNTLET', 'Escalating decks / chase your streak', PALETTE.coral, function () { this.scene.start('mode', { mode: 'gauntlet' }); }.bind(this));
+      this.button(128, 614, 218, 64, 'DECK FORGE', 'Build eight cards', PALETTE.violet, function () { this.scene.start('forge'); }.bind(this));
+      this.button(300, 614, 114, 64, 'SETTINGS', 'Audio / motion', PALETTE.line, function () { kit.openSettings(); });
+      addLabel(this, W / 2, 730, 'GENEROUS ELIXIR / NO SHOP / PLAY TO UNLOCK', 14, '#718b97', 0.5, 'bold');
+      addLabel(this, W / 2, 760, 'Drag a card or tap a card, then tap a lane', 14, '#d8c38c', 0.5, 'normal');
+      if (bootFallback.forceMode) this.scene.start('duel', { mode: bootFallback.forceMode, rung: bootFallback.forceRung, forced: true });
+    }
+    update() {
+      if (edgeKey(this, 'Enter') || edgeKey(this, 'Space')) this.scene.start('ladder');
+      if (bootFallback.forceMode && !this.__forcedLive) { this.__forcedLive = true; this.scene.start('duel', { mode: bootFallback.forceMode, rung: bootFallback.forceRung, forced: true }); }
+    }
   }
 
-  function updatePlayerEnergy(dt) { game.playerEnergy = Math.min(game.maxEnergy, game.playerEnergy + dt * 1.28); }
-  function updateEnemyEnergy(dt) { game.enemyEnergy = Math.min(game.maxEnergy, game.enemyEnergy + dt * 1.18); }
-
-  function enemyHasRole(role, lane) {
-    return game.units.some((unit) => unit.team === 'enemy' && unit.lane === lane && card(unit.cardId).role === role && unit.hp > 0);
-  }
-
-  function chooseBotCard() {
-    const available = game.bot.deck.filter((id) => card(id).cost <= game.enemyEnergy + .001);
-    if (!available.length) return null;
-    const playerUnits = game.units.filter((unit) => unit.team === 'player' && unit.hp > 0);
-    const dangerous = playerUnits.sort((a, b) => b.y - a.y)[0];
-    let wanted = available[0];
-    if (dangerous) {
-      const dangerRole = card(dangerous.cardId).role;
-      const counter = available.find((id) => card(id).counter === dangerRole || (dangerRole === 'swarm' && card(id).role === 'splash'));
-      if (counter) wanted = counter;
-    }
-    if (!dangerous || Math.random() > game.bot.skill) {
-      wanted = available[Math.floor(Math.random() * available.length)];
-    }
-    return wanted;
-  }
-
-  function updateBot(dt) {
-    game.aiTimer -= dt;
-    if (game.aiTimer > 0) return;
-    game.aiTimer = game.bot.gap * rand(.82, 1.18);
-    const cardId = chooseBotCard();
-    if (cardId === null) return;
-    const c = card(cardId);
-    const playerUnits = game.units.filter((unit) => unit.team === 'player' && unit.hp > 0);
-    let lane = Math.random() < .5 ? 0 : 1;
-    let targetY = rand(220, 455);
-    if (playerUnits.length) {
-      const threat = playerUnits.sort((a, b) => (b.team === 'player' ? b.y : 0) - (a.team === 'player' ? a.y : 0))[0];
-      if (game.bot.skill > .5 && threat) lane = threat.lane;
-      if (c.role === 'spell' && threat) targetY = threat.y;
-    }
-    if (c.role === 'spell' && c.spell !== 'heal') targetY = playerUnits.length ? playerUnits[0].y : rand(240, 430);
-    if (c.role === 'spell' && c.spell === 'heal') targetY = 220;
-    if (deployCard(cardId, 'enemy', lane, targetY)) {
-      if (game.bot.skill > .7) {
-        const nextThreat = game.units.find((unit) => unit.team === 'player' && unit.lane !== lane);
-        if (nextThreat && c.role === 'building' && !enemyHasRole('building', lane)) { /* deliberate lane pressure */ }
+  class LadderScene extends BaseScene {
+    constructor() { super('ladder'); }
+    create() {
+      this.createBase(); this.setStateMenu('ladder'); this.topBar('LADDER ROAD', progress.rung + ' / 8'); this.backButton(function () { this.scene.start('menu'); }.bind(this));
+      addLabel(this, 18, 118, 'WIN A RUNG TO OPEN ITS CARD TRIO', 14, '#91aeba', 0, 'bold');
+      for (var i = 0; i < RUNG_TABLE.length; i += 1) {
+        var rung = RUNG_TABLE[i]; var unlocked = i < progress.rung; var current = i + 1 === progress.rung;
+        var y = 158 + i * 61; var accent = unlocked ? rungSpec(i + 1).arena === 'crown' ? PALETTE.amber : PALETTE.teal : 0x30434e;
+        var row = addPanel(this, 195, y, 358, 50, current ? 0x17384a : 0x0d1d2b, accent, 12);
+        addLabel(this, 30, y, String(i + 1).padStart(2, '0'), 16, unlocked ? '#43c7f4' : '#5c707b', 0, 'bold');
+        addLabel(this, 74, y - 8, rung.name, 16, unlocked ? '#e9fbff' : '#71818a', 0, 'bold');
+        addLabel(this, 74, y + 12, getArena(rung.arena).name, 14, unlocked ? '#91aeba' : '#5c707b', 0, 'normal');
+        var medals = progress.medals[String(i + 1)];
+        addLabel(this, 358, y - 8, medals ? (medals.rung || 'bronze').toUpperCase() : (unlocked ? 'READY' : 'LOCKED'), 14, accent === 0x30434e ? '#5c707b' : '#e0a34a', 1, 'bold');
+        addLabel(this, 358, y + 12, rung.unlock.map(function (id) { return getCard(id).short; }).join(' / '), 14, unlocked ? '#cceff5' : '#5c707b', 1, 'normal');
+        var zone = this.add.zone(195, y, 358, 50).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', function (index) {
+          return function (pointer) {
+            if (kit.paused) return; seedKitPointer(pointer);
+            if (index < progress.rung) { playSfx('select', 60); this.scene.start('duel', { mode: 'ladder', rung: index + 1 }); }
+          }.bind(this);
+        }.call(this, i));
       }
+      this.button(195, 716, 358, 58, 'PLAY RUNG ' + progress.rung, 'Arena: ' + getArena(rungSpec(progress.rung).arena).name, PALETTE.teal, function () { this.scene.start('duel', { mode: 'ladder', rung: progress.rung }); }.bind(this));
+      this.button(195, 792, 358, 48, 'DECK FORGE', '', PALETTE.violet, function () { this.scene.start('forge'); }.bind(this));
     }
+    update() { if (edgeKey(this, 'Escape')) this.scene.start('menu'); }
   }
 
-  function updateUnits(dt) {
-    const dead = [];
-    game.units.forEach((unit) => {
-      if (unit.hp <= 0) { dead.push(unit); return; }
-      const c = card(unit.cardId);
-      unit.hit = Math.max(0, unit.hit - dt);
-      unit.freeze = Math.max(0, unit.freeze - dt);
-      unit.slow = Math.max(0, unit.slow - dt);
-      unit.attackTimer -= dt;
-      if (unit.freeze > 0) return;
-      const target = findTarget(unit);
-      const distance = target ? Math.abs(target.y - unit.y) : Infinity;
-      const reach = Math.max(22, c.range || 20);
-      if (target && distance <= reach) {
-        if (unit.attackTimer <= 0) fire(unit, target);
-      } else if (!unit.building) {
-        const speed = (c.speed || 20) * (unit.slow > 0 ? .42 : 1);
-        unit.y += (unit.team === 'player' ? -1 : 1) * speed * dt;
-        unit.x = ARENA.laneCenters[unit.lane] + Math.sin(game.pulse * 2 + unit.phase) * 4;
-        if ((unit.team === 'player' && unit.y < 101) || (unit.team === 'enemy' && unit.y > 557)) {
-          damageTower(unit.team === 'player' ? 'enemy' : 'player', c.damage * (c.role === 'rush' ? 1.22 : .72), c.color);
-          dead.push(unit);
+  class ForgeScene extends BaseScene {
+    constructor() { super('forge'); }
+    create() {
+      this.createBase(); this.setStateMenu('forge'); this.topBar('DECK FORGE', unlockedCount() + ' / 24'); this.backButton(function () { this.scene.start('menu'); }.bind(this));
+      addLabel(this, 132, 75, 'EIGHT-SLOT DECK', 14, '#e9fbff', 0, 'bold');
+      addLabel(this, 132, 97, 'Tap a slot, then a ready card', 14, '#91aeba', 0, 'normal');
+      var forgeScene = this;
+      this.selectedSlot = 0; this.slotZones = []; this.slotPanels = [];
+      for (var slot = 0; slot < 8; slot += 1) {
+        var sx = 53 + (slot % 4) * 95; var sy = 142 + Math.floor(slot / 4) * 64;
+        this.slotPanels.push(this.drawForgeCard(sx, sy, 88, 54, progress.deck[slot], true, slot === 0));
+        var sz = this.add.zone(sx, sy, 88, 54).setInteractive({ useHandCursor: true });
+        sz.on('pointerdown', function (index) { return function (pointer) { if (kit.paused) return; seedKitPointer(pointer); forgeScene.selectedSlot = index; forgeScene.refreshForge(); playSfx('select', 50); }; }(slot));
+        this.slotZones.push(sz);
+      }
+      addLabel(this, 18, 229, 'CARD LIBRARY', 14, '#91aeba', 0, 'bold');
+      addLabel(this, 358, 229, 'READY CARDS GLOW', 14, '#718b97', 1, 'normal');
+      this.libraryZones = [];
+      for (var cardIndex = 0; cardIndex < CARDS.length; cardIndex += 1) {
+        var cx = 53 + (cardIndex % 4) * 95; var cy = 278 + Math.floor(cardIndex / 4) * 76;
+        this.drawForgeCard(cx, cy, 88, 64, cardIndex, false, false);
+        var cz = this.add.zone(cx, cy, 88, 64).setInteractive({ useHandCursor: true });
+        cz.on('pointerdown', function (index) { return function (pointer) { if (kit.paused) return; seedKitPointer(pointer); if (index < unlockedCount()) { progress.deck[forgeScene.selectedSlot] = index; forgeScene.selectedSlot = (forgeScene.selectedSlot + 1) % 8; saveProgress(); playSfx('select', 50); forgeScene.scene.restart(); } }; }(cardIndex));
+        this.libraryZones.push(cz);
+      }
+      addLabel(this, W / 2, 820, 'Roles counter one another. Repeats are legal.', 14, '#91aeba', 0.5, 'normal');
+      this.slotLabel = addLabel(this, 358, 97, 'SLOT 1', 14, '#43c7f4', 1, 'bold');
+      this.refreshForge();
+    }
+    drawForgeCard(x, y, w, h, id, slot) {
+      var c = getCard(id); var ready = slot || id < unlockedCount();
+      var fill = ready ? 0x10283a : 0x0a121b; var stroke = ready ? c.color : 0x30404a;
+      var r = addPanel(this, x, y, w, h, fill, stroke, 10); r.setData('slot', slot);
+      var icon = this.add.image(x - w / 2 + 17, y, 'td-unit-' + (c.role || 'swarm')).setDisplaySize(25, 25).setTint(ready ? c.color : 0x56636a);
+      var name = addLabel(this, x - w / 2 + 33, y - 11, c.short, 14, ready ? '#e9fbff' : '#5c707b', 0, 'bold');
+      var cost = addLabel(this, x - w / 2 + 33, y + 13, '⚡ ' + c.cost, 14, ready ? '#' + c.color.toString(16).padStart(6, '0') : '#5c707b', 0, 'bold');
+      var lock = !ready ? addLabel(this, x + w / 2 - 7, y + 13, 'R' + (Math.floor(id / 3) + 1), 14, '#5c707b', 1, 'bold') : null;
+      return { panel: r, icon: icon, name: name, cost: cost, lock: lock, cardId: id };
+    }
+    refreshForge() {
+      if (this.slotLabel) setTextIfChanged(this.slotLabel, 'SLOT ' + (this.selectedSlot + 1));
+      if (this.slotPanels) this.slotPanels.forEach(function (view, index) { if (view && view.panel) view.panel.setStrokeStyle(index === this.selectedSlot ? 2.5 : 1.5, index === this.selectedSlot ? PALETTE.white : getCard(progress.deck[index]).color, 1); }, this);
+    }
+    update() { if (edgeKey(this, 'Escape')) this.scene.start('menu'); }
+  }
+
+  class ModeScene extends BaseScene {
+    constructor() { super('mode'); }
+    init(data) { this.mode = modeSafe(data && data.mode) || 'draft'; }
+    create() {
+      this.createBase(); this.setStateMenu(this.mode); this.topBar(modeLabel(this.mode), this.mode === 'gauntlet' ? progress.gauntletBest + ' BEST' : progress.draftWins + ' WINS'); this.backButton(function () { this.scene.start('menu'); }.bind(this));
+      if (this.mode === 'draft') this.createDraft(); else this.createGauntlet();
+    }
+    createDraft() {
+      addLabel(this, 18, 122, 'CHOOSE A CONSTRUCTED ARENA', 14, '#91aeba', 0, 'bold');
+      DRAFT_TABLE.forEach(function (draft, index) {
+        var y = 188 + index * 142; var arena = getArena(draft.arena);
+        addPanel(this, 195, y, 358, 116, 0x10283a, arena.accent, 15);
+        addLabel(this, 30, y - 32, draft.name, 18, '#e9fbff', 0, 'bold');
+        addLabel(this, 30, y - 6, arena.name + ' / ' + arena.lanes + ' lanes', 14, '#e0a34a', 0, 'bold');
+        addLabel(this, 30, y + 19, draft.note, 14, '#91aeba', 0, 'normal');
+        addLabel(this, 358, y + 30, 'PLAY', 16, '#43c7f4', 1, 'bold');
+        var zone = this.add.zone(195, y, 358, 116).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', function (pointer) { if (kit.paused) return; seedKitPointer(pointer); this.scene.start('duel', { mode: 'draft', draftIndex: index }); }.bind(this));
+      }.bind(this));
+    }
+    createGauntlet() {
+      addLabel(this, 18, 122, 'ONE RUN / SIX ESCALATING FACES', 14, '#91aeba', 0, 'bold');
+      GAUNTLET_TABLE.forEach(function (match, index) {
+        var y = 164 + index * 78; var arena = getArena(match.arena); var open = index <= progress.gauntletBest;
+        addPanel(this, 195, y, 358, 62, open ? 0x10283a : 0x0b1621, open ? arena.accent : 0x30404a, 12);
+        addLabel(this, 30, y - 10, String(index + 1).padStart(2, '0'), 16, open ? '#43c7f4' : '#5c707b', 0, 'bold');
+        addLabel(this, 72, y - 10, match.name, 17, open ? '#e9fbff' : '#71818a', 0, 'bold');
+        addLabel(this, 72, y + 15, arena.signature, 14, open ? '#91aeba' : '#5c707b', 0, 'normal');
+        addLabel(this, 358, y + 4, open ? 'ENTER' : 'LOCKED', 14, open ? '#e0a34a' : '#5c707b', 1, 'bold');
+        var zone = this.add.zone(195, y, 358, 62).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', function (pointer) { if (kit.paused) return; seedKitPointer(pointer); if (open) this.scene.start('duel', { mode: 'gauntlet', gauntletIndex: index }); }.bind(this));
+      }.bind(this));
+      addLabel(this, W / 2, 700, 'BEST RUN ' + progress.gauntletBest + ' / 6', 18, '#e0a34a', 0.5, 'bold');
+      this.button(195, 770, 358, 54, 'DECK FORGE', 'Tune the answer before the next face', PALETTE.violet, function () { this.scene.start('forge'); }.bind(this));
+    }
+    update() { if (edgeKey(this, 'Escape')) this.scene.start('menu'); }
+  }
+
+  class DuelScene extends BaseScene {
+    constructor() { super('duel'); }
+    init(data) {
+      data = data || {};
+      this.mode = modeSafe(data.mode) || modeSafe(bootFallback.forceMode) || 'ladder';
+      this.rung = intSafe(data.rung || bootFallback.forceRung || progress.rung, progress.rung, 1, 8);
+      this.draftIndex = intSafe(data.draftIndex, 0, 0, DRAFT_TABLE.length - 1);
+      this.gauntletIndex = intSafe(data.gauntletIndex, 0, 0, GAUNTLET_TABLE.length - 1);
+      this.forced = !!data.forced;
+      this.match = null; this.arena = getArena('openField'); this.status = 'playing'; this.lifecyclePaused = false;
+      this.accumulator = 0; this.simClock = 0; this.timeLeft = 150; this.overtime = false; this.nextId = 1;
+      this.playerElixir = 5.5; this.enemyElixir = 5.5; this.selectedHand = 0; this.selectionLane = 0;
+      this.hand = []; this.enemyHand = []; this.commandQueue = []; this.drag = null; this.pointerRecords = {};
+      this.units = []; this.projectiles = []; this.result = null; this.banner = null; this.transient = null;
+      this.playerCore = 1000; this.enemyCore = 1000; this.aiTimer = 0.8; this.botTelegraph = null; this.drawIndex = 4; this.enemyDrawIndex = 4;
+      this.waveIndex = 0; this.nextWaveAt = 3.4; this.waveTelegraph = null; this.wavesCleared = 0;
+      this.cardCooldowns = [0, 0, 0, 0]; this.pendingPlacement = null; this.towerSlots = []; this.synergyLinks = [];
+      this.tutorialStep = 0; this.resultFocus = 0; this.lastGamepad = {};
+    }
+    create() {
+      activeDuel = this; this.events.once('shutdown', this.shutdown, this); kit.audio.music('music', 700); this.createBase(); this.createViews(); this.resetMatch();
+      this.input.on('pointerdown', this.onPointerDown, this); this.input.on('pointermove', this.onPointerMove, this);
+      this.input.on('pointerup', this.onPointerUp, this); this.input.on('pointerupoutside', this.onPointerCancel, this); this.input.on('pointercancel', this.onPointerCancel, this);
+      this.add.zone(W / 2, H / 2, W, H).setInteractive().setDepth(-90);
+    }
+    resolveMatch() {
+      if (this.mode === 'draft') { this.match = draftSpec(this.draftIndex); }
+      else if (this.mode === 'gauntlet') { this.match = gauntletSpec(this.gauntletIndex); }
+      else { this.match = rungSpec(this.rung); }
+      this.arena = getArena(this.match.arena);
+    }
+    resetMatch() {
+      this.resolveMatch();
+      this.status = 'playing'; this.accumulator = 0; this.simClock = 0; this.timeLeft = 150; this.overtime = false;
+      this.nextId = 1; this.playerElixir = 5.5; this.enemyElixir = 5.5; this.selectedHand = 0; this.selectionLane = 0;
+      var openingEnemyDeck = this.match.deck || this.match.enemy || RUNG_TABLE[0].deck; this.hand = progress.deck.slice(0, 4); this.enemyHand = openingEnemyDeck.slice(0, 4);
+      this.drawIndex = 4; this.enemyDrawIndex = 4; this.playerCore = 1000; this.enemyCore = 1000; this.aiTimer = 0.8; this.botTelegraph = null; this.dangerMusic = false;
+      this.waveIndex = 0; this.nextWaveAt = 3.4; this.waveTelegraph = null; this.wavesCleared = 0; this.cardCooldowns = [0, 0, 0, 0]; this.pendingPlacement = null; this.tutorialStep = 0; this.resultFocus = 0;
+      this.units.length = 0; this.projectiles.length = 0; this.commandQueue.length = 0; this.drag = null; this.pointerRecords = {}; this.result = null; this.transient = { kind: 'tutorial', text: 'Pick a card, then choose a lit socket or lane', time: 4.5, max: 4.5 };
+      this.banner = { title: 'READY', sub: this.arena.name, time: 1.05, max: 1.05, result: false };
+      this.towerSlots = [];
+      this.refreshSockets();
+      for (var i = 0; i < this.unitPool.length; i += 1) this.unitPool[i].alive = false;
+      for (var p = 0; p < this.projectilePool.length; p += 1) { this.projectilePool[p].active = false; this.projectileViews[p].sprite.setVisible(false); }
+      this.particleSystemList.forEach(function (system) { system.pool.forEach(function (particle) { particle.life = 0; }); });
+      this.resultPanel.setVisible(false).setScale(0.82); this.resultTitle.setVisible(false); this.resultSub.setVisible(false); this.resultDetail.setVisible(false); this.medalText.setVisible(false); this.resultHint.setVisible(false); this.resultButtonA.setVisible(false); this.resultButtonB.setVisible(false); this.resultButtonAText.setVisible(false); this.resultButtonBText.setVisible(false); this.resultZoneA.setVisible(false); this.resultZoneB.setVisible(false);
+      tdState.mode = this.mode; tdState.rung = this.rung; tdState.arena = this.arena.key; tdState.inMatch = true; tdState.status = 'playing'; tdState.medal = null;
+      this.updateState(); this.refreshBoardTexture(); this.refreshHand(); this.updateHud();
+    }
+    restartMatch() { if (this.status !== 'playing') this.resetMatch(); else this.resetMatch(); }
+    setLifecyclePaused(value) { this.lifecyclePaused = !!value; this.drag = null; this.pointerRecords = {}; }
+    shutdown() { if (activeDuel === this) activeDuel = null; this.drag = null; this.pointerRecords = {}; kit.audio.stopMusic(320); }
+    createViews() {
+      this.boardImage = this.add.image(16 + 179, 124 + 276, 'td-board-openField').setDepth(-50);
+      this.boardImage.setOrigin(0.5);
+      this.laneGhosts = [];
+      this.rangeGhost = this.add.image(0, 0, 'td-range').setVisible(false).setDepth(2).setAlpha(0.34);
+      this.reticle = this.add.image(0, 0, 'td-reticle').setVisible(false).setDepth(8).setAlpha(0.78);
+      this.commandCrest = this.add.image(326, 670, 'td-crest').setDisplaySize(42, 42).setTint(TEAM.player).setDepth(18);
+      this.commandCrestLabel = addLabel(this, 326, 705, 'COMMAND', 11, '#43c7f4', 0.5, 'bold').setDepth(18);
+      this.socketViews = [];
+      for (var socketIndex = 0; socketIndex < 18; socketIndex += 1) this.socketViews.push({ ring: this.add.image(0, 0, 'td-socket').setDisplaySize(42, 42).setVisible(false).setDepth(4), label: addLabel(this, 0, 0, '', 10, '#91aeba', 0.5, 'bold').setVisible(false).setDepth(5) });
+      this.synergyGraphics = this.add.graphics().setDepth(6);
+      this.waveLabel = addLabel(this, W / 2, 148, '', 14, '#e0a34a', 0.5, 'bold').setDepth(52).setVisible(false);
+      this.waveRings = [];
+      for (var waveRingIndex = 0; waveRingIndex < 3; waveRingIndex += 1) this.waveRings.push(this.add.image(0, 0, 'td-reticle').setDisplaySize(58, 58).setTint(PALETTE.coral).setAlpha(0.65).setVisible(false).setDepth(7));
+      this.bannerBg = addPanel(this, W / 2, 205, 270, 62, 0x0b1a29, PALETTE.amber, 14).setDepth(52).setVisible(false);
+      this.bannerTitle = addLabel(this, W / 2, 194, '', 18, '#e9fbff', 0.5, 'bold').setDepth(53).setVisible(false);
+      this.bannerSub = addLabel(this, W / 2, 218, '', 12, '#e0a34a', 0.5, 'normal').setDepth(53).setVisible(false);
+      this.laneMarker = this.add.rectangle(0, 0, 3, 218, PALETTE.teal, 0.82).setDepth(6).setVisible(false);
+      this.laneMarkerTop = this.add.triangle(0, 0, 0, 12, 12, 0, 24, 12, PALETTE.teal, 0.9).setDepth(6).setVisible(false);
+      this.cooldownText = addLabel(this, W - 18, 756, '', 11, '#91aeba', 1, 'bold').setDepth(42);
+      this.queueText = addLabel(this, 18, 756, '', 11, '#d8c38c', 0, 'bold').setDepth(42);
+      this.undoButton = addPanel(this, 328, 738, 82, 22, PALETTE.panel2, PALETTE.amber, 8).setDepth(42).setVisible(false);
+      this.undoText = addLabel(this, 328, 738, 'UNDO', 11, '#e0a34a', 0.5, 'bold').setDepth(43).setVisible(false);
+      this.undoZone = this.add.zone(328, 738, 82, 24).setInteractive({ useHandCursor: true }).setDepth(44).setVisible(false);
+      this.undoZone.on('pointerdown', function () { if (!kit.paused) this.undoPlacement(); }.bind(this));
+      this.dragGhost = this.add.container(0, 0).setVisible(false).setDepth(70);
+      this.dragGhostBg = this.add.rectangle(0, 0, 94, 58, PALETTE.panel2, 1).setStrokeStyle(2, PALETTE.teal, 1);
+      this.dragGhostIcon = this.add.image(-28, 0, 'td-unit-swarm').setDisplaySize(31, 31);
+      this.dragGhostText = addLabel(this, 10, 0, '', 14, '#e9fbff', 0.5, 'bold');
+      this.dragGhost.add([this.dragGhostBg, this.dragGhostIcon, this.dragGhostText]);
+      this.toastBg = this.add.rectangle(W / 2, 113, 356, 30, PALETTE.ink2, 0.88).setStrokeStyle(1, PALETTE.line, 0.8).setDepth(50);
+      this.toastText = addLabel(this, W / 2, 113, '', 14, '#e9fbff', 0.5, 'bold').setDepth(51);
+      this.toastBg.setVisible(false); this.toastText.setVisible(false);
+      this.headerMode = addLabel(this, 18, 25, '', 18, '#e9fbff', 0, 'bold');
+      this.headerRung = addLabel(this, 18, 50, '', 14, '#91aeba', 0, 'bold');
+      this.headerTimer = addLabel(this, W - 18, 28, '', 22, '#e9fbff', 1, 'bold');
+      this.headerArena = addLabel(this, W - 18, 52, '', 14, '#e0a34a', 1, 'bold');
+      this.enemyBarBg = this.add.rectangle(80, 84, 192, 8, 0x203746, 1).setOrigin(0, 0.5);
+      this.enemyBar = this.add.rectangle(80, 84, 192, 8, PALETTE.coral, 1).setOrigin(0, 0.5);
+      this.playerBarBg = this.add.rectangle(80, 695, 192, 8, 0x203746, 1).setOrigin(0, 0.5);
+      this.playerBar = this.add.rectangle(80, 695, 192, 8, PALETTE.teal, 1).setOrigin(0, 0.5);
+      this.enemyCoreText = addLabel(this, 28, 84, 'ENEMY', 14, '#ff665c', 0, 'bold');
+      this.playerCoreText = addLabel(this, 28, 695, 'YOU', 14, '#43c7f4', 0, 'bold');
+      this.enemyHpText = addLabel(this, 362, 84, '', 14, '#e9fbff', 1, 'bold');
+      this.playerHpText = addLabel(this, 362, 695, '', 14, '#e9fbff', 1, 'bold');
+      this.enemyCoreImage = this.add.image(W / 2, 102, 'td-core').setDisplaySize(54, 54).setTint(TEAM.enemy).setDepth(18);
+      this.playerCoreImage = this.add.image(W / 2, 677, 'td-core').setDisplaySize(54, 54).setTint(TEAM.player).setDepth(18).setFlipY(true);
+      this.enemyWarn = this.add.image(W / 2, 102, 'td-core-ring').setDisplaySize(70, 70).setTint(TEAM.enemy).setDepth(17).setVisible(false);
+      this.playerWarn = this.add.image(W / 2, 677, 'td-core-ring').setDisplaySize(70, 70).setTint(TEAM.player).setDepth(17).setVisible(false);
+      this.elixirBg = this.add.rectangle(18, 719, 354, 9, 0x203746, 1).setOrigin(0, 0.5);
+      this.elixirBar = this.add.rectangle(18, 719, 354, 9, PALETTE.violet, 1).setOrigin(0, 0.5);
+      this.elixirText = addLabel(this, 18, 738, '⚡ 5.5 / 10', 16, '#e9fbff', 0, 'bold');
+      this.zoneText = addLabel(this, W - 18, 738, 'DEPLOY ZONE', 14, '#91aeba', 1, 'bold');
+      this.cardViews = [];
+      for (var c = 0; c < 4; c += 1) {
+        var x = 51 + c * 96;
+        var bg = this.add.rectangle(x, 789, 88, 86, PALETTE.panel, 1).setStrokeStyle(1.5, PALETTE.line, 1).setDepth(40);
+        var accent = this.add.rectangle(x - 42, 789, 4, 82, PALETTE.teal, 1).setDepth(41);
+        var icon = this.add.image(x - 22, 776, 'td-unit-swarm').setDisplaySize(28, 28).setDepth(42);
+        var number = addLabel(this, x - 35, 753, String(c + 1), 14, '#91aeba', 0, 'bold').setDepth(42);
+        var name = addLabel(this, x - 35, 799, '', 14, '#e9fbff', 0, 'bold').setDepth(42);
+        var cost = addLabel(this, x - 35, 822, '', 14, '#e0a34a', 0, 'bold').setDepth(42);
+        var role = addLabel(this, x + 38, 822, '', 14, '#91aeba', 1, 'bold').setDepth(42);
+        var effect = this.add.text(x - 35, 836, '', { fontFamily: 'Trebuchet MS, system-ui, sans-serif', fontSize: '10px', color: '#91aeba', resolution: 2 }).setOrigin(0, 0.5).setDepth(42);
+        this.cardViews.push({ bg: bg, accent: accent, icon: icon, number: number, name: name, cost: cost, role: role, effect: effect });
+      }
+      this.unitPool = [];
+      this.unitViews = [];
+      for (var u = 0; u < MAX_UNITS; u += 1) {
+        this.unitPool.push({ alive: false, slot: u });
+        var body = this.add.image(0, 0, 'td-unit-swarm').setDisplaySize(29, 29).setVisible(false).setDepth(20);
+        var notch = this.add.rectangle(0, 0, 6, 3, PALETTE.teal, 1).setVisible(false).setDepth(22);
+        var hpBg = this.add.rectangle(0, 0, 30, 4, 0x07111d, 1).setVisible(false).setDepth(21);
+        var hp = this.add.rectangle(0, 0, 30, 3, PALETTE.teal, 1).setOrigin(0, 0.5).setVisible(false).setDepth(22);
+        var select = this.add.image(0, 0, 'td-range').setDisplaySize(48, 48).setVisible(false).setDepth(19).setAlpha(0.7);
+        this.unitViews.push({ body: body, notch: notch, hpBg: hpBg, hp: hp, select: select });
+      }
+      this.projectilePool = []; this.projectileViews = [];
+      for (var q = 0; q < MAX_PROJECTILES; q += 1) { this.projectilePool.push({ active: false, viewSlot: q }); this.projectileViews.push({ sprite: this.add.image(0, 0, 'td-bolt').setDisplaySize(12, 12).setVisible(false).setDepth(34) }); }
+      this.particleSystems = {}; this.particleSystemList = [];
+      ['contact', 'dust', 'trail', 'ability'].forEach(function (name) {
+        var system = { name: name, pool: [], views: [] };
+        for (var z = 0; z < 24; z += 1) { system.pool.push({ life: 0, max: 0, x: 0, y: 0, vx: 0, vy: 0, size: 1, viewSlot: z }); system.views.push({ sprite: this.add.image(0, 0, 'td-spark').setVisible(false).setDepth(45) }); }
+        this.particleSystems[name] = system; this.particleSystemList.push(system);
+      }, this);
+      this.resultPanel = addPanel(this, W / 2, 423, 308, 386, 0x10283a, PALETTE.teal, 22).setDepth(80).setVisible(false).setScale(0.82);
+      this.resultTitle = addLabel(this, W / 2, 285, '', 28, '#43c7f4', 0.5, 'bold').setDepth(82).setVisible(false);
+      this.resultSub = addLabel(this, W / 2, 324, '', 16, '#e9fbff', 0.5, 'bold').setDepth(82).setVisible(false);
+      this.resultDetail = addLabel(this, W / 2, 370, '', 14, '#91aeba', 0.5, 'normal').setDepth(82).setVisible(false);
+      this.medalText = addLabel(this, W / 2, 432, '', 18, '#e0a34a', 0.5, 'bold').setDepth(82).setVisible(false);
+      this.resultHint = addLabel(this, W / 2, 494, '', 14, '#e9fbff', 0.5, 'normal').setDepth(82).setVisible(false);
+      this.resultButtonA = addPanel(this, 117, 568, 124, 52, PALETTE.teal, PALETTE.white, 12).setDepth(82).setVisible(false);
+      this.resultButtonB = addPanel(this, 267, 568, 124, 52, PALETTE.panel2, PALETTE.violet, 12).setDepth(82).setVisible(false);
+      this.resultButtonAText = addLabel(this, 117, 568, '', 14, '#07111d', 0.5, 'bold').setDepth(83).setVisible(false);
+      this.resultButtonBText = addLabel(this, 267, 568, '', 14, '#e9fbff', 0.5, 'bold').setDepth(83).setVisible(false);
+      this.resultZoneA = this.add.zone(117, 568, 124, 52).setInteractive({ useHandCursor: true }).setDepth(84);
+      this.resultZoneB = this.add.zone(267, 568, 124, 52).setInteractive({ useHandCursor: true }).setDepth(84);
+      this.resultZoneA.on('pointerdown', function () { if (this.isResult()) this.handleResultAction('a'); }.bind(this));
+      this.resultZoneB.on('pointerdown', function () { if (this.isResult()) this.handleResultAction('b'); }.bind(this));
+      this.resultZoneA.setVisible(false); this.resultZoneB.setVisible(false);
+    }
+    refreshBoardTexture() { if (this.boardImage) this.boardImage.setTexture('td-board-' + getArena(this.arena.key).key); }
+    laneCenters() {
+      var count = this.arena.lanes || 2; var out = [];
+      for (var i = 0; i < count; i += 1) out.push(16 + 179 + (i + 0.5) * (338 / count) - 169);
+      return out;
+    }
+    laneAt(x) {
+      var centers = this.laneCenters(); var best = 0; var distance = Infinity;
+      for (var i = 0; i < centers.length; i += 1) { var d = Math.abs(x - centers[i]); if (d < distance) { distance = d; best = i; } }
+      return best;
+    }
+    isResult() { return !!(RESULT_STATUSES[this.status] && this.result); }
+    socketY(team, row) { return team === 'player' ? [468, 544, 620][row] : [230, 306, 382][row]; }
+    refreshSockets() {
+      var centers = this.laneCenters(); var index = 0; this.towerSlots = [];
+      for (var teamIndex = 0; teamIndex < 2; teamIndex += 1) {
+        var team = teamIndex === 0 ? 'enemy' : 'player';
+        for (var lane = 0; lane < this.arena.lanes; lane += 1) for (var row = 0; row < 3; row += 1) {
+          var slot = { team: team, lane: lane, row: row, x: centers[lane], y: this.socketY(team, row), unitId: null, view: this.socketViews[index] };
+          this.towerSlots.push(slot);
+          if (slot.view) { slot.view.ring.setPosition(slot.x, slot.y).setVisible(true); slot.view.label.setPosition(slot.x, slot.y + 25).setText((team === 'player' ? 'P' : 'E') + (lane + 1) + '.' + (row + 1)).setVisible(true); }
+          index += 1;
         }
       }
-    });
-    if (dead.length) {
-      const deadSet = new Set(dead);
-      game.units = game.units.filter((unit) => !deadSet.has(unit));
-      dead.forEach((unit) => burst(unit.x, unit.y, card(unit.cardId).color, 7));
+      for (; index < this.socketViews.length; index += 1) { this.socketViews[index].ring.setVisible(false); this.socketViews[index].label.setVisible(false); }
     }
-  }
-
-  function updateProjectiles(dt) {
-    const keep = [];
-    game.projectiles.forEach((projectile) => {
-      projectile.life -= dt;
-      if (projectile.life <= 0) {
-        const attacker = game.units.find((unit) => unit.id === projectile.attackerId && unit.hp > 0);
-        const target = game.units.find((unit) => unit.id === projectile.targetId && unit.hp > 0);
-        if (attacker && target) hitUnit(target, projectile.damage, attacker, projectile.splash);
-        return;
+    towerSlotAt(team, lane, y) {
+      var best = null; var distance = Infinity;
+      for (var i = 0; i < this.towerSlots.length; i += 1) {
+        var slot = this.towerSlots[i]; if (slot.team !== team || slot.lane !== lane || slot.unitId != null) continue;
+        var d = Math.abs(slot.y - y); if (d < distance) { distance = d; best = slot; }
       }
-      keep.push(projectile);
-    });
-    game.projectiles = keep;
-  }
-
-  function updateEffects(dt) {
-    game.particles.forEach((particle) => {
-      particle.x += particle.vx * dt;
-      particle.y += particle.vy * dt;
-      particle.vy += 34 * dt;
-      particle.life -= dt;
-    });
-    game.particles = game.particles.filter((particle) => particle.life > 0).slice(-MAX_PARTICLES);
-    game.floaters.forEach((floater) => { floater.y -= 25 * dt; floater.life -= dt; });
-    game.floaters = game.floaters.filter((floater) => floater.life > 0).slice(-MAX_FLOATERS);
-    game.shake = Math.max(0, game.shake - dt * 28);
-    game.flash = Math.max(0, game.flash - dt);
-    game.messageTime = Math.max(0, game.messageTime - dt);
-    game.lastTowerHit = Math.max(0, game.lastTowerHit - dt);
-  }
-
-  function updateGame(dt) {
-    if (!game || game.status !== 'playing') { updateEffects(dt); return; }
-    game.pulse += dt;
-    if (!game.overtime) {
-      game.time = Math.max(0, game.time - dt);
-      if (game.time <= 0) {
-        const difference = Math.abs(game.playerTower - game.enemyTower);
-        if (difference < 1) beginOvertime();
-        else finishGame(game.enemyTower < game.playerTower ? 'victory' : 'defeat');
+      return distance <= 48 ? best : null;
+    }
+    towerSlotForUnit(unit) { return unit && unit.towerSlot != null ? this.towerSlots[unit.towerSlot] : null; }
+    renderSockets() {
+      for (var i = 0; i < this.towerSlots.length; i += 1) {
+        var slot = this.towerSlots[i]; var view = slot.view; if (!view) continue;
+        var player = slot.team === 'player'; var occupied = slot.unitId != null; var selected = player && slot.lane === this.selectionLane && !occupied;
+        view.ring.setTint(occupied ? (player ? TEAM.player : TEAM.enemy) : (selected ? PALETTE.amber : PALETTE.line)).setAlpha(occupied ? 0.82 : selected ? 0.9 : 0.45).setScale(selected ? 1.08 : 1).setVisible(true);
+        view.label.setColor(occupied ? (player ? '#43c7f4' : '#ff665c') : '#718b97').setAlpha(occupied ? 1 : 0.7);
       }
     }
-    updatePlayerEnergy(dt);
-    updateEnemyEnergy(dt);
-    while (queuedActions.length) {
-      const action = queuedActions.shift();
-      if (action.type === 'deploy') deployPlayer(action.cardIndex, action.lane, action.targetY);
+    renderLaneSelection() {
+      var centers = this.laneCenters(); var x = centers[this.selectionLane] || centers[0];
+      this.laneMarker.setPosition(x, 548).setVisible(this.status === 'playing'); this.laneMarkerTop.setPosition(x - 12, 426).setVisible(this.status === 'playing');
     }
-    updateBot(dt);
-    updateUnits(dt);
-    updateProjectiles(dt);
-    updateEffects(dt);
-  }
-
-  function burst(x, y, color, count) {
-    if (!game) return;
-    const room = Math.max(0, MAX_PARTICLES - game.particles.length);
-    const amount = Math.min(count, room);
-    for (let i = 0; i < amount; i += 1) {
-      const angle = rand(0, TAU);
-      const speed = rand(18, 72);
-      game.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 18, life: rand(.24, .7), maxLife: .7, size: rand(1.5, 4), color });
+    isBoardPoint(p) { return p.x >= 16 && p.x <= 374 && p.y >= 124 && p.y <= 676; }
+    cardAt(p) { if (p.y < 745 || p.y > 838) return -1; for (var i = 0; i < 4; i += 1) if (Math.abs(p.x - (51 + i * 96)) <= 46) return i; return -1; }
+    currentCard() { return getCard(this.hand[this.selectedHand]); }
+    legalY(y, cardData) { return cardData.role === 'spell' ? clamp(y, 146, 654) : cardData.building ? clamp(y, 444, 632) : clamp(y, 414, 650); }
+    cooldownFor(index) { return this.cardCooldowns[index] || 0; }
+    setCooldown(index, card) { this.cardCooldowns[index] = Math.max(this.cardCooldowns[index] || 0, 1.1 + card.cost * 0.18); }
+    canPlayCard(index, team) { var card = getCard((team === 'player' ? this.hand : this.enemyHand)[index]); return (team === 'player' ? this.playerElixir : this.enemyElixir) + 0.001 >= card.cost && (team !== 'player' || this.cooldownFor(index) <= 0); }
+    setPreview(p) {
+      var c = this.currentCard(); var centers = this.laneCenters(); var lane = this.laneAt(p.x); this.selectionLane = lane;
+      var affordable = this.playerElixir + 0.001 >= c.cost;
+      for (var i = 0; i < this.laneGhosts.length; i += 1) this.laneGhosts[i].setVisible(false);
+      var ghost = this.laneGhosts[lane];
+      if (!ghost) { ghost = this.add.rectangle(0, 0, 1, 1).setDepth(3); this.laneGhosts[lane] = ghost; }
+      var laneWidth = 338 / this.arena.lanes;
+      ghost.setPosition(16 + 10 + lane * laneWidth + laneWidth / 2, c.role === 'spell' ? 400 : 537).setSize(laneWidth - 8, c.role === 'spell' ? 500 : 224);
+      ghost.setFillStyle(affordable ? c.color : PALETTE.coral, affordable ? 0.1 : 0.05).setStrokeStyle(2, affordable ? c.color : PALETTE.coral, 0.78).setVisible(true);
+      var previewY = c.building ? (this.towerSlotAt('player', lane, this.legalY(p.y, c)) || {}).y || this.legalY(p.y, c) : this.legalY(p.y, c);
+      this.rangeGhost.setPosition(centers[lane], previewY).setTint(c.color).setDisplaySize(clamp((c.range || 80) * 0.9, 62, 188), clamp((c.range || 80) * 0.9, 62, 188)).setVisible(c.role !== 'spell' && affordable);
+      if (c.role === 'spell') this.reticle.setPosition(centers[lane], clamp(p.y, 146, 654)).setTint(c.color).setDisplaySize((c.radius || 70) * 2, (c.radius || 70) * 2).setVisible(affordable);
+      else this.reticle.setVisible(false);
     }
-  }
-
-  function addFloater(x, y, text, color) {
-    if (!game) return;
-    if (game.floaters.length >= MAX_FLOATERS) game.floaters.shift();
-    game.floaters.push({ x, y, text: String(text).slice(0, 24), color, life: 1, maxLife: 1 });
-  }
-
-  function pathRoundRect(x, y, w, h, radius) {
-    const r = Math.min(Math.max(0, radius), Math.min(w, h) / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.arcTo(x + w, y, x + w, y + r, r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-    ctx.lineTo(x + r, y + h);
-    ctx.arcTo(x, y + h, x, y + h - r, r);
-    ctx.lineTo(x, y + r);
-    ctx.arcTo(x, y, x + r, y, r);
-    ctx.closePath();
-  }
-
-  function roundedRect(x, y, w, h, radius, fill, stroke, lineWidth = 1) {
-    pathRoundRect(x, y, w, h, radius);
-    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-    if (stroke) { ctx.lineWidth = lineWidth; ctx.strokeStyle = stroke; ctx.stroke(); }
-  }
-
-  function text(value, x, y, size, color = COLORS.text, align = 'left', weight = 500) {
-    ctx.font = `${weight} ${size}px system-ui, -apple-system, sans-serif`;
-    ctx.fillStyle = color;
-    ctx.textAlign = align;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(value), x, y);
-  }
-
-  function drawBackground() {
-    ctx.fillStyle = COLORS.ink;
-    ctx.fillRect(0, 0, W, H);
-    const gradient = ctx.createLinearGradient(0, 0, W, H);
-    gradient.addColorStop(0, '#0d1a2b');
-    gradient.addColorStop(.54, '#07131f');
-    gradient.addColorStop(1, '#0a1c25');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, H);
-    ctx.globalAlpha = .08;
-    ctx.strokeStyle = COLORS.mint;
-    ctx.lineWidth = 1;
-    for (let i = -H; i < W + H; i += 32) {
-      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i - H, H); ctx.stroke();
+    clearPreview() { this.laneGhosts.forEach(function (ghost) { if (ghost) ghost.setVisible(false); }); this.rangeGhost.setVisible(false); this.reticle.setVisible(false); }
+    onPointerDown(pointer) {
+      if (kit.paused || this.lifecyclePaused) return; var id = seedKitPointer(pointer); var p = pointerDesign(pointer);
+      if (this.isResult()) { this.handleResultTap(p); return; }
+      if (this.drag && this.drag.id !== id) return;
+      var cardIndex = this.cardAt(p);
+      if (cardIndex >= 0) { this.selectedHand = cardIndex; this.drag = { id: id, cardIndex: cardIndex, x: p.x, y: p.y, moved: false }; this.pointerRecords[id] = { x: p.x, y: p.y, startX: p.x, startY: p.y, laneTap: false }; this.setPreview(p); return; }
+      if (this.isBoardPoint(p)) { this.selectionLane = this.laneAt(p.x); this.pointerRecords[id] = { x: p.x, y: p.y, startX: p.x, startY: p.y, laneTap: true, moved: false }; this.setPreview(p); }
     }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawHeader(title, right) {
-    text(title, 16, 28, 17, COLORS.text, 'left', 800);
-    if (right) text(right, W - 16, 28, 12, COLORS.muted, 'right', 700);
-    ctx.strokeStyle = COLORS.line;
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(14, 51); ctx.lineTo(W - 14, 51); ctx.stroke();
-  }
-
-  function drawButton(rect, label, accent = COLORS.mint, disabled = false) {
-    roundedRect(rect.x, rect.y, rect.w, rect.h, 12, disabled ? '#182331' : '#162c3c', disabled ? '#30404a' : accent, 1.5);
-    text(label, rect.x + rect.w / 2, rect.y + rect.h / 2 + 1, 12, disabled ? '#637680' : COLORS.text, 'center', 800);
-  }
-
-  function drawMenu() {
-    drawBackground();
-    text('TOWERLINE', W / 2, 49, 29, COLORS.text, 'center', 900);
-    text('DUEL', W / 2, 80, 39, COLORS.mint, 'center', 900);
-    text('A free lane battle of timing and counterplay', W / 2, 108, 12, COLORS.muted, 'center', 500);
-    roundedRect(15, 128, 360, 53, 14, '#0e2130', '#274c5a');
-    text(`RUNG ${progress.rung} / 8`, 28, 148, 13, COLORS.gold, 'left', 800);
-    text(`${Math.min(24, progress.rung * 3)} / 24 cards unlocked`, 28, 166, 11, COLORS.muted, 'left', 600);
-    drawButton({ x: 15, y: 194, w: 218, h: 52 }, `DUEL RUNG ${progress.rung}`, COLORS.mint);
-    drawButton({ x: 242, y: 194, w: 133, h: 52 }, 'DECK FORGE', COLORS.violet);
-    text('LADDER // THREE CARDS PER RUNG', 16, 272, 11, COLORS.muted, 'left', 800);
-    LADDER.forEach((rung, index) => {
-      const y = 286 + index * 43;
-      const unlocked = index < progress.rung;
-      const current = index + 1 === progress.rung;
-      roundedRect(15, y, 360, 37, 9, current ? '#183646' : '#0c1927', current ? rung.accent : '#1b3041');
-      text(String(index + 1).padStart(2, '0'), 28, y + 18, 11, unlocked ? rung.accent : '#5c6d78', 'left', 900);
-      text(rung.name, 55, y + 12, 11, unlocked ? COLORS.text : '#6a7a84', 'left', 800);
-      text(rung.style, 55, y + 27, 9, unlocked ? COLORS.muted : '#53636d', 'left', 500);
-      const unlockNames = [index * 3, index * 3 + 1, index * 3 + 2].map((id) => CARDS[id].short).join(' · ');
-      text(unlockNames, 365, y + 12, 9, unlocked ? '#cae6ea' : '#53636d', 'right', 700);
-      text(unlocked ? 'READY' : 'LOCKED', 365, y + 27, 8, unlocked ? rung.accent : '#53636d', 'right', 800);
-    });
-    text('Win rungs to unlock cards. No chests. No shop. Just play.', W / 2, 653, 10, COLORS.muted, 'center', 500);
-    text('Tap DUEL to deploy · tap DECK FORGE to tune your eight', W / 2, 674, 10, '#698691', 'center', 500);
-  }
-
-  function drawForge() {
-    drawBackground();
-    drawHeader('DECK FORGE', `${Math.min(24, progress.rung * 3)}/24 READY`);
-    drawButton({ x: 12, y: 58, w: 88, h: 48 }, '← BACK', COLORS.muted);
-    text('EIGHT-SLOT DECK', 112, 72, 11, COLORS.muted, 'left', 800);
-    text('Tap a slot, then a ready card', 112, 91, 10, '#6f8e99', 'left', 500);
-    for (let i = 0; i < 8; i += 1) {
-      const col = i % 4;
-      const row = Math.floor(i / 4);
-      const x = 8 + col * 95;
-      const y = 111 + row * 55;
-      const c = card(progress.deck[i]);
-      const selected = i === selectedDeckSlot;
-      roundedRect(x, y, 88, 49, 9, selected ? '#193c45' : '#102333', selected ? COLORS.mint : '#294153', selected ? 2 : 1);
-      ctx.fillStyle = c.color; ctx.fillRect(x, y, 4, 49);
-      text(`${i + 1}`, x + 12, y + 15, 9, COLORS.muted, 'left', 800);
-      text(c.short, x + 26, y + 16, 11, COLORS.text, 'left', 800);
-      text(`◆ ${c.cost}`, x + 12, y + 35, 9, c.color, 'left', 700);
-      text(c.role, x + 80, y + 35, 8, COLORS.muted, 'right', 600);
+    onPointerMove(pointer) {
+      if (kit.paused || this.lifecyclePaused) return; var id = pointer.id; var record = this.pointerRecords[id]; if (!record) return; var p = pointerDesign(pointer);
+      record.x = p.x; record.y = p.y; record.moved = record.moved || Math.hypot(p.x - record.startX, p.y - record.startY) > 8;
+      if (this.drag && this.drag.id === id) { this.drag.x = p.x; this.drag.y = p.y; this.drag.moved = record.moved; this.setPreview(p); }
+      else if (record.laneTap) this.setPreview(p);
     }
-    text('CARD LIBRARY', 12, 230, 11, COLORS.muted, 'left', 800);
-    for (let i = 0; i < CARDS.length; i += 1) {
-      const col = i % 4;
-      const row = Math.floor(i / 4);
-      const x = 8 + col * 95;
-      const y = 242 + row * 63;
-      const c = CARDS[i];
-      const ready = i < progress.rung * 3;
-      roundedRect(x, y, 88, 56, 9, ready ? '#112536' : '#0a111b', ready ? c.color : '#25313a', ready ? 1.2 : 1);
-      ctx.fillStyle = ready ? c.color : '#34434b'; ctx.fillRect(x, y, 4, 56);
-      text(c.short, x + 10, y + 16, 10, ready ? COLORS.text : '#5f7079', 'left', 800);
-      text(`◆ ${c.cost}`, x + 10, y + 36, 9, ready ? c.color : '#5f7079', 'left', 700);
-      text(ready ? c.role : `R${Math.floor(i / 3) + 1}`, x + 80, y + 36, 8, ready ? COLORS.muted : '#5f7079', 'right', 600);
-    }
-    text('Flat power. Matchups matter. Slots can repeat cards.', W / 2, 680, 10, COLORS.muted, 'center', 500);
-  }
-
-  function drawArena() {
-    roundedRect(14, 58, 362, 500, 18, '#091521', '#223b4b');
-    ctx.save();
-    pathRoundRect(14, 58, 362, 500, 18); ctx.clip();
-    ctx.fillStyle = '#0a1b25'; ctx.fillRect(14, ARENA.top, 362, ARENA.bottom - ARENA.top);
-    [0, 1].forEach((lane) => {
-      const x = lane === 0 ? 28 : 194;
-      ctx.fillStyle = lane === 0 ? 'rgba(61,170,169,.075)' : 'rgba(92,127,207,.075)';
-      ctx.fillRect(x, ARENA.top, 150, ARENA.bottom - ARENA.top);
-      ctx.strokeStyle = '#214050'; ctx.lineWidth = 1;
-      ctx.strokeRect(x, ARENA.top, 150, ARENA.bottom - ARENA.top);
-    });
-    ctx.fillStyle = 'rgba(111,202,196,.12)'; ctx.fillRect(14, 329, 362, 16);
-    ctx.fillStyle = '#5cc3bd'; ctx.globalAlpha = .45; ctx.fillRect(14, 337, 362, 1); ctx.globalAlpha = 1;
-    for (let y = ARENA.top + 28; y < ARENA.bottom; y += 35) {
-      ctx.strokeStyle = 'rgba(135,196,202,.08)'; ctx.beginPath(); ctx.moveTo(14, y); ctx.lineTo(376, y); ctx.stroke();
-    }
-    ctx.restore();
-    text('ENEMY ZONE', 26, 124, 8, '#587984', 'left', 800);
-    text('YOUR ZONE', 364, 536, 8, '#587984', 'right', 800);
-  }
-
-  function drawTower(y, hp, team) {
-    const isEnemy = team === 'enemy';
-    const color = isEnemy ? COLORS.enemy : COLORS.player;
-    const x = W / 2;
-    const hit = game && game.lastTowerHit > 0;
-    ctx.save();
-    if (hit) { ctx.shadowBlur = 18; ctx.shadowColor = color; }
-    ctx.fillStyle = '#132c3d';
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x - 31, y + (isEnemy ? 18 : -18)); ctx.lineTo(x - 24, y + (isEnemy ? -14 : 14)); ctx.lineTo(x - 10, y + (isEnemy ? -25 : 25)); ctx.lineTo(x + 10, y + (isEnemy ? -25 : 25)); ctx.lineTo(x + 24, y + (isEnemy ? -14 : 14)); ctx.lineTo(x + 31, y + (isEnemy ? 18 : -18)); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = color; ctx.globalAlpha = .75;
-    ctx.fillRect(x - 7, y + (isEnemy ? -11 : 1), 14, 12); ctx.globalAlpha = 1;
-    ctx.restore();
-    roundedRect(142, isEnemy ? 61 : 588, 106, 9, 4, '#122332', '#294153');
-    ctx.fillStyle = color; ctx.fillRect(144, isEnemy ? 63 : 590, 102 * clamp(hp / 1000, 0, 1), 5);
-    text(isEnemy ? 'OPPONENT CORE' : 'YOUR CORE', x, y + (isEnemy ? -35 : 35), 8, color, 'center', 800);
-    text(`${Math.ceil(hp)} HP`, x, y + (isEnemy ? -47 : 47), 8, COLORS.muted, 'center', 600);
-  }
-
-  function drawEntity(unit) {
-    const c = card(unit.cardId);
-    const color = unit.team === 'player' ? c.color : '#ff7782';
-    const radius = c.building ? 16 : c.role === 'tank' ? 15 : c.role === 'swarm' ? 8 : 11;
-    ctx.save();
-    ctx.translate(unit.x, unit.y);
-    if (unit.hit > 0) { ctx.shadowBlur = 14; ctx.shadowColor = '#ffffff'; }
-    ctx.globalAlpha = unit.freeze > 0 ? .6 : 1;
-    ctx.fillStyle = '#102033'; ctx.strokeStyle = color; ctx.lineWidth = 2;
-    if (c.building) { roundedRect(-16, -14, 32, 28, 7, '#162b3b', color, 2); ctx.fillStyle = color; ctx.globalAlpha = .65; ctx.fillRect(-5, -9, 10, 18); }
-    else if (c.role === 'tank') { ctx.beginPath(); ctx.moveTo(0, -radius - 3); ctx.lineTo(radius + 3, radius); ctx.lineTo(0, radius + 5); ctx.lineTo(-radius - 3, radius); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-    else if (c.role === 'rush') { ctx.beginPath(); ctx.moveTo(radius + 4, 0); ctx.lineTo(-radius, -radius); ctx.lineTo(-radius + 3, 0); ctx.lineTo(-radius, radius); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-    else { ctx.beginPath(); ctx.arc(0, 0, radius, 0, TAU); ctx.fill(); ctx.stroke(); }
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#dffcff'; ctx.beginPath(); ctx.arc(3, -3, 2.1, 0, TAU); ctx.fill();
-    ctx.restore();
-    const barW = c.building ? 30 : 25;
-    ctx.fillStyle = '#08121b'; ctx.fillRect(unit.x - barW / 2, unit.y - radius - 11, barW, 3);
-    ctx.fillStyle = unit.team === 'player' ? COLORS.player : COLORS.enemy; ctx.fillRect(unit.x - barW / 2, unit.y - radius - 11, barW * clamp(unit.hp / unit.maxHp, 0, 1), 3);
-  }
-
-  function drawProjectiles() {
-    game.projectiles.forEach((projectile) => {
-      const t = 1 - clamp(projectile.life / projectile.maxLife, 0, 1);
-      const x = projectile.x + (projectile.tx - projectile.x) * t;
-      const y = projectile.y + (projectile.ty - projectile.y) * t;
-      ctx.fillStyle = projectile.color; ctx.shadowBlur = 10; ctx.shadowColor = projectile.color;
-      ctx.beginPath(); ctx.arc(x, y, 4, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
-    });
-  }
-
-  function drawEffects() {
-    game.particles.forEach((particle) => {
-      ctx.globalAlpha = clamp(particle.life / particle.maxLife, 0, 1);
-      ctx.fillStyle = particle.color;
-      ctx.beginPath(); ctx.arc(particle.x, particle.y, particle.size, 0, TAU); ctx.fill();
-    });
-    game.floaters.forEach((floater) => {
-      ctx.globalAlpha = clamp(floater.life, 0, 1);
-      text(floater.text, floater.x, floater.y, 10, floater.color, 'center', 800);
-    });
-    ctx.globalAlpha = 1;
-  }
-
-  function drawHand() {
-    ctx.fillStyle = '#07111b'; ctx.fillRect(0, 601, W, 99);
-    text(`ENERGY ${game.playerEnergy.toFixed(1)} / ${game.maxEnergy}`, 12, 611, 10, COLORS.muted, 'left', 800);
-    ctx.fillStyle = '#162a37'; ctx.fillRect(132, 608, 246, 6);
-    ctx.fillStyle = COLORS.mint; ctx.fillRect(132, 608, 246 * clamp(game.playerEnergy / game.maxEnergy, 0, 1), 6);
-    game.hand.forEach((id, index) => {
-      const c = card(id);
-      const x = 8 + index * 96;
-      const y = 622;
-      const selected = index === game.selectedHand;
-      const affordable = game.playerEnergy + .001 >= c.cost;
-      roundedRect(x, y, 88, 69, 10, selected ? '#1a3c43' : '#102334', selected ? COLORS.mint : c.color, selected ? 2.5 : 1.2);
-      ctx.fillStyle = c.color; ctx.fillRect(x, y, 4, 69);
-      text(String(index + 1), x + 12, y + 13, 9, COLORS.muted, 'left', 900);
-      text(c.short, x + 12, y + 31, 11, affordable ? COLORS.text : '#647983', 'left', 800);
-      text(`◆ ${c.cost}`, x + 12, y + 54, 10, affordable ? c.color : '#647983', 'left', 800);
-      text(c.role === 'building' ? 'BUILD' : c.role.toUpperCase(), x + 80, y + 54, 7, COLORS.muted, 'right', 700);
-      if (!affordable) { ctx.fillStyle = 'rgba(3,8,13,.4)'; ctx.fillRect(x, y, 88, 69); }
-    });
-    {
-      ctx.fillStyle = 'rgba(4,10,16,.82)'; ctx.fillRect(0, 587, W, 21);
-      const hint = game.messageTime > 0 ? game.message : 'Drag a card into a lane · 1–4 choose · ←→ lane · Space deploy';
-      text(hint, W / 2, 598, 9, game.overtime ? COLORS.gold : COLORS.text, 'center', 700);
-    }
-  }
-
-  function drawGame() {
-    drawBackground();
-    const bot = game.bot;
-    drawHeader(`RUNG ${game.rung} · ${bot.name}`, game.overtime ? 'SUDDEN DEATH' : formatTime(game.time));
-    text(bot.style, 16, 68, 9, bot.accent, 'left', 700);
-    text(`ENEMY ENERGY ${game.enemyEnergy.toFixed(1)}`, W - 16, 68, 9, '#718e9a', 'right', 700);
-    ctx.save();
-    const shakeX = game.shake ? rand(-game.shake, game.shake) : 0;
-    const shakeY = game.shake ? rand(-game.shake * .35, game.shake * .35) : 0;
-    ctx.translate(shakeX, shakeY);
-    drawArena();
-    drawTower(79, game.enemyTower, 'enemy');
-    drawTower(579, game.playerTower, 'player');
-    game.units.slice().sort((a, b) => a.y - b.y).forEach(drawEntity);
-    drawProjectiles();
-    drawEffects();
-    ctx.restore();
-    drawHand();
-    if (activeDrag && game.status === 'playing') {
-      const c = card(game.hand[activeDrag.cardIndex]);
-      ctx.globalAlpha = .86;
-      roundedRect(activeDrag.x - 34, activeDrag.y - 24, 68, 48, 12, '#173847', c.color, 2);
-      text(c.short, activeDrag.x, activeDrag.y, 10, COLORS.text, 'center', 800);
-      ctx.globalAlpha = 1;
-    }
-    if (game.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${game.flash * .18})`; ctx.fillRect(0, 0, W, H); }
-    if (game.status !== 'playing') drawResult();
-  }
-
-  function formatTime(seconds) {
-    const safe = Math.max(0, Math.ceil(seconds));
-    return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`;
-  }
-
-  function drawResult() {
-    ctx.fillStyle = 'rgba(3,8,14,.72)'; ctx.fillRect(0, 0, W, H);
-    const victory = game.status === 'victory';
-    roundedRect(28, 230, 334, 236, 20, '#102334', victory ? COLORS.mint : COLORS.coral, 2);
-    text(victory ? 'CORE BREACHED' : 'LINE LOST', W / 2, 276, 27, victory ? COLORS.mint : COLORS.coral, 'center', 900);
-    text(victory ? (game.rung >= 8 ? 'The circuit crowns you.' : `Rung ${game.rung + 1} is now live.`) : 'Your counter window is still open.', W / 2, 315, 12, COLORS.text, 'center', 600);
-    text(`Core score  ${Math.ceil(game.enemyTower)} — ${Math.ceil(game.playerTower)}`, W / 2, 351, 11, COLORS.muted, 'center', 700);
-    drawButton({ x: 48, y: 385, w: 138, h: 52 }, victory ? 'REMATCH' : 'RETRY RUNG', victory ? COLORS.mint : COLORS.coral);
-    drawButton({ x: 204, y: 385, w: 138, h: 52 }, 'LADDER', COLORS.violet);
-  }
-
-  function drawChampion() {
-    drawBackground();
-    text('CHAMPION', W / 2, 160, 38, COLORS.gold, 'center', 900);
-    text('THE TOWERLINE IS YOURS', W / 2, 208, 14, COLORS.text, 'center', 800);
-    roundedRect(38, 260, 314, 150, 18, '#12283a', '#80683e', 2);
-    text('8 / 8', W / 2, 302, 42, COLORS.gold, 'center', 900);
-    text('rungs cleared', W / 2, 344, 13, COLORS.muted, 'center', 600);
-    text('24 flat-power cards unlocked', W / 2, 372, 11, COLORS.mint, 'center', 700);
-    drawButton({ x: 42, y: 458, w: 145, h: 54 }, 'REMATCH RUNG 8', COLORS.gold);
-    drawButton({ x: 203, y: 458, w: 145, h: 54 }, 'DECK FORGE', COLORS.violet);
-    text('Mastery is the progression.', W / 2, 565, 13, COLORS.text, 'center', 700);
-    text('No chests. No timers. No shop.', W / 2, 590, 11, COLORS.muted, 'center', 500);
-  }
-
-  function render() {
-    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
-    if (screen === 'menu') drawMenu();
-    else if (screen === 'forge') drawForge();
-    else if (screen === 'champion') drawChampion();
-    else if (screen === 'game' && game) drawGame();
-    else drawMenu();
-  }
-
-  function forgeHit(x, y) {
-    if (pointIn(x, y, { x: 12, y: 58, w: 88, h: 48 })) return { type: 'back' };
-    for (let i = 0; i < 8; i += 1) {
-      const col = i % 4; const row = Math.floor(i / 4);
-      const rect = { x: 8 + col * 95, y: 111 + row * 55, w: 88, h: 49 };
-      if (pointIn(x, y, rect)) return { type: 'slot', index: i };
-    }
-    for (let i = 0; i < CARDS.length; i += 1) {
-      const col = i % 4; const row = Math.floor(i / 4);
-      const rect = { x: 8 + col * 95, y: 242 + row * 63, w: 88, h: 56 };
-      if (pointIn(x, y, rect)) return { type: 'card', index: i };
-    }
-    return null;
-  }
-
-  function gameButtonHit(x, y) {
-    if (pointIn(x, y, { x: 48, y: 385, w: 138, h: 52 })) return 'retry';
-    if (pointIn(x, y, { x: 204, y: 385, w: 138, h: 52 })) return 'ladder';
-    return null;
-  }
-
-  function handIndexAt(x, y) {
-    if (y < 620 || y > 696) return -1;
-    for (let i = 0; i < 4; i += 1) if (pointIn(x, y, { x: 8 + i * 96, y: 622, w: 88, h: 69 })) return i;
-    return -1;
-  }
-
-  function laneAt(x) { return x < W / 2 ? 0 : 1; }
-
-  function handlePointerDown(event) {
-    event.preventDefault();
-    unlockAudio();
-    const pointerId = event.pointerId;
-    const p = mapPointer(event);
-    if (pointerMap.size >= MAX_POINTERS) {
-      const oldest = pointerMap.keys().next().value;
-      pointerMap.delete(oldest);
-      try { canvas.releasePointerCapture(oldest); } catch (error) { /* pointer may already be gone */ }
-    }
-    pointerMap.set(pointerId, { pointerId, x: p.x, y: p.y, startX: p.x, startY: p.y, moved: false, screen });
-    try { canvas.setPointerCapture(pointerId); } catch (error) { /* capture is not available in every embedded webview */ }
-    if (orientationPaused || hiddenPaused) return;
-    if (screen === 'menu') {
-      if (pointIn(p.x, p.y, { x: 15, y: 194, w: 218, h: 52 })) startGame(progress.rung);
-      else if (pointIn(p.x, p.y, { x: 242, y: 194, w: 133, h: 52 })) openForge();
-      return;
-    }
-    if (screen === 'forge') {
-      const hit = forgeHit(p.x, p.y);
-      if (hit && hit.type === 'back') goMenu();
-      else if (hit && hit.type === 'slot') selectedDeckSlot = hit.index;
-      else if (hit && hit.type === 'card' && hit.index < progress.rung * 3) {
-        progress.deck[selectedDeckSlot] = hit.index;
-        selectedDeckSlot = (selectedDeckSlot + 1) % 8;
-        saveProgress();
-        tone(440, .08, 'triangle', .03);
+    onPointerUp(pointer) {
+      var id = pointer.id; var record = this.pointerRecords[id]; if (!record) return; var p = pointerDesign(pointer);
+      if (!kit.paused && !this.lifecyclePaused && this.status === 'playing') {
+        if (this.drag && this.drag.id === id) {
+          var c = getCard(this.hand[this.drag.cardIndex]);
+          if (record.moved && this.isBoardPoint(p)) this.stagePlacement(this.drag.cardIndex, this.laneAt(p.x), this.legalY(p.y, c));
+          else this.selectedHand = this.drag.cardIndex;
+        } else if (record.laneTap && !record.moved) {
+          var tapCard = this.currentCard(); this.stagePlacement(this.selectedHand, this.laneAt(p.x), this.legalY(p.y, tapCard));
+        }
       }
-      return;
+      this.drag = null; delete this.pointerRecords[id]; kit.input.pointers.delete(id); this.clearPreview();
     }
-    if (screen === 'champion') {
-      if (pointIn(p.x, p.y, { x: 42, y: 458, w: 145, h: 54 })) startGame(8);
-      else if (pointIn(p.x, p.y, { x: 203, y: 458, w: 145, h: 54 })) openForge();
-      return;
+    onPointerCancel(pointer) { var id = pointer.id; delete this.pointerRecords[id]; if (this.drag && this.drag.id === id) this.drag = null; this.clearPreview(); kit.input.pointers.delete(id); }
+    stagePlacement(cardIndex, lane, targetY) {
+      var c = getCard(this.hand[cardIndex]);
+      if (this.pendingPlacement || this.commandQueue.length) { this.showTransient('Tap UNDO before choosing another card', 'chip', 1.0); playSfx('cancel', 90); return; }
+      if (this.cooldownFor(cardIndex) > 0) { this.showTransient('Card cooling down ' + this.cooldownFor(cardIndex).toFixed(1) + 's', 'chip', 1.0); playSfx('cancel', 90); return; }
+      if (this.playerElixir + 0.001 < c.cost) { this.showTransient('Need ' + c.cost.toFixed(1) + ' elixir', 'chip', 1.0); playSfx('cancel', 90); return; }
+      if (c.building && !this.towerSlotAt('player', lane, targetY)) { this.showTransient('Choose an open tower socket', 'chip', 1.0); playSfx('cancel', 90); return; }
+      this.pendingPlacement = { cardIndex: cardIndex, lane: lane, targetY: targetY, readyAt: this.simClock + 0.42 };
+      this.commandQueue.push(this.pendingPlacement); this.showTransient(c.short + ' staged. Tap UNDO to refund', 'chip', 1.0); playSfx('confirm', 80);
     }
-    if (screen !== 'game' || !game) return;
-    if (game.status !== 'playing') {
-      const action = gameButtonHit(p.x, p.y);
-      if (action === 'retry') startGame(game.rung);
-      else if (action === 'ladder') goMenu();
-      return;
+    undoPlacement() {
+      if (!this.pendingPlacement) return;
+      this.commandQueue.length = 0; this.pendingPlacement = null; this.showTransient('Placement cancelled. Elixir refunded', 'chip', 1.0); playSfx('cancel', 80);
     }
-    const handIndex = handIndexAt(p.x, p.y);
-    if (handIndex >= 0) {
-      activeDrag = { pointerId, cardIndex: handIndex, x: p.x, y: p.y };
-      return;
+    handleResultTap(p) {
+      if (p.y >= 540 && p.y <= 625) {
+        this.handleResultAction(p.x < 190 ? 'a' : 'b'); return;
+      }
+      if (p.y >= 700 && p.y <= 818) this.scene.start('forge');
     }
-    if (p.y >= ARENA.top && p.y <= ARENA.bottom) {
-      game.laneFocus = laneAt(p.x);
-      pointerMap.get(pointerId).laneTap = true;
+    handleResultAction(which) {
+      if (!this.isResult()) return;
+      if (which === 'a') {
+        if (this.status === 'defeat') { this.resetMatch(); playSfx('confirm', 0); return; }
+        if (this.mode === 'ladder' && this.rung < 8) { this.scene.start('duel', { mode: 'ladder', rung: this.rung + 1 }); return; }
+        if (this.mode === 'gauntlet' && this.gauntletIndex < GAUNTLET_TABLE.length - 1) { this.scene.start('duel', { mode: 'gauntlet', gauntletIndex: this.gauntletIndex + 1 }); return; }
+        if (this.mode === 'ladder') this.scene.start('ladder'); else this.scene.start('mode', { mode: this.mode }); return;
+      }
+      if (this.mode === 'ladder') this.scene.start('ladder'); else this.scene.start('mode', { mode: this.mode });
     }
-  }
-
-  function handlePointerMove(event) {
-    event.preventDefault();
-    const pointerId = event.pointerId;
-    const record = pointerMap.get(pointerId);
-    if (!record) return;
-    const p = mapPointer(event);
-    record.x = p.x; record.y = p.y;
-    if (Math.hypot(p.x - record.startX, p.y - record.startY) > 8) record.moved = true;
-    if (activeDrag && activeDrag.pointerId === pointerId) { activeDrag.x = p.x; activeDrag.y = p.y; }
-  }
-
-  function handlePointerUp(event, canceled = false) {
-    event.preventDefault();
-    const pointerId = event.pointerId;
-    const record = pointerMap.get(pointerId);
-    if (!record) return;
-    const p = mapPointer(event);
-    if (!canceled && screen === 'game' && game && game.status === 'playing') {
-      if (activeDrag && activeDrag.pointerId === pointerId) {
-        if (record.moved && p.y >= ARENA.top - 10 && p.y <= ARENA.bottom + 12) queueAction({ type: 'deploy', cardIndex: activeDrag.cardIndex, lane: laneAt(p.x), targetY: p.y });
-        else game.selectedHand = activeDrag.cardIndex;
-        activeDrag = null;
-      } else if (record.laneTap && !record.moved) {
-        queueAction({ type: 'deploy', cardIndex: game.selectedHand, lane: laneAt(p.x), targetY: p.y });
+    deployFromHand(cardIndex, lane, targetY, team) {
+      var sourceHand = team === 'player' ? this.hand : this.enemyHand; var id = sourceHand[cardIndex]; var c = getCard(id); var energy = team === 'player' ? this.playerElixir : this.enemyElixir;
+      if (energy + 0.001 < c.cost) return false;
+      var centers = this.laneCenters(); var safeLane = clamp(lane | 0, 0, centers.length - 1); var y = c.role === 'spell' ? this.legalY(targetY, c) : team === 'player' ? this.legalY(targetY, c) : clamp(targetY, c.building ? 206 : 146, c.building ? 390 : 244);
+      var towerSlot = c.building ? this.towerSlotAt(team, safeLane, y) : null;
+      if (c.building && !towerSlot) { if (team === 'player') this.showTransient('That tower socket is occupied', 'chip', 1.0); return false; }
+      if (team === 'player') this.playerElixir -= c.cost; else this.enemyElixir -= c.cost;
+      if (c.role === 'spell') this.castSpell(c, team, safeLane, y);
+      else {
+        var count = clamp(c.count || 1, 1, 4); var baseY = c.building ? towerSlot.y : (team === 'player' ? y : 178);
+        for (var i = 0; i < count; i += 1) this.obtainUnit(id, team, safeLane, baseY + (c.building ? 0 : (i - (count - 1) / 2) * 15 * (team === 'player' ? 1 : -1)), towerSlot, false);
+        this.spawnFx(centers[safeLane], baseY, c.color, c.building ? 12 : 7, 'dust');
+        playSfx('deploy', 55);
+        if (team === 'player') this.showTransient(c.short + ' deployed', 'chip', 1.0);
+      }
+      if (team === 'player') this.setCooldown(cardIndex, c);
+      if (team === 'player') { this.hand[cardIndex] = progress.deck[this.drawIndex % progress.deck.length]; this.drawIndex = (this.drawIndex + 1) % progress.deck.length; }
+      else { var enemyDeck = this.match.deck || this.match.enemy || RUNG_TABLE[0].deck; this.enemyHand[cardIndex] = enemyDeck[(this.enemyDrawIndex++) % enemyDeck.length]; }
+      this.recomputeSynergies();
+      return true;
+    }
+    obtainUnit(cardId, team, lane, y, towerSlot, boss) {
+      var slot = -1; for (var i = 0; i < this.unitPool.length; i += 1) if (!this.unitPool[i].alive) { slot = i; break; }
+      if (slot < 0) return null;
+      var c = getCard(cardId); var centers = this.laneCenters(); var u = this.unitPool[slot]; var bossScale = boss ? 2.55 : 1;
+      u.alive = true; u.id = this.nextId++; u.cardId = cardId; u.team = team; u.lane = lane; u.x = centers[lane] + (Math.random() * 12 - 6); u.y = y; u.hp = c.hp * bossScale; u.maxHp = c.hp * bossScale; u.attackTimer = 0.15 + Math.random() * 0.25; u.freeze = 0; u.slow = 0; u.hit = 0; u.phase = Math.random() * TAU; u.slot = slot; u.boss = !!boss; u.bossTimer = boss ? 2.2 : 0; u.bossTelegraph = 0; u.towerSlot = towerSlot ? this.towerSlots.indexOf(towerSlot) : null; u.synergy = null;
+      if (towerSlot) towerSlot.unitId = u.id;
+      this.units.push(u); return u;
+    }
+    castSpell(c, team, lane, targetY) {
+      var centers = this.laneCenters(); var x = centers[lane]; var enemy = team === 'player' ? 'enemy' : 'player'; var affected = 0; var affectedTeam = c.spell === 'heal' ? team : enemy;
+      this.spawnFx(x, targetY, c.color, kit.juice.enabled ? 16 : 8, 'ability'); playSfx('spell', 80);
+      for (var i = 0; i < this.units.length; i += 1) {
+        var u = this.units[i]; if (!u.alive || u.team !== affectedTeam || u.lane !== lane || Math.abs(u.y - targetY) > c.radius) continue;
+        if (c.spell === 'heal') { u.hp = Math.min(u.maxHp, u.hp + c.heal); affected += 1; }
+        else { this.applyUnitDamage(u, c.damage, { cardId: Math.max(0, CARDS.indexOf(c)), team: team }, 1); if (c.spell === 'shock') u.freeze = Math.max(u.freeze, 1.0); if (c.spell === 'freeze') u.slow = Math.max(u.slow, 2.2); affected += 1; }
+      }
+      if (c.spell !== 'heal') { var coreY = enemy === 'enemy' ? 102 : 677; if (Math.abs(targetY - coreY) < c.radius + 28) this.damageCore(enemy, c.damage * (c.spell === 'meteor' ? 0.52 : 0.18), c.color); }
+      if (team === 'player') this.showTransient(affected ? affected + ' target' + (affected === 1 ? '' : 's') + ' tagged' : 'Spell impact', 'chip', 1.0);
+    }
+    recomputeSynergies() {
+      this.synergyLinks.length = 0;
+      for (var i = 0; i < this.units.length; i += 1) this.units[i].synergy = null;
+      for (var a = 0; a < this.units.length; a += 1) {
+        var first = this.units[a]; if (!first.alive) continue; var firstCard = getCard(first.cardId);
+        for (var b = a + 1; b < this.units.length; b += 1) {
+          var second = this.units[b]; if (!second.alive || second.team !== first.team) continue;
+          var secondCard = getCard(second.cardId); var tower = firstCard.building ? first : secondCard.building ? second : null; var companion = tower === first ? second : tower === second ? first : null;
+          if (!tower || !companion || Math.abs(tower.lane - companion.lane) > 1 || Math.abs(tower.y - companion.y) > 92) continue;
+          var role = getCard(companion.cardId).role; var label = role === 'ranged' ? 'OVERWATCH' : role === 'swarm' ? 'MESH' : role === 'rush' ? 'SPRINGLINE' : role === 'tank' ? 'ANCHOR' : 'RELAY';
+          var bonus = role === 'rush' ? 1.22 : role === 'tank' ? 1.16 : 1.14;
+          tower.synergy = { label: label, damage: bonus, partnerId: companion.id }; companion.synergy = { label: label, damage: bonus, partnerId: tower.id };
+          if (this.synergyLinks.length < 12) this.synergyLinks.push({ a: tower, b: companion, label: label });
+        }
       }
     }
-    pointerMap.delete(pointerId);
-    try { canvas.releasePointerCapture(pointerId); } catch (error) { /* already released */ }
-  }
-
-  function handleKeyDown(event) {
-    const key = event.key;
-    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter'].includes(key)) event.preventDefault();
-    unlockAudio();
-    if (key === 'Escape') {
-      if (screen === 'forge' || screen === 'champion') goMenu();
-      else if (screen === 'game') goMenu();
-      return;
+    matchup(attacker, target) {
+      var a = getCard(attacker.cardId); var t = getCard(target.cardId); var mult = 1;
+      if (a.counter === t.role) mult *= 1.3;
+      if (a.role === 'splash' && t.role === 'swarm') mult *= 1.2;
+      if (a.role === 'building' && t.role === 'rush') mult *= 1.2;
+      if (a.role === 'tank' && t.role === 'building') mult *= 0.9;
+      if (attacker.synergy && attacker.synergy.damage) mult *= attacker.synergy.damage;
+      return mult;
     }
-    if (screen === 'menu' && (key === 'Enter' || key === ' ')) { startGame(progress.rung); return; }
-    if (screen === 'champion' && (key === 'Enter' || key === ' ')) { startGame(8); return; }
-    if (screen === 'forge') {
-      if (/^[1-8]$/.test(key)) selectedDeckSlot = Number(key) - 1;
-      return;
+    findTarget(unit) {
+      var best = null; var bestDistance = Infinity;
+      for (var i = 0; i < this.units.length; i += 1) {
+        var other = this.units[i]; if (!other.alive || other.team === unit.team || other.lane !== unit.lane) continue;
+        var ahead = unit.team === 'player' ? other.y < unit.y + 12 : other.y > unit.y - 12; var distance = Math.abs(other.y - unit.y);
+        if (ahead && distance < bestDistance) { best = other; bestDistance = distance; }
+      }
+      return best;
     }
-    if (screen !== 'game' || !game || game.status !== 'playing') return;
-    if (/^[1-4]$/.test(key)) { game.selectedHand = Number(key) - 1; tone(300 + game.selectedHand * 35, .05, 'triangle', .018); }
-    if (key === 'ArrowLeft') game.laneFocus = 0;
-    if (key === 'ArrowRight') game.laneFocus = 1;
-    if (key === 'ArrowUp') game.selectedHand = (game.selectedHand + 3) % 4;
-    if (key === 'ArrowDown') game.selectedHand = (game.selectedHand + 1) % 4;
-    if (key === ' ' || key === 'Enter') queueAction({ type: 'deploy', cardIndex: game.selectedHand, lane: game.laneFocus, targetY: game.laneFocus === 0 ? 390 : 390 });
-    if (keys.size >= MAX_KEYS) keys.clear();
-    keys.add(key);
+    applyUnitDamage(target, amount, attacker, splash) {
+      if (!target || !target.alive) return;
+      var dealt = amount * this.matchup(attacker, target); target.hp -= dealt; target.hit = 0.14; this.spawnFx(target.x, target.y, getCard(attacker.cardId).color, 3); playSfx('hit', 48); if (kit.juice.enabled && dealt >= 40) kit.juice.hitStop(26);
+      if (splash > 0) for (var i = 0; i < this.units.length; i += 1) { var near = this.units[i]; if (near.alive && near !== target && near.team !== attacker.team && near.lane === target.lane && Math.abs(near.y - target.y) <= splash) { near.hp -= amount * 0.55 * this.matchup(attacker, near); near.hit = 0.1; if (near.hp <= 0) this.resolveDeath(near); } }
+      if (target.hp <= 0) this.resolveDeath(target);
+    }
+    resolveDeath(target) {
+      if (!target || !target.alive) return; target.alive = false; var slot = this.towerSlotForUnit(target); if (slot) slot.unitId = null; this.spawnFx(target.x, target.y, getCard(target.cardId).color, target.boss ? 14 : 8, target.boss ? 'ability' : 'contact'); playSfx(target.boss ? 'wave' : 'kill', target.boss ? 180 : 70); this.recomputeSynergies();
+    }
+    fireUnit(attacker, target) {
+      var c = getCard(attacker.cardId); attacker.attackTimer = c.attack; attacker.hit = 0.12;
+      if (c.range > 42 && Math.abs(target.y - attacker.y) > 34) {
+        for (var i = 0; i < this.projectilePool.length; i += 1) if (!this.projectilePool[i].active) { var p = this.projectilePool[i]; var projectileView = this.projectileViews[p.viewSlot]; p.active = true; p.x = attacker.x; p.y = attacker.y; p.targetId = target.id; p.attacker = attacker; p.life = 0.2; p.max = 0.2; projectileView.sprite.setTint(c.color).setVisible(true); this.spawnFx(attacker.x, attacker.y, c.color, 2, 'trail'); this.projectiles.push(p); break; }
+      } else this.applyUnitDamage(target, c.damage, attacker, c.splash || 0);
+    }
+    updateUnits(dt) {
+      var centers = this.laneCenters();
+      for (var i = 0; i < this.units.length; i += 1) {
+        var u = this.units[i]; if (!u.alive) continue; var c = getCard(u.cardId); var wasBossCharging = u.bossTelegraph > 0; u.hit = Math.max(0, u.hit - dt); u.freeze = Math.max(0, u.freeze - dt); u.slow = Math.max(0, u.slow - dt); u.attackTimer -= dt; if (u.bossTelegraph > 0) u.bossTelegraph = Math.max(0, u.bossTelegraph - dt);
+        if (u.boss && u.bossTimer > 0) u.bossTimer -= dt;
+        if (u.boss && u.bossTimer <= 0 && u.bossTelegraph <= 0) {
+          if (wasBossCharging) { var bossTarget = this.findTarget(u); if (bossTarget) this.applyUnitDamage(bossTarget, c.damage * 1.55, u, c.splash || 0); else this.damageCore(u.team === 'player' ? 'enemy' : 'player', c.damage * 0.9, c.color); u.bossTimer = 3.4; }
+          else { u.bossTelegraph = 0.72; this.showTransient('BOSS CHARGE', 'warning', 0.8); playSfx('warning', 120); }
+        }
+        if (u.freeze > 0) continue;
+        var target = this.findTarget(u); var distance = target ? Math.abs(target.y - u.y) : Infinity; var reach = Math.max(22, c.range || 20);
+        if (target && distance <= reach) { if (u.attackTimer <= 0) this.fireUnit(u, target); }
+        else if (!c.building) {
+          var synergySpeed = u.synergy && u.synergy.label === 'SPRINGLINE' ? 1.22 : 1; var bossSpeed = u.boss ? 1.12 : 1;
+          u.y += (u.team === 'player' ? -1 : 1) * (c.speed || 20) * synergySpeed * bossSpeed * (u.slow > 0 ? 0.42 : 1) * dt;
+          u.x = centers[u.lane] + Math.sin(this.simClock * 2 + u.phase) * 4;
+          if ((u.team === 'player' && u.y < 124) || (u.team === 'enemy' && u.y > 676)) { this.damageCore(u.team === 'player' ? 'enemy' : 'player', c.damage * (c.role === 'rush' ? 1.24 : 0.72) * (u.boss ? 1.4 : 1), c.color); this.resolveDeath(u); }
+        }
+      }
+      var write = 0; for (var j = 0; j < this.units.length; j += 1) if (this.units[j].alive) { this.units[write] = this.units[j]; write += 1; } this.units.length = write;
+    }
+    updateProjectiles(dt) {
+      for (var i = 0; i < this.projectiles.length; i += 1) {
+        var p = this.projectiles[i]; if (!p.active) continue; p.life -= dt; var target = null; for (var j = 0; j < this.units.length; j += 1) if (this.units[j].alive && this.units[j].id === p.targetId) { target = this.units[j]; break; }
+        if (!target || p.life <= 0) { if (target && p.attacker && p.attacker.alive) this.applyUnitDamage(target, getCard(p.attacker.cardId).damage, p.attacker, getCard(p.attacker.cardId).splash || 0); p.active = false; this.projectileViews[p.viewSlot].sprite.setVisible(false); }
+      }
+      var write = 0; for (var k = 0; k < this.projectiles.length; k += 1) if (this.projectiles[k].active) { this.projectiles[write] = this.projectiles[k]; write += 1; } this.projectiles.length = write;
+    }
+    updateFx(dt) {
+      for (var s = 0; s < this.particleSystemList.length; s += 1) { var system = this.particleSystemList[s]; for (var i = 0; i < system.pool.length; i += 1) { var f = system.pool[i]; if (f.life <= 0) continue; f.life -= dt; f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 42 * dt; } }
+    }
+    spawnFx(x, y, color, count, kind) {
+      var system = this.particleSystems[kind || 'contact'] || this.particleSystems.contact;
+      var made = 0;
+      for (var i = 0; i < system.pool.length && made < count; i += 1) {
+        var f = system.pool[i]; if (f.life > 0) continue; var angle = Math.random() * TAU; var speed = 18 + Math.random() * 62; f.life = 0.24 + Math.random() * 0.32; f.max = f.life; f.x = x; f.y = y; f.vx = Math.cos(angle) * speed; f.vy = Math.sin(angle) * speed - 14; f.size = 0.55 + Math.random() * 0.8; system.views[f.viewSlot].sprite.setPosition(x, y).setTint(color).setScale(f.size).setAlpha(1).setVisible(true); made += 1;
+      }
+    }
+    damageCore(team, amount, color) {
+      if (this.status !== 'playing') return; if (this.overtime) amount = 1000;
+      if (team === 'enemy') this.enemyCore = Math.max(0, this.enemyCore - amount); else this.playerCore = Math.max(0, this.playerCore - amount);
+      this.spawnFx(W / 2, team === 'enemy' ? 102 : 677, color || (team === 'enemy' ? PALETTE.teal : PALETTE.coral), kit.juice.enabled ? 15 : 6, 'ability');
+      if (kit.juice.enabled) { kit.juice.shake(7, 180); kit.juice.hitStop(34); } if (team === 'enemy') playSfx('clash', 110); else playSfx('warning', 110);
+      this.showTransient((team === 'enemy' ? 'CORE HIT' : 'CORE WARNING'), 'chip', 0.85);
+      if (this.enemyCore <= 0) this.finish('victory'); else if (this.playerCore <= 0) this.finish('defeat');
+    }
+    scheduleWave() {
+      if (this.waveTelegraph || this.waveIndex >= MAX_WAVES) return;
+      var pattern = WAVE_PATTERNS[Math.min(this.waveIndex, WAVE_PATTERNS.length - 1)]; this.waveIndex += 1;
+      this.waveTelegraph = { pattern: pattern, index: this.waveIndex, time: 0.92, max: 0.92 };
+      this.nextWaveAt = this.simClock + clamp(14.5 + this.match.gap * 4.2 - this.waveIndex * 0.4, 11.5, 19);
+      this.showTransient((pattern.boss ? 'BOSS ' : 'WAVE ') + this.waveIndex + ' INBOUND', 'warning', 1.1); playSfx('warning', 160);
+    }
+    spawnWaveFormation(telegraph) {
+      var pattern = telegraph.pattern; var count = pattern.cards.length; var centers = this.laneCenters();
+      for (var i = 0; i < count; i += 1) {
+        var cardId = pattern.cards[i]; var c = getCard(cardId); var lane = pattern.lanes[i] % this.arena.lanes; var y = 170 + (pattern.formation === 'stack' ? (i % 3) * 30 : (i % 2) * 42); var slot = c.building ? this.towerSlotAt('enemy', lane, 250 + (i % 2) * 70) : null;
+        var unit = this.obtainUnit(cardId, 'enemy', lane, c.building && slot ? slot.y : y, slot, !!pattern.boss && (i === count - 1));
+        if (unit && pattern.boss && i === count - 1) { unit.x = centers[lane]; unit.bossTimer = 1.25; }
+      }
+      this.recomputeSynergies(); this.spawnFx(W / 2, 180, pattern.boss ? PALETTE.coral : PALETTE.amber, pattern.boss ? 18 : 10, 'ability'); playSfx(pattern.boss ? 'danger' : 'deploy', 140); this.showTransient(pattern.name + ' deployed', pattern.boss ? 'warning' : 'chip', 1.2);
+    }
+    updateWaves(dt) {
+      if (this.waveTelegraph) {
+        this.waveTelegraph.time -= dt;
+        if (this.waveTelegraph.time <= 0) { var readyWave = this.waveTelegraph; this.waveTelegraph = null; this.spawnWaveFormation(readyWave); }
+      } else if (this.simClock >= this.nextWaveAt && this.waveIndex < MAX_WAVES) this.scheduleWave();
+      var enemyAlive = this.units.some(function (u) { return u.alive && u.team === 'enemy'; });
+      if (this.waveIndex > this.wavesCleared && !enemyAlive && !this.waveTelegraph) { this.wavesCleared = this.waveIndex; if (this.waveIndex > 0) { playSfx('wave', 120); this.showTransient('WAVE CLEAR', 'chip', 1.0); } }
+    }
+    chooseBotCard() {
+      var threats = this.units.filter(function (u) { return u.alive && u.team === 'player'; }); var available = [];
+      for (var i = 0; i < this.enemyHand.length; i += 1) if (getCard(this.enemyHand[i]).cost <= this.enemyElixir + 0.001) available.push(i);
+      if (!available.length) return null; var choice = available[0]; var threat = threats.sort(function (a, b) { return b.y - a.y; })[0];
+      if (threat) { var counter = available.find(function (index) { var c = getCard(this.enemyHand[index]); return c.counter === getCard(threat.cardId).role || (c.role === 'splash' && getCard(threat.cardId).role === 'swarm'); }.bind(this)); if (counter != null && Math.random() < this.match.skill) choice = counter; }
+      if (Math.random() > this.match.skill) choice = available[Math.floor(Math.random() * available.length)]; return choice;
+    }
+    updateBot(dt) {
+      if (this.botTelegraph) { this.botTelegraph.time -= dt; if (this.botTelegraph.time <= 0) { var ready = this.botTelegraph; this.botTelegraph = null; this.deployFromHand(ready.index, ready.lane, ready.targetY, 'enemy'); } return; }
+      this.aiTimer -= dt; if (this.aiTimer > 0) return; this.aiTimer = this.match.gap * (0.86 + Math.random() * 0.22); var index = this.chooseBotCard(); if (index == null) return; var c = getCard(this.enemyHand[index]); var threats = this.units.filter(function (u) { return u.alive && u.team === 'player'; }); var threat = threats.sort(function (a, b) { return a.y - b.y; })[0]; var lane = threat && Math.random() < this.match.skill ? threat.lane : Math.floor(Math.random() * this.arena.lanes); var targetY = threat ? threat.y : 360;
+      if (c.role !== 'spell') targetY = c.building ? 270 : 220; if (c.role === 'spell' && c.spell === 'heal') targetY = 220; this.botTelegraph = { index: index, lane: lane, targetY: targetY, time: 0.86, max: 0.86 }; this.showTransient('ENEMY READS LANE ' + (lane + 1), 'warning', 0.86); playSfx('warning', 140);
+    }
+    stepSim(dt) {
+      if (this.status !== 'playing' || this.lifecyclePaused || kit.paused) return;
+      this.simClock += dt; this.playerElixir = Math.min(10, this.playerElixir + dt * 1.22); this.enemyElixir = Math.min(10, this.enemyElixir + dt * 1.16);
+      for (var cooldownIndex = 0; cooldownIndex < this.cardCooldowns.length; cooldownIndex += 1) this.cardCooldowns[cooldownIndex] = Math.max(0, this.cardCooldowns[cooldownIndex] - dt);
+      if (this.tutorialStep < TUTORIAL_STEPS.length && this.simClock >= TUTORIAL_STEPS[this.tutorialStep].at) { this.showTransient(TUTORIAL_STEPS[this.tutorialStep].text, 'tutorial', 2.2); this.tutorialStep += 1; }
+      if (!this.overtime) { this.timeLeft = Math.max(0, this.timeLeft - dt); if (this.timeLeft <= 0) { if (Math.abs(this.playerCore - this.enemyCore) < 1) { this.overtime = true; this.showTransient('SUDDEN DEATH', 'chip', 2.0); } else this.finish(this.enemyCore < this.playerCore ? 'victory' : 'defeat'); } }
+      while (this.commandQueue.length && this.commandQueue[0].readyAt <= this.simClock) { var action = this.commandQueue.shift(); if (action) { this.pendingPlacement = null; this.deployFromHand(action.cardIndex, action.lane, action.targetY, 'player'); } }
+      this.updateWaves(dt); this.updateBot(dt); this.updateUnits(dt); this.updateProjectiles(dt); this.updateFx(dt);
+      if (this.transient) { this.transient.time -= dt; if (this.transient.time <= 0) this.transient = null; }
+      if (this.banner) { this.banner.time -= dt; if (this.banner.time <= 0 && !this.banner.result) this.banner = null; }
+    }
+    showTransient(textValue, kind, time) { if (this.status !== 'playing') return; this.transient = { text: String(textValue).slice(0, 42), kind: kind || 'chip', time: time || 1, max: time || 1 }; }
+    medalData() {
+      var remaining = clamp(this.playerCore / 1000, 0, 1); var rungTier = tier(remaining); var nextStreak = progress.streak + 1; var streakTier = nextStreak >= 4 ? 'gold' : nextStreak >= 2 ? 'silver' : 'bronze'; var towerTier = this.playerCore >= 999 ? 'gold' : this.playerCore >= 700 ? 'silver' : 'bronze';
+      return { rung: rungTier, streak: streakTier, tower: towerTier, streakCount: nextStreak };
+    }
+    finish(result) {
+      if (this.status !== 'playing') return; this.status = result; tdState.status = result; tdState.inMatch = false;
+      if (result === 'victory') {
+        var medals = this.medalData(); progress.streak += 1;
+        if (this.mode === 'ladder') { progress.medals[String(this.rung)] = { rung: medals.rung, streak: medals.streak, tower: medals.tower }; if (this.rung >= progress.rung) progress.rung = Math.min(8, this.rung + 1); if (this.rung <= 2) { var gift = (RUNG_TABLE[this.rung] || RUNG_TABLE[0]).unlock[0]; if (progress.deck.indexOf(gift) < 0) progress.deck[(this.rung + 3) % 8] = gift; progress.drops += 1; } }
+        if (this.mode === 'gauntlet') progress.gauntletBest = Math.max(progress.gauntletBest, this.gauntletIndex + 1);
+      if (this.mode === 'draft') progress.draftWins += 1;
+        saveProgress(); tdState.medal = medals; playSfx('victory', 0); kit.audio.music('victoryMusic', 260); if (kit.juice.enabled) kit.juice.shake(4, 220);
+        this.result = { title: this.mode === 'ladder' && this.rung < 8 ? 'RUNG UP' : 'CORE BREAK', sub: this.mode === 'ladder' && this.rung < 8 ? 'Three new cards online' : 'The line holds', details: 'Core ' + Math.ceil(this.enemyCore) + ' / ' + Math.ceil(this.playerCore), medal: 'RUNG ' + medals.rung.toUpperCase() + '\nSTREAK ' + medals.streak.toUpperCase() + '\nTOWER ' + medals.tower.toUpperCase(), hint: this.mode === 'ladder' && this.rung < 8 ? 'The next rung is unlocked' : 'Deck Forge is ready' };
+      } else {
+        progress.streak = 0; saveProgress(); playSfx('clash', 0); tdState.medal = null;
+        this.result = { title: 'LINE LOST', sub: 'Retry the counter window', details: 'Core ' + Math.ceil(this.enemyCore) + ' / ' + Math.ceil(this.playerCore), medal: 'STREAK RESET', hint: 'Generous elixir returns on retry' };
+      }
+      this.transient = null; this.banner = { title: this.result.title, sub: this.result.sub, time: 999, max: 999, result: true }; this.showResultPanel();
+    }
+    showResultPanel() {
+      this.resultPanel.setVisible(true).setScale(kit.juice.enabled ? 0.78 : 1).setStrokeStyle(2, this.status === 'victory' ? PALETTE.teal : PALETTE.coral, 1);
+      this.resultTitle.setText(this.result.title).setColor(this.status === 'victory' ? '#43c7f4' : '#ff665c').setVisible(true);
+      this.resultSub.setText(this.result.sub).setVisible(true); this.resultDetail.setText(this.result.details).setVisible(true); this.medalText.setText(this.result.medal).setVisible(this.status === 'victory'); this.resultHint.setText(this.result.hint).setVisible(true);
+      this.resultButtonA.setVisible(true); this.resultButtonB.setVisible(true); this.resultButtonAText.setVisible(true); this.resultButtonBText.setVisible(true);
+      this.resultZoneA.setVisible(true); this.resultZoneB.setVisible(true);
+      this.resultButtonAText.setText(this.status === 'victory' ? 'CONTINUE' : 'RETRY'); this.resultButtonBText.setText(this.mode === 'ladder' ? 'LADDER' : 'MODES');
+      if (kit.juice.enabled) this.tweens.add({ targets: this.resultPanel, scaleX: 1, scaleY: 1, duration: 520, ease: 'Back.Out' });
+    }
+    refreshHand() {
+      for (var i = 0; i < this.cardViews.length; i += 1) {
+        var view = this.cardViews[i]; var c = getCard(this.hand[i]); var selected = i === this.selectedHand; var cooldown = this.cooldownFor(i); var affordable = this.playerElixir + 0.001 >= c.cost && cooldown <= 0;
+        view.bg.setFillStyle(selected ? 0x173b4b : PALETTE.panel, cooldown > 0 ? 0.68 : 1).setStrokeStyle(selected ? 2.5 : 1.5, selected ? PALETTE.white : (affordable ? c.color : PALETTE.line), 1);
+        view.accent.setFillStyle(c.color, affordable ? 1 : 0.4); view.icon.setTexture('td-unit-' + (c.role || 'swarm')).setTint(affordable ? c.color : 0x5c707b); setTextIfChanged(view.name, c.short); setTextIfChanged(view.cost, '⚡ ' + c.cost); setTextIfChanged(view.role, c.role === 'building' ? 'BUILD' : c.role.toUpperCase());
+        setTextIfChanged(view.effect, cooldown > 0 ? 'READY ' + cooldown.toFixed(1) + 's' : String(c.text).slice(0, 16));
+        setColorIfChanged(view.name, affordable ? '#e9fbff' : '#647983'); setColorIfChanged(view.cost, affordable ? '#' + c.color.toString(16).padStart(6, '0') : '#647983'); setColorIfChanged(view.role, affordable ? '#91aeba' : '#647983');
+        setColorIfChanged(view.effect, cooldown > 0 ? '#e0a34a' : '#91aeba');
+      }
+    }
+    updateHud() {
+      setTextIfChanged(this.headerMode, modeLabel(this.mode)); setTextIfChanged(this.headerRung, this.mode === 'ladder' ? 'RUNG ' + this.rung + ' / 8' : this.arena.signature); setTextIfChanged(this.headerTimer, this.overtime ? 'OT' : formatTime(this.timeLeft)); setTextIfChanged(this.headerArena, this.arena.name);
+      setTextIfChanged(this.enemyHpText, Math.ceil(this.enemyCore) + ' HP'); setTextIfChanged(this.playerHpText, Math.ceil(this.playerCore) + ' HP'); setTextIfChanged(this.elixirText, '⚡ ' + this.playerElixir.toFixed(1) + ' / 10');
+      this.enemyBar.width = 192 * clamp(this.enemyCore / 1000, 0, 1); this.playerBar.width = 192 * clamp(this.playerCore / 1000, 0, 1); this.elixirBar.width = 354 * clamp(this.playerElixir / 10, 0, 1); this.enemyBar.setFillStyle(this.enemyCore < 350 ? PALETTE.amber : PALETTE.coral, 1); this.playerBar.setFillStyle(this.playerCore < 350 ? PALETTE.coral : PALETTE.teal, 1);
+      if (this.status === 'playing' && this.playerCore < 350 && !this.dangerMusic) { this.dangerMusic = true; kit.audio.music('danger', 420); }
+      this.enemyWarn.setVisible(this.enemyCore < 350).setAlpha(this.enemyCore < 350 ? 0.35 + 0.22 * Math.sin(this.simClock * 8) : 0); this.playerWarn.setVisible(this.playerCore < 350).setAlpha(this.playerCore < 350 ? 0.35 + 0.22 * Math.sin(this.simClock * 8) : 0);
+      var pScale = 1 + (this.playerCore < 350 ? 0.06 * Math.sin(this.simClock * 8) : 0); var eScale = 1 + (this.enemyCore < 350 ? 0.06 * Math.sin(this.simClock * 8) : 0); this.enemyCoreImage.setScale(eScale); this.playerCoreImage.setScale(pScale);
+      this.refreshHand(); this.renderSockets(); this.renderLaneSelection(); setTextIfChanged(this.cooldownText, this.cooldownFor(this.selectedHand) > 0 ? 'COOLDOWN ' + this.cooldownFor(this.selectedHand).toFixed(1) + 's' : 'SELECTED ' + (this.selectionLane + 1)); setTextIfChanged(this.queueText, this.pendingPlacement ? 'PLACEMENT STAGED' : 'WAVE ' + this.waveIndex + ' / ' + MAX_WAVES); this.undoButton.setVisible(!!this.pendingPlacement); this.undoText.setVisible(!!this.pendingPlacement); this.undoZone.setVisible(!!this.pendingPlacement); this.updateState();
+    }
+    updateState() {
+      tdState.mode = this.mode; tdState.rung = this.rung; tdState.hand = this.hand.slice(); tdState.deck = progress.deck.slice(); tdState.elixir = Number(this.playerElixir.toFixed(2)); tdState.coreHP = { player: Math.ceil(this.playerCore), enemy: Math.ceil(this.enemyCore) }; tdState.arena = this.arena.key; tdState.inMatch = this.status === 'playing'; tdState.status = this.status; tdState.wave = this.waveIndex; tdState.selectedLane = this.selectionLane; tdState.cooldowns = this.cardCooldowns.slice(); tdState.synergies = this.synergyLinks.length; tdState.forceMode = bootFallback.forceMode; tdState.forceRung = bootFallback.forceRung;
+    }
+    renderUnits() {
+      for (var i = 0; i < this.unitViews.length; i += 1) { var off = this.unitViews[i]; off.body.setVisible(false); off.notch.setVisible(false); off.hpBg.setVisible(false); off.hp.setVisible(false); off.select.setVisible(false); }
+      for (var j = 0; j < this.units.length; j += 1) {
+        var u = this.units[j]; if (!u.alive) continue; var c = getCard(u.cardId); var v = this.unitViews[u.slot]; var color = u.team === 'player' ? TEAM.player : TEAM.enemy; var role = c.role || 'swarm'; var size = c.building ? 38 : c.role === 'tank' ? 35 : c.role === 'swarm' ? 26 : c.role === 'rush' ? 31 : 30; var bob = c.building ? 0 : Math.sin(this.simClock * (u.hit > 0 ? 18 : 7) + u.phase) * (u.hit > 0 ? 2.5 : 1.5); var flash = u.hit > 0 ? PALETTE.white : color; var pulse = u.bossTelegraph > 0 ? 1.16 + Math.sin(this.simClock * 18) * 0.08 : 1;
+        v.body.setPosition(u.x, u.y + bob).setTexture(c.building ? 'td-tower' : 'td-unit-' + role).setDisplaySize(size * pulse, size * pulse).setTint(flash).setAlpha(u.freeze > 0 ? 0.62 : 1).setVisible(true);
+        v.notch.setPosition(u.x, u.y - size * 0.38 + bob).setFillStyle(flash, 1).setVisible(true); v.hpBg.setPosition(u.x - 15, u.y + size * 0.52 + bob).setVisible(true); v.hp.setPosition(u.x - 15, u.y + size * 0.52 + bob).setSize(30 * clamp(u.hp / u.maxHp, 0, 1), 3).setFillStyle(color, 1).setVisible(true); v.select.setPosition(u.x, u.y).setDisplaySize(u.bossTelegraph > 0 ? 52 : 48, u.bossTelegraph > 0 ? 52 : 48).setTint(u.bossTelegraph > 0 ? PALETTE.coral : color).setVisible(u.bossTelegraph > 0);
+      }
+    }
+    renderSynergies() {
+      this.synergyGraphics.clear();
+      for (var i = 0; i < this.synergyLinks.length; i += 1) { var link = this.synergyLinks[i]; if (!link.a.alive || !link.b.alive) continue; this.synergyGraphics.lineStyle(2, link.a.team === 'player' ? PALETTE.teal : PALETTE.coral, 0.72); this.synergyGraphics.lineBetween(link.a.x, link.a.y, link.b.x, link.b.y); }
+    }
+    renderProjectiles() { for (var i = 0; i < this.projectilePool.length; i += 1) { var p = this.projectilePool[i]; var view = this.projectileViews[p.viewSlot]; if (!p.active) { view.sprite.setVisible(false); continue; } var target = this.units.find(function (u) { return u.alive && u.id === p.targetId; }); var t = 1 - clamp(p.life / p.max, 0, 1); view.sprite.setPosition(target ? lerp(p.x, target.x, t) : p.x, target ? lerp(p.y, target.y, t) : p.y).setVisible(true); } }
+    renderFx() { for (var s = 0; s < this.particleSystemList.length; s += 1) { var system = this.particleSystemList[s]; for (var i = 0; i < system.pool.length; i += 1) { var f = system.pool[i]; var view = system.views[f.viewSlot]; if (f.life <= 0) { view.sprite.setVisible(false); continue; } view.sprite.setPosition(f.x, f.y).setAlpha(clamp(f.life / f.max, 0, 1)).setScale(f.size * clamp(f.life / f.max, 0, 1)); } } }
+    renderBanner() {
+      var ready = this.banner && !this.banner.result && this.status === 'playing'; this.bannerBg.setVisible(!!ready); this.bannerTitle.setVisible(!!ready); this.bannerSub.setVisible(!!ready);
+      if (ready) { var fade = clamp(this.banner.time / 0.34, 0, 1); this.bannerBg.setAlpha(Math.min(1, fade)); this.bannerTitle.setAlpha(Math.min(1, fade)); this.bannerSub.setAlpha(Math.min(1, fade)); setTextIfChanged(this.bannerTitle, this.banner.title); setTextIfChanged(this.bannerSub, this.banner.sub); }
+      var telegraph = this.waveTelegraph && this.status === 'playing'; var bot = this.botTelegraph && !telegraph && this.status === 'playing'; this.waveLabel.setVisible(!!(telegraph || bot));
+      for (var i = 0; i < this.waveRings.length; i += 1) { var active = !!telegraph && this.waveTelegraph.pattern.lanes.indexOf(i) >= 0 || !!bot && this.botTelegraph.lane === i; this.waveRings[i].setVisible(active); if (active) { var x = this.laneCenters()[i] || this.laneCenters()[0]; var time = telegraph ? this.waveTelegraph.time : this.botTelegraph.time; var max = telegraph ? this.waveTelegraph.max : this.botTelegraph.max; this.waveRings[i].setPosition(x, bot ? 220 : 182 + (i % 2) * 32).setScale(1 + (1 - time / max) * 0.32); } }
+      if (telegraph) setTextIfChanged(this.waveLabel, (this.waveTelegraph.pattern.boss ? 'BOSS ' : 'WAVE ') + this.waveTelegraph.index + ' / ' + this.waveTelegraph.pattern.name + '  ' + this.waveTelegraph.time.toFixed(1));
+      else if (bot) setTextIfChanged(this.waveLabel, 'ENEMY READS LANE ' + (this.botTelegraph.lane + 1) + '  ' + this.botTelegraph.time.toFixed(1));
+    }
+    renderTransient() {
+      if (this.status !== 'playing' || !this.transient) { this.toastBg.setVisible(false); this.toastText.setVisible(false); return; }
+      var fade = clamp(this.transient.time < 0.32 ? this.transient.time / 0.32 : 1, 0, 1); this.toastBg.setVisible(true).setAlpha(0.88 * fade); this.toastText.setVisible(true).setAlpha(fade); setTextIfChanged(this.toastText, this.transient.text); setColorIfChanged(this.toastText, this.transient.kind === 'warning' ? '#ff665c' : this.transient.kind === 'chip' ? '#e0a34a' : '#e9fbff');
+    }
+    renderDrag() {
+      if (!this.drag || this.status !== 'playing') { this.dragGhost.setVisible(false); return; }
+      var c = getCard(this.hand[this.drag.cardIndex]); this.dragGhost.setPosition(this.drag.x, this.drag.y).setVisible(true); this.dragGhostIcon.setTexture('td-unit-' + c.role).setTint(c.color); setTextIfChanged(this.dragGhostText, c.short); this.dragGhostBg.setStrokeStyle(2, c.color, 1);
+    }
+    update(time, delta) {
+      if (kit.paused || this.lifecyclePaused) return; var raw = Math.min(Math.max(delta || 0, 0) / 1000, 0.1); this.accumulator += raw; var steps = 0;
+      var juice = kit.juice.frame();
+      if (!juice.frozen) while (this.accumulator >= STEP && steps < MAX_SIM_STEPS_PER_FRAME) { this.stepSim(STEP); this.accumulator -= STEP; steps += 1; }
+      this.updateHud(); this.renderUnits(); this.renderSynergies(); this.renderProjectiles(); this.renderFx(); this.renderBanner(); this.renderTransient(); this.renderDrag();
+      this.cameras.main.setScroll(-juice.dx, -juice.dy);
+      var requestedMode = modeSafe(bootFallback.forceMode);
+      var requestedRung = bootFallback.forceRung == null ? null : intSafe(bootFallback.forceRung, this.rung, 1, 8);
+      if (this.status === 'playing' && requestedMode && requestedMode !== this.mode) { this.mode = requestedMode; this.resetMatch(); }
+      if (this.status === 'playing' && this.mode === 'ladder' && requestedRung != null && requestedRung !== this.rung) { this.rung = requestedRung; this.resetMatch(); }
+      if (this.isResult()) {
+        if (edgeKey(this, 'ArrowLeft') || kit.input.gamepadEdge('left')) this.resultFocus = 0;
+        if (edgeKey(this, 'ArrowRight') || kit.input.gamepadEdge('right')) this.resultFocus = 1;
+        if (edgeKey(this, 'Space') || edgeKey(this, 'Enter') || kit.input.gamepadEdge('confirm')) this.handleResultAction(this.resultFocus === 0 ? 'a' : 'b');
+        if (edgeKey(this, 'Escape') || kit.input.gamepadEdge('cancel')) this.scene.start('menu');
+        this.resultButtonA.setStrokeStyle(2.5, this.resultFocus === 0 ? PALETTE.white : PALETTE.teal, 1); this.resultButtonB.setStrokeStyle(2.5, this.resultFocus === 1 ? PALETTE.white : PALETTE.violet, 1); return;
+      }
+      for (var keyIndex = 0; keyIndex < 4; keyIndex += 1) if (edgeKey(this, 'Digit' + (keyIndex + 1))) { this.selectedHand = keyIndex; playSfx('select', 50); }
+      if (edgeKey(this, 'ArrowLeft') || kit.input.gamepadEdge('left')) this.selectionLane = Math.max(0, this.selectionLane - 1);
+      if (edgeKey(this, 'ArrowRight') || kit.input.gamepadEdge('right')) this.selectionLane = Math.min(this.arena.lanes - 1, this.selectionLane + 1);
+      if (edgeKey(this, 'ArrowUp') || kit.input.gamepadEdge('up')) this.selectedHand = (this.selectedHand + 3) % 4;
+      if (edgeKey(this, 'ArrowDown') || kit.input.gamepadEdge('down')) this.selectedHand = (this.selectedHand + 1) % 4;
+      if (edgeKey(this, 'Space') || edgeKey(this, 'Enter') || kit.input.gamepadEdge('confirm')) { var keyboardCard = this.currentCard(); this.stagePlacement(this.selectedHand, this.selectionLane, this.legalY(540, keyboardCard)); }
+      if (edgeKey(this, 'Backspace') || edgeKey(this, 'Escape') || kit.input.gamepadEdge('cancel')) { if (this.pendingPlacement) this.undoPlacement(); else this.scene.start('menu'); }
+    }
   }
 
-  function handleKeyUp(event) { keys.delete(event.key); }
-
-  function updatePauseState() {
-    resetInput();
-    orientationPaused = isLandscape();
-    hiddenPaused = document.hidden;
-    rotateOverlay.setAttribute('aria-hidden', orientationPaused ? 'false' : 'true');
-    lastFrame = performance.now();
-  }
-
-  function frame(now) {
-    const raw = Math.max(0, (now - lastFrame) / 1000);
-    lastFrame = now;
-    const dt = Math.min(raw, 0.033);
-    if (!orientationPaused && !hiddenPaused) updateGame(dt);
-    render();
-    requestAnimationFrame(frame);
-  }
-
-  canvas.addEventListener('pointerdown', handlePointerDown, { passive: false });
-  canvas.addEventListener('pointermove', handlePointerMove, { passive: false });
-  canvas.addEventListener('pointerup', handlePointerUp, { passive: false });
-  canvas.addEventListener('pointercancel', (event) => handlePointerUp(event, true), { passive: false });
-  canvas.addEventListener('contextmenu', (event) => event.preventDefault());
-  // Pointer Events are the shared touch/mouse path; these prevent mobile browser gestures too.
-  canvas.addEventListener('touchstart', (event) => event.preventDefault(), { passive: false });
-  canvas.addEventListener('touchmove', (event) => event.preventDefault(), { passive: false });
-  canvas.addEventListener('touchend', (event) => event.preventDefault(), { passive: false });
-  window.addEventListener('keydown', handleKeyDown, { passive: false });
-  window.addEventListener('keyup', handleKeyUp, { passive: false });
-  window.addEventListener('blur', () => { resetInput(); });
-  document.addEventListener('visibilitychange', updatePauseState);
-  window.addEventListener('resize', resizeCanvas);
-  window.addEventListener('orientationchange', () => { updatePauseState(); resizeCanvas(); });
-
-  resizeCanvas();
-  render();
-  requestAnimationFrame(frame);
-})();
+  new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'game-mount',
+    backgroundColor: '#07111d',
+    resolution: Math.min(window.devicePixelRatio || 1, 2),
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
+    render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
+    fps: { target: 60, min: 30 },
+    scene: [BootScene, MenuScene, LadderScene, ForgeScene, ModeScene, DuelScene],
+  });
+  kit.registerPWA();
+  window.__TOWERLINE_READY = true;
+}());

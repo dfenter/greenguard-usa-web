@@ -1,177 +1,236 @@
-/* Gridfall - game.js : board model, piece set, dealing, scoring. No rendering here. */
-'use strict';
-var G = (function () {
+/* Gridfall model. The simulation owns all puzzle state and never touches Phaser. */
+(function () {
+  'use strict';
 
-  var N = 8;                 // board is 8x8
-  var COLORS = ['#4fc3f7', '#ffb74d', '#7ed37e', '#ef6b6b', '#b47ae0', '#ffe066', '#4dd0e1'];
+  var N = 8;
+  var COLORS = [0xf25c68, 0xf7c948, 0x5bcb77, 0x38a8de, 0x9a7cf3, 0xf29a4a];
+  var COLOR_NAMES = ['coral', 'sun', 'leaf', 'tide', 'plum', 'ember'];
+  var GLYPHS = ['●', '✦', '⌁', '◆', '✚', '■'];
+  var KINDS = { empty: 0, hazard: 9 };
 
-  /* ---- piece library: base shapes expanded through unique rotations ---- */
-  function norm(cells) {
-    var mx = 99, my = 99, i;
-    for (i = 0; i < cells.length; i++) { if (cells[i][0] < mx) mx = cells[i][0]; if (cells[i][1] < my) my = cells[i][1]; }
-    var out = [];
-    for (i = 0; i < cells.length; i++) out.push([cells[i][0] - mx, cells[i][1] - my]);
-    out.sort(function (a, b) { return (a[1] - b[1]) || (a[0] - b[0]); });
-    return out;
-  }
-  function rot(cells) {
-    var my = 0;
-    for (var i = 0; i < cells.length; i++) if (cells[i][1] > my) my = cells[i][1];
-    var out = [];
-    for (i = 0; i < cells.length; i++) out.push([my - cells[i][1], cells[i][0]]);
-    return norm(out);
-  }
-  function key(cells) { var s = ''; for (var i = 0; i < cells.length; i++) s += cells[i][0] + ',' + cells[i][1] + ';'; return s; }
-
-  var BASES = [
-    { c: 0, w: 5, s: [[0, 0]] },                                                   // single
-    { c: 0, w: 8, s: [[0, 0], [1, 0]] },                                           // domino
-    { c: 1, w: 8, s: [[0, 0], [1, 0], [2, 0]] },                                   // tri line
-    { c: 1, w: 6, s: [[0, 0], [1, 0], [2, 0], [3, 0]] },                           // quad line
-    { c: 2, w: 3, s: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]] },                   // penta line
-    { c: 3, w: 8, s: [[0, 0], [1, 0], [0, 1], [1, 1]] },                           // 2x2
-    { c: 4, w: 2, s: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]] }, // 3x3
-    { c: 5, w: 9, s: [[0, 0], [0, 1], [1, 1]] },                                   // corner (3)
-    { c: 6, w: 5, s: [[0, 0], [1, 0], [2, 0], [1, 1]] },                           // T
-    { c: 2, w: 4, s: [[1, 0], [2, 0], [0, 1], [1, 1]] },                           // S
-    { c: 3, w: 4, s: [[0, 0], [1, 0], [1, 1], [2, 1]] },                           // Z
-    { c: 4, w: 5, s: [[0, 0], [0, 1], [0, 2], [1, 2]] },                           // L
-    { c: 6, w: 5, s: [[1, 0], [1, 1], [1, 2], [0, 2]] },                           // J
-    { c: 5, w: 4, s: [[0, 0], [0, 1], [0, 2], [1, 2], [2, 2]] }                    // big corner (5)
+  var PATTERNS = [
+    { id: 'classic', name: 'Classic', unlock: 0, mark: '●' },
+    { id: 'prism', name: 'Prism', unlock: 1, mark: '◆' },
+    { id: 'leaf', name: 'Leaf', unlock: 2, mark: '✦' },
+    { id: 'star', name: 'Star', unlock: 3, mark: '✚' },
+    { id: 'aurora', name: 'Aurora', unlock: 4, mark: '⌁' },
+    { id: 'gold', name: 'Goldline', unlock: 5, mark: '■' }
   ];
 
-  var PIECES = [], BAG = [];
-  (function build() {
-    for (var b = 0; b < BASES.length; b++) {
-      var cur = norm(BASES[b].s), seen = {}, r;
-      for (r = 0; r < 4; r++) {
-        var k = key(cur);
-        if (!seen[k]) {
-          seen[k] = 1;
-          var w = 0, h = 0;
-          for (var i = 0; i < cur.length; i++) { if (cur[i][0] + 1 > w) w = cur[i][0] + 1; if (cur[i][1] + 1 > h) h = cur[i][1] + 1; }
-          PIECES.push({ id: PIECES.length, cells: cur, w: w, h: h, n: cur.length, col: BASES[b].c, wt: BASES[b].w });
-        }
-        cur = rot(cur);
-      }
-    }
-    for (var p = 0; p < PIECES.length; p++) for (var q = 0; q < PIECES[p].wt; q++) BAG.push(PIECES[p].id);
-  })();
+  /* The chapters deliberately lengthen the move budget and add new tile language. */
+  var CHALLENGES = [
+    { id: 'challenge-01', name: 'First Fold', sub: 'Learn the clean group', accent: 0xf7c948, goal: 'score', target: 420, moves: 18, bronze: [420, 3, 0], silver: [620, 5, 1], gold: [820, 7, 2], pattern: 'prism', rows: ['00112233', '22334455', '44550011', '11003344', '33445522', '55001133', '11224455', '33005511'] },
+    { id: 'challenge-02', name: 'Twin Channels', sub: 'Make two cascades breathe', accent: 0x38a8de, goal: 'cascades', target: 2, moves: 22, bronze: [520, 3, 1], silver: [780, 5, 2], gold: [1050, 7, 3], pattern: 'leaf', rows: ['00112233', '00112233', '44556611', '44556611', '22334455', '22334455', '55001122', '55001122'] },
+    { id: 'challenge-03', name: 'Pressure Bloom', sub: 'Build a large clear', accent: 0x5bcb77, goal: 'clears', target: 30, moves: 26, bronze: [700, 4, 1], silver: [980, 6, 2], gold: [1300, 8, 3], pattern: 'star', rows: ['00110022', '00110022', '33445500', '33445500', '11223344', '11223344', '44550011', '44550011'] },
+    { id: 'challenge-04', name: 'Ceramic Switch', sub: 'Read every color family', accent: 0x9a7cf3, goal: 'score', target: 1050, moves: 30, bronze: [1050, 5, 1], silver: [1400, 7, 2], gold: [1800, 9, 3], pattern: 'aurora', rows: ['01234501', '12345012', '23450123', '34501234', '45012345', '50123450', '01234501', '12345012'] },
+    { id: 'challenge-05', name: 'Glass Garden', sub: 'Turn gravity into a tool', accent: 0xf29a4a, goal: 'cascades', target: 3, moves: 34, bronze: [1250, 6, 1], silver: [1700, 8, 2], gold: [2200, 10, 4], pattern: 'gold', rows: ['00112244', '00112244', '33550011', '33550011', '22445533', '22445533', '11003355', '11003355'] },
+    { id: 'challenge-06', name: 'Signal Crown', sub: 'The full pattern set', accent: 0xf25c68, goal: 'score', target: 1700, moves: 38, bronze: [1700, 7, 1], silver: [2200, 9, 3], gold: [2800, 12, 5], pattern: 'gold', rows: ['01230123', '12341234', '23452345', '34503450', '45014501', '50125012', '01230123', '12341234'] }
+  ];
+  var MASTER = {
+    id: 'gridfall-master', name: 'Gridfall Master', sub: 'Hazards, scarce moves, no wasted tap', accent: 0xf29a4a,
+    goal: 'cascades', target: 4, moves: 45, bronze: [1600, 8, 2], silver: [2200, 10, 4], gold: [3000, 13, 6], pattern: 'gold',
+    rows: ['90011229', '22334455', '44550011', '11003344', '33445522', '55001133', '11224455', '92255009']
+  };
 
-  /* ---- board helpers ---- */
-  function newBoard() { return new Uint8Array(N * N); }
-
-  function canPlace(bd, piece, ox, oy) {
-    if (ox < 0 || oy < 0 || ox + piece.w > N || oy + piece.h > N) return false;
-    var c = piece.cells;
-    for (var i = 0; i < c.length; i++) {
-      if (bd[(oy + c[i][1]) * N + (ox + c[i][0])]) return false;
-    }
-    return true;
+  function rng(seed) {
+    var s = (seed >>> 0) || 1;
+    return function () {
+      s = (s + 0x6D2B79F5) >>> 0;
+      var t = s;
+      t = Math.imul(t ^ (t >>> 15), 1 | t);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
-  function anySpot(bd, piece) {
-    for (var y = 0; y <= N - piece.h; y++)
-      for (var x = 0; x <= N - piece.w; x++)
-        if (canPlace(bd, piece, x, y)) return true;
+  function hash(text) {
+    var h = 2166136261 >>> 0;
+    for (var i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  function int(random, n) { return Math.floor(random() * n) % (n || 1); }
+  function index(x, y) { return y * N + x; }
+  function inBounds(x, y) { return x >= 0 && x < N && y >= 0 && y < N; }
+  function cloneBoard(board) { return new Uint8Array(board); }
+
+  function boardFromRows(rows, random) {
+    var board = new Uint8Array(N * N), value;
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+      value = (rows[y] || '').charCodeAt(x) - 48;
+      board[index(x, y)] = value === 9 ? KINDS.hazard : (value >= 1 && value <= 6 ? value : 1 + int(random, 6));
+    }
+    return board;
+  }
+  function wouldMakeTriple(board, x, y, value) {
+    if (x >= 2 && board[index(x - 1, y)] === value && board[index(x - 2, y)] === value) return true;
+    if (y >= 2 && board[index(x, y - 1)] === value && board[index(x, y - 2)] === value) return true;
     return false;
   }
-  function place(bd, piece, ox, oy) {
-    var c = piece.cells, cells = [];
-    for (var i = 0; i < c.length; i++) {
-      var cx = ox + c[i][0], cy = oy + c[i][1];
-      bd[cy * N + cx] = piece.col + 1;
-      cells.push([cx, cy]);
-    }
-    return cells;
+  function wouldMakeTripleWithBelow(board, x, y, value) {
+    if (x >= 2 && board[index(x - 1, y)] === value && board[index(x - 2, y)] === value) return true;
+    if (y + 2 < N && board[index(x, y + 1)] === value && board[index(x, y + 2)] === value) return true;
+    return false;
   }
-  /* returns {rows:[], cols:[], cells:[[x,y,color]...]} and mutates board */
-  function clearLines(bd) {
-    var rows = [], cols = [], x, y, full;
-    for (y = 0; y < N; y++) {
-      full = true;
-      for (x = 0; x < N; x++) if (!bd[y * N + x]) { full = false; break; }
-      if (full) rows.push(y);
+  function fillSafe(board, random) {
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+      if (board[index(x, y)] === KINDS.hazard) continue;
+      var value = 1 + int(random, 6), tries = 0;
+      while (wouldMakeTriple(board, x, y, value) && tries++ < 12) value = 1 + int(random, 6);
+      board[index(x, y)] = value;
     }
+    return board;
+  }
+  function boardFor(mode, boardId, random) {
+    if (mode === 'challenge') return fillSafe(boardFromRows(definition(mode, boardId).rows, random), random);
+    if (mode === 'master') return fillSafe(boardFromRows(MASTER.rows, random), random);
+    var board = new Uint8Array(N * N);
+    return fillSafe(board, random);
+  }
+  function definition(mode, boardId) {
+    if (mode === 'master') return MASTER;
+    if (mode === 'challenge') for (var i = 0; i < CHALLENGES.length; i++) if (CHALLENGES[i].id === boardId) return CHALLENGES[i];
+    if (mode === 'daily') return { id: boardId, name: 'Daily Stamp', sub: 'One seeded board, one official finish', accent: 0x38a8de, goal: 'score', target: 1000, moves: 40, bronze: [1000, 4, 1], silver: [1400, 6, 2], gold: [1900, 9, 3], pattern: 'classic' };
+    return { id: 'marathon-open', name: 'Open Grid', sub: 'A 60-move score run', accent: 0xf7c948, goal: 'score', target: 1800, moves: 60, bronze: [1800, 5, 1], silver: [2400, 8, 2], gold: [3200, 11, 4], pattern: 'classic' };
+  }
+  function safeMode(mode) { return mode === 'daily' || mode === 'challenge' || mode === 'master' ? mode : 'marathon'; }
+  function normalizeBoardId(mode, boardId) {
+    if (mode === 'master') return MASTER.id;
+    if (mode === 'challenge') for (var i = 0; i < CHALLENGES.length; i++) if (CHALLENGES[i].id === boardId) return boardId;
+    return mode === 'daily' ? (boardId || 'daily-stamped') : 'marathon-open';
+  }
+  function countFilled(board) { var n = 0; for (var i = 0; i < board.length; i++) if (board[i]) n++; return n; }
+  function groupAt(board, x, y) {
+    if (!inBounds(x, y) || board[index(x, y)] < 1 || board[index(x, y)] > 6) return [];
+    var target = board[index(x, y)], seen = {}, queue = [index(x, y)], head = 0, out = [], p, px, py, nx, ny, k;
+    seen[queue[0]] = true;
+    while (head < queue.length) {
+      p = queue[head++]; px = p % N; py = (p / N) | 0; out.push([px, py]);
+      for (var i = 0; i < 4; i++) {
+        nx = px + (i === 0 ? 1 : i === 1 ? -1 : 0); ny = py + (i === 2 ? 1 : i === 3 ? -1 : 0);
+        if (!inBounds(nx, ny)) continue;
+        k = index(nx, ny); if (!seen[k] && board[k] === target) { seen[k] = true; queue.push(k); }
+      }
+    }
+    return out;
+  }
+  function allGroups(board) {
+    var seen = {}, groups = [], g, cell, k;
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+      k = index(x, y); if (seen[k] || board[k] < 1 || board[k] > 6) continue;
+      g = groupAt(board, x, y);
+      for (var i = 0; i < g.length; i++) { cell = g[i]; seen[index(cell[0], cell[1])] = true; }
+      if (g.length >= 3) groups.push(g);
+    }
+    return groups;
+  }
+  function ensureLegal(board, random) {
+    if (allGroups(board).length) return;
+    for (var y = 0; y < N; y++) for (var x = 0; x < N - 2; x++) {
+      if (board[index(x, y)] !== KINDS.hazard && board[index(x + 1, y)] !== KINDS.hazard && board[index(x + 2, y)] !== KINDS.hazard) {
+        var value = 1 + int(random, 6);
+        board[index(x, y)] = value; board[index(x + 1, y)] = value; board[index(x + 2, y)] = value;
+        return;
+      }
+    }
+  }
+  function refill(board, random) {
+    var moved = [], values, write, value, y, x;
     for (x = 0; x < N; x++) {
-      full = true;
-      for (y = 0; y < N; y++) if (!bd[y * N + x]) { full = false; break; }
-      if (full) cols.push(x);
+      values = [];
+      for (y = N - 1; y >= 0; y--) if (board[index(x, y)]) values.push(board[index(x, y)]);
+      for (y = 0; y < N; y++) board[index(x, y)] = 0;
+      write = N - 1;
+      for (var i = 0; i < values.length; i++) { value = values[i]; board[index(x, write)] = value; if (write !== N - 1 - i) moved.push([x, write, x, N - 1 - i]); write--; }
+      while (write >= 0) {
+        value = 1 + int(random, 6); var attempts = 0;
+        while (wouldMakeTripleWithBelow(board, x, write, value) && attempts++ < 12) value = 1 + int(random, 6);
+        board[index(x, write)] = value; moved.push([x, write, x, -1]); write--;
+      }
     }
-    var cells = [], mark = {};
-    function add(cx, cy) {
-      var k = cy * N + cx;
-      if (mark[k]) return;
-      mark[k] = 1;
-      cells.push([cx, cy, bd[k]]);
-    }
-    for (var i = 0; i < rows.length; i++) for (x = 0; x < N; x++) add(x, rows[i]);
-    for (i = 0; i < cols.length; i++) for (y = 0; y < N; y++) add(cols[i], y);
-    for (i = 0; i < cells.length; i++) bd[cells[i][1] * N + cells[i][0]] = 0;
-    return { rows: rows, cols: cols, cells: cells, count: rows.length + cols.length };
+    return moved;
   }
-  function isEmpty(bd) { for (var i = 0; i < bd.length; i++) if (bd[i]) return false; return true; }
-  function filled(bd) { var n = 0; for (var i = 0; i < bd.length; i++) if (bd[i]) n++; return n; }
+  function removeCells(board, cells) {
+    var removed = [];
+    for (var i = 0; i < cells.length; i++) { var x = cells[i][0], y = cells[i][1], k = index(x, y); if (board[k]) { removed.push([x, y, board[k]]); board[k] = 0; } }
+    return removed;
+  }
+  function goalReached(state) {
+    var def = state.def;
+    if (def.goal === 'cascades') return state.cascades >= def.target;
+    if (def.goal === 'clears') return state.clears >= def.target;
+    return state.score >= def.target;
+  }
+  function metric(value, thresholds) { return value >= thresholds[2] ? 3 : value >= thresholds[1] ? 2 : value >= thresholds[0] ? 1 : 0; }
+  function medal(state) {
+    if (!state || !state.complete || !state.def || !state.def.bronze || state.mode === 'marathon' || state.mode === 'daily') return '';
+    var a = metric(state.score, [state.def.bronze[0], state.def.silver[0], state.def.gold[0]]);
+    var b = metric(state.bestStreak, [state.def.bronze[1], state.def.silver[1], state.def.gold[1]]);
+    var c = metric(state.cascades, [state.def.bronze[2], state.def.silver[2], state.def.gold[2]]);
+    var n = Math.min(a, b, c);
+    return n === 3 ? 'gold' : n === 2 ? 'silver' : n === 1 ? 'bronze' : '';
+  }
+  function copyCells(cells) { return cells.map(function (c) { return [c[0], c[1]]; }); }
+  function publicBoard(board) { return Array.prototype.slice.call(board); }
+  function patternAt(id) { for (var i = 0; i < PATTERNS.length; i++) if (PATTERNS[i].id === id) return PATTERNS[i]; return PATTERNS[0]; }
 
-  /* ---- dealing: a hand NEVER arrives dead ---- */
-  function rollHand(rng) {
-    var h = [];
-    for (var i = 0; i < 3; i++) h.push(PIECES[BAG[Math.floor(rng() * BAG.length) % BAG.length]]);
-    return h;
+  function newState(mode, boardId, seed, dateKey, patternId) {
+    mode = safeMode(mode);
+    var id = normalizeBoardId(mode, boardId), random = rng(seed || hash('gridfall|' + mode + '|' + id)), def = definition(mode, id), board;
+    if (mode === 'daily') { board = new Uint8Array(N * N); fillSafe(board, random); }
+    else board = boardFor(mode, id, random);
+    ensureLegal(board, random);
+    return {
+      mode: mode, boardId: id, boardName: def.name, boardSub: def.sub, def: def, seed: seed >>> 0, dailyKey: dateKey || '', random: random,
+      board: board, score: 0, streak: 0, bestStreak: 0, clears: 0, cascades: 0, wipes: 0, moves: 0, movesRemaining: def.moves,
+      phase: 'play', complete: false, patternId: patternAt(patternId || def.pattern || 'classic').id, selected: null, last: null
+    };
   }
-  function playableCount(bd, hand) {
-    var n = 0;
-    for (var i = 0; i < hand.length; i++) if (hand[i] && anySpot(bd, hand[i])) n++;
-    return n;
+  function hint(state) {
+    var groups = allGroups(state.board);
+    if (!groups.length) return null;
+    groups.sort(function (a, b) { return b.length - a.length; });
+    return copyCells(groups[0]);
   }
-  /* prefer a hand where all three fit somewhere; never return one where none fit */
-  function dealHand(bd, rng) {
-    var best = null, bestScore = -1;
-    for (var t = 0; t < 60; t++) {
-      var h = rollHand(rng);
-      var s = playableCount(bd, h);
-      if (s > bestScore) { bestScore = s; best = h; }
-      if (s === 3) return h;
-      if (t >= 24 && bestScore >= 1) return best;
+  function tap(state, x, y) {
+    if (!state || state.phase !== 'play') return { ok: false, reason: 'not-ready' };
+    if (!inBounds(x, y)) return { ok: false, reason: 'outside' };
+    var group = groupAt(state.board, x, y);
+    if (group.length < 3) { state.selected = [[x, y]]; return { ok: false, reason: 'need-group', group: group }; }
+    var previousStreak = state.streak, removed = removeCells(state.board, group), cascades = 0, cascadeGroups = [], moved = [], nextGroups;
+    state.moves++; state.movesRemaining = Math.max(0, state.def.moves - state.moves); state.streak++; state.bestStreak = Math.max(state.bestStreak, state.streak); state.clears += removed.length;
+    var totalRemoved = removed.length;
+    moved = moved.concat(refill(state.board, state.random));
+    for (var guard = 0; guard < 8; guard++) {
+      nextGroups = allGroups(state.board); if (!nextGroups.length) break;
+      cascades++;
+      var cascadeCells = [];
+      for (var i = 0; i < nextGroups.length; i++) cascadeCells = cascadeCells.concat(removeCells(state.board, nextGroups[i]));
+      cascadeGroups.push(cascadeCells); totalRemoved += cascadeCells.length; state.clears += cascadeCells.length;
+      moved = moved.concat(refill(state.board, state.random));
     }
-    return best;
+    state.cascades += cascades; if (totalRemoved >= 24 || cascades >= 3) state.wipes++;
+    var gain = removed.length * 12 + cascades * 55 + Math.max(0, totalRemoved - removed.length) * 8 + (state.streak - 1) * 18;
+    state.score += gain; state.selected = null;
+    var complete = goalReached(state); if (complete) { state.complete = true; state.phase = 'complete'; }
+    else if (state.movesRemaining <= 0) state.phase = 'over';
+    else if (!allGroups(state.board).length) ensureLegal(state.board, state.random);
+    state.last = { group: copyCells(group), removed: removed, cascadeGroups: cascadeGroups, moved: moved, cascades: cascades, gain: gain, streak: state.streak, previousStreak: previousStreak, totalRemoved: totalRemoved, wipe: totalRemoved >= 24 || cascades >= 3, complete: complete, over: state.phase === 'over', medal: medal(state) };
+    return { ok: true, group: copyCells(group), removed: removed, cascadeGroups: cascadeGroups, moved: moved, cascades: cascades, gain: gain, streak: state.streak, previousStreak: previousStreak, complete: complete, over: state.phase === 'over', wipe: state.last.wipe, medal: state.last.medal, movesRemaining: state.movesRemaining };
   }
-  function handDead(bd, hand) {
-    for (var i = 0; i < hand.length; i++) if (hand[i] && anySpot(bd, hand[i])) return false;
-    return true;
+  function snapshot(state) {
+    return {
+      mode: state.mode, boardId: state.boardId, boardName: state.boardName, boardSub: state.boardSub, phase: state.phase, score: state.score,
+      streak: state.streak, bestStreak: state.bestStreak, clears: state.clears, lines: state.clears, cascades: state.cascades, wipes: state.wipes,
+      moves: state.moves, movesRemaining: state.movesRemaining, moveLimit: state.def.moves, hand: [], next: [], board: publicBoard(state.board),
+      medal: medal(state), complete: state.complete, dailyKey: state.dailyKey, target: state.def.target || 0, goal: state.def.goal || 'score',
+      filled: countFilled(state.board), patternId: state.patternId, patternName: patternAt(state.patternId).name, selected: state.selected ? copyCells(state.selected) : null
+    };
   }
 
-  /* ---- daily starting board: seeded scatter, never a pre-made full line ---- */
-  function seedBoard(bd, rng) {
-    var want = 8 + Math.floor(rng() * 5), tries = 0;
-    var colr = Math.floor(rng() * COLORS.length);
-    while (want > 0 && tries < 400) {
-      tries++;
-      var x = Math.floor(rng() * N), y = Math.floor(rng() * N), k = y * N + x;
-      if (bd[k]) continue;
-      bd[k] = ((colr + x + y) % COLORS.length) + 1;
-      var cl = clearLines(bd);
-      if (cl.count > 0) { bd[k] = 0; continue; }
-      want--;
-    }
-  }
-
-  /* ---- scoring ---- */
-  function scoreFor(nCells, cl, streak, perfect) {
-    var pts = nCells;
-    if (cl.count > 0) {
-      var base = 10 * cl.count * cl.count + 10;
-      var mult = 1 + 0.25 * Math.max(0, streak - 1);
-      pts += Math.round(base * mult);
-      if (perfect) pts += 300;
-    }
-    return pts;
-  }
-
-  return {
-    N: N, COLORS: COLORS, PIECES: PIECES,
-    newBoard: newBoard, canPlace: canPlace, anySpot: anySpot, place: place,
-    clearLines: clearLines, isEmpty: isEmpty, filled: filled,
-    dealHand: dealHand, rollHand: rollHand, handDead: handDead, playableCount: playableCount,
-    seedBoard: seedBoard, scoreFor: scoreFor
+  window.GridfallSim = {
+    N: N, COLORS: COLORS, COLOR_NAMES: COLOR_NAMES, GLYPHS: GLYPHS, KINDS: KINDS, PATTERNS: PATTERNS, CHALLENGES: CHALLENGES, MASTER: MASTER,
+    hash: hash, safeMode: safeMode, boardDefinition: definition, patternAt: patternAt, newState: newState, groupAt: groupAt, allGroups: allGroups,
+    hint: hint, tap: tap, place: function (state, a, b, c) { return arguments.length >= 4 ? tap(state, b, c) : tap(state, a, b); }, medal: medal, snapshot: snapshot,
+    publicBoard: publicBoard, challengeAt: function (id) { for (var i = 0; i < CHALLENGES.length; i++) if (CHALLENGES[i].id === id) return CHALLENGES[i]; return CHALLENGES[0]; },
+    challengeIndex: function (id) { for (var i = 0; i < CHALLENGES.length; i++) if (CHALLENGES[i].id === id) return i; return 0; }
   };
 })();

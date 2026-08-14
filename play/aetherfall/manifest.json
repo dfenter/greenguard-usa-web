@@ -1,0 +1,15 @@
+{
+  "name": "Aetherfall",
+  "short_name": "Aetherfall",
+  "start_url": "/play/aetherfall/",
+  "scope": "/play/aetherfall/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#07131c",
+  "theme_color": "#07131c",
+  "description": "An original portrait ATB reactor run for three heroes.",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

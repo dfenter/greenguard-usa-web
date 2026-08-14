@@ -1,0 +1,16 @@
+{
+  "name": "Bubble Fury Touch",
+  "short_name": "Bubble Fury",
+  "description": "Twin-stick arena survival. Fifteen waves across five arenas, rotating weapon racks and the Scuzz boss fights.",
+  "start_url": "/play/bubble-fury-touch/",
+  "scope": "/play/bubble-fury-touch/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#05080f",
+  "theme_color": "#05080f",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

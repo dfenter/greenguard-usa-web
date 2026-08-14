@@ -1,21 +1,24 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/towerline-duel/">
+<head>
+  <base href="/play/towerline-duel/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#07101d">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+  <meta name="theme-color" content="#07111d">
+  <meta name="description" content="Towerline Duel, a portrait lane card battler with ladder, draft, gauntlet, and deck forge play.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Towerline Duel</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main id="gameShell" aria-label="Towerline Duel game">
-    <canvas id="gameCanvas" aria-label="Towerline Duel play area"></canvas>
-    <div id="rotateOverlay" role="status" aria-live="polite">
-      <div class="rotate-mark">↻</div>
-      <strong>TURN THE TOWER</strong>
-      <span>Towerline Duel is portrait-only.</span>
-    </div>
-  </main>
+  <main id="game-mount" aria-label="Towerline Duel game"></main>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

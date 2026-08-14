@@ -1,0 +1,16 @@
+{
+  "name": "Vault Raiders",
+  "short_name": "Vault Raiders",
+  "description": "A local two-player dungeon raid with synchronized puzzles, a guardian, and a shared treasure vault.",
+  "start_url": "/play/vault-raiders/",
+  "scope": "/play/vault-raiders/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#081426",
+  "theme_color": "#081426",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

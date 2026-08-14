@@ -1,1042 +1,1190 @@
-/* Bulwark - lane tower defense with maze building. Vanilla canvas. */
+/* Bulwark - Phaser 3 AAA rebuild. GGKit owns lifecycle, input, save, audio. */
 'use strict';
+
 (function () {
-
-var cv = document.getElementById('c');
-var ctx = cv.getContext('2d', { alpha: false });
-
-/* ---------------- layout ---------------- */
-var L = { w: 390, h: 700, s: 1, hud: 58, bar: 96, cell: 48, cols: 8, rows: 15, gx: 0, gy: 0 };
-var rowsLocked = 0;
-
-function resize() {
-  var w = window.innerWidth, h = window.innerHeight;
-  L.w = w; L.h = h;
-  var dpr = Math.min(2, window.devicePixelRatio || 1);
-  var longAxis = Math.max(w, h);
-  var s = Math.min(dpr, 960 / longAxis);
-  s = Math.max(s, 0.6);
-  L.s = s;
-  cv.width = Math.round(w * s);
-  cv.height = Math.round(h * s);
-  ctx.setTransform(s, 0, 0, s, 0, 0);
-  L.hud = Math.round(Math.min(64, Math.max(52, h * 0.082)));
-  L.bar = Math.round(Math.min(104, Math.max(84, h * 0.135)));
-  var gh = h - L.hud - L.bar;
-  if (!rowsLocked) {
-    var c0 = w / L.cols;
-    rowsLocked = E.clamp(Math.floor(gh / c0), 9, 20);
-  }
-  L.rows = rowsLocked;
-  L.cell = Math.min(w / L.cols, gh / L.rows);
-  L.gx = (w - L.cols * L.cell) / 2;
-  L.gy = L.hud + (gh - L.rows * L.cell) / 2;
-}
-window.addEventListener('resize', resize);
-window.addEventListener('orientationchange', function () { setTimeout(resize, 120); });
-
-/* ---------------- defs ---------------- */
-var T = {
-  wall: { name: 'WALL', cost: 5, col: '#5a6478', col2: '#39414f', wall: true, desc: 'blocks path' },
-  arrow: { name: 'ARROW', cost: 20, col: '#7ee081', col2: '#2f7a41', dmg: 9, rate: 0.52, range: 2.7, kind: 'shot' },
-  frost: { name: 'FROST', cost: 30, col: '#6fd8ff', col2: '#2b6f92', dmg: 3, rate: 0.7, range: 2.3, kind: 'beam', slow: 0.5, slowT: 1.4 },
-  splash: { name: 'SPLASH', cost: 45, col: '#ffb457', col2: '#8a5417', dmg: 15, rate: 1.15, range: 2.5, kind: 'lob', aoe: 1.15 },
-  zap: { name: 'ZAP', cost: 55, col: '#c79bff', col2: '#5c3d94', dmg: 12, rate: 0.9, range: 3.0, kind: 'chain', chains: 3 },
-  bank: { name: 'BANK', cost: 40, col: '#ffe066', col2: '#8a7420', kind: 'bank' }
-};
-var CHIPS = ['wall', 'arrow', 'frost', 'splash', 'zap', 'bank'];
-
-var EN = {
-  grunt: { hp: 20, sp: 1.5, col: '#ff7a7a', r: 0.30, gold: 3, leak: 1 },
-  runner: { hp: 12, sp: 2.9, col: '#ffd36e', r: 0.24, gold: 3, leak: 1 },
-  tank: { hp: 70, sp: 0.95, col: '#9aa7bd', r: 0.38, gold: 7, leak: 2, armor: 3 },
-  flier: { hp: 16, sp: 1.9, col: '#8fe6c8', r: 0.27, gold: 4, leak: 1, fly: true },
-  shield: { hp: 24, sp: 1.35, col: '#7fa8ff', r: 0.32, gold: 6, leak: 1, shield: 22 },
-  boss: { hp: 700, sp: 0.8, col: '#ff5cc8', r: 0.55, gold: 60, leak: 8, armor: 5, boss: true }
-};
-
-/* ---------------- state ---------------- */
-var G = null;
-var started = false;
-
-function newGame(seed) {
-  resize();
-  tapPointerId = null;
-  G = {
-    seed: seed || (Date.now() & 0xffff),
-    map: new E.Map(L.cols, L.rows, seed || (Date.now() & 0xffff)),
-    towers: [], creeps: [], bullets: [], fx: [], parts: [], texts: [],
-    gold: 95, lives: 20, leaks: 0, wave: 0, wavesDone: 0,
-    spawnQ: [], spawnI: 0, waveT: 0, active: false, prep: 15,
-    phase: 'play', sel: -1, selTower: null, pending: 'arrow',
-    shake: 0, shakeX: 0, shakeY: 0, hint: 1, msg: '', msgT: 0,
-    kx: 5, ky: 7, kb: false, time: 0, endless: false
+  var E = window.BulwarkEngine;
+  var GAME_W = 1280, GAME_H = 720;
+  var STEP = 1 / 60, MAX_STEPS = 5;
+  var CELL = 56, BOARD_X = 56, BOARD_Y = 116;
+  var BOARD_W = CELL * 14, BOARD_H = CELL * 9;
+  var MAX_CREEPS = 88, MAX_BULLETS = 128, MAX_PARTICLES = 96, MAX_PARTICLES_PER_SYSTEM = 24, MAX_FX = 32;
+  var TAU = Math.PI * 2;
+  var PAL = {
+    ink: 0x06111e, panel: 0x0b1a2b, panel2: 0x10253a, line: 0x29445c,
+    text: 0xe7f5ff, muted: 0x8fa8bb, cyan: 0x54d6ec, teal: 0x6de0c1,
+    coral: 0xff665c, wine: 0xb72e4d, amber: 0xffdf79, white: 0xffffff,
+    green: 0x8ff5d2, violet: 0xcda1ff, river: 0x1c526b, rock: 0x3a4857,
+    sand: 0x756a56, canyon: 0x6e463e
   };
-  G.map.solve();
-}
-
-var best = 0;
-try { var storedBest = parseInt(localStorage.getItem('bulwark.best') || '0', 10); best = Number.isFinite(storedBest) && storedBest >= 0 ? storedBest : 0; } catch (e) { best = 0; }
-function saveBest(v) { if (v > best) { best = v; try { localStorage.setItem('bulwark.best', String(v)); } catch (e) { } } }
-
-/* ---------------- waves ---------------- */
-function buildWave(n) {
-  var r = E.rng(G.seed * 7919 + n * 104729);
-  var q = [];
-  var t = 0;
-  if (n % 10 === 0) {
-    var bhp = Math.min(18, Math.pow(1.14, Math.min(n - 1, 24)) * (0.5 + Math.min(n, 300) / 30));
-    q.push({ type: 'boss', t: 0.6, hpm: bhp, spm: 1 });
-    var esc = Math.min(24, 5 + n);
-    for (var e = 0; e < esc; e++) q.push({ type: r() < .5 ? 'runner' : 'grunt', t: 1.6 + e * 0.55, hpm: Math.min(18, Math.pow(1.155, Math.min(n, 24))), spm: 1 });
-    return q;
-  }
-  var count = Math.min(48, Math.round(6 + n * 1.75));
-  var pool = ['grunt'];
-  if (n >= 3) pool.push('runner');
-  if (n >= 5) pool.push('flier');
-  if (n >= 7) pool.push('tank');
-  if (n >= 9) pool.push('shield');
-  if (n >= 12) pool.push('runner', 'flier');
-  if (n >= 16) pool.push('tank', 'shield');
-  var hpm = Math.min(18, Math.pow(1.155, Math.min(n - 1, 24)));
-  var spm = 1 + Math.min(0.45, n * 0.013);
-  for (var i = 0; i < count; i++) {
-    var ty = pool[Math.floor(r() * pool.length)];
-    t += 0.34 + r() * 0.42;
-    q.push({ type: ty, t: t, hpm: hpm, spm: spm });
-  }
-  return q;
-}
-
-function startWave() {
-  G.wave++;
-  G.spawnQ = buildWave(G.wave);
-  G.spawnI = 0; G.waveT = 0; G.active = true;
-  toast('WAVE ' + G.wave + (G.wave % 10 === 0 ? '  — BOSS' : ''));
-  E.audio.wave();
-}
-
-function endWave() {
-  G.active = false;
-  G.wavesDone = G.wave;
-  var interest = Math.min(45, Math.floor(G.gold * 0.06));
-  var bankInc = 0, ipct = 0;
-  for (var i = 0; i < G.towers.length; i++) {
-    var tw = G.towers[i];
-    if (tw.t === 'bank') { bankInc += 4 * tw.lv; ipct += 0.015 * tw.lv; }
-  }
-  interest += Math.floor(G.gold * ipct);
-  var clear = 12 + G.wave * 3;
-  var tot = interest + bankInc + clear;
-  G.gold += tot;
-  E.audio.coin();
-  floatT(L.w / 2, L.gy + 40, '+' + tot + 'g  (interest ' + (interest + bankInc) + ')', '#ffe066');
-  saveBest(G.wavesDone + G.lives);
-  if (G.wave >= 30 && !G.endless) { G.phase = 'win'; E.audio.win(); return; }
-  G.prep = 9;
-}
-
-/* ---------------- helpers ---------------- */
-function cellCenter(i) { return { x: (i % L.cols) + 0.5, y: ((i / L.cols) | 0) + 0.5 }; }
-function sx(cx) { return L.gx + cx * L.cell; }
-function sy(cy) { return L.gy + cy * L.cell; }
-function cellAt(px, py) {
-  var x = Math.floor((px - L.gx) / L.cell), y = Math.floor((py - L.gy) / L.cell);
-  if (x < 0 || y < 0 || x >= L.cols || y >= L.rows) return -1;
-  return y * L.cols + x;
-}
-function towerAt(i) { for (var k = 0; k < G.towers.length; k++) if (G.towers[k].i === i) return G.towers[k]; return null; }
-function toast(m) { G.msg = m; G.msgT = 2.0; }
-function floatT(x, y, txt, col) { G.texts.push({ x: x, y: y, t: txt, c: col || '#fff', life: 1.1, max: 1.1 }); }
-function burst(x, y, col, n, sp) {
-  for (var i = 0; i < n; i++) {
-    if (G.parts.length >= 360) break;
-    var a = Math.random() * 6.283, v = (0.4 + Math.random()) * (sp || 90);
-    G.parts.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.35 + Math.random() * 0.35, max: 0.7, c: col, r: 1.5 + Math.random() * 2.5 });
-  }
-}
-function shake(m) { G.shake = Math.max(G.shake, m); }
-
-/* ---------------- build ---------------- */
-function occupiedCells() {
-  var a = [];
-  for (var i = 0; i < G.creeps.length; i++) {
-    var c = G.creeps[i];
-    if (c.fly || c.dead || c.cy < 0) continue;
-    var x = E.clamp(Math.floor(c.cx), 0, L.cols - 1), y = E.clamp(Math.floor(c.cy), 0, L.rows - 1);
-    a.push(y * L.cols + x);
-  }
-  return a;
-}
-
-function tryBuild(i, type) {
-  var d = T[type];
-  if (!d) return;
-  if (i < 0 || G.map.g[i] !== E.EMPTY) { E.audio.deny(); toast('BLOCKED'); return; }
-  if (G.gold < d.cost) { E.audio.deny(); toast('NEED ' + d.cost + 'g'); return; }
-  if (!G.map.canPlace(i, occupiedCells())) { E.audio.deny(); toast('WOULD SEAL THE PATH'); shake(4); return; }
-  G.gold -= d.cost;
-  G.map.g[i] = d.wall ? E.WALL : E.TOWER;
-  G.map.solve();
-  for (var k = 0; k < G.creeps.length; k++) G.creeps[k].tx = undefined;
-  if (!d.wall) {
-    G.towers.push({
-      i: i, t: type, lv: 1, cd: 0, spent: d.cost, ang: -Math.PI / 2, pulse: 0,
-      x: (i % L.cols) + 0.5, y: ((i / L.cols) | 0) + 0.5
-    });
-  }
-  var cc = cellCenter(i);
-  burst(sx(cc.x), sy(cc.y), d.col, 10, 70);
-  E.audio.build();
-  G.hint = 0;
-  G.sel = -1;
-}
-
-function statOf(tw) {
-  var d = T[tw.t], m = Math.pow(1.38, tw.lv - 1);
-  return {
-    dmg: d.dmg ? d.dmg * m : 0,
-    range: d.range ? d.range * (1 + (tw.lv - 1) * 0.09) : 0,
-    rate: d.rate ? d.rate * Math.pow(0.94, tw.lv - 1) : 0
+  var CSS = {
+    text: '#e7f5ff', muted: '#8fa8bb', cyan: '#54d6ec', teal: '#6de0c1',
+    coral: '#ff665c', amber: '#ffdf79', green: '#8ff5d2', violet: '#cda1ff'
   };
-}
-function upCost(tw) { return Math.round(T[tw.t].cost * (0.85 + tw.lv * 0.75)); }
-function sellVal(tw) { return Math.floor(tw.spent * 0.6); }
+  var AUDIO = {
+    build: 'assets/audio/build.mp3', select: 'assets/audio/select.mp3', fire: 'assets/audio/fire.mp3',
+    hit: 'assets/audio/hit.mp3', leak: 'assets/audio/leak.mp3', clear: 'assets/audio/wave-clear.mp3',
+    boss: 'assets/audio/boss.mp3', victory: 'assets/audio/victory.mp3', ambient: 'assets/audio/ambient.mp3',
+    danger: 'assets/audio/danger.mp3', confirm: 'assets/audio/build.mp3', cancel: 'assets/audio/danger.mp3',
+    place: 'assets/audio/build.mp3', upgrade: 'assets/audio/wave-clear.mp3', kill: 'assets/audio/wave-clear.mp3',
+    warning: 'assets/audio/boss.mp3'
+  };
 
-function upgrade(tw) {
-  if (tw.lv >= 5) { toast('MAX LEVEL'); E.audio.deny(); return; }
-  var c = upCost(tw);
-  if (G.gold < c) { E.audio.deny(); toast('NEED ' + c + 'g'); return; }
-  G.gold -= c; tw.spent += c; tw.lv++; tw.pulse = 1;
-  burst(sx(tw.x), sy(tw.y), T[tw.t].col, 12, 90);
-  E.audio.build();
-}
-function sell(tw) {
-  var v = sellVal(tw);
-  G.gold += v;
-  G.map.g[tw.i] = E.EMPTY; G.map.solve();
-  for (var k = 0; k < G.creeps.length; k++) G.creeps[k].tx = undefined;
-  G.towers.splice(G.towers.indexOf(tw), 1);
-  G.selTower = null;
-  floatT(sx(tw.x), sy(tw.y), '+' + v + 'g', '#ffe066');
-  E.audio.coin();
-}
+  function readGamepad() {
+    if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return { dir: null, confirm: false, cancel: false, go: false };
+    var pads = navigator.getGamepads();
+    for (var i = 0; i < pads.length; i++) {
+      var pad = pads[i]; if (!pad || !pad.connected) continue;
+      var ax = Number(pad.axes && pad.axes[0]) || 0, ay = Number(pad.axes && pad.axes[1]) || 0, dir = null;
+      if (Math.max(Math.abs(ax), Math.abs(ay)) >= 0.35) dir = Math.abs(ax) >= Math.abs(ay) ? (ax > 0 ? { dx: 1, dy: 0, code: 'right' } : { dx: -1, dy: 0, code: 'left' }) : (ay > 0 ? { dx: 0, dy: 1, code: 'down' } : { dx: 0, dy: -1, code: 'up' });
+      else if (pad.buttons && pad.buttons[12] && pad.buttons[12].pressed) dir = { dx: 0, dy: -1, code: 'up' };
+      else if (pad.buttons && pad.buttons[13] && pad.buttons[13].pressed) dir = { dx: 0, dy: 1, code: 'down' };
+      else if (pad.buttons && pad.buttons[14] && pad.buttons[14].pressed) dir = { dx: -1, dy: 0, code: 'left' };
+      else if (pad.buttons && pad.buttons[15] && pad.buttons[15].pressed) dir = { dx: 1, dy: 0, code: 'right' };
+      return {
+        dir: dir,
+        confirm: !!(pad.buttons && pad.buttons[0] && pad.buttons[0].pressed),
+        cancel: !!(pad.buttons && pad.buttons[1] && pad.buttons[1].pressed),
+        go: !!(pad.buttons && pad.buttons[2] && pad.buttons[2].pressed)
+      };
+    }
+    return { dir: null, confirm: false, cancel: false, go: false };
+  }
 
-/* ---------------- creeps ---------------- */
-function spawn(s) {
-  var d = EN[s.type];
-  var hp = d.hp * (s.hpm || 1);
-  G.creeps.push({
-    type: s.type, cx: G.map.entryC + 0.5, cy: -0.7, hp: hp, hpMax: hp,
-    sh: d.shield ? d.shield * (s.hpm || 1) : 0, shMax: d.shield ? d.shield * (s.hpm || 1) : 0, shT: 0,
-    sp: d.sp * (s.spm || 1), r: d.r, col: d.col, gold: d.gold, leak: d.leak,
-    armor: d.armor || 0, fly: !!d.fly, boss: !!d.boss,
-    slowT: 0, slowF: 1, flash: 0, dead: false, tx: undefined, ty: 0, ang: Math.PI / 2
+  /* Boot fallback is deliberately useful before Phaser has created its scene. */
+  var hook = window.__bw || {};
+  hook.state = hook.state || { wave: 0, gold: 220, lives: 20, map: 'open-plains', score: 0, phase: 'boot' };
+  if (hook.forceWave === undefined) hook.forceWave = null;
+  if (hook.forceMap === undefined) hook.forceMap = null;
+  window.__bw = hook;
+
+  var Game = { phaser: null, scene: null };
+  function validSave(o) {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return false;
+    if (o.v !== 1 || !Number.isInteger(o.best) || o.best < 0 || o.best > 99999999) return false;
+    if (!Number.isInteger(o.map) || o.map < 0 || o.map >= E.MAPS.length) return false;
+    if (typeof o.tutorialDone !== 'boolean') return false;
+    if (!Array.isArray(o.medals) || o.medals.length !== 3) return false;
+    for (var i = 0; i < o.medals.length; i++) if (!Number.isInteger(o.medals[i]) || o.medals[i] < 0 || o.medals[i] > 1) return false;
+    return true;
+  }
+  var kit = GGKit.create({
+    slug: 'bulwark', orientation: 'landscape', validateSave: validSave,
+    onPause: function () {
+      if (Game.scene && Game.scene.scene.isActive()) Game.scene.scene.pause();
+    },
+    onResume: function () {
+      if (Game.scene && Game.scene.scene.isPaused()) Game.scene.scene.resume();
+    },
+    onRestart: function () {
+      if (Game.scene) Game.scene.resetRun();
+    }
   });
-}
+  kit.audio.register(AUDIO);
+  var profile = kit.save.get({ v: 1, best: 0, map: 0, medals: [0, 0, 0], tutorialDone: false });
+  if (!validSave(profile)) profile = { v: 1, best: 0, map: 0, medals: [0, 0, 0], tutorialDone: false };
 
-function bestNeighbor(i) {
-  var cols = L.cols, rows = L.rows, x = i % cols, y = (i / cols) | 0;
-  var bi = -1, bd = 1e9;
-  for (var k = 0; k < 4; k++) {
-    var ax = x + (k === 0 ? 1 : k === 1 ? -1 : 0), ay = y + (k === 2 ? 1 : k === 3 ? -1 : 0);
-    if (ax < 0 || ay < 0 || ax >= cols || ay >= rows) continue;
-    var j = ay * cols + ax;
-    if (G.map.g[j] !== E.EMPTY) continue;
-    var dv = G.map.dist[j];
-    if (dv >= 0 && dv < bd) { bd = dv; bi = j; }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function safeDef(key, fallback) { return E.TOWERS[key] || E.TOWERS[fallback] || E.TOWERS.arrow; }
+  function setTextIfChanged(obj, value) {
+    value = String(value);
+    if (obj.text !== value) obj.setText(value);
   }
-  return bi;
-}
-
-function pickTarget(c) {
-  if (c.cy < 0.5) { c.tx = G.map.entryC + 0.5; c.ty = 0.5; return; }
-  var x = E.clamp(Math.floor(c.cx), 0, L.cols - 1), y = E.clamp(Math.floor(c.cy), 0, L.rows - 1);
-  var i = y * L.cols + x;
-  var ni = G.map.next[i];
-  if (ni < 0 || G.map.g[i] !== E.EMPTY) ni = bestNeighbor(i);
-  if (ni < 0) { c.tx = c.cx; c.ty = c.cy; return; }
-  c.tx = (ni % L.cols) + 0.5; c.ty = ((ni / L.cols) | 0) + 0.5;
-}
-
-function leak(c) {
-  c.dead = true;
-  G.leaks += c.leak; G.lives -= c.leak;
-  shake(9); E.audio.leak();
-  burst(sx(c.cx), sy(c.cy), '#ff4444', 16, 130);
-  floatT(sx(c.cx), sy(c.cy) - 10, '-' + c.leak, '#ff5555');
-  if (G.lives <= 0) {
-    G.lives = 0; G.phase = 'lose';
-    saveBest(G.wavesDone + 0);
-    E.audio.lose();
+  function setColorIfChanged(obj, value) {
+    if (obj.__bwColor !== value) { obj.setColor(value); obj.__bwColor = value; }
   }
-}
-
-function damage(c, amt, src) {
-  if (c.dead) return;
-  var d = Math.max(1, amt - c.armor);
-  if (c.sh > 0) {
-    c.sh -= d; c.shT = 2.6;
-    if (c.sh < 0) { c.hp += c.sh; c.sh = 0; }
-  } else c.hp -= d;
-  c.flash = 0.12;
-  if (c.hp <= 0) {
-    c.dead = true;
-    G.gold += c.gold;
-    burst(sx(c.cx), sy(c.cy), c.col, c.boss ? 34 : 9, c.boss ? 190 : 100);
-    floatT(sx(c.cx), sy(c.cy) - 8, '+' + c.gold, '#ffe066');
-    E.audio.kill();
-    if (c.boss) { shake(12); E.audio.boom(); }
+  function poly(g, points, fill, stroke, lineWidth) {
+    if (!points || !points.length) return;
+    g.beginPath();
+    g.moveTo(points[0][0], points[0][1]);
+    for (var i = 1; i < points.length; i++) g.lineTo(points[i][0], points[i][1]);
+    g.closePath();
+    if (fill !== undefined) { g.fillStyle(fill, 1); g.fillPath(); }
+    if (stroke !== undefined) { g.lineStyle(lineWidth || 1, stroke, 1); g.strokePath(); }
   }
-}
-
-/* ---------------- towers fire ---------------- */
-function nearestTarget(tw, range) {
-  var bi = null, bd = -1;
-  for (var k = 0; k < G.creeps.length; k++) {
-    var c = G.creeps[k];
-    if (c.dead || c.cy < -0.2) continue;
-    var dx = c.cx - tw.x, dy = c.cy - tw.y;
-    if (dx * dx + dy * dy > range * range) continue;
-    // prefer the creep furthest along toward the exit
-    var prog;
-    if (c.fly) {
-      prog = 1000 - Math.hypot(c.cx - ((G.map.exit % L.cols) + 0.5), c.cy - (((G.map.exit / L.cols) | 0) + 0.5));
-    } else {
-      var di = G.map.dist[E.clamp(Math.floor(c.cy), 0, L.rows - 1) * L.cols + E.clamp(Math.floor(c.cx), 0, L.cols - 1)];
-      prog = 1000 - (di >= 0 ? di : 999);
+  function polygonCircle(g, x, y, r, fill, sides, stroke, lineWidth) {
+    var points = [], n = sides || 10;
+    for (var i = 0; i < n; i++) {
+      var a = i / n * TAU;
+      points.push([x + Math.cos(a) * r, y + Math.sin(a) * r]);
     }
-    if (prog > bd) { bd = prog; bi = c; }
+    poly(g, points, fill, stroke, lineWidth);
   }
-  return bi;
-}
-
-function fire(tw, dt) {
-  var d = T[tw.t], st = statOf(tw);
-  if (d.kind === 'bank' || d.wall) return;
-  tw.cd -= dt;
-  if (tw.cd > 0) return;
-  var tgt = nearestTarget(tw, st.range);
-  if (!tgt) return;
-  tw.ang = Math.atan2(tgt.cy - tw.y, tgt.cx - tw.x);
-  tw.cd = st.rate;
-  tw.pulse = 1;
-  if (d.kind === 'shot') {
-    G.bullets.push({ x: tw.x, y: tw.y, tgt: tgt, sp: 13, dmg: st.dmg, col: d.col, r: 3, kind: 'shot' });
-    E.audio.shoot();
-  } else if (d.kind === 'lob') {
-    G.bullets.push({ x: tw.x, y: tw.y, tx: tgt.cx, ty: tgt.cy, sp: 8, dmg: st.dmg, col: d.col, r: 4.5, kind: 'lob', aoe: d.aoe * (1 + (tw.lv - 1) * 0.06) });
-    E.audio.shoot();
-  } else if (d.kind === 'beam') {
-    damage(tgt, st.dmg);
-    tgt.slowT = d.slowT; tgt.slowF = Math.min(tgt.slowF, d.slow);
-    G.fx.push({ kind: 'beam', x1: tw.x, y1: tw.y, x2: tgt.cx, y2: tgt.cy, life: 0.14, max: 0.14, col: d.col });
-    E.audio.frost();
-  } else if (d.kind === 'chain') {
-    var hit = [tgt], cur = tgt, dmg = st.dmg;
-    var n = d.chains + (tw.lv >= 4 ? 1 : 0);
-    damage(cur, dmg);
-    G.fx.push({ kind: 'bolt', x1: tw.x, y1: tw.y, x2: cur.cx, y2: cur.cy, life: 0.16, max: 0.16, col: d.col });
-    for (var h = 1; h < n; h++) {
-      var nb = null, nd = 2.4 * 2.4;
-      for (var k = 0; k < G.creeps.length; k++) {
-        var c2 = G.creeps[k];
-        if (c2.dead || hit.indexOf(c2) >= 0 || c2.cy < -0.2) continue;
-        var dd = E.dist2(c2.cx, c2.cy, cur.cx, cur.cy);
-        if (dd < nd) { nd = dd; nb = c2; }
-      }
-      if (!nb) break;
-      dmg *= 0.72;
-      damage(nb, dmg);
-      G.fx.push({ kind: 'bolt', x1: cur.cx, y1: cur.cy, x2: nb.cx, y2: nb.cy, life: 0.16, max: 0.16, col: d.col });
-      hit.push(nb); cur = nb;
+  function ring(g, x, y, r, color, alpha, sides, width) {
+    var n = sides || 28;
+    g.lineStyle(width || 2, color, alpha == null ? 1 : alpha);
+    g.beginPath();
+    for (var i = 0; i <= n; i++) {
+      var a = i / n * TAU, px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+      if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
     }
-    E.audio.zap();
+    g.strokePath();
   }
-}
-
-/* ---------------- update ---------------- */
-function update(dt) {
-  G.time += dt;
-  if (G.phase !== 'play') { updFx(dt); return; }
-
-  if (!G.active) {
-    G.prep -= dt;
-    if (G.prep <= 0) startWave();
-  } else {
-    G.waveT += dt;
-    while (G.spawnI < G.spawnQ.length && G.spawnQ[G.spawnI].t <= G.waveT) { spawn(G.spawnQ[G.spawnI]); G.spawnI++; }
-    if (G.spawnI >= G.spawnQ.length && G.creeps.length === 0) endWave();
+  function cellXY(index) {
+    return { x: BOARD_X + (index % 14) * CELL + CELL / 2, y: BOARD_Y + ((index / 14) | 0) * CELL + CELL / 2 };
   }
 
-  // creeps
-  for (var i = G.creeps.length - 1; i >= 0; i--) {
-    var c = G.creeps[i];
-    if (c.dead) { G.creeps.splice(i, 1); continue; }
-    if (c.flash > 0) c.flash -= dt;
-    if (c.slowT > 0) { c.slowT -= dt; if (c.slowT <= 0) c.slowF = 1; }
-    if (c.shMax > 0) {
-      c.shT -= dt;
-      if (c.shT <= 0 && c.sh < c.shMax) c.sh = Math.min(c.shMax, c.sh + c.shMax * 0.35 * dt);
-    }
-    var sp = c.sp * c.slowF;
-    if (c.fly) {
-      var ex = (G.map.exit % L.cols) + 0.5, ey = ((G.map.exit / L.cols) | 0) + 0.5;
-      var dx = ex - c.cx, dy = ey - c.cy, dl = Math.hypot(dx, dy);
-      c.ang = Math.atan2(dy, dx);
-      if (dl < 0.25) { leak(c); continue; }
-      c.cx += dx / dl * sp * dt; c.cy += dy / dl * sp * dt;
-    } else {
-      if (c.tx === undefined || Math.hypot(c.tx - c.cx, c.ty - c.cy) < 0.06) pickTarget(c);
-      var dx2 = c.tx - c.cx, dy2 = c.ty - c.cy, dl2 = Math.hypot(dx2, dy2);
-      if (dl2 > 0.0001) {
-        c.ang = Math.atan2(dy2, dx2);
-        var mv = Math.min(dl2, sp * dt);
-        c.cx += dx2 / dl2 * mv; c.cy += dy2 / dl2 * mv;
-      }
-      var ex2 = (G.map.exit % L.cols) + 0.5, ey2 = ((G.map.exit / L.cols) | 0) + 0.5;
-      if (E.dist2(c.cx, c.cy, ex2, ey2) < 0.09) { leak(c); continue; }
-    }
-  }
+  function BulwarkScene() { Phaser.Scene.call(this, { key: 'Bulwark' }); }
+  BulwarkScene.prototype = Object.create(Phaser.Scene.prototype);
+  BulwarkScene.prototype.constructor = BulwarkScene;
 
-  // towers
-  for (var t = 0; t < G.towers.length; t++) {
-    var tw = G.towers[t];
-    if (tw.pulse > 0) tw.pulse -= dt * 4;
-    fire(tw, dt);
-  }
-
-  // bullets
-  for (var b = G.bullets.length - 1; b >= 0; b--) {
-    var bu = G.bullets[b];
-    if (bu.kind === 'shot') {
-      if (!bu.tgt || bu.tgt.dead) { G.bullets.splice(b, 1); continue; }
-      var bx = bu.tgt.cx - bu.x, by = bu.tgt.cy - bu.y, bl = Math.hypot(bx, by);
-      var step = bu.sp * dt;
-      if (bl <= step) {
-        damage(bu.tgt, bu.dmg);
-        burst(sx(bu.tgt.cx), sy(bu.tgt.cy), bu.col, 4, 60);
-        G.bullets.splice(b, 1); continue;
-      }
-      bu.x += bx / bl * step; bu.y += by / bl * step;
-      bu.a = Math.atan2(by, bx);
-    } else {
-      var lx = bu.tx - bu.x, ly = bu.ty - bu.y, ll = Math.hypot(lx, ly);
-      var st2 = bu.sp * dt;
-      if (ll <= st2) {
-        for (var k2 = 0; k2 < G.creeps.length; k2++) {
-          var cc = G.creeps[k2];
-          if (cc.dead) continue;
-          if (E.dist2(cc.cx, cc.cy, bu.tx, bu.ty) <= bu.aoe * bu.aoe) damage(cc, bu.dmg);
-        }
-        G.fx.push({ kind: 'ring', x: bu.tx, y: bu.ty, r: bu.aoe, life: 0.3, max: 0.3, col: bu.col });
-        burst(sx(bu.tx), sy(bu.ty), bu.col, 14, 130);
-        E.audio.boom(); shake(4);
-        G.bullets.splice(b, 1); continue;
-      }
-      bu.x += lx / ll * st2; bu.y += ly / ll * st2;
-    }
-  }
-  updFx(dt);
-}
-
-function updFx(dt) {
-  for (var i = G.fx.length - 1; i >= 0; i--) { G.fx[i].life -= dt; if (G.fx[i].life <= 0) G.fx.splice(i, 1); }
-  for (var p = G.parts.length - 1; p >= 0; p--) {
-    var q = G.parts[p];
-    q.life -= dt;
-    if (q.life <= 0) { G.parts.splice(p, 1); continue; }
-    q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.92; q.vy *= 0.92;
-  }
-  for (var x = G.texts.length - 1; x >= 0; x--) {
-    var tt = G.texts[x]; tt.life -= dt; tt.y -= 26 * dt;
-    if (tt.life <= 0) G.texts.splice(x, 1);
-  }
-  if (G.msgT > 0) G.msgT -= dt;
-  if (G.shake > 0) {
-    G.shake = Math.max(0, G.shake - dt * 26);
-    G.shakeX = (Math.random() - 0.5) * G.shake;
-    G.shakeY = (Math.random() - 0.5) * G.shake;
-  } else { G.shakeX = 0; G.shakeY = 0; }
-}
-
-/* ---------------- draw ---------------- */
-function rr(x, y, w, h, r) {
-  ctx.beginPath();
-  r = Math.min(r, w / 2, h / 2);
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-function draw() {
-  var w = L.w, h = L.h, cell = L.cell;
-  ctx.fillStyle = '#0b0f18';
-  ctx.fillRect(0, 0, w, h);
-
-  ctx.save();
-  ctx.translate(G.shakeX, G.shakeY);
-
-  // field
-  var fw = L.cols * cell, fh = L.rows * cell;
-  var grd = ctx.createLinearGradient(0, L.gy, 0, L.gy + fh);
-  grd.addColorStop(0, '#16203a'); grd.addColorStop(1, '#101728');
-  ctx.fillStyle = grd;
-  ctx.fillRect(L.gx, L.gy, fw, fh);
-
-  // grid lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.045)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (var x = 0; x <= L.cols; x++) { ctx.moveTo(L.gx + x * cell, L.gy); ctx.lineTo(L.gx + x * cell, L.gy + fh); }
-  for (var y = 0; y <= L.rows; y++) { ctx.moveTo(L.gx, L.gy + y * cell); ctx.lineTo(L.gx + fw, L.gy + y * cell); }
-  ctx.stroke();
-
-  // path preview (flow toward exit from entry)
-  drawPath();
-
-  // cells
-  for (var i = 0; i < G.map.n; i++) {
-    var g = G.map.g[i];
-    if (g === E.EMPTY) continue;
-    var cx = L.gx + (i % L.cols) * cell, cy = L.gy + ((i / L.cols) | 0) * cell;
-    if (g === E.ROCK) {
-      ctx.fillStyle = '#28303f';
-      rr(cx + 2, cy + 2, cell - 4, cell - 4, 5); ctx.fill();
-      ctx.fillStyle = '#333d4f';
-      rr(cx + 5, cy + 5, cell - 12, cell - 13, 3); ctx.fill();
-    } else if (g === E.WALL) {
-      ctx.fillStyle = T.wall.col2;
-      rr(cx + 1.5, cy + 1.5, cell - 3, cell - 3, 4); ctx.fill();
-      ctx.fillStyle = T.wall.col;
-      rr(cx + 3.5, cy + 3.5, cell - 7, cell - 9, 3); ctx.fill();
-    }
-  }
-
-  // entry / exit
-  drawPort(G.map.entry, '#6fd8ff', 'IN');
-  drawPort(G.map.exit, '#ff6b6b', 'OUT');
-
-  // selection ring
-  if (G.sel >= 0) {
-    var s = cellCenter(G.sel);
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]); ctx.lineDashOffset = -G.time * 20;
-    rr(sx(s.x) - cell / 2 + 2, sy(s.y) - cell / 2 + 2, cell - 4, cell - 4, 5); ctx.stroke();
-    ctx.setLineDash([]);
-    var pd = T[G.pending];
-    if (pd && pd.range) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-      ctx.beginPath(); ctx.arc(sx(s.x), sy(s.y), pd.range * cell, 0, 6.283); ctx.stroke();
-    }
-  }
-  if (G.kb) {
-    var kc = G.ky * L.cols + G.kx, kk = cellCenter(kc);
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
-    rr(sx(kk.x) - cell / 2 + 3, sy(kk.y) - cell / 2 + 3, cell - 6, cell - 6, 4); ctx.stroke();
-  }
-
-  // towers
-  for (var t = 0; t < G.towers.length; t++) drawTower(G.towers[t]);
-
-  // selected tower range
-  if (G.selTower) {
-    var st = statOf(G.selTower);
-    if (st.range) {
-      ctx.fillStyle = 'rgba(255,255,255,0.05)';
-      ctx.beginPath(); ctx.arc(sx(G.selTower.x), sy(G.selTower.y), st.range * cell, 0, 6.283); ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1.5; ctx.stroke();
-    }
-  }
-
-  // fx beams
-  for (var f = 0; f < G.fx.length; f++) {
-    var fx = G.fx[f], al = fx.life / fx.max;
-    if (fx.kind === 'beam') {
-      ctx.strokeStyle = fx.col; ctx.globalAlpha = al; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(sx(fx.x1), sy(fx.y1)); ctx.lineTo(sx(fx.x2), sy(fx.y2)); ctx.stroke();
-      ctx.globalAlpha = 1;
-    } else if (fx.kind === 'bolt') {
-      ctx.strokeStyle = fx.col; ctx.globalAlpha = al; ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      var x1 = sx(fx.x1), y1 = sy(fx.y1), x2 = sx(fx.x2), y2 = sy(fx.y2);
-      ctx.moveTo(x1, y1);
-      for (var seg = 1; seg < 4; seg++) {
-        var tt2 = seg / 4;
-        ctx.lineTo(E.lerp(x1, x2, tt2) + (Math.random() - 0.5) * 12, E.lerp(y1, y2, tt2) + (Math.random() - 0.5) * 12);
-      }
-      ctx.lineTo(x2, y2); ctx.stroke(); ctx.globalAlpha = 1;
-    } else if (fx.kind === 'ring') {
-      ctx.strokeStyle = fx.col; ctx.globalAlpha = al * 0.9; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(sx(fx.x), sy(fx.y), fx.r * cell * (1.3 - al * 0.35), 0, 6.283); ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-  }
-
-  // bullets
-  for (var b = 0; b < G.bullets.length; b++) {
-    var bu = G.bullets[b];
-    ctx.fillStyle = bu.col;
-    ctx.beginPath(); ctx.arc(sx(bu.x), sy(bu.y), bu.r, 0, 6.283); ctx.fill();
-  }
-
-  // creeps
-  for (var c = 0; c < G.creeps.length; c++) drawCreep(G.creeps[c]);
-
-  // particles
-  for (var p = 0; p < G.parts.length; p++) {
-    var q = G.parts[p];
-    ctx.globalAlpha = Math.max(0, q.life / q.max);
-    ctx.fillStyle = q.c;
-    ctx.fillRect(q.x - q.r / 2, q.y - q.r / 2, q.r, q.r);
-  }
-  ctx.globalAlpha = 1;
-
-  // float texts
-  ctx.textAlign = 'center';
-  for (var tx = 0; tx < G.texts.length; tx++) {
-    var ft = G.texts[tx];
-    ctx.globalAlpha = Math.max(0, ft.life / ft.max);
-    ctx.fillStyle = ft.c;
-    ctx.font = '700 13px -apple-system,Segoe UI,Roboto,sans-serif';
-    ctx.fillText(ft.t, ft.x, ft.y);
-  }
-  ctx.globalAlpha = 1;
-
-  ctx.restore();
-
-  drawHUD();
-  drawBar();
-  if (G.phase !== 'play') drawEnd();
-}
-
-function drawPath() {
-  var i = G.map.entry, cell = L.cell, guard = 0;
-  ctx.strokeStyle = 'rgba(120,190,255,0.18)';
-  ctx.lineWidth = Math.max(3, cell * 0.42);
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.beginPath();
-  var cc = cellCenter(i);
-  ctx.moveTo(sx(cc.x), sy(cc.y));
-  while (i >= 0 && i !== G.map.exit && guard++ < 600) {
-    i = G.map.next[i];
-    if (i < 0) break;
-    var p = cellCenter(i);
-    ctx.lineTo(sx(p.x), sy(p.y));
-  }
-  ctx.stroke();
-  ctx.lineCap = 'butt';
-}
-
-function drawPort(i, col, label) {
-  var cell = L.cell, p = cellCenter(i);
-  var px = sx(p.x), py = sy(p.y);
-  ctx.fillStyle = col;
-  ctx.globalAlpha = 0.22 + 0.12 * Math.sin(G.time * 3);
-  rr(px - cell / 2 + 1, py - cell / 2 + 1, cell - 2, cell - 2, 5); ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.strokeStyle = col; ctx.lineWidth = 2;
-  rr(px - cell / 2 + 1, py - cell / 2 + 1, cell - 2, cell - 2, 5); ctx.stroke();
-  ctx.fillStyle = col;
-  ctx.font = '700 9px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(label, px, py);
-}
-
-function drawTower(tw) {
-  var d = T[tw.t], cell = L.cell;
-  var px = sx(tw.x), py = sy(tw.y);
-  var pulse = Math.max(0, tw.pulse);
-  ctx.fillStyle = d.col2;
-  rr(px - cell / 2 + 2, py - cell / 2 + 2, cell - 4, cell - 4, 6); ctx.fill();
-  var r = cell * (0.30 + pulse * 0.05);
-  ctx.fillStyle = d.col;
-  if (tw.t === 'bank') {
-    rr(px - r, py - r * 0.8, r * 2, r * 1.6, 3); ctx.fill();
-    ctx.fillStyle = d.col2;
-    ctx.font = '700 ' + Math.round(cell * 0.4) + 'px -apple-system,sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('$', px, py + 1);
-  } else {
-    ctx.beginPath(); ctx.arc(px, py, r, 0, 6.283); ctx.fill();
-    ctx.save();
-    ctx.translate(px, py); ctx.rotate(tw.ang);
-    ctx.fillStyle = '#0b0f18';
-    ctx.fillRect(r * 0.3, -cell * 0.075, cell * 0.30, cell * 0.15);
-    ctx.restore();
-  }
-  // level pips
-  ctx.fillStyle = '#fff';
-  for (var l = 0; l < tw.lv; l++) {
-    ctx.globalAlpha = 0.85;
-    ctx.fillRect(px - cell / 2 + 3 + l * 4.5, py + cell / 2 - 6, 3, 3);
-  }
-  ctx.globalAlpha = 1;
-}
-
-function drawCreep(c) {
-  var cell = L.cell, px = sx(c.cx), py = sy(c.cy);
-  var r = c.r * cell;
-  if (c.fly) {
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.beginPath(); ctx.ellipse(px + 5, py + 7, r * 0.9, r * 0.5, 0, 0, 6.283); ctx.fill();
-  }
-  ctx.fillStyle = c.flash > 0 ? '#ffffff' : c.col;
-  if (c.boss) {
-    ctx.save(); ctx.translate(px, py); ctx.rotate(G.time * 0.7);
-    ctx.beginPath();
-    for (var k = 0; k < 6; k++) {
-      var a = k / 6 * 6.283;
-      ctx[k ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r);
-    }
-    ctx.closePath(); ctx.fill(); ctx.restore();
-  } else if (c.fly) {
-    ctx.save(); ctx.translate(px, py); ctx.rotate(c.ang);
-    ctx.beginPath(); ctx.moveTo(r, 0); ctx.lineTo(-r * 0.7, -r * 0.8); ctx.lineTo(-r * 0.3, 0); ctx.lineTo(-r * 0.7, r * 0.8);
-    ctx.closePath(); ctx.fill(); ctx.restore();
-  } else if (c.type === 'tank') {
-    rr(px - r, py - r, r * 2, r * 2, 3); ctx.fill();
-  } else {
-    ctx.beginPath(); ctx.arc(px, py, r, 0, 6.283); ctx.fill();
-  }
-  if (c.slowF < 1) {
-    ctx.strokeStyle = '#6fd8ff'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(px, py, r + 2.5, 0, 6.283); ctx.stroke();
-  }
-  if (c.sh > 0) {
-    ctx.strokeStyle = 'rgba(150,190,255,' + (0.35 + 0.55 * (c.sh / c.shMax)) + ')';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.arc(px, py, r + 4, 0, 6.283); ctx.stroke();
-  }
-  // hp bar
-  if (c.hp < c.hpMax) {
-    var bw = r * 2.2;
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(px - bw / 2, py - r - 7, bw, 3.5);
-    ctx.fillStyle = c.hp / c.hpMax > 0.4 ? '#7ee081' : '#ff6b6b';
-    ctx.fillRect(px - bw / 2, py - r - 7, bw * Math.max(0, c.hp / c.hpMax), 3.5);
-  }
-}
-
-/* ------------- HUD ------------- */
-var goBtn = { x: 0, y: 0, w: 0, h: 0 };
-var sndBtn = { x: 0, y: 0, w: 0, h: 0 };
-
-function drawHUD() {
-  var w = L.w, hud = L.hud;
-  ctx.fillStyle = '#0e1420';
-  ctx.fillRect(0, 0, w, hud);
-  ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  ctx.fillRect(0, hud - 1, w, 1);
-  ctx.textBaseline = 'middle';
-
-  var pad = 10, cy = hud * 0.36;
-  ctx.textAlign = 'left';
-  ctx.font = '700 15px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.fillStyle = G.lives <= 5 ? '#ff6b6b' : '#e6f0ff';
-  ctx.fillText('♥ ' + G.lives, pad, cy);
-  ctx.fillStyle = '#ffe066';
-  ctx.fillText('◆ ' + Math.floor(G.gold), pad + 62, cy);
-  var wn = Math.max(1, G.wave);
-  ctx.fillStyle = (wn % 10 === 0 && G.active) ? '#ff5cc8' : '#cfe3ff';
-  ctx.fillText('W ' + wn + (G.endless ? '' : '/30'), pad + 140, cy);
-
-  ctx.font = '500 10px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.fillStyle = 'rgba(200,220,255,0.5)';
-  ctx.fillText('BEST ' + best, pad + 200, cy);
-  if (G.msgT > 0) {
-    ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, G.msgT) + ')';
-    ctx.font = '700 11px -apple-system,Segoe UI,Roboto,sans-serif';
-    ctx.fillText(G.msg, pad, hud * 0.75);
-  } else if (G.hint) {
-    ctx.fillStyle = 'rgba(200,220,255,0.65)';
-    ctx.font = '500 11px -apple-system,Segoe UI,Roboto,sans-serif';
-    ctx.fillText('Tap a cell, then a chip — maze them in.', pad, hud * 0.75);
-  }
-
-  // GO / wave state
-  goBtn = { x: w - 90, y: 7, w: 82, h: hud - 14 };
-
-  // sound (left of GO)
-  sndBtn = { x: goBtn.x - 50, y: Math.max(3, 7 + (goBtn.h - 48) / 2), w: 48, h: 48 };
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  rr(sndBtn.x, sndBtn.y, sndBtn.w, sndBtn.h, 5); ctx.fill();
-  ctx.fillStyle = E.audio.isOn() ? '#7ee081' : 'rgba(255,255,255,0.35)';
-  ctx.font = '700 9px -apple-system,sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText(E.audio.isOn() ? 'SND' : 'OFF', sndBtn.x + sndBtn.w / 2, sndBtn.y + sndBtn.h / 2);
-
-  if (!G.active && G.phase === 'play') {
-    var pulse = 0.5 + 0.5 * Math.sin(G.time * 5);
-    ctx.fillStyle = 'rgba(126,224,129,' + (0.2 + pulse * 0.2) + ')';
-    rr(goBtn.x, goBtn.y, goBtn.w, goBtn.h, 6); ctx.fill();
-    ctx.strokeStyle = '#7ee081'; ctx.lineWidth = 1.5;
-    rr(goBtn.x, goBtn.y, goBtn.w, goBtn.h, 6); ctx.stroke();
-    ctx.fillStyle = '#d9ffdc'; ctx.textAlign = 'center';
-    ctx.font = '700 12px -apple-system,Segoe UI,Roboto,sans-serif';
-    ctx.fillText('GO  ' + Math.ceil(Math.max(0, G.prep)) + 's', goBtn.x + goBtn.w / 2, goBtn.y + goBtn.h / 2);
-  } else {
-    var left = G.spawnQ.length - G.spawnI + G.creeps.length;
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    rr(goBtn.x, goBtn.y, goBtn.w, goBtn.h, 6); ctx.fill();
-    ctx.fillStyle = 'rgba(220,235,255,0.8)'; ctx.textAlign = 'center';
-    ctx.font = '700 12px -apple-system,Segoe UI,Roboto,sans-serif';
-    ctx.fillText('LEFT ' + left, goBtn.x + goBtn.w / 2, goBtn.y + goBtn.h / 2);
-  }
-}
-
-/* ------------- build bar / tower sheet ------------- */
-var chipRects = [];
-var sheetBtns = null;
-
-function drawBar() {
-  var w = L.w, h = L.h, bh = L.bar, by = h - bh;
-  ctx.fillStyle = '#0e1420';
-  ctx.fillRect(0, by, w, bh);
-  ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  ctx.fillRect(0, by, w, 1);
-
-  if (G.selTower) { drawSheet(by, bh); return; }
-  sheetBtns = null;
-
-  chipRects = [];
-  var n = CHIPS.length;
-  var gap = 4, cw = (w - gap * (n + 1)) / n;
-  var chH = bh - 26;
-  for (var i = 0; i < n; i++) {
-    var key = CHIPS[i], d = T[key];
-    var x = gap + i * (cw + gap), y = by + 8;
-    chipRects.push({ x: x, y: y, w: cw, h: chH, key: key });
-    var afford = G.gold >= d.cost;
-    var selc = G.pending === key;
-    ctx.fillStyle = selc ? d.col2 : 'rgba(255,255,255,0.05)';
-    rr(x, y, cw, chH, 8); ctx.fill();
-    if (selc) { ctx.strokeStyle = d.col; ctx.lineWidth = 2; rr(x, y, cw, chH, 8); ctx.stroke(); }
-    ctx.globalAlpha = afford ? 1 : 0.35;
-    // icon
-    var icx = x + cw / 2, icy = y + chH * 0.36, ir = Math.min(cw, chH) * 0.20;
-    ctx.fillStyle = d.col;
-    if (key === 'wall') { rr(icx - ir, icy - ir * 0.8, ir * 2, ir * 1.6, 2); ctx.fill(); }
-    else if (key === 'bank') { rr(icx - ir, icy - ir * 0.8, ir * 2, ir * 1.6, 2); ctx.fill(); ctx.fillStyle = d.col2; ctx.font = '700 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', icx, icy); }
-    else { ctx.beginPath(); ctx.arc(icx, icy, ir, 0, 6.283); ctx.fill(); }
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#dce8ff';
-    ctx.font = '700 9px -apple-system,Segoe UI,Roboto,sans-serif';
-    ctx.fillText(d.name, icx, y + chH * 0.68);
-    ctx.fillStyle = afford ? '#ffe066' : '#ff8a8a';
-    ctx.font = '700 10px -apple-system,Segoe UI,Roboto,sans-serif';
-    ctx.fillText(d.cost + 'g', icx, y + chH * 0.87);
-    ctx.globalAlpha = 1;
-  }
-  ctx.fillStyle = 'rgba(190,210,240,0.45)';
-  ctx.font = '500 10px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(G.sel >= 0 ? 'Now tap a chip to build here' : 'Tap an empty cell, then a chip · tap a tower to upgrade', w / 2, h - 9);
-}
-
-function drawSheet(by, bh) {
-  var tw = G.selTower, d = T[tw.t], st = statOf(tw), w = L.w;
-  ctx.fillStyle = '#131b2b';
-  ctx.fillRect(0, by, w, bh);
-  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = d.col;
-  ctx.font = '700 13px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.fillText(d.name + '  Lv' + tw.lv, 12, by + 16);
-  ctx.fillStyle = 'rgba(210,225,250,0.7)';
-  ctx.font = '500 10px -apple-system,Segoe UI,Roboto,sans-serif';
-  var line = tw.t === 'bank'
-    ? ('income ' + (4 * tw.lv) + 'g/wave  ·  interest +' + (tw.lv * 1.5).toFixed(1) + '%')
-    : ('dmg ' + st.dmg.toFixed(0) + '  ·  rng ' + st.range.toFixed(1) + '  ·  ' + (1 / st.rate).toFixed(1) + '/s');
-  ctx.fillText(line, 12, by + 32);
-
-  var bh2 = bh - 46, byy = by + 40, gap = 8;
-  var bw = (w - gap * 4) / 3;
-  var can = tw.lv < 5;
-  sheetBtns = {
-    up: { x: gap, y: byy, w: bw, h: bh2 },
-    sell: { x: gap * 2 + bw, y: byy, w: bw, h: bh2 },
-    close: { x: gap * 3 + bw * 2, y: byy, w: bw, h: bh2 }
+  BulwarkScene.prototype.create = function () {
+    Game.scene = this;
+    this.accumulator = 0;
+    this.mapIndex = E.mapIndex(hook.forceMap == null ? profile.map : hook.forceMap);
+    this.map = new E.Map(E.MAPS[this.mapIndex]);
+    this.pathCache = this.map.path();
+    this.state = {
+      phase: 'play', wave: 0, wavesDone: 0, gold: 220, lives: 20, leaks: 0, score: 0,
+      map: E.MAPS[this.mapIndex].id, mapIndex: this.mapIndex, active: false, prep: 7,
+      time: 0, kills: 0, message: '', messageT: 0, tutorialStep: profile.tutorialDone ? 4 : 0,
+      medal: 0, endless: false, bankCount: 0, bankInterest: 0, earlyBonus: 0
+    };
+    this.towers = [];
+    this.waveQueue = [];
+    this.waveCursor = 0;
+    this.waveClock = 0;
+    this.selectedCell = -1;
+    this.selectedTower = null;
+    this.previewValid = false;
+    this.previewPath = [];
+    this.pending = 'arrow';
+    this.lastBuiltType = 'wall';
+    this.lastTapCell = -1;
+    this.lastTapAt = 0;
+    this.cursor = { x: 1, y: 1 };
+    this.gamepadEdges = { dir: null, confirm: false, cancel: false, go: false };
+    this.cursorRepeat = 0;
+    this.lastForceWave = null;
+    this.lastForceMap = null;
+    this.beacon = { state: 'idle', time: 0 };
+    this.pointerClaims = {};
+    this.keyEdges = {};
+    this.occupied = new Int32Array(MAX_CREEPS);
+    this.occupiedCount = 0;
+    this.creeps = [];
+    this.bullets = [];
+    this.particleSystems = { contactSparks: [], dustDebris: [], projectileTrails: [], waveBursts: [] };
+    this.effects = [];
+    this.toastQueue = [];
+    this.bannerQueue = [];
+    this.banner = null;
+    this.coachStep = profile.tutorialDone ? 4 : 0;
+    this.coachT = profile.tutorialDone ? 0 : 3.2;
+    this.allocPools();
+    this.makeTextures();
+    this.world = this.add.container(0, 0).setDepth(1);
+    this.terrainImage = this.add.image(0, 0, 'bw-terrain').setOrigin(0);
+    this.pathGfx = this.add.graphics();
+    this.decalGfx = this.add.graphics();
+    this.unitGfx = this.add.graphics();
+    this.fxGfx = this.add.graphics();
+    this.world.add([this.terrainImage, this.pathGfx, this.decalGfx, this.unitGfx, this.fxGfx]);
+    this.uiGfx = this.add.graphics().setDepth(20);
+    this.makeTextUi();
+    this.refreshTerrain();
+    this.syncHook();
+    kit.loader.progress(1);
+    kit.loader.hide();
+    kit.registerPWA();
+    kit.audio.preload(Object.keys(AUDIO));
+    this.safeMusic = false;
+    this.juiceFrame = { dx: 0, dy: 0, frozen: false };
   };
-  var uc = upCost(tw);
-  btn(sheetBtns.up, can ? (G.gold >= uc ? '#2f7a41' : '#3a2530') : '#2a3040', can ? 'UPGRADE ' + uc + 'g' : 'MAX', can && G.gold >= uc ? '#d9ffdc' : 'rgba(255,255,255,0.5)');
-  btn(sheetBtns.sell, '#4a3320', 'SELL +' + sellVal(tw) + 'g', '#ffd9a3');
-  btn(sheetBtns.close, '#232b3d', 'CLOSE', '#cfe3ff');
-}
 
-function btn(b, fill, label, col) {
-  ctx.fillStyle = fill;
-  rr(b.x, b.y, b.w, b.h, 8); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.13)'; ctx.lineWidth = 1;
-  rr(b.x, b.y, b.w, b.h, 8); ctx.stroke();
-  ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = '700 11px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2);
-}
-
-/* ------------- end screens ------------- */
-var endBtns = null;
-function drawEnd() {
-  var w = L.w, h = L.h;
-  ctx.fillStyle = 'rgba(6,9,16,0.86)';
-  ctx.fillRect(0, 0, w, h);
-  var win = G.phase === 'win';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = win ? '#7ee081' : '#ff6b6b';
-  ctx.font = '800 30px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.fillText(win ? 'HELD THE LINE' : 'BREACHED', w / 2, h * 0.31);
-  var score = G.wavesDone + G.lives;
-  ctx.fillStyle = '#e6f0ff';
-  ctx.font = '600 16px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.fillText('waves ' + G.wavesDone + '   lives ' + G.lives, w / 2, h * 0.38);
-  ctx.font = '800 22px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.fillStyle = '#ffe066';
-  ctx.fillText('SCORE ' + score, w / 2, h * 0.44);
-  ctx.font = '500 12px -apple-system,Segoe UI,Roboto,sans-serif';
-  ctx.fillStyle = 'rgba(200,220,255,0.6)';
-  ctx.fillText('best ' + best, w / 2, h * 0.49);
-
-  var bw = Math.min(230, w - 60), bx = (w - bw) / 2;
-  endBtns = { again: { x: bx, y: h * 0.58, w: bw, h: 54 } };
-  btn(endBtns.again, '#23406b', win ? 'NEW RUN' : 'TRY AGAIN', '#dcecff');
-  if (win) {
-    endBtns.cont = { x: bx, y: h * 0.58 + 66, w: bw, h: 54 };
-    btn(endBtns.cont, '#2f7a41', 'CONTINUE ENDLESS', '#d9ffdc');
-  }
-}
-
-/* ---------------- input ---------------- */
-function hit(b, x, y, pad) {
-  pad = pad === undefined ? 8 : pad;
-  return b && x >= b.x - pad && x <= b.x + b.w + pad && y >= b.y - pad && y <= b.y + b.h + pad;
-}
-
-function onTap(px, py) {
-  E.audio.init();
-  G.kb = false;
-
-  if (G.phase !== 'play') {
-    if (endBtns && hit(endBtns.again, px, py)) { newGame(); return; }
-    if (endBtns && endBtns.cont && hit(endBtns.cont, px, py)) { G.endless = true; G.phase = 'play'; G.prep = 9; return; }
-    return;
-  }
-
-  if (hit(sndBtn, px, py, 10)) { E.audio.toggle(); return; }
-  if (py < L.hud) {
-    if (hit(goBtn, px, py) && !G.active) {
-      var bonus = Math.max(0, Math.ceil(G.prep) * 2);
-      if (bonus > 0) { G.gold += bonus; floatT(L.w / 2, L.gy + 30, '+' + bonus + 'g early', '#7ee081'); }
-      G.prep = 0; startWave();
+  BulwarkScene.prototype.allocPools = function () {
+    var i;
+    for (i = 0; i < MAX_CREEPS; i++) this.creeps.push({ active: false, stamp: 0, tx: -1, ty: -1 });
+    for (i = 0; i < MAX_BULLETS; i++) this.bullets.push({ active: false });
+    var particleNames = ['contactSparks', 'dustDebris', 'projectileTrails', 'waveBursts'];
+    for (var n = 0; n < particleNames.length; n++) {
+      for (i = 0; i < MAX_PARTICLES_PER_SYSTEM; i++) this.particleSystems[particleNames[n]].push({ active: false });
     }
-    return;
-  }
+    for (i = 0; i < MAX_FX; i++) this.effects.push({ active: false });
+  };
 
-  // sheet
-  if (G.selTower && sheetBtns) {
-    if (hit(sheetBtns.up, px, py, 4)) { upgrade(G.selTower); return; }
-    if (hit(sheetBtns.sell, px, py, 4)) { sell(G.selTower); return; }
-    if (hit(sheetBtns.close, px, py, 4)) { G.selTower = null; return; }
-  }
+  BulwarkScene.prototype.makeTextures = function () {
+    if (!this.textures.exists('bw-chrome')) {
+      var chrome = this.textures.createCanvas('bw-chrome', GAME_W, GAME_H);
+      var cc = chrome.getContext();
+      cc.fillStyle = '#06111e'; cc.fillRect(0, 0, GAME_W, GAME_H);
+      var bg = cc.createLinearGradient(0, 0, 0, GAME_H);
+      bg.addColorStop(0, '#0a1a2a'); bg.addColorStop(0.58, '#071523'); bg.addColorStop(1, '#06101b');
+      cc.fillStyle = bg; cc.fillRect(0, 0, GAME_W, GAME_H);
+      cc.fillStyle = '#0b1a2b'; cc.fillRect(0, 0, GAME_W, 86);
+      cc.fillStyle = '#102238'; cc.fillRect(0, 84, GAME_W, 2);
+      cc.fillStyle = '#0a1928'; cc.fillRect(872, 100, 352, 526);
+      cc.strokeStyle = '#29445c'; cc.lineWidth = 2; cc.strokeRect(872, 100, 352, 526);
+      cc.fillStyle = '#091827'; cc.fillRect(32, 628, 824, 82);
+      cc.strokeStyle = '#29445c'; cc.strokeRect(32, 628, 824, 82);
+      cc.fillStyle = '#0e2637'; cc.fillRect(56, 102, BOARD_W, BOARD_H + 28);
+      cc.strokeStyle = '#39617a'; cc.lineWidth = 2; cc.strokeRect(48, 106, BOARD_W + 16, BOARD_H + 20);
+      cc.fillStyle = '#1a3549'; cc.fillRect(56, 99, 168, 4);
+      cc.fillStyle = '#54d6ec'; cc.fillRect(224, 99, 80, 4);
+      cc.fillStyle = '#ff665c'; cc.fillRect(304, 99, 54, 4);
+      cc.fillStyle = '#10263a'; cc.fillRect(0, 0, 24, GAME_H);
+      cc.fillStyle = '#10263a'; cc.fillRect(GAME_W - 24, 0, 24, GAME_H);
+      chrome.refresh();
+    }
+    if (!this.textures.exists('bw-terrain')) this.textures.createCanvas('bw-terrain', GAME_W, GAME_H);
+    this.add.image(0, 0, 'bw-chrome').setOrigin(0).setDepth(0);
+  };
 
-  // chips
-  if (py > L.h - L.bar && !G.selTower) {
-    for (var i = 0; i < chipRects.length; i++) {
-      var r = chipRects[i];
-      if (hit(r, px, py, 3)) {
-        G.pending = r.key;
-        if (G.sel >= 0) tryBuild(G.sel, r.key);
-        else toast('PICK A CELL');
-        return;
+  BulwarkScene.prototype.refreshTerrain = function () {
+    var tex = this.textures.get('bw-terrain'), c = tex.getContext(), map = this.map, def = E.MAPS[this.mapIndex];
+    c.clearRect(0, 0, GAME_W, GAME_H);
+    var g = c.createLinearGradient(0, BOARD_Y, 0, BOARD_Y + BOARD_H);
+    g.addColorStop(0, def.biome === 'canyon' ? '#2a2028' : '#102536');
+    g.addColorStop(1, def.biome === 'river' ? '#0b2a3d' : '#122436');
+    c.fillStyle = g; c.fillRect(BOARD_X, BOARD_Y, BOARD_W, BOARD_H);
+    var floorA = def.biome === 'canyon' ? '#3a2b31' : def.biome === 'river' ? '#123649' : def.biome === 'bastion' ? '#263743' : '#1a3440';
+    var floorB = def.biome === 'canyon' ? '#32262e' : def.biome === 'river' ? '#0f3042' : def.biome === 'bastion' ? '#22323f' : '#17303b';
+    for (var y = 0; y < 9; y++) {
+      for (var x = 0; x < 14; x++) {
+        var i = y * 14 + x, px = BOARD_X + x * CELL, py = BOARD_Y + y * CELL;
+        c.fillStyle = (x + y) % 2 ? floorA : floorB; c.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+        c.strokeStyle = 'rgba(180,212,211,0.08)'; c.lineWidth = 1; c.strokeRect(px + 3.5, py + 3.5, CELL - 7, CELL - 7);
+        c.fillStyle = 'rgba(232,220,178,0.08)'; c.fillRect(px + 11 + ((x * 7 + y * 3) % 19), py + 11 + ((y * 5 + x * 2) % 17), 3, 2);
+        c.fillStyle = 'rgba(4,13,23,0.16)'; c.fillRect(px + 6, py + CELL - 8, CELL - 12, 2);
+        if (map.g[i] === E.ROCK) this.drawTerrainRock(c, def.biome, px, py, x, y);
+        else if ((x + y) % 4 === 0) { c.fillStyle = 'rgba(106,156,143,0.11)'; c.fillRect(px + 5, py + 7, 3, 3); c.fillRect(px + 13, py + 4, 2, 5); }
       }
     }
-    return;
-  }
+    this.drawLandmarks(c, def.biome);
+    this.drawPortCanvas(c, map.entry, '#54d6ec', 'IN');
+    this.drawPortCanvas(c, map.exit, '#ff665c', 'OUT');
+    c.strokeStyle = 'rgba(231,245,255,0.26)'; c.lineWidth = 2; c.strokeRect(BOARD_X, BOARD_Y, BOARD_W, BOARD_H);
+    tex.refresh();
+  };
 
-  // field
-  var ci = cellAt(px, py);
-  if (ci < 0) { G.sel = -1; G.selTower = null; return; }
-  var tw = towerAt(ci);
-  if (tw) { G.selTower = tw; G.sel = -1; return; }
-  G.selTower = null;
-  if (G.map.g[ci] === E.EMPTY && ci !== G.map.entry && ci !== G.map.exit) {
-    if (G.sel === ci) tryBuild(ci, G.pending);
-    else G.sel = ci;
-  } else if (G.map.g[ci] === E.WALL) {
-    // tap a wall to remove for half refund
-    G.map.g[ci] = E.EMPTY; G.map.solve();
-    for (var k = 0; k < G.creeps.length; k++) G.creeps[k].tx = undefined;
-    G.gold += Math.floor(T.wall.cost * 0.6);
-    E.audio.coin();
-    G.sel = -1;
-  } else { G.sel = -1; }
-}
+  BulwarkScene.prototype.drawTerrainRock = function (c, biome, px, py, x, y) {
+    var base = biome === 'canyon' ? '#533a39' : biome === 'river' ? '#153e53' : biome === 'bastion' ? '#35414e' : '#3b4b55';
+    c.fillStyle = base; c.beginPath(); c.moveTo(px + 3, py + 7); c.lineTo(px + 12, py + 2); c.lineTo(px + 49, py + 5); c.lineTo(px + 54, py + 19); c.lineTo(px + 47, py + 53); c.lineTo(px + 10, py + 56); c.lineTo(px + 2, py + 39); c.closePath(); c.fill();
+    c.fillStyle = biome === 'river' ? '#26647a' : biome === 'canyon' ? '#805247' : '#546474';
+    c.fillStyle = biome === 'canyon' ? '#98604f' : '#647687'; c.beginPath(); c.moveTo(px + 8, py + 12); c.lineTo(px + 22, py + 8); c.lineTo(px + 46, py + 11); c.lineTo(px + 38, py + 20); c.lineTo(px + 13, py + 20); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(231,245,255,0.16)'; c.fillRect(px + 9, py + 10, CELL - 23, 3);
+    c.strokeStyle = 'rgba(4,13,23,0.38)'; c.lineWidth = 2; c.beginPath(); c.moveTo(px + 18, py + 22); c.lineTo(px + 14, py + 49); c.moveTo(px + 37, py + 19); c.lineTo(px + 45, py + 43); c.stroke();
+    if (biome === 'river') { c.strokeStyle = 'rgba(114,219,238,0.42)'; c.lineWidth = 2; c.beginPath(); c.moveTo(px + 8, py + 42); c.lineTo(px + 26, py + 36); c.lineTo(px + 46, py + 42); c.stroke(); }
+    if (biome === 'bastion') { c.strokeStyle = '#1e2b39'; c.lineWidth = 3; c.strokeRect(px + 9, py + 9, CELL - 18, CELL - 18); c.fillStyle = '#687b88'; c.fillRect(px + 14, py + 29, 26, 4); }
+    if (biome === 'canyon' && (x + y) % 2 === 0) { c.fillStyle = '#b87959'; c.fillRect(px + 36, py + 14, 5, 4); c.fillRect(px + 28, py + 38, 8, 3); }
+  };
 
-function pos(e) {
-  var r = cv.getBoundingClientRect();
-  return { x: e.clientX - r.left, y: e.clientY - r.top };
-}
-var tapPointerId = null;
-cv.addEventListener('pointerdown', function (e) {
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  if (tapPointerId !== null) return;
-  e.preventDefault();
-  tapPointerId = e.pointerId;
-  cv.setPointerCapture?.(e.pointerId);
-  var p = pos(e); onTap(p.x, p.y);
-}, { passive: false });
-cv.addEventListener('pointerup', function (e) {
-  if (tapPointerId !== e.pointerId) return;
-  e.preventDefault(); tapPointerId = null;
-}, { passive: false });
-cv.addEventListener('pointercancel', function (e) {
-  if (tapPointerId === e.pointerId) tapPointerId = null;
-}, { passive: false });
-document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
-document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  BulwarkScene.prototype.drawLandmarks = function (c, biome) {
+    var x, y;
+    if (biome === 'plains') {
+      c.fillStyle = 'rgba(126,155,84,0.26)';
+      for (x = 0; x < 14; x += 3) { c.fillRect(BOARD_X + x * CELL + 10, BOARD_Y + 4, 4, 22); c.fillRect(BOARD_X + x * CELL + 18, BOARD_Y + 11, 4, 15); }
+      c.fillStyle = '#c3a16b'; c.fillRect(BOARD_X + 10 * CELL + 8, BOARD_Y + 7 * CELL + 9, 34, 4); c.fillRect(BOARD_X + 10 * CELL + 12, BOARD_Y + 7 * CELL + 15, 4, 20); c.fillRect(BOARD_X + 10 * CELL + 36, BOARD_Y + 7 * CELL + 15, 4, 20);
+      c.fillStyle = '#e0a34a'; c.beginPath(); c.arc(BOARD_X + 10 * CELL + 25, BOARD_Y + 7 * CELL + 9, 6, 0, TAU); c.fill();
+    } else if (biome === 'river') {
+      c.strokeStyle = 'rgba(83,205,232,0.27)'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(BOARD_X + 5 * CELL, BOARD_Y); c.bezierCurveTo(BOARD_X + 5 * CELL + 20, BOARD_Y + 170, BOARD_X + 7 * CELL - 20, BOARD_Y + 300, BOARD_X + 7 * CELL, BOARD_Y + BOARD_H); c.stroke();
+      c.fillStyle = '#b49b69'; c.fillRect(BOARD_X + 7 * CELL - 14, BOARD_Y + 3 * CELL + 18, 28, 9);
+      c.fillStyle = '#846f4c'; c.fillRect(BOARD_X + 7 * CELL - 14, BOARD_Y + 3 * CELL + 30, 28, 4);
+      c.fillStyle = '#d8c38c'; c.fillRect(BOARD_X + 7 * CELL - 23, BOARD_Y + 3 * CELL + 11, 5, 29); c.fillRect(BOARD_X + 7 * CELL + 18, BOARD_Y + 3 * CELL + 11, 5, 29);
+    } else if (biome === 'canyon') {
+      c.fillStyle = 'rgba(172,96,69,0.17)';
+      c.fillRect(BOARD_X + 5 * CELL + 12, BOARD_Y + 3 * CELL + 9, 30, 4);
+      c.fillRect(BOARD_X + 5 * CELL + 18, BOARD_Y + 5 * CELL + 12, 22, 4);
+      c.fillStyle = '#b87959'; c.fillRect(BOARD_X + 5 * CELL + 23, BOARD_Y + 4 * CELL + 11, 8, 8); c.fillStyle = '#e0a34a'; c.fillRect(BOARD_X + 5 * CELL + 8, BOARD_Y + 4 * CELL + 23, 5, 20); c.fillRect(BOARD_X + 5 * CELL + 41, BOARD_Y + 4 * CELL + 23, 5, 20);
+    } else {
+      c.fillStyle = '#253a4b'; c.fillRect(BOARD_X + 5 * CELL + 10, BOARD_Y + 3 * CELL + 8, 3 * CELL - 20, 3 * CELL - 16);
+      c.fillStyle = '#c7a766'; c.fillRect(BOARD_X + 6 * CELL + 2, BOARD_Y + 4 * CELL + 18, CELL - 4, 7);
+      c.fillStyle = '#5e7b8c'; c.fillRect(BOARD_X + 5 * CELL + 23, BOARD_Y + 3 * CELL + 7, 8, 8);
+      c.fillStyle = '#d8c38c'; c.fillRect(BOARD_X + 5 * CELL + 20, BOARD_Y + 3 * CELL + 18, 3, 34); c.fillRect(BOARD_X + 7 * CELL + 20, BOARD_Y + 3 * CELL + 18, 3, 34); c.fillStyle = '#ffdf79'; c.fillRect(BOARD_X + 7 * CELL + 22, BOARD_Y + 3 * CELL + 16, 16, 5);
+    }
+  };
 
-document.addEventListener('keydown', function (e) {
-  var k = e.key.toLowerCase();
-  E.audio.init();
-  if (G.phase !== 'play') {
-    if (k === 'r' || k === 'enter' || k === ' ') { newGame(); e.preventDefault(); }
-    if (k === 'c' && G.phase === 'win') { G.endless = true; G.phase = 'play'; G.prep = 9; }
-    return;
-  }
-  if (k === 'arrowleft' || k === 'a') { G.kb = true; G.kx = Math.max(0, G.kx - 1); e.preventDefault(); }
-  else if (k === 'arrowright' || k === 'd') { G.kb = true; G.kx = Math.min(L.cols - 1, G.kx + 1); e.preventDefault(); }
-  else if (k === 'arrowup' || k === 'w') { G.kb = true; G.ky = Math.max(0, G.ky - 1); e.preventDefault(); }
-  else if (k === 'arrowdown' || k === 's') { G.kb = true; G.ky = Math.min(L.rows - 1, G.ky + 1); e.preventDefault(); }
-  else if (k === ' ' || k === 'enter') {
-    e.preventDefault();
-    G.kb = true;
-    var ci = G.ky * L.cols + G.kx;
-    var tw = towerAt(ci);
-    if (tw) G.selTower = (G.selTower === tw ? null : tw);
-    else { G.selTower = null; tryBuild(ci, G.pending); }
-  }
-  else if (k >= '1' && k <= '6') { G.pending = CHIPS[parseInt(k, 10) - 1]; toast(T[G.pending].name + ' SELECTED'); }
-  else if (k === 'u') { var t2 = G.selTower || towerAt(G.ky * L.cols + G.kx); if (t2) upgrade(t2); }
-  else if (k === 'x') { var t3 = G.selTower || towerAt(G.ky * L.cols + G.kx); if (t3) sell(t3); }
-  else if (k === 'g') { if (!G.active) { G.gold += Math.max(0, Math.ceil(G.prep) * 2); G.prep = 0; startWave(); } }
-  else if (k === 'r') newGame();
-  else if (k === 'm') E.audio.toggle();
-});
+  BulwarkScene.prototype.drawPortCanvas = function (c, index, color, label) {
+    var p = cellXY(index), x = p.x - CELL / 2 + 5, y = p.y - CELL / 2 + 5;
+    c.fillStyle = color; c.globalAlpha = 0.14; c.fillRect(x, y, CELL - 10, CELL - 10); c.globalAlpha = 1;
+    c.strokeStyle = color; c.lineWidth = 2; c.strokeRect(x, y, CELL - 10, CELL - 10);
+    c.fillStyle = color; c.font = 'bold 16px Arial'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(label, p.x, p.y);
+  };
 
-/* ---------------- loop ---------------- */
-var last = 0;
-function frame(ts) {
-  if (!last) last = ts;
-  var dt = Math.min(0.05, (ts - last) / 1000);
-  last = ts;
-  if (started) { update(dt); draw(); }
-  requestAnimationFrame(frame);
-}
+  BulwarkScene.prototype.makeTextUi = function () {
+    var style = { fontFamily: 'Arial, sans-serif', fontSize: '24px', fontStyle: 'bold', color: CSS.text };
+    var small = { fontFamily: 'Arial, sans-serif', fontSize: '19px', color: CSS.muted };
+    var label = { fontFamily: 'Arial, sans-serif', fontSize: '20px', fontStyle: 'bold', color: CSS.muted, letterSpacing: 1 };
+    this.ui = {};
+    this.ui.lives = this.add.text(40, 23, '', style).setDepth(21);
+    this.ui.gold = this.add.text(154, 23, '', style).setDepth(21);
+    this.ui.wave = this.add.text(288, 23, '', style).setDepth(21);
+    this.ui.score = this.add.text(420, 23, '', style).setDepth(21);
+    this.ui.map = this.add.text(780, 22, '', { fontFamily: 'Arial, sans-serif', fontSize: '21px', fontStyle: 'bold', color: CSS.cyan }).setOrigin(1, 0).setDepth(21);
+    this.ui.go = this.add.text(1130, 20, 'GO', { fontFamily: 'Arial, sans-serif', fontSize: '24px', fontStyle: 'bold', color: CSS.green }).setOrigin(0.5, 0).setDepth(22);
+    this.ui.settings = this.add.text(1238, 18, '☰', { fontFamily: 'Arial, sans-serif', fontSize: '29px', fontStyle: 'bold', color: CSS.muted }).setOrigin(0.5, 0).setDepth(22);
+    this.ui.path = this.add.text(902, 126, '', { fontFamily: 'Arial, sans-serif', fontSize: '21px', fontStyle: 'bold', color: CSS.green }).setDepth(21);
+    this.ui.tower = this.add.text(902, 235, '', { fontFamily: 'Arial, sans-serif', fontSize: '21px', fontStyle: 'bold', color: CSS.cyan }).setDepth(21).setVisible(false);
+    this.ui.detail = this.add.text(902, 270, '', small).setWordWrapWidth(295).setDepth(21).setVisible(false);
+    this.ui.bank = this.add.text(902, 402, '', { fontFamily: 'Arial, sans-serif', fontSize: '21px', fontStyle: 'bold', color: CSS.amber }).setDepth(21);
+    this.ui.bankDetail = this.add.text(902, 435, '', small).setDepth(21);
+    this.ui.medals = this.add.text(902, 466, '', { fontFamily: 'Arial, sans-serif', fontSize: '20px', fontStyle: 'bold', color: CSS.amber }).setDepth(21).setVisible(false);
+    this.ui.mapButton = this.add.text(902, 516, 'MAP', label).setDepth(21);
+    this.ui.message = this.add.text(902, 91, '', { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: CSS.amber }).setWordWrapWidth(290).setDepth(24).setVisible(false);
+    this.ui.tutorial = this.add.text(70, 90, '', { fontFamily: 'Arial, sans-serif', fontSize: '19px', fontStyle: 'bold', color: CSS.text }).setDepth(22).setVisible(false);
+    this.ui.bannerTitle = this.add.text(640, 145, '', { fontFamily: 'Arial, sans-serif', fontSize: '28px', fontStyle: 'bold', color: CSS.text }).setOrigin(0.5).setDepth(30).setVisible(false);
+    this.ui.bannerSub = this.add.text(640, 174, '', { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: CSS.muted }).setOrigin(0.5).setDepth(30).setVisible(false);
+    this.chipText = [];
+    for (var i = 0; i < E.CHIP_ORDER.length; i++) {
+      this.chipText.push({
+        name: this.add.text(56 + i * 130, 651, '', { fontFamily: 'Arial, sans-serif', fontSize: '18px', fontStyle: 'bold', color: CSS.text }).setDepth(22)
+      });
+    }
+  };
 
-resize();
-newGame();
-started = true;
-requestAnimationFrame(frame);
+  BulwarkScene.prototype.resetRun = function () {
+    this.state.phase = 'play'; this.state.wave = 0; this.state.wavesDone = 0; this.state.gold = 220;
+    this.state.lives = 20; this.state.leaks = 0; this.state.score = 0; this.state.active = false;
+    this.state.prep = 7; this.state.time = 0; this.state.kills = 0; this.state.medal = 0;
+    this.state.endless = false; this.state.bankCount = 0; this.state.bankInterest = 0; this.state.message = ''; this.state.messageT = 0;
+    this.state.tutorialStep = profile.tutorialDone ? 4 : 0;
+    this.toastQueue.length = 0; this.bannerQueue.length = 0; this.banner = null; this.coachStep = profile.tutorialDone ? 4 : 0; this.coachT = profile.tutorialDone ? 0 : 3.2;
+    this.beacon.state = 'idle'; this.beacon.time = 0;
+    this.waveQueue.length = 0; this.waveCursor = 0; this.waveClock = 0; this.towers.length = 0;
+    this.selectedCell = -1; this.selectedTower = null;
+    this.previewValid = false;
+    this.previewPath = [];
+    this.lastBuiltType = 'wall'; this.lastTapCell = -1; this.lastTapAt = 0;
+    this.cursor = { x: 1, y: 1 }; this.cursorRepeat = 0;
+    this.clearPools();
+    this.map = new E.Map(E.MAPS[this.mapIndex]);
+    this.pathCache = this.map.path();
+    this.refreshTerrain();
+    this.syncHook();
+    try { kit.audio.music('ambient', 450); } catch (e) {}
+  };
 
-})();
+  BulwarkScene.prototype.clearPools = function () {
+    var i;
+    for (i = 0; i < this.creeps.length; i++) this.creeps[i].active = false;
+    for (i = 0; i < this.bullets.length; i++) this.bullets[i].active = false;
+    var particleNames = ['contactSparks', 'dustDebris', 'projectileTrails', 'waveBursts'];
+    for (var n = 0; n < particleNames.length; n++) for (i = 0; i < this.particleSystems[particleNames[n]].length; i++) this.particleSystems[particleNames[n]][i].active = false;
+    for (i = 0; i < this.effects.length; i++) this.effects[i].active = false;
+  };
+
+  BulwarkScene.prototype.syncHook = function () {
+    this.refreshScore();
+    hook.state = this.state;
+    hook.state.map = E.MAPS[this.mapIndex].id;
+    hook.state.mapIndex = this.mapIndex;
+    if (hook.forceWave !== this.lastForceWave && hook.forceWave != null) {
+      this.lastForceWave = hook.forceWave;
+      var fw = Number(hook.forceWave);
+      if (Number.isInteger(fw) && fw >= 0) {
+        if (fw === 0) this.resetRun();
+        else { this.state.wave = fw - 1; this.state.phase = 'play'; this.state.endless = fw > 30; this.state.active = false; this.state.prep = 0.05; }
+      }
+    }
+    if (hook.forceMap !== this.lastForceMap && hook.forceMap != null) {
+      this.lastForceMap = hook.forceMap;
+      var fm = E.mapIndex(hook.forceMap);
+      if (fm !== this.mapIndex) this.changeMap(fm, true);
+    }
+  };
+
+  BulwarkScene.prototype.refreshScore = function () {
+    this.state.score = Math.max(0, this.state.wavesDone * 100 + this.state.lives * 9 + this.state.kills * 2 + Math.floor(this.state.gold / 10));
+    return this.state.score;
+  };
+
+  BulwarkScene.prototype.recomputeBankStats = function () {
+    var bankCount = 0, bankPct = 0;
+    for (var i = 0; i < this.towers.length; i++) if (this.towers[i].type === 'bank') { bankCount += this.towers[i].level; bankPct += 0.012 * this.towers[i].level; }
+    this.state.bankCount = bankCount;
+    this.state.bankInterest = bankPct;
+  };
+
+  BulwarkScene.prototype.changeMap = function (index, preserve) {
+    if (preserve && (this.state.wave > 0 || this.state.wavesDone > 0 || this.state.active)) {
+      this.toast('MAP LOCKED · RESTART', CSS.coral);
+      this.sfx('cancel', 0.35, 0.72);
+      return false;
+    }
+    this.mapIndex = E.mapIndex(index);
+    this.map = new E.Map(E.MAPS[this.mapIndex]);
+    this.pathCache = this.map.path();
+    this.towers.length = 0;
+    this.clearPools();
+    this.waveQueue.length = 0; this.waveCursor = 0; this.waveClock = 0; this.state.active = false;
+    this.state.phase = 'play'; this.state.wave = 0; this.state.wavesDone = 0; this.state.prep = 7; this.state.gold = 220; this.state.lives = 20;
+    this.state.leaks = 0; this.state.kills = 0; this.state.score = 0; this.state.time = 0; this.state.medal = 0; this.state.earlyBonus = 0; this.state.endless = false; this.state.bankCount = 0; this.state.bankInterest = 0; this.state.message = ''; this.state.messageT = 0;
+    this.state.map = E.MAPS[this.mapIndex].id;
+    this.selectedCell = -1; this.selectedTower = null;
+    this.previewValid = false;
+    this.previewPath = [];
+    this.toastQueue.length = 0; this.bannerQueue.length = 0; this.banner = null; this.coachStep = profile.tutorialDone ? 4 : 0; this.coachT = profile.tutorialDone ? 0 : 3.2;
+    profile.map = this.mapIndex; kit.save.set(profile);
+    this.beacon.state = 'command'; this.beacon.time = 0.7;
+    this.refreshTerrain();
+    this.sfx('confirm', 0.75);
+    return true;
+  };
+
+  BulwarkScene.prototype.toast = function (message, color) {
+    var item = { text: String(message).slice(0, 42), color: color || CSS.amber };
+    if (this.state.messageT > 0 || (this.banner && this.banner.active) || (this.coachT > 0 && this.state.tutorialStep < 4)) {
+      if (this.state.message === item.text || (this.toastQueue.length && this.toastQueue[this.toastQueue.length - 1].text === item.text)) return;
+      this.toastQueue.push(item);
+      if (this.toastQueue.length > 2) this.toastQueue.shift();
+      return;
+    }
+    this.startToast(item);
+  };
+
+  BulwarkScene.prototype.startToast = function (item) {
+    this.state.message = item.text;
+    this.state.messageT = 1;
+    this.messageColor = item.color;
+  };
+
+  BulwarkScene.prototype.startQueuedToast = function () {
+    if (this.banner && this.banner.active) return;
+    if (this.coachT > 0 && this.state.tutorialStep < 4) return;
+    if (this.state.messageT > 0 || !this.toastQueue.length) return;
+    this.startToast(this.toastQueue.shift());
+  };
+
+  BulwarkScene.prototype.sfx = function (name, volume, rate) {
+    try { kit.audio.sfx(name, { volume: volume == null ? 1 : volume, rate: rate || 1 }); } catch (e) {}
+  };
+
+  BulwarkScene.prototype.ensureMusic = function () {
+    if (this.safeMusic) return;
+    this.safeMusic = true;
+    try { kit.audio.music('ambient', 500); } catch (e) {}
+  };
+
+  BulwarkScene.prototype.emit = function (x, y, color, count, kind) {
+    if (kit.juice.enabled === false) count = Math.max(1, Math.floor(count * 0.35));
+    var poolName = kind === 'dust' ? 'dustDebris' : kind === 'trail' ? 'projectileTrails' : kind === 'wave' ? 'waveBursts' : 'contactSparks';
+    var pool = this.particleSystems[poolName];
+    var made = 0;
+    for (var i = 0; i < pool.length && made < count; i++) {
+      var p = pool[i];
+      if (p.active) continue;
+      var a = ((i * 37 + this.state.kills * 11) % 360) / 360 * TAU;
+      p.active = true; p.x = x; p.y = y; p.vx = Math.cos(a) * (22 + (i % 5) * 13); p.vy = Math.sin(a) * (22 + (i % 5) * 13);
+      p.life = p.max = 0.28 + (i % 4) * 0.07; p.color = typeof color === 'string' ? parseInt(color.replace('#', ''), 16) : color; p.kind = kind || 'contact'; p.size = kind === 'dust' ? 5 : 3 + (i % 3); made++;
+    }
+  };
+
+  BulwarkScene.prototype.addEffect = function (kind, x1, y1, x2, y2, color, radius) {
+    for (var i = 0; i < this.effects.length; i++) {
+      var f = this.effects[i];
+      if (!f.active) { f.active = true; f.kind = kind; f.x1 = x1; f.y1 = y1; f.x2 = x2; f.y2 = y2; f.color = color; f.radius = radius || 10; f.life = f.max = kind === 'beam' ? 0.13 : 0.32; return f; }
+    }
+    return null;
+  };
+
+  BulwarkScene.prototype.occupiedCells = function () {
+    this.occupiedCount = 0;
+    for (var i = 0; i < this.creeps.length; i++) {
+      var c = this.creeps[i];
+      if (!c.active || c.fly || c.cy < 0) continue;
+      var x = clamp(Math.floor(c.cx), 0, 13), y = clamp(Math.floor(c.cy), 0, 8);
+      this.occupied[this.occupiedCount++] = y * 14 + x;
+    }
+    return this.occupiedCount ? this.occupied.subarray(0, this.occupiedCount) : null;
+  };
+
+  BulwarkScene.prototype.updatePreview = function () {
+    this.previewPath = [];
+    this.previewValid = this.selectedCell >= 0 && this.map.canPlace(this.selectedCell, this.occupiedCells());
+    if (this.selectedCell < 0) return;
+    var old = this.map.g[this.selectedCell];
+    this.map.g[this.selectedCell] = E.WALL;
+    if (this.map.solve()) this.previewPath = this.map.path();
+    this.map.g[this.selectedCell] = old;
+    this.map.solve();
+  };
+
+  BulwarkScene.prototype.tryBuild = function (index, key) {
+    var d = safeDef(key, 'arrow');
+    if (this.state.phase !== 'play') return false;
+    if (!E.isUnlocked(d.key, this.state.wavesDone)) { this.toast('LOCK · WAVE ' + d.unlock); this.sfx('cancel', 0.35, 0.7); return false; }
+    if (index < 0 || this.map.g[index] !== E.EMPTY) { this.toast('OCCUPIED'); this.sfx('cancel', 0.35, 0.7); return false; }
+    if (this.state.gold < d.cost) { this.toast('NEED ' + d.cost + 'G'); this.sfx('cancel', 0.35, 0.7); return false; }
+    if (!this.map.canPlace(index, this.occupiedCells())) { this.toast('PATH SEALED', CSS.coral); this.sfx('leak', 0.2, 0.7); return false; }
+    this.state.gold -= d.cost;
+    this.map.g[index] = d.key === 'wall' ? E.WALL : E.TOWER;
+    this.map.solve();
+    this.pathCache = this.map.path();
+    for (var i = 0; i < this.creeps.length; i++) if (this.creeps[i].active) this.creeps[i].tx = -1;
+    if (d.key !== 'wall') {
+      var p = cellXY(index);
+      this.towers.push({ i: index, type: d.key, level: 1, spent: d.cost, cd: 0.1, angle: -Math.PI / 2, pulse: 1, attackT: 0, animState: 'active', animT: 0.3, x: p.x, y: p.y });
+      this.recomputeBankStats();
+      if (this.state.tutorialStep === 1 && d.key === 'arrow') this.state.tutorialStep = 2;
+    } else if (this.state.tutorialStep === 0) this.state.tutorialStep = 1;
+    this.selectedCell = -1; this.selectedTower = null;
+    this.previewValid = false;
+    this.previewPath = [];
+    this.lastBuiltType = d.key;
+    this.beacon.state = 'resolve'; this.beacon.time = 0.55;
+    var p2 = cellXY(index); this.emit(p2.x, p2.y, '#' + d.color.toString(16).padStart(6, '0'), 8, 'dust');
+    this.sfx('place', 0.82, d.key === 'wall' ? 0.82 : 1.1);
+    this.toast(d.name + ' PLACED', CSS.green);
+    return true;
+  };
+
+  BulwarkScene.prototype.removeWall = function (index) {
+    if (this.map.g[index] !== E.WALL) return;
+    this.map.g[index] = E.EMPTY; this.map.solve(); this.state.gold += 5;
+    this.pathCache = this.map.path();
+    this.recomputeBankStats();
+    this.previewValid = false;
+    for (var i = 0; i < this.creeps.length; i++) if (this.creeps[i].active) this.creeps[i].tx = -1;
+    var p = cellXY(index); this.emit(p.x, p.y, '#93a1b4', 6, 'dust');
+    this.toast('WALL REMOVED · +5G', CSS.amber); this.sfx('cancel', 0.55, 0.68);
+  };
+
+  BulwarkScene.prototype.towerAt = function (index) {
+    for (var i = 0; i < this.towers.length; i++) if (this.towers[i].i === index) return this.towers[i];
+    return null;
+  };
+  BulwarkScene.prototype.upCost = function (tower) {
+    var d = safeDef(tower.type, 'arrow');
+    return Math.round(d.cost * (0.8 + tower.level * 0.62));
+  };
+  BulwarkScene.prototype.sellValue = function (tower) { return Math.floor(tower.spent * 0.62); };
+  BulwarkScene.prototype.upgrade = function (tower) {
+    if (!tower) return;
+    if (tower.level >= 5) { this.toast('MAX LEVEL'); return; }
+    var cost = this.upCost(tower);
+    if (this.state.gold < cost) { this.toast('NEED ' + cost + 'G'); return; }
+    this.state.gold -= cost; tower.spent += cost; tower.level++;
+    tower.pulse = 1; tower.animState = 'active'; tower.animT = 0.3; this.recomputeBankStats();
+    this.emit(tower.x, tower.y, '#' + safeDef(tower.type, 'arrow').color.toString(16).padStart(6, '0'), 12, 'wave');
+    this.sfx('upgrade', 0.75, 1.05);
+    this.toast(safeDef(tower.type, 'arrow').name + ' · LV ' + tower.level, CSS.green);
+    if (this.state.tutorialStep === 3) { this.state.tutorialStep = 4; profile.tutorialDone = true; kit.save.set(profile); }
+  };
+  BulwarkScene.prototype.sellTower = function (tower) {
+    if (!tower) return;
+    var value = this.sellValue(tower), index = this.towers.indexOf(tower);
+    this.state.gold += value; this.map.g[tower.i] = E.EMPTY; this.map.solve();
+    this.pathCache = this.map.path();
+    for (var i = 0; i < this.creeps.length; i++) if (this.creeps[i].active) this.creeps[i].tx = -1;
+    if (index >= 0) this.towers.splice(index, 1);
+    this.recomputeBankStats();
+    this.selectedTower = null; this.previewValid = false; this.toast('SOLD · +' + value + 'G', CSS.amber); this.sfx('cancel', 0.55, 0.72);
+  };
+
+  BulwarkScene.prototype.startWave = function () {
+    if (this.state.active || this.state.phase !== 'play') return;
+    this.ensureMusic();
+    this.state.wave++;
+    this.waveQueue = E.makeWave(this.state.wave, 0xB17A4);
+    this.waveCursor = 0; this.waveClock = 0; this.state.active = true; this.state.prep = 0;
+    if (this.state.wave % 10 === 0) {
+      this.toast('BOSS · WARDEN ' + this.state.wave, CSS.coral);
+      if (kit.juice.enabled) kit.juice.shake(9, 260);
+      this.sfx('warning', 0.9, 0.82);
+      try { kit.audio.music('danger', 500); } catch (e) {}
+    } else {
+      this.sfx('confirm', 0.5, 0.75);
+    }
+    if (this.state.tutorialStep === 2) this.state.tutorialStep = 3;
+  };
+
+  BulwarkScene.prototype.goEarly = function () {
+    if (this.state.active || this.state.phase !== 'play') return;
+    var bonus = 10 + Math.ceil(Math.max(0, this.state.prep)) * 3;
+    if (this.state.wave < 6) bonus += 8;
+    this.ensureMusic();
+    this.state.gold += bonus; this.state.earlyBonus += bonus;
+    this.toast('GO · +' + bonus + 'G', CSS.green); this.sfx('clear', 0.42, 1.25);
+    this.state.prep = 0; this.startWave();
+  };
+
+  BulwarkScene.prototype.spawnCreep = function (item) {
+    var d = E.ENEMIES[item.type], c = null;
+    for (var i = 0; i < this.creeps.length; i++) if (!this.creeps[i].active) { c = this.creeps[i]; break; }
+    if (!c || !d) return;
+    c.active = true; c.stamp++; c.type = item.type; c.fly = !!d.fly; c.boss = !!d.boss; c.armor = d.armor || 0;
+    c.hpMax = d.hp * item.scale; c.hp = c.hpMax; c.shMax = d.shield ? d.shield * item.scale : 0; c.sh = c.shMax; c.shT = 0;
+    c.speed = d.speed * (1 + Math.min(0.36, this.state.wave * 0.009)); c.gold = d.gold; c.leak = d.leak; c.radius = d.radius; c.color = d.color;
+    c.cx = this.map.entryC + 0.5; c.cy = -0.45; c.tx = -1; c.ty = 0.5; c.slowT = 0; c.slowF = 1; c.hitT = 0; c.flash = 0; c.angle = Math.PI / 2;
+    c.animState = 'move'; c.animT = 0; c.animPhase = (c.stamp * 0.73) % TAU; c.defeatT = 0;
+  };
+
+  BulwarkScene.prototype.findNext = function (c) {
+    if (c.cy < 0.5) { c.tx = this.map.entryC + 0.5; c.ty = 0.5; return; }
+    var x = clamp(Math.floor(c.cx), 0, 13), y = clamp(Math.floor(c.cy), 0, 8), index = y * 14 + x;
+    var next = this.map.next[index];
+    if (next < 0 || this.map.g[index] !== E.EMPTY) {
+      var best = -1, bestDist = 99999;
+      var ns = [index - 1, index + 1, index - 14, index + 14];
+      for (var i = 0; i < ns.length; i++) {
+        var j = ns[i];
+        if (j < 0 || j >= this.map.n || this.map.g[j] !== E.EMPTY || this.map.dist[j] < 0) continue;
+        if (this.map.dist[j] < bestDist) { best = j; bestDist = this.map.dist[j]; }
+      }
+      next = best;
+    }
+    if (next >= 0) { c.tx = next % 14 + 0.5; c.ty = (next / 14 | 0) + 0.5; }
+    else { c.tx = c.cx; c.ty = c.cy; }
+  };
+
+  BulwarkScene.prototype.leak = function (c) {
+    if (!c.active) return;
+    c.active = false; this.state.leaks += c.leak; this.state.lives = Math.max(0, this.state.lives - c.leak);
+    c.animState = 'attack'; c.animT = 0.22; this.emit(BOARD_X + c.cx * CELL, BOARD_Y + c.cy * CELL, '#ff665c', 12, 'contact');
+    this.toast('BREACH · -' + c.leak + ' ♥', CSS.coral); this.sfx('leak', 0.78, c.boss ? 0.65 : 1);
+    if (c.boss && kit.juice.enabled) kit.juice.shake(7, 170);
+    this.refreshScore();
+    if (this.state.lives <= 0) { this.state.phase = 'lose'; this.state.active = false; this.beacon.state = 'defeat'; this.beacon.time = 999; this.showBanner('LINE BREACHED', '0 ♥ · RUN ENDS', CSS.coral); this.sfx('leak', 0.9, 0.58); profile.best = Math.max(profile.best, this.state.score); kit.save.set(profile); try { kit.audio.stopMusic(550); } catch (e) {} }
+  };
+
+  BulwarkScene.prototype.damage = function (c, amount, color) {
+    if (!c || !c.active) return;
+    var damage = Math.max(1, amount - c.armor);
+    if (c.sh > 0) { c.sh -= damage; c.shT = 2.2; if (c.sh < 0) { c.hp += c.sh; c.sh = 0; } }
+    else c.hp -= damage;
+    c.hitT = 0.1; c.flash = 0.08; c.animState = 'hurt'; c.animT = 0.18;
+    try { kit.juice.hitStop(c.boss ? 64 : 46); } catch (e) {}
+    this.emit(BOARD_X + c.cx * CELL, BOARD_Y + c.cy * CELL, color || '#ffffff', c.boss ? 4 : 2, 'contact');
+    if (c.hp <= 0) this.killCreep(c);
+  };
+
+  BulwarkScene.prototype.killCreep = function (c) {
+    if (!c.active) return;
+    c.active = false; c.animState = 'defeat'; c.defeatT = c.defeatMax = c.boss ? 0.5 : 0.28; this.state.gold += c.gold; this.state.kills++;
+    var x = BOARD_X + c.cx * CELL, y = BOARD_Y + c.cy * CELL;
+    this.emit(x, y, '#' + c.color.toString(16).padStart(6, '0'), c.boss ? 18 : 6, c.boss ? 'wave' : 'contact');
+    this.sfx('kill', c.boss ? 0.8 : 0.24, c.boss ? 0.58 : 1.1);
+    try { kit.juice.hitStop(c.boss ? 90 : 52); } catch (e) {}
+    if (c.boss) { this.addEffect('blast', c.cx, c.cy, c.cx, c.cy, c.color, 1.2); if (kit.juice.enabled) kit.juice.shake(10, 180); }
+  };
+
+  BulwarkScene.prototype.findTarget = function (tower, range) {
+    var chosen = null, progress = -999999, r2 = range * range;
+    for (var i = 0; i < this.creeps.length; i++) {
+      var c = this.creeps[i]; if (!c.active || c.cy < -0.2) continue;
+      var dx = c.cx - (tower.x - BOARD_X) / CELL, dy = c.cy - (tower.y - BOARD_Y) / CELL;
+      if (dx * dx + dy * dy > r2) continue;
+      var p = c.fly ? c.cy * 3 : 1000 - (this.map.dist[clamp(Math.floor(c.cy), 0, 8) * 14 + clamp(Math.floor(c.cx), 0, 13)] || 999);
+      if (p > progress) { progress = p; chosen = c; }
+    }
+    return chosen;
+  };
+
+  BulwarkScene.prototype.fireTower = function (tower, dt) {
+    var d = safeDef(tower.type, 'arrow');
+    if (d.bank) return;
+    tower.cd -= dt; tower.pulse = Math.max(0, tower.pulse - dt * 4);
+    if (tower.cd > 0) return;
+    var stat = { damage: d.damage * Math.pow(1.32, tower.level - 1), rate: d.rate * Math.pow(0.93, tower.level - 1), range: d.range * (1 + (tower.level - 1) * 0.08) };
+    var target = this.findTarget(tower, stat.range); if (!target) return;
+    var tx = (target.cx * CELL + BOARD_X), ty = (target.cy * CELL + BOARD_Y);
+    tower.angle = Math.atan2(ty - tower.y, tx - tower.x); tower.cd = stat.rate; tower.pulse = 1; tower.attackT = 0.18; tower.animState = 'attack';
+    this.sfx('fire', d.key === 'zap' ? 0.34 : 0.2, d.key === 'frost' ? 1.26 : d.key === 'splash' ? 0.76 : 1);
+    if (d.key === 'frost') {
+      this.damage(target, stat.damage, '#8fe7ff'); target.slowT = 1.35; target.slowF = Math.min(target.slowF, d.slow); this.addEffect('beam', tower.x, tower.y, tx, ty, d.color, 0); return;
+    }
+    if (d.key === 'zap') {
+      var current = target, hit = [target], amount = stat.damage, fromX = tower.x, fromY = tower.y, links = d.chains + (tower.level >= 4 ? 1 : 0);
+      for (var chain = 0; chain < links && current; chain++) {
+        this.damage(current, amount, '#cda1ff');
+        var cx = BOARD_X + current.cx * CELL, cy = BOARD_Y + current.cy * CELL;
+        this.addEffect('beam', fromX, fromY, cx, cy, d.color, 0); fromX = cx; fromY = cy; amount *= 0.7;
+        var next = null, nd = 2.6 * 2.6;
+        for (var j = 0; j < this.creeps.length; j++) { var c2 = this.creeps[j]; if (!c2.active || hit.indexOf(c2) >= 0) continue; var dd = E.dist2(c2.cx, c2.cy, current.cx, current.cy); if (dd < nd) { nd = dd; next = c2; } }
+        if (!next) break; hit.push(next); current = next;
+      }
+      return;
+    }
+    var b = null;
+    for (var k = 0; k < this.bullets.length; k++) if (!this.bullets[k].active) { b = this.bullets[k]; break; }
+    if (!b) return;
+    b.active = true; b.kind = d.key === 'splash' ? 'lob' : 'shot'; b.x = tower.x; b.y = tower.y; b.target = target; b.stamp = target.stamp; b.tx = tx; b.ty = ty; b.speed = d.key === 'splash' ? 360 : 600; b.damage = stat.damage; b.color = d.color; b.aoe = (d.aoe || 0) * (1 + (tower.level - 1) * 0.06);
+    this.emit(b.x, b.y, d.color, 2, 'trail');
+  };
+
+  BulwarkScene.prototype.updateCreeps = function (dt) {
+    var exitX = BOARD_X + (this.map.exitC + 0.5) * CELL, exitY = BOARD_Y + 8.5 * CELL;
+    for (var i = 0; i < this.creeps.length; i++) {
+      var c = this.creeps[i]; if (!c.active) continue;
+      if (c.hitT > 0) c.hitT -= dt; if (c.flash > 0) c.flash -= dt;
+      if (c.animT > 0) { c.animT -= dt; if (c.animT <= 0 && c.animState !== 'defeat') c.animState = 'move'; }
+      if (c.slowT > 0) { c.slowT -= dt; if (c.slowT <= 0) c.slowF = 1; }
+      if (c.shMax > 0) { c.shT -= dt; if (c.shT <= 0 && c.sh < c.shMax) c.sh = Math.min(c.shMax, c.sh + c.shMax * 0.24 * dt); }
+      var speed = c.speed * c.slowF;
+      if (c.fly) {
+        var fx = exitX - (BOARD_X + c.cx * CELL), fy = exitY - (BOARD_Y + c.cy * CELL), fl = Math.sqrt(fx * fx + fy * fy);
+        c.angle = Math.atan2(fy, fx); if (fl < speed * CELL * dt + 10) { this.leak(c); continue; }
+        c.cx += fx / fl * speed * dt; c.cy += fy / fl * speed * dt;
+      } else {
+        if (E.dist2(c.cx, c.cy, this.map.exitC + 0.5, 8.5) < 0.07) { this.leak(c); continue; }
+        if (c.tx < 0 || Math.sqrt(Math.pow(c.tx - c.cx, 2) + Math.pow(c.ty - c.cy, 2)) < 0.05) this.findNext(c);
+        var dx = c.tx - c.cx, dy = c.ty - c.cy, len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0.001) { c.animState = c.animState === 'hurt' || c.animState === 'attack' ? c.animState : 'move'; c.angle = Math.atan2(dy, dx); var move = Math.min(len, speed * dt); c.cx += dx / len * move; c.cy += dy / len * move; }
+        else if (c.animState !== 'hurt' && c.animState !== 'attack') c.animState = 'idle';
+        if (E.dist2(c.cx, c.cy, this.map.exitC + 0.5, 8.5) < 0.07) { this.leak(c); continue; }
+      }
+    }
+  };
+
+  BulwarkScene.prototype.updateBullets = function (dt) {
+    for (var i = 0; i < this.bullets.length; i++) {
+      var b = this.bullets[i]; if (!b.active) continue;
+      if (b.kind === 'shot') {
+        if (!b.target || !b.target.active || b.target.stamp !== b.stamp) { b.active = false; continue; }
+        b.tx = BOARD_X + b.target.cx * CELL; b.ty = BOARD_Y + b.target.cy * CELL;
+      }
+      var dx = b.tx - b.x, dy = b.ty - b.y, dist = Math.sqrt(dx * dx + dy * dy), step = b.speed * dt;
+      if (dist <= step + 1) {
+        if (b.kind === 'lob') {
+          for (var j = 0; j < this.creeps.length; j++) { var c = this.creeps[j]; if (!c.active) continue; var cx = BOARD_X + c.cx * CELL, cy = BOARD_Y + c.cy * CELL; if (E.dist2(cx, cy, b.tx, b.ty) <= (b.aoe * CELL) * (b.aoe * CELL)) this.damage(c, b.damage, '#ffc45d'); }
+          this.addEffect('blast', b.tx, b.ty, b.tx, b.ty, b.color, b.aoe); this.emit(b.tx, b.ty, '#ffc45d', 12, 'wave'); this.sfx('hit', 0.42, 0.72);
+        } else { this.damage(b.target, b.damage, '#54d6ec'); this.emit(b.tx, b.ty, '#54d6ec', 3, 'contact'); }
+        b.active = false; continue;
+      }
+      b.x += dx / dist * step; b.y += dy / dist * step;
+    }
+  };
+
+  BulwarkScene.prototype.updateEffects = function (dt) {
+    var i;
+    var particleNames = ['contactSparks', 'dustDebris', 'projectileTrails', 'waveBursts'];
+    for (var n = 0; n < particleNames.length; n++) for (i = 0; i < this.particleSystems[particleNames[n]].length; i++) {
+      var p = this.particleSystems[particleNames[n]][i]; if (!p.active) continue; p.life -= dt; if (p.life <= 0) { p.active = false; continue; } p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.9; p.vy *= 0.9;
+    }
+    for (i = 0; i < this.towers.length; i++) {
+      var tower = this.towers[i]; if (tower.attackT > 0) { tower.attackT -= dt; if (tower.attackT <= 0) tower.animState = 'idle'; } if (tower.animT > 0) tower.animT -= dt;
+    }
+    for (i = 0; i < this.creeps.length; i++) if (this.creeps[i].defeatT > 0) { this.creeps[i].defeatT -= dt; if (this.creeps[i].defeatT <= 0) this.creeps[i].animState = 'idle'; }
+    for (i = 0; i < this.effects.length; i++) { var f = this.effects[i]; if (!f.active) continue; f.life -= dt; if (f.life <= 0) f.active = false; }
+    if (this.coachT > 0) {
+      this.coachT -= dt;
+      if (this.coachT <= 0) { this.coachT = 0; this.startQueuedToast(); }
+    }
+    if (this.state.messageT > 0) {
+      this.state.messageT -= dt;
+      if (this.state.messageT <= 0) { this.state.messageT = 0; this.state.message = ''; this.startQueuedToast(); }
+    }
+    if (this.banner && this.banner.active) {
+      this.banner.age += dt;
+      if (this.banner.age > this.banner.duration) {
+        this.banner.active = false;
+        if (this.bannerQueue.length) {
+          var nextBanner = this.bannerQueue.shift();
+          this.banner = { active: true, age: 0, duration: kit.juice.enabled ? 1.6 : 1.2, title: nextBanner.title, sub: nextBanner.sub, color: nextBanner.color };
+        } else this.startQueuedToast();
+      }
+    }
+  };
+
+  BulwarkScene.prototype.endWave = function () {
+    this.state.active = false; this.state.wavesDone = this.state.wave;
+    this.recomputeBankStats();
+    var interest = Math.floor(this.state.gold * (0.045 + this.state.bankInterest)) + this.state.bankCount * 3;
+    var clear = 24 + this.state.wave * 4, drop = this.state.wave <= 8 ? 18 + (this.state.wave % 3) * 7 : (this.state.wave % 5 === 0 ? 24 : 0);
+    this.state.gold += interest + clear + drop;
+    var rewardText = '+' + (interest + clear + drop) + 'G · INT +' + interest + (drop ? ' · DROP +' + drop : '');
+    this.sfx('clear', 0.82, 0.95);
+    var milestone = this.state.wave === 10 || this.state.wave === 20 || this.state.wave === 30;
+    if (milestone) this.awardMedal(this.state.wave);
+    this.refreshScore();
+    if (this.state.wave >= 30 && !this.state.endless) {
+      this.state.phase = 'win'; this.state.active = false; this.beacon.state = 'victory'; this.beacon.time = 999; this.showBanner('BULWARK HOLDS', 'W30 · GOLD · ' + rewardText, CSS.amber); this.sfx('victory', 0.9, 1); try { kit.audio.stopMusic(700); } catch (e) {}
+      profile.best = Math.max(profile.best, this.state.score); kit.save.set(profile); return;
+    }
+    if (milestone) {
+      var medal = E.MEDALS[this.state.wave === 10 ? 0 : 1];
+      this.showBanner(medal.name + ' MEDAL', 'W' + this.state.wave + ' · ' + medal.desc.toUpperCase() + ' · ' + rewardText, '#' + medal.color.toString(16).padStart(6, '0'));
+    } else this.showBanner('WAVE ' + this.state.wave + ' CLEAR', rewardText, CSS.green);
+    this.state.prep = this.state.endless ? 6 : 8;
+    try { kit.audio.music('ambient', 650); } catch (e) {}
+    profile.best = Math.max(profile.best, this.state.score); kit.save.set(profile);
+  };
+
+  BulwarkScene.prototype.awardMedal = function (wave) {
+    var idx = wave === 10 ? 0 : wave === 20 ? 1 : 2;
+    if (!profile.medals[idx]) { profile.medals[idx] = 1; kit.save.set(profile); }
+    this.state.medal = idx + 1; this.sfx('clear', 0.9, 1.25);
+  };
+
+  BulwarkScene.prototype.showBanner = function (title, sub, color) {
+    var item = { title: String(title).slice(0, 30), sub: String(sub).slice(0, 86), color: color || CSS.text };
+    if (this.banner && this.banner.active) {
+      this.bannerQueue.push(item);
+      if (this.bannerQueue.length > 1) this.bannerQueue.shift();
+      return;
+    }
+    if (this.state.messageT > 0) {
+      this.toastQueue.unshift({ text: this.state.message, color: this.messageColor || CSS.amber });
+      this.state.message = ''; this.state.messageT = 0;
+    }
+    this.banner = { active: true, age: 0, duration: kit.juice.enabled ? 1.6 : 1.2, title: item.title, sub: item.sub, color: item.color };
+  };
+
+  BulwarkScene.prototype.stepSim = function () {
+    var dt = STEP;
+    this.state.time += dt;
+    if (this.beacon.time > 0) { this.beacon.time -= dt; if (this.beacon.time <= 0) this.beacon.state = 'idle'; }
+    this.syncHook();
+    if (this.state.phase !== 'play') { this.updateEffects(dt); return; }
+    if (!this.state.active) {
+      this.state.prep -= dt;
+      if (this.state.prep <= 0) this.startWave();
+    } else {
+      this.waveClock += dt;
+      while (this.waveCursor < this.waveQueue.length && this.waveQueue[this.waveCursor].at <= this.waveClock) { this.spawnCreep(this.waveQueue[this.waveCursor++]); }
+      this.updateCreeps(dt);
+      if (this.selectedCell >= 0) this.updatePreview();
+      for (var i = 0; i < this.towers.length; i++) this.fireTower(this.towers[i], dt);
+      this.updateBullets(dt);
+      var live = false;
+      for (i = 0; i < this.creeps.length; i++) if (this.creeps[i].active) { live = true; break; }
+      if (this.waveCursor >= this.waveQueue.length && !live) this.endWave();
+    }
+    this.updateEffects(dt);
+  };
+
+  BulwarkScene.prototype.update = function (time, delta) {
+    var frame = clamp(delta / 1000, 0, 0.2);
+    this.pollInput();
+    this.juiceFrame = kit.juice.frame();
+    var steps = 0;
+    this.accumulator += frame;
+    while (this.accumulator >= STEP && steps < MAX_STEPS) { this.stepSim(); this.accumulator -= STEP; steps++; }
+    if (steps === MAX_STEPS && this.accumulator >= STEP) this.accumulator = STEP * 0.9;
+    if (!this.juiceFrame.frozen) this.render();
+  };
+
+  BulwarkScene.prototype.pollInput = function () {
+    var self = this, live = {};
+    kit.input.pointers.forEach(function (p, id) {
+      live[id] = true;
+      if (!self.pointerClaims[id]) { self.pointerClaims[id] = true; var rect = self.game.canvas.getBoundingClientRect(); self.handleTap((p.x - rect.left) * GAME_W / rect.width, (p.y - rect.top) * GAME_H / rect.height); }
+    });
+    for (var id in this.pointerClaims) if (!live[id]) delete this.pointerClaims[id];
+    var moveCodes = [
+      { code: 'ArrowLeft', dx: -1, dy: 0 }, { code: 'KeyA', dx: -1, dy: 0 },
+      { code: 'ArrowRight', dx: 1, dy: 0 }, { code: 'KeyD', dx: 1, dy: 0 },
+      { code: 'ArrowUp', dx: 0, dy: -1 }, { code: 'KeyW', dx: 0, dy: -1 },
+      { code: 'ArrowDown', dx: 0, dy: 1 }, { code: 'KeyS', dx: 0, dy: 1 }
+    ];
+    for (var m = 0; m < moveCodes.length; m++) {
+      var mv = moveCodes[m], downMove = kit.input.keyDown(mv.code), wasMove = !!this.keyEdges[mv.code];
+      if (downMove && !wasMove) { this.moveCursor(mv.dx, mv.dy); this.cursorRepeat = 0.2; }
+      if (downMove && wasMove) { this.cursorRepeat -= STEP; if (this.cursorRepeat <= 0) { this.cursorRepeat = 0.1; this.moveCursor(mv.dx, mv.dy); } }
+      this.keyEdges[mv.code] = downMove;
+    }
+    var gamepad = readGamepad(), previousPad = this.gamepadEdges;
+    if (gamepad.dir && (!previousPad.dir || gamepad.dir.code !== previousPad.dir.code)) this.moveCursor(gamepad.dir.dx, gamepad.dir.dy);
+    if (gamepad.confirm && !previousPad.confirm) this.handleKey('Space');
+    if (gamepad.cancel && !previousPad.cancel) this.handleKey('KeyX');
+    if (gamepad.go && !previousPad.go) this.handleKey('KeyG');
+    this.gamepadEdges = { dir: gamepad.dir, confirm: gamepad.confirm, cancel: gamepad.cancel, go: gamepad.go };
+    var codes = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Space', 'Enter', 'KeyG', 'KeyU', 'KeyX', 'KeyR', 'KeyM'];
+    for (var i = 0; i < codes.length; i++) {
+      var code = codes[i], down = kit.input.keyDown(code), was = !!this.keyEdges[code];
+      if (down && !was) this.handleKey(code);
+      this.keyEdges[code] = down;
+    }
+  };
+
+  BulwarkScene.prototype.moveCursor = function (dx, dy) {
+    if (this.state.phase !== 'play') return;
+    this.cursor.x = clamp(this.cursor.x + dx, 0, 13);
+    this.cursor.y = clamp(this.cursor.y + dy, 0, 8);
+    this.selectedTower = null;
+    this.selectedCell = this.cursor.y * 14 + this.cursor.x;
+    if (this.selectedCell === this.map.entry || this.selectedCell === this.map.exit || this.map.g[this.selectedCell] !== E.EMPTY) this.selectedCell = -1;
+    this.updatePreview();
+    this.beacon.state = 'command'; this.beacon.time = 0.45;
+    this.ensureMusic();
+  };
+
+  BulwarkScene.prototype.activateCursorCell = function () {
+    var index = this.cursor.y * 14 + this.cursor.x;
+    var tower = this.towerAt(index);
+    if (tower) { this.selectedTower = tower; this.selectedCell = -1; this.sfx('select', 0.34, 1.05); return; }
+    if (this.map.g[index] === E.WALL) { this.removeWall(index); return; }
+    if (this.map.g[index] === E.EMPTY && index !== this.map.entry && index !== this.map.exit) {
+      this.selectedCell = index; this.updatePreview(); this.beacon.state = 'command'; this.beacon.time = 0.7; this.sfx('select', 0.34, 1.05);
+    }
+  };
+
+  BulwarkScene.prototype.handleKey = function (code) {
+    this.ensureMusic();
+    if (code === 'KeyM') { kit.audio.setMute(!kit.audio.prefs.mute); this.toast(kit.audio.prefs.mute ? 'AUDIO MUTED' : 'AUDIO LIVE'); return; }
+    if (code === 'KeyR') { kit.restart(); return; }
+    if (this.state.phase !== 'play') {
+      if (code === 'Enter' && this.state.phase === 'win') { this.state.endless = true; this.state.phase = 'play'; this.state.prep = 5; this.beacon.state = 'command'; this.beacon.time = 0.8; this.toast('ENDLESS', CSS.green); }
+      else if (code === 'Space' || code === 'Enter') kit.restart();
+      return;
+    }
+    if (code.indexOf('Digit') === 0) { var n = Number(code.slice(5)) - 1; if (E.CHIP_ORDER[n] && E.isUnlocked(E.CHIP_ORDER[n], this.state.wavesDone)) { this.pending = E.CHIP_ORDER[n]; this.sfx('select', 0.34, 1.1); } return; }
+    if (code === 'KeyG') { this.goEarly(); return; }
+    if (code === 'KeyU') { this.upgrade(this.selectedTower); return; }
+    if (code === 'KeyX') { this.sellTower(this.selectedTower); return; }
+    if (code === 'Space' || code === 'Enter') {
+      if (this.selectedCell >= 0) this.tryBuild(this.selectedCell, this.pending); else if (this.selectedTower) this.upgrade(this.selectedTower); else this.activateCursorCell();
+    }
+  };
+
+  BulwarkScene.prototype.handleTap = function (x, y) {
+    this.ensureMusic();
+    if (this.state.phase !== 'play') {
+      if (this.state.phase === 'win' && x > 470 && x < 810 && y > 438 && y < 506) { this.state.endless = true; this.state.phase = 'play'; this.state.prep = 5; this.toast('ENDLESS', CSS.green); }
+      else if (x > 470 && x < 810 && y > 520 && y < 588) kit.restart();
+      return;
+    }
+    if (x > 1100 && x < 1230 && y > 4 && y < 86) { this.sfx('confirm', 0.38, 1.05); this.goEarly(); return; }
+    if (x > 1210 && y < 86) { this.sfx('select', 0.3, 1.1); kit.openSettings(); return; }
+    if (x > 885 && x < 1230 && y > 492 && y < 574) { this.changeMap((this.mapIndex + 1) % E.MAPS.length, true); return; }
+    if (y >= 628 && y <= 720 && x >= 32 && x <= 856) {
+      var chip = clamp(Math.floor((x - 44) / 130), 0, E.CHIP_ORDER.length - 1), key = E.CHIP_ORDER[chip];
+      if (!E.isUnlocked(key, this.state.wavesDone)) { this.sfx('cancel', 0.3, 0.72); this.toast('LOCK · WAVE ' + safeDef(key, 'arrow').unlock); return; }
+      this.pending = key; this.sfx('select', 0.34, 1.1); if (this.selectedCell >= 0) this.tryBuild(this.selectedCell, key); return;
+    }
+    if (x >= BOARD_X && x < BOARD_X + BOARD_W && y >= BOARD_Y && y < BOARD_Y + BOARD_H) {
+      var cx = clamp(Math.floor((x - BOARD_X) / CELL), 0, 13), cy = clamp(Math.floor((y - BOARD_Y) / CELL), 0, 8), index = cy * 14 + cx;
+      this.handleBoardCell(index);
+      return;
+    }
+    if (this.selectedTower && x > 890 && x < 1220 && y > 284 && y < 374) { this.upgrade(this.selectedTower); return; }
+    if (this.selectedTower && x > 890 && x < 1220 && y > 374 && y < 452) { this.sellTower(this.selectedTower); return; }
+  };
+
+  BulwarkScene.prototype.handleBoardCell = function (index) {
+    var now = performance.now(), doubleTap = index === this.lastTapCell && now - this.lastTapAt < 360;
+    this.lastTapCell = index; this.lastTapAt = now;
+    var tower = this.towerAt(index);
+    if (tower) { this.selectedTower = tower; this.selectedCell = -1; this.sfx('select', 0.34, 1.05); return; }
+    this.selectedTower = null;
+    if (this.map.g[index] === E.WALL) { this.removeWall(index); return; }
+    if (this.map.g[index] === E.EMPTY && index !== this.map.entry && index !== this.map.exit) {
+      if (doubleTap && this.lastBuiltType) { this.tryBuild(index, this.lastBuiltType); return; }
+      this.selectedCell = this.selectedCell === index ? -1 : index;
+      this.beacon.state = 'command'; this.beacon.time = 0.7;
+      this.updatePreview(); this.sfx('select', 0.34, 1.05);
+    }
+  };
+
+  BulwarkScene.prototype.render = function () {
+    var juice = this.juiceFrame || kit.juice.frame(), reduced = kit.juice.enabled === false;
+    this.world.x = reduced ? 0 : juice.dx; this.world.y = reduced ? 0 : juice.dy;
+    this.renderWorld(); this.renderUi();
+  };
+
+  BulwarkScene.prototype.renderWorld = function () {
+    var i, p, reduced = kit.juice.enabled === false;
+    this.pathGfx.clear(); this.decalGfx.clear(); this.unitGfx.clear(); this.fxGfx.clear();
+    var path = this.pathCache;
+    this.pathGfx.lineStyle(22, PAL.coral, 0.14); this.pathGfx.beginPath();
+    for (i = 0; i < path.length; i++) { p = cellXY(path[i]); if (i === 0) this.pathGfx.moveTo(p.x, p.y); else this.pathGfx.lineTo(p.x, p.y); }
+    this.pathGfx.strokePath();
+    this.pathGfx.lineStyle(3, PAL.coral, 0.52); this.pathGfx.beginPath();
+    for (i = 0; i < path.length; i++) { p = cellXY(path[i]); if (i === 0) this.pathGfx.moveTo(p.x, p.y); else this.pathGfx.lineTo(p.x, p.y); }
+    this.pathGfx.strokePath();
+    for (i = 1; i < path.length - 1; i += 2) { p = cellXY(path[i]); polygonCircle(this.pathGfx, p.x, p.y, 3, PAL.coral, 6); }
+    if (this.selectedCell >= 0 && this.previewPath.length > 1 && this.previewValid) {
+      this.decalGfx.lineStyle(3, PAL.cyan, reduced ? 0.28 : 0.58); this.decalGfx.beginPath();
+      for (i = 0; i < this.previewPath.length; i++) { p = cellXY(this.previewPath[i]); if (i === 0) this.decalGfx.moveTo(p.x, p.y); else this.decalGfx.lineTo(p.x, p.y); }
+      this.decalGfx.strokePath();
+    }
+    if (this.selectedCell >= 0) {
+      p = cellXY(this.selectedCell); var valid = this.previewValid, color = valid ? PAL.cyan : PAL.coral;
+      this.decalGfx.lineStyle(3, color, 1); this.decalGfx.strokeRect(p.x - CELL / 2 + 4, p.y - CELL / 2 + 4, CELL - 8, CELL - 8);
+      var d = safeDef(this.pending, 'arrow'); if (d.range) ring(this.decalGfx, p.x, p.y, d.range * CELL, color, reduced ? 0.16 : 0.38, 32, reduced ? 1 : 2);
+      if (d.aoe) ring(this.decalGfx, p.x, p.y, d.aoe * CELL, PAL.amber, reduced ? 0.13 : 0.32, 24, reduced ? 1 : 2);
+    }
+    if (this.cursor) {
+      var cursorIndex = this.cursor.y * 14 + this.cursor.x, cursorPoint = cellXY(cursorIndex);
+      this.decalGfx.lineStyle(2, PAL.white, reduced ? 0.35 : 0.78); this.decalGfx.strokeRect(cursorPoint.x - CELL / 2 + 7, cursorPoint.y - CELL / 2 + 7, CELL - 14, CELL - 14);
+    }
+    this.renderBeacon();
+    for (i = 0; i < this.towers.length; i++) this.renderTower(this.towers[i]);
+    for (i = 0; i < this.creeps.length; i++) if (this.creeps[i].active || this.creeps[i].defeatT > 0) this.renderCreep(this.creeps[i]);
+    for (i = 0; i < this.bullets.length; i++) { var b = this.bullets[i]; if (!b.active) continue; polygonCircle(this.fxGfx, b.x, b.y, b.kind === 'lob' ? 7 : 4, b.color, 8); }
+    var particleNames = ['contactSparks', 'dustDebris', 'projectileTrails', 'waveBursts'];
+    for (var n = 0; n < particleNames.length; n++) for (i = 0; i < this.particleSystems[particleNames[n]].length; i++) { var q = this.particleSystems[particleNames[n]][i]; if (!q.active) continue; this.fxGfx.fillStyle(q.color, clamp(q.life / q.max, 0, 1) * (reduced ? 0.55 : 1)); this.fxGfx.fillRect(q.x, q.y, q.size, q.size); }
+    for (i = 0; i < this.effects.length; i++) { var f = this.effects[i]; if (!f.active) continue; var alpha = clamp(f.life / f.max, 0, 1) * (reduced ? 0.45 : 1); if (f.kind === 'beam') { if (!reduced) { this.fxGfx.lineStyle(4, f.color, alpha); this.fxGfx.beginPath(); this.fxGfx.moveTo(f.x1, f.y1); this.fxGfx.lineTo(f.x2, f.y2); this.fxGfx.strokePath(); } } else { ring(this.fxGfx, f.x1, f.y1, (f.radius * CELL) * (1.2 - alpha * 0.25), f.color, alpha, 26, reduced ? 1 : 3); } }
+  };
+
+  /* Player proxy: the lane engineer beacon has idle, command, and resolve poses. */
+  BulwarkScene.prototype.renderBeacon = function () {
+    var state = this.state.phase === 'win' ? 'victory' : this.state.phase === 'lose' ? 'defeat' : this.beacon.state;
+    var reduced = kit.juice.enabled === false, x = BOARD_X - 18, y = BOARD_Y + 38 + Math.sin(this.state.time * 3.2) * (state === 'idle' ? 2 : 0);
+    var scale = state === 'resolve' || state === 'victory' ? 1.18 : state === 'command' ? 1.08 : state === 'defeat' ? 0.92 : 1;
+    var color = state === 'resolve' || state === 'victory' ? PAL.amber : state === 'defeat' ? PAL.coral : PAL.cyan;
+    ring(this.unitGfx, x, y + 17, 18 * scale, color, reduced ? 0.2 : 0.54, 20, reduced ? 1 : 2);
+    this.unitGfx.fillStyle(PAL.panel2, 1); this.unitGfx.fillRect(x - 8 * scale, y - 13 * scale, 16 * scale, 28 * scale);
+    this.unitGfx.lineStyle(2, color, 1); this.unitGfx.strokeRect(x - 8 * scale, y - 13 * scale, 16 * scale, 28 * scale);
+    this.unitGfx.fillStyle(color, 1); this.unitGfx.fillRect(x - 4 * scale, y - 20 * scale, 8 * scale, 7 * scale);
+    this.unitGfx.fillRect(x + 8 * scale, y - 16 * scale, 11 * scale, 3 * scale);
+    if (state === 'victory') { this.unitGfx.fillStyle(PAL.white, 1); this.unitGfx.fillRect(x + 9 * scale, y - 28 * scale, 2 * scale, 12 * scale); this.unitGfx.fillRect(x + 11 * scale, y - 28 * scale, 10 * scale, 6 * scale); }
+    if (state === 'defeat') { this.unitGfx.lineStyle(3, PAL.coral, 0.9); this.unitGfx.beginPath(); this.unitGfx.moveTo(x - 13, y - 26); this.unitGfx.lineTo(x + 13, y + 5); this.unitGfx.strokePath(); }
+  };
+
+  BulwarkScene.prototype.renderTower = function (t) {
+    var reduced = kit.juice.enabled === false, d = safeDef(t.type, 'arrow'), x = t.x, y = t.y, lv = t.level;
+    var attack = t.attackT > 0 && !reduced, r = 15 + (reduced ? 0 : Math.max(0, t.pulse) * 3);
+    var recoil = attack ? 5 * (t.attackT / 0.18) : 0, baseY = y + (t.animState === 'active' && !reduced ? Math.sin((0.3 - t.animT) * 18) * 2 : 0);
+    this.unitGfx.fillStyle(d.dark, 1); this.unitGfx.fillRect(x - 22, baseY - 22, 44, 44);
+    this.unitGfx.lineStyle(2, d.color, 1); this.unitGfx.strokeRect(x - 22, baseY - 22, 44, 44);
+    if (t.type === 'wall') {
+      this.unitGfx.fillStyle(d.color, 1); this.unitGfx.fillRect(x - 18, baseY - 12, 36, 24);
+      this.unitGfx.fillStyle(0xd1dbe5, 0.7); this.unitGfx.fillRect(x - 13, baseY - 7, 8, 3); this.unitGfx.fillRect(x, baseY - 7, 8, 3);
+      this.unitGfx.fillStyle(PAL.wine, 1); this.unitGfx.fillRect(x - 20, baseY - 15, 40, 4);
+    } else if (t.type === 'bank') {
+      this.unitGfx.fillStyle(d.color, 1); this.unitGfx.fillRect(x - 14, baseY - 14, 28, 28); this.unitGfx.fillStyle(d.dark, 1); this.unitGfx.fillRect(x - 5, baseY - 10, 10, 20); this.unitGfx.fillRect(x - 10, baseY - 5, 20, 10);
+      this.unitGfx.fillStyle(PAL.amber, 1); this.unitGfx.fillRect(x - 4, baseY - 22, 8, 6);
+    } else {
+      polygonCircle(this.unitGfx, x, baseY, r, d.color, 8, d.dark, 2);
+      this.unitGfx.fillStyle(PAL.white, 1); this.unitGfx.fillRect(x - 5, baseY - r - 7, 10, 5);
+      this.unitGfx.save(); this.unitGfx.translateCanvas(x - Math.cos(t.angle) * recoil, baseY - Math.sin(t.angle) * recoil); this.unitGfx.rotateCanvas(t.angle);
+      this.unitGfx.fillStyle(PAL.ink, 1); this.unitGfx.fillRect(4, -4, 24, 8); this.unitGfx.restore();
+      this.unitGfx.fillStyle(PAL.white, 1); this.unitGfx.fillRect(x - 15, baseY + 16, lv * 5, 3);
+    }
+    if (this.selectedTower === t) { var s = this.towerStats(t); ring(this.decalGfx, x, baseY, s.range * CELL, d.color, reduced ? 0.14 : 0.34, 34, reduced ? 1 : 2); this.decalGfx.lineStyle(2, d.color, reduced ? 0.3 : 0.6); this.decalGfx.beginPath(); this.decalGfx.moveTo(x, baseY); this.decalGfx.lineTo(x + Math.cos(t.angle) * 26, baseY + Math.sin(t.angle) * 26); this.decalGfx.strokePath(); }
+  };
+
+  BulwarkScene.prototype.towerStats = function (t) {
+    var d = safeDef(t.type, 'arrow');
+    return { damage: (d.damage || 0) * Math.pow(1.32, t.level - 1), range: d.range ? d.range * (1 + (t.level - 1) * 0.08) : 0, rate: d.rate ? d.rate * Math.pow(0.93, t.level - 1) : 0 };
+  };
+
+  BulwarkScene.prototype.renderCreep = function (c) {
+    var reduced = kit.juice.enabled === false, state = c.animState || 'move', defeat = !c.active && c.defeatT > 0;
+    var x = BOARD_X + c.cx * CELL, y = BOARD_Y + c.cy * CELL, r = c.radius * CELL;
+    var phase = c.animPhase || 0, breathe = state === 'idle' ? Math.sin(this.state.time * 3.4 + phase) * 1.6 : 0;
+    var motion = state === 'move' ? Math.sin(this.state.time * 11 + phase) * 1.7 : 0;
+    var recoil = state === 'hurt' ? -4 * clamp(c.animT / 0.18, 0, 1) : state === 'attack' ? 4 * clamp(c.animT / 0.22, 0, 1) : 0;
+    var scale = state === 'attack' ? 1.08 : state === 'hurt' ? 0.94 : 1, alpha = defeat ? clamp(c.defeatT / (c.defeatMax || 0.28), 0, 1) : 1;
+    y += breathe + motion; x += Math.cos(c.angle || 0) * recoil;
+    if (defeat) { scale = 1 + (1 - alpha) * 0.2; y -= (1 - alpha) * 8; }
+    var color = c.flash > 0 && !reduced ? PAL.white : c.color;
+    this.unitGfx.setAlpha(alpha);
+    if (c.fly) { polygonCircle(this.unitGfx, x + 4, y + 7, r * 0.7 * scale, PAL.ink, 8); poly(this.unitGfx, [[x + r * scale, y], [x - r * 0.7 * scale, y - r * 0.8 * scale], [x - r * 0.3 * scale, y], [x - r * 0.7 * scale, y + r * 0.8 * scale]], color, PAL.wine, 2); }
+    else if (c.boss) { poly(this.unitGfx, [[x, y - r * scale], [x + r * 0.75 * scale, y - r * 0.4 * scale], [x + r * scale, y + r * 0.45 * scale], [x, y + r * scale], [x - r * scale, y + r * 0.45 * scale], [x - r * 0.75 * scale, y - r * 0.4 * scale]], color, PAL.wine, 3); this.unitGfx.fillStyle(PAL.white, 1); this.unitGfx.fillRect(x - 14 * scale, y - 4 * scale, 28 * scale, 4 * scale); ring(this.decalGfx, x, y, r + 8, PAL.coral, reduced ? 0.2 : 0.58, 22, reduced ? 1 : 2); }
+    else if (c.type === 'tank') { this.unitGfx.fillStyle(color, 1); this.unitGfx.fillRect(x - r * scale, y - r * 0.72 * scale, r * 2 * scale, r * 1.44 * scale); this.unitGfx.fillStyle(PAL.wine, 1); this.unitGfx.fillRect(x - r * 0.25 * scale, y - r * 0.98 * scale, r * 0.5 * scale, r * 0.45 * scale); }
+    else if (c.type === 'runner') poly(this.unitGfx, [[x + r * scale, y], [x - r * 0.6 * scale, y - r * scale], [x - r * 0.65 * scale, y + r * scale]], color, PAL.wine, 2);
+    else if (c.type === 'shield') { polygonCircle(this.unitGfx, x, y, r * scale, color, 8, PAL.wine, 2); ring(this.decalGfx, x, y, r + 5, PAL.coral, reduced ? 0.2 : 0.58, 20, reduced ? 1 : 2); }
+    else poly(this.unitGfx, [[x, y - r * scale], [x + r * scale, y], [x, y + r * scale], [x - r * scale, y]], color, PAL.wine, 2);
+    this.unitGfx.fillStyle(PAL.coral, 1); this.unitGfx.fillRect(x - 4 * scale, y - r * 0.22 * scale, 8 * scale, 3 * scale);
+    if (c.slowF < 1) ring(this.decalGfx, x, y, r + 7, PAL.cyan, reduced ? 0.25 : 0.72, 20, reduced ? 1 : 2);
+    if (c.hp < c.hpMax || c.boss) { var bw = Math.max(24, r * 2.4); this.unitGfx.fillStyle(PAL.ink, 0.85); this.unitGfx.fillRect(x - bw / 2, y - r - 10, bw, 5); this.unitGfx.fillStyle(PAL.coral, 1); this.unitGfx.fillRect(x - bw / 2, y - r - 10, bw * clamp(c.hp / c.hpMax, 0, 1), 5); }
+    this.unitGfx.setAlpha(1);
+  };
+
+  BulwarkScene.prototype.renderUi = function () {
+    this.recomputeBankStats();
+    var s = this.state, def = E.MAPS[this.mapIndex], pathOk = this.map.dist[this.map.entry] >= 0, nextInterest = Math.floor(s.gold * (0.045 + s.bankInterest)) + s.bankCount * 3;
+    setTextIfChanged(this.ui.lives, '♥ ' + s.lives); setColorIfChanged(this.ui.lives, s.lives <= 5 ? CSS.coral : CSS.text);
+    setTextIfChanged(this.ui.gold, '◆ ' + Math.floor(s.gold)); setTextIfChanged(this.ui.wave, 'W ' + s.wave + (s.endless ? '' : '/30')); setTextIfChanged(this.ui.score, '★ ' + s.score);
+    setTextIfChanged(this.ui.map, def.name + ' · ' + (this.mapIndex + 1) + '/4');
+    var canChangeMap = s.wave === 0 && s.wavesDone === 0 && !s.active;
+    setTextIfChanged(this.ui.mapButton, 'MAP'); setColorIfChanged(this.ui.mapButton, canChangeMap ? CSS.cyan : CSS.muted); this.ui.mapButton.setVisible(canChangeMap);
+    setTextIfChanged(this.ui.go, s.active ? 'LEFT ' + this.waveLeft() : 'GO ' + Math.ceil(Math.max(0, s.prep)) + 's'); setColorIfChanged(this.ui.go, s.active ? CSS.coral : CSS.green);
+    setTextIfChanged(this.ui.path, pathOk ? '✓ ' + this.map.dist[this.map.entry] : '× SEALED'); setColorIfChanged(this.ui.path, pathOk ? CSS.green : CSS.coral);
+    if (this.selectedTower) {
+      var d = safeDef(this.selectedTower.type, 'arrow'), st = this.towerStats(this.selectedTower);
+      var ready = d.bank ? '+' + (3 * this.selectedTower.level) + 'G/WAVE' : (this.selectedTower.cd <= 0 ? 'READY' : 'CD ' + this.selectedTower.cd.toFixed(1) + 's');
+      setTextIfChanged(this.ui.tower, d.name + ' · LV ' + this.selectedTower.level); setTextIfChanged(this.ui.detail, d.bank ? ready + ' · BANK +' + Math.round(s.bankInterest * 100) + '%' : 'D' + Math.round(st.damage) + ' · R' + st.range.toFixed(1) + ' · ' + (1 / st.rate).toFixed(1) + '/s · ' + ready); setColorIfChanged(this.ui.tower, CSS.cyan);
+      this.ui.tower.setVisible(true); this.ui.detail.setVisible(true);
+    } else if (this.selectedCell >= 0) {
+      var can = this.previewValid, pd = safeDef(this.pending, 'arrow');
+      setTextIfChanged(this.ui.tower, 'TILE · ' + pd.name); setTextIfChanged(this.ui.detail, (can ? '✓ ' : '× ') + pd.cost + 'G'); setColorIfChanged(this.ui.tower, can ? CSS.cyan : CSS.coral); this.ui.tower.setVisible(true); this.ui.detail.setVisible(true);
+    } else { this.ui.tower.setVisible(false); this.ui.detail.setVisible(false); }
+    setTextIfChanged(this.ui.bank, 'BANK ×' + s.bankCount + ' · +' + Math.round((0.045 + s.bankInterest) * 100) + '%'); setTextIfChanged(this.ui.bankDetail, 'NEXT +' + nextInterest + 'G');
+    var tut = ['BUILD · TILE + WALL', 'ROUTE · KEEP ✓ OPEN', 'GO · EARLY GOLD', 'UPGRADE · SELECT A TOWER'];
+    if (s.tutorialStep !== this.coachStep) { this.coachStep = s.tutorialStep; this.coachT = s.tutorialStep < 4 ? 3.2 : 0; }
+    var showCoach = s.tutorialStep < 4 && this.coachT > 0 && !(this.banner && this.banner.active);
+    if (showCoach) {
+      setTextIfChanged(this.ui.tutorial, tut[clamp(s.tutorialStep, 0, 3)]);
+      var coachAlpha = kit.juice.enabled === false ? 1 : clamp(0.16 + this.coachT / 3.2 * 0.84, 0.16, 1);
+      this.uiGfx.fillStyle(PAL.panel2, 0.5 * coachAlpha); this.uiGfx.fillRoundedRect(56, 86, 800, 30, 6);
+      this.ui.tutorial.setVisible(true).setAlpha(coachAlpha);
+    } else this.ui.tutorial.setVisible(false);
+    this.drawUiPanels(pathOk, nextInterest);
+    var showMessage = s.messageT > 0 && !showCoach && !(this.banner && this.banner.active);
+    if (showMessage) {
+      setTextIfChanged(this.ui.message, s.message); setColorIfChanged(this.ui.message, this.messageColor || CSS.amber);
+      this.ui.message.setVisible(true).setAlpha(kit.juice.enabled === false ? 1 : clamp(Math.min(1, s.messageT * 4), 0.18, 1));
+      this.uiGfx.fillStyle(PAL.ink, 0.88); this.uiGfx.fillRoundedRect(894, 86, 310, 30, 7); this.uiGfx.lineStyle(1, this.messageColor || PAL.amber, 0.75); this.uiGfx.strokeRoundedRect(894, 86, 310, 30, 7);
+    } else this.ui.message.setVisible(false);
+    if (this.banner && this.banner.active && (s.phase !== 'play' || this.banner.age < this.banner.duration)) {
+      var b = this.banner, fade = clamp((b.duration - b.age) * 3, 0, 1), scale = kit.juice.enabled === false ? 1 : (b.age < 0.2 ? 0.94 + b.age / 0.2 * 0.06 : 1);
+      this.uiGfx.fillStyle(PAL.ink, 0.94 * fade); this.uiGfx.fillRoundedRect(380, 126, 520, 76, 10);
+      this.uiGfx.lineStyle(2, b.color, 0.9 * fade); this.uiGfx.strokeRoundedRect(380, 126, 520, 76, 10);
+      this.ui.bannerTitle.setVisible(true).setScale(scale); this.ui.bannerSub.setVisible(true).setScale(scale);
+      setTextIfChanged(this.ui.bannerTitle, b.title); setTextIfChanged(this.ui.bannerSub, b.sub); setColorIfChanged(this.ui.bannerTitle, b.color); setColorIfChanged(this.ui.bannerSub, CSS.muted); this.ui.bannerTitle.setAlpha(fade); this.ui.bannerSub.setAlpha(fade);
+    } else { this.ui.bannerTitle.setVisible(false); this.ui.bannerSub.setVisible(false); }
+    if (s.phase !== 'play') this.drawEndUi();
+    else if (this.endTitle) { this.endTitle.setVisible(false); this.endDetail.setVisible(false); this.endAction.setVisible(false); this.endRestart.setVisible(false); }
+  };
+
+  BulwarkScene.prototype.waveLeft = function () {
+    var left = this.waveQueue.length - this.waveCursor;
+    for (var i = 0; i < this.creeps.length; i++) if (this.creeps[i].active) left++;
+    return left;
+  };
+
+  BulwarkScene.prototype.drawUiPanels = function (pathOk, nextInterest) {
+    var g = this.uiGfx; g.clear();
+    g.fillStyle(pathOk ? PAL.green : PAL.coral, 0.18); g.fillRect(896, 112, 304, 8);
+    if (this.state.active) { g.fillStyle(PAL.coral, 0.22); g.fillRoundedRect(1110, 12, 118, 66, 10); g.lineStyle(2, PAL.coral, 0.8); g.strokeRoundedRect(1110, 12, 118, 66, 10); }
+    else { g.fillStyle(PAL.green, 0.2); g.fillRoundedRect(1110, 12, 118, 66, 10); g.lineStyle(2, PAL.green, 0.8); g.strokeRoundedRect(1110, 12, 118, 66, 10); }
+    if (this.selectedTower || this.selectedCell >= 0) {
+      g.fillStyle(PAL.panel2, 1); g.fillRoundedRect(894, 164, 310, 222, 10); g.lineStyle(1, PAL.line, 1); g.strokeRoundedRect(894, 164, 310, 222, 10);
+    }
+    if (this.selectedTower) {
+      var d = safeDef(this.selectedTower.type, 'arrow'), up = this.upCost(this.selectedTower), sell = this.sellValue(this.selectedTower);
+      g.fillStyle(PAL.green, this.state.gold >= up ? 0.23 : 0.08); g.fillRoundedRect(902, 284, 142, 82, 8); g.lineStyle(1, PAL.green, 0.7); g.strokeRoundedRect(902, 284, 142, 82, 8);
+      g.fillStyle(PAL.coral, 0.18); g.fillRoundedRect(1052, 284, 142, 82, 8); g.lineStyle(1, PAL.coral, 0.6); g.strokeRoundedRect(1052, 284, 142, 82, 8);
+      g.fillStyle(PAL.green, 1); g.fillRect(913, 318, 6, 14); g.fillStyle(PAL.coral, 1); g.fillRect(1063, 318, 6, 14);
+      this.ensureActionText('UPG ' + (this.selectedTower.level >= 5 ? 'MAX' : up + 'G'), 930, 316, CSS.green);
+      this.ensureActionText('SELL +' + sell + 'G', 1078, 316, CSS.coral);
+    }
+    g.fillStyle(PAL.panel2, 0.9); g.fillRoundedRect(894, 390, 310, 82, 10); g.lineStyle(1, PAL.line, 1); g.strokeRoundedRect(894, 390, 310, 82, 10);
+    if (this.ui.mapButton.visible) { g.fillStyle(PAL.cyan, 0.14); g.fillRoundedRect(894, 492, 310, 82, 10); g.lineStyle(1, PAL.cyan, 0.55); g.strokeRoundedRect(894, 492, 310, 82, 10); }
+    for (var i = 0; i < E.CHIP_ORDER.length; i++) {
+      var key = E.CHIP_ORDER[i], d2 = safeDef(key, 'arrow'), x = 44 + i * 130, locked = !E.isUnlocked(key, this.state.wavesDone), selected = this.pending === key;
+      g.fillStyle(locked ? PAL.ink : d2.dark, locked ? 0.78 : (selected ? 0.95 : 0.8)); g.fillRoundedRect(x, 632, 116, 84, 9); g.lineStyle(selected ? 2 : 1, locked ? PAL.line : d2.color, locked ? 0.5 : 0.88); g.strokeRoundedRect(x, 632, 116, 84, 9);
+      if (locked) { g.fillStyle(PAL.muted, 0.85); g.fillRect(x + 12, 650, 18, 18); } else { polygonCircle(g, x + 22, 660, 10, d2.color, 8); }
+      setTextIfChanged(this.chipText[i].name, locked ? 'LOCK ' + d2.unlock : d2.short + ' · ' + d2.cost + 'G'); setColorIfChanged(this.chipText[i].name, locked ? CSS.muted : (selected ? CSS.text : '#' + d2.color.toString(16).padStart(6, '0')));
+    }
+    if (this.selectedTower) { this.actionUpgradeText.setVisible(true); this.actionSellText.setVisible(true); } else if (this.actionUpgradeText) { this.actionUpgradeText.setVisible(false); this.actionSellText.setVisible(false); }
+  };
+
+  BulwarkScene.prototype.ensureActionText = function (value, x, y, color) {
+    if (!this.actionUpgradeText) {
+      this.actionUpgradeText = this.add.text(0, 0, '', { fontFamily: 'Arial, sans-serif', fontSize: '20px', fontStyle: 'bold', color: CSS.green }).setDepth(23);
+      this.actionSellText = this.add.text(0, 0, '', { fontFamily: 'Arial, sans-serif', fontSize: '20px', fontStyle: 'bold', color: CSS.coral }).setDepth(23);
+    }
+    var target = color === CSS.coral ? this.actionSellText : this.actionUpgradeText; setTextIfChanged(target, value); setColorIfChanged(target, color); target.setPosition(x, y);
+  };
+
+  BulwarkScene.prototype.drawEndUi = function () {
+    var win = this.state.phase === 'win';
+    this.uiGfx.fillStyle(PAL.ink, 0.86); this.uiGfx.fillRect(256, 254, 768, 342); this.uiGfx.lineStyle(2, win ? PAL.amber : PAL.coral, 0.9); this.uiGfx.strokeRect(256, 254, 768, 342);
+    this.uiGfx.fillStyle(win ? PAL.amber : PAL.coral, 0.18); this.uiGfx.fillRect(256, 254, 768, 7);
+    if (!this.endTitle) {
+      this.endTitle = this.add.text(640, 292, '', { fontFamily: 'Arial, sans-serif', fontSize: '36px', fontStyle: 'bold', color: CSS.text }).setOrigin(0.5).setDepth(31);
+      this.endDetail = this.add.text(640, 348, '', { fontFamily: 'Arial, sans-serif', fontSize: '17px', color: CSS.muted, align: 'center' }).setOrigin(0.5).setDepth(31);
+      this.endAction = this.add.text(640, 474, '', { fontFamily: 'Arial, sans-serif', fontSize: '17px', fontStyle: 'bold', color: CSS.green }).setOrigin(0.5).setDepth(31);
+      this.endRestart = this.add.text(640, 544, 'RESTART RUN', { fontFamily: 'Arial, sans-serif', fontSize: '13px', fontStyle: 'bold', color: CSS.text }).setOrigin(0.5).setDepth(31);
+    }
+    setTextIfChanged(this.endTitle, win ? 'BULWARK HOLDS' : 'LINE BREACHED'); setColorIfChanged(this.endTitle, win ? CSS.green : CSS.coral);
+    setTextIfChanged(this.endDetail, 'WAVES  ' + this.state.wavesDone + '    LIVES  ' + this.state.lives + '    SCORE  ' + this.state.score + '\nBEST  ' + profile.best + '    MAP  ' + E.MAPS[this.mapIndex].name);
+    setTextIfChanged(this.endAction, win ? 'CONTINUE ENDLESS  //  TAP HERE' : 'PRESS ENTER OR TAP RESTART');
+    this.endTitle.setVisible(true); this.endDetail.setVisible(true); this.endAction.setVisible(true); this.endRestart.setVisible(true);
+  };
+
+  var config = {
+    type: Phaser.AUTO, parent: 'game', width: GAME_W, height: GAME_H, backgroundColor: '#06111e',
+    render: { antialias: true, roundPixels: true, powerPreference: 'high-performance' },
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scene: [BulwarkScene]
+  };
+  kit.loader.show('BULWARK // FLEET F5'); kit.loader.progress(0.2);
+  Game.phaser = new Phaser.Game(config);
+  kit.loader.progress(0.7);
+  window.__BW_READY = true;
+}());

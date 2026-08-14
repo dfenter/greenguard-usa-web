@@ -1,16 +1,45 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/hullbreaker/">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#07131f">
-  <title>Hullbreaker</title>
-  <link rel="stylesheet" href="styles.css">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#081420">
+<meta name="description" content="Hullbreaker - seeded asteroid field survival. Five sectors, eight waves each, a hive boss finale and generous salvage.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/hullbreaker/">
+<title>Hullbreaker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/favicon.png" sizes="64x64" type="image/png">
+<link rel="icon" href="icon.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #081420; color: #dff4ff;
+    font-family: Verdana, Geneva, system-ui, sans-serif;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; touch-action: none; }
+  /* Safe-area insets: the game reads the real values and offsets its HUD,
+     and the body padding keeps the canvas clear of a notch or home bar. */
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing: border-box;
+  }
+</style>
 </head>
 <body>
-  <main id="game-shell">
-    <canvas id="game" aria-label="Hullbreaker asteroid survival game"></canvas>
-  </main>
-  <script src="game.js"></script>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="hb_data.js"></script>
+<script src="game.js"></script>
+<script src="hb_menu.js"></script>
+<script src="hb_play.js"></script>
+<script src="hb_hud.js"></script>
 </body>
 </html>

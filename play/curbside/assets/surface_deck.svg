@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 64" role="img" aria-label="painted high line deck">
+  <defs>
+    <linearGradient id="deck" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe2a0"/>
+      <stop offset="0.22" stop-color="#c47e78"/>
+      <stop offset="1" stop-color="#35274f"/>
+    </linearGradient>
+  </defs>
+  <path d="M2 10H254V58H2Z" fill="#151425" opacity=".72"/>
+  <path d="M2 4H254V45H2Z" fill="url(#deck)"/>
+  <path d="M2 4H254V13H2Z" fill="#fff2c9" opacity=".82"/>
+  <path d="M10 22H246M10 33H246" stroke="#ffb18c" stroke-width="2" opacity=".72"/>
+  <path d="M26 46v16M74 46v16M122 46v16M170 46v16M218 46v16" stroke="#8d76a3" stroke-width="4"/>
+  <path d="M28 7l22 8m32-8 22 8m32-8 22 8m32-8 22 8" stroke="#ffffff" stroke-width="2" opacity=".25"/>
+</svg>

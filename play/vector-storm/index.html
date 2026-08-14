@@ -1,20 +1,34 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><base href="/play/vector-storm/">
-<meta charset="utf-8">
-<title>Vector Storm</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#05060c">
-<style>
-  html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#05060c;
-    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
-    -webkit-touch-callout:none;position:fixed;overscroll-behavior:none;}
-  #c{display:block;width:100vw;height:100vh;touch-action:none;background:#05060c;}
-</style>
+<head>
+  <base href="/play/vector-storm/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#050913">
+  <meta name="description" content="Vector Storm. A seeded twin-stick arena run for Fleet F2.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon512.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>Vector Storm</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:#050913; }
+    body { display:grid; place-items:center; overscroll-behavior:none; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    #game { position:fixed; inset:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); width:auto; height:auto; touch-action:none; }
+    canvas { display:block; width:100%; height:100%; touch-action:none; }
+  </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<script src="engine.js"></script>
-<script src="game.js"></script>
+  <div id="game" aria-label="Vector Storm game"></div>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="engine.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

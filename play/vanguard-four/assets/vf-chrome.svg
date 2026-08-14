@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<defs>
+  <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#050914"/><stop offset=".52" stop-color="#0b1730"/><stop offset="1" stop-color="#050914"/></linearGradient>
+  <linearGradient id="panel" x2="1" y2="1"><stop stop-color="#142844"/><stop offset="1" stop-color="#0b1429"/></linearGradient>
+  <pattern id="grid" width="34" height="34" patternUnits="userSpaceOnUse"><path d="M34 0H0V34" fill="none" stroke="#345278" stroke-opacity=".18"/><path d="M17 0V34M0 17H34" stroke="#64edff" stroke-opacity=".035"/></pattern>
+  <filter id="glow"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
+<rect width="390" height="844" fill="url(#bg)"/>
+<path d="M12 128h366v532H12z" rx="18" fill="url(#panel)" stroke="#345278" stroke-width="2"/>
+<path d="M16 142h358v506H16z" fill="url(#grid)"/>
+<path d="M12 10h366v104H12z" rx="16" fill="#080f20" stroke="#345278" stroke-opacity=".8"/>
+<path d="M12 674h366v158H12z" rx="18" fill="#080f20" stroke="#345278" stroke-opacity=".8"/>
+<path d="M22 146h346M22 642h346" stroke="#64edff" stroke-opacity=".18"/>
+<path d="M30 30h70M290 30h70M30 814h90M270 814h90" stroke="#64edff" stroke-opacity=".18" stroke-width="2"/>
+<circle cx="195" cy="394" r="150" fill="none" stroke="#64edff" stroke-opacity=".035" stroke-width="18" filter="url(#glow)"/>
+</svg>

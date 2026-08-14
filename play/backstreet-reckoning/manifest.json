@@ -1,0 +1,14 @@
+{
+  "name": "Backstreet Reckoning",
+  "short_name": "Backstreet",
+  "start_url": "/play/backstreet-reckoning/",
+  "scope": "/play/backstreet-reckoning/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#070a12",
+  "theme_color": "#070a12",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

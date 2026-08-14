@@ -1,0 +1,15 @@
+{
+  "name": "Ridge Glider",
+  "short_name": "Ridge Glider",
+  "start_url": "/play/ridge-glider/",
+  "scope": "/play/ridge-glider/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#102f3e",
+  "theme_color": "#102f3e",
+  "description": "Seeded thermal soaring across four authored ridgelines.",
+  "icons": [
+    {"src":"icon.png","sizes":"192x192","type":"image/png"},
+    {"src":"icon512.png","sizes":"512x512","type":"image/png"}
+  ]
+}

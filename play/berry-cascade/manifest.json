@@ -1,0 +1,15 @@
+{
+  "name": "Berry Cascade",
+  "short_name": "Berry Cascade",
+  "description": "Match-3 saga across thirty hand-seeded groves. No lives, no boosters, no currency.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#182238",
+  "theme_color": "#182238",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Vertol Rescue",
+  "short_name": "Vertol Rescue",
+  "start_url": "/play/vertol-rescue/",
+  "scope": "/play/vertol-rescue/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#08171e",
+  "theme_color": "#08171e",
+  "description": "A low-poly helicopter rescue campaign across four authored emergency zones.",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

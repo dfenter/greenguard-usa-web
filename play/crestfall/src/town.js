@@ -1,13 +1,13 @@
 // Town scene - top-down walking, NPCs, wise man, hospital
 import { SCALE, NES_W, NES_H, SPELLS } from './constants.js';
-import { drawTextPx, drawNPC, drawLink } from './sprites.js';
+import { drawTextPx, drawTownNPC, drawPlayer, drawPixelPanel } from './sprites.js';
 // Decision 3 (Rev 2): town NPC movement is a gameplay-affecting stream
 // (NPC position gates dialogue interaction — town.js _checkInteract below),
 // so it draws from townRng, not the cosmetic-only fxRng.
 import { townRng } from './rng.js';
 
 const S = SCALE;
-const VIEW_Y = 57;
+const VIEW_Y = 48;
 
 // Town layout is a simple top-down grid
 // Each town has: road, houses (enter to get spells/healing), NPCs
@@ -117,7 +117,7 @@ export class TownScene {
 
     // Clamp to town bounds
     const clampedX = Math.max(0, Math.min(layout.w - 8, nx));
-    const clampedY = Math.max(layout.roadY, Math.min(layout.h - 16, ny));
+    const clampedY = Math.max(0, Math.min(layout.h - 16, ny));
 
     // House collision (can walk past, not into wall)
     let blocked = false;
@@ -156,7 +156,7 @@ export class TownScene {
     }
 
     // Auto-exit at right edge
-    if (this.px > layout.w - 8) {
+    if (this.px >= layout.w - 8) {
       this.done = true;
     }
 
@@ -242,17 +242,17 @@ export class TownScene {
   draw(ctx) {
     const layout = this.layout;
 
-    // Sky
-    ctx.fillStyle = '#5858D8';
+    const gradient = ctx.createLinearGradient(0, VIEW_Y * S, 0, NES_H * S);
+    gradient.addColorStop(0, '#111C3A');
+    gradient.addColorStop(1, '#07121F');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, VIEW_Y * S, NES_W * S, NES_H * S);
-
-    // Ground
-    ctx.fillStyle = '#C8A870';
-    ctx.fillRect(0, (VIEW_Y + layout.roadY) * S, NES_W * S, NES_H * S);
-
-    // Road stripe down center
-    ctx.fillStyle = '#B89860';
-    ctx.fillRect(0, (VIEW_Y + layout.roadY + 6) * S, NES_W * S, 2 * S);
+    ctx.fillStyle = '#183E4B';
+    ctx.fillRect(0, (VIEW_Y + layout.roadY) * S, NES_W * S, (layout.h - layout.roadY) * S);
+    ctx.fillStyle = '#42F5E6';
+    ctx.globalAlpha = 0.25;
+    ctx.fillRect(0, (VIEW_Y + layout.roadY + 6) * S, NES_W * S, S);
+    ctx.globalAlpha = 1;
 
     // Houses
     for (const h of layout.houses) {
@@ -261,8 +261,8 @@ export class TownScene {
 
     // NPCs
     for (const npc of layout.npcs) {
-      const color = npc.type === 'wiseman' ? '#6844FC' : '#0058F8';
-      drawNPC(ctx, Math.round(npc.x), VIEW_Y + Math.round(npc.y), color);
+      const color = npc.idx === 0 ? '#9B6CFF' : '#4D8DFF';
+      drawTownNPC(ctx, Math.round(npc.x), VIEW_Y + Math.round(npc.y), color, npc.walkFrame);
     }
 
     // Heal effect
@@ -273,12 +273,7 @@ export class TownScene {
     }
 
     // Player
-    const state = 'stand';
-    drawLink(ctx, Math.round(this.px), VIEW_Y + Math.round(this.py), 0, this.pfacing, state);
-
-    // Town name
-    drawTextPx(ctx, this.townData?.name || '', 4 * S, (VIEW_Y + 4) * S, '#F8D878', S);
-    drawTextPx(ctx, 'STICK:MOVE  JUMP:TALK  MENU:EXIT', 4 * S, (VIEW_Y + 14) * S, '#888888', S);
+    drawPlayer(ctx, Math.round(this.px), VIEW_Y + Math.round(this.py), 0, this.pfacing, 'stand');
 
     // Dialog box
     if (this.dialogTimer > 0 && this.dialogLines.length > 0) {
@@ -286,11 +281,7 @@ export class TownScene {
       const lineW = Math.max(line.length * 6, 100);
       const dlgX = (NES_W - lineW) / 2;
       const dlgY = VIEW_Y + 80;
-      ctx.fillStyle = '#000080';
-      ctx.fillRect(dlgX * S, dlgY * S, lineW * S, 24 * S);
-      ctx.strokeStyle = '#FCFCFC';
-      ctx.lineWidth = S;
-      ctx.strokeRect(dlgX * S, dlgY * S, lineW * S, 24 * S);
+      drawPixelPanel(ctx, dlgX, dlgY, lineW, 24, '#0D1730', '#42F5E6', 0.98);
       drawTextPx(ctx, line, (dlgX + 4) * S, (dlgY + 8) * S, '#FCFCFC', S);
       if (this.dialogPage < this.dialogLines.length - 1) {
         drawTextPx(ctx, '>', (dlgX + lineW - 8) * S, (dlgY + 16) * S, '#F8D878', S);
@@ -301,27 +292,17 @@ export class TownScene {
   _drawHouse(ctx, h) {
     const sy = VIEW_Y + h.y;
     // Wall
-    ctx.fillStyle = '#F8F8C8';
+    ctx.fillStyle = '#1F2F54';
     ctx.fillRect(h.x * S, sy * S, h.w * S, h.h * S);
     // Roof
-    ctx.fillStyle = '#D81818';
+    ctx.fillStyle = h.type === 'wiseman' ? '#9B6CFF' : '#4D8DFF';
     ctx.fillRect(h.x * S, sy * S, h.w * S, 6 * S);
     // Door
-    ctx.fillStyle = '#884400';
+    ctx.fillStyle = '#07101F';
     ctx.fillRect((h.x + h.w/2 - 3) * S, (sy + h.h - 8) * S, 6 * S, 8 * S);
     // Window
-    ctx.fillStyle = '#00E8D8';
+    ctx.fillStyle = '#42F5E6';
     ctx.fillRect((h.x + 4) * S, (sy + 8) * S, 6 * S, 6 * S);
 
-    // Label
-    let label = '';
-    if (h.type === 'wiseman') {
-      label = 'RUNE';
-    } else if (h.type === 'hospital') {
-      label = 'HEAL';
-    }
-    if (label) {
-      drawTextPx(ctx, label, (h.x + 2) * S, (sy + 2) * S, '#FCFCFC', S);
-    }
   }
 }

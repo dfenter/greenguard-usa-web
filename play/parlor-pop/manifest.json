@@ -1,0 +1,14 @@
+{
+  "name": "Parlor Pop",
+  "short_name": "Parlor Pop",
+  "start_url": "/play/parlor-pop/",
+  "scope": "/play/parlor-pop/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#10182B",
+  "theme_color": "#182238",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

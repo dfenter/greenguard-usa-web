@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 30" role="img" aria-label="painted skate rail">
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7fbff"/>
+      <stop offset="0.32" stop-color="#b5c9df"/>
+      <stop offset="1" stop-color="#455875"/>
+    </linearGradient>
+  </defs>
+  <path d="M8 22H248" stroke="#161a2b" stroke-width="7" stroke-linecap="round" opacity=".7"/>
+  <path d="M8 19H248" stroke="url(#steel)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M18 20v8M238 20v8" stroke="#7f8da7" stroke-width="3"/>
+  <path d="M20 16H236" stroke="#ffffff" stroke-width="1" opacity=".65"/>
+</svg>

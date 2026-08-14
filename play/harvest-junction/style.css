@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
   background: #f7f0df;
-  font-family: ui-rounded, "Arial Rounded MT Bold", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Trebuchet MS", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -9,63 +9,76 @@
 html, body {
   width: 100%;
   height: 100%;
+  min-height: 100%;
   margin: 0;
   overflow: hidden;
   background: #f7f0df;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   display: grid;
   place-items: center;
-  overscroll-behavior: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 #game-shell {
   position: relative;
-  width: min(100vw, 390px, calc(100vh * 390 / 700));
-  height: auto;
-  max-height: 100vh;
-  aspect-ratio: 390 / 700;
+  width: min(100vw, 430px);
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   background: #f7f0df;
-  box-shadow: 0 18px 60px rgba(43, 51, 40, .14);
+  box-shadow: 0 18px 60px rgba(31, 73, 59, .18);
 }
 
-#game {
+#game-shell canvas {
   display: block;
   width: 100%;
   height: 100%;
   touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
 }
 
-#rotate-screen {
-  position: fixed;
+#boot-fallback {
+  position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: 2;
   display: grid;
   place-items: center;
-  background: rgba(41, 76, 59, .96);
-  color: #fff8e7;
-  touch-action: none;
+  color: #fff9ea;
+  background: #1f493b;
+  font-size: 18px;
+  font-weight: 700;
 }
 
-#rotate-screen[hidden] { display: none; }
+#boot-fallback[hidden] { display: none; }
 
-.rotate-card {
-  display: grid;
-  gap: 10px;
-  max-width: 290px;
-  padding: 28px 26px;
-  text-align: center;
-  border: 2px solid #9fc89d;
-  border-radius: 24px;
-  background: #365d49;
-  box-shadow: 0 12px 0 #214332;
+#accessible-panel {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-.rotate-card strong { font-size: 20px; }
-.rotate-card span { color: #cae4bf; font-size: 14px; }
-.rotate-glyph { font-size: 48px; line-height: 1; }
+#accessible-panel button:focus {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
+  clip: auto;
+  clip-path: none;
+  color: #fff9ea;
+  background: #1f493b;
+  border: 2px solid #f4a83e;
+  white-space: normal;
+}

@@ -1,4 +1,4 @@
-// NES resolution: 256x224, rendered at SCALE multiplier
+// Compact arcade resolution: 256x224, rendered at SCALE multiplier.
 
 export const SCALE = 3;
 export const NES_W = 256;
@@ -16,7 +16,8 @@ export const STATE = {
   WIN: 'win',
 };
 
-// NES palette subset used by the greybox art.
+// Original Emberwild palette anchors. The final view layer adds gradients,
+// additive glows, and particle ramps around these readable values.
 export const PAL = {
   BLACK:    '#000000',
   WHITE:    '#FCFCFC',
@@ -38,9 +39,9 @@ export const PAL = {
   DKBLUE:   '#0000BC',
   GOLD:     '#F8D878',
   SKIN:     '#F8B8F8',
-  LINK_GREEN: '#00A800',
-  LINK_SKIN:  '#FCA044',
-  LINK_HAT:   '#00A800',
+  HERO_CLOAK: '#00A800',
+  HERO_SKIN:  '#FCA044',
+  HERO_HOOD:  '#00A800',
 };
 
 // Tile types (overworld)
@@ -84,10 +85,16 @@ export const PLAYER = {
   JUMP_VEL:    -5.5,
   GRAVITY:      0.25,
   MAX_FALL:     6,
+  COYOTE_FRAMES: 6,
+  JUMP_BUFFER_FRAMES: 5,
 
   // Combat
   SWORD_REACH:  16,
   SWORD_HEIGHT: 8,
+  ATTACK_WINDUP: 4,
+  ATTACK_ACTIVE: 5,
+  ATTACK_RECOVERY: 7,
+  PARRY_WINDOW: 8,
   IFRAME_DURATION: 60,  // frames of invincibility after hit
 
   // Starting stats
@@ -101,8 +108,7 @@ export const PLAYER = {
   LIVES: 3,
 };
 
-// XP thresholds for each attribute (level 1→8)
-// Original game values
+// XP thresholds for each attribute (level 1 to 8).
 export const XP_TABLE = {
   atk: [0, 200,  500,  900,  2000, 3000, 5000, 8000],
   mag: [0, 350,  800,  1500, 3000, 5000, 8000, 9999],
@@ -129,22 +135,25 @@ export const SPELLS = {
 
 // Enemy XP rewards
 export const ENEMY_XP = {
-  ache:        10,
+  duskwing:        10,
   bubbles:      0,
-  stalfos:     30,
-  wizzrobe:    50,
-  ironknuckle: 50,
-  lizalfos:    40,
-  goriya:      40,
+  boneward:     30,
+  hexweaver:    50,
+  ironwraith: 50,
+  brineclaw:    40,
+  crescent:      40,
   bit:         10,
   bot:         20,
   tektite:     20,
   leever:      30,
   moblin:      20,
   warg:        30,
-  horsehead:  200,  // boss
-  helmethead: 300,
-  ironknuckle_boss: 400,
+  ravenhorse:  200,  // boss
+  crownback: 300,
+  ironwraith_boss: 400,
+  stonevex: 500,
+  ironroot: 600,
+  tidebane: 700,
 };
 
 // Side-view scene types

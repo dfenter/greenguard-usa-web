@@ -1,0 +1,15 @@
+{
+  "name": "Emberhold Tactics",
+  "short_name": "Emberhold",
+  "description": "A deterministic pocket tactics campaign.",
+  "start_url": "/play/emberhold-tactics/?seed=2417",
+  "scope": "/play/emberhold-tactics/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#070d18",
+  "theme_color": "#070d18",
+  "icons": [
+    {"src":"icon.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icon512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

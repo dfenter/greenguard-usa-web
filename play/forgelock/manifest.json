@@ -1,0 +1,17 @@
+{
+  "name": "Forgelock",
+  "short_name": "Forgelock",
+  "description": "A tactile match-chain factory campaign with cascades, locks and restored modules.",
+  "start_url": "/play/forgelock/",
+  "scope": "/play/forgelock/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#101b2c",
+  "theme_color": "#101b2c",
+  "categories": ["games", "puzzle"],
+  "icons": [
+    { "src": "favicon.png", "sizes": "64x64", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

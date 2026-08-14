@@ -1,12 +1,50 @@
-:root { color-scheme: dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #07111c; }
+:root {
+  color-scheme: dark;
+  background: #07111c;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
 * { box-sizing: border-box; }
-html, body, #gameShell { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { background: #07111c; overscroll-behavior: none; }
-#gameShell { position: relative; touch-action: none; }
-#game { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
-#rotateOverlay { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(4, 10, 17, .94); touch-action: none; }
-#rotateOverlay[hidden] { display: none; }
-.rotate-card { width: min(86vw, 360px); padding: 28px 24px 26px; text-align: center; border: 1px solid rgba(106, 227, 255, .55); border-radius: 24px; background: linear-gradient(160deg, #10283a, #0a1727); box-shadow: 0 18px 70px rgba(0,0,0,.45); }
-.rotate-mark { color: #6ae3ff; font-size: 48px; line-height: 1; }
-.rotate-title { margin-top: 12px; color: #f6f8ff; font-size: 20px; font-weight: 900; letter-spacing: .13em; }
-.rotate-copy { margin-top: 8px; color: #9eb2c9; font-size: 14px; }
+
+html, body, #stage {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #07111c;
+}
+
+body {
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+#stage {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 240px;
+  touch-action: none;
+  isolation: isolate;
+}
+
+#stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#safearea {
+  position: fixed;
+  inset: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  pointer-events: none;
+  opacity: 0;
+}
+
+button { font: inherit; }
+
+canvas, button { -webkit-tap-highlight-color: transparent; }

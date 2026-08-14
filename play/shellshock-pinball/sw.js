@@ -1,0 +1,46 @@
+/* Shellshock Pinball service worker. Generated from /play/_shared/sw-template.js. */
+const SLUG = 'shellshock-pinball';
+const VERSION = 'aaa-20260810-03';
+const CACHE = 'gg-' + SLUG + '-' + VERSION;
+const ASSETS = [
+  '/play/shellshock-pinball/',
+  '/play/shellshock-pinball/index.html',
+  '/play/shellshock-pinball/engine.js',
+  '/play/shellshock-pinball/table.js',
+  '/play/shellshock-pinball/game.js',
+  '/play/shellshock-pinball/manifest.json',
+  '/play/shellshock-pinball/icon.png',
+  '/play/shellshock-pinball/icon512.png',
+  '/play/shellshock-pinball/favicon.png',
+  '/play/shellshock-pinball/assets/music.mp3',
+  '/play/shellshock-pinball/assets/flipper.mp3',
+  '/play/shellshock-pinball/assets/bumper.mp3',
+  '/play/shellshock-pinball/assets/target.mp3',
+  '/play/shellshock-pinball/assets/launch.mp3',
+  '/play/shellshock-pinball/assets/jackpot.mp3',
+  '/play/shellshock-pinball/assets/multiball.mp3',
+  '/play/shellshock-pinball/assets/drain.mp3',
+  '/play/shellshock-pinball/assets/kickback.mp3',
+  '/play/shellshock-pinball/assets/intensity.mp3',
+  '/play/shellshock-pinball/assets/ui.mp3',
+  '/play/_shared/phaser.min.js',
+  '/play/_shared/ggkit.js'
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys().then((keys) => Promise.all(
+    keys.filter((k) => k.startsWith('gg-' + SLUG + '-') && k !== CACHE).map((k) => caches.delete(k))
+  )).then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  if (!url.pathname.startsWith('/play/' + SLUG + '/') && !url.pathname.startsWith('/play/_shared/')) return;
+  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request).then((res) => {
+    if (res.ok) caches.open(CACHE).then((c) => c.put(e.request, res.clone()));
+    return res;
+  })));
+});

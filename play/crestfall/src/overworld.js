@@ -1,31 +1,26 @@
-// Overworld map renderer and navigation
-// Top-down view of the Emberwild, 8 tiles visible at once in NES
-// Each overworld tile = 8x8 NES pixels, player dot = 8x8
+// Emberwild overworld navigation and neon map view.
 
 import { SCALE, TILE, TILE_PROPS, NES_W, NES_H } from './constants.js';
 import { WESTERN_MAP, EASTERN_MAP, TOWNS, PALACES } from './map-data.js';
-import { drawTextPx } from './sprites.js';
+import { drawTileSigil, drawWorldAvatar } from './sprites.js';
 import { worldRng } from './rng.js';
 
 const S = SCALE;
-const TILE_PX = 8; // each tile is 8 NES pixels
+const TILE_PX = 8;
 
 export class Overworld {
-  constructor(player) {
+  constructor(player, options = {}) {
     this.player = player;
-    this.map = WESTERN_MAP;      // current map region
+    this.onNotification = options.onNotification || (() => {});
+    this.map = WESTERN_MAP;
     this.region = 'west';
     this.moveTimer = 0;
-    this.moveCooldown = 12; // frames per tile move
-    this.moveDx = 0;
-    this.moveDy = 0;
-    this.encounterTimer = 0;
+    this.moveCooldown = 12;
     this.pendingEncounter = null;
     this.pendingTown = null;
     this.pendingPalace = null;
     this.transitionTimer = 0;
     this.entering = false;
-    this.screenFlash = 0;
     this.notification = '';
     this.notifTimer = 0;
     this.camX = 0;
@@ -37,45 +32,33 @@ export class Overworld {
       this.transitionTimer++;
       return;
     }
-
     if (this.notifTimer > 0) this.notifTimer--;
-
     this.moveTimer = Math.max(0, this.moveTimer - 1);
-
-    // Handle movement
     if (this.moveTimer === 0) {
-      let dx = 0, dy = 0;
-      if (input.left)  dx = -1;
-      if (input.right) dx =  1;
-      if (input.up)    dy = -1;
-      if (input.down)  dy =  1;
-
-      if (dx !== 0 || dy !== 0) {
+      let dx = 0;
+      let dy = 0;
+      if (input.left) dx = -1;
+      if (input.right) dx = 1;
+      if (input.up) dy = -1;
+      if (input.down) dy = 1;
+      if (dx || dy) {
         const nx = this.player.owX + dx;
         const ny = this.player.owY + dy;
-
         if (ny >= 0 && ny < this.map.length && nx >= 0 && nx < this.map[0].length) {
           const tile = this.map[ny][nx];
-          const props = TILE_PROPS[tile];
-
-          if (props.passable) {
+          if (TILE_PROPS[tile]?.passable) {
             this.player.owX = nx;
             this.player.owY = ny;
             this.moveTimer = this.moveCooldown;
-
-            // Check special tile
             this._checkTile(tile, nx, ny);
           }
         }
       }
     }
-
-    // Update camera to follow player
     this._updateCamera();
   }
 
   _checkTile(tile, x, y) {
-    // Check for town/palace entry
     const town = this._findTown(x, y);
     if (town) {
       this.entering = true;
@@ -83,31 +66,22 @@ export class Overworld {
       this.pendingTown = town;
       return;
     }
-
     const palace = this._findPalace(x, y);
     if (palace) {
+      const requiredSigils = palace.crystal < 0 ? palace.id - 1 : palace.crystal;
+      if (this.player.crystals < requiredSigils) {
+        this.showNotification(`SIGIL ${requiredSigils} REQUIRED`);
+        return;
+      }
       this.entering = true;
       this.transitionTimer = 0;
       this.pendingPalace = palace;
       return;
     }
-
-    // Check bridge crossing (east/west)
     if (tile === TILE.BRIDGE && x >= this.map[0].length - 3) {
-      // Cross to the eastern Emberwild
       if (this.region === 'west') {
         this.region = 'east';
         this.map = EASTERN_MAP;
-        // Connectivity fix (not a ledgered R-repair, but required for the
-        // Phase 0.5 full-run-to-WIN gate to be achievable at all): (2,14)
-        // is EASTERN_MAP's literal bridge tile, but it is landlocked —
-        // every neighboring tile out to column 5 is WATER (see
-        // EASTERN_MAP row 14), so a player landing there could never move
-        // again. (6,14) is the nearest connected GRASS tile (verified by
-        // flood-fill: 184 reachable tiles from there, including every
-        // eastern town and palace except darunia, which sits on its own
-        // pre-existing, separately unreachable MOUNTAIN tile — out of
-        // scope here, not on the WIN path).
         this.player.owX = 6;
         this.player.owY = 14;
         this.showNotification('EASTERN EMBERWILD');
@@ -124,8 +98,6 @@ export class Overworld {
       }
       return;
     }
-
-    // Random encounter
     const props = TILE_PROPS[tile];
     if (props.encounter > 0 && worldRng.next('overworld.encounterRoll') < props.encounter * 20) {
       this.entering = true;
@@ -134,13 +106,6 @@ export class Overworld {
     }
   }
 
-  // R4 repair: lookup is region-qualified. Previously every town/palace was
-  // searched by (x,y) alone across BOTH regions; nabooru/newkasuto shared
-  // (14,6) and object insertion order made nabooru always win, permanently
-  // hiding newkasuto (and THUNDER, and the Great Palace route) behind it.
-  // Region qualification is necessary but was not by itself sufficient
-  // here since both towns were also in the same region — see the R4 note
-  // by TOWNS.nabooru in map-data.js for the paired coordinate fix.
   _findTown(x, y) {
     for (const [key, town] of Object.entries(TOWNS)) {
       if (town.region === this.region && town.mapX === x && town.mapY === y) return { key, ...town };
@@ -149,8 +114,8 @@ export class Overworld {
   }
 
   _findPalace(x, y) {
-    for (const pal of PALACES) {
-      if (pal.region === this.region && pal.mapX === x && pal.mapY === y) return pal;
+    for (const keep of PALACES) {
+      if (keep.region === this.region && keep.mapX === x && keep.mapY === y) return keep;
     }
     return null;
   }
@@ -158,151 +123,131 @@ export class Overworld {
   _updateCamera() {
     const mapW = this.map[0].length * TILE_PX;
     const mapH = this.map.length * TILE_PX;
-    const viewW = NES_W;
-    const viewH = NES_H;
-
-    this.camX = Math.max(0, Math.min(mapW - viewW, this.player.owX * TILE_PX - viewW/2));
-    this.camY = Math.max(0, Math.min(mapH - viewH, this.player.owY * TILE_PX - viewH/2));
+    this.camX = Math.max(0, Math.min(mapW - NES_W, this.player.owX * TILE_PX - NES_W / 2));
+    this.camY = Math.max(0, Math.min(mapH - NES_H, this.player.owY * TILE_PX - NES_H / 2));
   }
 
   showNotification(text) {
     this.notification = text;
     this.notifTimer = 120;
+    this.onNotification(text);
   }
 
   draw(ctx) {
-    ctx.fillStyle = '#000000';
+    const gradient = ctx.createLinearGradient(0, 0, 0, NES_H * S);
+    gradient.addColorStop(0, '#07132D');
+    gradient.addColorStop(1, '#050817');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, NES_W * S, NES_H * S);
-
     const tileSize = TILE_PX * S;
-
-    // Draw tiles
     const startTX = Math.floor(this.camX / TILE_PX);
     const startTY = Math.floor(this.camY / TILE_PX);
-    const endTX   = Math.ceil((this.camX + NES_W) / TILE_PX);
-    const endTY   = Math.ceil((this.camY + NES_H) / TILE_PX);
-
+    const endTX = Math.ceil((this.camX + NES_W) / TILE_PX);
+    const endTY = Math.ceil((this.camY + NES_H) / TILE_PX);
     for (let ty = startTY; ty < endTY; ty++) {
       for (let tx = startTX; tx < endTX; tx++) {
         if (ty < 0 || ty >= this.map.length || tx < 0 || tx >= this.map[0].length) continue;
         const tile = this.map[ty][tx];
-        const props = TILE_PROPS[tile];
+        const props = TILE_PROPS[tile] || TILE_PROPS[TILE.GRASS];
         const sx = (tx * TILE_PX - this.camX) * S;
         const sy = (ty * TILE_PX - this.camY) * S;
-
-        ctx.fillStyle = props.color;
+        const tint = {
+          [TILE.GRASS]: '#123A3A', [TILE.FOREST]: '#0D463D', [TILE.MOUNTAIN]: '#2A3453',
+          [TILE.WATER]: '#0A3159', [TILE.SWAMP]: '#173A35', [TILE.DESERT]: '#4A3C34',
+          [TILE.ROAD]: '#2C3A52', [TILE.BRIDGE]: '#4C3E32', [TILE.TOWN]: '#3C3656',
+          [TILE.PALACE]: '#351B55', [TILE.CAVE]: '#1C2744', [TILE.GRAVEYARD]: '#26233E',
+          [TILE.LAVA]: '#4E2031',
+        }[tile] || props.color;
+        ctx.fillStyle = tint;
         ctx.fillRect(sx, sy, tileSize, tileSize);
-
-        // Extra detail
-        this._drawTileDetail(ctx, tile, sx, sy, tileSize, tx, ty);
+        ctx.fillStyle = 'rgba(255,255,255,.035)';
+        ctx.fillRect(sx, sy, tileSize, S);
+        if ((tx * 7 + ty * 11) % 5 === 0) {
+          ctx.fillStyle = tile === TILE.WATER ? '#267CB1' : '#25345A';
+          ctx.fillRect(sx + 2 * S, sy + 4 * S, 3 * S, S);
+        }
+        if (tile === TILE.FOREST) drawTileSigil(ctx, tx * TILE_PX - this.camX, ty * TILE_PX - this.camY, 'forest', (tx + ty) % 2);
+        if (tile === TILE.MOUNTAIN) drawTileSigil(ctx, tx * TILE_PX - this.camX, ty * TILE_PX - this.camY, 'mountain');
+        if (tile === TILE.WATER) drawTileSigil(ctx, tx * TILE_PX - this.camX, ty * TILE_PX - this.camY, 'coast');
+        if (tile === TILE.TOWN) drawTileSigil(ctx, tx * TILE_PX - this.camX, ty * TILE_PX - this.camY, 'town');
+        if (tile === TILE.PALACE) drawTileSigil(ctx, tx * TILE_PX - this.camX, ty * TILE_PX - this.camY, 'night', 2);
       }
     }
-
-    // Draw town/palace markers
-    this._drawMarkers(ctx);
-
-    // Draw the hero marker
-    const px = (this.player.owX * TILE_PX - this.camX) * S;
-    const py = (this.player.owY * TILE_PX - this.camY) * S;
-
-    // Flash during entering transition
-    if (!this.entering || Math.floor(this.transitionTimer / 4) % 2 === 0) {
-      // Hero marker (simplified cloak and face)
-      ctx.fillStyle = '#6844FC';
-      ctx.fillRect(px, py, tileSize, tileSize);
-      ctx.fillStyle = '#F0B078';
-      ctx.fillRect(px + 2*S, py + 2*S, 4*S, 4*S);
-    }
-
-    // Notification text
-    if (this.notifTimer > 0) {
-      const alpha = Math.min(1, this.notifTimer / 30);
-      ctx.globalAlpha = alpha;
-      const textW = this.notification.length * 6 * S;
-      const textX = (NES_W * S - textW) / 2;
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(textX - 4, NES_H * S / 2 - 8 * S, textW + 8, 10 * S);
-      drawTextPx(ctx, this.notification, textX, NES_H * S / 2 - 7 * S, '#F8D878', S);
-      ctx.globalAlpha = 1;
-    }
-
-    // Screen flash on enter
+    this._drawWorldDressing(ctx, tileSize, startTX, startTY, endTX, endTY);
+    const px = (this.player.owX * TILE_PX - this.camX);
+    const py = (this.player.owY * TILE_PX - this.camY);
+    if (!this.entering || Math.floor(this.transitionTimer / 3) % 2 === 0) drawWorldAvatar(ctx, px, py, this.notifTimer > 0 ? 1 : 0);
     if (this.entering) {
-      ctx.fillStyle = `rgba(255,255,255,${Math.min(1, this.transitionTimer / 20) * 0.8})`;
+      ctx.fillStyle = `rgba(66,245,230,${Math.min(0.5, this.transitionTimer / 30)})`;
       ctx.fillRect(0, 0, NES_W * S, NES_H * S);
     }
-
-    // Region indicator (drawn below HUD at y=60)
-    drawTextPx(ctx, this.region === 'west' ? 'WESTERN EMBERWILD' : 'EASTERN EMBERWILD',
-               4 * S, 60 * S, '#FCFCFC', S);
   }
 
-  _drawTileDetail(ctx, tile, sx, sy, ts, tx, ty) {
-    if (tile === TILE.FOREST) {
-      // Tree dots
-      ctx.fillStyle = '#004800';
-      if ((tx + ty) % 2 === 0) {
-        ctx.fillRect(sx + S, sy + S, 2*S, 2*S);
-        ctx.fillRect(sx + 4*S, sy + 4*S, 2*S, 2*S);
-      }
-    } else if (tile === TILE.MOUNTAIN) {
-      // Peak
-      ctx.fillStyle = '#BCBCBC';
-      ctx.fillRect(sx + 3*S, sy, 2*S, 2*S);
-      ctx.fillStyle = '#FCFCFC';
-      ctx.fillRect(sx + 3*S, sy, S, S);
-    } else if (tile === TILE.SWAMP) {
-      // Swamp murk
-      ctx.fillStyle = '#002800';
-      if ((tx * 3 + ty * 5) % 7 < 2) {
-        ctx.fillRect(sx + 2*S, sy + 2*S, 3*S, 3*S);
-      }
-    } else if (tile === TILE.WATER) {
-      // Wave lines
-      ctx.fillStyle = '#3CBCFC';
-      if ((tx + ty * 2) % 3 === 0) {
-        ctx.fillRect(sx, sy + 3*S, ts, S);
-      }
-    } else if (tile === TILE.TOWN) {
-      // House roof
-      ctx.fillStyle = '#D81818';
-      ctx.fillRect(sx + 2*S, sy, 4*S, 3*S);
-      ctx.fillStyle = '#FCFCFC';
-      ctx.fillRect(sx + 2*S, sy + 3*S, 4*S, 5*S);
-    } else if (tile === TILE.PALACE) {
-      // Palace walls
-      ctx.fillStyle = '#9040C0';
-      ctx.fillRect(sx, sy, ts, ts);
-      ctx.fillStyle = '#C860F0';
-      ctx.fillRect(sx + 2*S, sy, 4*S, 3*S);
-      ctx.fillRect(sx + S, sy + 3*S, 6*S, 5*S);
-    } else if (tile === TILE.ROAD) {
-      // Road pebbles
-      ctx.fillStyle = '#A88858';
-      if ((tx * 7 + ty * 3) % 5 === 0) {
-        ctx.fillRect(sx + 3*S, sy + 3*S, S, S);
-      }
-    } else if (tile === TILE.BRIDGE) {
-      // Bridge planks
-      ctx.fillStyle = '#A87838';
-      ctx.fillRect(sx, sy + 2*S, ts, S);
-      ctx.fillRect(sx, sy + 5*S, ts, S);
-    } else if (tile === TILE.GRAVEYARD) {
-      // Cross
-      ctx.fillStyle = '#888888';
-      ctx.fillRect(sx + 3*S, sy, 2*S, 6*S);
-      ctx.fillRect(sx + S, sy + 2*S, 6*S, 2*S);
-    }
-  }
-
-  _drawMarkers(ctx) {
-    // Draw P1-P7 labels on palace tiles
-    for (const pal of PALACES) {
-      const px = (pal.mapX * TILE_PX - this.camX) * S;
-      const py = (pal.mapY * TILE_PX - this.camY) * S;
-      if (px >= -8*S && px < NES_W*S && py >= -8*S && py < NES_H*S) {
-        const cleared = this.player.crystals > pal.id - 1;
-        drawTextPx(ctx, `K${pal.id}`, px, py, cleared ? '#00A800' : '#F8D878', S);
+  _drawWorldDressing(ctx, tileSize, startTX, startTY, endTX, endTY) {
+    for (let ty = startTY; ty < endTY; ty++) {
+      for (let tx = startTX; tx < endTX; tx++) {
+        if (ty < 0 || ty >= this.map.length || tx < 0 || tx >= this.map[0].length) continue;
+        const tile = this.map[ty][tx];
+        const sx = (tx * TILE_PX - this.camX) * S;
+        const sy = (ty * TILE_PX - this.camY) * S;
+        const cx = sx + tileSize / 2;
+        const cy = sy + tileSize / 2;
+        ctx.save();
+        ctx.globalAlpha = 0.62;
+        if (tile === TILE.FOREST) {
+          ctx.fillStyle = '#5CFF9B';
+          ctx.beginPath();
+          ctx.moveTo(cx, sy + 2 * S);
+          ctx.lineTo(sx + 2 * S, sy + 7 * S);
+          ctx.lineTo(sx + 6 * S, sy + 7 * S);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = '#102A2A';
+          ctx.fillRect(cx - S, sy + 6 * S, 2 * S, 2 * S);
+        } else if (tile === TILE.MOUNTAIN) {
+          ctx.fillStyle = '#7E8DB8';
+          ctx.beginPath();
+          ctx.moveTo(sx + S, sy + 7 * S);
+          ctx.lineTo(cx, sy + S);
+          ctx.lineTo(sx + 7 * S, sy + 7 * S);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = '#2A3453';
+          ctx.beginPath();
+          ctx.moveTo(cx, sy + S);
+          ctx.lineTo(cx + 2 * S, sy + 7 * S);
+          ctx.lineTo(sx + 7 * S, sy + 7 * S);
+          ctx.closePath();
+          ctx.fill();
+        } else if (tile === TILE.WATER) {
+          ctx.strokeStyle = '#5BD7E0';
+          ctx.lineWidth = S;
+          ctx.beginPath();
+          ctx.moveTo(sx + S, cy);
+          ctx.quadraticCurveTo(cx, cy - S, sx + 7 * S, cy);
+          ctx.stroke();
+        } else if (tile === TILE.DESERT) {
+          ctx.strokeStyle = '#FFE18A';
+          ctx.lineWidth = S;
+          ctx.beginPath();
+          ctx.arc(cx - S, cy + S, 3 * S, Math.PI, Math.PI * 2);
+          ctx.stroke();
+        } else if (tile === TILE.SWAMP) {
+          ctx.strokeStyle = '#42F5E6';
+          ctx.lineWidth = S;
+          for (let reed = 0; reed < 2; reed++) {
+            ctx.beginPath();
+            ctx.moveTo(sx + (2 + reed * 3) * S, sy + 7 * S);
+            ctx.lineTo(sx + (3 + reed * 3) * S, sy + 3 * S);
+            ctx.stroke();
+          }
+        } else if (tile === TILE.TOWN || tile === TILE.PALACE) {
+          ctx.fillStyle = tile === TILE.TOWN ? '#FFE18A' : '#FF5CCB';
+          ctx.fillRect(sx + 2 * S, sy + 3 * S, 4 * S, 4 * S);
+          ctx.fillStyle = '#0B1224';
+          ctx.fillRect(sx + 3 * S, sy + 5 * S, S, 2 * S);
+        }
+        ctx.restore();
       }
     }
   }
@@ -312,11 +257,7 @@ export class Overworld {
   resetEntry() {
     this.entering = false;
     this.transitionTimer = 0;
-    const result = {
-      encounter: this.pendingEncounter,
-      town: this.pendingTown,
-      palace: this.pendingPalace,
-    };
+    const result = { encounter: this.pendingEncounter, town: this.pendingTown, palace: this.pendingPalace };
     this.pendingEncounter = null;
     this.pendingTown = null;
     this.pendingPalace = null;

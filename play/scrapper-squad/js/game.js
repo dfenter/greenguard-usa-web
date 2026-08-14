@@ -1,590 +1,526 @@
-(() => {
+/* Scrapper Squad - fleet F9 AAA rebuild.
+ * Phaser is presentation only. GGKit owns lifecycle, input, save, audio,
+ * pause, restart, reduced-motion settings, and PWA registration.
+ */
+(function () {
   'use strict';
 
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  const rotateOverlay = document.getElementById('rotateOverlay');
-  const TAU = Math.PI * 2;
-  const MAX_MATCH = 150;
-  const WORLD = { w: 900, h: 1400 };
-  const LIMITS = { particles: 260, projectiles: 130, gems: 28, mines: 28, turrets: 12, texts: 24, actions: 12 };
-  const COLORS = { ink: '#07111c', paper: '#eef6ff', muted: '#8fa8be', blue: '#5dd7ff', blue2: '#1675c7', red: '#ff6b83', red2: '#a52d52', gold: '#ffd66b', green: '#83efb0', purple: '#bd8cff' };
-  const KITS = [
-    { name: 'Rattle', role: 'shotgunner', tag: 'BUCKSHOT BLOOM', color: '#ffb65d', hp: 105, speed: 220, rate: .47, damage: 8, shots: 5, bullet: 510, super: 'BREACH RING' },
-    { name: 'Skylens', role: 'sniper', tag: 'LINEBREAK', color: '#82b9ff', hp: 82, speed: 185, rate: .9, damage: 34, shots: 1, bullet: 780, super: 'RAIL FLASH' },
-    { name: 'Soothe', role: 'healer', tag: 'HUSHWAVE', color: '#7df2cd', hp: 92, speed: 205, rate: .62, damage: 9, shots: 1, bullet: 470, super: 'MEND FIELD' },
-    { name: 'Grub', role: 'tank', tag: 'GROUNDLOCK', color: '#e5d176', hp: 155, speed: 145, rate: .68, damage: 13, shots: 3, bullet: 390, super: 'IRON WAKE' },
-    { name: 'Popstone', role: 'bomber', tag: 'BLOOM BOMB', color: '#ff8fa3', hp: 98, speed: 195, rate: .82, damage: 30, shots: 1, bullet: 330, super: 'MINE GARDEN' },
-    { name: 'Crosscut', role: 'dasher', tag: 'SLIPSTREAM', color: '#eaa6ff', hp: 88, speed: 260, rate: .28, damage: 10, shots: 1, bullet: 610, super: 'RIPLINE DASH' },
-    { name: 'Rivet', role: 'engineer', tag: 'NEST NODE', color: '#72e5ed', hp: 100, speed: 185, rate: .5, damage: 12, shots: 1, bullet: 520, super: 'DROP TURRET' },
-    { name: 'Orbit', role: 'boomerang', tag: 'LOOPBACK', color: '#b59cff', hp: 104, speed: 210, rate: .58, damage: 17, shots: 1, bullet: 430, super: 'TRIPLE ARC' }
+  var WORLD_W = 960;
+  var WORLD_H = 540;
+  var STEP = 1 / 60;
+  var MAX_STEPS = 3;
+  var VERSION = '2026-08-11-aaa2';
+  var FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  var C = {
+    ink: '#06111c', paper: '#eef7ff', dim: '#91aabd', line: '#24485d',
+    cyan: '#5dd7ff', cyanDeep: '#1a73b7', red: '#ff6c85', redDeep: '#872948',
+    gold: '#ffd66b', green: '#83efb0', violet: '#bd8cff', orange: '#ffb65d',
+    white: '#ffffff', black: '#07111c'
+  };
+  var MODE_ORDER = ['gem', 'heist', 'gauntlet', 'showdown'];
+  var MODES = {
+    gem: { key: 'gem', label: 'GEM HOARD', icon: '◆', goal: 'Hold 10 gems for 15 seconds', rule: 'gem', limit: 150, arena: 'gem_pit' },
+    heist: { key: 'heist', label: 'HEIST', icon: '▣', goal: 'Crack the enemy safe before 2:30', rule: 'heist', limit: 150, arena: 'heist_vault' },
+    gauntlet: { key: 'gauntlet', label: 'BRAWL GAUNTLET', icon: '✦', goal: 'Four authored 3v3 bouts', rule: 'gem', limit: 150, arena: 'gem_pit' },
+    showdown: { key: 'showdown', label: 'SHOWDOWN', icon: '◈', goal: 'Last scrapper standing', rule: 'showdown', limit: 120, arena: 'showdown_field' }
+  };
+  var ARENAS = {
+    gem_pit: {
+      key: 'gem_pit', name: 'GEM PIT', icon: '◆', accent: '#ffd66b', base: '#102936', hazard: 'GEYSER', hazardKind: 'geyser',
+      covers: [{ x: 188, y: 106, w: 150, h: 30 }, { x: 622, y: 404, w: 150, h: 30 }, { x: 188, y: 404, w: 150, h: 30 }, { x: 622, y: 106, w: 150, h: 30 }, { x: 372, y: 152, w: 38, h: 108 }, { x: 550, y: 280, w: 38, h: 108 }]
+    },
+    heist_vault: {
+      key: 'heist_vault', name: 'VAULT ROW', icon: '▣', accent: '#ff6c85', base: '#251a30', hazard: 'LASER LANE', hazardKind: 'laser',
+      covers: [{ x: 168, y: 104, w: 132, h: 44 }, { x: 660, y: 392, w: 132, h: 44 }, { x: 168, y: 392, w: 132, h: 44 }, { x: 660, y: 104, w: 132, h: 44 }, { x: 366, y: 94, w: 46, h: 124 }, { x: 548, y: 322, w: 46, h: 124 }]
+    },
+    showdown_field: {
+      key: 'showdown_field', name: 'OPEN FIELD', icon: '◈', accent: '#83efb0', base: '#102d2b', hazard: 'STORM RING', hazardKind: 'storm',
+      covers: [{ x: 254, y: 104, w: 78, h: 78 }, { x: 628, y: 104, w: 78, h: 78 }, { x: 254, y: 358, w: 78, h: 78 }, { x: 628, y: 358, w: 78, h: 78 }, { x: 446, y: 94, w: 68, h: 38 }, { x: 446, y: 408, w: 68, h: 38 }]
+    },
+    championship: {
+      key: 'championship', name: 'CHAMPIONSHIP', icon: '✦', accent: '#bd8cff', base: '#211a35', hazard: 'CRUSHER CORE', hazardKind: 'crusher',
+      covers: [{ x: 152, y: 98, w: 164, h: 30 }, { x: 644, y: 412, w: 164, h: 30 }, { x: 152, y: 412, w: 164, h: 30 }, { x: 644, y: 98, w: 164, h: 30 }, { x: 342, y: 174, w: 48, h: 174 }, { x: 570, y: 174, w: 48, h: 174 }]
+    }
+  };
+  var KITS = [
+    { id: 'rattle', name: 'RATTLE', role: 'BUCKSHOT', kind: 'shotgun', color: '#ffb65d', hp: 120, speed: 220, fire: .62, damage: 11, shots: 5, spread: .22, range: 285, super: 'BREACH RING' },
+    { id: 'skylens', name: 'SKYLENS', role: 'PRECISION', kind: 'sniper', color: '#82b9ff', hp: 82, speed: 190, fire: 1.02, damage: 42, shots: 1, spread: 0, range: 610, super: 'RAIL FLASH' },
+    { id: 'soothe', name: 'SOOTHE', role: 'FIELD MEDIC', kind: 'healer', color: '#7df2cd', hp: 96, speed: 208, fire: .72, damage: 13, shots: 1, spread: 0, range: 390, super: 'MEND FIELD' },
+    { id: 'grub', name: 'GRUB', role: 'FRONT TANK', kind: 'tank', color: '#e5d176', hp: 168, speed: 150, fire: .78, damage: 17, shots: 3, spread: .16, range: 315, super: 'IRON WAKE' },
+    { id: 'popstone', name: 'POPSTONE', role: 'LOBBER', kind: 'bomber', color: '#ff8fa3', hp: 102, speed: 195, fire: .9, damage: 38, shots: 1, spread: 0, range: 420, super: 'MINE GARDEN' },
+    { id: 'crosscut', name: 'CROSSCUT', role: 'DASHER', kind: 'dasher', color: '#eaa6ff', hp: 90, speed: 268, fire: .34, damage: 15, shots: 1, spread: 0, range: 350, super: 'RIPLINE DASH' },
+    { id: 'rivet', name: 'RIVET', role: 'ENGINEER', kind: 'engineer', color: '#72e5ed', hp: 108, speed: 190, fire: .58, damage: 15, shots: 1, spread: 0, range: 440, super: 'DROP TURRET' },
+    { id: 'orbit', name: 'ORBIT', role: 'BOOMERANG', kind: 'boomerang', color: '#b59cff', hp: 108, speed: 214, fire: .7, damage: 23, shots: 1, spread: 0, range: 400, super: 'TRIPLE ARC' }
   ];
-  const ROAD = [0, 2, 4, 6, 8, 10, 12, 14];
-  const COVERS = [
-    { x: 205, y: 270, w: 120, h: 36 }, { x: 575, y: 270, w: 120, h: 36 },
-    { x: 205, y: 1094, w: 120, h: 36 }, { x: 575, y: 1094, w: 120, h: 36 },
-    { x: 335, y: 450, w: 58, h: 130 }, { x: 507, y: 450, w: 58, h: 130 },
-    { x: 335, y: 820, w: 58, h: 130 }, { x: 507, y: 820, w: 58, h: 130 }
+  var KIT_BY_ID = {};
+  for (var k0 = 0; k0 < KITS.length; k0++) KIT_BY_ID[KITS[k0].id] = KITS[k0];
+  var GAUNTLET = [
+    { name: 'SCRAP START', arena: 'gem_pit', rule: 'gem', enemies: [1, 4, 5], allies: [2, 6] },
+    { name: 'VAULT RUN', arena: 'heist_vault', rule: 'heist', enemies: [3, 7, 0], allies: [1, 2] },
+    { name: 'GLOW BREAK', arena: 'showdown_field', rule: 'gem', enemies: [5, 6, 4], allies: [3, 7] },
+    { name: 'CHAMPIONSHIP', arena: 'championship', rule: 'heist', enemies: [1, 3, 7], allies: [2, 6] }
   ];
+  var ROAD = [
+    { trophies: 0, kit: 0 }, { trophies: 3, kit: 1 }, { trophies: 6, kit: 2 }, { trophies: 9, kit: 3 },
+    { trophies: 12, kit: 4 }, { trophies: 15, kit: 5 }, { trophies: 18, kit: 6 }, { trophies: 21, kit: 7 }
+  ];
+  var TEAM_COLORS = [C.cyan, C.red, C.green, C.violet, C.gold, C.orange, '#72e5ed', '#eaa6ff'];
 
-  let W = 390, H = 700, scale = 1, lastFrame = 0, orientationBlocked = false;
-  let camera = { x: 0, y: 0 };
-  let audio = null;
-  let game = null;
-  let save = loadSave();
-  let landscapeKnown = false;
+  function clamp(n, a, b) { return n < a ? a : n > b ? b : n; }
+  function finite(n, fallback, a, b) { n = Number(n); return isFinite(n) ? clamp(n, a, b) : fallback; }
+  function dist(ax, ay, bx, by) { var x = ax - bx, y = ay - by; return Math.sqrt(x * x + y * y); }
+  function magnitude(x, y) { return Math.sqrt(x * x + y * y); }
+  function normalized(x, y) { var m = magnitude(x, y); return m > .001 ? { x: x / m, y: y / m } : { x: 1, y: 0 }; }
+  function angleOf(x, y) { return Math.atan2(y, x); }
+  function hex(color) { return Phaser.Display.Color.HexStringToColor(color || C.cyan).color; }
+  function textStyle(size, color, weight) { return { fontFamily: FONT, fontSize: size + 'px', color: color || C.paper, fontStyle: weight || 'bold' }; }
+  function setTextIfChanged(obj, value) { if (obj && obj.text !== String(value)) obj.setText(String(value)); }
+  function setColorIfChanged(obj, value) { if (obj && obj.style && obj.style.color !== value) obj.setColor(value); }
+  function timeText(seconds) { var s = Math.max(0, Math.ceil(seconds)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  function fmt(n) { return String(Math.max(0, Math.floor(Number(n) || 0))); }
+  function isRecord(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
+  function has(table, key) { return !!table && Object.prototype.hasOwnProperty.call(table, key); }
+  function lookup(table, key, fallback) {
+    if (has(table, key)) return table[key];
+    if (has(table, fallback)) return table[fallback];
+    for (var k in table) if (has(table, k)) return table[k];
+    return null;
+  }
+  function safeKit(index) { return KITS[finite(index, 0, 0, KITS.length - 1) | 0] || KITS[0]; }
+  function safeMode(key) { return lookup(MODES, key, 'gem') || MODES.gem; }
+  function safeArena(key) { return lookup(ARENAS, key, 'gem_pit') || ARENAS.gem_pit; }
+  function colorFor(actor) { return TEAM_COLORS[actor.team % TEAM_COLORS.length] || C.cyan; }
+  function rectContains(x, y, r, pad) { var p = pad == null ? 0 : pad; return x >= r.x - p && x <= r.x + r.w + p && y >= r.y - p && y <= r.y + r.h + p; }
 
-  const keys = new Set();
-  const actions = [];
-  const sticks = { left: { id: null, x: 0, y: 0 }, right: { id: null, x: 0, y: 0 } };
-  const buttons = { super: null, menu: null };
-  const timers = new Set();
+  var reduceMotion = false;
+  try { reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e0) { reduceMotion = false; }
 
-  function finite(value, fallback, min, max) {
-    const n = Number(value);
-    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+  function blankSave() {
+    return { v: 3, trophies: 0, wins: 0, losses: 0, brawler: 0, gauntlet: 0, gemStreak: 0, bestGems: 0, bestSafeSpeed: 999, bestShowdown: 0,
+      medals: { gem: 'none', heist: 'none', gauntlet: 'none', showdown: 'none' } };
+  }
+  function validateSave(o) {
+    if (!isRecord(o) || o.v !== 3) return false;
+    var nums = ['trophies', 'wins', 'losses', 'brawler', 'gauntlet', 'gemStreak', 'bestGems', 'bestSafeSpeed', 'bestShowdown'];
+    for (var i = 0; i < nums.length; i++) if (!isFinite(Number(o[nums[i]])) || Number(o[nums[i]]) < 0) return false;
+    if (o.brawler >= KITS.length || o.gauntlet > GAUNTLET.length || !isRecord(o.medals)) return false;
+    var allowed = { none: 1, bronze: 1, silver: 1, gold: 1 };
+    for (i = 0; i < MODE_ORDER.length; i++) if (!allowed[o.medals[MODE_ORDER[i]]]) return false;
+    return true;
   }
 
-  function loadSave() {
-    const fallback = { trophies: 0, wins: 0, losses: 0, bestGems: 0, bestHeist: 0, selectedKit: 0, mode: 'gem' };
+  var Runtime = { game: null, menu: null, live: null };
+  var pendingSwitch = { mode: null, arena: null };
+  var state = { phase: 'boot', mode: 'gem', arena: 'gem_pit', gems: 0, trophies: 0, brawler: 'RATTLE', timer: 150, medal: 'none', safe: 100, enemySafe: 100 };
+  var hook = {
+    state: state,
+    version: VERSION,
+    ready: false,
+    error: null,
+    forceMode: function (mode) {
+      if (!has(MODES, mode)) return false;
+      pendingSwitch.mode = mode;
+      if (Runtime.live) { Runtime.live.forceMode(mode); return true; }
+      if (Runtime.menu) { Runtime.menu.selectMode(mode); return true; }
+      return true;
+    },
+    forceArena: function (arena) {
+      if (!has(ARENAS, arena)) return false;
+      pendingSwitch.arena = arena;
+      if (Runtime.live) { Runtime.live.forceArena(arena); return true; }
+      if (Runtime.menu) { Runtime.menu.selectArena(arena); return true; }
+      return true;
+    },
+    start: function (mode, arena, brawler) {
+      if (has(MODES, mode)) pendingSwitch.mode = mode;
+      if (has(ARENAS, arena)) pendingSwitch.arena = arena;
+      Runtime.next = { mode: pendingSwitch.mode || 'gem', arena: pendingSwitch.arena, brawler: brawler };
+      kit.restart();
+      return true;
+    },
+    snapshot: function () { return JSON.parse(JSON.stringify(state)); }
+  };
+  window.__ss = hook;
+
+  (function readBootSwitches() {
     try {
-      const raw = localStorage.getItem('scrapper-squad-save');
-      const parsed = raw ? JSON.parse(raw) : null;
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return fallback;
-      return {
-        trophies: Math.floor(finite(parsed.trophies, 0, 0, 10000)),
-        wins: Math.floor(finite(parsed.wins, 0, 0, 1000000)),
-        losses: Math.floor(finite(parsed.losses, 0, 0, 1000000)),
-        bestGems: Math.floor(finite(parsed.bestGems, 0, 0, 99)),
-        bestHeist: Math.floor(finite(parsed.bestHeist, 0, 0, 100)),
-        selectedKit: Math.floor(finite(parsed.selectedKit, 0, 0, KITS.length - 1)),
-        mode: parsed.mode === 'heist' ? 'heist' : 'gem'
-      };
-    } catch (err) { return fallback; }
-  }
+      var q = new URLSearchParams(window.location.search);
+      if (has(MODES, q.get('mode'))) pendingSwitch.mode = q.get('mode');
+      if (has(ARENAS, q.get('arena'))) pendingSwitch.arena = q.get('arena');
+    } catch (e1) {}
+  })();
 
-  function saveProgress() {
-    try {
-      localStorage.setItem('scrapper-squad-save', JSON.stringify(save));
-    } catch (err) { /* local storage is optional */ }
-  }
-
-  function unlocked(index) { return save.trophies >= ROAD[index]; }
-  function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
-  function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
-  function norm(x, y) {
-    const l = Math.hypot(x, y);
-    return l > .001 ? { x: x / l, y: y / l } : { x: 1, y: 0 };
-  }
-  function angle(v) { return Math.atan2(v.y, v.x); }
-  function addBounded(list, item, limit) {
-    list.push(item);
-    if (list.length > limit) list.splice(0, list.length - limit);
-  }
-  function randomRange(a, b) { return a + Math.random() * (b - a); }
-
-  function schedule(fn, delay) {
-    const id = setTimeout(() => { timers.delete(id); fn(); }, delay);
-    timers.add(id);
-    return id;
-  }
-  function cancelTimers() {
-    timers.forEach(id => clearTimeout(id));
-    timers.clear();
-  }
-
-  function resetInput() {
-    sticks.left.id = sticks.right.id = null;
-    sticks.left.x = sticks.left.y = sticks.right.x = sticks.right.y = 0;
-    buttons.super = buttons.menu = null;
-    keys.clear();
-    actions.length = 0;
-  }
-
-  function unlockAudio() {
-    try {
-      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
-      if (audio.state === 'suspended') audio.resume();
-    } catch (err) { audio = null; }
-  }
-  function tone(freq, duration, type, volume) {
-    if (!audio) return;
-    try {
-      const now = audio.currentTime;
-      const osc = audio.createOscillator();
-      const gain = audio.createGain();
-      osc.type = type || 'sine'; osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(volume || .025, now);
-      gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
-      osc.connect(gain).connect(audio.destination); osc.start(now); osc.stop(now + duration);
-    } catch (err) { /* audio is a bonus */ }
-  }
-
-  function resize() {
-    W = Math.max(1, window.innerWidth);
-    H = Math.max(1, window.innerHeight);
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    scale = Math.min(dpr, 960 / Math.max(W, H));
-    canvas.width = Math.max(1, Math.round(W * scale));
-    canvas.height = Math.max(1, Math.round(H * scale));
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    updateOrientation();
-  }
-
-  function updateOrientation() {
-    const blocked = window.innerWidth > window.innerHeight;
-    if (blocked !== landscapeKnown) {
-      landscapeKnown = blocked;
-      resetInput();
+  var kit = window.GGKit.create({
+    slug: 'scrapper-squad',
+    orientation: 'landscape',
+    validateSave: validateSave,
+    onPause: function () { if (Runtime.live) Runtime.live.pausedByKit = true; },
+    onResume: function () { if (Runtime.live) Runtime.live.pausedByKit = false; },
+    onRestart: function () {
+      var next = Runtime.next || { mode: state.mode || 'gem', arena: state.arena, brawler: save.brawler };
+      Runtime.next = null;
+      if (Runtime.game) Runtime.game.scene.start('play', next);
     }
-    orientationBlocked = blocked;
-    rotateOverlay.hidden = !blocked;
-  }
+  });
+  if (reduceMotion) kit.juice.enabled = false;
+  kit.audio.register({
+    shot_fire: 'assets/sfx_shot_fire.mp3', gem_pickup: 'assets/sfx_gem_pickup.mp3', super_roar: 'assets/sfx_super_roar.mp3',
+    victory_fanfare: 'assets/sfx_victory_fanfare.mp3', music_arena: 'assets/music_arena.mp3', music_danger: 'assets/music_danger.mp3'
+  });
+  var save = kit.save.get(blankSave());
+  if (!validateSave(save)) save = blankSave();
+  function persist() { kit.save.set(save); }
+  function sfx(name, volume, rate) { kit.audio.sfx(name, { volume: volume == null ? 1 : volume, rate: rate || 1 }); }
+  state.trophies = save.trophies;
+  state.brawler = safeKit(save.brawler).name;
 
-  function pushAction(action) {
-    if (actions.length >= LIMITS.actions) actions.shift();
-    actions.push(action);
+  function makeTexture(scene, key, width, height, draw) {
+    if (scene.textures.exists(key)) scene.textures.remove(key);
+    var g = scene.add.graphics();
+    draw(g);
+    g.generateTexture(key, width, height);
+    g.destroy();
   }
-
-  function newMatch(mode) {
-    cancelTimers();
-    resetInput();
-    save.mode = mode === 'heist' ? 'heist' : 'gem';
-    saveProgress();
-    game = {
-      mode: save.mode, status: 'playing', time: 0, shake: 0, flash: 0, gemClock: 1.7,
-      holdTeam: -1, holdTimer: 15, actors: [], projectiles: [], gems: [], particles: [], texts: [], mines: [], turrets: [],
-      safes: { 0: 100, 1: 100 }, result: null, resultReason: '', playerAim: { x: 1, y: 0 }, hint: save.mode === 'gem' ? 'Mine drip incoming — scoop, scrap, hold.' : 'Press the enemy safe while your squad covers yours.'
-    };
-    game.actors.push(actor(0, save.selectedKit, 130, 700, true));
-    game.actors.push(actor(0, (save.selectedKit + 2) % KITS.length, 174, 770, false));
-    game.actors.push(actor(0, (save.selectedKit + 5) % KITS.length, 174, 630, false));
-    game.actors.push(actor(1, (save.selectedKit + 1) % KITS.length, 770, 700, false));
-    game.actors.push(actor(1, (save.selectedKit + 3) % KITS.length, 726, 630, false));
-    game.actors.push(actor(1, (save.selectedKit + 6) % KITS.length, 726, 770, false));
-    if (game.mode === 'gem') {
-      for (let i = 0; i < 3; i++) dropGem(450 + randomRange(-22, 22), 700 + randomRange(-22, 22));
-    }
-    unlockAudio();
-    tone(240, .12, 'square', .04);
+  function drawBrawler(g, def, pose) {
+    var col = hex(def.color), dark = hex('#091722');
+    g.clear();
+    if (pose === 'super') { g.fillStyle(col, .18); g.fillCircle(32, 32, 30); g.lineStyle(3, col, .95); g.strokeCircle(32, 32, 28); }
+    g.fillStyle(dark, .9); g.fillCircle(32, 35, 25);
+    g.fillStyle(col, 1);
+    if (def.kind === 'shotgun') { g.fillRoundedRect(9, 18, 45, 35, 12); g.fillTriangle(7, 22, 7, 47, 0, 34); }
+    else if (def.kind === 'sniper') { g.fillRoundedRect(18, 8, 28, 47, 12); g.fillRect(39, 24, 21, 8); }
+    else if (def.kind === 'healer') { g.fillCircle(32, 33, 22); g.fillRect(27, 9, 10, 45); g.fillRect(10, 28, 44, 10); }
+    else if (def.kind === 'tank') { g.fillRoundedRect(8, 12, 48, 43, 8); g.fillTriangle(8, 17, 8, 50, 0, 34); g.fillRect(49, 26, 16, 14); }
+    else if (def.kind === 'bomber') { g.fillCircle(32, 34, 22); g.fillRect(14, 11, 36, 9); g.fillCircle(52, 12, 7); }
+    else if (def.kind === 'dasher') { g.fillTriangle(3, 33, 50, 8, 43, 33); g.fillTriangle(3, 33, 50, 58, 43, 33); g.fillRect(42, 29, 22, 9); }
+    else if (def.kind === 'engineer') { g.fillTriangle(32, 4, 58, 19, 58, 48); g.fillTriangle(32, 60, 6, 48, 6, 19); g.fillCircle(32, 33, 13); g.fillRect(43, 29, 21, 8); }
+    else { g.fillCircle(32, 33, 21); g.fillTriangle(8, 19, 8, 48, 0, 33); g.fillTriangle(56, 19, 56, 48, 64, 33); }
+    g.fillStyle(hex('#f5fbff'), .95); g.fillCircle(27, 27, 3); g.fillCircle(39, 27, 3);
+    if (pose === 'move') { g.fillStyle(col, .95); g.fillRect(13, 52, 13, 7); g.fillRect(38, 52, 13, 7); }
+    if (pose === 'aim') { g.fillStyle(dark, 1); g.fillRect(46, 27, 18, 9); g.fillStyle(col, 1); g.fillRect(60, 29, 7, 5); }
+    if (pose === 'hurt') { g.fillStyle(hex('#ffffff'), .75); g.fillTriangle(6, 8, 18, 20, 24, 5); g.fillTriangle(39, 8, 47, 21, 58, 5); }
   }
-
-  function actor(team, kitIndex, x, y, human) {
-    const kit = KITS[kitIndex];
-    return { id: team + '-' + kitIndex + '-' + Math.random().toString(36).slice(2, 6), team, kit: kitIndex, x, y, spawnX: x, spawnY: y, human: !!human, r: 22,
-      hp: kit.hp, maxHp: kit.hp, speed: kit.speed, cooldown: 0, super: 0, gems: 0, alive: true, respawn: 0, aim: { x: team ? -1 : 1, y: 0 },
-      aiClock: randomRange(0, .4), barrier: 0, dash: 0, label: human ? 'YOU' : (team ? 'RIVAL' : 'ALLY') };
-  }
-
-  function dropGem(x, y) {
-    if (!game || game.gems.length >= LIMITS.gems) return;
-    addBounded(game.gems, { x: clamp(x, 28, WORLD.w - 28), y: clamp(y, 100, WORLD.h - 30), pulse: Math.random() * TAU }, LIMITS.gems);
-  }
-
-  function burst(x, y, color, count, speed) {
-    if (!game) return;
-    const room = Math.max(0, LIMITS.particles - game.particles.length);
-    const amount = Math.min(count, room);
-    for (let i = 0; i < amount; i++) {
-      const a = Math.random() * TAU, v = randomRange(speed * .35, speed);
-      game.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: randomRange(.25, .7), max: .7, size: randomRange(2, 6), color });
+  function makeCoreTextures(scene) {
+    makeTexture(scene, 'menu_back', WORLD_W, WORLD_H, function (g) {
+      g.fillStyle(hex(C.ink), 1); g.fillRect(0, 0, WORLD_W, WORLD_H);
+      for (var y = 0; y < WORLD_H; y += 45) { g.fillStyle(hex(y % 90 ? '#0b1d2a' : '#0c2634'), .9); g.fillRect(0, y, WORLD_W, 45); }
+      g.lineStyle(1, hex('#194158'), .42);
+      for (var x = 0; x <= WORLD_W; x += 48) g.lineBetween(x, 0, x, WORLD_H);
+      for (y = 0; y <= WORLD_H; y += 48) g.lineBetween(0, y, WORLD_W, y);
+      g.fillStyle(hex(C.cyan), .08); g.fillCircle(152, 120, 160); g.fillStyle(hex(C.violet), .07); g.fillCircle(820, 420, 210);
+    });
+    makeTexture(scene, 'board_frame', WORLD_W, WORLD_H, function (g) {
+      g.fillStyle(hex('#06121c'), .92); g.fillRect(0, 0, WORLD_W, 54); g.lineStyle(2, hex('#1b4c63'), .9); g.lineBetween(0, 53, WORLD_W, 53);
+    });
+    makeTexture(scene, 'control_base', 116, 116, function (g) { g.fillStyle(hex('#102b3b'), .72); g.fillCircle(58, 58, 52); g.lineStyle(3, hex(C.cyan), .48); g.strokeCircle(58, 58, 49); });
+    makeTexture(scene, 'control_knob', 54, 54, function (g) { g.fillStyle(hex(C.cyan), .92); g.fillCircle(27, 27, 24); g.fillStyle(hex(C.ink), .32); g.fillCircle(27, 27, 10); });
+    makeTexture(scene, 'super_button', 88, 88, function (g) { g.fillStyle(hex('#2a4052'), 1); g.fillCircle(44, 44, 39); g.lineStyle(4, hex('#7890a0'), .92); g.strokeCircle(44, 44, 37); g.fillStyle(hex(C.gold), .3); g.fillTriangle(46, 13, 27, 49, 43, 47); g.fillTriangle(43, 47, 61, 47, 42, 74); });
+    makeTexture(scene, 'super_ready', 88, 88, function (g) { g.fillStyle(hex('#89681b'), 1); g.fillCircle(44, 44, 39); g.lineStyle(4, hex('#fff2ad'), .98); g.strokeCircle(44, 44, 37); g.fillStyle(hex('#fff6bf'), .95); g.fillTriangle(46, 13, 27, 49, 43, 47); g.fillTriangle(43, 47, 61, 47, 42, 74); });
+    makeTexture(scene, 'gem', 30, 30, function (g) { g.fillStyle(hex(C.gold), 1); g.fillTriangle(15, 1, 29, 15, 15, 29); g.fillTriangle(15, 1, 1, 15, 15, 29); g.lineStyle(2, hex('#fff2aa'), .85); g.strokeTriangle(15, 1, 29, 15, 15, 29); });
+    makeTexture(scene, 'bolt', 28, 14, function (g) { g.fillStyle(hex(C.cyan), 1); g.fillRoundedRect(1, 3, 26, 8, 4); g.fillStyle(hex(C.white), .8); g.fillRect(15, 4, 8, 6); });
+    makeTexture(scene, 'bomb', 28, 28, function (g) { g.fillStyle(hex(C.red), 1); g.fillCircle(14, 15, 10); g.lineStyle(2, hex('#ffd2da'), .85); g.strokeCircle(14, 15, 11); g.lineBetween(14, 4, 20, 0); });
+    makeTexture(scene, 'boomerang', 30, 30, function (g) { g.lineStyle(5, hex(C.violet), 1); g.beginPath(); g.moveTo(6, 6); g.lineTo(23, 15); g.lineTo(6, 24); g.strokePath(); });
+    makeTexture(scene, 'mine', 32, 32, function (g) { g.fillStyle(hex(C.red), 1); g.fillCircle(16, 17, 10); g.fillStyle(hex('#ffced8'), 1); g.fillCircle(16, 17, 3); g.lineStyle(2, hex(C.red), 1); g.lineBetween(16, 2, 16, 8); g.lineBetween(4, 17, 10, 17); g.lineBetween(22, 17, 28, 17); });
+    makeTexture(scene, 'turret', 42, 42, function (g) { g.fillStyle(hex(C.cyanDeep), 1); g.fillCircle(21, 25, 16); g.lineStyle(3, hex(C.cyan), 1); g.strokeCircle(21, 25, 16); g.fillStyle(hex(C.paper), 1); g.fillRect(20, 4, 5, 21); });
+    makeTexture(scene, 'spark', 20, 20, function (g) { g.fillStyle(hex(C.gold), 1); g.fillTriangle(10, 0, 13, 7, 20, 10); g.fillTriangle(20, 10, 13, 13, 10, 20); g.fillTriangle(10, 20, 7, 13, 0, 10); g.fillTriangle(0, 10, 7, 7, 10, 0); });
+    makeTexture(scene, 'safe', 124, 124, function (g) { g.fillStyle(hex('#101f2b'), .98); g.fillRoundedRect(17, 10, 90, 104, 15); g.lineStyle(5, hex(C.cyan), .9); g.strokeRoundedRect(17, 10, 90, 104, 15); g.fillStyle(hex(C.gold), 1); g.fillRect(58, 48, 9, 34); g.fillCircle(62, 40, 8); });
+    makeTexture(scene, 'ring', 72, 72, function (g) { g.lineStyle(3, hex(C.cyan), .8); g.strokeCircle(36, 36, 29); g.lineStyle(1, hex(C.white), .32); g.strokeCircle(36, 36, 34); });
+    for (var i = 0; i < KITS.length; i++) for (var p = 0; p < 5; p++) {
+      var pose = ['idle', 'move', 'aim', 'hurt', 'super'][p];
+      makeTexture(scene, 'brawler_' + i + '_' + pose, 64, 64, (function (idx, stateName) { return function (g) { drawBrawler(g, KITS[idx], stateName); }; })(i, pose));
     }
   }
-  function textPop(x, y, text, color) {
-    if (!game) return;
-    addBounded(game.texts, { x, y, text, color: color || COLORS.paper, life: 1 }, LIMITS.texts);
+  function makeBoardTexture(scene, def) {
+    makeTexture(scene, 'board_' + def.key, WORLD_W, WORLD_H, function (g) {
+      g.fillStyle(hex(def.base), 1); g.fillRect(0, 0, WORLD_W, WORLD_H);
+      for (var y = 0; y < WORLD_H; y += 30) { g.fillStyle(hex(y % 60 ? '#0a1b27' : '#0b2430'), .5); g.fillRect(0, y, WORLD_W, 30); }
+      g.lineStyle(1, hex('#315466'), .23);
+      for (var x = 0; x <= WORLD_W; x += 48) g.lineBetween(x, 0, x, WORLD_H);
+      for (y = 0; y <= WORLD_H; y += 48) g.lineBetween(0, y, WORLD_W, y);
+      g.lineStyle(2, hex(def.accent), .3); g.strokeRect(18, 18, WORLD_W - 36, WORLD_H - 36);
+      if (def.hazardKind === 'storm') { g.fillStyle(hex(def.accent), .06); g.fillCircle(480, 270, 230); g.lineStyle(4, hex(def.accent), .44); g.strokeCircle(480, 270, 230); }
+      if (def.hazardKind === 'laser') { g.fillStyle(hex(C.red), .09); g.fillRect(442, 0, 76, WORLD_H); g.lineStyle(2, hex(C.red), .42); g.lineBetween(480, 0, 480, WORLD_H); }
+      if (def.hazardKind === 'crusher') { g.fillStyle(hex(def.accent), .08); g.fillCircle(480, 270, 96); g.lineStyle(3, hex(def.accent), .5); g.strokeCircle(480, 270, 96); g.lineStyle(1, hex(C.white), .2); g.strokeCircle(480, 270, 116); }
+      for (var i = 0; i < def.covers.length; i++) { var c = def.covers[i]; g.fillStyle(hex('#07151f'), .75); g.fillRoundedRect(c.x + 6, c.y + 7, c.w, c.h, 8); g.fillStyle(hex('#1b3b4b'), .98); g.fillRoundedRect(c.x, c.y, c.w, c.h, 8); g.lineStyle(2, hex('#3a7181'), .72); g.strokeRoundedRect(c.x, c.y, c.w, c.h, 8); g.lineStyle(1, hex(def.accent), .25); g.lineBetween(c.x + 8, c.y + c.h / 2, c.x + c.w - 8, c.y + c.h / 2); }
+      if (def.key === 'gem_pit') { g.fillStyle(hex(C.gold), .13); g.fillCircle(480, 270, 25); g.lineStyle(2, hex(C.gold), .4); g.strokeCircle(480, 270, 76); }
+      if (def.key === 'championship') { g.fillStyle(hex(C.violet), .12); g.fillCircle(480, 270, 32); g.lineStyle(2, hex(C.violet), .45); g.strokeCircle(480, 270, 62); }
+    });
+    return 'board_' + def.key;
+  }
+  function addText(scene, x, y, value, size, color, origin, depth) { return scene.add.text(x, y, value, textStyle(size, color), { fixedWidth: 0 }).setOrigin(origin == null ? .5 : origin).setDepth(depth || 20); }
+  function addPanel(scene, x, y, w, h, fill, stroke, depth) { return scene.add.rectangle(x, y, w, h, hex(fill), 1).setOrigin(0).setStrokeStyle(2, hex(stroke), 1).setDepth(depth || 20); }
+  function makePool(scene, texture, count, depth) {
+    var list = [];
+    for (var i = 0; i < count; i++) list.push(scene.add.image(-999, -999, texture).setDepth(depth).setVisible(false));
+    return list;
   }
 
-  function living(team) { return game.actors.filter(a => a.team === team && a.alive); }
-  function teamGems(team) { return game.actors.reduce((sum, a) => sum + (a.team === team ? a.gems : 0), 0); }
-  function nearest(from, team, includeSafe) {
-    let best = null, bestD = Infinity;
-    for (const a of game.actors) if (a.alive && a.team !== team) { const d = dist(from, a); if (d < bestD) { best = a; bestD = d; } }
-    if (includeSafe) {
-      const safe = { x: team ? 80 : 820, y: 700 };
-      const d = dist(from, safe);
-      if (d < bestD) best = { ...safe, safe: true };
+  var BootScene = new Phaser.Class({
+    Extends: Phaser.Scene,
+    initialize: function BootScene() { Phaser.Scene.call(this, { key: 'boot' }); },
+    preload: function () { kit.loader.show('SCRAPPER SQUAD'); kit.loader.progress(.25); },
+    create: function () {
+      try { makeCoreTextures(this); } catch (err) { hook.error = String(err && err.message || err); }
+      kit.loader.progress(1); kit.loader.hide(); hook.ready = true; Runtime.game = this.game; hook.game = this.game; kit.registerPWA();
+      this.scene.start('menu');
     }
-    return best;
-  }
+  });
 
-  function getPlayerMove() {
-    let x = sticks.left.x, y = sticks.left.y;
-    if (Math.hypot(x, y) < .08) { x = (keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0); y = (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0); }
-    return norm(x, y);
-  }
-  function getPlayerAim() {
-    let x = sticks.right.x, y = sticks.right.y;
-    if (Math.hypot(x, y) < .08) { x = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0); y = (keys.has('ArrowDown') ? 1 : 0) - (keys.has('ArrowUp') ? 1 : 0); }
-    return Math.hypot(x, y) > .08 ? norm(x, y) : game.playerAim;
-  }
-
-  function update(dt) {
-    if (!game || game.status !== 'playing') return;
-    game.time += dt;
-    game.shake = Math.max(0, game.shake - dt * 4);
-    game.flash = Math.max(0, game.flash - dt * 2.6);
-    if (game.time >= MAX_MATCH) return finishMatch(decideByScore(), 'TIME CALLED');
-    const p = game.actors[0];
-    if (p.alive) {
-      const move = getPlayerMove();
-      moveActor(p, move.x * p.speed * dt, move.y * p.speed * dt);
-      const aim = getPlayerAim();
-      game.playerAim = aim; p.aim = aim;
-      if (sticks.right.id === null && (keys.has('ArrowRight') || keys.has('ArrowLeft') || keys.has('ArrowUp') || keys.has('ArrowDown'))) fire(p, aim);
-      while (actions.length) {
-        const action = actions.shift();
-        if (action.type === 'fire' && p.alive) fire(p, action.dir);
-        if (action.type === 'super' && p.alive) useSuper(p);
+  var MenuScene = new Phaser.Class({
+    Extends: Phaser.Scene,
+    initialize: function MenuScene() { Phaser.Scene.call(this, { key: 'menu' }); },
+    create: function () {
+      var self = this; Runtime.menu = this; this.modeKey = has(MODES, pendingSwitch.mode) ? pendingSwitch.mode : (has(MODES, save.lastMode) ? save.lastMode : 'gem'); this.arenaKey = pendingSwitch.arena || null;
+      this.add.image(WORLD_W / 2, WORLD_H / 2, 'menu_back').setDepth(0); this.build(); this.selectMode(this.modeKey); this.selectArena(this.arenaKey);
+      state.phase = 'menu'; state.mode = this.modeKey; state.arena = this.arenaKey || safeMode(this.modeKey).arena; state.trophies = save.trophies;
+      this.input.keyboard.on('keydown-ENTER', function () { self.launch(); }); this.input.keyboard.on('keydown-SPACE', function () { self.launch(); });
+      this.events.once('shutdown', function () { if (Runtime.menu === self) Runtime.menu = null; });
+    },
+    build: function () {
+      var self = this;
+      addText(this, 34, 34, 'SCRAPPER', 34, C.paper, 0, 10); addText(this, 34, 70, 'SQUAD', 34, C.cyan, 0, 10); addText(this, 36, 103, '3v3 ARENA  /  ALL 8 KITS FREE', 17, C.dim, 0, 10);
+      this.trophyPanel = addPanel(this, 770, 22, 154, 62, '#102b3d', '#2d6178', 10); addText(this, 847, 42, '🏆  ' + fmt(save.trophies), 21, C.gold, .5, 12); addText(this, 847, 67, 'TROPHY ROAD', 14, C.dim, .5, 12);
+      addText(this, 34, 145, 'CHOOSE A RUN', 17, C.dim, 0, 10); this.modeButtons = {};
+      for (var i = 0; i < MODE_ORDER.length; i++) {
+        var mode = MODES[MODE_ORDER[i]], y = 166 + i * 56, bg = addPanel(this, 28, y, 386, 48, '#0d202e', '#25495a', 10);
+        var icon = addText(this, 54, y + 24, mode.icon, 24, mode.key === 'gem' ? C.gold : C.cyan, .5, 12); var title = addText(this, 82, y + 13, mode.label, 18, C.paper, 0, 12); var sub = addText(this, 82, y + 33, mode.goal, 14, C.dim, 0, 12);
+        bg.setInteractive({ useHandCursor: true }); bg.on('pointerdown', (function (key) { return function () { self.selectMode(key); sfx('shot_fire', .16, 1.4); }; })(mode.key)); this.modeButtons[mode.key] = { bg: bg, title: title, sub: sub, icon: icon };
       }
-    } else if (actions.length) actions.length = 0;
-    for (const a of game.actors) {
-      a.cooldown = Math.max(0, a.cooldown - dt); a.barrier = Math.max(0, a.barrier - dt);
-      if (!a.alive) { a.respawn -= dt; if (a.respawn <= 0) respawn(a); continue; }
-      a.super = clamp(a.super + dt * 1.3, 0, 100);
-      if (!a.human) botUpdate(a, dt);
-    }
-    updateProjectiles(dt);
-    updateMines(dt);
-    updateTurrets(dt);
-    collectGems();
-    if (game.mode === 'gem') updateGemMode(dt);
-    else updateHeistMode(dt);
-    updateParticles(dt);
-    camera.x = clamp(p.x - W * .5, 0, Math.max(0, WORLD.w - W));
-    camera.y = clamp(p.y - H * .48, 0, Math.max(0, WORLD.h - H));
+      addText(this, 34, 417, 'ARENA IDENTITY', 17, C.dim, 0, 10); this.arenaButtons = {};
+      var arenas = ['gem_pit', 'heist_vault', 'showdown_field', 'championship'];
+      for (i = 0; i < arenas.length; i++) { var a = ARENAS[arenas[i]], ax = 28 + (i % 2) * 198, ay = 439 + Math.floor(i / 2) * 37, abg = addPanel(this, ax, ay, 188, 30, '#0d202e', '#25495a', 10); addText(this, ax + 16, ay + 15, a.icon, 18, a.accent, .5, 12); addText(this, ax + 31, ay + 15, a.name, 14, C.paper, 0, 12); abg.setInteractive({ useHandCursor: true }); abg.on('pointerdown', (function (key) { return function () { self.selectArena(key); sfx('shot_fire', .14, 1.5); }; })(a.key)); this.arenaButtons[a.key] = abg; }
+      addText(this, 448, 145, 'KIT BAY  /  FLAT POWER', 17, C.dim, 0, 10); this.kitCards = [];
+      var gap = 8, cardW = 112, cardH = 112;
+      for (i = 0; i < KITS.length; i++) { var kitDef = KITS[i], col = i % 4, row = Math.floor(i / 4), kx = 442 + col * (cardW + gap), ky = 166 + row * (cardH + gap), kbg = addPanel(this, kx, ky, cardW, cardH, '#0d202e', '#25495a', 10); var portrait = this.add.image(kx + 28, ky + 38, 'brawler_' + i + '_idle').setDisplaySize(48, 48).setDepth(12); var n = addText(this, kx + 59, ky + 20, kitDef.name, 15, C.paper, 0, 12); var r = addText(this, kx + 59, ky + 43, kitDef.role, 12, kitDef.color, 0, 12); var free = addText(this, kx + 59, ky + 72, 'FREE', 13, C.green, 0, 12); kbg.setInteractive({ useHandCursor: true }); kbg.on('pointerdown', (function (idx) { return function () { save.brawler = idx; persist(); self.paintKits(); sfx('shot_fire', .16, 1.5); }; })(i)); this.kitCards.push({ bg: kbg, portrait: portrait, name: n, role: r, free: free, index: i }); }
+      addText(this, 442, 414, 'GAUNTLET CHAIN', 17, C.dim, 0, 10); this.road = [];
+      for (i = 0; i < 4; i++) { var nx = 474 + i * 128, line = i ? this.add.rectangle(nx - 64, 438, 112, 4, hex(i <= save.gauntlet ? C.violet : '#1b3848'), 1).setDepth(10) : null, node = this.add.circle(nx, 438, 11, hex(i < save.gauntlet ? C.green : i === save.gauntlet ? C.violet : '#1b3848'), 1).setStrokeStyle(2, hex(i <= save.gauntlet ? C.paper : '#3b5664'), 1).setDepth(11); addText(this, nx, 464, '0' + (i + 1), 14, C.dim, .5, 12); this.road.push(node); }
+      addText(this, 442, 488, 'Win +3 trophies. Medals persist. No power cubes.', 14, C.dim, 0, 11);
+      this.launchButton = addPanel(this, 770, 454, 154, 56, '#65dda0', '#b8ffce', 10); this.launchText = addText(this, 847, 482, 'ENTER PIT', 19, C.ink, .5, 12); this.launchButton.setInteractive({ useHandCursor: true }); this.launchButton.on('pointerdown', function () { self.launch(); });
+      this.paintKits();
+    },
+    selectMode: function (key) {
+      if (!has(MODES, key)) key = 'gem'; this.modeKey = key; save.lastMode = key; persist();
+      for (var i = 0; i < MODE_ORDER.length; i++) { var item = this.modeButtons && this.modeButtons[MODE_ORDER[i]]; if (!item) continue; var on = MODE_ORDER[i] === key; item.bg.setFillStyle(hex(on ? '#173c51' : '#0d202e'), 1).setStrokeStyle(on ? 2 : 1, hex(on ? C.cyan : '#25495a'), 1); setColorIfChanged(item.title, on ? C.paper : C.dim); }
+      state.mode = key; state.arena = this.arenaKey || safeMode(key).arena;
+    },
+    selectArena: function (key) {
+      this.arenaKey = has(ARENAS, key) ? key : null;
+      if (!this.arenaButtons) return;
+      for (var k in this.arenaButtons) if (has(this.arenaButtons, k)) { var on = k === this.arenaKey; this.arenaButtons[k].setFillStyle(hex(on ? '#173c51' : '#0d202e'), 1).setStrokeStyle(on ? 2 : 1, hex(on ? C.gold : '#25495a'), 1); }
+      state.arena = this.arenaKey || safeMode(this.modeKey).arena;
+    },
+    paintKits: function () {
+      if (!this.kitCards) return;
+      for (var i = 0; i < this.kitCards.length; i++) { var card = this.kitCards[i], on = card.index === save.brawler; card.bg.setFillStyle(hex(on ? '#173c51' : '#0d202e'), 1).setStrokeStyle(on ? 2 : 1, hex(on ? KITS[i].color : '#25495a'), 1); setColorIfChanged(card.name, on ? C.paper : C.dim); }
+    },
+    launch: function () { Runtime.next = { mode: this.modeKey, arena: this.arenaKey || safeMode(this.modeKey).arena, brawler: save.brawler }; kit.restart(); }
+  });
+
+  function createActor(id, team, kitIndex, x, y, human, respawn) {
+    var def = safeKit(kitIndex);
+    return { id: id, team: team, kitIndex: kitIndex, x: x, y: y, vx: 0, vy: 0, hp: def.hp, maxHp: def.hp, cooldown: .2, super: 18, carry: 0, alive: true, respawnAt: 0, invuln: 0, hurt: 0, shield: 0, stun: 0, aim: { x: team === 0 ? 1 : -1, y: 0 }, aimActive: false, human: !!human, respawn: respawn, kills: 0, render: { pose: '', kit: -1, carry: -1, alpha: 1 } };
   }
 
-  function moveActor(a, dx, dy) {
-    a.x = clamp(a.x + dx, 32, WORLD.w - 32); a.y = clamp(a.y + dy, 100, WORLD.h - 26);
-  }
-
-  function botUpdate(a, dt) {
-    a.aiClock -= dt;
-    if (a.aiClock > 0) return;
-    a.aiClock = .16 + Math.random() * .15;
-    const kit = KITS[a.kit], targetEnemy = nearest(a, a.team, false);
-    let goal = targetEnemy || { x: a.team ? 820 : 80, y: 700 };
-    if (game.mode === 'gem') {
-      const held = teamGems(a.team);
-      if (held < 7 || a.gems === 0) goal = { x: 450 + Math.sin(game.time * .7) * 45, y: 700 + Math.cos(game.time * .7) * 45 };
-      if (a.gems >= 4) goal = { x: a.team ? 770 : 130, y: 700 };
-      if (kit.role === 'sniper') goal = targetEnemy ? { x: targetEnemy.x + (a.team ? 125 : -125), y: targetEnemy.y } : goal;
-      if (kit.role === 'healer') {
-        const hurt = living(a.team).sort((u, v) => u.hp / u.maxHp - v.hp / v.maxHp)[0];
-        if (hurt && hurt.hp < hurt.maxHp * .82) goal = hurt;
+  var PlayScene = new Phaser.Class({
+    Extends: Phaser.Scene,
+    initialize: function PlayScene() { Phaser.Scene.call(this, { key: 'play' }); },
+    init: function (data) {
+      data = data || {}; this.modeKey = has(MODES, data.mode) ? data.mode : (pendingSwitch.mode || state.mode || 'gem'); this.mode = safeMode(this.modeKey); this.stage = clamp(save.gauntlet | 0, 0, GAUNTLET.length - 1); this.gauntletDef = this.modeKey === 'gauntlet' ? (GAUNTLET[this.stage] || GAUNTLET[0]) : null; this.ruleMode = this.gauntletDef ? this.gauntletDef.rule : this.mode.rule; this.arenaKey = has(ARENAS, data.arena) ? data.arena : (pendingSwitch.arena || (this.gauntletDef ? this.gauntletDef.arena : this.mode.arena)); this.arena = safeArena(this.arenaKey); this.humanKit = has(KIT_BY_ID, data.brawler) ? data.brawler : (Number.isFinite(Number(data.brawler)) ? finite(data.brawler, save.brawler, 0, 7) | 0 : save.brawler); this.acc = 0; this.simTime = 0; this.pausedByKit = false; this.finished = false; this.result = null; this.banner = { title: this.modeKey === 'gauntlet' ? 'GAUNTLET 0' + (this.stage + 1) : this.mode.label, sub: this.gauntletDef ? this.gauntletDef.name : this.arena.name, t: reduceMotion ? .8 : 2.1, total: reduceMotion ? .8 : 2.1 }; this.tutorialT = 4; this.toast = { text: '', color: C.paper, t: 0 }; this.flash = 0; this.hazardT = 0; this.gemSpawnT = .3; this.stormRadius = 230; this.crusherT = 0; this.laserT = 0; this.rightHeld = false; this.rightDir = { x: 1, y: 0 }; this.superWasDown = false; this.keyAimWasDown = false; this.lastMusicDanger = false;
+    },
+    create: function () {
+      Runtime.live = this; pendingSwitch.mode = null; pendingSwitch.arena = null; state.phase = 'play'; state.mode = this.modeKey; state.arena = this.arenaKey; state.trophies = save.trophies; state.gems = 0; state.timer = this.mode.limit; state.medal = 'none';
+      makeBoardTexture(this, this.arena); this.board = this.add.image(WORLD_W / 2, WORLD_H / 2, 'board_' + this.arena.key).setDepth(0); this.hazardGraphics = this.add.graphics().setDepth(3); this.aimGraphics = this.add.graphics().setDepth(15); this.fxGraphics = this.add.graphics().setDepth(16);
+      this.createPools(); this.spawnTeams(); this.createSafes(); this.createHud(); this.fitCamera(); this.scale.on('resize', this.fitCamera, this); this.events.once('shutdown', function () { if (Runtime.live === this) Runtime.live = null; }, this); kit.audio.music('music_arena', 600);
+    },
+    createPools: function () {
+      this.actorSprites = makePool(this, 'brawler_0_idle', 8, 10); this.actorRings = makePool(this, 'ring', 8, 8); this.actorHpBg = []; this.actorHp = []; this.carryTexts = [];
+      for (var i = 0; i < 8; i++) { this.actorHpBg.push(this.add.rectangle(-999, -999, 42, 5, hex('#06111c'), 1).setDepth(12).setVisible(false)); this.actorHp.push(this.add.rectangle(-999, -999, 40, 3, hex(C.green), 1).setOrigin(0, .5).setDepth(13).setVisible(false)); this.carryTexts.push(addText(this, -999, -999, '', 16, C.gold, .5, 14).setVisible(false)); }
+      this.gemSprites = makePool(this, 'gem', 18, 7); this.projectileSprites = makePool(this, 'bolt', 80, 9); this.fxSprites = makePool(this, 'spark', 160, 30); this.mineSprites = makePool(this, 'mine', 12, 6); this.turretSprites = makePool(this, 'turret', 6, 6);
+      this.gems = []; this.projectiles = []; this.fx = []; this.mines = []; this.turrets = [];
+      for (i = 0; i < this.gemSprites.length; i++) this.gems.push({ active: false, x: 0, y: 0, phase: i * .6 });
+      for (i = 0; i < this.projectileSprites.length; i++) this.projectiles.push({ active: false, x: 0, y: 0, vx: 0, vy: 0, t: 0, max: 0, owner: null, damage: 0, kind: 'bolt', radius: 7, range: 0, startX: 0, startY: 0, targetX: 0, targetY: 0, render: { texture: '' } });
+      for (i = 0; i < this.fxSprites.length; i++) this.fx.push({ active: false, x: 0, y: 0, vx: 0, vy: 0, t: 0, life: 0, color: C.gold, render: { tint: '' } });
+      for (i = 0; i < this.mineSprites.length; i++) this.mines.push({ active: false, x: 0, y: 0, t: 0, owner: null });
+      for (i = 0; i < this.turretSprites.length; i++) this.turrets.push({ active: false, x: 0, y: 0, t: 0, owner: null, cooldown: 0 });
+    },
+    spawnTeams: function () {
+      this.actors = []; var respawn = this.ruleMode !== 'showdown';
+      if (this.ruleMode === 'showdown') {
+        var showKits = [this.humanKit, 1, 2, 3, 4, 5, 6, 7]; var points = [{ x: 112, y: 136 }, { x: 300, y: 90 }, { x: 660, y: 90 }, { x: 848, y: 136 }, { x: 848, y: 404 }, { x: 660, y: 450 }, { x: 300, y: 450 }, { x: 112, y: 404 }];
+        for (var si = 0; si < 8; si++) this.actors.push(createActor(si, si, showKits[si], points[si].x, points[si].y, si === 0, false));
+      } else {
+        var allyKits = this.gauntletDef ? this.gauntletDef.allies : [2, 6]; var enemyKits = this.gauntletDef ? this.gauntletDef.enemies : [1, 4, 5];
+        var left = [{ x: 128, y: 270 }, { x: 182, y: 174 }, { x: 182, y: 366 }], right = [{ x: 832, y: 270 }, { x: 778, y: 174 }, { x: 778, y: 366 }];
+        this.actors.push(createActor(0, 0, this.humanKit, left[0].x, left[0].y, true, respawn));
+        for (var ai = 0; ai < 2; ai++) this.actors.push(createActor(ai + 1, 0, safeKit(allyKits[ai] == null ? ai + 2 : allyKits[ai]) === KITS[0] ? 0 : (allyKits[ai] == null ? ai + 2 : allyKits[ai]), left[ai + 1].x, left[ai + 1].y, false, respawn));
+        for (var ei = 0; ei < 3; ei++) this.actors.push(createActor(ei + 3, 1, enemyKits[ei] == null ? (ei + 1) : enemyKits[ei], right[ei].x, right[ei].y, false, respawn));
       }
-    } else {
-      goal = { x: a.team ? 80 : 820, y: 700 };
-      if (kit.role === 'engineer') goal = { x: a.team ? 330 : 570, y: 700 };
-      if (kit.role === 'sniper' && targetEnemy) goal = { x: targetEnemy.x + (a.team ? 160 : -160), y: targetEnemy.y };
-      if (kit.role === 'healer') {
-        const hurt = living(a.team).sort((u, v) => u.hp / u.maxHp - v.hp / v.maxHp)[0];
-        if (hurt && hurt.hp < hurt.maxHp * .85) goal = hurt;
+      this.player = this.actors[0];
+      if (this.ruleMode === 'gem') { for (var i = 0; i < 8; i++) this.spawnGem(480 + (i % 4) * 24 - 36, 270 + Math.floor(i / 4) * 34 - 17); }
+    },
+    createSafes: function () {
+      this.safes = [{ x: 90, y: 270, team: 0, hp: 100, max: 100 }, { x: 870, y: 270, team: 1, hp: 100, max: 100 }];
+      for (var i = 0; i < 2; i++) { this.safes[i].sprite = this.add.image(this.safes[i].x, this.safes[i].y, 'safe').setDepth(5).setVisible(this.ruleMode === 'heist'); this.safes[i].barBg = this.add.rectangle(this.safes[i].x - 42, this.safes[i].y - 72, 84, 7, hex('#06111c'), 1).setOrigin(0, .5).setDepth(13).setVisible(this.ruleMode === 'heist'); this.safes[i].bar = this.add.rectangle(this.safes[i].x - 40, this.safes[i].y - 72, 80, 3, hex(i ? C.red : C.cyan), 1).setOrigin(0, .5).setDepth(14).setVisible(this.ruleMode === 'heist'); }
+    },
+    createHud: function () {
+      var self = this; this.hudTop = this.add.image(0, 0, 'board_frame').setOrigin(0).setDepth(40).setScrollFactor(0); this.modeText = addText(this, 18, 14, this.mode.icon + ' ' + this.mode.label, 18, C.paper, 0, 42).setScrollFactor(0); this.clockText = addText(this, WORLD_W / 2, 15, timeText(this.mode.limit), 22, C.gold, .5, 42).setScrollFactor(0); this.hudReadout = addText(this, WORLD_W - 18, 14, '', 18, C.paper, 1, 42).setScrollFactor(0); this.hazardText = addText(this, WORLD_W - 18, 39, this.arena.hazard, 14, this.arena.accent, 1, 42).setScrollFactor(0);
+      this.leftBase = this.add.image(90, 466, 'control_base').setDisplaySize(100, 100).setDepth(40).setScrollFactor(0); this.leftKnob = this.add.image(90, 466, 'control_knob').setDisplaySize(46, 46).setDepth(41).setScrollFactor(0); this.rightBase = this.add.image(870, 466, 'control_base').setDisplaySize(100, 100).setDepth(40).setScrollFactor(0); this.rightKnob = this.add.image(870, 466, 'control_knob').setDisplaySize(46, 46).setDepth(41).setScrollFactor(0); this.superButton = this.add.image(480, 472, 'super_button').setDisplaySize(76, 76).setDepth(40).setScrollFactor(0); this.superText = addText(this, 480, 472, 'SUPER', 14, C.paper, .5, 42).setScrollFactor(0); this.superBarBg = this.add.rectangle(390, 421, 180, 10, hex('#142a39'), 1).setOrigin(0, .5).setDepth(40).setScrollFactor(0); this.superBar = this.add.rectangle(390, 421, 180, 6, hex(C.gold), 1).setOrigin(0, .5).setDepth(41).setScrollFactor(0);
+      this.tutorialBg = this.add.rectangle(WORLD_W / 2, 73, 560, 26, hex('#07111c'), .72).setDepth(40).setScrollFactor(0); this.tutorialText = addText(this, WORLD_W / 2, 73, '', 16, C.paper, .5, 42).setScrollFactor(0); this.toastBg = this.add.rectangle(22, 88, 224, 30, hex('#07111c'), .82).setOrigin(0).setDepth(40).setScrollFactor(0).setVisible(false); this.toastText = addText(this, 34, 94, '', 16, C.gold, 0, 42).setScrollFactor(0).setVisible(false);
+      this.bannerBg = this.add.rectangle(WORLD_W / 2, WORLD_H / 2 - 8, 590, 132, hex('#07111c'), .94).setDepth(70).setScrollFactor(0); this.bannerStroke = this.add.rectangle(WORLD_W / 2, WORLD_H / 2 - 8, 590, 132, 0, 0).setStrokeStyle(3, hex(this.arena.accent), .95).setDepth(71).setScrollFactor(0); this.bannerTitle = addText(this, WORLD_W / 2, WORLD_H / 2 - 36, this.banner.title, 34, C.paper, .5, 72).setScrollFactor(0); this.bannerSub = addText(this, WORLD_W / 2, WORLD_H / 2 + 8, this.banner.sub, 20, this.arena.accent, .5, 72).setScrollFactor(0); this.bannerHint = addText(this, WORLD_W / 2, WORLD_H / 2 + 43, 'READY', 16, C.dim, .5, 72).setScrollFactor(0);
+      this.resultGroup = this.add.container(WORLD_W / 2, WORLD_H / 2).setDepth(80).setScrollFactor(0).setVisible(false); this.resultBack = this.add.rectangle(0, 0, 620, 286, hex('#07111c'), .97).setStrokeStyle(3, hex(C.cyan), 1); this.resultTitle = addText(this, 0, -91, '', 36, C.green, .5, 82); this.resultSub = addText(this, 0, -49, '', 20, C.paper, .5, 82); this.resultStats = addText(this, 0, -5, '', 18, C.dim, .5, 82); this.resultMedal = addText(this, 0, 40, '', 23, C.gold, .5, 82); this.resultHint = addText(this, 0, 85, '', 16, C.paper, .5, 82); this.resultAgain = addPanel(this, -205, 119, 190, 44, '#173c51', '#5dd7ff', 82); this.resultAgainText = addText(this, -110, 141, 'RUN AGAIN', 17, C.paper, .5, 83); this.resultMenu = addPanel(this, 15, 119, 190, 44, '#163228', '#83efb0', 82); this.resultMenuText = addText(this, 110, 141, 'KIT BAY', 17, C.paper, .5, 83); this.resultGroup.add([this.resultBack, this.resultTitle, this.resultSub, this.resultStats, this.resultMedal, this.resultHint, this.resultAgain, this.resultAgainText, this.resultMenu, this.resultMenuText]);
+      this.resultAgain.setInteractive({ useHandCursor: true }); this.resultMenu.setInteractive({ useHandCursor: true }); this.resultAgain.on('pointerdown', function () { Runtime.next = { mode: self.modeKey, arena: self.arenaKey, brawler: save.brawler }; kit.restart(); }); this.resultMenu.on('pointerdown', function () { self.openMenu(); });
+      this.layoutHud();
+    },
+    fitCamera: function () { var z = Math.min(this.scale.width / WORLD_W, this.scale.height / WORLD_H); this.cameras.main.setZoom(Math.max(.5, z)); this.cameras.main.centerOn(WORLD_W / 2, WORLD_H / 2); this.layoutHud(); },
+    layoutHud: function () {
+      if (!this.superButton) return; var z = Math.min(this.scale.width / WORLD_W, this.scale.height / WORLD_H); if (!isFinite(z) || z <= 0) z = 1; var safeEl = document.getElementById('safearea'), cs = safeEl ? window.getComputedStyle(safeEl) : null, safeLeft = cs ? (parseFloat(cs.paddingLeft) || 0) / z : 0, safeRight = cs ? (parseFloat(cs.paddingRight) || 0) / z : 0, safeTop = cs ? (parseFloat(cs.paddingTop) || 0) / z : 0, safeBottom = Math.max(8 / z, cs ? (parseFloat(cs.paddingBottom) || 0) / z : 0); this.leftBase.setPosition(90 + safeLeft, WORLD_H - safeBottom - 60); this.leftKnob.setPosition(90 + safeLeft, WORLD_H - safeBottom - 60); this.rightBase.setPosition(WORLD_W - 90 - safeRight, WORLD_H - safeBottom - 60); this.rightKnob.setPosition(WORLD_W - 90 - safeRight, WORLD_H - safeBottom - 60); this.superButton.setPosition(WORLD_W / 2, WORLD_H - safeBottom - 54); this.superText.setPosition(WORLD_W / 2, WORLD_H - safeBottom - 54); this.superBarBg.setPosition(WORLD_W / 2 - 90, WORLD_H - safeBottom - 111); this.superBar.setPosition(WORLD_W / 2 - 90, WORLD_H - safeBottom - 111); this.modeText.setPosition(18 + safeLeft, 14 + safeTop); this.clockText.setPosition(WORLD_W / 2, 15 + safeTop); this.hudReadout.setPosition(WORLD_W - 18 - safeRight, 14 + safeTop); this.hazardText.setPosition(WORLD_W - 18 - safeRight, 39 + safeTop); this.tutorialBg.setPosition(WORLD_W / 2, 73 + safeTop); this.tutorialText.setPosition(WORLD_W / 2, 73 + safeTop); this.toastBg.setPosition(22 + safeLeft, 88 + safeTop); this.toastText.setPosition(34 + safeLeft, 94 + safeTop); this.bannerBg.setPosition(WORLD_W / 2, WORLD_H / 2 - 8); this.bannerStroke.setPosition(WORLD_W / 2, WORLD_H / 2 - 8); this.bannerTitle.setPosition(WORLD_W / 2, WORLD_H / 2 - 36); this.bannerSub.setPosition(WORLD_W / 2, WORLD_H / 2 + 8); this.bannerHint.setPosition(WORLD_W / 2, WORLD_H / 2 + 43); this.resultGroup.setPosition(WORLD_W / 2, WORLD_H / 2); },
+    screenToWorld: function (clientX, clientY) { var canvas = this.game.canvas, rect = canvas.getBoundingClientRect(), z = this.cameras.main.zoom || 1; return { x: this.cameras.main.scrollX + (clientX - rect.left) / rect.width * (rect.width / z), y: this.cameras.main.scrollY + (clientY - rect.top) / rect.height * (rect.height / z) }; },
+    readControls: function () {
+      var move = { x: 0, y: 0 }, aim = null, right = null, sup = null, rect = this.game.canvas.getBoundingClientRect(), pointers = kit.input.pointers, self = this;
+      pointers.forEach(function (p) {
+        if (!p.zone) { var cx = p.startX - rect.left, cy = p.startY - rect.top; if (cy > rect.height * .58 && cx < rect.width * .38) p.zone = 'move'; else if (cy > rect.height * .58 && cx > rect.width * .62) p.zone = 'aim'; else if (cy > rect.height * .58 && cx > rect.width * .38 && cx < rect.width * .62) p.zone = 'super'; else p.zone = cx < rect.width / 2 ? 'move' : 'aim'; }
+        if (p.zone === 'move') { var mx = (p.x - p.startX) / 48, my = (p.y - p.startY) / 48; move.x += clamp(mx, -1, 1); move.y += clamp(my, -1, 1); }
+        else if (p.zone === 'aim') right = p;
+        else if (p.zone === 'super') sup = p;
+      });
+      var wasRight = this.rightHeld; this.rightHeld = !!right;
+      if (right) { var dx = right.x - right.startX, dy = right.y - right.startY; if (magnitude(dx, dy) < 10) { var wp = this.screenToWorld(right.x, right.y); dx = wp.x - this.player.x; dy = wp.y - this.player.y; } aim = normalized(dx, dy); this.rightDir = aim; }
+      var keyMove = { x: (kit.input.keyDown('KeyD') ? 1 : 0) - (kit.input.keyDown('KeyA') ? 1 : 0), y: (kit.input.keyDown('KeyS') ? 1 : 0) - (kit.input.keyDown('KeyW') ? 1 : 0) }; move.x += keyMove.x; move.y += keyMove.y;
+      var keyAim = { x: (kit.input.keyDown('ArrowRight') ? 1 : 0) - (kit.input.keyDown('ArrowLeft') ? 1 : 0), y: (kit.input.keyDown('ArrowDown') ? 1 : 0) - (kit.input.keyDown('ArrowUp') ? 1 : 0) }; var keyAimLive = magnitude(keyAim.x, keyAim.y) > 0; if (keyAimLive) { aim = normalized(keyAim.x, keyAim.y); this.rightDir = aim; }
+      if (!wasRight && right) this.player.aimActive = true; if (wasRight && !right && this.player.alive) this.fire(this.player, this.rightDir); if (this.keyAimWasDown && !keyAimLive && !right && this.player.alive) this.fire(this.player, this.rightDir); this.keyAimWasDown = keyAimLive;
+      var superDown = !!sup || kit.input.keyDown('Space'); var superPressed = superDown && !this.superWasDown; this.superWasDown = superDown; if (superPressed) this.useSuper(this.player);
+      this.player.aimActive = !!right || keyAimLive; if (aim) this.player.aim = aim;
+      return { move: normalized(move.x, move.y), aim: aim, active: !!right || keyAimLive };
+    },
+    tick: function (dt) {
+      if (this.finished || this.pausedByKit) return; this.simTime += dt; this.tutorialT = Math.max(0, this.tutorialT - dt); this.banner.t = Math.max(0, this.banner.t - dt); this.toast.t = Math.max(0, this.toast.t - dt); this.flash = Math.max(0, this.flash - dt); this.hazardT += dt; this.gemSpawnT -= dt;
+      var controls = this.readControls(); this.leftStick = controls.move; this.updateActor(this.player, controls.move, dt); for (var i = 1; i < this.actors.length; i++) this.updateBot(this.actors[i], dt); this.updateProjectiles(dt); this.updateMines(dt); this.updateTurrets(dt); this.updateGems(dt); this.updateFx(dt); this.updateHazard(dt); this.checkGoal(); var danger = (this.mode.limit - this.simTime < 30) || (this.ruleMode === 'heist' && this.safes[1].hp < 35); if (danger !== this.lastMusicDanger) { this.lastMusicDanger = danger; kit.audio.music(danger ? 'music_danger' : 'music_arena', 600); } this.syncState();
+    },
+    update: function (time, delta) {
+      if (kit.paused || this.pausedByKit) { this.render(); return; }
+      var dt = Math.min(.05, Math.max(0, Number(delta) / 1000 || 0)); this.acc += dt; var steps = 0; while (this.acc >= STEP && steps < MAX_STEPS) { this.tick(STEP); this.acc -= STEP; steps++; }
+      this.render();
+    },
+    updateActor: function (a, move, dt) {
+      if (!a.alive) { if (a.respawn && this.simTime >= a.respawnAt) this.respawnActor(a); return; }
+      a.cooldown = Math.max(0, a.cooldown - dt); a.invuln = Math.max(0, a.invuln - dt); a.hurt = Math.max(0, a.hurt - dt); a.shield = Math.max(0, a.shield - dt); a.stun = Math.max(0, a.stun - dt); a.super = clamp(a.super + dt * (a.human ? 1.25 : 1.05), 0, 100);
+      var def = safeKit(a.kitIndex), slow = a.stun > 0 ? 0 : 1; a.vx = move.x * def.speed * slow; a.vy = move.y * def.speed * slow; a.x = clamp(a.x + a.vx * dt, 42, WORLD_W - 42); a.y = clamp(a.y + a.vy * dt, 76, WORLD_H - 45); this.resolveCover(a);
+    },
+    updateBot: function (a, dt) {
+      if (!a.alive) { if (a.respawn && this.simTime >= a.respawnAt) this.respawnActor(a); return; }
+      var target = this.findTarget(a), def = safeKit(a.kitIndex), move = { x: 0, y: 0 }, d = target ? dist(a.x, a.y, target.x, target.y) : 500;
+      if (this.ruleMode === 'gem' && a.carry < 5) { var gem = this.nearestGem(a); if (gem) { move = normalized(gem.x - a.x, gem.y - a.y); } }
+      else if (target) { var to = normalized(target.x - a.x, target.y - a.y); move = d > def.range * .7 ? to : { x: -to.y * .45, y: to.x * .45 }; a.aim = to; a.aimActive = d < def.range * 1.1; if (a.cooldown <= 0 && d < def.range * 1.05) this.fire(a, to); }
+      if (this.ruleMode === 'heist' && target && a.team === 1 && d < 260) move = normalized(target.x - a.x, target.y - a.y);
+      this.updateActor(a, normalized(move.x, move.y), dt); if (a.super >= 100 && target && (d < 230 || a.hp < a.maxHp * .42 || a.carry >= 4)) this.useSuper(a);
+    },
+    resolveCover: function (a) {
+      for (var i = 0; i < this.arena.covers.length; i++) { var r = this.arena.covers[i]; if (!rectContains(a.x, a.y, r, 20)) continue; var left = Math.abs(a.x - (r.x - 20)), right = Math.abs(a.x - (r.x + r.w + 20)), top = Math.abs(a.y - (r.y - 20)), bottom = Math.abs(a.y - (r.y + r.h + 20)), m = Math.min(left, right, top, bottom); if (m === left) a.x = r.x - 21; else if (m === right) a.x = r.x + r.w + 21; else if (m === top) a.y = r.y - 21; else a.y = r.y + r.h + 21; }
+    },
+    findTarget: function (a) { var best = null, bestD = Infinity; for (var i = 0; i < this.actors.length; i++) { var b = this.actors[i]; if (!b.alive || b === a || !this.isEnemy(a, b)) continue; var d = dist(a.x, a.y, b.x, b.y); if (d < bestD) { bestD = d; best = b; } } return best; },
+    isEnemy: function (a, b) { return this.ruleMode === 'showdown' ? a.team !== b.team : a.team !== b.team; },
+    nearestGem: function (a) { var best = null, d0 = Infinity; for (var i = 0; i < this.gems.length; i++) if (this.gems[i].active) { var d = dist(a.x, a.y, this.gems[i].x, this.gems[i].y); if (d < d0) { best = this.gems[i]; d0 = d; } } return best; },
+    spawnGem: function (x, y) { for (var i = 0; i < this.gems.length; i++) if (!this.gems[i].active) { this.gems[i].active = true; this.gems[i].x = clamp(x == null ? 480 + Math.random() * 100 - 50 : x, 60, 900); this.gems[i].y = clamp(y == null ? 270 + Math.random() * 90 - 45 : y, 92, 430); return; } },
+    updateGems: function (dt) {
+      if (this.ruleMode !== 'gem') return; if (this.gemSpawnT <= 0 && this.gems.filter(function (g) { return g.active; }).length < 18) { this.spawnGem(); this.gemSpawnT = 1.7; }
+      for (var gi = 0; gi < this.gems.length; gi++) { var gem = this.gems[gi]; if (!gem.active) continue; for (var ai = 0; ai < this.actors.length; ai++) { var a = this.actors[ai]; if (a.alive && a.carry < 10 && dist(a.x, a.y, gem.x, gem.y) < 26) { a.carry++; a.super = clamp(a.super + 7, 0, 100); gem.active = false; this.emit(gem.x, gem.y, C.gold, 12); if (a.human) { this.showToast('◆ ' + a.carry + ' CARRIED', C.gold); sfx('gem_pickup', .72, 1 + Math.random() * .08); } break; } } }
+    },
+    fire: function (a, dir) {
+      if (!a || !a.alive || a.cooldown > 0 || a.stun > 0) return; var def = safeKit(a.kitIndex), count = def.shots || 1, base = angleOf(dir.x, dir.y); a.cooldown = def.fire; a.aim = dir; a.aimActive = true; if (a.human) sfx('shot_fire', .72, def.kind === 'sniper' ? .82 : 1 + Math.random() * .12);
+      if (def.kind === 'healer') { var ally = this.lowestAlly(a); if (ally && ally.hp < ally.maxHp * .78 && dist(a.x, a.y, ally.x, ally.y) < def.range) { ally.hp = Math.min(ally.maxHp, ally.hp + 18); this.emit(ally.x, ally.y, C.green, 8); } }
+      for (var i = 0; i < count; i++) { var spread = count === 1 ? 0 : (i - (count - 1) / 2) * def.spread; var d = { x: Math.cos(base + spread), y: Math.sin(base + spread) }; if (def.kind === 'sniper') this.rayAttack(a, d, def.range, def.damage, 2); else if (def.kind === 'bomber') this.spawnProjectile(a, d, 'bomb', def.damage, def.range); else if (def.kind === 'boomerang') this.spawnProjectile(a, d, 'boomerang', def.damage, def.range); else this.spawnProjectile(a, d, 'bolt', def.damage, def.range); }
+      if (def.kind === 'dasher') { a.x = clamp(a.x + dir.x * 46, 42, WORLD_W - 42); a.y = clamp(a.y + dir.y * 46, 76, WORLD_H - 45); this.resolveCover(a); this.slash(a, dir, 52, def.damage + 7); }
+    },
+    lowestAlly: function (a) { var low = null; for (var i = 0; i < this.actors.length; i++) { var b = this.actors[i]; if (b.alive && b.team === a.team && b !== a && (!low || b.hp / b.maxHp < low.hp / low.maxHp)) low = b; } return low; },
+    spawnProjectile: function (a, dir, kind, damage, range) {
+      for (var i = 0; i < this.projectiles.length; i++) if (!this.projectiles[i].active) { var p = this.projectiles[i], speed = kind === 'bomb' ? 220 : kind === 'boomerang' ? 350 : 460; p.active = true; p.kind = kind; p.x = a.x + dir.x * 22; p.y = a.y + dir.y * 22; p.startX = p.x; p.startY = p.y; p.vx = dir.x * speed; p.vy = dir.y * speed; p.t = 0; p.max = range / speed; p.range = range; p.owner = a; p.damage = damage; p.targetX = a.x + dir.x * range; p.targetY = a.y + dir.y * range; p.render.texture = ''; return; }
+    },
+    rayAttack: function (a, dir, range, damage, pierce) {
+      var hitCount = 0; for (var i = 0; i < this.actors.length; i++) { var b = this.actors[i]; if (!b.alive || !this.isEnemy(a, b)) continue; var rx = b.x - a.x, ry = b.y - a.y, along = rx * dir.x + ry * dir.y, cross = Math.abs(rx * dir.y - ry * dir.x); if (along > 0 && along < range && cross < 22 && !this.blocked(a.x, a.y, b.x, b.y)) { this.hit(b, damage, a); hitCount++; if (hitCount >= pierce) break; } }
+      if (this.ruleMode === 'heist') for (i = 0; i < this.safes.length; i++) { var safe = this.safes[i], sx = safe.x - a.x, sy = safe.y - a.y, sAlong = sx * dir.x + sy * dir.y, sCross = Math.abs(sx * dir.y - sy * dir.x); if (safe.team !== a.team && safe.hp > 0 && sAlong > 0 && sAlong < range && sCross < 64 && !this.blocked(a.x, a.y, safe.x, safe.y)) this.damageSafe(safe, damage); }
+      this.emit(a.x + dir.x * Math.min(range, 180), a.y + dir.y * Math.min(range, 180), C.cyan, 15); this.flash = Math.max(this.flash, .08); },
+    slash: function (a, dir, range, damage) { for (var i = 0; i < this.actors.length; i++) { var b = this.actors[i], rx = b.x - a.x, ry = b.y - a.y; if (b.alive && this.isEnemy(a, b) && rx * dir.x + ry * dir.y > 0 && Math.abs(rx * dir.y - ry * dir.x) < 38 && magnitude(rx, ry) < range) this.hit(b, damage, a); } this.emit(a.x + dir.x * 42, a.y + dir.y * 42, C.violet, 16); },
+    blocked: function (x1, y1, x2, y2) { for (var i = 0; i < this.arena.covers.length; i++) { var r = this.arena.covers[i]; for (var t = 0; t <= 1; t += .1) if (rectContains(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, r, 2)) return true; } return false; },
+    updateProjectiles: function (dt) {
+      for (var i = 0; i < this.projectiles.length; i++) { var p = this.projectiles[i]; if (!p.active) continue; p.t += dt; if (p.kind === 'bomb') { var q = clamp(p.t / p.max, 0, 1); p.x = p.startX + (p.targetX - p.startX) * q; p.y = p.startY + (p.targetY - p.startY) * q - Math.sin(q * Math.PI) * 74; } else if (p.kind === 'boomerang') { var q2 = clamp(p.t / p.max, 0, 1), travel = q2 < .55 ? q2 / .55 : 1 - (q2 - .55) / .45; p.x = p.startX + (p.targetX - p.startX) * travel; p.y = p.startY + (p.targetY - p.startY) * travel; } else { p.x += p.vx * dt; p.y += p.vy * dt; }
+        var expire = p.t >= (p.kind === 'boomerang' ? p.max * 1.12 : p.max) || p.x < 24 || p.x > WORLD_W - 24 || p.y < 68 || p.y > WORLD_H - 24; if (!expire && p.kind !== 'boomerang' && this.blocked(p.x - p.vx * dt, p.y - p.vy * dt, p.x, p.y)) expire = true;
+        if (!expire) for (var ai = 0; ai < this.actors.length; ai++) { var a = this.actors[ai]; if (a.alive && this.isEnemy(p.owner, a) && dist(p.x, p.y, a.x, a.y) < 22) { if (p.kind === 'bomb') this.explode(p.x, p.y, 72, p.damage, p.owner); else this.hit(a, p.damage, p.owner); if (p.kind !== 'boomerang') expire = true; } }
+        if (!expire && this.ruleMode === 'heist') for (var si = 0; si < this.safes.length; si++) if (this.safes[si].hp > 0 && this.safes[si].team !== p.owner.team && dist(p.x, p.y, this.safes[si].x, this.safes[si].y) < 60) { this.damageSafe(this.safes[si], p.damage); if (p.kind !== 'boomerang') expire = true; }
+        if (expire) { if (p.kind === 'bomb' && p.t >= p.max * .95) this.explode(p.x, p.y, 68, p.damage, p.owner); p.active = false; }
       }
-    }
-    const d = Math.hypot(goal.x - a.x, goal.y - a.y);
-    const dir = norm(goal.x - a.x, goal.y - a.y);
-    const keepAway = kit.role === 'sniper' && targetEnemy && d < 250;
-    moveActor(a, (keepAway ? -dir.x : dir.x) * a.speed * .48 * .16, (keepAway ? -dir.y : dir.y) * a.speed * .48 * .16);
-    if (targetEnemy) { a.aim = norm(targetEnemy.x - a.x, targetEnemy.y - a.y); if (d < (kit.role === 'sniper' ? 690 : 460)) fire(a, a.aim); }
-    if (kit.role === 'healer') {
-      const hurt = living(a.team).find(u => u !== a && u.hp < u.maxHp * .88);
-      if (hurt) { a.aim = norm(hurt.x - a.x, hurt.y - a.y); fire(a, a.aim); }
-    }
-    if (a.super >= 100 && ((game.mode === 'heist' && d < 260) || a.hp < a.maxHp * .4 || game.mode === 'gem' && a.gems >= 4)) useSuper(a);
-  }
+    },
+    explode: function (x, y, radius, damage, owner) { this.emit(x, y, owner && owner.human ? C.gold : C.red, 22); for (var i = 0; i < this.actors.length; i++) { var a = this.actors[i]; if (a.alive && owner && this.isEnemy(owner, a) && dist(x, y, a.x, a.y) < radius) this.hit(a, damage * .8, owner); } if (this.ruleMode === 'heist') for (i = 0; i < this.safes.length; i++) if (owner && this.safes[i].team !== owner.team && dist(x, y, this.safes[i].x, this.safes[i].y) < radius + 40) this.damageSafe(this.safes[i], damage * .8); },
+    damageSafe: function (safe, damage) { safe.hp = Math.max(0, safe.hp - damage * .25); this.emit(safe.x, safe.y, C.gold, 8); },
+    hit: function (target, damage, source) { if (!target || !target.alive || target.invuln > 0) return; var actual = target.shield > 0 ? damage * .25 : damage; target.hp -= actual; target.hurt = .16; target.super = clamp(target.super + damage * .55, 0, 100); this.emit(target.x, target.y, colorFor(target), 5); if (target.human) { this.flash = Math.max(this.flash, .1); kit.juice.shake(4, 100); } if (target.hp <= 0) this.down(target, source); },
+    down: function (a, source) { a.alive = false; a.hp = 0; a.aimActive = false; if (a.carry) { for (var i = 0; i < a.carry; i++) this.spawnGem(a.x + Math.cos(i) * 22, a.y + Math.sin(i) * 22); a.carry = 0; } if (source) source.kills++; this.emit(a.x, a.y, C.red, 24); if (a.human) { this.flash = .18; kit.juice.shake(9, 180); } if (a.respawn) a.respawnAt = this.simTime + 3; },
+    respawnActor: function (a) { a.alive = true; a.hp = a.maxHp; a.invuln = 1.1; a.super = Math.max(a.super, 20); a.x = a.team === 0 ? 118 : 842; a.y = 270 + (a.id % 3 - 1) * 78; this.emit(a.x, a.y, colorFor(a), 14); },
+    useSuper: function (a) {
+      if (!a || !a.alive || a.super < 100) return; var def = safeKit(a.kitIndex), dir = a.aim || { x: a.team === 0 ? 1 : -1, y: 0 }; a.super = 0; a.hurt = 0; this.flash = reduceMotion ? .05 : .25; if (a.human) { sfx('super_roar', .9, 1); kit.juice.shake(11, 220); }
+      if (def.kind === 'shotgun') { for (var i = 0; i < 10; i++) { var ang = i * Math.PI * 2 / 10; this.spawnProjectile(a, { x: Math.cos(ang), y: Math.sin(ang) }, 'bolt', 22, 230); } this.explode(a.x, a.y, 104, 28, a); }
+      else if (def.kind === 'sniper') this.rayAttack(a, dir, 740, 78, 8);
+      else if (def.kind === 'healer') { for (i = 0; i < this.actors.length; i++) if (this.actors[i].alive && this.actors[i].team === a.team) { this.actors[i].hp = Math.min(this.actors[i].maxHp, this.actors[i].hp + 42); this.emit(this.actors[i].x, this.actors[i].y, C.green, 14); } }
+      else if (def.kind === 'tank') { a.shield = 4.5; this.explode(a.x, a.y, 128, 40, a); }
+      else if (def.kind === 'bomber') { for (i = 0; i < 4; i++) this.dropMine(a.x + dir.x * 46 + Math.cos(i * 1.57) * 52, a.y + dir.y * 46 + Math.sin(i * 1.57) * 52, a); }
+      else if (def.kind === 'dasher') { a.x = clamp(a.x + dir.x * 165, 42, WORLD_W - 42); a.y = clamp(a.y + dir.y * 165, 76, WORLD_H - 45); this.resolveCover(a); this.slash(a, dir, 110, 65); }
+      else if (def.kind === 'engineer') this.dropTurret(a.x + dir.x * 48, a.y + dir.y * 48, a);
+      else for (i = -1; i <= 1; i++) { var ang2 = angleOf(dir.x, dir.y) + i * .24; this.spawnProjectile(a, { x: Math.cos(ang2), y: Math.sin(ang2) }, 'boomerang', 35, 480); }
+      if (a.human) this.showToast(def.super, C.gold, true);
+    },
+    dropMine: function (x, y, owner) { for (var i = 0; i < this.mines.length; i++) if (!this.mines[i].active) { this.mines[i].active = true; this.mines[i].x = clamp(x, 54, 906); this.mines[i].y = clamp(y, 82, 428); this.mines[i].t = 7; this.mines[i].owner = owner; return; } },
+    updateMines: function (dt) { for (var i = 0; i < this.mines.length; i++) { var m = this.mines[i]; if (!m.active) continue; m.t -= dt; for (var ai = 0; ai < this.actors.length; ai++) { var a = this.actors[ai]; if (a.alive && this.isEnemy(m.owner, a) && dist(m.x, m.y, a.x, a.y) < 25) { this.explode(m.x, m.y, 70, 48, m.owner); m.active = false; break; } } if (m.t <= 0) m.active = false; } },
+    dropTurret: function (x, y, owner) { for (var i = 0; i < this.turrets.length; i++) if (!this.turrets[i].active) { this.turrets[i].active = true; this.turrets[i].x = clamp(x, 60, 900); this.turrets[i].y = clamp(y, 82, 428); this.turrets[i].t = 12; this.turrets[i].owner = owner; this.turrets[i].cooldown = .1; return; } },
+    updateTurrets: function (dt) { for (var i = 0; i < this.turrets.length; i++) { var t = this.turrets[i]; if (!t.active) continue; t.t -= dt; t.cooldown -= dt; if (t.cooldown <= 0) { var target = this.findTarget(t.owner); if (target && dist(t.x, t.y, target.x, target.y) < 420) { this.rayAttack(t.owner, normalized(target.x - t.x, target.y - t.y), 420, 12, 1); t.cooldown = .65; } } if (t.t <= 0) t.active = false; } },
+    updateFx: function (dt) { for (var i = 0; i < this.fx.length; i++) { var f = this.fx[i]; if (!f.active) continue; f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt; if (f.t >= f.life) f.active = false; } },
+    emit: function (x, y, color, count) { var made = 0; for (var i = 0; i < this.fx.length && made < count; i++) if (!this.fx[i].active) { var f = this.fx[i], ang = Math.random() * Math.PI * 2, speed = 30 + Math.random() * 120; f.active = true; f.x = x; f.y = y; f.vx = Math.cos(ang) * speed; f.vy = Math.sin(ang) * speed; f.t = 0; f.life = .24 + Math.random() * .38; f.color = color; f.render.tint = ''; made++; } },
+    updateHazard: function (dt) {
+      var kind = this.arena.hazardKind;
+      if (kind === 'geyser' && this.hazardT > 4.5) { this.hazardT = 0; for (var i = 0; i < this.actors.length; i++) if (this.actors[i].alive && dist(this.actors[i].x, this.actors[i].y, 480, 270) < 74) this.hit(this.actors[i], 18, { team: this.actors[i].team === 0 ? 1 : 0, human: false }); this.emit(480, 270, C.gold, 26); }
+      if (kind === 'laser') { this.laserT = (this.laserT + dt) % 5; if (this.laserT > 3.4 && this.laserT < 4.7) for (i = 0; i < this.actors.length; i++) if (this.actors[i].alive && Math.abs(this.actors[i].x - 480) < 36) this.hit(this.actors[i], 7 * dt * 8, { team: this.actors[i].team === 0 ? 1 : 0, human: false }); }
+      if (kind === 'storm') { this.stormRadius = Math.max(118, 230 - this.simTime * .8); for (i = 0; i < this.actors.length; i++) if (this.actors[i].alive && dist(this.actors[i].x, this.actors[i].y, 480, 270) > this.stormRadius) this.hit(this.actors[i], 8 * dt, { team: this.actors[i].team === 0 ? 1 : 0, human: false }); }
+      if (kind === 'crusher') { this.crusherT = (this.crusherT + dt) % 5.5; if (this.crusherT > 4.2 && this.crusherT < 4.75) for (i = 0; i < this.actors.length; i++) if (this.actors[i].alive && dist(this.actors[i].x, this.actors[i].y, 480, 270) < 96) this.hit(this.actors[i], 34, { team: this.actors[i].team === 0 ? 1 : 0, human: false }); }
+    },
+    teamGems: function (team) { var n = 0; for (var i = 0; i < this.actors.length; i++) if (this.actors[i].team === team) n += this.actors[i].carry; return n; },
+    checkGoal: function () {
+      var remaining = this.mode.limit - this.simTime;
+      if (this.ruleMode === 'gem') { var own = this.teamGems(0), enemy = this.teamGems(1); if (own >= 10 && !this.lockStarted) this.lockStarted = this.simTime; if (own < 10) this.lockStarted = null; if (enemy >= 10 && !this.enemyLockStarted) this.enemyLockStarted = this.simTime; if (enemy < 10) this.enemyLockStarted = null; if (this.lockStarted != null && this.simTime - this.lockStarted >= 15) return this.finish('win', 'GEM LOCKED', own); if (this.enemyLockStarted != null && this.simTime - this.enemyLockStarted >= 15) return this.finish('loss', 'GEMS LOST', enemy); }
+      else if (this.ruleMode === 'heist') { if (this.safes[1].hp <= 0) return this.finish('win', 'SAFE CRACKED', this.simTime); if (this.safes[0].hp <= 0) return this.finish('loss', 'YOUR SAFE BROKE', this.simTime); }
+      else { var alive = this.actors.filter(function (a) { return a.alive; }); if (alive.length <= 1) return this.finish(alive[0] === this.player ? 'win' : 'loss', alive[0] === this.player ? 'LAST SCRAPPER' : 'SQUAD WIPED', this.player.kills); }
+      if (remaining <= 0) { if (this.ruleMode === 'gem') return this.finish(this.teamGems(0) >= this.teamGems(1) ? 'win' : 'loss', 'TIME LOCK', this.teamGems(0)); if (this.ruleMode === 'heist') return this.finish(this.safes[1].hp < this.safes[0].hp ? 'win' : 'loss', 'CLOCK EXPIRED', this.safes[1].hp); return this.finish('loss', 'STORM CLOSES', this.player.kills); }
+    },
+    medalRank: function (m) { return m === 'gold' ? 3 : m === 'silver' ? 2 : m === 'bronze' ? 1 : 0; },
+    medalFor: function (win, score) { if (!win) return 'none'; if (this.ruleMode === 'heist') return this.simTime <= 48 ? 'gold' : this.simTime <= 82 ? 'silver' : 'bronze'; if (this.ruleMode === 'gem') return score >= 10 && this.simTime <= 75 ? 'gold' : score >= 10 ? 'silver' : 'bronze'; return score >= 3 ? 'gold' : score >= 1 ? 'silver' : 'bronze'; },
+    finish: function (result, reason, score) {
+      if (this.finished) return true; this.finished = true; var win = result === 'win', key = this.modeKey, medal = this.medalFor(win, score), old = save.medals[key] || 'none', trophies = win ? 3 + (medal === 'gold' ? 2 : medal === 'silver' ? 1 : 0) : 0;
+      save.wins += win ? 1 : 0; save.losses += win ? 0 : 1; save.trophies += trophies; save.gemStreak = this.ruleMode === 'gem' && win ? save.gemStreak + 1 : (this.ruleMode === 'gem' ? 0 : save.gemStreak); save.bestGems = Math.max(save.bestGems, this.teamGems(0)); if (this.ruleMode === 'heist' && win) save.bestSafeSpeed = Math.min(save.bestSafeSpeed, this.simTime); if (this.ruleMode === 'showdown' && win) save.bestShowdown = Math.max(save.bestShowdown, this.player.kills); if (this.medalRank(medal) > this.medalRank(old)) save.medals[key] = medal; if (this.modeKey === 'gauntlet' && win) save.gauntlet = Math.min(GAUNTLET.length, save.gauntlet + 1); persist(); this.result = { result: result, reason: reason, medal: medal, trophies: trophies, score: score }; this.banner.t = 0; this.toast.t = 0; this.showResult(); if (win) { sfx('victory_fanfare', .95); kit.juice.shake(5, 260); } else sfx('super_roar', .2, .7); this.syncState(); return true;
+    },
+    showResult: function () { var win = this.result.result === 'win'; setTextIfChanged(this.resultTitle, win ? 'MATCH WON' : 'MATCH LOST'); setColorIfChanged(this.resultTitle, win ? C.green : C.red); setTextIfChanged(this.resultSub, this.result.reason); var stats = this.ruleMode === 'gem' ? 'HAUL  ◆ ' + this.teamGems(0) + '   /   STREAK  ' + save.gemStreak : this.ruleMode === 'heist' ? 'ENEMY SAFE  ' + Math.ceil(this.safes[1].hp) + '%   /   ' + Math.ceil(this.result.score) + 's' : 'KILLS  ' + this.player.kills + '   /   TROPHIES  ' + save.trophies; setTextIfChanged(this.resultStats, stats); setTextIfChanged(this.resultMedal, this.result.medal === 'none' ? 'NO MEDAL' : this.result.medal.toUpperCase() + ' MEDAL   + ' + this.result.trophies + ' TROPHIES'); setTextIfChanged(this.resultHint, this.modeKey === 'gauntlet' ? (save.gauntlet >= GAUNTLET.length ? 'CHAMPIONSHIP CLEARED' : 'STAGE ' + (save.gauntlet + 1) + ' READY') : 'All eight kits stay free.'); this.resultGroup.setVisible(true); if (!reduceMotion) { this.resultGroup.setScale(.86); this.tweens.add({ targets: this.resultGroup, scaleX: 1, scaleY: 1, duration: 360, ease: 'Back.Out' }); } else this.resultGroup.setScale(1); },
+    showToast: function (text, color, force) { if (!force && (this.tutorialT > 0 || this.banner.t > 0 || this.finished)) return; this.toast.text = text; this.toast.color = color || C.paper; this.toast.t = 1; },
+    renderAim: function () {
+      this.aimGraphics.clear(); var a = this.player, def = safeKit(a.kitIndex); if (!a.alive || !a.aimActive || this.finished || this.banner.t > 0) return; var d = a.aim, range = def.range, startX = a.x + d.x * 25, startY = a.y + d.y * 25, endX = a.x + d.x * range, endY = a.y + d.y * range; this.aimGraphics.lineStyle(3, hex(def.color), .42); if (def.kind === 'bomber') { var px = startX, py = startY, prevX = px, prevY = py; for (var i = 1; i <= 12; i++) { var t = i / 12; px = startX + (endX - startX) * t; py = startY + (endY - startY) * t - Math.sin(t * Math.PI) * 74; this.aimGraphics.lineBetween(prevX, prevY, px, py); prevX = px; prevY = py; } } else this.aimGraphics.lineBetween(startX, startY, endX, endY); this.aimGraphics.fillStyle(hex(def.color), .75); this.aimGraphics.fillCircle(endX, endY, 8); this.aimGraphics.lineStyle(2, hex(C.white), .65); this.aimGraphics.strokeCircle(endX, endY, 15); },
+    render: function () {
+      if (!this.player || !this.actorSprites) return; this.renderAim(); var fx = kit.juice.frame(); if (fx.dx || fx.dy) this.cameras.main.setScroll(this.cameras.main.scrollX + fx.dx, this.cameras.main.scrollY + fx.dy); else this.cameras.main.centerOn(WORLD_W / 2, WORLD_H / 2);
+      for (var i = 0; i < this.actors.length; i++) { var a = this.actors[i], sp = this.actorSprites[i], ring = this.actorRings[i], hpBg = this.actorHpBg[i], hp = this.actorHp[i], ct = this.carryTexts[i]; if (!a.alive) { sp.setVisible(true).setTexture('brawler_' + a.kitIndex + '_hurt').setPosition(a.x, a.y).setAlpha(.28); ring.setVisible(false); hpBg.setVisible(false); hp.setVisible(false); ct.setVisible(false); continue; } var pose = a.hurt > 0 ? 'hurt' : a.super >= 99.9 ? 'super' : (a.human && a.aimActive ? 'aim' : magnitude(a.vx, a.vy) > 20 ? 'move' : 'idle'); if (a.render.pose !== pose || a.render.kit !== a.kitIndex) { a.render.pose = pose; a.render.kit = a.kitIndex; sp.setTexture('brawler_' + a.kitIndex + '_' + pose); } var alpha = a.invuln > 0 && Math.floor(this.simTime * 18) % 2 ? .4 : 1; sp.setVisible(true).setPosition(a.x, a.y + (pose === 'move' ? Math.sin(this.simTime * 16 + i) * 2 : 0)).setRotation(angleOf(a.aim.x, a.aim.y)).setAlpha(alpha); ring.setVisible(true).setPosition(a.x, a.y).setTint(hex(colorFor(a))).setAlpha(a.human ? .85 : .4); hpBg.setVisible(true).setPosition(a.x - 21, a.y - 34); hp.setVisible(true).setPosition(a.x - 20, a.y - 34).setDisplaySize(40 * clamp(a.hp / a.maxHp, 0, 1), 3).setFillStyle(hex(a.shield > 0 ? C.cyan : a.team === 0 ? C.green : C.red), 1); if (a.carry > 0) { ct.setVisible(true).setPosition(a.x, a.y - 49); setTextIfChanged(ct, '◆ ' + a.carry); } else ct.setVisible(false); }
+      for (i = 0; i < this.gemSprites.length; i++) { var g = this.gems[i], gs = this.gemSprites[i]; if (g.active) gs.setVisible(true).setPosition(g.x, g.y + Math.sin(this.simTime * 5 + g.phase) * 3).setScale(1 + Math.sin(this.simTime * 5 + g.phase) * .08); else gs.setVisible(false); }
+      for (i = 0; i < this.projectileSprites.length; i++) { var p = this.projectiles[i], ps = this.projectileSprites[i]; if (!p.active) { ps.setVisible(false); continue; } var tex = p.kind === 'bomb' ? 'bomb' : p.kind === 'boomerang' ? 'boomerang' : 'bolt'; if (p.render.texture !== tex) { p.render.texture = tex; ps.setTexture(tex); } ps.setVisible(true).setPosition(p.x, p.y).setRotation(angleOf(p.vx, p.vy)).setTint(hex(colorFor(p.owner))); }
+      for (i = 0; i < this.mineSprites.length; i++) this.mineSprites[i].setVisible(this.mines[i].active).setPosition(this.mines[i].x, this.mines[i].y).setAlpha(this.mines[i].active ? .95 : 0); for (i = 0; i < this.turretSprites.length; i++) this.turretSprites[i].setVisible(this.turrets[i].active).setPosition(this.turrets[i].x, this.turrets[i].y).setAlpha(this.turrets[i].active ? .95 : 0);
+      for (i = 0; i < this.fxSprites.length; i++) { var f = this.fx[i], fs = this.fxSprites[i]; if (!f.active) { fs.setVisible(false); continue; } if (f.render.tint !== f.color) { f.render.tint = f.color; fs.setTint(hex(f.color)); } fs.setVisible(true).setPosition(f.x, f.y).setAlpha(1 - f.t / f.life).setScale(.45 + f.t / f.life); }
+      this.hazardGraphics.clear(); var hk = this.arena.hazardKind; if (hk === 'geyser') { this.hazardGraphics.lineStyle(3, hex(C.gold), .35 + Math.sin(this.hazardT * 3) * .12); this.hazardGraphics.strokeCircle(480, 270, 62 + Math.sin(this.hazardT * 2) * 5); } else if (hk === 'laser' && this.laserT > 3.2 && this.laserT < 4.8) { this.hazardGraphics.fillStyle(hex(C.red), .18); this.hazardGraphics.fillRect(442, 66, 76, 408); this.hazardGraphics.lineStyle(3, hex(C.red), .72); this.hazardGraphics.lineBetween(480, 66, 480, 474); } else if (hk === 'storm') { this.hazardGraphics.lineStyle(4, hex(C.green), .68); this.hazardGraphics.strokeCircle(480, 270, this.stormRadius); } else if (hk === 'crusher') { this.hazardGraphics.lineStyle(4, hex(C.violet), .6); this.hazardGraphics.strokeCircle(480, 270, 96 + Math.sin(this.crusherT * 2) * 8); }
+      this.renderHud();
+      if (this.flash > 0) { this.fxGraphics.clear(); this.fxGraphics.fillStyle(hex(C.white), this.flash * 1.5); this.fxGraphics.fillRect(0, 0, WORLD_W, WORLD_H); } else this.fxGraphics.clear();
+    },
+    renderHud: function () {
+      var remaining = Math.max(0, this.mode.limit - this.simTime), p = this.player; setTextIfChanged(this.clockText, timeText(remaining)); var readout = this.ruleMode === 'gem' ? '◆ ' + this.teamGems(0) + ' / 10   ' + this.arena.hazard : this.ruleMode === 'heist' ? 'SAFE ' + Math.ceil(this.safes[0].hp) + '%   /   ENEMY ' + Math.ceil(this.safes[1].hp) + '%' : '☠ ' + p.kills + '   /   ' + this.arena.hazard; setTextIfChanged(this.hudReadout, readout); var ready = p.super >= 100; if (this.superButton.texture.key !== (ready ? 'super_ready' : 'super_button')) this.superButton.setTexture(ready ? 'super_ready' : 'super_button'); setTextIfChanged(this.superText, ready ? 'SUPER' : fmt(p.super) + '%'); setColorIfChanged(this.superText, ready ? C.ink : C.paper); this.superBar.setDisplaySize(180 * clamp(p.super / 100, 0, 1), 6); this.leftKnob.setPosition(90 + (this.leftStick ? this.leftStick.x * 28 : 0), this.leftBase.y + (this.leftStick ? this.leftStick.y * 28 : 0)); this.rightKnob.setPosition(WORLD_W - 90 + (this.rightHeld ? this.rightDir.x * 28 : 0), this.rightBase.y + (this.rightHeld ? this.rightDir.y * 28 : 0));
+      var tutorialVisible = this.tutorialT > 0 && !this.finished; this.tutorialBg.setVisible(tutorialVisible); this.tutorialText.setVisible(tutorialVisible); this.tutorialText.setAlpha(this.tutorialT > 2.5 ? 1 : this.tutorialT / 2.5); setTextIfChanged(this.tutorialText, this.ruleMode === 'gem' ? 'LEFT DRAG MOVE  /  RIGHT DRAG AIM  /  RELEASE FIRE' : this.ruleMode === 'heist' ? 'PRESS SAFE LANES  /  KEEP YOUR SAFE COVERED' : 'STAY IN THE RING  /  AIM, RELEASE, SCRAP'); var toastVisible = this.toast.t > 0 && !this.finished && this.banner.t <= 0 && this.tutorialT <= 0; this.toastBg.setVisible(toastVisible); this.toastText.setVisible(toastVisible); if (toastVisible) { setTextIfChanged(this.toastText, this.toast.text); setColorIfChanged(this.toastText, this.toast.color); this.toastText.setAlpha(Math.min(1, this.toast.t * 2)); }
+      this.bannerBg.setVisible(this.banner.t > 0 && !this.finished); this.bannerStroke.setVisible(this.banner.t > 0 && !this.finished); this.bannerTitle.setVisible(this.banner.t > 0 && !this.finished); this.bannerSub.setVisible(this.banner.t > 0 && !this.finished); this.bannerHint.setVisible(this.banner.t > 0 && !this.finished); if (this.banner.t > 0 && !this.finished) { var bannerProgress = 1 - this.banner.t / this.banner.total, scale = reduceMotion ? 1 : Math.min(1.04, .9 + bannerProgress * .18); this.bannerBg.setScale(scale); this.bannerStroke.setScale(scale); this.bannerTitle.setScale(scale); this.bannerSub.setScale(scale); this.bannerHint.setScale(scale); setTextIfChanged(this.bannerHint, this.banner.t > 1.1 ? 'READY' : 'SCRAP'); }
+      if (this.finished) { this.bannerBg.setVisible(false); this.bannerStroke.setVisible(false); this.bannerTitle.setVisible(false); this.bannerSub.setVisible(false); this.bannerHint.setVisible(false); }
+    },
+    syncState: function () { state.phase = this.finished ? 'result' : 'play'; state.mode = this.modeKey; state.arena = this.arenaKey; state.gems = this.ruleMode === 'gem' ? this.teamGems(0) : (this.player ? this.player.carry : 0); state.trophies = save.trophies; state.brawler = safeKit(this.player ? this.player.kitIndex : this.humanKit).name; state.timer = Math.max(0, this.mode.limit - this.simTime); state.medal = this.result ? this.result.medal : 'none'; state.safe = this.safes ? Math.ceil(this.safes[0].hp) : 100; state.enemySafe = this.safes ? Math.ceil(this.safes[1].hp) : 100; },
+    forceMode: function (mode) { if (has(MODES, mode)) { Runtime.next = { mode: mode, arena: null, brawler: save.brawler }; kit.restart(); } },
+    forceArena: function (arena) { if (has(ARENAS, arena)) { Runtime.next = { mode: this.modeKey, arena: arena, brawler: save.brawler }; kit.restart(); } },
+    openMenu: function () { Runtime.next = null; kit.input.clearAll(); this.scene.start('menu'); }
+  });
 
-  function fire(a, dir) {
-    if (!a.alive || a.cooldown > 0) return;
-    const kit = KITS[a.kit], spread = kit.role === 'shotgunner' ? .2 : kit.role === 'tank' ? .12 : 0;
-    a.cooldown = kit.rate;
-    for (let i = 0; i < kit.shots; i++) {
-      const offset = kit.shots === 1 ? 0 : (i - (kit.shots - 1) / 2) * spread;
-      const a0 = angle(dir) + offset;
-      const bomb = kit.role === 'bomber';
-      const boomer = kit.role === 'boomerang';
-      addBounded(game.projectiles, { x: a.x + Math.cos(a0) * 26, y: a.y + Math.sin(a0) * 26, vx: Math.cos(a0) * kit.bullet, vy: Math.sin(a0) * kit.bullet,
-        life: bomb ? 1.55 : boomer ? 1.1 : 1.05, team: a.team, owner: a, damage: kit.damage, radius: bomb ? 12 : 7, bomb, boomer, returning: false, heal: kit.role === 'healer' }, LIMITS.projectiles);
-    }
-    burst(a.x + dir.x * 28, a.y + dir.y * 28, kit.color, kit.role === 'shotgunner' ? 4 : 2, 45);
-    tone(kit.role === 'sniper' ? 520 : 190, .045, 'square', .018);
-  }
-
-  function useSuper(a) {
-    if (!a.alive || a.super < 100) return;
-    const kit = KITS[a.kit]; a.super = 0; game.flash = .8; game.shake = .55;
-    textPop(a.x, a.y - 34, kit.super, kit.color); burst(a.x, a.y, kit.color, 22, 190); tone(kit.role === 'sniper' ? 880 : 420, .18, 'sawtooth', .045);
-    if (kit.role === 'shotgunner') areaDamage(a, 130, 42);
-    if (kit.role === 'sniper') spawnSpecial(a, a.aim, 78, 980, { pierce: true, color: kit.color, life: 1.3 });
-    if (kit.role === 'healer') for (const ally of living(a.team)) { ally.hp = Math.min(ally.maxHp, ally.hp + 42); burst(ally.x, ally.y, COLORS.green, 8, 70); }
-    if (kit.role === 'tank') { a.barrier = 5; areaDamage(a, 115, 32); }
-    if (kit.role === 'bomber') for (let i = 0; i < 5; i++) addBounded(game.mines, { x: a.x + randomRange(-90, 90), y: a.y + randomRange(-90, 90), team: a.team, life: 10 }, LIMITS.mines);
-    if (kit.role === 'dasher') { const d = norm(a.aim.x, a.aim.y); for (let i = 0; i < 9; i++) { moveActor(a, d.x * 34, d.y * 34); areaDamage(a, 38, 13); burst(a.x, a.y, kit.color, 3, 60); } }
-    if (kit.role === 'engineer') addBounded(game.turrets, { x: a.x, y: a.y, team: a.team, life: 18, cooldown: 0 }, LIMITS.turrets);
-    if (kit.role === 'boomerang') for (let i = -1; i <= 1; i++) { const aa = angle(a.aim) + i * .3; spawnSpecial(a, { x: Math.cos(aa), y: Math.sin(aa) }, 28, 470, { boomer: true, color: kit.color, life: 1.5 }); }
-  }
-
-  function spawnSpecial(a, dir, damage, speed, extra) {
-    const aa = angle(dir);
-    addBounded(game.projectiles, { x: a.x + Math.cos(aa) * 25, y: a.y + Math.sin(aa) * 25, vx: Math.cos(aa) * speed, vy: Math.sin(aa) * speed,
-      life: extra.life || 1, team: a.team, owner: a, damage, radius: 9, bomb: false, boomer: !!extra.boomer, returning: false, pierce: !!extra.pierce, color: extra.color || COLORS.gold, heal: false }, LIMITS.projectiles);
-  }
-
-  function areaDamage(source, radius, damage) {
-    for (const a of game.actors) if (a.alive && a.team !== source.team && dist(a, source) < radius) hit(a, damage, source);
-  }
-
-  function updateProjectiles(dt) {
-    for (let i = game.projectiles.length - 1; i >= 0; i--) {
-      const p = game.projectiles[i]; p.life -= dt;
-      if (p.boomer && p.life < .45) { p.returning = true; p.vx *= -.94; p.vy *= -.94; }
-      p.x += p.vx * dt; p.y += p.vy * dt;
-      let remove = p.life <= 0 || p.x < 0 || p.x > WORLD.w || p.y < 70 || p.y > WORLD.h;
-      if (!remove) {
-        for (const a of game.actors) {
-          if (!a.alive || a.team === p.team || p.owner === a) continue;
-          if (dist(p, a) < p.radius + a.r) { hit(a, p.damage, p.owner); if (p.bomb) explosion(p.x, p.y, p.owner); if (!p.pierce) remove = true; break; }
-        }
-        if (p.heal && !remove) {
-          for (const a of game.actors) if (a.alive && a.team === p.team && dist(p, a) < p.radius + a.r) { a.hp = Math.min(a.maxHp, a.hp + 22); textPop(a.x, a.y - 30, '+22', COLORS.green); remove = true; break; }
-        }
-        if (game.mode === 'heist' && !remove) {
-          const safeTeam = p.team ? 0 : 1, safe = { x: safeTeam ? 820 : 80, y: 700 };
-          if (Math.hypot(p.x - safe.x, p.y - safe.y) < 56) { game.safes[safeTeam] = Math.max(0, game.safes[safeTeam] - p.damage * .34); burst(p.x, p.y, p.color || COLORS.gold, 4, 55); if (!p.pierce) remove = true; }
-        }
-      }
-      if (remove) game.projectiles.splice(i, 1);
-    }
-  }
-
-  function explosion(x, y, source) {
-    burst(x, y, COLORS.red, 18, 130); game.shake = Math.max(game.shake, .24);
-    for (const a of game.actors) if (a.alive && a.team !== source.team && Math.hypot(a.x - x, a.y - y) < 70) hit(a, 24, source);
-  }
-
-  function hit(target, damage, source) {
-    if (!target || !target.alive) return;
-    const actual = target.barrier > 0 ? damage * .35 : damage;
-    target.hp -= actual; target.super = clamp(target.super + damage * .7, 0, 100);
-    burst(target.x, target.y, target.team ? COLORS.red : COLORS.blue, 3, 45);
-    if (target.hp <= 0) down(target, source);
-  }
-  function down(target) {
-    target.alive = false; target.respawn = 3; target.hp = 0;
-    for (let i = 0; i < target.gems; i++) dropGem(target.x + randomRange(-18, 18), target.y + randomRange(-18, 18));
-    target.gems = 0; burst(target.x, target.y, target.team ? COLORS.red : COLORS.blue, 24, 180); game.shake = Math.max(game.shake, .4); tone(90, .16, 'sawtooth', .04);
-  }
-  function respawn(a) {
-    a.alive = true; a.hp = a.maxHp; a.respawn = 0; a.x = a.team ? 770 : 130; a.y = 700 + randomRange(-70, 70); a.super = Math.max(a.super, 20); burst(a.x, a.y, a.team ? COLORS.red : COLORS.blue, 12, 90);
-  }
-
-  function updateMines(dt) {
-    for (let i = game.mines.length - 1; i >= 0; i--) {
-      const m = game.mines[i]; m.life -= dt;
-      let trigger = m.life <= 0;
-      for (const a of game.actors) if (a.alive && a.team !== m.team && Math.hypot(a.x - m.x, a.y - m.y) < 34) trigger = true;
-      if (trigger) { const owner = { team: m.team, x: m.x, y: m.y }; explosion(m.x, m.y, owner); game.mines.splice(i, 1); }
-    }
-  }
-  function updateTurrets(dt) {
-    for (let i = game.turrets.length - 1; i >= 0; i--) {
-      const t = game.turrets[i]; t.life -= dt; t.cooldown -= dt;
-      if (t.life <= 0) { game.turrets.splice(i, 1); continue; }
-      const target = nearest(t, t.team, false);
-      if (target && t.cooldown <= 0 && dist(t, target) < 500) { t.cooldown = .78; const d = norm(target.x - t.x, target.y - t.y); spawnTurretShot(t, d); }
-    }
-  }
-  function spawnTurretShot(t, d) {
-    addBounded(game.projectiles, { x: t.x, y: t.y, vx: d.x * 480, vy: d.y * 480, life: 1.1, team: t.team, owner: t, damage: 9, radius: 6, color: COLORS.blue, bomb: false, boomer: false, returning: false, pierce: false, heal: false }, LIMITS.projectiles);
-  }
-
-  function collectGems() {
-    for (let gi = game.gems.length - 1; gi >= 0; gi--) {
-      const gem = game.gems[gi];
-      for (const a of game.actors) if (a.alive && dist(a, gem) < 30 && a.gems < 10) {
-        a.gems++; game.gems.splice(gi, 1); a.super = clamp(a.super + 5, 0, 100); textPop(a.x, a.y - 32, '+1 GEM', COLORS.gold); burst(gem.x, gem.y, COLORS.gold, 8, 85); tone(660, .08, 'triangle', .025); break;
-      }
-    }
-  }
-  function updateGemMode(dt) {
-    game.gemClock -= dt;
-    if (game.gemClock <= 0) { game.gemClock = 3.4; dropGem(450 + randomRange(-35, 35), 700 + randomRange(-35, 35)); burst(450, 700, COLORS.gold, 10, 70); }
-    const blue = teamGems(0), red = teamGems(1);
-    let lead = -1;
-    if (blue >= 10) lead = 0; if (red >= 10 && red > blue) lead = 1;
-    if (lead < 0) { game.holdTeam = -1; game.holdTimer = 15; }
-    else if (game.holdTeam !== lead) { game.holdTeam = lead; game.holdTimer = 15; game.flash = .25; }
-    else { game.holdTimer -= dt; if (game.holdTimer <= 0) finishMatch(lead === 0 ? 'win' : 'loss', 'GEM LOCK'); }
-  }
-  function updateHeistMode() {
-    if (game.safes[1] <= 0) finishMatch('win', 'SAFE CRACKED');
-    else if (game.safes[0] <= 0) finishMatch('loss', 'BASE BREACHED');
-  }
-  function decideByScore() {
-    if (game.mode === 'heist') return game.safes[1] > game.safes[0] ? 'win' : game.safes[1] < game.safes[0] ? 'loss' : 'draw';
-    const b = teamGems(0), r = teamGems(1); return b > r ? 'win' : r > b ? 'loss' : 'draw';
-  }
-  function finishMatch(result, reason) {
-    if (!game || game.status !== 'playing') return;
-    game.status = 'result'; game.result = result; game.resultReason = reason; resetInput(); cancelTimers();
-    if (result === 'win') { save.wins++; save.trophies = Math.min(10000, save.trophies + 2); }
-    if (result === 'loss') save.losses++;
-    if (game.mode === 'gem') save.bestGems = Math.max(save.bestGems, teamGems(0));
-    else save.bestHeist = Math.max(save.bestHeist, Math.round(100 - game.safes[1]));
-    saveProgress(); game.flash = result === 'win' ? 1 : .4; game.shake = .5; tone(result === 'win' ? 780 : 110, .3, 'triangle', .05);
-  }
-
-  function updateParticles(dt) {
-    for (let i = game.particles.length - 1; i >= 0; i--) { const p = game.particles[i]; p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .97; p.vy *= .97; if (p.life <= 0) game.particles.splice(i, 1); }
-    for (let i = game.texts.length - 1; i >= 0; i--) { const t = game.texts[i]; t.life -= dt; t.y -= 25 * dt; if (t.life <= 0) game.texts.splice(i, 1); }
-  }
-
-  function roundRect(x, y, w, h, r, fill, stroke) {
-    const rr = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
-    ctx.beginPath(); ctx.moveTo(x + rr, y); ctx.lineTo(x + w - rr, y); ctx.arcTo(x + w, y, x + w, y + rr, rr); ctx.lineTo(x + w, y + h - rr); ctx.arcTo(x + w, y + h, x + w - rr, y + h, rr); ctx.lineTo(x + rr, y + h); ctx.arcTo(x, y + h, x, y + h - rr, rr); ctx.lineTo(x, y + rr); ctx.arcTo(x, y, x + rr, y, rr); ctx.closePath(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
-  }
-  function txt(text, x, y, size, color, align, weight) {
-    ctx.font = (weight || 700) + ' ' + size + 'px system-ui, sans-serif'; ctx.fillStyle = color || COLORS.paper; ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle'; ctx.fillText(text, x, y);
-  }
-  function draw() {
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    ctx.fillStyle = COLORS.ink; ctx.fillRect(0, 0, W, H);
-    if (!game || game.status === 'menu') drawMenu(); else { drawArena(); if (game.status === 'result') drawResult(); }
-    if (orientationBlocked) { ctx.fillStyle = 'rgba(4,10,17,.5)'; ctx.fillRect(0, 0, W, H); }
-  }
-
-  function drawMenu() {
-    const grad = ctx.createLinearGradient(0, 0, W, H); grad.addColorStop(0, '#10283a'); grad.addColorStop(1, '#07111c'); ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-    ctx.globalAlpha = .18; for (let i = 0; i < 18; i++) { ctx.fillStyle = i % 2 ? COLORS.blue : COLORS.purple; ctx.beginPath(); ctx.arc((i * 97) % W, 100 + (i * 137) % H, 1 + (i % 4), 0, TAU); ctx.fill(); } ctx.globalAlpha = 1;
-    txt('SCRAPPER', W / 2, 57, 31, COLORS.paper, 'center', 950); txt('SQUAD', W / 2, 89, 31, COLORS.blue, 'center', 950);
-    txt('3v3 FIELD TEST  /  FREE BY DESIGN', W / 2, 117, 10, COLORS.muted, 'center', 800);
-    txt('CHOOSE THE RUN', 20, 151, 11, COLORS.muted, 'left', 800);
-    const modeW = (W - 52) / 2;
-    modeCard(20, 165, modeW, 54, 'GEM HOARD', '10 gems + 15s lock', save.mode === 'gem');
-    modeCard(32 + modeW, 165, modeW, 54, 'HEIST', 'crack their safe', save.mode === 'heist');
-    txt('TROPHY ROAD  /  WIN +2', 20, 242, 11, COLORS.muted, 'left', 800);
-    drawRoad(20, 283);
-    txt('KIT BAY  /  FLAT POWER', 20, 319, 11, COLORS.muted, 'left', 800);
-    const cardW = (W - 52) / 4;
-    for (let i = 0; i < KITS.length; i++) {
-      const x = 10 + (i % 4) * (cardW + 4), y = 334 + Math.floor(i / 4) * 65;
-      kitCard(x, y, cardW, 56, i, save.selectedKit === i);
-    }
-    txt('BEST  ' + save.bestGems + ' gems  ·  ' + save.bestHeist + '% safe damage', W / 2, 484, 11, COLORS.muted, 'center', 700);
-    roundRect(20, H - 92, W - 40, 58, 18, COLORS.blue); txt('TAP TO ARM AUDIO  /  BEGIN RUN', W / 2, H - 63, 14, COLORS.ink, 'center', 950);
-    txt('One hint line. Eight free kits. Make the call.', W / 2, H - 16, 11, COLORS.muted, 'center', 650);
-  }
-  function modeCard(x, y, w, h, title, sub, active) { roundRect(x, y, w, h, 15, active ? '#1c5b78' : '#10202e', active ? COLORS.blue : '#263b4a'); txt(title, x + 12, y + 20, 12, active ? COLORS.paper : COLORS.muted, 'left', 900); txt(sub, x + 12, y + 39, 10, active ? '#c9f5ff' : '#71879b', 'left', 650); }
-  function kitCard(x, y, w, h, i, active) {
-    const k = KITS[i], open = unlocked(i); roundRect(x, y, w, h, 12, active ? '#1b5367' : '#0e1c29', active ? k.color : '#223443');
-    ctx.fillStyle = open ? k.color : '#324453'; ctx.beginPath(); ctx.arc(x + 18, y + 28, 11, 0, TAU); ctx.fill();
-    txt(open ? k.name : 'LOCK', x + 34, y + 19, 10, open ? COLORS.paper : '#73879a', 'left', 900); txt(open ? k.role.toUpperCase() : ROAD[i] + 'T', x + 34, y + 37, 8, open ? k.color : '#607487', 'left', 800);
-  }
-  function drawRoad(x, y) {
-    ctx.strokeStyle = '#2b495b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + 9, y, x + W - 29, y); ctx.stroke();
-    const gap = (W - 40) / 7;
-    for (let i = 0; i < ROAD.length; i++) { const px = x + 9 + i * gap, open = unlocked(i); ctx.fillStyle = open ? COLORS.gold : '#1d3544'; ctx.beginPath(); ctx.arc(px, y, 11, 0, TAU); ctx.fill(); if (open) txt(i === 0 ? '★' : String(i), px, y, 9, COLORS.ink, 'center', 950); else txt(String(ROAD[i]), px, y, 7, COLORS.muted, 'center', 800); txt(i === 0 ? 'RAT' : KITS[i].name.slice(0, 4).toUpperCase(), px, y + 23, 7, open ? COLORS.paper : '#657c90', 'center', 800); }
-  }
-
-  function drawArena() {
-    const shakeX = game.shake > 0 ? randomRange(-game.shake * 5, game.shake * 5) : 0, shakeY = game.shake > 0 ? randomRange(-game.shake * 5, game.shake * 5) : 0;
-    ctx.save(); ctx.translate(shakeX, shakeY); ctx.save(); ctx.translate(-camera.x, -camera.y);
-    const bg = ctx.createLinearGradient(0, 0, 0, WORLD.h); bg.addColorStop(0, '#0d2737'); bg.addColorStop(1, '#091822'); ctx.fillStyle = bg; ctx.fillRect(0, 0, WORLD.w, WORLD.h);
-    ctx.strokeStyle = 'rgba(126,186,208,.08)'; ctx.lineWidth = 1;
-    for (let x = 0; x <= WORLD.w; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD.h); ctx.stroke(); }
-    for (let y = 0; y <= WORLD.h; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD.w, y); ctx.stroke(); }
-    ctx.fillStyle = 'rgba(255,214,107,.07)'; ctx.beginPath(); ctx.arc(450, 700, 145 + Math.sin(game.time * 2) * 6, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(255,214,107,.33)'; ctx.lineWidth = 3; ctx.stroke();
-    for (const c of COVERS) { roundRect(c.x + 7, c.y + 8, c.w, c.h, 10, 'rgba(0,0,0,.25)'); roundRect(c.x, c.y, c.w, c.h, 10, '#1b3844', '#315868'); }
-    drawSafe(80, 700, 0, game.safes[0]); drawSafe(820, 700, 1, game.safes[1]);
-    for (const g of game.gems) { const pulse = 1 + Math.sin(game.time * 4 + g.pulse) * .12; ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(Math.PI / 4); ctx.fillStyle = COLORS.gold; ctx.shadowColor = COLORS.gold; ctx.shadowBlur = 14; ctx.fillRect(-8 * pulse, -8 * pulse, 16 * pulse, 16 * pulse); ctx.restore(); }
-    for (const m of game.mines) { ctx.fillStyle = COLORS.red; ctx.beginPath(); ctx.arc(m.x, m.y, 13, 0, TAU); ctx.fill(); ctx.strokeStyle = '#ffd2db'; ctx.stroke(); }
-    for (const t of game.turrets) { ctx.fillStyle = COLORS.blue2; ctx.beginPath(); ctx.arc(t.x, t.y, 18, 0, TAU); ctx.fill(); ctx.strokeStyle = COLORS.blue; ctx.lineWidth = 3; ctx.stroke(); ctx.strokeStyle = COLORS.paper; ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.x + 23, t.y); ctx.stroke(); }
-    for (const p of game.projectiles) { ctx.fillStyle = p.color || (p.team ? COLORS.red : COLORS.blue); ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, TAU); ctx.fill(); }
-    for (const a of game.actors) drawActor(a);
-    for (const p of game.particles) { ctx.globalAlpha = clamp(p.life / p.max, 0, 1); ctx.fillStyle = p.color; ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); } ctx.globalAlpha = 1;
-    for (const t of game.texts) { ctx.globalAlpha = clamp(t.life, 0, 1); txt(t.text, t.x, t.y, 10, t.color, 'center', 900); } ctx.globalAlpha = 1;
-    ctx.restore(); ctx.restore();
-    drawHud();
-  }
-  function drawSafe(x, y, team, health) {
-    ctx.save(); ctx.translate(x, y); ctx.fillStyle = team ? 'rgba(255,107,131,.16)' : 'rgba(93,215,255,.16)'; ctx.beginPath(); ctx.arc(0, 0, 70, 0, TAU); ctx.fill(); roundRect(-32, -37, 64, 74, 12, team ? '#54263a' : '#174056', team ? COLORS.red : COLORS.blue); roundRect(-22, -27, 44, 54, 8, '#0a1722'); ctx.fillStyle = COLORS.gold; ctx.fillRect(-5, -9, 10, 18); ctx.fillStyle = team ? COLORS.red : COLORS.blue; ctx.fillRect(-32, -50, 64 * clamp(health / 100, 0, 1), 5); ctx.restore();
-  }
-  function drawActor(a) {
-    if (!a.alive) { ctx.globalAlpha = .34; ctx.strokeStyle = a.team ? COLORS.red : COLORS.blue; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(a.x, a.y, 18, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1; return; }
-    const k = KITS[a.kit]; ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(angle(a.aim));
-    ctx.fillStyle = a.team ? COLORS.red2 : COLORS.blue2; ctx.beginPath(); ctx.arc(0, 0, a.r + 3, 0, TAU); ctx.fill(); ctx.fillStyle = k.color; ctx.beginPath(); ctx.arc(0, 0, a.r - 3, 0, TAU); ctx.fill(); ctx.fillStyle = '#101c29'; ctx.fillRect(3, -5, 19, 10); ctx.fillStyle = COLORS.paper; ctx.beginPath(); ctx.arc(7, -6, 3, 0, TAU); ctx.fill(); ctx.restore();
-    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(a.x - 24, a.y - 35, 48, 4); ctx.fillStyle = a.team ? COLORS.red : COLORS.blue; ctx.fillRect(a.x - 24, a.y - 35, 48 * clamp(a.hp / a.maxHp, 0, 1), 4);
-    if (a.gems) txt(String(a.gems), a.x, a.y + 37, 11, COLORS.gold, 'center', 950);
-    if (a.human) { ctx.strokeStyle = COLORS.paper; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(a.x, a.y, 29, 0, TAU); ctx.stroke(); }
-  }
-  function drawHud() {
-    ctx.fillStyle = 'rgba(6,15,25,.88)'; ctx.fillRect(0, 0, W, 76);
-    txt(game.mode === 'gem' ? 'GEM HOARD' : 'HEIST', 14, 18, 11, COLORS.gold, 'left', 900);
-    const remain = Math.max(0, MAX_MATCH - game.time); txt(formatTime(remain), W / 2, 19, 18, COLORS.paper, 'center', 950);
-    txt('BLUE ' + teamGems(0), 14, 49, 12, COLORS.blue, 'left', 900); txt('RED ' + teamGems(1), W - 14, 49, 12, COLORS.red, 'right', 900);
-    if (game.mode === 'heist') { ctx.fillStyle = COLORS.blue; ctx.fillRect(W / 2 - 48, 35, 40 * clamp(game.safes[0] / 100, 0, 1), 5); ctx.fillStyle = COLORS.red; ctx.fillRect(W / 2 + 8, 35, 40 * clamp(game.safes[1] / 100, 0, 1), 5); }
-    const hint = game.holdTeam >= 0 ? (game.holdTeam === 0 ? 'BLUE LOCK  ' : 'RED LOCK  ') + game.holdTimer.toFixed(1) + 's' : game.hint;
-    txt(hint, W / 2, 68, 10, game.holdTeam >= 0 ? COLORS.gold : COLORS.muted, 'center', 750);
-    drawSticks(); drawSuper();
-    if (game.flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + clamp(game.flash * .13, 0, .13) + ')'; ctx.fillRect(0, 0, W, H); }
-  }
-  function drawSticks() {
-    const baseY = H - 91, leftX = 74, rightX = W - 74;
-    stick(leftX, baseY, sticks.left, COLORS.blue); stick(rightX, baseY, sticks.right, COLORS.purple);
-  }
-  function stick(x, y, s, color) { ctx.globalAlpha = .38; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 57, 0, TAU); ctx.fill(); ctx.globalAlpha = .5; ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x + s.x * 33, y + s.y * 33, 22, 0, TAU); ctx.fill(); ctx.fillStyle = COLORS.ink; ctx.globalAlpha = .35; ctx.beginPath(); ctx.arc(x + s.x * 33, y + s.y * 33, 10, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
-  function drawSuper() {
-    const p = game.actors[0], x = W / 2, y = H - 91, ready = p && p.super >= 100; ctx.fillStyle = ready ? COLORS.gold : '#263f51'; ctx.beginPath(); ctx.arc(x, y, 31, 0, TAU); ctx.fill(); ctx.strokeStyle = ready ? '#fff0a7' : '#496476'; ctx.lineWidth = 3; ctx.stroke(); txt(ready ? 'SUPER' : Math.floor(p.super) + '%', x, y, ready ? 9 : 10, ready ? COLORS.ink : COLORS.paper, 'center', 950); }
-  function drawResult() {
-    ctx.fillStyle = 'rgba(4,10,17,.84)'; ctx.fillRect(0, 76, W, H - 76);
-    const win = game.result === 'win'; txt(win ? 'FIELD WON' : game.result === 'draw' ? 'FIELD EVEN' : 'FIELD LOST', W / 2, 150, 28, win ? COLORS.green : game.result === 'draw' ? COLORS.gold : COLORS.red, 'center', 950);
-    txt(game.resultReason, W / 2, 180, 12, COLORS.paper, 'center', 800);
-    txt(win ? '+2 TROPHIES' : game.result === 'draw' ? 'NO TROPHY CHANGE' : 'SCRAP THE PLAN', W / 2, 216, 15, COLORS.gold, 'center', 900);
-    txt('TROPHIES  ' + save.trophies + '   ·   WINS  ' + save.wins, W / 2, 247, 11, COLORS.muted, 'center', 750);
-    txt(game.mode === 'gem' ? 'BEST GEM HAUL  ' + save.bestGems : 'BEST SAFE DAMAGE  ' + save.bestHeist + '%', W / 2, 270, 11, COLORS.muted, 'center', 750);
-    txt('TROPHY ROAD', W / 2, 322, 11, COLORS.muted, 'center', 800); drawRoad(20, 356);
-    roundRect(20, H - 92, W - 40, 58, 18, win ? COLORS.green : COLORS.blue); txt('RUN AGAIN', W / 2, H - 63, 16, COLORS.ink, 'center', 950);
-    txt('Tap a kit or mode after the next drop.', W / 2, H - 16, 10, COLORS.muted, 'center', 700);
-  }
-  function formatTime(t) { const m = Math.floor(t / 60), s = Math.floor(t % 60); return m + ':' + String(s).padStart(2, '0'); }
-
-  function canvasPoint(e) { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; }
-  function setStick(name, p) { const baseX = name === 'left' ? 74 : W - 74, baseY = H - 91, dx = p.x - baseX, dy = p.y - baseY, l = Math.hypot(dx, dy), max = 57, m = Math.min(1, l / max); if (!l) { sticks[name].x = sticks[name].y = 0; return; } sticks[name].x = dx / l * m; sticks[name].y = dy / l * m; }
-  function inCircle(p, x, y, r) { return Math.hypot(p.x - x, p.y - y) <= r; }
-  function handleMenuTap(p) {
-    const modeW = (W - 52) / 2;
-    if (p.y >= 160 && p.y <= 229) { save.mode = p.x < W / 2 ? 'gem' : 'heist'; saveProgress(); tone(310, .05, 'sine', .02); return; }
-    if (p.y >= 330 && p.y <= 465) { const cardW = (W - 52) / 4, col = clamp(Math.floor((p.x - 10) / (cardW + 4)), 0, 3), row = p.y < 397 ? 0 : 1, i = row * 4 + col; if (unlocked(i)) { save.selectedKit = i; saveProgress(); tone(420, .05, 'sine', .02); } return; }
-    if (p.y >= H - 110) { unlockAudio(); newMatch(save.mode); }
-  }
-  function onPointerDown(e) {
-    e.preventDefault(); if (orientationBlocked) return; try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* capture is optional */ } const p = canvasPoint(e);
-    if (!game || game.status === 'menu') { buttons.menu = e.pointerId; handleMenuTap(p); return; }
-    if (game.status === 'result') { if (p.y >= H - 115) { buttons.menu = e.pointerId; newMatch(game.mode); } return; }
-    if (inCircle(p, W / 2, H - 91, 38)) { if (buttons.super === null) { buttons.super = e.pointerId; pushAction({ type: 'super' }); } return; }
-    if (inCircle(p, 74, H - 91, 61) && sticks.left.id === null) { sticks.left.id = e.pointerId; setStick('left', p); return; }
-    if (inCircle(p, W - 74, H - 91, 61) && sticks.right.id === null) { sticks.right.id = e.pointerId; setStick('right', p); return; }
-  }
-  function onPointerMove(e) { e.preventDefault(); if (orientationBlocked || !game || game.status !== 'playing') return; const p = canvasPoint(e); if (e.pointerId === sticks.left.id) setStick('left', p); if (e.pointerId === sticks.right.id) setStick('right', p); }
-  function onPointerUp(e) { e.preventDefault(); try { canvas.releasePointerCapture(e.pointerId); } catch (err) { /* capture is optional */ } if (e.pointerId === sticks.left.id) { sticks.left.id = null; sticks.left.x = sticks.left.y = 0; } if (e.pointerId === sticks.right.id) { if (Math.hypot(sticks.right.x, sticks.right.y) > .2) pushAction({ type: 'fire', dir: norm(sticks.right.x, sticks.right.y) }); sticks.right.id = null; sticks.right.x = sticks.right.y = 0; } if (e.pointerId === buttons.super) buttons.super = null; if (e.pointerId === buttons.menu) buttons.menu = null; }
-  function onKeyDown(e) { const allowed = ['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ']; if (allowed.includes(e.key)) { e.preventDefault(); if (e.key === ' ' && !e.repeat) pushAction({ type: 'super' }); keys.add(e.key); } if ((e.key === 'Enter' || e.key === ' ') && game && (game.status === 'menu' || game.status === 'result') && !e.repeat) { unlockAudio(); if (game.status === 'menu') newMatch(save.mode); else newMatch(game.mode); } }
-  function onKeyUp(e) { keys.delete(e.key); }
-  function onBlur() { resetInput(); }
-
-  canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
-  canvas.addEventListener('pointermove', onPointerMove, { passive: false });
-  canvas.addEventListener('pointerup', onPointerUp, { passive: false });
-  canvas.addEventListener('pointercancel', onPointerUp, { passive: false });
-  canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false }); canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false }); canvas.addEventListener('touchend', e => e.preventDefault(), { passive: false });
-  window.addEventListener('keydown', onKeyDown, { passive: false }); window.addEventListener('keyup', onKeyUp, { passive: false }); window.addEventListener('blur', onBlur); window.addEventListener('resize', resize); window.addEventListener('orientationchange', resize);
-
-  function boot(now) {
-    const dt = lastFrame ? Math.min(.033, Math.max(0, (now - lastFrame) / 1000)) : 0; lastFrame = now;
-    updateOrientation();
-    if (!orientationBlocked && game && game.status === 'playing') update(dt);
-    draw(); requestAnimationFrame(boot);
-  }
-  resize(); game = { status: 'menu' }; requestAnimationFrame(boot);
+  try {
+    new Phaser.Game({ type: Phaser.AUTO, parent: 'stage', backgroundColor: C.ink, scale: { mode: Phaser.Scale.RESIZE, width: WORLD_W, height: WORLD_H, autoCenter: Phaser.Scale.CENTER_BOTH }, render: { antialias: false, pixelArt: true, roundPixels: true, powerPreference: 'high-performance' }, fps: { target: 60, min: 30 }, scene: [BootScene, MenuScene, PlayScene] });
+  } catch (err2) { hook.error = String(err2 && err2.message || err2); state.phase = 'error'; }
 })();

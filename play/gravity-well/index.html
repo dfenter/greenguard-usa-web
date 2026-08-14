@@ -1,260 +1,111 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/gravity-well/">
+<head>
+  <base href="/play/gravity-well/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#08111d">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#050b16">
+  <meta name="description" content="Gravity Well: precision lander descents through seeded cavern expeditions.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon512.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="icon.png">
   <title>Gravity Well</title>
   <style>
-    :root {
-      color-scheme: dark;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      background: #050a12;
-    }
-
+    :root { color-scheme: dark; font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
     * { box-sizing: border-box; }
-
-    html, body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-      background: #050a12;
-    }
-
-    body {
-      display: grid;
-      place-items: center;
-      overscroll-behavior: none;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    #game-frame {
-      position: relative;
-      width: min(100vw, calc(100dvh * 390 / 700));
-      height: min(100dvh, calc(100vw * 700 / 390));
-      aspect-ratio: 390 / 700;
-      overflow: hidden;
-      background: #08111d;
-      box-shadow: 0 0 0 1px #17293b, 0 20px 80px #000b;
-      touch-action: none;
-    }
-
-    canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      touch-action: none;
-    }
-
-    #hud {
-      position: absolute;
-      inset: 0 0 auto;
-      height: 84px;
-      padding: 15px 16px 0;
-      pointer-events: none;
-      color: #d8f4ff;
-      text-shadow: 0 2px 6px #000;
-      letter-spacing: .04em;
-    }
-
-    #title-row, #data-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    #title-row {
-      color: #85e9ff;
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: .14em;
-    }
-
-    #data-row {
-      margin-top: 10px;
-      color: #d9e7ed;
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    #fuel-wrap {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-width: 122px;
-      justify-content: flex-end;
-    }
-
-    #fuel-bar {
-      width: 63px;
-      height: 7px;
-      overflow: hidden;
-      border: 1px solid #6b8b9a;
-      background: #162733;
-    }
-
-    #fuel-fill {
-      width: 100%;
-      height: 100%;
-      background: #70f4b0;
-      transform-origin: left center;
-    }
-
-    #hint {
-      position: absolute;
-      left: 12px;
-      right: 12px;
-      bottom: 155px;
-      color: #b9dce4;
-      text-align: center;
-      font-size: 10px;
-      line-height: 1.3;
-      letter-spacing: .03em;
-      opacity: 0;
-      transition: opacity .35s ease;
-      pointer-events: none;
-      text-shadow: 0 2px 7px #000;
-    }
-
-    #hint.visible { opacity: .9; }
-
-    #state-screen {
-      position: absolute;
-      inset: 0;
-      display: none;
-      place-items: center;
-      padding: 90px 28px 180px;
-      background: linear-gradient(180deg, #06111dcc, #06111de8);
-      text-align: center;
-      pointer-events: auto;
-    }
-
-    #state-screen.visible { display: grid; }
-
-    #state-card { max-width: 290px; }
-
-    #state-kicker {
-      margin-bottom: 12px;
-      color: #71f2b1;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .18em;
-    }
-
-    #state-title {
-      margin: 0;
-      color: #eafaff;
-      font-size: 28px;
-      line-height: 1;
-      letter-spacing: .08em;
-      text-shadow: 0 0 22px #73def077;
-    }
-
-    #state-copy {
-      margin: 17px 0 24px;
-      color: #c7dbe1;
-      font-size: 11px;
-      line-height: 1.65;
-    }
-
-    #restart {
-      min-width: 168px;
-      min-height: 50px;
-      border: 1px solid #78eec0;
-      border-radius: 4px;
-      color: #051017;
-      background: #76efb6;
-      font: 800 12px ui-monospace, SFMono-Regular, Menlo, monospace;
-      letter-spacing: .12em;
-      box-shadow: 0 0 24px #54edb544;
-      touch-action: none;
-    }
-
-    #controls {
-      position: absolute;
-      left: 10px;
-      right: 10px;
-      bottom: 11px;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      align-items: end;
-      gap: 9px;
-      pointer-events: none;
-    }
-
-    .control {
-      min-width: 0;
-      min-height: 70px;
-      border: 1px solid #557181;
-      border-radius: 9px;
-      color: #dff8ff;
-      background: linear-gradient(180deg, #173345e8, #0b1b2be8);
-      box-shadow: inset 0 1px #c4effc22, 0 4px 14px #0008;
-      font: 800 11px ui-monospace, SFMono-Regular, Menlo, monospace;
-      letter-spacing: .12em;
-      pointer-events: auto;
-      touch-action: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .control::before {
-      display: block;
-      margin-bottom: 7px;
-      color: #7fe9f8;
-      font-size: 20px;
-      line-height: 1;
-    }
-
-    #left-control::before { content: '↶'; }
-    #main-control::before { content: '↑'; }
-    #right-control::before { content: '↷'; }
-
-    .control.active, .control:active {
-      color: #041016;
-      border-color: #a6ffe2;
-      background: #74eeb6;
-      box-shadow: 0 0 26px #5cf3b777, inset 0 1px #eaffff;
-    }
-
-    .control.active::before, .control:active::before { color: #041016; }
-
-    @media (min-width: 700px) {
-      #game-frame { border-radius: 16px; }
-    }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:#030710; }
+    body { display:grid; place-items:center; overscroll-behavior:none; touch-action:none; user-select:none; -webkit-user-select:none; }
+    #frame { position:relative; width:min(100vw, calc(100dvh * 390 / 700)); height:min(100dvh, calc(100vw * 700 / 390)); aspect-ratio:390 / 700; overflow:hidden; background:#07111f; box-shadow:0 0 0 1px #21364b, 0 22px 90px #000d; }
+    #game { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+    canvas { display:block; touch-action:none; }
+    .safe-top { padding-top:env(safe-area-inset-top); }
+    #hud { position:absolute; z-index:4; inset:0 0 auto; height:64px; padding:max(10px,env(safe-area-inset-top)) 60px 0 14px; pointer-events:none; color:#dff8ff; text-shadow:0 2px 8px #000; }
+    #telemetry-row { display:flex; align-items:center; justify-content:flex-start; gap:12px; min-height:28px; color:#d8e9f0; font-size:14px; font-weight:900; letter-spacing:.02em; }
+    #score-readout, #depth-readout, #shield-readout { white-space:nowrap; }
+    #fuel-wrap { display:flex; align-items:center; gap:6px; margin-left:auto; min-width:88px; justify-content:flex-end; }
+    .hud-icon { color:#8ceaff; font-size:16px; line-height:1; }
+    #fuel-bar { width:70px; height:8px; border:1px solid #688594; background:#142431; overflow:hidden; }
+    #fuel-fill { display:block; width:100%; height:100%; transform-origin:left center; background:#82f5bf; }
+    #coach { position:absolute; z-index:5; top:calc(68px + env(safe-area-inset-top)); left:12px; right:12px; height:34px; max-height:40px; padding:8px 11px; border:1px solid #4e8292; border-radius:5px; color:#d6f8ff; background:linear-gradient(90deg,#091827df,#143040df,#091827df); font-size:14px; line-height:1; text-align:center; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0; transform:translateY(-5px); transition:opacity .2s ease,transform .2s ease; pointer-events:none; }
+    #coach.active { opacity:.94; transform:translateY(0); }
+    #coach.stale { opacity:.14; }
+    #coach.event { left:auto; right:12px; width:auto; max-width:calc(100% - 24px); border-color:var(--chip-accent,#71ecff); border-left-width:3px; background:#071725ed; text-align:left; }
+    #coach.event.active { opacity:.96; }
+    @media (prefers-reduced-motion: reduce) { #coach { transition:none; transform:none; } }
+    #damage-vignette { position:absolute; z-index:6; inset:0; pointer-events:none; opacity:0; background:radial-gradient(ellipse at center, transparent 35%, #ff334866 80%, #ff334799 100%); transition:opacity .06s linear; }
+    #pause-pill { position:absolute; z-index:6; top:calc(68px + env(safe-area-inset-top)); right:12px; display:none; padding:5px 8px; border:1px solid #6e8fa1; border-radius:4px; color:#dff8ff; background:#07111ddd; font-size:12px; letter-spacing:.08em; pointer-events:none; }
+    #menu, #result { position:absolute; z-index:8; inset:0; display:none; padding:92px 18px 112px; align-items:center; justify-content:center; background:linear-gradient(180deg,#050c18d9 0%,#071626e8 58%,#06101cfa 100%); }
+    #menu.visible, #result.visible { display:flex; }
+    .panel { width:min(100%,350px); max-height:100%; overflow:auto; padding:22px 18px 18px; border:1px solid #416476; border-radius:12px; background:linear-gradient(160deg,#0b2030f5,#081421f5); box-shadow:0 12px 40px #0009, inset 0 1px #d5f7ff22; }
+    .eyebrow { color:#80f3cb; font-size:10px; font-weight:900; letter-spacing:.18em; text-align:center; }
+    h1 { margin:9px 0 8px; color:#effdff; font-size:31px; line-height:1; letter-spacing:.08em; text-align:center; text-shadow:0 0 24px #67e7ff55; }
+    .panel-copy { margin:0 auto 17px; max-width:280px; color:#a9cad3; font-size:10px; line-height:1.55; text-align:center; }
+    .expedition-list { display:grid; gap:8px; }
+    .expedition { position:relative; min-height:52px; padding:9px 38px 8px 11px; border:1px solid #315266; border-radius:7px; color:#e0faff; background:#0c1c2ae8; font:800 10px ui-monospace,monospace; text-align:left; letter-spacing:.06em; }
+    .expedition small { display:block; margin-top:4px; color:#8fb5c2; font-size:8px; font-weight:400; letter-spacing:0; }
+    .expedition .lock { position:absolute; top:18px; right:12px; color:#6c8692; }
+    .expedition:not(:disabled):active, .expedition:not(:disabled):focus-visible { color:#041019; border-color:#aaffdf; background:#79f1ba; outline:none; }
+    .expedition:not(:disabled):active small, .expedition:not(:disabled):focus-visible small { color:#184d4a; }
+    .expedition:disabled { opacity:.45; }
+    #result .panel { text-align:center; }
+    #result-kicker { color:#80f3cb; font-size:10px; font-weight:900; letter-spacing:.18em; }
+    #result-title { margin:9px 0; color:#effdff; font-size:28px; letter-spacing:.08em; }
+    #result-copy { margin:0 auto 18px; color:#bfdce4; font-size:10px; line-height:1.65; }
+    .primary { min-height:46px; min-width:190px; padding:0 18px; border:1px solid #a6ffe1; border-radius:6px; color:#041016; background:#7af2bc; box-shadow:0 0 24px #65f3b244; font:900 11px ui-monospace,monospace; letter-spacing:.11em; }
+    .secondary { margin-top:9px; min-height:36px; padding:0 15px; border:1px solid #547381; border-radius:5px; color:#cdebf1; background:#102635; font:800 9px ui-monospace,monospace; letter-spacing:.09em; }
+    #controls { position:absolute; z-index:7; left:10px; right:10px; bottom:calc(10px + env(safe-area-inset-bottom)); display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; pointer-events:none; }
+    .control { min-height:67px; border:1px solid #507384; border-radius:8px; color:#ddf8ff; background:linear-gradient(180deg,#173649ed,#0b1a29ed); box-shadow:inset 0 1px #dcfbff25,0 4px 15px #0009; font:900 26px/1 ui-monospace,monospace; pointer-events:auto; touch-action:none; -webkit-tap-highlight-color:transparent; }
+    .control.active, .control:active { color:#041016; border-color:#b2ffe4; background:#7af2bc; box-shadow:0 0 25px #6af4bc77,inset 0 1px #efffff; }
+    #settings { position:absolute; z-index:9; top:max(8px,env(safe-area-inset-top)); right:8px; display:none; width:44px; height:44px; border:1px solid #507384; border-radius:50%; color:#b9dce5; background:#071725cc; font-size:14px; pointer-events:auto; }
+    #settings.visible { display:block; }
+    @media (min-width:700px) { #frame { border-radius:16px; } }
   </style>
 </head>
 <body>
-  <main id="game-frame" aria-label="Gravity Well precision descent game">
-    <canvas id="game" aria-label="Cavern game field"></canvas>
-    <div id="hud">
-      <div id="title-row"><span>GRAVITY WELL</span><span id="stage-readout">CAVERN 01</span></div>
-      <div id="data-row">
-        <span id="score-readout">SCORE 00000</span>
-        <span id="depth-readout">DEPTH 000</span>
-        <span id="fuel-wrap">FUEL <span id="fuel-bar"><span id="fuel-fill"></span></span></span>
-      </div>
-    </div>
-    <div id="hint">STEER WITH ◀ / ▶ · HOLD BOTH FOR MAIN BURN</div>
-    <section id="state-screen" aria-live="polite">
-      <div id="state-card">
-        <div id="state-kicker">RUN OVER</div>
-        <h1 id="state-title">CRASHED</h1>
-        <p id="state-copy"></p>
-        <button id="restart" type="button">RESTART RUN</button>
+  <main id="frame" aria-label="Gravity Well precision descent lander">
+    <div id="game"></div>
+    <section id="hud" class="safe-top" aria-live="off">
+      <div id="telemetry-row">
+        <span id="score-readout" aria-label="Score">★ 00000</span>
+        <span id="depth-readout" aria-label="Depth">↓ 000</span>
+        <span id="fuel-wrap" aria-label="Fuel"><span class="hud-icon" aria-hidden="true">⛽</span><span id="fuel-bar" role="progressbar" aria-label="Fuel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="fuel-fill"></span></span></span>
+        <span id="shield-readout" aria-label="Shield charges">◇ 0</span>
       </div>
     </section>
-    <nav id="controls" aria-label="Thrust controls">
-      <button class="control" id="left-control" type="button" aria-label="Rotate left and thrust">LEFT</button>
-      <button class="control" id="main-control" type="button" aria-label="Main engine straight burn">MAIN</button>
-      <button class="control" id="right-control" type="button" aria-label="Rotate right and thrust">RIGHT</button>
+    <div id="coach"></div>
+    <div id="damage-vignette" aria-hidden="true"></div>
+    <div id="pause-pill">PAUSED</div>
+    <button id="settings" type="button" aria-label="Open settings">⚙</button>
+    <section id="menu" aria-label="Expedition selection">
+      <div class="panel">
+        <div class="eyebrow">PRECISION DESCENT PROGRAM</div>
+        <h1>GRAVITY WELL</h1>
+        <p class="panel-copy">Carry momentum through seeded caverns. Find the shortcut, land softly on refuel pads, and bring the lander to the beacon.</p>
+        <div id="expedition-list" class="expedition-list"></div>
+      </div>
+    </section>
+    <section id="result" aria-live="assertive">
+      <div class="panel">
+        <div id="result-kicker">DESCENT COMPLETE</div>
+        <h2 id="result-title">MEDAL</h2>
+        <p id="result-copy"></p>
+        <button id="result-action" class="primary" type="button">NEXT DESCENT</button>
+        <button id="result-menu" class="secondary" type="button">EXPEDITION SELECT</button>
+      </div>
+    </section>
+    <nav id="controls" aria-label="Lander controls">
+      <button class="control" id="left-control" type="button" aria-label="Rotate left and thrust">↶</button>
+      <button class="control" id="main-control" type="button" aria-label="Main engine straight burn">↑</button>
+      <button class="control" id="right-control" type="button" aria-label="Rotate right and thrust">↷</button>
     </nav>
   </main>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

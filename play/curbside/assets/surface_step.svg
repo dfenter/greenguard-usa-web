@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 44" role="img" aria-label="painted stair tread">
+  <path d="M2 4H78V42H2Z" fill="#171a2a" opacity=".6"/>
+  <path d="M2 2H78V13H2Z" fill="#d8e5f1"/>
+  <path d="M2 13H78V22H2Z" fill="#91a4bd"/>
+  <path d="M2 22H78V31H2Z" fill="#647690"/>
+  <path d="M2 31H78V40H2Z" fill="#3b4b68"/>
+  <path d="M4 3H76M4 14H76M4 23H76M4 32H76" stroke="#ffffff" stroke-width="2" opacity=".45"/>
+  <path d="M6 7h18m12 0h18m12 0h12" stroke="#6eebff" stroke-width="2" opacity=".55"/>
+</svg>

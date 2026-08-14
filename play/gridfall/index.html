@@ -1,92 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><base href="/play/gridfall/">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0e1220">
-<title>Gridfall</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;width:100%;overflow:hidden;background:#0e1220;color:#e8ecf8;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
-#app{position:fixed;inset:0;display:flex;flex-direction:column}
-#hud{flex:0 0 auto;padding:6px 10px 2px;display:flex;flex-direction:column;gap:5px}
-#tabs{display:flex;gap:8px}
-.tab{flex:1;min-height:38px;border:1px solid #2d3a63;background:#161c31;color:#9fb0d8;
-  border-radius:10px;font-size:14px;font-weight:700;letter-spacing:.08em}
-.tab.on{background:#2b4ea8;color:#fff;border-color:#4d7bea}
-#stats{display:flex;justify-content:space-between;align-items:baseline;font-variant-numeric:tabular-nums}
-.stat{display:flex;flex-direction:column;line-height:1.05}
-.stat b{font-size:20px;font-weight:800}
-.stat span{font-size:9px;letter-spacing:.14em;color:#7f8fb8}
-.stat.r{text-align:right}
-#cv{flex:1 1 auto;display:block;width:100%;touch-action:none}
-#hint{flex:0 0 auto;text-align:center;font-size:10px;color:#8493bd;padding:3px 4px 7px;
-  white-space:nowrap;overflow:hidden;letter-spacing:-.01em}
-.ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  background:rgba(8,10,20,.86);backdrop-filter:blur(3px);padding:16px;z-index:9;text-align:center}
-.ov.hide{display:none}
-.card{width:100%;max-width:330px;background:#141a2e;border:1px solid #2d3a63;border-radius:16px;padding:16px}
-.card h1{font-size:26px;letter-spacing:.06em;margin-bottom:2px}
-.card h2{font-size:16px;color:#9fb0d8;font-weight:600;margin-bottom:10px}
-.big{font-size:44px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
-.sub{font-size:12px;color:#8493bd;margin-top:4px}
-.nb{display:inline-block;margin-top:6px;background:#2b7a4b;color:#fff;font-size:11px;font-weight:800;
-  letter-spacing:.1em;padding:4px 9px;border-radius:99px}
-.btn{display:block;width:100%;min-height:50px;margin-top:10px;border:0;border-radius:12px;
-  background:#4d7bea;color:#fff;font-size:16px;font-weight:800;letter-spacing:.05em}
-.btn.alt{background:#242e4d;color:#c5d2f2}
-#hist{margin-top:12px;text-align:left;max-height:150px;overflow-y:auto;border-top:1px solid #263156;padding-top:8px}
-#hist .hh{font-size:9px;letter-spacing:.14em;color:#7f8fb8;margin-bottom:5px}
-.row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:#b9c6ea;font-variant-numeric:tabular-nums}
-.row i{font-style:normal;color:#7f8fb8}
-</style>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#182238">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Gridfall</title>
+  <base href="/play/gridfall/">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+  <style>
+    :root { color-scheme: dark; background: #182238; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #182238; touch-action: none; overscroll-behavior: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+    body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  </style>
 </head>
 <body>
-<div id="app">
-  <div id="hud">
-    <div id="tabs">
-      <button class="tab on" id="tabM">MARATHON</button>
-      <button class="tab" id="tabD">DAILY</button>
-    </div>
-    <div id="stats">
-      <div class="stat"><b id="sScore">0</b><span>SCORE</span></div>
-      <div class="stat" style="text-align:center"><b id="sStreak">0</b><span>STREAK</span></div>
-      <div class="stat r"><b id="sBest">0</b><span>BEST</span></div>
-    </div>
-  </div>
-  <canvas id="cv"></canvas>
-  <div id="hint">Drag pieces onto the grid &middot; clear full rows &amp; columns &middot; keys &larr;&uarr;&darr;&rarr; 1/2/3 Space</div>
-</div>
-
-<div class="ov" id="ovStart">
-  <div class="card">
-    <h1>GRIDFALL</h1>
-    <h2>fit blocks &middot; clear lines &middot; free forever</h2>
-    <button class="btn" id="btnStart">TAP TO PLAY</button>
-  </div>
-</div>
-
-<div class="ov hide" id="ovRot">
-  <div class="card"><h1>&#8635;</h1><h2>Rotate your device to portrait</h2><div class="sub">Game paused</div></div>
-</div>
-
-<div class="ov hide" id="ovOver">
-  <div class="card">
-    <h1 id="oTitle">NO ROOM LEFT</h1>
-    <div class="big" id="oScore">0</div>
-    <div class="sub" id="oSub">Marathon &middot; best 0</div>
-    <div id="oBadge"></div>
-    <div id="hist"><div class="hh">LAST RUNS</div><div id="histRows"></div></div>
-    <button class="btn" id="btnAgain">PLAY AGAIN</button>
-    <button class="btn alt" id="btnSwap">SWITCH MODE</button>
-  </div>
-</div>
-
-<script src="util.js"></script>
-<script src="audio.js"></script>
-<script src="game.js"></script>
-<script src="main.js"></script>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="game.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>

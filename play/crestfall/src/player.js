@@ -20,9 +20,19 @@ export class Player {
     // State machine
     this.state = 'stand'; // stand|walk|jump|fall|crouch|attack|attackup|attackdown|damage|dead
     this.attackTimer = 0;
-    this.attackDuration = 12;
+    this.attackDuration = PLAYER.ATTACK_WINDUP + PLAYER.ATTACK_ACTIVE + PLAYER.ATTACK_RECOVERY;
+    this.attackElapsed = 0;
+    this.attackPhase = 'ready';
+    this.attackPulse = false;
     this.iframes = 0;     // invincibility frames after hit
     this.damageTimer = 0;
+    this.coyoteTimer = 0;
+    this.jumpBufferTimer = 0;
+    this.parryTimer = 0;
+    this.guardFlash = 0;
+    this.lastHitResult = null;
+    this.lastRuneEvent = null;
+    this.runeCooldowns = {};
 
     // Combat
     this.swordActive = false;
@@ -30,7 +40,10 @@ export class Player {
 
     // Projectiles from fire spell
     this.fireballs = [];
+    this.arcBolts = [];
     this.swordBeam = null;
+    this.thunderPulse = false;
+    this.spellTick = 0;
 
     // Animation
     this.walkFrame = 0;
@@ -70,6 +83,9 @@ export class Player {
     // Inventory
     this.keys = 0;
     this.crystals = 0; // palaces cleared
+    this.sigilFragments = 0;
+    this.claimedRewards = {};
+    this.defeatedEnemies = {};
 
     // Overworld position - start on road near North Palace (row 1, col 8)
     this.owX = 8;
@@ -79,6 +95,19 @@ export class Player {
   // Sideview logic called every frame
   update(input, platforms, enemies, scene) {
     if (this.state === 'dead') return;
+
+    this.attackPulse = false;
+    this.lastHitResult = null;
+    this.lastRuneEvent = null;
+    this.spellTick++;
+    if (this.onGround) this.coyoteTimer = PLAYER.COYOTE_FRAMES;
+    else this.coyoteTimer = Math.max(0, this.coyoteTimer - 1);
+    if (this.jumpBufferTimer > 0) this.jumpBufferTimer--;
+    if (this.parryTimer > 0) this.parryTimer--;
+    if (this.guardFlash > 0) this.guardFlash--;
+    for (const name of Object.keys(this.runeCooldowns)) {
+      this.runeCooldowns[name] = Math.max(0, this.runeCooldowns[name] - 1);
+    }
 
     // Tick iframes
     if (this.iframes > 0) this.iframes--;
@@ -94,13 +123,19 @@ export class Player {
       if (frames <= 0) delete this.activeSpells[name];
       else this.activeSpells[name]--;
     }
+    if (this.activeSpells.FAIRY && this.spellTick % 90 === 0) {
+      this.hp = Math.min(this.maxHp, this.hp + 2);
+    }
 
     // Attack timer
     if (this.attackTimer > 0) {
       this.attackTimer--;
+      this.attackElapsed++;
+      this._updateAttackPhase();
       if (this.attackTimer === 0) {
         this.swordActive = false;
         this.swordBox = null;
+        this.attackPhase = 'ready';
         if (this.state === 'attack' || this.state === 'attackup' || this.state === 'attackdown') {
           this.state = this.onGround ? (this._isMoving(input) ? 'walk' : 'stand') : 'fall';
         }
@@ -113,12 +148,15 @@ export class Player {
     const attacking = this.attackTimer > 0;
 
     // Jump
-    if (!attacking && input.pressA && this.onGround) {
+    if (!attacking && input.pressA) this.jumpBufferTimer = PLAYER.JUMP_BUFFER_FRAMES;
+    if (!attacking && this.jumpBufferTimer > 0 && (this.onGround || this.coyoteTimer > 0)) {
       this.vy = PLAYER.JUMP_VEL;
       if (this.spells.JUMP && this.activeSpells.JUMP) {
         this.vy = PLAYER.JUMP_VEL * 1.6; // super jump
       }
       this.onGround = false;
+      this.coyoteTimer = 0;
+      this.jumpBufferTimer = 0;
       this.state = 'jump';
     }
 
@@ -163,8 +201,11 @@ export class Player {
     // same time as the crouch check preceding it) — holding down made
     // shielding unreachable entirely. Repaired: both standing and crouching
     // shield, tagged with the stance they defend.
+    const wasShielding = this.shielding;
     this.shielding = this.onGround && !attacking && (this.state === 'stand' || this.state === 'crouch');
     this.shieldStance = this.state === 'crouch' ? 'low' : 'high';
+    if (this.shielding && !wasShielding) this.parryTimer = PLAYER.PARRY_WINDOW;
+    if (!this.shielding) this.parryTimer = 0;
 
     // --- Physics ---
     // Gravity
@@ -210,13 +251,34 @@ export class Player {
 
   _startAttack(input) {
     this.attackTimer = this.attackDuration;
-    this.swordActive = true;
+    this.attackElapsed = 0;
+    this.attackPhase = 'windup';
+    this.swordActive = false;
+    this.attackPulse = true;
     if (!this.onGround && input.down) {
       this.state = 'attackdown';
     } else if (input.up) {
       this.state = 'attackup';
     } else {
       this.state = 'attack';
+    }
+  }
+
+  _updateAttackPhase() {
+    if (this.attackTimer <= 0) {
+      this.attackPhase = 'ready';
+      this.swordActive = false;
+      return;
+    }
+    if (this.attackElapsed < PLAYER.ATTACK_WINDUP) {
+      this.attackPhase = 'windup';
+      this.swordActive = false;
+    } else if (this.attackElapsed < PLAYER.ATTACK_WINDUP + PLAYER.ATTACK_ACTIVE) {
+      this.attackPhase = 'active';
+      this.swordActive = true;
+    } else {
+      this.attackPhase = 'recovery';
+      this.swordActive = false;
     }
   }
 
@@ -292,6 +354,11 @@ export class Player {
       // Simple gravity if needed
       return f.x > 0 && f.x < scene.w && f.y > 0 && f.y < scene.h;
     });
+    this.arcBolts = this.arcBolts.filter(f => {
+      f.x += f.vx;
+      f.y += f.vy;
+      return f.x > 0 && f.x < scene.w && f.y > 0 && f.y < scene.h;
+    });
     // Sword beam
     if (this.swordBeam) {
       this.swordBeam.x += this.swordBeam.vx;
@@ -308,9 +375,9 @@ export class Player {
     };
   }
 
-  fireSpell() {
-    if (!this.spells.FIRE || this.mp < 6) return;
-    this.mp -= 6;
+  fireSpell(consume = true) {
+    if (!this.spells.FIRE || (consume && this.mp < 6)) return false;
+    if (consume) this.mp -= 6;
     this.fireballs.push({
       x: this.x + (this.facing === 1 ? this.w : -12),
       y: this.y + 4,
@@ -318,6 +385,7 @@ export class Player {
       vy: 0,
       w: 8, h: 6,
     });
+    return true;
   }
 
   // attackType: 'high' | 'low' classifies the incoming attack's origin
@@ -327,16 +395,24 @@ export class Player {
   // behavior for those call sites, which is a deliberate, explicit gap
   // rather than the previous universal, direction-less reduction).
   takeDamage(amount, attackType = 'mid') {
-    if (this.iframes > 0 || this.state === 'dead') return;
+    if (this.iframes > 0 || this.state === 'dead') return false;
     // R5 repair: directional shield block. Standing shield blocks 'high'
     // attacks, crouch shield blocks 'low' attacks; a mismatched or
     // unclassified attackType is not blocked.
     if (this.shielding && this.shieldStance === attackType) {
+      if (this.parryTimer > 0) {
+        this.lastHitResult = 'parry';
+        this.guardFlash = 12;
+        return false;
+      }
+      this.lastHitResult = 'block';
       if (this.spells.SHIELD && this.activeSpells.SHIELD) {
         amount = Math.max(1, Math.floor(amount / 2));
       } else {
         amount = Math.max(1, Math.floor(amount * 0.75));
       }
+    } else {
+      this.lastHitResult = 'hit';
     }
     this.hp -= amount;
     this.iframes = PLAYER.IFRAME_DURATION;
@@ -349,6 +425,7 @@ export class Player {
       this.hp = 0;
       this._die();
     }
+    return true;
   }
 
   _die() {
@@ -418,22 +495,57 @@ export class Player {
 
   castSpell(name) {
     const spell = SPELLS[name];
-    if (!spell || !this.spells[name] || this.mp < spell.cost) return false;
+    if (!spell || !this.spells[name]) {
+      this.lastRuneEvent = { name, result: 'unknown' };
+      return false;
+    }
+    if (this.runeCooldowns[name] > 0) {
+      this.lastRuneEvent = { name, result: 'cooldown', remaining: this.runeCooldowns[name] };
+      return false;
+    }
+    if (this.mp < spell.cost) {
+      this.lastRuneEvent = { name, result: 'empty' };
+      return false;
+    }
     this.mp -= spell.cost;
+    this.runeCooldowns[name] = 45;
     if (name === 'LIFE') {
       this.hp = Math.min(this.maxHp, this.hp + Math.floor(this.maxHp / 2));
+      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
       return true;
     }
     if (name === 'FIRE') {
-      this.fireSpell();
+      this.fireSpell(false);
+      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
+      return true;
+    }
+    if (name === 'SPELL') {
+      this.arcBolts.push({
+        x: this.x + (this.facing === 1 ? this.w : -10),
+        y: this.y + 5,
+        vx: this.facing * 3.5,
+        vy: 0,
+        w: 10,
+        h: 6,
+        damage: this.atkPower + 4,
+        type: 'arc',
+      });
+      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
+      return true;
+    }
+    if (name === 'THUNDER') {
+      this.thunderPulse = true;
+      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
       return true;
     }
     // Duration spells (300 frames = 5 seconds)
-    const durSpells = ['SHIELD','JUMP','FAIRY','REFLECT','SPELL','THUNDER'];
+    const durSpells = ['SHIELD', 'JUMP', 'FAIRY', 'REFLECT'];
     if (durSpells.includes(name)) {
       this.activeSpells[name] = 300;
+      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
       return true;
     }
+    this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
     return true;
   }
 

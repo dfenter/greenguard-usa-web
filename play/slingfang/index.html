@@ -1,38 +1,80 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/slingfang/">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#0d121b">
-  <title>Slingfang</title>
-  <link rel="stylesheet" href="style.css">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#070c14">
+<meta name="description" content="Slingfang - a flick creature arena. Pull back from the fang, bank off the walls, break the formation.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/slingfang/">
+<title>Slingfang</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  /* Authored type system. Two CC0 faces ship with the game (see LICENSES.md);
+     nothing is fetched from a CDN. Display carries titles, numerals and
+     anything read under pressure; Body carries prose. ASCII subsets, ~1.4 KB. */
+  @font-face {
+    font-family: 'SF Display';
+    src: url('assets/sf_display.woff2') format('woff2');
+    font-weight: 100 900; font-style: normal; font-display: block;
+  }
+  @font-face {
+    font-family: 'SF Body';
+    src: url('assets/sf_body.woff2') format('woff2');
+    font-weight: 100 900; font-style: normal; font-display: block;
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #070c14; color: #e8fff8;
+    font-family: 'SF Body', Verdana, system-ui, sans-serif;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; touch-action: none; }
+  /* Safe-area insets: the notch and the home bar never take a HUD row. */
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing: border-box;
+  }
+</style>
 </head>
 <body>
-  <main id="gameShell" aria-label="Slingfang mobile game">
-    <canvas id="gameCanvas" aria-label="Slingfang playfield"></canvas>
-    <div id="rotateLayer" class="modal-layer" aria-live="polite">
-      <div class="modal-card rotate-card">
-        <div class="modal-mark">↻</div>
-        <h1>Turn the arena</h1>
-        <p>Slingfang is a portrait hunt.</p>
-      </div>
-    </div>
-    <div id="bootLayer" class="modal-layer">
-      <div class="modal-card boot-card">
-        <div class="brand-mark">SF</div>
-        <p class="eyebrow">A pocket creature arena</p>
-        <h1>Slingfang</h1>
-        <p>Bank a shot. Wake a combo. Clear all twelve stages.</p>
-        <button id="bootButton" class="primary-button">Touch to enter</button>
-        <small>Audio is synthesized on-device and can stay muted.</small>
-      </div>
-    </div>
-    <div id="topActions" class="top-actions" aria-label="Game actions">
-      <button id="restartButton" class="small-button" type="button">Restart</button>
-    </div>
-    <div id="teamControls" class="team-controls" aria-label="Creature roster"></div>
-    <div id="announce" class="sr-status" aria-live="polite"></div>
-  </main>
-  <script src="game.js"></script>
+<!-- Phaser and GGKit load from ABSOLUTE /play/_shared/ paths. A relative
+     ../_shared reference breaks on the deployed no-trailing-slash URL. -->
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="sf_data.js"></script>
+<script>
+  /* Boot once the two authored faces resolve. Phaser rasterises a Text
+     object's canvas at construction, so booting before the woff2 lands would
+     bake the fallback stack into every cached label. Bounded wait: a hard
+     1200 ms ceiling, after which the game starts on the fallback rather than
+     hanging on a slow network. */
+  (function () {
+    function boot() {
+      if (window.__SF_BOOTED) return;
+      window.__SF_BOOTED = true;
+      var s = document.createElement('script');
+      s.src = 'game.js';
+      document.body.appendChild(s);
+    }
+    var done = false;
+    setTimeout(function () { if (!done) boot(); }, 1200);
+    if (document.fonts && document.fonts.load) {
+      Promise.all([
+        document.fonts.load('400 32px "SF Display"'),
+        document.fonts.load('400 16px "SF Body"')
+      ]).then(function () { done = true; boot(); }, function () { done = true; boot(); });
+    } else {
+      done = true; boot();
+    }
+  })();
+</script>
 </body>
 </html>

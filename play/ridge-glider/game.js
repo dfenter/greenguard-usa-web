@@ -1,810 +1,730 @@
-/* Ridge Glider - main game */
-(function () {
-  'use strict';
+/* Ridge Glider / Three.js presentation, fixed-step flight, and GGKit shell. */
+import * as THREE from 'three';
+import { RIDGES, RidgeWorld } from './world.js';
 
-  var cv = document.getElementById('cv');
-  var ctx = cv.getContext('2d', { alpha: false });
-  var rotateEl = document.getElementById('rotate');
-  var W = 960, H = 540, DPR = 1;
+const TAU = Math.PI * 2;
+const STEP = 1 / 60;
+const MAX_STEPS = 4;
+const THERMAL_CHAIN_GRACE = 24;
+const INTRO_LIFT_END = 760;
+const canvas = document.getElementById('scene');
+const ui = {
+  hud: document.getElementById('hud'), hudDistance: document.getElementById('hud-distance'), hudAltitude: document.getElementById('hud-altitude'),
+  hudSpeed: document.getElementById('hud-speed'), speedArc: document.getElementById('speed-arc'), coach: document.getElementById('coach'), objective: document.getElementById('objective'),
+  toast: document.getElementById('toast'), toastTitle: document.getElementById('toast-title'), toastCopy: document.getElementById('toast-copy'), title: document.getElementById('title-screen'),
+  cards: document.getElementById('mode-cards'), report: document.getElementById('report-screen'), reportKicker: document.getElementById('report-kicker'),
+  reportTitle: document.getElementById('report-title'), reportCopy: document.getElementById('report-copy'), reportDistance: document.getElementById('report-distance'),
+  reportScore: document.getElementById('report-score'), reportMedal: document.getElementById('report-medal'), reportHint: document.getElementById('report-hint'),
+  pause: document.getElementById('pause-screen'), pauseButton: document.getElementById('pause-button'), resumeButton: document.getElementById('resume-button'), launchButton: document.getElementById('launch-button'), settingsButton: document.getElementById('settings-button'),
+  countdown: document.getElementById('countdown'), countdownValue: document.getElementById('countdown-value')
+};
 
-  // ---------------- physics constants ----------------
-  var MASS = 100, S = 15, RHO = 1.225, G = 9.81;
-  var CL0 = 0.35, CLA = 4.6, A_STALL = 0.145;
-  var CD0 = 0.032, KIND = 0.062;
-  var A_TRIM = 0.0, A_NEG = 0.055, A_POS = 0.155;
-  var BEST_KEY = 'ridgeGliderBest';
+const MODES = [
+  { id: 'distance-run', name: 'DISTANCE RUN', desc: 'Pure score attack. Every clean metre counts.', ridge: 0, goal: 4920, medals: [2500, 3800, 5000] },
+  { id: 'thermal-chain', name: 'THERMAL CHAIN', desc: 'Catch consecutive columns for a rising bonus.', ridge: 1, goal: 5440, medals: [3, 5, 7] },
+  { id: 'lz-precision', name: 'LZ PRECISION', desc: 'Bring it down gently inside the bullseye.', ridge: 2, goal: 3320, medals: [0.45, 0.72, 0.9] },
+  { id: 'cross-country-finale', name: 'CROSS-COUNTRY FINALE', desc: 'The long line. Gusts build across every ridge.', ridge: 3, goal: 7900, medals: [5600, 7200, 8100], locked: true }
+];
+const MODE_BY_ID = Object.fromEntries(MODES.map((mode) => [mode.id, mode]));
+const COLORS = { ink: 0xeaf8f3, aqua: 0x8de8d5, gold: 0xffd17b, coral: 0xff9b7e, cloud: 0xe8f2e9 };
+const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const debug = window.__rg || { state: {} };
+const debugState = debug.state || {};
+debug.state = debugState;
 
-  var best = 0;
-  try {
-    var storedBest = Number(localStorage.getItem(BEST_KEY) || 0);
-    best = Number.isFinite(storedBest) && storedBest >= 0 ? Math.floor(storedBest) : 0;
-  } catch (e) { }
+function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+function mix(a, b, t) { return a + (b - a) * t; }
+function setTextIfChanged(element, value) { const next = String(value); if (element.textContent !== next) element.textContent = next; }
+function safeInt(value, min, max) { return Number.isInteger(value) && value >= min && value <= max; }
+function pressed(code) {
+  const down = kit.input.keyDown(code);
+  const fire = down && !keyLatch[code];
+  keyLatch[code] = down;
+  return fire;
+}
+function resetKeyLatch() { for (const key of Object.keys(keyLatch)) keyLatch[key] = false; }
 
-  // ---------------- state ----------------
-  var world, g, cam, particles = [], tmpTherm = [];
-  var shake = 0, flash = 0, flashCol = '#fff';
-  var state = 'fly';   // 'fly' | 'over'
-  var overInfo = null, overT = 0;
-  var tNow = 0, hintT = 0;
-
-  function rnd(a, b) { return a + Math.random() * (b - a); }
-
-  function newFlight() {
-    world = new window.RG.World((Math.random() * 1e9) | 0);
-    var y0 = world.h(0) + 300;
-    g = {
-      x: 0, y: y0, V: 17, gam: -0.06,
-      alpha: A_TRIM, input: 0, inTarget: 0,
-      stalled: 0, vy: 0, vx: 17, roll: 0,
-      trail: [], t: 0
-    };
-    cam = { x: -60, yTop: y0 + 120, scale: 2.4 };
-    particles.length = 0;
-    state = 'fly'; overInfo = null; shake = 0; flash = 0;
-    hintT = 6.5;
-    tNow = 0;
-    drag = null; keyUp = false; keyDn = false; dragPointer = null;
+function validSave(value) {
+  if (!value || value.version !== 1 || !safeInt(value.runs, 0, 999999)) return false;
+  if (!safeInt(value.selectedRidge, 0, RIDGES.length - 1)) return false;
+  if (!value.best || typeof value.best !== 'object' || Array.isArray(value.best)) return false;
+  if (!value.medals || typeof value.medals !== 'object' || Array.isArray(value.medals)) return false;
+  if (Object.keys(value.best).some((key) => !Object.prototype.hasOwnProperty.call(MODE_BY_ID, key) || !safeInt(value.best[key], 0, 9999999))) return false;
+  if (Object.keys(value.medals).some((key) => !Object.prototype.hasOwnProperty.call(MODE_BY_ID, key) || !safeInt(value.medals[key], 0, 3))) return false;
+  for (const mode of MODES) {
+    if (value.best[mode.id] != null && !safeInt(value.best[mode.id], 0, 9999999)) return false;
+    if (value.medals[mode.id] != null && !safeInt(value.medals[mode.id], 0, 3)) return false;
   }
+  return typeof value.canopy === 'string' && ['reef', 'ice', 'ember', 'moss'].includes(value.canopy);
+}
 
-  // ---------------- canvas sizing ----------------
-  function resize() {
-    var cw = window.innerWidth, ch = window.innerHeight;
-    DPR = Math.min(2, window.devicePixelRatio || 1);
-    var longCss = Math.max(cw, ch);
-    var scale = Math.min(DPR, 960 / longCss);
-    if (scale < 0.5) scale = 0.5;
-    W = Math.max(320, Math.round(cw * scale));
-    H = Math.max(200, Math.round(ch * scale));
-    cv.width = W; cv.height = H;
-    rotateEl.className = (ch > cw * 1.05) ? 'on' : '';
-  }
-  window.addEventListener('resize', resize);
-  window.addEventListener('orientationchange', function () { setTimeout(resize, 250); });
+const kit = GGKit.create({
+  slug: 'ridge-glider', orientation: 'landscape', validateSave: validSave,
+  onPause(reason) { if (reason === 'manual') showPause(true); },
+  onResume() { if (flight) showPause(false); resetKeyLatch(); lastFrame = performance.now(); },
+  onRestart() { resetKeyLatch(); resetFlight(); }
+});
+kit.registerPWA();
+kit.audio.register({
+  menu: 'assets/wind_loop.mp3', wind: 'assets/wind_loop.mp3', canopy: 'assets/canopy_flutter.mp3', collision: 'assets/canopy_flutter.mp3', thermal: 'assets/thermal_chime.mp3', landing: 'assets/landing_thud.mp3'
+});
 
-  // ---------------- input ----------------
-  var drag = null, dragPointer = null, keyUp = false, keyDn = false;
-  var DRAG_PX = 90; // css px for full deflection
+const defaultSave = { version: 1, runs: 0, selectedRidge: 0, canopy: 'reef', best: {}, medals: {} };
+let save = kit.save.get(defaultSave);
+if (!validSave(save)) save = { ...defaultSave, best: {}, medals: {} };
 
-  function pressStart(x, y) {
-    audioUnlock();
-    drag = { y0: y, cur: y };
-  }
-  function pressMove(y, id) { if (drag && dragPointer === id) drag.cur = y; }
-  function pressEnd(id) { if (dragPointer !== id) return; drag = null; dragPointer = null; }
+let renderer;
+let scene;
+let camera;
+let world;
+let glider;
+let terrainMesh;
+let terrainBand;
+let landmarkGroup;
+let thermalGroup;
+let flagGroup;
+let lzGroup;
+let trafficGroup;
+let cloudGroup;
+let gustGroup;
+let airFxGroup;
+let dustFxGroup;
+let sparkFxGroup;
+let corridorMesh;
+let approachCone;
+let shadow;
+let skyCanvas;
+let skyTexture;
+let simClock = 0;
+let accumulator = 0;
+let lastFrame = 0;
+let renderWidth = 1;
+let renderHeight = 1;
+let modeIndex = 0;
+let ridgeIndex = save.selectedRidge;
+let mode = null;
+let activeSeed = 0;
+let flight = null;
+let selectedCanopy = save.canopy;
+let toastTimer = 0;
+let coachTimer = 0;
+let coachMessage = '';
+let currentScreen = 'title';
+let lastHud = { distance: '', altitude: '', speed: '' };
+const toastQueue = [];
+let pointerActionAt = 0;
+let audioEpoch = 0;
+let impactKick = 0;
+const keyLatch = Object.create(null);
 
-  cv.addEventListener('pointerdown', function (e) {
-    e.preventDefault();
-    if (dragPointer !== null) return;
-    if (state === 'over' && overT > 0.45) { newFlight(); return; }
-    dragPointer = e.pointerId; pressStart(e.clientX, e.clientY);
-    if (cv.setPointerCapture) { try { cv.setPointerCapture(e.pointerId); } catch (x) {} }
-  }, { passive: false });
-  cv.addEventListener('pointermove', function (e) {
-    if (dragPointer !== e.pointerId) return;
-    e.preventDefault(); pressMove(e.clientY, e.pointerId);
-  }, { passive: false });
-  cv.addEventListener('pointerup', function (e) { e.preventDefault(); pressEnd(e.pointerId); }, { passive: false });
-  cv.addEventListener('pointercancel', function (e) { e.preventDefault(); pressEnd(e.pointerId); }, { passive: false });
-  document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
+const materials = {};
+const pools = { thermal: [], thermalRings: [], birds: [], flags: [], lz: [], traffic: [], clouds: [], gusts: [], airParticles: [], dustParticles: [], sparkParticles: [] };
 
-  window.addEventListener('keydown', function (e) {
-    var k = e.key;
-    if (k === 'ArrowUp' || k === 'w' || k === 'W') { keyUp = true; e.preventDefault(); }
-    else if (k === 'ArrowDown' || k === 's' || k === 'S') { keyDn = true; e.preventDefault(); }
-    else if (k === ' ' || k === 'Enter') {
-      e.preventDefault();
-      if (state === 'over' && overT > 0.45) newFlight();
-    }
-    audioUnlock();
-  });
-  window.addEventListener('keyup', function (e) {
-    var k = e.key;
-    if (k === 'ArrowUp' || k === 'w' || k === 'W') keyUp = false;
-    if (k === 'ArrowDown' || k === 's' || k === 'S') keyDn = false;
-  });
-  window.addEventListener('blur', function () { drag = null; dragPointer = null; keyUp = false; keyDn = false; });
+function material(name, color, opts = {}) {
+  if (materials[name]) return materials[name];
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: opts.roughness ?? .78, metalness: opts.metalness ?? 0, flatShading: true, transparent: !!opts.transparent, opacity: opts.opacity ?? 1, depthWrite: opts.depthWrite ?? true, side: opts.side ?? THREE.FrontSide });
+  materials[name] = mat;
+  return mat;
+}
 
-  function readInput(dt) {
-    var target = 0, active = false;
-    if (drag) {
-      target = (drag.y0 - drag.cur) / DRAG_PX;
-      if (target > 1) target = 1; if (target < -1) target = -1;
-      active = true;
-    }
-    // keyboard stops just short of the stall so a held key mushes, not spins
-    if (keyUp) { target = 0.85; active = true; }
-    if (keyDn) { target = -1; active = true; }
-    if (!active) target = g.inTarget * Math.max(0, 1 - dt * 1.6);
-    g.inTarget = target;
-    var rate = 5.5;
-    g.input += (target - g.input) * Math.min(1, dt * rate);
-  }
+function lineMaterial(color, opacity = 1) { return new THREE.LineBasicMaterial({ color, transparent: opacity < 1, opacity, depthWrite: false }); }
 
-  // ---------------- audio (WebAudio only) ----------------
-  var AC = null, master = null, varioOsc = null, varioGain = null;
-  function audioUnlock() {
-    if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
-    try {
-      var C = window.AudioContext || window.webkitAudioContext;
-      if (!C) return;
-      AC = new C();
-      master = AC.createGain(); master.gain.value = 0.18; master.connect(AC.destination);
-      varioOsc = AC.createOscillator(); varioOsc.type = 'square'; varioOsc.frequency.value = 700;
-      varioGain = AC.createGain(); varioGain.gain.value = 0;
-      varioOsc.connect(varioGain); varioGain.connect(master); varioOsc.start();
-    } catch (e) { AC = null; }
-  }
-  var beepAcc = 0;
-  function vario(dt, w) {
-    if (!AC) return;
-    if (w > 0.4 && state === 'fly') {
-      var rate = 1.2 + Math.min(4.5, w) * 1.5;
-      varioOsc.frequency.value = 620 + Math.min(5, w) * 150;
-      beepAcc += dt * rate;
-      var ph = beepAcc % 1;
-      varioGain.gain.value = ph < 0.45 ? 0.25 : 0;
-    } else {
-      varioGain.gain.value = 0; beepAcc = 0;
-    }
-  }
-  function thud(freq, dur, type, vol) {
-    if (!AC) return;
-    try {
-      var o = AC.createOscillator(), gn = AC.createGain();
-      o.type = type || 'sawtooth'; o.frequency.setValueAtTime(freq, AC.currentTime);
-      o.frequency.exponentialRampToValueAtTime(Math.max(40, freq * 0.25), AC.currentTime + dur);
-      gn.gain.setValueAtTime(vol || 0.5, AC.currentTime);
-      gn.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
-      o.connect(gn); gn.connect(master); o.start(); o.stop(AC.currentTime + dur + 0.02);
-    } catch (e) { }
-  }
+function setVisible(object, value) { if (object) object.visible = !!value; }
 
-  // ---------------- simulation ----------------
-  function step(dt) {
-    g.t += dt;
-    readInput(dt);
-
-    // weight-shift lag
-    var aCmd = A_TRIM + (g.input < 0 ? g.input * A_NEG : g.input * A_POS);
-    g.alpha += (aCmd - g.alpha) * Math.min(1, dt * 4.2);
-
-    var a = g.alpha;
-    var CL = CL0 + CLA * a;
-    var extraD = 0;
-    if (a > A_STALL) {
-      var ex = a - A_STALL;
-      CL = CL0 + CLA * A_STALL - 3.4 * ex;
-      extraD = 0.9 * ex;
-      g.stalled = Math.min(1, g.stalled + dt * 4);
-    } else {
-      g.stalled = Math.max(0, g.stalled - dt * 2.5);
-    }
-    if (CL < 0.10) CL = 0.10;
-
-    var V = g.V; if (V < 3) V = 3;
-    var q = 0.5 * RHO * V * V * S;
-    var CD = CD0 + KIND * CL * CL + extraD;
-    if (V > 32) { var o = (V - 32) / 10; CD += 0.022 * o * o; }
-
-    var L = q * CL, D = q * CD;
-    var sg = Math.sin(g.gam), cg = Math.cos(g.gam);
-
-    var dV = (-D - MASS * G * sg) / MASS;
-    var Vd = Math.max(6, g.V);
-    var dgam = (L - MASS * G * cg) / (MASS * Vd);
-    if (dgam > 2.8) dgam = 2.8; if (dgam < -2.8) dgam = -2.8;
-
-    g.V += dV * dt;
-    if (g.V < 4.5) g.V = 4.5;
-    if (g.V > 44) g.V = 44;
-    g.gam += dgam * dt;
-    if (g.gam > 1.35) g.gam = 1.35;
-    if (g.gam < -1.45) g.gam = -1.45;
-
-    var w = world.lift(g.x, g.y);
-    g.air = w;
-    g.vx = g.V * Math.cos(g.gam) + world.wind;
-    g.vy = g.V * Math.sin(g.gam) + w;
-
-    g.x += g.vx * dt;
-    g.y += g.vy * dt;
-
-    g.roll += ((g.input * 0.22) - g.roll) * Math.min(1, dt * 6);
-
-    // trail
-    if (g.trail.length === 0 || g.x - g.trail[g.trail.length - 1].x > 6) {
-      g.trail.push({ x: g.x, y: g.y });
-      if (g.trail.length > 120) g.trail.shift();
-    }
-
-    // wingtip vortices when fast, sparkles when climbing
-    if (g.V > 23 && Math.random() < dt * 30) {
-      particles.push({ x: g.x, y: g.y, vx: -rnd(2, 6), vy: rnd(-2, 2), l: 0.7, m: 0.7, k: 0 });
-    }
-    if (w > 1.0 && Math.random() < dt * (8 + w * 6)) {
-      particles.push({ x: g.x + rnd(-40, 40), y: g.y + rnd(-25, 25), vx: rnd(-1, 1), vy: w * rnd(0.5, 1.1), l: 1.4, m: 1.4, k: 1 });
-    }
-    if (g.stalled > 0.4) shake = Math.max(shake, 2 + g.stalled * 3);
-
-    for (var i = particles.length - 1; i >= 0; i--) {
-      var p = particles[i];
-      p.l -= dt; if (p.l <= 0) { particles.splice(i, 1); continue; }
-      p.x += p.vx * dt; p.y += p.vy * dt;
-    }
-
-    // ground contact
-    var gh = world.h(g.x);
-    if (g.y <= gh) {
-      g.y = gh;
-      land(gh);
-    }
-    vario(dt, w);
-  }
-
-  function land(gh) {
-    var lz = world.lzAt(g.x);
-    var slope = Math.abs(world.slope(g.x));
-    var gentle = (g.vy > -3.4) && (g.V < 15.5) && (slope < 0.28) && (g.stalled < 0.5);
-    var dist = Math.max(0, Math.round(g.x));
-    var bonus = 0, msg, sub;
-
-    if (gentle && lz) {
-      var acc = 1 - Math.abs(lz.dx) / lz.half;
-      var soft = Math.max(0, Math.min(1, (3.4 + g.vy) / 3.4));
-      bonus = Math.round(400 + 400 * acc + 300 * soft);
-      msg = 'SPOT LANDING';
-      sub = 'zone bonus +' + bonus;
-      flashCol = '#7dffb0'; flash = 0.6;
-      thud(520, 0.35, 'triangle', 0.4);
-    } else if (gentle) {
-      msg = 'LANDED OUT';
-      sub = 'no zone bonus';
-      flashCol = '#ffe08a'; flash = 0.4;
-      thud(260, 0.3, 'triangle', 0.35);
-    } else {
-      msg = g.stalled > 0.5 ? 'STALLED IN' : 'CRASHED';
-      sub = 'flew it into the hill';
-      flashCol = '#ff6b6b'; flash = 0.8; shake = 22;
-      thud(150, 0.55, 'sawtooth', 0.7);
-      for (var i = 0; i < 40; i++) {
-        particles.push({ x: g.x, y: gh + 4, vx: rnd(-30, 25), vy: rnd(2, 26), l: rnd(0.5, 1.3), m: 1.3, k: 2 });
+function clearGroup(group, dispose = false) {
+  if (!group) return;
+  if (dispose) {
+    const cached = new Set(Object.values(materials));
+    group.traverse((object) => {
+      if (object.geometry) object.geometry.dispose();
+      if (object.material) {
+        const list = Array.isArray(object.material) ? object.material : [object.material];
+        for (const mat of list) if (!cached.has(mat)) mat.dispose();
       }
-    }
-    var score = dist + bonus;
-    var isBest = score > best;
-    if (isBest) {
-      best = score;
-      try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) { }
-    }
-    overInfo = { msg: msg, sub: sub, dist: dist, bonus: bonus, score: score, isBest: isBest };
-    state = 'over'; overT = 0;
-    if (varioGain) varioGain.gain.value = 0;
+    });
   }
+  while (group.children.length) group.remove(group.children[group.children.length - 1]);
+}
 
-  // ---------------- camera ----------------
-  function updateCam(dt) {
-    var gh = world.h(g.x);
-    var agl = g.y - gh;
-    var t = Math.min(1, Math.max(0, (agl - 70) / 430));
-    var want = 2.9 - 1.75 * t;             // px per metre (in backing-store px)
-    want *= (W / 960);
-    if (want < 0.6) want = 0.6;
-    cam.scale += (want - cam.scale) * Math.min(1, dt * 1.6);
+function makeGlider() {
+  const root = new THREE.Group();
+  const paint = { reef: 0xeff9f3, ice: 0xcbeaff, ember: 0xffc079, moss: 0xc4edb0 }[selectedCanopy] || 0xeff9f3;
+  const accent = { reef: 0x55cbb8, ice: 0x5aa8db, ember: 0xeb7664, moss: 0x73b98c }[selectedCanopy] || 0x55cbb8;
+  const wingGeometry = new THREE.BufferGeometry();
+  wingGeometry.setAttribute('position', new THREE.Float32BufferAttribute([-0.3,0,0, -3.8,0,-2.15, -1.35,0,0, -0.3,0,0, -1.35,0,0, -3.8,0,2.15], 3));
+  wingGeometry.computeVertexNormals();
+  const wing = new THREE.Mesh(wingGeometry, material('wing-' + selectedCanopy, paint, { side: THREE.DoubleSide, roughness: .56 }));
+  root.add(wing);
+  const edgeGeometry = new THREE.BufferGeometry();
+  edgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute([-0.3,.02,0, -3.8,.02,-2.15, -1.35,.02,0, -3.8,.02,2.15, -0.3,.02,0], 3));
+  root.add(new THREE.Line(edgeGeometry, lineMaterial(accent, .95)));
+  const keel = new THREE.Mesh(new THREE.CylinderGeometry(.12, .16, 2.0, 8), material('keel-' + selectedCanopy, accent));
+  keel.rotation.z = Math.PI / 2; keel.position.x = -.15; keel.position.y = -.22; root.add(keel);
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(.45, 10, 6), material('canopy-' + selectedCanopy, accent, { roughness: .2, metalness: .12 }));
+  canopy.scale.set(1.1, .6, .8); canopy.position.set(.35, -.05, 0); root.add(canopy);
+  const pilot = new THREE.Mesh(new THREE.SphereGeometry(.18, 8, 5), material('pilot-' + selectedCanopy, 0x17252b));
+  pilot.position.set(.42, -.35, 0); root.add(pilot);
+  const stallRibbon = new THREE.Mesh(new THREE.PlaneGeometry(1.2, .16), material('stall-ribbon', COLORS.coral, { transparent: true, opacity: .86, depthWrite: false, side: THREE.DoubleSide }));
+  stallRibbon.position.set(-1.5, .42, 0); stallRibbon.rotation.y = Math.PI / 2; stallRibbon.visible = false; root.add(stallRibbon);
+  root.scale.setScalar(1.45);
+  root.userData.parts = { wing, edge: root.children[1], keel, canopy, pilot, stallRibbon };
+  return root;
+}
 
-    var s = cam.scale;
-    var wantX = g.x - (W * 0.32) / s;
-    var wantY = g.y + (H * 0.40) / s;
-    // keep some ground visible
-    var lowest = gh;
-    for (var i = 0; i <= 6; i++) {
-      var hh = world.h(g.x + i * (W / s) / 6);
-      if (hh > lowest) lowest = hh;
-    }
-    var maxTop = lowest + H / s * 0.98;
-    if (wantY > maxTop && agl < 200) wantY = Math.max(g.y + 30 / s, maxTop);
+function makeBird() {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([-.85,0,0,0,.3,0,.85,0,0], 3));
+  const line = new THREE.Line(geometry, lineMaterial(0x253b42, .88));
+  line.scale.setScalar(.9); return line;
+}
 
-    var k = Math.min(1, dt * 6);
-    cam.x += (wantX - cam.x) * k;
-    cam.y = 0;
-    cam.yTop += (wantY - cam.yTop) * Math.min(1, dt * 4);
+function makeTrafficKite() {
+  const root = new THREE.Group();
+  const wingGeometry = new THREE.BufferGeometry();
+  wingGeometry.setAttribute('position', new THREE.Float32BufferAttribute([-1.2, 0, 0, 0, .18, -1.1, 1.2, 0, 0, 0, .18, 1.1, -1.2, 0, 0], 3));
+  const wing = new THREE.Line(wingGeometry, lineMaterial(COLORS.coral, .92)); root.add(wing);
+  const body = new THREE.Mesh(new THREE.OctahedronGeometry(.22, 0), material('traffic-body', COLORS.coral, { roughness: .5 }));
+  body.position.y = -.12; root.add(body);
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(.12, 7, 5), material('traffic-beacon', COLORS.gold, { transparent: true, opacity: .8, depthWrite: false }));
+  beacon.position.y = .25; root.add(beacon);
+  return root;
+}
+
+function makeParticlePool(group, count, name, color, size) {
+  const geometry = new THREE.OctahedronGeometry(size, 0);
+  const mat = material(name, color, { transparent: true, opacity: .78, depthWrite: false });
+  const pool = [];
+  for (let i = 0; i < count; i++) {
+    const mesh = new THREE.Mesh(geometry, mat); mesh.visible = false; group.add(mesh);
+    pool.push({ mesh, life: 0, maxLife: 0, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 });
   }
+  return pool;
+}
 
-  function sx(wx) { return (wx - cam.x) * cam.scale; }
-  function sy(wy) { return (cam.yTop - wy) * cam.scale; }
-
-  // ---------------- rendering ----------------
-  var skyGrad = null, skyKey = '', terrGrad = null, terrGradH = -1;
-  function drawSky() {
-    var key = W + 'x' + H;
-    if (skyKey !== key) {
-      skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-      skyGrad.addColorStop(0, '#1a3f6b');
-      skyGrad.addColorStop(0.45, '#2f76a8');
-      skyGrad.addColorStop(0.8, '#7fb6cf');
-      skyGrad.addColorStop(1, '#c9dbe0');
-      skyKey = key;
-    }
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, W, H);
+function spawnParticles(pool, x, y, z, amount, spread, speed, life) {
+  let spawned = 0;
+  for (const particle of pool) {
+    if (particle.mesh.visible) continue;
+    const angle = Math.random() * TAU;
+    const radial = Math.random() * spread;
+    particle.x = x + Math.cos(angle) * radial; particle.y = y + Math.random() * spread; particle.z = z + Math.sin(angle) * radial;
+    particle.vx = (Math.random() - .5) * speed; particle.vy = Math.random() * speed; particle.vz = (Math.random() - .5) * speed;
+    particle.life = life * (.7 + Math.random() * .3); particle.maxLife = particle.life; particle.mesh.visible = true; spawned++;
+    if (spawned >= amount) break;
   }
+}
 
-  function drawClouds() {
-    // simple cumulus row near cloudbase, parallax
-    var base = 1150;
-    var pf = 0.35;
-    var step = 520;
-    var x0 = cam.x * pf;
-    var i0 = Math.floor(x0 / step) - 1;
-    ctx.save();
-    for (var i = i0; i < i0 + Math.ceil(W / cam.scale / step) + 3; i++) {
-      var r = ((Math.sin(i * 12.9898 + world.seed * 0.001) * 43758.5453) % 1 + 1) % 1;
-      if (r > 0.75) continue;
-      var cx = (i * step + r * 300 - x0) * cam.scale;
-      var cy = sy(base + r * 130) * pf + H * 0.10;
-      var rad = (34 + r * 26) * cam.scale;
-      if (cx < -rad * 3 || cx > W + rad * 3) continue;
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.beginPath();
-      ctx.arc(cx, cy, rad, 0, 6.283);
-      ctx.arc(cx + rad * 0.9, cy + rad * 0.15, rad * 0.75, 0, 6.283);
-      ctx.arc(cx - rad * 0.85, cy + rad * 0.2, rad * 0.65, 0, 6.283);
-      ctx.fill();
-    }
-    ctx.restore();
+function updateParticles(dt) {
+  if (!dt) return;
+  for (const pool of [pools.airParticles, pools.dustParticles, pools.sparkParticles]) for (const particle of pool) {
+    if (!particle.mesh.visible) continue;
+    particle.life -= dt;
+    if (particle.life <= 0) { particle.mesh.visible = false; continue; }
+    particle.x += particle.vx * dt; particle.y += particle.vy * dt; particle.z += particle.vz * dt; particle.vy -= dt * 4.5;
+    particle.mesh.position.set(particle.x, particle.y, particle.z);
+    const fade = Math.max(.16, particle.life / particle.maxLife); particle.mesh.scale.setScalar(fade);
   }
+}
 
-  function drawBgRidge(pf, amp, off, col) {
-    var s = cam.scale;
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.moveTo(0, H);
-    var stepPx = 10;
-    for (var px = 0; px <= W + stepPx; px += stepPx) {
-      var wx = cam.x * pf + px / s;
-      var hb = 120 + amp * world.n(wx / 900 + off, 5) + amp * 0.45 * world.n(wx / 320 + off * 2, 6);
-      var y = (cam.yTop - hb) * s * pf + H * (1 - pf) * 0.42;
-      ctx.lineTo(px, y);
-    }
-    ctx.lineTo(W, H);
-    ctx.closePath();
-    ctx.fill();
+function updateSkyGradient(colors) {
+  if (!skyCanvas) return;
+  const context = skyCanvas.getContext('2d');
+  const gradient = context.createLinearGradient(0, 0, 0, skyCanvas.height);
+  gradient.addColorStop(0, colors[0]); gradient.addColorStop(.55, colors[1]); gradient.addColorStop(1, colors[2]);
+  context.fillStyle = gradient; context.fillRect(0, 0, skyCanvas.width, skyCanvas.height);
+  if (skyTexture) skyTexture.needsUpdate = true;
+}
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x6eacc0, 760, 4300);
+  camera = new THREE.PerspectiveCamera(54, 1, 12, 7200);
+  skyCanvas = document.createElement('canvas'); skyCanvas.width = 4; skyCanvas.height = 256;
+  skyTexture = new THREE.CanvasTexture(skyCanvas); skyTexture.colorSpace = THREE.SRGBColorSpace; scene.background = skyTexture;
+  updateSkyGradient(RIDGES[0].sky);
+  scene.add(new THREE.HemisphereLight(0xe6f4ef, 0x132a35, 1.55));
+  const sun = new THREE.DirectionalLight(0xffedc5, 2.2); sun.position.set(-300, 800, 500); scene.add(sun);
+  terrainBand = new THREE.Group(); scene.add(terrainBand);
+  landmarkGroup = new THREE.Group(); scene.add(landmarkGroup);
+  thermalGroup = new THREE.Group(); scene.add(thermalGroup);
+  flagGroup = new THREE.Group(); scene.add(flagGroup);
+  lzGroup = new THREE.Group(); scene.add(lzGroup);
+  trafficGroup = new THREE.Group(); scene.add(trafficGroup);
+  cloudGroup = new THREE.Group(); scene.add(cloudGroup);
+  gustGroup = new THREE.Group(); scene.add(gustGroup);
+  airFxGroup = new THREE.Group(); scene.add(airFxGroup);
+  dustFxGroup = new THREE.Group(); scene.add(dustFxGroup);
+  sparkFxGroup = new THREE.Group(); scene.add(sparkFxGroup);
+  corridorMesh = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 6, 1, true), material('corridor', 0xffdf91, { transparent: true, opacity: .09, depthWrite: false, side: THREE.DoubleSide }));
+  scene.add(corridorMesh);
+  approachCone = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 6, 1, true), material('approach', COLORS.aqua, { transparent: true, opacity: .14, depthWrite: false, side: THREE.DoubleSide }));
+  scene.add(approachCone);
+  shadow = new THREE.Mesh(new THREE.CircleGeometry(1, 24), material('blob-shadow', 0x07181e, { transparent: true, opacity: .3, depthWrite: false, side: THREE.DoubleSide }));
+  shadow.rotation.x = -Math.PI / 2; shadow.visible = false; scene.add(shadow);
+  for (let i = 0; i < 12; i++) {
+    const group = new THREE.Group();
+    const column = new THREE.Mesh(new THREE.CylinderGeometry(1, 1.12, 1, 10, 1, true), material('thermal-' + i, 0xffd681, { transparent: true, opacity: .12, depthWrite: false, side: THREE.DoubleSide }));
+    group.add(column);
+    const rings = [];
+    for (let r = 0; r < 3; r++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(1, .035, 5, 16), material('thermal-ring-' + i + '-' + r, 0xfff1b0, { transparent: true, opacity: .45, depthWrite: false })); ring.rotation.x = Math.PI / 2; group.add(ring); rings.push(ring); }
+    const birdSet = [];
+    for (let b = 0; b < 3; b++) { const bird = makeBird(); group.add(bird); birdSet.push(bird); }
+    thermalGroup.add(group); pools.thermal.push({ group, column, rings, birds: birdSet });
   }
-
-  function drawTerrain() {
-    var s = cam.scale;
-    var stepPx = 4;
-    var pts = [];
-    for (var px = -stepPx; px <= W + stepPx; px += stepPx) {
-      var wx = cam.x + px / s;
-      pts.push([px, sy(world.h(wx)), wx]);
-    }
-    // body
-    if (!terrGrad || terrGradH !== H) {
-      terrGrad = ctx.createLinearGradient(0, 0, 0, H);
-      terrGrad.addColorStop(0, '#3c6b4a');
-      terrGrad.addColorStop(1, '#16261f');
-      terrGradH = H;
-    }
-    ctx.fillStyle = terrGrad;
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], H);
-    for (var i = 0; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-    ctx.lineTo(pts[pts.length - 1][0], H);
-    ctx.closePath();
-    ctx.fill();
-    // crest line
-    ctx.strokeStyle = '#8fd6a0';
-    ctx.lineWidth = Math.max(1.5, 2 * (W / 960));
-    ctx.beginPath();
-    for (i = 0; i < pts.length; i++) { if (i === 0) ctx.moveTo(pts[i][0], pts[i][1]); else ctx.lineTo(pts[i][0], pts[i][1]); }
-    ctx.stroke();
-
-    // windward lift band shading (banded fills - cheap, no per-column gradients)
-    ctx.fillStyle = '#96e1ff';
-    for (i = 0; i < pts.length - 1; i += 2) {
-      var wx2 = pts[i][2];
-      var sl = world.slope(wx2);
-      if (sl <= 0.09) continue;
-      var band = 70 + 190 * Math.min(1, sl);
-      var ghc = world.h(wx2);
-      var alpha = Math.min(0.26, (sl - 0.08) * 0.45);
-      var wpx = stepPx * 2 + 1;
-      for (var bq = 0; bq < 4; bq++) {
-        var f0 = bq / 4, f1 = (bq + 1) / 4;
-        var yA = sy(ghc + band * f1), yB = sy(ghc + band * f0);
-        ctx.globalAlpha = alpha * (1 - (f0 + f1) / 2);
-        ctx.fillRect(pts[i][0], yA, wpx, yB - yA + 1);
-      }
-    }
-    ctx.globalAlpha = 1;
-
-    // rising streaks over windward faces
-    ctx.save();
-    ctx.strokeStyle = 'rgba(190,240,255,0.45)';
-    ctx.lineWidth = Math.max(1, 1.4 * (W / 960));
-    var t = tNow;
-    for (var px2 = 0; px2 < W; px2 += 46) {
-      var wx3 = cam.x + px2 / s;
-      var sl2 = world.slope(wx3);
-      if (sl2 <= 0.12) continue;
-      var bd = 70 + 190 * Math.min(1, sl2);
-      var gh = world.h(wx3);
-      var ph = ((t * (0.28 + sl2 * 0.3) + px2 * 0.013) % 1);
-      var yy = gh + ph * bd;
-      var y1 = sy(yy), y2 = sy(yy + bd * 0.16);
-      ctx.globalAlpha = 0.55 * (1 - ph);
-      ctx.beginPath();
-      ctx.moveTo(px2, y1); ctx.lineTo(px2 + 2, y2);
-      ctx.stroke();
-    }
-    ctx.restore();
+  for (let i = 0; i < 20; i++) {
+    const group = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 8, 5), material('flag-pole', 0xffe4a3)); pole.position.y = 4; group.add(pole);
+    const flag = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, .06), material('flag-' + i, COLORS.gold, { roughness: .5 })); flag.position.set(1, 7.1, 0); group.add(flag);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(.24, 6, 4), material('flag-glow', COLORS.gold, { transparent: true, opacity: .7, depthWrite: false })); glow.position.set(0, 8, 0); group.add(glow);
+    flagGroup.add(group); pools.flags.push({ group, flag, glow });
   }
-
-  function drawLZ() {
-    var s = cam.scale;
-    var SP = window.RG.LZ_SPACING, HALF = window.RG.LZ_HALF;
-    var k0 = Math.max(1, Math.floor(cam.x / SP));
-    var k1 = Math.floor((cam.x + W / s) / SP) + 1;
-    for (var k = k0; k <= k1; k++) {
-      var cx = k * SP, gy = world.h(cx);
-      var x1 = sx(cx - HALF), x2 = sx(cx + HALF), y = sy(gy);
-      if (x2 < -20 || x1 > W + 20) continue;
-      ctx.fillStyle = 'rgba(255,220,90,0.30)';
-      ctx.fillRect(x1, y - 3, x2 - x1, Math.max(3, 5 * s * 0.5 + 3));
-      ctx.strokeStyle = '#ffdc5a';
-      ctx.lineWidth = Math.max(1.5, 2 * (W / 960));
-      ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
-      // poles + flags
-      var ph = Math.max(14, 26 * s * 0.6);
-      [x1, x2].forEach(function (px) {
-        ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px, y - ph); ctx.stroke();
-        ctx.fillStyle = '#ffdc5a';
-        ctx.beginPath();
-        ctx.moveTo(px, y - ph);
-        ctx.lineTo(px + ph * 0.55, y - ph + ph * 0.16);
-        ctx.lineTo(px, y - ph + ph * 0.32);
-        ctx.closePath(); ctx.fill();
-      });
-      // centre chevron
-      var mid = sx(cx);
-      ctx.fillStyle = 'rgba(255,220,90,0.85)';
-      ctx.beginPath();
-      ctx.moveTo(mid, y - 4);
-      ctx.lineTo(mid - ph * 0.3, y - ph * 0.55);
-      ctx.lineTo(mid + ph * 0.3, y - ph * 0.55);
-      ctx.closePath(); ctx.fill();
-      // label
-      if (x2 - x1 > 60) {
-        ctx.fillStyle = 'rgba(255,240,190,0.9)';
-        ctx.font = Math.round(Math.max(10, 12 * (W / 960))) + 'px ui-sans-serif,system-ui,sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('LZ ' + k, mid, y - ph - 6);
-        ctx.textAlign = 'left';
-      }
-    }
+  for (let i = 0; i < 4; i++) {
+    const group = new THREE.Group();
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(250, 1.4, 54), material('lz-strip', COLORS.gold, { transparent: true, opacity: .42, depthWrite: false }));
+    strip.position.y = 1; group.add(strip);
+    const edge = new THREE.LineSegments(new THREE.BufferGeometry(), lineMaterial(COLORS.gold, .9));
+    edge.geometry.setAttribute('position', new THREE.Float32BufferAttribute([-125, 4, -28, 125, 4, -28, 125, 4, -28, 125, 4, 28, 125, 4, 28, -125, 4, 28, -125, 4, 28, -125, 4, -28], 3)); group.add(edge);
+    lzGroup.add(group); pools.lz.push({ group, strip, edge });
   }
-
-  function drawThermals() {
-    var s = cam.scale;
-    world.thermalsNear(cam.x - 200, cam.x + W / s + 200, tmpTherm);
-    for (var i = 0; i < tmpTherm.length; i++) {
-      var c = tmpTherm[i];
-      var cx = sx(c.x);
-      var rp = c.r * s;
-      if (cx + rp < -30 || cx - rp > W + 30) continue;
-      var yb = sy(c.base), yt = sy(c.top);
-      var alpha = 0.05 + Math.min(0.10, c.s * 0.022);
-      var grd = ctx.createLinearGradient(0, yb, 0, yt);
-      grd.addColorStop(0, 'rgba(255,238,190,' + (alpha * 1.6).toFixed(3) + ')');
-      grd.addColorStop(0.75, 'rgba(255,238,190,' + alpha.toFixed(3) + ')');
-      grd.addColorStop(1, 'rgba(255,238,190,0)');
-      ctx.fillStyle = grd;
-      // wavy column
-      ctx.beginPath();
-      var segs = 10;
-      for (var q = 0; q <= segs; q++) {
-        var f = q / segs;
-        var yy = yb + (yt - yb) * f;
-        var wob = Math.sin(tNow * 1.6 + c.ph + f * 5.0) * rp * 0.13;
-        ctx.lineTo(cx - rp * (1 - f * 0.12) + wob, yy);
-      }
-      for (q = segs; q >= 0; q--) {
-        var f2 = q / segs;
-        var yy2 = yb + (yt - yb) * f2;
-        var wob2 = Math.sin(tNow * 1.6 + c.ph + f2 * 5.0 + 1.7) * rp * 0.13;
-        ctx.lineTo(cx + rp * (1 - f2 * 0.12) + wob2, yy2);
-      }
-      ctx.closePath();
-      ctx.fill();
-
-      // circling birds
-      if (rp > 12) {
-        ctx.strokeStyle = 'rgba(25,30,40,0.75)';
-        ctx.lineWidth = Math.max(1, 1.6 * (W / 960));
-        for (var b = 0; b < 3; b++) {
-          var ang = tNow * 0.9 + c.ph + b * 2.09;
-          var bx = cx + Math.cos(ang) * rp * 0.62;
-          var alt = c.base + 90 + ((tNow * 22 + b * 130 + c.ph * 60) % Math.max(120, (c.top - c.base - 160)));
-          var by = sy(alt);
-          if (by < -20 || by > H + 20) continue;
-          var sz = Math.max(3, 5 * (W / 960)) * (0.75 + 0.35 * Math.sin(ang));
-          ctx.beginPath();
-          ctx.moveTo(bx - sz, by);
-          ctx.quadraticCurveTo(bx - sz * 0.5, by - sz * 0.7, bx, by);
-          ctx.quadraticCurveTo(bx + sz * 0.5, by - sz * 0.7, bx + sz, by);
-          ctx.stroke();
-        }
-      }
-    }
+  for (let i = 0; i < 6; i++) { const group = makeTrafficKite(); trafficGroup.add(group); pools.traffic.push({ group, phase: i * .83, hitFlash: 0 }); }
+  for (let i = 0; i < 16; i++) {
+    const group = new THREE.Group();
+    const cloudMat = material('cloud-' + i, COLORS.cloud, { transparent: true, opacity: .48, depthWrite: false });
+    for (let p = 0; p < 3; p++) { const puff = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 1), cloudMat); puff.position.set((p - 1) * 28, (p % 2) * 11, (p - 1) * 18); puff.scale.set(1.4 - p * .16, .7 + p * .15, .8); group.add(puff); }
+    cloudGroup.add(group); pools.clouds.push({ group, seed: i * 1.71 });
   }
-
-  function drawParticles() {
-    for (var i = 0; i < particles.length; i++) {
-      var p = particles[i];
-      var a = p.l / p.m;
-      var X = sx(p.x), Y = sy(p.y);
-      if (X < -20 || X > W + 20) continue;
-      if (p.k === 0) { ctx.fillStyle = 'rgba(255,255,255,' + (a * 0.5).toFixed(3) + ')'; ctx.fillRect(X, Y, 3, 2); }
-      else if (p.k === 1) { ctx.fillStyle = 'rgba(255,240,170,' + (a * 0.8).toFixed(3) + ')'; ctx.fillRect(X, Y, 3, 3); }
-      else { ctx.fillStyle = 'rgba(210,120,70,' + (a * 0.9).toFixed(3) + ')'; ctx.fillRect(X - 2, Y - 2, 4, 4); }
-    }
+  for (let i = 0; i < 24; i++) {
+    const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0], 3));
+    const streak = new THREE.Line(geometry, lineMaterial(0xb6f3dc, .26)); gustGroup.add(streak); pools.gusts.push({ streak, phase: i * 0.71 });
   }
-
-  function drawGlider() {
-    var s = cam.scale;
-    var X = sx(g.x), Y = sy(g.y);
-    // trail
-    if (g.trail.length > 1) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-      ctx.lineWidth = Math.max(1, 1.6 * (W / 960));
-      ctx.beginPath();
-      for (var i = 0; i < g.trail.length; i++) {
-        var t = g.trail[i];
-        var tx = sx(t.x), ty = sy(t.y);
-        if (i === 0) ctx.moveTo(tx, ty); else ctx.lineTo(tx, ty);
-      }
-      ctx.stroke();
-    }
-
-    var span = Math.max(20, 11 * s);
-    var pitch = g.gam + g.alpha * 0.9;
-    ctx.save();
-    ctx.translate(X, Y);
-    ctx.rotate(-pitch);
-    // wing
-    var stalled = g.stalled > 0.35;
-    var col = stalled ? '#ff7a6b' : '#f2f6ff';
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.moveTo(span * 0.52, 0);
-    ctx.lineTo(-span * 0.48, -span * 0.20);
-    ctx.lineTo(-span * 0.34, 0);
-    ctx.lineTo(-span * 0.48, span * 0.20);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = stalled ? '#a63b30' : '#2c6ea8';
-    ctx.beginPath();
-    ctx.moveTo(span * 0.52, 0);
-    ctx.lineTo(-span * 0.48, span * 0.20);
-    ctx.lineTo(-span * 0.34, 0);
-    ctx.closePath();
-    ctx.fill();
-    // pilot under the keel
-    ctx.fillStyle = '#1b2733';
-    ctx.beginPath();
-    ctx.ellipse(-span * 0.02 - g.input * span * 0.10, span * 0.16, span * 0.16, span * 0.07, 0, 0, 6.283);
-    ctx.fill();
-    ctx.strokeStyle = '#1b2733';
-    ctx.lineWidth = Math.max(1, span * 0.03);
-    ctx.beginPath();
-    ctx.moveTo(0, 0); ctx.lineTo(-g.input * span * 0.10, span * 0.13);
-    ctx.stroke();
-    ctx.restore();
-
-    if (stalled) {
-      ctx.fillStyle = 'rgba(255,90,80,' + (0.5 + 0.5 * Math.sin(tNow * 22)).toFixed(2) + ')';
-      ctx.font = 'bold ' + Math.round(16 * (W / 960) + 8) + 'px ui-sans-serif,system-ui,sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('STALL', X, Y - span * 0.9);
-      ctx.textAlign = 'left';
-    }
-  }
-
-  // ---------------- HUD ----------------
-  function F(n) { return Math.round(n); }
-  function hud() {
-    var u = W / 960;
-    var pad = Math.round(14 * u) + 6;
-    var fs = Math.round(15 * u) + 6;
-    ctx.textBaseline = 'top';
-    ctx.font = '600 ' + fs + 'px ui-sans-serif,system-ui,sans-serif';
-
-    var gh = world.h(g.x);
-    var agl = g.y - gh;
-    var dist = g.x;
-
-    // left block
-    ctx.fillStyle = 'rgba(8,18,28,0.42)';
-    var bw = fs * 8.4, bh = fs * 3.5;
-    roundRect(pad - 8, pad - 6, bw, bh, 8); ctx.fill();
-    ctx.fillStyle = '#eaf4ff';
-    ctx.fillText((dist / 1000).toFixed(2) + ' km', pad, pad);
-    ctx.font = Math.round(fs * 0.72) + 'px ui-sans-serif,system-ui,sans-serif';
-    ctx.fillStyle = '#a9c6dd';
-    ctx.fillText('best ' + best, pad, pad + fs * 1.25);
-    var nxt = world.nextLZ(g.x) - g.x;
-    ctx.fillStyle = '#ffdc5a';
-    ctx.fillText('next LZ ' + F(nxt) + ' m', pad, pad + fs * 2.15);
-
-    // right block
-    ctx.textAlign = 'right';
-    var rx = W - pad;
-    ctx.fillStyle = 'rgba(8,18,28,0.42)';
-    roundRect(rx - bw + 8, pad - 6, bw, bh, 8); ctx.fill();
-    ctx.font = '600 ' + fs + 'px ui-sans-serif,system-ui,sans-serif';
-    var fast = g.V > 30, slow = g.V < 11.5;
-    ctx.fillStyle = slow ? '#ff8b7a' : (fast ? '#ffd27a' : '#eaf4ff');
-    ctx.fillText(F(g.V * 3.6) + ' km/h', rx, pad);
-    ctx.font = Math.round(fs * 0.72) + 'px ui-sans-serif,system-ui,sans-serif';
-    ctx.fillStyle = '#a9c6dd';
-    ctx.fillText(F(agl) + ' m agl', rx, pad + fs * 1.25);
-    ctx.fillStyle = g.vy > 0.2 ? '#7dffb0' : '#c9d8e6';
-    ctx.fillText((g.vy >= 0 ? '+' : '') + g.vy.toFixed(1) + ' m/s', rx, pad + fs * 2.15);
-    ctx.textAlign = 'left';
-
-    // vario bar (right edge)
-    var barH = Math.min(H * 0.5, 210 * u + 60);
-    var barW = Math.round(10 * u) + 6;
-    var bx = W - barW - pad * 0.5;
-    var by = H * 0.5 - barH / 2;
-    ctx.fillStyle = 'rgba(8,18,28,0.35)';
-    roundRect(bx, by, barW, barH, barW / 2); ctx.fill();
-    var mid = by + barH / 2;
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fillRect(bx, mid - 1, barW, 2);
-    var v = Math.max(-5, Math.min(5, g.vy)) / 5;
-    var len = v * (barH / 2 - 3);
-    ctx.fillStyle = v > 0 ? '#7dffb0' : '#ff9d8a';
-    if (len > 0) ctx.fillRect(bx + 2, mid - len, barW - 4, len);
-    else ctx.fillRect(bx + 2, mid, barW - 4, -len);
-
-    // pitch / control indicator (left edge)
-    var pbH = barH, pbW = barW, pbx = pad * 0.5, pby = by;
-    ctx.fillStyle = 'rgba(8,18,28,0.35)';
-    roundRect(pbx, pby, pbW, pbH, pbW / 2); ctx.fill();
-    var pmid = pby + pbH / 2;
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillRect(pbx, pmid - 1, pbW, 2);
-    var kn = pmid - g.input * (pbH / 2 - 8);
-    ctx.fillStyle = g.stalled > 0.35 ? '#ff7a6b' : '#eaf4ff';
-    ctx.beginPath(); ctx.arc(pbx + pbW / 2, kn, pbW * 0.62, 0, 6.283); ctx.fill();
-
-    // hint line
-    if (hintT > 0) {
-      ctx.globalAlpha = Math.min(1, hintT);
-      ctx.textAlign = 'center';
-      ctx.font = '600 ' + Math.round(fs * 0.95) + 'px ui-sans-serif,system-ui,sans-serif';
-      ctx.fillStyle = 'rgba(6,14,22,0.5)';
-      var msg = 'Drag up to flare and climb, down to dive for speed - ride lift, go far.';
-      var tw = ctx.measureText(msg).width;
-      roundRect(W / 2 - tw / 2 - 14, H - fs * 2.9, tw + 28, fs * 1.8, 10); ctx.fill();
-      ctx.fillStyle = '#eaf4ff';
-      ctx.fillText(msg, W / 2, H - fs * 2.5);
-      ctx.textAlign = 'left';
-      ctx.globalAlpha = 1;
-    }
-    ctx.textBaseline = 'alphabetic';
-  }
-
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  function overlay() {
-    var u = W / 960;
-    var a = Math.min(1, overT * 2.4);
-    ctx.fillStyle = 'rgba(6,14,22,' + (0.62 * a).toFixed(3) + ')';
-    ctx.fillRect(0, 0, W, H);
-    ctx.textAlign = 'center';
-    ctx.globalAlpha = a;
-    var cy = H * 0.30;
-    ctx.fillStyle = overInfo.bonus > 0 ? '#7dffb0' : (overInfo.msg === 'LANDED OUT' ? '#ffe08a' : '#ff8f80');
-    ctx.font = 'bold ' + Math.round(30 * u + 16) + 'px ui-sans-serif,system-ui,sans-serif';
-    ctx.fillText(overInfo.msg, W / 2, cy);
-    ctx.font = Math.round(13 * u + 6) + 'px ui-sans-serif,system-ui,sans-serif';
-    ctx.fillStyle = '#a9c6dd';
-    ctx.fillText(overInfo.sub, W / 2, cy + 26 * u + 14);
-
-    ctx.font = '600 ' + Math.round(17 * u + 8) + 'px ui-sans-serif,system-ui,sans-serif';
-    ctx.fillStyle = '#eaf4ff';
-    ctx.fillText('distance ' + (overInfo.dist / 1000).toFixed(2) + ' km   +   bonus ' + overInfo.bonus,
-      W / 2, cy + 58 * u + 34);
-    ctx.font = 'bold ' + Math.round(26 * u + 14) + 'px ui-sans-serif,system-ui,sans-serif';
-    ctx.fillStyle = overInfo.isBest ? '#ffdc5a' : '#eaf4ff';
-    ctx.fillText('SCORE ' + overInfo.score + (overInfo.isBest ? '  NEW BEST' : ''), W / 2, cy + 96 * u + 60);
-    ctx.font = Math.round(13 * u + 6) + 'px ui-sans-serif,system-ui,sans-serif';
-    ctx.fillStyle = '#a9c6dd';
-    ctx.fillText('best ' + best, W / 2, cy + 124 * u + 82);
-
-    if (overT > 0.45) {
-      ctx.globalAlpha = a * (0.6 + 0.4 * Math.sin(tNow * 4));
-      ctx.font = '600 ' + Math.round(16 * u + 8) + 'px ui-sans-serif,system-ui,sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('TAP  /  SPACE  to launch again', W / 2, H - 34 * u - 18);
-    }
-    ctx.globalAlpha = 1;
-    ctx.textAlign = 'left';
-  }
-
-  function render() {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    drawSky();
-    var shx = 0, shy = 0;
-    if (shake > 0.05) { shx = rnd(-shake, shake); shy = rnd(-shake, shake); }
-    ctx.save();
-    ctx.translate(shx, shy);
-    drawClouds();
-    drawBgRidge(0.30, 210, 3.1, '#4d6f88');
-    drawBgRidge(0.55, 260, 8.4, '#3a5a63');
-    drawThermals();
-    drawTerrain();
-    drawLZ();
-    drawParticles();
-    drawGlider();
-    ctx.restore();
-
-    if (flash > 0.01) {
-      ctx.globalAlpha = Math.min(0.55, flash);
-      ctx.fillStyle = flashCol;
-      ctx.fillRect(0, 0, W, H);
-      ctx.globalAlpha = 1;
-    }
-    if (state === 'fly') hud(); else { hud(); overlay(); }
-  }
-
-  // ---------------- loop ----------------
-  var last = 0;
-  function frame(ts) {
-    requestAnimationFrame(frame);
-    if (window.innerHeight > window.innerWidth * 1.05) {
-      last = ts; drag = null; dragPointer = null; keyUp = false; keyDn = false; render(); return;
-    }
-    if (!last) last = ts;
-    var dt = (ts - last) / 1000;
-    last = ts;
-    if (dt > 0.1) dt = 0.1;
-    if (dt <= 0) dt = 0.0001;
-    tNow += dt;
-    if (hintT > 0) hintT -= dt;
-    shake *= Math.pow(0.02, dt);
-    flash *= Math.pow(0.02, dt);
-
-    if (state === 'fly') {
-      var rem = dt;
-      while (rem > 0 && state === 'fly') {
-        var h = Math.min(0.016, rem);
-        step(h);
-        rem -= h;
-      }
-      updateCam(dt);
-    } else {
-      overT += dt;
-      for (var i = particles.length - 1; i >= 0; i--) {
-        var p = particles[i];
-        p.l -= dt; if (p.l <= 0) { particles.splice(i, 1); continue; }
-        p.x += p.vx * dt; p.y += p.vy * dt; p.vy -= 30 * dt;
-      }
-    }
-    render();
-  }
-
+  pools.airParticles = makeParticlePool(airFxGroup, 28, 'air-particles', 0x9beedb, .9);
+  pools.dustParticles = makeParticlePool(dustFxGroup, 32, 'dust-particles', 0xd89b6c, 1.1);
+  pools.sparkParticles = makeParticlePool(sparkFxGroup, 22, 'spark-particles', COLORS.gold, .72);
+  glider = makeGlider(); scene.add(glider);
   resize();
-  newFlight();
-  requestAnimationFrame(frame);
-})();
+}
+
+function buildTerrain() {
+  clearGroup(terrainBand, true);
+  const ridge = world.ridge;
+  const cols = 92, rows = 12, width = 1120;
+  const positions = [], colors = [], indices = [];
+  const colorNear = new THREE.Color(ridge.terrain[0]); const colorFar = new THREE.Color(ridge.terrain[1]);
+  for (let zIndex = 0; zIndex <= rows; zIndex++) {
+    const z = -width / 2 + width * zIndex / rows;
+    for (let xIndex = 0; xIndex <= cols; xIndex++) {
+      const x = ridge.length * xIndex / cols;
+      const y = world.lateralTerrain(x, z);
+      positions.push(x, y, z);
+      const side = Math.abs(z) / (width / 2); const c = colorNear.clone().lerp(colorFar, side * .72); colors.push(c.r, c.g, c.b);
+    }
+  }
+  const stride = cols + 1;
+  for (let zIndex = 0; zIndex < rows; zIndex++) for (let xIndex = 0; xIndex < cols; xIndex++) {
+    const a = zIndex * stride + xIndex, b = a + 1, c = a + stride, d = c + 1;
+    indices.push(a, c, b, b, c, d);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); geometry.setIndex(indices); geometry.computeVertexNormals();
+  terrainMesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .93, metalness: 0, flatShading: true, side: THREE.DoubleSide }));
+  terrainBand.add(terrainMesh);
+  const bandPositions = [];
+  for (let i = 0; i < cols; i++) {
+    const x = ridge.length * i / cols; const next = ridge.length * (i + 1) / cols;
+    if (world.slope(x) <= .075) continue;
+    const y = world.terrain(x) + 32 + Math.min(110, Math.max(0, world.slope(x)) * 160);
+    bandPositions.push(x, y, -330, next, world.terrain(next) + 32, -330, x, y + 8, -330, next, world.terrain(next) + 40, -330);
+  }
+  const bandGeometry = new THREE.BufferGeometry(); bandGeometry.setAttribute('position', new THREE.Float32BufferAttribute(bandPositions, 3));
+  terrainBand.add(new THREE.LineSegments(bandGeometry, lineMaterial(0xa4e9e0, .26)));
+  buildLandmark();
+  buildCorridor();
+  buildLzCone();
+}
+
+function buildLandmark() {
+  clearGroup(landmarkGroup, true);
+  const landmark = world.ridge.landmark; const group = new THREE.Group(); const y = world.terrain(landmark.x);
+  const stone = material('landmark-stone-' + world.ridge.id, new THREE.Color(world.ridge.terrain[0]).offsetHSL(0, -.1, .12).getHex());
+  if (landmark.kind === 'arch') {
+    for (const z of [-52, 52]) { const pillar = new THREE.Mesh(new THREE.CylinderGeometry(24, 32, 210, 6), stone); pillar.position.set(landmark.x, y + 105, z); group.add(pillar); }
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(54, 55, 160), stone); lintel.position.set(landmark.x, y + 210, 0); group.add(lintel);
+  } else if (landmark.kind === 'glacier') {
+    const ice = material('glacier-ice', 0xd8f3ff, { roughness: .42 });
+    for (let i = 0; i < 7; i++) { const spire = new THREE.Mesh(new THREE.ConeGeometry(28 + (i % 3) * 8, 190 + (i % 4) * 34, 5), ice); spire.position.set(landmark.x + (i - 3) * 42, y + 95, (i % 2 ? 35 : -25) + (i - 3) * 6); group.add(spire); }
+  } else if (landmark.kind === 'mesa') {
+    for (const x of [-75, 75]) { const mesa = new THREE.Mesh(new THREE.CylinderGeometry(65, 105, 260, 6), stone); mesa.position.set(landmark.x + x, y + 130, (x > 0 ? 90 : -100)); group.add(mesa); }
+    const bridge = new THREE.Mesh(new THREE.BoxGeometry(210, 28, 45), stone); bridge.position.set(landmark.x, y + 225, 0); group.add(bridge);
+  } else {
+    const cliff = new THREE.Mesh(new THREE.CylinderGeometry(125, 150, 260, 6), stone); cliff.position.set(landmark.x, y + 130, -120); group.add(cliff);
+    const waterMat = material('waterfall', 0x7de2eb, { transparent: true, opacity: .74, roughness: .2 });
+    for (let i = 0; i < 5; i++) { const stream = new THREE.Mesh(new THREE.BoxGeometry(10 + (i % 2) * 5, 180, 8), waterMat); stream.position.set(landmark.x - 75 + i * 36, y + 36, -112); group.add(stream); }
+  }
+  landmarkGroup.add(group);
+}
+
+function buildCorridor() {
+  const corridor = world.ridge.shortcut; const mid = (corridor.start + corridor.end) / 2;
+  corridorMesh.position.set(mid, world.terrain(mid) + corridor.floor + 110, 0); corridorMesh.scale.set(72, corridor.end - corridor.start, 72); corridorMesh.rotation.z = Math.PI / 2; corridorMesh.visible = true;
+}
+
+function buildLzCone() {
+  if (!mode || !world) return;
+  const target = mode.id === 'lz-precision' ? world.ridge.lzs[1] : world.nextLz(0);
+  approachCone.position.set(target - 180, world.terrain(target) + 92, 0); approachCone.scale.set(52, 260, 52); approachCone.rotation.z = Math.PI / 2; approachCone.visible = mode.id === 'lz-precision';
+}
+
+function buildModeCards() {
+  ui.cards.innerHTML = '';
+  for (let i = 0; i < MODES.length; i++) {
+    const entry = MODES[i]; const card = document.createElement('button'); card.type = 'button'; card.className = 'mode-card'; card.dataset.mode = entry.id; card.setAttribute('aria-label', entry.name);
+    card.innerHTML = '<b></b><span></span><i></i>'; card.children[0].textContent = entry.name; card.children[1].textContent = entry.desc;
+    card.children[2].textContent = entry.locked && !unlocked(entry) ? 'LOCKED' : 'MEDALS ' + (save.medals[entry.id] || 0) + '/3'; ui.cards.appendChild(card);
+  }
+  updateMenuCards();
+}
+
+function updateMenuCards() {
+  [...ui.cards.children].forEach((card, index) => { card.classList.toggle('active', index === modeIndex); card.classList.toggle('locked', MODES[index].locked && !unlocked(MODES[index])); });
+}
+
+function unlocked(entry) {
+  if (!entry.locked) return true;
+  return (save.medals['distance-run'] || 0) >= 1 && (save.medals['thermal-chain'] || 0) >= 1 && (save.medals['lz-precision'] || 0) >= 1;
+}
+
+function saveProgress() { kit.save.set(save); }
+
+function startMusic(name, fadeMs) {
+  const token = ++audioEpoch;
+  kit.audio.preload([name]).then(() => {
+    const valid = token === audioEpoch && ((name === 'menu' && !mode) || (name === 'wind' && mode && flight));
+    if (valid) kit.audio.music(name, fadeMs);
+  });
+}
+
+function stopMusic() { audioEpoch++; kit.audio.stopMusic(180); }
+
+function setScreen(screen) {
+  currentScreen = screen;
+  ui.title.classList.toggle('hidden', screen !== 'title'); ui.report.classList.toggle('hidden', screen !== 'report'); ui.pause.classList.toggle('hidden', screen !== 'pause');
+  ui.hud.hidden = screen !== 'flight'; ui.pauseButton.hidden = screen !== 'flight';
+  if (screen !== 'flight') ui.countdown.classList.remove('show');
+  if (screen !== 'flight') { ui.coach.classList.remove('show'); ui.hud.classList.remove('stall'); }
+  if (screen === 'pause') ui.toast.classList.remove('show');
+}
+
+function showPause(value) { if (value) setScreen('pause'); else if (flight) setScreen('flight'); }
+
+function setCoach(text, seconds = 5) {
+  const next = String(text); const changed = coachMessage !== next;
+  if (!changed) { if (coachTimer > 0 || ui.coach.classList.contains('show')) coachTimer = Math.max(coachTimer, seconds); return; }
+  coachMessage = next; setTextIfChanged(ui.coach, next); coachTimer = seconds; ui.coach.classList.remove('show'); void ui.coach.offsetWidth;
+  if (currentScreen === 'flight' && toastTimer <= 0) ui.coach.classList.add('show');
+}
+
+function clearToasts() {
+  toastTimer = 0; toastQueue.length = 0; ui.toast.classList.remove('show');
+}
+
+function showToast(entry) {
+  setTextIfChanged(ui.toastTitle, entry.title); setTextIfChanged(ui.toastCopy, entry.copy); ui.toastTitle.style.color = entry.color;
+  ui.toast.classList.remove('show'); void ui.toast.offsetWidth; ui.toast.classList.add('show'); ui.coach.classList.remove('show'); toastTimer = 1;
+}
+
+function toast(title, copy, color = '#8de8d5') {
+  const entry = { title: String(title), copy: String(copy || ''), color };
+  if (toastTimer > 0) { if (toastQueue.length >= 5) toastQueue.shift(); toastQueue.push(entry); return; }
+  showToast(entry);
+}
+
+function updateTransients(dt) {
+  if (kit.paused) return;
+  if (toastTimer > 0) {
+    toastTimer -= dt;
+    if (toastTimer <= 0) {
+      ui.toast.classList.remove('show');
+      if (toastQueue.length) showToast(toastQueue.shift());
+    }
+  }
+  if (coachTimer > 0) coachTimer -= dt;
+  ui.coach.classList.toggle('show', currentScreen === 'flight' && coachTimer > 0 && toastTimer <= 0);
+}
+
+function currentForce(name) { return debug[name] === true || debugState[name] === true; }
+
+function syncDebug() {
+  debugState.mode = mode ? mode.id : 'menu'; debugState.distance = flight ? flight.x : 0; debugState.altitude = flight && world ? Math.max(0, flight.y - world.terrain(flight.x)) : 0;
+  debugState.ridge = world ? world.ridge.id : RIDGES[ridgeIndex].id; debugState.seed = activeSeed; debugState.forceRidge = currentForce('forceRidge'); debugState.forceThermal = currentForce('forceThermal');
+  debug.forceRidge = debugState.forceRidge; debug.forceThermal = debugState.forceThermal;
+}
+
+function resetFlight() {
+  if (!mode) return;
+  activeSeed = ((Date.now() ^ (modeIndex * 0x9e3779b9) ^ (ridgeIndex * 0x45d9f3b)) >>> 0) || 1;
+  world = new RidgeWorld(ridgeIndex, activeSeed); world.forceRidge = currentForce('forceRidge'); world.forceThermal = currentForce('forceThermal');
+  updateSkyGradient(world.ridge.sky); scene.fog.color.set(world.ridge.sky[1]); scene.fog.near = 680 + (ridgeIndex % 3) * 90; scene.fog.far = 3900 + (ridgeIndex % 2) * 700;
+  const startY = world.terrain(0) + 370;
+  const routeGoal = mode.id === 'cross-country-finale' ? world.ridge.lzs[world.ridge.lzs.length - 1] : mode.goal;
+  flight = { x: 0, y: startY, speed: 18, gamma: -.04, alpha: .035, input: 0, targetInput: 0, roll: 0, vy: 0, wind: world.windAt(0), air: -0.72, stall: 0, stallWarned: false, score: 0, thermalChain: 0, thermalCaught: 0, currentThermal: -1, outThermal: 0, shortcut: false, nextMilestone: 1000, t: 0, goal: routeGoal, targetLzX: world.ridge.lzs[1], approachAnnounced: false, lastGround: null, touchdown: false, finished: false, launchTimer: 2.99, countdownStep: 4, launching: true, inputState: 'trim', trafficHits: 0 };
+  buildTerrain(); buildLzCone();
+  glider.position.set(0, startY, 0); glider.rotation.set(0, 0, 0);
+  clearToasts(); coachTimer = 0; coachMessage = ''; setTextIfChanged(ui.coach, ''); setScreen('flight'); startMusic('wind', 250); kit.audio.sfx('canopy', { volume: .3 });
+  syncDebug();
+}
+
+function beginMode() {
+  mode = MODES[modeIndex] || MODES[0];
+  if (!unlocked(mode)) { modeIndex = 0; mode = MODES[0]; toast('FLIGHT LOCKED', 'Earn 1 medal per route', '#ff9b7e'); return; }
+  ridgeIndex = mode.id === 'cross-country-finale' ? (ridgeIndex + 1) % RIDGES.length : mode.ridge;
+  save.selectedRidge = ridgeIndex; save.canopy = selectedCanopy; saveProgress(); kit.restart();
+}
+
+function selectMode(index) { modeIndex = (index + MODES.length) % MODES.length; if (!unlocked(MODES[modeIndex])) modeIndex = 0; kit.audio.sfx('thermal', { volume: .16, rate: 1.55 }); updateMenuCards(); }
+function cycleRidge(delta) { ridgeIndex = (ridgeIndex + delta + RIDGES.length) % RIDGES.length; save.selectedRidge = ridgeIndex; saveProgress(); }
+function cycleCanopy() { if (mode || flight) return; const list = ['reef', 'ice', 'ember', 'moss']; selectedCanopy = list[(list.indexOf(selectedCanopy) + 1) % list.length]; save.canopy = selectedCanopy; saveProgress(); scene.remove(glider); glider = makeGlider(); scene.add(glider); }
+
+function gamepadTarget() {
+  if (!navigator.getGamepads) return null;
+  const pads = navigator.getGamepads();
+  for (const pad of pads) {
+    if (!pad || !pad.connected) continue;
+    if (pad.buttons[12]?.pressed) return .86;
+    if (pad.buttons[13]?.pressed) return -1;
+    const axis = Number(pad.axes[1]);
+    if (!Number.isFinite(axis) || Math.abs(axis) < .14) continue;
+    return clamp(-axis, -1, 1);
+  }
+  return null;
+}
+
+function readFlightInput() {
+  let pointer = null;
+  for (const p of kit.input.pointers.values()) { if (!p.zone || p.zone === 'flight') { pointer = p; break; } }
+  let target = 0;
+  if (pointer) { if (!pointer.zone) pointer.zone = 'flight'; target = clamp((pointer.startY - pointer.y) / 105, -1, 1); }
+  if (kit.input.keyDown('ArrowUp') || kit.input.keyDown('KeyW')) target = .86;
+  if (kit.input.keyDown('ArrowDown') || kit.input.keyDown('KeyS')) target = -1;
+  const padTarget = gamepadTarget(); if (padTarget != null) target = padTarget;
+  if (!pointer && padTarget == null && !kit.input.keyDown('ArrowUp') && !kit.input.keyDown('KeyW') && !kit.input.keyDown('ArrowDown') && !kit.input.keyDown('KeyS')) target = flight.targetInput * Math.max(0, 1 - STEP * 2.4);
+  flight.targetInput = target; flight.input += (target - flight.input) * Math.min(1, STEP * 7);
+}
+
+function stepFlight() {
+  if (!flight || !world || flight.finished) return;
+  world.forceRidge = currentForce('forceRidge'); world.forceThermal = currentForce('forceThermal');
+  flight.t += STEP; readFlightInput();
+  if (flight.x > INTRO_LIFT_END) world.introLift = false;
+  const input = flight.input; const flare = Math.max(0, input); const dive = Math.max(0, -input);
+  const targetAlpha = .035 + flare * .13 - dive * .075; flight.alpha += (targetAlpha - flight.alpha) * Math.min(1, STEP * 4.8);
+  const stall = flight.speed < 11.2 || flight.alpha > .151;
+  const liftInfo = world.lift(flight.x, flight.y); flight.air = liftInfo.total;
+  const drag = .020 + .048 * Math.abs(flight.alpha) + (stall ? .19 : 0) + dive * .006;
+  const lift = clamp(.64 + flight.alpha * 4.8 - (stall ? (flight.alpha - .151) * 3.8 : 0), .05, 1.48) * flight.speed * flight.speed * .011;
+  const gravityPitch = -Math.sin(flight.gamma) * 1.25;
+  flight.speed += (gravityPitch - drag * flight.speed * .18 + dive * 2.4 - flare * 1.2) * STEP;
+  flight.speed = clamp(flight.speed, 7.2, 37);
+  flight.stall = clamp(Math.max(0, (12.4 - flight.speed) / 3.2) + Math.max(0, (flight.alpha - .135) * 15), 0, 1);
+  if (flight.stall > .52 && !flight.stallWarned) { flight.stallWarned = true; kit.audio.sfx('canopy', { volume: .42, rate: 1.55 }); }
+  if (flight.stall < .22) flight.stallWarned = false;
+  const state = flight.stall > .4 ? 'stall' : input > .2 ? 'flare' : input < -.2 ? 'dive' : 'trim';
+  if (state !== flight.inputState) { flight.inputState = state; kit.audio.sfx('canopy', { volume: state === 'stall' ? .42 : .18, rate: state === 'dive' ? 1.25 : .9 }); }
+  flight.gamma += ((lift / Math.max(8, flight.speed) - .47) + liftInfo.total * .018 - flare * .075 + dive * .055) * STEP;
+  flight.gamma = clamp(flight.gamma, -0.8, .64);
+  flight.wind = world.windAt(flight.x);
+  const vx = flight.speed * Math.cos(flight.gamma) + flight.wind;
+  flight.vy = flight.speed * Math.sin(flight.gamma) + liftInfo.total;
+  flight.x += Math.max(4, vx) * STEP; flight.y += flight.vy * STEP;
+  flight.roll += (input * .2 - flight.roll) * Math.min(1, STEP * 6);
+  if (liftInfo.inThermal && flight.currentThermal !== liftInfo.thermalIndex) { flight.thermalCaught++; flight.thermalChain++; flight.currentThermal = liftInfo.thermalIndex; flight.score += 120 + flight.thermalChain * 55; kit.audio.sfx('thermal', { volume: .46 }); toast('THERMAL ×' + flight.thermalChain, 'LIFT CORE', '#ffd17b'); }
+  if (!liftInfo.inThermal) { flight.currentThermal = -1; flight.outThermal += STEP; if (flight.outThermal > THERMAL_CHAIN_GRACE) flight.thermalChain = 0; } else flight.outThermal = 0;
+  if (world.inShortcut(flight.x, flight.y) && !flight.shortcut) { flight.shortcut = true; flight.score += world.ridge.shortcut.bonus; toast('SHORTCUT +' + world.ridge.shortcut.bonus, 'LINE FOUND', '#8de8d5'); }
+  for (const flag of world.flags) if (!flag.collected && Math.abs(flag.x - flight.x) < 18 && flight.y - world.terrain(flight.x) > 30) { flag.collected = true; flight.score += 100; kit.audio.sfx('thermal', { volume: .32, rate: 1.25 }); }
+  if (flight.x >= flight.nextMilestone) { flight.score += 50; flight.nextMilestone += 1000; }
+  checkTraffic();
+  updateOnboarding();
+  if (dive > .22 || flight.speed > 29) spawnParticles(pools.airParticles, flight.x - 24, flight.y, 0, 1, 5, 22, .42);
+  const ground = world.terrain(flight.x);
+  if (flight.y <= ground + 8) {
+    flight.y = ground + 8; flight.lastGround = world.lzAt(flight.x); flight.touchdown = true;
+    const hard = Math.abs(flight.vy) > 5.2 || flight.speed + flight.wind > 28 || flight.alpha > .17;
+    spawnParticles(pools.dustParticles, flight.x, ground + 7, 0, hard ? 16 : 10, 20, hard ? 34 : 20, hard ? .85 : .65);
+    impactKick = hard ? 12 : 5; kit.juice.hitStop(hard ? 65 : 45); kit.juice.shake(hard ? 7 : 3, hard ? 210 : 130);
+    finishFlight(flight.lastGround);
+  }
+  if (!flight.finished && !flight.approachAnnounced && flight.x >= flight.goal - 720) { flight.approachAnnounced = true; setCoach('FINAL APPROACH: trim, keep speed, land in gold flags.', 4.5); }
+  if (!flight.finished && flight.x >= flight.goal + 420) finishFlight(null);
+}
+
+function checkTraffic() {
+  if (!world || !flight) return;
+  for (let i = 0; i < world.traffic.length; i++) {
+    const hazard = world.traffic[i]; const visual = pools.traffic[i];
+    const hazardY = world.terrain(hazard.x) + hazard.height + Math.sin(simClock * hazard.speed + hazard.phase) * 28;
+    const hazardZ = Math.sin(simClock * hazard.speed * .8 + hazard.phase) * hazard.amplitude;
+    if (Math.abs(hazard.x - flight.x) < 34 && Math.abs(hazardY - flight.y) < 78 && Math.abs(hazardZ) < 82 && !hazard.hit) {
+      hazard.hit = true; flight.trafficHits++; flight.score = Math.max(0, flight.score - 180); flight.speed = Math.max(8, flight.speed - 4.5); flight.y -= 32; impactKick = 10;
+      if (visual) visual.hitFlash = .5;
+      spawnParticles(pools.sparkParticles, flight.x, flight.y, 0, 14, 18, 34, .7); kit.audio.sfx('collision', { volume: .82, rate: .75 }); kit.juice.hitStop(60); kit.juice.shake(8, 220); toast('KITE HIT', '−180', '#ff9b7e');
+    }
+    if (hazard.hit && Math.abs(hazard.x - flight.x) > 120) hazard.hit = false;
+  }
+}
+
+function updateOnboarding() {
+  if (!flight || flight.t > 22 || flight.trafficHits > 0) return;
+  if (flight.t < 2.8) {
+    setCoach('FLARE: hold ↑ for lift.', 2.8);
+  } else if (flight.t < 7.5 && flight.thermalCaught === 0) {
+    setCoach('RELEASE to trim; gold shimmer means lift.', 4.6);
+  } else if (flight.thermalCaught > 0) {
+    setCoach('DIVE ↓ for speed; flare ↑ before the gold LZ.', 4.5);
+  }
+}
+
+function medalFor(result) {
+  const thresholds = mode.medals;
+  if (mode.id === 'lz-precision') {
+    if (!result.landed || !result.gentle) return 0;
+    if (result.precision >= thresholds[2]) return 3; if (result.precision >= thresholds[1]) return 2; if (result.precision >= thresholds[0]) return 1; return 0;
+  }
+  const value = mode.id === 'thermal-chain' ? result.chain : result.distance;
+  if (value >= thresholds[2]) return 3; if (value >= thresholds[1]) return 2; if (value >= thresholds[0]) return 1; return 0;
+}
+
+function finishFlight(lz) {
+  if (!flight || flight.finished) return;
+  flight.finished = true; stopMusic();
+  const speed = flight.speed + flight.wind; const vertical = Math.abs(flight.vy); const slope = Math.abs(world.slope(flight.x));
+  if (mode.id === 'lz-precision' && (!lz || Math.abs(lz.x - flight.targetLzX) > 1)) lz = null;
+  const inside = !!lz && Math.abs(lz.dx) <= lz.half; const gentle = vertical < 4.8 && speed >= 13 && speed <= 28 && slope < .6 && !((flight.speed < 10.2) || flight.alpha > .17);
+  const precision = inside ? clamp(1 - Math.abs(lz.dx) / lz.half, 0, 1) : 0;
+  const softBonus = gentle && inside ? Math.round(450 + precision * 850 + Math.max(0, 4.8 - vertical) * 40) : gentle ? 60 : 0;
+  const landed = gentle && inside; const distance = Math.round(flight.x); const score = distance + flight.score + softBonus;
+  const result = { distance, score, chain: flight.thermalChain, precision, landed, gentle, bonus: softBonus };
+  const medal = medalFor(result); const prior = save.best[mode.id] || 0; const isBest = score > prior;
+  save.best[mode.id] = Math.max(prior, score); save.medals[mode.id] = Math.max(save.medals[mode.id] || 0, medal); save.runs = Math.min(999999, save.runs + 1); saveProgress();
+  const nowUnlocked = unlocked(MODES[3]);
+  ui.reportKicker.textContent = mode.name + ' / ' + world.ridge.name; ui.reportTitle.textContent = landed ? 'BULLSEYE TOUCHDOWN' : (gentle ? 'SOFT TOUCHDOWN' : 'RIDGE CONTACT');
+  ui.reportCopy.textContent = landed ? 'The approach cone paid off. Your line is in the record book.' : (gentle ? 'A clean recovery, but outside the marked landing zone.' : 'The face won this pass. Read the lift band earlier.');
+  ui.reportDistance.textContent = (distance / 1000).toFixed(2) + ' KM'; ui.reportScore.textContent = String(score); ui.reportMedal.textContent = medal ? '★'.repeat(medal) : '-';
+  ui.reportHint.textContent = isBest ? 'NEW BEST  /  ENTER to fly again  /  ESC to route board' : (nowUnlocked ? 'FINALE UNLOCKED  /  ENTER to fly again  /  ESC to route board' : 'ENTER to fly again  /  ESC to route board');
+  clearToasts(); setScreen('report'); if (landed) { kit.audio.sfx('landing', { volume: .9 }); toast('LZ BONUS', '+' + softBonus, '#8de8d5'); } else { if (flight.touchdown) kit.audio.sfx('collision', { volume: .72, rate: .72 }); if (isBest) toast('NEW BEST', String(score) + ' points', '#ffd17b'); }
+  syncDebug(); buildModeCards();
+}
+
+function returnToMenu() {
+  stopMusic(); clearToasts(); coachTimer = 0; coachMessage = ''; setTextIfChanged(ui.coach, ''); flight = null; mode = null; setScreen('title'); buildModeCards(); syncDebug(); startMusic('menu', 220);
+}
+
+function handleMenuPointer() {
+  if (performance.now() - pointerActionAt < 240) return;
+  for (const p of kit.input.pointers.values()) {
+    if (p.zone) continue;
+    const launch = ui.launchButton.getBoundingClientRect();
+    if (p.x >= launch.left && p.x <= launch.right && p.y >= launch.top && p.y <= launch.bottom) { p.zone = 'menu'; pointerActionAt = performance.now(); beginMode(); return; }
+    const cards = [...ui.cards.children];
+    for (let index = 0; index < cards.length; index++) {
+      const rect = cards[index].getBoundingClientRect();
+      if (p.x >= rect.left && p.x <= rect.right && p.y >= rect.top && p.y <= rect.bottom) { p.zone = 'menu'; pointerActionAt = performance.now(); selectMode(index); return; }
+    }
+  }
+}
+
+function handleReportPointer() {
+  for (const p of kit.input.pointers.values()) { if (p.zone) continue; p.zone = 'report'; beginMode(); return; }
+}
+
+function processKeys() {
+  if (pressed('Digit1')) selectMode(0); if (pressed('Digit2')) selectMode(1); if (pressed('Digit3')) selectMode(2); if (pressed('Digit4')) selectMode(3);
+  if (pressed('KeyA')) cycleRidge(-1); if (pressed('KeyD')) cycleRidge(1); if (pressed('KeyC')) cycleCanopy();
+  if (pressed('Enter') || pressed('Space')) { if (!flight || flight.finished) beginMode(); }
+  if (pressed('Escape')) { if (flight && !flight.finished) returnToMenu(); else if (ui.report.classList.contains('hidden') === false) returnToMenu(); }
+  if (flight && !flight.finished && pressed('KeyP')) kit.pause('manual');
+}
+
+function syncWorldVisuals() {
+  if (!world || !flight) return;
+  const thermalColor = world.ridge.thermalColor;
+  for (let i = 0; i < pools.thermal.length; i++) {
+    const visual = pools.thermal[i]; const thermal = world.thermals[i]; if (!thermal) { visual.group.visible = false; continue; }
+    visual.group.visible = thermal.x > flight.x - 360 && thermal.x < flight.x + 1250;
+    visual.group.position.set(thermal.x, thermal.base, 0); visual.group.scale.set(thermal.width, thermal.top - thermal.base, thermal.width);
+    visual.column.material.color.setHex(thermalColor); visual.column.material.opacity = .07 + .035 * (1 + Math.sin(simClock * 2.1 + thermal.phase));
+    for (let r = 0; r < visual.rings.length; r++) { const ring = visual.rings[r]; ring.material.color.setHex(thermalColor); ring.position.y = .12 + ((simClock * (.08 + r * .025) + r / 3) % 1); ring.rotation.z = simClock * (.35 + r * .12); }
+    for (let b = 0; b < visual.birds.length; b++) { const bird = visual.birds[b]; const angle = simClock * (.7 + b * .08) + thermal.phase + b * TAU / 3; const radius = .62 + b * .05; bird.position.set(Math.cos(angle) * radius, .46 + ((simClock * .035 + b / 3) % .5), Math.sin(angle) * radius); bird.rotation.y = -angle; bird.scale.setScalar(.9 + .16 * Math.sin(simClock * 2 + b)); }
+  }
+  for (let i = 0; i < pools.flags.length; i++) { const visual = pools.flags[i]; const flag = world.flags[i]; if (!flag) { visual.group.visible = false; continue; } visual.group.visible = !flag.collected && flag.x > flight.x - 300 && flag.x < flight.x + 1250; visual.group.position.set(flag.x, world.terrain(flag.x), 0); visual.flag.rotation.y = Math.sin(simClock * 1.4 + i) * .16; visual.glow.scale.setScalar(1 + .18 * Math.sin(simClock * 3 + i)); }
+  for (let i = 0; i < pools.lz.length; i++) { const visual = pools.lz[i]; const lzX = world.ridge.lzs[i]; if (lzX == null) { visual.group.visible = false; continue; } visual.group.visible = lzX > flight.x - 360 && lzX < flight.x + 1150; visual.group.position.set(lzX, world.terrain(lzX), 0); const target = mode && mode.id === 'lz-precision' && Math.abs(lzX - flight.targetLzX) < 1; visual.strip.material.opacity = target ? .72 : .42; visual.edge.material.opacity = target ? 1 : .72; }
+  for (let i = 0; i < pools.traffic.length; i++) { const visual = pools.traffic[i]; const hazard = world.traffic[i]; if (!hazard) { visual.group.visible = false; continue; } const hazardY = world.terrain(hazard.x) + hazard.height + Math.sin(simClock * hazard.speed + hazard.phase) * 28; const hazardZ = Math.sin(simClock * hazard.speed * .8 + hazard.phase) * hazard.amplitude; visual.group.visible = hazard.x > flight.x - 360 && hazard.x < flight.x + 1350; visual.group.position.set(hazard.x, hazardY, hazardZ); visual.group.rotation.y = Math.sin(simClock * hazard.speed + hazard.phase) * .16; visual.group.rotation.z = Math.cos(simClock * hazard.speed + hazard.phase) * .12; visual.hitFlash = Math.max(0, visual.hitFlash - .016); visual.group.scale.setScalar(visual.hitFlash > 0 ? 1.25 : 1); }
+  for (let i = 0; i < pools.clouds.length; i++) { const cloud = pools.clouds[i]; const x = ((i * 560 + cloud.seed * 170 - flight.x * .24) % (world.ridge.length + 1300) + world.ridge.length + 1300) % (world.ridge.length + 1300) - 450; cloud.group.position.set(flight.x + x, 520 + (i % 4) * 86, -280 - (i % 5) * 130); cloud.group.rotation.y = Math.sin(simClock * .04 + i) * .08; cloud.group.visible = true; }
+  const gustEnergy = clamp(Math.abs(world.windAt(flight.x) - world.ridge.wind) * 3.8 + .45, .35, 2.2);
+  for (let i = 0; i < pools.gusts.length; i++) { const gust = pools.gusts[i]; const drift = ((i * 123 - simClock * (32 + gustEnergy * 24)) % 1450 + 1450) % 1450 - 420; gust.streak.position.set(flight.x + drift, flight.y + 35 + Math.sin(simClock * .8 + gust.phase) * 75 + (i % 4) * 90, (i % 6 - 3) * 95); gust.streak.scale.set(55 + gustEnergy * 20, 1, 1); gust.streak.material.opacity = .1 + gustEnergy * .13; gust.streak.visible = true; }
+  const ground = world.terrain(flight.x); shadow.visible = true; shadow.position.set(flight.x, ground + 5, 0); const shadowSize = clamp(1.25 - (flight.y - ground) / 850, .28, 1.05); shadow.scale.set(32 * shadowSize, 15 * shadowSize, 1); shadow.material.opacity = .12 + shadowSize * .2;
+  corridorMesh.visible = flight.x < world.ridge.shortcut.end + 450 && flight.x > world.ridge.shortcut.start - 450;
+  if (mode) { const target = mode.id === 'lz-precision' ? world.ridge.lzs[1] : flight.goal; approachCone.position.set(target - 180, world.terrain(target) + 92, 0); approachCone.visible = target > flight.x - 90 && target < flight.x + 900; }
+}
+
+function updateCamera() {
+  if (!flight) return;
+  const speedRatio = clamp((flight.speed - 12) / 20, 0, 1); const target = new THREE.Vector3(flight.x + 150 + speedRatio * 90, flight.y + 8 + flight.gamma * 60, 0);
+  const desired = new THREE.Vector3(flight.x - 250 - speedRatio * 40, flight.y + 105 + speedRatio * 28 - impactKick, 250 - speedRatio * 65);
+  camera.position.lerp(desired, reducedMotion ? .22 : .09); camera.lookAt(target); camera.fov = 52 + speedRatio * 5; camera.updateProjectionMatrix();
+  glider.position.set(flight.x, flight.y, 0); glider.rotation.z = -flight.gamma - flight.input * .12; glider.rotation.x = flight.roll * .32;
+  const parts = glider.userData.parts; const flare = Math.max(0, flight.input); const dive = Math.max(0, -flight.input); parts.wing.rotation.x = flare * .16 - dive * .1; parts.canopy.scale.y = .6 + flare * .12; parts.canopy.scale.z = .8 + dive * .12; parts.keel.rotation.y = dive * .18; parts.pilot.position.y = -.35 + flare * .05; parts.stallRibbon.visible = flight.stall > .4; parts.stallRibbon.rotation.z = Math.sin(simClock * 12) * .08; impactKick *= reducedMotion ? .78 : .9;
+}
+
+function render(dt, juice) { updateParticles(kit.paused ? 0 : dt); syncWorldVisuals(); updateCamera(); const dx = reducedMotion ? 0 : juice.dx; const dy = reducedMotion ? 0 : juice.dy; camera.position.x += dx * .16; camera.position.y += dy * .16; renderer.render(scene, camera); }
+
+function updateHud() {
+  if (!flight || !world || !mode) return;
+  const altitude = Math.max(0, flight.y - world.terrain(flight.x)); const distance = (flight.x / 1000).toFixed(2); const speed = Math.round((flight.speed + flight.wind) * 3.6);
+  if (lastHud.distance !== distance) { lastHud.distance = distance; setTextIfChanged(ui.hudDistance, distance); }
+  if (lastHud.altitude !== String(Math.round(altitude))) { lastHud.altitude = String(Math.round(altitude)); setTextIfChanged(ui.hudAltitude, lastHud.altitude); }
+  if (lastHud.speed !== String(speed)) { lastHud.speed = String(speed); setTextIfChanged(ui.hudSpeed, lastHud.speed); }
+  ui.hud.classList.toggle('stall', flight.stall > .4);
+  if (ui.speedArc) ui.speedArc.style.strokeDashoffset = String(142 - clamp((speed - 25) / 115, 0, 1) * 142);
+  if (ui.objective) { const target = (flight.targetLzX / 1000).toFixed(2); setTextIfChanged(ui.objective, 'LZ ' + target); ui.objective.setAttribute('aria-label', 'Landing zone target ' + target + ' kilometres'); }
+}
+
+function resize() { renderWidth = Math.max(1, window.innerWidth); renderHeight = Math.max(1, window.innerHeight); renderer.setSize(renderWidth, renderHeight, false); camera.aspect = renderWidth / renderHeight; camera.updateProjectionMatrix(); }
+
+function frame(now) {
+  requestAnimationFrame(frame); if (!lastFrame) lastFrame = now; const raw = Math.min(.12, Math.max(0, (now - lastFrame) / 1000)); lastFrame = now;
+  processKeys();
+  const juice = kit.juice.frame();
+  if (mode && flight && !flight.finished && !kit.paused && !juice.frozen) {
+    if (flight.launching) {
+      flight.launchTimer -= raw; const count = Math.ceil(Math.max(0, flight.launchTimer));
+      if (flight.launchTimer > 0) { if (count !== flight.countdownStep) { flight.countdownStep = count; kit.audio.sfx('thermal', { volume: .22, rate: 1.2 + count * .08 }); } ui.countdownValue.textContent = String(Math.max(1, count)); ui.countdown.classList.add('show'); }
+      else { flight.launching = false; ui.countdown.classList.remove('show'); setCoach('READ THE FACE: flare in gold lift; dive through sink.', 5); }
+    } else {
+      accumulator += raw; let steps = 0; while (accumulator >= STEP && steps < MAX_STEPS) { stepFlight(); accumulator -= STEP; simClock += STEP; steps++; }
+      if (steps === MAX_STEPS) accumulator = Math.min(accumulator, STEP * 2);
+    }
+    updateHud();
+  } else if (!mode) { handleMenuPointer(); }
+  else if (flight && flight.finished) handleReportPointer();
+  updateTransients(raw);
+  syncDebug(); render(raw, juice);
+}
+
+function seedKitPointer(event) {
+  if (kit.input.pointers.has(event.pointerId)) return;
+  kit.input.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, downAt: performance.now(), zone: 'ui' });
+}
+
+ui.pauseButton.addEventListener('pointerdown', seedKitPointer, { passive: true });
+ui.resumeButton.addEventListener('pointerdown', seedKitPointer, { passive: true });
+ui.pauseButton.addEventListener('click', () => kit.pause('manual'));
+ui.resumeButton.addEventListener('click', () => kit.resume('manual'));
+ui.settingsButton.addEventListener('click', () => kit.openSettings());
+window.addEventListener('resize', resize);
+
+kit.loader.show('RIDGE GLIDER'); kit.loader.progress(.2);
+initScene(); kit.loader.progress(.65); buildModeCards(); setScreen('title'); syncDebug(); kit.loader.progress(1); kit.loader.hide(); startMusic('menu', 220);
+requestAnimationFrame(frame);

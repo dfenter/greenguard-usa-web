@@ -1,24 +1,31 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/harvest-junction/">
+<head>
+  <base href="/play/harvest-junction/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#f7f0df">
-  <meta name="description" content="Harvest Junction — a pocket farm-and-town logistics game.">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#1f493b">
+  <meta name="description" content="Harvest Junction, a no-wait farm and rail logistics game.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Harvest Junction</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main id="game-shell" aria-label="Harvest Junction game">
-    <canvas id="game" width="390" height="700" aria-label="Harvest Junction game board"></canvas>
-    <div id="rotate-screen" aria-live="polite" hidden>
-      <div class="rotate-card">
-        <div class="rotate-glyph">↻</div>
-        <strong>Turn the junction upright</strong>
-        <span>Harvest Junction is portrait only.</span>
-      </div>
-    </div>
+    <div id="boot-fallback" role="status">Loading Harvest Junction</div>
   </main>
+  <section id="accessible-panel" aria-label="Harvest Junction controls">
+    <p id="accessible-state" aria-live="polite" aria-atomic="true">Loading game state.</p>
+    <button id="accessible-town" type="button" aria-label="Toggle town ledger" aria-keyshortcuts="T">Town</button>
+    <button id="accessible-restart" type="button" aria-label="Restart current order" aria-keyshortcuts="R">Restart</button>
+  </section>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

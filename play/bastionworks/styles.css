@@ -1,24 +1,6 @@
 :root { color-scheme: dark; font-family: Arial, Helvetica, sans-serif; background: #080d17; }
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #080d17; }
-body { overscroll-behavior: none; }
-#gameShell { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #0b1220; }
-#gameCanvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
-#audioOverlay, #rotateOverlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(5, 9, 17, .92); z-index: 5; }
-#rotateOverlay { display: none; z-index: 6; }
-.overlayCard { width: min(340px, 92vw); padding: 28px 22px; border: 1px solid #53657d; border-radius: 18px; background: linear-gradient(155deg, #17263c, #0c1525); box-shadow: 0 16px 50px rgba(0, 0, 0, .45); text-align: center; color: #e9f2ff; }
-.overlayCard strong, .overlayCard span { display: block; }
-.overlayCard strong { font-size: 16px; letter-spacing: .12em; }
-.overlayCard span { margin-top: 12px; color: #a9bad1; font-size: 13px; }
-.rotateGlyph { margin-bottom: 10px; color: #7fe7c6; font-size: 48px; line-height: 1; }
-.introCard { padding: 30px 24px 24px; }
-.eyebrow { color: #7fe7c6; font-weight: 700; font-size: 10px; letter-spacing: .16em; }
-.introCard h1 { margin: 14px 0 12px; color: #f4f7fb; font-size: 34px; letter-spacing: .08em; line-height: .95; }
-.introCard h1 span { display: block; color: #ffca68; }
-.introCard p { margin: 0 auto 22px; max-width: 260px; color: #a9bad1; font-size: 14px; line-height: 1.45; }
-.introCard button { min-width: 190px; min-height: 52px; padding: 12px 24px; border: 0; border-radius: 12px; background: #7fe7c6; color: #07151a; cursor: pointer; font: 800 13px Arial, sans-serif; letter-spacing: .12em; }
-.introCard button:active { transform: translateY(1px); filter: brightness(1.08); }
-.introCard small { display: block; margin-top: 14px; color: #71849d; font-size: 11px; }
-@media (orientation: landscape) {
-  #rotateOverlay { display: grid; }
-}
+body { overscroll-behavior: none; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+#gameShell { position: relative; width: 100%; height: 100%; overflow: hidden; background: #0b1220; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }

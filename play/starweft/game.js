@@ -1,712 +1,723 @@
 (() => {
   'use strict';
 
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  const reader = document.getElementById('screen-reader');
-  const W = 390, H = 700, SAVE_KEY = 'starweft-save-v1';
-  const MAX_PARTICLES = 120, MAX_POPUPS = 24, MAX_POINTERS = 8, MAX_TIMERS = 12;
-
-  const ELEMENTS = [
-    { id: 'ember', label: 'EMBER', short: 'E', color: '#ff765d', soft: '#ffb197' },
-    { id: 'tide', label: 'TIDE', short: 'T', color: '#55c9ff', soft: '#b9eeff' },
-    { id: 'bloom', label: 'BLOOM', short: 'B', color: '#b4e46c', soft: '#e2ffb3' }
+  const W = 390;
+  const H = 844;
+  const VERSION = 8;
+  const WORLD_W = 1800;
+  const WORLD_H = 1100;
+  const TILE = 48;
+  const REGION_NAMES = ['Luminous Moor', 'Saltglass Reach', 'Nightlace Canopy'];
+  const REGION_TILEMAPS = [
+    ['mmmmmmmmmmmmmmm', 'mmpppppppmmmmmm', 'mmpmmmmpppppmmm', 'mmppppppmpmmmmp', 'mmmmmmmmmmmmmmm'],
+    ['sssssssssssssss', 'ssppppsssssssss', 'ssppwwwwppppsss', 'ssppwwwwpppssss', 'sssssssssssssss'],
+    ['nnnnnnnnnnnnnnn', 'nnppppnnnnnppnn', 'nnppvppppppppnn', 'nnnnvnnnnnnnnnn', 'nnppppppppppppn'],
   ];
-  const HEROES = [
-    { name: 'Sola Nacre', call: 'FLARE', element: 'ember', maxHp: 118, basic: 17, skill: 31, ult: 60, break: 25, role: 'STRIKER', blurb: 'Direct heat, no wasted motion.' },
-    { name: 'Brin Quill', call: 'WAVE', element: 'tide', maxHp: 132, basic: 14, skill: 25, ult: 49, break: 23, role: 'ANCHOR', blurb: 'Steady hands for rough rails.' },
-    { name: 'Oren Pike', call: 'GRAFT', element: 'bloom', maxHp: 108, basic: 12, skill: 21, ult: 43, break: 22, role: 'MENDER', blurb: 'Reads the living current.' },
-    { name: 'Veya Moss', call: 'SPARK', element: 'ember', maxHp: 96, basic: 15, skill: 29, ult: 55, break: 28, role: 'SCOUT', blurb: 'Fast eyes, faster follow-through.' },
-    { name: 'Nyx Lumen', call: 'UNDERTOW', element: 'tide', maxHp: 116, basic: 13, skill: 34, ult: 64, break: 35, role: 'BREAKER', blurb: 'A quiet answer to loud armor.' },
-    { name: 'Mio Rill', call: 'VERDURE', element: 'bloom', maxHp: 124, basic: 13, skill: 24, ult: 50, break: 27, role: 'TEMPO', blurb: 'Keeps the whole crew moving.' }
-  ];
-  const ENEMIES = {
-    cinder: { name: 'Cinder Kest', weak: 'tide', maxHp: 82, breakMax: 54, atk: 12, color: '#db634d', shape: 'kite', xp: 45 },
-    drift: { name: 'Drift Nib', weak: 'bloom', maxHp: 68, breakMax: 42, atk: 10, color: '#8b78dc', shape: 'orb', xp: 40 },
-    mire: { name: 'Mire Bell', weak: 'ember', maxHp: 94, breakMax: 58, atk: 14, color: '#6d9e71', shape: 'bell', xp: 52 },
-    glass: { name: 'Glass Talon', weak: 'tide', maxHp: 118, breakMax: 62, atk: 16, color: '#6ab5d4', shape: 'talon', xp: 64 },
-    siren: { name: 'Silt Siren', weak: 'bloom', maxHp: 136, breakMax: 70, atk: 18, color: '#cc759f', shape: 'siren', xp: 70 },
-    prowler: { name: 'Gale Prowler', weak: 'ember', maxHp: 128, breakMax: 65, atk: 17, color: '#a19bd1', shape: 'kite', xp: 68 },
-    needle: { name: 'Needle Finch', weak: 'tide', maxHp: 152, breakMax: 76, atk: 20, color: '#e0b757', shape: 'talon', xp: 82 },
-    leech: { name: 'Cloud Leech', weak: 'bloom', maxHp: 178, breakMax: 84, atk: 22, color: '#7bd4b5', shape: 'orb', xp: 90 },
-    warden: { name: 'Rift Warden', weak: 'tide', maxHp: 310, breakMax: 118, atk: 25, color: '#ef835d', shape: 'boss', xp: 240 },
-    engine: { name: 'Brine Engine', weak: 'ember', maxHp: 390, breakMax: 132, atk: 29, color: '#4dbbd2', shape: 'boss', xp: 320 },
-    crown: { name: 'Crown of Quiet', weak: 'bloom', maxHp: 500, breakMax: 150, atk: 34, color: '#d99c4d', shape: 'boss', xp: 500 }
+  const COLORS = {
+    ink: 0x071421,
+    deep: 0x0b1f2c,
+    panel: 0x102a38,
+    panel2: 0x173b47,
+    line: 0x396878,
+    text: '#effaf7',
+    muted: '#9bbcc0',
+    cyan: 0x76e5dc,
+    gold: 0xffd886,
+    ember: 0xff8b6b,
+    tide: 0x64c9f1,
+    bloom: 0xb8e879,
+    danger: 0xff827e,
   };
-  const BATTLE_PLAN = [
-    { zone: 1, rail: 'SUNSPOOL', enemies: ['cinder'] },
-    { zone: 1, rail: 'SUNSPOOL', enemies: ['drift', 'cinder'] },
-    { zone: 1, rail: 'SUNSPOOL', enemies: ['mire'] },
-    { zone: 1, rail: 'SUNSPOOL', enemies: ['mire', 'drift'] },
-    { zone: 1, rail: 'SUNSPOOL', enemies: ['warden'], boss: true },
-    { zone: 2, rail: 'MISTFOLD', enemies: ['glass'] },
-    { zone: 2, rail: 'MISTFOLD', enemies: ['siren', 'glass'] },
-    { zone: 2, rail: 'MISTFOLD', enemies: ['prowler'] },
-    { zone: 2, rail: 'MISTFOLD', enemies: ['siren', 'prowler'] },
-    { zone: 2, rail: 'MISTFOLD', enemies: ['engine'], boss: true },
-    { zone: 3, rail: 'NIGHTLACE', enemies: ['needle'] },
-    { zone: 3, rail: 'NIGHTLACE', enemies: ['leech', 'needle'] },
-    { zone: 3, rail: 'NIGHTLACE', enemies: ['leech'] },
-    { zone: 3, rail: 'NIGHTLACE', enemies: ['needle', 'leech'] },
-    { zone: 3, rail: 'NIGHTLACE', enemies: ['crown'], boss: true }
+  const ELEMENTS = {
+    ember: { name: 'Ember', color: COLORS.ember },
+    tide: { name: 'Tide', color: COLORS.tide },
+    bloom: { name: 'Bloom', color: COLORS.bloom },
+  };
+  const REGIONS = [
+    { id: 'moor', name: REGION_NAMES[0], x: 0, y: 0, w: 720, h: WORLD_H, music: 'exploration-theme', tile: 0x173b3b, edge: 0x2c6b63, gateText: 'Open from the Lyra Seed constellation' },
+    { id: 'reach', name: REGION_NAMES[1], x: 720, y: 0, w: 540, h: WORLD_H, music: 'dungeon-theme', tile: 0x17334a, edge: 0x397a85, gateText: 'Open from the Orion Wake constellation' },
+    { id: 'canopy', name: REGION_NAMES[2], x: 1260, y: 0, w: 540, h: WORLD_H, music: 'danger-theme', tile: 0x263747, edge: 0x657557, gateText: 'Open from the Veil Crown constellation' },
   ];
-  const STORIES = [
-    { lines: ['The sky-rail is losing altitude one knot at a time.', 'Four hands, one route: reach the quiet end of the line.'] },
-    { lines: ['A red-winged thing peels away from the signal mast.'] },
-    { lines: ['Brin spots a second pulse under the railglass. It is not weather.'] },
-    { lines: ['The crew learns the first rule of the high route: read the color before the teeth.'] },
-    { lines: ['The SunsPool relay folds around a wound in the sky.'] },
-    { lines: ['The Rift Warden falls. A fifth traveler steps from the maintenance car.', 'Nyx Lumen joins the crew; their tidecraft can crack stubborn armor.'], recruit: 4 },
-    { lines: ['MistFold begins where the sunlight ends. The rail hums in a new key.'] },
-    { lines: ['A glass-winged hunter mirrors every move.'] },
-    { lines: ['Oren marks the safe rhythm in chalk; Veya turns it into a dare.'] },
-    { lines: ['A brine engine blocks the splice toward Nightlace.'] },
-    { lines: ['The engine goes still. Mio Rill is waiting on the far platform.', 'Mio joins the crew and tunes every pulse back toward life.'], recruit: 5 },
-    { lines: ['Nightlace has no sun, but the rails are bright with old promises.'] },
-    { lines: ['Needle fins descend. The route wants a toll in momentum.'] },
-    { lines: ['The last signals are silent. Whatever waits at the crown has heard you coming.'] },
-    { lines: ['Beyond this boss is open sky. Hold the line.'] }
+  const GATES = [
+    { x: 720, region: 1, ability: 'tide-step', y: 550 },
+    { x: 1260, region: 2, ability: 'bloom-lantern', y: 550 },
   ];
-
-  let view = { w: 390, h: 700, dpr: 1, scale: 1, ox: 0, oy: 0, portrait: true };
-  let state = bootState();
-  let bootSave = readSave();
-  let saveAvailable = !!bootSave;
-  let particles = [], popups = [], stars = [], pointerControls = new Map();
-  let heldKeys = new Set(), actionQueue = [], pendingTimers = new Set();
-  let audioCtx = null, lastFrame = 0, nowTime = 0, shake = 0, flash = 0;
-  let noticeText = '', noticeTime = 0, inspectElement = 'ember';
-
-  for (let i = 0; i < 44; i++) stars.push({ x: (i * 83) % W, y: (i * 47) % H, r: 0.5 + (i % 3) * 0.45, a: 0.25 + (i % 5) * 0.1 });
-
-  function bootState() {
-    return { started: false, scene: 'start', battleIndex: 0, storyLine: 0, unlocked: [0, 1, 2, 3], activeParty: [0, 1, 2, 3], rosterCursor: 0, partyHp: HEROES.map(h => h.maxHp), ults: [0, 0, 0, 0, 0, 0], sp: 2, score: 0, runTime: 0, bestScore: 0, battle: null, saveClock: 0, won: false };
+  const ABILITIES = {
+    'star-sense': 'Star Sense',
+    'tide-step': 'Tide Step',
+    'bloom-lantern': 'Bloom Lantern',
+    'weft-crown': 'Weft Crown',
+  };
+  const THREADS = [
+    { id: 'moor-amber', region: 0, x: 214, y: 270, color: COLORS.gold, name: 'Amber thread' },
+    { id: 'moor-cyan', region: 0, x: 478, y: 410, color: COLORS.cyan, name: 'Cyan thread' },
+    { id: 'moor-green', region: 0, x: 570, y: 820, color: COLORS.bloom, name: 'Green thread' },
+    { id: 'reach-silver', region: 1, x: 850, y: 230, color: 0xdceeff, name: 'Silver thread' },
+    { id: 'reach-coral', region: 1, x: 1080, y: 760, color: COLORS.ember, name: 'Coral thread' },
+    { id: 'reach-blue', region: 1, x: 1180, y: 420, color: COLORS.tide, name: 'Blue thread' },
+    { id: 'canopy-lime', region: 2, x: 1400, y: 250, color: COLORS.bloom, name: 'Lime thread' },
+    { id: 'canopy-violet', region: 2, x: 1640, y: 720, color: 0xc6a5ff, name: 'Violet thread' },
+    { id: 'canopy-gold', region: 2, x: 1510, y: 920, color: COLORS.gold, name: 'Crown thread' },
+  ];
+  const CONSTELLATIONS = [
+    {
+      id: 'lyra', name: 'Lyra Seed', region: 0, altar: { x: 340, y: 690 },
+      nodes: [{ x: 100, y: 34 }, { x: 154, y: -52 }, { x: 224, y: 16 }, { x: 278, y: 68 }],
+      pattern: [0, 1, 2, 3], reward: 'tide-step', unlocks: 1,
+      hint: 'Begin at the low star, then climb, cross, and descend.', threadMin: 3,
+    },
+    {
+      id: 'orion', name: 'Orion Wake', region: 1, altar: { x: 990, y: 520 },
+      nodes: [{ x: 118, y: -34 }, { x: 196, y: -72 }, { x: 254, y: 10 }, { x: 190, y: 78 }, { x: 92, y: 58 }],
+      pattern: [0, 1, 2, 3, 4], reward: 'bloom-lantern', unlocks: 2,
+      hint: 'Trace the wake clockwise from the small blue star.', threadMin: 6,
+    },
+    {
+      id: 'veil', name: 'Veil Crown', region: 2, altar: { x: 1500, y: 520 },
+      nodes: [{ x: 116, y: 4 }, { x: 174, y: -80 }, { x: 232, y: 4 }, { x: 206, y: 92 }, { x: 126, y: 122 }, { x: 74, y: 52 }],
+      pattern: [0, 1, 2, 3, 4, 5], reward: 'weft-crown', unlocks: 2,
+      hint: 'Make a crown: left peak, high peak, right peak, then the roots.', threadMin: 9,
+    },
+  ];
+  const PROPS = [
+    { type: 'reed', x: 82, y: 160 }, { type: 'tree', x: 120, y: 490 }, { type: 'rock', x: 270, y: 140 },
+    { type: 'lantern', x: 420, y: 210 }, { type: 'tree', x: 605, y: 310 }, { type: 'rock', x: 170, y: 890 },
+    { type: 'reed', x: 650, y: 740 }, { type: 'rock', x: 810, y: 120 }, { type: 'reed', x: 930, y: 310 },
+    { type: 'rock', x: 1110, y: 160 }, { type: 'lantern', x: 1140, y: 870 }, { type: 'reed', x: 790, y: 900 },
+    { type: 'tree', x: 1370, y: 170 }, { type: 'tree', x: 1730, y: 250 }, { type: 'rock', x: 1420, y: 830 },
+    { type: 'tree', x: 1710, y: 880 }, { type: 'lantern', x: 1320, y: 680 }, { type: 'rock', x: 1580, y: 420 },
+    { type: 'reed', x: 1770, y: 600 }, { type: 'tree', x: 1320, y: 960 },
+  ];
+  const OBSTACLES = PROPS.filter((prop) => prop.type === 'tree' || prop.type === 'rock').map((prop) => ({ x: prop.x - 22, y: prop.y - 22, w: 44, h: 44 }));
+  const WATER = [{ x: 832, y: 72, w: 260, h: 290 }, { x: 808, y: 400, w: 178, h: 196 }, { x: 1030, y: 630, w: 176, h: 230 }];
+  const VINES = [{ x: 1340, y: 360, w: 220, h: 120 }, { x: 1560, y: 520, w: 180, h: 150 }];
+  const ENEMY_DATA = [
+    { id: 'moth-moor', type: 'moth', region: 0, x: 560, y: 190, hp: 74, tint: 0xd38c61 },
+    { id: 'thorn-moor', type: 'thorn', region: 0, x: 600, y: 920, hp: 88, tint: 0x83b77a },
+    { id: 'moth-reach', type: 'moth', region: 1, x: 880, y: 700, hp: 94, tint: 0x68b9d0 },
+    { id: 'thorn-reach', type: 'thorn', region: 1, x: 1160, y: 260, hp: 102, tint: 0x83ca9a },
+    { id: 'moth-canopy', type: 'moth', region: 2, x: 1380, y: 790, hp: 122, tint: 0xb17ed4 },
+    { id: 'thorn-canopy', type: 'thorn', region: 2, x: 1690, y: 430, hp: 136, tint: 0xd4ac67 },
+  ];
+  const AUDIO = {
+    'exploration-theme': 'assets/theme.mp3',
+    'dungeon-theme': 'assets/skill.mp3',
+    'danger-theme': 'assets/ultimate.mp3',
+    pickup: 'assets/victory.mp3',
+    door: 'assets/victory.mp3',
+    secret: 'assets/ultimate.mp3',
+    footstep: 'assets/skill.mp3',
+    hurt: 'assets/break.mp3',
+    hit: 'assets/break.mp3',
+    ui: 'assets/skill.mp3',
+    constellation: 'assets/ultimate.mp3',
+  };
+  const reducedMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  let reducedMotion = !!(reducedMotionQuery && reducedMotionQuery.matches);
+  if (reducedMotionQuery) {
+    const onMotionChange = (event) => { reducedMotion = !!event.matches; };
+    if (typeof reducedMotionQuery.addEventListener === 'function') reducedMotionQuery.addEventListener('change', onMotionChange);
+    else if (typeof reducedMotionQuery.addListener === 'function') reducedMotionQuery.addListener(onMotionChange);
   }
 
-  function isObject(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
-  function finite(value, min, max) { return typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max; }
-  function int(value, min, max) { return Number.isInteger(value) && value >= min && value <= max; }
-  function validIdList(list, max, minLength) { return Array.isArray(list) && list.length >= minLength && list.length <= max && list.every(v => int(v, 0, HEROES.length - 1)); }
+  const Game = { scene: null, instance: null };
+  const priorProbe = window.__sw && typeof window.__sw === 'object' ? window.__sw : {};
 
-  function readSave() {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (typeof raw !== 'string' || raw.length > 60000) return null;
-      const data = JSON.parse(raw);
-      if (!isObject(data) || data.version !== 1 || !isObject(data.state)) return null;
-      const s = data.state;
-      if (!['story', 'battle', 'roster', 'win', 'fail'].includes(s.scene) || !int(s.battleIndex, 0, BATTLE_PLAN.length)) return null;
-      if (!validIdList(s.unlocked, HEROES.length, 4) || !validIdList(s.activeParty, 4, 1)) return null;
-      if (!s.activeParty.every(id => s.unlocked.includes(id))) return null;
-      if (!Array.isArray(s.partyHp) || s.partyHp.length !== HEROES.length || !s.partyHp.every((v, i) => finite(v, 0, HEROES[i].maxHp))) return null;
-      if (!Array.isArray(s.ults) || s.ults.length !== HEROES.length || !s.ults.every(v => finite(v, 0, 100))) return null;
-      if (!int(s.storyLine, 0, 4) || !finite(s.sp, 0, 5) || !finite(s.score, 0, 9999999) || !finite(s.runTime, 0, 9999999)) return null;
-      const out = bootState();
-      Object.assign(out, { started: true, scene: s.scene, battleIndex: s.battleIndex, storyLine: s.storyLine, unlocked: s.unlocked.slice(0, 6), activeParty: s.activeParty.slice(0, 4), rosterCursor: int(s.rosterCursor, 0, 3) ? s.rosterCursor : 0, partyHp: s.partyHp.slice(), ults: s.ults.slice(), sp: s.sp, score: s.score, runTime: s.runTime, bestScore: finite(s.bestScore, 0, 9999999) ? s.bestScore : 0, won: s.won === true });
-      if (s.scene === 'battle' || s.scene === 'fail') {
-        const battle = restoreBattle(s.battle);
-        if (!battle) { out.scene = 'story'; out.battle = null; }
-        else out.battle = battle;
-      }
-      return out;
-    } catch (_) { return null; }
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+  function isInt(value, min, max) { return Number.isInteger(value) && value >= min && value <= max; }
+  function distance(ax, ay, bx, by) { const dx = ax - bx; const dy = ay - by; return Math.sqrt(dx * dx + dy * dy); }
+  function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function regionAt(x) { return x < REGIONS[1].x ? 0 : x < REGIONS[2].x ? 1 : 2; }
+  function regionName(index) { return REGIONS[index]?.name || REGIONS[0].name; }
+  function abilityName(id) { return ABILITIES[id] || id; }
+  function motionEnabled() { return kit.juice.enabled && !reducedMotion; }
+  function textColor(color) { return `#${color.toString(16).padStart(6, '0')}`; }
+
+  function defaultPuzzles() {
+    const result = {};
+    CONSTELLATIONS.forEach((item) => { result[item.id] = { state: 'dormant', progress: 0, attempts: 0, hintUsed: false }; });
+    return result;
+  }
+  function defaultThreads() {
+    const result = {};
+    THREADS.forEach((item) => { result[item.id] = false; });
+    return result;
+  }
+  function defaultDefeated() {
+    const result = {};
+    ENEMY_DATA.forEach((item) => { result[item.id] = false; });
+    return result;
+  }
+  function defaultState() {
+    return {
+      version: VERSION, scene: 'home', menuIndex: 0, atlasIndex: 0,
+      player: { x: 280, y: 560, hp: 100, facing: 'down' },
+      threads: defaultThreads(), threadCount: 0, puzzles: defaultPuzzles(), defeated: defaultDefeated(),
+      unlockedRegions: [0], abilities: ['star-sense'], tutorialStep: 0, totalPlayTime: 0,
+      lastRegion: 0, activePuzzle: null, puzzleCursor: 0, puzzleInput: [],
+    };
+  }
+  function keysMatch(value, source) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const keys = Object.keys(value);
+    return keys.every((key) => Object.prototype.hasOwnProperty.call(source, key));
+  }
+  function validState(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== VERSION) return false;
+    if (!value.player || !Number.isFinite(value.player.x) || !Number.isFinite(value.player.y) || value.player.x < 20 || value.player.x > WORLD_W - 20 || value.player.y < 20 || value.player.y > WORLD_H - 20) return false;
+    if (!Number.isFinite(value.player.hp) || value.player.hp < 0 || value.player.hp > 100) return false;
+    if (!['up', 'down', 'left', 'right'].includes(value.player.facing)) return false;
+    if (!keysMatch(value.threads, defaultThreads()) || !THREADS.every((item) => typeof value.threads[item.id] === 'boolean')) return false;
+    const count = THREADS.reduce((total, item) => total + (value.threads[item.id] ? 1 : 0), 0);
+    if (!isInt(value.threadCount, 0, THREADS.length) || value.threadCount !== count) return false;
+    if (!keysMatch(value.puzzles, defaultPuzzles())) return false;
+    for (const item of CONSTELLATIONS) {
+      const puzzle = value.puzzles[item.id];
+      if (!puzzle || !['dormant', 'discovered', 'hinted', 'failed', 'solved'].includes(puzzle.state) || !isInt(puzzle.progress, 0, item.pattern.length) || !isInt(puzzle.attempts, 0, 999) || typeof puzzle.hintUsed !== 'boolean') return false;
+      if (puzzle.state === 'solved' && puzzle.progress !== item.pattern.length) return false;
+    }
+    if (!keysMatch(value.defeated, defaultDefeated()) || !ENEMY_DATA.every((item) => typeof value.defeated[item.id] === 'boolean')) return false;
+    if (!Array.isArray(value.unlockedRegions) || value.unlockedRegions.length < 1 || value.unlockedRegions.length > REGIONS.length || !value.unlockedRegions.every((index, position) => isInt(index, 0, REGIONS.length - 1) && index === position) || new Set(value.unlockedRegions).size !== value.unlockedRegions.length || value.unlockedRegions[0] !== 0) return false;
+    if (!Array.isArray(value.abilities) || value.abilities.length < 1 || !value.abilities.every((id) => Object.prototype.hasOwnProperty.call(ABILITIES, id)) || new Set(value.abilities).size !== value.abilities.length || !value.abilities.includes('star-sense')) return false;
+    if (value.unlockedRegions.includes(1) && (value.puzzles.lyra.state !== 'solved' || !value.abilities.includes('tide-step'))) return false;
+    if (value.unlockedRegions.includes(2) && (value.puzzles.orion.state !== 'solved' || !value.abilities.includes('bloom-lantern'))) return false;
+    if (!isInt(value.menuIndex, 0, 2) || !isInt(value.atlasIndex, 0, REGIONS.length - 1) || !isInt(value.tutorialStep, 0, 4) || !Number.isFinite(value.totalPlayTime) || value.totalPlayTime < 0 || value.totalPlayTime > 1e8 || !isInt(value.lastRegion, 0, REGIONS.length - 1)) return false;
+    return true;
+  }
+  function hydrateState(value) {
+    const next = defaultState();
+    if (!validState(value)) return next;
+    next.player.x = clamp(value.player.x, 20, WORLD_W - 20);
+    next.player.y = clamp(value.player.y, 20, WORLD_H - 20);
+    next.player.hp = clamp(value.player.hp, 0, 100);
+    next.player.facing = value.player.facing;
+    next.menuIndex = value.menuIndex; next.atlasIndex = value.atlasIndex;
+    next.threads = { ...next.threads, ...value.threads }; next.threadCount = value.threadCount;
+    const puzzleDefaults = defaultPuzzles();
+    next.puzzles = {};
+    CONSTELLATIONS.forEach((item) => { next.puzzles[item.id] = { ...puzzleDefaults[item.id], ...value.puzzles[item.id] }; });
+    next.defeated = { ...next.defeated, ...value.defeated };
+    next.unlockedRegions = value.unlockedRegions.slice().sort((a, b) => a - b);
+    next.abilities = value.abilities.slice(); next.tutorialStep = value.tutorialStep;
+    next.totalPlayTime = value.totalPlayTime; next.lastRegion = value.lastRegion;
+    return next;
   }
 
-  function restoreBattle(data) {
-    if (!isObject(data) || !Array.isArray(data.enemies) || data.enemies.length < 1 || data.enemies.length > 5) return null;
-    const enemies = data.enemies.map(e => {
-      if (!isObject(e) || typeof e.kind !== 'string' || !ENEMIES[e.kind] || !finite(e.hp, 0, ENEMIES[e.kind].maxHp) || !finite(e.break, 0, ENEMIES[e.kind].breakMax)) return null;
-      const def = ENEMIES[e.kind];
-      return { kind: e.kind, name: def.name, weak: def.weak, maxHp: def.maxHp, breakMax: def.breakMax, hp: e.hp, break: e.break, atk: def.atk, color: def.color, shape: def.shape, xp: def.xp, broken: e.broken === true };
-    });
-    if (enemies.some(e => !e) || !int(data.round, 1, 9999) || !int(data.actions, 0, 6) || !int(data.activeHero, 0, HEROES.length - 1) || !int(data.target, 0, 4)) return null;
-    return { enemies, round: data.round, actions: data.actions, activeHero: data.activeHero, target: data.target };
-  }
+  const kit = GGKit.create({
+    slug: 'starweft', orientation: 'portrait', validateSave: validState,
+    onPause: () => { if (Game.scene) Game.scene.simPaused = true; },
+    onResume: () => { if (Game.scene) Game.scene.simPaused = false; },
+    onRestart: () => { if (Game.scene) Game.scene.restartToHome(); },
+  });
+  kit.audio.register(AUDIO);
+  kit.registerPWA();
 
-  function serializedBattle() {
-    if (!state.battle) return null;
-    return { enemies: state.battle.enemies.map(e => ({ kind: e.kind, hp: e.hp, break: e.break, broken: e.broken })), round: state.battle.round, actions: state.battle.actions, activeHero: state.battle.activeHero, target: state.battle.target };
-  }
+  const storedState = kit.save.get(null);
+  let state = hydrateState(storedState);
+  let hasSave = storedState !== null;
 
-  function saveGame() {
-    try {
-      const data = { version: 1, state: { scene: state.scene, battleIndex: state.battleIndex, storyLine: state.storyLine, unlocked: state.unlocked.slice(0, 6), activeParty: state.activeParty.slice(0, 4), rosterCursor: state.rosterCursor, partyHp: state.partyHp.slice(0, 6), ults: state.ults.slice(0, 6), sp: state.sp, score: state.score, runTime: state.runTime, bestScore: state.bestScore, won: state.won, battle: serializedBattle() } };
-      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-      saveAvailable = true;
-    } catch (_) { /* local saves are optional */ }
+  function saveState() {
+    const snapshot = clone(state);
+    snapshot.version = VERSION;
+    snapshot.scene = state.scene === 'puzzle' ? 'world' : state.scene;
+    snapshot.activePuzzle = null; snapshot.puzzleCursor = 0; snapshot.puzzleInput = [];
+    kit.save.set(snapshot);
+    hasSave = true;
   }
-
-  function clearTransient() {
-    heldKeys.clear(); pointerControls.clear(); actionQueue.length = 0;
-    pendingTimers.forEach(id => { try { clearTimeout(id); } catch (_) {} });
-    pendingTimers.clear();
+  function exposeProbe() {
+    Object.defineProperty(priorProbe, 'state', { configurable: true, get: () => state });
+    Object.defineProperty(priorProbe, 'region', { configurable: true, get: () => regionAt(state.player.x) });
+    Object.defineProperty(priorProbe, 'threads', { configurable: true, get: () => state.threadCount });
+    Object.defineProperty(priorProbe, 'puzzles', { configurable: true, get: () => state.puzzles });
+    priorProbe.setRegion = (index) => { if (isInt(Number(index), 0, REGIONS.length - 1)) { state.player.x = REGIONS[Number(index)].x + 120; state.scene = 'world'; if (Game.scene) Game.scene.syncScene(true); saveState(); } return state; };
+    priorProbe.solve = (id) => { const puzzle = state.puzzles[id]; if (puzzle) { puzzle.state = 'solved'; puzzle.progress = CONSTELLATIONS.find((item) => item.id === id).pattern.length; unlockForPuzzle(id); saveState(); if (Game.scene) Game.scene.syncScene(true); } return state; };
+    window.__sw = priorProbe;
   }
+  exposeProbe();
 
-  function schedule(fn, ms) {
-    if (pendingTimers.size >= MAX_TIMERS) return;
-    const id = setTimeout(() => { pendingTimers.delete(id); fn(); }, ms);
-    pendingTimers.add(id);
+  function setTransient(text, duration = 1.3, kind = 'notice') {
+    if (!Game.scene) return;
+    Game.scene.transient = { text, life: duration, max: duration, kind };
   }
-
-  function enqueue(action) { if (actionQueue.length < 8) actionQueue.push(action); }
-
-  function newRun() {
-    const priorBest = state.bestScore || bootSave?.bestScore || 0;
-    clearTransient();
-    state = bootState();
-    state.started = true;
-    state.scene = 'story';
-    state.bestScore = priorBest;
-    particles.length = 0; popups.length = 0; noticeText = ''; noticeTime = 0; inspectElement = 'ember';
-    saveGame();
-  }
-
-  function startFromOverlay(useSave) {
-    unlockAudio();
-    if (useSave && bootSave) { clearTransient(); state = bootSave; state.started = true; bootSave = null; saveAvailable = true; }
-    else newRun();
-    tone(440, 0.1, 'sine', 0.035);
-  }
-
-  function startBattle(index) {
-    const plan = BATTLE_PLAN[index];
-    if (!plan) return;
-    const enemies = plan.enemies.map(kind => {
-      const d = ENEMIES[kind];
-      return { kind, name: d.name, weak: d.weak, maxHp: d.maxHp, breakMax: d.breakMax, hp: d.maxHp, break: 0, atk: d.atk, color: d.color, shape: d.shape, xp: d.xp, broken: false };
-    });
-    state.battle = { enemies, round: 1, actions: 0, activeHero: firstLivingHero(), target: 0 };
-    state.scene = 'battle';
-    state.saveClock = 0;
-    chooseTarget();
-    saveGame();
-    notice('Tap a foe, then choose a move.');
-  }
-
-  function firstLivingHero() {
-    return state.activeParty.find(id => state.partyHp[id] > 0) ?? state.activeParty[0] ?? 0;
-  }
-  function livingParty() { return state.activeParty.filter(id => state.partyHp[id] > 0); }
-  function livingEnemies() { return state.battle ? state.battle.enemies.filter(e => e.hp > 0) : []; }
-  function chooseTarget() {
-    if (!state.battle) return;
-    if (!state.battle.enemies[state.battle.target] || state.battle.enemies[state.battle.target].hp <= 0) {
-      const i = state.battle.enemies.findIndex(e => e.hp > 0);
-      if (i >= 0) state.battle.target = i;
+  function regionUnlocked(index) { return state.unlockedRegions.includes(index); }
+  function hasAbility(id) { return state.abilities.includes(id); }
+  function puzzleById(id) { return CONSTELLATIONS.find((item) => item.id === id) || null; }
+  function puzzleForRegion(index) { return CONSTELLATIONS.find((item) => item.region === index) || null; }
+  function unlockForPuzzle(id) {
+    const item = puzzleById(id);
+    if (!item) return;
+    if (!hasAbility(item.reward)) state.abilities.push(item.reward);
+    for (let index = 0; index <= item.unlocks; index += 1) if (!regionUnlocked(index)) state.unlockedRegions.push(index);
+    state.unlockedRegions.sort((a, b) => a - b);
+    setTransient(`${regionName(item.unlocks)} opens. ${abilityName(item.reward)} acquired.`, 2.6, 'unlock');
+    if (Game.scene) {
+      Game.scene.spawnUnlockFx(REGIONS[item.unlocks].x + 22, 550);
+      kit.audio.sfx('door', { volume: 0.8 });
+      Game.scene.updateMusic(true);
     }
   }
+  function currentConstellation() { return puzzleById(state.activePuzzle); }
+  function allSolved() { return CONSTELLATIONS.every((item) => state.puzzles[item.id].state === 'solved'); }
 
-  function advanceStory() {
-    const story = STORIES[state.battleIndex] || { lines: ['The rail goes quiet.'] };
-    if (state.storyLine < story.lines.length - 1) { state.storyLine++; saveGame(); return; }
-    if (story.recruit !== undefined && !state.unlocked.includes(story.recruit)) {
-      state.unlocked.push(story.recruit);
-      state.score += 50;
-      notice(`${HEROES[story.recruit].name} joined the crew.`);
-      burst(195, 230, ELEMENTS.find(e => e.id === HEROES[story.recruit].element).color, 22);
-    }
-    state.storyLine = 0;
-    if (state.battleIndex >= BATTLE_PLAN.length) { state.scene = 'win'; state.won = true; saveGame(); return; }
-    startBattle(state.battleIndex);
+  function drawStaticTexture(scene, key, width, height, painter) {
+    const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
+    painter(graphics, width, height);
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
   }
-
-  function toggleRoster(id) {
-    if (!state.unlocked.includes(id)) return;
-    const at = state.activeParty.indexOf(id);
-    if (at >= 0) { state.rosterCursor = at; notice(`${HEROES[id].name} is in slot ${at + 1}.`); return; }
-    if (state.activeParty.length < 4) state.activeParty.push(id);
-    else state.activeParty[state.rosterCursor] = id;
-    state.rosterCursor = (state.rosterCursor + 1) % Math.min(4, state.activeParty.length);
-    state.battle && (state.battle.activeHero = firstLivingHero());
-    tone(520, 0.08, 'triangle', 0.025);
-    saveGame();
+  function drawPlayerTexture(g, direction, frame) {
+    const bob = frame ? 2 : 0;
+    const color = direction === 'up' ? 0x71c5d2 : direction === 'left' ? 0xb8e879 : direction === 'right' ? 0xffb66e : 0xffd886;
+    g.fillStyle(0x06131c, 1); g.fillCircle(18, 23, 14);
+    g.fillStyle(color, 1); g.fillCircle(18, 20 - bob, 10); g.fillRect(10, 20 - bob, 16, 12);
+    g.fillStyle(0xeffaf7, 0.95);
+    if (direction === 'left') g.fillRect(8, 17 - bob, 3, 3);
+    else if (direction === 'right') g.fillRect(25, 17 - bob, 3, 3);
+    else if (direction === 'up') g.fillRect(13, 15 - bob, 3, 3);
+    else { g.fillRect(13, 17 - bob, 3, 3); g.fillRect(21, 17 - bob, 3, 3); }
+    g.fillStyle(0x102a38, 1); g.fillRect(8, 33, frame ? 7 : 6, 5); g.fillRect(21, 33, frame ? 7 : 6, 5);
+    g.lineStyle(2, 0xfff3c4, 0.8); g.strokeCircle(18, 23, 15);
   }
-
-  function restartBattle() {
-    if (!state.started || state.battleIndex >= BATTLE_PLAN.length) return;
-    clearTransient();
-    state.partyHp = HEROES.map(h => h.maxHp);
-    state.ults = state.ults.map(() => 0);
-    state.sp = 2;
-    state.scene = 'battle';
-    state.battle = null;
-    particles.length = 0; popups.length = 0; shake = 0; flash = 0;
-    startBattle(state.battleIndex);
-    tone(220, 0.12, 'sawtooth', 0.03);
-  }
-
-  function finishBattle() {
-    const plan = BATTLE_PLAN[state.battleIndex];
-    state.score += (plan.boss ? 300 : 100) + Math.max(0, 120 - state.battle.round * 8);
-    state.partyHp = state.partyHp.map((hp, i) => Math.min(HEROES[i].maxHp, hp + Math.round(HEROES[i].maxHp * 0.18)));
-    burst(195, 180, plan.boss ? '#ffe08b' : '#8fe7ff', 38);
-    flash = 0.5; shake = 5; tone(plan.boss ? 880 : 620, 0.16, 'triangle', 0.045);
-    if (state.battleIndex >= BATTLE_PLAN.length - 1) {
-      state.battleIndex = BATTLE_PLAN.length;
-      state.scene = 'win'; state.won = true;
-      state.bestScore = Math.max(state.bestScore, state.score);
+  function drawEnemyTexture(g, type, tint) {
+    g.fillStyle(0x081923, 1); g.fillCircle(20, 20, 17);
+    g.fillStyle(tint, 1);
+    if (type === 'moth') {
+      g.fillTriangle(18, 18, 1, 7, 6, 29); g.fillTriangle(22, 18, 39, 7, 34, 29); g.fillCircle(20, 21, 8);
+      g.fillStyle(0xffe8ad, 1); g.fillCircle(17, 20, 2); g.fillCircle(23, 20, 2);
     } else {
-      state.battleIndex++;
-      state.storyLine = 0;
-      state.scene = 'story';
+      g.fillTriangle(20, 1, 38, 33, 20, 28); g.fillTriangle(20, 1, 2, 33, 20, 28); g.fillStyle(0xeffaf7, 0.85); g.fillRect(17, 18, 6, 3);
     }
-    state.battle = null;
-    saveGame();
+    g.lineStyle(2, 0xeffaf7, 0.38); g.strokeCircle(20, 20, 18);
   }
 
-  function failBattle() {
-    state.scene = 'fail';
-    saveGame();
-    notice('The crew was scattered. The route remains open.');
-    tone(110, 0.24, 'sawtooth', 0.04);
-  }
+  class StarweftScene extends Phaser.Scene {
+    constructor() { super({ key: 'StarweftScene' }); }
 
-  function playerAction(kind) {
-    if (state.scene !== 'battle' || !state.battle) return;
-    const id = state.battle.activeHero;
-    const hero = HEROES[id];
-    if (!hero || state.partyHp[id] <= 0) { state.battle.activeHero = firstLivingHero(); return; }
-    chooseTarget();
-    const enemy = state.battle.enemies[state.battle.target];
-    if (!enemy || enemy.hp <= 0) { notice('Choose a live target.'); return; }
-    if (kind === 'skill' && state.sp < 1) { notice('Need 1 shared SP. Basics restore it.'); tone(160, 0.08, 'square', 0.025); return; }
-    if (kind === 'ultimate' && state.ults[id] < 100) { notice(`${hero.call} is at ${Math.floor(state.ults[id])}%.`); tone(160, 0.08, 'square', 0.025); return; }
-    const power = kind === 'basic' ? hero.basic : kind === 'skill' ? hero.skill : hero.ult;
-    const breakPower = kind === 'basic' ? hero.break : kind === 'skill' ? hero.break + 12 : hero.break + 24;
-    let damage = Math.round(power * (0.94 + Math.random() * 0.12));
-    const isWeak = enemy.weak === hero.element;
-    if (enemy.broken) damage = Math.round(damage * 1.34);
-    if (isWeak) { enemy.break = Math.min(enemy.breakMax, enemy.break + breakPower); }
-    if (kind === 'basic') state.sp = Math.min(5, state.sp + 1);
-    if (kind === 'skill') state.sp = Math.max(0, state.sp - 1);
-    if (kind === 'ultimate') state.ults[id] = 0;
-    else state.ults[id] = Math.min(100, state.ults[id] + (kind === 'basic' ? 24 : 16));
-    state.ults = state.ults.map((v, i) => i === id ? v : Math.min(100, v + 4));
-    enemy.hp = Math.max(0, enemy.hp - damage);
-    state.score += damage;
-    burst(enemyX(state.battle.target), enemyY(state.battle.target), ELEMENTS.find(e => e.id === hero.element).color, kind === 'ultimate' ? 22 : 10);
-    popup(enemyX(state.battle.target), enemyY(state.battle.target) - 52, `${damage}`, ELEMENTS.find(e => e.id === hero.element).soft, kind === 'ultimate' ? 24 : 18);
-    if (isWeak) popup(enemyX(state.battle.target), enemyY(state.battle.target) - 78, 'WEAK', '#fff1a5', 14);
-    if (hero.role === 'MENDER' && kind !== 'basic') healParty(kind === 'ultimate' ? 26 : 15);
-    if (hero.role === 'ANCHOR' && kind === 'skill') healParty(7);
-    if (hero.role === 'TEMPO' && kind === 'skill') state.sp = Math.min(5, state.sp + 1);
-    if (enemy.break >= enemy.breakMax && !enemy.broken) {
-      enemy.broken = true; enemy.break = enemy.breakMax;
-      popup(enemyX(state.battle.target), enemyY(state.battle.target) - 106, 'BROKEN', '#ffe08b', 16);
-      burst(enemyX(state.battle.target), enemyY(state.battle.target), '#ffe08b', 28); shake = 8; flash = 0.22;
+    preload() {}
+
+    create() {
+      Game.scene = this;
+      this.input.enabled = false;
+      this.simPaused = false;
+      this.keyLatch = new Set();
+      this.padLatch = { confirm: false, back: false, up: false, down: false, left: false, right: false };
+      this.gamepadConnected = false;
+      this.menuReturnScene = 'home';
+      this.saveClock = 0;
+      this.transient = null;
+      this.worldG = this.add.graphics().setDepth(0);
+      this.detailG = this.add.graphics().setDepth(3);
+      this.fxG = this.add.graphics().setDepth(14);
+      this.uiG = this.add.graphics().setDepth(30).setScrollFactor(0);
+      this.dynamicG = this.add.graphics().setDepth(8);
+      this.buildTextures();
+      this.playerSprite = this.add.image(state.player.x, state.player.y, 'sw-player-down-0').setDepth(12);
+      this.enemyActors = ENEMY_DATA.map((item) => ({ ...item, maxHp: item.hp, cooldown: 0, kx: 0, ky: 0, phase: 0 }));
+      this.enemySprites = this.enemyActors.map((item) => this.add.image(item.x, item.y, `sw-enemy-${item.type}-${item.id}`).setDepth(10));
+      this.floaters = Array.from({ length: 24 }, () => ({ sprite: this.add.text(0, 0, '', { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#ffffff', stroke: '#071421', strokeThickness: 4 }).setOrigin(0.5).setDepth(25), life: 0, x: 0, y: 0, dy: 0 }));
+      this.collectionFx = this.makeFxPool(18);
+      this.constellationFx = this.makeFxPool(24);
+      this.unlockFx = this.makeFxPool(40);
+      this.motionFx = this.makeFxPool(28);
+      this.hitFx = this.makeFxPool(20);
+      this.renderWorldBase();
+      this.createTextLayers();
+      this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+      this.cameras.main.startFollow(this.playerSprite, true, 0.12, 0.12);
+      this.syncScene(true);
+      kit.loader.progress(1); kit.loader.hide();
+      kit.audio.music('exploration-theme', 450);
+      if (state.scene === 'home') this.showHomeMessage();
     }
-    tone(kind === 'ultimate' ? 760 : isWeak ? 570 : 390, kind === 'ultimate' ? 0.18 : 0.07, kind === 'ultimate' ? 'sawtooth' : 'triangle', 0.04);
-    if (livingEnemies().length === 0) { finishBattle(); return; }
-    state.battle.actions++;
-    const aliveCount = livingParty().length;
-    if (state.battle.actions >= Math.max(1, aliveCount)) enemyPhase();
-    else state.battle.activeHero = nextLivingHero(id);
-    chooseTarget();
-    saveGame();
-  }
 
-  function nextLivingHero(current) {
-    const list = state.activeParty;
-    const at = Math.max(0, list.indexOf(current));
-    for (let n = 1; n <= list.length; n++) { const id = list[(at + n) % list.length]; if (state.partyHp[id] > 0) return id; }
-    return firstLivingHero();
-  }
+    buildTextures() {
+      ['up', 'down', 'left', 'right'].forEach((direction) => [0, 1].forEach((frame) => drawStaticTexture(this, `sw-player-${direction}-${frame}`, 36, 42, (g) => drawPlayerTexture(g, direction, frame))));
+      ENEMY_DATA.forEach((item) => drawStaticTexture(this, `sw-enemy-${item.type}-${item.id}`, 40, 40, (g) => drawEnemyTexture(g, item.type, item.tint)));
+    }
 
-  function healParty(amount) {
-    const targets = state.activeParty.filter(id => state.partyHp[id] > 0).sort((a, b) => state.partyHp[a] / HEROES[a].maxHp - state.partyHp[b] / HEROES[b].maxHp);
-    const id = targets[0];
-    if (id === undefined) return;
-    state.partyHp[id] = Math.min(HEROES[id].maxHp, state.partyHp[id] + amount);
-    popup(heroX(id), 376, `+${amount}`, '#d9ffad', 13);
-  }
+    makeFxPool(size) { return Array.from({ length: size }, () => ({ active: false, life: 0, max: 1, x: 0, y: 0, color: COLORS.cyan, seed: 0 })); }
 
-  function enemyPhase() {
-    state.battle.actions = 0; state.battle.round++;
-    livingEnemies().forEach(enemy => {
-      if (enemy.broken) {
-        enemy.broken = false; enemy.break = 0;
-        popup(enemyX(state.battle.enemies.indexOf(enemy)), enemyY(state.battle.enemies.indexOf(enemy)) - 75, 'STUN', '#ffe08b', 15);
-        return;
+    createTextLayers() {
+      const add = (x, y, value, size = 14, color = COLORS.text, originX = 0, originY = 0.5) => this.add.text(x, y, value, { fontFamily: 'Arial, sans-serif', fontSize: `${size}px`, fontStyle: size >= 18 ? 'bold' : 'normal', color, resolution: 2 }).setOrigin(originX, originY).setScrollFactor(0).setDepth(32);
+      this.texts = {
+        brand: add(20, 24, 'STARWEFT', 18, '#effaf7'),
+        region: add(20, 55, '', 14, '#9bbcc0'),
+        stats: add(370, 24, '', 13, '#effaf7', 1),
+        objective: add(20, 95, '', 14, '#d9f4e9'),
+        prompt: add(195, 800, '', 13, '#effaf7', 0.5),
+        banner: add(195, 127, '', 16, '#effaf7', 0.5),
+        homeTitle: add(195, 128, 'STARWEFT', 38, '#effaf7', 0.5),
+        homeSub: add(195, 178, 'A small sky route, waiting to be rewoven.', 15, '#9bbcc0', 0.5),
+        homeProgress: add(195, 242, '', 14, '#d9f4e9', 0.5),
+        puzzleTitle: add(195, 70, '', 25, '#effaf7', 0.5),
+        puzzleHelp: add(195, 110, '', 14, '#9bbcc0', 0.5),
+        puzzleStatus: add(195, 700, '', 15, '#d9f4e9', 0.5),
+        mapTitle: add(195, 92, 'ROUTE ATLAS', 27, '#effaf7', 0.5),
+        mapHint: add(195, 735, 'Left and right choose a region. Enter returns to the route.', 12, '#9bbcc0', 0.5),
+        helpTitle: add(195, 88, 'WEFTING GUIDE', 27, '#effaf7', 0.5),
+        helpBody: add(195, 190, '', 14, '#d9f4e9', 0.5, 0),
+      };
+      this.texts.homeMenu = [
+        add(195, 330, '', 19, '#effaf7', 0.5), add(195, 405, 'Route atlas', 19, '#effaf7', 0.5), add(195, 480, 'Guide', 19, '#effaf7', 0.5),
+      ];
+      this.texts.mapCards = REGIONS.map(() => add(195, 0, '', 15, '#effaf7', 0.5, 0));
+      this.texts.homeFooter = add(195, 654, 'Arrows move  Enter chooses  M map  H guide', 12, '#9bbcc0', 0.5);
+      this.texts.worldFooter = add(195, 826, 'WASD or arrows move  Space pulse  E interact  M map', 12, '#9bbcc0', 0.5);
+      this.texts.puzzleFooter = add(195, 790, 'Arrows choose a star  Enter traces it  H reveals a hint  Esc leaves', 12, '#9bbcc0', 0.5);
+      this.texts.helpBody.setWordWrapWidth(330);
+      this.a11y = document.getElementById('screen-reader');
+      this.a11yControls = document.getElementById('accessible-controls');
+    }
+
+    renderWorldBase() {
+      const g = this.worldG;
+      g.clear(); g.fillStyle(COLORS.ink, 1); g.fillRect(0, 0, WORLD_W, WORLD_H);
+      REGIONS.forEach((region, regionIndex) => {
+        g.fillStyle(region.tile, 1); g.fillRect(region.x, region.y, region.w, region.h);
+        const map = REGION_TILEMAPS[regionIndex];
+        for (let row = 0; row < 23; row += 1) for (let col = 0; col < Math.ceil(region.w / TILE); col += 1) {
+          const tile = map[row % map.length][col % map[0].length];
+          const color = tile === 'p' ? 0x214b50 : tile === 'w' ? 0x17445a : tile === 'v' ? 0x314b3b : region.tile;
+          g.fillStyle(color, 0.78); g.fillRect(region.x + col * TILE, row * TILE, TILE + 1, TILE + 1);
+        }
+        g.fillStyle(region.edge, 0.75); g.fillRect(region.x + 14, 0, 3, WORLD_H); g.fillRect(region.x + region.w - 17, 0, 3, WORLD_H);
+      });
+      g.fillStyle(0x4b8b79, 0.9); g.fillRect(70, 515, 590, 72);
+      g.fillStyle(0x5a9b8a, 0.45); g.fillRect(70, 529, 590, 4); g.fillRect(70, 569, 590, 4);
+      g.fillStyle(0x397a85, 0.55); WATER.forEach((water) => { g.fillRect(water.x, water.y, water.w, water.h); g.lineStyle(2, 0x7acdd4, 0.4); g.strokeRect(water.x, water.y, water.w, water.h); });
+      g.fillStyle(0x3c543d, 0.55); VINES.forEach((vine) => { g.fillRect(vine.x, vine.y, vine.w, vine.h); });
+      PROPS.forEach((prop) => this.drawProp(g, prop));
+      CONSTELLATIONS.forEach((item) => this.drawAltar(g, item));
+      GATES.forEach((gate) => { g.lineStyle(7, 0x10232e, 1); g.lineBetween(gate.x, 0, gate.x, WORLD_H); g.lineStyle(2, COLORS.gold, 0.78); g.lineBetween(gate.x, 0, gate.x, WORLD_H); });
+    }
+
+    drawProp(g, prop) {
+      if (prop.type === 'tree') { g.fillStyle(0x102a2c, 1); g.fillRect(prop.x - 5, prop.y + 6, 10, 25); g.fillStyle(0x4e8e70, 1); g.fillCircle(prop.x, prop.y, 26); g.fillStyle(0x77b878, 0.6); g.fillCircle(prop.x - 8, prop.y - 8, 10); }
+      else if (prop.type === 'rock') { g.fillStyle(0x122a38, 1); g.fillTriangle(prop.x - 22, prop.y + 16, prop.x - 8, prop.y - 20, prop.x + 20, prop.y + 13); g.fillStyle(0x71909b, 0.72); g.fillTriangle(prop.x - 11, prop.y + 4, prop.x - 3, prop.y - 12, prop.x + 8, prop.y + 7); }
+      else if (prop.type === 'reed') { g.lineStyle(3, 0x75a875, 0.8); g.lineBetween(prop.x, prop.y + 15, prop.x - 6, prop.y - 20); g.lineBetween(prop.x + 8, prop.y + 15, prop.x + 15, prop.y - 16); g.lineBetween(prop.x + 3, prop.y + 15, prop.x + 1, prop.y - 28); }
+      else { g.fillStyle(0x10232e, 1); g.fillRect(prop.x - 4, prop.y - 15, 8, 30); g.fillStyle(COLORS.gold, 0.9); g.fillCircle(prop.x, prop.y - 18, 7); g.lineStyle(2, COLORS.gold, 0.5); g.strokeCircle(prop.x, prop.y - 18, 13); }
+    }
+
+    drawAltar(g, item) {
+      const solved = state.puzzles[item.id].state === 'solved';
+      g.fillStyle(0x0c202e, 1); g.fillCircle(item.altar.x, item.altar.y, 40); g.lineStyle(3, solved ? COLORS.gold : COLORS.cyan, 0.9); g.strokeCircle(item.altar.x, item.altar.y, 32); g.lineStyle(1, COLORS.text, 0.35); g.strokeCircle(item.altar.x, item.altar.y, 22); g.fillStyle(solved ? COLORS.gold : COLORS.cyan, 0.9); g.fillTriangle(item.altar.x, item.altar.y - 18, item.altar.x + 10, item.altar.y, item.altar.x, item.altar.y + 18); g.fillTriangle(item.altar.x, item.altar.y - 18, item.altar.x - 10, item.altar.y, item.altar.x, item.altar.y + 18);
+    }
+
+    showHomeMessage() { if (!hasSave) setTransient('Move through the Moor and collect the sky threads.', 2.6, 'coach'); }
+
+    syncScene(force = false) {
+      if (!force && this.lastScene === state.scene) return;
+      this.lastScene = state.scene;
+      const world = state.scene === 'world';
+      this.worldG.setVisible(world); this.detailG.setVisible(world); this.dynamicG.setVisible(world); this.playerSprite.setVisible(world); this.enemySprites.forEach((sprite) => sprite.setVisible(world));
+      if (world) { this.cameras.main.startFollow(this.playerSprite, true, 0.12, 0.12); this.updateMusic(true); }
+      else this.cameras.main.stopFollow();
+      this.renderUi(); this.updateAccessibility();
+    }
+
+    updateMusic(force = false) {
+      if (state.scene !== 'world') return;
+      const region = regionAt(state.player.x);
+      let track = REGIONS[region].music;
+      for (const enemy of this.enemyActors) if (!state.defeated[enemy.id] && enemy.region === region && distance(enemy.x, enemy.y, state.player.x, state.player.y) < 210) track = 'danger-theme';
+      if (force || this.currentTrack !== track) { this.currentTrack = track; kit.audio.music(track, 500); }
+    }
+
+    restartToHome() { state.scene = 'home'; state.activePuzzle = null; state.puzzleInput = []; state.puzzleCursor = 0; this.syncScene(true); }
+
+    renderUi() {
+      const g = this.uiG; g.clear();
+      Object.values(this.texts).forEach((value) => { if (value && typeof value.setVisible === 'function') value.setVisible(false); });
+      this.texts.homeMenu.forEach((item) => item.setVisible(false)); this.texts.mapCards.forEach((item) => item.setVisible(false));
+      if (state.scene === 'home') this.renderHomeUi(g);
+      else if (state.scene === 'world') this.renderWorldUi(g);
+      else if (state.scene === 'puzzle') this.renderPuzzleUi(g);
+      else if (state.scene === 'map') this.renderMapUi(g);
+      else this.renderHelpUi(g);
+    }
+
+    renderHomeUi(g) {
+      g.fillStyle(COLORS.ink, 1); g.fillRect(0, 0, W, H); g.fillStyle(0x123542, 1); g.fillRect(0, 0, W, 230); g.fillStyle(0x0c2632, 1); g.fillRect(0, 230, W, H - 230);
+      for (let index = 0; index < 16; index += 1) { const x = 18 + (index * 71) % W; const y = 30 + (index * 43) % 250; g.fillStyle(index % 3 === 0 ? COLORS.gold : COLORS.cyan, 0.45); g.fillCircle(x, y, index % 2 ? 2 : 3); }
+      for (let index = 0; index < 3; index += 1) { const y = 292 + index * 75; g.fillStyle(state.menuIndex === index ? COLORS.panel2 : COLORS.panel, 1); g.fillRoundedRect(34, y, 322, 56, 13); g.lineStyle(state.menuIndex === index ? 2 : 1, state.menuIndex === index ? COLORS.gold : COLORS.line, 0.9); g.strokeRoundedRect(34, y, 322, 56, 13); this.texts.homeMenu[index].setVisible(true); }
+      this.texts.brand.setVisible(true); this.texts.homeTitle.setVisible(true); this.texts.homeSub.setVisible(true); this.texts.homeProgress.setVisible(true); this.texts.homeFooter.setVisible(true);
+      this.texts.homeMenu[0].setText(hasSave ? 'Continue weaving' : 'Begin weaving');
+      this.texts.homeProgress.setText(`${state.threadCount} / ${THREADS.length} threads  •  ${state.unlockedRegions.length} / ${REGIONS.length} regions`);
+    }
+
+    renderWorldUi(g) {
+      const region = regionAt(state.player.x); const current = REGIONS[region]; const puzzle = puzzleForRegion(region); const solved = puzzle && state.puzzles[puzzle.id].state === 'solved';
+      g.fillStyle(0x071421, 0.93); g.fillRoundedRect(12, 12, 366, 62, 13); g.lineStyle(1, current.edge, 0.95); g.strokeRoundedRect(12, 12, 366, 62, 13);
+      g.fillStyle(0x071421, 0.91); g.fillRoundedRect(12, 750, 366, 75, 13); g.lineStyle(1, COLORS.line, 0.9); g.strokeRoundedRect(12, 750, 366, 75, 13);
+      this.texts.brand.setVisible(true); this.texts.region.setVisible(true); this.texts.stats.setVisible(true); this.texts.objective.setVisible(true); this.texts.prompt.setVisible(true); this.texts.worldFooter.setVisible(true);
+      this.texts.region.setText(`${current.name}  •  ${hasAbility('star-sense') ? 'Star Sense active' : 'Signal quiet'}`);
+      this.texts.stats.setText(`${state.threadCount}/${THREADS.length}  HP ${Math.ceil(state.player.hp)}/100`);
+      this.texts.objective.setText(solved ? 'Constellation woven. Seek the next altar.' : `${puzzle ? puzzle.name : 'The Starweft'}  •  ${state.threadCount} threads gathered`);
+      const nearby = this.nearbyPrompt(); this.texts.prompt.setText(nearby || 'Explore the route and follow the thread glow.');
+      if (this.transient && this.transient.life > 0) { this.texts.banner.setVisible(true); this.texts.banner.setText(this.transient.text); this.texts.banner.setColor(this.transient.kind === 'danger' ? '#ff827e' : this.transient.kind === 'unlock' ? '#ffd886' : '#effaf7'); }
+    }
+
+    renderPuzzleUi(g) {
+      const item = currentConstellation(); if (!item) { state.scene = 'world'; return; }
+      g.fillStyle(0x071421, 1); g.fillRect(0, 0, W, H); g.fillStyle(0x102a38, 1); g.fillRoundedRect(20, 20, 350, 700, 20); g.lineStyle(2, COLORS.cyan, 0.8); g.strokeRoundedRect(20, 20, 350, 700, 20);
+      const centerX = 195; const centerY = 390; const progress = state.puzzles[item.id].progress;
+      g.lineStyle(2, COLORS.gold, 0.65); for (let index = 1; index < state.puzzleInput.length; index += 1) { const a = item.nodes[state.puzzleInput[index - 1]]; const b = item.nodes[state.puzzleInput[index]]; g.lineBetween(centerX + a.x, centerY + a.y, centerX + b.x, centerY + b.y); }
+      item.nodes.forEach((node, index) => { const selected = state.puzzleInput.includes(index); const cursor = state.puzzleCursor === index; g.fillStyle(selected ? COLORS.gold : cursor ? COLORS.cyan : 0x345a68, 1); g.fillCircle(centerX + node.x, centerY + node.y, cursor ? 18 : 13); g.lineStyle(cursor ? 3 : 1, cursor ? COLORS.text : COLORS.cyan, 0.9); g.strokeCircle(centerX + node.x, centerY + node.y, cursor ? 22 : 17); });
+      this.texts.brand.setVisible(true); this.texts.puzzleTitle.setVisible(true); this.texts.puzzleHelp.setVisible(true); this.texts.puzzleStatus.setVisible(true); this.texts.puzzleFooter.setVisible(true);
+      this.texts.puzzleTitle.setText(item.name); this.texts.puzzleHelp.setText(state.puzzles[item.id].hintUsed ? item.hint : 'Trace the authored pattern one star at a time.');
+      this.texts.puzzleStatus.setText(`Pattern ${progress} / ${item.pattern.length}  •  ${state.puzzles[item.id].attempts} failed traces`);
+    }
+
+    renderMapUi(g) {
+      g.fillStyle(COLORS.ink, 1); g.fillRect(0, 0, W, H); g.fillStyle(0x102a38, 1); g.fillRoundedRect(16, 18, 358, 700, 18); g.lineStyle(2, COLORS.cyan, 0.75); g.strokeRoundedRect(16, 18, 358, 700, 18);
+      this.texts.brand.setVisible(true); this.texts.mapTitle.setVisible(true); this.texts.mapHint.setVisible(true);
+      REGIONS.forEach((region, index) => { const y = 145 + index * 175; const unlocked = regionUnlocked(index); const selected = state.atlasIndex === index; g.fillStyle(selected ? 0x254d55 : 0x173b47, 1); g.fillRoundedRect(38, y, 314, 130, 14); g.lineStyle(selected ? 2 : 1, selected ? COLORS.gold : COLORS.line, 0.9); g.strokeRoundedRect(38, y, 314, 130, 14); this.texts.mapCards[index].setVisible(true).setPosition(54, y + 17).setText(`${unlocked ? 'OPEN' : 'LOCKED'}  ${region.name}\n${unlocked ? 'A traversable route' : region.gateText}\nThreads in region: ${THREADS.filter((thread) => thread.region === index && state.threads[thread.id]).length}/${THREADS.filter((thread) => thread.region === index).length}`); });
+    }
+
+    renderHelpUi(g) {
+      g.fillStyle(COLORS.ink, 1); g.fillRect(0, 0, W, H); g.fillStyle(0x102a38, 1); g.fillRoundedRect(18, 20, 354, 710, 18); g.lineStyle(2, COLORS.gold, 0.8); g.strokeRoundedRect(18, 20, 354, 710, 18);
+      this.texts.brand.setVisible(true); this.texts.helpTitle.setVisible(true); this.texts.helpBody.setVisible(true); this.texts.helpBody.setText('Move with WASD, arrows, or a gamepad stick.\n\nCollect glowing celestial threads. Stand near an altar and press E or Enter to open its constellation. Trace each authored pattern. H reveals a hint. A wrong star resets the trace, but never the save.\n\nThe first constellation grants Tide Step and opens Saltglass Reach. The second grants Bloom Lantern and opens Nightlace Canopy. The third completes the Starweft.\n\nSpace pulses nearby sentinels. Hits show damage, knockback, and leaf sparks. M opens the atlas. Escape returns from menus.');
+    }
+
+    nearbyPrompt() {
+      const altar = CONSTELLATIONS.find((item) => item.region === regionAt(state.player.x) && distance(state.player.x, state.player.y, item.altar.x, item.altar.y) < 78 && state.puzzles[item.id].state !== 'solved');
+      if (altar) return `E / Enter weave ${altar.name}`;
+      for (const gate of GATES) if (Math.abs(state.player.x - gate.x) < 46) return regionUnlocked(gate.region) ? 'Route gate open' : `Gate sealed. ${REGIONS[gate.region].gateText}`;
+      for (const enemy of this.enemyActors) if (!state.defeated[enemy.id] && distance(enemy.x, enemy.y, state.player.x, state.player.y) < 92) return 'Space pulse the sentinel';
+      return '';
+    }
+
+    update(time, delta) {
+      const dt = clamp((Number(delta) || 0) / 1000, 0, 0.05);
+      this.processPointers(); this.processKeys(); this.updateGamepad();
+      const juice = kit.juice.frame();
+      if (!this.simPaused && !juice.frozen) {
+        state.totalPlayTime += dt;
+        if (this.transient && this.transient.life > 0) this.transient.life = Math.max(0, this.transient.life - dt);
+        if (state.scene === 'world') this.updateWorld(dt);
+        this.updateFx(dt); this.updateFloaters(dt); this.updateDynamicDraw();
       }
-      const alive = livingParty();
-      if (!alive.length) return;
-      const target = alive[Math.floor(Math.random() * alive.length)];
-      const damage = Math.max(1, Math.round(enemy.atk * (0.9 + Math.random() * 0.18) + state.battle.round * 0.5));
-      state.partyHp[target] = Math.max(0, state.partyHp[target] - damage);
-      popup(heroX(target), 376, `-${damage}`, '#ff9b91', 15);
-      burst(heroX(target), 400, '#ff6f65', 9); shake = 4;
-      if (state.partyHp[target] <= 0) notice(`${HEROES[target].name} is down.`);
-    });
-    state.battle.activeHero = firstLivingHero();
-    if (!livingParty().length) failBattle();
-    else saveGame();
-  }
-
-  function enemyX(index) {
-    const count = state.battle ? state.battle.enemies.length : 1;
-    return count === 1 ? 195 : index === 0 ? 118 : 272;
-  }
-  function enemyY(index) { return state.battle && state.battle.enemies.length > 1 ? 168 + (index === 1 ? 5 : 0) : 164; }
-  function heroX(id) { const at = state.activeParty.indexOf(id); return 55 + Math.max(0, at) * 94; }
-
-  function burst(x, y, color, count) {
-    for (let i = 0; i < count; i++) particles.push({ x, y, vx: (Math.random() - 0.5) * 150, vy: (Math.random() - 0.7) * 150, life: 0.35 + Math.random() * 0.55, max: 0.9, size: 2 + Math.random() * 3, color });
-    if (particles.length > MAX_PARTICLES) particles.splice(0, particles.length - MAX_PARTICLES);
-  }
-  function popup(x, y, text, color, size) {
-    popups.push({ x, y, text, color, size, life: 1.05, max: 1.05 });
-    if (popups.length > MAX_POPUPS) popups.splice(0, popups.length - MAX_POPUPS);
-  }
-  function updateFx(dt) {
-    particles.forEach(p => { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 180 * dt; });
-    particles = particles.filter(p => p.life > 0).slice(-MAX_PARTICLES);
-    popups.forEach(p => { p.life -= dt; p.y -= 22 * dt; });
-    popups = popups.filter(p => p.life > 0).slice(-MAX_POPUPS);
-    shake = Math.max(0, shake - dt * 26); flash = Math.max(0, flash - dt);
-    noticeTime = Math.max(0, noticeTime - dt);
-  }
-  function notice(text) { noticeText = text; noticeTime = 2.7; reader.textContent = text; }
-
-  function unlockAudio() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    } catch (_) { audioCtx = null; }
-  }
-  function tone(freq, duration, type, volume) {
-    if (!audioCtx) return;
-    try {
-      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-      osc.type = type; osc.frequency.value = freq; gain.gain.setValueAtTime(volume, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-      osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
-    } catch (_) {}
-  }
-
-  function resize() {
-    const wasPortrait = view.portrait;
-    view.w = Math.max(1, window.innerWidth); view.h = Math.max(1, window.innerHeight); view.portrait = view.h >= view.w;
-    if (wasPortrait !== view.portrait) clearTransient();
-    const longAxis = Math.max(view.w, view.h); view.dpr = Math.min(2, 960 / longAxis, window.devicePixelRatio || 1);
-    canvas.width = Math.max(1, Math.floor(view.w * view.dpr)); canvas.height = Math.max(1, Math.floor(view.h * view.dpr));
-    if (view.portrait) { view.scale = Math.min(view.w / W, view.h / H); view.ox = (view.w - W * view.scale) / 2; view.oy = (view.h - H * view.scale) / 2; }
-  }
-
-  function localPoint(e) {
-    if (!view.portrait) return { x: -1, y: -1 };
-    const r = canvas.getBoundingClientRect();
-    return { x: (e.clientX - r.left - view.ox) / view.scale, y: (e.clientY - r.top - view.oy) / view.scale };
-  }
-
-  function hitTest(x, y) {
-    if (state.scene === 'start') {
-      if (saveAvailable && y >= 512 && y <= 585 && x >= 22 && x <= 368) return { type: 'continue' };
-      return { type: 'new' };
+      this.renderUi(); this.updateAccessibility();
     }
-    if (state.scene === 'story') {
-      if (x >= 280 && y >= 12 && y <= 60) return { type: 'roster' };
-      if (y >= 588) return { type: 'story' };
-      return null;
+
+    updateWorld(dt) {
+      this.updatePlayer(dt); this.collectThreads(); this.updateEnemies(dt); this.updateRegion();
+      if (this.musicTimer > 0) this.musicTimer -= dt; else this.updateMusic();
+      this.updateTutorial();
+      this.saveClock += dt;
+      if (this.saveClock >= 3) { this.saveClock = 0; saveState(); }
     }
-    if (state.scene === 'roster') {
-      if (y >= 598) return { type: 'rosterDone' };
-      for (let i = 0; i < HEROES.length; i++) {
-        const col = i % 2, row = Math.floor(i / 2), bx = 20 + col * 186, by = 110 + row * 112;
-        if (x >= bx && x <= bx + 168 && y >= by && y <= by + 96) return { type: 'rosterHero', id: i };
-      }
-      return null;
+
+    updatePlayer(dt) {
+      let axisX = 0; let axisY = 0;
+      if (kit.input.keyDown('ArrowLeft') || kit.input.keyDown('KeyA')) axisX -= 1;
+      if (kit.input.keyDown('ArrowRight') || kit.input.keyDown('KeyD')) axisX += 1;
+      if (kit.input.keyDown('ArrowUp') || kit.input.keyDown('KeyW')) axisY -= 1;
+      if (kit.input.keyDown('ArrowDown') || kit.input.keyDown('KeyS')) axisY += 1;
+      axisX += this.gamepadAxisX || 0; axisY += this.gamepadAxisY || 0;
+      const length = Math.sqrt(axisX * axisX + axisY * axisY); const moving = length > 0.05 || Math.abs(state.player.kx || 0) > 1 || Math.abs(state.player.ky || 0) > 1;
+      if (length > 1) { axisX /= length; axisY /= length; }
+      const speed = hasAbility('tide-step') ? 194 : 176;
+      const vx = (axisX * speed + (state.player.kx || 0)) * dt; const vy = (axisY * speed + (state.player.ky || 0)) * dt;
+      this.tryMove(vx, 0); this.tryMove(0, vy);
+      state.player.kx = (state.player.kx || 0) * Math.pow(0.06, dt); state.player.ky = (state.player.ky || 0) * Math.pow(0.06, dt);
+      if (moving) {
+        if (Math.abs(axisX) > Math.abs(axisY)) state.player.facing = axisX < 0 ? 'left' : 'right'; else if (Math.abs(axisY) > 0.05) state.player.facing = axisY < 0 ? 'up' : 'down';
+        this.walkClock = (this.walkClock || 0) + dt;
+        if (this.walkClock > 0.2) { this.walkClock = 0; this.spawnMotionFx(state.player.x, state.player.y, state.player.facing); kit.audio.sfx('footstep', { volume: 0.08, rate: 1 + Math.random() * 0.15 }); }
+      } else this.walkClock = 0;
+      const frame = moving && Math.floor((this.walkClock || 0) * 10) % 2 ? 1 : 0;
+      this.playerSprite.setTexture(`sw-player-${state.player.facing}-${frame}`).setPosition(state.player.x, state.player.y);
+      if (state.player.hp <= 0) this.resetAfterFall();
     }
-    if (state.scene === 'win') return y >= 545 ? { type: 'new' } : null;
-    if (state.scene === 'fail') return x >= 48 && x <= 342 && y >= 378 && y <= 441 ? { type: 'retry' } : null;
-    if (state.scene !== 'battle') return null;
-    if (x >= 13 && x <= 97 && y >= 14 && y <= 62) return { type: 'restart' };
-    if (y >= 94 && y <= 258) {
-      for (let i = 0; i < state.battle.enemies.length; i++) {
-        const ex = enemyX(i); if (Math.abs(x - ex) < 82) return { type: 'target', index: i };
+
+    tryMove(dx, dy) {
+      if (!dx && !dy) return;
+      const nextX = clamp(state.player.x + dx, 24, WORLD_W - 24); const nextY = clamp(state.player.y + dy, 24, WORLD_H - 24);
+      if (!this.isBlocked(nextX, nextY)) { state.player.x = nextX; state.player.y = nextY; }
+      else if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) this.gateNotice(nextX, nextY);
+    }
+
+    isBlocked(x, y) {
+      for (const gate of GATES) if (!regionUnlocked(gate.region) && Math.abs(x - gate.x) < 25) return true;
+      for (const obstacle of OBSTACLES) if (x > obstacle.x - 14 && x < obstacle.x + obstacle.w + 14 && y > obstacle.y - 14 && y < obstacle.y + obstacle.h + 14) return true;
+      if (!hasAbility('tide-step')) for (const water of WATER) if (x > water.x - 15 && x < water.x + water.w + 15 && y > water.y - 15 && y < water.y + water.h + 15) return true;
+      if (!hasAbility('bloom-lantern')) for (const vine of VINES) if (x > vine.x - 14 && x < vine.x + vine.w + 14 && y > vine.y - 14 && y < vine.y + vine.h + 14) return true;
+      return false;
+    }
+
+    gateNotice(x, y) {
+      const region = regionAt(x); if (region === regionAt(state.player.x)) return;
+      const gate = GATES.find((item) => item.region === region); if (gate && !regionUnlocked(region) && (!this.gateNoticeTimer || this.gateNoticeTimer <= 0)) { setTransient(`${regionName(region)} is sealed. ${REGIONS[region].gateText}.`, 2, 'notice'); this.gateNoticeTimer = 1.5; }
+    }
+
+    collectThreads() {
+      for (const thread of THREADS) if (!state.threads[thread.id] && distance(thread.x, thread.y, state.player.x, state.player.y) < 34 && regionUnlocked(thread.region)) {
+        state.threads[thread.id] = true; state.threadCount += 1; this.spawnCollectionFx(thread.x, thread.y, thread.color); spawnSavedMessage(this, `${thread.name} collected. ${state.threadCount} of ${THREADS.length}.`, 'pickup');
+        kit.audio.sfx('pickup', { volume: 0.65 }); saveState(); this.updateTutorial();
       }
     }
-    if (y >= 276 && y <= 342) {
-      const i = Math.floor(x / 130); if (i >= 0 && i < 3) return { type: 'inspect', element: ELEMENTS[i].id };
+
+    updateEnemies(dt) {
+      for (let index = 0; index < this.enemyActors.length; index += 1) {
+        const enemy = this.enemyActors[index]; const sprite = this.enemySprites[index];
+        if (state.defeated[enemy.id]) { sprite.setVisible(false); continue; }
+        enemy.cooldown = Math.max(0, enemy.cooldown - dt); enemy.phase += dt;
+        const d = distance(enemy.x, enemy.y, state.player.x, state.player.y); const sameRegion = enemy.region === regionAt(state.player.x);
+        if (sameRegion && d < 240 && d > 30) { const step = 24 * dt; enemy.x += (state.player.x - enemy.x) / Math.max(1, d) * step; enemy.y += (state.player.y - enemy.y) / Math.max(1, d) * step; }
+        else { enemy.x += Math.cos(enemy.phase * 1.4 + index) * 9 * dt; enemy.y += Math.sin(enemy.phase * 1.1 + index) * 9 * dt; }
+        enemy.x += enemy.kx * dt; enemy.y += enemy.ky * dt; enemy.kx *= Math.pow(0.04, dt); enemy.ky *= Math.pow(0.04, dt);
+        if (d < 34 && enemy.cooldown <= 0) { enemy.cooldown = 1.1; const damage = 8 + enemy.region * 3; state.player.hp = clamp(state.player.hp - damage, 0, 100); state.player.kx = (state.player.x - enemy.x) * 3; state.player.ky = (state.player.y - enemy.y) * 3; this.spawnHitFx(state.player.x, state.player.y, COLORS.danger); this.spawnFloat(`-${damage}`, state.player.x, state.player.y - 26, '#ff827e'); kit.audio.sfx('hurt', { volume: 0.5 }); setTransient('Sentinel contact. Pulse back or move away.', 1.1, 'danger'); if (motionEnabled()) kit.juice.shake(3, 100); }
+        sprite.setVisible(true).setPosition(enemy.x, enemy.y).setAlpha(d < 220 ? 1 : 0.72);
+      }
     }
-    if (y >= 360 && y <= 514) {
-      const i = Math.floor((x - 8) / 94); if (i >= 0 && i < state.activeParty.length) return { type: 'hero', id: state.activeParty[i] };
+
+    updateRegion() {
+      const next = regionAt(state.player.x); if (next !== state.lastRegion) { state.lastRegion = next; this.musicTimer = 1.1; setTransient(`${regionName(next)} reached.`, 1.5, 'notice'); kit.audio.sfx('secret', { volume: 0.38 }); saveState(); this.updateMusic(true); }
+      if (this.gateNoticeTimer > 0) this.gateNoticeTimer -= 1 / 60;
     }
-    if (y >= 574) {
-      const i = Math.floor(x / 130); if (i === 0) return { type: 'action', action: 'basic' }; if (i === 1) return { type: 'action', action: 'skill' }; if (i === 2) return { type: 'action', action: 'ultimate' };
+
+    resetAfterFall() { state.player.hp = 100; state.player.x = 280; state.player.y = 560; state.lastRegion = 0; setTransient('The route folds back to the beacon.', 1.8, 'danger'); kit.audio.sfx('hurt', { volume: 0.65 }); saveState(); }
+
+    updateTutorial() {
+      if (state.tutorialStep === 0 && state.scene === 'world') { state.tutorialStep = 1; setTransient('Move with WASD or arrows. Follow the glowing threads.', 3, 'coach'); saveState(); }
+      else if (state.tutorialStep === 1 && state.threadCount >= 1) { state.tutorialStep = 2; setTransient('Three threads reveal the first constellation altar.', 2.8, 'coach'); saveState(); }
+      else if (state.tutorialStep === 2 && state.puzzles.lyra.state !== 'dormant') { state.tutorialStep = 3; setTransient('Trace the stars in order. H reveals a hint.', 2.8, 'coach'); saveState(); }
+      else if (state.tutorialStep === 3 && state.puzzles.lyra.state === 'solved') { state.tutorialStep = 4; setTransient('Tide Step opens the next region. Keep weaving.', 2.8, 'coach'); saveState(); }
     }
-    return null;
-  }
 
-  function handleAction(action) {
-    if (!action) return;
-    if (action.type === 'continue') { startFromOverlay(true); return; }
-    if (action.type === 'new') { startFromOverlay(false); return; }
-    if (action.type === 'start') { startFromOverlay(saveAvailable); return; }
-    if (action.type === 'story') { unlockAudio(); advanceStory(); return; }
-    if (action.type === 'roster') { state.scene = 'roster'; saveGame(); return; }
-    if (action.type === 'rosterHero') { toggleRoster(action.id); return; }
-    if (action.type === 'rosterDone') { state.scene = 'story'; saveGame(); return; }
-    if (action.type === 'retry') { restartBattle(); return; }
-    if (action.type === 'restart') { restartBattle(); return; }
-    if (action.type === 'target' && state.battle && state.battle.enemies[action.index]?.hp > 0) { state.battle.target = action.index; notice(`${state.battle.enemies[action.index].name} targeted.`); tone(300, 0.05, 'sine', 0.02); return; }
-    if (action.type === 'inspect') { inspectElement = action.element; const foe = state.battle?.enemies[state.battle.target]; notice(`${action.element.toUpperCase()} ${foe && foe.weak === action.element ? 'breaks this target.' : 'does not break this target.'}`); return; }
-    if (action.type === 'hero') { if (state.partyHp[action.id] > 0) { state.battle.activeHero = action.id; notice(`${HEROES[action.id].name}'s turn.`); } else notice('That hero needs a rest.'); return; }
-    if (action.type === 'action') { playerAction(action.action); }
-  }
+    updateDynamicDraw() {
+      this.detailG.clear();
+      const t = performance.now() / 1000;
+      WATER.forEach((water, waterIndex) => { for (let row = 0; row < 5; row += 1) { const y = water.y + 28 + row * 47; this.detailG.lineStyle(2, 0x8de1e0, 0.38); this.detailG.lineBetween(water.x + 12, y + Math.sin(t * 1.6 + row + waterIndex) * 4, water.x + water.w - 12, y + Math.sin(t * 1.6 + row + waterIndex) * 4); } });
+      THREADS.forEach((thread) => { if (state.threads[thread.id] || !regionUnlocked(thread.region)) return; const pulse = 1 + Math.sin(t * 3 + thread.x) * 0.16; this.detailG.fillStyle(thread.color, 0.18); this.detailG.fillCircle(thread.x, thread.y, 24 * pulse); this.detailG.fillStyle(thread.color, 0.95); this.detailG.fillTriangle(thread.x, thread.y - 10, thread.x + 9, thread.y, thread.x, thread.y + 10); this.detailG.fillTriangle(thread.x, thread.y - 10, thread.x - 9, thread.y, thread.x, thread.y + 10); });
+      CONSTELLATIONS.forEach((item) => { if (state.puzzles[item.id].state === 'solved') return; const pulse = 1 + Math.sin(t * 2 + item.altar.x) * 0.12; this.detailG.lineStyle(1, COLORS.cyan, 0.28); this.detailG.strokeCircle(item.altar.x, item.altar.y, 45 * pulse); });
+      this.fxG.clear(); this.drawFxPool(this.collectionFx, 'collection'); this.drawFxPool(this.constellationFx, 'constellation'); this.drawFxPool(this.unlockFx, 'unlock'); this.drawFxPool(this.motionFx, 'motion'); this.drawFxPool(this.hitFx, 'hit');
+    }
 
-  function onPointerDown(e) {
-    e.preventDefault(); unlockAudio();
-    if (pointerControls.size >= MAX_POINTERS) return;
-    if (!view.portrait) return;
-    const p = localPoint(e), control = state.scene === 'start' ? (saveAvailable && p.y >= 512 && p.y <= 585 ? { type: 'continue' } : { type: 'new' }) : hitTest(p.x, p.y);
-    pointerControls.set(e.pointerId, { control, x: p.x, y: p.y });
-    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
-    if (control) enqueue(control);
-  }
-  function onPointerMove(e) { const p = pointerControls.get(e.pointerId); if (p) { const q = localPoint(e); p.x = q.x; p.y = q.y; } }
-  function onPointerUp(e) { e.preventDefault(); pointerControls.delete(e.pointerId); try { canvas.releasePointerCapture(e.pointerId); } catch (_) {} }
-  function onPointerCancel(e) { pointerControls.delete(e.pointerId); }
+    spawnPool(pool, x, y, color, amount = 1) { let placed = 0; for (const item of pool) { if (item.active) continue; item.active = true; item.life = item.max = motionEnabled() ? 0.68 : 0.28; item.x = x; item.y = y; item.color = color; item.seed = placed; placed += 1; if (placed >= amount) break; } }
+    spawnCollectionFx(x, y, color) { this.spawnPool(this.collectionFx, x, y, color, 10); }
+    spawnUnlockFx(x, y) { this.spawnPool(this.unlockFx, x, y, COLORS.gold, 28); }
+    spawnConstellationFx(x, y) { this.spawnPool(this.constellationFx, x, y, COLORS.cyan, 16); }
+    spawnMotionFx(x, y, facing) { this.spawnPool(this.motionFx, x - (facing === 'right' ? 7 : facing === 'left' ? -7 : 0), y + 13, facing === 'up' ? COLORS.cyan : COLORS.bloom, 2); }
+    spawnHitFx(x, y, color) { this.spawnPool(this.hitFx, x, y, color, 9); }
+    drawFxPool(pool, type) { for (const item of pool) if (item.active) { const fade = clamp(item.life / item.max, 0, 1); const phase = 1 - fade; this.fxG.fillStyle(item.color, fade); if (type === 'collection') { const angle = item.seed * 0.63; const radius = 8 + phase * 30; this.fxG.fillCircle(item.x + Math.cos(angle) * radius, item.y + Math.sin(angle) * radius, 3); } else if (type === 'constellation') { this.fxG.lineStyle(2, item.color, fade); this.fxG.strokeCircle(item.x, item.y, 16 + phase * 50 + item.seed); } else if (type === 'unlock') { const x = item.x + Math.cos(item.seed * 1.9) * (16 + phase * 80); const y = item.y + Math.sin(item.seed * 1.7) * (20 + phase * 80) - phase * 34; this.fxG.fillRect(x, y, 5, 5); } else if (type === 'motion') this.fxG.fillEllipse(item.x + phase * (item.seed % 2 ? 6 : -6), item.y + phase * 12, 4, 2); else { this.fxG.lineStyle(2, item.color, fade); this.fxG.strokeCircle(item.x, item.y, 12 + phase * 34); } } }
+    updateFx(dt) { [this.collectionFx, this.constellationFx, this.unlockFx, this.motionFx, this.hitFx].forEach((pool) => pool.forEach((item) => { if (item.active) { item.life -= dt; if (item.life <= 0) item.active = false; } })); }
+    spawnFloat(value, x, y, color) { const item = this.floaters.find((entry) => entry.life <= 0); if (!item) return; item.life = motionEnabled() ? 0.85 : 0.45; item.x = x; item.y = y; item.dy = -26; item.sprite.setText(value).setColor(color).setPosition(x, y).setVisible(true); }
+    updateFloaters(dt) { this.floaters.forEach((item) => { if (item.life <= 0) { item.sprite.setVisible(false); return; } item.life -= dt; item.y += item.dy * dt; item.dy += 8 * dt; item.sprite.setPosition(item.x, item.y).setAlpha(clamp(item.life * 1.8, 0, 1)); }); }
 
-  function onKeyDown(e) {
-    const key = e.key.toLowerCase();
-    const allowed = ['arrowleft', 'arrowright', 'arrowup', 'arrowdown', '1', '2', '3', 'enter', 'r', 'p', 'n', ' '];
-    if (!allowed.includes(key)) return;
-    e.preventDefault();
-    if (heldKeys.has(key)) return;
-    if (heldKeys.size >= 32) return;
-    heldKeys.add(key);
-    unlockAudio();
-    if (!state.started && (key === 'enter' || key === ' ')) enqueue({ type: saveAvailable ? 'continue' : 'new' });
-    else if (key === 'n') enqueue({ type: 'new' });
-    else if (key === 'r' && (state.scene === 'battle' || state.scene === 'fail')) enqueue({ type: 'restart' });
-    else if (key === 'p' && state.scene === 'story') enqueue({ type: 'roster' });
-    else if (state.scene === 'story' && (key === 'enter' || key === ' ')) enqueue({ type: 'story' });
-    else if (state.scene === 'fail' && (key === 'enter' || key === ' ')) enqueue({ type: 'retry' });
-    else if (state.scene === 'roster') {
-      if (key === 'enter' || key === ' ') enqueue({ type: 'rosterDone' });
-      else if (key === 'arrowleft' || key === 'arrowright' || key === 'arrowup' || key === 'arrowdown') rosterMove(key);
-    } else if (state.scene === 'battle') {
-      if (key === 'arrowleft') enqueue({ type: 'targetMove', dir: -1 });
-      if (key === 'arrowright') enqueue({ type: 'targetMove', dir: 1 });
-      if (key === 'arrowup') enqueue({ type: 'heroMove', dir: -1 });
-      if (key === 'arrowdown') enqueue({ type: 'heroMove', dir: 1 });
-      if (key === '1') enqueue({ type: 'action', action: 'basic' });
-      if (key === '2') enqueue({ type: 'action', action: 'skill' });
-      if (key === '3') enqueue({ type: 'action', action: 'ultimate' });
+    pulseAttack() {
+      let target = null; let closest = 96;
+      for (const enemy of this.enemyActors) if (!state.defeated[enemy.id]) { const d = distance(enemy.x, enemy.y, state.player.x, state.player.y); if (d < closest && enemy.region === regionAt(state.player.x)) { target = enemy; closest = d; } }
+      if (!target) { this.interact(); return; }
+      const damage = hasAbility('weft-crown') ? 38 : 28; target.hp -= damage; const push = Math.max(0.1, closest); target.kx = (target.x - state.player.x) / push * 130; target.ky = (target.y - state.player.y) / push * 130; this.spawnHitFx(target.x, target.y, COLORS.gold); this.spawnFloat(String(damage), target.x, target.y - 25, '#ffd886'); kit.audio.sfx('hit', { volume: 0.5 }); if (motionEnabled()) kit.juice.hitStop(42);
+      if (target.hp <= 0) { state.defeated[target.id] = true; setTransient(`${target.type === 'moth' ? 'Moth' : 'Thorn'} sentinel dispersed.`, 1.1, 'notice'); this.spawnCollectionFx(target.x, target.y, COLORS.cyan); kit.audio.sfx('secret', { volume: 0.35 }); saveState(); }
+    }
+
+    interact() {
+      const item = CONSTELLATIONS.find((entry) => entry.region === regionAt(state.player.x) && distance(state.player.x, state.player.y, entry.altar.x, entry.altar.y) < 82);
+      if (item && state.puzzles[item.id].state !== 'solved') { this.startPuzzle(item.id); return; }
+      if (item && state.puzzles[item.id].state === 'solved') { setTransient(`${item.name} is already woven.`, 1, 'notice'); return; }
+      const gate = GATES.find((entry) => Math.abs(state.player.x - entry.x) < 52); if (gate && !regionUnlocked(gate.region)) { setTransient(REGIONS[gate.region].gateText + '.', 1.8, 'notice'); return; }
+      setTransient('No constellation signal nearby.', 0.85, 'notice'); kit.audio.sfx('ui', { volume: 0.2 });
+    }
+
+    startPuzzle(id) { const item = puzzleById(id); if (!item) return; if (!regionUnlocked(item.region)) { setTransient(REGIONS[item.region].gateText + '.', 1.8, 'notice'); return; } if (state.threadCount < item.threadMin) { setTransient(`Gather ${item.threadMin} threads before opening ${item.name}.`, 1.8, 'coach'); return; } state.activePuzzle = id; state.puzzleCursor = 0; state.puzzleInput = []; const puzzle = state.puzzles[id]; if (puzzle.state === 'dormant' || puzzle.state === 'failed') puzzle.state = 'discovered'; state.scene = 'puzzle'; saveState(); this.spawnConstellationFx(item.altar.x, item.altar.y); kit.audio.sfx('constellation', { volume: 0.7 }); this.syncScene(true); }
+    selectPuzzleNode(index) {
+      const item = currentConstellation(); if (!item) return; const progress = state.puzzles[item.id].progress; const expected = item.pattern[progress];
+      if (index !== expected) { state.puzzles[item.id].attempts += 1; state.puzzles[item.id].state = 'failed'; state.puzzles[item.id].progress = 0; state.puzzleInput = []; state.puzzleCursor = 0; setTransient('The trace breaks. Try the pattern again.', 1.4, 'danger'); kit.audio.sfx('hurt', { volume: 0.35 }); saveState(); return; }
+      state.puzzleInput.push(index); state.puzzles[item.id].progress += 1; state.puzzles[item.id].state = 'discovered'; kit.audio.sfx('ui', { volume: 0.3, rate: 1.1 });
+      if (state.puzzles[item.id].progress >= item.pattern.length) { state.puzzles[item.id].state = 'solved'; unlockForPuzzle(item.id); this.spawnConstellationFx(item.altar.x, item.altar.y); kit.audio.sfx('constellation', { volume: 0.85 }); state.scene = 'world'; state.activePuzzle = null; state.puzzleInput = []; saveState(); this.syncScene(true); }
+      else saveState();
+    }
+    giveHint() { const item = currentConstellation(); if (!item) return; const puzzle = state.puzzles[item.id]; if (puzzle.state === 'solved') return; puzzle.hintUsed = true; puzzle.state = 'hinted'; setTransient(item.hint, 3, 'coach'); saveState(); }
+
+    processPointers() {
+      const rect = this.game.canvas.getBoundingClientRect();
+      for (const pointer of kit.input.pointers.values()) {
+        if (pointer.zone) continue; pointer.zone = 'starweft-claimed'; const x = (pointer.x - rect.left) * W / Math.max(1, rect.width); const y = (pointer.y - rect.top) * H / Math.max(1, rect.height); this.handleAction(this.hitTest(x, y));
+      }
+    }
+    hitTest(x, y) {
+      if (state.scene === 'home') { if (y >= 292 && y <= 548) return { type: 'menu', index: clamp(Math.floor((y - 292) / 75), 0, 2) }; return null; }
+      if (state.scene === 'world') { if (y < 76 && x > 320) return { type: 'map' }; if (y > 748) return { type: 'worldAction' }; const wx = this.cameras.main.scrollX + x; const wy = this.cameras.main.scrollY + y; for (const enemy of this.enemyActors) if (!state.defeated[enemy.id] && distance(enemy.x, enemy.y, wx, wy) < 60) return { type: 'worldAction' }; return { type: 'move', x: wx, y: wy }; }
+      if (state.scene === 'puzzle') { const item = currentConstellation(); if (!item) return null; for (let index = 0; index < item.nodes.length; index += 1) { const node = item.nodes[index]; if (distance(195 + node.x, 390 + node.y, x, y) < 28) return { type: 'puzzleNode', index }; } if (y > 745) return { type: 'back' }; return null; }
+      if (state.scene === 'map') { if (y > 735) return { type: 'back' }; for (let index = 0; index < REGIONS.length; index += 1) if (y >= 145 + index * 175 && y <= 275 + index * 175) return { type: 'atlas', index }; return null; }
+      return { type: 'back' };
+    }
+    handleAction(action) {
+      if (!action) return;
+      if (action.type === 'menu') { state.menuIndex = action.index; this.activateMenu(); return; }
+      if (action.type === 'map') { this.menuReturnScene = state.scene; state.scene = 'map'; saveState(); this.syncScene(true); return; }
+      if (action.type === 'worldAction') { this.pulseAttack(); return; }
+      if (action.type === 'move') { state.moveTarget = { x: clamp(action.x, 24, WORLD_W - 24), y: clamp(action.y, 24, WORLD_H - 24) }; return; }
+      if (action.type === 'puzzleNode') { state.puzzleCursor = action.index; this.selectPuzzleNode(action.index); return; }
+      if (action.type === 'atlas') { state.atlasIndex = action.index; setTransient(regionUnlocked(action.index) ? `${regionName(action.index)} is open.` : REGIONS[action.index].gateText + '.', 1.3, 'notice'); return; }
+      if (action.type === 'back') { if (state.scene === 'puzzle') { state.scene = 'world'; state.activePuzzle = null; state.puzzleInput = []; this.syncScene(true); } else if (state.scene === 'map' || state.scene === 'help') { state.scene = this.menuReturnScene || 'home'; state.activePuzzle = null; state.puzzleInput = []; this.syncScene(true); } }
+    }
+    activateMenu() { if (state.menuIndex === 0) { state.scene = 'world'; this.syncScene(true); updateFirstWorldSave(); } else if (state.menuIndex === 1) { this.menuReturnScene = 'home'; state.scene = 'map'; this.syncScene(true); } else { this.menuReturnScene = 'home'; state.scene = 'help'; this.syncScene(true); } kit.audio.sfx('ui', { volume: 0.35 }); }
+
+    processKeys() {
+      const codes = ['Enter', 'Space', 'KeyE', 'KeyM', 'KeyH', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+      codes.forEach((code) => {
+        const down = kit.input.keyDown(code);
+        if (down && !this.keyLatch.has(code)) {
+          this.keyLatch.add(code);
+          if (state.scene === 'home' && (code === 'ArrowUp' || code === 'ArrowDown')) { state.menuIndex = (state.menuIndex + (code === 'ArrowDown' ? 1 : 2)) % 3; kit.audio.sfx('ui', { volume: 0.18 }); }
+          else if (state.scene === 'home' && (code === 'Enter' || code === 'Space')) this.activateMenu();
+          else if (state.scene === 'home' && code === 'KeyM') { this.menuReturnScene = 'home'; state.scene = 'map'; this.syncScene(true); }
+          else if (state.scene === 'home' && code === 'KeyH') { this.menuReturnScene = 'home'; state.scene = 'help'; this.syncScene(true); }
+          else if (state.scene === 'world' && code === 'KeyM') { this.menuReturnScene = 'world'; state.scene = 'map'; saveState(); this.syncScene(true); }
+          else if (state.scene === 'world' && (code === 'KeyE' || code === 'Enter')) this.interact();
+          else if (state.scene === 'world' && code === 'Space') this.pulseAttack();
+          else if (state.scene === 'world' && code === 'KeyH') { this.menuReturnScene = 'world'; state.scene = 'help'; this.syncScene(true); }
+          else if (state.scene === 'puzzle' && code === 'Escape') this.handleAction({ type: 'back' });
+          else if (state.scene === 'puzzle' && code === 'KeyH') this.giveHint();
+          else if (state.scene === 'puzzle' && (code === 'ArrowLeft' || code === 'ArrowRight' || code === 'ArrowUp' || code === 'ArrowDown')) this.movePuzzleCursor(code);
+          else if (state.scene === 'puzzle' && (code === 'Enter' || code === 'Space')) this.selectPuzzleNode(state.puzzleCursor);
+          else if ((state.scene === 'map' || state.scene === 'help') && (code === 'Escape' || code === 'Enter')) this.handleAction({ type: 'back' });
+          else if (state.scene === 'map' && (code === 'ArrowLeft' || code === 'ArrowRight' || code === 'ArrowUp' || code === 'ArrowDown')) this.moveAtlasCursor(code);
+        }
+        if (!down) this.keyLatch.delete(code);
+      });
+      if (state.scene === 'world') { const tx = state.moveTarget; if (tx) { const d = distance(tx.x, tx.y, state.player.x, state.player.y); if (d < 18) state.moveTarget = null; else { const speed = 176; state.player.kx = (tx.x - state.player.x) / d * speed; state.player.ky = (tx.y - state.player.y) / d * speed; } } }
+    }
+    movePuzzleCursor(code) { const item = currentConstellation(); if (!item) return; const count = item.nodes.length; const delta = code === 'ArrowLeft' || code === 'ArrowUp' ? -1 : 1; state.puzzleCursor = (state.puzzleCursor + delta + count) % count; kit.audio.sfx('ui', { volume: 0.16 }); }
+    moveAtlasCursor(code) { const delta = code === 'ArrowLeft' || code === 'ArrowUp' ? -1 : 1; state.atlasIndex = (state.atlasIndex + delta + REGIONS.length) % REGIONS.length; kit.audio.sfx('ui', { volume: 0.16 }); }
+
+    updateGamepad() {
+      const pads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
+      let pad = null; for (const item of pads) if (item && item.connected) { pad = item; break; }
+      if (!pad) { if (this.gamepadConnected) { this.gamepadConnected = false; setTransient('Gamepad disconnected. Keyboard and touch remain available.', 1.5, 'notice'); } this.gamepadAxisX = 0; this.gamepadAxisY = 0; return; }
+      if (!this.gamepadConnected) { this.gamepadConnected = true; setTransient('Gamepad connected.', 1.1, 'notice'); }
+      const dead = (value) => Math.abs(value) < 0.22 ? 0 : clamp(value, -1, 1);
+      this.gamepadAxisX = dead(pad.axes?.[0] || 0); this.gamepadAxisY = dead(pad.axes?.[1] || 0);
+      const button = (index) => !!pad.buttons?.[index]?.pressed;
+      const confirm = button(0); const back = button(1); const up = button(12) || this.gamepadAxisY < -0.6; const down = button(13) || this.gamepadAxisY > 0.6; const left = button(14) || this.gamepadAxisX < -0.6; const right = button(15) || this.gamepadAxisX > 0.6;
+      if (confirm && !this.padLatch.confirm) { if (state.scene === 'home') this.activateMenu(); else if (state.scene === 'world') this.pulseAttack(); else if (state.scene === 'puzzle') this.selectPuzzleNode(state.puzzleCursor); else this.handleAction({ type: 'back' }); }
+      if (back && !this.padLatch.back) { if (state.scene !== 'home') this.handleAction({ type: 'back' }); }
+      if (state.scene === 'home') { if (down && !this.padLatch.down) state.menuIndex = (state.menuIndex + 1) % 3; if (up && !this.padLatch.up) state.menuIndex = (state.menuIndex + 2) % 3; }
+      if (state.scene === 'puzzle') { if ((left || up) && !this.padLatch.left && !this.padLatch.up) this.movePuzzleCursor('ArrowLeft'); if ((right || down) && !this.padLatch.right && !this.padLatch.down) this.movePuzzleCursor('ArrowRight'); }
+      if (state.scene === 'map') { if ((left || up) && !this.padLatch.left && !this.padLatch.up) this.moveAtlasCursor('ArrowLeft'); if ((right || down) && !this.padLatch.right && !this.padLatch.down) this.moveAtlasCursor('ArrowRight'); }
+      this.padLatch = { confirm, back, up, down, left, right };
+    }
+
+    updateAccessibility() {
+      if (!this.a11y) return;
+      let message = 'Starweft. ';
+      if (state.scene === 'home') message += `Main menu. ${hasSave ? 'Continue weaving' : 'Begin weaving'} selected. Use arrow keys and Enter. ${state.threadCount} of ${THREADS.length} threads collected.`;
+      else if (state.scene === 'world') message += `${regionName(regionAt(state.player.x))}. ${state.threadCount} of ${THREADS.length} threads. Health ${Math.ceil(state.player.hp)} of 100. ${this.nearbyPrompt() || 'Explore with WASD, arrows, touch, or a gamepad.'}`;
+      else if (state.scene === 'puzzle') { const item = currentConstellation(); message += `${item ? item.name : 'Constellation'}. Star ${state.puzzleCursor + 1} selected. ${state.puzzles[item.id].progress} of ${item.pattern.length} traced. Enter traces the selected star. H gives a hint.`; }
+      else if (state.scene === 'map') message += `Route atlas. ${regionName(state.atlasIndex)} selected. ${regionUnlocked(state.atlasIndex) ? 'Open' : 'Locked'}.`;
+      else message += 'Guide. Movement, collection, constellation, gate, and sentinel controls are listed on screen.';
+      this.a11y.textContent = message;
+      if (this.a11yControls) { this.a11yControls.setAttribute('aria-label', `Starweft ${state.scene} controls`); this.a11yControls.dataset.scene = state.scene; }
     }
   }
-  function rosterMove(key) {
-    const delta = key === 'arrowleft' ? -1 : key === 'arrowright' ? 1 : key === 'arrowup' ? -2 : 2;
-    const unlocked = state.unlocked, current = state.rosterCursor;
-    const next = Math.max(0, Math.min(unlocked.length - 1, current + delta));
-    state.rosterCursor = next % 4;
-    const hero = unlocked[next]; if (hero !== undefined) enqueue({ type: 'rosterHero', id: hero });
-  }
-  function keyboardMove(action) {
-    if (!state.battle) return;
-    if (action.type === 'targetMove') {
-      const alive = state.battle.enemies.map((e, i) => e.hp > 0 ? i : -1).filter(i => i >= 0);
-      if (alive.length) { const at = Math.max(0, alive.indexOf(state.battle.target)); state.battle.target = alive[(at + action.dir + alive.length) % alive.length]; notice(`${state.battle.enemies[state.battle.target].name} targeted.`); }
-    }
-    if (action.type === 'heroMove') {
-      const alive = state.activeParty.filter(id => state.partyHp[id] > 0); if (alive.length) { const at = Math.max(0, alive.indexOf(state.battle.activeHero)); state.battle.activeHero = alive[(at + action.dir + alive.length) % alive.length]; notice(`${HEROES[state.battle.activeHero].name}'s turn.`); }
-    }
-  }
 
-  function update(dt) {
-    if (!view.portrait) return;
-    nowTime += dt; updateFx(dt);
-    if (!state.started) {
-      if (actionQueue.length) handleAction(actionQueue.shift());
-      return;
-    }
-    if (actionQueue.length) { const action = actionQueue.shift(); if (action.type === 'targetMove' || action.type === 'heroMove') keyboardMove(action); else handleAction(action); }
-    if (state.scene === 'battle') {
-      state.runTime += dt; state.saveClock += dt;
-      if (state.saveClock > 1.2) { state.saveClock = 0; saveGame(); }
-    }
-  }
+  function spawnSavedMessage(scene, text, kind) { setTransient(text, 1.5, kind); scene.spawnCollectionFx(state.player.x, state.player.y, COLORS.gold); }
+  function updateFirstWorldSave() { state.moveTarget = null; state.scene = 'world'; saveState(); }
 
-  function txt(value, x, y, size, color, align = 'left', weight = 500) {
-    ctx.fillStyle = color; ctx.font = `${weight} ${size}px system-ui, sans-serif`; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillText(value, x, y);
-  }
-  function box(x, y, w, h, fill, stroke = null, radius = 12) {
-    ctx.beginPath(); ctx.roundRect(x, y, w, h, radius); ctx.fillStyle = fill; ctx.fill();
-    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
-  }
-  function line(x1, y1, x2, y2, color, width = 1) { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
-  function bar(x, y, w, h, value, max, fill, back = '#1a2636') { box(x, y, w, h, back, null, h / 2); if (value > 0) box(x, y, Math.max(2, w * Math.min(1, value / max)), h, fill, null, h / 2); }
-  function elem(id) { return ELEMENTS.find(e => e.id === id) || ELEMENTS[0]; }
-  function wrap(text, x, y, maxW, size, color, lineH = 25, maxLines = 3) {
-    const words = text.split(' '); let lineText = '', lines = [];
-    words.forEach(word => { const test = lineText ? `${lineText} ${word}` : word; if (ctx.measureText(test).width > maxW && lineText) { lines.push(lineText); lineText = word; } else lineText = test; });
-    if (lineText) lines.push(lineText); lines = lines.slice(0, maxLines);
-    lines.forEach((v, i) => txt(v, x, y + i * lineH, size, color)); return lines.length;
-  }
-
-  function drawBackdrop() {
-    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#09172a'); g.addColorStop(0.62, '#0a1a2a'); g.addColorStop(1, '#07101c'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    stars.forEach((s, i) => { ctx.globalAlpha = s.a * (0.7 + Math.sin(nowTime * 1.8 + i) * 0.3); ctx.fillStyle = i % 5 === 0 ? '#8de3ff' : '#cad9e8'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1;
-    const drift = (nowTime * 12) % 46;
-    ctx.strokeStyle = '#18344b'; ctx.lineWidth = 1;
-    for (let i = -2; i < 10; i++) { line(i * 50 - drift, 548, i * 50 + 92 - drift, 370, '#18334b', 1); line(i * 50 + 17 - drift, 548, i * 50 + 108 - drift, 370, '#112b41', 1); }
-    line(0, 548, W, 548, '#2b5064', 2); line(0, 554, W, 554, '#10283e', 2);
-    ctx.globalAlpha = 0.14; ctx.fillStyle = '#5fd7f4'; ctx.fillRect(0, 540, W, 2); ctx.globalAlpha = 1;
-  }
-
-  function drawHeader(label, sub) {
-    ctx.fillStyle = '#0a1425'; ctx.fillRect(0, 0, W, 76); line(0, 75, W, 75, '#294862', 1);
-    txt(label, 18, 25, 12, '#8daec1', 'left', 700); txt(sub, 18, 49, 18, '#f1f6fa', 'left', 750);
-  }
-  function drawStart() {
-    drawBackdrop(); ctx.fillStyle = 'rgba(4,9,18,.45)'; ctx.fillRect(0, 0, W, H);
-    txt('STARWEFT', 195, 188, 42, '#eff8ff', 'center', 800); txt('SKY-RAIL TACTICS', 195, 226, 13, '#74d9ee', 'center', 750);
-    line(100, 249, 290, 249, '#31546b', 1);
-    wrap('Six travelers. Three elements. One route through a collapsing sky.', 52, 286, 286, 17, '#b8ccd7', 26, 3);
-    box(22, 512, 346, 73, '#18354a', '#4ec6df', 16);
-    txt(saveAvailable ? 'CONTINUE RUN' : 'TAP TO BEGIN', 195, 540, 19, '#e8fbff', 'center', 800);
-    txt(saveAvailable ? 'Your route is stored on this device' : 'First gesture wakes the rail', 195, 564, 12, '#91c7d7', 'center', 500);
-    txt('N = new run', 195, 625, 12, '#6c8d9c', 'center');
-    txt('NO DRAWS  •  NO ENERGY  •  JUST THE NEXT MOVE', 195, 669, 10, '#557486', 'center', 650);
-  }
-
-  function drawStory() {
-    const story = STORIES[state.battleIndex] || { lines: ['The line is yours.'] };
-    drawHeader(`ZONE ${Math.min(3, Math.floor(state.battleIndex / 5) + 1)}  //  ${BATTLE_PLAN[Math.min(state.battleIndex, 14)]?.rail || 'OPEN SKY'}`, `LOG ${String(state.battleIndex + 1).padStart(2, '0')}  —  BETWEEN BATTLES`);
-    box(280, 13, 95, 45, '#12283a', '#30566b', 12); txt('SQUAD', 327, 35, 12, '#b5e7f1', 'center', 750);
-    ctx.save(); ctx.translate(0, 20 * Math.sin(nowTime * 1.4));
-    ctx.globalAlpha = 0.8; line(60, 170, 330, 170, '#416579', 2); line(90, 184, 300, 184, '#1f4056', 2); ctx.globalAlpha = 1;
-    ctx.fillStyle = '#f3cf83'; ctx.beginPath(); ctx.arc(92, 170, 12, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#62d7e8'; ctx.beginPath(); ctx.arc(195, 170, 16, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#b8e476'; ctx.beginPath(); ctx.arc(298, 170, 10, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    box(24, 242, 342, 250, 'rgba(12,28,45,.93)', '#2d5266', 18);
-    txt('RAIL NOTE', 48, 276, 11, '#71d6e8', 'left', 800);
-    let y = 323; const lines = story.lines.slice(0, 2); lines.forEach((lineText, i) => { ctx.font = '500 19px system-ui, sans-serif'; const n = wrap(lineText, 48, y, 292, 19, i === state.storyLine ? '#f0f6fa' : '#7898a8', 30, 3); y += n * 30 + 20; });
-    if (story.recruit !== undefined) { const h = HEROES[story.recruit]; box(48, 425, 294, 48, '#162f35', elem(h.element).color, 12); txt('NEW CREW', 64, 441, 10, elem(h.element).soft, 'left', 800); txt(h.name, 64, 460, 15, '#effaff', 'left', 700); txt(h.role, 326, 451, 10, '#9bc5c2', 'right', 700); }
-    box(24, 594, 342, 66, '#1a4150', '#54d2df', 15); txt(state.storyLine < lines.length - 1 ? 'NEXT BEAT' : 'LAUNCH BATTLE', 195, 627, 16, '#effcff', 'center', 800);
-    txt('Tap the button or press Enter', 195, 680, 11, '#7196a5', 'center');
-  }
-
-  function drawRoster() {
-    drawBackdrop(); drawHeader('CREW DECK', `${state.activeParty.length}/4  ACTIVE  —  TAP TO SWAP`);
-    txt('Tap an active slot, then tap a traveler to replace it.', 195, 91, 12, '#8db0bd', 'center');
-    for (let i = 0; i < HEROES.length; i++) {
-      const h = HEROES[i], unlocked = state.unlocked.includes(i), active = state.activeParty.includes(i), col = i % 2, row = Math.floor(i / 2), x = 20 + col * 186, y = 110 + row * 112, color = elem(h.element).color;
-      box(x, y, 168, 96, unlocked ? '#12283a' : '#0d1825', active ? color : '#223a4a', 14);
-      ctx.globalAlpha = unlocked ? 1 : 0.35; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x + 25, y + 32, 14, 0, Math.PI * 2); ctx.fill(); txt(elem(h.element).short, x + 25, y + 32, 12, '#07121d', 'center', 800);
-      txt(unlocked ? h.name : 'LOCKED', x + 48, y + 25, 14, unlocked ? '#f0f7fa' : '#75909c', 'left', 750); txt(unlocked ? h.role : 'STORY RECRUIT', x + 48, y + 47, 10, unlocked ? color : '#617581', 'left', 700);
-      txt(active ? `SLOT ${state.activeParty.indexOf(i) + 1}` : unlocked ? 'AVAILABLE' : '—', x + 48, y + 73, 11, active ? '#f5db92' : '#89a5b1', 'left', 650); ctx.globalAlpha = 1;
-    }
-    box(20, 598, 350, 62, '#1a4150', '#54d2df', 15); txt('DONE  •  RETURN TO THE LINE', 195, 629, 15, '#effcff', 'center', 800);
-  }
-
-  function drawBattle() {
-    const plan = BATTLE_PLAN[state.battleIndex], boss = !!plan.boss;
-    drawHeader(`${plan.rail}  //  ${boss ? 'BOSS' : 'ENCOUNTER'}`, `BATTLE ${state.battleIndex + 1}/15  •  ROUND ${state.battle?.round || 1}`);
-    box(13, 14, 84, 48, '#13283a', '#38586b', 11); txt('RETRY', 55, 37, 11, '#b7d4dd', 'center', 800);
-    txt(`${formatTime(state.runTime)}`, 300, 25, 15, '#deedf1', 'right', 750); txt(`SCORE ${state.score}`, 300, 48, 10, '#7297a6', 'right', 700); txt(`SP ${state.sp}/5`, 373, 25, 13, '#f0d586', 'right', 750);
-    for (let i = 0; i < 15; i++) box(112 + i * 17, 17, 11, 5, i < state.battleIndex ? '#5ce2d0' : i === state.battleIndex ? '#f5d27d' : '#274254', null, 3);
-    state.battle.enemies.forEach((enemy, i) => drawEnemy(enemy, enemyX(i), enemyY(i), i === state.battle.target));
-    txt(noticeTime > 0 ? noticeText : 'Tap a foe, inspect elements, then commit a move.', 195, 265, 12, noticeTime > 0 ? '#e3f5f7' : '#7193a2', 'center', 600);
-    drawElementInspect();
-    drawParty();
-    drawSkills();
-    drawFx();
-    if (flash > 0) { ctx.fillStyle = `rgba(255,243,188,${flash * 0.28})`; ctx.fillRect(0, 0, W, H); }
-  }
-
-  function drawEnemy(enemy, x, y, selected) {
-    const d = enemy.hp > 0 ? 1 : 0.55, c = enemy.color;
-    ctx.save(); ctx.translate(x, y + Math.sin(nowTime * 2 + x) * 4); ctx.globalAlpha = d;
-    if (selected) { ctx.shadowColor = '#ffe08b'; ctx.shadowBlur = 18; }
-    ctx.fillStyle = c; ctx.strokeStyle = selected ? '#ffe08b' : '#6c8992'; ctx.lineWidth = selected ? 3 : 1.5;
-    if (enemy.shape === 'orb') { ctx.beginPath(); ctx.arc(0, 0, 34, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#12263a'; ctx.beginPath(); ctx.arc(-8, -7, 7, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(11, -7, 7, 0, Math.PI * 2); ctx.fill(); }
-    else if (enemy.shape === 'boss') { ctx.beginPath(); ctx.moveTo(-56, 30); ctx.lineTo(-44, -30); ctx.lineTo(-14, -53); ctx.lineTo(14, -53); ctx.lineTo(44, -30); ctx.lineTo(56, 30); ctx.closePath(); ctx.fill(); ctx.stroke(); line(-34, -19, 34, -19, '#ffe08b', 2); line(-26, 6, 26, 6, '#16233a', 3); }
-    else if (enemy.shape === 'talon') { ctx.beginPath(); ctx.moveTo(-35, 28); ctx.lineTo(-5, -42); ctx.lineTo(8, -10); ctx.lineTo(31, -37); ctx.lineTo(27, 28); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-    else if (enemy.shape === 'bell') { ctx.beginPath(); ctx.moveTo(-36, 28); ctx.quadraticCurveTo(-30, -34, 0, -40); ctx.quadraticCurveTo(30, -34, 36, 28); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#172b3c'; ctx.beginPath(); ctx.arc(0, 24, 9, 0, Math.PI * 2); ctx.fill(); }
-    else { ctx.beginPath(); ctx.moveTo(0, -44); ctx.lineTo(39, 25); ctx.lineTo(0, 40); ctx.lineTo(-39, 25); ctx.closePath(); ctx.fill(); ctx.stroke(); line(-27, 0, 27, 0, '#15283b', 3); }
-    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-    if (enemy.broken) { ctx.strokeStyle = '#ffe08b'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(0, 0, 48, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
-    ctx.restore();
-    const nameY = y + 54; txt(enemy.name, x, nameY, 12, selected ? '#fff3c1' : '#d2e5eb', 'center', 750);
-    bar(x - 56, nameY + 14, 112, 7, enemy.hp, enemy.maxHp, c, '#182a3a'); bar(x - 56, nameY + 25, 112, 5, enemy.break, enemy.breakMax, enemy.broken ? '#ffe08b' : '#c58bdb', '#182a3a');
-    txt(enemy.broken ? 'STUNNED' : `${elem(enemy.weak).short} WEAK`, x, nameY + 39, 9, enemy.broken ? '#ffe08b' : elem(enemy.weak).soft, 'center', 800);
-  }
-
-  function drawElementInspect() {
-    txt('ELEMENT READOUT', 18, 289, 10, '#7395a4', 'left', 800);
-    ELEMENTS.forEach((e, i) => { const x = 18 + i * 124, active = inspectElement === e.id; box(x, 300, 108, 38, active ? '#234457' : '#102337', active ? e.color : '#2a4353', 10); ctx.fillStyle = e.color; ctx.beginPath(); ctx.arc(x + 20, 319, 10, 0, Math.PI * 2); ctx.fill(); txt(e.short, x + 20, 319, 10, '#07131e', 'center', 800); txt(e.label, x + 37, 319, 11, active ? e.soft : '#91abb5', 'left', 750); });
-  }
-
-  function drawParty() {
-    txt('CREW', 18, 357, 10, '#7395a4', 'left', 800);
-    state.activeParty.forEach((id, i) => {
-      const h = HEROES[id], x = 8 + i * 94, y = 369, active = state.battle.activeHero === id, alive = state.partyHp[id] > 0, color = elem(h.element).color;
-      box(x, y, 86, 137, active ? '#214052' : '#102337', active ? '#f3d47e' : '#294758', 12); ctx.globalAlpha = alive ? 1 : 0.42;
-      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x + 23, y + 27, 15, 0, Math.PI * 2); ctx.fill(); txt(elem(h.element).short, x + 23, y + 27, 11, '#08131d', 'center', 800);
-      txt(h.name.split(' ')[0], x + 44, y + 24, 12, '#eaf4f6', 'left', 750); txt(h.call, x + 44, y + 42, 9, color, 'left', 800);
-      bar(x + 10, y + 64, 66, 7, state.partyHp[id], h.maxHp, alive ? '#62d9b1' : '#6a7180'); txt(`${Math.ceil(state.partyHp[id])}/${h.maxHp}`, x + 43, y + 82, 9, '#a7c0c6', 'center');
-      bar(x + 10, y + 96, 66, 6, state.ults[id], 100, '#f0ca68'); txt(`ULT ${Math.floor(state.ults[id])}%`, x + 43, y + 116, 9, state.ults[id] >= 100 ? '#ffe08b' : '#829da8', 'center', 750);
-      ctx.globalAlpha = 1;
-    });
-  }
-
-  function drawSkills() {
-    const id = state.battle.activeHero, h = HEROES[id], availableUlt = state.ults[id] >= 100, availableSkill = state.sp >= 1;
-    txt(`${h.name}  /  ${h.role}`, 18, 523, 11, '#a8c5cc', 'left', 750); txt('ARROWS: SELECT', 372, 523, 10, '#638492', 'right', 700);
-    const skills = [['BASIC', '+1 SP', true, '#69d5ba'], ['SKILL', '−1 SP', availableSkill, '#6dcaf0'], ['ULTIMATE', availableUlt ? 'READY' : `${Math.floor(state.ults[id])}%`, availableUlt, '#f0c967']];
-    skills.forEach((s, i) => { const x = 8 + i * 126; box(x, 550, 118, 91, s[2] ? '#173448' : '#111f2c', s[2] ? s[3] : '#2a3945', 14); txt(String(i + 1), x + 16, 570, 12, s[2] ? s[3] : '#546a76', 'left', 800); txt(s[0], x + 59, 580, 13, s[2] ? '#eff9fb' : '#6d818b', 'center', 800); txt(s[1], x + 59, 610, 12, s[2] ? s[3] : '#61727b', 'center', 700); });
-    txt('Break the enemy weakness to stun it for a turn.', 195, 676, 10, '#6f919e', 'center');
-  }
-
-  function drawFx() {
-    particles.forEach(p => { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.55 + p.life), 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1;
-    popups.forEach(p => { ctx.globalAlpha = Math.max(0, p.life / p.max); txt(p.text, p.x, p.y, p.size, p.color, 'center', 800); }); ctx.globalAlpha = 1;
-  }
-
-  function drawFail() {
-    drawBattle(); ctx.fillStyle = 'rgba(5,10,18,.74)'; ctx.fillRect(0, 0, W, H);
-    box(25, 176, 340, 300, '#102235', '#c56e68', 20); txt('THE LINE BROKE', 195, 225, 26, '#ffe2d2', 'center', 800); wrap('Every traveler is down, but the rail is still humming. Retry this battle at full strength.', 53, 270, 284, 16, '#b6cbd1', 25, 4);
-    box(48, 378, 294, 63, '#583844', '#f08b77', 14); txt('RETRY NOW', 195, 410, 18, '#fff0e9', 'center', 800); txt('R / Enter', 195, 465, 11, '#a9969c', 'center');
-  }
-
-  function drawWin() {
-    drawBackdrop(); ctx.fillStyle = 'rgba(4,9,18,.33)'; ctx.fillRect(0, 0, W, H);
-    txt('OPEN SKY', 195, 160, 13, '#7fe0e6', 'center', 800); txt('THE LINE HELD', 195, 210, 33, '#f4f8ed', 'center', 800); line(86, 244, 304, 244, '#6cd7c5', 2);
-    wrap('The last signal fades. Six travelers step onto a rail with nowhere left to fall.', 48, 286, 294, 18, '#bfd4d4', 28, 3);
-    box(54, 380, 282, 88, '#112d3c', '#4dd4c1', 15); txt(`SCORE  ${state.score}`, 195, 408, 22, '#f4d57f', 'center', 800); txt(`TIME  ${formatTime(state.runTime)}   •   BEST  ${state.bestScore}`, 195, 440, 11, '#9fc1c2', 'center', 700);
-    box(48, 545, 294, 67, '#1b4650', '#6be1cf', 15); txt('NEW RUN', 195, 578, 17, '#effff8', 'center', 800); txt('Tap to send another crew', 195, 644, 11, '#769b9f', 'center');
-  }
-
-  function formatTime(seconds) { const s = Math.max(0, Math.floor(seconds)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
-
-  function drawRotate() {
-    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); ctx.fillStyle = '#07101c'; ctx.fillRect(0, 0, view.w, view.h);
-    const cx = view.w / 2, cy = view.h / 2; ctx.fillStyle = '#10253a'; ctx.beginPath(); ctx.roundRect(cx - 125, cy - 80, 250, 160, 20); ctx.fill();
-    txt('ROTATE TO PLAY', cx, cy - 18, 22, '#edf8f8', 'center', 800); txt('Starweft pauses while the rail is sideways.', cx, cy + 20, 12, '#8eb8c0', 'center');
-    ctx.strokeStyle = '#60d6d7'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy - 51, 16, 0.2, Math.PI * 1.7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx - 10, cy - 64); ctx.lineTo(cx - 12, cy - 47); ctx.lineTo(cx + 2, cy - 52); ctx.stroke();
-  }
-
-  function draw() {
-    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); ctx.clearRect(0, 0, view.w, view.h);
-    if (!view.portrait) { drawRotate(); return; }
-    ctx.save(); ctx.translate(view.ox, view.oy); ctx.scale(view.scale, view.scale); ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-    if (state.scene === 'start') drawStart(); else if (state.scene === 'story') drawStory(); else if (state.scene === 'roster') drawRoster(); else if (state.scene === 'battle') drawBattle(); else if (state.scene === 'fail') drawFail(); else drawWin();
-    ctx.restore();
-  }
-
-  function frame(t) {
-    const dt = lastFrame ? Math.min(0.05, Math.max(0, (t - lastFrame) / 1000)) : 0; lastFrame = t;
-    update(dt); draw(); requestAnimationFrame(frame);
-  }
-
-  canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
-  canvas.addEventListener('pointermove', onPointerMove, { passive: false });
-  canvas.addEventListener('pointerup', onPointerUp, { passive: false });
-  canvas.addEventListener('pointercancel', onPointerCancel, { passive: false });
-  canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-  window.addEventListener('keydown', onKeyDown, { passive: false });
-  window.addEventListener('keyup', e => heldKeys.delete(e.key.toLowerCase()), { passive: false });
-  window.addEventListener('blur', clearTransient);
-  window.addEventListener('resize', resize);
-  window.addEventListener('orientationchange', resize);
-  resize();
-  requestAnimationFrame(frame);
+  kit.loader.show('STARWEFT'); kit.loader.progress(0.2);
+  Game.instance = new Phaser.Game({ type: Phaser.CANVAS, width: W, height: H, parent: 'game-shell', backgroundColor: '#071421', render: { pixelArt: true, antialias: false, roundPixels: true, transparent: false }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, fps: { target: 60, min: 5, forceSetTimeOut: false }, scene: [StarweftScene] });
 })();

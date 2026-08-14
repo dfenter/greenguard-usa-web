@@ -1,22 +1,167 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><base href="/play/deep-ballast/">
-<meta charset="utf-8">
-<title>Deep Ballast</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#03070d">
-<style>
-  *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{width:100%;height:100%;overflow:hidden;background:#03070d;
-    font-family:ui-monospace,Menlo,Consolas,monospace;color:#8fe3ff;
-    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
-    overscroll-behavior:none;}
-  #wrap{position:fixed;inset:0;touch-action:none;}
-  canvas{display:block;width:100%;height:100%;touch-action:none;}
-</style>
+<head>
+  <base href="/play/deep-ballast/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#020814">
+  <meta name="description" content="Deep Ballast, a sonar-driven submarine salvage expedition.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+  <title>Deep Ballast</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #020814; }
+    body { color: #d9f7ff; user-select: none; -webkit-user-select: none; touch-action: none; }
+    button { font: inherit; color: inherit; }
+    #app { position: fixed; inset: 0; overflow: hidden; }
+    #stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 47%, transparent 34%, rgba(0, 4, 12, .34) 76%, rgba(0, 2, 7, .8)); }
+    #hud { position: absolute; inset: 0; pointer-events: none; }
+    .hud-card { background: linear-gradient(135deg, rgba(3, 17, 29, .78), rgba(3, 10, 20, .42)); border: 1px solid rgba(110, 222, 255, .22); box-shadow: 0 0 22px rgba(0, 119, 160, .1) inset; backdrop-filter: blur(5px); }
+    #topbar { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); display: grid; grid-template-columns: minmax(112px, .9fr) minmax(140px, 1fr) minmax(160px, 1.15fr); gap: 6px; align-items: start; }
+    #topbar .hud-card { padding: 6px 9px; min-width: 0; }
+    #mission { min-width: 0; text-align: center; }
+    #missionName { color: #e8fbff; font-weight: 800; letter-spacing: .1em; font-size: clamp(11px, 1.1vw, 14px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #zoneName { margin-top: 2px; color: #71e9ed; letter-spacing: .1em; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #mission.in-dive #zoneName { display: none; }
+    .hud-stat { display: flex; align-items: baseline; gap: 5px; min-height: 17px; color: #e5fbff; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .hud-icon, .mini-icon { color: #71e9ed; font-size: 12px; line-height: 1; }
+    .mini-icon { color: #83b9c9; font-size: 10px; }
+    .unit { color: #83b9c9; font-size: 8px; letter-spacing: .1em; }
+    .label { color: #83b9c9; font-size: 8px; letter-spacing: .12em; }
+    .value { color: #e5fbff; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .meter { position: relative; height: 7px; margin-top: 5px; border: 1px solid rgba(207, 245, 255, .2); background: rgba(207, 245, 255, .08); overflow: hidden; }
+    .meter > i { display: block; width: 0; height: 100%; transition: width .12s linear, background-color .12s linear; background: #65e5ef; }
+    #rightStatus { min-width: 0; }
+    #pressureMeter > i { background: #f5b864; }
+    #pressureMeter.red > i { background: #ff647a; }
+    #pressureTick { position: absolute; top: -3px; bottom: -3px; left: 0; width: 2px; background: #ff6275; box-shadow: 0 0 9px #ff6275; }
+    #subStatus { display: flex; justify-content: space-between; margin-top: 3px; gap: 10px; }
+    .mini-stat { display: inline-flex; align-items: baseline; gap: 3px; color: #83b9c9; font-size: 9px; letter-spacing: .06em; }
+    .mini-stat b { color: #e5fbff; font-size: 10px; }
+    #contactState { display: none; margin-left: auto; width: 17px; height: 17px; align-items: center; justify-content: center; border: 1px solid rgba(255, 97, 120, .68); border-radius: 50%; color: #ff7186; font-size: 11px; line-height: 1; text-shadow: 0 0 8px rgba(255, 57, 93, .8); }
+    #contactState.show { display: inline-flex; }
+    #objective { position: absolute; top: max(68px, calc(env(safe-area-inset-top) + 58px)); left: max(12px, env(safe-area-inset-left)); width: auto; max-width: min(38vw, 240px); padding: 4px 8px; border-left: 2px solid rgba(113, 233, 237, .48); background: rgba(2, 13, 24, .44); color: #b7dbe7; font-size: 10px; line-height: 1.1; letter-spacing: .08em; opacity: .78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #eventChip { position: absolute; top: max(68px, calc(env(safe-area-inset-top) + 58px)); right: max(12px, env(safe-area-inset-right)); width: max-content; max-width: min(42vw, 320px); padding: 4px 8px; border-right: 2px solid rgba(255, 207, 118, .62); background: rgba(2, 13, 24, .52); color: #f2d18e; font-size: 10px; line-height: 1.1; letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translateY(-4px); transition: opacity .14s ease, transform .14s ease; pointer-events: none; }
+    #eventChip.show { opacity: .92; transform: translateY(0); }
+    #coach { position: absolute; top: max(68px, calc(env(safe-area-inset-top) + 58px)); left: 50%; transform: translateX(-50%); width: min(40vw, 360px); height: 24px; padding: 5px 10px; text-align: center; border: 1px solid rgba(110, 222, 255, .14); background: rgba(2, 13, 24, .42); color: #9bc9d6; font-size: 10px; line-height: 1.1; letter-spacing: .04em; opacity: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; pointer-events: none; }
+    #coach.show { animation: coach-fade 3.6s ease forwards; }
+    @keyframes coach-fade { 0%, 12% { opacity: .82; } 72% { opacity: .2; } 100% { opacity: .07; } }
+    .reduced-motion #coach.show { animation: none; opacity: .68; }
+    #banner { position: absolute; z-index: 40; top: 27%; left: 50%; width: min(42vw, 480px); transform: translate(-50%, -50%) scale(.72); text-align: center; pointer-events: none; opacity: 0; }
+    #banner.show { animation: banner-in .72s cubic-bezier(.18, 1.45, .28, 1) forwards; }
+    #bannerTitle { color: #dffcff; font-size: clamp(18px, 2.8vw, 34px); font-weight: 900; letter-spacing: .14em; text-shadow: 0 0 20px rgba(87, 229, 255, .78); }
+    #bannerSub { margin-top: 5px; color: #f2c87d; font-size: clamp(9px, 1vw, 12px); letter-spacing: .12em; }
+    @keyframes banner-in { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.65); } 56% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 80% { transform: translate(-50%, -50%) scale(.98); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+    #controls { position: absolute; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); bottom: max(15px, env(safe-area-inset-bottom)); display: flex; justify-content: space-between; align-items: end; pointer-events: auto; }
+    .control-cluster { display: flex; align-items: end; gap: 12px; pointer-events: auto; }
+    .control { width: 88px; height: 56px; padding: 6px 9px; border: 1px solid rgba(128, 237, 255, .47); border-radius: 11px; background: rgba(5, 28, 43, .8); box-shadow: 0 0 18px rgba(46, 201, 235, .13) inset; cursor: pointer; touch-action: none; pointer-events: auto; }
+    .control:active, .control.held { background: rgba(27, 117, 141, .82); }
+    .control strong { display: block; font-size: 10px; letter-spacing: .08em; }
+    .control small { display: block; margin-top: 3px; color: #86b8c8; font-size: 8px; letter-spacing: .06em; }
+    #sonarControl { width: 76px; border-color: rgba(245, 197, 111, .62); }
+    #sonarControl strong { color: #ffd58c; }
+    #settingsControl { width: 42px; padding: 0; border-color: rgba(179, 214, 227, .28); color: #9fc6d1; }
+    #ballastGauge { position: absolute; left: 50%; bottom: max(78px, calc(env(safe-area-inset-bottom) + 78px)); transform: translateX(-50%); width: min(220px, 26vw); text-align: center; color: #8bb9c8; font-size: 9px; letter-spacing: .1em; opacity: .72; }
+    #ballastTrack { height: 4px; margin-top: 4px; border: 1px solid rgba(120, 214, 233, .24); background: rgba(12, 49, 67, .48); }
+    #ballastFill { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #73e6ff, #387aab); transition: width .1s linear; }
+    #dock, #result { position: absolute; z-index: 30; inset: 0; display: none; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(180deg, rgba(1, 7, 16, .55), rgba(1, 7, 16, .86)); pointer-events: auto; }
+    #dock.visible, #result.visible { display: flex; }
+    .panel { width: min(940px, 94vw); max-height: min(90vh, 720px); overflow: auto; padding: clamp(18px, 3vw, 30px); border: 1px solid rgba(105, 223, 255, .36); background: linear-gradient(145deg, rgba(3, 18, 31, .96), rgba(2, 9, 18, .96)); box-shadow: 0 0 60px rgba(24, 155, 193, .14), 0 14px 80px rgba(0, 0, 0, .4); }
+    .eyebrow { color: #71e9ed; font-size: 10px; letter-spacing: .24em; }
+    .panel h1 { margin: 7px 0 5px; font-size: clamp(24px, 4vw, 45px); letter-spacing: .12em; }
+    .panel p { margin: 0; color: #91b9c7; font-size: 12px; line-height: 1.5; }
+    #diveCards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-top: 22px; }
+    .dive-card { min-height: 142px; padding: 12px; text-align: left; border: 1px solid rgba(120, 211, 231, .24); background: rgba(5, 25, 39, .75); cursor: pointer; }
+    .dive-card.selected { border-color: #72eff0; background: linear-gradient(160deg, rgba(23, 103, 119, .7), rgba(6, 40, 53, .78)); box-shadow: 0 0 22px rgba(67, 218, 225, .16) inset; }
+    .dive-card.locked { opacity: .42; cursor: default; }
+    .dive-card b { display: block; color: #dcfbff; font-size: 12px; letter-spacing: .08em; }
+    .dive-card em { display: block; margin-top: 7px; color: #f1c277; font-style: normal; font-size: 10px; letter-spacing: .06em; }
+    .dive-card span { display: block; margin-top: 10px; color: #8fb9c6; font-size: 10px; line-height: 1.4; }
+    #dockLower { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(112, 191, 208, .16); }
+    #dockStats { color: #9ec3ce; font-size: 11px; line-height: 1.7; }
+    #dockStats strong { color: #f1c277; }
+    .dock-button { min-width: 142px; padding: 12px 15px; border: 1px solid #69e7eb; background: rgba(17, 86, 99, .74); cursor: pointer; letter-spacing: .11em; font-size: 11px; }
+    .dock-button:disabled { opacity: .35; cursor: default; }
+    #upgradeRow { display: flex; gap: 8px; margin-top: 12px; }
+    .upgrade { flex: 1; padding: 10px; border: 1px solid rgba(242, 195, 116, .38); background: rgba(66, 45, 24, .44); text-align: left; cursor: pointer; }
+    .upgrade b { display: block; color: #ffd58c; font-size: 10px; letter-spacing: .1em; }
+    .upgrade span { display: block; margin-top: 4px; color: #b89e7b; font-size: 9px; }
+    #resultPanel { width: min(600px, 94vw); text-align: center; }
+    #resultTitle { color: #e7fcff; font-size: clamp(22px, 4vw, 40px); letter-spacing: .15em; }
+    #resultSub { margin-top: 8px; color: #f2c87d; font-size: 12px; letter-spacing: .1em; }
+    #medals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 25px 0 15px; }
+    .medal { padding: 13px 7px; border: 1px solid rgba(113, 224, 232, .24); background: rgba(8, 34, 45, .7); }
+    .medal b { display: block; color: #71e9ed; font-size: 9px; letter-spacing: .15em; }
+    .medal strong { display: block; margin-top: 7px; color: #ffd58c; font-size: 23px; }
+    #resultNote { color: #9fc4cf; font-size: 11px; line-height: 1.5; }
+    #resultActions { display: flex; justify-content: center; gap: 9px; margin-top: 22px; }
+    #resultActions .dock-button { min-width: 130px; }
+    @media (max-width: 800px) {
+      #topbar .hud-card { padding: 6px 7px; }
+      #objective, #eventChip, #coach { top: 68px; }
+      #objective { max-width: 38vw; font-size: 9px; }
+      #eventChip { max-width: 42vw; font-size: 9px; }
+      #coach { width: 40vw; font-size: 9px; }
+      #diveCards { grid-template-columns: repeat(2, 1fr); }
+      .dive-card { min-height: 112px; }
+      #dockLower { align-items: stretch; flex-direction: column; }
+      #upgradeRow { flex-direction: column; }
+    }
+    @media (max-width: 520px) {
+      #topbar { left: 7px; right: 7px; gap: 3px; grid-template-columns: minmax(0, .88fr) minmax(0, 1fr) minmax(0, 1.14fr); }
+      #topbar .hud-card { padding: 5px; }
+      #missionName { font-size: 10px; }
+      #zoneName { font-size: 8px; }
+      .hud-stat { gap: 3px; font-size: 12px; }
+      .hud-icon, .mini-icon { font-size: 10px; }
+      .unit, .mini-stat, .mini-stat b { font-size: 8px; }
+      #objective, #eventChip, #coach { top: 66px; }
+      #objective { max-width: 42vw; font-size: 8px; }
+      #eventChip { max-width: 44vw; font-size: 8px; }
+      #coach { width: 42vw; font-size: 8px; }
+      #controls { left: 9px; right: 9px; bottom: max(9px, env(safe-area-inset-bottom)); }
+      .control-cluster { gap: 7px; }
+      .control { width: 78px; height: 52px; }
+      #sonarControl { width: 70px; }
+      #settingsControl { width: 40px; }
+      #ballastGauge { width: min(190px, 48vw); bottom: max(72px, calc(env(safe-area-inset-bottom) + 72px)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+    .reduced-motion #banner.show { animation: none; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  </style>
 </head>
 <body>
-<div id="wrap"><canvas id="c"></canvas></div>
-<script src="./game.js"></script>
+  <div id="app">
+    <canvas id="stage" aria-label="Deep Ballast submarine exploration"></canvas>
+    <div id="vignette"></div>
+    <div id="hud">
+      <div id="topbar">
+        <div id="airStatus" class="hud-card" aria-label="Air reserve"><div class="hud-stat"><span class="hud-icon" aria-hidden="true">◉</span><span id="airValue">--</span><span class="unit">SEC</span></div><div class="meter"><i id="airFill"></i></div></div>
+        <div id="mission" class="hud-card"><div id="missionName">DRY DOCK</div><div id="zoneName">SONAR SYSTEM STANDBY</div></div>
+        <div id="rightStatus" class="hud-card" aria-label="Depth, pressure, and hull"><div class="hud-stat"><span class="hud-icon" aria-hidden="true">↕</span><span id="depthValue" class="value">0 M</span><span id="contactState" title="Nearby sonar contact" aria-label="Nearby sonar contact">!</span></div><div class="meter"><i id="depthFill"></i></div><div id="subStatus"><span class="mini-stat" aria-label="Pressure"><span class="mini-icon" aria-hidden="true">⚠</span><b id="pressureValue" class="value">0%</b></span><span class="mini-stat" aria-label="Hull"><span class="mini-icon" aria-hidden="true">⬡</span><b id="hullValue" class="value">100%</b></span></div><div id="pressureMeter" class="meter"><i id="pressureFill"></i><span id="pressureTick"></span></div></div>
+      </div>
+      <div id="objective"></div>
+      <div id="eventChip" role="status" aria-live="polite"></div>
+      <div id="coach"></div>
+      <div id="banner"><div id="bannerTitle"></div><div id="bannerSub"></div></div>
+      <div id="ballastGauge" aria-label="Ballast trim"><span id="ballastLabel">▼ 0%</span><div id="ballastTrack"><i id="ballastFill"></i></div></div>
+      <div id="controls">
+        <div class="control-cluster"><button id="ballastControl" class="control"><strong>▼ BALLAST</strong><small>HOLD TO SINK</small></button><button id="sonarControl" class="control"><strong>◌ SONAR</strong><small id="sonarText">PING 3</small></button></div>
+        <button id="settingsControl" class="control" aria-label="Settings">&#9881;</button>
+      </div>
+    </div>
+    <section id="dock"><div class="panel"><div class="eyebrow">DEEP BALLAST // DRY DOCK</div><h1>DIVE ORDERS</h1><p>Read the trench with sonar. Flood ballast to descend, blow to climb. Every run ends at the surface.</p><div id="diveCards"></div><div id="upgradeRow"><button id="airUpgrade" class="upgrade"></button><button id="hullUpgrade" class="upgrade"></button></div><div id="dockLower"><div id="dockStats"></div><button id="launchButton" class="dock-button">LAUNCH DIVE</button></div></div></section>
+    <section id="result"><div id="resultPanel" class="panel"><div class="eyebrow">MISSION DEBRIEF</div><div id="resultTitle"></div><div id="resultSub"></div><div id="medals"><div class="medal"><b>DEPTH</b><strong id="depthMedal">-</strong></div><div class="medal"><b>AIR REMAINING</b><strong id="airMedal">-</strong></div><div class="medal"><b>SALVAGE</b><strong id="salvageMedal">-</strong></div></div><div id="resultNote"></div><div id="resultActions"><button id="dockButton" class="dock-button">DRY DOCK</button><button id="againButton" class="dock-button">DIVE AGAIN</button></div></div></section>
+  </div>
+  <script src="../_shared/ggkit.js"></script>
+  <script type="importmap">
+    { "imports": { "three": "/play/_shared/three/three.module.min.js" } }
+  </script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>

@@ -1,146 +1,144 @@
 'use strict';
-/* Steamline - rail network geometry (original work) */
-
-function mulberry32(a){
-  return function(){
-    a |= 0; a = a + 0x6D2B79F5 | 0;
-    var t = Math.imul(a ^ a >>> 15, 1 | a);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
-}
-
-function smoothstep(a, b, x){
-  x = (x - a) / (b - a);
-  if (x < 0) x = 0; else if (x > 1) x = 1;
-  return x * x * (3 - 2 * x);
-}
-
-function polyBuild(pts){
-  var cum = [0], L = 0;
-  for (var i = 1; i < pts.length; i++){
-    L += Math.hypot(pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y);
-    cum.push(L);
+/* Steamline - authored rail geometry. No external map or asset dependency. */
+(function (root) {
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function smoothstep(a, b, x) {
+    var t = clamp((x - a) / ((b - a) || 1), 0, 1);
+    return t * t * (3 - 2 * t);
   }
-  return { pts: pts, cum: cum, len: L };
-}
-
-function polyAt(p, s){
-  if (s < 0) s = 0; else if (s > p.len) s = p.len;
-  var lo = 0, hi = p.cum.length - 1, m;
-  while (lo < hi - 1){ m = (lo + hi) >> 1; if (p.cum[m] <= s) lo = m; else hi = m; }
-  var a = p.pts[lo], b = p.pts[lo+1] || p.pts[lo];
-  var seg = (p.cum[lo+1] - p.cum[lo]) || 1;
-  var t = (s - p.cum[lo]) / seg;
-  var dx = b.x - a.x, dy = b.y - a.y, dl = Math.hypot(dx, dy) || 1;
-  return { x: a.x + dx * t, y: a.y + dy * t, tx: dx / dl, ty: dy / dl };
-}
-
-/* Serpentine main line: down the left column, round the bottom, up the right column. */
-var SPINE_CX = 100, SPINE_TOP = -80, SPINE_HB = 300, SPINE_R = 100;
-function buildSpine(){
-  var pts = [], y, k, th;
-  for (y = SPINE_TOP; y <= SPINE_HB; y += 10) pts.push({ x: -SPINE_CX, y: y });
-  for (k = 1; k <= 44; k++){
-    th = Math.PI - Math.PI * k / 44;
-    pts.push({ x: Math.cos(th) * SPINE_R, y: SPINE_HB + Math.sin(th) * SPINE_R });
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0;
+      seed = seed + 0x6D2B79F5 | 0;
+      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
   }
-  for (y = SPINE_HB - 10; y >= SPINE_TOP; y -= 10) pts.push({ x: SPINE_CX, y: y });
-  return polyBuild(pts);
-}
-
-/* Sample a stretch of spine, optionally bowed outward by D (a station siding). */
-function sampleEdge(spine, s0, s1, D){
-  var L = s1 - s0, N = Math.max(8, Math.round(L / 6)), pts = [], k, u, s, p, w;
-  for (k = 0; k <= N; k++){
-    u = k / N; s = s0 + L * u;
-    p = polyAt(spine, s);
-    w = D > 0 ? D * smoothstep(0, 0.36, u) * (1 - smoothstep(0.64, 1, u)) : 0;
-    pts.push({ x: p.x - p.ty * w, y: p.y + p.tx * w });
-  }
-  return { pts: pts, midIdx: Math.round(N / 2) };
-}
-
-var NET_S0 = 70, NET_SEG = 150, NET_D = 95, NET_EXIT = 92, NET_MAX = 6;
-
-function makeEdge(kind, seg, pts){
-  var p = polyBuild(pts);
-  var path = new Path2D();
-  path.moveTo(pts[0].x, pts[0].y);
-  for (var i = 1; i < pts.length; i++) path.lineTo(pts[i].x, pts[i].y);
-  /* first ~78 units, used to show which way a switch is set */
-  var head = new Path2D();
-  head.moveTo(pts[0].x, pts[0].y);
-  for (i = 1; i < pts.length && p.cum[i] < 78; i++) head.lineTo(pts[i].x, pts[i].y);
-  return { kind: kind, seg: seg, poly: p, len: p.len, path: path, headPath: head,
-           stationS: null, stationPt: null, signalS: p.len > 62 ? p.len - 24 : null,
-           signalPt: null, dirPt: polyAt(p, Math.min(26, p.len)) };
-}
-
-/* n = station count. Edge index layout: 0 entry, 1+2i main_i, 2+2i side_i, 1+2n exit. */
-function buildNet(spine, n, colors){
-  var jS = [], i;
-  for (i = 0; i <= n; i++) jS.push(NET_S0 + NET_SEG * i);
-  var edges = [];
-  edges.push(makeEdge('entry', -1, sampleEdge(spine, 0, jS[0], 0).pts));
-  for (i = 0; i < n; i++){
-    edges.push(makeEdge('main', i, sampleEdge(spine, jS[i], jS[i+1], 0).pts));
-    var sd = sampleEdge(spine, jS[i], jS[i+1], NET_D);
-    var e = makeEdge('side', i, sd.pts);
-    e.stationS = e.poly.cum[sd.midIdx];
-    e.stationPt = polyAt(e.poly, e.stationS);
-    edges.push(e);
-  }
-  var endS = Math.min(spine.len, jS[n] + NET_EXIT);
-  var ex = makeEdge('exit', -1, sampleEdge(spine, jS[n], endS, 0).pts);
-  ex.signalS = null;
-  edges.push(ex);
-
-  var all = new Path2D();
-  for (i = 0; i < edges.length; i++){
-    all.addPath(edges[i].path);
-    if (edges[i].signalS !== null) edges[i].signalPt = polyAt(edges[i].poly, edges[i].signalS);
-  }
-
-  var nodes = [], stations = [];
-  for (i = 0; i <= n; i++) nodes.push(polyAt(spine, jS[i]));
-  for (i = 0; i < n; i++){
-    var sp = edges[2 + 2*i].stationPt;
-    stations.push({ x: sp.x, y: sp.y, tx: sp.tx, ty: sp.ty, color: colors[i % colors.length], i: i });
-  }
-  return { n: n, jS: jS, edges: edges, nodes: nodes, stations: stations, allPath: all,
-           entryPt: polyAt(edges[0].poly, 0), exitPt: polyAt(ex.poly, ex.len),
-           exitIdx: 1 + 2*n, sw: new Array(n).fill(false) };
-}
-
-function childIdx(net, seg){ return net.sw[seg] ? 2 + 2*seg : 1 + 2*seg; }
-
-function nextEdgeIdx(net, ei){
-  var e = net.edges[ei];
-  if (e.kind === 'exit') return -1;
-  var j = (e.kind === 'entry' ? -1 : e.seg) + 1;
-  return j < net.n ? childIdx(net, j) : net.exitIdx;
-}
-
-/* Both possible successors - used for safe following across a junction. */
-function childrenIdx(net, ei){
-  var e = net.edges[ei];
-  if (e.kind === 'exit') return [];
-  var j = (e.kind === 'entry' ? -1 : e.seg) + 1;
-  return j < net.n ? [1 + 2*j, 2 + 2*j] : [net.exitIdx];
-}
-
-function netBounds(net){
-  var b = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
-  for (var i = 0; i < net.edges.length; i++){
-    var pts = net.edges[i].poly.pts;
-    for (var k = 0; k < pts.length; k++){
-      if (pts[k].x < b.x0) b.x0 = pts[k].x;
-      if (pts[k].x > b.x1) b.x1 = pts[k].x;
-      if (pts[k].y < b.y0) b.y0 = pts[k].y;
-      if (pts[k].y > b.y1) b.y1 = pts[k].y;
+  function polyline(points) {
+    var pts = points.map(function (p) { return { x: p.x, y: p.y }; });
+    var cum = [0], len = 0, i;
+    for (i = 1; i < pts.length; i++) {
+      len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      cum.push(len);
     }
+    return { pts: pts, cum: cum, len: len };
   }
-  b.x0 -= 34; b.x1 += 34; b.y0 -= 30; b.y1 += 30;
-  return b;
-}
+  function at(poly, distance) {
+    var s = clamp(distance, 0, poly.len), lo = 0, hi = poly.cum.length - 1, mid;
+    while (lo < hi - 1) {
+      mid = (lo + hi) >> 1;
+      if (poly.cum[mid] <= s) lo = mid; else hi = mid;
+    }
+    var a = poly.pts[lo], b = poly.pts[lo + 1] || a;
+    var span = (poly.cum[lo + 1] - poly.cum[lo]) || 1;
+    var t = (s - poly.cum[lo]) / span;
+    var dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+    return { x: a.x + dx * t, y: a.y + dy * t, tx: dx / d, ty: dy / d };
+  }
+  function midpoint(a, b) { return { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 }; }
+  function branchPoints(a, b, offset, bend) {
+    var m = midpoint(a, b), dx = b.x - a.x, dy = b.y - a.y;
+    var d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
+    var station = { x: m.x + nx * offset, y: m.y + ny * offset };
+    var c1 = { x: lerp(a.x, m.x, 0.6) + nx * offset * bend, y: lerp(a.y, m.y, 0.6) + ny * offset * bend };
+    var c2 = { x: lerp(m.x, b.x, 0.4) + nx * offset * bend, y: lerp(m.y, b.y, 0.4) + ny * offset * bend };
+    return { points: [a, c1, station, c2, b], station: station, normal: { x: nx, y: ny } };
+  }
+
+  /* Each map has twelve potential junctions. The active shift reveals them
+     two at a time, so authored identity survives the campaign ramp. */
+  var DEFS = {
+    'city-loop': {
+      name: 'Civic Loop', eyebrow: 'Morning platforms', routing: 'turntable timing', stationShift: 0, speedBias: 1, dwellBonus: 0, sky: '#102535', ground: '#163545', rail: '#8bd3d6', accent: '#f8c76a',
+      nodes: [
+        { x: -610, y: 90 }, { x: -490, y: -150 }, { x: -300, y: -210 }, { x: -110, y: -92 },
+        { x: 90, y: -135 }, { x: 285, y: -225 }, { x: 500, y: -130 }, { x: 625, y: 70 },
+        { x: 485, y: 205 }, { x: 260, y: 165 }, { x: 55, y: 245 }, { x: -175, y: 195 },
+        { x: -410, y: 235 }
+      ],
+      offsets: [105, -92, 100, -88, 102, -96, 90, -86, 100, -94, 96, -88],
+      signature: { kind: 'turntable', x: 6, y: 30 }, shortcutIndex: 8, shortcutLabel: 'garden siding'
+    },
+    'mountain-switchback': {
+      name: 'Alpine Switchback', eyebrow: 'Mountain dispatch', routing: 'climb siding speed', stationShift: 1, speedBias: 0.86, dwellBonus: 0, sky: '#17243b', ground: '#24334a', rail: '#b8d4e7', accent: '#ef9b5b',
+      nodes: [
+        { x: -650, y: 250 }, { x: -545, y: 55 }, { x: -445, y: 250 }, { x: -325, y: 20 },
+        { x: -205, y: 190 }, { x: -82, y: -68 }, { x: 40, y: 95 }, { x: 170, y: -180 },
+        { x: 295, y: -25 }, { x: 415, y: -255 }, { x: 535, y: -95 }, { x: 645, y: -285 },
+        { x: 710, y: -120 }
+      ],
+      offsets: [90, -115, 108, -100, 122, -105, 108, -118, 102, -105, 120, -98],
+      signature: { kind: 'tunnel', x: 7, y: -90 }, shortcutIndex: 5, shortcutLabel: 'miner cut'
+    },
+    'coastal-freight': {
+      name: 'Tidewater Yard', eyebrow: 'Coastal freight', routing: 'drawbridge dwell', stationShift: 2, speedBias: 1, dwellBonus: 0.28, sky: '#0d2a37', ground: '#16434a', rail: '#8fe1d2', accent: '#f2a35e',
+      nodes: [
+        { x: -690, y: 15 }, { x: -570, y: -5 }, { x: -450, y: 35 }, { x: -325, y: -12 },
+        { x: -200, y: 28 }, { x: -75, y: -8 }, { x: 50, y: 30 }, { x: 175, y: -18 },
+        { x: 300, y: 24 }, { x: 425, y: -5 }, { x: 545, y: 35 }, { x: 650, y: 0 },
+        { x: 730, y: 42 }
+      ],
+      offsets: [118, -126, 128, -116, 130, -122, 120, -128, 118, -126, 122, -116],
+      signature: { kind: 'drawbridge', x: 5, y: 3 }, shortcutIndex: 9, shortcutLabel: 'breakwater siding'
+    },
+    'night-terminal': {
+      name: 'Lantern Terminal', eyebrow: 'Night operations', routing: 'lantern patience', stationShift: 3, speedBias: 1.04, dwellBonus: 0, sky: '#171731', ground: '#262244', rail: '#d8b7eb', accent: '#f3c96b',
+      nodes: [
+        { x: -600, y: -255 }, { x: -385, y: -255 }, { x: -385, y: -55 }, { x: -130, y: -55 },
+        { x: -130, y: -255 }, { x: 130, y: -255 }, { x: 130, y: -55 }, { x: 390, y: -55 },
+        { x: 390, y: -255 }, { x: 610, y: -255 }, { x: 610, y: 40 }, { x: 350, y: 40 },
+        { x: 350, y: 245 }
+      ],
+      offsets: [112, -112, 122, -115, 105, -120, 114, -108, 122, -112, 112, -126],
+      signature: { kind: 'grid', x: 6, y: -55 }, shortcutIndex: 2, shortcutLabel: 'service alley'
+    }
+  };
+
+  function buildLayout(key) {
+    var def = DEFS[key] || DEFS['city-loop'];
+    var nodes = def.nodes.map(function (p) { return { x: p.x, y: p.y }; });
+    var edges = [], routes = [], stations = [], i;
+    edges.push({ kind: 'entry', index: 0, poly: polyline([{ x: nodes[0].x - 175, y: nodes[0].y + 65 }, nodes[0]]) });
+    for (i = 0; i < nodes.length - 1; i++) {
+      var a = nodes[i], b = nodes[i + 1], m = midpoint(a, b);
+      var main = polyline([a, { x: m.x, y: m.y }, b]);
+      var br = branchPoints(a, b, def.offsets[i], 0.78);
+      var side = polyline(br.points);
+      var stationS = side.cum[2];
+      var station = at(side, stationS);
+      var mainEdge = { kind: 'main', index: edges.length, segment: i, poly: main, stationS: null, shortcut: false };
+      var sideEdge = { kind: 'side', index: edges.length + 1, segment: i, poly: side, stationS: stationS, station: station, shortcut: i === def.shortcutIndex };
+      edges.push(mainEdge, sideEdge);
+      routes.push({ main: mainEdge.index, side: sideEdge.index });
+      stations.push({ index: i, x: station.x, y: station.y, tx: station.tx, ty: station.ty, color: (i + (def.stationShift || 0)) % 5, edge: sideEdge.index, shortcut: sideEdge.shortcut });
+    }
+    var last = nodes[nodes.length - 1];
+    var before = nodes[nodes.length - 2];
+    var dx = last.x - before.x, dy = last.y - before.y, d = Math.hypot(dx, dy) || 1;
+    var exit = { x: last.x + dx / d * 180, y: last.y + dy / d * 180 };
+    var exitEdge = { kind: 'exit', index: edges.length, poly: polyline([last, exit]), stationS: null };
+    edges.push(exitEdge);
+    var bounds = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    edges.forEach(function (edge) {
+      edge.poly.pts.forEach(function (p) {
+        bounds.x0 = Math.min(bounds.x0, p.x); bounds.y0 = Math.min(bounds.y0, p.y);
+        bounds.x1 = Math.max(bounds.x1, p.x); bounds.y1 = Math.max(bounds.y1, p.y);
+      });
+    });
+    bounds.x0 -= 84; bounds.x1 += 84; bounds.y0 -= 84; bounds.y1 += 84;
+    return {
+      key: key in DEFS ? key : 'city-loop', def: def, name: def.name, eyebrow: def.eyebrow,
+      nodes: nodes, edges: edges, routes: routes, stations: stations, exitIdx: exitEdge.index,
+      junctions: routes.length, bounds: bounds, signature: def.signature,
+      shortcutIndex: def.shortcutIndex, shortcutLabel: def.shortcutLabel, routing: def.routing,
+      colors: ['#f26767', '#55c7e8', '#f2c45e', '#56d6a6', '#b995f1']
+    };
+  }
+
+  root.SL_RAIL = {
+    clamp: clamp, lerp: lerp, smoothstep: smoothstep, mulberry32: mulberry32,
+    polyline: polyline, at: at, defs: DEFS, buildLayout: buildLayout
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

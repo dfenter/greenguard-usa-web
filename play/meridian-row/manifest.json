@@ -1,0 +1,16 @@
+{
+  "name": "Meridian Row",
+  "short_name": "Meridian Row",
+  "description": "A generous town-board lap race with sticker albums and rival builders.",
+  "start_url": "/play/meridian-row/",
+  "scope": "/play/meridian-row/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#07101c",
+  "theme_color": "#07101c",
+  "categories": ["games"],
+  "icons": [
+    {"src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

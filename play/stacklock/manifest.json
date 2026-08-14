@@ -1,0 +1,17 @@
+{
+  "name": "Stacklock",
+  "short_name": "Stacklock",
+  "description": "Falling block line clears. Marathon, a forty line Sprint, twenty four hand-authored Puzzle boards and the Master Clear finale.",
+  "start_url": "/play/stacklock/",
+  "scope": "/play/stacklock/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "categories": ["games"],
+  "icons": [
+    { "src": "favicon.png", "sizes": "64x64", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Slingfang",
+  "short_name": "Slingfang",
+  "description": "A flick creature arena. Pull back from the fang, bank off the walls, break the formation.",
+  "start_url": "/play/slingfang/",
+  "scope": "/play/slingfang/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#070c14",
+  "theme_color": "#070c14",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "favicon.png", "sizes": "32x32", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "Blast Radius",
+  "short_name": "Blast Radius",
+  "description": "A grid-arena bomb-layer about blocks, chain reactions, and chasers.",
+  "start_url": "/play/blast-radius/",
+  "scope": "/play/blast-radius/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#061018",
+  "theme_color": "#061018",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#122e3b"/><stop offset=".52" stop-color="#07151f"/><stop offset="1" stop-color="#0d2530"/></linearGradient>
+    <pattern id="tiles" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M0 0h64v64H0z" fill="none" stroke="#4de7dc" stroke-opacity=".1"/><path d="M8 16h18M40 45h11M30 8v8M58 25v15" stroke="#8ed8d2" stroke-opacity=".12" stroke-width="2"/></pattern>
+    <radialGradient id="glow"><stop stop-color="#4de7dc" stop-opacity=".18"/><stop offset="1" stop-color="#4de7dc" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="256" height="256" fill="url(#ground)"/>
+  <rect width="256" height="256" fill="url(#tiles)"/>
+  <circle cx="38" cy="46" r="76" fill="url(#glow)"/><circle cx="220" cy="214" r="82" fill="url(#glow)" opacity=".45"/>
+  <path d="M16 220L238 36M-24 190L190 -24" stroke="#ffbb55" stroke-opacity=".06" stroke-width="3"/>
+</svg>

@@ -1,0 +1,14 @@
+{
+  "name": "Ridgeline Rumble",
+  "short_name": "Ridgeline",
+  "start_url": "/play/ridgeline-rumble/",
+  "scope": "/play/ridgeline-rumble/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#07121c",
+  "theme_color": "#07121c",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

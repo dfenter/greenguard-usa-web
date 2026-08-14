@@ -1,20 +1,45 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/breach-brick/">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#070b16">
-  <title>Breach &amp; Brick</title>
-  <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #070b16; }
-    body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    #game { display: block; width: 100vw; height: 100svh; touch-action: none; user-select: none; -webkit-user-select: none; }
-  </style>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#070b16">
+<meta name="description" content="Breach and Brick - twelve authored walls, falling debris that smashes the wall or stuns your deck, and a generous drop table. Steer, launch, catch.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/breach-brick/">
+<title>Breach &amp; Brick</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #05080f; color: #dff6ff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* The safe-area padding keeps the canvas clear of a notch or home bar; the
+     game itself scales to fit whatever box is left. */
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing: border-box;
+  }
+  #app { width: 100%; height: 100%; }
+  canvas { display: block; touch-action: none; }
+</style>
 </head>
 <body>
-  <canvas id="game" aria-label="Breach and Brick brick breaker game"></canvas>
-  <script src="game.js"></script>
+<div id="app"></div>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="bb_data.js"></script>
+<script src="bb_audio.js"></script>
+<script src="game.js"></script>
 </body>
 </html>

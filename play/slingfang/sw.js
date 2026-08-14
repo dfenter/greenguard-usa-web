@@ -1,0 +1,70 @@
+/* sw-template.js — copy to /play/<slug>/sw.js and fill SLUG, VERSION, ASSETS.
+ * Offline-after-first-load per the UX/PWA gate. Cache-first for same-origin
+ * GETs under /play/<slug>/ and /play/_shared/; network passthrough otherwise.
+ * Bump VERSION on every deploy of the game to invalidate stale caches.
+ */
+const SLUG = 'slingfang';
+const VERSION = '2026-08-11-aaa-fix1';
+const CACHE = 'gg-' + SLUG + '-' + VERSION;
+const ASSETS = [
+  '/play/slingfang/',
+  '/play/slingfang/index.html',
+  '/play/slingfang/sf_data.js',
+  '/play/slingfang/game.js',
+  '/play/slingfang/manifest.json',
+  '/play/slingfang/icon.png',
+  '/play/slingfang/icon512.png',
+  '/play/slingfang/favicon.png',
+  '/play/slingfang/sw.js',
+  '/play/_shared/phaser.min.js',
+  '/play/_shared/ggkit.js',
+  '/play/slingfang/assets/atlas.json',
+  '/play/slingfang/assets/atlas.png',
+  '/play/slingfang/assets/disc.png',
+  '/play/slingfang/assets/edge.png',
+  '/play/slingfang/assets/ground.png',
+  '/play/slingfang/assets/music_field.mp3',
+  '/play/slingfang/assets/music_rush.mp3',
+  '/play/slingfang/assets/sf_body.woff2',
+  '/play/slingfang/assets/sf_display.woff2',
+  '/play/slingfang/assets/sfx_aura.mp3',
+  '/play/slingfang/assets/sfx_bank.mp3',
+  '/play/slingfang/assets/sfx_break.mp3',
+  '/play/slingfang/assets/sfx_brood.mp3',
+  '/play/slingfang/assets/sfx_drop.mp3',
+  '/play/slingfang/assets/sfx_fail.mp3',
+  '/play/slingfang/assets/sfx_impact.mp3',
+  '/play/slingfang/assets/sfx_launch.mp3',
+  '/play/slingfang/assets/sfx_medal.mp3',
+  '/play/slingfang/assets/sfx_pull.mp3',
+  '/play/slingfang/assets/sfx_tap.mp3',
+  '/play/slingfang/assets/sfx_unlock.mp3',
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k.startsWith('gg-' + SLUG + '-') && k !== CACHE).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  if (!url.pathname.startsWith('/play/' + SLUG + '/') && !url.pathname.startsWith('/play/_shared/') && !url.pathname.startsWith('/play/_assets/')) return;
+  e.respondWith(
+    caches.match(e.request, { ignoreSearch: true }).then((hit) =>
+      hit ||
+      fetch(e.request).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      })
+    )
+  );
+});

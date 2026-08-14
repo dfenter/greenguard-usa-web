@@ -1,79 +1,100 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/fallline/">
+<head>
+  <base href="/play/fallline/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#101820">
-  <title>FALLLINE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#071016">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" type="image/png">
   <link rel="stylesheet" href="styles.css">
+  <title>Fallline</title>
 </head>
 <body>
-  <main id="game" aria-label="Fallline mobile battle royale">
-    <canvas id="playfield"></canvas>
+  <main id="game" aria-label="Fallline neon falling-block game">
+    <div id="game-root"></div>
 
     <section id="hud" aria-live="polite">
-      <div class="hud-card left-card">
-        <div class="brand">FALLLINE <span>RUN 02</span></div>
-        <div id="aliveReadout">24 ALIVE</div>
-        <div class="health-row"><i id="healthBar"></i><i id="shieldBar"></i></div>
-        <div class="health-label"><span id="healthReadout">100</span> HP <span id="shieldReadout">0</span> ARMOR</div>
+      <div id="scoreHud" class="hud-chip hud-left">
+        <div class="hud-topline"><span class="player-mark">◆</span><span id="modeReadout">FALLLINE</span><span id="zoneReadout" class="muted">GRID 10×20</span></div>
+        <div class="score-line"><span>SCORE</span><strong id="scoreReadout">0</strong></div>
+        <div class="hud-bottomline"><span>LINES <b id="linesReadout">0</b></span><span>LEVEL <b id="levelReadout">1</b></span></div>
       </div>
-      <div class="hud-card storm-card">
-        <div id="stormReadout">STORM PHASE 1/4</div>
-        <strong id="stormTimer">COLLAPSES 00:48</strong>
-        <div id="matchTimer">04:00</div>
+
+      <div id="runHud" class="hud-chip hud-center">
+        <div class="hud-topline"><span class="storm-mark">◈</span><span id="phaseReadout">WAVE 1</span><span id="matchTimer">04:00</span></div>
+        <div id="gravityReadout" class="storm-distance">GRAVITY 0.82S</div>
       </div>
-      <div class="hud-card right-card">
-        <div id="weaponReadout">RIVET PISTOL</div>
-        <div class="ammo"><strong id="ammoReadout">12</strong><span id="reserveReadout">/ 48</span></div>
-        <div id="medReadout">MEDKITS 0</div>
+
+      <div id="pieceHud" class="hud-chip hud-right">
+        <div class="piece-line"><span>NEXT</span><strong id="nextName">I · ION BAR</strong></div>
+        <div class="piece-line"><span>HOLD</span><strong id="holdName">EMPTY</strong></div>
+        <div class="hud-bottomline"><span id="comboReadout">NO CHAIN</span><button id="modeButton" class="icon-button control hud-button" type="button" aria-label="Change mode">≡</button></div>
       </div>
-      <div id="feed" aria-live="polite"></div>
-      <div id="reticle" aria-hidden="true"></div>
-      <div id="interactPrompt">INTERACT</div>
-      <p id="hint">MOVE • INTERACT TO LOOT • FIRE AUTO-AIMS NEAREST THREAT</p>
+
+      <div id="transientToast" class="transient-toast" aria-hidden="true" role="status"><span id="toastIcon">◆</span><span id="toastText"></span></div>
+      <div id="coachStrip" class="coach-strip" aria-hidden="true">MOVE WITH A / D OR THE ARROWS</div>
     </section>
 
-    <div id="controls" aria-label="Touch controls">
-      <div id="stick" class="control stick-control" aria-label="Move stick">
-        <span class="stick-ring"></span><span id="stickKnob"></span>
-      </div>
-      <button id="interact" class="control interact-control" type="button">E</button>
-      <button id="fire" class="control fire-control" type="button">FIRE</button>
-    </div>
+    <section id="controls" aria-label="Touch controls">
+      <button id="touchLeft" class="control touch-button touch-left" type="button" aria-label="Move piece left">←</button>
+      <button id="touchRight" class="control touch-button touch-right" type="button" aria-label="Move piece right">→</button>
+      <button id="touchRotate" class="control touch-button touch-rotate" type="button" aria-label="Rotate piece">↻</button>
+      <button id="touchHold" class="control touch-button touch-hold" type="button" aria-label="Hold piece">HOLD</button>
+      <button id="touchDrop" class="control touch-button touch-drop" type="button" aria-label="Hard drop piece">DROP</button>
+    </section>
 
-    <div id="audioOverlay" class="modal audio-modal">
-      <div class="modal-panel">
-        <div class="eyebrow">LIVE DROP</div>
-        <h1>FALLLINE</h1>
-        <p>Tap once to arm audio.<br><small>The match is already live.</small></p>
-        <button id="audioButton" type="button">TAP TO ARM</button>
-      </div>
-    </div>
-
-    <div id="rotateOverlay" class="modal rotate-modal" aria-hidden="true">
-      <div class="modal-panel">
-        <div class="phone-icon">↻</div>
-        <h2>TURN YOUR PHONE</h2>
-        <p>Fallline pauses here.<br>Return to portrait to resume.</p>
-      </div>
-    </div>
-
-    <div id="resultOverlay" class="modal result-modal" aria-hidden="true">
-      <div class="modal-panel">
-        <div id="resultEyebrow" class="eyebrow">RUN COMPLETE</div>
-        <h2 id="resultTitle">RUN ENDED</h2>
-        <p id="resultCopy"></p>
-        <div class="result-stats">
-          <div><span>PLACEMENT</span><strong id="placementReadout">#24</strong></div>
-          <div><span>ELIMINATIONS</span><strong id="killsReadout">0</strong></div>
-          <div><span>RUN TIME</span><strong id="timeReadout">00:00</strong></div>
+    <section id="tutorialOverlay" class="modal" aria-hidden="true" aria-label="How to play">
+      <div class="panel tutorial-panel">
+        <div class="eyebrow">FIRST RUN GUIDE</div>
+        <h1>BUILD THE FALLLINE</h1>
+        <p class="intro-copy">Stack seven neon shapes, rotate them into clean lanes, and clear full rows before the signal reaches the top.</p>
+        <div class="tutorial-steps">
+          <div><b>A / D</b><span>Move</span></div>
+          <div><b>X / ↻</b><span>Rotate</span></div>
+          <div><b>SPACE</b><span>Hard drop</span></div>
+          <div><b>C / HOLD</b><span>Save a shape</span></div>
         </div>
-        <button id="requeue" type="button">REQUEUE</button>
-        <p class="persisted">CAREER <span id="careerReadout">0 WINS · 0 KILLS</span></p>
+        <p class="tutorial-note">A full row clears. Consecutive clears build a chain multiplier.</p>
+        <button id="beginRun" class="primary-button control" type="button">START RUN</button>
       </div>
-    </div>
+    </section>
+
+    <section id="modePanel" class="modal" aria-hidden="true" aria-label="Choose mode">
+      <div class="panel mode-panel">
+        <div class="eyebrow">RUN SELECT</div>
+        <h1>FALLLINE</h1>
+        <div id="modeOptions" class="mode-options"></div>
+        <button id="closeMode" class="secondary-button control" type="button">BACK TO RUN</button>
+      </div>
+    </section>
+
+    <section id="boundaryBanner" class="boundary-banner" aria-hidden="true">
+      <div class="boundary-kicker" id="boundaryKicker">DROP READY</div>
+      <div class="boundary-title" id="boundaryTitle">FALLLINE</div>
+      <div class="boundary-subtitle" id="boundarySubtitle">STACK · CLEAR · CHAIN</div>
+    </section>
+
+    <section id="resultOverlay" class="modal" aria-hidden="true" aria-label="Run result">
+      <div class="panel result-panel">
+        <div class="eyebrow" id="resultKicker">RUN COMPLETE</div>
+        <h2 id="resultTitle">GRID LOST</h2>
+        <div id="medalBadge" class="medal-badge bronze">BRONZE</div>
+        <div class="result-stats">
+          <div><span>SCORE</span><strong id="resultScore">0</strong></div>
+          <div><span>LINES</span><strong id="resultLines">0</strong></div>
+          <div><span>LEVEL</span><strong id="resultLevel">1</strong></div>
+        </div>
+        <p id="resultCopy">Clear rows, then keep the stack low.</p>
+        <div class="result-actions"><button id="requeue" class="primary-button control" type="button">REQUEUE</button><button id="resultModes" class="secondary-button control" type="button">MODES</button></div>
+        <div id="careerReadout" class="career-readout">BEST 0 · 0 LINES · 0 RUNS</div>
+      </div>
+    </section>
   </main>
+
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

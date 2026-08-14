@@ -1,0 +1,16 @@
+{
+  "name": "Shellshock Pinball",
+  "short_name": "Shellshock",
+  "description": "Seeded physics pinball with mission jackpots, multiball and authored table archetypes.",
+  "start_url": "/play/shellshock-pinball/",
+  "scope": "/play/shellshock-pinball/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#071727",
+  "theme_color": "#071727",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

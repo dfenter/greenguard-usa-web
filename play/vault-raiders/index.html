@@ -1,28 +1,31 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/vault-raiders/">
+<head>
+  <base href="/play/vault-raiders/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#081426">
+  <meta name="description" content="Vault Raiders: a local two-player dungeon raid with synchronized puzzles, a guardian, and a shared treasure vault.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Vault Raiders</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main id="game-shell" aria-label="Vault Raiders game">
-    <canvas id="game" aria-label="Vault Raiders game canvas"></canvas>
-    <div id="start-screen" class="screen-card">
-      <div class="eyebrow">A pocket-sized village heist</div>
-      <h1>VAULT<br><span>RAIDERS</span></h1>
-      <p>Tap once to turn on the soundboard. Your village is already live underneath.</p>
-      <button id="start-button" type="button">TAP FOR SOUND</button>
-      <div class="tiny-note">Audio is optional · no purchases · no waiting</div>
+    <div id="game" aria-label="Vault Raiders canvas"></div>
+    <div id="control-legend" aria-label="Local co-op controls">
+      <span><strong>P1</strong> WASD move | F interact | G attack | H dash</span>
+      <span><strong>P2</strong> Arrow keys move | Enter interact | / attack | . dash</span>
     </div>
-    <div id="rotate-screen" class="screen-card rotate-card" aria-live="polite">
-      <div class="rotate-glyph">↻</div>
-      <h2>TURN THE PHONE</h2>
-      <p>Vault Raiders is a portrait-only operation.</p>
-    </div>
-    <div id="sr-status" class="sr-only" aria-live="polite"></div>
+    <p id="sr-status" class="sr-only" aria-live="polite"></p>
   </main>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

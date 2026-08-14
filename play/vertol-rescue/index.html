@@ -1,20 +1,260 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/vertol-rescue/">
+<head>
+  <base href="/play/vertol-rescue/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#101827">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#08171e">
+  <meta name="description" content="Vertol Rescue is a low-poly helicopter rescue campaign across four authored emergency zones.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Vertol Rescue</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon512.png">
   <style>
-    :root { color-scheme: dark; }
+    :root {
+      color-scheme: dark;
+      --ink: #061218;
+      --panel: rgba(7, 24, 30, .88);
+      --panel-strong: rgba(6, 20, 26, .96);
+      --line: rgba(179, 235, 218, .22);
+      --cream: #eff6df;
+      --muted: #9db8b5;
+      --mint: #73e7c1;
+      --aqua: #65c9df;
+      --amber: #ffc86e;
+      --orange: #ff946b;
+      --red: #ff7070;
+      --night: #122a49;
+    }
     * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #0b1120; }
-    body { font-family: Arial, Helvetica, sans-serif; }
-    #game { display: block; width: 100vw; height: 100vh; touch-action: none; user-select: none; -webkit-user-select: none; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #08171e; }
+    body {
+      color: var(--cream);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overscroll-behavior: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+    button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+    button:disabled { cursor: default; opacity: .45; }
+    #app, #scene, #hud { position: fixed; inset: 0; width: 100%; height: 100%; }
+    #app { overflow: hidden; background: #08171e; }
+    #scene { display: block; touch-action: none; }
+    .is-hidden { display: none !important; }
+    .screen { position: fixed; z-index: 20; inset: 0; pointer-events: auto; }
+    .glass { border: 1px solid var(--line); background: var(--panel); box-shadow: 0 22px 65px rgba(0, 0, 0, .28); backdrop-filter: blur(14px); }
+    .eyebrow, .kicker, .label { color: var(--mint); font-size: 10px; font-weight: 900; letter-spacing: .19em; text-transform: uppercase; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { color: var(--cream); font-size: clamp(46px, 9vw, 104px); line-height: .85; letter-spacing: -.075em; text-shadow: 0 7px 0 rgba(4, 17, 22, .55); }
+    h1 span { color: var(--mint); }
+    h2 { color: var(--cream); font-size: clamp(26px, 4vw, 50px); letter-spacing: -.055em; }
+    .screen--title { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; padding: max(26px, calc(env(safe-area-inset-top) + 22px)) max(24px, calc(env(safe-area-inset-right) + 24px)) max(25px, calc(env(safe-area-inset-bottom) + 22px)) max(24px, calc(env(safe-area-inset-left) + 24px)); background: linear-gradient(90deg, rgba(3, 15, 19, .88), rgba(3, 15, 19, .36) 52%, rgba(3, 15, 19, .04)); }
+    .title-copy { width: min(510px, 52vw); animation: rise .72s cubic-bezier(.16, 1, .3, 1) both; }
+    .title-copy p { max-width: 430px; margin-top: 18px; color: #c6d8ce; font-size: clamp(14px, 1.7vw, 18px); line-height: 1.45; }
+    .title-rule { display: flex; align-items: center; gap: 9px; margin-top: 24px; color: var(--muted); font-size: 9px; font-weight: 900; letter-spacing: .12em; }
+    .title-rule span { display: block; width: 40px; height: 2px; background: var(--amber); }
+    .title-actions { width: min(580px, 56vw); animation: rise .82s .08s cubic-bezier(.16, 1, .3, 1) both; }
+    .campaign-panel { padding: 17px; border-radius: 20px; }
+    .campaign-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 15px; margin-bottom: 12px; }
+    .campaign-head small { color: var(--muted); font-size: 10px; font-weight: 800; line-height: 1.35; text-align: right; }
+    #mission-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .mission-card { position: relative; min-height: 104px; padding: 13px; border: 1px solid rgba(179, 235, 218, .16); border-radius: 14px; background: rgba(6, 26, 32, .72); text-align: left; overflow: hidden; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .mission-card:hover { transform: translateY(-2px); border-color: rgba(115, 231, 193, .65); background: rgba(10, 38, 42, .88); }
+    .mission-card.is-locked { filter: saturate(.35); }
+    .mission-card.is-selected { border-color: var(--amber); box-shadow: inset 0 0 0 1px rgba(255, 200, 110, .26); }
+    .mission-number { color: var(--amber); font-size: 9px; font-weight: 900; letter-spacing: .16em; }
+    .mission-card strong { display: block; margin-top: 5px; color: var(--cream); font-size: 15px; letter-spacing: -.02em; }
+    .mission-card small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; line-height: 1.35; }
+    .mission-threshold, .mission-best { display: block; margin-top: 5px; color: var(--amber); font-size: 8px; font-weight: 900; letter-spacing: .06em; }
+    .mission-best { color: var(--mint); }
+    .mission-status { position: absolute; right: 11px; top: 12px; color: var(--mint); font-size: 10px; font-weight: 900; }
+    .medal-row { display: flex; gap: 4px; margin-top: 10px; }
+    .medal-row i { display: block; width: 8px; height: 8px; border: 1px solid rgba(255, 200, 110, .55); border-radius: 50%; background: transparent; }
+    .medal-row i.is-on { background: var(--amber); box-shadow: 0 0 8px rgba(255, 200, 110, .65); }
+    .title-footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 13px; color: rgba(207, 226, 216, .6); font-size: 9px; font-weight: 900; letter-spacing: .14em; }
+    .button-row { display: flex; gap: 8px; margin-top: 10px; }
+    .primary, .secondary, .small-button { min-height: 44px; border-radius: 12px; font-weight: 900; transition: transform .18s ease, filter .18s ease; }
+    .primary { min-width: 170px; padding: 0 18px; color: var(--ink); background: var(--amber); box-shadow: 0 4px 0 #9c622c, 0 11px 25px rgba(0, 0, 0, .22); }
+    .secondary { padding: 0 16px; border: 1px solid var(--line); background: rgba(10, 34, 39, .78); }
+    .small-button { min-height: 34px; padding: 0 11px; border: 1px solid var(--line); background: rgba(9, 34, 39, .82); color: var(--cream); font-size: 10px; }
+    button:hover { filter: brightness(1.1); }
+    button:active { transform: translateY(2px) scale(.985); }
+    #hud { z-index: 8; pointer-events: none; }
+    #hud > * { pointer-events: auto; }
+    .hud-top { display: flex; align-items: flex-start; justify-content: flex-end; gap: 12px; padding: max(10px, calc(env(safe-area-inset-top) + 8px)) max(12px, calc(env(safe-area-inset-right) + 13px)) 0 max(12px, calc(env(safe-area-inset-left) + 13px)); }
+    .hud-chips { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 5px; max-width: 70vw; }
+    .hud-chip { position: relative; display: grid; grid-template-columns: 16px auto; align-items: center; min-width: 48px; padding: 5px 7px; border: 1px solid rgba(179, 235, 218, .17); border-radius: 9px; background: rgba(5, 22, 28, .62); color: var(--muted); font-size: 9px; font-weight: 900; text-align: center; box-shadow: 0 5px 14px rgba(0, 0, 0, .12); backdrop-filter: blur(7px); }
+    .hud-chip b { display: block; color: var(--cream); font-size: 12px; line-height: 1; }
+    .hud-icon { display: grid; place-items: center; width: 14px; height: 14px; color: var(--muted); font-size: 13px; font-weight: 950; line-height: 1; }
+    .hud-chip--fuel, .hud-chip--hull { grid-template-columns: 16px 1fr; min-width: 64px; }
+    .hud-chip--fuel b, .hud-chip--hull b { text-align: right; }
+    .hud-chip--survivors { min-width: 62px; }
+    .hud-chip--tension { min-width: 62px; }
+    .hud-chip--timer { min-width: 60px; }
+    .hud-chip--fuel b { color: var(--mint); }
+    .hud-chip--hull b { color: var(--amber); }
+    .hud-chip--wind b { color: var(--aqua); }
+    .meter { grid-column: 1 / -1; height: 3px; margin-top: 4px; overflow: hidden; border-radius: 4px; background: rgba(255, 255, 255, .12); }
+    .meter i { display: block; width: 100%; height: 100%; border-radius: inherit; background: var(--mint); transition: width .12s linear, background .15s ease; }
+    .hud-actions { display: flex; gap: 5px; margin-left: 1px; }
+    .icon-button { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 9px; background: rgba(5, 22, 28, .68); }
+    .icon-button svg { width: 17px; height: 17px; fill: none; stroke: var(--cream); stroke-width: 1.8; stroke-linecap: round; }
+    #mission-objective { position: fixed; left: max(12px, calc(env(safe-area-inset-left) + 12px)); top: max(52px, calc(env(safe-area-inset-top) + 48px)); width: min(330px, 40vw); padding: 5px 9px; border-left: 2px solid var(--amber); border-radius: 0 7px 7px 0; background: rgba(5, 22, 28, .42); color: rgba(216, 232, 219, .8); font-size: 9px; font-weight: 800; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+    #mission-objective.is-faded { opacity: .2; transition: opacity .35s ease; }
+    #mission-objective strong { color: var(--amber); }
+    #event-chip { position: fixed; z-index: 13; right: max(12px, calc(env(safe-area-inset-right) + 13px)); top: max(68px, calc(env(safe-area-inset-top) + 64px)); width: min(300px, 34vw); padding: 6px 9px; border-left: 2px solid var(--mint); border-radius: 0 7px 7px 0; background: rgba(5, 22, 28, .72); color: var(--cream); font-size: 10px; font-weight: 850; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; opacity: 0; pointer-events: none; transform: translateX(8px); transition: opacity .14s ease, transform .14s ease; }
+    #event-chip.is-visible { opacity: .9; transform: translateX(0); }
+    #event-chip.no-motion { transition: none; }
+    #event-text { display: block; overflow: hidden; text-overflow: ellipsis; }
+    .control { position: fixed; z-index: 12; pointer-events: auto; touch-action: none; }
+    #stick-control { left: max(16px, env(safe-area-inset-left)); bottom: max(19px, calc(env(safe-area-inset-bottom) + 17px)); width: 132px; height: 132px; }
+    #throttle-control { left: 50%; bottom: max(18px, calc(env(safe-area-inset-bottom) + 15px)); width: 68px; height: 140px; transform: translateX(-50%); }
+    #winch-control { right: max(16px, env(safe-area-inset-right)); bottom: max(19px, calc(env(safe-area-inset-bottom) + 17px)); width: 88px; height: 180px; }
+    .control-label, .control-hint { display: none; }
+    .stick-ring { position: absolute; inset: 5px; border: 1px solid rgba(179, 235, 218, .32); border-radius: 50%; background: radial-gradient(circle, rgba(115, 231, 193, .1), rgba(4, 19, 25, .74) 68%); box-shadow: 0 8px 24px rgba(0,0,0,.2), inset 0 0 0 8px rgba(5, 22, 28, .35); }
+    .stick-ring:before, .stick-ring:after { content: ""; position: absolute; background: rgba(179, 235, 218, .15); }
+    .stick-ring:before { left: 50%; top: 17px; bottom: 17px; width: 1px; }
+    .stick-ring:after { top: 50%; left: 17px; right: 17px; height: 1px; }
+    .stick-knob { position: absolute; left: 41px; top: 41px; display: grid; place-items: center; width: 40px; height: 40px; border: 2px solid #c5ffe5; border-radius: 50%; color: var(--ink); background: radial-gradient(circle at 33% 27%, #eaffd6, var(--mint) 57%, #298f82); box-shadow: 0 5px 13px rgba(0,0,0,.35); font-size: 8px; font-weight: 950; }
+    .rail { position: absolute; border: 1px solid rgba(179, 235, 218, .28); border-radius: 20px; background: rgba(5, 22, 28, .7); box-shadow: inset 0 0 0 5px rgba(255,255,255,.025), 0 8px 22px rgba(0,0,0,.22); }
+    .rail:after { content: ""; position: absolute; border-radius: inherit; background: rgba(115, 231, 193, .22); }
+    #throttle-rail { left: 21px; top: 0; width: 26px; height: 140px; }
+    #throttle-rail:after { left: 7px; top: 10px; width: 10px; height: 118px; }
+    #winch-rail { left: 30px; top: 0; width: 28px; height: 180px; }
+    #winch-rail:after { left: 7px; top: 10px; width: 12px; height: 158px; background: rgba(255, 200, 110, .22); }
+    .control-knob { position: absolute; z-index: 2; display: grid; place-items: center; border: 2px solid var(--cream); border-radius: 50%; color: var(--ink); font-size: 8px; font-weight: 950; box-shadow: 0 6px 15px rgba(0,0,0,.38); }
+    #throttle-knob { left: 9px; top: 67px; width: 50px; height: 50px; background: radial-gradient(circle at 34% 27%, #fff2bd, var(--amber) 58%, #a15e2e); }
+    #winch-knob { left: 19px; top: 80px; width: 50px; height: 50px; background: radial-gradient(circle at 34% 27%, #fff2bd, var(--amber) 58%, #a15e2e); }
+    #tension-read.is-hot { color: var(--orange); }
+    #tutorial-arrow { position: fixed; z-index: 11; left: max(10px, calc(env(safe-area-inset-left) + 10px)); top: 50%; display: grid; place-items: center; width: 27px; height: 27px; color: var(--amber); font-size: 17px; opacity: 0; transition: opacity .2s ease; text-shadow: 0 2px 8px rgba(0,0,0,.7); }
+    #tutorial-arrow.is-visible { opacity: 1; }
+    #tutorial-arrow i { display: block; transform: rotate(var(--arrow-angle, 0rad)); font-style: normal; }
+    #damage-vignette { position: fixed; z-index: 9; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, transparent 48%, rgba(255, 65, 61, .44)); mix-blend-mode: screen; }
+    #pause-screen, #result-screen { display: grid; place-items: center; padding: 24px; background: rgba(3, 14, 18, .45); }
+    .panel { width: min(560px, 92vw); padding: 26px; border-radius: 22px; text-align: center; }
+    .panel h2 { margin-top: 8px; }
+    .panel p { margin: 12px auto 0; max-width: 430px; color: #bfd1cb; font-size: 13px; line-height: 1.5; }
+    .result-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 20px; }
+    .result-stats div { padding: 11px 6px; border: 1px solid rgba(179, 235, 218, .14); border-radius: 11px; background: rgba(4, 19, 25, .62); }
+    .result-stats span { display: block; color: var(--muted); font-size: 9px; font-weight: 900; letter-spacing: .12em; }
+    .result-stats b { display: block; margin-top: 4px; color: var(--amber); font-size: 19px; }
+    .panel-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+    .medal-big { margin-top: 15px; color: var(--amber); font-size: 26px; letter-spacing: .16em; }
+    #result-threshold { margin-top: 10px; color: var(--mint); font-size: 9px; font-weight: 900; letter-spacing: .08em; }
+    .pause-copy { color: var(--muted); }
+    @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *:before, *:after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+      #event-chip.is-visible { transform: translateX(0); }
+    }
+    @media (max-width: 880px) {
+      .screen--title { align-items: center; flex-direction: column; justify-content: center; padding-top: 34px; padding-bottom: 28px; }
+      .title-copy, .title-actions { width: min(620px, 92vw); }
+      .title-copy { text-align: center; }
+      .title-copy p { margin-left: auto; margin-right: auto; }
+      .title-rule { justify-content: center; }
+      .title-footer { display: none; }
+    }
+    @media (max-width: 620px) {
+      #mission-grid { grid-template-columns: 1fr; max-height: 46vh; overflow: auto; }
+      .campaign-panel { padding: 13px; }
+      .mission-card { min-height: 82px; }
+      #mission-objective { top: max(50px, calc(env(safe-area-inset-top) + 46px)); width: 50vw; }
+      #event-chip { top: max(68px, calc(env(safe-area-inset-top) + 64px)); width: 46vw; }
+      .hud-chip { min-width: 43px; padding-left: 5px; padding-right: 5px; }
+      .hud-chip--fuel, .hud-chip--hull { min-width: 57px; }
+      .hud-chip b { font-size: 11px; }
+    }
+    @media (max-width: 880px) and (orientation: landscape) and (max-height: 540px) {
+      .screen--title { align-items: center; flex-direction: row; justify-content: space-between; gap: 12px; overflow-y: auto; padding: max(12px, calc(env(safe-area-inset-top) + 8px)) max(14px, calc(env(safe-area-inset-right) + 12px)) max(12px, calc(env(safe-area-inset-bottom) + 8px)) max(14px, calc(env(safe-area-inset-left) + 12px)); }
+      .title-copy { width: 35vw; text-align: left; }
+      .title-actions { width: 62vw; }
+      h1 { font-size: clamp(34px, 7vw, 66px); }
+      .title-copy p { margin-top: 9px; font-size: 11px; }
+      .title-rule { justify-content: flex-start; margin-top: 12px; font-size: 7px; }
+      .campaign-panel { padding: 10px; }
+      .campaign-head { margin-bottom: 7px; }
+      .campaign-head small { font-size: 8px; }
+      .campaign-head h2 { font-size: 24px; }
+      #mission-grid { gap: 5px; max-height: 68vh; overflow: auto; }
+      .mission-card { min-height: 74px; padding: 8px; border-radius: 10px; }
+      .mission-card strong { margin-top: 3px; font-size: 12px; }
+      .mission-card small { margin-top: 2px; font-size: 8px; line-height: 1.22; }
+      .mission-threshold, .mission-best { margin-top: 3px; font-size: 7px; }
+      .mission-status { right: 8px; top: 8px; font-size: 8px; }
+      .medal-row { margin-top: 5px; }
+      .title-footer { display: none; }
+    }
   </style>
 </head>
 <body>
-  <canvas id="game" aria-label="Vertol Rescue game"></canvas>
-  <script src="game.js"></script>
+  <script>
+    window.__vr = {
+      state: { mode: 'boot', fuel: 100, hull: 100, survivors: 0, mission: 'urban-extraction' },
+      _pendingMission: null,
+      _pendingWind: null,
+      forceMission(value) { this._pendingMission = value; },
+      forceWind(value) { this._pendingWind = value; }
+    };
+  </script>
+  <div id="app" aria-label="Vertol Rescue helicopter rescue simulator">
+    <canvas id="scene" aria-label="Three dimensional rescue flight view"></canvas>
+
+    <section id="title-screen" class="screen screen--title">
+      <div class="title-copy">
+        <div class="eyebrow">GREENGUARD AERIAL RESPONSE / FLEET F1</div>
+        <h1>VERTOL <span>RESCUE</span></h1>
+        <p>Read the hover. Feel the cable. Bring every voice home through a campaign of weather, fire, water, and night.</p>
+        <div class="title-rule"><span></span><i>FLIGHT DECK CALIBRATED</i><span></span></div>
+      </div>
+      <div class="title-actions">
+        <div class="campaign-panel glass">
+          <div class="campaign-head"><div><div class="kicker">CAMPAIGN / F1</div><h2>Choose a sortie</h2></div><small>Unlock the full campaign<br>by saving the chain</small></div>
+          <div id="mission-grid"></div>
+          <div class="button-row"><button class="small-button" data-action="fullscreen">Enter fullscreen</button><button class="small-button" data-action="settings">Settings</button></div>
+          <div class="title-footer"><span>THREE.JS / PROCEDURAL AIRFRAME</span><span>AAA BUILD 01</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="hud" class="is-hidden" aria-live="polite">
+      <div class="hud-top">
+        <div class="hud-chips">
+          <div class="hud-chip hud-chip--fuel" aria-label="Fuel" title="Fuel"><span class="hud-icon" aria-hidden="true">▰</span><b id="fuel-value">100</b><div class="meter"><i id="fuel-meter"></i></div></div>
+          <div class="hud-chip hud-chip--hull" aria-label="Hull integrity" title="Hull"><span class="hud-icon" aria-hidden="true">◇</span><b id="hull-value">100</b><div class="meter"><i id="hull-meter"></i></div></div>
+          <div class="hud-chip hud-chip--survivors" aria-label="Survivors aboard or delivered" title="Survivors"><span class="hud-icon" aria-hidden="true">●</span><b id="survivor-value">0 / 0</b></div>
+          <div class="hud-chip hud-chip--wind" aria-label="Wind speed" title="Wind"><span class="hud-icon" aria-hidden="true">≈</span><b id="wind-value">0</b></div>
+          <div class="hud-chip hud-chip--timer" aria-label="Elapsed time" title="Time"><span class="hud-icon" aria-hidden="true">◷</span><b id="time-value">00:00</b></div>
+          <div class="hud-chip hud-chip--tension" aria-label="Cable tension" title="Cable tension"><span class="hud-icon" aria-hidden="true">◎</span><b id="tension-read">READY</b><div class="meter"><i id="tension-meter"></i></div></div>
+          <div class="hud-actions"><button class="icon-button" data-action="pause" aria-label="Pause flight"><svg viewBox="0 0 20 20"><path d="M6 4v12M14 4v12"/></svg></button><button class="icon-button" data-action="settings" aria-label="Open settings"><svg viewBox="0 0 20 20"><path d="M10 3v2M10 15v2M3 10h2M15 10h2M5 5l1.5 1.5M13.5 13.5L15 15M15 5l-1.5 1.5M6.5 13.5L5 15"/><circle cx="10" cy="10" r="3.2"/></svg></button></div>
+        </div>
+      </div>
+      <div id="mission-objective"><strong id="objective-label">OBJECTIVE</strong> <span id="objective-text">Secure survivors and return to the pad.</span></div>
+      <div id="event-chip" role="status" aria-live="polite"><span id="event-text"></span></div>
+      <div id="tutorial-arrow" aria-hidden="true"><i>▲</i></div>
+
+      <div id="stick-control" class="control" aria-label="Flight cyclic control"><div class="stick-ring"><span id="stick-knob" class="stick-knob">✥</span></div><span class="control-label">CYCLIC / FLY</span></div>
+      <div id="throttle-control" class="control" aria-label="Collective throttle control"><span class="control-label">COLLECTIVE</span><div id="throttle-rail" class="rail"></div><span id="throttle-knob" class="control-knob">↑</span><span id="throttle-hint" class="control-hint">R / F</span></div>
+      <div id="winch-control" class="control" aria-label="Winch cable control"><div id="winch-rail" class="rail"></div><span id="winch-knob" class="control-knob">↕</span><span class="control-label">WINCH</span><span id="winch-hint" class="control-hint">ARROWS</span></div>
+    </section>
+    <div id="damage-vignette" aria-hidden="true"></div>
+
+    <section id="pause-screen" class="screen is-hidden">
+      <div class="panel glass"><div class="kicker">FLIGHT HOLD / ROTORS SAFE</div><h2>PAUSED</h2><p class="pause-copy">The stepped flight clock is held. Resume when the horizon is yours again.</p><div class="panel-actions"><button class="primary" data-action="resume">Resume flight</button><button class="secondary" data-action="restart">Restart sortie</button><button class="small-button" data-action="title">Mission board</button></div></div>
+    </section>
+
+    <section id="result-screen" class="screen is-hidden">
+      <div class="panel glass"><div id="result-kicker" class="kicker">MISSION REPORT</div><h2 id="result-title">MISSION CLEAR</h2><p id="result-copy">All survivors are home.</p><div id="result-medal" class="medal-big">● ● ●</div><div id="result-threshold">MEDAL CHECK / ALL SAVED / TIME / DAMAGE</div><div class="result-stats"><div><span>SAVED</span><b id="result-saved">0 / 0</b></div><div><span>TIME</span><b id="result-time">00:00</b></div><div><span>DAMAGE</span><b id="result-damage">0%</b></div><div><span>SHORTCUT</span><b id="result-shortcut">NO</b></div></div><div class="panel-actions"><button id="next-button" class="primary" data-action="next">Next sortie</button><button class="secondary" data-action="restart">Fly again</button><button class="small-button" data-action="fullscreen">Fullscreen</button><button class="small-button" data-action="title">Mission board</button></div></div>
+    </section>
+  </div>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script type="importmap">{"imports":{"three":"/play/_shared/three/three.module.min.js"}}</script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>

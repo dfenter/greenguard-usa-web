@@ -1,0 +1,17 @@
+{
+  "name": "Spire Ascent",
+  "short_name": "Spire",
+  "description": "An endless tower climb. Charge your leap, dash off the walls and stay ahead of the rising lava through four authored bands.",
+  "start_url": "/play/spire-ascent/",
+  "scope": "/play/spire-ascent/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0a0713",
+  "theme_color": "#0a0713",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "favicon.png", "sizes": "64x64", "type": "image/png", "purpose": "any" }
+  ]
+}

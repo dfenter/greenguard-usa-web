@@ -1,101 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/fizzlift/">
+<head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0b0f16">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#0B0F16">
+<meta name="description" content="Fizzlift - a match-3 vat where the fizz line splits gravity. Below it pieces float up, above it they fall. Surface every bottle cap and crack every valve seal.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- The deployed no-slash URL (/play/fizzlift) resolves relative paths against
+     /play/, so this base tag and the ABSOLUTE engine paths below are load
+     bearing. Do not switch the engine tags back to ../_shared/. -->
+<base href="/play/fizzlift/">
 <title>Fizzlift</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:#0b0f16;color:#e7eef7;
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none}
-#app{position:fixed;inset:0;display:flex;flex-direction:column}
-header{flex:0 0 auto;padding:6px 8px 4px}
-#lvName{font-size:12px;letter-spacing:.10em;color:#7fd6e6;font-weight:700;text-align:center;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#hud{display:flex;gap:6px;margin-top:5px}
-.stat{flex:1;background:#151c28;border:1px solid #222d3d;border-radius:9px;padding:4px 2px;text-align:center;min-width:0}
-.stat b{display:block;font-size:17px;line-height:1.1;font-variant-numeric:tabular-nums}
-.stat i{display:block;font-size:9px;font-style:normal;letter-spacing:.09em;color:#8b9ab0;margin-top:1px}
-#hint{font-size:11px;color:#8fa3ba;text-align:center;margin-top:4px;line-height:1.25;padding:0 4px}
-#stage{flex:1 1 auto;position:relative;min-height:0}
-#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
-footer{flex:0 0 auto;display:flex;gap:8px;padding:7px 8px calc(7px + env(safe-area-inset-bottom))}
-button{font:inherit;color:#e7eef7;background:#1b2432;border:1px solid #2c3a4e;border-radius:11px;
-  min-height:48px;padding:0 12px;flex:1;cursor:pointer;font-size:14px;font-weight:600;touch-action:manipulation}
-button:active{background:#26364a}
-button:disabled{opacity:.4;cursor:default}
-button.pri{background:#1f6f7d;border-color:#2c96a8}
-.ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
-  background:rgba(7,11,17,.93);z-index:9;padding:14px;text-align:center}
-.ov.show{display:flex}
-.ov h2{font-size:20px;letter-spacing:.10em;margin-bottom:10px;color:#7fd6e6}
-.big{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;margin:6px 0 2px}
-.sub{font-size:12px;color:#8fa3ba;margin-bottom:12px}
-.stars span{font-size:28px;color:#2f3b4c}
-.stars span.on{color:#ffcf4a}
-.ovbtns{display:flex;gap:8px;width:100%;max-width:330px;margin-top:8px}
-#lvGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;width:100%;max-width:330px;margin-bottom:10px}
-.lvb{min-height:48px;padding:0;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
-.lvb b{font-size:15px}
-.lvb i{font-size:9px;font-style:normal;color:#ffcf4a;line-height:1}
-.lvb.lock i{color:#5a6779}
-#rotOv{z-index:20;background:#0b0f16}
-#rotOv .rot{font-size:44px;margin-bottom:10px}
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
+    background: #0B0F16; color: #E7EEF7;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* The canvas is full bleed. Safe-area insets are read by the game and used
+     to place the HUD, the coach strip and the corner controls, so nothing
+     informational can land under a notch, a home bar or a thumb. */
+  #game { position: fixed; inset: 0; }
+  canvas { display: block; touch-action: none; }
 </style>
 </head>
 <body>
-<div id="app">
-  <header>
-    <div id="lvName">LEVEL 1</div>
-    <div id="hud">
-      <div class="stat"><b id="moves">0</b><i>MOVES</i></div>
-      <div class="stat"><b id="caps">0/0</b><i>CAPS</i></div>
-      <div class="stat"><b id="seals">0</b><i>SEALS</i></div>
-      <div class="stat"><b id="score">0</b><i>SCORE</i></div>
-    </div>
-    <div id="hint">Swipe to swap. Clear pieces above a cap so the fizz floats it up to the glowing surface line &mdash; below the line things rise, above it they fall.</div>
-  </header>
-
-  <div id="stage">
-    <canvas id="cv"></canvas>
-
-    <div class="ov" id="endOv">
-      <h2 id="endTitle">GLASS CLEARED</h2>
-      <div id="endBody"></div>
-      <div class="ovbtns">
-        <button id="endRetry">Retry</button>
-        <button id="endNext" class="pri">Next</button>
-      </div>
-      <div class="ovbtns"><button id="endMenu">Levels</button></div>
-    </div>
-
-    <div class="ov" id="lvOv">
-      <h2>SELECT A GLASS</h2>
-      <div id="lvGrid"></div>
-      <div class="ovbtns">
-        <button id="lvEndless" class="pri">Endless fizz</button>
-        <button id="lvClose">Back</button>
-      </div>
-    </div>
-
-    <div class="ov" id="rotOv">
-      <div class="rot">&#8635;</div>
-      <h2>ROTATE TO PORTRAIT</h2>
-      <div class="sub">Fizzlift is played upright. The glass is paused.</div>
-    </div>
-  </div>
-
-  <footer>
-    <button id="bRestart">Restart</button>
-    <button id="bLevels">Levels</button>
-    <button id="bSound">Sound on</button>
-  </footer>
-</div>
+<div id="game"></div>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
 <script src="js/core.js"></script>
-<script src="js/levels.js"></script>
+<script src="js/data.js"></script>
 <script src="js/board.js"></script>
+<script src="js/art.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

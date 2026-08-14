@@ -36,3 +36,9 @@ Deferred:
 
 - No local image or audio binaries were added. Vector art is authored in the renderer, while the existing CC0 MP3 harvest is referenced and fully precached through same-origin paths. A title-local audio copy can replace those references if the deployment pipeline later requires every dependency to live under this folder.
 - A full browser feel capture and 4x-throttle frame trace could not be run in this environment. Syntax, payload, and static contract checks were run locally.
+
+## UI declutter
+
+- Cut all live center banners and repeated brand, arena, mode, event-tag, and control-label copy; run outcomes remain on the results screen.
+- Shrunk the active HUD to icon-led score/time/combo, compact objective counters, thin combo/boost meters, and icon-only controls.
+- Replaced pooled world popups with one top-right chip queue capped at a 1.0s hold, with reduced-motion gating retained.

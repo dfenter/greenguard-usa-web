@@ -1,22 +1,28 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/ironclad-alley/">
+<head>
+  <base href="/play/ironclad-alley/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#071017">
+  <meta name="description" content="Ironclad Alley, a deliberate ricochet tank duel.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon512.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
   <title>Ironclad Alley</title>
   <style>
-    :root { color-scheme: dark; }
+    :root { color-scheme: dark; background: #071017; }
     * { box-sizing: border-box; }
-    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:#07101b; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #071017; }
     body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    #game { display:block; width:100vw; height:100vh; touch-action:none; user-select:none; -webkit-user-select:none; }
-    #rotate { display:none; position:fixed; inset:0; z-index:5; place-items:center; padding:32px; text-align:center; color:#d9f7ff; background:rgba(4,10,18,.94); letter-spacing:.12em; }
-    #rotate.show { display:grid; }
+    #game { width: 100vw; height: 100dvh; min-height: 100vh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); touch-action: none; user-select: none; -webkit-user-select: none; }
+    canvas { display: block; }
   </style>
 </head>
 <body>
-  <canvas id="game" aria-label="Ironclad Alley tank duel"></canvas>
-  <div id="rotate">PORTRAIT MODE REQUIRED<br><small>TURN DEVICE</small></div>
+  <div id="game" aria-label="Ironclad Alley tank duel"></div>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="/play/_shared/phaser.min.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

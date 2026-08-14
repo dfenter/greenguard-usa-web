@@ -1,227 +1,161 @@
-/* Shellshock Pinball - table: static shell + seeded parts grammar */
+/* Shellshock Pinball - authored archetypes with seeded variation. */
 (function (SS) {
   'use strict';
 
-  var W = SS.W = 430, H = SS.H = 730;
-  var D2R = Math.PI / 180;
+  var W = 430, H = 900, D2R = Math.PI / 180, TAU = SS.TAU;
+  var ARCHETYPES = [
+    { id: 'classic', tier: 0, name: 'BUMPER CATHEDRAL', tag: 'classic bumper field', objective: 'BANK CLEAR', accent: 0x42e8ff },
+    { id: 'speedway', tier: 1, name: 'OVERPASS SPEEDWAY', tag: 'ramp-heavy speedway', objective: 'RAMP RUNS', accent: 0xffb84f },
+    { id: 'gauntlet', tier: 2, name: 'SPINNER GAUNTLET', tag: 'spinner gauntlet', objective: 'SPINNER STORM', accent: 0xb97cff },
+    { id: 'boss', tier: 3, name: 'CITADEL OF ECHOES', tag: 'boss mission table', objective: 'LOCK THE CITADEL', accent: 0xff5c91 }
+  ];
 
-  function buildShell(T) {
-    var S = T.segs;
-    // outer top arc
-    SS.chain(S, SS.arcPts(216, 150, 206, 132, Math.PI, Math.PI * 2, 26), { rest: 0.36 });
-    // left wall / right outer wall
-    SS.seg(S, 10, 150, 10, 530, { rest: 0.36 });
-    SS.seg(S, 422, 150, 422, 730, { rest: 0.36 });
-    // plunger lane divider (straight + curl over the top)
-    SS.seg(S, 380, 730, 380, 180, { rest: 0.3 });
-    var curl = SS.arcPts(216, 180, 164, 116, 0, -140 * D2R, 22);
-    SS.chain(S, curl, { rest: 0.3 });
-    T.curl = curl;
-    // one-way exit gate at the end of the curl
-    var g = SS.seg(S, 90, 105, 74, 140, { rest: 0.2, r: 3 });
-    g.oneWay = { x: -0.909, y: -0.416 };
-    g.kind = 'gate';
-    T.gate = g;
-    // plunger floor
-    SS.seg(S, 380, 724, 422, 724, { rest: 0.05, kind: 'plungerfloor' });
-    // lower funnels
-    T.funL = [[10, 530], [13, 600], [46, 672], [60, 712]];
-    T.funR = [[380, 530], [377, 600], [344, 672], [330, 712]];
-    SS.chain(S, T.funL, { rest: 0.3 });
-    SS.chain(S, T.funR, { rest: 0.3 });
-    // inlane / outlane dividers (closed quads)
-    T.divL = [[48, 580], [136, 644], [130, 656], [42, 590]];
-    T.divR = [[342, 580], [254, 644], [260, 656], [348, 590]];
-    [T.divL, T.divR].forEach(function (q) {
-      SS.chain(S, q.concat([q[0]]), { rest: 0.25, r: 3 });
-    });
-    // outlane inner guides + under-flipper closers
-    T.outL = [[46, 592], [96, 712]];
-    T.outR = [[344, 592], [294, 712]];
-    SS.chain(S, T.outL, { rest: 0.28, r: 3 });
-    SS.chain(S, T.outR, { rest: 0.28, r: 3 });
-    // slingshots
-    T.slings = [
-      { p: [[96, 524], [162, 590], [96, 590]], flash: 0 },
-      { p: [[294, 524], [228, 590], [294, 590]], flash: 0 }
-    ];
-    T.slings.forEach(function (sl) {
-      var a = sl.p[0], b = sl.p[1], c = sl.p[2];
-      var f = SS.seg(S, a[0], a[1], b[0], b[1], { rest: 0.5, r: 4, kick: 640, kind: 'sling' });
-      f.ref = sl;
-      SS.seg(S, b[0], b[1], c[0], c[1], { rest: 0.3, r: 3, kind: 'slingedge' });
-      SS.seg(S, c[0], c[1], a[0], a[1], { rest: 0.3, r: 3, kind: 'slingedge' });
-    });
-    // flippers
-    T.flipL = { x: 132, y: 652, len: 56, r: 7.5, rest: 30 * D2R, up: -32 * D2R, angle: 30 * D2R, omega: 0, side: -1, on: false };
-    T.flipR = { x: 258, y: 652, len: 56, r: 7.5, rest: 150 * D2R, up: 212 * D2R, angle: 150 * D2R, omega: 0, side: 1, on: false };
-    // kickback (left outlane)
-    T.kick = { x: 54, y: 660, r: 15, charged: true, flash: 0 };
-    // ball entry point of the curl
-    T.entry = [90, 105];
+  function addBumper(t, x, y, color, value) {
+    var b = { x: x, y: y, r: 19, rest: 0.5, kick: 710, kind: 'bumper', flash: 0, value: value || 100, color: color };
+    t.circles.push(b); t.bumpers.push(b);
+    return b;
   }
-
-  /* ---------- parts ---------- */
-  function addPops(T, ax, ay, n, rnd) {
-    var base = rnd() * SS.TAU;
-    for (var i = 0; i < n; i++) {
-      var a = base + i * SS.TAU / n;
-      var rr = 30 + rnd() * 12;
-      var p = {
-        x: ax + Math.cos(a) * rr, y: ay + Math.sin(a) * rr * 0.85,
-        r: 17, rest: 0.35, kick: 700, kind: 'pop', flash: 0, hits: 0
-      };
-      T.circles.push(p); T.pops.push(p);
+  function addTargetBank(t, name, x, y, count, vertical, color) {
+    var bank = { name: name, x: x, y: y, targets: [], clear: false, resetAt: 0, flash: 0, color: color };
+    var i, target, dx = vertical ? 0 : 34, dy = vertical ? 34 : 0;
+    for (i = 0; i < count; i++) {
+      target = { x: x + (i - (count - 1) * 0.5) * dx, y: y + (i - (count - 1) * 0.5) * dy, r: 11, kind: 'target', bank: bank, down: false, flash: 0 };
+      target.seg = SS.seg(t.segs, target.x - (vertical ? 8 : 9), target.y - (vertical ? 9 : 8), target.x + (vertical ? 8 : 9), target.y + (vertical ? 9 : 8), { r: 5, rest: 0.42, kind: 'target', target: target });
+      bank.targets.push(target); t.targets.push(target);
     }
-  }
-
-  function addBank(T, ax, ay, ang, n, rnd) {
-    var dx = Math.cos(ang), dy = Math.sin(ang);
-    var bank = { x: ax, y: ay, ang: ang, targets: [], flash: 0, done: false, resetAt: 0 };
-    for (var i = 0; i < n; i++) {
-      var o = (i - (n - 1) / 2) * 21;
-      var cx = ax + dx * o, cy = ay + dy * o;
-      var t = { cx: cx, cy: cy, down: false, flash: 0, bank: bank };
-      var s = SS.seg(T.segs, cx - dx * 8, cy - dy * 8, cx + dx * 8, cy + dy * 8,
-        { rest: 0.45, r: 4.5, kind: 'target' });
-      s.target = t; t.seg = s;
-      bank.targets.push(t);
-    }
-    T.banks.push(bank);
+    t.banks.push(bank);
     return bank;
   }
-
-  function addSpinner(T, ax, ay, ang) {
-    var sp = { x: ax, y: ay, ang: ang, rot: 0, vel: 0, r: 17, spins: 0, flash: 0 };
-    var dx = Math.cos(ang), dy = Math.sin(ang); // lane direction
-    var nx = -dy, ny = dx;
-    // chute guides either side of the lane
-    SS.seg(T.segs, ax + nx * 26 - dx * 40, ay + ny * 26 - dy * 40, ax + nx * 26 + dx * 40, ay + ny * 26 + dy * 40, { rest: 0.3, r: 3.5 });
-    SS.seg(T.segs, ax - nx * 26 - dx * 40, ay - ny * 26 - dy * 40, ax - nx * 26 + dx * 40, ay - ny * 26 + dy * 40, { rest: 0.3, r: 3.5 });
-    T.spinner = sp;
+  function addSpinner(t, x, y, angle, label) {
+    var sp = { x: x, y: y, r: 15, angle: angle, rot: 0, vel: 0, turns: 0, flash: 0, label: label || 'SPINNER' };
+    var nx = -Math.sin(angle), ny = Math.cos(angle), dx = Math.cos(angle), dy = Math.sin(angle);
+    SS.seg(t.segs, x - dx * 44 + nx * 24, y - dy * 44 + ny * 24, x + dx * 44 + nx * 24, y + dy * 44 + ny * 24, { r: 3, rest: 0.30 });
+    SS.seg(t.segs, x - dx * 44 - nx * 24, y - dy * 44 - ny * 24, x + dx * 44 - nx * 24, y + dy * 44 - ny * 24, { r: 3, rest: 0.30 });
+    t.spinners.push(sp);
+    return sp;
+  }
+  function addHole(t, x, y) {
+    t.hole = { x: x, y: y, r: 17, lit: false, flash: 0, hold: 0, ejectAngle: -70 * D2R };
+    SS.chain(t.segs, SS.arcPoints(x, y, 27, 27, 150 * D2R, 390 * D2R, 18), { r: 3, rest: 0.40 });
+  }
+  function addBonus(t, x, y, label) {
+    var b = { x: x, y: y, r: 10, kind: 'bonus', lit: false, flash: 0, label: label };
+    t.circles.push(b); t.bonusLights.push(b);
+  }
+  function addRail(t, points, color) {
+    SS.chain(t.segs, points, { r: 4, rest: 0.36, kind: 'rail', color: color });
+  }
+  function ramp(t, mouthX, path, name) {
+    var smoothed = SS.smooth(path, 7), lengths = SS.pathLength(smoothed);
+    t.ramp = { path: smoothed, cumulative: lengths.cumulative, length: lengths.total, flash: 0, name: name, mouth: { x1: mouthX - 28, x2: mouthX + 28, y: 405 } };
+    addRail(t, [[mouthX - 43, 468], [mouthX - 24, 405]], t.accent);
+    addRail(t, [[mouthX + 43, 468], [mouthX + 24, 405]], t.accent);
+  }
+  function commonShell(t) {
+    SS.chain(t.segs, SS.arcPoints(215, 258, 185, 160, Math.PI, TAU, 28), { r: 5, rest: 0.38, kind: 'wall' });
+    SS.seg(t.segs, 28, 250, 28, 804, { r: 5, rest: 0.38 });
+    SS.seg(t.segs, 402, 118, 402, 850, { r: 5, rest: 0.38 });
+    /* The lane divider is a one-way gate. A launched ball can leave the
+       plunger lane into the playfield, while balls on the playfield cannot
+       fall back into the lane and become trapped against the outlane wall. */
+    SS.seg(t.segs, 365, 850, 365, 182, { r: 4, rest: 0.32, kind: 'lane', oneWay: { x: -1, y: 0 } });
+    SS.seg(t.segs, 365, 182, 318, 125, { r: 4, rest: 0.32, kind: 'lane' });
+    SS.seg(t.segs, 365, 850, 402, 850, { r: 4, rest: 0.15, kind: 'floor' });
+    SS.chain(t.segs, [[28, 804], [54, 860], [115, 878]], { r: 4, rest: 0.32 });
+    SS.chain(t.segs, [[402, 804], [376, 860], [315, 878]], { r: 4, rest: 0.32 });
+    SS.chain(t.segs, [[54, 690], [112, 742], [104, 760], [46, 715]], { r: 3, rest: 0.30 });
+    SS.chain(t.segs, [[376, 690], [318, 742], [326, 760], [384, 715]], { r: 3, rest: 0.30 });
+    t.slings.push({ points: [[70, 652], [142, 724], [74, 724]], flash: 0 });
+    t.slings.push({ points: [[360, 652], [288, 724], [356, 724]], flash: 0 });
+    for (var si = 0; si < t.slings.length; si++) {
+      var sling = t.slings[si], p = sling.points;
+      SS.seg(t.segs, p[0][0], p[0][1], p[1][0], p[1][1], { r: 5, rest: 0.50, kick: 620, kind: 'sling', sling: sling });
+      SS.seg(t.segs, p[1][0], p[1][1], p[2][0], p[2][1], { r: 4, rest: 0.42, kick: 420, kind: 'sling', sling: sling });
+      SS.seg(t.segs, p[2][0], p[2][1], p[0][0], p[0][1], { r: 4, rest: 0.42, kick: 420, kind: 'sling', sling: sling });
+    }
+    t.kickback = { x: 61, y: 798, r: 24, armed: true, cooldown: 0, flash: 0, uses: 0 };
+    t.flippers.left = { x: 143, y: 810, len: 74, r: 9, restAngle: 29 * D2R, upAngle: -29 * D2R, angle: 29 * D2R, omega: 0, on: false, phase: 'rest' };
+    t.flippers.right = { x: 287, y: 810, len: 74, r: 9, restAngle: 151 * D2R, upAngle: 209 * D2R, angle: 151 * D2R, omega: 0, on: false, phase: 'rest' };
+    /* Later tables add physical chicanes and a second objective layer. */
+    if (t.progression.tier >= 1) addRail(t, [[176, 430], [194, 464], [177, 500]], t.accent);
+    if (t.progression.tier >= 2) addRail(t, [[254, 430], [236, 464], [253, 500]], t.accent);
+    if (t.progression.tier >= 3) addRail(t, [[164, 250], [188, 270]], t.accent);
+  }
+  function buildClassic(t, rnd) {
+    addBumper(t, 128 + rnd() * 8, 264, 0x42e8ff, 120);
+    addBumper(t, 215, 226 + rnd() * 10, 0x62f6bb, 150);
+    addBumper(t, 302 - rnd() * 8, 264, 0xff5c91, 120);
+    addBumper(t, 215, 340, 0xffb84f, 200);
+    addTargetBank(t, 'NORTH', 83, 430, 4, true, 0x62f6bb);
+    addTargetBank(t, 'SOUTH', 346, 490, 4, true, 0xffb84f);
+    addSpinner(t, 214, 493, 0, 'SPIN LANE');
+    ramp(t, 118, [[118, 405], [138, 346], [198, 285], [315, 225], [344, 325], [330, 500], [300, 600]], 'CATHEDRAL RAMP');
+    addHole(t, 215, 158);
+    addBonus(t, 88, 548, 'A'); addBonus(t, 342, 586, 'B'); addBonus(t, 215, 555, 'C'); addBonus(t, 105, 348, 'D'); addBonus(t, 324, 350, 'E');
+    t.signature = { type: 'bonus cascade', label: 'BONUS CASCADE' };
+  }
+  function buildSpeedway(t, rnd) {
+    addBumper(t, 112, 252 + rnd() * 12, 0xffb84f, 140);
+    addBumper(t, 215, 310, 0x42e8ff, 130);
+    addBumper(t, 318, 252 - rnd() * 12, 0xff5c91, 140);
+    addTargetBank(t, 'BRAKE', 92, 515, 5, false, 0xffb84f);
+    addTargetBank(t, 'APEX', 330, 570, 3, true, 0x42e8ff);
+    addSpinner(t, 215, 480, -26 * D2R, 'APEX SPINNER');
+    ramp(t, 307, [[307, 405], [290, 350], [244, 294], [118, 222], [75, 300], [94, 530], [145, 620]], 'SPEEDWAY OVERPASS');
+    addHole(t, 215, 168);
+    addRail(t, [[74, 390], [112, 360], [156, 374]], t.accent);
+    addRail(t, [[356, 430], [318, 390], [274, 404]], t.accent);
+    addBonus(t, 86, 600, 'A'); addBonus(t, 145, 565, 'B'); addBonus(t, 285, 570, 'C'); addBonus(t, 346, 630, 'D'); addBonus(t, 215, 610, 'E');
+    t.signature = { type: 'ramp race', label: 'OVERPASS RACE' };
+  }
+  function buildGauntlet(t, rnd) {
+    addBumper(t, 104, 254, 0xb97cff, 120);
+    addBumper(t, 326, 254, 0x62f6bb, 120);
+    addBumper(t, 215, 370, 0xffb84f, 170);
+    addTargetBank(t, 'VIOLET', 92, 438, 4, true, 0xb97cff);
+    addTargetBank(t, 'MINT', 338, 438, 4, true, 0x62f6bb);
+    addSpinner(t, 144, 320, Math.PI / 2, 'LEFT SPINNER');
+    addSpinner(t, 286, 320, Math.PI / 2, 'RIGHT SPINNER');
+    addSpinner(t, 215, 515, 0, 'CENTER SPINNER');
+    ramp(t, 215, [[215, 405], [215, 345], [255, 290], [350, 240], [366, 380], [330, 555], [278, 630]], 'GAUNTLET CHUTE');
+    addHole(t, 215, 165);
+    addBonus(t, 71, 568, 'A'); addBonus(t, 115, 602, 'B'); addBonus(t, 315, 602, 'C'); addBonus(t, 359, 568, 'D'); addBonus(t, 215, 580, 'E');
+    t.signature = { type: 'spinner storm', label: 'SPINNER STORM' };
+  }
+  function buildBoss(t, rnd) {
+    addBumper(t, 112, 252, 0xff5c91, 160);
+    addBumper(t, 318, 252, 0xff5c91, 160);
+    addBumper(t, 148, 370, 0xffb84f, 160);
+    addBumper(t, 282, 370, 0xffb84f, 160);
+    addTargetBank(t, 'CITADEL', 215, 472, 5, false, 0xff5c91);
+    addTargetBank(t, 'WING', 90, 510, 3, true, 0xffb84f);
+    addSpinner(t, 215, 560, 0, 'BOSS SPINNER');
+    ramp(t, 105, [[105, 405], [136, 345], [200, 300], [310, 320], [346, 420], [320, 555], [268, 640]], 'CITADEL OVERPASS');
+    addHole(t, 215, 170);
+    t.lock = { x: 215, y: 278, r: 20, kind: 'lock', hits: 0, need: 3, flash: 0, locked: false, down: false };
+    t.circles.push(t.lock);
+    addRail(t, SS.arcPoints(215, 278, 42, 42, Math.PI * 0.15, Math.PI * 1.85, 18), t.accent);
+    addBonus(t, 82, 592, 'A'); addBonus(t, 135, 612, 'B'); addBonus(t, 295, 612, 'C'); addBonus(t, 348, 592, 'D'); addBonus(t, 215, 650, 'E');
+    t.signature = { type: 'wizard mode', label: 'CITADEL WIZARD' };
   }
 
-  function addHole(T, ax, ay) {
-    T.hole = { x: ax, y: ay, r: 14, lit: false, flash: 0, hold: 0, ejectAng: 0 };
-    // horseshoe rim so the saucer reads as a target
-    var pts = SS.arcPts(ax, ay, 24, 24, 152 * D2R, 388 * D2R, 12);
-    SS.chain(T.segs, pts, { rest: 0.4, r: 3 });
-  }
-
-  function addRamp(T, rampX, rnd) {
-    var exitRight = rampX <= 195;
-    var s = exitRight ? 1 : -1;
-    var ey = 340;
-    // funnel guides into the ramp mouth
-    SS.seg(T.segs, rampX - 48, ey + 82, rampX - 23, ey + 2, { rest: 0.35, r: 3.5 });
-    SS.seg(T.segs, rampX + 48, ey + 82, rampX + 23, ey + 2, { rest: 0.35, r: 3.5 });
-    var ctrl;
-    if (exitRight) {
-      ctrl = [[rampX, ey], [rampX + 22, 264], [rampX + 76, 194], [296, 134], [356, 246], [364, 402], [348, 512], [316, 574]];
-    } else {
-      ctrl = [[rampX, ey], [rampX - 22, 264], [rampX - 76, 194], [94, 134], [34, 246], [26, 402], [42, 512], [74, 574]];
-    }
-    var path = SS.smooth(ctrl, 7);
-    var len = 0, cum = [0];
-    for (var i = 1; i < path.length; i++) {
-      len += Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]);
-      cum.push(len);
-    }
-    T.ramp = {
-      x: rampX, y: ey, path: path, cum: cum, len: len, exitRight: exitRight,
-      flash: 0, mouth: { x1: rampX - 23, y1: ey, x2: rampX + 23, y2: ey }
+  SS.ARCHETYPES = ARCHETYPES;
+  SS.generateTable = function (seed) {
+    var cleanSeed = (seed >>> 0) || 1, rnd = SS.rng(cleanSeed);
+    var archetype = ARCHETYPES[cleanSeed % ARCHETYPES.length] || ARCHETYPES[0];
+    var t = {
+      seed: cleanSeed, archetype: archetype, name: archetype.name,
+      segs: [], circles: [], bumpers: [], targets: [], banks: [], spinners: [],
+      bonusLights: [], slings: [], flippers: { left: null, right: null },
+      ramp: null, hole: null, lock: null, kickback: null, signature: null, accent: archetype.accent,
+      progression: { tier: archetype.tier, name: 'TIER ' + (archetype.tier + 1), objective: archetype.objective }
     };
-  }
-
-  /* ---------- generator ---------- */
-  SS.genTable = function (seed) {
-    var rnd = SS.rng(seed);
-    var T = {
-      seed: seed, segs: [], circles: [], pops: [], banks: [], posts: [],
-      ramp: null, spinner: null, hole: null
-    };
-    buildShell(T);
-
-    var rampX = [115, 195, 275][Math.floor(rnd() * 3) % 3];
-    addRamp(T, rampX, rnd);
-
-    var used = [{ x: rampX, y: 388, r: 76 }, { x: 90, y: 112, r: 46 }];
-    function free(a, r) {
-      if (a[0] < 44 || a[0] > 346 || a[1] < 118 || a[1] > 486) return false;
-      for (var i = 0; i < used.length; i++) {
-        if (Math.hypot(a[0] - used[i].x, a[1] - used[i].y) < r + used[i].r) return false;
-      }
-      return true;
-    }
-    function shuffle(arr) {
-      var a = arr.slice();
-      for (var i = a.length - 1; i > 0; i--) {
-        var j = Math.floor(rnd() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t;
-      }
-      return a;
-    }
-    var upper = shuffle([[100, 178], [195, 148], [292, 178]]);
-    var mid = shuffle([[78, 316], [312, 316], [195, 288]]);
-    var low = shuffle([[108, 440], [282, 440], [195, 462]]);
-    var pool = upper.concat(mid).concat(low);
-    function take(list, r) {
-      for (var i = 0; i < list.length; i++) {
-        if (free(list[i], r)) { var a = list.splice(i, 1)[0]; used.push({ x: a[0], y: a[1], r: r }); return a; }
-      }
-      for (var j = 0; j < pool.length; j++) {
-        if (free(pool[j], r)) {
-          var b = pool[j];
-          var k = list.indexOf(b); if (k >= 0) list.splice(k, 1);
-          pool.splice(j, 1);
-          used.push({ x: b[0], y: b[1], r: r }); return b;
-        }
-      }
-      return null;
-    }
-    function sync(a) { var i = pool.indexOf(a); if (i >= 0) pool.splice(i, 1); }
-
-    // pop bumper cluster
-    var pa = take(upper, 58); if (pa) { sync(pa); addPops(T, pa[0], pa[1], 3 + Math.floor(rnd() * 2), rnd); }
-    // primary drop bank
-    var ba = take(upper.concat(mid).slice(0), 52);
-    if (ba) {
-      sync(ba); removeFrom(upper, ba); removeFrom(mid, ba);
-      addBank(T, ba[0], ba[1], (rnd() < 0.5 ? 1 : -1) * (20 + rnd() * 45) * D2R, 3 + Math.floor(rnd() * 3), rnd);
-    }
-    // spinner lane
-    var sa = take(mid, 46);
-    if (sa) { sync(sa); addSpinner(T, sa[0], sa[1], (75 + rnd() * 30) * D2R); }
-    // second drop bank
-    var b2 = take(low, 50);
-    if (b2) { sync(b2); addBank(T, b2[0], b2[1], (rnd() < 0.5 ? 1 : -1) * (15 + rnd() * 40) * D2R, 3 + Math.floor(rnd() * 2), rnd); }
-    // mode hole
-    var ha = take(mid.concat(low).concat(upper), 40);
-    if (!ha) ha = [195, 230];
-    else { sync(ha); removeFrom(upper, ha); removeFrom(mid, ha); removeFrom(low, ha); }
-    addHole(T, ha[0], ha[1]);
-    T.hole.ejectAng = (rnd() < 0.5 ? -125 : -55) * D2R;
-
-    // scattered rubber posts
-    var np = 4 + Math.floor(rnd() * 4);
-    for (var i = 0, guard = 0; i < np && guard < 200; guard++) {
-      var px = 50 + rnd() * 296, py = 150 + rnd() * 330;
-      if (!free([px, py], 22)) continue;
-      used.push({ x: px, y: py, r: 20 });
-      var post = { x: px, y: py, r: 6.5, rest: 0.62, kind: 'post', flash: 0 };
-      T.circles.push(post); T.posts.push(post);
-      i++;
-    }
-
-    function removeFrom(list, a) { var i = list.indexOf(a); if (i >= 0) list.splice(i, 1); }
-
-    T.name = tableName(seed);
-    return T;
+    commonShell(t);
+    if (archetype.id === 'classic') buildClassic(t, rnd);
+    else if (archetype.id === 'speedway') buildSpeedway(t, rnd);
+    else if (archetype.id === 'gauntlet') buildGauntlet(t, rnd);
+    else buildBoss(t, rnd);
+    t.glyphSeed = Math.floor(rnd() * 9999);
+    return t;
   };
-
-  var ADJ = ['CRIMSON', 'HOLLOW', 'IRON', 'VOLT', 'GLASS', 'NEON', 'ASH', 'DEEP', 'STORM', 'COBALT', 'RUST', 'PRISM'];
-  var NOUN = ['CARAPACE', 'REEF', 'FORGE', 'SPIRE', 'BASIN', 'CIRCUIT', 'MOLT', 'HARBOR', 'VAULT', 'DRIFT', 'SHELL', 'CRATER'];
-  function tableName(seed) {
-    var r = SS.rng(seed ^ 0x9e37);
-    return ADJ[Math.floor(r() * ADJ.length)] + ' ' + NOUN[Math.floor(r() * NOUN.length)];
-  }
-})(SS);
+}(window.SS));

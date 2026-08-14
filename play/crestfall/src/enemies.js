@@ -103,17 +103,17 @@ class Enemy {
   }
 }
 
-// ---- ACHE (bat) ----
-export class Ache extends Enemy {
+// ---- DUSKWING; aerial scout ----
+export class Duskwing extends Enemy {
   constructor(x, y) {
-    super(x, y, 8, 6, 2, ENEMY_XP.ache);
-    this.type = 'ache';
-    this.ampX = 30 + combatRng.next(`ache#${this.id}.ampX`) * 20;
-    this.ampY = 15 + combatRng.next(`ache#${this.id}.ampY`) * 10;
+    super(x, y, 8, 6, 2, ENEMY_XP.duskwing);
+    this.type = 'duskwing';
+    this.ampX = 30 + combatRng.next(`duskwing#${this.id}.ampX`) * 20;
+    this.ampY = 15 + combatRng.next(`duskwing#${this.id}.ampY`) * 10;
     this.startX = x;
     this.startY = y;
-    this.phase = combatRng.next(`ache#${this.id}.phase`) * Math.PI * 2;
-    this.speed = 0.04 + combatRng.next(`ache#${this.id}.speed`) * 0.02;
+    this.phase = combatRng.next(`duskwing#${this.id}.phase`) * Math.PI * 2;
+    this.speed = 0.04 + combatRng.next(`duskwing#${this.id}.speed`) * 0.02;
     this.chaseMode = false;
     this.damageAmount = 1;
   }
@@ -121,7 +121,7 @@ export class Ache extends Enemy {
   _aiUpdate(player, platforms, scene) {
     const dx = player.x - this.x;
     const dy = player.y - this.y;
-    const dist = Math.sqrt(dx*dx + dy*dy);
+    const dist = Math.max(0.0001, Math.sqrt(dx*dx + dy*dy));
 
     if (dist < 80) {
       // Chase player
@@ -155,10 +155,10 @@ export class Ache extends Enemy {
 }
 
 // ---- BONEWARD (skeleton warrior) ----
-export class Stalfos extends Enemy {
+export class Boneward extends Enemy {
   constructor(x, y, variant = 'normal') {
-    super(x, y, 12, 16, variant === 'hard' ? 4 : 2, ENEMY_XP.stalfos);
-    this.type = 'stalfos';
+    super(x, y, 12, 16, variant === 'hard' ? 4 : 2, ENEMY_XP.boneward);
+    this.type = 'boneward';
     this.variant = variant;
     this.walkSpeed = 0.8;
     this.jumpCooldown = 0;
@@ -180,9 +180,9 @@ export class Stalfos extends Enemy {
 
     // Decide to block
     if (this.blockTimer <= 0 && dist < 60) {
-      if (combatRng.next(`stalfos#${this.id}.blockDecision`) < 0.01) {
+      if (combatRng.next(`boneward#${this.id}.blockDecision`) < 0.01) {
         this.blocking = true;
-        this.blockTimer = 40 + Math.floor(combatRng.next(`stalfos#${this.id}.blockDuration`) * 40);
+        this.blockTimer = 40 + Math.floor(combatRng.next(`boneward#${this.id}.blockDuration`) * 40);
       }
     } else if (this.blockTimer <= 0) {
       this.blocking = false;
@@ -202,7 +202,7 @@ export class Stalfos extends Enemy {
 
     // Jump over pits or to reach player
     if (this.onGround && this.jumpCooldown <= 0 && dist < 80) {
-      if (combatRng.next(`stalfos#${this.id}.jumpDecision`) < 0.015) {
+      if (combatRng.next(`boneward#${this.id}.jumpDecision`) < 0.015) {
         this.vy = -4;
         this.onGround = false;
         this.jumpCooldown = 90;
@@ -216,7 +216,7 @@ export class Stalfos extends Enemy {
 
   takeDamage(amount, attackType = 'mid') {
     if (this.iframes > 0) return false;
-    // Stalfos blocks mid attacks if blocking
+    // Boneward blocks mid attacks if blocking
     if (this.blocking && attackType === 'mid') return false;
     // Hard variant also blocks low
     if (this.variant === 'hard' && this.blocking && attackType === 'low') return false;
@@ -230,10 +230,10 @@ export class Stalfos extends Enemy {
 }
 
 // ---- HEXWEAVER ----
-export class Wizzrobe extends Enemy {
+export class Hexweaver extends Enemy {
   constructor(x, y) {
-    super(x, y, 10, 16, 3, ENEMY_XP.wizzrobe);
-    this.type = 'wizzrobe';
+    super(x, y, 10, 16, 3, ENEMY_XP.hexweaver);
+    this.type = 'hexweaver';
     this.visible = true;
     this.teleportCooldown = 120;
     this.shootCooldown = 60;
@@ -256,18 +256,18 @@ export class Wizzrobe extends Enemy {
     if (this.teleportCooldown <= 0) {
       this.visible = false;
       // Teleport to random position near scene center
-      this.x = 30 + combatRng.next(`wizzrobe#${this.id}.teleportX`) * (scene.w - 60);
-      this.baseY = 80 + combatRng.next(`wizzrobe#${this.id}.teleportY`) * 60;
+      this.x = 30 + combatRng.next(`hexweaver#${this.id}.teleportX`) * (scene.w - 60);
+      this.baseY = 80 + combatRng.next(`hexweaver#${this.id}.teleportY`) * 60;
       this.y = this.baseY;
       this.visible = true;
-      this.teleportCooldown = 120 + Math.floor(combatRng.next(`wizzrobe#${this.id}.teleportCooldown`) * 60);
+      this.teleportCooldown = 120 + Math.floor(combatRng.next(`hexweaver#${this.id}.teleportCooldown`) * 60);
     }
 
     // Shoot magic beam
     if (this.shootCooldown <= 0 && this.visible) {
       const dx = player.x - this.x;
       const dy = player.y - this.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
+      const dist = Math.max(0.0001, Math.sqrt(dx*dx + dy*dy));
       const spd = 2;
       this.projectiles.push({
         x: this.x + (this.facing === 1 ? this.w : -8),
@@ -290,13 +290,13 @@ export class Wizzrobe extends Enemy {
   }
 
   _physics(platforms) {
-    // Wizzrobe floats - no normal physics
+    // Hexweaver floats - no normal physics
     this.x += this.vx;
   }
 
   takeDamage(amount, attackType = 'mid') {
     if (this.iframes > 0) return false;
-    // MIRROR rune would affect some arcane foes; greybox attacks stay hittable.
+    // MIRROR rune reflects arcane projectiles in SideView; direct strikes remain hittable.
     this.hp -= amount;
     this.iframes = 20;
     if (this.hp <= 0) { this.hp = 0; this.alive = false; }
@@ -305,10 +305,10 @@ export class Wizzrobe extends Enemy {
 }
 
 // ---- IRONWRAITH ----
-export class Ironknuckle extends Enemy {
+export class Ironwraith extends Enemy {
   constructor(x, y, color = 'gray') {
-    super(x, y, 14, 16, 6, ENEMY_XP.ironknuckle);
-    this.type = 'ironknuckle';
+    super(x, y, 14, 16, 6, ENEMY_XP.ironwraith);
+    this.type = 'ironwraith';
     this.color = color;
     this.walkSpeed = 0.6;
     this.attackCooldown = 0;
@@ -340,7 +340,7 @@ export class Ironknuckle extends Enemy {
       this.blockClearTimer--;
       if (this.blockClearTimer === 0) this.blocking = false;
     }
-    if (combatRng.next(`ironknuckle#${this.id}.blockDecision`) < this.blockChance) {
+    if (combatRng.next(`ironwraith#${this.id}.blockDecision`) < this.blockChance) {
       this.blocking = true;
       this.blockClearTimer = 90;
     }
@@ -357,7 +357,7 @@ export class Ironknuckle extends Enemy {
       this.attackCooldown = 60;
       this.vx = 0;
       // Orange throws sword
-      if (this.color === 'orange' && combatRng.next(`ironknuckle#${this.id}.throwDecision`) < 0.3) {
+      if (this.color === 'orange' && combatRng.next(`ironwraith#${this.id}.throwDecision`) < 0.3) {
         this.projectiles.push({
           x: this.x + (this.facing === 1 ? this.w : -12),
           y: this.y + 4,
@@ -398,10 +398,10 @@ export class Ironknuckle extends Enemy {
 }
 
 // ---- BRINECLAW ----
-export class Lizalfos extends Enemy {
+export class Brineclaw extends Enemy {
   constructor(x, y) {
-    super(x, y, 12, 16, 4, ENEMY_XP.lizalfos);
-    this.type = 'lizalfos';
+    super(x, y, 12, 16, 4, ENEMY_XP.brineclaw);
+    this.type = 'brineclaw';
     this.walkSpeed = 1.2;
     this.jumpCooldown = 0;
     this.damageAmount = 3;
@@ -456,11 +456,11 @@ export class Lizalfos extends Enemy {
   }
 }
 
-// ---- GORIYA ----
-export class Goriya extends Enemy {
+// ---- CRESCENT ----
+export class Crescent extends Enemy {
   constructor(x, y) {
-    super(x, y, 12, 16, 3, ENEMY_XP.goriya);
-    this.type = 'goriya';
+    super(x, y, 12, 16, 3, ENEMY_XP.crescent);
+    this.type = 'crescent';
     this.walkSpeed = 0.9;
     this.damageAmount = 2;
     this.throwCooldown = 90;
@@ -502,7 +502,7 @@ export class Goriya extends Enemy {
       } else {
         const rdx = this.x - b.x;
         const rdy = this.y + 8 - b.y;
-        const rdist = Math.sqrt(rdx*rdx + rdy*rdy);
+        const rdist = Math.max(0.0001, Math.sqrt(rdx*rdx + rdy*rdy));
         if (rdist < 8) {
           this.boomerang = null;
         } else {
@@ -525,10 +525,10 @@ export class Goriya extends Enemy {
 }
 
 // ---- RAVENHORSE (guardian 1) ----
-export class Horsehead extends Enemy {
+export class Ravenhorse extends Enemy {
   constructor(x, y) {
-    super(x, y, 24, 24, 16, ENEMY_XP.horsehead);
-    this.type = 'horsehead';
+    super(x, y, 24, 24, 16, ENEMY_XP.ravenhorse);
+    this.type = 'ravenhorse';
     this.walkSpeed = 0.5;
     this.damageAmount = 4;
     this.phase = 0;
@@ -567,23 +567,23 @@ export class Horsehead extends Enemy {
     }
 
     // Jump in phase 2
-    if (this.phase === 1 && this.onGround && combatRng.next(`horsehead#${this.id}.jumpDecision`) < 0.008) {
+    if (this.phase === 1 && this.onGround && combatRng.next(`ravenhorse#${this.id}.jumpDecision`) < 0.008) {
       this.vy = -5;
     }
   }
 
   takeDamage(amount, attackType = 'mid') {
-    // Horsehead: head is weak spot (up attacks)
+    // Ravenhorse: head is weak spot (up attacks)
     if (attackType === 'mid' || attackType === 'low') return false; // body blocked
     return super.takeDamage(amount, attackType);
   }
 }
 
 // ---- CROWNBACK (guardian 2) ----
-export class Helmethead extends Enemy {
+export class Crownback extends Enemy {
   constructor(x, y) {
-    super(x, y, 20, 24, 24, ENEMY_XP.helmethead);
-    this.type = 'helmethead';
+    super(x, y, 20, 24, 24, ENEMY_XP.crownback);
+    this.type = 'crownback';
     this.walkSpeed = 0.7;
     this.damageAmount = 5;
     this.phase = 0;
@@ -605,7 +605,7 @@ export class Helmethead extends Enemy {
         x: this.x + (this.facing === 1 ? this.w : -8),
         y: this.y + 4,
         vx: this.facing * 2,
-        vy: combatRng.next(`helmethead#${this.id}.fireballVy`) * 2 - 1,
+        vy: combatRng.next(`crownback#${this.id}.fireballVy`) * 2 - 1,
         w: 8, h: 8, damage: 3,
       });
       this.fireTimer = 60 - this.phase * 15;
@@ -620,24 +620,150 @@ export class Helmethead extends Enemy {
   }
 
   takeDamage(amount, attackType = 'mid') {
-    if (!this.helmetOff && attackType !== 'up') {
-      // Head can only be hit from above until helmet is off
+    if (!this.helmetOff) {
       if (attackType === 'up') {
         this.headShots++;
         if (this.headShots >= 3) this.helmetOff = true;
         return super.takeDamage(amount, attackType);
       }
+      // The plated body is sealed until three high strikes break the crown.
       return false;
     }
     return super.takeDamage(amount, attackType);
   }
 }
 
+// ---- STONEVEX (guardian 4) ----
+export class Stonevex extends Enemy {
+  constructor(x, y) {
+    super(x, y, 28, 24, 34, 500);
+    this.type = 'stonevex';
+    this.walkSpeed = 0.45;
+    this.damageAmount = 6;
+    this.phase = 0;
+    this.attackCooldown = 50;
+    this.attackTimer = 0;
+    this.mace = null;
+    this.projectiles = [];
+  }
+
+  _aiUpdate(player, _platforms, scene) {
+    const dx = player.x - this.x;
+    const dist = Math.abs(dx);
+    this.attackCooldown = Math.max(0, this.attackCooldown - 1);
+    this.attackTimer = Math.max(0, this.attackTimer - 1);
+    if (this.hp < this.maxHp * 0.5) this.phase = 1;
+    this.vx = dist > 30 ? (dx > 0 ? 1 : -1) * this.walkSpeed * (1 + this.phase * 0.4) : 0;
+    if (dist < 58 && this.attackCooldown <= 0) {
+      this.attackCooldown = this.phase ? 42 : 58;
+      this.attackTimer = 18;
+      this.mace = { x: this.x + (this.facing === 1 ? this.w : -18), y: this.y + 4, w: 18, h: 14, damage: 6, timer: 18 };
+      if (this.phase) {
+        this.projectiles.push({ x: this.x + this.w / 2, y: this.y + 10, vx: this.facing * 2.2, vy: -1.2, w: 8, h: 8, damage: 4, type: 'rock' });
+      }
+    }
+    if (this.mace) {
+      this.mace.timer--;
+      this.mace.x = this.x + (this.facing === 1 ? this.w : -18);
+      if (this.mace.timer <= 0) this.mace = null;
+    }
+    this.projectiles = this.projectiles.filter((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.06;
+      return p.x > -16 && p.x < scene.w + 16 && p.y < scene.h + 16;
+    });
+  }
+}
+
+// ---- IRONROOT (guardian 5) ----
+export class Ironroot extends Enemy {
+  constructor(x, y) {
+    super(x, y, 26, 26, 40, 600);
+    this.type = 'ironroot';
+    this.walkSpeed = 0.35;
+    this.damageAmount = 7;
+    this.phase = 0;
+    this.shootCooldown = 65;
+    this.projectiles = [];
+    this.blocking = false;
+  }
+
+  _aiUpdate(player, _platforms, scene) {
+    const dx = player.x - this.x;
+    const dist = Math.abs(dx);
+    this.shootCooldown = Math.max(0, this.shootCooldown - 1);
+    if (this.hp < this.maxHp * 0.5) this.phase = 1;
+    this.blocking = this.timer % (this.phase ? 88 : 112) < 24;
+    this.vx = this.blocking || dist < 24 ? 0 : (dx > 0 ? 1 : -1) * this.walkSpeed;
+    if (this.shootCooldown <= 0) {
+      const dy = player.y - this.y;
+      const length = Math.max(0.0001, Math.hypot(dx, dy));
+      this.projectiles.push({
+        x: this.x + this.w / 2, y: this.y + 8,
+        vx: dx / length * (this.phase ? 2.6 : 2), vy: dy / length * (this.phase ? 2.6 : 2),
+        w: 8, h: 8, damage: 5, type: 'magic',
+      });
+      this.shootCooldown = this.phase ? 50 : 78;
+    }
+    this.projectiles = this.projectiles.filter((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      return p.x > -16 && p.x < scene.w + 16 && p.y > -16 && p.y < scene.h + 16;
+    });
+  }
+
+  takeDamage(amount, attackType = 'mid') {
+    if (this.blocking && attackType !== 'up') return false;
+    return super.takeDamage(amount, attackType);
+  }
+}
+
+// ---- TIDEBANE (guardian 6) ----
+export class Tidebane extends Enemy {
+  constructor(x, y) {
+    super(x, y, 24, 24, 46, 700);
+    this.type = 'tidebane';
+    this.walkSpeed = 0.8;
+    this.damageAmount = 7;
+    this.phase = 0;
+    this.attackCooldown = 45;
+    this.attackTimer = 0;
+    this.fireballs = [];
+    this.mace = null;
+  }
+
+  _aiUpdate(player, _platforms, scene) {
+    const dx = player.x - this.x;
+    const dist = Math.abs(dx);
+    this.attackCooldown = Math.max(0, this.attackCooldown - 1);
+    if (this.hp < this.maxHp * 0.5) this.phase = 1;
+    this.vx = dist > 32 ? (dx > 0 ? 1 : -1) * this.walkSpeed * (1 + this.phase * 0.35) : 0;
+    if (this.attackCooldown <= 0) {
+      this.attackCooldown = this.phase ? 32 : 52;
+      this.attackTimer = 20;
+      this.mace = { x: this.x + (this.facing === 1 ? this.w : -16), y: this.y - 2, w: 16, h: 18, damage: 7, timer: 20 };
+      this.fireballs.push({ x: this.x + this.w / 2, y: this.y + 6, vx: this.facing * 2.4, vy: -0.6, w: 8, h: 8, damage: 4, type: 'water' });
+    }
+    if (this.mace) {
+      this.mace.timer--;
+      this.mace.x = this.x + (this.facing === 1 ? this.w : -16);
+      if (this.mace.timer <= 0) this.mace = null;
+    }
+    this.fireballs = this.fireballs.filter((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.04;
+      return p.x > -16 && p.x < scene.w + 16 && p.y < scene.h + 16;
+    });
+  }
+}
+
 // ---- UMBRAKIN (final guardian) ----
-export class DarkLink extends Enemy {
+export class Umbrakin extends Enemy {
   constructor(x, y) {
     super(x, y, 8, 16, 50, 1000);
-    this.type = 'darklink';
+    this.type = 'umbrakin';
     this.damageAmount = 8;
     this.walkSpeed = 2;
     this.attackTimer = 0;
@@ -673,7 +799,7 @@ export class DarkLink extends Enemy {
     }
 
     // Jump
-    if (this.onGround && this.jumpCooldown <= 0 && combatRng.next(`darklink#${this.id}.jumpDecision`) < 0.01 * (1 + this.phase)) {
+    if (this.onGround && this.jumpCooldown <= 0 && combatRng.next(`umbrakin#${this.id}.jumpDecision`) < 0.01 * (1 + this.phase)) {
       this.vy = -5;
       this.jumpCooldown = 60;
     }
@@ -689,34 +815,26 @@ export class DarkLink extends Enemy {
   }
 }
 
-// Enemy type ids the factory actually implements. Anything else (including
-// palace-metadata boss ids that have no class here) hits the R7 fallback
-// below, explicitly, rather than silently.
+// Enemy type ids implemented by the factory.
 const IMPLEMENTED_TYPES = new Set([
-  'ache', 'stalfos', 'wizzrobe', 'ironknuckle', 'lizalfos', 'goriya',
-  'horsehead', 'helmethead', 'darklink',
+  'duskwing', 'boneward', 'hexweaver', 'ironwraith', 'brineclaw', 'crescent',
+  'ravenhorse', 'crownback', 'stonevex', 'ironroot', 'tidebane', 'umbrakin',
 ]);
 
-// Some keep metadata references guardians without dedicated classes. The
-// factory keeps that fallback explicit and tags the spawned instance.
 export function spawnEnemy(type, x, y, opts = {}) {
-  if (!IMPLEMENTED_TYPES.has(type)) {
-    console.warn(`[guardian-fallback] spawnEnemy: type "${type}" is not implemented; ` +
-      'falling back to the default guardian.');
-    const fallback = new Stalfos(x, y);
-    fallback.isFallback = true;
-    fallback.requestedType = type;
-    return fallback;
-  }
+  if (!IMPLEMENTED_TYPES.has(type)) throw new Error(`Unknown enemy type: ${type}`);
   switch (type) {
-    case 'ache':        return new Ache(x, y);
-    case 'stalfos':     return new Stalfos(x, y, opts.variant);
-    case 'wizzrobe':    return new Wizzrobe(x, y);
-    case 'ironknuckle': return new Ironknuckle(x, y, opts.color);
-    case 'lizalfos':    return new Lizalfos(x, y);
-    case 'goriya':      return new Goriya(x, y);
-    case 'horsehead':   return new Horsehead(x, y);
-    case 'helmethead':  return new Helmethead(x, y);
-    case 'darklink':    return new DarkLink(x, y);
+    case 'duskwing':        return new Duskwing(x, y);
+    case 'boneward':     return new Boneward(x, y, opts.variant);
+    case 'hexweaver':    return new Hexweaver(x, y);
+    case 'ironwraith': return new Ironwraith(x, y, opts.color);
+    case 'brineclaw':    return new Brineclaw(x, y);
+    case 'crescent':      return new Crescent(x, y);
+    case 'ravenhorse':   return new Ravenhorse(x, y);
+    case 'crownback':  return new Crownback(x, y);
+    case 'stonevex':  return new Stonevex(x, y);
+    case 'ironroot':  return new Ironroot(x, y);
+    case 'tidebane':  return new Tidebane(x, y);
+    case 'umbrakin':  return new Umbrakin(x, y);
   }
 }

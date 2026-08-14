@@ -1,0 +1,16 @@
+{
+  "name": "Aftergate",
+  "short_name": "Aftergate",
+  "description": "Steer a marching squad through recruit gates, then garrison the wall and hold ten waves.",
+  "start_url": "/play/aftergate/",
+  "scope": "/play/aftergate/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b0d12",
+  "theme_color": "#0b0d12",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

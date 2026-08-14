@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 58" role="img" aria-label="painted kicker ramp">
+  <path d="M2 54H158L158 44L126 42L94 36L62 26L30 14L2 4Z" fill="#171a2a" opacity=".66"/>
+  <path d="M2 48H158L158 38L126 36L94 30L62 20L30 8L2 0Z" fill="#63718d"/>
+  <path d="M2 0L30 8L62 20L94 30L126 36L158 38" fill="none" stroke="#f3fbff" stroke-width="5" opacity=".8"/>
+  <path d="M22 10L46 18M58 22L82 29M94 33L118 38M130 40L150 41" stroke="#6eebff" stroke-width="3" opacity=".7"/>
+</svg>

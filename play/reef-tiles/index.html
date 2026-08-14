@@ -1,24 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><base href="/play/reef-tiles/">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#04141c">
-<title>Reef Tiles</title>
-<style>
-  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#04141c;
-    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none;}
-  #stage{position:fixed;inset:0;touch-action:none;}
-  canvas{display:block;width:100%;height:100%;touch-action:none;}
-</style>
+<head>
+  <base href="/play/reef-tiles/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#071827">
+  <meta name="description" content="Reef Tiles, a seeded match-3 aquarium adventure.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon512.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <title>Reef Tiles</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #071827; }
+    body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    #game { width: 100%; height: 100%; min-width: 0; min-height: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+    canvas { display: block; touch-action: none; }
+  </style>
+  <script>
+    window.__rt = window.__rt || { state: { mode: 'boot', level: 1, pearls: 0, comfort: 0, tank: {} }, forceLevel: 0, forceComfort: 0 };
+    window.__rt.state = window.__rt.state || { mode: 'boot', level: 1, pearls: 0, comfort: 0, tank: {} };
+  </script>
 </head>
 <body>
-<div id="stage"><canvas id="cv"></canvas></div>
-<script src="js/core.js"></script>
-<script src="js/match3.js"></script>
-<script src="js/tank.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/main.js"></script>
+  <div id="game" aria-label="Reef Tiles game"></div>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

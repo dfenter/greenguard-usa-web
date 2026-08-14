@@ -1,0 +1,14 @@
+{
+  "name": "Scrapper Squad",
+  "short_name": "Scrapper Squad",
+  "start_url": "/play/scrapper-squad/",
+  "scope": "/play/scrapper-squad/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#07111c",
+  "theme_color": "#07111c",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

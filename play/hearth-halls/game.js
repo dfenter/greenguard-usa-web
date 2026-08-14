@@ -1,1188 +1,1373 @@
-(() => {
+(function () {
   'use strict';
 
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  const srStatus = document.getElementById('sr-status');
-
-  const C = {
-    ink: '#172235',
-    navy: '#101827',
-    navy2: '#1b2b43',
-    paper: '#fff7e9',
-    cream: '#f3e6cf',
-    muted: '#9eb0bf',
-    coral: '#ef7559',
-    coralDark: '#b74f45',
-    teal: '#2cb5ad',
-    tealDark: '#157a7c',
-    gold: '#f6bf55',
-    purple: '#8a70df',
-    green: '#71c77d',
-    red: '#e45c63',
-    shadow: 'rgba(5, 12, 24, .28)'
-  };
-  const TILE = [
-    { fill: '#ef7559', dark: '#b74f45', light: '#ffb076' },
-    { fill: '#32b8b1', dark: '#147f80', light: '#8be0c9' },
-    { fill: '#f6bf55', dark: '#b77a35', light: '#ffe99d' },
-    { fill: '#8a70df', dark: '#5946a5', light: '#c8baff' },
-    { fill: '#71c77d', dark: '#358a59', light: '#b4e59c' },
-    { fill: '#e45c8b', dark: '#a43f6e', light: '#ffabc4' }
-  ];
-  const STYLES = [
-    { name: 'COZY', color: C.coral, sub: 'soft + warm' },
-    { name: 'GRAND', color: C.gold, sub: 'bold + polished' },
-    { name: 'QUIRKY', color: C.teal, sub: 'odd + bright' }
-  ];
-  const ROOMS = [
-    { name: 'Cinderwick Nook', wall: '#ecd7bf', floor: '#a96d55', trim: '#d95f4d', npcA: '#e88268', npcB: '#5bb9ad' },
-    { name: 'Mossbell Parlor', wall: '#d8e1ca', floor: '#758c6a', trim: '#e6af4e', npcA: '#806bd2', npcB: '#e58d56' }
-  ];
-  const FIXTURES = ['HEARTH', 'RUG', 'TABLE', 'LAMP', 'SHELF', 'WINDOW'];
-  const COMMENTS = [
-    {
-      name: 'Marn', color: '#ef876b', lines: [
-        'Soft edges. I can breathe in here.',
-        'At last, a ceiling-worthy entrance.',
-        'The crooked bits know my name.'
-      ]
-    },
-    {
-      name: 'Pip', color: '#63c5b8', lines: [
-        'I claim the amber corner.',
-        'Do we bow to the furniture?',
-        'Excellent. Nothing matches on purpose.'
-      ]
-    }
-  ];
-  const LEVELS = [
-    { seed: 7919, moves: 19, goal: 240 },
-    { seed: 15431, moves: 20, goal: 280 },
-    { seed: 23887, moves: 21, goal: 330 },
-    { seed: 31271, moves: 22, goal: 390 },
-    { seed: 40111, moves: 23, goal: 450 },
-    { seed: 48799, moves: 24, goal: 520 },
-    { seed: 57149, moves: 22, goal: 500 },
-    { seed: 65063, moves: 23, goal: 560 },
-    { seed: 73471, moves: 24, goal: 620 },
-    { seed: 81929, moves: 25, goal: 690 },
-    { seed: 90121, moves: 26, goal: 760 },
-    { seed: 98317, moves: 27, goal: 840 }
-  ];
+  const SYSTEM_FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   const COLS = 7;
   const ROWS = 8;
-  const CELL_COUNT = COLS * ROWS;
-  const MAX_PARTICLES = 180;
-  const STORAGE_KEY = 'hearth-halls-v1';
-
-  let W = 390;
-  let H = 700;
-  let backingScale = 1;
-  let state = 'intro';
-  let board = [];
-  let rngState = 1;
-  let currentLevel = 0;
-  let levelScore = 0;
-  let totalScore = 0;
-  let bestScore = 0;
-  let moves = 0;
-  let goal = 0;
-  let selectedCell = null;
-  let cursor = { col: 3, row: 4 };
-  let decorFocus = 0;
-  let decorStyle = -1;
-  let roomTab = 0;
-  let boardAnimating = 0;
-  let shake = 0;
-  let flash = 0;
-  let message = 'Make three sparks. Every match helps a room.';
-  let messageAge = 0;
-  let lastFrame = 0;
-  let audioContext = null;
-  let orientationBlocked = false;
-  let saveStage = 'level';
-  let choices = blankChoices();
-  const particles = [];
-  const activePointers = new Map();
-  const pressedButtonPointers = new Map();
-  const heldKeys = new Set();
-  const queuedActions = [];
-  const pendingTimers = new Set();
-
-  function blankChoices() {
-    return [Array(6).fill(-1), Array(6).fill(-1)];
-  }
-
-  function finiteInt(value, min, max, fallback) {
-    return Number.isFinite(value) ? Math.max(min, Math.min(max, Math.floor(value))) : fallback;
-  }
-
-  function validStyle(value) {
-    return Number.isInteger(value) && value >= 0 && value < 3 ? value : -1;
-  }
-
-  function readSave() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (typeof raw !== 'string' || raw.length === 0) return null;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-      const nextChoices = blankChoices();
-      if (Array.isArray(parsed.choices)) {
-        for (let r = 0; r < 2; r += 1) {
-          if (!Array.isArray(parsed.choices[r])) continue;
-          for (let s = 0; s < 6; s += 1) nextChoices[r][s] = validStyle(parsed.choices[r][s]);
-        }
-      }
-      const stage = parsed.stage === 'decorate' || parsed.stage === 'commentary' ? parsed.stage : 'level';
-      return {
-        choices: nextChoices,
-        currentLevel: finiteInt(parsed.currentLevel, 0, LEVELS.length, 0),
-        bestScore: finiteInt(parsed.bestScore, 0, 9999999, 0),
-        totalScore: finiteInt(parsed.totalScore, 0, 9999999, 0),
-        stage
-      };
-    } catch (error) {
-      return null;
+  const CELLS = COLS * ROWS;
+  const SAVE_FALLBACK = {
+    choices: [Array(6).fill(-1), Array(6).fill(-1)],
+    homeItems: [Array(6).fill(-1), Array(6).fill(-1)],
+    comfortInventory: [],
+    comfortSeen: Array(6).fill(false),
+    best: Array(12).fill(0),
+    medals: Array(12).fill(0),
+    completed: Array(12).fill(false),
+    totalScore: 0,
+    lastLevel: 0
+  };
+  const COLORS = {
+    ink: 0x182238,
+    board: 0x243453,
+    cell: 0x314567,
+    cellEdge: 0x5d7294,
+    paper: 0xfff8ee,
+    paperSoft: 0xf3e4cf,
+    wood: 0xa86f4c,
+    woodDark: 0x704333,
+    brass: 0xf3bc50,
+    coral: 0xec6b62,
+    leaf: 0x4f9d69,
+    water: 0x5db7d8,
+    shadow: 0x121a2b,
+    plum: 0x9a7cf3,
+    accent: 0x4cc0b5
+  };
+  const TILE_DEFS = [
+    { color: 0xf25c68, edge: 0xb83f51, symbol: 'seed' },
+    { color: 0xf7c948, edge: 0xc58e2e, symbol: 'sun' },
+    { color: 0x5bcb77, edge: 0x328d5b, symbol: 'leaf' },
+    { color: 0x38a8de, edge: 0x217399, symbol: 'drop' },
+    { color: 0x9a7cf3, edge: 0x654fb4, symbol: 'star' },
+    { color: 0xf29a4a, edge: 0xb9672e, symbol: 'flame' }
+  ];
+  const STYLES = [
+    { name: 'Cozy', color: 0xec6b62, light: 0xffc19d, sub: 'soft layers' },
+    { name: 'Grand', color: 0xf3bc50, light: 0xffec9f, sub: 'brass glow' },
+    { name: 'Quirky', color: 0x4cc0b5, light: 0xa3ead8, sub: 'bright oddities' }
+  ];
+  const COMFORT_ITEMS = [
+    { name: 'Copper kettle', mark: 'K', color: 0xd58b4e, rooms: [0, 1], slots: [0, 5] },
+    { name: 'Wool throw', mark: 'W', color: 0xd96d6d, rooms: [0, 1], slots: [1, 3] },
+    { name: 'Pressed fern', mark: 'F', color: 0x63a875, rooms: [0, 1], slots: [2, 4] },
+    { name: 'Blue crock', mark: 'C', color: 0x5da7c9, rooms: [0, 1], slots: [0, 2] },
+    { name: 'Baker tin', mark: 'T', color: 0xe0ae4b, rooms: [0, 1], slots: [2, 4] },
+    { name: 'Little bell', mark: 'B', color: 0x9b7ee8, rooms: [0, 1], slots: [3, 5] }
+  ];
+  const ROOMS = [
+    {
+      name: 'Cinderwick Living Room', short: 'Living room', kind: 'living',
+      wall: 0xe9d1ba, wallDeep: 0xd4ad8f, floor: 0xa96d55, trim: 0xd65f50,
+      marn: 0xe98468, pip: 0x58b7aa
+    },
+    {
+      name: 'Mossbell Kitchen', short: 'Kitchen', kind: 'kitchen',
+      wall: 0xd5e2d3, wallDeep: 0xa8c4ad, floor: 0x758c6a, trim: 0xe0ae4b,
+      marn: 0x7c6bd1, pip: 0xe38e57
     }
-  }
+  ];
+  const FIXTURES = ['Hearth', 'Rug', 'Table', 'Lamp', 'Shelf', 'Window'];
+  const LEVELS = [
+    { seed: 7919, moves: 18, goal: 250, bronze: 0, silver: 5, gold: 8, bonus: 2, drops: 1 },
+    { seed: 15431, moves: 19, goal: 340, bronze: 0, silver: 5, gold: 8, bonus: 1, drops: 0 },
+    { seed: 23887, moves: 20, goal: 410, bronze: 0, silver: 5, gold: 8, bonus: 1, drops: 0 },
+    { seed: 31271, moves: 19, goal: 490, bronze: 0, silver: 5, gold: 8, bonus: 2, drops: 0 },
+    { seed: 40111, moves: 21, goal: 570, bronze: 0, silver: 6, gold: 9, bonus: 1, drops: 0 },
+    { seed: 48799, moves: 22, goal: 650, bronze: 0, silver: 6, gold: 9, bonus: 1, drops: 0 },
+    { seed: 57149, moves: 20, goal: 730, bronze: 0, silver: 5, gold: 8, bonus: 2, drops: 0 },
+    { seed: 65063, moves: 22, goal: 810, bronze: 0, silver: 6, gold: 9, bonus: 1, drops: 0 },
+    { seed: 73471, moves: 23, goal: 900, bronze: 0, silver: 6, gold: 9, bonus: 1, drops: 0 },
+    { seed: 81929, moves: 22, goal: 1000, bronze: 0, silver: 6, gold: 9, bonus: 2, drops: 0 },
+    { seed: 90121, moves: 24, goal: 1110, bronze: 0, silver: 7, gold: 10, bonus: 1, drops: 0 },
+    { seed: 98317, moves: 26, goal: 1230, bronze: 0, silver: 7, gold: 10, bonus: 1, drops: 0 }
+  ];
+  const REACTIONS = [
+    [
+      ['Marn cups the new fire. "Now the room has a heartbeat."', 'Marn circles the hearth. "Warmth with a little ceremony."', 'Marn grins at the crooked firewood. "That is exactly the right amount of strange."'],
+      ['Pip settles on the soft rug. "I am keeping this landing spot."', 'Pip salutes the rug. "A grand entrance for very small feet."', 'Pip tries the rug sideways. "It is a map. I knew it."']
+    ],
+    [
+      ['Marn smooths the new counter. "Good work should have a place to land."', 'Marn taps the counter twice. "We can host a proper feast now."', 'Marn finds the secret drawer. "Aha. The room has an alibi."'],
+      ['Pip tests the new table. "One chair for me, two for snacks."', 'Pip climbs the table and bows. "The kitchen has a stage."', 'Pip spins a spoon. "Dinner can be delightfully off schedule."']
+    ]
+  ];
+  const AUDIO = {
+    'music-home': 'assets/audio/music-home.mp3',
+    'music-board': 'assets/audio/music-board.mp3',
+    tap: 'assets/audio/tap.mp3',
+    select: 'assets/audio/select.mp3',
+    invalid: 'assets/audio/invalid.mp3',
+    'swap-tick': 'assets/audio/swap-tick.mp3',
+    'match-chime': 'assets/audio/match-chime.mp3',
+    cascade: 'assets/audio/cascade.mp3',
+    hint: 'assets/audio/hint.mp3',
+    goal: 'assets/audio/goal.mp3',
+    'reveal-sting': 'assets/audio/reveal-sting.mp3',
+    'character-vocal': 'assets/audio/character-vocal.mp3',
+    'room-complete': 'assets/audio/room-complete.mp3',
+    'ui-confirm': 'assets/audio/ui-confirm.mp3',
+    'comfort-place': 'assets/audio/comfort-place.mp3'
+  };
+  const AUDIO_NAMES = Object.keys(AUDIO);
 
-  function writeSave(stage) {
-    try {
-      const cleanChoices = blankChoices();
-      for (let r = 0; r < 2; r += 1) {
-        for (let s = 0; s < 6; s += 1) cleanChoices[r][s] = validStyle(choices[r][s]);
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        choices: cleanChoices,
-        currentLevel: finiteInt(currentLevel, 0, LEVELS.length, 0),
-        bestScore: finiteInt(bestScore, 0, 9999999, 0),
-        totalScore: finiteInt(totalScore, 0, 9999999, 0),
-        stage: stage === 'decorate' || stage === 'commentary' ? stage : 'level'
-      }));
-    } catch (error) {
-      // Storage is optional; a private browsing quota must not stop the game.
-    }
-  }
-
-  function resizeCanvas() {
-    W = Math.max(1, window.innerWidth || 390);
-    H = Math.max(1, window.innerHeight || 700);
-    const dpr = Math.min(Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1, 2);
-    backingScale = Math.min(dpr, 960 / Math.max(W, H));
-    canvas.width = Math.max(1, Math.round(W * backingScale));
-    canvas.height = Math.max(1, Math.round(H * backingScale));
-    ctx.setTransform(backingScale, 0, 0, backingScale, 0, 0);
-    const wasBlocked = orientationBlocked;
-    orientationBlocked = W > H;
-    if (orientationBlocked && !wasBlocked) clearInputState();
-  }
-
-  function unlockAudio() {
-    try {
-      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioContext.state === 'suspended') audioContext.resume();
-    } catch (error) {
-      audioContext = null;
-    }
-  }
-
-  function blip(kind) {
-    if (!audioContext) return;
-    try {
-      const now = audioContext.currentTime;
-      const oscillator = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      oscillator.type = kind === 'bad' ? 'square' : 'sine';
-      oscillator.frequency.value = kind === 'good' ? 610 : kind === 'win' ? 820 : kind === 'bad' ? 150 : 320;
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(kind === 'win' ? 0.08 : 0.045, now + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === 'win' ? 0.24 : 0.12));
-      oscillator.connect(gain);
-      gain.connect(audioContext.destination);
-      oscillator.start(now);
-      oscillator.stop(now + (kind === 'win' ? 0.25 : 0.13));
-    } catch (error) {
-      // Audio is a garnish and remains optional.
-    }
-  }
-
-  function clearInputState() {
-    activePointers.clear();
-    pressedButtonPointers.clear();
-    heldKeys.clear();
-    queuedActions.length = 0;
-    selectedCell = null;
-    boardPointerId = null;
-  }
-
-  function cancelPendingTimers() {
-    for (const timer of pendingTimers) clearTimeout(timer);
-    pendingTimers.clear();
-  }
-
-  function schedule(fn, delay) {
-    if (pendingTimers.size >= 8) cancelPendingTimers();
-    const timer = setTimeout(() => {
-      pendingTimers.delete(timer);
-      fn();
-    }, delay);
-    pendingTimers.add(timer);
-    return timer;
-  }
-
-  function setMessage(text) {
-    message = text;
-    messageAge = 0;
-    srStatus.textContent = text;
-  }
-
-  function queueAction(action) {
-    if (queuedActions.length < 20) queuedActions.push(action);
-  }
-
-  function rand() {
-    rngState ^= rngState << 13;
-    rngState ^= rngState >>> 17;
-    rngState ^= rngState << 5;
-    return ((rngState >>> 0) % 100000) / 100000;
-  }
-
-  function randomTile() {
-    return Math.floor(rand() * TILE.length) % TILE.length;
-  }
-
-  function indexAt(col, row) {
-    return row * COLS + col;
-  }
-
-  function makeBoard(seed) {
-    rngState = seed >>> 0 || 1;
-    const next = Array(CELL_COUNT).fill(0);
-    for (let row = 0; row < ROWS; row += 1) {
-      for (let col = 0; col < COLS; col += 1) {
-        let tile = randomTile();
-        let tries = 0;
-        while (tries < 12 && ((col >= 2 && next[indexAt(col - 1, row)] === tile && next[indexAt(col - 2, row)] === tile) || (row >= 2 && next[indexAt(col, row - 1)] === tile && next[indexAt(col, row - 2)] === tile))) {
-          tile = randomTile();
-          tries += 1;
-        }
-        next[indexAt(col, row)] = tile;
-      }
-    }
-    board = next;
-    if (!hasAnyMove()) shuffleBoard();
-    return board;
-  }
-
-  function findMatches() {
-    const matches = new Set();
-    for (let row = 0; row < ROWS; row += 1) {
-      let start = 0;
-      while (start < COLS) {
-        const tile = board[indexAt(start, row)];
-        let end = start + 1;
-        while (end < COLS && tile !== null && board[indexAt(end, row)] === tile) end += 1;
-        if (tile !== null && end - start >= 3) for (let col = start; col < end; col += 1) matches.add(indexAt(col, row));
-        start = end;
-      }
-    }
-    for (let col = 0; col < COLS; col += 1) {
-      let start = 0;
-      while (start < ROWS) {
-        const tile = board[indexAt(col, start)];
-        let end = start + 1;
-        while (end < ROWS && tile !== null && board[indexAt(col, end)] === tile) end += 1;
-        if (tile !== null && end - start >= 3) for (let row = start; row < end; row += 1) matches.add(indexAt(col, row));
-        start = end;
-      }
-    }
-    return matches;
-  }
-
-  function hasAnyMove() {
-    for (let i = 0; i < CELL_COUNT; i += 1) {
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-      if (col < COLS - 1) {
-        const other = i + 1;
-        [board[i], board[other]] = [board[other], board[i]];
-        const match = findMatches().size > 0;
-        [board[i], board[other]] = [board[other], board[i]];
-        if (match) return true;
-      }
-      if (row < ROWS - 1) {
-        const other = i + COLS;
-        [board[i], board[other]] = [board[other], board[i]];
-        const match = findMatches().size > 0;
-        [board[i], board[other]] = [board[other], board[i]];
-        if (match) return true;
-      }
-    }
-    return false;
-  }
-
-  function shuffleBoard() {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      for (let i = CELL_COUNT - 1; i > 0; i -= 1) {
-        const j = Math.floor(rand() * (i + 1));
-        [board[i], board[j]] = [board[j], board[i]];
-      }
-      if (findMatches().size === 0 && hasAnyMove()) return;
-    }
-    makeGuaranteedBoard();
-  }
-
-  function makeGuaranteedBoard() {
-    const next = Array(CELL_COUNT).fill(0);
-    for (let row = 0; row < ROWS; row += 1) {
-      for (let col = 0; col < COLS; col += 1) next[indexAt(col, row)] = (col + row * 2) % TILE.length;
-    }
-    next[0] = 0; next[1] = 0; next[2] = 1; next[3] = 0;
-    board = next;
-  }
-
-  function addParticle(x, y, color, amount) {
-    const count = Math.min(amount, MAX_PARTICLES - particles.length);
-    for (let i = 0; i < count; i += 1) {
-      const life = 0.35 + rand() * 0.35;
-      particles.push({
-        x, y, vx: (rand() - 0.5) * 150, vy: -40 - rand() * 150,
-        life, maxLife: life, color, size: 2 + rand() * 4
-      });
-    }
-  }
-
-  function resolveMatches() {
-    let chain = 0;
-    let totalCleared = 0;
-    while (chain < 8) {
-      const matches = findMatches();
-      if (matches.size === 0) break;
-      chain += 1;
-      totalCleared += matches.size;
-      for (const i of matches) {
-        const col = i % COLS;
-        const row = Math.floor(i / COLS);
-        const point = tileCenter(col, row);
-        addParticle(point.x, point.y, TILE[board[i]].light, 4);
-        board[i] = null;
-      }
-      levelScore += matches.size * 20 * chain;
-      totalScore += matches.size * 20 * chain;
-      for (let col = 0; col < COLS; col += 1) {
-        let writeRow = ROWS - 1;
-        for (let row = ROWS - 1; row >= 0; row -= 1) {
-          const value = board[indexAt(col, row)];
-          if (value !== null) {
-            board[indexAt(col, writeRow)] = value;
-            if (writeRow !== row) board[indexAt(col, row)] = null;
-            writeRow -= 1;
-          }
-        }
-        while (writeRow >= 0) {
-          board[indexAt(col, writeRow)] = randomTile();
-          writeRow -= 1;
-        }
-      }
-    }
-    if (totalCleared > 0) {
-      shake = Math.min(9, 3 + totalCleared * 0.18);
-      flash = 0.12;
-      blip(chain > 1 ? 'win' : 'good');
-      setMessage(chain > 1 ? `Chain x${chain}! ${totalCleared} sparks cleared.` : `${totalCleared} sparks cleared. Keep the rhythm.`);
-    }
-    if (!hasAnyMove()) {
-      shuffleBoard();
-      setMessage('The board reset its rhythm. Find a fresh spark.');
-    }
-  }
-
-  function beginFromSave() {
-    clearInputState();
-    cancelPendingTimers();
-    if (currentLevel >= LEVELS.length) {
-      state = 'end';
-      roomTab = 0;
-      return;
-    }
-    const room = Math.floor(currentLevel / 6);
-    const slot = currentLevel % 6;
-    if (saveStage === 'commentary' && validStyle(choices[room][slot]) >= 0) {
-      decorStyle = choices[room][slot];
-      state = 'commentary';
-      setMessage('Choice saved. Your household has opinions.');
-      return;
-    }
-    if (saveStage === 'decorate') {
-      decorStyle = validStyle(choices[room][slot]);
-      state = 'decorate';
-      decorFocus = decorStyle >= 0 ? decorStyle : 0;
-      setMessage('A room slot is ready. Pick its mood.');
-      return;
-    }
-    beginLevel(currentLevel);
-  }
-
-  function beginLevel(level) {
-    clearInputState();
-    cancelPendingTimers();
-    currentLevel = finiteInt(level, 0, LEVELS.length - 1, 0);
-    const config = LEVELS[currentLevel];
-    levelScore = 0;
-    moves = config.moves;
-    goal = config.goal;
-    selectedCell = null;
-    cursor = { col: 3, row: 4 };
-    boardAnimating = 0;
-    state = 'level';
-    makeBoard(config.seed);
-    saveStage = 'level';
-    writeSave('level');
-    setMessage('Swipe or tap two neighbors. Match three sparks to build the room.');
-  }
-
-  function restartLevel() {
-    unlockAudio();
-    const level = currentLevel;
-    clearInputState();
-    cancelPendingTimers();
-    beginLevel(level);
-    blip('neutral');
-  }
-
-  function newRun() {
-    unlockAudio();
-    clearInputState();
-    cancelPendingTimers();
-    choices = blankChoices();
-    currentLevel = 0;
-    levelScore = 0;
-    totalScore = 0;
-    decorStyle = -1;
-    saveStage = 'level';
-    writeSave('level');
-    beginLevel(0);
-    blip('neutral');
-  }
-
-  function boardTapCell(col, row) {
-    if (state !== 'level' || boardAnimating > 0 || moves <= 0) return;
-    const cell = { col, row };
-    if (!selectedCell) {
-      selectedCell = cell;
-      setMessage('Neighbor selected. Tap or swipe a tile beside it.');
-      return;
-    }
-    if (selectedCell.col === col && selectedCell.row === row) {
-      selectedCell = null;
-      setMessage('Selection cleared.');
-      return;
-    }
-    if (Math.abs(selectedCell.col - col) + Math.abs(selectedCell.row - row) === 1) {
-      performSwap(selectedCell.col, selectedCell.row, col, row);
-      selectedCell = null;
-      return;
-    }
-    selectedCell = cell;
-    setMessage('That tile is not a neighbor. Pick a nearby spark.');
-  }
-
-  function performSwap(colA, rowA, colB, rowB) {
-    if (state !== 'level' || boardAnimating > 0 || moves <= 0) return;
-    const a = indexAt(colA, rowA);
-    const b = indexAt(colB, rowB);
-    [board[a], board[b]] = [board[b], board[a]];
-    if (findMatches().size === 0) {
-      [board[a], board[b]] = [board[b], board[a]];
-      moves -= 1;
-      blip('bad');
-      setMessage(moves > 0 ? 'No spark there. Try a different neighbor.' : 'No sparks left. The room can be retried instantly.');
-      if (moves <= 0) state = 'fail';
-      return;
-    }
-    moves -= 1;
-    resolveMatches();
-    boardAnimating = 0.16;
-    if (moves <= 0 && levelScore < goal) setMessage('Last move! Make it a bright one.');
-  }
-
-  function finishLevel() {
-    if (state !== 'level' || levelScore < goal) return;
-    bestScore = Math.max(bestScore, totalScore);
-    const room = Math.floor(currentLevel / 6);
-    const slot = currentLevel % 6;
-    decorStyle = validStyle(choices[room][slot]);
-    state = 'decorate';
-    decorFocus = decorStyle >= 0 ? decorStyle : 0;
-    saveStage = 'decorate';
-    writeSave('decorate');
-    blip('win');
-    setMessage(`Level clear. Choose the ${FIXTURES[slot].toLowerCase()} mood.`);
-  }
-
-  function chooseStyle(style) {
-    if (state !== 'decorate' || !Number.isInteger(style) || style < 0 || style > 2) return;
-    unlockAudio();
-    const room = Math.floor(currentLevel / 6);
-    const slot = currentLevel % 6;
-    decorStyle = style;
-    decorFocus = style;
-    choices[room][slot] = style;
-    state = 'commentary';
-    saveStage = 'commentary';
-    writeSave('commentary');
-    setMessage(`${STYLES[style].name} ${FIXTURES[slot].toLowerCase()} chosen. Listen to the room.`);
-    addParticle(W * 0.5, H * 0.42, STYLES[style].color, 22);
-    blip('good');
-  }
-
-  function advanceAfterCommentary() {
-    if (state !== 'commentary') return;
-    clearInputState();
-    cancelPendingTimers();
-    if (currentLevel >= LEVELS.length - 1) {
-      currentLevel = LEVELS.length;
-      saveStage = 'level';
-      writeSave('level');
-      state = 'end';
-      blip('win');
-      setMessage('Both rooms are yours. Every style is part of the story.');
-      return;
-    }
-    currentLevel += 1;
-    saveStage = 'level';
-    beginLevel(currentLevel);
-  }
-
-  function moveCursor(dx, dy) {
-    cursor.col = (cursor.col + dx + COLS) % COLS;
-    cursor.row = (cursor.row + dy + ROWS) % ROWS;
-    if (state === 'level') setMessage('Cursor moved. Enter selects a tile; Enter again swaps a neighbor.');
-  }
-
-  function updateActions() {
-    let count = 0;
-    while (queuedActions.length && count < 8) {
-      const action = queuedActions.shift();
-      count += 1;
-      if (orientationBlocked) continue;
-      if (action.type === 'start') {
-        unlockAudio();
-        beginFromSave();
-      } else if (action.type === 'retry') {
-        restartLevel();
-      } else if (action.type === 'new') {
-        newRun();
-      } else if (action.type === 'swipe') {
-        performSwap(action.col, action.row, action.toCol, action.toRow);
-      } else if (action.type === 'tap') {
-        boardTapCell(action.col, action.row);
-      } else if (action.type === 'style') {
-        chooseStyle(action.style);
-      } else if (action.type === 'continue') {
-        advanceAfterCommentary();
-      } else if (action.type === 'room') {
-        roomTab = action.room;
-      }
-    }
-  }
-
-  function update(dt) {
-    updateActions();
-    messageAge += dt;
-    if (boardAnimating > 0) {
-      boardAnimating -= dt;
-      if (boardAnimating <= 0 && levelScore >= goal) finishLevel();
-    }
-    shake = Math.max(0, shake - dt * 28);
-    flash = Math.max(0, flash - dt);
-    for (let i = particles.length - 1; i >= 0; i -= 1) {
-      const particle = particles[i];
-      particle.life -= dt;
-      particle.x += particle.vx * dt;
-      particle.y += particle.vy * dt;
-      particle.vy += 270 * dt;
-      if (particle.life <= 0) particles.splice(i, 1);
-    }
-  }
-
-  function rr(x, y, w, h, radius) {
-    const r = Math.min(radius, Math.abs(w) / 2, Math.abs(h) / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  function panel(x, y, w, h, fill, radius = 16) {
-    ctx.fillStyle = C.shadow;
-    rr(x + 3, y + 5, w, h, radius);
-    ctx.fill();
-    ctx.fillStyle = fill;
-    rr(x, y, w, h, radius);
-    ctx.fill();
-  }
-
-  function text(value, x, y, size, color, align = 'left', weight = 700) {
-    ctx.fillStyle = color;
-    ctx.font = `${weight} ${size}px Arial, Helvetica, sans-serif`;
-    ctx.textAlign = align;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(value, x, y);
-  }
-
-  function textFit(value, x, y, maxWidth, size, color, align = 'left', weight = 700) {
-    let actual = size;
-    while (actual > 10) {
-      ctx.font = `${weight} ${actual}px Arial, Helvetica, sans-serif`;
-      if (ctx.measureText(value).width <= maxWidth) break;
-      actual -= 1;
-    }
-    text(value, x, y, actual, color, align, weight);
-  }
-
-  function button(rect, label, fill, color = C.paper, small = false) {
-    panel(rect.x, rect.y, rect.w, rect.h, fill, 14);
-    ctx.strokeStyle = 'rgba(255,255,255,.18)';
-    ctx.lineWidth = 1;
-    rr(rect.x + 1, rect.y + 1, rect.w - 2, rect.h - 2, 13);
-    ctx.stroke();
-    textFit(label, rect.x + rect.w / 2, rect.y + rect.h / 2 + 1, rect.w - 14, small ? 12 : 14, color, 'center', 800);
-  }
-
-  function bg() {
-    const gradient = ctx.createLinearGradient(0, 0, 0, H);
-    gradient.addColorStop(0, '#13233a');
-    gradient.addColorStop(0.56, '#192d46');
-    gradient.addColorStop(1, '#0f1a2c');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, H);
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = C.teal;
-    ctx.beginPath(); ctx.arc(W * 0.08, H * 0.1, 62, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = C.coral;
-    ctx.beginPath(); ctx.arc(W * 0.94, H * 0.38, 88, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-
-  function drawTopTitle(label, sub) {
-    text('HEARTH & HALLS', 18, 22, 14, C.paper, 'left', 900);
-    text(label, W - 18, 20, 13, C.gold, 'right', 800);
-    text(sub, W - 18, 43, 11, C.muted, 'right', 700);
-    ctx.strokeStyle = 'rgba(255,255,255,.12)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(18, 60); ctx.lineTo(W - 18, 60); ctx.stroke();
-  }
-
-  function drawHint(value, y = 82) {
-    textFit(value, W / 2, y, W - 32, 12, C.cream, 'center', 600);
-  }
-
-  function boardRect() {
-    const cell = Math.max(30, Math.min((W - 32) / COLS, (H - 256) / ROWS));
-    const w = cell * COLS;
-    return { x: (W - w) / 2, y: 112, w, h: cell * ROWS, cell };
-  }
-
-  function tileCenter(col, row) {
-    const rect = boardRect();
-    return { x: rect.x + (col + 0.5) * rect.cell, y: rect.y + (row + 0.5) * rect.cell };
-  }
-
-  function drawTile(tile, col, row, rect) {
-    if (tile === null || tile === undefined) return;
-    const x = rect.x + col * rect.cell + 3;
-    const y = rect.y + row * rect.cell + 3;
-    const size = rect.cell - 6;
-    const colors = TILE[tile];
-    ctx.fillStyle = colors.dark;
-    rr(x + 1, y + 3, size, size, Math.min(12, size * 0.22));
-    ctx.fill();
-    ctx.fillStyle = colors.fill;
-    rr(x, y, size, size - 3, Math.min(12, size * 0.22));
-    ctx.fill();
-    ctx.globalAlpha = 0.72;
-    ctx.fillStyle = colors.light;
-    ctx.beginPath(); ctx.arc(x + size * 0.29, y + size * 0.25, Math.max(2, size * 0.08), 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
-    const cx = x + size / 2;
-    const cy = y + size / 2 + 1;
-    ctx.fillStyle = 'rgba(255,255,255,.76)';
-    ctx.strokeStyle = 'rgba(255,255,255,.78)';
-    ctx.lineWidth = Math.max(2, size * 0.055);
-    if (tile === 0) { ctx.beginPath(); ctx.arc(cx, cy, size * .17, 0, Math.PI * 2); ctx.fill(); }
-    if (tile === 1) { ctx.beginPath(); ctx.moveTo(cx, cy - size * .22); ctx.lineTo(cx + size * .22, cy); ctx.lineTo(cx, cy + size * .22); ctx.lineTo(cx - size * .22, cy); ctx.closePath(); ctx.fill(); }
-    if (tile === 2) { ctx.beginPath(); ctx.arc(cx, cy, size * .18, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(cx, cy - size * .27); ctx.lineTo(cx, cy + size * .27); ctx.stroke(); }
-    if (tile === 3) { ctx.beginPath(); ctx.moveTo(cx, cy - size * .23); ctx.lineTo(cx + size * .23, cy + size * .2); ctx.lineTo(cx - size * .23, cy + size * .2); ctx.closePath(); ctx.fill(); }
-    if (tile === 4) { ctx.beginPath(); ctx.moveTo(cx - size * .24, cy); ctx.quadraticCurveTo(cx, cy - size * .3, cx + size * .24, cy); ctx.quadraticCurveTo(cx, cy + size * .3, cx - size * .24, cy); ctx.fill(); }
-    if (tile === 5) { ctx.beginPath(); for (let i = 0; i < 10; i += 1) { const a = -Math.PI / 2 + i * Math.PI / 5; const radius = i % 2 ? size * .11 : size * .25; const px = cx + Math.cos(a) * radius; const py = cy + Math.sin(a) * radius; if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); } ctx.closePath(); ctx.fill(); }
-  }
-
-  function drawBoard() {
-    const rect = boardRect();
-    ctx.save();
-    const dx = shake ? Math.sin(shake * 13) * shake * 0.45 : 0;
-    const dy = shake ? Math.cos(shake * 9) * shake * 0.45 : 0;
-    ctx.translate(dx, dy);
-    panel(rect.x - 8, rect.y - 8, rect.w + 16, rect.h + 16, '#203650', 20);
-    ctx.fillStyle = 'rgba(8,16,30,.32)';
-    rr(rect.x, rect.y, rect.w, rect.h, 14); ctx.fill();
-    for (let row = 0; row < ROWS; row += 1) {
-      for (let col = 0; col < COLS; col += 1) {
-        ctx.fillStyle = 'rgba(255,255,255,.035)';
-        rr(rect.x + col * rect.cell + 2, rect.y + row * rect.cell + 2, rect.cell - 4, rect.cell - 4, 10); ctx.fill();
-        drawTile(board[indexAt(col, row)], col, row, rect);
-      }
-    }
-    if (selectedCell) {
-      ctx.strokeStyle = C.gold;
-      ctx.lineWidth = 4;
-      rr(rect.x + selectedCell.col * rect.cell + 2, rect.y + selectedCell.row * rect.cell + 2, rect.cell - 4, rect.cell - 7, 11); ctx.stroke();
-    }
-    ctx.strokeStyle = C.paper;
-    ctx.globalAlpha = 0.78;
-    ctx.lineWidth = 2;
-    rr(rect.x + cursor.col * rect.cell + 6, rect.y + cursor.row * rect.cell + 6, rect.cell - 12, rect.cell - 15, 8); ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.restore();
-  }
-
-  function drawParticles() {
-    for (const particle of particles) {
-      ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
-      ctx.fillStyle = particle.color;
-      ctx.beginPath(); ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function levelRetryRect() {
-    return { x: 18, y: H - 62, w: 156, h: 50 };
-  }
-
-  function drawLevel() {
-    bg();
-    const config = LEVELS[currentLevel] || LEVELS[0];
-    drawTopTitle(`LEVEL ${String(currentLevel + 1).padStart(2, '0')} / 12`, `GOAL ${levelScore} / ${goal}`);
-    text(`MOVES ${String(Math.max(0, moves)).padStart(2, '0')}`, 18, 78, 12, moves <= 4 ? C.coral : C.gold, 'left', 900);
-    text(`BEST ${bestScore}`, W - 18, 78, 11, C.muted, 'right', 700);
-    drawHint(messageAge < 3 ? message : 'Swipe a neighbor, or use arrows + Enter.', 97);
-    drawBoard();
-    const retry = levelRetryRect();
-    button(retry, 'RETRY LEVEL', C.coralDark, C.paper);
-    textFit(`${config.moves} moves • no lives`, W - 18, H - 37, W - retry.w - 54, 11, C.muted, 'right', 700);
-    drawParticles();
-    if (flash > 0) { ctx.globalAlpha = flash * 1.8; ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
-  }
-
-  function drawNpc(x, y, color, name, flip = false) {
-    ctx.save();
-    ctx.translate(x, y);
-    if (flip) ctx.scale(-1, 1);
-    ctx.fillStyle = 'rgba(9,18,29,.25)'; ctx.beginPath(); ctx.ellipse(0, 22, 28, 8, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, 17, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = C.paper; ctx.beginPath(); ctx.arc(-5, -2, 3, 0, Math.PI * 2); ctx.arc(5, -2, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 3, 7, 0.2, Math.PI - 0.2); ctx.stroke();
-    text(name, 0, 31, 10, C.ink, 'center', 900);
-    ctx.restore();
-  }
-
-  function drawFixture(slot, style, x, y, w, h, active = false) {
-    ctx.save();
-    if (active) { ctx.strokeStyle = C.gold; ctx.lineWidth = 3; ctx.setLineDash([5, 3]); rr(x - 5, y - 5, w + 10, h + 10, 10); ctx.stroke(); ctx.setLineDash([]); }
-    if (style < 0) {
-      ctx.fillStyle = 'rgba(23,34,53,.10)'; rr(x, y, w, h, 8); ctx.fill();
-      ctx.strokeStyle = 'rgba(23,34,53,.42)'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); rr(x, y, w, h, 8); ctx.stroke(); ctx.setLineDash([]);
-      text(`+ ${FIXTURES[slot]}`, x + w / 2, y + h / 2, Math.min(10, w / 8), C.ink, 'center', 900);
-      ctx.restore(); return;
-    }
-    const cozy = style === 0;
-    const grand = style === 1;
-    const quirky = style === 2;
-    ctx.fillStyle = cozy ? '#c57552' : grand ? '#ae7d3d' : '#39a8a1';
-    ctx.strokeStyle = grand ? '#74502d' : '#633b35';
-    ctx.lineWidth = Math.max(2, w * .035);
-    if (slot === 0) {
-      const base = quirky ? 0.12 : grand ? 0.03 : 0.08;
-      rr(x + w * base, y + h * .2, w * (1 - base * 2), h * .8, 6); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = grand ? '#f6bf55' : cozy ? '#ef7559' : '#9fe2c9';
-      ctx.beginPath(); ctx.arc(x + w / 2 + (quirky ? 4 : 0), y + h * .63, h * .22, Math.PI, 0); ctx.lineTo(x + w * .72, y + h * .85); ctx.lineTo(x + w * .28, y + h * .85); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#ffcc73'; ctx.globalAlpha = cozy ? .9 : .6; ctx.beginPath(); ctx.arc(x + w / 2, y + h * .62, h * .1, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-    } else if (slot === 1) {
-      ctx.fillStyle = cozy ? '#d85f4d' : grand ? '#c69a43' : '#37a5a2';
-      if (quirky) { ctx.rotate(-0.08); }
-      rr(x, y + h * .2, w, h * .58, 10); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = grand ? '#fff0b0' : '#f4c67a'; ctx.lineWidth = 2;
-      if (grand) { ctx.beginPath(); ctx.moveTo(x + w * .15, y + h * .48); ctx.lineTo(x + w * .5, y + h * .26); ctx.lineTo(x + w * .85, y + h * .48); ctx.lineTo(x + w * .5, y + h * .7); ctx.closePath(); ctx.stroke(); }
-      if (cozy) { ctx.beginPath(); ctx.arc(x + w * .18, y + h * .5, 4, 0, Math.PI * 2); ctx.arc(x + w * .82, y + h * .5, 4, 0, Math.PI * 2); ctx.fillStyle = '#f6bf55'; ctx.fill(); }
-      if (quirky) { ctx.fillStyle = '#f6bf55'; ctx.fillRect(x + w * .18, y + h * .35, 7, 7); ctx.fillRect(x + w * .62, y + h * .58, 7, 7); }
-    } else if (slot === 2) {
-      ctx.fillStyle = grand ? '#c89a50' : cozy ? '#b96e48' : '#49b6ac';
-      if (quirky) { ctx.beginPath(); ctx.moveTo(x + w * .5, y); ctx.lineTo(x + w, y + h * .65); ctx.lineTo(x, y + h * .65); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-      else { ctx.beginPath(); ctx.ellipse(x + w * .5, y + h * .35, w * .46, h * .22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.fillRect(x + w * .27, y + h * .38, w * .07, h * .5); ctx.fillRect(x + w * .66, y + h * .38, w * .07, h * .5); }
-      if (grand) { ctx.strokeStyle = '#fff1b0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x + w * .5, y + h * .35, w * .3, h * .1, 0, 0, Math.PI * 2); ctx.stroke(); }
-    } else if (slot === 3) {
-      ctx.fillStyle = grand ? '#e2b64d' : cozy ? '#e98759' : '#3faeaa';
-      ctx.strokeStyle = '#613b35';
-      ctx.beginPath(); ctx.moveTo(x + w * .5, y + h * .12); ctx.lineTo(x + w * .5, y + h * .78); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x + w * .5, y + h * .78, w * .18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x + w * .5 + (quirky ? 5 : 0), y + h * .13, w * (grand ? .35 : .28), Math.PI, 0); ctx.lineTo(x + w * .8, y + h * .32); ctx.lineTo(x + w * .2, y + h * .32); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = grand ? '#fff0a3' : '#ffc778'; ctx.globalAlpha = .78; ctx.beginPath(); ctx.arc(x + w * .5, y + h * .23, w * .12, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-    } else if (slot === 4) {
-      ctx.fillStyle = grand ? '#bc873e' : cozy ? '#aa6748' : '#43a39b';
-      ctx.save(); if (quirky) ctx.rotate(-0.12); rr(x, y + h * .25, w, h * .12, 4); ctx.fill(); rr(x, y + h * .58, w, h * .12, 4); ctx.fill(); ctx.restore();
-      ctx.strokeStyle = '#603f38'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + w * .12, y + h * .2); ctx.lineTo(x + w * .12, y + h * .83); ctx.moveTo(x + w * .88, y + h * .2); ctx.lineTo(x + w * .88, y + h * .83); ctx.stroke();
-      ctx.fillStyle = grand ? '#f3cf72' : '#e1a86a'; ctx.fillRect(x + w * .25, y + h * .34, w * .14, h * .15); ctx.fillRect(x + w * .58, y + h * .68, w * .16, h * .12);
-    } else if (slot === 5) {
-      ctx.fillStyle = grand ? '#e4bc5e' : cozy ? '#8bbfa8' : '#ef7559';
-      if (grand) { ctx.beginPath(); ctx.arc(x + w / 2, y + h * .55, Math.min(w, h) * .48, Math.PI, 0); ctx.lineTo(x + w * .98, y + h); ctx.lineTo(x + w * .02, y + h); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-      else { rr(x + w * .04, y + h * .05, w * .92, h * .88, 4); ctx.fill(); ctx.stroke(); }
-      ctx.strokeStyle = 'rgba(23,34,53,.55)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + w * .5, y + h * .08); ctx.lineTo(x + w * .5, y + h * .92); ctx.moveTo(x + w * .08, y + h * .5); ctx.lineTo(x + w * .92, y + h * .5); ctx.stroke();
-      if (cozy) { ctx.fillStyle = '#e99a69'; ctx.beginPath(); ctx.arc(x + w * .15, y + h * .42, w * .16, 0, Math.PI * 2); ctx.arc(x + w * .85, y + h * .42, w * .16, 0, Math.PI * 2); ctx.fill(); }
-      if (quirky) { ctx.fillStyle = '#f6bf55'; ctx.beginPath(); ctx.arc(x + w * .72, y + h * .22, 4, 0, Math.PI * 2); ctx.fill(); }
-    }
-    ctx.restore();
-  }
-
-  function roomFixtureRect(slot, x, y, w, h) {
-    const layout = [
-      [.06, .47, .28, .42], [.19, .78, .62, .15], [.43, .5, .28, .28],
-      [.78, .18, .13, .34], [.05, .17, .29, .25], [.55, .13, .32, .27]
-    ][slot];
-    return { x: x + w * layout[0], y: y + h * layout[1], w: w * layout[2], h: h * layout[3] };
-  }
-
-  function tally(room) {
-    const counts = [0, 0, 0];
-    for (const value of choices[room]) if (validStyle(value) >= 0) counts[value] += 1;
-    return counts;
-  }
-
-  function drawTally(room, x, y, small = false) {
-    const counts = tally(room);
-    const gap = small ? 4 : 7;
-    const width = small ? 64 : 76;
-    for (let i = 0; i < 3; i += 1) {
-      const bx = x + i * (width + gap);
-      panel(bx, y, width, small ? 20 : 24, 'rgba(23,34,53,.72)', 8);
-      ctx.fillStyle = STYLES[i].color; ctx.beginPath(); ctx.arc(bx + 10, y + (small ? 10 : 12), 4, 0, Math.PI * 2); ctx.fill();
-      text(`${STYLES[i].name[0]} ${counts[i]}`, bx + 19, y + (small ? 10 : 12), small ? 9 : 10, C.paper, 'left', 800);
-    }
-  }
-
-  function drawRoomScene(x, y, w, h, room, activeSlot = -1, previewStyle = -1) {
-    const theme = ROOMS[room];
-    ctx.save();
-    panel(x, y, w, h, theme.wall, 18);
-    ctx.save();
-    rr(x, y, w, h, 18); ctx.clip();
-    ctx.fillStyle = theme.floor; ctx.fillRect(x, y + h * .78, w, h * .22);
-    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x, y + h * .74, w, 4);
-    ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(x + w * .5, y, 2, h * .78);
-    ctx.fillStyle = 'rgba(23,34,53,.08)'; ctx.beginPath(); ctx.arc(x + w * .2, y + h * .28, h * .18, 0, Math.PI * 2); ctx.fill();
-    for (let slot = 0; slot < 6; slot += 1) {
-      const fixture = roomFixtureRect(slot, x, y, w, h);
-      let style = validStyle(choices[room][slot]);
-      if (slot === activeSlot && previewStyle >= 0) style = previewStyle;
-      drawFixture(slot, style, fixture.x, fixture.y, fixture.w, fixture.h, slot === activeSlot);
-    }
-    drawNpc(x + w * .16, y + h * .78, theme.npcA, 'Marn');
-    drawNpc(x + w * .84, y + h * .78, theme.npcB, 'Pip', true);
-    ctx.restore();
-    text(theme.name, x + 14, y + 20, 13, C.ink, 'left', 900);
-    drawTally(room, x + 14, y + h - 34, true);
-    ctx.restore();
-  }
-
-  function decorateRects() {
-    const y = H - 146;
-    const gap = 6;
-    const w = (W - 28 - gap * 2) / 3;
-    return [0, 1, 2].map((i) => ({ x: 14 + i * (w + gap), y, w, h: 56 }));
-  }
-
-  function continueRect() {
-    return { x: W - 190, y: H - 67, w: 172, h: 52 };
-  }
-
-  function drawStyleButton(rect, style, selected) {
-    panel(rect.x, rect.y, rect.w, rect.h, selected ? STYLES[style].color : '#233954', 13);
-    if (selected) { ctx.strokeStyle = C.paper; ctx.lineWidth = 2; rr(rect.x + 2, rect.y + 2, rect.w - 4, rect.h - 4, 11); ctx.stroke(); }
-    text(STYLES[style].name, rect.x + rect.w / 2, rect.y + 22, 12, selected ? C.ink : C.paper, 'center', 900);
-    textFit(STYLES[style].sub, rect.x + rect.w / 2, rect.y + 40, rect.w - 8, 10, selected ? C.ink : C.muted, 'center', 700);
-  }
-
-  function drawDecorate() {
-    const room = Math.floor(currentLevel / 6);
-    const slot = currentLevel % 6;
-    const roomH = Math.min(324, H - 310);
-    bg();
-    drawTopTitle(ROOMS[room].name.toUpperCase(), `SLOT ${slot + 1} / 6`);
-    drawRoomScene(16, 99, W - 32, roomH, room, slot, decorStyle);
-    drawTally(room, 16, 99 + roomH + 9);
-    drawHint('Pick one look. It changes the scene and both household voices.');
-    const rects = decorateRects();
-    for (let i = 0; i < 3; i += 1) drawStyleButton(rects[i], i, decorStyle === i);
-    if (decorStyle >= 0) button(continueRect(), currentLevel === 11 ? 'SEE BOTH ROOMS' : 'NEXT LEVEL', C.coral, C.paper);
-    drawParticles();
-  }
-
-  function drawBubble(x, y, w, line, color) {
-    panel(x, y, w, 58, C.paper, 12);
-    ctx.fillStyle = C.paper;
-    ctx.beginPath(); ctx.moveTo(x + 22, y + 58); ctx.lineTo(x + 34, y + 58); ctx.lineTo(x + 22, y + 68); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + 9, y + 10); ctx.lineTo(x + 9, y + 48); ctx.stroke();
-    textFit(line, x + 20, y + 29, w - 28, 11, C.ink, 'left', 700);
-  }
-
-  function drawCommentary() {
-    const room = Math.floor(currentLevel / 6);
-    const slot = currentLevel % 6;
-    bg();
-    drawTopTitle('THE ROOM REACTS', `${FIXTURES[slot]} • ${STYLES[decorStyle].name}`);
-    drawRoomScene(16, 88, W - 32, Math.min(302, H - 380), room, slot, decorStyle);
-    const boxY = H - 250;
-    text('MARN + PIP', 18, boxY - 20, 11, C.gold, 'left', 900);
-    drawBubble(16, boxY, W - 32, COMMENTS[0].lines[decorStyle], COMMENTS[0].color);
-    drawBubble(16, boxY + 68, W - 32, COMMENTS[1].lines[decorStyle], COMMENTS[1].color);
-    drawTally(room, 16, H - 108);
-    button(continueRect(), currentLevel === 11 ? 'SEE BOTH ROOMS' : 'KEEP BUILDING', C.coral, C.paper);
-    drawHint('Your style is tallied above; the next match funds the next fixture.', 78);
-    drawParticles();
-  }
-
-  function endCardRect(room) {
-    const gap = 12;
-    const top = 92 + room * ((H - 166) / 2 + gap / 2);
-    return { x: 14, y: top, w: W - 28, h: (H - 166) / 2 - gap / 2 };
-  }
-
-  function drawEnd() {
-    bg();
-    drawTopTitle('TWO ROOMS, ONE STORY', 'RUN COMPLETE');
-    text('EVERY CHOICE STAYS', 18, 80, 12, C.gold, 'left', 900);
-    text(`SCORE ${totalScore}  •  BEST ${bestScore}`, W - 18, 80, 11, C.muted, 'right', 800);
+  function cloneChoices(value) {
+    const out = [Array(6).fill(-1), Array(6).fill(-1)];
+    if (!value || !Array.isArray(value)) return out;
     for (let room = 0; room < 2; room += 1) {
-      const card = endCardRect(room);
-      drawRoomScene(card.x, card.y, card.w, card.h, room);
-      textFit(`${COMMENTS[0].name}: ${COMMENTS[0].lines[tally(room).indexOf(Math.max(...tally(room)))] || 'A room with a point of view.'}`, card.x + 14, card.y + card.h - 58, card.w - 28, 10, C.ink, 'left', 700);
+      const source = Array.isArray(value[room]) ? value[room] : [];
+      for (let slot = 0; slot < 6; slot += 1) {
+        const choice = Number.isInteger(source[slot]) && source[slot] >= 0 && source[slot] < 3 ? source[slot] : -1;
+        out[room][slot] = choice;
+      }
     }
-    button({ x: 18, y: H - 58, w: W - 36, h: 48 }, 'START A NEW RUN', C.coral, C.paper);
+    return out;
   }
 
-  function drawIntro() {
-    bg();
-    drawTopTitle('A MATCH-MADE HOME', 'ORIGINAL PROTOTYPE');
-    drawRoomScene(16, 94, W - 32, Math.min(318, H - 320), 0);
-    panel(16, H - 250, W - 32, 176, 'rgba(16,24,39,.94)', 20);
-    textFit('HEARTH & HALLS', W / 2, H - 215, W - 44, 27, C.paper, 'center', 900);
-    text('12 matches fund 2 rooms', W / 2, H - 178, 14, C.gold, 'center', 800);
-    text('Six choices per room. Every mood talks back.', W / 2, H - 151, 11, C.muted, 'center', 700);
-    button({ x: 38, y: H - 126, w: W - 76, h: 54 }, currentLevel > 0 ? 'TAP TO CONTINUE' : 'TAP TO BEGIN', C.coral, C.paper);
-    text('Arrows + Enter also work', W / 2, H - 84, 10, C.muted, 'center', 700);
-    drawHint('One gesture wakes the sound; then swipe sparks to start building.');
-  }
-
-  function drawFail() {
-    drawLevel();
-    ctx.fillStyle = 'rgba(10,17,29,.74)'; ctx.fillRect(0, 0, W, H);
-    const box = { x: 20, y: H * .27, w: W - 40, h: 238 };
-    panel(box.x, box.y, box.w, box.h, C.paper, 20);
-    text('OUT OF MOVES', W / 2, box.y + 44, 23, C.ink, 'center', 900);
-    text('The room is still waiting on a spark.', W / 2, box.y + 82, 12, C.coralDark, 'center', 700);
-    button({ x: box.x + 24, y: box.y + 116, w: box.w - 48, h: 52 }, 'TRY THIS LEVEL AGAIN', C.coral, C.paper);
-    button({ x: box.x + 24, y: box.y + 178, w: box.w - 48, h: 48 }, 'NEW RUN', C.navy2, C.paper, true);
-  }
-
-  function drawRotateOverlay() {
-    ctx.fillStyle = 'rgba(9,15,27,.96)'; ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = C.gold; ctx.lineWidth = 6;
-    rr(W * .35, H * .34, W * .3, W * .2, 14); ctx.stroke();
-    ctx.fillStyle = C.coral; ctx.beginPath(); ctx.arc(W * .5, H * .44, 8, 0, Math.PI * 2); ctx.fill();
-    text('TURN YOUR PHONE', W / 2, H * .58, 18, C.paper, 'center', 900);
-    text('Hearth & Halls is portrait-first.', W / 2, H * .63, 12, C.muted, 'center', 700);
-    text('The game is paused.', W / 2, H * .68, 11, C.gold, 'center', 800);
-  }
-
-  function draw() {
-    ctx.save();
-    if (state === 'intro') drawIntro();
-    else if (state === 'level') drawLevel();
-    else if (state === 'decorate') drawDecorate();
-    else if (state === 'commentary') drawCommentary();
-    else if (state === 'fail') drawFail();
-    else if (state === 'end') drawEnd();
-    if (orientationBlocked) drawRotateOverlay();
-    ctx.restore();
-  }
-
-  function pointFromEvent(event) {
-    const rect = canvas.getBoundingClientRect();
-    return { x: (event.clientX - rect.left) * (W / rect.width), y: (event.clientY - rect.top) * (H / rect.height) };
-  }
-
-  function inside(point, rect) {
-    return point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
-  }
-
-  function cellFromPoint(point) {
-    const rect = boardRect();
-    if (!inside(point, rect)) return null;
-    const col = Math.floor((point.x - rect.x) / rect.cell);
-    const row = Math.floor((point.y - rect.y) / rect.cell);
-    return col >= 0 && col < COLS && row >= 0 && row < ROWS ? { col, row } : null;
-  }
-
-  function hitAt(point) {
-    if (state === 'intro') {
-      const buttonRect = { x: 38, y: H - 126, w: W - 76, h: 54 };
-      return inside(point, buttonRect) ? { kind: 'button', id: 'start' } : null;
+  function cloneHomeItems(value) {
+    const out = [Array(6).fill(-1), Array(6).fill(-1)];
+    if (!value || !Array.isArray(value)) return out;
+    for (let room = 0; room < 2; room += 1) {
+      const source = Array.isArray(value[room]) ? value[room] : [];
+      for (let slot = 0; slot < 6; slot += 1) {
+        const item = Number.isInteger(source[slot]) && source[slot] >= 0 && source[slot] < COMFORT_ITEMS.length ? source[slot] : -1;
+        out[room][slot] = item;
+      }
     }
-    if (state === 'level') {
-      const cell = cellFromPoint(point);
-      if (cell) return { kind: 'board', cell };
-      return inside(point, levelRetryRect()) ? { kind: 'button', id: 'retry' } : null;
-    }
-    if (state === 'decorate') {
-      const rects = decorateRects();
-      for (let i = 0; i < rects.length; i += 1) if (inside(point, rects[i])) return { kind: 'button', id: 'style', style: i };
-      if (decorStyle >= 0 && inside(point, continueRect())) return { kind: 'button', id: 'continue' };
-      return null;
-    }
-    if (state === 'commentary') return inside(point, continueRect()) ? { kind: 'button', id: 'continue' } : null;
-    if (state === 'fail') {
-      const boxY = H * .27;
-      if (inside(point, { x: 44, y: boxY + 116, w: W - 88, h: 52 })) return { kind: 'button', id: 'retry' };
-      if (inside(point, { x: 44, y: boxY + 178, w: W - 88, h: 48 })) return { kind: 'button', id: 'new' };
-      return null;
-    }
-    if (state === 'end') return inside(point, { x: 18, y: H - 58, w: W - 36, h: 48 }) ? { kind: 'button', id: 'new' } : null;
-    return null;
+    return out;
   }
 
-  function handlePointerDown(event) {
-    event.preventDefault();
-    if (orientationBlocked) return;
-    const point = pointFromEvent(event);
-    const hit = hitAt(point);
-    if (!hit) return;
-    if (activePointers.size >= 8) return;
-    if (hit.kind === 'board' && boardPointerId !== null) return;
-    if (hit.kind === 'button') {
-      for (const pressedId of pressedButtonPointers.values()) if (pressedId === hit.id) return;
+  function cloneInventory(value) {
+    if (!Array.isArray(value)) return [];
+    return value.filter(function (item) {
+      return Number.isInteger(item) && item >= 0 && item < COMFORT_ITEMS.length;
+    });
+  }
+
+  function sanitizeSave(value) {
+    const save = value && typeof value === 'object' ? value : SAVE_FALLBACK;
+    const homeItems = cloneHomeItems(save.homeItems);
+    const comfortInventory = cloneInventory(save.comfortInventory);
+    const comfortSeen = Array.from({ length: COMFORT_ITEMS.length }, function (_, i) { return save.comfortSeen && save.comfortSeen[i] === true || comfortInventory.indexOf(i) >= 0 || homeItems.some(function (room) { return room.indexOf(i) >= 0; }); });
+    return {
+      choices: cloneChoices(save.choices),
+      homeItems: homeItems,
+      comfortInventory: comfortInventory,
+      comfortSeen: comfortSeen,
+      best: Array.from({ length: 12 }, (_, i) => Number.isFinite(save.best && save.best[i]) ? Math.max(0, Math.floor(save.best[i])) : 0),
+      medals: Array.from({ length: 12 }, (_, i) => Number.isFinite(save.medals && save.medals[i]) ? Math.max(0, Math.min(3, Math.floor(save.medals[i]))) : 0),
+      completed: Array.from({ length: 12 }, (_, i) => save.completed && save.completed[i] === true),
+      totalScore: Number.isFinite(save.totalScore) ? Math.max(0, Math.floor(save.totalScore)) : 0,
+      lastLevel: Number.isFinite(save.lastLevel) ? Math.max(0, Math.min(11, Math.floor(save.lastLevel))) : 0
+    };
+  }
+
+  function validSave(value) {
+    if (!value || typeof value !== 'object' || !Array.isArray(value.choices) || value.choices.length !== 2 || !Array.isArray(value.homeItems) || value.homeItems.length !== 2 || !Array.isArray(value.comfortInventory) || !Array.isArray(value.comfortSeen) || value.comfortSeen.length !== COMFORT_ITEMS.length || !Array.isArray(value.best) || value.best.length !== 12 || !Array.isArray(value.medals) || value.medals.length !== 12 || !Array.isArray(value.completed) || value.completed.length !== 12) return false;
+    for (let room = 0; room < 2; room += 1) {
+      if (!Array.isArray(value.choices[room]) || value.choices[room].length !== 6 || !Array.isArray(value.homeItems[room]) || value.homeItems[room].length !== 6) return false;
+      for (let slot = 0; slot < 6; slot += 1) {
+        const choice = value.choices[room][slot]; const item = value.homeItems[room][slot]; const level = room * 6 + slot;
+        if (!Number.isInteger(choice) || choice < -1 || choice > 2 || !Number.isInteger(item) || item < -1 || item >= COMFORT_ITEMS.length) return false;
+        if (choice < 0 && item >= 0) return false;
+        if (choice >= 0 && value.completed[level] !== true) return false;
+      }
     }
-    canvas.focus({ preventScroll: true });
-    try { canvas.setPointerCapture(event.pointerId); } catch (error) { /* capture is optional */ }
-    const record = { kind: hit.kind, id: hit.id, startX: point.x, startY: point.y, x: point.x, y: point.y, cell: hit.cell, style: hit.style };
-    activePointers.set(event.pointerId, record);
-    if (hit.kind === 'board') boardPointerId = event.pointerId;
-    if (hit.kind === 'button') pressedButtonPointers.set(event.pointerId, hit.id);
-    unlockAudio();
+    for (let i = 0; i < 12; i += 1) {
+      if (typeof value.completed[i] !== 'boolean' || !Number.isInteger(value.best[i]) || value.best[i] < 0 || !Number.isInteger(value.medals[i]) || value.medals[i] < 0 || value.medals[i] > 3) return false;
+      if (value.completed[i] && i > 0 && value.completed[i - 1] !== true) return false;
+    }
+    for (let i = 0; i < value.comfortInventory.length; i += 1) {
+      const item = value.comfortInventory[i];
+      if (!Number.isInteger(item) || item < 0 || item >= COMFORT_ITEMS.length) return false;
+    }
+    if (value.comfortInventory.length > 12) return false;
+    const heldItems = value.comfortInventory.concat(value.homeItems[0], value.homeItems[1]);
+    for (let i = 0; i < COMFORT_ITEMS.length; i += 1) if (typeof value.comfortSeen[i] !== 'boolean' || (heldItems.indexOf(i) >= 0 && !value.comfortSeen[i])) return false;
+    return Number.isInteger(value.totalScore) && value.totalScore >= 0 && Number.isInteger(value.lastLevel) && value.lastLevel >= 0 && value.lastLevel < 12;
   }
 
-  function handlePointerMove(event) {
-    event.preventDefault();
-    const record = activePointers.get(event.pointerId);
-    if (!record) return;
-    const point = pointFromEvent(event);
-    record.x = point.x; record.y = point.y;
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+  function hex(value) { return Phaser.Display.Color.HexStringToColor('#' + value.toString(16).padStart(6, '0')).color; }
+  function cellIndex(col, row) { return row * COLS + col; }
+  function cellCoord(index) { return { col: index % COLS, row: Math.floor(index / COLS) }; }
+  function adjacent(a, b) { return Math.abs(a.col - b.col) + Math.abs(a.row - b.row) === 1; }
+  function setTextIfChanged(textObject, value) {
+    const next = String(value);
+    if (textObject.text !== next) textObject.setText(next);
+  }
+  function setColorIfChanged(textObject, color) {
+    if (textObject._hhColor !== color) { textObject.setColor(color); textObject._hhColor = color; }
   }
 
-  function releasePointer(event, cancelled) {
-    event.preventDefault();
-    const record = activePointers.get(event.pointerId);
-    if (!record) return;
-    activePointers.delete(event.pointerId);
-    pressedButtonPointers.delete(event.pointerId);
-    if (event.pointerId === boardPointerId) boardPointerId = null;
-    try { canvas.releasePointerCapture(event.pointerId); } catch (error) { /* capture is optional */ }
-    if (cancelled || orientationBlocked) return;
-    const point = pointFromEvent(event);
-    if (record.kind === 'board') {
-      const dx = point.x - record.startX;
-      const dy = point.y - record.startY;
-      const start = record.cell;
-      if (!start) return;
-      if (Math.max(Math.abs(dx), Math.abs(dy)) > 16) {
-        let toCol = start.col;
-        let toRow = start.row;
-        if (Math.abs(dx) > Math.abs(dy)) toCol += dx > 0 ? 1 : -1;
-        else toRow += dy > 0 ? 1 : -1;
-        if (toCol >= 0 && toCol < COLS && toRow >= 0 && toRow < ROWS) queueAction({ type: 'swipe', col: start.col, row: start.row, toCol, toRow });
+  const kit = window.GGKit.create({
+    slug: 'hearth-halls',
+    orientation: 'portrait',
+    validateSave: validSave,
+    onPause: function () {
+      if (window.__hhScene) { window.__hhScene.cancelPointer(); window.__hhScene.keyLatch.clear(); window.__hhScene.pausedByKit = true; }
+    },
+    onResume: function () { if (window.__hhScene) window.__hhScene.pausedByKit = false; },
+    onRestart: function () {
+      if (window.__hhScene) window.__hhScene.restartLevelDirect();
+    }
+  });
+  kit.loader.show('Hearth & Halls');
+  kit.loader.progress(0.15);
+
+  const publicState = {
+    mode: 'title',
+    level: 1,
+    moves: 0,
+    rooms: [],
+    choices: cloneChoices(null),
+    comfortInventory: [],
+    homeItems: [Array(6).fill(-1), Array(6).fill(-1)],
+    best: Array(12).fill(0),
+    medals: Array(12).fill(0),
+    replayLevel: null,
+    reducedMotion: false
+  };
+  window.__hh = {
+    state: publicState,
+    forceLevel: function (level) {
+      if (window.__hhScene) window.__hhScene.forceLevel(level);
+    },
+    forceRoom: function (room) {
+      if (window.__hhScene) window.__hhScene.forceRoom(room);
+    }
+  };
+
+  class HearthScene extends Phaser.Scene {
+    constructor() {
+      super({ key: 'HearthScene' });
+      this.mode = 'title';
+      this.levelIndex = 0;
+      this.replay = false;
+      this.roomIndex = 0;
+      this.choiceSlot = 0;
+      this.choiceFocus = 0;
+      this.reactionSpeaker = 0;
+      this.revealT = 1;
+      this.finalRevealT = 0;
+      this.moves = 0;
+      this.score = 0;
+      this.streak = 0;
+      this.bestStreak = 0;
+      this.hintUsed = false;
+      this.selectedCell = null;
+      this.cursor = { col: 3, row: 4 };
+      this.preview = null;
+      this.drag = null;
+      this.keyLatch = new Set();
+      this.rngState = 1;
+      this.values = Array(CELLS).fill(0);
+      this.specials = Array(CELLS).fill(null);
+      this.tileViews = [];
+      this.markerViews = [];
+      this.particles = null;
+      this.fx = null;
+      this.boardFrame = null;
+      this.roomViews = [];
+      this.background = null;
+      this.layoutDirty = true;
+      this.boardPulse = 0;
+      this.swapPulse = 0;
+      this.chipT = 0;
+      this.tutorialT = 0;
+      this.reactionReady = false;
+      this.roomComplete = false;
+      this.pendingStyle = 0;
+      this.comfortFocus = -1;
+      this.swapAnim = null;
+      this.settleT = 0;
+      this.roomMotionT = 0;
+      this.buildPulse = 0;
+      this.comfortPulse = 0;
+      this.lastCollectedItem = -1;
+      this.gamepadPrev = { left: false, right: false, up: false, down: false, confirm: false, cancel: false, start: false };
+      this.lastSr = '';
+      this.pausedByKit = false;
+    }
+
+    preload() {
+      kit.loader.progress(0.35);
+    }
+
+    create() {
+      window.__hhScene = this;
+      this.progress = sanitizeSave(kit.save.get(SAVE_FALLBACK));
+      this.reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      if (this.reducedMotion) kit.juice.enabled = false;
+      this.createTextures();
+      this.createParticles();
+      this.createUi();
+      kit.audio.register(AUDIO);
+      kit.audio.preload(AUDIO_NAMES);
+      this.bindInput();
+      this.bindAccessibleControls();
+      this.scale.on('resize', function () { this.layoutDirty = true; }.bind(this));
+      this.game.events.on('hidden', function () { this.keyLatch.clear(); this.cancelPointer(); }.bind(this));
+      kit.registerPWA();
+      kit.loader.progress(1);
+      kit.loader.hide();
+      this.setMode(this.progress.completed.some(Boolean) ? 'title' : 'title');
+      kit.audio.music('music-home', 500);
+      this.refreshPublicState();
+    }
+
+    update(time, delta) {
+      const juice = kit.juice.frame();
+      if (this.cameras && this.cameras.main) this.cameras.main.setScroll(juice.dx, juice.dy);
+      if (kit.paused) return;
+      const dt = Math.min(1 / 30, Math.max(0, delta / 1000));
+      if (this.layoutDirty) this.layout();
+      this.stepKeys();
+      if (!juice.frozen) this.step(dt);
+      this.render();
+    }
+
+    createTextures() {
+      const make = function (key, size, painter) {
+        if (this.textures.exists(key)) return;
+        const g = this.make.graphics({ x: 0, y: 0, add: false });
+        painter(g, size);
+        g.generateTexture(key, size, size);
+        g.destroy();
+      }.bind(this);
+      const drawSymbol = function (g, def, s) {
+        const c = hex(def.color);
+        g.fillStyle(0xffffff, 0.9);
+        g.lineStyle(Math.max(2, s * 0.055), 0xffffff, 0.9);
+        const cx = s * 0.5;
+        const cy = s * 0.49;
+        if (def.symbol === 'seed') { g.fillCircle(cx, cy, s * 0.15); g.fillStyle(c); g.fillCircle(cx + s * 0.045, cy - s * 0.045, s * 0.055); }
+        if (def.symbol === 'sun') { g.strokeCircle(cx, cy, s * 0.15); for (let i = 0; i < 4; i += 1) { const a = i * Math.PI / 2; g.lineBetween(cx + Math.cos(a) * s * 0.22, cy + Math.sin(a) * s * 0.22, cx + Math.cos(a) * s * 0.3, cy + Math.sin(a) * s * 0.3); } }
+        if (def.symbol === 'leaf') { g.beginPath(); g.moveTo(cx, cy - s * 0.24); g.quadraticBezierTo(cx + s * 0.27, cy - s * 0.04, cx, cy + s * 0.24); g.quadraticBezierTo(cx - s * 0.27, cy - s * 0.04, cx, cy - s * 0.24); g.closePath(); g.fillPath(); g.lineBetween(cx - s * 0.02, cy + s * 0.18, cx + s * 0.13, cy - s * 0.08); }
+        if (def.symbol === 'drop') { g.beginPath(); g.moveTo(cx, cy - s * 0.27); g.lineTo(cx + s * 0.21, cy + s * 0.05); g.arc(cx, cy + s * 0.05, s * 0.21, 0, Math.PI, false); g.closePath(); g.fillPath(); }
+        if (def.symbol === 'star') { g.beginPath(); for (let i = 0; i < 10; i += 1) { const a = -Math.PI / 2 + i * Math.PI / 5; const r = i % 2 ? s * 0.11 : s * 0.25; const x = cx + Math.cos(a) * r; const y = cy + Math.sin(a) * r; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); } g.closePath(); g.fillPath(); }
+        if (def.symbol === 'flame') { g.beginPath(); g.moveTo(cx, cy - s * 0.27); g.quadraticBezierTo(cx + s * 0.27, cy - s * 0.04, cx + s * 0.13, cy + s * 0.22); g.quadraticBezierTo(cx, cy + s * 0.3, cx - s * 0.18, cy + s * 0.2); g.quadraticBezierTo(cx - s * 0.27, cy + s * 0.04, cx, cy - s * 0.27); g.closePath(); g.fillPath(); }
+      };
+      const drawTileShape = function (g, index, color, offset) {
+        const cx = 32; const cy = 31 + offset;
+        g.fillStyle(hex(color), 1);
+        if (index === 0) { g.fillCircle(cx, cy, 26); g.fillCircle(19, cy + 15, 8); g.fillCircle(45, cy + 15, 8); return; }
+        if (index === 1) { g.beginPath(); g.moveTo(20, 5 + offset); g.lineTo(44, 5 + offset); g.lineTo(58, 24 + offset); g.lineTo(47, 56 + offset); g.lineTo(17, 56 + offset); g.lineTo(6, 24 + offset); g.closePath(); g.fillPath(); return; }
+        if (index === 2) { g.beginPath(); g.moveTo(32, 4 + offset); g.lineTo(57, 28 + offset); g.lineTo(32, 57 + offset); g.lineTo(7, 28 + offset); g.closePath(); g.fillPath(); return; }
+        if (index === 3) { g.beginPath(); g.moveTo(32, 4 + offset); g.lineTo(56, 30 + offset); g.arc(32, 30 + offset, 24, 0, Math.PI, false); g.closePath(); g.fillPath(); return; }
+        if (index === 4) { g.beginPath(); for (let i = 0; i < 10; i += 1) { const a = -Math.PI / 2 + i * Math.PI / 5; const r = i % 2 ? 16 : 28; const x = cx + Math.cos(a) * r; const y = cy + Math.sin(a) * r; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); } g.closePath(); g.fillPath(); return; }
+        g.beginPath(); g.moveTo(32, 3 + offset); g.lineTo(57, 24 + offset); g.lineTo(48, 57 + offset); g.lineTo(17, 57 + offset); g.lineTo(7, 24 + offset); g.closePath(); g.fillPath();
+      };
+      TILE_DEFS.forEach(function (def, index) {
+        make('hh-tile-' + index, 64, function (g, s) {
+          drawTileShape(g, index, def.edge, 4);
+          drawTileShape(g, index, def.color, 0);
+          g.fillStyle(0xffffff, 0.42); g.fillCircle(s * 0.28, s * 0.24, s * 0.06);
+          drawSymbol(g, def, s);
+        });
+      });
+      make('hh-particle', 8, function (g, s) { g.fillStyle(0xffffff, 1); g.fillCircle(4, 4, 4); });
+      make('hh-star', 32, function (g, s) { g.fillStyle(0xffffff, 1); g.beginPath(); for (let i = 0; i < 8; i += 1) { const a = -Math.PI / 2 + i * Math.PI / 4; const r = i % 2 ? 6 : 15; const x = 16 + Math.cos(a) * r; const y = 16 + Math.sin(a) * r; if (!i) g.moveTo(x, y); else g.lineTo(x, y); } g.closePath(); g.fillPath(); });
+    }
+
+    createParticles() {
+      this.fx = {
+        clear: this.add.particles(0, 0, 'hh-particle', { speed: { min: 55, max: 190 }, angle: { min: 0, max: 360 }, lifespan: { min: 260, max: 480 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.95, end: 0 }, emitting: false, maxAliveParticles: 48, blendMode: Phaser.BlendModes.ADD }).setDepth(45),
+        streak: this.add.particles(0, 0, 'hh-particle', { speed: { min: 100, max: 240 }, angle: { min: 230, max: 310 }, lifespan: { min: 320, max: 560 }, scale: { start: 0.55, end: 0 }, alpha: { start: 0.75, end: 0 }, emitting: false, maxAliveParticles: 32, blendMode: Phaser.BlendModes.ADD }).setDepth(45),
+        reward: this.add.particles(0, 0, 'hh-star', { speed: { min: 45, max: 170 }, angle: { min: 190, max: 350 }, lifespan: { min: 600, max: 980 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.9, end: 0 }, rotate: { min: -180, max: 180 }, emitting: false, maxAliveParticles: 36, blendMode: Phaser.BlendModes.ADD }).setDepth(150),
+        place: this.add.particles(0, 0, 'hh-star', { speed: { min: 25, max: 90 }, angle: { min: 210, max: 330 }, lifespan: { min: 420, max: 700 }, scale: { start: 0.48, end: 0 }, alpha: { start: 0.75, end: 0 }, emitting: false, maxAliveParticles: 18, blendMode: Phaser.BlendModes.ADD }).setDepth(150),
+        unlock: this.add.particles(0, 0, 'hh-star', { speed: { min: 50, max: 155 }, angle: { min: 0, max: 360 }, lifespan: { min: 520, max: 880 }, scale: { start: 0.7, end: 0 }, alpha: { start: 0.85, end: 0 }, emitting: false, maxAliveParticles: 28, blendMode: Phaser.BlendModes.ADD }).setDepth(150),
+        comfort: this.add.particles(0, 0, 'hh-particle', { speed: { min: 18, max: 70 }, angle: { min: 200, max: 340 }, lifespan: { min: 320, max: 620 }, scale: { start: 0.42, end: 0 }, alpha: { start: 0.7, end: 0 }, emitting: false, maxAliveParticles: 16, blendMode: Phaser.BlendModes.ADD }).setDepth(150)
+      };
+    }
+
+    createUi() {
+      const makeText = function (x, y, text, size, color, weight, originX) {
+        const item = this.add.text(x, y, text, { fontFamily: SYSTEM_FONT, fontSize: size + 'px', fontStyle: weight >= 800 ? 'bold' : 'normal', color: '#' + color.toString(16).padStart(6, '0'), resolution: 2, align: 'left' }).setOrigin(originX == null ? 0 : originX, 0.5).setDepth(100);
+        item._hhColor = color; return item;
+      }.bind(this);
+      const makeButton = function () {
+        const container = this.add.container(0, 0).setDepth(110);
+        const bg = this.add.rectangle(0, 0, 10, 10, COLORS.coral).setOrigin(0.5);
+        const label = makeText(0, 0, '', 15, COLORS.paper, 800, 0.5);
+        container.add([bg, label]);
+        return { container: container, bg: bg, label: label, enabled: true, rect: { x: 0, y: 0, w: 0, h: 0 } };
+      }.bind(this);
+      this.ui = {
+        brand: makeText(20, 22, 'HEARTH & HALLS', 17, COLORS.paper, 800),
+        context: makeText(0, 22, '', 14, COLORS.brass, 800, 1),
+        title: makeText(0, 118, '', 30, COLORS.paper, 800, 0.5),
+        subtitle: makeText(0, 154, '', 16, COLORS.paperSoft, 600, 0.5),
+        level: makeText(20, 55, '', 16, COLORS.paper, 800),
+        moves: makeText(0, 55, '', 16, COLORS.brass, 800, 1),
+        goal: makeText(20, 78, '', 15, COLORS.paperSoft, 700),
+        best: makeText(0, 78, '', 15, COLORS.paperSoft, 700, 1),
+        hint: makeText(0, 104, '', 14, COLORS.paperSoft, 600, 0.5),
+        chip: makeText(0, 111, '', 14, COLORS.paper, 800, 1),
+        bottom: makeText(20, 0, '', 14, COLORS.paperSoft, 700),
+        roomProgress: makeText(20, 0, '', 14, COLORS.paperSoft, 700),
+        roomName: makeText(20, 0, '', 16, COLORS.ink, 800),
+        choiceTitle: makeText(0, 0, '', 24, COLORS.ink, 800, 0.5),
+        choiceSub: makeText(0, 0, '', 15, COLORS.ink, 600, 0.5),
+        comfortTitle: makeText(20, 0, '', 13, COLORS.paper, 800),
+        reactionSpeaker: makeText(0, 0, '', 16, COLORS.ink, 800),
+        reactionLine: makeText(0, 0, '', 17, COLORS.ink, 600),
+        clearTitle: makeText(0, 0, '', 27, COLORS.ink, 800, 0.5),
+        clearScore: makeText(0, 0, '', 16, COLORS.ink, 700, 0.5),
+        clearMedal: makeText(0, 0, '', 32, COLORS.brass, 800, 0.5),
+        completeTitle: makeText(0, 0, 'A HOME WITH OPINIONS', 26, COLORS.paper, 800, 0.5),
+        completeSub: makeText(0, 0, 'Both rooms are fully revealed.', 16, COLORS.paperSoft, 600, 0.5),
+        replayTitle: makeText(0, 0, 'REPLAY A FINISHED LEVEL', 24, COLORS.paper, 800, 0.5),
+        replaySub: makeText(0, 0, 'Chase a personal best. Choices stay yours.', 15, COLORS.paperSoft, 600, 0.5)
+      };
+      this.buttons = {
+        start: makeButton(), retry: makeButton(), hint: makeButton(), next: makeButton(),
+        newRun: makeButton(), replay: makeButton(), choose: makeButton(), continue: makeButton(), back: makeButton(),
+        decorate: makeButton(), settings: makeButton()
+      };
+      this.choiceButtons = [makeButton(), makeButton(), makeButton()];
+      this.comfortButtons = COMFORT_ITEMS.map(function () { return makeButton(); });
+      this.replayButtons = Array.from({ length: 12 }, makeButton);
+      this.selectionG = this.add.graphics().setDepth(60);
+      this.curtainG = this.add.graphics().setDepth(90);
+      this.roomGlowG = this.add.graphics().setDepth(52);
+      for (let i = 0; i < CELLS; i += 1) {
+        this.tileViews.push(this.add.image(0, 0, 'hh-tile-0').setDepth(20).setVisible(false));
+        this.markerViews.push(this.add.text(0, 0, '✦', { fontFamily: SYSTEM_FONT, fontSize: '20px', color: '#fff8ee', resolution: 2 }).setOrigin(0.5).setDepth(25).setVisible(false));
+      }
+      this.roomViews = [];
+      this.srStatus = document.getElementById('sr-status');
+    }
+
+    bindInput() {
+      this.input.on('pointerdown', function (pointer) {
+        if (kit.paused || this.drag) return;
+        const record = kit.input.pointers.get(pointer.id);
+        if (record) record.zone = 'hearth-halls';
+        else kit.input.pointers.set(pointer.id, { x: pointer.x, y: pointer.y, startX: pointer.x, startY: pointer.y, downAt: 0, zone: 'hearth-halls' });
+        const hit = this.hitTest(pointer.x, pointer.y);
+        if (!hit) return;
+        if (this.mode === 'choice' && hit.id && hit.id.indexOf('choice-') === 0) { this.choiceFocus = hit.style; this.layoutDirty = true; }
+        if (hit.kind === 'board') {
+          this.drag = { id: pointer.id, start: hit.cell, startX: pointer.x, startY: pointer.y };
+          this.preview = null;
+        } else {
+          this.drag = { id: pointer.id, button: hit.id, style: hit.style, startX: pointer.x, startY: pointer.y };
+        }
+        kit.audio.sfx('tap');
+      }, this);
+      this.input.on('pointermove', function (pointer) {
+        if (!this.drag || pointer.id !== this.drag.id || this.mode !== 'level' && this.mode !== 'replay') return;
+        const cell = this.cellFromPoint(pointer.x, pointer.y);
+        if (!this.drag.start || !cell) return;
+        const dx = pointer.x - this.drag.startX;
+        const dy = pointer.y - this.drag.startY;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) > 10) {
+          const to = Math.abs(dx) > Math.abs(dy) ? { col: this.drag.start.col + (dx > 0 ? 1 : -1), row: this.drag.start.row } : { col: this.drag.start.col, row: this.drag.start.row + (dy > 0 ? 1 : -1) };
+          if (to.col >= 0 && to.col < COLS && to.row >= 0 && to.row < ROWS) this.setPreview(this.drag.start, to);
+        } else if (this.selectedCell && adjacent(this.selectedCell, cell)) this.setPreview(this.selectedCell, cell);
+      }, this);
+      this.input.on('pointerup', function (pointer) {
+        if (!this.drag || pointer.id !== this.drag.id) return;
+        const drag = this.drag; this.drag = null;
+        if (drag.start) {
+          const dx = pointer.x - drag.startX;
+          const dy = pointer.y - drag.startY;
+          if (Math.max(Math.abs(dx), Math.abs(dy)) > 16) {
+            const to = Math.abs(dx) > Math.abs(dy) ? { col: drag.start.col + (dx > 0 ? 1 : -1), row: drag.start.row } : { col: drag.start.col, row: drag.start.row + (dy > 0 ? 1 : -1) };
+            if (to.col >= 0 && to.col < COLS && to.row >= 0 && to.row < ROWS) this.trySwap(drag.start, to);
+          } else {
+            this.tapCell(this.cellFromPoint(pointer.x, pointer.y) || drag.start);
+          }
+        } else if (this.hitTest(pointer.x, pointer.y) && this.hitTest(pointer.x, pointer.y).id === drag.button) {
+          this.activateButton(drag.button, drag.style);
+        }
+        this.preview = null;
+      }, this);
+      this.input.on('pointercancel', function (pointer) { this.cancelPointer(pointer); }, this);
+      this.input.on('pointerupoutside', function (pointer) { this.cancelPointer(pointer); }, this);
+      this.input.on('gameout', function (pointer) { this.cancelPointer(pointer); }, this);
+    }
+
+    cancelPointer(pointer) {
+      if (!pointer || !this.drag || pointer.id === this.drag.id) { this.drag = null; this.preview = null; }
+      if (kit.input && kit.input.pointers) kit.input.pointers.clear();
+    }
+
+    bindAccessibleControls() {
+      document.querySelectorAll('[data-hh-action]').forEach(function (control) {
+        control.addEventListener('click', function () {
+          const action = control.getAttribute('data-hh-action');
+          if (action === 'left' || action === 'right' || action === 'up' || action === 'down') this.keyAction('Arrow' + action.charAt(0).toUpperCase() + action.slice(1));
+          else if (action === 'confirm') this.keyAction('Enter');
+          else if (action === 'cancel') this.keyAction('Escape');
+          else this.activateButton(action);
+        }.bind(this));
+      }, this);
+    }
+
+    stepKeys() {
+      const codes = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter', 'Space', 'KeyR', 'KeyN', 'Escape'];
+      const pressed = function (code) { return kit.input.keyDown(code); };
+      codes.forEach(function (code) {
+        const down = pressed(code);
+        if (down && !this.keyLatch.has(code)) this.keyAction(code);
+        if (down) this.keyLatch.add(code); else this.keyLatch.delete(code);
+      }, this);
+      const pad = this.pollGamepad();
+      if (pad.left) this.keyAction('ArrowLeft');
+      if (pad.right) this.keyAction('ArrowRight');
+      if (pad.up) this.keyAction('ArrowUp');
+      if (pad.down) this.keyAction('ArrowDown');
+      if (pad.confirm) this.keyAction('Enter');
+      if (pad.cancel) this.keyAction('Escape');
+      if (pad.start) this.activateButton('settings');
+    }
+
+    pollGamepad() {
+      const empty = { left: false, right: false, up: false, down: false, confirm: false, cancel: false, start: false };
+      if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') { this.gamepadPrev = empty; return empty; }
+      let pads = [];
+      try { pads = navigator.getGamepads() || []; } catch (e) { this.gamepadPrev = empty; return empty; }
+      const pad = Array.from(pads).find(function (candidate) { return candidate && candidate.connected; });
+      if (!pad) { this.gamepadPrev = empty; return empty; }
+      const axisX = Number(pad.axes && pad.axes[0]) || 0; const axisY = Number(pad.axes && pad.axes[1]) || 0;
+      const current = {
+        left: !!((pad.buttons[14] && pad.buttons[14].pressed) || axisX < -0.55),
+        right: !!((pad.buttons[15] && pad.buttons[15].pressed) || axisX > 0.55),
+        up: !!((pad.buttons[12] && pad.buttons[12].pressed) || axisY < -0.55),
+        down: !!((pad.buttons[13] && pad.buttons[13].pressed) || axisY > 0.55),
+        confirm: !!(pad.buttons[0] && pad.buttons[0].pressed),
+        cancel: !!(pad.buttons[1] && pad.buttons[1].pressed),
+        start: !!(pad.buttons[9] && pad.buttons[9].pressed)
+      };
+      const edge = Object.keys(current).reduce(function (out, key) { out[key] = current[key] && !this.gamepadPrev[key]; return out; }.bind(this), {});
+      this.gamepadPrev = current;
+      return edge;
+    }
+
+    keyAction(code) {
+      if (code === 'Escape') {
+        if (this.mode === 'replaySelect') this.setMode('complete');
+        else if (this.mode === 'choice') this.setMode('clear');
+        else if ((this.mode === 'level' || this.mode === 'replay') && this.selectedCell) { this.selectedCell = null; this.preview = null; }
+        else if (this.mode !== 'title') this.activateButton('settings');
+        return;
+      }
+      if (this.mode === 'title' && (code === 'Enter' || code === 'Space')) { this.activateButton('start'); return; }
+      if ((this.mode === 'level' || this.mode === 'replay') && code === 'KeyR') { this.restartLevel(); return; }
+      if ((this.mode === 'level' || this.mode === 'replay') && code === 'KeyN') { this.newRun(); return; }
+      if ((this.mode === 'level' || this.mode === 'replay') && code.indexOf('Arrow') === 0) {
+        const dx = code === 'ArrowLeft' ? -1 : code === 'ArrowRight' ? 1 : 0;
+        const dy = code === 'ArrowUp' ? -1 : code === 'ArrowDown' ? 1 : 0;
+        this.cursor.col = (this.cursor.col + dx + COLS) % COLS;
+        this.cursor.row = (this.cursor.row + dy + ROWS) % ROWS;
+        if (this.selectedCell && adjacent(this.selectedCell, this.cursor)) this.setPreview(this.selectedCell, this.cursor);
+        else if (!this.selectedCell) this.preview = this.firstLegalPreview(this.cursor);
+        this.tutorialT = 1.8;
+        return;
+      }
+      if (code === 'Enter' || code === 'Space') {
+        if (this.mode === 'level' || this.mode === 'replay') {
+          if (!this.selectedCell) this.tapCell(this.cursor);
+          else if (adjacent(this.selectedCell, this.cursor)) this.trySwap(this.selectedCell, this.cursor);
+          else this.tapCell(this.cursor);
+        }
+        else if (this.mode === 'clear') this.activateButton('choose');
+        else if (this.mode === 'choice') this.activateButton('decorate');
+        else if (this.mode === 'reaction') this.activateButton('continue');
+        else if (this.mode === 'roomComplete') this.activateButton('next');
+        else if (this.mode === 'fail') this.activateButton('retry');
+        else if (this.mode === 'complete') this.activateButton('replay');
+        else if (this.mode === 'replaySelect') this.activateButton('replay-' + this.choiceFocus, this.choiceFocus);
+      }
+      if (this.mode === 'choice' && (code === 'ArrowLeft' || code === 'ArrowRight')) { this.choiceFocus = (this.choiceFocus + (code === 'ArrowLeft' ? 2 : 1)) % 3; this.pendingStyle = this.choiceFocus; this.layoutDirty = true; }
+      if (this.mode === 'choice' && (code === 'ArrowUp' || code === 'ArrowDown') && this.progress.comfortInventory.length) {
+        const current = Math.max(0, this.progress.comfortInventory.indexOf(this.comfortFocus)); const offset = code === 'ArrowUp' ? -1 : 1; const next = (current + offset + this.progress.comfortInventory.length) % this.progress.comfortInventory.length; this.selectComfort(this.progress.comfortInventory[next]);
+      }
+    }
+
+    step(dt) {
+      this.tutorialT = Math.max(0, this.tutorialT - dt);
+      this.chipT = Math.max(0, this.chipT - dt);
+      this.boardPulse = Math.max(0, this.boardPulse - dt);
+      this.swapPulse = Math.max(0, this.swapPulse - dt);
+      this.settleT = Math.max(0, this.settleT - dt);
+      if (this.swapAnim) { this.swapAnim.t -= dt; if (this.swapAnim.t <= 0) this.swapAnim = null; }
+      this.roomMotionT += dt;
+      this.buildPulse = Math.max(0, this.buildPulse - dt);
+      this.comfortPulse = Math.max(0, this.comfortPulse - dt);
+      if (this.mode === 'reaction') {
+        this.revealT = Math.min(1, this.revealT + dt / 0.92);
+        this.reactionReady = this.revealT >= 0.86;
+      }
+      if (this.mode === 'complete') this.finalRevealT = Math.min(1, this.finalRevealT + dt / 1.2);
+      this.refreshPublicState();
+    }
+
+    layout() {
+      this.layoutDirty = false;
+      const w = this.scale.width;
+      const h = this.scale.height;
+      this.w = w; this.h = h;
+      this.ui.context.setX(w - 20);
+      const cell = Math.floor(Math.min((w - 34) / COLS, (h - 310) / ROWS));
+      this.boardRect = { x: (w - cell * COLS) / 2, y: Math.max(142, Math.min(186, h * 0.215)), cell: cell, w: cell * COLS, h: cell * ROWS };
+      this.boardFrame = this.bakeBoardFrame();
+      this.bakeBackground();
+      this.rebuildRoomViews();
+      this.positionStaticUi();
+      this.updateModeVisibility();
+    }
+
+    bakeBackground() {
+      if (this.background) this.background.destroy();
+      this.background = this.add.renderTexture(0, 0, this.w, this.h).setOrigin(0).setDepth(-20);
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      g.fillGradientStyle(0x3b2930, 0x49312e, 0x181b2a, 0x10141f, 1);
+      g.fillRect(0, 0, this.w, this.h);
+      g.fillStyle(0x9a5c48, 0.15); g.fillCircle(this.w * 0.05, this.h * 0.3, 120);
+      g.fillStyle(0xc78a52, 0.1); g.fillCircle(this.w * 0.96, this.h * 0.53, 150);
+      g.fillStyle(0xf3bc50, 0.1); g.fillCircle(this.w * 0.5, this.h * 0.02, 180);
+      g.fillStyle(0x0f1420, 0.2); g.fillRect(0, 0, this.w, 7); g.fillRect(0, this.h - 7, this.w, 7);
+      g.lineStyle(2, 0xc89262, 0.18); g.lineBetween(0, this.h * 0.24, this.w, this.h * 0.24); g.lineBetween(0, this.h * 0.77, this.w, this.h * 0.77);
+      this.background.draw(g, 0, 0); g.destroy();
+    }
+
+    bakeBoardFrame() {
+      if (this.boardFrame && this.boardFrame.destroy) this.boardFrame.destroy();
+      const r = this.boardRect;
+      const frame = this.add.renderTexture(r.x - 10, r.y - 10, r.w + 20, r.h + 20).setOrigin(0).setDepth(8);
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0x110f18, 0.72); g.fillRoundedRect(0, 5, r.w + 20, r.h + 17, 23);
+      g.fillStyle(0x8b563d, 1); g.fillRoundedRect(0, 0, r.w + 20, r.h + 12, 23);
+      g.fillStyle(0xc58b58, 0.35); g.fillRoundedRect(5, 4, r.w + 10, r.h + 3, 18);
+      g.lineStyle(2, COLORS.brass, 0.9); g.strokeRoundedRect(2, 2, r.w + 16, r.h + 8, 21);
+      for (let row = 0; row < ROWS; row += 1) for (let col = 0; col < COLS; col += 1) {
+        g.fillStyle(0xead9c3, 1); g.fillRoundedRect(10 + col * r.cell, 10 + row * r.cell, r.cell - 3, r.cell - 3, 9);
+        g.lineStyle(1, 0x9d775e, 0.46); g.strokeRoundedRect(11 + col * r.cell, 11 + row * r.cell, r.cell - 5, r.cell - 5, 8);
+      }
+      g.fillStyle(COLORS.brass, 1); [[8, 8], [r.w + 12, 8], [8, r.h + 1], [r.w + 12, r.h + 1]].forEach(function (p) { g.fillCircle(p[0], p[1], 3); });
+      frame.draw(g, 0, 0); g.destroy();
+      return frame;
+    }
+
+    positionStaticUi() {
+      const w = this.w; const h = this.h;
+      this.ui.brand.setPosition(20, 22);
+      this.ui.context.setPosition(w - 20, 22);
+      this.ui.level.setPosition(20, 55); this.ui.moves.setPosition(w - 20, 55);
+      this.ui.goal.setPosition(20, 78); this.ui.best.setPosition(w - 20, 78);
+      this.ui.hint.setPosition(w / 2, 105); this.ui.chip.setPosition(w - 20, 111);
+      this.ui.bottom.setPosition(78, h - 27); this.ui.roomProgress.setPosition(20, h - 27);
+      this.ui.comfortTitle.setPosition(20, h - 326);
+      this.placeButton(this.buttons.settings, w - 20, 22, 34, 30, '⚙', COLORS.board);
+      this.placeButton(this.buttons.hint, w - 66, 105, 44, 44, '?', COLORS.board);
+      this.placeButton(this.buttons.retry, 18, h - 52, 48, 44, '↻', COLORS.woodDark);
+      this.placeButton(this.buttons.start, w / 2, h - 82, Math.min(w - 44, 320), 54, 'Begin building', COLORS.coral);
+      this.placeButton(this.buttons.next, w / 2, h - 76, Math.min(w - 44, 320), 54, 'Next room beat', COLORS.coral);
+      this.placeButton(this.buttons.choose, w / 2, h - 76, Math.min(w - 44, 320), 54, 'Choose the fixture', COLORS.coral);
+      this.placeButton(this.buttons.continue, w / 2, h - 76, Math.min(w - 44, 320), 54, 'Continue', COLORS.coral);
+      this.placeButton(this.buttons.newRun, w / 2, h - 74, Math.min(w - 44, 320), 52, 'Start a new run', COLORS.coral);
+      this.placeButton(this.buttons.replay, w / 2, h - 136, Math.min(w - 44, 320), 52, 'Replay a level', COLORS.coral);
+      this.placeButton(this.buttons.back, w / 2, h - 74, Math.min(w - 44, 320), 52, 'Back', COLORS.board);
+      this.placeButton(this.buttons.decorate, w / 2, h - 76, Math.min(w - 44, 320), 52, 'Reveal fixture', COLORS.coral);
+      this.comfortButtons.forEach(function (button, index) {
+        const gap = 5; const bw = (w - 40 - gap * 5) / 6;
+        this.placeButton(button, 20 + bw / 2 + index * (bw + gap), h - 284, bw, 42, COMFORT_ITEMS[index].mark, COMFORT_ITEMS[index].color);
+      }.bind(this));
+      this.replayButtons.forEach(function (button, index) { const col = index % 3; const row = Math.floor(index / 3); this.placeButton(button, 72 + col * ((w - 144) / 2), 208 + row * 58, 52, 46, String(index + 1), this.progress.completed[index] ? COLORS.accent : COLORS.cell); }.bind(this));
+      const choiceY = h - 190;
+      this.choiceButtons.forEach(function (button, index) { const gap = 8; const bw = (w - 40 - gap * 2) / 3; this.placeButton(button, 20 + bw / 2 + index * (bw + gap), choiceY, bw, 78, STYLES[index].name, STYLES[index].color); }.bind(this));
+    }
+
+    placeButton(button, x, y, w, h, label, fill) {
+      button.container.setPosition(x, y);
+      button.bg.setSize(w, h); button.bg.setFillStyle(fill, 1);
+      setTextIfChanged(button.label, label); button.label.setPosition(0, 0);
+      button.rect = { x: x - w / 2, y: y - h / 2, w: w, h: h };
+      button.enabled = true;
+    }
+
+    rebuildRoomViews() {
+      this.roomViews.forEach(function (view) { if (view && view.destroy) view.destroy(); });
+      this.roomViews = [];
+      if (this.mode === 'title') {
+        this.roomViews.push(this.bakeRoomView(16, 106, this.w - 32, Math.min(310, this.h - 350), 0, -1, -1));
+      } else if (this.mode === 'choice' || this.mode === 'reaction') {
+        this.roomViews.push(this.bakeRoomView(16, 122, this.w - 32, Math.min(326, this.h - 355), this.roomIndex, this.choiceSlot, this.mode === 'choice' ? this.pendingStyle : this.selectedChoice()));
+      } else if (this.mode === 'complete') {
+        this.roomViews.push(this.bakeRoomView(14, 142, this.w * 0.46, 230, 0, -1, -1));
+        this.roomViews.push(this.bakeRoomView(this.w * 0.54 - 2, 142, this.w * 0.46, 230, 1, -1, -1));
+      }
+    }
+
+    bakeRoomView(x, y, w, h, room, previewSlot, previewStyle) {
+      const view = this.add.renderTexture(x, y, w, h).setOrigin(0).setDepth(3);
+      const g = this.make.graphics({ x: 0, y: 0, add: false });
+      this.drawRoomGraphic(g, w, h, room, previewSlot, previewStyle);
+      view.draw(g, 0, 0); g.destroy();
+      return view;
+    }
+
+    drawRoomGraphic(g, w, h, roomIndex, previewSlot, previewStyle) {
+      const room = ROOMS[roomIndex] || ROOMS[0];
+      const selected = function (slot) {
+        const stored = this.progress.choices[roomIndex] && this.progress.choices[roomIndex][slot];
+        return slot === previewSlot && previewStyle >= 0 ? previewStyle : (stored >= 0 ? stored : -1);
+      }.bind(this);
+      g.fillStyle(room.wall, 1); g.fillRoundedRect(0, 0, w, h, 20);
+      g.fillStyle(0xffffff, 0.13); g.fillRect(0, h * 0.08, w, h * 0.48);
+      g.lineStyle(2, room.wallDeep, 0.34); for (let seam = 0.11; seam < 0.7; seam += 0.12) g.lineBetween(w * seam, 10, w * seam, h * 0.7);
+      g.fillStyle(room.wallDeep, 0.52); g.fillRect(0, h * 0.7, w, h * 0.3);
+      g.fillStyle(room.floor, 1); g.fillRect(0, h * 0.78, w, h * 0.22);
+      g.lineStyle(2, 0x5d3b32, 0.3); for (let plank = 0; plank < 5; plank += 1) g.lineBetween(0, h * (0.8 + plank * 0.045), w, h * (0.8 + plank * 0.045));
+      g.fillStyle(0xffffff, 0.24); g.fillRect(0, h * 0.74, w, 4);
+      g.fillStyle(ROOMS[roomIndex].trim, 0.7); g.fillRect(0, 0, w, 10); g.fillStyle(0x6d4238, 0.4); g.fillRect(0, 10, w, 4);
+      if (room.kind === 'living') {
+        g.fillStyle(0x91c5bf, 1); g.fillRoundedRect(w * 0.56, h * 0.08, w * 0.32, h * 0.26, 10);
+        g.fillStyle(0xeaf4e4, 1); g.fillRect(w * 0.58, h * 0.1, w * 0.14, h * 0.22); g.fillRect(w * 0.73, h * 0.1, w * 0.13, h * 0.22);
+        g.lineStyle(3, room.trim, 1); g.lineBetween(w * 0.72, h * 0.08, w * 0.72, h * 0.34);
       } else {
-        const cell = cellFromPoint(point);
-        if (cell) queueAction({ type: 'tap', col: cell.col, row: cell.row });
+        g.fillStyle(0x9ab7b0, 1); g.fillRect(w * 0.04, h * 0.41, w * 0.92, h * 0.26);
+        g.fillStyle(0xc5d7cb, 1); g.fillRect(w * 0.04, h * 0.36, w * 0.92, h * 0.08);
+        g.fillStyle(0xf3d37b, 1); g.fillCircle(w * 0.15, h * 0.58, 8); g.fillCircle(w * 0.84, h * 0.58, 8);
+        g.fillStyle(0x506b61, 1); g.fillRoundedRect(w * 0.58, h * 0.12, w * 0.28, h * 0.2, 8);
+        g.fillStyle(0xe8f1d8, 1); g.fillRect(w * 0.61, h * 0.15, w * 0.22, h * 0.14);
       }
-    } else {
-      const hit = hitAt(point);
-      if (hit && hit.kind === 'button' && hit.id === record.id) {
-        if (record.id === 'start') queueAction({ type: 'start' });
-        if (record.id === 'retry') queueAction({ type: 'retry' });
-        if (record.id === 'new') queueAction({ type: 'new' });
-        if (record.id === 'continue') queueAction({ type: 'continue' });
-        if (record.id === 'style') queueAction({ type: 'style', style: record.style });
+      g.fillStyle(0x49312b, 0.28); g.fillEllipse(w * 0.52, h * 0.85, w * 0.72, h * 0.16);
+      for (let slot = 0; slot < 6; slot += 1) {
+        const p = this.fixtureRect(slot, w, h);
+        this.drawFixture(g, slot, selected(slot), p.x, p.y, p.w, p.h, slot === previewSlot);
+        const item = this.progress.homeItems[roomIndex] && this.progress.homeItems[roomIndex][slot];
+        if (item >= 0) this.drawComfortItem(g, item, p.x + p.w * 0.84, p.y + p.h * 0.22, Math.max(11, Math.min(18, p.h * 0.32)));
+      }
+      this.drawCharacter(g, w * 0.16, h * 0.81, room.marn, false, room.kind === 'kitchen');
+      this.drawCharacter(g, w * 0.84, h * 0.81, room.pip, true, room.kind === 'living');
+      g.fillStyle(0xf7e7d1, 0.74); g.fillRoundedRect(10, 10, Math.min(190, w - 20), 32, 10);
+      g.fillStyle(ROOMS[roomIndex].trim, 1); g.fillRoundedRect(14, 14, 5, 24, 2);
+      const roomName = room.short;
+      this.roomNameText = this.roomNameText || '';
+      g.fillStyle(COLORS.ink, 0.88); g.fillRect(0, 0, 0, 0);
+      // Room names are rendered by Phaser text outside this baked scene.
+      void roomName;
+    }
+
+    fixtureRect(slot, w, h) {
+      const layouts = [
+        [0.06, 0.48, 0.27, 0.28], [0.15, 0.73, 0.7, 0.12], [0.41, 0.5, 0.28, 0.22],
+        [0.79, 0.2, 0.12, 0.3], [0.06, 0.18, 0.29, 0.23], [0.55, 0.12, 0.3, 0.25]
+      ];
+      const a = layouts[slot] || layouts[0];
+      return { x: w * a[0], y: h * a[1], w: w * a[2], h: h * a[3] };
+    }
+
+    drawFixture(g, slot, style, x, y, w, h, active) {
+      if (active) { g.lineStyle(3, COLORS.brass, 1); g.strokeRoundedRect(x - 5, y - 5, w + 10, h + 10, 10); }
+      if (style < 0) {
+        g.fillStyle(0x6f4d45, 0.18); g.fillEllipse(x + w * 0.5, y + h * 0.85, w * 0.9, h * 0.18);
+        g.lineStyle(2, COLORS.ink, 0.34); g.strokeRoundedRect(x, y, w, h, 8);
+        g.lineStyle(2, COLORS.brass, 0.42); g.lineBetween(x + w * 0.25, y + h * 0.5, x + w * 0.75, y + h * 0.5); g.lineBetween(x + w * 0.5, y + h * 0.28, x + w * 0.5, y + h * 0.72);
+        return;
+      }
+      const color = STYLES[style] || STYLES[0];
+      const fill = hex(color.color); const light = hex(color.light);
+      g.fillStyle(0x49312b, 0.3); g.fillEllipse(x + w * 0.5, y + h * 0.9, w * 1.04, Math.max(5, h * 0.18));
+      g.lineStyle(3, COLORS.woodDark, 1);
+      if (slot === 0) { g.fillStyle(style === 1 ? 0xb78240 : style === 2 ? 0x3d9d91 : 0xb9684c, 1); g.fillRoundedRect(x, y + h * 0.2, w, h * 0.8, 8); g.strokeRoundedRect(x, y + h * 0.2, w, h * 0.8, 8); g.fillStyle(light, 1); g.fillCircle(x + w * 0.5 + (style === 2 ? 5 : 0), y + h * 0.65, h * 0.22); }
+      if (slot === 1) { g.fillStyle(fill, 1); g.fillRoundedRect(x, y + h * 0.2, w, h * 0.62, style === 2 ? 3 : 16); g.strokeRoundedRect(x, y + h * 0.2, w, h * 0.62, style === 2 ? 3 : 16); if (style === 1) { g.lineStyle(2, light, 1); g.strokeCircle(x + w * 0.5, y + h * 0.51, h * 0.18); } else { g.fillStyle(light, 1); g.fillCircle(x + w * 0.2, y + h * 0.5, 4); g.fillCircle(x + w * 0.8, y + h * 0.5, 4); } }
+      if (slot === 2) { g.fillStyle(fill, 1); if (style === 2) { g.beginPath(); g.moveTo(x + w * 0.5, y); g.lineTo(x + w, y + h * 0.65); g.lineTo(x, y + h * 0.65); g.closePath(); g.fillPath(); g.strokePath(); } else { g.fillEllipse(x + w * 0.5, y + h * 0.3, w * 0.95, h * 0.5); g.fillRect(x + w * 0.18, y + h * 0.3, w * 0.08, h * 0.68); g.fillRect(x + w * 0.74, y + h * 0.3, w * 0.08, h * 0.68); } }
+      if (slot === 3) { g.lineStyle(3, COLORS.woodDark, 1); g.lineBetween(x + w * 0.5, y + h * 0.15, x + w * 0.5, y + h * 0.75); g.fillStyle(fill, 1); g.fillCircle(x + w * 0.5, y + h * 0.78, w * 0.22); g.fillRoundedRect(x + w * 0.2, y + h * 0.1, w * 0.6, h * 0.24, style === 2 ? 4 : 12); g.fillStyle(light, 1); g.fillCircle(x + w * 0.5, y + h * 0.22, w * 0.12); }
+      if (slot === 4) { g.fillStyle(fill, 1); g.fillRect(x, y + h * 0.25, w, h * 0.12); g.fillRect(x, y + h * 0.6, w, h * 0.12); g.lineStyle(3, COLORS.woodDark, 1); g.lineBetween(x + w * 0.1, y + h * 0.18, x + w * 0.1, y + h * 0.86); g.lineBetween(x + w * 0.9, y + h * 0.18, x + w * 0.9, y + h * 0.86); g.fillStyle(light, 1); g.fillRect(x + w * 0.25, y + h * 0.38, w * 0.13, h * 0.14); g.fillRect(x + w * 0.62, y + h * 0.7, w * 0.15, h * 0.1); }
+      if (slot === 5) { g.fillStyle(fill, 1); if (style === 1) { g.beginPath(); g.arc(x + w * 0.5, y + h * 0.56, Math.min(w, h) * 0.48, Math.PI, 0); g.lineTo(x + w, y + h); g.lineTo(x, y + h); g.closePath(); g.fillPath(); g.strokePath(); } else { g.fillRoundedRect(x, y, w, h, style === 2 ? 2 : 6); g.strokeRoundedRect(x, y, w, h, style === 2 ? 2 : 6); } g.lineStyle(2, COLORS.ink, 0.55); g.lineBetween(x + w * 0.5, y + 3, x + w * 0.5, y + h - 3); g.lineBetween(x + 3, y + h * 0.5, x + w - 3, y + h * 0.5); }
+    }
+
+    drawComfortItem(g, itemIndex, x, y, size) {
+      const item = COMFORT_ITEMS[itemIndex]; if (!item) return;
+      g.fillStyle(0x3b2927, 0.36); g.fillCircle(x + 1, y + 2, size * 0.72);
+      g.fillStyle(item.color, 1); g.fillCircle(x, y, size * 0.66);
+      g.lineStyle(1.5, COLORS.paper, 0.85); g.strokeCircle(x, y, size * 0.66);
+      g.fillStyle(COLORS.paper, 1); g.fillCircle(x, y, size * 0.22);
+    }
+
+    drawCharacter(g, x, y, color, flip, hat) {
+      g.fillStyle(COLORS.ink, 0.18); g.fillEllipse(x, y + 24, 42, 12);
+      g.fillStyle(color, 1); g.fillCircle(x, y, 18); g.fillStyle(COLORS.paper, 1); g.fillCircle(x - 6, y - 3, 3); g.fillCircle(x + 5, y - 3, 3);
+      g.lineStyle(2, COLORS.ink, 1); g.beginPath(); g.arc(x, y + 3, 7, 0.15, Math.PI - 0.15); g.strokePath();
+      if (hat) { g.fillStyle(COLORS.brass, 1); g.fillTriangle(x - 12, y - 15, x + 12, y - 15, x, y - 29); }
+      if (flip) { g.fillStyle(COLORS.paper, 0.6); g.fillCircle(x + 16, y + 10, 4); }
+    }
+
+    setMode(mode) {
+      this.mode = mode;
+      if (mode === 'title') this.layoutDirty = true;
+      if (mode === 'level' || mode === 'replay') { this.tutorialT = 4; this.chipT = 0; }
+      if (mode === 'choice' || mode === 'reaction' || mode === 'complete') this.layoutDirty = true;
+      this.updateModeVisibility();
+      this.refreshPublicState();
+    }
+
+    updateModeVisibility() {
+      if (!this.ui || !this.w) return;
+      const mode = this.mode;
+      const gameplay = mode === 'level' || mode === 'replay';
+      const choice = mode === 'choice';
+      const reaction = mode === 'reaction';
+      const clear = mode === 'clear';
+      const fail = mode === 'fail';
+      const complete = mode === 'complete';
+      const replaySelect = mode === 'replaySelect';
+      const title = mode === 'title';
+      const roomComplete = mode === 'roomComplete';
+      const set = function (object, visible) { if (object) object.setVisible(visible); };
+      set(this.ui.level, gameplay); set(this.ui.moves, gameplay); set(this.ui.goal, gameplay); set(this.ui.best, gameplay); set(this.ui.hint, gameplay); set(this.ui.bottom, gameplay); set(this.ui.chip, gameplay || reaction);
+      set(this.ui.roomProgress, title || gameplay || choice || complete);
+      set(this.ui.title, title); set(this.ui.subtitle, title); set(this.buttons.start.container, title);
+      set(this.buttons.retry.container, gameplay); set(this.buttons.hint.container, gameplay);
+      set(this.ui.choiceTitle, choice); set(this.ui.choiceSub, choice);
+      set(this.ui.comfortTitle, choice); set(this.buttons.decorate.container, choice);
+      this.comfortButtons.forEach(function (button) { set(button.container, choice); }.bind(this));
+      set(this.buttons.settings.container, true);
+      set(this.ui.roomName, choice || reaction); set(this.ui.reactionSpeaker, reaction); set(this.ui.reactionLine, reaction); set(this.buttons.continue.container, reaction);
+      set(this.ui.clearTitle, clear || fail); set(this.ui.clearScore, clear || fail); set(this.ui.clearMedal, clear); set(this.buttons.choose.container, clear); set(this.buttons.retry.container, fail); set(this.buttons.newRun.container, fail);
+      set(this.ui.completeTitle, complete); set(this.ui.completeSub, complete); set(this.buttons.replay.container, complete); set(this.buttons.newRun.container, complete);
+      set(this.ui.replayTitle, replaySelect); set(this.ui.replaySub, replaySelect); set(this.buttons.back.container, replaySelect);
+      set(this.buttons.next.container, roomComplete);
+      this.choiceButtons.forEach(function (button) { set(button.container, choice); });
+      this.replayButtons.forEach(function (button, index) { set(button.container, replaySelect && this.progress.completed[index]); }.bind(this));
+      if (this.selectionG) this.selectionG.setVisible(gameplay);
+      if (this.curtainG) this.curtainG.setVisible(reaction || complete || clear || fail || roomComplete);
+      this.tileViews.forEach(function (view) { view.setVisible(gameplay); });
+      this.markerViews.forEach(function (view) { view.setVisible(gameplay); });
+      if (this.boardFrame) this.boardFrame.setVisible(gameplay);
+      if (this.fx) Object.keys(this.fx).forEach(function (key) { this.fx[key].setVisible(gameplay || choice || reaction || complete || roomComplete); }.bind(this));
+      if (this.roomGlowG) this.roomGlowG.setVisible(title || choice || reaction || complete);
+      if (this.roomViews) this.roomViews.forEach(function (view) { view.setVisible(title || choice || reaction || complete); });
+      this.positionModeUi();
+    }
+
+    positionModeUi() {
+      if (!this.ui || !this.w) return;
+      const w = this.w; const h = this.h;
+      this.ui.title.setPosition(w / 2, 72); this.ui.subtitle.setPosition(w / 2, 108);
+      this.ui.choiceTitle.setPosition(w / 2, 86); this.ui.choiceSub.setPosition(w / 2, 110);
+      this.ui.comfortTitle.setPosition(20, h - 326);
+      this.ui.roomName.setPosition(24, 132); this.ui.reactionSpeaker.setPosition(24, h * 0.58); this.ui.reactionLine.setPosition(24, h * 0.64); this.ui.reactionLine.setWordWrapWidth(w - 48);
+      this.ui.clearTitle.setPosition(w / 2, h * 0.35); this.ui.clearScore.setPosition(w / 2, h * 0.42); this.ui.clearMedal.setPosition(w / 2, h * 0.51);
+      this.ui.completeTitle.setPosition(w / 2, 76); this.ui.completeSub.setPosition(w / 2, 108);
+      this.ui.replayTitle.setPosition(w / 2, 76); this.ui.replaySub.setPosition(w / 2, 110);
+      this.placeButton(this.buttons.choose, w / 2, h - 76, Math.min(w - 44, 320), 54, 'Choose the fixture', COLORS.coral);
+      this.placeButton(this.buttons.continue, w / 2, h - 76, Math.min(w - 44, 320), 54, this.reactionReady ? (this.reactionSpeaker === 0 ? 'Hear Pip' : 'Keep building') : 'Revealing...', COLORS.coral);
+      this.placeButton(this.buttons.next, w / 2, h - 76, Math.min(w - 44, 320), 54, this.roomIndex === 1 ? 'See the full reveal' : 'Enter the next room', COLORS.coral);
+      this.placeButton(this.buttons.newRun, w / 2, h - 74, Math.min(w - 44, 320), 52, 'Start a new run', COLORS.coral);
+      this.placeButton(this.buttons.replay, w / 2, h - 136, Math.min(w - 44, 320), 52, 'Replay a level', COLORS.coral);
+      this.placeButton(this.buttons.back, w / 2, h - 74, Math.min(w - 44, 320), 52, 'Back to rooms', COLORS.board);
+      this.placeButton(this.buttons.decorate, w / 2, h - 76, Math.min(w - 44, 320), 52, this.pendingStyle >= 0 && this.comfortFocus >= 0 ? 'Place keepsake and reveal' : 'Reveal fixture', COLORS.coral);
+    }
+
+    render() {
+      if (!this.w) return;
+      setTextIfChanged(this.ui.context, this.mode === 'replay' ? 'REPLAY' : this.mode === 'level' ? 'ROOM ' + (this.roomIndex + 1) : this.mode === 'title' ? '12 LEVELS' : '');
+      setColorIfChanged(this.ui.context, this.mode === 'replay' ? COLORS.accent : COLORS.brass);
+      if (this.mode === 'level' || this.mode === 'replay') this.renderGameplay();
+      if (this.mode === 'choice') this.renderChoice();
+      if (this.mode === 'reaction') this.renderReaction();
+      if (this.mode === 'clear' || this.mode === 'fail') this.renderResult();
+      if (this.mode === 'roomComplete') this.renderRoomComplete();
+      if (this.mode === 'complete') this.renderComplete();
+      if (this.mode === 'replaySelect') this.renderReplaySelect();
+      if (this.mode === 'title') this.renderTitle();
+      this.renderRoomMotion();
+      this.renderCurtain();
+    }
+
+    renderRoomMotion() {
+      if (!this.roomGlowG || !this.w) return;
+      this.roomGlowG.clear();
+      const roomMode = this.mode === 'title' || this.mode === 'choice' || this.mode === 'reaction' || this.mode === 'complete';
+      if (!roomMode) return;
+      const pulse = 0.5 + 0.5 * Math.sin(this.roomMotionT * 1.4);
+      this.roomViews.forEach(function (view, index) { if (view && view.visible) view.setScale(1 + Math.sin(this.roomMotionT * 0.9 + index) * 0.002 + (this.buildPulse > 0 ? 0.004 : 0)); }.bind(this));
+      const x0 = this.mode === 'complete' ? this.w * 0.14 : this.w * 0.16;
+      const y0 = this.mode === 'complete' ? 350 : 372;
+      this.roomGlowG.fillStyle(COLORS.brass, 0.05 + pulse * 0.04); this.roomGlowG.fillCircle(x0, y0, 40 + pulse * 5);
+      if (this.mode === 'choice' || this.mode === 'reaction') {
+        const fixture = this.fixtureRect(this.choiceSlot, this.w - 32, Math.min(326, this.h - 355));
+        const gx = 16 + fixture.x + fixture.w * 0.5; const gy = 122 + fixture.y + fixture.h * 0.45;
+        this.roomGlowG.fillStyle(this.comfortPulse > 0 ? COLORS.accent : this.buildPulse > 0 ? COLORS.brass : COLORS.coral, 0.08 + pulse * 0.06); this.roomGlowG.fillCircle(gx, gy, 28 + pulse * 6 + (this.comfortPulse > 0 ? 5 : 0));
+        this.roomGlowG.lineStyle(2, COLORS.brass, 0.45 + pulse * 0.2); this.roomGlowG.strokeCircle(gx, gy, 20 + pulse * 3);
+      }
+      if (this.mode === 'complete') { this.roomGlowG.fillStyle(COLORS.brass, 0.06 + pulse * 0.03); this.roomGlowG.fillCircle(this.w * 0.78, y0, 46 + pulse * 5); }
+    }
+
+    renderTitle() {
+      const roomOne = this.progress.choices[0].filter(function (v) { return v >= 0; }).length;
+      const roomTwo = this.progress.choices[1].filter(function (v) { return v >= 0; }).length;
+      setTextIfChanged(this.ui.title, 'A MATCH-MADE HOME'); setTextIfChanged(this.ui.subtitle, '12 seeded levels. Two rooms. Six choices each.');
+      setTextIfChanged(this.ui.roomProgress, 'Cinderwick ' + roomOne + ' / 6   ·   Mossbell ' + (roomTwo ? roomTwo + ' / 6' : 'LOCKED'));
+      this.buttons.start.container.setVisible(true);
+      if (this.roomViews[0]) this.roomViews[0].setPosition(16, 140);
+    }
+
+    renderGameplay() {
+      const config = LEVELS[this.levelIndex] || LEVELS[0];
+      setTextIfChanged(this.ui.level, (this.replay ? 'REPLAY ' : 'LEVEL ') + String(this.levelIndex + 1).padStart(2, '0') + ' / 12');
+      setTextIfChanged(this.ui.moves, '♥ ' + String(Math.max(0, this.moves)).padStart(2, '0'));
+      setColorIfChanged(this.ui.moves, this.moves <= 4 ? COLORS.coral : COLORS.brass);
+      setTextIfChanged(this.ui.goal, '✦ ' + this.score + ' / ' + config.goal);
+      setTextIfChanged(this.ui.best, 'BEST ' + (this.progress.best[this.levelIndex] || 0));
+      let hint = '↻ retry   ? hint';
+      if (this.levelIndex === 0 && this.tutorialT > 0) {
+        if (this.score <= 0 && !this.selectedCell) hint = 'Match 3: tap a tile, then a neighbor.';
+        else if (this.score <= 0 && this.selectedCell) hint = 'Choose a neighboring tile. A brass arrow previews the swap.';
+        else if (this.bestStreak < 2) hint = 'Three matching tiles clear. Four makes a powered row or column.';
+        else hint = 'Reach the goal, then choose a mood and place a keepsake.';
+      }
+      this.ui.hint.setPosition(20, 105).setOrigin(0, 0.5); setTextIfChanged(this.ui.hint, hint); this.ui.hint.setAlpha(this.tutorialT > 0 ? clamp(this.tutorialT / 1.5, 0.18, 1) : 0.7);
+      const revealed = this.progress.choices[this.roomIndex].filter(function (v) { return v >= 0; }).length;
+      setTextIfChanged(this.ui.roomProgress, ROOMS[this.roomIndex].short + '  ' + revealed + ' / 6 fixtures');
+      setTextIfChanged(this.ui.bottom, this.replay ? 'Personal best chase' : 'No timers  •  no lives');
+      this.ui.bottom.setAlpha(0.75);
+      this.renderBoard();
+      if (this.chipT > 0) { setTextIfChanged(this.ui.chip, this.chipText || ''); this.ui.chip.setAlpha(clamp(this.chipT / 0.25, 0, 1)); } else this.ui.chip.setAlpha(0);
+      this.buttons.hint.container.setVisible(true); this.buttons.retry.container.setVisible(true);
+    }
+
+    renderBoard() {
+      const r = this.boardRect; const pulse = this.boardPulse > 0 ? Math.sin((this.boardPulse / 0.3) * Math.PI) * 0.06 : 0;
+      for (let i = 0; i < CELLS; i += 1) {
+        const value = this.values[i]; const view = this.tileViews[i]; const marker = this.markerViews[i];
+        if (value == null || value < 0 || value >= TILE_DEFS.length) { view.setVisible(false); marker.setVisible(false); continue; }
+        const c = cellCoord(i); const x = r.x + c.col * r.cell + r.cell * 0.5; const y = r.y + c.row * r.cell + r.cell * 0.5;
+        let dx = 0; let dy = this.settleT > 0 ? Math.sin((this.settleT / 0.24) * Math.PI) * r.cell * 0.08 : 0;
+        if (this.swapAnim) {
+          const t = clamp(this.swapAnim.t / 0.18, 0, 1);
+          if (i === this.swapAnim.ai) { dx = (this.swapAnim.b.col - this.swapAnim.a.col) * r.cell * t; dy = (this.swapAnim.b.row - this.swapAnim.a.row) * r.cell * t; }
+          if (i === this.swapAnim.bi) { dx = (this.swapAnim.a.col - this.swapAnim.b.col) * r.cell * t; dy = (this.swapAnim.a.row - this.swapAnim.b.row) * r.cell * t; }
+        }
+        view.setTexture('hh-tile-' + value).setPosition(x + dx, y + dy).setScale((r.cell - 6) / 64 * (1 + pulse + this.swapPulse * 0.14));
+        view.setAlpha(1); view.setVisible(true);
+        const special = this.specials[i];
+        setTextIfChanged(marker, special === 'row' ? '↔' : special === 'col' ? '↕' : special === 'wild' ? '✹' : '');
+        marker.setPosition(x + dx, y + dy).setScale(r.cell / 64).setVisible(!!special);
+      }
+      this.selectionG.clear();
+      const active = this.preview;
+      if (this.selectedCell) {
+        const x = r.x + this.selectedCell.col * r.cell + r.cell / 2; const y = r.y + this.selectedCell.row * r.cell + r.cell / 2;
+        this.selectionG.lineStyle(4, COLORS.brass, 1); this.selectionG.strokeRoundedRect(x - r.cell * 0.43, y - r.cell * 0.43, r.cell * 0.86, r.cell * 0.86, 12);
+      }
+      if (active) {
+        const a = r.x + active.a.col * r.cell + r.cell / 2; const b = r.x + active.b.col * r.cell + r.cell / 2;
+        const ay = r.y + active.a.row * r.cell + r.cell / 2; const by = r.y + active.b.row * r.cell + r.cell / 2;
+        const previewColor = active.legal ? COLORS.paper : COLORS.coral;
+        this.selectionG.lineStyle(3, previewColor, 0.95); this.selectionG.strokeRoundedRect(b - r.cell * 0.4, by - r.cell * 0.4, r.cell * 0.8, r.cell * 0.8, 11);
+        this.selectionG.lineBetween(a, ay, b, by); this.selectionG.fillStyle(previewColor, 1);
+        const dirX = active.b.col > active.a.col ? -12 : active.b.col < active.a.col ? 12 : 0; const dirY = active.b.row > active.a.row ? -12 : active.b.row < active.a.row ? 12 : 0;
+        this.selectionG.fillTriangle(b, by - 8, b + dirX + (dirY ? 0 : 4), by - 3 + dirY, b + dirX - (dirY ? 0 : 4), by + 3 + dirY);
+        if (!active.legal) { this.selectionG.lineStyle(2, COLORS.coral, 0.8); this.selectionG.lineBetween(b - r.cell * 0.22, by - r.cell * 0.22, b + r.cell * 0.22, by + r.cell * 0.22); this.selectionG.lineBetween(b + r.cell * 0.22, by - r.cell * 0.22, b - r.cell * 0.22, by + r.cell * 0.22); }
+      }
+      const curX = r.x + this.cursor.col * r.cell + r.cell / 2; const curY = r.y + this.cursor.row * r.cell + r.cell / 2;
+      this.selectionG.lineStyle(2, COLORS.paper, 0.78); this.selectionG.strokeRoundedRect(curX - r.cell * 0.34, curY - r.cell * 0.34, r.cell * 0.68, r.cell * 0.68, 10);
+    }
+
+    renderChoice() {
+      setTextIfChanged(this.ui.choiceTitle, ROOMS[this.roomIndex].short.toUpperCase());
+      setTextIfChanged(this.ui.choiceSub, 'Choose a mood, then place a keepsake near the fixture');
+      setTextIfChanged(this.ui.roomName, ROOMS[this.roomIndex].name);
+      const revealed = this.progress.choices[this.roomIndex].filter(function (v) { return v >= 0; }).length;
+      setTextIfChanged(this.ui.roomProgress, ROOMS[this.roomIndex].short + '  ' + revealed + ' / 6 fixtures revealed');
+      setTextIfChanged(this.ui.comfortTitle, 'KEEPSAKES  ·  place one in a nearby fixture slot');
+      setColorIfChanged(this.ui.choiceTitle, COLORS.paper); setColorIfChanged(this.ui.choiceSub, COLORS.paperSoft);
+      if (this.roomViews[0]) this.roomViews[0].setPosition(16, 148);
+      this.choiceButtons.forEach(function (button, index) { button.bg.setFillStyle(STYLES[index].color, this.pendingStyle === index ? 1 : 0.72); setColorIfChanged(button.label, COLORS.ink); setTextIfChanged(button.label, STYLES[index].name + '\n' + STYLES[index].sub); button.label.setAlign('center'); }.bind(this));
+      this.comfortButtons.forEach(function (button, index) {
+        const available = this.progress.comfortInventory.indexOf(index) >= 0;
+        button.bg.setFillStyle(COMFORT_ITEMS[index].color, available ? (this.comfortFocus === index ? 1 : 0.7) : 0.22);
+        setColorIfChanged(button.label, available ? COLORS.ink : COLORS.paperSoft);
+        setTextIfChanged(button.label, available ? COMFORT_ITEMS[index].mark : '·');
+        button.label.setAlign('center'); button.container.setAlpha(available ? 1 : 0.48); button.enabled = available;
+      }.bind(this));
+      const existing = this.progress.homeItems[this.roomIndex][this.choiceSlot] >= 0;
+      setTextIfChanged(this.buttons.decorate.label, existing ? 'Reveal fixture' : this.comfortFocus >= 0 ? 'Place keepsake and reveal' : 'Choose a keepsake');
+    }
+
+    renderReaction() {
+      setTextIfChanged(this.ui.roomName, ROOMS[this.roomIndex].name + '  •  ' + FIXTURES[this.choiceSlot]);
+      const speaker = this.reactionSpeaker === 0 ? 'MARN' : 'PIP';
+      const lineSet = REACTIONS[this.roomIndex] || REACTIONS[0];
+      const lines = lineSet[this.reactionSpeaker] || lineSet[0];
+      const style = this.selectedChoice();
+      setTextIfChanged(this.ui.reactionSpeaker, speaker + '  ' + (style >= 0 ? STYLES[style].name : ''));
+      setTextIfChanged(this.ui.reactionLine, this.revealT < 0.86 ? 'The room is finding its new shape...' : lines[style >= 0 ? style : 0]);
+      setColorIfChanged(this.ui.reactionSpeaker, COLORS.paper); setColorIfChanged(this.ui.reactionLine, COLORS.paperSoft);
+      setTextIfChanged(this.ui.chip, this.revealT < 0.86 ? 'room reveal' : (this.reactionSpeaker === 0 ? 'Marn noticed' : 'Pip noticed'));
+      this.ui.chip.setAlpha(this.revealT < 0.86 ? 0.55 : 0.9);
+      this.ui.reactionSpeaker.setPosition(24, this.h * 0.59); this.ui.reactionLine.setPosition(24, this.h * 0.65);
+      this.ui.reactionLine.setWordWrapWidth(this.w - 48);
+      this.positionModeUi();
+    }
+
+    renderResult() {
+      this.dimOverlay(0.72);
+      const title = this.mode === 'fail' ? 'OUT OF MOVES' : 'LEVEL CLEAR';
+      setTextIfChanged(this.ui.clearTitle, title);
+      const found = !this.replay && this.lastCollectedItem >= 0 ? '  ·  Found ' + COMFORT_ITEMS[this.lastCollectedItem].name : '';
+      setTextIfChanged(this.ui.clearScore, this.mode === 'fail' ? 'The room is still waiting on a spark.' : 'Score ' + this.score + '  ·  ' + (this.replay ? 'personal best ' + (this.progress.best[this.levelIndex] || 0) : 'best ' + (this.progress.best[this.levelIndex] || 0)) + found);
+      setTextIfChanged(this.ui.clearMedal, this.mode === 'clear' ? this.medalLabel(this.currentMedal || 1) : 'Retry is instant');
+      if (this.mode === 'clear') { this.buttons.choose.container.setVisible(true); this.placeButton(this.buttons.choose, this.w / 2, this.h - 76, Math.min(this.w - 44, 320), 54, this.replay ? 'Replay this level' : 'Choose the fixture', COLORS.coral); } else this.buttons.retry.container.setVisible(true);
+      if (this.mode === 'fail') this.buttons.newRun.container.setVisible(true);
+    }
+
+    renderRoomComplete() {
+      this.dimOverlay(0.74); setTextIfChanged(this.ui.clearTitle, ROOMS[this.roomIndex].short.toUpperCase() + ' COMPLETE'); setTextIfChanged(this.ui.clearScore, 'Six fixtures, six points of view.'); setTextIfChanged(this.ui.clearMedal, '✦  ROOM REVEALED  ✦');
+      this.buttons.next.container.setVisible(true);
+    }
+
+    renderComplete() {
+      this.dimOverlay(0.18); setTextIfChanged(this.ui.completeTitle, 'A HOME WITH OPINIONS'); setTextIfChanged(this.ui.completeSub, 'Two rooms, twelve choices, one very personal best.');
+      this.buttons.replay.container.setVisible(true); this.buttons.newRun.container.setVisible(true);
+      this.buttons.newRun.container.setPosition(this.w / 2, this.h - 74);
+      this.buttons.replay.container.setPosition(this.w / 2, this.h - 136);
+    }
+
+    renderReplaySelect() {
+      this.dimOverlay(0.42); setTextIfChanged(this.ui.replayTitle, 'REPLAY A FINISHED LEVEL'); setTextIfChanged(this.ui.replaySub, 'Gold is a chase, not a gate.');
+      this.replayButtons.forEach(function (button, index) { if (this.progress.completed[index]) { const medal = this.progress.medals[index] > 0 ? '  ' + '★'.repeat(this.progress.medals[index]) : ''; setTextIfChanged(button.label, String(index + 1) + medal); } }.bind(this));
+    }
+
+    renderCurtain() {
+      this.curtainG.clear();
+      if (this.mode === 'clear' || this.mode === 'fail' || this.mode === 'roomComplete' || this.mode === 'replaySelect') this.dimOverlay(this.mode === 'replaySelect' ? 0.42 : 0.72);
+      if (this.mode === 'complete') { this.curtainG.fillStyle(COLORS.ink, 0.22); this.curtainG.fillRect(0, 0, this.w, this.h); }
+      if (this.mode === 'complete') { this.curtainG.fillStyle(COLORS.brass, 0.08); this.curtainG.fillCircle(this.w * 0.5, 380, 150 + this.finalRevealT * 50); }
+      if (this.mode === 'reaction') {
+        const t = clamp(this.revealT, 0, 1); const ease = t * t * (3 - 2 * t);
+        this.curtainG.fillStyle(0x26344a, 0.96); this.curtainG.fillRect(0, 0, this.w * (1 - ease), this.h); this.curtainG.fillRect(this.w - this.w * (1 - ease), 0, this.w * (1 - ease), this.h);
+        if (this.revealT < 0.9) { this.curtainG.lineStyle(2, COLORS.brass, 0.8); this.curtainG.lineBetween(this.w * ease, 0, this.w * ease, this.h); this.curtainG.lineBetween(this.w * (1 - ease), 0, this.w * (1 - ease), this.h); }
+      }
+      if ((this.mode === 'clear' || this.mode === 'fail' || this.mode === 'roomComplete') && this.fx && kit.juice.enabled) this.fx.reward.setVisible(true);
+    }
+
+    dimOverlay(alpha) {
+      this.curtainG.fillStyle(COLORS.ink, alpha); this.curtainG.fillRect(0, 0, this.w, this.h);
+      this.curtainG.fillStyle(COLORS.paper, 0.96); this.curtainG.fillRoundedRect(22, this.h * 0.29, this.w - 44, 250, 24);
+      this.curtainG.lineStyle(2, COLORS.brass, 0.9); this.curtainG.strokeRoundedRect(22, this.h * 0.29, this.w - 44, 250, 24);
+    }
+
+    hitTest(x, y) {
+      if (this.inRect(x, y, this.buttons.settings.rect)) return { id: 'settings' };
+      if (this.mode === 'title' && this.inRect(x, y, this.buttons.start.rect)) return { id: 'start' };
+      if (this.mode === 'level' || this.mode === 'replay') {
+        if (this.inRect(x, y, this.buttons.hint.rect)) return { id: 'hint' };
+        if (this.inRect(x, y, this.buttons.retry.rect)) return { id: 'retry' };
+        const cell = this.cellFromPoint(x, y); if (cell) return { kind: 'board', cell };
+      }
+      if (this.mode === 'clear' && this.inRect(x, y, this.buttons.choose.rect)) return { id: 'choose' };
+      if (this.mode === 'fail') { if (this.inRect(x, y, this.buttons.retry.rect)) return { id: 'retry' }; if (this.inRect(x, y, this.buttons.newRun.rect)) return { id: 'new' }; }
+      if (this.mode === 'choice') {
+        for (let i = 0; i < 3; i += 1) if (this.inRect(x, y, this.choiceButtons[i].rect)) return { id: 'choice-' + i, style: i };
+        for (let i = 0; i < COMFORT_ITEMS.length; i += 1) if (this.comfortButtons[i].enabled && this.inRect(x, y, this.comfortButtons[i].rect)) return { id: 'comfort-' + i, item: i };
+        if (this.inRect(x, y, this.buttons.decorate.rect)) return { id: 'decorate' };
+      }
+      if (this.mode === 'reaction' && this.inRect(x, y, this.buttons.continue.rect)) return { id: 'continue' };
+      if (this.mode === 'roomComplete' && this.inRect(x, y, this.buttons.next.rect)) return { id: 'next' };
+      if (this.mode === 'complete') { if (this.inRect(x, y, this.buttons.replay.rect)) return { id: 'replay' }; if (this.inRect(x, y, this.buttons.newRun.rect)) return { id: 'new' }; }
+      if (this.mode === 'replaySelect') { for (let i = 0; i < 12; i += 1) if (this.progress.completed[i] && this.inRect(x, y, this.replayButtons[i].rect)) return { id: 'replay-' + i, level: i }; if (this.inRect(x, y, this.buttons.back.rect)) return { id: 'back' }; }
+      return null;
+    }
+
+    inRect(x, y, rect) { return rect && x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h; }
+    cellFromPoint(x, y) { const r = this.boardRect; if (!r || x < r.x || y < r.y || x >= r.x + r.w || y >= r.y + r.h) return null; const col = Math.floor((x - r.x) / r.cell); const row = Math.floor((y - r.y) / r.cell); return { col: col, row: row }; }
+
+    activateButton(id, style) {
+      if (id === 'start') { kit.audio.sfx('ui-confirm'); this.startRun(); }
+      else if (id === 'retry') this.restartLevel();
+      else if (id === 'hint') this.useHint();
+      else if (id === 'settings') { kit.audio.sfx('tap'); kit.openSettings(); }
+      else if (id === 'new') this.newRun();
+      else if (id === 'choose') { if (this.replay) this.restartLevel(); else this.openChoice(); }
+      else if (id === 'decorate') { if (this.progress.homeItems[this.roomIndex][this.choiceSlot] < 0 && this.comfortFocus >= 0) this.placeComfort(this.comfortFocus); if (this.progress.homeItems[this.roomIndex][this.choiceSlot] >= 0 || this.progress.comfortInventory.length === 0) this.commitChoice(this.pendingStyle); }
+      else if (id.indexOf('comfort-') === 0) this.selectComfort(Number.isInteger(style) ? style : Number(id.slice(8)));
+      else if (id === 'continue') this.advanceReaction();
+      else if (id === 'next') this.advanceRoomComplete();
+      else if (id === 'replay') this.setMode('replaySelect');
+      else if (id === 'back') this.setMode('complete');
+      else if (id.indexOf('choice-') === 0) this.selectStyle(Number.isInteger(style) ? style : Number(id.slice(7)));
+      else if (id.indexOf('replay-') === 0) this.startReplay(Number.isInteger(style) ? style : Number(id.slice(7)));
+    }
+
+    startRun() {
+      const firstIncomplete = this.progress.completed.findIndex(function (value) { return !value; });
+      const index = firstIncomplete >= 0 ? firstIncomplete : 0;
+      this.loadLevel(index, false);
+    }
+
+    newRun() {
+      this.progress = sanitizeSave(SAVE_FALLBACK); kit.save.set(this.progress); this.replay = false; this.loadLevel(0, false); kit.audio.sfx('ui-confirm');
+    }
+
+    restartLevel() {
+      if (this.mode !== 'level' && this.mode !== 'replay' && this.mode !== 'fail') return;
+      kit.restart();
+    }
+
+    restartLevelDirect() {
+      if (this.mode !== 'level' && this.mode !== 'replay' && this.mode !== 'fail') return;
+      this.loadLevel(this.levelIndex, this.replay);
+      kit.audio.sfx('ui-confirm');
+    }
+
+    loadLevel(index, replay) {
+      this.levelIndex = clamp(Number.isFinite(index) ? Math.floor(index) : 0, 0, 11);
+      this.replay = !!replay;
+      this.roomIndex = Math.floor(this.levelIndex / 6); this.choiceSlot = this.levelIndex % 6;
+      const config = LEVELS[this.levelIndex];
+      this.moves = config.moves + config.bonus; this.score = 0; this.streak = 0; this.bestStreak = 0; this.hintUsed = false; this.selectedCell = null; this.preview = null; this.cursor = { col: 3, row: 4 }; this.tutorialT = 4; this.pendingStyle = 0; this.comfortFocus = -1; this.swapAnim = null; this.settleT = 0;
+      this.makeBoard(config.seed);
+      for (let i = 0; i < config.drops; i += 1) this.dropFreeSpecial(i);
+      this.setMode(replay ? 'replay' : 'level');
+      kit.audio.music('music-board', 450);
+      this.saveProgress();
+      this.chipText = config.bonus > 0 || config.drops > 0 ? '✦ +' + config.bonus + ' moves   ' + config.drops + ' free special' : '';
+      this.chipT = this.chipText ? 1.8 : 0;
+    }
+
+    forceLevel(value) {
+      const raw = Number(value); const index = Number.isFinite(raw) ? (raw >= 1 ? Math.floor(raw) - 1 : 0) : 0;
+      this.loadLevel(clamp(index, 0, 11), false);
+    }
+
+    forceRoom(value) {
+      const room = clamp(Number.isFinite(Number(value)) ? Math.floor(Number(value)) : 0, 0, 1);
+      this.roomIndex = room; this.choiceSlot = 0; this.choiceFocus = 0; this.setMode('choice'); this.layoutDirty = true;
+    }
+
+    selectStyle(style) {
+      if (this.mode !== 'choice' || !Number.isInteger(style) || style < 0 || style >= STYLES.length) return;
+      this.pendingStyle = style; this.choiceFocus = style; this.layoutDirty = true; this.setChip('Mood chosen. Place a nearby keepsake.', 1.1); kit.audio.sfx('select'); this.refreshPublicState();
+    }
+
+    selectComfort(item) {
+      if (this.mode !== 'choice' || !Number.isInteger(item) || this.progress.comfortInventory.indexOf(item) < 0) return;
+      this.comfortFocus = item; this.layoutDirty = true; this.setChip(COMFORT_ITEMS[item].name + ' selected. Check the nearby-slot rule.', 1.2); kit.audio.sfx('select');
+    }
+
+    comfortAllowed(itemIndex, roomIndex, slot) {
+      const item = COMFORT_ITEMS[itemIndex];
+      return !!(item && item.rooms.indexOf(roomIndex) >= 0 && item.slots.some(function (preferred) { return Math.abs(preferred - slot) <= 1; }));
+    }
+
+    placeComfort(itemIndex) {
+      if (this.mode !== 'choice' || this.progress.comfortInventory.indexOf(itemIndex) < 0) return false;
+      if (!this.comfortAllowed(itemIndex, this.roomIndex, this.choiceSlot)) { this.setChip('That keepsake needs a nearby fixture slot.', 1.2); kit.audio.sfx('invalid'); return false; }
+      this.progress.homeItems[this.roomIndex][this.choiceSlot] = itemIndex;
+      this.progress.comfortInventory = this.progress.comfortInventory.filter(function (item) { return item !== itemIndex; });
+      this.progress.comfortSeen[itemIndex] = true; this.comfortFocus = -1; this.comfortPulse = 0.8; this.buildPulse = 0.8; this.layoutDirty = true;
+      kit.save.set(this.progress); kit.audio.sfx('comfort-place'); this.emitFx(this.fx.place, 10, this.w * 0.5, this.h * 0.4); this.setChip(COMFORT_ITEMS[itemIndex].name + ' settled into the room.', 1.1); this.refreshPublicState();
+      return true;
+    }
+
+    collectComfortItem(roomIndex) {
+      const candidate = COMFORT_ITEMS[(this.levelIndex + roomIndex) % COMFORT_ITEMS.length];
+      const index = COMFORT_ITEMS.indexOf(candidate); this.progress.comfortInventory.push(index); this.progress.comfortSeen[index] = true; this.lastCollectedItem = index; this.emitFx(this.fx && this.fx.comfort, 8, this.w * 0.5, this.h * 0.45); return index;
+    }
+
+    emitFx(emitter, count, x, y) {
+      if (!emitter || !kit.juice.enabled) return;
+      emitter.explode(count, x, y);
+    }
+
+    saveProgress() {
+      this.progress.lastLevel = this.levelIndex; this.progress.totalScore = Math.max(this.progress.totalScore, this.score); kit.save.set(this.progress); this.refreshPublicState();
+    }
+
+    refreshPublicState() {
+      publicState.mode = this.mode; publicState.level = this.levelIndex + 1; publicState.moves = this.moves; publicState.choices = cloneChoices(this.progress ? this.progress.choices : null); publicState.best = this.progress ? this.progress.best.slice() : Array(12).fill(0); publicState.medals = this.progress ? this.progress.medals.slice() : Array(12).fill(0); publicState.replayLevel = this.replay ? this.levelIndex + 1 : null; publicState.reducedMotion = !kit.juice.enabled; publicState.comfortInventory = this.progress ? this.progress.comfortInventory.slice() : []; publicState.homeItems = this.progress ? cloneHomeItems(this.progress.homeItems) : cloneHomeItems(null);
+      publicState.rooms = ROOMS.map(function (room, index) { return { name: room.name, short: room.short, revealed: this.progress ? this.progress.choices[index].filter(function (v) { return v >= 0; }).length : 0, complete: this.progress ? this.progress.choices[index].every(function (v) { return v >= 0; }) : false }; }, this);
+      this.announce(this.accessibleSummary());
+    }
+
+    accessibleSummary() {
+      if (this.mode === 'title') return 'Hearth and Halls title. ' + this.progress.completed.filter(Boolean).length + ' of 12 levels complete. Press Enter to begin building.';
+      if (this.mode === 'level' || this.mode === 'replay') return 'Level ' + (this.levelIndex + 1) + '. ' + this.moves + ' moves left. Score ' + this.score + ' of ' + LEVELS[this.levelIndex].goal + '. ' + (this.selectedCell ? 'Tile selected. Choose a neighboring tile.' : 'Choose a tile.');
+      if (this.mode === 'choice') return ROOMS[this.roomIndex].name + '. ' + (this.progress.choices[this.roomIndex].filter(function (v) { return v >= 0; }).length) + ' of 6 fixtures revealed. Choose a mood and place a keepsake.';
+      if (this.mode === 'reaction') return 'Fixture reveal. ' + (this.reactionReady ? 'Press Continue for the character reactions.' : 'The room is revealing.');
+      if (this.mode === 'clear') return 'Level clear. ' + this.score + ' points. A keepsake is waiting in the home inventory.';
+      if (this.mode === 'fail') return 'Out of moves. Press Retry to try the level again.';
+      if (this.mode === 'roomComplete') return ROOMS[this.roomIndex].name + ' complete. Six fixtures revealed.';
+      if (this.mode === 'complete') return 'Both rooms complete. Press Replay to chase a personal best.';
+      if (this.mode === 'replaySelect') return 'Replay select. Choose a finished level.';
+      return 'Hearth and Halls.';
+    }
+
+    announce(text) {
+      if (!this.srStatus || !text || text === this.lastSr) return;
+      this.lastSr = text; this.srStatus.textContent = text;
+    }
+
+    setChip(text, seconds) { this.chipText = text; this.chipT = seconds == null ? 0.9 : seconds; }
+
+    setPreview(a, b) {
+      if (!a || !b || !adjacent(a, b)) { this.preview = null; return; }
+      this.preview = { a: { col: a.col, row: a.row }, b: { col: b.col, row: b.row }, legal: this.isLegalSwap(a, b) };
+      this.setChip(this.preview.legal ? '✓ match preview' : '× no match', 0.65);
+    }
+
+    firstLegalPreview(cell) {
+      const candidates = [{ col: cell.col + 1, row: cell.row }, { col: cell.col - 1, row: cell.row }, { col: cell.col, row: cell.row + 1 }, { col: cell.col, row: cell.row - 1 }];
+      for (let i = 0; i < candidates.length; i += 1) if (candidates[i].col >= 0 && candidates[i].col < COLS && candidates[i].row >= 0 && candidates[i].row < ROWS && this.isLegalSwap(cell, candidates[i])) return { a: cell, b: candidates[i], legal: true };
+      return null;
+    }
+
+    tapCell(cell) {
+      if (!cell || (this.mode !== 'level' && this.mode !== 'replay') || this.moves <= 0 || this.boardPulse > 0) return;
+      this.cursor = { col: cell.col, row: cell.row };
+      if (!this.selectedCell) { this.selectedCell = { col: cell.col, row: cell.row }; this.preview = this.firstLegalPreview(this.selectedCell); this.setChip('Choose a neighbor', 0.8); kit.audio.sfx('select'); return; }
+      if (this.selectedCell.col === cell.col && this.selectedCell.row === cell.row) { this.selectedCell = null; this.preview = null; return; }
+      if (adjacent(this.selectedCell, cell)) this.trySwap(this.selectedCell, cell); else { this.selectedCell = { col: cell.col, row: cell.row }; this.preview = this.firstLegalPreview(this.selectedCell); }
+    }
+
+    useHint() {
+      if (this.mode !== 'level' && this.mode !== 'replay') return;
+      const move = this.findLegalMove(); if (!move) return;
+      this.hintUsed = true; this.selectedCell = move.a; this.preview = { a: move.a, b: move.b, legal: true }; this.cursor = move.a; this.setChip('hint shown', 1); kit.audio.sfx('hint');
+    }
+
+    trySwap(a, b) {
+      if ((this.mode !== 'level' && this.mode !== 'replay') || this.moves <= 0 || !adjacent(a, b) || this.boardPulse > 0) return;
+      const ai = cellIndex(a.col, a.row); const bi = cellIndex(b.col, b.row);
+      const specialMove = !!(this.specials[ai] || this.specials[bi]);
+      const legal = specialMove || this.isLegalSwap(a, b);
+      if (!legal) { this.moves = Math.max(0, this.moves - 1); this.setChip(this.moves > 0 ? 'No match. Try another neighbor.' : 'No moves left', 1); kit.audio.sfx('invalid'); if (this.moves === 0) this.setMode('fail'); return; }
+      const valueA = this.values[ai]; const valueB = this.values[bi]; const specialA = this.specials[ai]; const specialB = this.specials[bi];
+      this.values[ai] = valueB; this.values[bi] = valueA; this.specials[ai] = specialB; this.specials[bi] = specialA; this.moves = Math.max(0, this.moves - 1); this.swapPulse = 0.18; this.boardPulse = 0.28; this.selectedCell = null; this.preview = null;
+      this.swapAnim = { a: { col: a.col, row: a.row }, b: { col: b.col, row: b.row }, ai: ai, bi: bi, t: 0.18 }; this.settleT = 0.24;
+      kit.audio.sfx('swap-tick');
+      const extra = specialMove ? this.specialCells(ai, bi) : null;
+      const result = this.resolveMatches(extra);
+      if (result.cleared > 0) {
+        this.streak = result.chain > 1 ? this.streak + 1 : 1; this.bestStreak = Math.max(this.bestStreak, this.streak); this.setChip(result.chain > 1 ? '✦ streak x' + this.streak : '+' + result.cleared + ' sparks', 0.9); kit.audio.sfx(result.chain > 1 ? 'cascade' : 'match-chime');
+        this.emitFx(this.fx.clear, Math.min(16, result.cleared), this.boardRect.x + this.boardRect.w * 0.5, this.boardRect.y + this.boardRect.h * 0.5);
+        if (result.chain > 1) this.emitFx(this.fx.streak, Math.min(10, result.chain * 3), this.boardRect.x + this.boardRect.w * 0.5, this.boardRect.y + this.boardRect.h * 0.65);
+        if (kit.juice.enabled && result.chain > 2) kit.juice.shake(3, 90);
+      } else this.streak = 0;
+      if (this.score >= LEVELS[this.levelIndex].goal) this.finishLevel(); else if (this.moves <= 0) this.setMode('fail'); else if (!this.findLegalMove()) { this.shuffleBoard(); this.setChip('Fresh rhythm', 0.9); }
+      this.saveProgress();
+    }
+
+    resolveMatches(extra) {
+      let chain = 0; let cleared = 0; let matches = extra || this.findMatches();
+      while (matches.size > 0 && chain < 8) {
+        chain += 1; const expanded = new Set(matches); this.expandSpecials(expanded);
+        const list = Array.from(expanded); let keep = null;
+        if (list.length >= 5) keep = { index: list[0], special: 'wild', value: this.values[list[0]] };
+        else if (list.length >= 4) { const point = cellCoord(list[0]); const sameRow = list.filter(function (i) { return Math.floor(i / COLS) === point.row; }).length >= 4; keep = { index: list[0], special: sameRow ? 'row' : 'col', value: this.values[list[0]] }; }
+        list.forEach(function (index) { if (!keep || index !== keep.index) { this.values[index] = null; this.specials[index] = null; } }.bind(this));
+        if (keep) { this.values[keep.index] = keep.value; this.specials[keep.index] = keep.special; }
+        cleared += list.length; this.score += list.length * (keep ? 14 : 18) * chain;
+        this.collapseBoard(); matches = this.findMatches();
+      }
+      return { chain: chain, cleared: cleared };
+    }
+
+    expandSpecials(set) {
+      const original = Array.from(set);
+      original.forEach(function (index) {
+        const special = this.specials[index]; if (!special) return; const c = cellCoord(index);
+        if (special === 'row') for (let col = 0; col < COLS; col += 1) set.add(cellIndex(col, c.row));
+        if (special === 'col') for (let row = 0; row < ROWS; row += 1) set.add(cellIndex(c.col, row));
+        if (special === 'wild') { const value = this.values[index]; for (let i = 0; i < CELLS; i += 1) if (this.values[i] === value) set.add(i); }
+      }, this);
+    }
+
+    specialCells(a, b) {
+      const set = new Set([a, b]); this.expandSpecials(set); return set;
+    }
+
+    collapseBoard() {
+      for (let col = 0; col < COLS; col += 1) {
+        let write = ROWS - 1;
+        for (let row = ROWS - 1; row >= 0; row -= 1) { const from = cellIndex(col, row); if (this.values[from] != null) { const to = cellIndex(col, write); this.values[to] = this.values[from]; this.specials[to] = this.specials[from]; if (to !== from) { this.values[from] = null; this.specials[from] = null; } write -= 1; } }
+        while (write >= 0) { const index = cellIndex(col, write); this.values[index] = this.randomTile(); this.specials[index] = null; write -= 1; }
       }
     }
+
+    findMatches() {
+      const set = new Set();
+      for (let row = 0; row < ROWS; row += 1) { let start = 0; while (start < COLS) { const value = this.values[cellIndex(start, row)]; let end = start + 1; while (end < COLS && value != null && this.values[cellIndex(end, row)] === value) end += 1; if (value != null && end - start >= 3) for (let col = start; col < end; col += 1) set.add(cellIndex(col, row)); start = end; } }
+      for (let col = 0; col < COLS; col += 1) { let start = 0; while (start < ROWS) { const value = this.values[cellIndex(col, start)]; let end = start + 1; while (end < ROWS && value != null && this.values[cellIndex(col, end)] === value) end += 1; if (value != null && end - start >= 3) for (let row = start; row < end; row += 1) set.add(cellIndex(col, row)); start = end; } }
+      return set;
+    }
+
+    isLegalSwap(a, b) {
+      const ai = cellIndex(a.col, a.row); const bi = cellIndex(b.col, b.row); const av = this.values[ai]; const bv = this.values[bi]; const as = this.specials[ai]; const bs = this.specials[bi];
+      this.values[ai] = bv; this.values[bi] = av; this.specials[ai] = bs; this.specials[bi] = as; const legal = this.findMatches().size > 0; this.values[ai] = av; this.values[bi] = bv; this.specials[ai] = as; this.specials[bi] = bs; return legal;
+    }
+
+    findLegalMove() {
+      for (let row = 0; row < ROWS; row += 1) for (let col = 0; col < COLS; col += 1) { const a = { col: col, row: row }; if (col < COLS - 1) { const b = { col: col + 1, row: row }; if (this.specials[cellIndex(col, row)] || this.specials[cellIndex(col + 1, row)] || this.isLegalSwap(a, b)) return { a: a, b: b }; } if (row < ROWS - 1) { const b = { col: col, row: row + 1 }; if (this.specials[cellIndex(col, row)] || this.specials[cellIndex(col, row + 1)] || this.isLegalSwap(a, b)) return { a: a, b: b }; } }
+      return null;
+    }
+
+    makeBoard(seed) {
+      this.rngState = seed >>> 0 || 1; this.values.fill(null); this.specials.fill(null);
+      for (let row = 0; row < ROWS; row += 1) for (let col = 0; col < COLS; col += 1) { let value = this.randomTile(); let guard = 0; while (guard < 12 && ((col >= 2 && this.values[cellIndex(col - 1, row)] === value && this.values[cellIndex(col - 2, row)] === value) || (row >= 2 && this.values[cellIndex(col, row - 1)] === value && this.values[cellIndex(col, row - 2)] === value))) { value = this.randomTile(); guard += 1; } this.values[cellIndex(col, row)] = value; }
+      if (!this.findLegalMove()) this.makeGuaranteedBoard();
+    }
+
+    makeGuaranteedBoard() { for (let row = 0; row < ROWS; row += 1) for (let col = 0; col < COLS; col += 1) this.values[cellIndex(col, row)] = (col * 2 + row) % TILE_DEFS.length; this.values[cellIndex(0, 0)] = 0; this.values[cellIndex(1, 0)] = 0; this.values[cellIndex(2, 0)] = 1; this.values[cellIndex(3, 0)] = 0; }
+    shuffleBoard() { for (let attempt = 0; attempt < 24; attempt += 1) { for (let i = CELLS - 1; i > 0; i -= 1) { const j = Math.floor(this.random() * (i + 1)); const value = this.values[i]; this.values[i] = this.values[j]; this.values[j] = value; } if (this.findMatches().size === 0 && this.findLegalMove()) return; } this.makeGuaranteedBoard(); }
+    dropFreeSpecial(seedOffset) { const start = (this.levelIndex * 17 + seedOffset * 13) % CELLS; for (let i = 0; i < CELLS; i += 1) { const index = (start + i) % CELLS; if (!this.specials[index]) { this.specials[index] = seedOffset % 2 ? 'row' : 'col'; return; } } }
+    random() { let x = this.rngState; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; this.rngState = x >>> 0; return (this.rngState % 100000) / 100000; }
+    randomTile() { return Math.floor(this.random() * TILE_DEFS.length) % TILE_DEFS.length; }
+
+    finishLevel() {
+      if (this.mode !== 'level' && this.mode !== 'replay') return;
+      const medal = this.computeMedal(); const score = this.score;
+      if (!this.replay) { this.progress.completed[this.levelIndex] = true; this.progress.best[this.levelIndex] = Math.max(this.progress.best[this.levelIndex] || 0, score); this.progress.medals[this.levelIndex] = Math.max(this.progress.medals[this.levelIndex] || 0, medal); this.progress.totalScore += score; this.collectComfortItem(this.roomIndex); this.saveProgress(); }
+      else this.progress.best[this.levelIndex] = Math.max(this.progress.best[this.levelIndex] || 0, score);
+      this.currentMedal = medal; this.setMode('clear'); kit.audio.sfx('goal'); this.emitFx(this.fx.unlock, 18, this.w / 2, this.h * 0.45); if (kit.juice.enabled) kit.juice.hitStop(70);
+    }
+
+    computeMedal() { const config = LEVELS[this.levelIndex]; if (this.moves >= config.gold && this.bestStreak >= 3 && !this.hintUsed) return 3; if (this.moves >= config.silver && this.bestStreak >= 2 && !this.hintUsed) return 2; return 1; }
+    medalLabel(medal) { return medal >= 3 ? 'GOLD  ★★★' : medal === 2 ? 'SILVER  ★★' : 'BRONZE  ★'; }
+    openChoice() { if (this.mode !== 'clear' || this.replay) return; this.roomIndex = Math.floor(this.levelIndex / 6); this.choiceSlot = this.levelIndex % 6; this.choiceFocus = this.progress.choices[this.roomIndex][this.choiceSlot] >= 0 ? this.progress.choices[this.roomIndex][this.choiceSlot] : 0; this.pendingStyle = this.choiceFocus; this.comfortFocus = this.progress.comfortInventory.length ? this.progress.comfortInventory[0] : -1; this.setMode('choice'); }
+    selectedChoice() { const saved = this.progress.choices[this.roomIndex] && this.progress.choices[this.roomIndex][this.choiceSlot]; return saved >= 0 ? saved : this.choiceFocus; }
+
+    commitChoice(style) {
+      if (this.mode !== 'choice' || !Number.isInteger(style) || style < 0 || style > 2) return;
+      if (this.progress.homeItems[this.roomIndex][this.choiceSlot] < 0 && this.progress.comfortInventory.length > 0) { this.setChip('Place a keepsake before revealing this fixture.', 1.1); return; }
+      this.progress.choices[this.roomIndex][this.choiceSlot] = style; this.choiceFocus = style; this.reactionSpeaker = 0; this.revealT = 0; this.reactionReady = false; this.setMode('reaction'); this.buildPulse = 0.8; this.layoutDirty = true; kit.save.set(this.progress); kit.audio.sfx('reveal-sting'); this.emitFx(this.fx.unlock, 20, this.w / 2, this.h * 0.3); if (kit.juice.enabled) kit.juice.shake(2, 80); this.refreshPublicState();
+    }
+
+    advanceReaction() {
+      if (this.mode !== 'reaction' || !this.reactionReady) return;
+      if (this.reactionSpeaker === 0) { this.reactionSpeaker = 1; kit.audio.sfx('character-vocal'); return; }
+      if (this.choiceSlot === 5) { this.roomComplete = true; this.collectComfortItem(this.roomIndex); this.setMode('roomComplete'); kit.audio.sfx('room-complete'); this.emitFx(this.fx.unlock, 26, this.w / 2, this.h * 0.4); }
+      else { this.loadLevel(this.levelIndex + 1, false); }
+    }
+
+    advanceRoomComplete() {
+      if (this.mode !== 'roomComplete') return;
+      if (this.roomIndex === 0) this.loadLevel(6, false); else { this.finalRevealT = 0; this.setMode('complete'); kit.audio.sfx('reveal-sting'); this.emitFx(this.fx.unlock, 32, this.w / 2, 360); }
+    }
+
+    startReplay(index) { if (!this.progress.completed[index]) return; this.loadLevel(index, true); }
+
   }
 
-  function handleKeyDown(event) {
-    if (orientationBlocked) return;
-    if (heldKeys.size < 64) heldKeys.add(event.key);
-    const key = event.key;
-    const actionKey = key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown' || key === 'Enter' || key === ' ' || key.toLowerCase() === 'r' || key.toLowerCase() === 'n';
-    if (actionKey) event.preventDefault();
-    if (event.repeat) return;
-    if (state === 'intro' && (key === 'Enter' || key === ' ')) queueAction({ type: 'start' });
-    else if (state === 'level') {
-      if (key.toLowerCase() === 'r') queueAction({ type: 'retry' });
-      else if (key === 'ArrowLeft') moveCursor(-1, 0);
-      else if (key === 'ArrowRight') moveCursor(1, 0);
-      else if (key === 'ArrowUp') moveCursor(0, -1);
-      else if (key === 'ArrowDown') moveCursor(0, 1);
-      else if (key === 'Enter' || key === ' ') queueAction({ type: 'tap', col: cursor.col, row: cursor.row });
-    } else if (state === 'decorate') {
-      if (key === 'ArrowLeft') decorFocus = (decorFocus + 2) % 3;
-      else if (key === 'ArrowRight') decorFocus = (decorFocus + 1) % 3;
-      else if (key === 'Enter' || key === ' ') queueAction({ type: 'style', style: decorFocus });
-    } else if (state === 'commentary' && (key === 'Enter' || key === ' ')) queueAction({ type: 'continue' });
-    else if (state === 'fail') {
-      if (key.toLowerCase() === 'n') queueAction({ type: 'new' });
-      else if (key === 'Enter' || key === ' ') queueAction({ type: 'retry' });
-    } else if (state === 'end' && (key === 'Enter' || key === ' ' || key.toLowerCase() === 'n')) queueAction({ type: 'new' });
-  }
-
-  function frame(now) {
-    const dt = lastFrame ? Math.min(0.033, Math.max(0, (now - lastFrame) / 1000)) : 0;
-    lastFrame = now;
-    if (!orientationBlocked && !document.hidden) update(dt);
-    draw();
-    window.requestAnimationFrame(frame);
-  }
-
-  let boardPointerId = null;
-  const initialSave = readSave();
-  if (initialSave) {
-    choices = initialSave.choices;
-    currentLevel = initialSave.currentLevel;
-    bestScore = initialSave.bestScore;
-    totalScore = initialSave.totalScore;
-    saveStage = initialSave.stage;
-  }
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas, { passive: true });
-  window.addEventListener('blur', clearInputState);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) clearInputState(); lastFrame = 0; });
-  canvas.addEventListener('pointerdown', handlePointerDown, { passive: false });
-  canvas.addEventListener('pointermove', handlePointerMove, { passive: false });
-  canvas.addEventListener('pointerup', (event) => releasePointer(event, false), { passive: false });
-  canvas.addEventListener('pointercancel', (event) => releasePointer(event, true), { passive: false });
-  canvas.addEventListener('contextmenu', (event) => event.preventDefault());
-  window.addEventListener('keydown', handleKeyDown, { passive: false });
-  window.addEventListener('keyup', (event) => { heldKeys.delete(event.key); });
-  window.requestAnimationFrame(frame);
+  const config = {
+    type: Phaser.CANVAS,
+    parent: document.getElementById('game'),
+    width: 390,
+    height: 844,
+    backgroundColor: '#172541',
+    render: { antialias: true, roundPixels: true, transparent: false },
+    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+    input: { activePointers: 2 },
+    scene: HearthScene
+  };
+  kit.loader.progress(0.62);
+  const game = new Phaser.Game(config);
+  window.__hhGame = game;
 })();

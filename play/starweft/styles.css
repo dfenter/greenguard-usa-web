@@ -1,6 +1,17 @@
-:root { color-scheme: dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #070d18; }
+:root {
+  color-scheme: dark;
+  font-family: Arial, system-ui, sans-serif;
+  background: #071421;
+}
+
 * { box-sizing: border-box; }
 html, body, #game-shell { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { background: #070d18; }
-#game { display: block; width: 100vw; height: 100vh; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
-#screen-reader { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body { background: #071421; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+#game-shell { position: relative; min-height: 100%; }
+#game-shell canvas { display: block; width: 100vw; height: 100vh; touch-action: none; user-select: none; -webkit-user-select: none; image-rendering: pixelated; cursor: pointer; }
+#accessible-controls { position: fixed; left: 8px; bottom: 8px; z-index: 8; width: min(320px, calc(100vw - 16px)); padding: 8px; border: 1px solid rgba(118, 229, 220, .35); border-radius: 10px; background: rgba(7, 20, 33, .82); color: #d9f4e9; font-size: 12px; }
+#accessible-controls h1 { margin: 0 0 4px; font-size: 13px; }
+#accessible-controls p { margin: 0 0 6px; }
+#accessible-controls button { margin: 2px; padding: 4px 6px; border: 1px solid #396878; border-radius: 5px; background: #173b47; color: #effaf7; font: inherit; }
+#accessible-controls button:focus { outline: 2px solid #ffd886; outline-offset: 2px; }
+#screen-reader { position: fixed; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

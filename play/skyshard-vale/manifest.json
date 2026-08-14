@@ -1,0 +1,15 @@
+{
+  "name": "Skyshard Vale",
+  "short_name": "Skyshard Vale",
+  "start_url": "/play/skyshard-vale/",
+  "scope": "/play/skyshard-vale/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#081726",
+  "theme_color": "#081726",
+  "description": "An elemental open-world action RPG through four authored zones.",
+  "icons": [
+    { "src": "/play/skyshard-vale/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/play/skyshard-vale/icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

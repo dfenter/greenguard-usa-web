@@ -1,44 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/aftergate/">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#0b0d12">
+<meta name="description" content="Aftergate - steer a marching squad through recruit gates, then garrison the wall and hold ten waves. Every soldier is earned.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/aftergate/">
 <title>Aftergate</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#12151c">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
+<link rel="shortcut icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon512.png">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#0b0d12;color:#e8edf5;
-  font-family:ui-monospace,Menlo,Consolas,monospace;-webkit-user-select:none;user-select:none;
-  -webkit-tap-highlight-color:transparent;overscroll-behavior:none}
-#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
-#cv{display:block;touch-action:none;background:#12151c}
-.ov{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
-  background:rgba(8,10,15,.94);z-index:10;text-align:center;padding:24px;gap:14px}
-.ov.on{display:flex}
-.ov h1{font-size:30px;letter-spacing:5px;color:#7ee0a8}
-.ov p{font-size:14px;line-height:1.6;color:#9fb0c6;max-width:340px}
-.ov b{color:#ffd479}
-.btn{min-width:200px;min-height:56px;padding:14px 26px;font:inherit;font-size:17px;letter-spacing:2px;
-  background:#1d2a3c;color:#e8edf5;border:2px solid #3d5a7d;border-radius:10px;cursor:pointer}
-.btn:active{background:#2a3d56}
-#rot p{font-size:18px;color:#ffd479}
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #0b0d12; color: #e8edf5;
+    font-family: "Trebuchet MS", "Lucida Grande", Verdana, system-ui, sans-serif;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; touch-action: none; }
+  /* Safe-area probe. The game reads these computed paddings back in JS
+     (AG.ui.measureSafe) so every HUD position derives from real insets
+     rather than a guessed notch height. */
+  #ag-safe {
+    position: fixed; left: 0; top: 0; width: 1px; height: 1px;
+    pointer-events: none; opacity: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="cv"></canvas></div>
-
-<div id="start" class="ov on">
-  <h1>AFTERGATE</h1>
-  <p><b>DRAG</b> to steer your squad through the gates. Everyone who survives the road garrisons your wall.</p>
-  <p>Then hold <b>10 waves</b>. No timers, no purchases &mdash; every soldier is earned.</p>
-  <button class="btn" id="startBtn">TAP TO START</button>
-</div>
-
-<div id="rot" class="ov"><p>&#8635; ROTATE TO PORTRAIT</p></div>
-
-<script src="js/core.js"></script>
-<script src="js/run.js"></script>
-<script src="js/base.js"></script>
-<script src="js/game.js"></script>
+<div id="ag-safe"></div>
+<script>
+/* Verification hook, declared BEFORE the game so an orchestrator can set a
+   test switch against the boot fallback. game.js replaces these functions
+   with the live implementations and drains anything queued here. */
+(function () {
+  window.__ag = {
+    state: {
+      scene: 'boot', mode: null, phase: 'boot',
+      squad: 0, troops: 0, wave: 0, wallHP: 0, wallMax: 0,
+      gate: null, site: null, road: null, progress: 0
+    },
+    pending: null,
+    forceMode: function (m, o) {
+      this.pending = this.pending || {};
+      this.pending.mode = { m: m, o: o || {} };
+      return true;
+    },
+    forceWave: function (n) {
+      this.pending = this.pending || {};
+      this.pending.wave = { n: n };
+      return true;
+    }
+  };
+})();
+</script>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="/play/aftergate/ag_data.js"></script>
+<script src="/play/aftergate/ag_art.js"></script>
+<script src="/play/aftergate/ag_ui.js"></script>
+<script src="/play/aftergate/ag_run.js"></script>
+<script src="/play/aftergate/ag_base.js"></script>
+<script src="/play/aftergate/game.js"></script>
 </body>
 </html>

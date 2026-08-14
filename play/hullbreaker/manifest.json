@@ -1,0 +1,16 @@
+{
+  "name": "Hullbreaker",
+  "short_name": "Hullbreaker",
+  "description": "Seeded asteroid field survival. Five sectors, eight waves each, a hive boss finale and generous salvage.",
+  "start_url": "/play/hullbreaker/",
+  "scope": "/play/hullbreaker/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#081420",
+  "theme_color": "#081420",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

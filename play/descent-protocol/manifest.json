@@ -1,0 +1,15 @@
+{
+  "name": "Descent Protocol",
+  "short_name": "Descent",
+  "start_url": "/play/descent-protocol/",
+  "scope": "/play/descent-protocol/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#071116",
+  "theme_color": "#071116",
+  "description": "A twin-stick corridor shooter through the GreenGuard descent.",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

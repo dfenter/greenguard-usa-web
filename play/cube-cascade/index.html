@@ -1,16 +1,21 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/cube-cascade/">
+<head>
+  <base href="/play/cube-cascade/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#07121f">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="Cube Cascade falling match game. Drop colored cubes, clear lines, and build cascades before overflow.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
   <title>Cube Cascade</title>
   <style>
     :root { color-scheme: dark; }
+    :root { --cc-safe-top: env(safe-area-inset-top); --cc-safe-right: env(safe-area-inset-right); --cc-safe-bottom: env(safe-area-inset-bottom); --cc-safe-left: env(safe-area-inset-left); }
     * { box-sizing: border-box; }
     html, body {
       width: 100%; height: 100%; margin: 0; overflow: hidden;
-      background: #07121f; font-family: Arial, Helvetica, sans-serif;
+      background: #07111f; font-family: Verdana, Geneva, system-ui, sans-serif;
     }
     body { overscroll-behavior: none; }
     #game {
@@ -19,17 +24,40 @@
       -webkit-user-select: none; -webkit-touch-callout: none;
     }
     canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    button { font: inherit; }
     .sr-only {
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
       overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
     }
+    /* Canvas controls own the visible play surface; keep the duplicate DOM path
+       available to assistive technology without placing labels under thumbs. */
+    #accessible-controls { position: fixed; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    #accessible-controls button { min-width: 44px; min-height: 44px; }
+    #pause-overlay[hidden] { display: none; }
+    #pause-overlay { position: fixed; inset: 0; z-index: 9500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: var(--cc-safe-top) var(--cc-safe-right) var(--cc-safe-bottom) var(--cc-safe-left); background: rgba(4, 10, 19, .94); color: #edffff; }
+    #pause-overlay strong { font: 700 24px Verdana, Geneva, sans-serif; letter-spacing: 2px; }
+    #pause-overlay button { padding: 12px 24px; border: 0; border-radius: 9px; color: #07111f; background: #70f5d8; font: 700 15px Verdana, Geneva, sans-serif; }
   </style>
 </head>
 <body>
-  <main id="game" aria-label="Cube Cascade isometric pyramid hopper">
-    <canvas id="screen"></canvas>
-    <div class="sr-only">Swipe diagonally or use diagonal arrow keys to hop between cubes. Light every cube to advance. Three lives.</div>
+  <main id="game" aria-label="Cube Cascade falling match cascade game">
+    <div class="sr-only" id="instructions">
+      Move the falling cube into a column, drop it, and match three colors. Swipe left or right
+      to aim, swipe down to drop, or use the labeled controls. Hold one color to set up a cascade.
+    </div>
   </main>
+  <nav id="accessible-controls" aria-label="Cube Cascade controls">
+    <button type="button" data-cc-action="left" aria-label="Move column left">Left</button>
+    <button type="button" data-cc-action="drop" aria-label="Drop cube">Drop</button>
+    <button type="button" data-cc-action="right" aria-label="Move column right">Right</button>
+    <button type="button" data-cc-action="hold" aria-label="Hold cube color">Hold</button>
+  </nav>
+  <div id="pause-overlay" hidden aria-live="polite">
+    <strong>PAUSED</strong>
+    <button id="cc-resume" type="button">RESUME</button>
+  </div>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="/play/_shared/phaser.min.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

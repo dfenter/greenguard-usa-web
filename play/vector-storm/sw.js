@@ -1,0 +1,48 @@
+/* Derived from /play/_shared/sw-template.js. Cache-first, offline after first load. */
+const SLUG = 'vector-storm';
+const VERSION = '2026-08-10-aaa-rebuild-3';
+const CACHE = 'gg-' + SLUG + '-' + VERSION;
+const ASSETS = [
+  '/play/vector-storm/',
+  '/play/vector-storm/index.html',
+  '/play/vector-storm/engine.js',
+  '/play/vector-storm/game.js',
+  '/play/vector-storm/manifest.json',
+  '/play/vector-storm/icon.png',
+  '/play/vector-storm/icon512.png',
+  '/play/vector-storm/favicon.ico',
+  '/play/vector-storm/LICENSES.md',
+  '/play/vector-storm/NOTES.md',
+  '/play/vector-storm/assets/void-drive.mp3',
+  '/play/vector-storm/assets/void-alert.mp3',
+  '/play/vector-storm/assets/fire.mp3',
+  '/play/vector-storm/assets/explosion.mp3',
+  '/play/vector-storm/assets/bomb.mp3',
+  '/play/vector-storm/assets/crystal.mp3',
+  '/play/vector-storm/assets/wave-clear.mp3',
+  '/play/vector-storm/assets/milestone.mp3',
+  '/play/vector-storm/assets/boss.mp3',
+  '/play/vector-storm/assets/damage.mp3',
+  '/play/vector-storm/assets/pickup.mp3',
+  '/play/vector-storm/assets/gameover.mp3',
+  '/play/_shared/phaser.min.js',
+  '/play/_shared/ggkit.js'
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys().then((keys) => Promise.all(
+    keys.filter((k) => k.startsWith('gg-' + SLUG + '-') && k !== CACHE).map((k) => caches.delete(k))
+  )).then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  if (!url.pathname.startsWith('/play/' + SLUG + '/') && !url.pathname.startsWith('/play/_shared/')) return;
+  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request).then((res) => {
+    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+    return res;
+  })));
+});

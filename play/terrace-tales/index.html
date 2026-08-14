@@ -1,33 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/terrace-tales/">
-<meta charset="utf-8">
-<title>Terrace Tales</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0d1218">
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  html,body{width:100%;height:100%;overflow:hidden;background:#080b0f;
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
-    overscroll-behavior:none;touch-action:none}
-  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
-  #cv{display:block;touch-action:none;background:#0d1218;
-    box-shadow:0 0 40px rgba(0,0,0,.6)}
-  #rot{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
-    flex-direction:column;gap:14px;background:#0d1218;color:#dbe6dd;z-index:9;text-align:center;padding:24px}
-  #rot b{font-size:20px;font-weight:700}
-  #rot span{font-size:14px;color:#8fa3a0}
-  #rot i{font-size:44px;font-style:normal;display:block;animation:tw 1.6s ease-in-out infinite}
-  @keyframes tw{0%,100%{transform:rotate(0)}50%{transform:rotate(-90deg)}}
-</style>
+<head>
+  <base href="/play/terrace-tales/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#10182B">
+  <meta name="description" content="Terrace Tales restores Hollowbrook Rise one match at a time.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" sizes="64x64">
+  <link rel="icon" href="icon.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icon512.png">
+  <title>Terrace Tales</title>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #10182B; touch-action: none; overscroll-behavior: none; }
+    body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; font-family: system-ui, sans-serif; }
+    canvas { display: block; touch-action: none; }
+  </style>
+  <script>
+    window.__tt = window.__tt || { state: { mode: 'boot', level: 1, moves: 0, slots: 0, garden: 'Entry Terrace', forceLevel: null, forceSlot: null }, forceLevel: null, forceSlot: null };
+  </script>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="game.js"></script>
 </head>
-<body>
-<div id="wrap"><canvas id="cv" width="390" height="700"></canvas></div>
-<div id="rot"><i>&#9634;</i><b>Turn your device upright</b><span>Terrace Tales is played in portrait. The garden is paused.</span></div>
-<script src="js/util.js"></script>
-<script src="js/board.js"></script>
-<script src="js/garden.js"></script>
-<script src="js/main.js"></script>
-</body>
+<body></body>
 </html>

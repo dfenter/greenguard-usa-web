@@ -1,0 +1,16 @@
+{
+  "name": "Steamline",
+  "short_name": "Steamline",
+  "description": "Route colour-coded trains through four authored yards before patience runs out.",
+  "start_url": "/play/steamline/",
+  "scope": "/play/steamline/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#07131c",
+  "theme_color": "#07131c",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

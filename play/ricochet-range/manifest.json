@@ -1,0 +1,14 @@
+{
+  "name": "Ricochet Range",
+  "short_name": "Ricochet Range",
+  "start_url": "/play/ricochet-range/",
+  "scope": "/play/ricochet-range/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#071116",
+  "theme_color": "#071116",
+  "icons": [
+    { "src": "icon.png", "sizes": "64x64", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

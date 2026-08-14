@@ -1,0 +1,14 @@
+{
+  "name": "Bulwark // Fleet F5",
+  "short_name": "Bulwark",
+  "start_url": "/play/bulwark/",
+  "scope": "/play/bulwark/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#06111e",
+  "theme_color": "#06111e",
+  "icons": [
+    { "src": "icon.png", "sizes": "64x64", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

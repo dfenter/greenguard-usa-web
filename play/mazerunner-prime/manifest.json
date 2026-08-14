@@ -1,0 +1,15 @@
+{
+  "name": "Mazerunner Prime",
+  "short_name": "Mazerunner",
+  "start_url": "/play/mazerunner-prime/",
+  "scope": "/play/mazerunner-prime/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060a18",
+  "theme_color": "#060a18",
+  "description": "A seeded pellet-maze chase through the GreenGuard circuit.",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

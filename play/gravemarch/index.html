@@ -1,99 +1,30 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/gravemarch/">
+<head>
+  <base href="/play/gravemarch/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#090b13">
-  <title>Gravemarch</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#080b14">
+  <meta name="description" content="Gravemarch, an idle action RPG descent through thirty authored floors.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon512.png">
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="styles.css">
+  <title>Gravemarch</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #080b14; }
+    body { display: grid; place-items: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    #game { width: 100%; height: 100%; min-width: 0; min-height: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+    canvas { display: block; image-rendering: pixelated; }
+  </style>
 </head>
 <body>
-  <main id="app" aria-label="Gravemarch active idle action RPG">
-    <canvas id="gameCanvas" class="play-surface" aria-label="Gravemarch game field"></canvas>
-
-    <div id="topHud" class="hud" aria-live="polite">
-      <div class="brand-lockup">
-        <div class="eyebrow">ACTIVE DESCENT</div>
-        <div class="brand">GRAVEMARCH</div>
-      </div>
-      <div class="run-stats">
-        <span id="floorReadout">FLOOR 01</span>
-        <span id="gearReadout">GEAR 00</span>
-        <span id="timeReadout">00:00</span>
-      </div>
-      <button id="economyButton" class="hud-button" type="button" aria-label="Open the field manual">?</button>
-    </div>
-
-    <div id="heroHud" class="hero-hud">
-      <div class="health-label"><span>VITALS</span><span id="healthReadout">100 / 100</span></div>
-      <div class="health-track"><div id="healthFill" class="health-fill"></div></div>
-      <div class="micro-stats"><span id="dpsReadout">DPS 0</span><span id="doorReadout">DOOR 00</span></div>
-    </div>
-
-    <div id="hintLine" class="hint-line">Auto-strike hunts the nearest shade. Tap skills or swipe anywhere to roll.</div>
-
-    <div id="skillBar" class="skill-bar" aria-label="Combat skills">
-      <button id="skillOne" class="skill-button skill-one" type="button" aria-label="Use Rift Pulse">
-        <span class="skill-key">J</span><span class="skill-name">RIFT PULSE</span><span id="skillOneCooldown" class="skill-cooldown">READY</span>
-      </button>
-      <button id="skillTwo" class="skill-button skill-two" type="button" aria-label="Use Gravehook">
-        <span class="skill-key">K</span><span class="skill-name">GRAVEHOOK</span><span id="skillTwoCooldown" class="skill-cooldown">READY</span>
-      </button>
-    </div>
-
-    <section id="statusPanel" class="modal-panel" hidden aria-live="polite">
-      <div class="panel-kicker" id="panelKicker">DESCENT LOG</div>
-      <h1 id="panelTitle">FLOOR CLEAR</h1>
-      <p id="panelBody">The door is listening.</p>
-      <div class="panel-actions">
-        <button id="panelPrimary" class="action-button primary" type="button">CONTINUE</button>
-        <button id="panelSecondary" class="action-button secondary" type="button">REPLAY FLOOR</button>
-      </div>
-    </section>
-
-    <section id="manualScreen" class="manual-screen" hidden aria-label="Field manual">
-      <div class="manual-card">
-        <div class="manual-head">
-          <div><div class="panel-kicker">FIELD MANUAL / TRANSPARENT ECONOMY</div><h2>How the descent pays</h2></div>
-          <button id="closeManual" class="close-button" type="button" aria-label="Close field manual">×</button>
-        </div>
-        <div class="manual-grid">
-          <div class="manual-block">
-            <h3>Posted drop table</h3>
-            <div class="drop-row"><i class="rarity-dot worn"></i><span>Worn</span><b>60%</b></div>
-            <div class="drop-row"><i class="rarity-dot etched"></i><span>Etched</span><b>27%</b></div>
-            <div class="drop-row"><i class="rarity-dot radiant"></i><span>Radiant</span><b>10%</b></div>
-            <div class="drop-row"><i class="rarity-dot singular"></i><span>Singular</span><b>3%</b></div>
-            <p class="fine-print">Minions roll loot at 45%. Bosses always roll. Slot odds: weapon / armor / charm = 1 / 1 / 1.</p>
-          </div>
-          <div class="manual-block">
-            <h3>Damage math</h3>
-            <p class="formula"><span id="manualDamage">0</span> DPS = weapon power × (1 + charm crit) × 1.0 auto-rate</p>
-            <p class="fine-print">Rift Pulse: 2.4× weapon power, 7s cooldown, hits every shade in the ring. Gravehook: 4.2× weapon power, 11s cooldown, pulls and stuns the nearest shade.</p>
-          </div>
-          <div class="manual-block">
-            <h3>Door math</h3>
-            <p class="formula">Next door = 20 + floor × 7.5 gear score</p>
-            <p class="fine-print">Score is the sum of your three equipped items. Upgrade drops auto-equip and show the comparison. Replay a shallow floor when the door says no.</p>
-          </div>
-          <div class="manual-block">
-            <h3>Open-tab rule</h3>
-            <p class="formula">Progress advances only while this tab is open.</p>
-            <p class="fine-print">Switching tabs or rotating pauses the simulation. No offline gains, energy, timer wall, or paid currency exists here.</p>
-          </div>
-        </div>
-        <div class="loadout-strip" id="loadoutReadout">LOADOUT</div>
-      </div>
-    </section>
-
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <div id="orientationOverlay" class="orientation-overlay" hidden>
-      <div class="rotate-glyph">↻</div>
-      <div class="panel-kicker">PORTRAIT DESCENT</div>
-      <h2>Turn the screen upright</h2>
-      <p>The march pauses while you rotate.</p>
-    </div>
-  </main>
+  <div id="game" aria-label="Gravemarch idle action RPG"></div>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="/play/_shared/phaser.min.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

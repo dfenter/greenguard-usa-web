@@ -1,171 +1,178 @@
-/* Parlor Pop - meta.js : persistence + the room-restoration meta layer. */
+/* GGKit-backed campaign, daily, mastery and furnishing state. */
 (function (root) {
   'use strict';
-  var KEY = 'parlorpop.save.v1';
   var LEVELS = root.PP.levels;
+  var ROOMS = root.PP.rooms;
+  var DAILY = root.PP.daily;
+  var kit = null;
+  var data = null;
+  var KEY_VERSION = 2;
 
-  /* Three rooms, three slots each, two furnishing variants per slot.
-     Everything is bought with stars earned by playing. No currency, ever. */
-  var ROOMS = [
-    {
-      name: 'The Front Parlor', wall: '#4a3b52', floor: '#5b4433',
-      slots: [
-        { name: 'Hearth', cost: 2, opts: ['Stone Mantel', 'Iron Stove'] },
-        { name: 'Seating', cost: 3, opts: ['Wing Chairs', 'Long Settee'] },
-        { name: 'Light', cost: 3, opts: ['Brass Sconces', 'Hanging Lamp'] }
-      ]
-    },
-    {
-      name: 'The Reading Room', wall: '#3b4a52', floor: '#54402f',
-      slots: [
-        { name: 'Shelves', cost: 4, opts: ['Open Stacks', 'Glass Cases'] },
-        { name: 'Floor', cost: 4, opts: ['Woven Rug', 'Painted Tiles'] },
-        { name: 'Window', cost: 5, opts: ['Tall Sash', 'Stained Arch'] }
-      ]
-    },
-    {
-      name: 'The Winter Garden', wall: '#3d5244', floor: '#4d4636',
-      slots: [
-        { name: 'Planting', cost: 5, opts: ['Fern Bank', 'Citrus Trees'] },
-        { name: 'Water', cost: 6, opts: ['Tiled Basin', 'Small Fountain'] },
-        { name: 'Roof', cost: 6, opts: ['Glass Vault', 'Slatted Shade'] }
-      ]
-    }
-  ];
-
-  function blank() {
-    return { stars: {}, best: {}, boost: [0, 0, 0], streak: 0, choice: {}, sound: 1, seen: 0 };
-  }
-
-  function isInt(v, lo, hi) {
+  function int(v, lo, hi) {
     return typeof v === 'number' && isFinite(v) && Math.floor(v) === v && v >= lo && v <= hi;
   }
-
-  var data = blank();
-
-  function load() {
-    data = blank();
-    var raw = null;
-    try { raw = root.localStorage ? root.localStorage.getItem(KEY) : null; } catch (e) { raw = null; }
-    if (!raw || typeof raw !== 'string') return;
-    var o = null;
-    try { o = JSON.parse(raw); } catch (e) { o = null; }
-    if (!o || typeof o !== 'object' || Array.isArray(o)) return;
-
-    var k;
-    if (o.stars && typeof o.stars === 'object' && !Array.isArray(o.stars)) {
-      for (k in o.stars) {
-        var li = parseInt(k, 10);
-        if (isInt(li, 0, LEVELS.length - 1) && isInt(o.stars[k], 1, 3)) data.stars[li] = o.stars[k];
-      }
-    }
-    if (o.best && typeof o.best === 'object' && !Array.isArray(o.best)) {
-      for (k in o.best) {
-        var bi = parseInt(k, 10);
-        if (isInt(bi, 0, LEVELS.length - 1) && isInt(o.best[k], 0, 9999999)) data.best[bi] = o.best[k];
-      }
-    }
-    if (Array.isArray(o.boost)) {
-      for (var i = 0; i < 3; i++) data.boost[i] = isInt(o.boost[i], 0, 99) ? o.boost[i] : 0;
-    }
-    if (isInt(o.streak, 0, 999)) data.streak = o.streak;
-    if (isInt(o.seen, 0, 1)) data.seen = o.seen;
-    data.sound = (o.sound === 0 || o.sound === false) ? 0 : 1;
-    if (o.choice && typeof o.choice === 'object' && !Array.isArray(o.choice)) {
-      for (k in o.choice) {
-        var p = String(k).split('-');
-        var r = parseInt(p[0], 10), s = parseInt(p[1], 10);
-        if (!isInt(r, 0, ROOMS.length - 1) || !isInt(s, 0, 2)) continue;
-        if (isInt(o.choice[k], 0, 1)) data.choice[r + '-' + s] = o.choice[k];
-      }
-    }
+  function blank() {
+    return { version: KEY_VERSION, stars: {}, best: {}, daily: {}, mastery: {},
+      choices: {}, boosters: { hammer: 0, rocket: 0, shuffle: 0 }, threeAwarded: {},
+      tutorial: false, motionSet: false, motionEnabled: true };
   }
-
-  function save() {
-    try {
-      if (!root.localStorage) return;
-      root.localStorage.setItem(KEY, JSON.stringify(data));
-    } catch (e) { /* private mode / quota: play on without persistence */ }
+  function own(o, key) { return Object.prototype.hasOwnProperty.call(o, key); }
+  function validDateKey(key) {
+    var m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(key), y, mo, d, date;
+    if (!m) return false;
+    y = +m[1]; mo = +m[2]; d = +m[3];
+    if (y < 2000 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31) return false;
+    date = new Date(Date.UTC(y, mo - 1, d));
+    return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d;
+  }
+  function knownLevel(id) { return levelIndex(id) >= 0; }
+  function validMapKeys(map, test) {
+    for (var key in map) if (own(map, key) && !test(key)) return false;
+    return true;
+  }
+  function valid(o) {
+    if (!o || typeof o !== 'object' || Array.isArray(o) || o.version !== KEY_VERSION) return false;
+    var top = ['version', 'stars', 'best', 'daily', 'mastery', 'choices', 'boosters', 'threeAwarded', 'tutorial', 'motionSet', 'motionEnabled'];
+    for (var topKey in o) if (own(o, topKey) && top.indexOf(topKey) < 0) return false;
+    var maps = ['stars', 'best', 'daily', 'mastery', 'choices', 'threeAwarded'];
+    for (var m = 0; m < maps.length; m++) if (!o[maps[m]] || typeof o[maps[m]] !== 'object' || Array.isArray(o[maps[m]])) return false;
+    if (!o.boosters || typeof o.boosters !== 'object' || Array.isArray(o.boosters)) return false;
+    for (var b in o.boosters) if (own(o.boosters, b) && b !== 'hammer' && b !== 'rocket' && b !== 'shuffle') return false;
+    if (!int(o.boosters.hammer, 0, 99) || !int(o.boosters.rocket, 0, 99) || !int(o.boosters.shuffle, 0, 99)) return false;
+    if (typeof o.tutorial !== 'boolean' || typeof o.motionSet !== 'boolean' || typeof o.motionEnabled !== 'boolean') return false;
+    if (!validMapKeys(o.stars, knownLevel)) return false;
+    if (!validMapKeys(o.best, function (key) { return knownLevel(key) || (key.indexOf('mastery-') === 0 && knownLevel(key.slice(8))); })) return false;
+    if (!validMapKeys(o.mastery, knownLevel)) return false;
+    if (!validMapKeys(o.threeAwarded, knownLevel)) return false;
+    if (!validMapKeys(o.daily, validDateKey)) return false;
+    if (!validMapKeys(o.choices, function (key) {
+      var parts = key.split('-'), r = +parts[0], s = +parts[1];
+      return parts.length === 2 && String(r) === parts[0] && String(s) === parts[1] && !!ROOMS[r] && !!ROOMS[r].slots[s];
+    })) return false;
+    for (var i = 0; i < LEVELS.length; i++) {
+      var id = LEVELS[i].id;
+      if (o.stars[id] != null && !int(o.stars[id], 1, 3)) return false;
+      if (o.best[id] != null && !int(o.best[id], 0, 99999999)) return false;
+      if (o.mastery[id] != null && !int(o.mastery[id], 1, 3)) return false;
+      if (o.threeAwarded[id] != null && o.threeAwarded[id] !== true) return false;
+      if (o.best['mastery-' + id] != null && !int(o.best['mastery-' + id], 0, 99999999)) return false;
+    }
+    for (var r = 0; r < ROOMS.length; r++) for (var s = 0; s < 3; s++) {
+      var ck = r + '-' + s;
+      if (o.choices[ck] != null && !int(o.choices[ck], 0, 1)) return false;
+    }
+    for (var day in o.daily) if (own(o.daily, day)) {
+      var record = o.daily[day];
+      if (!record || typeof record !== 'object' || Array.isArray(record) || !int(record.stars, 0, 3) || !int(record.best, 0, 99999999)) return false;
+      for (var dayKey in record) if (own(record, dayKey) && dayKey !== 'stars' && dayKey !== 'best') return false;
+    }
+    return true;
+  }
+  function save() { if (kit && data) kit.save.set(data); }
+  function levelIndex(id) { for (var i = 0; i < LEVELS.length; i++) if (LEVELS[i].id === id) return i; return -1; }
+  function roomForLevel(i) { var l = LEVELS[Math.max(0, Math.min(LEVELS.length - 1, i | 0))]; return l ? l.room : 0; }
+  function todayKey() {
+    var d = new Date();
+    return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+  }
+  function starsFor(id) { return knownLevel(id) ? data.stars[id] || 0 : 0; }
+  function totalStars() { var n = 0; for (var k in data.stars) if (own(data.stars, k) && knownLevel(k)) n += data.stars[k] || 0; return n; }
+  function spentStars() {
+    var n = 0;
+    for (var k in data.choices) if (own(data.choices, k)) {
+      var p = k.split('-'), r = +p[0], s = +p[1];
+      if (ROOMS[r] && ROOMS[r].slots[s]) n += ROOMS[r].slots[s].cost;
+    }
+    return n;
+  }
+  function roomDone(r) { for (var s = 0; s < 3; s++) if (data.choices[r + '-' + s] == null) return false; return true; }
+  function isRoomUnlocked(r) { return r <= 0 || roomDone(r - 1); }
+  function isLevelUnlocked(i) {
+    if (i <= 0) return true;
+    var previous = LEVELS[i - 1];
+    return isRoomUnlocked(roomForLevel(i)) && !!data.stars[previous.id];
+  }
+  function nextChoice(r) {
+    for (var s = 0; s < 3; s++) if (data.choices[r + '-' + s] == null) return s;
+    return -1;
+  }
+  function awardCampaign(id, stars, score) {
+    var old = starsFor(id), gained = [];
+    if (stars > old) data.stars[id] = Math.min(3, stars);
+    if (score > (data.best[id] || 0)) data.best[id] = Math.min(99999999, score | 0);
+    if (stars >= 3 && !data.threeAwarded[id]) {
+      data.threeAwarded[id] = true;
+      var keys = ['hammer', 'rocket', 'shuffle'];
+      var key = keys[levelIndex(id) % keys.length];
+      data.boosters[key] = Math.min(99, data.boosters[key] + 1);
+      gained.push(key);
+    }
+    save();
+    return gained;
+  }
+  function awardDaily(stars, score) {
+    var k = todayKey(), old = data.daily[k] || { stars: 0, best: 0 };
+    old.stars = Math.max(old.stars, stars);
+    old.best = Math.max(old.best, score | 0);
+    data.daily[k] = old;
+    save();
+  }
+  function awardMastery(id, stars, score) {
+    data.mastery[id] = Math.max(data.mastery[id] || 0, stars);
+    var key = 'mastery-' + id;
+    data.best[key] = Math.max(data.best[key] || 0, score | 0);
+    save();
   }
 
   var API = {
-    ROOMS: ROOMS,
-    load: load,
-    save: save,
-    data: function () { return data; },
-    reset: function () { data = blank(); save(); },
-
-    starsFor: function (i) { return data.stars[i] || 0; },
-    bestFor: function (i) { return data.best[i] || 0; },
-    totalStars: function () {
-      var n = 0; for (var k in data.stars) n += data.stars[k]; return n;
-    },
-    spentStars: function () {
-      var n = 0;
-      for (var k in data.choice) {
-        var p = k.split('-');
-        n += ROOMS[+p[0]].slots[+p[1]].cost;
-      }
-      return n;
-    },
-    freeStars: function () { return API.totalStars() - API.spentStars(); },
-
-    // furthest unlocked level index (always at least 0; never gated by lives)
-    unlocked: function () {
-      var n = 0;
-      for (var i = 0; i < LEVELS.length; i++) { if (data.stars[i]) n = i + 1; }
-      return Math.min(n, LEVELS.length - 1);
-    },
-    isUnlocked: function (i) { return i <= API.unlocked(); },
-
-    choiceFor: function (r, s) {
-      var v = data.choice[r + '-' + s];
-      return (v === 0 || v === 1) ? v : -1;
-    },
-    setChoice: function (r, s, v) { data.choice[r + '-' + s] = v ? 1 : 0; save(); },
-    roomDone: function (r) {
-      for (var s = 0; s < 3; s++) if (API.choiceFor(r, s) < 0) return false;
-      return true;
-    },
-    allDone: function () {
-      for (var r = 0; r < ROOMS.length; r++) if (!API.roomDone(r)) return false;
-      return true;
-    },
-
-    boosters: function () { return data.boost; },
-    useBooster: function (i) {
-      if (data.boost[i] > 0) { data.boost[i]--; save(); return true; }
-      return false;
-    },
-
-    // Returns a list of booster indices awarded for this result.
-    finish: function (levelIdx, stars, score) {
-      var got = [];
-      var prev = data.stars[levelIdx] || 0;
-      if (stars > prev) data.stars[levelIdx] = stars;
-      if (score > (data.best[levelIdx] || 0)) data.best[levelIdx] = score;
-      if (stars >= 3) {
-        data.streak++;
-        var b = (data.streak - 1) % 3;
-        data.boost[b] = Math.min(99, data.boost[b] + 1);
-        got.push(b);
-        if (data.streak % 3 === 0) { // full three-in-a-row: one extra, your pick of the cycle
-          var b2 = (data.streak / 3) % 3 | 0;
-          data.boost[b2] = Math.min(99, data.boost[b2] + 1);
-          got.push(b2);
-        }
-      } else {
-        data.streak = 0;
-      }
+    init: function (gk) {
+      kit = gk;
+      var loaded = kit.save.get(null);
+      data = valid(loaded) ? loaded : blank();
       save();
-      return got;
+      return API;
     },
-    streak: function () { return data.streak; },
-    soundOn: function () { return !!data.sound; },
-    setSound: function (v) { data.sound = v ? 1 : 0; save(); },
-    markSeen: function () { data.seen = 1; save(); },
-    hasSeen: function () { return !!data.seen; }
+    data: function () { return data; },
+    persist: save,
+    reset: function () { data = blank(); save(); },
+    rooms: ROOMS,
+    daily: DAILY,
+    starsFor: starsFor,
+    totalStars: totalStars,
+    spentStars: spentStars,
+    freeStars: function () { return Math.max(0, totalStars() - spentStars()); },
+    roomDone: roomDone,
+    roomUnlocked: isRoomUnlocked,
+    levelUnlocked: isLevelUnlocked,
+    choiceFor: function (r, s) { return !ROOMS[r] || !ROOMS[r].slots[s] || data.choices[r + '-' + s] == null ? -1 : data.choices[r + '-' + s]; },
+    canChoose: function (r, s) { return !!ROOMS[r] && !!ROOMS[r].slots[s] && !roomDone(r) && data.choices[r + '-' + s] == null && API.freeStars() >= ROOMS[r].slots[s].cost; },
+    choose: function (r, s, v) {
+      if (!API.canChoose(r, s) || (v !== 0 && v !== 1)) return false;
+      data.choices[r + '-' + s] = v; save(); return true;
+    },
+    nextChoice: nextChoice,
+    boosters: function () { return data.boosters; },
+    useBooster: function (key, allowed) {
+      if (allowed === false || !data.boosters[key] || data.boosters[key] < 1) return false;
+      data.boosters[key]--; save(); return true;
+    },
+    refundBooster: function (key) {
+      if (key !== 'hammer' && key !== 'rocket' && key !== 'shuffle') return false;
+      data.boosters[key] = Math.min(99, data.boosters[key] + 1); save(); return true;
+    },
+    record: function (mode, id, stars, score) {
+      if (mode === 'daily') { awardDaily(stars, score); return []; }
+      if (mode === 'mastery') { awardMastery(id, stars, score); return []; }
+      return awardCampaign(id, stars, score);
+    },
+    dailyResult: function () { return data.daily[todayKey()] || { stars: 0, best: 0 }; },
+    masteryFor: function (id) { return data.mastery[id] || 0; },
+    tutorialSeen: function () { return data.tutorial; },
+    markTutorial: function () { data.tutorial = true; save(); },
+    motionConfigured: function () { return data.motionSet; },
+    motionEnabled: function () { return data.motionEnabled; },
+    setMotion: function (v) { data.motionSet = true; data.motionEnabled = !!v; save(); }
   };
-
+  root.PP = root.PP || {};
   root.PP.meta = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

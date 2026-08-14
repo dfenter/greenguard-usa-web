@@ -1,0 +1,16 @@
+{
+  "name": "Breach & Brick",
+  "short_name": "Breach",
+  "description": "Twelve authored walls, falling debris that smashes the wall or stuns your deck, and a generous drop table.",
+  "start_url": "/play/breach-brick/",
+  "scope": "/play/breach-brick/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#05080f",
+  "theme_color": "#070b16",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

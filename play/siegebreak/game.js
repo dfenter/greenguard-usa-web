@@ -1,1215 +1,1151 @@
-/* Siegebreak - fantasy siege defense. Hold the wall. */
-'use strict';
+/* Siegebreak - fleet F8 fantasy siege defense. Phaser 3 + GGKit only. */
+(function () {
+  'use strict';
 
-/* ---------------- layout ---------------- */
-var HUD_H = 62;
-var WALL_TOP = 300;      // rampart floor (hero feet)
-var MERLON_BOT = 322;    // bottom of crenellations
-var GROUND_Y = 520;      // wall base / enemy walk lane
-var BAR_Y = 632;         // bottom control bar top
-var SPAWN_Y = 640;
-var GX0 = 150, GX1 = 240, GY0 = 442, GY1 = GROUND_Y;
-var SEG = [[0, 130], [130, 260], [260, 390]];
-var SEGC = [65, 195, 325];
-var TOTAL_NIGHTS = 10;
+  const W = 390;
+  const H = 700;
+  const HEADER = 74;
+  const RAIL = 574;
+  const WALL_Y = 320;
+  const WALL_BOTTOM = 438;
+  const GROUND_Y = 506;
+  const GATE_X = 155;
+  const GATE_W = 80;
+  const STEP = 1 / 60;
+  const MAX_ENEMIES = 48;
+  const MAX_LADDERS = 18;
+  const MAX_PARTICLES = 96;
+  const MAX_PROJECTILES = 28;
+  const MAX_FLOATS = 18;
+  const PARTICLE_KINDS = ['spark', 'debris', 'oil', 'command'];
+  const PARTICLES_PER_KIND = Math.floor(MAX_PARTICLES / PARTICLE_KINDS.length);
+  const WAVE_PREVIEW_LEAD = 1.05;
+  const RALLY_COOLDOWN = 1.6;
+  const SEGMENTS = [{ lo: 12, hi: 134 }, { lo: 134, hi: 256 }, { lo: 256, hi: 378 }];
+  const SEG_CENTERS = [73, 195, 317];
 
-var C = {
-  sky0: '#0b1030', sky1: '#161d3d',
-  ground: '#161a26', ground2: '#0f121c',
-  wall: '#3b4152', wallD: '#2b3040', wallL: '#4d5468',
-  ramp: '#565e73',
-  hero: '#ffd166', heroD: '#e0a32c',
-  grunt: '#d9534f', grap: '#e0793f', elite: '#b07bd6',
-  ram: '#8a6a4a', tower: '#6f7686',
-  spear: '#7fd4ff', archer: '#9ae66e', oil: '#ffa94d',
-  bad: '#ff5a4d', good: '#7dd87d', gold: '#ffd166'
-};
-
-/* ---------------- state ---------------- */
-var G = null;
-var best = loadBest();
-var selChip = -1;      // selected squad chip index
-var hint = 0;
-var shopBtns = [];
-var flash = 0;
-
-var UP_DEFS = [
-  { k: 'wall', name: 'REPAIR WALL', desc: '+45 hp to every segment', base: 30, step: 8 },
-  { k: 'gate', name: 'REBUILD GATE', desc: '+90 gate hp', base: 35, step: 10 },
-  { k: 'blade', name: 'SHARPEN BLADE', desc: 'hero damage +18%', base: 40, step: 15 },
-  { k: 'drill', name: 'DRILL SQUADS', desc: 'squad rank +1', base: 45, step: 20 },
-  { k: 'banner', name: 'WAR BANNER', desc: 'banner charges +30%', base: 40, step: 15 }
-];
-
-function newGame() {
-  Input.clear();
-  G = {
-    mode: 'play',
-    night: 1,
-    valor: 0,
-    segs: [{ hp: 100, max: 100 }, { hp: 100, max: 100 }, { hp: 100, max: 100 }],
-    gate: { hp: 260, max: 260 },
-    hero: { x: 195, y: WALL_TOP, leap: null, atk: 0, atkType: 'over', face: 1, combo: 0, comboT: 0 },
-    enemies: [], ladders: [], parts: [], shots: [], pours: [], texts: [],
-    squads: [
-      { type: 'spear', seg: 0, moveTo: -1, moveT: 0, cd: 0 },
-      { type: 'archer', seg: 1, moveTo: -1, moveT: 0, cd: 0 },
-      { type: 'oil', seg: 2, moveTo: -1, moveT: 0, cd: 0 }
-    ],
-    banner: 0,
-    gateOil: 100,
-    heroDmg: 1, squadLvl: 1, bannerMul: 1,
-    upCost: { wall: 30, gate: 35, blade: 40, drill: 45, banner: 40 },
-    wave: null, waveT: 0,
-    shake: 0, nightTitle: 2.4,
-    ramMash: 0
+  const COLORS = {
+    ink: 0x07111b, panel: 0x0d1b29, panel2: 0x12283a,
+    bone: 0xe3d3a2, muted: 0x8194a5, white: 0xf4f4e7,
+    player: 0x43c7f4, playerDark: 0x3864e8, playerLight: 0xb7efff,
+    enemy: 0xff665c, enemyDark: 0xb72e4d, amber: 0xe0a34a,
+    gold: 0xffd166, danger: 0xff5c6a, good: 0x72e0af,
+    slate: 0x718092, wall: 0x516474, wallLight: 0x7890a0,
+    gate: 0xb8864a, oil: 0xffa94d, violet: 0xd9a7ff
   };
-  startNight(1);
-  selChip = -1;
-  flash = 0;
-  hint = 9;
-}
-
-/* ---------------- wave generation (seeded per night) ---------------- */
-function startNight(n) {
-  var r = makeRng(1337 + n * 7919);
-  var dur = 22 + n * 3.2;
-  var ev = [];
-  function add(kind, count, t0, t1) {
-    for (var i = 0; i < count; i++) {
-      var s = Math.floor(r() * 3);
-      ev.push({ t: t0 + (t1 - t0) * r(), kind: kind, seg: s });
-    }
-  }
-  add('grunt', 6 + n * 3, 1.0, dur);
-  if (n >= 2) add('grap', 1 + (n - 1) * 2, 5, dur);
-  if (n >= 4) add('elite', 1 + Math.floor((n - 4) * 1.2), 8, dur);
-  if (n >= 3) add('ram', n >= 8 ? 2 : 1, 6, dur * 0.65);
-  if (n >= 6) add('tower', n >= 9 ? 2 : 1, 9, dur * 0.7);
-  ev.sort(function (a, b) { return a.t - b.t; });
-  G.wave = { ev: ev, i: 0, dur: dur };
-  G.waveT = 0;
-  G.nightTitle = 2.4;
-  G.ladders.length = 0;
-  G.enemies.length = 0;
-  G.shots.length = 0;
-  G.pours.length = 0;
-  G.gateOil = 100;
-}
-
-/* ---------------- helpers ---------------- */
-function segAt(x) { return x < 130 ? 0 : (x < 260 ? 1 : 2); }
-function aliveSegs() { var c = 0; for (var i = 0; i < 3; i++) if (G.segs[i].hp > 0) c++; return c; }
-function nearestOpenSeg(from) {
-  var bi = -1, bd = 99;
-  for (var i = 0; i < 3; i++) if (G.segs[i].hp > 0 && Math.abs(i - from) < bd) { bd = Math.abs(i - from); bi = i; }
-  return bi;
-}
-function addPart(x, y, n, col, spd, life) {
-  for (var i = 0; i < n; i++) {
-    var a = rand(0, Math.PI * 2), s = rand(spd * 0.3, spd);
-    G.parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 20, l: life || rand(0.25, 0.6), m: life || 0.6, c: col, r: rand(1.4, 3.2) });
-  }
-  if (G.parts.length > 260) G.parts.splice(0, G.parts.length - 260);
-}
-function floatText(x, y, s, col) {
-  G.texts.push({ x: x, y: y, s: s, c: col || '#fff', l: 0.9 });
-  if (G.texts.length > 22) G.texts.shift();
-}
-function shake(v) { G.shake = Math.min(16, G.shake + v); }
-
-/* ---------------- enemies ---------------- */
-var EDEF = {
-  grunt: { hp: 30, gs: 36, cs: 27, w: 11, h: 22, col: C.grunt, dps: 5.0, valor: 3 },
-  grap: { hp: 20, gs: 58, cs: 50, w: 10, h: 20, col: C.grap, dps: 4.5, valor: 4 },
-  elite: { hp: 70, gs: 26, cs: 19, w: 14, h: 26, col: C.elite, dps: 10, valor: 9, shield: true },
-  ram: { hp: 230, gs: 20, w: 62, h: 30, col: C.ram, dps: 11, valor: 26 },
-  tower: { hp: 300, gs: 13, w: 46, h: 60, col: C.tower, dps: 0, valor: 32 }
-};
-
-function spawn(kind, seg) {
-  var d = EDEF[kind];
-  var hpScale = 1 + (G.night - 1) * 0.12;
-  var e = {
-    k: kind, x: 0, y: SPAWN_Y + rand(0, 14), hp: d.hp * hpScale, max: d.hp * hpScale,
-    st: 'ground', seg: seg, ladder: null, vy: 0, shield: !!d.shield,
-    tx: 0, cd: 0, unload: 2.2, wob: rand(0, 6.28), hurt: 0
+  const CSS = {
+    player: '#43c7f4', playerDark: '#3864e8', enemy: '#ff665c',
+    amber: '#e0a34a', gold: '#ffd166', white: '#f4f4e7', muted: '#8194a5',
+    danger: '#ff5c6a', good: '#72e0af', violet: '#d9a7ff', bone: '#e3d3a2'
   };
-  if (kind === 'ram') { e.x = 195 + rand(-16, 16); e.tx = 195; e.seg = 1; }
-  else { e.x = clamp(SEGC[seg] + rand(-46, 46), 14, VW - 14); e.tx = e.x; }
-  if (kind === 'tower') { e.tx = clamp(SEGC[seg] + rand(-20, 20), 40, VW - 40); }
-  G.enemies.push(e);
-  return e;
-}
 
-function findLadder(seg, x) {
-  var b = null, bd = 1e9;
-  for (var i = 0; i < G.ladders.length; i++) {
-    var L = G.ladders[i];
-    if (L.hp <= 0) continue;
-    var d = Math.abs(L.x - x) + (L.seg === seg ? 0 : 90);
-    if (d < bd) { bd = d; b = L; }
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function sign(v) { return v < 0 ? -1 : v > 0 ? 1 : 0; }
+  function seeded(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a += 0x6D2B79F5;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
-  return bd < 150 ? b : null;
-}
-
-function plantLadder(x, seg, kind) {
-  var L = { x: clamp(x, 16, VW - 16), seg: seg, hp: kind === 'grap' ? 1 : 3, grap: kind === 'grap', build: 0 };
-  G.ladders.push(L);
-  Audio2.ladder();
-  addPart(L.x, GROUND_Y, 8, '#8a7a55', 60);
-  return L;
-}
-
-function damage(e, dmg, kind) {
-  if (e.shield && kind !== 'kick' && kind !== 'banner') dmg *= 0.25;
-  e.hp -= dmg;
-  e.hurt = 0.12;
-  if (e.hp <= 0) killEnemy(e);
-}
-
-function killEnemy(e) {
-  e.dead = true;
-  var d = EDEF[e.k];
-  G.valor += d.valor;
-  addPart(e.x, e.y - 8, e.k === 'ram' || e.k === 'tower' ? 26 : 10, d.col, e.k === 'tower' ? 150 : 90);
-  if (e.k === 'ram' || e.k === 'tower') { shake(9); floatText(e.x, e.y - 30, '+' + d.valor, C.gold); }
-  Audio2.kill();
-}
-
-/* ---------------- hero ---------------- */
-function heroCommand(x, dir) {
-  var h = G.hero;
-  var tx = clamp(x, 16, VW - 16);
-  var d = Math.abs(tx - h.x);
-  h.face = tx >= h.x ? 1 : -1;
-  h.leap = { x0: h.x, x1: tx, t: 0, dur: clamp(d / 950, 0.09, 0.30) };
-  h.pending = (dir === 'down') ? 'kick' : (dir === 'left' || dir === 'right') ? 'sweep' : 'over';
-}
-
-function doAttack(type) {
-  var h = G.hero;
-  h.atk = 0.26; h.atkType = type;
-  Audio2.swing();
-  var hits = 0;
-  var R = type === 'sweep' ? 74 : type === 'kick' ? 58 : 48;
-  var dmgBase = (type === 'over' ? 38 : type === 'sweep' ? 21 : 16) * G.heroDmg;
-
-  // enemies on rampart or near the top of the wall face
-  for (var i = 0; i < G.enemies.length; i++) {
-    var e = G.enemies[i];
-    if (e.dead || e.k === 'ram') continue;
-    if (e.k === 'tower') {
-      if (e.arrived && Math.abs(e.x - h.x) < R + 26) {
-        damage(e, dmgBase * 0.7, type); hits++;
-        addPart(e.x, WALL_TOP + 10, 6, '#cfd6e6', 90, 0.3);
-      }
-      continue;
-    }
-    if (e.st === 'ground' || e.st === 'fall') continue;
-    var reach = (e.st === 'top') ? 0 : (e.y - WALL_TOP);
-    if (reach > (type === 'kick' ? 84 : 44)) continue;
-    if (Math.abs(e.x - h.x) > R) continue;
-    hits++;
-    if (type === 'kick') {
-      if (e.shield) { e.shield = false; addPart(e.x, e.y - 12, 8, '#dcd6ff', 90); floatText(e.x, e.y - 26, 'SHIELD!', '#dcd6ff'); }
-      damage(e, dmgBase, type);
-      if (!e.dead && e.st === 'climb') { e.st = 'fall'; e.vy = -40; e.ladder = null; }
-      else if (!e.dead) { e.x += h.face * 16; }
-    } else if (type === 'sweep') {
-      damage(e, dmgBase, type);
-      if (!e.dead) {
-        e.x += (e.x > h.x ? 1 : -1) * 20;
-        if (e.st === 'climb' && Math.random() < 0.4) { e.st = 'fall'; e.vy = -20; e.ladder = null; }
-      }
-    } else {
-      damage(e, dmgBase, type);
-    }
-    addPart(e.x, e.y - 10, 5, type === 'kick' ? '#ffd9a0' : '#fff0c0', 80, 0.3);
+  function setTextIfChanged(obj, value) {
+    const text = String(value);
+    if (obj.text !== text) obj.setText(text);
+  }
+  function setColorIfChanged(obj, color) {
+    if (obj._sbColor !== color) { obj.setColor(color); obj._sbColor = color; }
+  }
+  function rectHit(x, y, r) { return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h; }
+  function roundRectCanvas(c, x, y, w, h, r) {
+    r = Math.min(r, w * 0.5, h * 0.5);
+    c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r); c.closePath();
   }
 
-  // kick knocks ladders off the wall
-  if (type === 'kick') {
-    for (var j = 0; j < G.ladders.length; j++) {
-      var L = G.ladders[j];
-      if (L.hp <= 0) continue;
-      if (Math.abs(L.x - h.x) < R) {
-        L.hp = 0; hits++;
-        addPart(L.x, WALL_TOP + 30, 14, '#9a854f', 120);
-        Audio2.kick();
-        floatText(L.x, WALL_TOP + 20, L.grap ? 'ROPE CUT' : 'LADDER DOWN', '#ffd9a0');
-        for (var q = 0; q < G.enemies.length; q++) {
-          var c = G.enemies[q];
-          if (!c.dead && c.st === 'climb' && c.ladder === L) { c.st = 'fall'; c.vy = -30; c.ladder = null; }
-        }
-      }
-    }
+  const RAMPARTS = [
+    { name: 'OUTER GATEHOUSE', landmark: 'BANNER TOWER', color: '#4c6b79', nights: '01-02', upgrade: 'IRONBOUND GATE', desc: '+30 gate integrity and +20 oil reserve' },
+    { name: 'TWIN-TOWER FLANK', landmark: 'SIEGE ENGINE WRECK', color: '#586476', nights: '03-05', upgrade: 'CROSS-FIRE WALK', desc: 'archer shots deal +35% damage' },
+    { name: 'COLLAPSING CURTAIN', landmark: 'FALLEN BANNER TOWER', color: '#6b5c69', nights: '06-09', upgrade: 'BRACED CURTAIN', desc: 'wall repairs restore +20 more integrity' },
+    { name: 'THE VAULT APPROACH', landmark: 'VAULT LANTERN', color: '#4b627d', nights: '10', upgrade: 'WARDEN SIGIL', desc: 'kick breaks elite shields in one clean window' }
+  ];
+
+  const NIGHT_BLURBS = [
+    'ladders in the dark', 'ropes over the parapet', 'the first ram', 'shielded vanguard',
+    'pressure on every wall', 'a tower rolls in', 'fast climbers', 'two rams at dusk',
+    'towers and elites', 'the last approach'
+  ];
+
+  const WAVE_TABLE = [
+    [{ t: 1.0, k: 'grunt', s: 0 }, { t: 2.8, k: 'grunt', s: 1 }, { t: 5.0, k: 'grunt', s: 2 }, { t: 7.3, k: 'grapple', s: 1 }, { t: 10.0, k: 'grunt', s: 0 }, { t: 12.6, k: 'grunt', s: 2 }, { t: 16.4, k: 'grapple', s: 0 }],
+    [{ t: 0.9, k: 'grunt', s: 0 }, { t: 2.0, k: 'grunt', s: 2 }, { t: 3.5, k: 'grapple', s: 1 }, { t: 6.4, k: 'grunt', s: 0 }, { t: 8.5, k: 'grunt', s: 1 }, { t: 10.2, k: 'grapple', s: 2 }, { t: 13.0, k: 'grunt', s: 1 }, { t: 15.2, k: 'grapple', s: 0 }],
+    [{ t: 0.8, k: 'grunt', s: 1 }, { t: 2.2, k: 'ram', s: 1 }, { t: 4.0, k: 'grunt', s: 0 }, { t: 5.3, k: 'grapple', s: 2 }, { t: 7.4, k: 'grunt', s: 1 }, { t: 9.2, k: 'grunt', s: 0 }, { t: 12.0, k: 'grapple', s: 1 }, { t: 15.0, k: 'grunt', s: 2 }, { t: 18.0, k: 'grunt', s: 0 }],
+    [{ t: 0.7, k: 'elite', s: 1 }, { t: 2.4, k: 'grunt', s: 0 }, { t: 3.5, k: 'grunt', s: 2 }, { t: 5.2, k: 'ram', s: 1 }, { t: 7.3, k: 'grapple', s: 0 }, { t: 8.8, k: 'elite', s: 2 }, { t: 11.5, k: 'grunt', s: 1 }, { t: 14.0, k: 'grapple', s: 2 }, { t: 17.2, k: 'grunt', s: 0 }],
+    [{ t: 0.6, k: 'grunt', s: 0 }, { t: 1.8, k: 'grunt', s: 1 }, { t: 2.6, k: 'elite', s: 2 }, { t: 4.0, k: 'grapple', s: 1 }, { t: 5.8, k: 'ram', s: 1 }, { t: 7.6, k: 'grunt', s: 0 }, { t: 9.0, k: 'elite', s: 0 }, { t: 11.0, k: 'grapple', s: 2 }, { t: 13.4, k: 'grunt', s: 1 }, { t: 16.0, k: 'grunt', s: 2 }, { t: 18.6, k: 'grapple', s: 0 }],
+    [{ t: 0.6, k: 'tower', s: 0 }, { t: 2.0, k: 'grunt', s: 2 }, { t: 3.4, k: 'grapple', s: 1 }, { t: 5.4, k: 'elite', s: 0 }, { t: 7.8, k: 'ram', s: 1 }, { t: 9.5, k: 'grunt', s: 2 }, { t: 11.0, k: 'grapple', s: 0 }, { t: 13.4, k: 'elite', s: 2 }, { t: 16.2, k: 'grunt', s: 1 }, { t: 18.4, k: 'grapple', s: 1 }, { t: 21.0, k: 'grunt', s: 0 }],
+    [{ t: 0.5, k: 'grapple', s: 0 }, { t: 1.4, k: 'elite', s: 1 }, { t: 2.5, k: 'grunt', s: 2 }, { t: 4.0, k: 'tower', s: 2 }, { t: 5.8, k: 'ram', s: 1 }, { t: 7.0, k: 'grapple', s: 1 }, { t: 8.8, k: 'elite', s: 0 }, { t: 10.4, k: 'grunt', s: 2 }, { t: 12.8, k: 'grapple', s: 2 }, { t: 15.0, k: 'tower', s: 0 }, { t: 18.0, k: 'elite', s: 1 }, { t: 21.0, k: 'grunt', s: 0 }],
+    [{ t: 0.5, k: 'ram', s: 1 }, { t: 1.4, k: 'ram', s: 1 }, { t: 2.6, k: 'elite', s: 0 }, { t: 3.7, k: 'grapple', s: 2 }, { t: 5.2, k: 'tower', s: 1 }, { t: 7.0, k: 'grunt', s: 0 }, { t: 8.4, k: 'elite', s: 2 }, { t: 10.2, k: 'grapple', s: 1 }, { t: 12.0, k: 'tower', s: 2 }, { t: 14.4, k: 'grunt', s: 0 }, { t: 16.6, k: 'elite', s: 1 }, { t: 19.0, k: 'grapple', s: 2 }, { t: 21.8, k: 'grunt', s: 1 }],
+    [{ t: 0.5, k: 'tower', s: 0 }, { t: 1.5, k: 'tower', s: 2 }, { t: 2.1, k: 'elite', s: 1 }, { t: 3.2, k: 'ram', s: 1 }, { t: 4.4, k: 'grapple', s: 0 }, { t: 5.8, k: 'elite', s: 2 }, { t: 7.2, k: 'grunt', s: 1 }, { t: 9.0, k: 'ram', s: 1 }, { t: 10.8, k: 'grapple', s: 2 }, { t: 12.2, k: 'tower', s: 1 }, { t: 14.8, k: 'elite', s: 0 }, { t: 17.0, k: 'grunt', s: 2 }, { t: 19.4, k: 'grapple', s: 1 }, { t: 22.0, k: 'elite', s: 2 }],
+    [{ t: 0.4, k: 'tower', s: 0 }, { t: 0.9, k: 'ram', s: 1 }, { t: 1.6, k: 'elite', s: 2 }, { t: 2.8, k: 'grapple', s: 0 }, { t: 4.0, k: 'tower', s: 2 }, { t: 5.3, k: 'ram', s: 1 }, { t: 6.5, k: 'elite', s: 1 }, { t: 8.2, k: 'grapple', s: 2 }, { t: 9.8, k: 'tower', s: 1 }, { t: 12.0, k: 'elite', s: 0 }, { t: 14.0, k: 'ram', s: 1 }, { t: 15.6, k: 'grapple', s: 1 }, { t: 17.4, k: 'tower', s: 0 }, { t: 19.2, k: 'elite', s: 2 }, { t: 22.0, k: 'grunt', s: 1 }]
+  ];
+  const VAULT_WAVE = [
+    { t: 0.5, k: 'tower', s: 0 }, { t: 1.1, k: 'ram', s: 1 }, { t: 1.7, k: 'tower', s: 2 },
+    { t: 3.0, k: 'elite', s: 1 }, { t: 4.4, k: 'grapple', s: 0 }, { t: 5.8, k: 'ram', s: 1 },
+    { t: 7.0, k: 'elite', s: 2 }, { t: 8.5, k: 'tower', s: 1 }, { t: 10.0, k: 'grapple', s: 2 },
+    { t: 12.0, k: 'elite', s: 0 }, { t: 14.0, k: 'ram', s: 1 }, { t: 15.4, k: 'tower', s: 0 },
+    { t: 17.0, k: 'tower', s: 2 }, { t: 19.0, k: 'elite', s: 1 }, { t: 21.4, k: 'ram', s: 1 },
+    { t: 24.0, k: 'elite', s: 2 }, { t: 26.0, k: 'grapple', s: 0 }, { t: 28.0, k: 'tower', s: 1 },
+    { t: 31.0, k: 'elite', s: 0 }
+  ];
+
+  const TRIALS = [
+    { id: 'first-rung', title: 'FIRST RUNG', desc: 'Kick 3 ladders off before they reach the top.', night: 1, goal: '3 KICKED LADDERS', target: 3 },
+    { id: 'rope-line', title: 'ROPE LINE', desc: 'Break 3 grapple ropes with overhead strikes.', night: 2, goal: '3 ROPES CUT', target: 3 },
+    { id: 'shield-law', title: 'SHIELD LAW', desc: 'Break 2 elite shields with clean kicks.', night: 4, goal: '2 SHIELDS BROKEN', target: 2 },
+    { id: 'oil-rain', title: 'OIL RAIN', desc: 'Pour oil 8 times while the gate is under pressure.', night: 6, goal: '8 OIL POURS', target: 8 },
+    { id: 'three-walls', title: 'THREE WALLS', desc: 'Finish a night with all three wall segments above 70%.', night: 8, goal: 'WALLS ABOVE 70%', target: 1 }
+  ];
+
+  const ENEMY = {
+    grunt: { hp: 34, speed: 34, climb: 45, dps: 7, reward: 5, scale: 0.62 },
+    grapple: { hp: 24, speed: 42, climb: 64, dps: 5, reward: 7, scale: 0.58 },
+    elite: { hp: 86, speed: 25, climb: 30, dps: 12, reward: 13, scale: 0.82 },
+    ram: { hp: 250, speed: 18, climb: 0, dps: 15, reward: 30, scale: 1 },
+    tower: { hp: 330, speed: 11, climb: 0, dps: 0, reward: 34, scale: 1 }
+  };
+  const HERO_KEYS = [
+    { code: 'Space', type: 'over' }, { code: 'ArrowDown', type: 'kick' }, { code: 'KeyS', type: 'kick' },
+    { code: 'ArrowUp', type: 'sweep' }, { code: 'KeyW', type: 'sweep' }
+  ];
+  const ROUTE_KEYS = [{ code: 'KeyQ', seg: 0 }, { code: 'KeyE', seg: 1 }, { code: 'KeyR', seg: 2 }];
+  const SPRITE_STATES = { defender: { idle: 0, leap: 2, strike: 3, kick: 4, sweep: 5, hurt: 6 }, attacker: { idle: 0, leap: 2, strike: 3, kick: 4, sweep: 5, hurt: 6 } };
+
+  const bootState = { mode: 'boot', night: 1, wallHP: [100, 100, 100], valor: 0, threat: 'idle', pendingNight: 0, pendingThreat: '' };
+  const probe = window.__sb = window.__sb || {};
+  probe.state = bootState;
+  let liveScene = null;
+  probe.forceNight = function (n) {
+    const night = clamp(parseInt(n, 10) || 1, 1, 10);
+    bootState.pendingNight = night;
+    if (liveScene) liveScene.forceNight(night);
+  };
+  probe.forceThreat = function (kind) {
+    bootState.pendingThreat = String(kind || 'grunt');
+    if (liveScene) liveScene.forceThreat(bootState.pendingThreat);
+  };
+
+  function validSave(obj) {
+    const intIn = (value, lo, hi) => Number.isInteger(value) && value >= lo && value <= hi;
+    const bools = (value, length) => Array.isArray(value) && value.length === length && value.every((item) => typeof item === 'boolean');
+    const medals = Array.isArray(obj && obj.medals) && obj.medals.length === 10 && obj.medals.every((item) => intIn(item, 0, 3));
+    const trials = bools(obj && obj.trials, TRIALS.length);
+    const unlocked = bools(obj && obj.unlocked, 4);
+    const forts = obj && obj.fortLevels == null ? true : Array.isArray(obj.fortLevels) && obj.fortLevels.length === 4 && obj.fortLevels.every((item) => intIn(item, 0, 3));
+    const schema = obj && obj.schema == null ? true : intIn(obj && obj.schema, 1, 2);
+    return !!obj && schema && medals && trials && unlocked && forts && intIn(obj.bestNight, 0, 10) &&
+      (obj.tutorialSeen == null || typeof obj.tutorialSeen === 'boolean');
   }
 
-  if (hits > 0) {
-    Audio2.hit();
-    shake(type === 'over' ? 5 : 3.5);
-    h.comboT = 1.6;
-    h.combo = Math.min(9, h.combo + 1);
-    G.banner = Math.min(100, G.banner + (5 + h.combo * 1.6) * G.bannerMul);
-  }
-}
+  const kit = GGKit.create({
+    slug: 'siegebreak',
+    orientation: 'portrait',
+    validateSave: validSave,
+    onPause: function () { if (liveScene) liveScene.pausedByKit = true; },
+    onResume: function () { if (liveScene) liveScene.pausedByKit = false; },
+    onRestart: function () { if (liveScene) liveScene.startRun(1); }
+  });
+  kit.audio.register({
+    steel: 'assets/steel.m4a', clash: 'assets/impact.m4a', kick: 'assets/kick.m4a', sweep: 'assets/sweep.m4a',
+    ladder: 'assets/ladder.m4a', rope: 'assets/rope.m4a', ram: 'assets/ram.m4a', tower: 'assets/tower.m4a',
+    horn: 'assets/horn.m4a', rally: 'assets/rally.m4a', oil: 'assets/oil.m4a', drum: 'assets/drum.m4a',
+    music: 'assets/march.m4a', danger: 'assets/danger.m4a', victory: 'assets/victory.m4a'
+  });
 
-/* ---------------- rally / squads ---------------- */
-function orderSquad(i, seg) {
-  var s = G.squads[i];
-  if (s.seg === seg && s.moveTo < 0) return;
-  s.moveTo = seg; s.moveT = 1.0;
-  Audio2.rally();
-  floatText(SEGC[seg], WALL_TOP - 40, s.type.toUpperCase() + ' →', C[s.type]);
-}
+  function defaultSave() { return { schema: 2, medals: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], trials: [false, false, false, false, false], bestNight: 0, unlocked: [false, false, false, false], fortLevels: [0, 0, 0, 0], tutorialSeen: false }; }
 
-function bannerBurst() {
-  if (G.banner < 100) return;
-  G.banner = 0;
-  Audio2.banner();
-  shake(14); flash = 0.5;
-  for (var i = 0; i < 3; i++) G.pours.push({ seg: i, t: 1.1, big: true });
-  for (var j = 0; j < G.enemies.length; j++) {
-    var e = G.enemies[j];
-    if (e.dead) continue;
-    if (e.st === 'climb') { e.st = 'fall'; e.vy = -50; e.ladder = null; damage(e, 40, 'banner'); }
-    else damage(e, e.k === 'ram' || e.k === 'tower' ? 55 : 45, 'banner');
-  }
-  for (var k = 0; k < G.ladders.length; k++) if (G.ladders[k].grap) G.ladders[k].hp = 0;
-  floatText(195, 200, 'RALLY!', C.gold);
-}
+  class SiegebreakScene extends Phaser.Scene {
+    constructor() { super({ key: 'Siegebreak' }); }
 
-function gateMash(x, y) {
-  if (G.gateOil < 16) { return; }
-  G.gateOil -= 16;
-  Audio2.oil();
-  G.pours.push({ gate: true, t: 0.45 });
-  addPart(rand(GX0, GX1), GY0, 10, C.oil, 110, 0.5);
-  shake(3);
-  var hit = false;
-  for (var i = 0; i < G.enemies.length; i++) {
-    var e = G.enemies[i];
-    if (e.dead) continue;
-    if (e.y > GROUND_Y - 30 && e.x > GX0 - 40 && e.x < GX1 + 40) { damage(e, 24 * G.heroDmg, 'oil'); hit = true; }
-  }
-  if (hit) { G.banner = Math.min(100, G.banner + 3 * G.bannerMul); }
-}
-
-/* ---------------- update ---------------- */
-function update(dt) {
-  if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 34);
-  if (flash > 0) flash = Math.max(0, flash - dt * 1.6);
-  if (hint > 0) hint -= dt;
-  if (G.nightTitle > 0) G.nightTitle -= dt;
-
-  for (var t = G.texts.length - 1; t >= 0; t--) {
-    var T = G.texts[t]; T.l -= dt; T.y -= dt * 22; if (T.l <= 0) G.texts.splice(t, 1);
-  }
-  for (var p = G.parts.length - 1; p >= 0; p--) {
-    var P = G.parts[p];
-    P.l -= dt; P.x += P.vx * dt; P.y += P.vy * dt; P.vy += 320 * dt;
-    if (P.l <= 0) G.parts.splice(p, 1);
-  }
-  for (var s = G.shots.length - 1; s >= 0; s--) {
-    var S = G.shots[s]; S.t += dt * S.sp;
-    if (S.t >= 1) G.shots.splice(s, 1);
-  }
-  for (var o = G.pours.length - 1; o >= 0; o--) { G.pours[o].t -= dt; if (G.pours[o].t <= 0) G.pours.splice(o, 1); }
-
-  if (G.mode !== 'play') return;
-
-  G.gateOil = Math.min(100, G.gateOil + dt * 15);
-
-  /* --- keyboard movement --- */
-  var h = G.hero;
-  var kx = 0;
-  if (Input.keys['arrowleft'] || Input.keys['a']) kx -= 1;
-  if (Input.keys['arrowright'] || Input.keys['d']) kx += 1;
-  if (kx !== 0 && !h.leap) { h.x = clamp(h.x + kx * 250 * dt, 16, VW - 16); h.face = kx; }
-
-  if (h.leap) {
-    h.leap.t += dt;
-    var k = clamp(h.leap.t / h.leap.dur, 0, 1);
-    h.x = lerp(h.leap.x0, h.leap.x1, k);
-    h.y = WALL_TOP - Math.sin(k * Math.PI) * Math.min(30, Math.abs(h.leap.x1 - h.leap.x0) * 0.28);
-    if (k >= 1) { h.leap = null; h.y = WALL_TOP; if (h.pending) { doAttack(h.pending); h.pending = null; } }
-  }
-  if (h.atk > 0) h.atk -= dt;
-  if (h.comboT > 0) { h.comboT -= dt; if (h.comboT <= 0) h.combo = 0; }
-
-  /* --- wave spawns --- */
-  G.waveT += dt;
-  var w = G.wave;
-  while (w.i < w.ev.length && w.ev[w.i].t <= G.waveT) {
-    var ev = w.ev[w.i++];
-    spawn(ev.kind, ev.seg);
-  }
-
-  /* --- ladders --- */
-  for (var li = G.ladders.length - 1; li >= 0; li--) if (G.ladders[li].hp <= 0) G.ladders.splice(li, 1);
-
-  /* --- enemies --- */
-  G.ramMash = 0;
-  for (var i = G.enemies.length - 1; i >= 0; i--) {
-    var e = G.enemies[i];
-    if (e.dead) { G.enemies.splice(i, 1); continue; }
-    if (e.hurt > 0) e.hurt -= dt;
-    var d = EDEF[e.k];
-
-    if (e.k === 'ram') {
-      if (e.y > GROUND_Y - 6) { e.y -= d.gs * dt; e.x += (e.tx - e.x) * Math.min(1, dt * 1.6); }
-      else {
-        e.y = GROUND_Y - 6;
-        G.ramMash = 1;
-        G.gate.hp -= d.dps * dt * (1 + (G.night - 1) * 0.05);
-        e.wob += dt * 6;
-        if (Math.random() < dt * 2.2) { addPart(195, GY0 + 6, 4, '#c9a06a', 70); shake(2.2); Audio2.gate(); }
-        if (G.gate.hp <= 0) { G.gate.hp = 0; loseGame(); return; }
-      }
-      continue;
+    create() {
+      liveScene = this;
+      this.pausedByKit = false;
+      this.saveData = kit.save.get(defaultSave());
+      if (!validSave(this.saveData)) this.saveData = defaultSave();
+      this.saveData.schema = 2;
+      if (!Array.isArray(this.saveData.fortLevels)) this.saveData.fortLevels = [0, 0, 0, 0];
+      if (typeof this.saveData.tutorialSeen !== 'boolean') this.saveData.tutorialSeen = false;
+      this.state = {
+        mode: 'menu', gameMode: 'run', night: 1, wallHP: [100, 100, 100], gateHP: 260,
+        valor: 0, threat: 'idle', rampart: 0, trialIndex: -1, trialGoal: 0, clock: 0, banner: null, bannerQueue: [], gateMax: 260,
+        nightMedal: 0, breaches: 0, nightBreaches: 0, valorSpent: 0, nightValorSpent: 0, nightValor: 0, ramActive: false,
+        oil: 100, oilMax: 130, oilPours: 0, supplies: 0, selectedChip: -1, pendingVault: false,
+        fortificationLevel: 0, rampartNotice: '', tutorial: null, wavePreview: null, gamepadConnected: false
+      };
+      probe.state = this.state;
+      this.makeTextures();
+      this.makeSpriteSheets();
+      this.makePools();
+      this.makeDisplayList();
+      this.bindInput();
+      this.resetSimulation();
+      this.refreshProbe();
+      kit.loader.progress(1);
+      kit.loader.hide();
+      kit.registerPWA();
+      if (bootState.pendingNight) this.forceNight(bootState.pendingNight);
+      if (bootState.pendingThreat) this.forceThreat(bootState.pendingThreat);
     }
 
-    if (e.k === 'tower') {
-      if (!e.arrived) {
-        e.y -= d.gs * dt;
-        e.x += (e.tx - e.x) * Math.min(1, dt * 1.2);
-        if (e.y <= GROUND_Y + 4) { e.arrived = true; e.y = GROUND_Y + 4; shake(6); }
+    makeTextures() {
+      const shell = document.createElement('canvas');
+      shell.width = W; shell.height = H;
+      const s = shell.getContext('2d');
+      s.fillStyle = '#07111b'; s.fillRect(0, 0, W, H);
+      s.fillStyle = '#091622'; s.fillRect(0, 0, W, HEADER);
+      s.fillStyle = '#0a1522'; s.fillRect(0, RAIL, W, H - RAIL);
+      s.fillStyle = 'rgba(255,255,255,.10)'; s.fillRect(0, HEADER - 1, W, 1); s.fillRect(0, RAIL, W, 1);
+      s.fillStyle = 'rgba(67,199,244,.28)'; s.fillRect(16, 64, W - 32, 2);
+      s.fillStyle = 'rgba(255,255,255,.05)'; s.fillRect(12, RAIL + 9, W - 24, 1);
+      this.textures.addCanvas('sb-shell', shell);
+      this.battleCanvas = document.createElement('canvas');
+      this.battleCanvas.width = W; this.battleCanvas.height = H - HEADER;
+      this.textures.addCanvas('sb-battle', this.battleCanvas);
+      this.refreshBattleTexture(0);
+    }
+
+    refreshBattleTexture(rampartIndex) {
+      const c = this.battleCanvas.getContext('2d');
+      const oy = HEADER;
+      const r = seeded(8191 + rampartIndex * 31);
+      c.clearRect(0, 0, W, H - HEADER);
+      const sky = c.createLinearGradient(0, 0, 0, GROUND_Y - oy);
+      sky.addColorStop(0, '#081321'); sky.addColorStop(0.56, '#162b3a'); sky.addColorStop(1, '#302332');
+      c.fillStyle = sky; c.fillRect(0, 0, W, H - HEADER);
+      for (let i = 0; i < 34; i++) {
+        c.fillStyle = 'rgba(210,235,238,' + (0.15 + r() * 0.35).toFixed(2) + ')';
+        c.fillRect(r() * W, 18 + r() * 150, 1 + r() * 1.4, 1 + r() * 1.4);
+      }
+      c.fillStyle = '#213544';
+      c.beginPath(); c.moveTo(0, 225); c.lineTo(58, 176); c.lineTo(104, 219); c.lineTo(153, 164); c.lineTo(219, 224); c.lineTo(270, 180); c.lineTo(338, 226); c.lineTo(W, 169); c.lineTo(W, 290); c.lineTo(0, 290); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(7,17,27,.48)'; c.fillRect(0, 276, W, 230 - 0);
+      c.fillStyle = '#263240'; c.fillRect(0, GROUND_Y - oy, W, H - GROUND_Y);
+      c.strokeStyle = 'rgba(214,198,162,.06)'; c.lineWidth = 1;
+      for (let y = GROUND_Y + 14; y < H; y += 22) { c.beginPath(); c.moveTo(0, y - oy); c.lineTo(W, y - oy); c.stroke(); }
+      c.fillStyle = '#384a59'; c.fillRect(0, WALL_Y - oy, W, WALL_BOTTOM - WALL_Y);
+      c.fillStyle = '#6b7d88'; c.fillRect(0, WALL_Y - oy, W, 8);
+      c.fillStyle = '#8798a1';
+      for (let x = 8; x < W; x += 30) c.fillRect(x, WALL_Y - oy + 7, 19, 12);
+      c.strokeStyle = 'rgba(5,12,18,.34)'; c.lineWidth = 1;
+      for (let y = WALL_Y + 22; y < WALL_BOTTOM; y += 18) {
+        c.beginPath(); c.moveTo(0, y - oy); c.lineTo(W, y - oy); c.stroke();
+        for (let x = ((y / 18) % 2) * 21; x < W; x += 42) { c.beginPath(); c.moveTo(x, y - oy); c.lineTo(x, y - 18 - oy); c.stroke(); }
+      }
+      c.fillStyle = '#2c211b'; c.fillRect(GATE_X - 7, 364 - oy, GATE_W + 14, 78);
+      c.fillStyle = '#8d653d'; roundRectCanvas(c, GATE_X, 350 - oy, GATE_W, 92, 22); c.fill();
+      c.strokeStyle = '#3d2a1e'; c.lineWidth = 3;
+      for (let x = GATE_X + 12; x < GATE_X + GATE_W; x += 14) { c.beginPath(); c.moveTo(x, 365 - oy); c.lineTo(x, 438 - oy); c.stroke(); }
+      c.fillStyle = 'rgba(255,169,77,.12)'; c.fillRect(GATE_X, 350 - oy, GATE_W, 12);
+      this.drawLandmark(c, rampartIndex, oy);
+      this.textures.get('sb-battle').refresh();
+    }
+
+    drawLandmark(c, index, oy) {
+      c.save();
+      if (index === 0) {
+        c.fillStyle = '#314b59'; c.fillRect(28, 168 - oy, 34, 152 - 0); c.fillRect(18, 170 - oy, 54, 10);
+        c.fillStyle = '#d6ba72'; c.fillRect(44, 145 - oy, 3, 24); c.fillStyle = '#d55458';
+        c.beginPath(); c.moveTo(47, 148 - oy); c.lineTo(72, 156 - oy); c.lineTo(47, 164 - oy); c.closePath(); c.fill();
+      } else if (index === 1) {
+        for (const x of [56, 334]) { c.fillStyle = '#40505d'; c.fillRect(x - 16, 225 - oy, 32, 95); c.fillStyle = '#70828a'; c.fillRect(x - 23, 218 - oy, 46, 11); c.fillStyle = '#bf8a49'; c.beginPath(); c.moveTo(x - 18, 218 - oy); c.lineTo(x, 198 - oy); c.lineTo(x + 18, 218 - oy); c.closePath(); c.fill(); }
+        c.strokeStyle = '#a86944'; c.lineWidth = 5; c.beginPath(); c.moveTo(290, 274 - oy); c.lineTo(355, 246 - oy); c.stroke();
+        c.strokeStyle = '#d4ba7f'; c.lineWidth = 2; c.beginPath(); c.moveTo(292, 272 - oy); c.lineTo(356, 251 - oy); c.stroke();
+      } else if (index === 2) {
+        c.fillStyle = '#3b4652'; c.fillRect(10, 260 - oy, 46, 60); c.fillRect(334, 244 - oy, 46, 76);
+        c.strokeStyle = '#c38b55'; c.lineWidth = 3; c.beginPath(); c.moveTo(70, 244 - oy); c.lineTo(116, 314 - oy); c.moveTo(92, 242 - oy); c.lineTo(50, 312 - oy); c.stroke();
+        c.strokeStyle = '#e0a34a'; c.lineWidth = 2; c.beginPath(); c.moveTo(12, 278 - oy); c.lineTo(40, 254 - oy); c.moveTo(348, 267 - oy); c.lineTo(375, 248 - oy); c.stroke();
       } else {
-        e.unload -= dt;
-        if (e.unload <= 0) {
-          e.unload = 3.0;
-          var el = spawn(G.night >= 7 ? 'elite' : 'grunt', segAt(e.x));
-          el.st = 'top'; el.y = WALL_TOP; el.x = clamp(e.x + rand(-14, 14), 14, VW - 14);
-          addPart(el.x, WALL_TOP, 8, '#cfd6e6', 70);
-        }
+        c.fillStyle = '#455e75'; c.fillRect(328, 146 - oy, 38, 174 - 0); c.fillStyle = '#b9d7e0'; c.fillRect(333, 164 - oy, 28, 50);
+        c.strokeStyle = '#43c7f4'; c.lineWidth = 2; c.strokeRect(333, 164 - oy, 28, 50);
+        c.fillStyle = '#e0a34a'; c.beginPath(); c.arc(347, 155 - oy, 7, 0, Math.PI * 2); c.fill();
       }
-      continue;
+      c.restore();
     }
 
-    if (e.st === 'ground') {
-      // walk up to the wall base then to a ladder / plant one
-      if (e.y > GROUND_Y) {
-        e.y -= d.gs * dt;
-        e.x += (e.tx - e.x) * Math.min(1, dt * 1.3);
+    makeSpriteSheets() {
+      const make = (key, draw) => {
+        const can = document.createElement('canvas'); can.width = 48 * 8; can.height = 64;
+        const c = can.getContext('2d'); for (let i = 0; i < 8; i++) draw(c, i * 48, i);
+        this.textures.addSpriteSheet(key, can, { frameWidth: 48, frameHeight: 64 });
+      };
+      make('sb-defender', drawDefenderFrame);
+      make('sb-attacker', drawAttackerFrame);
+    }
+
+    makePools() {
+      this.enemies = [];
+      this.ladders = [];
+      this.particlePools = { spark: [], debris: [], oil: [], command: [] };
+      this.projectiles = [];
+      this.floats = [];
+      for (let i = 0; i < MAX_ENEMIES; i++) this.enemies.push({ active: false, renderState: 0 });
+      for (let i = 0; i < MAX_LADDERS; i++) this.ladders.push({ active: false });
+      for (const kind of PARTICLE_KINDS) for (let i = 0; i < PARTICLES_PER_KIND; i++) this.particlePools[kind].push({ active: false, kind: kind });
+      for (let i = 0; i < MAX_PROJECTILES; i++) this.projectiles.push({ active: false });
+      for (let i = 0; i < MAX_FLOATS; i++) this.floats.push({ active: false });
+      this.squads = [
+        { type: 'SPEAR', seg: 0, target: 0, route: 0, cd: 0, rallyCd: 0, units: 3 },
+        { type: 'ARCHER', seg: 1, target: 1, route: 0, cd: 0, rallyCd: 0, units: 3 },
+        { type: 'OIL', seg: 2, target: 2, route: 0, cd: 0, rallyCd: 0, units: 3 }
+      ];
+      this.hero = { x: 195, y: WALL_Y, face: 1, action: 'idle', actionT: 0, targetX: 195, fromX: 195, attack: 'over', combo: 0, comboT: 0, renderState: 0 };
+    }
+
+    makeDisplayList() {
+      this.add.image(0, 0, 'sb-shell').setOrigin(0).setDepth(1);
+      this.battleLayer = this.add.container(0, 0).setDepth(3);
+      this.battleLayer.add(this.add.image(0, HEADER, 'sb-battle').setOrigin(0));
+      this.worldG = this.add.graphics(); this.battleLayer.add(this.worldG);
+      this.enemySprites = [];
+      for (let i = 0; i < MAX_ENEMIES; i++) {
+        const sprite = this.add.sprite(-40, -40, 'sb-attacker', 0).setOrigin(0.5, 1).setVisible(false);
+        this.enemySprites.push(sprite); this.battleLayer.add(sprite);
+      }
+      this.heroSprite = this.add.sprite(195, WALL_Y, 'sb-defender', 0).setOrigin(0.5, 1);
+      this.battleLayer.add(this.heroSprite);
+      this.fxG = this.add.graphics(); this.battleLayer.add(this.fxG);
+      this.uiG = this.add.graphics().setDepth(10);
+      this.texts = {};
+      const normal = { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: CSS.white, stroke: '#07111b', strokeThickness: 3 };
+      const small = { fontFamily: 'Arial, sans-serif', fontSize: '10px', color: CSS.muted, stroke: '#07111b', strokeThickness: 2 };
+      const title = { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: CSS.white, stroke: '#07111b', strokeThickness: 3 };
+      this.texts.logo = this.add.text(15, 13, 'SIEGEBREAK', title).setDepth(11);
+      this.texts.night = this.add.text(15, 39, '', normal).setDepth(11);
+      this.texts.rampart = this.add.text(98, 39, '', small).setDepth(11);
+      this.texts.threat = this.add.text(374, 14, '', small).setOrigin(1, 0).setDepth(11);
+      this.texts.valor = this.add.text(374, 39, '', title).setOrigin(1, 0).setDepth(11);
+      this.texts.gear = this.add.text(371, 61, '⚙', small).setOrigin(0.5).setDepth(11);
+      this.texts.hint = this.add.text(195, 548, '', small).setOrigin(0.5).setDepth(11);
+      this.texts.objective = this.add.text(195, 104, '', small).setOrigin(0.5).setDepth(11);
+      this.texts.tutorial = this.add.text(195, 88, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: CSS.white, align: 'center', stroke: '#07111b', strokeThickness: 3, wordWrap: { width: 342 } }).setOrigin(0.5).setDepth(13);
+      this.texts.banner = this.add.text(195, 230, '', { fontFamily: 'Arial, sans-serif', fontSize: '22px', fontStyle: 'bold', color: CSS.gold, align: 'center', stroke: '#07111b', strokeThickness: 5 }).setOrigin(0.5).setDepth(13);
+      this.texts.bannerSub = this.add.text(195, 260, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: CSS.white, align: 'center', stroke: '#07111b', strokeThickness: 3 }).setOrigin(0.5).setDepth(13);
+      this.texts.banner.setVisible(false); this.texts.bannerSub.setVisible(false);
+      this.buttonTextPool = [];
+      for (let i = 0; i < 40; i++) this.buttonTextPool.push(this.add.text(0, 0, '', small).setOrigin(0.5).setDepth(12).setVisible(false));
+      this.makeOverlayText('menuTitle', 195, 170, 'SIEGEBREAK', 32, CSS.white);
+      this.makeOverlayText('menuSub', 195, 208, 'TEN NIGHTS. ONE RAMPART. BREAK THE SIEGE.', 10, CSS.muted);
+      this.makeOverlayText('menuLore', 195, 264, 'CHAIN wall-leaps into overheads, kicks, and sweeps.', 12, CSS.bone);
+      this.makeOverlayText('menuInfo', 195, 294, 'RALLY squads. MASH the gate. FIND the vault.', 12, CSS.bone);
+      this.makeOverlayText('trialTitle', 195, 98, 'NIGHT TRIALS', 24, CSS.white);
+      this.makeOverlayText('trialSub', 195, 126, 'Earn medals to unlock the next challenge.', 11, CSS.muted);
+      this.makeOverlayText('shopTitle', 195, 106, '', 25, CSS.gold);
+      this.makeOverlayText('shopSub', 195, 137, '', 11, CSS.muted);
+      this.makeOverlayText('shopResult', 195, 178, '', 13, CSS.bone);
+      this.makeOverlayText('endTitle', 195, 180, '', 25, CSS.white);
+      this.makeOverlayText('endSub', 195, 218, '', 12, CSS.muted);
+      this.makeOverlayText('endStats', 195, 283, '', 13, CSS.bone);
+      this.makeOverlayText('endHint', 195, 515, '', 12, CSS.gold);
+      this.overlayKeys = ['menuTitle', 'menuSub', 'menuLore', 'menuInfo', 'trialTitle', 'trialSub', 'shopTitle', 'shopSub', 'shopResult', 'endTitle', 'endSub', 'endStats', 'endHint'];
+      this.shopButtons = []; this.menuButtons = []; this.trialButtons = [];
+      this.menuButtons.push({ x: 48, y: 350, w: 294, h: 58, action: 'run' }, { x: 48, y: 420, w: 294, h: 58, action: 'trials' });
+      for (let i = 0; i < 5; i++) this.trialButtons.push({ x: 24, y: 156 + i * 58, w: 342, h: 48, index: i });
+      for (let i = 0; i < 4; i++) this.shopButtons.push({ x: 24, y: 218 + i * 55, w: 342, h: 44, index: i });
+      this.fortButton = { x: 24, y: 456, w: 342, h: 38, index: 100 };
+      this.shopButtons.push({ x: 24, y: 502, w: 342, h: 52, index: 99 });
+      this.endButton = { x: 66, y: 450, w: 258, h: 56 };
+      this.railRects = [{ x: 10, y: 590, w: 86, h: 68 }, { x: 101, y: 590, w: 86, h: 68 }, { x: 192, y: 590, w: 86, h: 68 }, { x: 286, y: 590, w: 94, h: 68 }];
+      this.prevKeys = Object.create(null);
+      this.globalKeys = Object.create(null);
+      this.pointerStarts = Object.create(null);
+      this.gamepadPrev = [];
+    }
+
+    makeOverlayText(key, x, y, text, size, color) {
+      this.texts[key] = this.add.text(x, y, text, { fontFamily: 'Arial, sans-serif', fontSize: size + 'px', fontStyle: size >= 22 ? 'bold' : 'normal', color: color, align: 'center', stroke: '#07111b', strokeThickness: 4 }).setOrigin(0.5).setDepth(12);
+    }
+
+    bindInput() {
+      this.input.on('pointerdown', (pointer) => {
+        if (kit.paused) return;
+        const id = pointer.event && pointer.event.pointerId != null ? pointer.event.pointerId : pointer.id;
+        const clientX = pointer.event && pointer.event.clientX != null ? pointer.event.clientX : pointer.x;
+        const clientY = pointer.event && pointer.event.clientY != null ? pointer.event.clientY : pointer.y;
+        if (!kit.input.pointers.has(id)) kit.input.pointers.set(id, { x: clientX, y: clientY, startX: clientX, startY: clientY, downAt: performance.now(), zone: 'claimed' });
+        this.pointerStarts[id] = { x: pointer.x, y: pointer.y };
+        if (this.handlePress(pointer.x, pointer.y)) this.pointerStarts[id].claimed = true;
+      });
+      this.input.on('pointerup', (pointer) => {
+        const id = pointer.event && pointer.event.pointerId != null ? pointer.event.pointerId : pointer.id;
+        const start = this.pointerStarts[id]; delete this.pointerStarts[id];
+        if (!start || start.claimed || kit.paused) return;
+        const dx = pointer.x - start.x, dy = pointer.y - start.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dir = distance > 24 ? (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up')) : 'tap';
+        this.handleRelease(start.x, start.y, dir);
+      });
+      this.input.on('pointermove', (pointer) => {
+        const id = pointer.event && pointer.event.pointerId != null ? pointer.event.pointerId : pointer.id;
+        const p = kit.input.pointers.get(id); if (p) { p.x = pointer.event && pointer.event.clientX != null ? pointer.event.clientX : pointer.x; p.y = pointer.event && pointer.event.clientY != null ? pointer.event.clientY : pointer.y; }
+      });
+    }
+
+    handlePress(x, y) {
+      if (x > 344 && y < 72) { this.openSettings(); return true; }
+      if (this.state.mode === 'menu') {
+        if (rectHit(x, y, this.menuButtons[0])) { this.startRun(1); return true; }
+        if (rectHit(x, y, this.menuButtons[1])) { this.state.mode = 'trialSelect'; return true; }
+        return false;
+      }
+      if (this.state.mode === 'trialSelect') {
+        for (const b of this.trialButtons) if (rectHit(x, y, b)) { this.startTrial(b.index); return true; }
+        if (y < 70) { this.state.mode = 'menu'; return true; }
+        return false;
+      }
+      if (this.state.mode === 'intermission') {
+        for (const b of this.shopButtons) if (rectHit(x, y, b)) { this.shopTap(b.index); return true; }
+        if (rectHit(x, y, this.fortButton)) { this.fortifyRampart(); return true; }
+        return false;
+      }
+      if (this.state.mode === 'victory' || this.state.mode === 'defeat' || this.state.mode === 'trialComplete') {
+        if (rectHit(x, y, this.endButton)) { this.state.mode = 'menu'; return true; }
+        return false;
+      }
+      if (y >= 574) {
+        for (let i = 0; i < 3; i++) if (rectHit(x, y, this.railRects[i])) { this.state.selectedChip = this.state.selectedChip === i ? -1 : i; this.audio('steel'); return true; }
+        if (rectHit(x, y, this.railRects[3])) { if (this.state.bannerCharge >= 100) this.bannerBurst(); return true; }
+        return true;
+      }
+      if ((this.state.mode === 'play' || this.state.mode === 'vault') && this.state.ramActive && x > GATE_X - 22 && x < GATE_X + GATE_W + 22 && y > 340 && y < 446) { this.pourGate(); return true; }
+      return false;
+    }
+
+    openSettings() {
+      kit.openSettings([function (box, row) { row('Reduced motion', function () { return !kit.juice.enabled; }, function (v) { kit.juice.enabled = !v; }); }]);
+    }
+
+    handleRelease(x, y, dir) {
+      if (this.state.mode !== 'play' && this.state.mode !== 'vault') return;
+      if (y < HEADER || y > RAIL) return;
+      if (this.state.selectedChip >= 0) { this.orderSquad(this.state.selectedChip, clamp(Math.floor(x / 130), 0, 2)); this.state.selectedChip = -1; return; }
+      if (this.state.ramActive && x > GATE_X - 22 && x < GATE_X + GATE_W + 22 && y > 340 && y < 446) return;
+      this.commandHero(clamp(x, 18, W - 18), dir === 'down' ? 'kick' : (dir === 'left' || dir === 'right' ? 'sweep' : 'over'));
+    }
+
+    startRun(night) {
+      this.state.mode = 'play'; this.state.gameMode = 'run'; this.state.trialIndex = -1; this.state.pendingVault = false;
+      this.state.valor = 0; this.state.wallHP[0] = 100; this.state.wallHP[1] = 100; this.state.wallHP[2] = 100; this.state.gateMax = 260; this.state.gateHP = 260;
+      this.state.night = clamp(night || 1, 1, 10); this.state.breaches = 0; this.state.nightBreaches = 0; this.state.valorSpent = 0; this.state.nightValorSpent = 0; this.state.bannerCharge = 18; this.state.oil = 100; this.state.supplies = 0;
+      this.saveData = kit.save.get(defaultSave());
+      if (!validSave(this.saveData)) this.saveData = defaultSave();
+      if (!Array.isArray(this.saveData.fortLevels)) this.saveData.fortLevels = [0, 0, 0, 0];
+      if (typeof this.saveData.tutorialSeen !== 'boolean') this.saveData.tutorialSeen = false;
+      this.saveData.schema = 2; kit.save.set(this.saveData);
+      this.resetUpgradeState();
+      for (let i = 0; i < 4; i++) for (let level = 0; level < (this.saveData.fortLevels[i] || (this.saveData.unlocked[i] ? 1 : 0)); level++) this.applyRampartUpgrade(i);
+      for (const sq of this.squads) { sq.seg = sq.target = this.squads.indexOf(sq); sq.route = 0; sq.units = 3; sq.cd = 0; sq.rallyCd = 0; }
+      this.state.tutorial = this.saveData.tutorialSeen ? null : { step: 0, age: 0 };
+      kit.audio.music('music', 600);
+      this.startNight(this.state.night);
+      const rampartNotice = this.state.rampartNotice ? RAMPARTS[this.state.rampart].name + ' · ' + this.state.rampartNotice : RAMPARTS[this.state.rampart].name;
+      this.state.rampartNotice = '';
+      this.showBanner('NIGHT ' + this.state.night, rampartNotice, 'night');
+    }
+
+    startTrial(index) {
+      const trial = TRIALS[index];
+      if (!trial || !this.trialUnlocked(index)) return;
+      this.state.mode = 'play'; this.state.gameMode = 'trial'; this.state.trialIndex = index; this.state.pendingVault = false; this.state.tutorial = null;
+      this.state.valor = 80; this.state.wallHP[0] = 100; this.state.wallHP[1] = 100; this.state.wallHP[2] = 100; this.state.gateMax = 260; this.state.gateHP = 260;
+      this.state.night = trial.night; this.state.breaches = 0; this.state.nightBreaches = 0; this.state.valorSpent = 0; this.state.nightValorSpent = 0; this.state.bannerCharge = 30; this.state.oil = 100; this.state.supplies = 0;
+      if (!Array.isArray(this.saveData.fortLevels)) this.saveData.fortLevels = [0, 0, 0, 0];
+      this.resetUpgradeState();
+      for (let i = 0; i < 4; i++) for (let level = 0; level < (this.saveData.fortLevels[i] || (this.saveData.unlocked[i] ? 1 : 0)); level++) this.applyRampartUpgrade(i);
+      for (let i = 0; i < this.squads.length; i++) { this.squads[i].seg = this.squads[i].target = i; this.squads[i].route = 0; this.squads[i].units = 3; this.squads[i].cd = 0; this.squads[i].rallyCd = 0; }
+      this.startNight(trial.night);
+      this.state.trialGoal = 0; this.state.rampartNotice = ''; this.showBanner('TRIAL ' + (index + 1), trial.title, 'trial');
+    }
+
+    trialUnlocked(index) { return index === 0 || !!this.saveData.trials[index - 1] || this.saveData.medals[TRIALS[index - 1].night - 1] >= 2; }
+
+    previewLabel(event) {
+      return event.k === 'ram' ? 'RAM' : event.k === 'tower' ? 'TOWER' : event.k === 'elite' ? 'ELITE' : event.k === 'grapple' ? 'ROPE' : 'LADDER';
+    }
+
+    advanceTutorial(action) {
+      const tutorial = this.state.tutorial;
+      if (!tutorial) return;
+      const expected = ['over', 'kick', 'rallySquad', 'pour', 'rally'][tutorial.step];
+      if (action !== expected) return;
+      tutorial.step++;
+      tutorial.age = 0;
+      if (tutorial.step >= 5) {
+        this.saveData.tutorialSeen = true;
+        kit.save.set(this.saveData);
+        this.state.tutorial = null;
+        this.showBanner('TUTORIAL COMPLETE', '', 'supply');
+      }
+    }
+
+    startNight(night) {
+      this.state.night = clamp(night, 1, 10);
+      this.state.rampart = this.state.night >= 10 ? 3 : this.state.night >= 6 ? 2 : this.state.night >= 3 ? 1 : 0;
+      this.refreshBattleTexture(this.state.rampart);
+      const upgrade = this.state.rampart;
+      this.state.rampartNotice = '';
+      if (!this.saveData.unlocked[upgrade]) { this.saveData.unlocked[upgrade] = true; this.saveData.fortLevels[upgrade] = Math.max(1, this.saveData.fortLevels[upgrade] || 0); this.applyRampartUpgrade(upgrade); this.state.rampartNotice = RAMPARTS[upgrade].upgrade; kit.save.set(this.saveData); }
+      if (!this.saveData.fortLevels[upgrade]) this.saveData.fortLevels[upgrade] = 1;
+      this.state.fortificationLevel = this.saveData.fortLevels[upgrade];
+      this.waveEvents = this.state.gameMode === 'vault' ? VAULT_WAVE : WAVE_TABLE[this.state.night - 1];
+      this.waveIndex = 0; this.waveClock = 0; this.wavePreview = null; this.waveDuration = (this.waveEvents[this.waveEvents.length - 1] ? this.waveEvents[this.waveEvents.length - 1].t : 20) + 5;
+      this.state.threat = 'WATCH THE APPROACHES'; this.state.ramActive = false; this.state.oil = Math.max(this.state.oil, 68); this.state.oilPours = 0; this.state.nightValor = 0; this.state.nightBreaches = 0; this.state.breaches = 0; this.state.nightValorSpent = 0; this.state.valorSpent = 0;
+      this.clearPools(); this.resetHero();
+      this.refreshProbe(); kit.loader.progress(1);
+    }
+
+    forceNight(night) { this.startRun(night); }
+
+    forceThreat(kind) {
+      if (this.state.mode === 'menu' || this.state.mode === 'trialSelect') this.startRun(this.state.night || 1);
+      const k = String(kind || 'grunt').toLowerCase();
+      const safe = ENEMY[k] ? k : 'grunt';
+      this.spawnEnemy(safe, 1); this.state.threat = safe.toUpperCase() + ' INBOUND'; this.refreshProbe();
+    }
+
+    resetUpgradeState() { this.gateMax = 260; this.archerPower = 1; this.kickPower = 1; this.heroPower = 1; this.wallRepair = 45; if (this.state) this.state.oilMax = 130; }
+
+    applyRampartUpgrade(index) {
+      if (index === 0) { this.gateMax = 340; this.state.gateMax = 340; this.state.gateHP = Math.min(this.gateMax, this.state.gateHP + 80); this.state.oilMax = 150; this.state.oil = Math.min(this.state.oilMax, 120); }
+      if (index === 1) this.archerPower = (this.archerPower || 1) + 0.35;
+      if (index === 2) this.wallRepair = (this.wallRepair || 45) + 20;
+      if (index === 3) this.kickPower = (this.kickPower || 1) + 0.25;
+    }
+
+    clearPools() {
+      for (const e of this.enemies) e.active = false;
+      for (const l of this.ladders) l.active = false;
+      for (const kind of PARTICLE_KINDS) for (const p of this.particlePools[kind]) p.active = false;
+      for (const p of this.projectiles) p.active = false;
+      for (const f of this.floats) f.active = false;
+      this.state.ramActive = false;
+    }
+
+    resetSimulation() {
+      this.state.bannerCharge = 0; this.resetUpgradeState();
+      this.resetHero(); this.clearPools();
+    }
+
+    resetHero() { this.hero.x = 195; this.hero.y = WALL_Y; this.hero.face = 1; this.hero.action = 'idle'; this.hero.actionT = 0; this.hero.targetX = 195; this.hero.fromX = 195; this.hero.combo = 0; this.hero.comboT = 0; }
+
+    spawnEnemy(kind, seg) {
+      let e = null; for (const candidate of this.enemies) if (!candidate.active) { e = candidate; break; }
+      if (!e) return null;
+      const d = ENEMY[kind]; const scale = 1 + (this.state.night - 1) * 0.1 + (this.state.gameMode === 'vault' ? 0.35 : 0);
+      e.active = true; e.kind = kind; e.seg = clamp(seg | 0, 0, 2); e.x = clamp(SEG_CENTERS[e.seg] + (e.seg - 1) * 9, 20, 370); e.y = GROUND_Y + (kind === 'ram' || kind === 'tower' ? 70 : 26); e.hp = d.hp * scale; e.max = e.hp; e.state = 'ground'; e.shield = kind === 'elite'; e.ladder = -1; e.build = 0; e.attackT = 0.8; e.tele = 0; e.hurt = 0; e.wob = 0; e.tx = e.x; e.arrived = false; e.unloadT = 3.2; e.renderState = 0;
+      if (kind === 'ram') { e.x = 195; e.tx = 195; }
+      if (kind === 'tower') e.tx = SEG_CENTERS[e.seg];
+      this.state.threat = kind === 'ram' ? 'RAM AT THE GATE' : kind === 'tower' ? 'SIEGE TOWER' : kind === 'elite' ? 'SHIELDED ELITE' : kind === 'grapple' ? 'GRAPPLE ROPE' : 'LADDER RUSH';
+      this.audio(kind === 'ram' ? 'ram' : kind === 'tower' ? 'tower' : kind === 'grapple' ? 'rope' : 'ladder');
+      return e;
+    }
+
+    spawnLadder(x, seg, rope) {
+      for (const l of this.ladders) if (!l.active) { l.active = true; l.x = x; l.seg = seg; l.rope = !!rope; l.hp = rope ? 1 : 3; return this.ladders.indexOf(l); }
+      return -1;
+    }
+
+    damageEnemy(e, amount, source) {
+      if (!e.active) return;
+      let damage = amount;
+      if (e.shield && source !== 'kick' && source !== 'banner') damage *= 0.18;
+      e.hp -= damage; e.hurt = 0.13; e.renderState = 5;
+      this.burst(e.x, e.y - 24, source === 'kick' ? COLORS.amber : COLORS.white, source === 'banner' ? 8 : 4, 'spark');
+      if (e.hp <= 0) this.killEnemy(e);
+    }
+
+    killEnemy(e) {
+      if (!e.active) return;
+      const reward = ENEMY[e.kind].reward;
+      this.state.valor += reward; this.state.nightValor += reward;
+      this.state.bannerCharge = clamp(this.state.bannerCharge + (e.kind === 'ram' || e.kind === 'tower' ? 13 : 5), 0, 100);
+      this.burst(e.x, e.y - 18, e.kind === 'elite' ? COLORS.violet : COLORS.enemy, e.kind === 'tower' || e.kind === 'ram' ? 16 : 8, 'debris');
+      if (e.kind === 'ram' || e.kind === 'tower') this.shake(e.kind === 'tower' ? 6 : 8);
+      if (this.state.trialIndex >= 0) {
+        const trial = TRIALS[this.state.trialIndex];
+        if (trial.id === 'first-rung' && e.kind === 'grunt') this.state.trialGoal += 0;
+      }
+      e.active = false;
+    }
+
+    commandHero(x, attack) {
+      if (this.hero.action !== 'idle' && this.hero.action !== 'recover') return;
+      this.hero.fromX = this.hero.x; this.hero.targetX = x; this.hero.face = sign(x - this.hero.x) || this.hero.face; this.hero.attack = attack; this.hero.action = 'leap'; this.hero.actionT = 0; this.hero.actionDur = clamp(Math.abs(x - this.hero.x) / 620, 0.14, 0.36); this.audio('steel'); this.advanceTutorial(attack);
+      this.burst(x, WALL_Y - 2, COLORS.player, 4, 'command');
+    }
+
+    resolveHeroAttack() {
+      const h = this.hero; const type = h.attack; let hits = 0; let range = type === 'sweep' ? 74 : type === 'kick' ? 58 : 48;
+      const base = (type === 'over' ? 45 : type === 'sweep' ? 27 : 20) * (this.heroPower || 1);
+      for (const e of this.enemies) {
+        if (!e.active || e.kind === 'ram') continue;
+        const reachY = e.state === 'top' || (e.state === 'climb' && e.y < WALL_Y + (type === 'kick' ? 72 : 44));
+        if (!reachY || Math.abs(e.x - h.x) > range) continue;
+        if (type === 'over' && e.kind === 'grapple' && e.state === 'climb' && this.state.trialIndex >= 0 && TRIALS[this.state.trialIndex].id === 'rope-line') this.state.trialGoal++;
+        if (type === 'kick' && e.shield) { e.shield = false; this.state.trialGoal += this.state.trialIndex >= 0 && TRIALS[this.state.trialIndex].id === 'shield-law' ? 1 : 0; this.float(e.x, e.y - 54, 'SHIELD BROKEN', CSS.violet); this.burst(e.x, e.y - 28, COLORS.violet, 12, 'spark'); }
+        this.damageEnemy(e, base * (type === 'kick' ? this.kickPower : 1), type); hits++;
+        if (type === 'kick' && e.active && e.state === 'climb') { e.state = 'fall'; e.ladder = -1; e.vy = -80; }
+        if (type === 'sweep' && e.active) { e.x += sign(e.x - h.x) * 18; }
+      }
+      if (type === 'kick') {
+        for (const l of this.ladders) if (l.active && Math.abs(l.x - h.x) < range) {
+          const ladderIndex = this.ladders.indexOf(l);
+          const attached = this.enemies.some((e) => e.active && e.ladder === ladderIndex && e.state === 'climb');
+          l.active = false; hits++; this.state.trialGoal += attached && !l.rope && this.state.trialIndex >= 0 && TRIALS[this.state.trialIndex].id === 'first-rung' ? 1 : 0;
+          this.float(l.x, WALL_Y - 34, l.rope ? 'ROPE CUT' : 'LADDER DOWN', CSS.amber); this.burst(l.x, WALL_Y + 24, COLORS.amber, 10, 'debris');
+          for (const e of this.enemies) if (e.active && e.ladder === this.ladders.indexOf(l)) { e.state = 'fall'; e.ladder = -1; e.vy = -80; }
+        }
+      }
+      if (hits) { h.combo = clamp(h.combo + 1, 1, 9); h.comboT = 1.4; this.state.bannerCharge = clamp(this.state.bannerCharge + 4 + h.combo, 0, 100); this.shake(type === 'over' ? 3 : 2); kit.juice.hitStop(type === 'over' ? 54 : 42); this.audio(type === 'kick' ? 'kick' : type === 'sweep' ? 'sweep' : 'clash'); }
+    }
+
+    bannerBurst() {
+      if (this.state.bannerCharge < 100) return;
+      this.state.bannerCharge = 0; this.audio('rally'); this.shake(8); this.advanceTutorial('rally');
+      for (const e of this.enemies) if (e.active) { if (e.state === 'climb') { e.state = 'fall'; e.ladder = -1; e.vy = -100; } this.damageEnemy(e, e.kind === 'ram' || e.kind === 'tower' ? 70 : 50, 'banner'); }
+      for (const l of this.ladders) if (l.active && l.rope) l.active = false;
+      this.showBanner('RALLY BURST', 'All walls', 'rally'); this.burst(195, WALL_Y, COLORS.gold, 26, 'burst');
+    }
+
+    pourGate() {
+      if (this.state.oil < 12 || !this.state.ramActive) return;
+      this.state.oil -= 12; this.state.oilPours++; this.audio('oil'); this.burst(GATE_X + GATE_W * 0.5, 372, COLORS.oil, 10, 'oil'); this.shake(2);
+      for (const e of this.enemies) if (e.active && e.kind === 'ram') { this.damageEnemy(e, 32, 'oil'); }
+      this.state.bannerCharge = clamp(this.state.bannerCharge + 3, 0, 100);
+      this.advanceTutorial('pour');
+      if (this.state.trialIndex >= 0 && TRIALS[this.state.trialIndex].id === 'oil-rain') this.state.trialGoal++;
+    }
+
+    orderSquad(index, seg) {
+      const sq = this.squads[index]; if (!sq || sq.units <= 0 || sq.rallyCd > 0) { if (sq && sq.rallyCd > 0) this.float(SEG_CENTERS[seg], WALL_Y - 55, 'RALLY COOLDOWN', CSS.muted); return false; }
+      sq.target = seg; sq.route = 1; this.state.selectedChip = -1; this.float(SEG_CENTERS[seg], WALL_Y - 55, sq.type + ' RALLIED', CSS.player);
+      sq.rallyCd = RALLY_COOLDOWN; this.burst(SEG_CENTERS[seg], WALL_Y - 8, COLORS.player, 5, 'command'); this.audio('horn'); this.advanceTutorial('rallySquad'); return true;
+    }
+
+    step(dt) {
+      this.state.clock += dt;
+      if (this.state.banner) {
+        this.state.banner.life -= dt;
+        if (this.state.banner.life <= 0) this.state.banner = this.state.bannerQueue.shift() || null;
+      }
+      if (this.state.mode !== 'play' && this.state.mode !== 'vault') return;
+      if (this.state.tutorial) this.state.tutorial.age += dt;
+      this.waveClock += dt;
+      const nextEvent = this.waveEvents[this.waveIndex];
+      if (nextEvent && !this.wavePreview && nextEvent.t > this.waveClock && nextEvent.t - this.waveClock <= WAVE_PREVIEW_LEAD) {
+        this.wavePreview = { event: nextEvent, pulse: 0 };
+        this.state.threat = this.previewLabel(nextEvent) + ' IN ' + (nextEvent.t - this.waveClock).toFixed(1) + 's';
+        this.audio('danger');
+      }
+      while (this.waveIndex < this.waveEvents.length && this.waveEvents[this.waveIndex].t <= this.waveClock) { const ev = this.waveEvents[this.waveIndex++]; this.wavePreview = null; this.spawnEnemy(ev.k, ev.s); }
+      if (this.wavePreview) { this.wavePreview.pulse += dt; this.state.threat = this.previewLabel(this.wavePreview.event) + ' IN ' + Math.max(0, this.wavePreview.event.t - this.waveClock).toFixed(1) + 's'; }
+      this.stepHero(dt); this.stepEnemies(dt); this.stepLadders(); this.stepSquads(dt); this.stepProjectiles(dt); this.stepParticles(dt); this.stepFloats(dt);
+      if (this.waveClock > 5 && Math.floor(this.waveClock / 12) > this.state.supplies) this.supplyDrop();
+      this.checkClear(); this.refreshProbe();
+    }
+
+    stepHero(dt) {
+      const h = this.hero;
+      if (h.comboT > 0) { h.comboT -= dt; if (h.comboT <= 0) h.combo = 0; }
+      if (h.action === 'leap') { h.actionT += dt; const k = clamp(h.actionT / h.actionDur, 0, 1); h.x = lerp(h.fromX, h.targetX, k); h.y = WALL_Y - Math.sin(k * Math.PI) * Math.min(48, Math.abs(h.targetX - h.fromX) * 0.34 + 12); if (k >= 1) { h.action = 'windup'; h.actionT = 0.17; h.y = WALL_Y; } }
+      else if (h.action === 'windup') { h.actionT -= dt; if (h.actionT <= 0) { h.action = 'strike'; h.actionT = 0.16; this.resolveHeroAttack(); } }
+      else if (h.action === 'strike') { h.actionT -= dt; if (h.actionT <= 0) { h.action = 'recover'; h.actionT = 0.12; } }
+      else if (h.action === 'recover') { h.actionT -= dt; if (h.actionT <= 0) h.action = 'idle'; }
+      if ((kit.input.keyDown('ArrowLeft') || kit.input.keyDown('KeyA')) && h.action === 'idle') { h.x = clamp(h.x - 170 * dt, 18, W - 18); h.face = -1; }
+      if ((kit.input.keyDown('ArrowRight') || kit.input.keyDown('KeyD')) && h.action === 'idle') { h.x = clamp(h.x + 170 * dt, 18, W - 18); h.face = 1; }
+      for (const item of HERO_KEYS) if (kit.input.keyDown(item.code) && !this.prevKeys[item.code]) this.commandHero(h.x + h.face * (item.type === 'sweep' ? 34 : 0), item.type);
+      for (const item of HERO_KEYS) this.prevKeys[item.code] = kit.input.keyDown(item.code);
+      if (kit.input.keyDown('Digit1') && !this.prevKeys.Digit1) this.state.selectedChip = 0;
+      if (kit.input.keyDown('Digit2') && !this.prevKeys.Digit2) this.state.selectedChip = 1;
+      if (kit.input.keyDown('Digit3') && !this.prevKeys.Digit3) this.state.selectedChip = 2;
+      this.prevKeys.Digit1 = kit.input.keyDown('Digit1'); this.prevKeys.Digit2 = kit.input.keyDown('Digit2'); this.prevKeys.Digit3 = kit.input.keyDown('Digit3');
+      for (const route of ROUTE_KEYS) if (kit.input.keyDown(route.code) && !this.prevKeys[route.code] && this.state.selectedChip >= 0) this.orderSquad(this.state.selectedChip, route.seg);
+      for (const route of ROUTE_KEYS) this.prevKeys[route.code] = kit.input.keyDown(route.code);
+    }
+
+    stepEnemies(dt) {
+      this.state.ramActive = false;
+      for (const e of this.enemies) {
+        if (!e.active) continue;
+        const d = ENEMY[e.kind]; e.wob += dt * 4; if (e.hurt > 0) e.hurt -= dt;
+        if (e.kind === 'ram') {
+          if (e.y > GROUND_Y + 4) e.y -= d.speed * dt * 2.3;
+          else { e.y = GROUND_Y + 4; this.state.ramActive = true; e.attackT -= dt; if (e.attackT <= 0) { e.attackT = 0.86; this.state.gateHP -= d.dps * (1 + this.state.night * 0.06); this.burst(GATE_X + GATE_W * 0.5, 380, COLORS.enemy, 4, 'debris'); this.audio('drum'); } if (this.state.gateHP <= 0) { this.state.gateHP = 0; this.lose(); return; } }
+          continue;
+        }
+        if (e.kind === 'tower') {
+          if (!e.arrived) { e.y -= d.speed * dt * 1.9; e.x = lerp(e.x, e.tx, dt * 0.55); if (e.y <= GROUND_Y + 8) { e.y = GROUND_Y + 8; e.arrived = true; this.burst(e.x, e.y, COLORS.slate, 12, 'debris'); } }
+          else { e.unloadT -= dt; if (e.unloadT <= 0) { e.unloadT = 3.3; const child = this.spawnEnemy(this.state.night >= 7 || this.state.mode === 'vault' ? 'elite' : 'grunt', e.seg); if (child) { child.state = 'top'; child.x = e.x + 1; child.y = WALL_Y; } } }
+          continue;
+        }
+        if (e.state === 'ground') {
+          if (e.y > GROUND_Y) { e.y -= d.speed * dt * 1.6; e.x = lerp(e.x, e.tx, dt * 0.8); }
+          else { e.y = GROUND_Y; e.build += dt; if (e.kind === 'grapple' || e.build > 0.62) { e.ladder = this.spawnLadder(e.x, e.seg, e.kind === 'grapple'); e.state = e.ladder >= 0 ? 'climb' : 'ground'; e.build = 0; } }
+        } else if (e.state === 'climb') {
+          const l = e.ladder >= 0 ? this.ladders[e.ladder] : null;
+          if (!l || !l.active) { e.state = 'fall'; e.vy = -70; e.ladder = -1; }
+          else { e.x = l.x; e.y -= d.climb * dt; if (e.y <= WALL_Y) { e.y = WALL_Y; e.state = 'top'; e.ladder = -1; } }
+        } else if (e.state === 'fall') {
+          e.vy += 500 * dt; e.y += e.vy * dt; if (e.y >= GROUND_Y) { e.y = GROUND_Y; e.state = 'ground'; e.vy = 0; this.damageEnemy(e, 18, 'fall'); }
+        } else if (e.state === 'top') {
+          const seg = clamp(Math.floor(e.x / 130), 0, 2);
+          if (this.state.wallHP[seg] <= 0) { e.x += sign(SEG_CENTERS[seg === 1 ? 0 : 1] - e.x) * dt * 18; continue; }
+          e.attackT -= dt; if (e.attackT <= 0) { e.attackT = e.kind === 'elite' ? 1.05 : 0.82; e.tele = 0.42; }
+          if (e.tele > 0) { e.tele -= dt; if (e.tele <= 0) { this.state.wallHP[seg] = Math.max(0, this.state.wallHP[seg] - d.dps * (1 + this.state.night * 0.05)); this.state.nightBreaches += this.state.wallHP[seg] === 0 ? 1 : 0; this.state.breaches = this.state.nightBreaches; this.burst(e.x, WALL_Y + 8, COLORS.wallLight, 4, 'debris'); if (this.state.wallHP[seg] <= 0 && this.state.wallHP.filter(v => v > 0).length === 0) { this.lose(); return; } } }
+        }
+        e.renderState = e.hurt > 0 ? SPRITE_STATES.attacker.hurt : e.state === 'climb' ? SPRITE_STATES.attacker.leap : e.state === 'top' ? SPRITE_STATES.attacker.strike : SPRITE_STATES.attacker.idle;
+      }
+    }
+
+    stepLadders() { for (const l of this.ladders) if (l.active && l.hp <= 0) l.active = false; }
+
+    stepSquads(dt) {
+      for (let i = 0; i < this.squads.length; i++) {
+        const sq = this.squads[i]; sq.rallyCd = Math.max(0, sq.rallyCd - dt); if (sq.route > 0) { sq.route -= dt / 0.9; if (sq.route <= 0) { sq.route = 0; sq.seg = sq.target; } continue; }
+        if (sq.units <= 0) continue; sq.cd -= dt; if (sq.cd > 0) continue;
+        const target = this.pickSquadTarget(sq);
+        if (!target) { sq.cd = 0.4; continue; }
+        if (sq.type === 'SPEAR') { sq.cd = 0.52; this.damageEnemy(target, 11 + sq.units * 2, 'spear'); this.projectile(SEG_CENTERS[sq.seg], WALL_Y - 12, target.x, target.y - 20, COLORS.player); }
+        else if (sq.type === 'ARCHER') { sq.cd = 0.72; this.damageEnemy(target, (9 + sq.units * 2) * (this.archerPower || 1), 'arrow'); this.projectile(SEG_CENTERS[sq.seg], WALL_Y - 16, target.x, target.y - 20, COLORS.playerLight); }
+        else { sq.cd = 3.6; this.damageEnemy(target, 28 + sq.units * 5, 'oil'); this.burst(target.x, target.y - 12, COLORS.oil, 8, 'oil'); if (target.active && target.state === 'climb') { target.state = 'fall'; target.ladder = -1; target.vy = -55; } this.audio('oil'); }
+      }
+    }
+
+    pickSquadTarget(sq) {
+      const lo = SEGMENTS[sq.seg].lo - 18, hi = SEGMENTS[sq.seg].hi + 18;
+      let target = null, best = -Infinity;
+      for (const e of this.enemies) {
+        if (!e.active || e.x < lo || e.x > hi) continue;
+        const score = this.squadTargetScore(sq, e);
+        if (score > best) { best = score; target = e; }
+      }
+      return target;
+    }
+
+    squadTargetScore(sq, e) {
+      const distance = Math.abs(e.x - SEG_CENTERS[sq.seg]);
+      let score = -Infinity;
+      if (sq.type === 'SPEAR' && (e.state === 'climb' || e.state === 'top')) {
+        score = e.state === 'climb' ? 140 : 96;
+        if (e.kind === 'elite') score += 34;
+        if (e.kind === 'grapple') score += 22;
+      } else if (sq.type === 'ARCHER' && (e.state === 'ground' || e.kind === 'ram' || e.kind === 'tower')) {
+        score = e.kind === 'ram' ? 220 : e.kind === 'tower' ? 185 : 70;
+        if (e.kind === 'elite') score += 18;
+      } else if (sq.type === 'OIL' && (e.state === 'climb' || e.state === 'ground' || e.kind === 'ram')) {
+        score = e.kind === 'ram' ? 210 : e.state === 'climb' ? 170 : 52;
+        if (e.kind === 'grapple') score += 28;
+      }
+      return score - distance * 0.18 - Math.max(0, e.y - WALL_Y) * 0.04;
+    }
+
+    stepProjectiles(dt) { for (const p of this.projectiles) if (p.active) { p.t += dt * p.speed; if (p.t >= 1) p.active = false; } }
+    stepParticles(dt) { for (const kind of PARTICLE_KINDS) for (const p of this.particlePools[kind]) if (p.active) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.kind === 'oil' ? 120 : 240) * dt; if (p.life <= 0) p.active = false; } }
+    stepFloats(dt) { for (const f of this.floats) if (f.active) { f.life -= dt; f.y -= 18 * dt; if (f.life <= 0) f.active = false; } }
+
+    supplyDrop() {
+      this.state.supplies++; this.state.valor += 14; this.state.nightValor += 14; this.state.oil = clamp(this.state.oil + 30, 0, this.state.oilMax);
+      const sq = this.squads[this.state.supplies % 3]; sq.units = clamp(sq.units + 1, 1, 5); this.showBanner('SUPPLY +14 VALOR +OIL', sq.type + ' +1', 'supply'); this.audio('horn');
+    }
+
+    checkClear() {
+      let active = 0; for (const e of this.enemies) if (e.active) active++;
+      if (this.waveIndex < this.waveEvents.length || this.wavePreview || active > 0 || this.waveClock < this.waveDuration) return;
+      if (this.state.gameMode === 'trial') { this.finishTrial(); return; }
+      if (this.state.gameMode === 'vault') { this.vaultComplete(); return; }
+      const noBreach = this.state.nightBreaches === 0;
+      const efficient = this.state.nightValorSpent <= Math.max(20, this.state.nightValor * 0.6);
+      this.state.nightMedal = noBreach && efficient ? 3 : noBreach ? 2 : 1;
+      this.saveData.medals[this.state.night - 1] = Math.max(this.saveData.medals[this.state.night - 1] || 0, this.state.nightMedal);
+      this.saveData.bestNight = Math.max(this.saveData.bestNight, this.state.night); kit.save.set(this.saveData);
+      const reward = 24 + this.state.night * 9; this.state.valor += reward; this.state.nightValor += reward;
+      if (this.state.night >= 10) { this.state.pendingVault = true; this.state.mode = 'intermission'; this.showBanner('NIGHT 10 CLEAR', 'The vault doors are awake.', 'clear'); }
+      else { this.state.mode = 'intermission'; this.showBanner('NIGHT ' + this.state.night + ' CLEAR', 'Valor +' + reward + '  |  medal ' + ['-', 'BRONZE', 'SILVER', 'GOLD'][this.state.nightMedal], 'clear'); }
+      this.audio('horn');
+    }
+
+    finishTrial() {
+      const trial = TRIALS[this.state.trialIndex]; let passed = false;
+      if (trial.id === 'three-walls') passed = this.state.wallHP[0] >= 70 && this.state.wallHP[1] >= 70 && this.state.wallHP[2] >= 70;
+      else passed = this.state.trialGoal >= trial.target;
+      this.saveData.trials[this.state.trialIndex] = passed; kit.save.set(this.saveData); this.state.mode = 'trialComplete';
+      this.state.nightMedal = passed ? 3 : 1; this.showBanner(passed ? 'TRIAL CLEAR' : 'TRIAL FAILED', passed ? trial.goal + ' complete.' : 'Try the route again.', 'trial'); this.audio(passed ? 'horn' : 'drum');
+    }
+
+    startVault() {
+      this.state.mode = 'vault'; this.state.gameMode = 'vault'; this.state.pendingVault = false; this.state.rampart = 3; this.state.gateHP = Math.max(this.state.gateHP, 180); for (let i = 0; i < 3; i++) this.state.wallHP[i] = Math.max(this.state.wallHP[i], 55); this.state.night = 10; this.refreshBattleTexture(3); this.waveEvents = VAULT_WAVE; this.waveIndex = 0; this.waveClock = 0; this.wavePreview = null; this.waveDuration = 37; this.clearPools(); this.state.threat = 'THE VAULT OPENS'; kit.audio.music('danger', 400); this.showBanner('VAULT ASSAULT', 'Hold the Warden approach.', 'vault'); }
+    vaultComplete() { this.state.mode = 'victory'; this.state.threat = 'DAWN'; this.state.valor += 100; this.saveData.bestNight = Math.max(this.saveData.bestNight, 10); kit.save.set(this.saveData); kit.audio.music('victory', 400); this.showBanner('VAULT ASSAULT COMPLETE', 'The rampart holds until dawn.', 'victory'); this.audio('horn'); }
+    lose() { if (this.state.mode === 'defeat') return; this.state.mode = 'defeat'; this.state.threat = 'BREACH'; this.saveData.bestNight = Math.max(this.saveData.bestNight, this.state.night - 1); kit.save.set(this.saveData); this.showBanner('THE WALL HAS FALLEN', 'Hold ' + Math.max(0, this.state.night - 1) + ' nights.', 'defeat'); this.shake(8); this.audio('drum'); }
+
+    shopTap(index) {
+      if (index === 99) {
+        if (this.state.pendingVault) this.startVault();
+        else {
+          this.state.night++; this.state.mode = 'play'; this.startNight(this.state.night);
+          const rampartNotice = this.state.rampartNotice ? RAMPARTS[this.state.rampart].name + ' · ' + this.state.rampartNotice : RAMPARTS[this.state.rampart].name;
+          this.state.rampartNotice = '';
+          this.showBanner('NIGHT ' + this.state.night, rampartNotice, 'night');
+        }
+        return;
+      }
+      const defs = [{ name: 'REPAIR ALL WALLS', cost: 28, desc: '+' + (this.wallRepair || 45) + ' wall integrity' }, { name: 'REBUILD THE GATE', cost: 34, desc: '+70 gate integrity' }, { name: 'DRILL THE SQUADS', cost: 42, desc: '+1 unit to every squad' }, { name: 'SHARPEN THE CAPTAIN', cost: 46, desc: '+18% hero strike power' }];
+      const d = defs[index]; if (!d || this.state.valor < d.cost) return; this.state.valor -= d.cost; this.state.valorSpent += d.cost;
+      this.state.nightValorSpent += d.cost;
+      if (index === 0) for (let i = 0; i < 3; i++) this.state.wallHP[i] = clamp(this.state.wallHP[i] + (this.wallRepair || 45), 0, 100);
+      if (index === 1) this.state.gateHP = clamp(this.state.gateHP + 70, 0, this.state.gateMax || 340);
+      if (index === 2) for (const sq of this.squads) sq.units = clamp(sq.units + 1, 1, 5);
+      if (index === 3) this.heroPower = (this.heroPower || 1) + 0.18;
+      this.audio('steel'); this.float(195, 300, d.name + ' READY', CSS.good);
+    }
+
+    fortifyRampart() {
+      const index = this.state.rampart;
+      const current = this.saveData.fortLevels[index] || 0;
+      const cost = 28 + current * 20;
+      if (current >= 3) { this.float(195, 300, 'FORTIFICATION MAXED', CSS.muted); return; }
+      if (this.state.valor < cost) { this.float(195, 300, 'NEED ' + cost + ' VALOR', CSS.muted); return; }
+      this.state.valor -= cost; this.state.valorSpent += cost; this.state.nightValorSpent += cost;
+      this.saveData.fortLevels[index] = current + 1;
+      this.saveData.unlocked[index] = true;
+      this.state.fortificationLevel = current + 1;
+      this.applyRampartUpgrade(index);
+      kit.save.set(this.saveData);
+      this.audio('steel'); this.float(195, 300, RAMPARTS[index].upgrade + ' LEVEL ' + (current + 1), CSS.good);
+    }
+
+    burst(x, y, color, count, kind) {
+      const r = seeded((x * 31 + y * 17 + Math.floor(this.state.clock * 60) + count) | 0);
+      const n = Math.min(count, 20);
+      const poolName = kind === 'burst' ? 'command' : PARTICLE_KINDS.indexOf(kind) >= 0 ? kind : 'spark';
+      for (const p of this.particlePools[poolName]) if (!p.active && count-- > 0) { const a = r() * Math.PI * 2; const speed = poolName === 'command' ? (kind === 'burst' ? 110 : 42) : poolName === 'oil' ? 34 : poolName === 'debris' ? 62 : 70; p.active = true; p.x = x; p.y = y; p.vx = Math.cos(a) * (speed * (0.45 + r() * 0.6)); p.vy = Math.sin(a) * (speed * (0.45 + r() * 0.6)) - (poolName === 'oil' ? 8 : 24); p.life = p.max = poolName === 'debris' ? 0.5 : poolName === 'oil' ? 0.65 : 0.32 + r() * 0.25; p.color = color; p.size = poolName === 'debris' ? 3 : poolName === 'oil' ? 4 : 2; }
+      if (n > 0 && kind === 'command') this.state.bannerCharge = clamp(this.state.bannerCharge + 0.5, 0, 100);
+    }
+
+    projectile(x0, y0, x1, y1, color) { for (const p of this.projectiles) if (!p.active) { p.active = true; p.x0 = x0; p.y0 = y0; p.x1 = x1; p.y1 = y1; p.t = 0; p.speed = 3.3; p.color = color; return; } }
+    enqueueTransient(item) {
+      const current = this.state.banner;
+      const last = this.state.bannerQueue[this.state.bannerQueue.length - 1];
+      if ((current && current.text === item.text) || (last && last.text === item.text)) return;
+      if (!current) { this.state.banner = item; return; }
+      if (this.state.bannerQueue.length >= 5) this.state.bannerQueue.shift();
+      this.state.bannerQueue.push(item);
+    }
+    float(x, y, text, color) {
+      this.enqueueTransient({ text: text, sub: '', kind: 'chip', color: color, x: x, y: y, life: 1.0, max: 1.0, boundary: false });
+    }
+    showBanner(text, sub, kind) {
+      const boundary = kind === 'night' || kind === 'trial' || kind === 'clear' || kind === 'vault' || kind === 'victory' || kind === 'defeat';
+      const item = { text: text, sub: sub || '', kind: kind, life: boundary ? 1.35 : 1.0, max: boundary ? 1.35 : 1.0, boundary: boundary };
+      if (boundary) { this.state.banner = item; this.state.bannerQueue.length = 0; }
+      else this.enqueueTransient(item);
+    }
+    shake(amount) { if (kit.juice.enabled) kit.juice.shake(amount, 180); }
+    audio(name) { kit.audio.sfx(name, { volume: name === 'drum' ? 0.8 : 1 }); }
+
+    advanceInput() {
+      if (this.state.mode === 'menu') this.startRun(1);
+      else if (this.state.mode === 'intermission') this.shopTap(99);
+      else if (this.state.mode === 'victory' || this.state.mode === 'defeat') this.startRun(1);
+      else if (this.state.mode === 'trialComplete') this.state.mode = 'trialSelect';
+      else if (this.state.mode === 'play' || this.state.mode === 'vault') this.bannerBurst();
+    }
+
+    pollGamepad() {
+      if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return;
+      const pads = navigator.getGamepads();
+      let pad = null;
+      for (let i = 0; i < pads.length; i++) if (pads[i]) { pad = pads[i]; break; }
+      this.state.gamepadConnected = !!pad;
+      if (!pad) { this.gamepadPrev.length = 0; return; }
+      const pressed = (index) => !!(pad.buttons[index] && pad.buttons[index].pressed);
+      const justPressed = (index) => pressed(index) && !this.gamepadPrev[index];
+      const axis = pad.axes && Math.abs(pad.axes[0] || 0) > 0.18 ? pad.axes[0] : 0;
+      if ((this.state.mode === 'play' || this.state.mode === 'vault') && this.hero.action === 'idle' && axis) { this.hero.x = clamp(this.hero.x + axis * 170 * STEP, 18, W - 18); this.hero.face = sign(axis); }
+      if (this.state.mode === 'play' || this.state.mode === 'vault') {
+        if (justPressed(0)) this.commandHero(this.hero.x, 'over');
+        if (justPressed(1)) this.commandHero(this.hero.x, 'kick');
+        if (justPressed(2)) this.commandHero(this.hero.x + this.hero.face * 34, 'sweep');
+        if (justPressed(3) || justPressed(7)) this.bannerBurst();
+        if (justPressed(4)) this.state.selectedChip = 0;
+        if (justPressed(5)) this.state.selectedChip = 1;
+        if (justPressed(6)) this.state.selectedChip = 2;
+        if (this.state.selectedChip >= 0) {
+          if (justPressed(14)) this.orderSquad(this.state.selectedChip, 0);
+          if (justPressed(12)) this.orderSquad(this.state.selectedChip, 1);
+          if (justPressed(15)) this.orderSquad(this.state.selectedChip, 2);
+        }
+      }
+      if (justPressed(9)) this.advanceInput();
+      this.gamepadPrev.length = pad.buttons.length;
+      for (let i = 0; i < pad.buttons.length; i++) this.gamepadPrev[i] = pressed(i);
+    }
+
+    update(time, delta) {
+      this.pollGamepad();
+      const enter = kit.input.keyDown('Enter');
+      if (enter && !this.globalKeys.Enter) this.advanceInput();
+      this.globalKeys.Enter = enter;
+      const restart = kit.input.keyDown('KeyR');
+      if (restart && !this.globalKeys.KeyR && (this.state.mode === 'victory' || this.state.mode === 'defeat')) this.startRun(1);
+      this.globalKeys.KeyR = restart;
+      const juice = kit.juice.frame();
+      let frameDelta = Math.min(0.05, Math.max(0, delta / 1000));
+      if (juice.frozen || kit.paused) frameDelta = 0;
+      this.accumulator = (this.accumulator || 0) + frameDelta;
+      let steps = 0;
+      while (this.accumulator >= STEP && steps < 4) { this.accumulator -= STEP; this.step(STEP); steps++; }
+      this.render(juice);
+    }
+
+    refreshProbe() {
+      probe.state = this.state; this.state.wallHP[0] = clamp(this.state.wallHP[0], 0, 100); this.state.wallHP[1] = clamp(this.state.wallHP[1], 0, 100); this.state.wallHP[2] = clamp(this.state.wallHP[2], 0, 100);
+      probe.state.mode = this.state.mode; probe.state.night = this.state.night; probe.state.valor = Math.floor(this.state.valor); probe.state.threat = this.state.threat; probe.state.rampart = RAMPARTS[this.state.rampart] ? RAMPARTS[this.state.rampart].name : 'UNKNOWN';
+    }
+
+    render(juice) {
+      const dx = juice.dx || 0, dy = juice.dy || 0; this.battleLayer.x = dx; this.battleLayer.y = dy;
+      this.renderWorld(); this.renderUi();
+    }
+
+    drawSquadGlyph(g, x, y, index, scale) {
+      const color = index === 2 ? COLORS.oil : COLORS.player;
+      g.fillStyle(color, 1);
+      if (index === 0) {
+        g.fillTriangle(x - 5 * scale, y + 5 * scale, x + 5 * scale, y + 5 * scale, x, y - 7 * scale);
+        g.lineStyle(Math.max(1, 2 * scale), COLORS.white, 0.95); g.lineBetween(x, y - 7 * scale, x + 8 * scale, y - 14 * scale);
+      } else if (index === 1) {
+        g.fillCircle(x, y, 5 * scale); g.lineStyle(Math.max(1, 2 * scale), COLORS.white, 0.95); g.strokeCircle(x, y, 8 * scale); g.lineBetween(x + 2 * scale, y - 2 * scale, x + 10 * scale, y - 9 * scale);
       } else {
-        e.y = GROUND_Y;
-        var L = findLadder(e.seg, e.x);
-        if (!L) {
-          if (e.k === 'grap') { L = plantLadder(e.x, e.seg, 'grap'); }
-          else {
-            e.build = (e.build || 0) + dt;
-            if (e.build > 0.7) L = plantLadder(e.x, e.seg, 'grunt');
-          }
-        }
-        if (L) {
-          if (Math.abs(e.x - L.x) > 3) e.x += Math.sign(L.x - e.x) * Math.min(Math.abs(L.x - e.x), d.gs * dt);
-          else { e.st = 'climb'; e.ladder = L; e.off = rand(-4, 4); }
-        }
+        g.fillRoundedRect(x - 5 * scale, y - 5 * scale, 10 * scale, 10 * scale, 2 * scale); g.fillStyle(COLORS.white, 0.95); g.fillCircle(x, y - 8 * scale, 2.5 * scale); g.lineStyle(Math.max(1, 2 * scale), COLORS.white, 0.9); g.lineBetween(x + 6 * scale, y - 3 * scale, x + 10 * scale, y - 8 * scale);
       }
-      continue;
     }
 
-    if (e.st === 'climb') {
-      if (!e.ladder || e.ladder.hp <= 0) { e.st = 'fall'; e.vy = 0; continue; }
-      e.x = e.ladder.x + (e.off || 0);
-      e.y -= d.cs * dt;
-      if (e.y <= WALL_TOP) { e.y = WALL_TOP; e.st = 'top'; e.ladder = null; }
-      continue;
+    drawRallyGlyph(g, x, y, ready) {
+      const color = ready ? COLORS.gold : COLORS.amber;
+      g.lineStyle(2, color, 1); g.lineBetween(x - 9, y - 11, x - 9, y + 10); g.fillStyle(color, 1); g.fillTriangle(x - 7, y - 10, x + 10, y - 5, x - 7, y + 1); g.fillStyle(ready ? COLORS.white : COLORS.muted, 1); g.fillCircle(x - 9, y + 11, 2.5);
     }
 
-    if (e.st === 'fall') {
-      e.vy += 620 * dt;
-      e.y += e.vy * dt;
-      if (e.y >= GROUND_Y) {
-        damage(e, 26, 'fall');
-        if (!e.dead) { e.st = 'ground'; e.y = GROUND_Y; e.tx = e.x; e.build = 0; }
-        else { addPart(e.x, GROUND_Y, 10, d.col, 90); }
-      }
-      continue;
+    drawTutorialStrip(g) {
+      const tutorial = this.state.tutorial;
+      if (!tutorial) return;
+      const steps = ['1/5 · TAP WALL → STRIKE', '2/5 · KICK CLIMBING LADDER', '3/5 · PICK CHIP → RALLY WALL', '4/5 · POUR OIL AT GATE', '5/5 · FILL BANNER → RALLY'];
+      const alpha = kit.juice.enabled ? clamp(1 - Math.max(0, tutorial.age - 1.2) * 0.48, 0.14, 1) : 0.28;
+      setTextIfChanged(this.texts.tutorial, steps[tutorial.step] || ''); this.texts.tutorial.setPosition(195, 88).setFontSize(14).setAlpha(alpha).setVisible(true);
+      g.fillStyle(0x0d2434, 0.72 * alpha); g.fillRect(18, 76, W - 36, 24); g.lineStyle(1, COLORS.player, 0.65 * alpha); g.strokeRect(18, 76, W - 36, 24);
     }
 
-    if (e.st === 'top') {
-      var sg = segAt(e.x);
-      if (G.segs[sg].hp > 0) {
-        G.segs[sg].hp -= d.dps * dt;
-        e.wob += dt * 8;
-        if (Math.random() < dt * 1.4) addPart(e.x, WALL_TOP + 6, 3, '#9aa2b8', 50, 0.3);
-        if (G.segs[sg].hp <= 0) {
-          G.segs[sg].hp = 0;
-          shake(11); Audio2.gate();
-          floatText(SEGC[sg], WALL_TOP - 30, 'BREACHED', C.bad);
-          addPart(SEGC[sg], WALL_TOP + 10, 24, '#6b7385', 160);
-          if (aliveSegs() === 0) { loseGame(); return; }
-        }
-      } else {
-        var tsg = nearestOpenSeg(sg);
-        if (tsg >= 0) {
-          var tx = SEGC[tsg];
-          e.x += Math.sign(tx - e.x) * 34 * dt;
-        }
+    drawTransientChip(g) {
+      const b = this.state.banner;
+      if (!b || b.boundary) return;
+      const label = b.sub ? b.text + ' · ' + b.sub : b.text;
+      const width = clamp(label.length * 7.1 + 28, 112, W - 24);
+      const x = typeof b.x === 'number' && b.x > W * 0.5 ? W - width - 12 : 12;
+      const y = 78;
+      const alpha = kit.juice.enabled ? clamp(b.life / 0.16, 0, 1) : 1;
+      const accent = b.kind === 'defeat' ? COLORS.danger : b.kind === 'rally' ? COLORS.gold : b.kind === 'supply' ? COLORS.good : b.kind === 'chip' ? COLORS.player : COLORS.amber;
+      const color = b.color || (b.kind === 'defeat' ? CSS.danger : b.kind === 'rally' ? CSS.gold : b.kind === 'supply' ? CSS.good : CSS.white);
+      g.fillStyle(0x0d2434, 0.9 * alpha); g.fillRoundedRect(x, y, width, 24, 6); g.lineStyle(1, accent, 0.85 * alpha); g.strokeRoundedRect(x, y, width, 24, 6);
+      this.texts.banner.setPosition(x + width * 0.5, y + 12).setOrigin(0.5).setFontSize(14).setAlpha(alpha); setTextIfChanged(this.texts.banner, label); setColorIfChanged(this.texts.banner, color); this.texts.banner.setVisible(true);
+    }
+
+    drawWavePreview(g) {
+      const preview = this.wavePreview, event = preview.event, x = event.k === 'ram' ? GATE_X + GATE_W * 0.5 : SEG_CENTERS[event.s];
+      const pulse = 0.5 + Math.sin(preview.pulse * 10) * 0.25;
+      g.lineStyle(2, event.k === 'ram' ? COLORS.danger : COLORS.amber, pulse);
+      g.strokeCircle(x, event.k === 'ram' ? 390 : WALL_Y + 4, 17 + (Math.sin(preview.pulse * 12) > 0 ? 8 : 0));
+      g.lineStyle(1, event.k === 'ram' ? COLORS.danger : COLORS.amber, 0.7);
+      g.lineBetween(x - 13, WALL_Y - 18, x + 13, WALL_Y - 18);
+      g.fillStyle(event.k === 'ram' ? COLORS.danger : COLORS.amber, 0.95);
+      g.fillTriangle(x, WALL_Y - 11, x - 5, WALL_Y - 21, x + 5, WALL_Y - 21);
+    }
+
+    renderWorld() {
+      this.worldG.clear(); this.fxG.clear();
+      const g = this.worldG;
+      for (let i = 0; i < 3; i++) {
+        const lo = SEGMENTS[i].lo, hi = SEGMENTS[i].hi, hp = this.state.wallHP[i] / 100;
+        if (hp < 1) { g.fillStyle(0x8b3340, 0.22 + (1 - hp) * 0.25); g.fillRect(lo, WALL_Y, hi - lo, WALL_BOTTOM - WALL_Y); }
+        g.lineStyle(1, 0x0b141d, 0.4); g.strokeRect(lo + 3, WALL_Y + 3, hi - lo - 6, WALL_BOTTOM - WALL_Y - 6);
+        g.fillStyle(0x07111b, 0.7); g.fillRect(lo + 10, WALL_BOTTOM - 13, hi - lo - 20, 4); g.fillStyle(hp <= 0 ? COLORS.danger : hp > 0.5 ? COLORS.good : COLORS.amber, 0.95); g.fillRect(lo + 10, WALL_BOTTOM - 13, (hi - lo - 20) * hp, 4);
+        if (this.state.fortificationLevel >= 1) { g.lineStyle(2, COLORS.gate, 0.55); g.lineBetween(lo + 8, WALL_Y + 10, lo + 8, WALL_BOTTOM - 18); g.lineBetween(hi - 8, WALL_Y + 10, hi - 8, WALL_BOTTOM - 18); }
+        if (this.state.fortificationLevel >= 2) { g.lineStyle(2, COLORS.gate, 0.75); g.lineBetween(lo + 18, WALL_Y + 14, hi - 18, WALL_BOTTOM - 24); g.lineBetween(hi - 18, WALL_Y + 14, lo + 18, WALL_BOTTOM - 24); }
       }
+      const gate = clamp(this.state.gateHP / (this.state.gateMax || this.gateMax || 260), 0, 1); g.fillStyle(0x0a0d12, 0.5); g.fillRect(GATE_X - 4, 348, GATE_W + 8, 96); g.fillStyle(COLORS.gate, 0.24 + gate * 0.55); g.fillRect(GATE_X, 350 + (1 - gate) * 18, GATE_W, 92 - (1 - gate) * 18); g.fillStyle(0x07111b, 0.65); g.fillRect(GATE_X + 8, 450, GATE_W - 16, 4); g.fillStyle(gate > 0.4 ? COLORS.amber : COLORS.danger, 1); g.fillRect(GATE_X + 8, 450, (GATE_W - 16) * gate, 4);
+      if (this.state.fortificationLevel >= 2) { g.lineStyle(3, COLORS.bone, 0.7); g.lineBetween(GATE_X + 10, 354, GATE_X + 10, 438); g.lineBetween(GATE_X + GATE_W - 10, 354, GATE_X + GATE_W - 10, 438); }
+      for (const l of this.ladders) if (l.active) { g.lineStyle(l.rope ? 2 : 3, l.rope ? COLORS.bone : COLORS.amber, 0.95); if (l.rope) g.lineBetween(l.x, GROUND_Y, l.x + 2, WALL_Y + 4); else { g.lineBetween(l.x - 7, GROUND_Y, l.x - 7, WALL_Y + 4); g.lineBetween(l.x + 7, GROUND_Y, l.x + 7, WALL_Y + 4); for (let y = WALL_Y + 14; y < GROUND_Y; y += 17) g.lineBetween(l.x - 7, y, l.x + 7, y); } }
+      for (let i = 0; i < this.squads.length; i++) { const sq = this.squads[i]; const x = sq.route > 0 ? lerp(SEG_CENTERS[sq.seg], SEG_CENTERS[sq.target], 1 - sq.route) : SEG_CENTERS[sq.seg]; if (sq.route > 0) { g.lineStyle(2, COLORS.player, 0.7); g.lineBetween(SEG_CENTERS[sq.seg], WALL_Y - 30, SEG_CENTERS[sq.target], WALL_Y - 30); g.fillStyle(COLORS.player, 0.9); g.fillTriangle(SEG_CENTERS[sq.target] - 5, WALL_Y - 35, SEG_CENTERS[sq.target] + 5, WALL_Y - 35, SEG_CENTERS[sq.target], WALL_Y - 24); } for (let u = 0; u < sq.units; u++) { const ox = (u - (sq.units - 1) / 2) * 7; this.drawSquadGlyph(g, x + ox, WALL_Y - 17, i, 0.72); } }
+      if (this.wavePreview) this.drawWavePreview(g);
+      if (this.state.ramActive) { const pulse = 0.55 + Math.sin(this.state.clock * 8) * 0.2; g.lineStyle(3, COLORS.oil, pulse); g.strokeRoundedRect(GATE_X - 14, 338, GATE_W + 28, 112, 10); g.fillStyle(COLORS.oil, 1); g.fillTriangle(195, 332, 188, 343, 202, 343); }
+      let spriteIndex = 0;
+      for (const e of this.enemies) {
+        if (!e.active || e.kind === 'ram' || e.kind === 'tower') continue;
+        const s = this.enemySprites[spriteIndex++]; s.setVisible(true); s.setPosition(e.x, e.y + (e.state === 'ground' || e.state === 'top' ? Math.sin(e.wob) * 1.4 : 0)); s.setScale(ENEMY[e.kind].scale); s.setFrame(e.renderState); s.setFlipX(e.x > 195); if (e.hurt > 0) s.setTint(0xffffff); else s.clearTint(); e.renderSlot = spriteIndex - 1;
+        if (e.shield && e.kind === 'elite' && e.state !== 'ground') { this.fxG.lineStyle(2, COLORS.violet, 0.9); this.fxG.strokeCircle(e.x, e.y - 28, 19 + Math.sin(this.state.clock * 7) * 2); this.fxG.fillStyle(COLORS.violet, 1); this.fxG.fillTriangle(e.x, e.y - 57, e.x - 5, e.y - 48, e.x + 5, e.y - 48); }
+        if (e.tele > 0) { this.fxG.lineStyle(2, COLORS.amber, 0.85); this.fxG.strokeCircle(e.x, WALL_Y + 3, 18 + e.tele * 18); this.fxG.lineStyle(1, COLORS.danger, 0.75); this.fxG.strokeCircle(e.x, WALL_Y + 3, 9 + (0.42 - e.tele) * 30); }
+        if (e.hp < e.max) { this.fxG.fillStyle(0x07111b, 0.75); this.fxG.fillRect(e.x - 15, e.y - 69, 30, 4); this.fxG.fillStyle(e.shield ? COLORS.violet : COLORS.enemy, 1); this.fxG.fillRect(e.x - 15, e.y - 69, 30 * clamp(e.hp / e.max, 0, 1), 4); }
+      }
+      while (spriteIndex < this.enemySprites.length) this.enemySprites[spriteIndex++].setVisible(false);
+      for (const e of this.enemies) if (e.active && (e.kind === 'ram' || e.kind === 'tower')) this.drawSiegeEngine(e);
+      const h = this.hero; this.heroSprite.setVisible(this.state.mode === 'play' || this.state.mode === 'vault'); this.heroSprite.setPosition(h.x, h.y + (h.action === 'idle' ? Math.sin(this.state.clock * 2.4) * 1.3 : 0)); this.heroSprite.setFlipX(h.face < 0); this.heroSprite.setFrame(h.action === 'leap' ? SPRITE_STATES.defender.leap : h.action === 'windup' || h.action === 'strike' ? (h.attack === 'over' ? SPRITE_STATES.defender.strike : h.attack === 'kick' ? SPRITE_STATES.defender.kick : SPRITE_STATES.defender.sweep) : h.action === 'recover' ? SPRITE_STATES.defender.hurt : SPRITE_STATES.defender.idle); this.heroSprite.setScale(h.action === 'leap' ? 1.04 : 1);
+      if ((h.action === 'leap' || h.action === 'windup') && (this.state.mode === 'play' || this.state.mode === 'vault')) { this.fxG.lineStyle(2, COLORS.player, 0.9); this.fxG.strokeCircle(h.targetX, WALL_Y - 2, 16 + Math.sin(this.state.clock * 9) * 2); this.fxG.lineStyle(1, COLORS.player, 0.5); this.fxG.lineBetween(h.x, h.y - 44, h.targetX, WALL_Y - 20); this.fxG.fillStyle(COLORS.player, 1); this.fxG.fillTriangle(h.targetX - 5, WALL_Y - 32, h.targetX + 5, WALL_Y - 32, h.targetX, WALL_Y - 21); }
+      if (h.action === 'windup') { this.fxG.lineStyle(3, h.attack === 'kick' ? COLORS.amber : h.attack === 'sweep' ? COLORS.playerLight : COLORS.gold, 0.95); this.fxG.strokeCircle(h.x, WALL_Y - 28, h.attack === 'sweep' ? 46 : 34); }
+      for (const p of this.projectiles) if (p.active) { const t = clamp(p.t, 0, 1), x = lerp(p.x0, p.x1, t), y = lerp(p.y0, p.y1, t) - Math.sin(t * Math.PI) * 22; this.fxG.lineStyle(2, p.color, 0.85); this.fxG.lineBetween(lerp(p.x0, p.x1, Math.max(0, t - 0.15)), lerp(p.y0, p.y1, Math.max(0, t - 0.15)), x, y); }
+      for (const kind of PARTICLE_KINDS) for (const p of this.particlePools[kind]) if (p.active) {
+        const alpha = clamp(p.life / p.max, 0, 1); this.fxG.fillStyle(p.color, alpha); this.fxG.lineStyle(1, p.color, alpha);
+        if (p.kind === 'spark') { this.fxG.lineBetween(p.x - p.size * 2, p.y, p.x + p.size * 2, p.y); this.fxG.lineBetween(p.x, p.y - p.size * 2, p.x, p.y + p.size * 2); }
+        else if (p.kind === 'oil') { this.fxG.fillCircle(p.x, p.y, p.size * 0.75); this.fxG.fillTriangle(p.x, p.y - p.size * 2, p.x - p.size, p.y - p.size * 0.4, p.x + p.size, p.y - p.size * 0.4); }
+        else if (p.kind === 'command') this.fxG.fillTriangle(p.x, p.y - p.size * 2, p.x - p.size * 1.5, p.y + p.size, p.x + p.size * 1.5, p.y + p.size);
+        else this.fxG.fillRect(p.x, p.y, p.size, p.size);
+      }
+      this.drawAmbientFx();
+    }
+
+    drawAmbientFx() {
+      const g = this.fxG, pulse = 0.16 + Math.sin(this.state.clock * 2.1) * 0.05;
+      g.fillStyle(COLORS.amber, pulse); g.fillCircle(39, GROUND_Y + 3, 5 + Math.sin(this.state.clock * 3) * 1.5); g.fillCircle(350, GROUND_Y + 7, 4 + Math.sin(this.state.clock * 2.4 + 1) * 1.2);
+      g.fillStyle(COLORS.slate, 0.15); g.fillCircle(82 + Math.sin(this.state.clock * 0.7) * 7, 290, 9); g.fillCircle(304 + Math.sin(this.state.clock * 0.6 + 2) * 8, 278, 7);
+    }
+
+    drawSiegeEngine(e) {
+      const g = this.worldG;
+      if (e.kind === 'ram') { g.fillStyle(0x5b3d2c, 1); g.fillRoundedRect(e.x - 34, e.y - 28, 68, 28, 7); g.fillStyle(e.hurt > 0 ? COLORS.white : 0x97683e, 1); g.fillRoundedRect(e.x - 27, e.y - 40, 54, 13, 6); g.fillStyle(0x34251c, 1); g.fillCircle(e.x - 22, e.y + 2, 6); g.fillCircle(e.x + 22, e.y + 2, 6); }
+      else { g.fillStyle(e.hurt > 0 ? COLORS.white : 0x5c6879, 1); g.fillRoundedRect(e.x - 23, e.y - 76, 46, 76, 5); g.fillStyle(0x8794a4, 1); g.fillRect(e.x - 27, e.y - 82, 54, 8); g.fillStyle(COLORS.enemyDark, 0.9); g.fillTriangle(e.x, e.y - 96, e.x - 10, e.y - 82, e.x + 10, e.y - 82); }
+      g.fillStyle(0x07111b, 0.8); g.fillRect(e.x - 28, e.y - (e.kind === 'ram' ? 52 : 104), 56, 4); g.fillStyle(COLORS.enemy, 1); g.fillRect(e.x - 28, e.y - (e.kind === 'ram' ? 52 : 104), 56 * clamp(e.hp / e.max, 0, 1), 4);
+    }
+
+    trialMeterProgress() {
+      const trial = this.state.trialIndex >= 0 ? TRIALS[this.state.trialIndex] : null;
+      if (!trial) return 0;
+      if (trial.id === 'three-walls') return this.state.wallHP.filter((value) => value >= 70).length;
+      return Math.min(this.state.trialGoal, trial.target);
+    }
+
+    renderUi() {
+      const g = this.uiG; g.clear();
+      this.buttonTextIndex = 0;
+      const active = this.state.mode === 'play' || this.state.mode === 'vault';
+      const transient = this.state.banner;
+      const boundary = !!(transient && transient.boundary);
+      const showCoach = active && !!this.state.tutorial && !transient;
+      this.texts.logo.setVisible(!active);
+      this.texts.night.setVisible(active); this.texts.rampart.setVisible(false); this.texts.threat.setVisible(false); this.texts.valor.setVisible(active); this.texts.hint.setVisible(false);
+      this.texts.objective.setVisible(false); this.texts.tutorial.setVisible(false); this.texts.banner.setVisible(false); this.texts.bannerSub.setVisible(false); this.texts.banner.setAlpha(1); this.texts.bannerSub.setAlpha(1);
+      if (active) {
+        this.texts.night.setPosition(15, 13); setTextIfChanged(this.texts.night, 'N' + this.state.night);
+        this.texts.valor.setPosition(374, 13); setTextIfChanged(this.texts.valor, '◆ ' + Math.floor(this.state.valor));
+        const trial = this.state.trialIndex >= 0 ? TRIALS[this.state.trialIndex] : null;
+        if (trial) {
+          const progress = this.trialMeterProgress();
+          g.fillStyle(0x07111b, 0.85); g.fillRect(238, 56, 74, 4); g.fillStyle(COLORS.violet, 0.95); g.fillRect(238, 56, 74 * clamp(progress / trial.target, 0, 1), 4);
+          g.fillStyle(COLORS.violet, 1); g.fillCircle(230, 58, 3); this.texts.objective.setPosition(350, 51).setOrigin(1, 0); setTextIfChanged(this.texts.objective, progress + '/' + trial.target); this.texts.objective.setVisible(true);
+        }
+        if (showCoach) this.drawTutorialStrip(g);
+        for (let i = 0; i < 3; i++) {
+          const b = this.railRects[i], sq = this.squads[i], selected = this.state.selectedChip === i;
+          g.fillStyle(selected ? 0x153b4d : 0x102130, 1); g.fillRoundedRect(b.x, b.y, b.w, b.h, 8); g.lineStyle(selected ? 2 : 1, selected ? COLORS.player : 0x294257, 1); g.strokeRoundedRect(b.x, b.y, b.w, b.h, 8);
+          this.drawSquadGlyph(g, b.x + b.w * 0.5, b.y + 22, i, sq.rallyCd > 0 ? 0.92 : 1.08);
+          g.fillStyle(COLORS.muted, 1); g.fillRect(b.x + 13, b.y + 45, b.w - 26, 3); g.fillStyle(i === 2 ? COLORS.oil : COLORS.player, 1); g.fillRect(b.x + 13, b.y + 45, (b.w - 26) * clamp(sq.units / 5, 0, 1), 3);
+          if (i === 2) { g.fillStyle(COLORS.muted, 1); g.fillRect(b.x + 13, b.y + 53, b.w - 26, 2); g.fillStyle(COLORS.oil, 1); g.fillRect(b.x + 13, b.y + 53, (b.w - 26) * clamp(this.state.oil / this.state.oilMax, 0, 1), 2); }
+          if (sq.route > 0) { g.fillStyle(COLORS.playerLight, 1); g.fillTriangle(b.x + b.w - 13, b.y + 11, b.x + b.w - 5, b.y + 15, b.x + b.w - 13, b.y + 19); }
+          if (sq.rallyCd > 0) { g.lineStyle(2, COLORS.amber, 0.9); g.strokeCircle(b.x + b.w - 13, b.y + 15, 7); }
+        }
+        const rb = this.railRects[3], full = this.state.bannerCharge >= 100; g.fillStyle(full ? 0x5b4620 : 0x182638, 1); g.fillRoundedRect(rb.x, rb.y, rb.w, rb.h, 8); g.lineStyle(full ? 2 : 1, full ? COLORS.gold : COLORS.amber, 1); g.strokeRoundedRect(rb.x, rb.y, rb.w, rb.h, 8); this.drawRallyGlyph(g, rb.x + rb.w * 0.5, rb.y + 22, full); g.fillStyle(full ? COLORS.gold : COLORS.muted, 1); g.fillRect(rb.x + 13, rb.y + 45, (rb.w - 26) * clamp(this.state.bannerCharge / 100, 0, 1), 3);
+      }
+      for (const key of this.overlayKeys) this.texts[key].setVisible(false);
+      if (this.state.mode === 'menu') this.drawMenu(g);
+      if (this.state.mode === 'trialSelect') this.drawTrials(g);
+      if (this.state.mode === 'intermission') this.drawIntermission(g);
+      if (this.state.mode === 'victory' || this.state.mode === 'defeat' || this.state.mode === 'trialComplete') this.drawEnd(g);
+      if (boundary) this.drawBigBanner(g);
+      else if (transient && !showCoach) this.drawTransientChip(g);
+      if (!transient) { this.texts.banner.setVisible(false); this.texts.bannerSub.setVisible(false); }
+      for (let i = this.buttonTextIndex; i < this.buttonTextPool.length; i++) this.buttonTextPool[i].setVisible(false);
+    }
+
+    drawMenu(g) {
+      this.texts.menuTitle.setVisible(true); this.texts.menuSub.setVisible(true); this.texts.menuLore.setVisible(true); this.texts.menuInfo.setVisible(true);
+      g.fillStyle(0x07111b, 0.86); g.fillRect(0, 74, W, 500); g.fillStyle(0x10263a, 0.95); g.fillRoundedRect(48, 350, 294, 58, 10); g.lineStyle(2, COLORS.player, 1); g.strokeRoundedRect(48, 350, 294, 58, 10); g.fillStyle(0x132131, 0.95); g.fillRoundedRect(48, 420, 294, 58, 10); g.lineStyle(1, COLORS.amber, 1); g.strokeRoundedRect(48, 420, 294, 58, 10); this.drawButtonText(195, 379, 'START SIEGE RUN', 15, CSS.playerLight); this.drawButtonText(195, 449, 'NIGHT TRIALS', 15, CSS.amber); this.drawButtonText(195, 532, 'tap to command  |  keyboard: arrows, space, S, W', 10, CSS.muted);
+    }
+
+    drawTrials(g) {
+      this.texts.trialTitle.setVisible(true); this.texts.trialSub.setVisible(true); for (let i = 0; i < TRIALS.length; i++) { const b = this.trialButtons[i], t = TRIALS[i], unlocked = this.trialUnlocked(i), complete = !!this.saveData.trials[i]; g.fillStyle(unlocked ? 0x122a3d : 0x101923, 1); g.fillRoundedRect(b.x, b.y, b.w, b.h, 8); g.lineStyle(1, complete ? COLORS.good : unlocked ? COLORS.player : 0x33404b, 1); g.strokeRoundedRect(b.x, b.y, b.w, b.h, 8); this.drawButtonText(b.x + 14, b.y + 16, (i + 1) + '  ' + t.title, 12, complete ? CSS.good : unlocked ? CSS.white : '#4b5864', 0); this.drawButtonText(b.x + 14, b.y + 34, unlocked ? t.desc : 'LOCKED  |  clear the chain with silver', 9, unlocked ? CSS.muted : '#4b5864', 0); this.drawButtonText(b.x + b.w - 12, b.y + 25, complete ? 'CLEAR' : unlocked ? t.goal : 'LOCK', 9, complete ? CSS.good : unlocked ? CSS.amber : '#4b5864', 1); }
+      this.drawButtonText(195, 530, 'top-left: back to command table', 10, CSS.muted);
+    }
+
+    drawIntermission(g) {
+      g.fillStyle(0x07111b, 0.94); g.fillRect(0, 74, W, 500); setTextIfChanged(this.texts.shopTitle, this.state.pendingVault ? 'NIGHT 10 HELD' : 'NIGHT ' + this.state.night + ' HELD'); setTextIfChanged(this.texts.shopSub, this.state.pendingVault ? 'The Vault Assault waits beyond the gate.' : 'Spend generous valor before the next horns.'); setTextIfChanged(this.texts.shopResult, 'MEDAL  ' + ['-', 'BRONZE', 'SILVER', 'GOLD'][this.state.nightMedal] + '     VALOR  ' + Math.floor(this.state.valor)); this.texts.shopTitle.setVisible(true); this.texts.shopSub.setVisible(true); this.texts.shopResult.setVisible(true);
+      const defs = [{ name: 'REPAIR ALL WALLS', cost: 28, desc: '+' + (this.wallRepair || 45) + ' integrity' }, { name: 'REBUILD THE GATE', cost: 34, desc: '+70 gate integrity' }, { name: 'DRILL THE SQUADS', cost: 42, desc: '+1 unit to every squad' }, { name: 'SHARPEN THE CAPTAIN', cost: 46, desc: '+18% strike power' }];
+      for (let i = 0; i < 4; i++) { const b = this.shopButtons[i], d = defs[i], can = this.state.valor >= d.cost; g.fillStyle(can ? 0x122a3d : 0x101923, 1); g.fillRoundedRect(b.x, b.y, b.w, b.h, 8); g.lineStyle(1, can ? COLORS.player : 0x33404b, 1); g.strokeRoundedRect(b.x, b.y, b.w, b.h, 8); this.drawButtonText(b.x + 14, b.y + 15, d.name, 11, can ? CSS.white : '#4b5864', 0); this.drawButtonText(b.x + 14, b.y + 32, d.desc, 9, can ? CSS.muted : '#4b5864', 0); this.drawButtonText(b.x + b.w - 12, b.y + 23, d.cost + 'V', 12, can ? CSS.gold : '#4b5864', 1); }
+      const fort = this.fortButton, fortLevel = this.saveData.fortLevels[this.state.rampart] || 0, fortCost = 28 + fortLevel * 20, fortReady = fortLevel < 3 && this.state.valor >= fortCost; g.fillStyle(fortReady ? 0x182f31 : 0x101923, 1); g.fillRoundedRect(fort.x, fort.y, fort.w, fort.h, 8); g.lineStyle(1, fortReady ? COLORS.good : 0x33404b, 1); g.strokeRoundedRect(fort.x, fort.y, fort.w, fort.h, 8); this.drawButtonText(fort.x + 12, fort.y + 13, 'FORTIFY  ' + RAMPARTS[this.state.rampart].upgrade + '  ' + fortLevel + '/3', 10, fortReady ? CSS.white : '#4b5864', 0); this.drawButtonText(fort.x + fort.w - 12, fort.y + 13, fortLevel >= 3 ? 'MAX' : fortCost + 'V', 10, fortReady ? CSS.gold : '#4b5864', 1);
+      const b = this.shopButtons[4]; g.fillStyle(this.state.pendingVault ? 0x5b4620 : 0x153b4d, 1); g.fillRoundedRect(b.x, b.y, b.w, b.h, 8); g.lineStyle(2, this.state.pendingVault ? COLORS.gold : COLORS.player, 1); g.strokeRoundedRect(b.x, b.y, b.w, b.h, 8); this.drawButtonText(195, b.y + 19, this.state.pendingVault ? 'ENTER VAULT ASSAULT' : 'BEGIN NIGHT ' + (this.state.night + 1), 14, this.state.pendingVault ? CSS.gold : CSS.playerLight); this.drawButtonText(195, b.y + 38, this.state.pendingVault ? 'one final defense, then dawn' : NIGHT_BLURBS[this.state.night], 9, CSS.muted);
+    }
+
+    drawEnd(g) {
+      const won = this.state.mode === 'victory', trial = this.state.mode === 'trialComplete'; g.fillStyle(won ? 0x092118 : 0x1a0d16, 0.95); g.fillRect(0, 74, W, 500); setTextIfChanged(this.texts.endTitle, won ? 'VAULT ASSAULT COMPLETE' : trial ? (this.state.nightMedal === 3 ? 'TRIAL CLEAR' : 'TRIAL FAILED') : 'THE WALL HAS FALLEN'); setColorIfChanged(this.texts.endTitle, won || this.state.nightMedal === 3 ? CSS.good : CSS.danger); setTextIfChanged(this.texts.endSub, won ? 'The Warden approach breaks at dawn.' : trial ? TRIALS[this.state.trialIndex].desc : 'The siege found the weak segment. Rally and try again.'); setTextIfChanged(this.texts.endStats, won ? '10 NIGHTS  |  VAULT HELD  |  VALOR ' + Math.floor(this.state.valor) : trial ? TRIALS[this.state.trialIndex].goal + '  |  ' + (this.state.nightMedal === 3 ? 'CHAIN UNLOCKED' : 'RETRY FOR THE CHAIN') : 'NIGHTS SURVIVED  ' + Math.max(0, this.state.night - 1) + '  |  BEST  ' + this.saveData.bestNight); setTextIfChanged(this.texts.endHint, trial ? 'tap to return to the trial table' : 'tap to return  |  R / ENTER to run again'); this.texts.endTitle.setVisible(true); this.texts.endSub.setVisible(true); this.texts.endStats.setVisible(true); this.texts.endHint.setVisible(true); g.fillStyle(0x122a3d, 1); g.fillRoundedRect(this.endButton.x, this.endButton.y, this.endButton.w, this.endButton.h, 9); g.lineStyle(2, won ? COLORS.good : COLORS.player, 1); g.strokeRoundedRect(this.endButton.x, this.endButton.y, this.endButton.w, this.endButton.h, 9); this.drawButtonText(195, 478, trial ? 'TRIAL TABLE' : 'HOLD AGAIN', 15, won ? CSS.good : CSS.playerLight);
+    }
+
+    drawBigBanner(g) {
+      const b = this.state.banner; if (!b || !b.boundary) { this.texts.banner.setVisible(false); this.texts.bannerSub.setVisible(false); return; }
+      const progress = 1 - clamp(b.life / b.max, 0, 1); const overshoot = kit.juice.enabled && progress < 0.35 ? Math.sin(progress / 0.35 * Math.PI) * 10 : 0; const width = 220 + overshoot; const x = (W - width) * 0.5; const alpha = 0.96; const accent = b.kind === 'defeat' ? COLORS.danger : b.kind === 'clear' || b.kind === 'victory' ? COLORS.gold : COLORS.player;
+      g.fillStyle(b.kind === 'defeat' ? 0x421b2b : b.kind === 'vault' || b.kind === 'victory' ? 0x25424d : 0x153148, alpha); g.fillRoundedRect(x, 208, width, 78, 10); g.lineStyle(2, accent, 1); g.strokeRoundedRect(x, 208, width, 78, 10);
+      setTextIfChanged(this.texts.banner, b.text); setTextIfChanged(this.texts.bannerSub, b.sub); setColorIfChanged(this.texts.banner, b.kind === 'defeat' ? CSS.danger : CSS.gold); this.texts.banner.setPosition(195, 231).setFontSize(20).setAlpha(1).setVisible(true); this.texts.bannerSub.setPosition(195, 263).setFontSize(14).setAlpha(1).setVisible(true);
+    }
+
+    drawButtonText(x, y, text, size, color, align) {
+      const obj = this.buttonTextPool[this.buttonTextIndex++];
+      if (!obj) return;
+      obj.setVisible(true); obj.setPosition(x, y); setTextIfChanged(obj, text); setColorIfChanged(obj, color); obj.setFontSize(size); obj.setFontStyle(size >= 13 ? 'bold' : 'normal'); obj.setOrigin(align === 0 ? 0 : align === 1 ? 1 : 0.5);
     }
   }
 
-  /* --- squads --- */
-  for (var q = 0; q < G.squads.length; q++) {
-    var sq = G.squads[q];
-    if (sq.moveTo >= 0) {
-      sq.moveT -= dt;
-      if (sq.moveT <= 0) { sq.seg = sq.moveTo; sq.moveTo = -1; }
-      continue;
-    }
-    sq.cd -= dt;
-    if (sq.cd > 0) continue;
-    var lo = SEG[sq.seg][0], hi = SEG[sq.seg][1];
-    if (sq.type === 'spear') {
-      sq.cd = 0.55;
-      var tgt = null;
-      for (var a = 0; a < G.enemies.length; a++) {
-        var en = G.enemies[a];
-        if (en.dead || en.k === 'ram' || en.k === 'tower') continue;
-        if (en.x < lo || en.x > hi) continue;
-        if (en.st === 'top' || (en.st === 'climb' && en.y < WALL_TOP + 62)) { tgt = en; break; }
-      }
-      if (tgt) {
-        damage(tgt, 9 + 6 * G.squadLvl, 'spear');
-        G.shots.push({ x0: SEGC[sq.seg], y0: WALL_TOP - 6, x1: tgt.x, y1: tgt.y - 8, t: 0, sp: 7, c: C.spear, w: 2.5 });
-      }
-    } else if (sq.type === 'archer') {
-      sq.cd = 0.7;
-      var t2 = null, bd = 1e9;
-      for (var b = 0; b < G.enemies.length; b++) {
-        var e2 = G.enemies[b];
-        if (e2.dead) continue;
-        if (e2.x < lo - 20 || e2.x > hi + 20) continue;
-        if (e2.st !== 'ground' && e2.k !== 'ram' && e2.k !== 'tower') continue;
-        var dd = Math.abs(e2.x - SEGC[sq.seg]);
-        if (dd < bd) { bd = dd; t2 = e2; }
-      }
-      if (t2) {
-        damage(t2, 7 + 5 * G.squadLvl, 'arrow');
-        G.shots.push({ x0: SEGC[sq.seg], y0: WALL_TOP - 8, x1: t2.x, y1: t2.y - 8, t: 0, sp: 3.2, c: C.archer, w: 2, arc: 1 });
-      }
-    } else {
-      sq.cd = 4.6;
-      var any = false;
-      for (var cc = 0; cc < G.enemies.length; cc++) {
-        var e3 = G.enemies[cc];
-        if (e3.dead) continue;
-        if (e3.x < lo - 12 || e3.x > hi + 12) continue;
-        if (e3.st === 'climb') { damage(e3, 22 + 12 * G.squadLvl, 'oil'); any = true; if (Math.random() < 0.5 && !e3.dead) { e3.st = 'fall'; e3.vy = 0; e3.ladder = null; } }
-        else if (e3.st === 'ground' && e3.y <= GROUND_Y + 6) { damage(e3, 12 + 7 * G.squadLvl, 'oil'); any = true; }
-      }
-      if (any) { G.pours.push({ seg: sq.seg, t: 0.8 }); Audio2.oil(); }
-      else sq.cd = 1.2;
-    }
+  function drawDefenderFrame(c, ox, frame) {
+    const bob = frame === 1 ? -2 : 0, lean = frame === 2 ? -5 : frame === 5 ? 3 : 0;
+    c.save(); c.translate(ox + 24, 57 + bob); c.strokeStyle = '#07111b'; c.lineWidth = 2; c.lineCap = 'round';
+    c.fillStyle = '#3864e8'; c.beginPath(); c.arc(0, -16, 16, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.fillStyle = '#43c7f4'; c.beginPath(); c.moveTo(-8, -31); c.lineTo(6, -36); c.lineTo(12, -15); c.lineTo(5, 0); c.lineTo(-9, 0); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#e3d3a2'; c.fillRect(-7, -27, 14, 5); c.fillStyle = '#07111b'; c.fillRect(2, -27, 5, 3);
+    c.fillStyle = '#b72e4d'; c.beginPath(); c.moveTo(-8, -15); c.lineTo(-19, 3 + lean); c.lineTo(-2, -2); c.closePath(); c.fill();
+    c.strokeStyle = '#f4f4e7'; c.lineWidth = 3;
+    if (frame === 2) { c.beginPath(); c.moveTo(3, -13); c.lineTo(19, -32); c.stroke(); }
+    else if (frame === 3) { c.beginPath(); c.moveTo(4, -14); c.lineTo(20, -1); c.stroke(); }
+    else if (frame === 4) { c.beginPath(); c.moveTo(2, -10); c.lineTo(21, 2); c.stroke(); }
+    else if (frame === 5) { c.beginPath(); c.moveTo(4, -13); c.lineTo(22 + lean, -9); c.stroke(); }
+    else if (frame === 6) { c.strokeStyle = '#ff665c'; c.beginPath(); c.moveTo(3, -16); c.lineTo(17, -20); c.stroke(); }
+    else { c.beginPath(); c.moveTo(4, -14); c.lineTo(16, -27); c.stroke(); }
+    if (frame === 7) { c.globalAlpha = 0.45; c.fillStyle = '#43c7f4'; c.fillRect(-16, 0, 32, 4); }
+    c.restore();
   }
 
-  /* --- night complete? --- */
-  if (G.wave.i >= G.wave.ev.length && G.enemies.length === 0) {
-    G.valor += 20 + G.night * 10;
-    if (G.night > best) { best = G.night; saveBest(best); }
-    if (G.night >= TOTAL_NIGHTS) { G.mode = 'win'; Audio2.win(); if (TOTAL_NIGHTS > best) { best = TOTAL_NIGHTS; saveBest(best); } }
-    else { G.mode = 'shop'; selChip = -1; Audio2.rally(); }
+  function drawAttackerFrame(c, ox, frame) {
+    const leap = frame === SPRITE_STATES.attacker.leap, hurt = frame === SPRITE_STATES.attacker.hurt, defeated = frame === 7;
+    const lean = frame === SPRITE_STATES.attacker.sweep ? 5 : frame === SPRITE_STATES.attacker.strike ? -3 : 0;
+    c.save(); c.translate(ox + 24, 57 + (leap ? -4 : 0)); c.strokeStyle = '#07111b'; c.lineWidth = 2;
+    c.fillStyle = hurt ? '#f4f4e7' : defeated ? '#d9a7ff' : '#ff665c'; c.beginPath(); c.arc(0, -18, defeated ? 11 : 8, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.fillStyle = hurt ? '#f4f4e7' : '#b72e4d'; c.beginPath(); c.moveTo(-9, -12); c.lineTo(10 + lean, -11); c.lineTo(8, 2); c.lineTo(-8, 2); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#e3d3a2'; c.fillRect(-8, -23, 16, 4); c.fillStyle = '#07111b'; c.fillRect(-1, -23, 5, 3);
+    c.strokeStyle = '#d8c38c'; c.lineWidth = 2;
+    if (leap) { c.beginPath(); c.moveTo(-4, 0); c.lineTo(-11, 14); c.moveTo(4, 0); c.lineTo(11, 14); c.stroke(); }
+    else if (frame === 3) { c.beginPath(); c.moveTo(5, -8); c.lineTo(19, -20); c.stroke(); }
+    else if (frame === SPRITE_STATES.attacker.kick) { c.beginPath(); c.moveTo(4, -8); c.lineTo(21, -1); c.stroke(); }
+    else if (frame === SPRITE_STATES.attacker.sweep) { c.strokeStyle = '#d9a7ff'; c.lineWidth = 3; c.beginPath(); c.arc(0, -13, 16, 1.2, 4.9); c.stroke(); }
+    else if (defeated) { c.globalAlpha = 0.45; c.fillStyle = '#d9a7ff'; c.fillRect(-16, 0, 32, 4); }
+    else { c.beginPath(); c.moveTo(5, -8); c.lineTo(16, 1); c.stroke(); }
+    c.restore();
   }
-}
 
-function loseGame() {
-  G.mode = 'lose';
-  var score = G.night - 1;
-  if (score > best) { best = score; saveBest(best); }
-  shake(16); flash = 0.6;
-  Audio2.lose();
-}
-
-/* ---------------- drawing ---------------- */
-function rr(x, y, w, h, r) {
-  ctx.beginPath();
-  r = Math.min(r, w / 2, h / 2);
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-function txt(s, x, y, size, col, align, bold) {
-  ctx.fillStyle = col;
-  ctx.font = (bold === false ? '' : 'bold ') + size + 'px ui-sans-serif, system-ui, -apple-system, Helvetica, Arial, sans-serif';
-  ctx.textAlign = align || 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(s, x, y);
-}
-
-var stars = (function () {
-  var r = makeRng(99), a = [];
-  for (var i = 0; i < 46; i++) a.push({ x: r() * VW, y: HUD_H + r() * (WALL_TOP - HUD_H - 20), r: r() * 1.3 + 0.4, p: r() * 6.28 });
-  return a;
+  kit.loader.show('SIEGEBREAK'); kit.loader.progress(0.18);
+  const config = { type: Phaser.CANVAS, width: W, height: H, parent: 'game', backgroundColor: '#07111b', render: { antialias: true, roundPixels: true, clearBeforeRender: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: SiegebreakScene };
+  new Phaser.Game(config);
 })();
-
-function draw(time) {
-  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-  var sh = G.shake;
-  if (sh > 0) ctx.translate(rand(-sh, sh) * 0.5, rand(-sh, sh) * 0.5);
-
-  /* sky */
-  var g = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-  g.addColorStop(0, '#070a1c'); g.addColorStop(0.55, C.sky0); g.addColorStop(1, '#241a2e');
-  ctx.fillStyle = g; ctx.fillRect(-20, 0, VW + 40, GROUND_Y);
-
-  for (var i = 0; i < stars.length; i++) {
-    var s = stars[i];
-    ctx.globalAlpha = 0.35 + 0.4 * Math.abs(Math.sin(time * 0.6 + s.p));
-    ctx.fillStyle = '#cfd8ff';
-    ctx.fillRect(s.x, s.y, s.r, s.r);
-  }
-  ctx.globalAlpha = 1;
-  // moon
-  ctx.fillStyle = '#e9e6d0'; ctx.beginPath(); ctx.arc(320, 108, 20, 0, 6.283); ctx.fill();
-  ctx.fillStyle = C.sky0; ctx.beginPath(); ctx.arc(311, 101, 18, 0, 6.283); ctx.fill();
-
-  /* ground / enemy field */
-  var gg = ctx.createLinearGradient(0, GROUND_Y - 10, 0, BAR_Y);
-  gg.addColorStop(0, '#2a2033'); gg.addColorStop(1, C.ground2);
-  ctx.fillStyle = gg; ctx.fillRect(-20, GROUND_Y - 4, VW + 40, BAR_Y - GROUND_Y + 30);
-  ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 1;
-  for (var yy = GROUND_Y + 16; yy < BAR_Y; yy += 22) {
-    ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(VW, yy); ctx.stroke();
-  }
-  // enemy camp fires
-  for (var f = 0; f < 3; f++) {
-    var fx = 40 + f * 150, fy = BAR_Y - 8;
-    ctx.fillStyle = 'rgba(255,140,60,' + (0.25 + 0.12 * Math.sin(time * 5 + f)) + ')';
-    ctx.beginPath(); ctx.arc(fx, fy, 14 + Math.sin(time * 6 + f) * 2, 0, 6.283); ctx.fill();
-  }
-
-  drawGroundEnemies();
-  drawWall(time);
-  drawLadders(time);
-  drawClimbers();
-  drawPours(time);
-  drawRampart(time);
-  drawSquads(time);
-  drawTopEnemies(time);
-  drawHero(time);
-  drawShots();
-  drawParts();
-  drawTexts();
-
-  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-  drawHUD(time);
-  drawBar(time);
-
-  if (flash > 0) {
-    ctx.fillStyle = 'rgba(255,225,150,' + (flash * 0.5) + ')';
-    ctx.fillRect(0, 0, VW, VH);
-  }
-
-  if (G.mode === 'shop') drawShop();
-  else if (G.mode === 'lose') drawEnd(false);
-  else if (G.mode === 'win') drawEnd(true);
-  else if (G.nightTitle > 0) {
-    var al = clamp(G.nightTitle / 0.7, 0, 1);
-    ctx.globalAlpha = al;
-    txt('NIGHT ' + G.night, VW / 2, 168, 40, C.gold);
-    txt(nightBlurb(G.night), VW / 2, 200, 13, '#cbd2e6');
-    ctx.globalAlpha = 1;
-  }
-
-  if (hint > 0 && G.mode === 'play') {
-    ctx.globalAlpha = clamp(hint / 2, 0, 1);
-    ctx.fillStyle = 'rgba(0,0,0,.55)'; rr(20, 236, 350, 30, 8); ctx.fill();
-    txt('TAP the wall to leap & strike  •  SWIPE DOWN = kick ladders off', VW / 2, 251, 12, '#ffe9b8');
-    ctx.globalAlpha = 1;
-  }
-}
-
-function nightBlurb(n) {
-  var b = ['ladders in the dark', 'ropes on the stone', 'the ram comes', 'shielded vanguard',
-    'a tide of them', 'a tower rolls in', 'they climb faster', 'two rams at the gate',
-    'towers and elites', 'the last assault'];
-  return b[clamp(n - 1, 0, 9)];
-}
-
-function drawWall(time) {
-  // wall face
-  var g = ctx.createLinearGradient(0, MERLON_BOT, 0, GROUND_Y);
-  g.addColorStop(0, C.wallL); g.addColorStop(0.35, C.wall); g.addColorStop(1, C.wallD);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, MERLON_BOT, VW, GROUND_Y - MERLON_BOT);
-  // bricks
-  ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 1;
-  for (var y = MERLON_BOT + 18; y < GROUND_Y; y += 18) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(VW, y); ctx.stroke();
-    var off = ((y / 18) % 2) * 22;
-    for (var x = off; x < VW; x += 44) {
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 18); ctx.stroke();
-    }
-  }
-  // segment damage tint + cracks
-  for (var i = 0; i < 3; i++) {
-    var sg = G.segs[i], f = sg.hp / sg.max;
-    if (f < 1) {
-      ctx.fillStyle = 'rgba(180,40,30,' + (0.30 * (1 - f)) + ')';
-      ctx.fillRect(SEG[i][0], MERLON_BOT, SEG[i][1] - SEG[i][0], GROUND_Y - MERLON_BOT);
-    }
-    if (sg.hp <= 0) {
-      ctx.fillStyle = 'rgba(0,0,0,.55)';
-      ctx.fillRect(SEG[i][0] + 4, MERLON_BOT, SEG[i][1] - SEG[i][0] - 8, GROUND_Y - MERLON_BOT);
-      ctx.strokeStyle = C.bad; ctx.lineWidth = 2;
-      ctx.strokeRect(SEG[i][0] + 4, MERLON_BOT + 2, SEG[i][1] - SEG[i][0] - 8, GROUND_Y - MERLON_BOT - 4);
-    }
-    // divider
-    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 2;
-    if (i > 0) { ctx.beginPath(); ctx.moveTo(SEG[i][0], MERLON_BOT); ctx.lineTo(SEG[i][0], GROUND_Y); ctx.stroke(); }
-  }
-  // gate
-  var gf = G.gate.hp / G.gate.max;
-  ctx.fillStyle = '#241a12'; ctx.fillRect(GX0 - 4, GY0 - 6, GX1 - GX0 + 8, GY1 - GY0 + 6);
-  var gd = ctx.createLinearGradient(0, GY0, 0, GY1);
-  gd.addColorStop(0, '#8a6a44'); gd.addColorStop(1, '#5a4229');
-  ctx.fillStyle = gd;
-  ctx.beginPath();
-  ctx.moveTo(GX0, GY1); ctx.lineTo(GX0, GY0 + 16);
-  ctx.quadraticCurveTo(195, GY0 - 16, GX1, GY0 + 16); ctx.lineTo(GX1, GY1);
-  ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 2;
-  for (var b = GX0 + 12; b < GX1; b += 14) { ctx.beginPath(); ctx.moveTo(b, GY0 + 2); ctx.lineTo(b, GY1); ctx.stroke(); }
-  ctx.strokeStyle = '#3a2b1a'; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.moveTo(GX0, GY0 + 26); ctx.lineTo(GX1, GY0 + 26); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(GX0, GY0 + 56); ctx.lineTo(GX1, GY0 + 56); ctx.stroke();
-  if (gf < 1) {
-    ctx.fillStyle = 'rgba(200,40,25,' + (0.45 * (1 - gf)) + ')';
-    ctx.fillRect(GX0, GY0 - 10, GX1 - GX0, GY1 - GY0 + 10);
-  }
-  // gate hp bar under gate
-  bar(GX0, GY1 - 10, GX1 - GX0, 6, gf, gf > 0.5 ? '#c8a35a' : (gf > 0.25 ? '#e2a33c' : C.bad));
-
-  // mash prompt
-  if (G.ramMash && G.mode === 'play') {
-    var pulse = 0.5 + 0.5 * Math.sin(time * 9);
-    ctx.strokeStyle = 'rgba(255,169,77,' + (0.5 + pulse * 0.5) + ')';
-    ctx.lineWidth = 3; rr(GX0 - 12, GY0 - 14, GX1 - GX0 + 24, GY1 - GY0 + 22, 8); ctx.stroke();
-    txt('MASH: POUR OIL', 195, GY0 - 26, 12, '#ffd9a0');
-    bar(GX0, GY0 - 8, GX1 - GX0, 5, G.gateOil / 100, C.oil);
-  }
-}
-
-function drawRampart(time) {
-  // walkway
-  ctx.fillStyle = C.ramp;
-  ctx.fillRect(0, WALL_TOP, VW, 8);
-  ctx.fillStyle = 'rgba(255,255,255,.10)';
-  ctx.fillRect(0, WALL_TOP, VW, 2);
-  // crenellations (behind hero visually: drawn as blocks hanging below walkway top edge)
-  ctx.fillStyle = C.wallL;
-  for (var x = 0; x < VW; x += 26) ctx.fillRect(x, WALL_TOP + 8, 18, 14);
-  // torches at segment edges
-  for (var i = 0; i < 4; i++) {
-    var tx2 = i * 130;
-    tx2 = clamp(tx2, 4, VW - 6);
-    ctx.fillStyle = '#5a4a33'; ctx.fillRect(tx2 - 1, WALL_TOP - 14, 3, 14);
-    var fl = 0.6 + 0.4 * Math.sin(time * 7 + i * 2);
-    ctx.fillStyle = 'rgba(255,170,60,' + (0.55 * fl) + ')';
-    ctx.beginPath(); ctx.arc(tx2, WALL_TOP - 17, 5 + fl * 2, 0, 6.283); ctx.fill();
-  }
-}
-
-function drawGroundEnemies() {
-  for (var i = 0; i < G.enemies.length; i++) {
-    var e = G.enemies[i];
-    if (e.k === 'ram') { drawRam(e); continue; }
-    if (e.k === 'tower') { drawTower(e); continue; }
-    if (e.st === 'ground' || e.st === 'fall') drawFoot(e);
-  }
-}
-function drawClimbers() {
-  for (var i = 0; i < G.enemies.length; i++) {
-    var e = G.enemies[i];
-    if (e.st === 'climb') drawFoot(e);
-  }
-}
-function drawTopEnemies(time) {
-  for (var i = 0; i < G.enemies.length; i++) {
-    var e = G.enemies[i];
-    if (e.st === 'top') drawFoot(e);
-  }
-}
-
-function drawFoot(e) {
-  var d = EDEF[e.k];
-  var col = e.hurt > 0 ? '#ffffff' : d.col;
-  var w = d.w, h = d.h;
-  ctx.fillStyle = col;
-  rr(e.x - w / 2, e.y - h, w, h - 5, 3); ctx.fill();
-  ctx.beginPath(); ctx.arc(e.x, e.y - h - 3, w * 0.42, 0, 6.283); ctx.fill();
-  // legs
-  ctx.fillRect(e.x - w / 2 + 1, e.y - 5, 3, 5);
-  ctx.fillRect(e.x + w / 2 - 4, e.y - 5, 3, 5);
-  if (e.shield) {
-    ctx.fillStyle = '#dcd6ff';
-    rr(e.x - w / 2 - 6, e.y - h + 2, 5, h - 6, 2); ctx.fill();
-  }
-  if (e.k === 'grap' && e.st === 'ground') {
-    ctx.strokeStyle = '#c8b48a'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(e.x, e.y - h); ctx.lineTo(e.x + 8, e.y - h - 8); ctx.stroke();
-  }
-  if (e.st === 'top') {
-    // little weapon swing
-    ctx.strokeStyle = '#e8e2d0'; ctx.lineWidth = 2;
-    var a = Math.sin(e.wob) * 0.7;
-    ctx.beginPath(); ctx.moveTo(e.x, e.y - h + 4);
-    ctx.lineTo(e.x + Math.cos(a - 1.1) * 13, e.y - h + 4 + Math.sin(a - 1.1) * 13); ctx.stroke();
-  }
-  // hp pip
-  if (e.hp < e.max) bar(e.x - 9, e.y - h - 12, 18, 3, e.hp / e.max, C.bad);
-}
-
-function drawRam(e) {
-  var d = EDEF.ram;
-  var wob = Math.sin(e.wob) * 4;
-  ctx.fillStyle = '#463322';
-  rr(e.x - d.w / 2, e.y - d.h, d.w, d.h, 4); ctx.fill();
-  ctx.fillStyle = e.hurt > 0 ? '#fff' : '#7d5f3f';
-  rr(e.x - d.w / 2 + 6, e.y - d.h - 10 + wob * 0.2, d.w - 12, 12, 6); ctx.fill();
-  ctx.fillStyle = '#3a2b1a';
-  rr(e.x - 8, e.y - d.h - 14 + wob, 16, 8, 3); ctx.fill();
-  // wheels
-  ctx.fillStyle = '#2b2118';
-  ctx.beginPath(); ctx.arc(e.x - 18, e.y - 3, 6, 0, 6.283); ctx.fill();
-  ctx.beginPath(); ctx.arc(e.x + 18, e.y - 3, 6, 0, 6.283); ctx.fill();
-  bar(e.x - 26, e.y - d.h - 24, 52, 4, e.hp / e.max, C.bad);
-  txt('RAM', e.x, e.y - d.h - 32, 9, '#e6b98a');
-}
-
-function drawTower(e) {
-  var d = EDEF.tower;
-  var top = e.y - (e.arrived ? (GROUND_Y - WALL_TOP + 8) : d.h);
-  ctx.fillStyle = e.hurt > 0 ? '#fff' : '#5c6272';
-  rr(e.x - d.w / 2, top, d.w, e.y - top, 4); ctx.fill();
-  ctx.fillStyle = '#41465a';
-  for (var y = top + 12; y < e.y - 8; y += 18) ctx.fillRect(e.x - d.w / 2 + 4, y, d.w - 8, 3);
-  ctx.fillStyle = '#7d8598';
-  ctx.fillRect(e.x - d.w / 2 - 4, top - 6, d.w + 8, 8);
-  ctx.fillStyle = '#2b2118';
-  ctx.beginPath(); ctx.arc(e.x - 14, e.y - 3, 6, 0, 6.283); ctx.fill();
-  ctx.beginPath(); ctx.arc(e.x + 14, e.y - 3, 6, 0, 6.283); ctx.fill();
-  bar(e.x - 26, top - 18, 52, 4, e.hp / e.max, C.bad);
-  txt('TOWER', e.x, top - 26, 9, '#c3cad9');
-}
-
-function drawLadders(time) {
-  for (var i = 0; i < G.ladders.length; i++) {
-    var L = G.ladders[i];
-    if (L.grap) {
-      ctx.strokeStyle = '#c8b48a'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(L.x, GROUND_Y); ctx.lineTo(L.x + 2, WALL_TOP + 6); ctx.stroke();
-      ctx.fillStyle = '#9aa2b8';
-      ctx.fillRect(L.x - 4, WALL_TOP + 4, 9, 5);
-    } else {
-      ctx.strokeStyle = '#9a854f'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(L.x - 7, GROUND_Y); ctx.lineTo(L.x - 7, WALL_TOP + 4); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(L.x + 7, GROUND_Y); ctx.lineTo(L.x + 7, WALL_TOP + 4); ctx.stroke();
-      ctx.lineWidth = 2;
-      for (var y = WALL_TOP + 12; y < GROUND_Y; y += 16) {
-        ctx.beginPath(); ctx.moveTo(L.x - 7, y); ctx.lineTo(L.x + 7, y); ctx.stroke();
-      }
-    }
-  }
-}
-
-function drawPours(time) {
-  for (var i = 0; i < G.pours.length; i++) {
-    var p = G.pours[i];
-    var a = clamp(p.t, 0, 1);
-    if (p.gate) {
-      ctx.fillStyle = 'rgba(255,169,77,' + (0.5 * a) + ')';
-      ctx.fillRect(GX0, GY0 - 6, GX1 - GX0, GY1 - GY0 + 8);
-      continue;
-    }
-    var lo = SEG[p.seg][0] + 4, w = SEG[p.seg][1] - SEG[p.seg][0] - 8;
-    var gr = ctx.createLinearGradient(0, WALL_TOP, 0, GROUND_Y);
-    gr.addColorStop(0, 'rgba(255,200,90,' + (0.75 * a) + ')');
-    gr.addColorStop(1, 'rgba(200,80,20,' + (0.25 * a) + ')');
-    ctx.fillStyle = gr;
-    ctx.fillRect(lo, WALL_TOP + 10, w, GROUND_Y - WALL_TOP - 10);
-    for (var k = 0; k < 4; k++) {
-      var x = lo + ((k * 37 + time * 260) % w);
-      ctx.fillStyle = 'rgba(255,230,160,' + (0.5 * a) + ')';
-      ctx.fillRect(x, WALL_TOP + 12, 3, 26);
-    }
-  }
-}
-
-function drawSquads(time) {
-  for (var i = 0; i < G.squads.length; i++) {
-    var sq = G.squads[i];
-    var seg = sq.moveTo >= 0 ? sq.moveTo : sq.seg;
-    var x = SEGC[seg];
-    if (sq.moveTo >= 0) x = lerp(SEGC[sq.seg], SEGC[sq.moveTo], 1 - sq.moveT / 1.0);
-    x += (i - 1) * 26;
-    var col = C[sq.type];
-    for (var m = 0; m < 3; m++) {
-      var mx = x + (m - 1) * 8;
-      ctx.globalAlpha = sq.moveTo >= 0 ? 0.55 : 1;
-      ctx.fillStyle = col;
-      rr(mx - 3, WALL_TOP - 15, 6, 12, 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(mx, WALL_TOP - 18, 2.6, 0, 6.283); ctx.fill();
-      if (sq.type === 'spear') { ctx.fillRect(mx + 3, WALL_TOP - 26, 1.5, 20); }
-      else if (sq.type === 'archer') { ctx.fillRect(mx + 3, WALL_TOP - 22, 1.5, 12); }
-      else { ctx.fillRect(mx - 4, WALL_TOP - 22, 8, 4); }
-      ctx.globalAlpha = 1;
-    }
-  }
-}
-
-function drawHero(time) {
-  var h = G.hero;
-  var bob = h.leap ? 0 : Math.sin(time * 3) * 1.2;
-  var x = h.x, y = h.y + bob;
-  // glow
-  ctx.fillStyle = 'rgba(255,209,102,.10)';
-  ctx.beginPath(); ctx.arc(x, y - 16, 26, 0, 6.283); ctx.fill();
-  // body
-  ctx.fillStyle = C.hero;
-  rr(x - 7, y - 26, 14, 20, 4); ctx.fill();
-  ctx.fillStyle = C.heroD;
-  ctx.fillRect(x - 7, y - 8, 5, 8); ctx.fillRect(x + 2, y - 8, 5, 8);
-  ctx.fillStyle = C.hero;
-  ctx.beginPath(); ctx.arc(x, y - 31, 6, 0, 6.283); ctx.fill();
-  // cape
-  ctx.fillStyle = 'rgba(200,60,70,.85)';
-  ctx.beginPath();
-  ctx.moveTo(x - h.face * 5, y - 27);
-  ctx.lineTo(x - h.face * 15, y - 6 + (h.leap ? 6 : 0));
-  ctx.lineTo(x - h.face * 3, y - 8);
-  ctx.closePath(); ctx.fill();
-  // sword
-  var t = h.atk > 0 ? (1 - h.atk / 0.26) : -1;
-  ctx.strokeStyle = '#fff4d0'; ctx.lineCap = 'round';
-  if (t >= 0) {
-    if (h.atkType === 'over') {
-      var a = lerp(-2.1, 0.2, t);           // angle from straight up, swinging down
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(x, y - 22);
-      ctx.lineTo(x + Math.sin(a) * 32 * h.face, y - 22 - Math.cos(a) * 32);
-      ctx.stroke();
-      ctx.globalAlpha = 0.35 * (1 - t);
-      ctx.strokeStyle = '#ffe9a8'; ctx.lineWidth = 9;
-      ctx.beginPath();
-      if (h.face > 0) ctx.arc(x, y - 22, 32, -2.6, -0.9);
-      else ctx.arc(x, y - 22, 32, -2.24, -0.54);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    } else if (h.atkType === 'sweep') {
-      ctx.lineWidth = 4;
-      var a2 = lerp(-1.2, 1.2, t) * h.face;
-      ctx.beginPath(); ctx.moveTo(x, y - 18);
-      ctx.lineTo(x + Math.cos(a2) * 34 * h.face, y - 18 + Math.sin(a2) * 12); ctx.stroke();
-      ctx.globalAlpha = 0.3 * (1 - t);
-      ctx.fillStyle = '#ffe9a8';
-      ctx.beginPath(); ctx.ellipse(x, y - 16, 60, 16, 0, 0, 6.283); ctx.fill();
-      ctx.globalAlpha = 1;
-    } else {
-      ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(x, y - 12);
-      ctx.lineTo(x + h.face * lerp(6, 26, t), y - 4); ctx.stroke();
-      ctx.globalAlpha = 0.35 * (1 - t);
-      ctx.fillStyle = '#ffd9a0';
-      ctx.fillRect(x - 46, y + 2, 92, 10);
-      ctx.globalAlpha = 1;
-    }
-  } else {
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(x + h.face * 8, y - 24); ctx.lineTo(x + h.face * 12, y - 42); ctx.stroke();
-  }
-  ctx.lineCap = 'butt';
-  if (h.combo > 1) txt('x' + h.combo, x, y - 50, 12, C.gold);
-}
-
-function drawShots() {
-  for (var i = 0; i < G.shots.length; i++) {
-    var s = G.shots[i];
-    var t = clamp(s.t, 0, 1);
-    var x = lerp(s.x0, s.x1, t), y = lerp(s.y0, s.y1, t);
-    if (s.arc) y -= Math.sin(t * Math.PI) * 26;
-    ctx.strokeStyle = s.c; ctx.lineWidth = s.w;
-    var px = lerp(s.x0, s.x1, Math.max(0, t - 0.12));
-    var py = lerp(s.y0, s.y1, Math.max(0, t - 0.12));
-    if (s.arc) py -= Math.sin(Math.max(0, t - 0.12) * Math.PI) * 26;
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke();
-  }
-}
-
-function drawParts() {
-  for (var i = 0; i < G.parts.length; i++) {
-    var p = G.parts[i];
-    ctx.globalAlpha = clamp(p.l / p.m, 0, 1);
-    ctx.fillStyle = p.c;
-    ctx.fillRect(p.x, p.y, p.r, p.r);
-  }
-  ctx.globalAlpha = 1;
-}
-function drawTexts() {
-  for (var i = 0; i < G.texts.length; i++) {
-    var t = G.texts[i];
-    ctx.globalAlpha = clamp(t.l / 0.6, 0, 1);
-    txt(t.s, t.x, t.y, 12, t.c);
-    ctx.globalAlpha = 1;
-  }
-}
-
-function bar(x, y, w, h, f, col) {
-  ctx.fillStyle = 'rgba(0,0,0,.5)';
-  ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = col;
-  ctx.fillRect(x, y, w * clamp(f, 0, 1), h);
-}
-
-function drawHUD(time) {
-  ctx.fillStyle = '#080b16';
-  ctx.fillRect(0, 0, VW, HUD_H);
-  ctx.fillStyle = 'rgba(255,255,255,.07)';
-  ctx.fillRect(0, HUD_H - 1, VW, 1);
-
-  txt('NIGHT ' + G.night + '/' + TOTAL_NIGHTS, 8, 14, 13, C.gold, 'left');
-  txt('BEST ' + best, VW - 8, 14, 11, '#8f97ad', 'right');
-  txt('VALOR ' + Math.floor(G.valor), VW - 8, 30, 11, C.gold, 'right');
-
-  // segment bars
-  for (var i = 0; i < 3; i++) {
-    var x = 8 + i * 78, sg = G.segs[i], f = sg.hp / sg.max;
-    bar(x, 26, 70, 7, f, sg.hp <= 0 ? '#4a2028' : (f > 0.5 ? C.good : (f > 0.25 ? '#e2c33c' : C.bad)));
-    txt('W' + (i + 1), x + 35, 42, 9, '#7d859b');
-  }
-  // gate bar
-  bar(250, 26, 70, 7, G.gate.hp / G.gate.max, G.gate.hp / G.gate.max > 0.4 ? '#c8a35a' : C.bad);
-  txt('GATE', 285, 42, 9, '#7d859b');
-
-  // banner meter
-  var bf = G.banner / 100;
-  bar(8, 48, 304, 6, bf, bf >= 1 ? C.gold : '#6d5fd6');
-  txt('BANNER', 340, 51, 9, bf >= 1 ? C.gold : '#7d859b');
-
-  // wave progress
-  var wp = G.wave ? clamp(G.waveT / G.wave.dur, 0, 1) : 0;
-  ctx.fillStyle = 'rgba(255,255,255,.12)';
-  ctx.fillRect(0, HUD_H - 3, VW * wp, 2);
-}
-
-var BTN = [];
-function drawBar(time) {
-  BTN.length = 0;
-  ctx.fillStyle = '#080b16';
-  ctx.fillRect(0, BAR_Y, VW, VH - BAR_Y);
-  ctx.fillStyle = 'rgba(255,255,255,.07)';
-  ctx.fillRect(0, BAR_Y, VW, 1);
-
-  var w = 92, gap = 5, x0 = 6, y = BAR_Y + 6, h = 56;
-  for (var i = 0; i < 3; i++) {
-    var sq = G.squads[i];
-    var x = x0 + i * (w + gap);
-    BTN.push({ x: x, y: y, w: w, h: h, kind: 'chip', i: i });
-    var sel = selChip === i;
-    ctx.fillStyle = sel ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.06)';
-    rr(x, y, w, h, 8); ctx.fill();
-    ctx.strokeStyle = sel ? C[sq.type] : 'rgba(255,255,255,.14)';
-    ctx.lineWidth = sel ? 2.5 : 1;
-    rr(x, y, w, h, 8); ctx.stroke();
-    txt(sq.type.toUpperCase(), x + w / 2, y + 17, 13, C[sq.type]);
-    var segn = (sq.moveTo >= 0 ? sq.moveTo : sq.seg) + 1;
-    txt('WALL ' + segn + (sq.moveTo >= 0 ? ' …' : ''), x + w / 2, y + 35, 10, '#aeb6cc');
-    if (sq.type === 'oil') {
-      bar(x + 14, y + 45, w - 28, 4, 1 - clamp(sq.cd / 4.6, 0, 1), C.oil);
-    } else {
-      txt('R' + G.squadLvl, x + w / 2, y + 46, 9, '#7d859b');
-    }
-  }
-  // banner button
-  var bx = x0 + 3 * (w + gap);
-  BTN.push({ x: bx, y: y, w: VW - bx - 6, h: h, kind: 'banner' });
-  var full = G.banner >= 100;
-  ctx.fillStyle = full ? 'rgba(255,209,102,' + (0.25 + 0.15 * Math.sin(time * 8)) + ')' : 'rgba(255,255,255,.05)';
-  rr(bx, y, VW - bx - 6, h, 8); ctx.fill();
-  ctx.strokeStyle = full ? C.gold : 'rgba(255,255,255,.12)';
-  ctx.lineWidth = full ? 2.5 : 1;
-  rr(bx, y, VW - bx - 6, h, 8); ctx.stroke();
-  txt('RALLY', bx + (VW - bx - 6) / 2, y + 22, 13, full ? C.gold : '#5f6780');
-  txt(full ? 'READY!' : Math.floor(G.banner) + '%', bx + (VW - bx - 6) / 2, y + 40, 10, full ? C.gold : '#5f6780');
-
-  // segment targeting overlay when a chip is selected
-  if (selChip >= 0 && G.mode === 'play') {
-    for (var s = 0; s < 3; s++) {
-      var lo = SEG[s][0], sw = SEG[s][1] - SEG[s][0];
-      ctx.fillStyle = 'rgba(255,255,255,.07)';
-      ctx.fillRect(lo + 3, HUD_H + 6, sw - 6, GROUND_Y - HUD_H - 12);
-      ctx.strokeStyle = C[G.squads[selChip].type]; ctx.lineWidth = 2;
-      ctx.setLineDash([6, 5]);
-      ctx.strokeRect(lo + 3, HUD_H + 6, sw - 6, GROUND_Y - HUD_H - 12);
-      ctx.setLineDash([]);
-      txt('WALL ' + (s + 1), SEGC[s], HUD_H + 24, 15, C[G.squads[selChip].type]);
-    }
-    txt('tap a wall to send ' + G.squads[selChip].type.toUpperCase(), VW / 2, GROUND_Y + 24, 12, '#e7ecff');
-  }
-}
-
-/* ---------------- shop / end screens ---------------- */
-function drawShop() {
-  ctx.fillStyle = 'rgba(6,8,16,.90)';
-  ctx.fillRect(0, 0, VW, VH);
-  txt('NIGHT ' + G.night + ' HELD', VW / 2, 74, 26, C.gold);
-  txt('VALOR: ' + Math.floor(G.valor), VW / 2, 104, 15, '#dfe5f5');
-  txt('spend before the horns sound again', VW / 2, 124, 11, '#8f97ad');
-
-  shopBtns.length = 0;
-  var y = 150;
-  for (var i = 0; i < UP_DEFS.length; i++) {
-    var u = UP_DEFS[i], cost = G.upCost[u.k];
-    var can = G.valor >= cost;
-    var b = { x: 24, y: y, w: VW - 48, h: 62, k: u.k, cost: cost, can: can };
-    shopBtns.push(b);
-    ctx.fillStyle = can ? 'rgba(255,255,255,.08)' : 'rgba(255,255,255,.03)';
-    rr(b.x, b.y, b.w, b.h, 10); ctx.fill();
-    ctx.strokeStyle = can ? C.gold : 'rgba(255,255,255,.10)';
-    ctx.lineWidth = can ? 2 : 1;
-    rr(b.x, b.y, b.w, b.h, 10); ctx.stroke();
-    txt(u.name, b.x + 14, b.y + 21, 14, can ? '#fff' : '#5f6780', 'left');
-    txt(u.desc, b.x + 14, b.y + 41, 11, can ? '#aeb6cc' : '#4e556b', 'left');
-    txt(cost + 'v', b.x + b.w - 14, b.y + 31, 15, can ? C.gold : '#5f6780', 'right');
-    y += 70;
-  }
-  var cb = { x: 24, y: 552, w: VW - 48, h: 58, k: 'go' };
-  shopBtns.push(cb);
-  ctx.fillStyle = 'rgba(216,80,70,.22)';
-  rr(cb.x, cb.y, cb.w, cb.h, 10); ctx.fill();
-  ctx.strokeStyle = C.bad; ctx.lineWidth = 2;
-  rr(cb.x, cb.y, cb.w, cb.h, 10); ctx.stroke();
-  txt('BEGIN NIGHT ' + (G.night + 1), VW / 2, 581, 17, '#ffd8d2');
-  txt(nightBlurb(G.night + 1), VW / 2, 624, 11, '#8f97ad');
-}
-
-function drawEnd(won) {
-  ctx.fillStyle = won ? 'rgba(10,20,14,.92)' : 'rgba(16,6,8,.92)';
-  ctx.fillRect(0, 0, VW, VH);
-  var score = won ? TOTAL_NIGHTS : G.night - 1;
-  txt(won ? 'THE SIEGE IS BROKEN' : 'THE WALL HAS FALLEN', VW / 2, 250, won ? 24 : 25, won ? C.good : C.bad);
-  txt(won ? 'Ten nights held. Dawn is yours.' : 'They pour through the stone.', VW / 2, 282, 12, '#aeb6cc');
-  txt('NIGHTS SURVIVED', VW / 2, 336, 12, '#8f97ad');
-  txt(String(score), VW / 2, 376, 54, C.gold);
-  txt('BEST ' + best, VW / 2, 414, 14, '#dfe5f5');
-  ctx.fillStyle = 'rgba(255,255,255,.08)';
-  rr(90, 452, 210, 58, 10); ctx.fill();
-  ctx.strokeStyle = C.gold; ctx.lineWidth = 2;
-  rr(90, 452, 210, 58, 10); ctx.stroke();
-  txt('HOLD AGAIN', VW / 2, 481, 17, C.gold);
-}
-
-/* ---------------- input wiring ---------------- */
-function inRect(x, y, r) { return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h; }
-
-Input.onPress = function (x, y) {
-  if (G.mode !== 'play') return;
-  // ram mash: rapid repeated presses on the gate
-  if (G.ramMash && y > GY0 - 22 && y < GY1 + 8 && x > GX0 - 24 && x < GX1 + 24) {
-    gateMash(x, y);
-  }
-};
-
-Input.onTap = function (x, y, dir) {
-  if (G.mode === 'shop') { shopTap(x, y); return; }
-  if (G.mode === 'lose' || G.mode === 'win') { newGame(); Audio2.ui(); return; }
-
-  // bottom bar buttons
-  for (var i = 0; i < BTN.length; i++) {
-    var b = BTN[i];
-    if (inRect(x, y, b)) {
-      if (b.kind === 'chip') { selChip = (selChip === b.i) ? -1 : b.i; Audio2.ui(); }
-      else { if (G.banner >= 100) bannerBurst(); else Audio2.ui(); }
-      return;
-    }
-  }
-  if (y > BAR_Y) return;
-  if (y < HUD_H) return;
-
-  if (selChip >= 0) {
-    orderSquad(selChip, segAt(x));
-    selChip = -1;
-    return;
-  }
-  // gate mash region handled on press; ignore taps that were mashes
-  if (G.ramMash && y > GY0 - 22 && y < GY1 + 8 && x > GX0 - 24 && x < GX1 + 24) return;
-
-  heroCommand(x, dir);
-};
-
-function shopTap(x, y) {
-  for (var i = 0; i < shopBtns.length; i++) {
-    var b = shopBtns[i];
-    if (!inRect(x, y, b)) continue;
-    if (b.k === 'go') {
-      G.mode = 'play';
-      G.night++;
-      startNight(G.night);
-      Audio2.rally();
-      return;
-    }
-    if (!b.can) { Audio2.ui(); return; }
-    G.valor -= b.cost;
-    var def = null;
-    for (var j = 0; j < UP_DEFS.length; j++) if (UP_DEFS[j].k === b.k) def = UP_DEFS[j];
-    G.upCost[b.k] += def.step;
-    Audio2.buy();
-    if (b.k === 'wall') {
-      for (var s = 0; s < 3; s++) { G.segs[s].max = Math.max(G.segs[s].max, 100); G.segs[s].hp = Math.min(G.segs[s].max, G.segs[s].hp + 45); }
-    } else if (b.k === 'gate') {
-      G.gate.hp = Math.min(G.gate.max, G.gate.hp + 90);
-    } else if (b.k === 'blade') {
-      G.heroDmg *= 1.18;
-    } else if (b.k === 'drill') {
-      G.squadLvl++;
-    } else {
-      G.bannerMul *= 1.3;
-    }
-    return;
-  }
-}
-
-Input.onKey = function (k) {
-  if (G.mode === 'lose' || G.mode === 'win') {
-    if (k === ' ' || k === 'enter' || k === 'r') newGame();
-    return;
-  }
-  if (G.mode === 'shop') {
-    if (k === 'enter' || k === ' ') { G.mode = 'play'; G.night++; startNight(G.night); Audio2.rally(); return; }
-    var idx = ['1', '2', '3', '4', '5'].indexOf(k);
-    if (idx >= 0 && shopBtns[idx]) {
-      var b = shopBtns[idx];
-      if (b.can) { shopTap(b.x + 5, b.y + 5); }
-    }
-    return;
-  }
-  if (k === ' ') doAttack('over');
-  else if (k === 'arrowdown' || k === 's') doAttack('kick');
-  else if (k === 'arrowup' || k === 'w') doAttack('sweep');
-  else if (k === 'enter') bannerBurst();
-  else if (k === '1' || k === '2' || k === '3') { selChip = parseInt(k, 10) - 1; Audio2.ui(); }
-  else if (k === 'q' || k === 'e' || k === 'r') {
-    var seg = k === 'q' ? 0 : (k === 'e' ? 1 : 2);
-    if (selChip >= 0) { orderSquad(selChip, seg); selChip = -1; }
-  }
-};
-
-/* ---------------- main loop ---------------- */
-var last = 0;
-function frame(ms) {
-  var t = ms / 1000;
-  var dt = Math.min(0.05, t - last || 0.016);
-  last = t;
-  update(dt);
-  draw(t);
-  requestAnimationFrame(frame);
-}
-
-newGame();
-requestAnimationFrame(frame);

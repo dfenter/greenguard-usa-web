@@ -1,80 +1,204 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/skyshard-vale/">
+<head>
+  <base href="/play/skyshard-vale/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#09121f">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#081726">
+  <meta name="description" content="Skyshard Vale, an elemental open-world action RPG.">
+  <link rel="manifest" href="/play/skyshard-vale/manifest.json">
+  <link rel="icon" type="image/png" sizes="64x64" href="/play/skyshard-vale/favicon.png">
   <title>Skyshard Vale</title>
   <style>
-    :root { color-scheme: dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    :root {
+      color-scheme: dark;
+      --ink: #081726;
+      --deep: #102c3b;
+      --panel: #0c2233e8;
+      --line: #b9ece455;
+      --paper: #f5f0dc;
+      --mist: #b9e6dc;
+      --gold: #ffd58a;
+      --cyan: #78e6db;
+      --coral: #ff9a8b;
+      --green: #9aefb0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
     * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #09121f; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--ink); }
     body { touch-action: none; user-select: none; -webkit-user-select: none; }
     button { font: inherit; color: inherit; }
-    #game-shell { position: fixed; inset: 0; overflow: hidden; background: #09121f; }
-    #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-    #hud { position: absolute; z-index: 3; left: 0; right: 0; top: 0; padding: max(12px, env(safe-area-inset-top)) 14px 0; pointer-events: none; }
-    .hud-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .brand { color: #f8f0db; font-size: 14px; font-weight: 900; letter-spacing: .16em; text-shadow: 0 2px 8px #07111ccc; }
-    .brand span { color: #80d6d1; }
-    .zone { padding: 4px 8px; border: 1px solid #b9e7df55; border-radius: 8px; color: #b9e7df; font-size: 10px; font-weight: 800; letter-spacing: .14em; background: #0b2032aa; }
-    #stats { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 10px; font-size: 11px; font-weight: 800; }
-    .meter { position: relative; flex: 1; height: 14px; max-width: 170px; overflow: hidden; border: 1px solid #ffd4c066; border-radius: 7px; background: #1b2634cc; }
-    #hp-fill { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(90deg, #e86c63, #ffc77a); transition: width .12s linear; }
-    #hp-label { position: absolute; inset: 0; display: grid; place-items: center; color: #fff5e8; font-size: 9px; text-shadow: 0 1px 3px #000; }
-    .stat-pill { padding: 5px 7px; border: 1px solid #b9e7df44; border-radius: 7px; background: #0b2032b5; color: #e9f8ed; white-space: nowrap; }
-    #hint { position: absolute; z-index: 4; left: 50%; bottom: calc(160px + env(safe-area-inset-bottom)); width: min(90vw, 520px); transform: translateX(-50%); padding: 6px 12px; border: 1px solid #f8f0db38; border-radius: 8px; background: #0b1625c9; color: #f8f0db; text-align: center; font-size: 11px; line-height: 1.2; pointer-events: none; }
-    #toast { position: absolute; z-index: 5; left: 50%; top: 22%; transform: translate(-50%, -50%); padding: 10px 14px; border: 1px solid #d4f4e2aa; border-radius: 9px; background: #122437e8; color: #d4f4e2; font-size: 12px; font-weight: 900; letter-spacing: .06em; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; text-align: center; white-space: nowrap; }
-    #toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1.03); }
-    #touch-ui { position: absolute; z-index: 6; inset: 0; pointer-events: none; }
-    #stick-area { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: calc(24px + env(safe-area-inset-bottom)); width: 118px; height: 118px; border: 2px solid #d4f4e255; border-radius: 50%; background: #0f304280; pointer-events: auto; touch-action: none; }
-    #stick-area::after { content: ""; position: absolute; inset: 21px; border: 1px dashed #d4f4e22f; border-radius: 50%; }
-    #stick-thumb { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px; border: 2px solid #d4f4e2cc; border-radius: 50%; background: #6bc8c6aa; box-shadow: 0 4px 12px #0007; pointer-events: none; }
-    #actions { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: calc(26px + env(safe-area-inset-bottom)); display: flex; align-items: end; gap: 11px; pointer-events: none; }
-    .action { width: 76px; height: 76px; border: 2px solid #f8f0db88; border-radius: 50%; background: #512f4bdb; box-shadow: 0 5px 14px #0008, inset 0 0 0 5px #ffffff0b; pointer-events: auto; touch-action: none; font-size: 11px; font-weight: 900; letter-spacing: .08em; }
-    .action:active, .action.held { background: #a05764; transform: scale(.96); }
-    #skill { width: 66px; height: 66px; background: #214b69db; }
-    #skill.ready { border-color: #a6eddb; box-shadow: 0 0 16px #68d8ca55, inset 0 0 0 5px #ffffff0b; }
-    #party { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: calc(112px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
-    .chip { width: 82px; min-height: 48px; padding: 5px 7px; border: 1px solid #d4f4e255; border-radius: 10px; background: #102337d9; text-align: left; pointer-events: auto; touch-action: none; }
-    .chip b { display: block; color: #f8f0db; font-size: 11px; }
-    .chip small { color: #a3c8c7; font-size: 9px; }
-    .chip.active { border-color: #f8d285; background: #4a3a3ecf; box-shadow: 0 0 12px #f8d28538; }
-    #rotate { position: absolute; z-index: 20; inset: 0; display: none; place-items: center; padding: 30px; background: #07111ff5; color: #f8f0db; text-align: center; }
-    #rotate.visible { display: grid; }
-    #rotate .rotate-card, #modal .modal-card { width: min(86vw, 360px); padding: 25px 22px; border: 1px solid #9bdcd4aa; border-radius: 16px; background: linear-gradient(145deg, #132e40, #1d2139); box-shadow: 0 18px 40px #0009; }
-    #rotate strong { display: block; margin-bottom: 8px; color: #9de0d7; font-size: 19px; letter-spacing: .08em; }
-    #rotate p, #modal p { margin: 0; color: #cad8d4; font-size: 13px; line-height: 1.45; }
-    #modal { position: absolute; z-index: 15; inset: 0; display: none; place-items: center; padding: 20px; background: #07111fb8; }
-    #modal.visible { display: grid; }
-    #modal .modal-card { text-align: center; border-color: #f8d285aa; }
-    #modal h1 { margin: 0 0 7px; color: #f8d285; font-size: 25px; letter-spacing: .1em; }
-    #modal .result { margin: 13px 0 18px; color: #f8f0db; font-size: 15px; font-weight: 800; }
-    #restart { min-height: 52px; min-width: 170px; padding: 0 20px; border: 1px solid #f8f0db99; border-radius: 10px; background: #985d5d; font-weight: 900; letter-spacing: .08em; touch-action: none; }
-    @media (min-width: 700px) and (orientation: landscape) { #hint { bottom: 24px; } #touch-ui { opacity: .85; } }
+    #game-shell { position: fixed; inset: 0; overflow: hidden; background: var(--ink); }
+    #game-shell > canvas { position: fixed; inset: 0; display: block; width: 100%; height: 100%; image-rendering: pixelated; touch-action: none; }
+    #ui { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+    #hud { position: absolute; top: 0; left: 0; right: 0; padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left)); }
+    .hud-top, .stat-row { display: flex; align-items: center; gap: 8px; }
+    .title-mark { color: var(--paper); font-size: clamp(14px, 2.1vw, 19px); font-weight: 950; letter-spacing: .14em; text-shadow: 0 2px 12px #000c; }
+    .title-mark i { color: var(--cyan); font-style: normal; }
+    .zone-chip, .metric, .hud-button, .element-chip { border: 1px solid var(--line); background: #0b2032d9; box-shadow: 0 3px 12px #0005; }
+    .zone-chip { margin-left: auto; padding: 6px 10px; border-radius: 8px; color: var(--mist); font-size: 14px; font-weight: 900; letter-spacing: .08em; }
+    .hud-button { width: 44px; height: 44px; border-radius: 11px; pointer-events: auto; cursor: pointer; font-size: 19px; }
+    .hud-button:active, .command:active, .party-chip:active, .trial-choice:active { transform: scale(.95); }
+    .stat-row { margin-top: 7px; max-width: 560px; }
+    .meter { position: relative; width: min(26vw, 190px); height: 17px; overflow: hidden; border-radius: 8px; border: 1px solid #fff4; background: #102335e8; }
+    .meter-fill { position: absolute; inset: 0 auto 0 0; width: 100%; transform-origin: left center; }
+    .meter-fill.hp { background: linear-gradient(90deg, #e55d67, #ffcf7b); }
+    .meter-fill.charge { background: linear-gradient(90deg, #4cbfdc, #9dfff0); }
+    .meter-icon { position: absolute; left: 7px; top: 0; z-index: 1; color: #fff; font-size: 13px; line-height: 15px; text-shadow: 0 1px 3px #000; }
+    .meter-read { position: absolute; inset: 0; z-index: 1; text-align: center; color: #fff; font-size: 13px; font-weight: 850; line-height: 15px; text-shadow: 0 1px 3px #000; }
+    .metric { min-height: 31px; padding: 6px 9px; border-radius: 8px; color: var(--paper); font-size: 14px; font-weight: 850; white-space: nowrap; }
+    #route-map { position: absolute; top: calc(82px + env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 4px; padding: 4px 7px; border: 1px solid var(--line); border-radius: 8px; background: #0b2032c9; color: #66808a; font-size: 11px; font-weight: 900; letter-spacing: .06em; }
+    #route-map span { padding: 3px 4px; border-radius: 4px; }
+    #route-map span.active { color: var(--paper); background: #376a70; }
+    #route-map span.done { color: var(--gold); }
+    #compass-read, #altitude-read { position: absolute; top: calc(118px + env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); min-height: 28px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: #0b2032c9; color: var(--mist); font-size: 12px; font-weight: 900; letter-spacing: .04em; }
+    #altitude-read { top: calc(150px + env(safe-area-inset-top)); color: var(--gold); }
+    #element-chip { position: absolute; top: calc(124px + env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 7px; min-height: 34px; padding: 5px 9px; border-radius: 9px; color: var(--paper); font-size: 14px; font-weight: 900; }
+    #element-mark { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: #17334a; color: var(--cyan); font-size: 16px; }
+    #element-read { color: var(--mist); letter-spacing: .04em; }
+    #ability-rail { position: absolute; top: calc(166px + env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); display: flex; gap: 6px; }
+    .ability-chip { display: inline-grid; place-items: center; width: 38px; height: 32px; border: 1px solid #bfece244; border-radius: 8px; background: #0b1b2bb8; color: #66808a; font-size: 18px; }
+    .ability-chip.ready { color: var(--gold); border-color: #ffd38a99; background: #3a3030d0; }
+    #party-rail { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); display: flex; gap: 7px; pointer-events: auto; }
+    .party-chip { position: relative; width: 70px; height: 70px; padding: 5px 4px 7px; border: 1px solid #bfece244; border-radius: 12px; background: #0b1b2bd9; cursor: pointer; text-align: center; }
+    .party-chip.active { border-color: var(--gold); box-shadow: 0 0 16px #ffd38a4c; background: #263449ed; }
+    .party-chip.down { opacity: .45; }
+    .party-portrait { display: grid; place-items: center; width: 33px; height: 33px; margin: 0 auto 3px; border-radius: 9px; border: 2px solid var(--mist); color: var(--paper); background: #264459; font-size: 16px; font-weight: 950; }
+    .party-chip[data-slot="0"] .party-portrait { border-color: #ff9d89; background: #633e4a; }
+    .party-chip[data-slot="1"] .party-portrait { border-color: #a5e9ff; background: #28516b; }
+    .party-chip[data-slot="2"] .party-portrait { border-color: #ffe58c; background: #66572b; }
+    .party-name { display: block; color: var(--paper); font-size: 14px; font-weight: 900; letter-spacing: .04em; }
+    .party-hp { position: absolute; left: 7px; right: 7px; bottom: 5px; height: 4px; border-radius: 2px; background: #0009; }
+    .party-hp i { display: block; width: 100%; height: 100%; border-radius: inherit; background: var(--green); transform-origin: left center; }
+    #transient-chip { position: absolute; top: calc(208px + env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 7px; max-width: min(290px, 54vw); min-height: 31px; padding: 5px 9px; border: 1px solid #a7efe4aa; border-radius: 8px; background: #092032ed; color: var(--paper); font-size: 14px; font-weight: 900; opacity: 0; transform: translateY(-4px); transition: opacity .12s ease, transform .12s ease; }
+    #transient-chip.visible { opacity: 1; transform: translateY(0); }
+    #transient-mark { color: var(--gold); font-size: 17px; }
+    #coach-strip { position: absolute; top: calc(248px + env(safe-area-inset-top)); left: 50%; width: min(92vw, 610px); min-height: 24px; transform: translateX(-50%); padding: 4px 12px; border-bottom: 1px solid #bfece244; color: #d7e9df; background: #07121f88; text-align: center; font-size: 14px; line-height: 18px; opacity: 0; transition: opacity .25s ease; }
+    #coach-strip.visible { opacity: .9; }
+    #moment-banner { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: #06111fa6; opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+    #moment-banner.visible { opacity: 1; }
+    .banner-card { width: min(74vw, 420px); padding: 20px 22px; border: 1px solid #ffd38aaa; border-radius: 16px; background: linear-gradient(145deg, #153248f5, #1f2941f5); box-shadow: 0 18px 44px #000b; text-align: center; }
+    .banner-card h1 { margin: 0; color: var(--gold); font-size: clamp(21px, 4vw, 31px); letter-spacing: .08em; }
+    .banner-card p { margin: 8px 0 0; color: var(--mist); font-size: 15px; line-height: 1.35; }
+    #restart-button { display: none; min-height: 46px; margin: 16px auto 0; padding: 0 20px; border: 1px solid #ffd38aaa; border-radius: 10px; background: #5b4960; color: var(--paper); cursor: pointer; font-weight: 900; }
+    #moment-banner.interactive { pointer-events: auto; }
+    #moment-banner.interactive #restart-button { display: inline-block; }
+    #trial-panel { position: absolute; inset: 0; display: none; place-items: center; padding: 20px; background: #06111fd9; pointer-events: auto; }
+    #trial-panel.visible { display: grid; }
+    .trial-card { width: min(92vw, 570px); max-height: 92vh; overflow: auto; padding: 22px; border: 1px solid #9ce9de99; border-radius: 18px; background: linear-gradient(145deg, #122e40, #1c2640); box-shadow: 0 18px 44px #000b; }
+    .trial-card h2 { margin: 0; color: var(--paper); font-size: 24px; letter-spacing: .07em; }
+    .trial-card p { margin: 7px 0 15px; color: #b9d8d4; font-size: 14px; line-height: 1.4; }
+    .trial-list { display: grid; gap: 8px; }
+    .trial-choice { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px; min-height: 62px; padding: 8px 10px; border: 1px solid #bfece244; border-radius: 11px; background: #0a1b2ad9; cursor: pointer; text-align: left; }
+    .trial-choice:disabled { cursor: default; opacity: .45; }
+    .trial-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #344c58; color: var(--gold); font-size: 19px; }
+    .trial-choice strong { display: block; color: var(--paper); font-size: 15px; }
+    .trial-choice small { display: block; margin-top: 2px; color: #9ebdbb; font-size: 14px; }
+    .trial-medal { color: var(--gold); font-size: 15px; font-weight: 900; }
+    #trial-close { min-height: 46px; margin-top: 12px; padding: 0 18px; border: 1px solid #bfece277; border-radius: 10px; background: #2a5363; cursor: pointer; font-size: 15px; font-weight: 900; }
+    #touch-controls { position: absolute; inset: 0; pointer-events: none; }
+    #stick { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: calc(18px + env(safe-area-inset-bottom)); width: 122px; height: 122px; border: 2px solid #bfece277; border-radius: 50%; background: #0b283dcc; box-shadow: 0 7px 18px #0007, inset 0 0 0 16px #ffffff08; pointer-events: auto; touch-action: none; }
+    #stick::after { content: ""; position: absolute; inset: 27px; border: 1px dashed #bfece244; border-radius: 50%; }
+    #stick-thumb { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px; border: 2px solid #d2fff3cc; border-radius: 50%; background: #72d8d0aa; box-shadow: 0 4px 12px #0008; pointer-events: none; }
+    #commands { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); display: flex; align-items: end; gap: 9px; pointer-events: none; }
+    .command { width: 70px; height: 70px; border: 2px solid #d4f4e277; border-radius: 50%; background: #522d4de8; box-shadow: 0 7px 18px #0008, inset 0 0 0 5px #ffffff08; pointer-events: auto; cursor: pointer; touch-action: none; font-size: 22px; font-weight: 950; }
+    .command span { display: block; margin-top: 1px; color: #d5eee7; font-size: 13px; letter-spacing: .05em; }
+    .command:disabled { opacity: .42; }
+    #skill-button { width: 67px; height: 67px; background: #214b69ed; }
+    #dash-button { width: 58px; height: 58px; background: #285d5be8; }
+    #interact-button { width: 58px; height: 58px; background: #53603bed; }
+    .command.ready { border-color: #a9f7e3; box-shadow: 0 0 17px #7ee8db59, inset 0 0 0 5px #ffffff08; }
+    @media (orientation: portrait) {
+      #ui { opacity: 1; }
+      #hud { padding-left: 10px; padding-right: 10px; }
+      .title-mark { font-size: 13px; letter-spacing: .08em; }
+      .hud-top { gap: 4px; }
+      .hud-button { width: 38px; height: 38px; font-size: 16px; }
+      #party-rail { top: calc(54px + env(safe-area-inset-top)); right: 10px; }
+      .party-chip { width: 58px; height: 62px; }
+      .party-name { font-size: 11px; }
+      .stat-row { flex-wrap: wrap; padding-right: 4px; }
+      .meter { width: calc(50vw - 30px); }
+      #route-map { top: calc(122px + env(safe-area-inset-top)); }
+      #compass-read { top: calc(158px + env(safe-area-inset-top)); left: 10px; right: auto; }
+      #altitude-read { top: calc(194px + env(safe-area-inset-top)); left: 10px; right: auto; }
+      #element-chip { top: calc(232px + env(safe-area-inset-top)); }
+      #ability-rail { top: calc(274px + env(safe-area-inset-top)); }
+      #transient-chip { top: calc(316px + env(safe-area-inset-top)); max-width: 86vw; }
+      #coach-strip { top: calc(356px + env(safe-area-inset-top)); width: 90vw; }
+      .banner-card { width: min(88vw, 420px); }
+      #commands { gap: 5px; right: 12px; }
+      .command { width: 62px; height: 62px; }
+      #skill-button { width: 62px; height: 62px; }
+      #interact-button { width: 54px; height: 54px; }
+    }
+    @media (max-height: 430px) and (orientation: landscape) {
+      #party-rail { top: calc(8px + env(safe-area-inset-top)); }
+      #element-chip { top: calc(112px + env(safe-area-inset-top)); }
+      #ability-rail { top: calc(150px + env(safe-area-inset-top)); }
+      #transient-chip { top: calc(188px + env(safe-area-inset-top)); }
+      #coach-strip { top: calc(222px + env(safe-area-inset-top)); }
+      .party-chip { width: 64px; height: 64px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
   </style>
 </head>
 <body>
-  <main id="game-shell">
-    <canvas id="game" aria-label="Skyshard Vale game"></canvas>
-    <div id="hud">
-      <div class="hud-row"><div class="brand">SKYSHARD <span>VALE</span></div><div id="zone" class="zone">MEADOW</div></div>
-      <div id="stats"><div class="meter"><div id="hp-fill"></div><div id="hp-label">VITAL 100 / 100</div></div><div id="score" class="stat-pill">SCORE 0000</div><div id="clock" class="stat-pill">TIME 00:00</div></div>
-    </div>
-    <div id="hint">Walk the valley. Attune shrines to earn movement gifts.</div>
-    <div id="toast" aria-live="polite"></div>
-    <div id="touch-ui">
-      <div id="stick-area" aria-label="Move"><div id="stick-thumb"></div></div>
-      <div id="party">
-        <button class="chip active" data-slot="0"><b>TAVI · BLADE</b><small>EMBER / STRIKE</small></button>
-        <button class="chip" data-slot="1"><b>SERA · BOW</b><small>FROST / RANGE</small></button>
-        <button class="chip" data-slot="2"><b>MALK · STAFF</b><small>SPARK / CHAIN</small></button>
+  <main id="game-shell" aria-label="Skyshard Vale game">
+    <div id="ui">
+      <header id="hud">
+        <div class="hud-top">
+          <div class="title-mark">SKYSHARD <i>VALE</i></div>
+          <div id="zone-chip" class="zone-chip">MEADOW</div>
+          <button id="trial-button" class="hud-button" aria-label="Open Shrine Trials">✦</button>
+          <button id="settings-button" class="hud-button" aria-label="Open settings">⚙</button>
+        </div>
+        <div class="stat-row">
+          <div class="meter" aria-label="Vitality"><span class="meter-icon">♥</span><div id="health-fill" class="meter-fill hp"></div><span id="health-read" class="meter-read">100 / 100</span></div>
+          <div class="meter" aria-label="Elemental charge"><span class="meter-icon">✧</span><div id="charge-fill" class="meter-fill charge"></div><span id="charge-read" class="meter-read">100</span></div>
+          <div id="shard-metric" class="metric">◇ 0 / 8</div>
+        </div>
+      </header>
+      <div id="route-map" aria-label="Route map"><span data-route-zone="meadow" class="active">MEADOW</span><span>›</span><span data-route-zone="lake">LAKE</span><span>›</span><span data-route-zone="ruin">RUIN</span><span>›</span><span data-route-zone="peak">PEAK</span></div>
+      <div id="compass-read" aria-live="polite">↑ SHARD 1</div>
+      <div id="altitude-read" aria-live="polite">LOWLAND · RUNES 0 / 3</div>
+      <div id="party-rail" aria-label="Party">
+        <button class="party-chip active" data-slot="0" aria-label="Switch to Tavi, blade"><span class="party-portrait">T</span><span class="party-name">TAVI</span><span class="party-hp"><i></i></span></button>
+        <button class="party-chip" data-slot="1" aria-label="Switch to Sera, bow"><span class="party-portrait">S</span><span class="party-name">SERA</span><span class="party-hp"><i></i></span></button>
+        <button class="party-chip" data-slot="2" aria-label="Switch to Malk, staff"><span class="party-portrait">M</span><span class="party-name">MALK</span><span class="party-hp"><i></i></span></button>
       </div>
-      <div id="actions"><button id="skill" class="action ready">SKILL</button><button id="attack" class="action">ATTACK</button></div>
+      <div id="element-chip" aria-label="Active element"><span id="element-mark">◆</span><span id="element-read">STRIKE</span></div>
+      <div id="ability-rail" aria-label="Traversal gifts"><span id="ability-dash" class="ability-chip" title="Dash">✦</span><span id="ability-lift" class="ability-chip" title="Lift">⬡</span><span id="ability-glide" class="ability-chip" title="Glide">⌁</span></div>
+      <div id="transient-chip" role="status" aria-live="polite"><span id="transient-mark">◆</span><span id="transient-read"></span></div>
+      <div id="coach-strip"></div>
+      <div id="moment-banner"><div class="banner-card"><h1 id="banner-title"></h1><p id="banner-copy"></p><button id="restart-button" type="button">RESTART RUN</button></div></div>
+      <div id="trial-panel" aria-modal="true" role="dialog" aria-label="Shrine Trials">
+        <section class="trial-card">
+          <h2>SHRINE TRIALS</h2>
+          <p>Hand-authored guardian rematches. Clear time, combo variety, and no-death runs raise the medal tier.</p>
+          <div class="trial-list">
+            <button class="trial-choice" data-trial="1"><span class="trial-mark">✦</span><span><strong>Driftglass Warden</strong><small>Wet arena · 45s / 30s / 20s</small></span><span id="trial-medal-1" class="trial-medal">-</span></button>
+            <button class="trial-choice" data-trial="2"><span class="trial-mark">⬡</span><span><strong>Archive Sentinel</strong><small>Ember vents · 42s / 28s / 19s</small></span><span id="trial-medal-2" class="trial-medal">-</span></button>
+            <button class="trial-choice" data-trial="3"><span class="trial-mark">⌁</span><span><strong>Cloudstep Keeper</strong><small>Frost wind · 38s / 25s / 17s</small></span><span id="trial-medal-3" class="trial-medal">-</span></button>
+          </div>
+          <button id="trial-close">RETURN TO VALE</button>
+        </section>
+      </div>
+      <div id="touch-controls">
+        <div id="stick" aria-label="Move"><span id="stick-thumb"></span></div>
+        <div id="commands">
+          <button id="interact-button" class="command" aria-label="Interact">E<span>INTERACT</span></button>
+          <button id="dash-button" class="command" aria-label="Dash">✦<span>SPACE</span></button>
+          <button id="skill-button" class="command ready" aria-label="Skill">K<span>SKILL</span></button>
+          <button id="attack-button" class="command ready" aria-label="Attack">J<span>ATTACK</span></button>
+        </div>
+      </div>
     </div>
-    <div id="rotate"><div class="rotate-card"><strong>TURN THE VALE UPRIGHT</strong><p>Skyshard Vale is a portrait journey. Rotate your device to continue.</p></div></div>
-    <div id="modal"><div class="modal-card"><h1>VALLEY CLEAR</h1><p>The high shard answers. Every shrine and cache is now part of your map.</p><div id="result" class="result">TIME 00:00 · SCORE 0000</div><button id="restart">WALK AGAIN</button></div></div>
   </main>
-  <script src="./game.js"></script>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="/play/skyshard-vale/game.js"></script>
 </body>
 </html>

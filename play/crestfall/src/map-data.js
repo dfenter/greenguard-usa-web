@@ -1,5 +1,5 @@
 // Crestfall world map data.
-// The map is intentionally compact and greybox-friendly.
+// The map is compact, with each region carrying a distinct palette and encounter identity.
 // T = TILE type constants
 
 import { TILE } from './constants.js';
@@ -29,25 +29,25 @@ export const WESTERN_MAP = [
   [M,G,G,G,G,G,G,G,R,P,R,G,G,G,G,G,M,M,M,M],
   // Row 3
   [M,G,G,G,G,F,F,G,R,R,R,G,G,G,G,G,G,M,M,M],
-  // Row 4 - Rauru
+  // Row 4 - Bracken town
   [M,G,G,G,G,F,F,G,G,G,G,G,T,G,G,G,G,G,M,M],
   // Row 5
   [M,G,G,G,D,D,D,G,G,G,G,G,R,G,G,G,G,G,W,W],
-  // Row 6 - Ruto, Parapa Desert
+  // Row 6 - Cinder town and desert
   [M,G,G,D,D,D,D,D,D,G,G,T,R,G,G,G,G,W,W,W],
-  // Row 7 - Parapa Palace
+  // Row 7 - desert keep
   [M,G,G,D,D,D,P,D,D,G,G,G,R,G,G,G,W,W,W,W],
   // Row 8
   [M,G,G,G,D,D,D,G,G,G,G,G,R,G,G,W,W,W,W,W],
-  // Row 9 - Saria
+  // Row 9 - Lumen town
   [M,G,G,G,G,G,G,G,G,T,G,G,R,G,W,W,W,W,W,W],
-  // Row 10 - Midoro Swamp
+  // Row 10 - lowland marsh
   [M,G,G,G,G,S,S,S,S,G,G,G,G,W,W,W,W,W,W,W],
-  // Row 11 - Midoro Palace
+  // Row 11 - marsh keep
   [M,G,G,G,G,S,P,S,S,G,G,G,G,G,W,W,W,W,W,W],
   // Row 12
   [M,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,W,W,W],
-  // Row 13 - Mido
+  // Row 13 - Mossgate town
   [M,G,G,G,G,G,G,G,G,G,T,G,G,G,G,G,G,G,W,W],
   // Row 14 - Island (bridge to eastern)
   [M,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,B,W,W],
@@ -63,11 +63,11 @@ export const EASTERN_MAP = [
   [W,W,G,G,M,M,G,G,G,G,G,G,G,G,G,G,M,M,M,M],
   [W,W,G,G,M,M,G,G,F,F,G,G,G,G,G,G,G,M,M,M],
   [W,W,W,G,G,G,G,F,F,F,F,G,G,G,G,G,G,G,M,M],
-  [W,W,W,G,G,G,F,F,F,F,F,G,G,G,T,G,G,G,G,M], // New Kasuto
+  [W,W,W,G,G,G,F,F,F,F,F,G,G,G,T,G,G,G,G,M], // Starhold district
   [W,W,W,W,G,G,G,G,F,F,G,G,G,G,R,G,G,G,G,M],
   [W,W,W,W,G,G,G,G,G,G,G,G,G,G,R,G,G,G,G,M],
   [W,W,W,W,G,P,G,G,G,G,G,G,G,G,R,G,G,G,M,M], // P6 Palace on Sea
-  [W,W,W,W,W,G,G,G,G,G,G,G,G,G,R,T,G,G,M,M], // Old Kasuto
+  [W,W,W,W,W,G,G,G,G,G,G,G,G,G,R,T,G,G,M,M], // Gloamrest district
   [W,W,W,W,W,G,G,G,G,P,G,G,G,G,R,G,G,G,M,M], // P5 Three Eye
   [W,W,W,W,W,W,G,G,G,G,G,G,G,G,R,G,G,M,M,M],
   [W,W,W,W,W,W,G,G,G,G,G,G,G,G,R,G,G,M,M,M],
@@ -77,7 +77,7 @@ export const EASTERN_MAP = [
 
 // Town data
 export const TOWNS = {
-  rauru: {
+  bracken: {
     region: 'west',
     name: 'BRACKEN',
     mapX: 12, mapY: 4,
@@ -91,7 +91,7 @@ export const TOWNS = {
     hasHospital: true,
     npcCount: 3,
   },
-  ruto: {
+  cinder: {
     region: 'west',
     name: 'CINDER',
     mapX: 11, mapY: 6,
@@ -105,7 +105,7 @@ export const TOWNS = {
     hasHospital: true,
     npcCount: 4,
   },
-  saria: {
+  lumen: {
     region: 'west',
     name: 'LUMEN',
     mapX: 9, mapY: 9,
@@ -119,7 +119,7 @@ export const TOWNS = {
     hasHospital: true,
     npcCount: 3,
   },
-  mido: {
+  mossgate: {
     region: 'west',
     name: 'MOSSGATE',
     mapX: 10, mapY: 13,
@@ -134,15 +134,7 @@ export const TOWNS = {
     npcCount: 5,
   },
   // Eastern towns
-  // R4 repair: nabooru previously shared (14,6) with newkasuto (both
-  // eastern — region-qualifying the lookup alone does not separate two
-  // entries in the SAME region at the SAME coordinates; see
-  // reviews/sol_port_spec_review_2026-07-18.md "region-less content
-  // lookup"). Object insertion order made nabooru always win that lookup,
-  // leaving newkasuto permanently unreachable. Moved nabooru to (2,2), an
-  // unused passable GRASS tile on EASTERN_MAP with no other town/palace
-  // claim, so both towns are independently reachable.
-  nabooru: {
+  sunspire: {
     region: 'east',
     name: 'SUNSPIRE',
     mapX: 2, mapY: 2, // eastern map
@@ -155,10 +147,10 @@ export const TOWNS = {
     hasHospital: true,
     npcCount: 4,
   },
-  darunia: {
+  flintmark: {
     region: 'east',
     name: 'FLINTMARK',
-    mapX: 5, mapY: 3, // eastern
+    mapX: 6, mapY: 4, // eastern forest clearing
     spell: 'REFLECT',
     npcText: [
       'THE RIDGES ARE CLOSE.',
@@ -168,7 +160,7 @@ export const TOWNS = {
     hasHospital: false,
     npcCount: 3,
   },
-  oldkasuto: {
+  gloamrest: {
     region: 'east',
     name: 'GLOAMREST',
     mapX: 15, mapY: 10, // eastern
@@ -181,7 +173,7 @@ export const TOWNS = {
     hasHospital: false,
     npcCount: 2,
   },
-  newkasuto: {
+  starhold: {
     region: 'east',
     name: 'STARHOLD',
     mapX: 14, mapY: 6, // eastern
@@ -202,20 +194,20 @@ export const PALACES = [
     id: 1, name: 'EMBER KEEP',
     region: 'west',
     mapX: 6, mapY: 7,
-    boss: 'horsehead',
+    boss: 'ravenhorse',
     bossName: 'RAVENHORSE',
     crystal: 0,
-    enemies: ['ache', 'stalfos', 'bit'],
+    enemies: ['duskwing', 'boneward', 'bit'],
     difficulty: 1,
   },
   {
     id: 2, name: 'MIRE KEEP',
     region: 'west',
     mapX: 6, mapY: 11,
-    boss: 'helmethead',
+    boss: 'crownback',
     bossName: 'CROWNBACK',
     crystal: 1,
-    enemies: ['ache', 'stalfos', 'wizzrobe', 'goriya'],
+    enemies: ['duskwing', 'boneward', 'hexweaver', 'crescent'],
     difficulty: 2,
   },
   // Connectivity fix (not a ledgered R-repair, but required for the Phase
@@ -233,50 +225,50 @@ export const PALACES = [
     id: 3, name: 'ISLAND VAULT',
     region: 'west',
     mapX: 2, mapY: 12,
-    boss: 'ironknuckle',
+    boss: 'ironwraith',
     bossName: 'IRONWRAITH',
     crystal: 2,
-    enemies: ['stalfos', 'goriya', 'wizzrobe'],
+    enemies: ['boneward', 'crescent', 'hexweaver'],
     difficulty: 3,
   },
   {
     id: 4, name: 'FRACTURE KEEP',
     region: 'east',
     mapX: 3, mapY: 4,  // eastern
-    boss: 'carock',
+    boss: 'stonevex',
     bossName: 'STONEVEX',
     crystal: 3,
-    enemies: ['wizzrobe', 'ironknuckle', 'lizalfos'],
+    enemies: ['hexweaver', 'ironwraith', 'brineclaw'],
     difficulty: 4,
   },
   {
     id: 5, name: 'TRIUNE VAULT',
     region: 'east',
     mapX: 9, mapY: 11, // eastern
-    boss: 'gooma',
+    boss: 'ironroot',
     bossName: 'IRONROOT',
     crystal: 4,
-    enemies: ['ironknuckle', 'lizalfos', 'wizzrobe'],
+    enemies: ['ironwraith', 'brineclaw', 'hexweaver'],
     difficulty: 5,
   },
   {
     id: 6, name: 'DEEPWATER KEEP',
     region: 'east',
     mapX: 5, mapY: 9,  // eastern
-    boss: 'barba',
+    boss: 'tidebane',
     bossName: 'TIDEBANE',
     crystal: 5,
-    enemies: ['ironknuckle', 'lizalfos', 'wizzrobe', 'goriya'],
+    enemies: ['ironwraith', 'brineclaw', 'hexweaver', 'crescent'],
     difficulty: 6,
   },
   {
     id: 7, name: 'CROWNFALL KEEP',
     region: 'east',
     mapX: 10, mapY: 5, // eastern
-    boss: 'darklink',
+    boss: 'umbrakin',
     bossName: 'UMBRAKIN',
     crystal: -1, // final
-    enemies: ['ironknuckle', 'wizzrobe', 'lizalfos'],
+    enemies: ['ironwraith', 'hexweaver', 'brineclaw'],
     difficulty: 7,
     isFinal: true,
   },
@@ -308,8 +300,8 @@ export function buildPalaceRooms(palaceId) {
       { x: 240, y: GY-36, w: 16, h: 32, locked: false, leadsTo: 1 },
     ],
     enemies: [
-      { type: 'stalfos', x: 120, y: GY-16 },
-      { type: 'ache',    x: 180, y: GY-64 },
+      { type: 'boneward', x: 120, y: GY-16 },
+      { type: 'duskwing',    x: 180, y: GY-64 },
     ],
     items: [],
     next: 1,
@@ -331,8 +323,8 @@ export function buildPalaceRooms(palaceId) {
       { x: 240, y: GY-36, w: 16, h: 32, locked: true, leadsTo: 2 },
     ],
     enemies: [
-      { type: 'stalfos',  x: 80,  y: GY-16 },
-      { type: 'wizzrobe', x: 160, y: GY-56 },
+      { type: 'boneward',  x: 80,  y: GY-16 },
+      { type: 'hexweaver', x: 160, y: GY-56 },
     ],
     items: [
       { type: 'key', x: 128, y: GY-60 },
@@ -358,8 +350,8 @@ export function buildPalaceRooms(palaceId) {
       { x: 240, y: GY-96, w: 16, h: 32, locked: false, leadsTo: 3 },
     ],
     enemies: [
-      { type: 'ironknuckle', x: 160, y: GY-16 },
-      { type: 'ache',        x: 100, y: GY-80 },
+      { type: 'ironwraith', x: 160, y: GY-16 },
+      { type: 'duskwing',        x: 100, y: GY-80 },
     ],
     items: [
       { type: 'pbag', x: 64, y: GY-112, large: true },
@@ -378,13 +370,31 @@ export function buildPalaceRooms(palaceId) {
     ],
     doors: [],
     enemies: [
-      { type: PALACES[palaceId-1]?.boss || 'horsehead', x: 160, y: GY-24, isBoss: true },
+      { type: PALACES[palaceId-1]?.boss || 'ravenhorse', x: 160, y: GY-24, isBoss: true },
     ],
     items: [
       { type: 'crystal', x: 200, y: GY-16 },
     ],
     next: -1, // return to overworld
   });
+
+  // Each keep layers a distinct encounter profile. Later keeps add one
+  // pressure unit per room and raise the room accent, while the guardian
+  // remains the authored capstone encounter.
+  const encounterPool = PALACES[palaceId - 1]?.enemies || ['boneward', 'duskwing', 'hexweaver'];
+  for (let roomIndex = 0; roomIndex < 3; roomIndex++) {
+    const room = rooms[roomIndex];
+    room.difficulty = difficulty;
+    room.accent = (palaceId + roomIndex) % 4;
+    if (difficulty >= 2 + roomIndex) {
+      const type = encounterPool[(difficulty + roomIndex) % encounterPool.length];
+      const positions = [{ x: 212, y: GY - 16 }, { x: 204, y: GY - 16 }, { x: 44, y: GY - 88 }];
+      room.enemies.push({ type, ...positions[roomIndex] });
+    }
+    if (difficulty >= 5 && roomIndex === 1) {
+      room.items.push({ type: 'magic', x: 176, y: GY - 20 });
+    }
+  }
 
   return rooms;
 }
@@ -414,11 +424,11 @@ export function buildFieldEncounter(tileType, difficulty, rng) {
 
   // Enemy pool by tile
   const pools = {
-    [TILE.GRASS]:     ['ache', 'stalfos', 'goriya'],
-    [TILE.FOREST]:    ['ache', 'wizzrobe', 'stalfos'],
-    [TILE.SWAMP]:     ['ache', 'stalfos', 'lizalfos'],
-    [TILE.DESERT]:    ['stalfos', 'goriya', 'lizalfos'],
-    [TILE.GRAVEYARD]: ['stalfos', 'wizzrobe', 'ache'],
+    [TILE.GRASS]:     ['duskwing', 'boneward', 'crescent'],
+    [TILE.FOREST]:    ['duskwing', 'hexweaver', 'boneward'],
+    [TILE.SWAMP]:     ['duskwing', 'boneward', 'brineclaw'],
+    [TILE.DESERT]:    ['boneward', 'crescent', 'brineclaw'],
+    [TILE.GRAVEYARD]: ['boneward', 'hexweaver', 'duskwing'],
   };
 
   const pool = pools[tileType] || pools[TILE.GRASS];

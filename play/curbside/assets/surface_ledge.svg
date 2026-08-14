@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 48" role="img" aria-label="painted skate ledge">
+  <defs>
+    <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d8e5f1"/>
+      <stop offset="0.18" stop-color="#9caec4"/>
+      <stop offset="1" stop-color="#4a5875"/>
+    </linearGradient>
+  </defs>
+  <path d="M2 7H254V45H2Z" fill="#161a2b" opacity=".55"/>
+  <path d="M2 3H254V38H2Z" fill="url(#stone)"/>
+  <path d="M2 3H254V11H2Z" fill="#f5fbff" opacity=".72"/>
+  <path d="M8 17H248M8 28H248" stroke="#71809a" stroke-width="2" opacity=".7"/>
+  <path d="M14 8l18 7m34-7 18 7m38-7 18 7m36-7 18 7m38-7 18 7" stroke="#ffffff" stroke-width="2" opacity=".28"/>
+</svg>

@@ -1,41 +1,39 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/stacklock/">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#08101e">
-  <title>STACKLOCK</title>
-  <link rel="stylesheet" href="./style.css">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#0b1020">
+<meta name="description" content="Stacklock - falling block line clears. Marathon, a forty line Sprint, twenty four hand-authored Puzzle boards and the Master Clear finale.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/stacklock/">
+<title>Stacklock</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.png" sizes="64x64">
+<link rel="icon" href="icon.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #0b1020; color: #eaf0fb;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; touch-action: none; }
+  /* The canvas fills the viewport edge to edge (viewport-fit=cover). The game
+     reads the REAL safe-area insets and offsets its HUD, board, rail and
+     result card itself, and the control bar carries its own inset padding, so
+     the body must NOT pad as well or every inset would be applied twice. */
+</style>
 </head>
 <body>
-  <main class="app" aria-label="Stacklock falling block game">
-    <header class="topbar">
-      <div class="wordmark"><span class="mark">S</span><span>STACKLOCK</span></div>
-      <div class="run-info">
-        <div><span class="label" id="metricLabel">SCORE</span><strong id="metricValue">0</strong></div>
-        <div><span class="label" id="secondaryLabel">BEST</span><strong id="secondaryValue">0</strong></div>
-      </div>
-    </header>
-
-    <nav class="modebar" aria-label="Game mode">
-      <button class="mode-button active" data-mode="marathon">MARATHON</button>
-      <button class="mode-button" data-mode="sprint">SPRINT <span>40</span></button>
-      <div class="level-readout"><span>LEVEL</span><strong id="levelValue">1</strong></div>
-    </nav>
-
-    <section class="stage" aria-label="Game board">
-      <canvas id="gameCanvas" tabindex="0" aria-label="Stacklock game board"></canvas>
-      <div class="helper-line">Tap sides to steer · tap piece to rotate · swipe up to hold</div>
-    </section>
-
-    <section class="controls" aria-label="Touch controls">
-      <button class="control-button" data-action="hold"><span class="control-icon">↥</span><span>HOLD</span></button>
-      <button class="control-button primary" data-action="rotate"><span class="control-icon">↻</span><span>ROTATE</span></button>
-      <button class="control-button" data-action="drop"><span class="control-icon">⌄</span><span>DROP</span></button>
-    </section>
-
-    <div class="status-line" id="statusLine" role="status" aria-live="polite">Build a clean stack.</div>
-  </main>
-  <script src="./game.js"></script>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="sl_data.js"></script>
+<script src="game.js"></script>
 </body>
 </html>

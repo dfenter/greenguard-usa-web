@@ -1,0 +1,15 @@
+{
+  "name": "Tide Harbor",
+  "short_name": "Tide Harbor",
+  "start_url": "/play/tide-harbor/",
+  "scope": "/play/tide-harbor/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#081f2b",
+  "theme_color": "#081f2b",
+  "description": "A stylized open-ocean sailing trader.",
+  "icons": [
+    { "src": "./icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

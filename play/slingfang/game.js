@@ -1,964 +1,2180 @@
-(() => {
+/* game.js -- Slingfang (AAA rebuild).
+ *
+ * Flick co-op creature RPG. Drag back from the glowing fang and release to
+ * launch; bank off walls to break phase barriers; bump ally posts to fire
+ * auras; clear twelve authored formations across four world sets, or run the
+ * six hand-authored Formation Rush legs.
+ *
+ * Phaser 3 (vendored, /play/_shared) for rendering only. GGKit is the SOLE
+ * implementation of lifecycle, input, save and audio.
+ *
+ * UI obeys /play/_assets/UI_LAW.md: one transient at a time, corner chips for
+ * in-play events, centre banners only at run boundaries, icons over labels,
+ * a thin fading tutorial strip, nothing informational under the thumbs.
+ */
+(function () {
   'use strict';
 
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  const bootLayer = document.getElementById('bootLayer');
-  const rotateLayer = document.getElementById('rotateLayer');
-  const bootButton = document.getElementById('bootButton');
-  const restartButton = document.getElementById('restartButton');
-  const teamControls = document.getElementById('teamControls');
-  const announce = document.getElementById('announce');
+  var D = window.SFData;
+  var A = D.ARENA;
+  var T = D.TUNE;
 
-  const VW = 390;
-  const VH = 700;
-  const ARENA = { left: 17, right: 373, top: 116, bottom: 578 };
-  const STORAGE_KEY = 'slingfang-run-v1';
-  const MAX_PARTICLES = 180;
-  const MAX_SHARDS = 12;
-  const MAX_EFFECTS = 28;
-  const MAX_TIMERS = 8;
-  const TAU = Math.PI * 2;
+  var W = 390, H = 844;
+  var ARENA_W = A.right - A.left;
+  var ARENA_H = A.bottom - A.top;
 
-  const roster = [
-    { name: 'Flintling', short: 'FLINT', sigil: '◆', color: '#ffbf69', passive: 'PIERCE', aura: 'Grit' },
-    { name: 'Splitmaw', short: 'SPLIT', sigil: 'Y', color: '#ff83b5', passive: 'SPLIT', aura: 'Rend' },
-    { name: 'Pullpup', short: 'PULL', sigil: '⊙', color: '#84c9ff', passive: 'MAGNET', aura: 'Tug' },
-    { name: 'Mossmender', short: 'MEND', sigil: '✚', color: '#9eeda7', passive: 'HEAL RING', aura: 'HEAL' },
-    { name: 'Sparkjaw', short: 'SPARK', sigil: 'ϟ', color: '#ffe27b', passive: 'SPARK BURST', aura: 'SPARK' },
-    { name: 'Wardwisp', short: 'WARD', sigil: '⬢', color: '#c5a6ff', passive: 'SHIELD', aura: 'SHIELD' }
+  // Launch row: the three base ally posts live inside the arena floor.
+  var BASE_POSTS = [
+    { x: 78, y: 588 }, { x: 195, y: 596 }, { x: 312, y: 588 }
   ];
+  var DOCK_Y = 690;          // roster orb row, inside the thumb zone
+  var DOCK_STEP = 58;        // >= 44px touch targets with room to spare
 
-  const defaults = { maxStage: 1, unlocked: 3, bestScore: 0, bestTime: 0 };
-  let progress = readProgress();
-  let layout = { cssW: 390, cssH: 700, scale: 1, ox: 0, oy: 0, dpr: 1, portrait: true };
-  let audioCtx = null;
-  let audioReady = false;
-  let audioGate = true;
-  let state = 'play';
-  let stage = 1;
-  let score = 0;
-  let stageScore = 0;
-  let stageStartedAt = 0;
-  let stageSeconds = 0;
-  let teamHP = 100;
-  let activeSlot = 0;
-  let team = [0, 1, 2];
-  let player = null;
-  let enemies = [];
-  let walls = [];
-  let shards = [];
-  let particles = [];
-  let effects = [];
-  let trails = [];
-  let stageClearQueued = false;
-  let shotNumber = 0;
-  let combo = 0;
-  let shake = 0;
-  let flash = 0;
-  let nextId = 1;
-  let aim = { x: 0, y: -1 };
-  let aimStart = null;
-  let aimPointerId = null;
-  let bootPointerId = null;
-  let keys = new Set();
-  let queuedActions = [];
-  let buttonPointers = new Map();
-  let pendingTimers = new Set();
-  let lastFrame = performance.now();
-  let nowMs = 0;
-  let orientationPaused = false;
-  const backdropDots = Array.from({ length: 46 }, (_, i) => ({
-    x: 12 + ((i * 73) % 366), y: 8 + ((i * 127) % 610), r: i % 4 === 0 ? 1.5 : .8, a: .16 + (i % 5) * .035
-  }));
+  var STEP = 1 / 60;         // fixed sim step
+  var MAX_STEPS = 3;         // degraded devices go slow-mo, never time-skip
 
-  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
-  const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
-  const clampInt = (n, min, max, fallback) => Number.isFinite(n) ? Math.round(clamp(n, min, max)) : fallback;
-  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-  const normalize = (x, y) => {
-    const m = Math.hypot(x, y) || 1;
-    return { x: x / m, y: y / m };
+  var MAX_ENEMIES = 18;
+  var MAX_BARRIERS = 8;
+  var MAX_POSTS = 8;
+  var MAX_SHARDS = 8;
+  var MAX_TRAJ = 40;
+  var MAX_MARKS = 4;
+  var MAX_FLOATERS = 6;
+  var COMBO_WINDOW = 2.4;
+
+  // Centre banner geometry. Run boundaries only; never during live play.
+  var BANNER_W = 322, BANNER_H = 186, BANNER_Y = 352;
+
+  var REDUCED = false;
+  try {
+    REDUCED = !!(window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch (e) { REDUCED = false; }
+
+  // ------------------------------------------------------ verification hook
+  // Readable from the boot fallback AND from the live scene: the object
+  // identity never changes, the scene only writes into it.
+  var HOOK = {
+    ready: false,
+    mode: 'boot',            // boot | menu | play | clear | fail | done
+    formation: -1,
+    formationId: '',
+    formationName: '',
+    setId: '',
+    roster: [],              // unlocked creature ids
+    team: [],
+    active: '',
+    vitality: 0,
+    combo: 0,
+    bestCombo: 0,
+    shots: 0,
+    freeShots: 0,
+    score: 0,
+    enemiesLeft: 0,
+    barriersLeft: 0,
+    medals: {},
+    maxCleared: 0,
+    aiming: false,
+    launched: false,
+    banked: false,
+    reducedMotion: REDUCED,
+    error: null
   };
-  const hexToRgb = (hex) => {
-    const value = hex.replace('#', '');
-    return [parseInt(value.slice(0, 2), 16), parseInt(value.slice(2, 4), 16), parseInt(value.slice(4, 6), 16)];
+  var PENDING = { formation: null, roster: null, mode: null };
+  var LIVE = null;           // the live PlayScene, once it exists
+
+  window.__sf = {
+    version: '2026-08-11-aaa-fix1',
+    get state() { return HOOK; },
+    forceFormation: function (n) {
+      var i = Math.max(0, Math.min(D.FORMATIONS.length - 1, n | 0));
+      if (LIVE && LIVE.forceFormation) { LIVE.forceFormation(i); return true; }
+      PENDING.formation = i;
+      return true;
+    },
+    forceRoster: function (id) {
+      if (LIVE && LIVE.forceRoster) { LIVE.forceRoster(id); return true; }
+      PENDING.roster = id;
+      return true;
+    },
+    forceMode: function (m) {
+      if (LIVE && LIVE.forceMode) { LIVE.forceMode(m); return true; }
+      PENDING.mode = m;
+      return true;
+    }
   };
-  const rgba = (hex, alpha) => {
-    const [r, g, b] = hexToRgb(hex);
-    return `rgba(${r},${g},${b},${alpha})`;
+
+  // ------------------------------------------------------------------ kit
+  var kit = window.GGKit.create({
+    slug: 'slingfang',
+    orientation: 'portrait',
+    validateSave: function (o) {
+      return !!o && typeof o === 'object' && !Array.isArray(o) && o.v === 1;
+    },
+    onPause: function () { if (LIVE) LIVE.setFrozen(true); },
+    onResume: function () { if (LIVE) LIVE.setFrozen(false); },
+    onRestart: function () { if (LIVE) LIVE.restartFormation(); }
+  });
+  if (REDUCED) kit.juice.enabled = false;
+
+  var SAVE_DEFAULT = {
+    v: 1, maxCleared: 0, medals: {}, bestScore: 0, bestRush: 0,
+    active: 'flint', seenTutorial: 0
   };
 
-  function readProgress() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (typeof raw !== 'string' || raw.length > 1800) return { ...defaults };
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { ...defaults };
-      return {
-        maxStage: clampInt(parsed.maxStage, 1, 12, defaults.maxStage),
-        unlocked: clampInt(parsed.unlocked, 3, 6, defaults.unlocked),
-        bestScore: clampInt(parsed.bestScore, 0, 999999, defaults.bestScore),
-        bestTime: clampInt(parsed.bestTime, 0, 999999, defaults.bestTime)
-      };
-    } catch (_) {
-      return { ...defaults };
-    }
-  }
-
-  function saveProgress() {
-    try {
-      const safe = {
-        maxStage: clampInt(progress.maxStage, 1, 12, 1),
-        unlocked: clampInt(progress.unlocked, 3, 6, 3),
-        bestScore: clampInt(progress.bestScore, 0, 999999, 0),
-        bestTime: clampInt(progress.bestTime, 0, 999999, 0)
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
-    } catch (_) { /* Storage is optional. */ }
-  }
-
-  function later(fn, delay) {
-    if (pendingTimers.size >= MAX_TIMERS) return 0;
-    let timer = 0;
-    timer = window.setTimeout(() => {
-      pendingTimers.delete(timer);
-      fn();
-    }, delay);
-    pendingTimers.add(timer);
-    return timer;
-  }
-
-  function cancelTimers() {
-    pendingTimers.forEach((timer) => window.clearTimeout(timer));
-    pendingTimers.clear();
-  }
-
-  function resetInput() {
-    const capturedAimId = aimPointerId;
-    const capturedBootId = bootPointerId;
-    const capturedButtons = Array.from(buttonPointers.entries());
-    aimPointerId = null;
-    bootPointerId = null;
-    aimStart = null;
-    buttonPointers.clear();
-    keys.clear();
-    queuedActions.length = 0;
-    aim = { x: 0, y: -1 };
-    try { if (capturedAimId !== null && canvas.hasPointerCapture && canvas.hasPointerCapture(capturedAimId)) canvas.releasePointerCapture(capturedAimId); } catch (_) {}
-    try { if (capturedBootId !== null && bootButton.hasPointerCapture && bootButton.hasPointerCapture(capturedBootId)) bootButton.releasePointerCapture(capturedBootId); } catch (_) {}
-    for (const [key, pointerId] of capturedButtons) {
-      const target = key === 'restart' ? restartButton : teamControls.querySelector(`[data-id="${key}"]`);
-      try { if (target && target.hasPointerCapture && target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId); } catch (_) {}
-    }
-  }
-
-  function updateLayout() {
-    const cssW = Math.max(1, window.innerWidth);
-    const cssH = Math.max(1, window.innerHeight);
-    const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1), 960 / Math.max(cssW, cssH));
-    const scale = Math.min(cssW / VW, cssH / VH);
-    layout = { cssW, cssH, scale, ox: (cssW - VW * scale) / 2, oy: (cssH - VH * scale) / 2, dpr, portrait: cssH >= cssW };
-    canvas.width = Math.max(1, Math.floor(cssW * dpr));
-    canvas.height = Math.max(1, Math.floor(cssH * dpr));
-    const nextPaused = !layout.portrait || document.hidden;
-    if (nextPaused !== orientationPaused) resetInput();
-    orientationPaused = nextPaused;
-    rotateLayer.hidden = layout.portrait;
-  }
-
-  function worldPoint(clientX, clientY) {
-    return { x: (clientX - layout.ox) / layout.scale, y: (clientY - layout.oy) / layout.scale };
-  }
-
-  function makeTeam() {
-    const safe = team.slice(0, 3).filter((id) => id >= 0 && id < progress.unlocked);
-    while (safe.length < 3) safe.push(safe.length % progress.unlocked);
-    team = safe;
-    activeSlot = clampInt(activeSlot, 0, team.length - 1, 0);
-    renderTeamControls();
-  }
-
-  function basePosition(slot) {
-    return [{ x: 74, y: 548 }, { x: 195, y: 555 }, { x: 316, y: 548 }][slot] || { x: 195, y: 550 };
-  }
-
-  function resetPlayer() {
-    const base = basePosition(activeSlot);
-    player = { x: base.x, y: base.y, vx: 0, vy: 0, r: 18, launched: false, settle: 0, shotTime: 0, bounces: 0, splitUsed: false, invuln: 0, banked: false };
-    aim = { x: 0, y: -1 };
-  }
-
-  function enemy(x, y, type = 'drift', hp = 1) {
-    const palette = { drift: '#ee7e70', heavy: '#e89d65', guard: '#d477b3', boss: '#f05e6f' };
-    return { id: nextId++, x, y, vx: 0, vy: 0, r: type === 'boss' ? 31 : type === 'heavy' ? 22 : 18, hp, maxHp: hp, type, color: palette[type] || palette.drift, hitCooldown: 0, flash: 0 };
-  }
-
-  function buildStage(n) {
-    enemies = [];
-    walls = [];
-    shards = [];
-    particles = [];
-    effects = [];
-    trails = [];
-    stageClearQueued = false;
-    shotNumber = 0;
-    combo = 0;
-    teamHP = 100;
-    nextId = 1;
-    const boss = n === 6 || n === 12;
-    const count = boss ? (n === 12 ? 7 : 5) : Math.min(12, 2 + n);
-    const pattern = n % 4;
-    for (let i = 0; i < count && enemies.length < 18; i++) {
-      let x = 65 + ((i * 73 + n * 29) % 260);
-      let y = 170 + ((i * 47 + n * 19) % 210);
-      let type = i % 5 === 0 && n > 2 ? 'heavy' : i % 7 === 0 && n > 4 ? 'guard' : 'drift';
-      if (pattern === 0) { x = 64 + i * (262 / Math.max(1, count - 1)); y = 178 + (i % 2) * 54; }
-      if (pattern === 1) { x = 195 + Math.cos(i / Math.max(1, count) * TAU) * 120; y = 275 + Math.sin(i / Math.max(1, count) * TAU) * 105; }
-      if (pattern === 2) { x = 58 + (i % 4) * 92 + (Math.floor(i / 4) % 2) * 24; y = 175 + Math.floor(i / 4) * 72; }
-      if (boss && i === count - 1) { x = 195; y = 192; type = 'boss'; }
-      enemies.push(enemy(x, y, type, type === 'boss' ? (n === 12 ? 13 : 8) : type === 'heavy' ? 2 : type === 'guard' ? 2 : 1));
-    }
-    if (boss) {
-      const wallCount = n === 12 ? 3 : 2;
-      for (let i = 0; i < wallCount && walls.length < 6; i++) {
-        walls.push({ id: nextId++, x: i === 0 ? 68 : i === 1 ? 195 : 322, y: 300 + (i % 2) * 75, w: 86, h: 13, hp: n === 12 ? 2 : 1, maxHp: n === 12 ? 2 : 1, alive: true, flash: 0 });
+  function loadSave() {
+    var s = kit.save.get(null);
+    if (!s) return JSON.parse(JSON.stringify(SAVE_DEFAULT));
+    var out = JSON.parse(JSON.stringify(SAVE_DEFAULT));
+    out.maxCleared = clampInt(s.maxCleared, 0, D.FORMATIONS.length, 0);
+    out.bestScore = clampInt(s.bestScore, 0, 9999999, 0);
+    out.bestRush = clampInt(s.bestRush, 0, 9999999, 0);
+    out.seenTutorial = clampInt(s.seenTutorial, 0, 9, 0);
+    // Persisted ids must validate against the content registry.
+    out.active = D.creature(s.active).id;
+    out.medals = {};
+    if (s.medals && typeof s.medals === 'object') {
+      for (var k in s.medals) {
+        if (!Object.prototype.hasOwnProperty.call(s.medals, k)) continue;
+        var v = s.medals[k];
+        if (v === 'bronze' || v === 'silver' || v === 'gold') out.medals[k] = v;
       }
     }
-    resetPlayer();
-    stageStartedAt = performance.now();
-    stageSeconds = 0;
-    announce.textContent = `Stage ${n}. ${boss ? 'Bank shots through the phase walls.' : 'Clear the formation.'}`;
-    renderTeamControls();
+    return out;
   }
 
-  function startAudio() {
-    try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      audioReady = true;
-    } catch (_) { audioReady = false; }
+  var SAVE = loadSave();
+  function persist() {
+    SAVE.v = 1;
+    kit.save.set(SAVE);
+    HOOK.medals = SAVE.medals;
+    HOOK.maxCleared = SAVE.maxCleared;
   }
 
-  function tone(freq, duration = .08, type = 'sine', volume = .035) {
-    if (!audioReady || !audioCtx) return;
-    try {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(volume, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime + duration);
-      osc.connect(gain).connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + duration);
-    } catch (_) {}
+  // --------------------------------------------------------------- helpers
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function easeOutBack(t) {
+    var c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  }
+  function clampInt(v, a, b, f) {
+    return Number.isFinite(v) ? Math.round(clamp(v, a, b)) : f;
+  }
+  function setTextIfChanged(o, s) {
+    if (!o) return;
+    if (o.__txt !== s) { o.__txt = s; o.setText(s); }
+  }
+  function setTintIfChanged(o, c) {
+    // The same change guard setText gets: setTint dirties the batch too.
+    if (!o) return;
+    if (o.__tintv !== c) { o.__tintv = c; o.setTint(c); }
+  }
+  function setVisibleIfChanged(o, v) {
+    if (!o) return;
+    if (o.visible !== v) o.setVisible(v);
   }
 
-  function emit(x, y, color, count = 8, speed = 80, life = .45) {
-    const safeCount = Math.min(count, MAX_PARTICLES - particles.length);
-    for (let i = 0; i < safeCount; i++) {
-      const a = Math.random() * TAU;
-      const s = speed * (.35 + Math.random() * .9);
-      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life, maxLife: life, size: 1.5 + Math.random() * 3.5, color });
+  var AUDIO = {
+    pull: 'assets/sfx_pull.mp3',
+    launch: 'assets/sfx_launch.mp3',
+    bank: 'assets/sfx_bank.mp3',
+    impact: 'assets/sfx_impact.mp3',
+    brk: 'assets/sfx_break.mp3',
+    brood: 'assets/sfx_brood.mp3',
+    aura: 'assets/sfx_aura.mp3',
+    drop: 'assets/sfx_drop.mp3',
+    medal: 'assets/sfx_medal.mp3',
+    unlock: 'assets/sfx_unlock.mp3',
+    tap: 'assets/sfx_tap.mp3',
+    fail: 'assets/sfx_fail.mp3',
+    music_field: 'assets/music_field.mp3',
+    music_rush: 'assets/music_rush.mp3'
+  };
+  kit.audio.register(AUDIO);
+
+  // ============================================================ BootScene
+  function BootScene() { Phaser.Scene.call(this, { key: 'Boot' }); }
+  BootScene.prototype = Object.create(Phaser.Scene.prototype);
+  BootScene.prototype.constructor = BootScene;
+
+  BootScene.prototype.preload = function () {
+    kit.loader.show('Slingfang');
+    this.load.on('progress', function (p) { kit.loader.progress(p * 0.8); });
+    this.load.atlas('atlas', 'assets/atlas.png', 'assets/atlas.json');
+    this.load.image('ground', 'assets/ground.png');
+    this.load.image('disc', 'assets/disc.png');
+    this.load.image('edge', 'assets/edge.png');
+  };
+
+  BootScene.prototype.create = function () {
+    // 1x1 white pixel: every meter, rule and fill scales this instead of
+    // leaving a static Graphics in the display list.
+    var g = this.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0xffffff, 1).fillRect(0, 0, 4, 4);
+    g.generateTexture('px', 4, 4);
+    g.destroy();
+
+    kit.loader.progress(0.9);
+    // Audio decode is lazy and must never block the first frame; the buffers
+    // land behind the title screen.
+    kit.audio.preload(Object.keys(AUDIO));
+    kit.loader.progress(1);
+    kit.loader.hide();
+    kit.registerPWA();
+    this.scene.start('Menu');
+  };
+
+  // ============================================================ MenuScene
+  function MenuScene() { Phaser.Scene.call(this, { key: 'Menu' }); }
+  MenuScene.prototype = Object.create(Phaser.Scene.prototype);
+  MenuScene.prototype.constructor = MenuScene;
+
+  MenuScene.prototype.create = function () {
+    var self = this;
+    HOOK.mode = 'menu';
+    HOOK.ready = true;
+    this.taps = [];               // {x,y,w,h,fn}
+    this.prevIds = new Set();
+
+    this.add.image(0, 0, 'px').setOrigin(0).setDisplaySize(W, H).setTint(0x0a0f18);
+    this.add.image(W / 2, 250, 'disc').setDisplaySize(560, 560)
+      .setTint(0x1a3a4a).setAlpha(0.55).setBlendMode(Phaser.BlendModes.ADD);
+
+    this.add.image(W / 2, 176, 'atlas', 'fang').setScale(1.0);
+    this.add.text(W / 2, 268, 'SLINGFANG', {
+      fontFamily: 'SF Display, Trebuchet MS, sans-serif', fontSize: '38px',
+      color: '#e8fff8'
+    }).setOrigin(0.5);
+    // Narrow face at 13px: the display face at this length runs off both
+    // edges of a 390pt screen.
+    this.add.text(W / 2, 302, 'pull back  ·  bank  ·  break the formation', {
+      fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '13px',
+      color: '#7f9bb0'
+    }).setOrigin(0.5);
+
+    // Campaign progress strip: medals earned, told with marks not sentences.
+    var earned = 0, gold = 0;
+    for (var i = 0; i < D.FORMATIONS.length; i++) {
+      var m = SAVE.medals[D.FORMATIONS[i].id];
+      if (m) earned++;
+      if (m === 'gold') gold++;
     }
-    while (particles.length > MAX_PARTICLES) particles.shift();
-  }
-
-  function addEffect(effect) {
-    if (effects.length >= MAX_EFFECTS) effects.shift();
-    effects.push(effect);
-  }
-
-  function clearStage() {
-    if (stageClearQueued || state !== 'play') return;
-    stageClearQueued = true;
-    state = 'clear';
-    const elapsed = Math.max(1, Math.round(stageSeconds));
-    const stageGain = Math.max(100, 900 - shotNumber * 55 - elapsed * 4 + combo * 25);
-    stageScore = stageGain;
-    score += stageGain;
-    progress.bestScore = Math.max(progress.bestScore, score);
-    progress.bestTime = progress.bestTime === 0 ? elapsed : Math.min(progress.bestTime, elapsed);
-    progress.maxStage = Math.max(progress.maxStage, Math.min(12, stage + 1));
-    progress.unlocked = Math.min(6, Math.max(progress.unlocked, Math.min(3 + stage, 6)));
-    saveProgress();
-    emit(195, 300, '#c8ffcf', 42, 150, .95);
-    tone(392, .12, 'triangle', .05);
-    const advanceStage = () => {
-      if (orientationPaused || document.hidden) { later(advanceStage, 760); return; }
-      if (stage >= 12) {
-        state = 'win';
-        bootLayer.hidden = true;
-        restartButton.textContent = 'Play again';
-        announce.textContent = 'All twelve stages cleared. Victory.';
-        tone(659, .2, 'triangle', .06);
-      } else {
-        stage += 1;
-        state = 'play';
-        buildStage(stage);
-        restartButton.textContent = 'Restart';
-      }
-    };
-    later(advanceStage, 760);
-  }
-
-  function failStage() {
-    if (state !== 'play') return;
-    state = 'fail';
-    resetInput();
-    restartButton.textContent = 'Retry stage';
-    announce.textContent = `Stage ${stage} failed. Team vitality depleted.`;
-    flash = .55;
-    shake = 12;
-    tone(120, .22, 'sawtooth', .055);
-  }
-
-  function startNewRun() {
-    cancelTimers();
-    resetInput();
-    state = 'play';
-    stage = 1;
-    score = 0;
-    stageScore = 0;
-    activeSlot = 0;
-    makeTeam();
-    buildStage(stage);
-    restartButton.textContent = 'Restart';
-    announce.textContent = 'New run started.';
-  }
-
-  function restartStage() {
-    cancelTimers();
-    resetInput();
-    state = 'play';
-    buildStage(stage);
-    restartButton.textContent = 'Restart';
-    announce.textContent = `Stage ${stage} restarted.`;
-  }
-
-  function launch() {
-    if (!player || player.launched || state !== 'play' || orientationPaused || audioGate) return;
-    const dir = normalize(aim.x, aim.y);
-    const power = clamp(170 + (Math.abs(dir.x) + Math.abs(dir.y)) * 36, 180, 245);
-    player.vx = dir.x * power;
-    player.vy = dir.y * power;
-    player.launched = true;
-    player.shotTime = 0;
-    player.settle = 0;
-    player.bounces = 0;
-    player.banked = false;
-    player.splitUsed = false;
-    shotNumber = Math.min(999, shotNumber + 1);
-    trails.length = 0;
-    emit(player.x, player.y, roster[team[activeSlot]].color, 10, 65, .28);
-    tone(210 + Math.abs(dir.x) * 80, .09, 'square', .035);
-  }
-
-  function hitEnemy(target, damage, source, normal) {
-    if (!target || target.hitCooldown > 0) return;
-    if (target.type === 'boss' && !bossWallsCleared() && !(source === 'player' && player.bounces > 0)) return;
-    const creature = roster[team[activeSlot]];
-    target.hp -= damage;
-    target.hitCooldown = .12;
-    target.flash = .18;
-    combo = Math.min(99, combo + 1);
-    score += damage * 12;
-    emit(target.x, target.y, target.color, target.type === 'boss' ? 11 : 6, 88, .35);
-    tone(target.type === 'boss' ? 130 : 250 + damage * 40, .045, 'square', .022);
-    if (target.hp <= 0) {
-      const value = target.type === 'boss' ? 500 : target.type === 'heavy' ? 130 : 80;
-      score += value;
-      emit(target.x, target.y, '#fdf0bc', target.type === 'boss' ? 26 : 12, 150, .7);
-      shake = Math.max(shake, target.type === 'boss' ? 10 : 4);
-      enemies = enemies.filter((item) => item !== target);
-      addEffect({ kind: 'pop', x: target.x, y: target.y, t: .45, max: .45, color: target.color });
+    for (var j = 0; j < D.FORMATIONS.length; j++) {
+      var mm = SAVE.medals[D.FORMATIONS[j].id];
+      var px = 40 + (j % 6) * 62;
+      var py = 348 + Math.floor(j / 6) * 46;
+      var pip = this.add.image(px, py, 'atlas', mm ? 'medal_' + mm : 'hi_lock')
+        .setScale(mm ? 0.5 : 0.42);
+      if (!mm) pip.setAlpha(0.32);
     }
-    if (source === 'player' && creature.passive === 'SPLIT' && !player.splitUsed) {
-      player.splitUsed = true;
-      const base = Math.atan2(player.vy, player.vx);
-      for (const offset of [-.42, .42]) {
-        if (shards.length < MAX_SHARDS) shards.push({ x: player.x, y: player.y, vx: Math.cos(base + offset) * 150, vy: Math.sin(base + offset) * 150, r: 7, life: 1.8, hit: 0 });
-      }
-      emit(player.x, player.y, creature.color, 14, 110, .5);
-      tone(520, .1, 'triangle', .035);
-    }
-    if (source === 'player' && creature.passive === 'PIERCE') {
-      player.banked = player.banked || player.bounces > 0;
-    }
-    if (normal && source === 'player' && creature.passive !== 'PIERCE') {
-      const dot = player.vx * normal.x + player.vy * normal.y;
-      player.vx -= 2 * dot * normal.x;
-      player.vy -= 2 * dot * normal.y;
-      player.vx *= .88;
-      player.vy *= .88;
-    }
-    if (source === 'player' && target.type !== 'boss') hurtTeam(target.type === 'heavy' ? 7 : 4);
-  }
 
-  function hurtTeam(amount) {
-    const warded = effects.some((item) => item.kind === 'shield' && item.t > 0);
-    if (warded) amount = Math.ceil(amount * .35);
-    teamHP = clamp(teamHP - amount, 0, 100);
-    flash = Math.max(flash, .16);
-    shake = Math.max(shake, 4);
-    if (teamHP <= 0) failStage();
-  }
-
-  function triggerAura(slot) {
-    const id = team[slot];
-    const creature = roster[id];
-    const base = basePosition(slot);
-    combo = Math.min(99, combo + 2);
-    if (creature.aura === 'HEAL') {
-      teamHP = clamp(teamHP + 18, 0, 100);
-      addEffect({ kind: 'heal', x: base.x, y: base.y, t: .7, max: .7, color: creature.color });
-      emit(base.x, base.y, creature.color, 18, 92, .62);
-      tone(530, .16, 'sine', .04);
-    } else if (creature.aura === 'SPARK') {
-      addEffect({ kind: 'spark', x: base.x, y: base.y, t: .42, max: .42, color: creature.color });
-      emit(base.x, base.y, creature.color, 22, 170, .5);
-      for (const target of enemies.slice()) {
-        if (Math.hypot(target.x - base.x, target.y - base.y) < 100) hitEnemy(target, 2, 'aura');
-      }
-      tone(760, .13, 'square', .04);
-    } else if (creature.aura === 'SHIELD') {
-      addEffect({ kind: 'shield', x: base.x, y: base.y, t: 4, max: 4, color: creature.color });
-      emit(base.x, base.y, creature.color, 16, 76, .55);
-      tone(340, .18, 'triangle', .045);
-    } else {
-      addEffect({ kind: 'pulse', x: base.x, y: base.y, t: .48, max: .48, color: creature.color });
-      emit(base.x, base.y, creature.color, 10, 100, .4);
-      tone(300, .07, 'sine', .025);
+    this.button(W / 2, 470, 240, 60, 'CAMPAIGN', 0x39d353, function () {
+      kit.audio.sfx('tap');
+      self.scene.start('Play', { mode: 'campaign', formation: Math.min(SAVE.maxCleared, D.FORMATIONS.length - 1) });
+    });
+    this.button(W / 2, 544, 240, 56, 'FORMATION RUSH', 0x7ac8ff, function () {
+      kit.audio.sfx('tap');
+      self.scene.start('Play', { mode: 'rush', formation: 0 });
+    });
+    if (SAVE.maxCleared > 0) {
+      this.button(W / 2, 612, 240, 48, 'REPLAY FROM FIRST', 0x3a4a5e, function () {
+        kit.audio.sfx('tap');
+        self.scene.start('Play', { mode: 'campaign', formation: 0 });
+      });
     }
-    announce.textContent = `${creature.name} aura: ${creature.aura === 'HEAL' ? 'vitality restored' : creature.aura === 'SPARK' ? 'nearby foes shocked' : creature.aura === 'SHIELD' ? 'damage dampened' : creature.aura.toLowerCase()}.`;
-  }
+    this.button(W / 2, SAVE.maxCleared > 0 ? 676 : 612, 240, 48, 'SETTINGS', 0x3a4a5e, function () {
+      kit.audio.sfx('tap');
+      kit.openSettings();
+    });
 
-  function bossWallsCleared() {
-    return walls.every((wall) => !wall.alive);
-  }
+    var best = 'best ' + SAVE.bestScore + '  ·  rush ' + SAVE.bestRush +
+      '  ·  ' + earned + '/' + D.FORMATIONS.length + ' medals  ·  ' + gold + ' gold';
+    this.add.text(W / 2, 764, best, {
+      fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '12px', color: '#6f8798'
+    }).setOrigin(0.5);
 
-  function wallCollision(wall) {
-    if (!wall.alive || !player.launched) return false;
-    const closestX = clamp(player.x, wall.x - wall.w / 2, wall.x + wall.w / 2);
-    const closestY = clamp(player.y, wall.y - wall.h / 2, wall.y + wall.h / 2);
-    const dx = player.x - closestX;
-    const dy = player.y - closestY;
-    if (dx * dx + dy * dy > player.r * player.r) return false;
-    if (player.bounces > 0) {
-      wall.hp -= 1;
-      wall.flash = .22;
-      player.banked = true;
-      emit(wall.x, wall.y, '#ffd681', 12, 105, .4);
-      tone(470, .08, 'square', .028);
-      if (wall.hp <= 0) { wall.alive = false; score += 110; emit(wall.x, wall.y, '#c8ffcf', 20, 130, .58); }
-    }
-    const horizontal = Math.abs(dx) > Math.abs(dy);
-    if (horizontal) player.vx *= -1; else player.vy *= -1;
-    if (horizontal) player.x += dx > 0 ? 3 : -3; else player.y += dy > 0 ? 3 : -3;
-    player.vx *= .9; player.vy *= .9;
-    shake = Math.max(shake, 3);
-    return true;
-  }
-
-  function updateAim(dt) {
-    if (player?.launched || !player) return;
-    let ax = 0;
-    let ay = 0;
-    if (keys.has('ArrowLeft')) ax -= 1;
-    if (keys.has('ArrowRight')) ax += 1;
-    if (keys.has('ArrowUp')) ay -= 1;
-    if (keys.has('ArrowDown')) ay += 1;
-    if (ax || ay) {
-      const current = Math.atan2(aim.y, aim.x);
-      const desired = Math.atan2(ay, ax);
-      let diff = desired - current;
-      while (diff > Math.PI) diff -= TAU;
-      while (diff < -Math.PI) diff += TAU;
-      const next = current + clamp(diff, -dt * 2.9, dt * 2.9);
-      aim = { x: Math.cos(next), y: Math.sin(next) };
-    }
-  }
-
-  function update(dt) {
-    if (orientationPaused || document.hidden || audioGate) return;
-    if (state !== 'play') {
-      updateParticles(dt);
+    if (PENDING.mode !== null || PENDING.formation !== null) {
+      var pendingMode = PENDING.mode === 'rush' ? 'rush' : 'campaign';
+      var f = PENDING.formation === null ? 0 : PENDING.formation;
+      PENDING.mode = null;
+      PENDING.formation = null;
+      this.scene.start('Play', { mode: pendingMode, formation: f });
       return;
     }
-    stageSeconds = Math.max(0, (performance.now() - stageStartedAt) / 1000);
-    updateAim(dt);
-    if (queuedActions.length) {
-      const action = queuedActions.shift();
-      if (action === 'launch') launch();
-    }
-    walls.forEach((wall) => { wall.flash = Math.max(0, wall.flash - dt); });
-    enemies.forEach((item) => {
-      item.hitCooldown = Math.max(0, item.hitCooldown - dt);
-      item.flash = Math.max(0, item.flash - dt);
-      if (roster[team[activeSlot]]?.passive === 'MAGNET' && player.launched && item.type !== 'boss') {
-        const dx = player.x - item.x;
-        const dy = player.y - item.y;
-        const d = Math.hypot(dx, dy);
-        if (d > 12 && d < 124) { item.vx += dx / d * 16 * dt; item.vy += dy / d * 16 * dt; }
-      }
-      item.x = clamp(item.x + item.vx * dt, ARENA.left + item.r, ARENA.right - item.r);
-      item.y = clamp(item.y + item.vy * dt, ARENA.top + item.r, 408 - item.r);
-      item.vx *= Math.pow(.02, dt);
-      item.vy *= Math.pow(.02, dt);
-    });
-    updateShards(dt);
-    updateEffects(dt);
-    updateParticles(dt);
-    if (!player.launched) return;
-    player.shotTime += dt;
-    player.invuln = Math.max(0, player.invuln - dt);
-    player.x += player.vx * dt;
-    player.y += player.vy * dt;
-    player.vx *= Math.pow(.19, dt);
-    player.vy *= Math.pow(.19, dt);
-    trails.push({ x: player.x, y: player.y, life: .34 });
-    while (trails.length > 24) trails.shift();
-    let bounced = false;
-    if (player.x - player.r < ARENA.left) { player.x = ARENA.left + player.r; player.vx = Math.abs(player.vx); bounced = true; }
-    if (player.x + player.r > ARENA.right) { player.x = ARENA.right - player.r; player.vx = -Math.abs(player.vx); bounced = true; }
-    if (player.y - player.r < ARENA.top) { player.y = ARENA.top + player.r; player.vy = Math.abs(player.vy); bounced = true; }
-    if (player.y + player.r > ARENA.bottom) { player.y = ARENA.bottom - player.r; player.vy = -Math.abs(player.vy); bounced = true; }
-    if (bounced) {
-      player.bounces = Math.min(20, player.bounces + 1);
-      player.banked = true;
-      emit(player.x, player.y, '#d9f5ff', 5, 50, .25);
-      tone(165 + player.bounces * 14, .035, 'sine', .018);
-    }
-    for (const wall of walls) wallCollision(wall);
-    for (const target of enemies.slice()) {
-      const d = Math.hypot(player.x - target.x, player.y - target.y);
-      if (d < player.r + target.r) {
-        if (target.type === 'boss' && !bossWallsCleared() && player.bounces === 0) {
-          hurtTeam(3);
-          const n = normalize(player.x - target.x, player.y - target.y);
-          const vx = Math.abs(player.vx), vy = Math.abs(player.vy);
-          player.vx = vx * n.x - vy * n.y;
-          player.vy = vx * n.y + vy * n.x;
-          emit(target.x, target.y, '#ef9b86', 8, 75, .3);
-        } else {
-          const normal = normalize(player.x - target.x, player.y - target.y);
-          hitEnemy(target, roster[team[activeSlot]].passive === 'PIERCE' ? 2 : 1, 'player', normal);
-          player.x = target.x + normal.x * (player.r + target.r + 1);
-          player.y = target.y + normal.y * (player.r + target.r + 1);
+    kit.audio.music('music_field', 900);
+  };
+
+  MenuScene.prototype.button = function (cx, cy, w, h, label, tint, fn) {
+    var bg = this.add.image(cx, cy, 'px').setDisplaySize(w, h).setTint(0x14202e);
+    var line = this.add.image(cx, cy + h / 2 - 2, 'px').setDisplaySize(w, 3).setTint(tint);
+    bg.setAlpha(0.96); line.setAlpha(0.9);
+    this.add.text(cx, cy, label, {
+      fontFamily: 'SF Display, Trebuchet MS, sans-serif', fontSize: '17px',
+      color: '#e8fff8'
+    }).setOrigin(0.5);
+    this.taps.push({ x: cx - w / 2, y: cy - h / 2, w: w, h: h, fn: fn });
+  };
+
+  MenuScene.prototype.update = function () {
+    // GGKit owns input. Down-edges are derived from its per-pointer identity
+    // map, so the menu never grows its own DOM handlers (and never has to
+    // seed kit.input.pointers at claim time).
+    var ids = new Set();
+    var fired = null;
+    var it = kit.input.pointers.entries();
+    var n = it.next();
+    while (!n.done) {
+      var id = n.value[0], p = n.value[1];
+      ids.add(id);
+      if (!this.prevIds.has(id) && !fired) {
+        var d = toDesign(this.game, p.startX, p.startY);
+        for (var i = 0; i < this.taps.length; i++) {
+          var t = this.taps[i];
+          if (d.x >= t.x && d.x <= t.x + t.w && d.y >= t.y && d.y <= t.y + t.h) {
+            fired = t; break;
+          }
         }
       }
+      n = it.next();
     }
-    for (let i = 0; i < team.length; i++) {
-      if (i === activeSlot) continue;
-      const ally = basePosition(i);
-      if (Math.hypot(player.x - ally.x, player.y - ally.y) < player.r + 22) {
-        const auraKey = `ally-${i}`;
-        const already = effects.some((item) => item.kind === auraKey);
-        if (!already) {
-          addEffect({ kind: auraKey, x: ally.x, y: ally.y, t: .46, max: .46, color: roster[team[i]].color });
-          triggerAura(i);
-          const n = normalize(player.x - ally.x, player.y - ally.y);
-          player.vx = Math.abs(player.vx) * n.x;
-          player.vy = Math.abs(player.vy) * n.y;
-        }
-      }
-    }
-    const speed = Math.hypot(player.vx, player.vy);
-    if (speed < 24) player.settle += dt; else player.settle = 0;
-    if (player.settle > .52 || player.shotTime > 8) endShot();
-    if (!enemies.length && !walls.some((wall) => wall.alive)) clearStage();
-    if (teamHP <= 0) failStage();
+    this.prevIds = ids;
+    if (fired) fired.fn();
+  };
+
+  // Map a CSS-pixel client point into the 390x844 design space.
+  // getBoundingClientRect forces layout, and the scratch object would be a
+  // fresh allocation on every pointer on every sim step: the rect is cached
+  // per frame and the result is written into a caller-owned point.
+  var RECT = { x: 0, y: 0, w: 0, h: 0, stamp: -1 };
+  var PT_A = { x: 0, y: 0 }, PT_B = { x: 0, y: 0 };
+  function refreshRect(game, stamp) {
+    if (RECT.stamp === stamp) return;
+    RECT.stamp = stamp;
+    var r = game.canvas.getBoundingClientRect();
+    RECT.x = r.left; RECT.y = r.top; RECT.w = r.width; RECT.h = r.height;
+  }
+  function toDesignInto(game, cx, cy, out) {
+    refreshRect(game, game.loop.frame);
+    if (!RECT.w || !RECT.h) { out.x = -999; out.y = -999; return out; }
+    out.x = (cx - RECT.x) / RECT.w * W;
+    out.y = (cy - RECT.y) / RECT.h * H;
+    return out;
+  }
+  function toDesign(game, cx, cy) {
+    return toDesignInto(game, cx, cy, { x: 0, y: 0 });
   }
 
-  function endShot() {
-    player.launched = false;
-    player.vx = 0;
-    player.vy = 0;
-    const previous = activeSlot;
-    activeSlot = (activeSlot + 1) % team.length;
-    if (activeSlot === previous) activeSlot = 0;
-    resetPlayer();
-    renderTeamControls();
-    if (enemies.length > 0) hurtTeam(Math.min(7, Math.max(1, enemies.length - 4)));
-  }
+  // ============================================================ PlayScene
+  function PlayScene() { Phaser.Scene.call(this, { key: 'Play' }); }
+  PlayScene.prototype = Object.create(Phaser.Scene.prototype);
+  PlayScene.prototype.constructor = PlayScene;
 
-  function updateShards(dt) {
-    for (let i = shards.length - 1; i >= 0; i--) {
-      const shard = shards[i];
-      shard.life -= dt;
-      shard.hit = Math.max(0, shard.hit - dt);
-      shard.x += shard.vx * dt;
-      shard.y += shard.vy * dt;
-      shard.vx *= Math.pow(.06, dt);
-      shard.vy *= Math.pow(.06, dt);
-      if (shard.x - shard.r < ARENA.left || shard.x + shard.r > ARENA.right) shard.vx *= -1;
-      if (shard.y - shard.r < ARENA.top || shard.y + shard.r > ARENA.bottom) shard.vy *= -1;
-      for (const target of enemies.slice()) {
-        if (shard.hit <= 0 && Math.hypot(shard.x - target.x, shard.y - target.y) < shard.r + target.r) {
-          shard.hit = .16;
-          hitEnemy(target, 1, 'shard', normalize(shard.x - target.x, shard.y - target.y));
-        }
-      }
-      if (shard.life <= 0) shards.splice(i, 1);
+  PlayScene.prototype.init = function (data) {
+    this.mode = (data && data.mode === 'rush') ? 'rush' : 'campaign';
+    this.formationIndex = (data && data.formation | 0) || 0;
+    this.frozen = false;
+  };
+
+  PlayScene.prototype.create = function () {
+    LIVE = this;
+    var self = this;
+    this.acc = 0;
+    this.phase = 'aim';        // aim | flight | clear | fail | done
+    this.phaseT = 0;
+    this.score = 0;
+    this.runVitality = T.startVitality;
+    this.freeShots = this.mode === 'rush' ? T.rushDropFreeShots : T.dropFreeShots;
+    this.prevIds = new Set();
+    this.curIds = new Set();
+    this.downQueue = [];
+    this.pullScratch = { dx: 0, dy: -1, power: 0, len: 0 };
+    this.pathSegs = [];
+    this.pathBanks = [];
+    this.segPool = [];
+    this.bankPool = [];
+    for (var bp = 0; bp < MAX_MARKS; bp++) {
+      this.bankPool.push({ x: 0, y: 0, barrier: false });
     }
-  }
+    this.path = { segs: null, banks: null };
+    this.hitScratch = { ax: 0, x: 0, y: 0 };
+    this.kbScratch = { dx: 0, dy: -1, power: 0, len: 0 };
+    this.dragId = null;
+    this.dragFrom = null;
+    this.chipQueue = [];
+    this.chipT = 0;
+    this.bannerT = 0;
+    this.tutorialT = 0;
+    this.impactT = 0;
+    this.comboRingT = 0;
+    this.vitalityFlashT = 0;
+    this.comboT = 0;
+    this.formationStartScore = 0;
+    this.musicIntensity = null;
 
-  function updateEffects(dt) {
-    for (let i = effects.length - 1; i >= 0; i--) {
-      effects[i].t -= dt;
-      if (effects[i].t <= 0) effects.splice(i, 1);
+    this.buildStatic();
+    this.buildPools();
+    this.buildHud();
+    this.buildDock();
+
+    if (PENDING.roster) {
+      this.forceUnlock = D.creature(PENDING.roster).id;
+      this.activeId = this.forceUnlock;
+      PENDING.roster = null;
     }
-    for (let i = trails.length - 1; i >= 0; i--) {
-      trails[i].life -= dt;
-      if (trails[i].life <= 0) trails.splice(i, 1);
+    else this.activeId = D.creature(SAVE.active).id;
+    if (PENDING.formation !== null && this.mode === 'campaign') {
+      this.formationIndex = PENDING.formation; PENDING.formation = null;
     }
-  }
+    this.syncTeam();
+    this.loadFormation(this.formationIndex);
 
-  function updateParticles(dt) {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.life -= dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.vx *= Math.pow(.08, dt);
-      p.vy *= Math.pow(.08, dt);
-      if (p.life <= 0) particles.splice(i, 1);
+    this.events.once('shutdown', function () { if (LIVE === self) LIVE = null; });
+  };
+
+  // ----------------------------------------------------------- static bake
+  //
+  // Fill rate, not JavaScript, is what stalls this frame: a CPU profile of the
+  // idle play frame put game.js at 0.8% of samples and the rasteriser at ~30%.
+  // So the static world is ONE quad. The arena floor tiling, the frame, the
+  // corner bank ticks and the launch rule are all stamped into a single board
+  // texture at create time; a full-screen clear colour stands in for the old
+  // full-screen background image, and the HUD and dock backings are their own
+  // small cropped quads instead of another full-screen sheet.
+  //
+  // Nothing static stays in the display list as Graphics either: Phaser
+  // replays a Graphics command list in full every frame.
+  PlayScene.prototype.buildStatic = function () {
+    var bx = A.left - 7, by = A.top - 7;
+    var bw = ARENA_W + 14, bh = ARENA_H + 14;
+
+    // Restarting the scene (mode switch, test hook) runs this again, and
+    // createCanvas() returns NULL for a key already in the manager -- which
+    // then dies on getContext(). Reclaim the keys first.
+    var baked = ['board', 'boardbg', 'boardframe', 'hudband', 'dockband'];
+    for (var bk = 0; bk < baked.length; bk++) {
+      if (this.textures.exists(baked[bk])) this.textures.remove(baked[bk]);
     }
-    shake = Math.max(0, shake - dt * 18);
-    flash = Math.max(0, flash - dt);
-  }
 
-  function guideEndpoint() {
-    const origin = player;
-    const dir = normalize(aim.x, aim.y);
-    let best = 330;
-    let hit = null;
-    if (dir.x > 0) { const t = (ARENA.right - origin.r - origin.x) / dir.x; if (t > 0 && t < best) { best = t; hit = 'x'; } }
-    if (dir.x < 0) { const t = (ARENA.left + origin.r - origin.x) / dir.x; if (t > 0 && t < best) { best = t; hit = 'x'; } }
-    if (dir.y > 0) { const t = (ARENA.bottom - origin.r - origin.y) / dir.y; if (t > 0 && t < best) { best = t; hit = 'y'; } }
-    if (dir.y < 0) { const t = (ARENA.top + origin.r - origin.y) / dir.y; if (t > 0 && t < best) { best = t; hit = 'y'; } }
-    return { x: origin.x + dir.x * best, y: origin.y + dir.y * best, hit, dir };
-  }
+    // A CanvasTexture, not a RenderTexture: a RenderTexture keeps its own
+    // framebuffer and costs a pipeline flush every frame it is drawn, and this
+    // surface never changes after create(). Measured at 4x throttle it was the
+    // single biggest game-side contributor to dropped frames.
+    var ctex = this.textures.createCanvas('board', bw, bh);
+    var ctx = ctex.getContext();
 
-  function draw() {
-    const sx = layout.dpr * layout.scale;
-    const sy = layout.dpr * layout.scale;
-    ctx.setTransform(sx, 0, 0, sy, layout.dpr * (layout.ox + shake * (Math.random() - .5)), layout.dpr * (layout.oy + shake * (Math.random() - .5)));
-    ctx.clearRect(-20, -20, VW + 40, VH + 40);
-    drawBackground();
+    var g = this.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0x0e1624, 1);
+    g.fillRoundedRect(0, 0, bw, bh, 20);
+    g.generateTexture('boardbg', bw, bh);
+    g.destroy();
+    ctx.drawImage(this.textures.get('boardbg').getSourceImage(), 0, 0);
+
+    // Tiled floor, stamped once. A TileSprite would re-sample the whole
+    // rectangle every frame for a surface that never moves.
+    var tile = this.textures.get('ground').getSourceImage();
+    var tw = tile.width || 128, th = tile.height || 128;
     ctx.save();
-    roundRect(10, 10, 370, 590, 24, '#111a28', 'rgba(203,230,246,.16)', 1);
-    ctx.clip();
-    drawArena();
-    ctx.restore();
-    drawHud();
-    drawBottomHint();
-    if (state === 'fail') drawStateCard('RUN OUT', 'The team vitality pool hit zero.', 'Retry this stage');
-    if (state === 'clear') drawStateCard('FORMATION CLEARED', `+${stageScore} score  •  next stage loading`, progress.unlocked >= Math.min(6, stage + 3) ? 'Roster expanded' : 'Nice bank');
-    if (state === 'win') drawStateCard('Slingfang complete', `12 stages cleared  •  ${score} score`, 'Play again');
-  }
-
-  function drawBackground() {
-    const bg = ctx.createLinearGradient(0, 0, 0, VH);
-    bg.addColorStop(0, '#0b111c'); bg.addColorStop(.55, '#111d2b'); bg.addColorStop(1, '#0d1521');
-    ctx.fillStyle = bg; ctx.fillRect(-1, -1, VW + 2, VH + 2);
-    for (const dot of backdropDots) { ctx.fillStyle = `rgba(160,216,232,${dot.a})`; ctx.beginPath(); ctx.arc(dot.x, dot.y, dot.r, 0, TAU); ctx.fill(); }
-    ctx.strokeStyle = 'rgba(133,179,201,.055)'; ctx.lineWidth = 1;
-    for (let x = 20; x < VW; x += 26) { ctx.beginPath(); ctx.moveTo(x, 94); ctx.lineTo(x, 612); ctx.stroke(); }
-    for (let y = 110; y < 612; y += 26) { ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(380, y); ctx.stroke(); }
-  }
-
-  function drawArena() {
-    const field = ctx.createLinearGradient(0, ARENA.top, 0, ARENA.bottom);
-    field.addColorStop(0, '#15283a'); field.addColorStop(1, '#101a27');
-    roundRect(17, 116, 356, 462, 19, field, 'rgba(175,221,239,.22)', 1.5);
-    ctx.save();
-    ctx.globalAlpha = .23;
-    ctx.setLineDash([5, 9]);
-    ctx.strokeStyle = '#8acbd6';
-    ctx.beginPath(); ctx.moveTo(25, 420); ctx.lineTo(365, 420); ctx.stroke();
-    ctx.restore();
-    for (const wall of walls) drawWall(wall);
-    for (const trail of trails) { ctx.fillStyle = `rgba(178,239,245,${trail.life * .7})`; ctx.beginPath(); ctx.arc(trail.x, trail.y, 3 + trail.life * 5, 0, TAU); ctx.fill(); }
-    for (const target of enemies) drawEnemy(target);
-    for (const shard of shards) { ctx.fillStyle = '#ffd47c'; ctx.shadowColor = '#ffb15c'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(shard.x, shard.y, shard.r, 0, TAU); ctx.fill(); ctx.shadowBlur = 0; }
-    for (let i = 0; i < team.length; i++) drawAlly(i);
-    drawGuide();
-    if (player) drawPlayer();
-    for (const effect of effects) drawEffect(effect);
-    for (const p of particles) { ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawHud() {
-    ctx.fillStyle = '#eff7ff'; ctx.font = '800 21px system-ui, sans-serif'; ctx.fillText('SLINGFANG', 26, 38);
-    ctx.fillStyle = '#7ee7ef'; ctx.font = '800 10px system-ui, sans-serif'; ctx.letterSpacing = '1px'; ctx.fillText(`STAGE ${String(stage).padStart(2, '0')} / 12`, 28, 57);
-    ctx.fillStyle = '#8091a6'; ctx.font = '700 10px system-ui, sans-serif'; ctx.fillText(`BEST ${String(progress.bestScore).padStart(5, '0')}`, 28, 74);
-    ctx.fillStyle = '#8899ae'; ctx.fillText('VITALITY', 157, 29);
-    roundRect(157, 36, 112, 11, 6, '#202d3b', null, 0);
-    roundRect(157, 36, 112 * teamHP / 100, 11, 6, teamHP > 35 ? '#8ee8b0' : '#ff8776', null, 0);
-    ctx.fillStyle = '#eff7ff'; ctx.font = '800 12px system-ui, sans-serif'; ctx.fillText(`${Math.ceil(teamHP)}%`, 274, 46);
-    ctx.fillStyle = '#c6d5e2'; ctx.font = '700 12px system-ui, sans-serif'; ctx.fillText(`SCORE ${String(score).padStart(5, '0')}`, 280, 69);
-    ctx.fillStyle = '#7f91a6'; ctx.font = '600 10px system-ui, sans-serif'; ctx.fillText(`${Math.floor(stageSeconds)}s  •  SHOT ${shotNumber}`, 280, 84);
-  }
-
-  function drawBottomHint() {
-    ctx.fillStyle = '#91a0b7'; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(player?.launched ? 'Contact damages foes • bank off walls for better angles' : 'Drag back from your fang, then release  •  arrows + space', 195, 618);
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#52647b'; ctx.font = '700 9px system-ui, sans-serif'; ctx.fillText(`TEAM ${team.map((id) => roster[id].short).join('  ·  ')}`, 23, 674);
-  }
-
-  function drawStateCard(title, subtitle, action) {
-    ctx.fillStyle = 'rgba(7, 12, 19, .77)'; ctx.fillRect(10, 10, 370, 590);
-    roundRect(37, 216, 316, 188, 24, '#162436', 'rgba(190,230,239,.25)', 1);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = state === 'fail' ? '#ff9e85' : state === 'win' ? '#c8ffcf' : '#8feaf0';
-    ctx.font = '900 26px system-ui, sans-serif'; ctx.fillText(title, 195, 271);
-    ctx.fillStyle = '#bdcadb'; ctx.font = '600 13px system-ui, sans-serif'; ctx.fillText(subtitle, 195, 301);
-    ctx.fillStyle = '#7f93a9'; ctx.font = '700 11px system-ui, sans-serif'; ctx.fillText(action.toUpperCase(), 195, 354);
-    ctx.fillStyle = '#5d7189'; ctx.font = '600 10px system-ui, sans-serif'; ctx.fillText('Use the button in the top-right', 195, 379);
-    ctx.textAlign = 'left';
-  }
-
-  function drawWall(wall) {
-    if (!wall.alive) return;
-    ctx.save();
-    ctx.translate(wall.x, wall.y);
-    ctx.shadowColor = '#ffbd6d'; ctx.shadowBlur = wall.flash ? 22 : 9;
-    roundRect(-wall.w / 2, -wall.h / 2, wall.w, wall.h, 6, wall.flash ? '#fff0a8' : '#c07656', 'rgba(255,223,157,.7)', 1);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#ffe4a0'; ctx.font = '900 9px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`BANK ${wall.hp}`, 0, 3); ctx.restore();
-  }
-
-  function drawEnemy(item) {
-    ctx.save(); ctx.translate(item.x, item.y);
-    ctx.globalAlpha = item.flash ? .7 + item.flash : 1;
-    ctx.shadowColor = item.color; ctx.shadowBlur = item.type === 'boss' ? 22 : 12;
-    ctx.fillStyle = rgba(item.color, .24);
-    ctx.beginPath(); ctx.arc(0, 2, item.r + 6, 0, TAU); ctx.fill();
-    ctx.shadowBlur = 0; ctx.fillStyle = item.color;
-    if (item.type === 'boss') {
-      polygon(0, -item.r, item.r * .88, -item.r * .36, item.r * .72, item.r * .65, 0, item.r, -item.r * .72, item.r * .65, -item.r * .88, -item.r * .36);
-      ctx.fillStyle = '#351c34'; ctx.beginPath(); ctx.arc(-9, -3, 4, 0, TAU); ctx.arc(9, -3, 4, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#fff1b8'; ctx.beginPath(); ctx.arc(-8, -4, 1.5, 0, TAU); ctx.arc(10, -4, 1.5, 0, TAU); ctx.fill();
-    } else {
-      ctx.beginPath(); ctx.arc(0, 0, item.r, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#202538'; ctx.beginPath(); ctx.arc(-5, -2, 3.3, 0, TAU); ctx.arc(5, -2, 3.3, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#fff6d6'; ctx.beginPath(); ctx.arc(-4.5, -2.4, 1.1, 0, TAU); ctx.arc(5.5, -2.4, 1.1, 0, TAU); ctx.fill();
-      if (item.type === 'heavy') { ctx.strokeStyle = '#ffedaa'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, item.r - 4, .4, 2.8); ctx.stroke(); }
-    }
-    ctx.restore();
-    if (item.maxHp > 1) { roundRect(item.x - 18, item.y - item.r - 10, 36, 4, 2, '#283746', null, 0); roundRect(item.x - 18, item.y - item.r - 10, 36 * clamp(item.hp / item.maxHp, 0, 1), 4, 2, '#ffd67a', null, 0); }
-  }
-
-  function drawAlly(slot) {
-    const pos = basePosition(slot); const id = team[slot]; const info = roster[id];
-    const active = slot === activeSlot && !player?.launched;
-    ctx.save(); ctx.translate(pos.x, pos.y);
-    ctx.shadowColor = info.color; ctx.shadowBlur = active ? 22 : 9;
-    ctx.fillStyle = rgba(info.color, active ? .26 : .12); ctx.beginPath(); ctx.arc(0, 0, 30, 0, TAU); ctx.fill();
-    ctx.shadowBlur = 0; ctx.fillStyle = info.color; ctx.beginPath(); ctx.arc(0, 0, 21, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#182330'; ctx.font = '900 17px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(info.sigil, 0, 6);
-    ctx.strokeStyle = active ? '#f4ffff' : 'rgba(221,244,249,.4)'; ctx.lineWidth = active ? 2 : 1; ctx.beginPath(); ctx.arc(0, 0, 22, 0, TAU); ctx.stroke();
-    ctx.restore();
-    ctx.fillStyle = active ? '#effcff' : '#7890a7'; ctx.font = '800 8px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(info.short, pos.x, pos.y + 35); ctx.textAlign = 'left';
-  }
-
-  function drawPlayer() {
-    const info = roster[team[activeSlot]];
-    ctx.save(); ctx.translate(player.x, player.y);
-    if (!player.launched) { ctx.strokeStyle = rgba(info.color, .28); ctx.lineWidth = 2; ctx.setLineDash([3, 6]); ctx.beginPath(); ctx.arc(0, 0, 27 + Math.sin(nowMs / 190) * 2, 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
-    ctx.shadowColor = info.color; ctx.shadowBlur = 24; ctx.fillStyle = info.color; ctx.beginPath(); ctx.arc(0, 0, player.r, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
-    ctx.fillStyle = '#142131'; ctx.beginPath(); ctx.arc(-6, -3, 3.4, 0, TAU); ctx.arc(6, -3, 3.4, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#f7ffff'; ctx.beginPath(); ctx.arc(-5.3, -3.5, 1, 0, TAU); ctx.arc(6.7, -3.5, 1, 0, TAU); ctx.fill();
-    ctx.restore();
-  }
-
-  function drawGuide() {
-    if (!player || player.launched || state !== 'play' || audioGate) return;
-    const endpoint = guideEndpoint();
-    const length = Math.hypot(endpoint.x - player.x, endpoint.y - player.y);
-    ctx.save();
-    ctx.strokeStyle = 'rgba(212,247,249,.82)'; ctx.lineWidth = 2; ctx.setLineDash([7, 6]);
-    ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(endpoint.x, endpoint.y); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = '#f4ffff'; ctx.beginPath(); ctx.arc(endpoint.x, endpoint.y, 5, 0, TAU); ctx.fill();
-    ctx.strokeStyle = rgba(roster[team[activeSlot]].color, .55); ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(endpoint.x, endpoint.y, 10 + Math.min(9, length / 35), 0, TAU); ctx.stroke();
-    if (endpoint.hit) {
-      const reflect = endpoint.hit === 'x' ? { x: -endpoint.dir.x, y: endpoint.dir.y } : { x: endpoint.dir.x, y: -endpoint.dir.y };
-      ctx.strokeStyle = 'rgba(212,247,249,.38)'; ctx.beginPath(); ctx.moveTo(endpoint.x, endpoint.y); ctx.lineTo(endpoint.x + reflect.x * 108, endpoint.y + reflect.y * 108); ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawEffect(effect) {
-    const p = clamp(effect.t / effect.max, 0, 1);
-    ctx.save(); ctx.globalAlpha = p;
-    if (effect.kind === 'heal' || effect.kind === 'shield' || effect.kind === 'pulse' || effect.kind.startsWith('ally-')) {
-      ctx.strokeStyle = effect.color; ctx.lineWidth = effect.kind === 'shield' ? 3 : 2; ctx.beginPath(); ctx.arc(effect.x, effect.y, 22 + (1 - p) * (effect.kind === 'shield' ? 34 : 35), 0, TAU); ctx.stroke();
-      if (effect.kind === 'shield') { ctx.setLineDash([4, 5]); ctx.beginPath(); ctx.arc(effect.x, effect.y, 29, 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
-    } else if (effect.kind === 'spark') {
-      ctx.strokeStyle = effect.color; ctx.lineWidth = 3;
-      for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; ctx.beginPath(); ctx.moveTo(effect.x + Math.cos(a) * 12, effect.y + Math.sin(a) * 12); ctx.lineTo(effect.x + Math.cos(a) * (74 - p * 28), effect.y + Math.sin(a) * (74 - p * 28)); ctx.stroke(); }
-    } else if (effect.kind === 'pop') {
-      ctx.strokeStyle = effect.color; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(effect.x, effect.y, (1 - p) * 38, 0, TAU); ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function roundRect(x, y, w, h, r, fill, stroke, lineWidth) {
     ctx.beginPath();
-    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
-    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineWidth; ctx.stroke(); }
-  }
-
-  function polygon(...points) {
-    ctx.beginPath(); ctx.moveTo(points[0], points[1]);
-    for (let i = 2; i < points.length; i += 2) ctx.lineTo(points[i], points[i + 1]);
-    ctx.closePath(); ctx.fill();
-  }
-
-  function renderTeamControls() {
-    teamControls.replaceChildren();
-    roster.forEach((info, id) => {
-      const button = document.createElement('button');
-      button.type = 'button'; button.className = 'team-button'; button.dataset.id = String(id); button.style.setProperty('--button-color', info.color);
-      button.innerHTML = `<span class="sigil">${info.sigil}</span><span>${info.short}</span>`;
-      const unlocked = id < progress.unlocked;
-      const selected = team.includes(id);
-      button.disabled = !unlocked;
-      button.classList.toggle('locked', !unlocked); button.classList.toggle('active', selected && team[activeSlot] === id);
-      button.title = unlocked ? `${info.name}: ${info.passive}. Tap to make your next fang.` : 'Unlock by clearing stages';
-      if (unlocked) {
-        button.addEventListener('pointerdown', (event) => {
-          event.preventDefault();
-          if (orientationPaused || document.hidden || buttonPointers.has(id) || state === 'clear' || state === 'win' || state === 'fail') return;
-          buttonPointers.set(id, event.pointerId);
-          try { button.setPointerCapture(event.pointerId); } catch (_) {}
-        }, { passive: false });
-        button.addEventListener('pointerup', (event) => {
-          event.preventDefault();
-          if (buttonPointers.get(id) !== event.pointerId) return;
-          buttonPointers.delete(id);
-          if (state === 'play' && player && !player.launched) selectCreature(id);
-        }, { passive: false });
-        button.addEventListener('pointercancel', (event) => { if (buttonPointers.get(id) === event.pointerId) buttonPointers.delete(id); }, { passive: false });
-        button.addEventListener('lostpointercapture', () => { buttonPointers.delete(id); });
-        button.addEventListener('click', (event) => { if (event.detail === 0 && state === 'play' && player && !player.launched) selectCreature(id); });
+    ctx.rect(7, 7, ARENA_W, ARENA_H);
+    ctx.clip();
+    ctx.globalAlpha = 0.9;
+    for (var ty = 0; ty < ARENA_H; ty += th) {
+      for (var tx = 0; tx < ARENA_W; tx += tw) {
+        ctx.drawImage(tile, 7 + tx, 7 + ty);
       }
-      teamControls.appendChild(button);
-    });
-  }
-
-  function selectCreature(id) {
-    if (id < 0 || id >= progress.unlocked || state !== 'play' || player?.launched) return;
-    const existing = team.indexOf(id);
-    if (existing >= 0) activeSlot = existing;
-    else {
-      team[activeSlot] = id;
-      activeSlot = clamp(activeSlot, 0, 2);
     }
-    resetPlayer();
-    renderTeamControls();
-    announce.textContent = `${roster[id].name} selected. Passive: ${roster[id].passive.toLowerCase()}.`;
-  }
+    ctx.restore();
 
-  function onPointerDown(event) {
-    if (orientationPaused || document.hidden || audioGate || state !== 'play' || !player || player.launched) return;
-    event.preventDefault();
-    if (aimPointerId !== null) return;
-    const p = worldPoint(event.clientX, event.clientY);
-    if (Math.hypot(p.x - player.x, p.y - player.y) > 34) return;
-    aimPointerId = event.pointerId;
-    aimStart = { x: p.x, y: p.y };
-    try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
-  }
+    var f = this.make.graphics({ x: 0, y: 0, add: false });
+    f.lineStyle(2, 0x22384f, 1);
+    f.strokeRoundedRect(1, 1, bw - 2, bh - 2, 20);
+    f.lineStyle(1, 0x1a2b3d, 1);
+    f.strokeRoundedRect(10, 10, bw - 20, bh - 20, 14);
+    // corner bank ticks: they tell you which edges you can ricochet from
+    var ct = [[7, 7, 1, 1], [bw - 7, 7, -1, 1],
+              [7, bh - 7, 1, -1], [bw - 7, bh - 7, -1, -1]];
+    f.lineStyle(3, 0x3f6d86, 1);
+    for (var i = 0; i < ct.length; i++) {
+      var c = ct[i];
+      f.beginPath();
+      f.moveTo(c[0] + c[2] * 4, c[1] + c[3] * 30);
+      f.lineTo(c[0] + c[2] * 4, c[1] + c[3] * 4);
+      f.lineTo(c[0] + c[2] * 30, c[1] + c[3] * 4);
+      f.strokePath();
+    }
+    // launch row rule
+    f.lineStyle(1, 0x1d3145, 1);
+    f.beginPath();
+    f.moveTo(23, 552 - by); f.lineTo(bw - 23, 552 - by);
+    f.strokePath();
+    f.generateTexture('boardframe', bw, bh);
+    f.destroy();
+    ctx.drawImage(this.textures.get('boardframe').getSourceImage(), 0, 0);
+    ctex.refresh();
+    this.textures.remove('boardbg');
+    this.textures.remove('boardframe');
+    this.board = this.add.image(bx, by, 'board').setOrigin(0);
 
-  function onPointerMove(event) {
-    if (event.pointerId !== aimPointerId || orientationPaused || document.hidden || !aimStart || !player || player.launched) return;
-    event.preventDefault();
-    const p = worldPoint(event.clientX, event.clientY);
-    const dragX = aimStart.x - p.x;
-    const dragY = aimStart.y - p.y;
-    if (Math.hypot(dragX, dragY) > 5) aim = normalize(dragX, dragY);
-  }
+    // Set-accent wash behind the play area. Kept well inside the arena so it
+    // is not another near-full-screen additive quad.
+    this.wash = this.add.image(W / 2, A.top + ARENA_H * 0.36, 'disc')
+      .setDisplaySize(360, 360).setAlpha(0.20)
+      .setBlendMode(Phaser.BlendModes.ADD);
 
-  function endPointer(event, shouldLaunch) {
-    if (event.pointerId !== aimPointerId) return;
-    event.preventDefault();
-    aimPointerId = null; aimStart = null;
-    if (shouldLaunch && !orientationPaused && !document.hidden) launch();
-  }
+    // HUD band and roster dock backings: two small cropped quads.
+    var hb = this.make.graphics({ x: 0, y: 0, add: false });
+    hb.fillStyle(0x0c131f, 0.92);
+    hb.fillRoundedRect(0, 0, W - 16, 46, 12);
+    hb.lineStyle(1, 0x1c2c3e, 1);
+    hb.strokeRoundedRect(0, 0, W - 16, 46, 12);
+    hb.generateTexture('hudband', W - 16, 46);
+    hb.destroy();
+    this.add.image(8, 10, 'hudband').setOrigin(0);
 
-  function handleKeyDown(event) {
-    if (orientationPaused || document.hidden) return;
-    if (audioGate && (event.key === ' ' || event.key === 'Enter')) {
-      event.preventDefault();
-      boot();
+    var db = this.make.graphics({ x: 0, y: 0, add: false });
+    db.fillStyle(0x0c131f, 0.85);
+    db.fillRoundedRect(0, 0, W - 20, 68, 16);
+    db.generateTexture('dockband', W - 20, 68);
+    db.destroy();
+    this.add.image(10, DOCK_Y - 34, 'dockband').setOrigin(0);
+  };
+
+  // ---------------------------------------------------------------- pools
+  PlayScene.prototype.buildPools = function () {
+    var i;
+    // Enemies. The verification hook reads THIS pool; there is no second
+    // shadow list anywhere in the game (a shipped title desynced a debug view
+    // from its preallocated pool exactly that way).
+    this.enemies = [];
+    for (i = 0; i < MAX_ENEMIES; i++) {
+      var s = this.add.image(-200, -200, 'atlas', 'en_mote').setVisible(false);
+      // Damage pip. It lives ON the entity, not in the HUD, so a wounded
+      // brute or the Master anchor reads without a single HUD word.
+      var pip = this.add.image(-200, -200, 'px').setOrigin(0, 0.5)
+        .setDisplaySize(2, 3).setVisible(false);
+      this.enemies.push({
+        sprite: s, pip: pip, active: false, x: 0, y: 0, vx: 0, vy: 0, r: 17,
+        hp: 0, maxHp: 0, type: 'mote', def: D.enemy('mote'),
+        cool: 0, flash: 0, pulse: Math.random() * 6.28,
+        deathT: 0, deathAge: 0, unsealed: false, attackT: 0, warningT: 0
+      });
+    }
+    this.barriers = [];
+    for (i = 0; i < MAX_BARRIERS; i++) {
+      this.barriers.push({
+        sprite: this.add.image(-200, -200, 'atlas', 'barrier').setVisible(false),
+        active: false, x: 0, y: 0, w: 0, h: 0, hp: 0, maxHp: 0, flash: 0
+      });
+    }
+    this.posts = [];
+    for (i = 0; i < MAX_POSTS; i++) {
+      var ps = this.add.image(-200, -200, 'atlas', 'post_flint').setVisible(false);
+      var pc = this.add.image(-200, -200, 'atlas', 'cr_flint_idle')
+        .setVisible(false).setScale(0.62);
+      this.posts.push({
+        sprite: ps, occupant: pc, active: false, base: false,
+        x: 0, y: 0, creature: 'flint', used: false, glow: 0
+      });
+    }
+    this.shards = [];
+    for (i = 0; i < MAX_SHARDS; i++) {
+      this.shards.push({
+        sprite: this.add.image(-200, -200, 'atlas', 'p_shard')
+          .setVisible(false).setScale(0.45),
+        active: false, hostile: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, cool: 0
+      });
+    }
+
+    // Player creature.
+    this.player = {
+      x: BASE_POSTS[0].x, y: BASE_POSTS[0].y, vx: 0, vy: 0, r: 18,
+      launched: false, bounces: 0, wallBanks: 0, settle: 0, time: 0,
+      splitUsed: false, gritStacks: 0, shielded: 0, iframes: 0
+    };
+    this.playerSprite = this.add.image(this.player.x, this.player.y,
+      'atlas', 'cr_flint_idle').setScale(0.62);
+    this.playerGlow = this.add.image(this.player.x, this.player.y, 'disc')
+      .setDisplaySize(96, 96).setAlpha(0.3)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.comboRing = this.add.image(-200, -200, 'atlas', 'p_ring')
+      .setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+
+    // Trajectory preview: pooled dot IMAGES, never a per-frame Graphics path.
+    this.traj = [];
+    for (i = 0; i < MAX_TRAJ; i++) {
+      this.traj.push(this.add.image(-200, -200, 'atlas', 'p_dot')
+        .setVisible(false).setScale(0.16).setAlpha(0.85)
+        .setBlendMode(Phaser.BlendModes.ADD));
+    }
+    // Bank markers: the ricochet points, shown BEFORE release.
+    this.marks = [];
+    for (i = 0; i < MAX_MARKS; i++) {
+      this.marks.push(this.add.image(-200, -200, 'atlas', 'p_ring')
+        .setVisible(false).setScale(0.36).setTint(0xffe27b)
+        .setBlendMode(Phaser.BlendModes.ADD));
+    }
+    this.aimBand = this.add.image(-200, -200, 'px')
+      .setVisible(false).setOrigin(0, 0.5).setAlpha(0.5);
+
+    // Four pooled particle systems (the lane floor is two).
+    var common = { blendMode: 'ADD', emitting: false };
+    this.fxImpact = this.add.particles(0, 0, 'atlas', Object.assign({
+      frame: 'p_spark', lifespan: 420, speed: { min: 90, max: 300 },
+      scale: { start: 0.34, end: 0 }, quantity: 8, maxAliveParticles: 90
+    }, common));
+    this.fxBank = this.add.particles(0, 0, 'atlas', Object.assign({
+      frame: 'p_dot', lifespan: 340, speed: { min: 60, max: 210 },
+      scale: { start: 0.30, end: 0 }, quantity: 6, maxAliveParticles: 70,
+      tint: 0xffe27b
+    }, common));
+    this.fxAura = this.add.particles(0, 0, 'atlas', Object.assign({
+      frame: 'p_ring', lifespan: 620, speed: { min: 20, max: 60 },
+      scale: { start: 0.10, end: 0.95 }, alpha: { start: 0.9, end: 0 },
+      quantity: 3, maxAliveParticles: 30
+    }, common));
+    this.fxTrail = this.add.particles(0, 0, 'atlas', Object.assign({
+      frame: 'p_dot', lifespan: 340, speed: { min: 4, max: 26 },
+      scale: { start: 0.34, end: 0 }, alpha: { start: 0.85, end: 0 },
+      quantity: 1, maxAliveParticles: 60
+    }, common));
+
+    // Score floaters.
+    this.floaters = [];
+    for (i = 0; i < MAX_FLOATERS; i++) {
+      this.floaters.push({
+        text: this.add.text(-200, -200, '', {
+          fontFamily: 'SF Display, Trebuchet MS, sans-serif', fontSize: '15px',
+          color: '#ffeec2'
+        }).setOrigin(0.5).setVisible(false),
+        t: 0, age: 0, life: 0.75, x: 0, y: 0, baseY: 0
+      });
+    }
+  };
+
+  // ------------------------------------------------------------------ HUD
+  PlayScene.prototype.buildHud = function () {
+    var f = 'SF Display, Trebuchet MS, sans-serif';
+    // One compact top cluster. Icons and meters, no word labels.
+    this.add.image(26, 26, 'atlas', 'hi_vital').setScale(0.46);
+    this.add.image(102, 26, 'px').setDisplaySize(112, 9).setTint(0x22303f);
+    this.vitalFill = this.add.image(47, 26, 'px').setOrigin(0, 0.5)
+      .setDisplaySize(110, 9).setTint(0x4be08a);
+    this.vitalText = this.add.text(46, 40, '', {
+      fontFamily: f, fontSize: '14px', color: '#8fb3c6'
+    }).setOrigin(0, 0.5);
+
+    this.comboIcon = this.add.image(196, 24, 'atlas', 'hi_combo')
+      .setScale(0.44).setVisible(false);
+    this.comboText = this.add.text(212, 24, '', {
+      fontFamily: f, fontSize: '18px', color: '#ffd678'
+    }).setOrigin(0, 0.5).setVisible(false);
+
+    this.add.image(272, 26, 'atlas', 'hi_shot').setScale(0.42);
+    this.shotText = this.add.text(286, 26, '', {
+      fontFamily: f, fontSize: '16px', color: '#bfe4ff'
+    }).setOrigin(0, 0.5);
+    this.freeIcon = this.add.image(342, 26, 'atlas', 'hi_bank')
+      .setScale(0.38).setVisible(false);
+    this.freeText = this.add.text(356, 26, '', {
+      fontFamily: f, fontSize: '15px', color: '#ffe27b'
+    }).setOrigin(0, 0.5).setVisible(false);
+
+    this.formText = this.add.text(W / 2, 45, '', {
+      fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '13px',
+      color: '#6f8798'
+    }).setOrigin(0.5);
+
+    // Thin fading tutorial strip: top edge, one line, never centre-stage.
+    // Body (narrow) face and a hard wrap width, because the display face at
+    // 14px runs off both edges of a 390pt screen.
+    // Kept clear of the 44px pause target in the top-right corner: the strip
+    // is centred on the space LEFT of it, not on the screen.
+    this.tutorialBg = this.add.image(168, 86, 'px')
+      .setDisplaySize(288, 28).setTint(0x0d1826).setAlpha(0).setVisible(false);
+    this.tutorial = this.add.text(168, 86, '', {
+      fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '13px',
+      color: '#a9c8d8', wordWrap: { width: 274 }, align: 'center'
+    }).setOrigin(0.5).setAlpha(0).setVisible(false);
+
+    // ONE transient chip. New events queue behind it; they never stack.
+    this.chipBg = this.add.image(W - 96, 78, 'px')
+      .setDisplaySize(168, 32).setTint(0x14212f).setAlpha(0).setVisible(false);
+    this.chipIcon = this.add.image(W - 166, 78, 'atlas', 'hi_aura')
+      .setScale(0.40).setAlpha(0).setVisible(false);
+    this.chipText = this.add.text(W - 150, 78, '', {
+      fontFamily: f, fontSize: '14px', color: '#e6f4ff'
+    }).setOrigin(0, 0.5).setAlpha(0).setVisible(false);
+
+    // Centre banner: run boundaries ONLY (formation clear, medal, unlock,
+    // vitality out, campaign complete). Never during live play.
+    this.bannerBg = this.add.image(W / 2, BANNER_Y, 'px')
+      .setDisplaySize(BANNER_W, BANNER_H).setTint(0x0d1a28)
+      .setAlpha(0).setVisible(false);
+    this.bannerMedal = this.add.image(W / 2, BANNER_Y - 62, 'atlas', 'medal_gold')
+      .setScale(0.9).setAlpha(0).setVisible(false);
+    this.bannerTitle = this.add.text(W / 2, BANNER_Y - 4, '', {
+      fontFamily: f, fontSize: '22px', color: '#e8fff8'
+    }).setOrigin(0.5).setAlpha(0).setVisible(false);
+    this.bannerSub = this.add.text(W / 2, BANNER_Y + 38, '', {
+      fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '13px',
+      color: '#96b6c8', align: 'center', lineSpacing: 4,
+      wordWrap: { width: BANNER_W - 32 }
+    }).setOrigin(0.5).setAlpha(0).setVisible(false);
+
+    // Pause: 44px target in the top-right, clear of the vitality meter.
+    this.pauseBtn = this.add.image(W - 26, 78, 'px')
+      .setDisplaySize(44, 44).setTint(0x14212f).setAlpha(0.0);
+    this.pauseMark = this.add.text(W - 26, 78, '=', {
+      fontFamily: f, fontSize: '20px', color: '#7f9bb0'
+    }).setOrigin(0.5).setAlpha(0.7);
+
+    this.damageVignette = this.add.image(W / 2, H / 2, 'disc')
+      .setDisplaySize(W * 2.2, H * 1.6).setTint(0xff5a6e)
+      .setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+  };
+
+  PlayScene.prototype.buildDock = function () {
+    this.dock = [];
+    var n = D.ROSTER.length;
+    var x0 = W / 2 - (n - 1) * DOCK_STEP / 2;
+    for (var i = 0; i < n; i++) {
+      var c = D.creature(i);
+      var x = x0 + i * DOCK_STEP;
+      var orb = this.add.image(x, DOCK_Y, 'atlas', 'orb_' + c.id).setScale(0.72);
+      var lock = this.add.image(x, DOCK_Y, 'atlas', 'hi_lock')
+        .setScale(0.42).setVisible(false);
+      var ring = this.add.image(x, DOCK_Y, 'atlas', 'p_ring')
+        .setScale(0.62).setTint(c.color).setVisible(false)
+        .setBlendMode(Phaser.BlendModes.ADD);
+      this.dock.push({ id: c.id, x: x, y: DOCK_Y, orb: orb, lock: lock, ring: ring });
+    }
+  };
+
+  // ------------------------------------------------------------ formation
+  PlayScene.prototype.currentFormation = function () {
+    return this.mode === 'rush'
+      ? D.rushLeg(this.formationIndex)
+      : D.formation(this.formationIndex);
+  };
+
+  PlayScene.prototype.loadFormation = function (index) {
+    var i, f;
+    this.formationIndex = index;
+    var form = this.currentFormation();
+    this.form = form;
+    this.shotsUsed = 0;
+    this.bestCombo = 0;
+    this.combo = 0;
+    this.comboT = 0;
+    this.vitalityLost = false;
+    this.formationVitality = this.runVitality;
+    this.formationStartScore = this.score;
+    this.phase = 'aim';
+    this.phaseT = 0;
+    this.player.gritStacks = 0;
+    this.player.shielded = 0;
+    this.player.iframes = 0;
+
+    for (i = 0; i < this.enemies.length; i++) this.releaseEnemy(this.enemies[i]);
+    for (i = 0; i < this.barriers.length; i++) {
+      this.barriers[i].active = false;
+      this.barriers[i].sprite.setVisible(false);
+    }
+    for (i = 0; i < this.posts.length; i++) {
+      this.posts[i].active = false;
+      this.posts[i].sprite.setVisible(false);
+      this.posts[i].occupant.setVisible(false);
+    }
+    for (i = 0; i < this.shards.length; i++) {
+      this.shards[i].active = false;
+      this.shards[i].sprite.setVisible(false);
+    }
+
+    var list = form.enemies || [];
+    for (i = 0; i < list.length && i < MAX_ENEMIES; i++) {
+      var spec = list[i];
+      var def = D.enemy(spec.t);
+      var e = this.enemies[i];
+      e.active = true;
+      e.type = def.key; e.def = def;
+      e.x = spec.x; e.y = spec.y; e.vx = 0; e.vy = 0;
+      e.r = def.r; e.hp = def.hp; e.maxHp = def.hp;
+      e.cool = 0; e.flash = 0; e.deathT = 0; e.deathAge = 0;
+      e.unsealed = false; e.attackT = 0; e.warningT = 0;
+      e.sprite.setTexture('atlas', def.frame).setVisible(true)
+        .setPosition(spec.x, spec.y).setScale(1).setAlpha(1);
+      e.pip.setVisible(false);
+      setTintIfChanged(e.sprite, 0xffffff);
+    }
+    var bars = form.barriers || [];
+    for (i = 0; i < bars.length && i < MAX_BARRIERS; i++) {
+      var bs = bars[i];
+      var b = this.barriers[i];
+      b.active = true;
+      b.x = bs.x; b.y = bs.y; b.w = bs.w; b.h = bs.h;
+      b.hp = bs.hp; b.maxHp = bs.hp; b.flash = 0;
+      b.sprite.setTexture('atlas', 'barrier').setVisible(true)
+        .setPosition(bs.x, bs.y).setDisplaySize(bs.w, bs.h).setAlpha(1);
+      setTintIfChanged(b.sprite, 0xffffff);
+    }
+
+    // Base posts. The ACTIVE creature always sits in the centre socket: the
+    // shot has to leave from the middle of the launch row or every formation
+    // reads as biased toward one wall.
+    var order = this.baseOrder();
+    var pi = 0;
+    for (i = 0; i < BASE_POSTS.length && pi < MAX_POSTS; i++, pi++) {
+      this.setupPost(this.posts[pi], BASE_POSTS[i].x, BASE_POSTS[i].y,
+        order[i], true);
+    }
+    var fp = form.posts || [];
+    for (i = 0; i < fp.length && pi < MAX_POSTS; i++, pi++) {
+      this.setupPost(this.posts[pi], fp[i].x, fp[i].y,
+        this.team[(i + 1) % this.team.length] || this.team[0], false);
+    }
+
+    var set = D.set(form.set);
+    this.wash.setTint(set.accent);
+    this.syncMusicIntensity(true);
+
+    this.resetPlayer();
+    this.refreshDock();
+    this.showFormationBrief(form, set);
+    this.syncHook();
+  };
+
+  PlayScene.prototype.setupPost = function (p, x, y, creatureId, base) {
+    var c = D.creature(creatureId);
+    p.active = true; p.base = base; p.x = x; p.y = y;
+    p.creature = c.id; p.used = false; p.glow = 0;
+    p.sprite.setTexture('atlas', 'post_' + c.id).setVisible(true)
+      .setPosition(x, y).setScale(base ? 0.86 : 0.7).setAlpha(base ? 1 : 0.92);
+    p.occupant.setTexture('atlas', 'cr_' + c.id + '_idle')
+      .setPosition(x, y - 4).setScale(base ? 0.5 : 0.42).setVisible(true);
+  };
+
+  PlayScene.prototype.releaseEnemy = function (e) {
+    e.active = false;
+    e.deathT = 0;
+    e.deathAge = 0;
+    e.unsealed = false;
+    e.attackT = 0;
+    e.warningT = 0;
+    e.sprite.setVisible(false).setPosition(-200, -200);
+    e.pip.setVisible(false);
+  };
+
+  PlayScene.prototype.resetPlayer = function () {
+    var seat = this.activeSeat();
+    this.player.x = seat.x; this.player.y = seat.y - 6;
+    this.player.vx = 0; this.player.vy = 0;
+    this.player.launched = false;
+    this.player.bounces = 0;
+    this.player.wallBanks = 0;
+    this.player.settle = 0;
+    this.player.time = 0;
+    this.player.splitUsed = false;
+    var c = D.creature(this.activeId);
+    this.playerSprite.setTexture('atlas', 'cr_' + c.id + '_idle')
+      .setPosition(this.player.x, this.player.y).setScale(0.62).setAlpha(1)
+      .setVisible(true);
+    this.playerGlow.setTint(c.color);
+  };
+
+  // Left / CENTRE / right base sockets. team[0] is the active creature and it
+  // always takes the centre one.
+  PlayScene.prototype.baseOrder = function () {
+    var t = this.team || [this.activeId, this.activeId, this.activeId];
+    return [t[1] || t[0], t[0], t[2] || t[0]];
+  };
+
+  PlayScene.prototype.activeSeat = function () {
+    // The active creature launches from the base post that holds it, so the
+    // seat moves with the roster pick and the launch reads as "that one".
+    for (var i = 0; i < this.posts.length; i++) {
+      var p = this.posts[i];
+      if (p.active && p.base && p.creature === this.activeId) return p;
+    }
+    return { x: BASE_POSTS[1].x, y: BASE_POSTS[1].y };
+  };
+
+  PlayScene.prototype.syncTeam = function () {
+    var unlocked = D.unlockedCount(SAVE.maxCleared);
+    var ids = [];
+    for (var i = 0; i < unlocked && i < D.ROSTER.length; i++) ids.push(D.creature(i).id);
+    if (this.forceUnlock && ids.indexOf(this.forceUnlock) < 0) ids.push(this.forceUnlock);
+    if (ids.indexOf(this.activeId) < 0) this.activeId = ids[0];
+    // Team is the active creature plus the next two unlocked, wrapping.
+    var start = ids.indexOf(this.activeId);
+    this.team = [ids[start],
+                 ids[(start + 1) % ids.length],
+                 ids[(start + 2) % ids.length]];
+    this.unlockedIds = ids;
+    SAVE.active = this.activeId;
+  };
+
+  PlayScene.prototype.reseatBasePosts = function () {
+    var order = this.baseOrder();
+    var pi = 0;
+    for (var i = 0; i < this.posts.length; i++) {
+      var p = this.posts[i];
+      if (!p.active || !p.base) continue;
+      this.setupPost(p, p.x, p.y, order[pi] || order[1], true);
+      pi++;
+    }
+  };
+
+  PlayScene.prototype.refreshDock = function () {
+    for (var i = 0; i < this.dock.length; i++) {
+      var d = this.dock[i];
+      var unlocked = this.unlockedIds.indexOf(d.id) >= 0;
+      d.orb.setAlpha(unlocked ? 1 : 0.26);
+      setVisibleIfChanged(d.lock, !unlocked);
+      setVisibleIfChanged(d.ring, unlocked && d.id === this.activeId);
+    }
+  };
+
+  // ------------------------------------------------------------- messaging
+  PlayScene.prototype.showFormationBrief = function (form, set) {
+    // Formation identity belongs in the persistent HUD line, not a banner.
+    setTextIfChanged(this.formText,
+      (this.mode === 'rush' ? 'RUSH ' : '') +
+      (form.index + 1) + '/' + (this.mode === 'rush' ? D.RUSH.length : D.FORMATIONS.length) +
+      '  ·  ' + set.name);
+    // Coach line: thin strip, three lessons total, never again after that.
+    var lesson = null;
+    if (this.mode === 'campaign') {
+      if (form.index === 0 && SAVE.seenTutorial < 2) {
+        lesson = SAVE.seenTutorial < 1
+          ? 'Drag back, release, then bank off a wall'
+          : 'Bank off a wall to break the first barrier';
+        SAVE.seenTutorial = 2; persist();
+      } else if (form.set === 'canyon' && SAVE.seenTutorial < 3) {
+        lesson = 'Bank off a wall to break barriers';
+        SAVE.seenTutorial = 3; persist();
+      } else if (form.set === 'yard' && SAVE.seenTutorial < 4) {
+        lesson = 'Clip an ally to fire its aura';
+        SAVE.seenTutorial = 4; persist();
+      }
+    }
+    if (lesson) {
+      setTextIfChanged(this.tutorial, lesson);
+      this.tutorialT = 3.4;
+      this.tutorial.setVisible(true);
+      this.tutorialBg.setVisible(true);
+    }
+  };
+
+  PlayScene.prototype.chip = function (frame, text, tint) {
+    // One at a time. A new chip queues; it never stacks on the live one.
+    if (this.chipQueue.length >= 4) this.chipQueue.shift();
+    this.chipQueue.push({ frame: frame, text: text, tint: tint || 0xffffff });
+  };
+
+  PlayScene.prototype.banner = function (title, sub, medalFrame, hold) {
+    // One transient at a time: the coach strip and any queued chip yield to a
+    // boundary banner rather than stacking with it.
+    this.tutorialT = 0;
+    this.tutorial.setVisible(false);
+    this.tutorialBg.setVisible(false);
+    this.chipQueue.length = 0;
+    this.chipT = 0;
+    this.chipBg.setVisible(false);
+    this.chipIcon.setVisible(false);
+    this.chipText.setVisible(false);
+    this.bannerTitle.setVisible(true);
+    this.bannerSub.setVisible(true);
+    this.bannerBg.setVisible(true);
+    setTextIfChanged(this.bannerTitle, title);
+    setTextIfChanged(this.bannerSub, sub || '');
+    if (medalFrame) {
+      this.bannerMedal.setTexture('atlas', medalFrame).setVisible(true);
+    } else {
+      this.bannerMedal.setVisible(false);
+    }
+    this.bannerT = hold || 2.2;
+    this.bannerHold = this.bannerT;
+  };
+
+  // -------------------------------------------------------------- controls
+  PlayScene.prototype.readInput = function () {
+    // Two sets are swapped between frames rather than allocated per step, and
+    // the down queue is a reused array: this runs 60 times a second forever.
+    var ids = this.curIds;
+    ids.clear();
+    this.downQueue.length = 0;
+    var it = kit.input.pointers.entries();
+    var n = it.next();
+    var dragSeen = false;
+    while (!n.done) {
+      var id = n.value[0], p = n.value[1];
+      ids.add(id);
+      if (!this.prevIds.has(id)) {
+        this.downQueue.push(id, p.startX, p.startY);
+      }
+      if (this.dragId === id) {
+        dragSeen = true;
+        this.dragCur = toDesignInto(this.game, p.x, p.y, PT_A);
+      }
+      n = it.next();
+    }
+    // pointer up: the id vanished from GGKit's identity map
+    var released = this.dragId !== null && !dragSeen;
+    for (var i = 0; i < this.downQueue.length; i += 3) {
+      this.onDown(this.downQueue[i],
+        toDesignInto(this.game, this.downQueue[i + 1], this.downQueue[i + 2], PT_B));
+    }
+    var swap = this.prevIds;
+    this.prevIds = ids;
+    this.curIds = swap;
+    if (released) this.onUp();
+  };
+
+  PlayScene.prototype.onDown = function (id, d) {
+    // Pause first: it must work in every phase.
+    if (Math.abs(d.x - (W - 26)) < 26 && Math.abs(d.y - 78) < 26) {
+      kit.audio.sfx('tap');
+      kit.openSettings();
       return;
     }
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === ' ') {
-      event.preventDefault();
-      keys.add(event.key);
-      if (event.key === ' ' && !event.repeat && queuedActions.length < 8) queuedActions.push('launch');
+    if (this.phase === 'clear' || this.phase === 'fail' || this.phase === 'done') {
+      if (this.bannerT <= 0) this.advanceFromBoundary();
+      return;
     }
-    if (event.key.toLowerCase() === 'r') restartButton.click();
-  }
+    // Roster dock.
+    if (d.y > DOCK_Y - 34 && d.y < DOCK_Y + 34) {
+      for (var i = 0; i < this.dock.length; i++) {
+        var dk = this.dock[i];
+        if (Math.abs(d.x - dk.x) < DOCK_STEP / 2 && Math.abs(d.y - dk.y) < 30) {
+          this.selectCreature(dk.id);
+          return;
+        }
+      }
+      return;
+    }
+    // Aim drag: anywhere in the play area while a shot is not in flight.
+    if (this.phase === 'aim' && !this.player.launched && this.dragId === null &&
+        d.y > A.top - 10 && d.y < A.bottom + 10) {
+      this.dragId = id;
+      // d is a shared scratch point; the anchor must be a copy of it.
+      this.dragFrom = { x: d.x, y: d.y };
+      this.dragCur = { x: d.x, y: d.y };
+      kit.audio.sfx('pull', { volume: 0.55 });
+      HOOK.aiming = true;
+    }
+  };
 
-  function releaseAllInput() { resetInput(); }
+  PlayScene.prototype.onUp = function () {
+    var pull = this.pullVector();
+    this.dragId = null;
+    this.dragFrom = null;
+    HOOK.aiming = false;
+    if (pull && pull.power >= T.minPower) this.launch(pull);
+  };
 
-  function boot() {
-    startAudio();
-    cancelTimers();
-    audioGate = false;
-    bootLayer.hidden = true;
-    resetInput();
-    stage = clampInt(progress.maxStage, 1, 12, 1);
-    makeTeam();
-    buildStage(stage);
-    announce.textContent = 'Arena awake. Drag from the glowing fang.';
-    tone(260, .08, 'triangle', .035);
-  }
+  PlayScene.prototype.pullVector = function () {
+    if (!this.dragFrom || !this.dragCur) return null;
+    // Slingshot: the shot flies OPPOSITE the drag, like pulling a band back.
+    var dx = this.dragFrom.x - this.dragCur.x;
+    var dy = this.dragFrom.y - this.dragCur.y;
+    var len = Math.hypot(dx, dy);
+    if (len < 6) return null;
+    var power = clamp(len / T.maxPull, 0, 1);
+    var v = this.pullScratch;
+    v.dx = dx / len; v.dy = dy / len; v.power = power; v.len = len;
+    return v;
+  };
 
-  bootButton.addEventListener('pointerdown', (event) => { event.preventDefault(); if (bootPointerId !== null) return; bootPointerId = event.pointerId; try { bootButton.setPointerCapture(event.pointerId); } catch (_) {} }, { passive: false });
-  bootButton.addEventListener('pointerup', (event) => { event.preventDefault(); if (bootPointerId !== event.pointerId) return; bootPointerId = null; boot(); }, { passive: false });
-  bootButton.addEventListener('pointercancel', (event) => { if (bootPointerId === event.pointerId) bootPointerId = null; try { bootButton.releasePointerCapture(event.pointerId); } catch (_) {} }, { passive: false });
-  bootButton.addEventListener('click', (event) => { if (event.detail === 0) boot(); });
-  restartButton.addEventListener('pointerdown', (event) => { event.preventDefault(); if (orientationPaused || document.hidden) return; buttonPointers.set('restart', event.pointerId); try { restartButton.setPointerCapture(event.pointerId); } catch (_) {} }, { passive: false });
-  restartButton.addEventListener('pointerup', (event) => {
-    event.preventDefault();
-    if (buttonPointers.get('restart') !== event.pointerId) return;
-    buttonPointers.delete('restart');
-    if (state === 'win') startNewRun(); else restartStage();
-  }, { passive: false });
-  restartButton.addEventListener('pointercancel', (event) => { if (buttonPointers.get('restart') === event.pointerId) buttonPointers.delete('restart'); }, { passive: false });
-  restartButton.addEventListener('click', (event) => { if (event.detail === 0) { if (state === 'win') startNewRun(); else restartStage(); } });
-  canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
-  canvas.addEventListener('pointermove', onPointerMove, { passive: false });
-  canvas.addEventListener('pointerup', (event) => endPointer(event, true), { passive: false });
-  canvas.addEventListener('pointercancel', (event) => endPointer(event, false), { passive: false });
-  canvas.addEventListener('lostpointercapture', () => { aimPointerId = null; aimStart = null; });
-  window.addEventListener('keydown', handleKeyDown, { passive: false });
-  window.addEventListener('keyup', (event) => { keys.delete(event.key); }, { passive: false });
-  window.addEventListener('blur', releaseAllInput);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { releaseAllInput(); lastFrame = performance.now(); } updateLayout(); });
-  window.addEventListener('resize', updateLayout, { passive: true });
-  window.addEventListener('orientationchange', updateLayout, { passive: true });
-  updateLayout();
-  makeTeam();
-  buildStage(stage);
+  PlayScene.prototype.keyboardAim = function (dt) {
+    // Arrows aim, Space launches. GGKit owns the key state and refuses it
+    // while paused, so a paused game can never queue a shot.
+    if (this.phase !== 'aim' || this.player.launched) return;
+    if (this.kbAngle === undefined) this.kbAngle = -Math.PI / 2;
+    if (this.kbPower === undefined) this.kbPower = 0.72;
+    var moved = false;
+    if (kit.input.keyDown('ArrowLeft')) { this.kbAngle -= dt * 2.2; moved = true; }
+    if (kit.input.keyDown('ArrowRight')) { this.kbAngle += dt * 2.2; moved = true; }
+    if (kit.input.keyDown('ArrowUp')) { this.kbPower = clamp(this.kbPower + dt * 0.8, 0.22, 1); moved = true; }
+    if (kit.input.keyDown('ArrowDown')) { this.kbPower = clamp(this.kbPower - dt * 0.8, 0.22, 1); moved = true; }
+    // Rising edge, not level: holding Space must not machine-gun shots, and a
+    // launch must not require an arrow press first (Space alone fires the
+    // current aim, which starts pointing up the field).
+    var space = kit.input.keyDown('Space');
+    var pressed = space && !this.prevSpace;
+    this.prevSpace = space;
+    if (moved || pressed) this.kbActive = true;
+    if (pressed) {
+      var kv = this.kbScratch;
+      kv.dx = Math.cos(this.kbAngle); kv.dy = Math.sin(this.kbAngle);
+      kv.power = this.kbPower; kv.len = this.kbPower * T.maxPull;
+      this.launch(kv);
+    }
+  };
 
-  function frame(timestamp) {
-    nowMs = timestamp;
-    const paused = orientationPaused || document.hidden || audioGate;
-    const dt = paused ? 0 : clamp((timestamp - lastFrame) / 1000, 0, .033);
-    lastFrame = timestamp;
-    update(dt);
-    draw();
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
+  PlayScene.prototype.selectCreature = function (id) {
+    if (this.player.launched) return;
+    if (this.unlockedIds.indexOf(id) < 0) {
+      this.chip('hi_lock', 'clear ' + D.creature(id).unlockAt, 0x93a7bb);
+      kit.audio.sfx('tap', { volume: 0.5 });
+      return;
+    }
+    if (id === this.activeId) return;
+    this.activeId = id;
+    SAVE.active = id;
+    persist();
+    this.syncTeam();
+    this.reseatBasePosts();
+    this.resetPlayer();
+    this.refreshDock();
+    kit.audio.sfx('tap');
+    var c = D.creature(id);
+    this.chip('orb_' + c.id, c.tag, c.color);
+    this.syncHook();
+  };
+
+  // ---------------------------------------------------------------- launch
+  PlayScene.prototype.launch = function (pull) {
+    if (this.player.launched || this.phase !== 'aim') return;
+    var speed = T.launchSpeed * (0.36 + pull.power * 0.64);
+    this.player.vx = pull.dx * speed;
+    this.player.vy = pull.dy * speed;
+    this.player.launched = true;
+    this.player.bounces = 0;
+    this.player.wallBanks = 0;
+    this.player.settle = 0;
+    this.player.time = 0;
+    this.player.splitUsed = false;
+    this.shotsUsed++;
+    this.phase = 'flight';
+    for (var i = 0; i < this.posts.length; i++) this.posts[i].used = false;
+    var c = D.creature(this.activeId);
+    this.playerSprite.setTexture('atlas', 'cr_' + c.id + '_launch');
+    kit.audio.sfx('launch', { volume: 0.8, rate: 0.92 + pull.power * 0.2 });
+    this.fxBank.setParticleTint(c.color);
+    this.fxBank.emitParticleAt(this.player.x, this.player.y, REDUCED ? 4 : 10);
+    this.hideAim();
+    this.syncHook();
+  };
+
+  PlayScene.prototype.hideAim = function () {
+    for (var i = 0; i < this.traj.length; i++) setVisibleIfChanged(this.traj[i], false);
+    for (var j = 0; j < this.marks.length; j++) setVisibleIfChanged(this.marks[j], false);
+    setVisibleIfChanged(this.aimBand, false);
+  };
+
+  // ------------------------------------------------------------------ sim
+  PlayScene.prototype.update = function (time, delta) {
+    if (this.frozen) return;
+    var j = kit.juice.frame();
+    var cam = this.cameras.main;
+    cam.setScroll(j.dx, j.dy);
+
+    // Clamp the wall-clock delta INTO the stepped sim. A degraded device runs
+    // in slow motion; it never receives a time skip.
+    var dt = Math.min(delta, 100) / 1000;
+    if (!j.frozen) this.acc += dt;
+    var steps = 0;
+    while (this.acc >= STEP && steps < MAX_STEPS) {
+      this.step(STEP);
+      this.acc -= STEP;
+      steps++;
+    }
+    if (this.acc > STEP * MAX_STEPS) this.acc = STEP * MAX_STEPS;
+    this.render(dt);
+  };
+
+  PlayScene.prototype.step = function (dt) {
+    this.readInput();
+    this.keyboardAim(dt);
+    this.phaseT += dt;
+    this.chipStep(dt);
+    this.timersStep(dt);
+
+    if (this.phase === 'clear' || this.phase === 'fail' || this.phase === 'done') return;
+
+    var i, e;
+    for (i = 0; i < this.enemies.length; i++) {
+      e = this.enemies[i];
+      if (!e.active) continue;
+      e.cool = Math.max(0, e.cool - dt);
+      e.flash = Math.max(0, e.flash - dt);
+      e.pulse += dt * 2.0;
+      var c = D.creature(this.activeId);
+      if (c.passive === 'magnet' && this.player.launched && e.def.key !== 'brood') {
+        var mdx = this.player.x - e.x, mdy = this.player.y - e.y;
+        var md = Math.hypot(mdx, mdy);
+        if (md > 14 && md < 140) {
+          e.vx += mdx / md * 52 * dt;
+          e.vy += mdy / md * 52 * dt;
+        }
+      }
+      e.x = clamp(e.x + e.vx * dt, A.left + e.r, A.right - e.r);
+      e.y = clamp(e.y + e.vy * dt, A.top + e.r, 520 - e.r);
+      var k = Math.pow(0.04, dt);
+      e.vx *= k; e.vy *= k;
+    }
+    for (i = 0; i < this.barriers.length; i++) {
+      if (this.barriers[i].active) {
+        this.barriers[i].flash = Math.max(0, this.barriers[i].flash - dt);
+      }
+    }
+    for (i = 0; i < this.posts.length; i++) {
+      if (this.posts[i].active) {
+        this.posts[i].glow = Math.max(0, this.posts[i].glow - dt);
+      }
+    }
+
+    this.shardStep(dt);
+
+    if (!this.player.launched) return;
+    this.player.time += dt;
+    if (this.player.shielded > 0) this.player.shielded -= dt;
+
+    var p = this.player;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    var fk = Math.pow(T.friction, dt);
+    p.vx *= fk; p.vy *= fk;
+
+    if (!REDUCED && this.player.time > 0) {
+      this.fxTrail.setParticleTint(D.creature(this.activeId).color);
+      this.fxTrail.emitParticleAt(p.x, p.y, 1);
+    }
+
+    this.wallStep();
+    this.barrierStep();
+    this.syncMusicIntensity();
+    this.enemyStep(dt);
+    this.postStep();
+
+    var speed = Math.hypot(p.vx, p.vy);
+    if (speed < T.settleSpeed) p.settle += dt; else p.settle = 0;
+    if (p.settle > T.settleTime || p.time > T.shotTimeout) this.endShot();
+    if (this.runVitality <= 0) this.failFormation();
+    else if (this.allClear()) this.clearFormation();
+  };
+
+  PlayScene.prototype.wallStep = function () {
+    var p = this.player, hit = false, nx = 0, ny = 0;
+    if (p.x - p.r < A.left) { p.x = A.left + p.r; p.vx = Math.abs(p.vx); hit = true; nx = 1; }
+    else if (p.x + p.r > A.right) { p.x = A.right - p.r; p.vx = -Math.abs(p.vx); hit = true; nx = -1; }
+    if (p.y - p.r < A.top) { p.y = A.top + p.r; p.vy = Math.abs(p.vy); hit = true; ny = 1; }
+    else if (p.y + p.r > A.bottom) { p.y = A.bottom - p.r; p.vy = -Math.abs(p.vy); hit = true; ny = -1; }
+    if (!hit) return;
+    p.bounces = Math.min(30, p.bounces + 1);
+    p.wallBanks = Math.min(30, p.wallBanks + 1);
+    p.vx *= 0.94; p.vy *= 0.94;
+    this.onBank(p.x, p.y, nx, ny);
+  };
+
+  PlayScene.prototype.onBank = function (x, y, nx, ny) {
+    kit.audio.sfx('bank', { volume: 0.6, rate: 0.94 + Math.min(6, this.player.bounces) * 0.05 });
+    this.fxBank.setParticleTint(0xffe27b);
+    this.fxBank.emitParticleAt(x, y, REDUCED ? 3 : 9);
+    kit.juice.shake(2.5, 90);
+    if (this.player.bounces === 1) {
+      // The one moment the bank rule matters: say it once, in a corner chip.
+      this.chip('hi_bank', 'BANKED', 0xffe27b);
+    }
+    var c = D.creature(this.activeId);
+    if (c.passive === 'spark') {
+      var near = this.nearestEnemy(x, y, 150);
+      if (near) this.damage(near, 1, 'aura', null);
+    }
+  };
+
+  PlayScene.prototype.barrierStep = function () {
+    var p = this.player;
+    for (var i = 0; i < this.barriers.length; i++) {
+      var b = this.barriers[i];
+      if (!b.active) continue;
+      var cx = clamp(p.x, b.x - b.w / 2, b.x + b.w / 2);
+      var cy = clamp(p.y, b.y - b.h / 2, b.y + b.h / 2);
+      var dx = p.x - cx, dy = p.y - cy;
+      if (dx * dx + dy * dy > p.r * p.r) continue;
+      var horizontal = Math.abs(dx) > Math.abs(dy);
+      if (horizontal) { p.vx *= -1; p.x += dx > 0 ? 4 : -4; }
+      else { p.vy *= -1; p.y += dy > 0 ? 4 : -4; }
+      p.vx *= 0.92; p.vy *= 0.92;
+      if (p.wallBanks > 0) {
+        b.hp -= 1; b.flash = 0.24;
+        this.fxBank.setParticleTint(0x9fe8ff);
+        this.fxBank.emitParticleAt(b.x, b.y, REDUCED ? 4 : 12);
+        kit.audio.sfx('bank', { volume: 0.75, rate: 1.18 });
+        kit.juice.shake(4, 120);
+        if (b.hp <= 0) {
+          b.active = false;
+          b.sprite.setVisible(false);
+          this.score += 140;
+          this.floater(b.x, b.y, '+140');
+          this.chip('hi_bank', 'BARRIER DOWN', 0x9fe8ff);
+          kit.audio.sfx('brk', { volume: 0.8, rate: 1.1 });
+        } else {
+          b.sprite.setTexture('atlas', 'barrier_hit');
+        }
+      } else {
+        // Not banked: the barrier holds, and the miss must READ as a rule,
+        // not as a bug. Bright reject flash, no damage, no vitality cost.
+        b.flash = 0.18;
+        kit.audio.sfx('tap', { volume: 0.4 });
+      }
+      p.bounces = Math.min(30, p.bounces + 1);
+    }
+  };
+
+  // The brood changes language when its cage falls: a warning beat leads
+  // into a targeted three-shard volley, then the warning repeats. This keeps
+  // the finale readable without adding a second heavyweight enemy pool.
+  PlayScene.prototype.broodStep = function (e, dt) {
+    if (this.barriersLeft() > 0) {
+      e.unsealed = false;
+      e.attackT = 0;
+      e.warningT = 0;
+      return;
+    }
+    if (!e.unsealed) {
+      e.unsealed = true;
+      e.warningT = 1.0;
+      e.attackT = 2.1;
+      this.chip('hi_aura', 'BROOD UNSEALED', 0xff6f86);
+      kit.audio.sfx('brood', { volume: 0.45, rate: 0.72 });
+      return;
+    }
+    if (e.warningT > 0) {
+      e.warningT = Math.max(0, e.warningT - dt);
+      return;
+    }
+    e.attackT -= dt;
+    if (e.attackT <= 0) {
+      var angle = Math.atan2(this.player.y - e.y, this.player.x - e.x);
+      this.spawnShard(e.x, e.y, angle - 0.30, true);
+      this.spawnShard(e.x, e.y, angle, true);
+      this.spawnShard(e.x, e.y, angle + 0.30, true);
+      e.warningT = 0.62;
+      e.attackT = 2.5;
+      this.fxImpact.setParticleTint(e.def.color);
+      this.fxImpact.emitParticleAt(e.x, e.y, REDUCED ? 3 : 9);
+      this.chip('hi_aura', 'BROOD VOLLEY', 0xff6f86);
+      kit.audio.sfx('brood', { volume: 0.55, rate: 0.86 });
+    }
+  };
+
+  PlayScene.prototype.enemyStep = function (dt) {
+    var p = this.player;
+    for (var i = 0; i < this.enemies.length; i++) {
+      var e = this.enemies[i];
+      if (!e.active) continue;
+      if (e.def.key === 'brood') this.broodStep(e, dt);
+      var dx = p.x - e.x, dy = p.y - e.y;
+      var d = Math.hypot(dx, dy);
+      if (d >= p.r + e.r) continue;
+      var nx = dx / (d || 1), ny = dy / (d || 1);
+      var needsBank = !!e.def.needsBank;
+      var broodLocked = e.def.key === 'brood' && this.barriersLeft() > 0;
+      if ((needsBank && p.wallBanks === 0) || broodLocked) {
+        // Shielded: shoved off, small vitality bite, unmistakable reject.
+        p.x = e.x + nx * (p.r + e.r + 2);
+        p.y = e.y + ny * (p.r + e.r + 2);
+        var sp = Math.hypot(p.vx, p.vy);
+        p.vx = nx * sp * 0.8; p.vy = ny * sp * 0.8;
+        e.flash = 0.2;
+        this.hurt(2);
+        kit.audio.sfx('tap', { volume: 0.5, rate: 0.7 });
+        continue;
+      }
+      var c = D.creature(this.activeId);
+      var dmg = c.passive === 'pierce' ? 2 : 1;
+      if (p.gritStacks > 0) { dmg *= 2; p.gritStacks--; }
+      this.damage(e, dmg, 'player', { x: nx, y: ny });
+      if (!e.active) continue;
+      p.x = e.x + nx * (p.r + e.r + 1);
+      p.y = e.y + ny * (p.r + e.r + 1);
+      if (c.passive !== 'pierce') {
+        var dot = p.vx * nx + p.vy * ny;
+        p.vx -= 2 * dot * nx; p.vy -= 2 * dot * ny;
+        p.vx *= 0.9; p.vy *= 0.9;
+      }
+    }
+  };
+
+  PlayScene.prototype.postStep = function () {
+    var p = this.player;
+    for (var i = 0; i < this.posts.length; i++) {
+      var post = this.posts[i];
+      if (!post.active || post.used) continue;
+      if (post.creature === this.activeId && post.base) continue;
+      if (Math.hypot(p.x - post.x, p.y - post.y) > p.r + 24) continue;
+      post.used = true;
+      post.glow = 0.6;
+      this.fireAura(post);
+      var n = Math.hypot(p.x - post.x, p.y - post.y) || 1;
+      var sp = Math.hypot(p.vx, p.vy);
+      p.vx = (p.x - post.x) / n * sp;
+      p.vy = (p.y - post.y) / n * sp;
+    }
+  };
+
+  PlayScene.prototype.fireAura = function (post) {
+    var c = D.creature(post.creature);
+    kit.audio.sfx('aura', { volume: 0.85 });
+    this.fxAura.setParticleTint(c.color);
+    this.fxAura.emitParticleAt(post.x, post.y, REDUCED ? 1 : 3);
+    kit.juice.shake(3, 120);
+    var i, e;
+    if (c.aura === 'heal') {
+      this.runVitality = clamp(this.runVitality + 22, 0, T.maxVitality);
+    } else if (c.aura === 'shock') {
+      for (i = 0; i < this.enemies.length; i++) {
+        e = this.enemies[i];
+        if (e.active && Math.hypot(e.x - post.x, e.y - post.y) < 118) {
+          this.damage(e, 2, 'aura', null);
+        }
+      }
+    } else if (c.aura === 'shield') {
+      this.player.shielded = 6;
+    } else if (c.aura === 'grit') {
+      this.player.gritStacks = Math.min(3, this.player.gritStacks + 1);
+    } else if (c.aura === 'rend') {
+      for (i = 0; i < 4; i++) {
+        this.spawnShard(post.x, post.y, i * Math.PI / 2 + 0.4);
+      }
+    } else if (c.aura === 'tug') {
+      for (i = 0; i < this.enemies.length; i++) {
+        e = this.enemies[i];
+        if (!e.active) continue;
+        var dx = post.x - e.x, dy = post.y - e.y, d = Math.hypot(dx, dy);
+        if (d > 8 && d < 210) { e.vx += dx / d * 190; e.vy += dy / d * 190; }
+      }
+    }
+    // Corner chip, not a banner: this fires several times per shot.
+    this.chip('hi_aura', c.tag + ' ' + c.aura.toUpperCase(), c.color);
+    this.syncMusicIntensity();
+  };
+
+  PlayScene.prototype.damage = function (e, amount, source, normal) {
+    if (!e.active || e.cool > 0) return;
+    // Protection is enforced here, not only in player collision code. Auras,
+    // splinters and wall-bank passives must obey the same phase rules.
+    if (e.def.needsBank && this.player.wallBanks === 0) return;
+    if (e.def.key === 'brood' && this.barriersLeft() > 0) return;
+    e.hp -= amount;
+    e.cool = 0.1;
+    e.flash = 0.2;
+
+    // Impact escalates with the combo: particles, shake, hit-stop, pitch.
+    var tier = Math.min(6, Math.max(1, this.combo));
+    var qty = REDUCED ? 3 : 5 + tier * 2;
+    this.fxImpact.setParticleTint(e.def.color);
+    this.fxImpact.emitParticleAt(e.x, e.y, qty);
+    kit.juice.shake(2 + tier * 1.1, 90 + tier * 16);
+    if (this.combo >= 3) kit.juice.hitStop(Math.min(70, 18 + tier * 9));
+    kit.audio.sfx('impact', {
+      volume: 0.7, rate: clamp(0.9 + this.combo * 0.055, 0.9, 1.9)
+    });
+    this.impactT = 0.16;
+    this.comboRingT = 0.32;
+
+    var c = D.creature(this.activeId);
+    if (source === 'player' && c.passive === 'split' && !this.player.splitUsed) {
+      this.player.splitUsed = true;
+      var base = Math.atan2(this.player.vy, this.player.vx);
+      this.spawnShard(this.player.x, this.player.y, base - 0.45);
+      this.spawnShard(this.player.x, this.player.y, base + 0.45);
+    }
+
+    if (e.hp <= 0) {
+      this.combo = Math.min(99, this.combo + 1);
+      this.comboT = COMBO_WINDOW;
+      this.bestCombo = Math.max(this.bestCombo, this.combo);
+      var multiplier = Math.max(1, Math.min(8, this.combo));
+      var val = e.def.score * multiplier;
+      e.active = false;
+      e.deathT = 0.48;
+      e.deathAge = 0;
+      e.sprite.setVisible(true).setPosition(e.x, e.y).setScale(1.08);
+      e.pip.setVisible(false);
+      this.score += val;
+      this.floater(e.x, e.y, '+' + val);
+      this.fxImpact.setParticleTint(0xfff0c4);
+      this.fxImpact.emitParticleAt(e.x, e.y, REDUCED ? 5 : (e.def.key === 'brood' ? 40 : 14));
+      kit.audio.sfx(e.def.key === 'brood' ? 'brood' : 'brk',
+        { volume: e.def.key === 'brood' ? 1 : 0.7 });
+      kit.juice.shake(e.def.key === 'brood' ? 14 : 5, e.def.key === 'brood' ? 480 : 130);
+      if (c.passive === 'mend') {
+        this.runVitality = clamp(this.runVitality + 4, 0, T.maxVitality);
+      }
+    }
+    if (source === 'player' && e.def.key !== 'brood') {
+      this.hurt(e.def.key === 'brute' ? T.recoilBrute : T.recoilBase);
+    }
+    this.syncHook();
+  };
+
+  PlayScene.prototype.hurt = function (amount) {
+    if (this.player.iframes > 0 || this.phase === 'fail' || this.phase === 'done') return;
+    var c = D.creature(this.activeId);
+    if (this.player.shielded > 0) amount = Math.ceil(amount * 0.35);
+    if (c.passive === 'ward') amount = Math.ceil(amount * 0.4);
+    if (amount <= 0) return;
+    this.player.iframes = 0.48;
+    this.runVitality = clamp(this.runVitality - amount, 0, T.maxVitality);
+    this.vitalityLost = true;
+    this.vitalityFlashT = 0.3;
+    this.syncMusicIntensity();
+    if (this.runVitality <= 0) this.failFormation();
+  };
+
+  PlayScene.prototype.spawnShard = function (x, y, angle, hostile) {
+    for (var i = 0; i < this.shards.length; i++) {
+      var s = this.shards[i];
+      if (s.active) continue;
+      s.active = true;
+      s.hostile = !!hostile;
+      s.x = x; s.y = y;
+      s.vx = Math.cos(angle) * 380;
+      s.vy = Math.sin(angle) * 380;
+      s.life = 1.7; s.cool = 0;
+      s.sprite.setVisible(true).setPosition(x, y)
+        .setTint(s.hostile ? 0xff6f86 : D.creature(this.activeId).color);
+      return;
+    }
+  };
+
+  PlayScene.prototype.shardStep = function (dt) {
+    for (var i = 0; i < this.shards.length; i++) {
+      var s = this.shards[i];
+      if (!s.active) continue;
+      s.life -= dt;
+      s.cool = Math.max(0, s.cool - dt);
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      var k = Math.pow(0.08, dt);
+      s.vx *= k; s.vy *= k;
+      if (s.x < A.left + 7 || s.x > A.right - 7) s.vx *= -1;
+      if (s.y < A.top + 7 || s.y > A.bottom - 7) s.vy *= -1;
+      if (s.hostile && Math.hypot(s.x - this.player.x, s.y - this.player.y) < 18 + 8) {
+        this.hurt(5);
+        s.active = false;
+        s.sprite.setVisible(false);
+        continue;
+      }
+      if (s.hostile) {
+        if (s.life <= 0) { s.active = false; s.sprite.setVisible(false); }
+        continue;
+      }
+      for (var j = 0; j < this.enemies.length && s.cool <= 0; j++) {
+        var e = this.enemies[j];
+        if (!e.active) continue;
+        if (Math.hypot(s.x - e.x, s.y - e.y) < 8 + e.r) {
+          s.cool = 0.18;
+          this.damage(e, 1, 'shard', null);
+        }
+      }
+      if (s.life <= 0) { s.active = false; s.hostile = false; s.sprite.setVisible(false); }
+    }
+  };
+
+  PlayScene.prototype.nearestEnemy = function (x, y, maxDist) {
+    var best = null, bd = maxDist;
+    for (var i = 0; i < this.enemies.length; i++) {
+      var e = this.enemies[i];
+      if (!e.active) continue;
+      var d = Math.hypot(e.x - x, e.y - y);
+      if (d < bd) { bd = d; best = e; }
+    }
+    return best;
+  };
+
+  PlayScene.prototype.enemiesLeft = function () {
+    var n = 0;
+    for (var i = 0; i < this.enemies.length; i++) if (this.enemies[i].active) n++;
+    return n;
+  };
+  PlayScene.prototype.barriersLeft = function () {
+    var n = 0;
+    for (var i = 0; i < this.barriers.length; i++) if (this.barriers[i].active) n++;
+    return n;
+  };
+  PlayScene.prototype.allClear = function () {
+    return this.enemiesLeft() === 0 && this.barriersLeft() === 0;
+  };
+
+  PlayScene.prototype.syncMusicIntensity = function (force) {
+    var high = this.mode === 'rush' || !!(this.form &&
+      (this.form.brood || this.runVitality <= 35 || this.barriersLeft() >= 2));
+    if (!force && high === this.musicIntensity) return;
+    this.musicIntensity = high;
+    kit.audio.music(high ? 'music_rush' : 'music_field', 900);
+  };
+
+  PlayScene.prototype.endShot = function () {
+    var p = this.player;
+    p.launched = false;
+    p.vx = 0; p.vy = 0;
+    if (this.allClear()) { this.clearFormation(); return; }
+    var left = this.enemiesLeft();
+    if (left > 0) {
+      if (this.freeShots > 0) {
+        this.freeShots--;
+        this.chip('hi_bank', 'FREE SHOT', 0xffe27b);
+      } else {
+        var drain = clamp(left - 2, T.endShotDrainMin, T.endShotDrainMax);
+        this.hurt(drain);
+      }
+    }
+    for (var i = 0; i < this.shards.length; i++) {
+      this.shards[i].active = false;
+      this.shards[i].sprite.setVisible(false);
+    }
+    if (this.phase === 'flight') this.phase = 'aim';
+    this.resetPlayer();
+    this.syncHook();
+  };
+
+  // ------------------------------------------------------------ boundaries
+  PlayScene.prototype.clearFormation = function () {
+    if (this.phase === 'clear' || this.phase === 'done') return;
+    this.phase = 'clear';
+    this.player.launched = false;
+    this.player.vx = 0; this.player.vy = 0;
+    this.hideAim();
+    this.resetPlayer();
+
+    var form = this.form;
+    var medal = D.medalFor(form, this.shotsUsed, this.bestCombo, this.vitalityLost);
+    var bonus = { bronze: 200, silver: 500, gold: 1200 }[medal] || 200;
+    this.score += bonus;
+
+    var prevMedal = SAVE.medals[form.id];
+    var better = !prevMedal ||
+      (D.MEDAL_VALUE[medal] || 0) > (D.MEDAL_VALUE[prevMedal] || 0);
+    if (better) SAVE.medals[form.id] = medal;
+
+    var unlockedBefore = D.unlockedCount(SAVE.maxCleared);
+    if (this.mode === 'campaign') {
+      SAVE.maxCleared = Math.max(SAVE.maxCleared, form.index + 1);
+    }
+    var unlockedAfter = D.unlockedCount(SAVE.maxCleared);
+    this.newUnlock = null;
+    if (unlockedAfter > unlockedBefore) {
+      this.newUnlock = D.creature(unlockedAfter - 1);
+    }
+    if (this.score > SAVE.bestScore && this.mode === 'campaign') SAVE.bestScore = this.score;
+    if (this.score > SAVE.bestRush && this.mode === 'rush') SAVE.bestRush = this.score;
+    persist();
+
+    // GENEROUS drop, per the owner directive: never a rationed trickle.
+    var dv = this.mode === 'rush' ? T.rushDropVitality : T.dropVitality;
+    var df = this.mode === 'rush' ? T.rushDropFreeShots : T.dropFreeShots;
+    this.runVitality = clamp(this.runVitality + dv, 0, T.maxVitality);
+    this.freeShots += df;
+    kit.audio.sfx('drop', { volume: 0.8 });
+
+    kit.audio.sfx('medal', { volume: 0.9 });
+    this.banner(medal.toUpperCase(),
+      form.name + '\n' + this.shotsUsed + ' shots  ·  x' + this.bestCombo +
+      ' combo\n+' + dv + ' vitality  ·  +' + df + ' free shots\nTAP TO CONTINUE',
+      'medal_' + medal, 2.6);
+    this.syncHook();
+  };
+
+  PlayScene.prototype.failFormation = function () {
+    if (this.phase === 'fail' || this.phase === 'done') return;
+    this.phase = 'fail';
+    this.runVitality = 0;
+    this.player.launched = false;
+    this.player.vx = 0; this.player.vy = 0;
+    this.hideAim();
+    kit.audio.sfx('fail', { volume: 0.9 });
+    kit.juice.shake(10, 400);
+    this.banner('VITALITY OUT',
+      this.form.name + '\ntap to retry this formation', null, 1.8);
+    this.syncHook();
+  };
+
+  PlayScene.prototype.advanceFromBoundary = function () {
+    if (this.phase === 'fail') {
+      this.score = this.formationStartScore;
+      this.runVitality = T.startVitality;
+      this.freeShots = Math.max(this.freeShots, this.mode === 'rush'
+        ? T.rushDropFreeShots : T.dropFreeShots);
+      this.hideBanner();
+      this.syncTeam();
+      this.loadFormation(this.formationIndex);
+      return;
+    }
+    if (this.phase === 'done') {
+      this.hideBanner();
+      this.scene.start('Menu');
+      return;
+    }
+    if (this.phase !== 'clear') return;
+
+    if (this.newUnlock) {
+      var c = this.newUnlock;
+      this.newUnlock = null;
+      kit.audio.sfx('unlock');
+      this.banner(c.name.toUpperCase(), c.passiveText + '\n' + c.auraText,
+        'orb_' + c.id, 2.4);
+      this.syncTeam();
+      this.refreshDock();
+      return;
+    }
+    var total = this.mode === 'rush' ? D.RUSH.length : D.FORMATIONS.length;
+    if (this.formationIndex + 1 >= total) {
+      this.phase = 'done';
+      this.banner(this.mode === 'rush' ? 'RUSH COMPLETE' : 'SLINGFANG COMPLETE',
+        'score ' + this.score + '\ntap to return', 'medal_gold', 2.4);
+      return;
+    }
+    this.hideBanner();
+    this.syncTeam();
+    this.loadFormation(this.formationIndex + 1);
+  };
+
+  PlayScene.prototype.hideBanner = function () {
+    this.bannerT = 0;
+    this.bannerBg.setVisible(false).setAlpha(0);
+    this.bannerTitle.setVisible(false).setAlpha(0);
+    this.bannerSub.setVisible(false).setAlpha(0);
+    this.bannerMedal.setVisible(false).setAlpha(0);
+  };
+
+  // --------------------------------------------------------------- timers
+  PlayScene.prototype.timersStep = function (dt) {
+    if (this.bannerT > 0) this.bannerT = Math.max(0, this.bannerT - dt);
+    if (this.tutorialT > 0) this.tutorialT = Math.max(0, this.tutorialT - dt);
+    if (this.impactT > 0) this.impactT = Math.max(0, this.impactT - dt);
+    if (this.comboRingT > 0) this.comboRingT = Math.max(0, this.comboRingT - dt);
+    if (this.vitalityFlashT > 0) this.vitalityFlashT = Math.max(0, this.vitalityFlashT - dt);
+    if (this.player.iframes > 0) this.player.iframes = Math.max(0, this.player.iframes - dt);
+    if (this.comboT > 0) {
+      this.comboT = Math.max(0, this.comboT - dt);
+      if (this.comboT <= 0) this.combo = 0;
+    }
+    for (var i = 0; i < this.floaters.length; i++) {
+      var f = this.floaters[i];
+      if (f.t <= 0) continue;
+      f.t -= dt;
+      f.age += dt;
+      var fp = clamp(f.age / f.life, 0, 1);
+      f.y = f.baseY - 30 * easeOutBack(fp);
+      if (f.t <= 0) f.text.setVisible(false);
+    }
+  };
+
+  PlayScene.prototype.chipStep = function (dt) {
+    if (this.tutorialT > 0) return;
+    if (this.chipT > 0) {
+      this.chipT = Math.max(0, this.chipT - dt);
+      if (this.chipT <= 0) {
+        this.chipBg.setVisible(false);
+        this.chipIcon.setVisible(false);
+        this.chipText.setVisible(false);
+      }
+      return;
+    }
+    if (!this.chipQueue.length) return;
+    var c = this.chipQueue.shift();
+    this.chipHold = 0.95;
+    this.chipT = this.chipHold;
+    this.chipIcon.setTexture('atlas', c.frame).setVisible(true);
+    setTintIfChanged(this.chipIcon, c.tint);
+    setTextIfChanged(this.chipText, c.text);
+    this.chipText.setVisible(true);
+    this.chipBg.setVisible(true);
+  };
+
+  PlayScene.prototype.floater = function (x, y, text) {
+    for (var i = 0; i < this.floaters.length; i++) {
+      var f = this.floaters[i];
+      if (f.t > 0) continue;
+      f.t = f.life; f.age = 0; f.x = x; f.y = y; f.baseY = y;
+      setTextIfChanged(f.text, text);
+      f.text.setVisible(true);
+      return;
+    }
+  };
+
+  // --------------------------------------------------------------- render
+  PlayScene.prototype.render = function (dt) {
+    var i, o;
+    var c = D.creature(this.activeId);
+    var p = this.player;
+
+    for (i = 0; i < this.enemies.length; i++) {
+      var e = this.enemies[i];
+      if (!e.active) continue;
+      e.sprite.setPosition(e.x, e.y);
+      var s = (e.def.key === 'brood' ? 1.0 : 1.0) *
+        (1 + Math.sin(e.pulse) * 0.02 + (e.flash > 0 ? 0.12 : 0) +
+          (e.warningT > 0 ? Math.sin(e.warningT * 22) * 0.06 : 0));
+      e.sprite.setScale(s);
+      setTintIfChanged(e.sprite, e.flash > 0 ? 0xffffff :
+        (e.warningT > 0 ? 0xff6f86 : (e.hp < e.maxHp ? 0xffc9b8 : 0xffffff)));
+      e.sprite.setAlpha(e.flash > 0 ? 1 : 0.98);
+      var wounded = e.maxHp > 1 && e.hp < e.maxHp;
+      setVisibleIfChanged(e.pip, wounded);
+      if (wounded) {
+        var pw = e.r * 1.6;
+        e.pip.setPosition(e.x - pw / 2, e.y + e.r + 6)
+          .setDisplaySize(Math.max(2, pw * (e.hp / e.maxHp)), 3);
+        setTintIfChanged(e.pip, e.hp / e.maxHp > 0.5 ? 0xffd166 : 0xff6b7f);
+      }
+    }
+    // A lethal hit owns its sprite for a short, pooled collapse stage. The
+    // first tenth is a white flash, then the body folds and fades while the
+    // impact particle burst supplies the debris pass.
+    for (i = 0; i < this.enemies.length; i++) {
+      var dead = this.enemies[i];
+      if (dead.active || dead.deathT <= 0) continue;
+      dead.deathAge += dt;
+      dead.deathT = Math.max(0, dead.deathT - dt);
+      if (dead.deathT <= 0) {
+        dead.sprite.setVisible(false).setPosition(-200, -200);
+        continue;
+      }
+      var dq = clamp(dead.deathAge / 0.48, 0, 1);
+      dead.sprite.setVisible(true).setPosition(dead.x, dead.y)
+        .setScale(1.08 + dq * 0.16, 1.08 - dq * 0.82)
+        .setAlpha(1 - dq * 0.72);
+      setTintIfChanged(dead.sprite, dead.deathAge < 0.12 ? 0xffffff : dead.def.color);
+    }
+    for (i = 0; i < this.barriers.length; i++) {
+      var b = this.barriers[i];
+      if (!b.active) continue;
+      setTintIfChanged(b.sprite, b.flash > 0 ? 0xffffff : 0xbfe4ff);
+      b.sprite.setAlpha(b.flash > 0 ? 1 : 0.9);
+    }
+    for (i = 0; i < this.posts.length; i++) {
+      var post = this.posts[i];
+      if (!post.active) continue;
+      var lit = post.glow > 0;
+      post.sprite.setAlpha(lit ? 1 : (post.base ? 0.9 : 0.8));
+      post.sprite.setScale((post.base ? 0.86 : 0.7) * (lit ? 1.12 : 1));
+      var isSeat = post.base && post.creature === this.activeId;
+      setVisibleIfChanged(post.occupant, !(isSeat && true));
+    }
+    for (i = 0; i < this.shards.length; i++) {
+      var sh = this.shards[i];
+      if (!sh.active) continue;
+      sh.sprite.setPosition(sh.x, sh.y).setRotation(Math.atan2(sh.vy, sh.vx));
+    }
+
+    // Player creature: idle / launch / impact states from the authored set.
+    var frame = 'cr_' + c.id + (this.impactT > 0 ? '_impact'
+      : (p.launched ? '_launch' : '_idle'));
+    if (this.playerSprite.frame.name !== frame) {
+      this.playerSprite.setTexture('atlas', frame);
+    }
+    this.playerSprite.setPosition(p.x, p.y);
+    var blink = p.iframes > 0 && Math.floor(p.iframes * 22) % 2 === 0;
+    setVisibleIfChanged(this.playerSprite, !blink);
+    if (p.launched) {
+      this.playerSprite.setRotation(Math.atan2(p.vy, p.vx) + Math.PI / 2);
+    } else {
+      this.playerSprite.setRotation(0);
+    }
+    this.playerGlow.setPosition(p.x, p.y)
+      .setAlpha(0.22 + (p.launched ? 0.2 : 0.1 * (0.5 + 0.5 * Math.sin(this.phaseT * 3))));
+    setTintIfChanged(this.playerGlow, c.color);
+
+    if (this.comboRingT > 0 && this.combo >= 3) {
+      var f2 = 1 - this.comboRingT / 0.32;
+      this.comboRing.setVisible(true).setPosition(p.x, p.y)
+        .setScale(0.4 + f2 * 1.5).setAlpha((1 - f2) * 0.75);
+      setTintIfChanged(this.comboRing, c.color);
+    } else setVisibleIfChanged(this.comboRing, false);
+
+    this.renderAim();
+    this.renderHud();
+
+    for (i = 0; i < this.floaters.length; i++) {
+      var fl = this.floaters[i];
+      if (fl.t <= 0) continue;
+      var fp2 = clamp(fl.age / fl.life, 0, 1);
+      fl.text.setPosition(fl.x, fl.y)
+        .setScale(0.78 + 0.32 * easeOutBack(fp2))
+        .setAlpha(clamp(fl.t / 0.35, 0, 1));
+    }
+
+    // Transient chip fade.
+    if (this.chipT > 0) {
+      var a = clamp(this.chipT / 0.25, 0, 1);
+      this.chipBg.setAlpha(a * 0.92);
+      this.chipIcon.setAlpha(a);
+      this.chipText.setAlpha(a);
+    }
+    // Tutorial strip fade.
+    if (this.tutorialT > 0) {
+      var ta = clamp(this.tutorialT / 0.9, 0, 1);
+      this.tutorial.setAlpha(ta);
+      this.tutorialBg.setAlpha(ta * 0.8);
+    } else if (this.tutorial.visible) {
+      this.tutorial.setVisible(false);
+      this.tutorialBg.setVisible(false);
+    }
+    // Centre banner fade.
+    if (this.bannerT > 0) {
+      var ba = clamp(this.bannerT / 0.4, 0, 1);
+      var grow = REDUCED ? 1 : clamp((this.bannerHold - this.bannerT) / 0.18, 0, 1);
+      // setDisplaySize writes scaleX/scaleY, so animating with setScale here
+      // would reset the panel to its 4px source width and make it vanish.
+      this.bannerBg.setAlpha(ba * 0.95)
+        .setDisplaySize(BANNER_W, BANNER_H * (0.6 + grow * 0.4));
+      this.bannerTitle.setAlpha(ba);
+      this.bannerSub.setAlpha(ba * 0.92);
+      this.bannerMedal.setAlpha(ba).setScale(0.9 * (0.7 + grow * 0.3));
+      this.bannerBg.setPosition(W / 2, BANNER_Y);
+    } else if (this.bannerBg.visible && this.phase !== 'clear' &&
+               this.phase !== 'fail' && this.phase !== 'done') {
+      this.hideBanner();
+    } else if (this.bannerBg.visible) {
+      // Boundary reached and the banner has faded: leave the prompt readable
+      // at low alpha so "tap to continue" is never a guess.
+      this.bannerBg.setAlpha(0.9);
+      this.bannerTitle.setAlpha(1);
+      this.bannerSub.setAlpha(0.9);
+      this.bannerMedal.setAlpha(1);
+    }
+
+    this.damageVignette.setAlpha(this.vitalityFlashT > 0
+      ? this.vitalityFlashT * 0.35 : 0);
+  };
+
+  PlayScene.prototype.renderAim = function () {
+    if (this.phase !== 'aim' || this.player.launched) { this.hideAim(); return; }
+    var pull = this.pullVector();
+    if (!pull && this.kbActive) {
+      pull = this.kbScratch;
+      pull.dx = Math.cos(this.kbAngle); pull.dy = Math.sin(this.kbAngle);
+      pull.power = this.kbPower; pull.len = this.kbPower * T.maxPull;
+    }
+    if (!pull || pull.power < T.minPower) { this.hideAim(); return; }
+
+    var c = D.creature(this.activeId);
+    var speed = T.launchSpeed * (0.36 + pull.power * 0.64);
+    // Analytic travel distance for exponential drag: v0 * (1 - r^t) / ln(1/r),
+    // taken to the settle horizon. This is what makes the preview honest.
+    var total = Math.min(1100, speed / Math.log(1 / T.friction) * 0.92);
+    var path = this.predict(this.player.x, this.player.y, pull.dx, pull.dy, total);
+
+    var spacing = total / MAX_TRAJ;
+    var used = 0, walked = 0, seg = 0, segPos = 0;
+    for (var i = 0; i < MAX_TRAJ; i++) {
+      var target = i * spacing;
+      while (seg < path.segs.length - 1 && walked + path.segs[seg].len < target) {
+        walked += path.segs[seg].len; seg++;
+      }
+      var s = path.segs[seg];
+      if (!s) { setVisibleIfChanged(this.traj[i], false); continue; }
+      segPos = clamp(target - walked, 0, s.len);
+      var t = this.traj[i];
+      t.setVisible(true)
+        .setPosition(s.x0 + s.dx * segPos, s.y0 + s.dy * segPos)
+        .setAlpha(0.85 * (1 - i / MAX_TRAJ) + 0.1)
+        .setScale(0.10 + 0.09 * (1 - i / MAX_TRAJ));
+      setTintIfChanged(t, seg === 0 ? c.color : 0xffe27b);
+      used++;
+    }
+    for (var j = used; j < MAX_TRAJ; j++) setVisibleIfChanged(this.traj[j], false);
+
+    // Bank markers at every predicted ricochet: the shot's bank plan is
+    // visible BEFORE release, which is the whole point of the mechanic.
+    for (var k = 0; k < MAX_MARKS; k++) {
+      var bp = path.banks[k];
+      if (!bp) { setVisibleIfChanged(this.marks[k], false); continue; }
+      var pulse = 0.34 + Math.sin(this.phaseT * 8 + k) * 0.05;
+      this.marks[k].setVisible(true).setPosition(bp.x, bp.y)
+        .setScale(REDUCED ? 0.34 : pulse)
+        .setAlpha(0.9 - k * 0.16);
+      setTintIfChanged(this.marks[k], bp.barrier ? 0x9fe8ff : 0xffe27b);
+    }
+
+    // Pull band: the drawn-back fang line, thickness tracks power.
+    if (this.dragFrom && this.dragCur) {
+      var ang = Math.atan2(pull.dy, pull.dx);
+      var len = Math.min(T.maxPull, pull.len);
+      this.aimBand.setVisible(true)
+        .setPosition(this.player.x, this.player.y)
+        .setRotation(ang)
+        .setDisplaySize(len, 2 + pull.power * 5);
+      setTintIfChanged(this.aimBand, c.color);
+    } else setVisibleIfChanged(this.aimBand, false);
+  };
+
+  // Stepped raycast with reflection off arena walls and live barriers.
+  // The segment and bank records are POOLED: this runs every frame the player
+  // is aiming, which is most of the game's wall-clock time.
+  PlayScene.prototype.predict = function (x, y, dx, dy, total) {
+    var segs = this.pathSegs, banks = this.pathBanks;
+    segs.length = 0; banks.length = 0;
+    var r = this.player.r;
+    var stepLen = 7;
+    var left = total;
+    var cx = x, cy = y;
+    var sx = cx, sy = cy;
+    var guard = 0;
+    while (left > 0 && guard++ < 260 && segs.length < 6) {
+      var nx = cx + dx * stepLen;
+      var ny = cy + dy * stepLen;
+      var hit = null;
+      var HR = this.hitScratch;
+      if (nx - r < A.left) { HR.ax = 1; HR.x = A.left + r; HR.y = ny; hit = HR; }
+      else if (nx + r > A.right) { HR.ax = 1; HR.x = A.right - r; HR.y = ny; hit = HR; }
+      if (!hit) {
+        if (ny - r < A.top) { HR.ax = 2; HR.x = nx; HR.y = A.top + r; hit = HR; }
+        else if (ny + r > A.bottom) { HR.ax = 2; HR.x = nx; HR.y = A.bottom - r; hit = HR; }
+      }
+      var barrierHit = false;
+      if (!hit) {
+        for (var i = 0; i < this.barriers.length; i++) {
+          var b = this.barriers[i];
+          if (!b.active) continue;
+          var qx = clamp(nx, b.x - b.w / 2, b.x + b.w / 2);
+          var qy = clamp(ny, b.y - b.h / 2, b.y + b.h / 2);
+          var ddx = nx - qx, ddy = ny - qy;
+          if (ddx * ddx + ddy * ddy > r * r) continue;
+          HR.ax = Math.abs(ddx) > Math.abs(ddy) ? 1 : 2;
+          HR.x = nx; HR.y = ny;
+          hit = HR;
+          barrierHit = true;
+          break;
+        }
+      }
+      if (hit) {
+        segs.push(this.seg(segs.length, sx, sy, hit.x, hit.y));
+        if (banks.length < MAX_MARKS) {
+          var bk = this.bankPool[banks.length];
+          bk.x = hit.x; bk.y = hit.y; bk.barrier = barrierHit;
+          banks.push(bk);
+        }
+        if (hit.ax === 1) dx = -dx; else dy = -dy;
+        cx = hit.x + dx * 2; cy = hit.y + dy * 2;
+        sx = cx; sy = cy;
+      } else {
+        cx = nx; cy = ny;
+      }
+      left -= stepLen;
+    }
+    segs.push(this.seg(segs.length, sx, sy, cx, cy));
+    this.path.segs = segs;
+    this.path.banks = banks;
+    return this.path;
+  };
+
+  PlayScene.prototype.seg = function (i, x0, y0, x1, y1) {
+    var s = this.segPool[i] ||
+      (this.segPool[i] = { x0: 0, y0: 0, dx: 0, dy: 0, len: 0 });
+    var dx = x1 - x0, dy = y1 - y0;
+    var len = Math.hypot(dx, dy) || 0.0001;
+    s.x0 = x0; s.y0 = y0; s.dx = dx / len; s.dy = dy / len; s.len = len;
+    return s;
+  };
+
+  PlayScene.prototype.renderHud = function () {
+    var vit = clamp(this.runVitality / T.maxVitality, 0, 1);
+    this.vitalFill.setDisplaySize(Math.max(1, 110 * vit), 9);
+    setTintIfChanged(this.vitalFill,
+      vit > 0.5 ? 0x4be08a : vit > 0.25 ? 0xffd166 : 0xff6b7f);
+    setTextIfChanged(this.vitalText, String(Math.round(this.runVitality)));
+
+    var showCombo = this.combo >= 2;
+    setVisibleIfChanged(this.comboIcon, showCombo);
+    setVisibleIfChanged(this.comboText, showCombo);
+    if (showCombo) setTextIfChanged(this.comboText, 'x' + this.combo);
+
+    setTextIfChanged(this.shotText, String(this.shotsUsed) + '/' + this.form.par);
+    setTintIfChanged(this.shotText, this.shotsUsed <= this.form.par ? 0xbfe4ff : 0xff9aa8);
+    var showFree = this.freeShots > 0;
+    setVisibleIfChanged(this.freeIcon, showFree);
+    setVisibleIfChanged(this.freeText, showFree);
+    if (showFree) setTextIfChanged(this.freeText, String(this.freeShots));
+  };
+
+  // ------------------------------------------------------------ hook + api
+  PlayScene.prototype.syncHook = function () {
+    HOOK.ready = true;
+    HOOK.mode = this.phase === 'aim' || this.phase === 'flight'
+      ? (this.mode === 'rush' ? 'rush' : 'play') : this.phase;
+    HOOK.formation = this.formationIndex;
+    HOOK.formationId = this.form ? this.form.id : '';
+    HOOK.formationName = this.form ? this.form.name : '';
+    HOOK.setId = this.form ? this.form.set : '';
+    HOOK.roster = this.unlockedIds ? this.unlockedIds.slice() : [];
+    HOOK.team = this.team ? this.team.slice() : [];
+    HOOK.active = this.activeId;
+    HOOK.vitality = Math.round(this.runVitality);
+    HOOK.combo = this.combo;
+    HOOK.bestCombo = this.bestCombo;
+    HOOK.shots = this.shotsUsed;
+    HOOK.freeShots = this.freeShots;
+    HOOK.score = this.score;
+    HOOK.enemiesLeft = this.enemiesLeft();
+    HOOK.barriersLeft = this.barriersLeft();
+    HOOK.launched = this.player.launched;
+    HOOK.banked = this.player.wallBanks > 0;
+    HOOK.medals = SAVE.medals;
+    HOOK.maxCleared = SAVE.maxCleared;
+  };
+
+  PlayScene.prototype.forceFormation = function (n) {
+    var total = this.mode === 'rush' ? D.RUSH.length : D.FORMATIONS.length;
+    this.hideBanner();
+    this.phase = 'aim';
+    this.runVitality = T.startVitality;
+    this.syncTeam();
+    this.loadFormation(clamp(n | 0, 0, total - 1));
+  };
+
+  PlayScene.prototype.forceRoster = function (id) {
+    var c = D.creature(id);
+    // Test switches must not be gated behind progression. syncTeam() rebuilds
+    // the unlocked list from the save, so the override has to survive it:
+    // forceUnlock is consulted there rather than patched around afterwards.
+    this.forceUnlock = c.id;
+    this.activeId = c.id;
+    this.syncTeam();
+    this.reseatBasePosts();
+    this.resetPlayer();
+    this.refreshDock();
+    this.syncHook();
+  };
+
+  PlayScene.prototype.forceMode = function (m) {
+    this.scene.start('Play', { mode: m === 'rush' ? 'rush' : 'campaign', formation: 0 });
+  };
+
+  PlayScene.prototype.setFrozen = function (v) {
+    this.frozen = !!v;
+    if (v) { this.dragId = null; this.dragFrom = null; this.prevIds.clear(); this.curIds.clear(); }
+    this.acc = 0;
+  };
+
+  PlayScene.prototype.restartFormation = function () {
+    this.score = this.formationStartScore;
+    this.runVitality = T.startVitality;
+    this.hideBanner();
+    this.phase = 'aim';
+    this.loadFormation(this.formationIndex);
+  };
+
+  // ------------------------------------------------------------------ boot
+  var game = new Phaser.Game({
+    type: Phaser.AUTO,
+    // parent:null SKIPS mounting the canvas and the game runs invisibly.
+    parent: document.body,
+    width: W,
+    height: H,
+    backgroundColor: '#080d15',
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: W,
+      height: H
+    },
+    render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
+    banner: false,
+    scene: [BootScene, MenuScene, PlayScene]
+  });
+  window.__sfGame = game;
 })();
