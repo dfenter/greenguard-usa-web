@@ -182,8 +182,12 @@ main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
 .chips>*{min-width:0}
 
 /* ---- pricing ---- */
-.tier{background:var(--paper);border:1px solid var(--steel);border-top:4px solid var(--marker);padding:26px 28px}
-.price{font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:44px;line-height:1.1;margin:12px 0}
+.tier{background:var(--paper);border:1px solid var(--steel);padding:28px 30px}
+.tier h3{font-size:17px;letter-spacing:.05em;color:var(--ink-soft)}
+.tier.feature h3{color:var(--paper-dim)}
+.tier .why{border-left:0;padding:12px 0 0;margin:8px 0 0;border-top:1px solid var(--steel);font-size:14px}
+.tier.feature .why{border-top-color:var(--steel-dark)}
+.price{font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:42px;line-height:1.1;margin:10px 0 0}
 .price small{display:block;font-family:"Public Sans",sans-serif;font-weight:400;font-size:13.5px;color:var(--ink-soft);margin-top:8px;text-transform:none;letter-spacing:0}
 
 /* ---- hero (index) ---- */
@@ -348,7 +352,7 @@ footer a:hover{color:#fff}
 /* ---- pricing tiers grid + TCK result plates + closing band ---- */
 .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
 .tiers>*{min-width:0}
-.tier.feature{border-top-color:var(--graphite);background:var(--graphite);color:#fff}
+.tier.feature{border:1px solid var(--graphite);border-top:3px solid var(--marker);background:var(--graphite);color:#fff}
 .tier.feature h3{color:#fff}
 .tier.feature .price{color:#fff}
 .tier.feature .price small{color:var(--paper-dim)}
