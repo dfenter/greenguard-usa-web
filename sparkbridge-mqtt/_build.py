@@ -14,6 +14,7 @@ NAV = [
     ("compare",    "Compare",    "compare"),
     ("pricing",    "Pricing",    "pricing"),
     ("resources",  "Resources",  "resources"),
+    ("spec",       "Spec",       "spec"),
     ("contact",    "Contact",    "contact"),
 ]
 BASE = "/sparkbridge-mqtt/"

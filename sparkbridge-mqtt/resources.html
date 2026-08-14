@@ -28,6 +28,7 @@
         <a href="/sparkbridge-mqtt/compare">Compare</a>
         <a href="/sparkbridge-mqtt/pricing">Pricing</a>
         <a href="/sparkbridge-mqtt/resources" aria-current="page">Resources</a>
+        <a href="/sparkbridge-mqtt/spec">Spec</a>
         <a href="/sparkbridge-mqtt/contact">Contact</a>
     </nav>
     <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
@@ -70,7 +71,8 @@
       <p>Everything below ships with the product and can be re-run on your own hardware.</p>
     </div>
     <div class="cards">
-      <div class="card"><span class="tag">Tests</span><h3>360+ automated tests</h3><p>Live gateway integration, property-based codec testing, a 50,000-case malformed-input fuzz of the decoder, corrupt-buffer and chaos suites, and negative TLS tests confirming untrusted certificates are rejected.</p></div>
+      <div class="card"><span class="tag">Standard</span><h3>SB-MQTT5 specification</h3><p>The normative profile for how SparkBridge exploits MQTT 5.0 under Sparkplug 3.0: session modes, message classes, flow control, and three conformance classes. <a href="/sparkbridge-mqtt/spec">Read the specification</a>.</p></div>
+      <div class="card"><span class="tag">Tests</span><h3>504 automated tests</h3><p>Live gateway integration, property-based codec testing, a 50,000-case malformed-input fuzz of the decoder, corrupt-buffer and chaos suites, and negative TLS tests confirming untrusted certificates are rejected.</p></div>
       <div class="card"><span class="tag">Load</span><h3>Nine load scenarios</h3><p>Codec scaling, latency distribution, fan-in, sustained soak with heap-stability checks, outage and replay, multi-broker scale-out, 5,000-node fleet tracking, churn endurance, and the 500,000-metric capacity acceptance.</p></div>
       <div class="card"><span class="tag">Review</span><h3>Four independent code reviews</h3><p>Independent review passes over correctness, security, QA and performance, including a deliberate re-review of the fixes themselves, which re-opened half of them and found two defects the fixes had introduced. All closed.</p></div>
       <div class="card"><span class="tag">Analysis</span><h3>Code analysis</h3><p>Clean high-priority static analysis, 89% mutation-test strength on the pure-logic core, and dependency auditing against known vulnerabilities.</p></div>
@@ -141,5 +143,6 @@
   window.addEventListener('scroll',onScroll,{passive:true});
 })();
 </script>
+<script defer src="/sparkbridge-mqtt/sb-chat.js"></script>
 </body>
 </html>
