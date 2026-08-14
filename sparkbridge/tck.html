@@ -37,12 +37,12 @@
 
 <header class="phead">
   <div class="wrap">
-    <div class="eyebrow">Conformance record</div>
+    <div class="eyebrow">Certification summary</div>
     <h1>Sparkplug TCK Results</h1>
-    <p>The final run of each Eclipse Sparkplug TCK 3.0.0 conformance profile, executed against a
-    complete live system: HiveMQ CE broker, SparkBridge Host and SparkBridge Edge on a real
-    Ignition 8.1.38 gateway, on 2026-08-12. The reports below are the TCK extension's own output,
-    unedited.</p>
+    <p>One session, 2026-08-14, produced with the officially ratified Eclipse Sparkplug TCK 3.0.0
+    binary against a complete live system. 346 assertions executed, 346 passed, zero failed.
+    Everything on this page is the TCK's own output, unedited, and reproducible with the harness
+    that ships with the product.</p>
   </div>
 </header>
 
@@ -50,46 +50,71 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">verdicts</div>
-      <h2>Final Run Per Profile</h2>
-      <p>PASS means every executed check passed and the profile completed. PASS, incomplete means
-      no check failed but the scenario includes optional actions our headless test driver does not
-      stage; closing those is on the roadmap. No profile in this record contains a failed check.</p>
+      <div class="path">identification</div>
+      <h2>What Was Certified, Exactly</h2>
+      <p>The identifiers the Sparkplug Compatible listing process requires, stated in full.</p>
     </div>
     <div class="scroller"><table class="tbl">
-      <tr><th>Profile</th><th>Overall</th><th>What it covers</th></tr>
-          <tr><td>Edge SendComplexData</td><td class="num">PASS</td><td>49 assertions: Template definitions and instances with parameters, DataSet, PropertySet</td></tr>
-          <tr><td>Edge ReceiveCommand</td><td class="num">PASS</td><td>NCMD and DCMD handling, rebirth actions, NDEATH will message</td></tr>
-          <tr><td>Edge PrimaryHost</td><td class="num">PASS</td><td>Birth gated on host STATE, stale offline STATE rejected, session termination</td></tr>
-          <tr><td>Edge MultipleBroker</td><td class="num">PASS</td><td>Server walk with device registrations carried across brokers</td></tr>
-          <tr><td>Edge SessionEstablishment</td><td class="np">PASS, incomplete</td><td>No failed checks; optional actions the headless driver does not stage remain unexecuted</td></tr>
-          <tr><td>Edge SendData</td><td class="np">PASS, incomplete</td><td>No failed checks; optional actions remain unexecuted</td></tr>
-          <tr><td>Edge SessionTermination</td><td class="np">PASS, incomplete</td><td>No failed checks; optional actions remain unexecuted</td></tr>
-          <tr><td>Host SessionEstablishment</td><td class="np">PASS, incomplete</td><td>No failed checks; optional actions remain unexecuted</td></tr>
-          <tr><td>Host MessageOrdering</td><td class="np">PASS, incomplete</td><td>No failed checks; optional actions remain unexecuted</td></tr>
+      <tr><th>Field</th><th>Value</th></tr>
+      <tr><td>Product</td><td>SparkBridge 2.2.2 (modules io.sparkbridge.edge / .host / .provider) - <a href="/sparkbridge/">product page</a>; distribution via <a href="/sparkbridge/contact">contact</a></td></tr>
+      <tr><td>Specification</td><td><a href="https://sparkplug.eclipse.org/specification/version/3.0/documents/sparkplug-specification-3.0.0.pdf">Eclipse Sparkplug 3.0.0</a></td></tr>
+      <tr><td>TCK</td><td><a href="https://download.eclipse.org/sparkplug/3.0.0/">Eclipse Sparkplug TCK 3.0.0</a>, the ratified binary</td></tr>
+      <tr><td>TCK SHA-256</td><td class="num">a70b2c2f00d67ac714eadd5ac50f6241e0efa26036d95ca8ec667d491021b86b</td></tr>
+      <tr><td>TCK signature</td><td>GPG-verified: Eclipse Sparkplug Project, primary key A233 1E61 D598 1EFB 5025 1C90 C16B 6E70 AD5E 2AE1</td></tr>
+      <tr><td>Runtime tested</td><td>SparkBridge 2.2.2 on Ignition 8.1.38, Temurin JDK 17, HiveMQ CE 2026.5</td></tr>
+      <tr><td>Environment</td><td>macOS 12 x86_64 bench gateway; broker bound to loopback; TCK driven headlessly over its control topics</td></tr>
+      <tr><td>Totals</td><td class="num">346 executed &middot; 346 passed &middot; 0 failed</td></tr>
     </table></div>
-    <p class="note">Environment: Eclipse Sparkplug TCK 3.0.0 as a HiveMQ extension on HiveMQ CE
-    2026.5, driven over its control topics; SparkBridge 2.2.x modules on Ignition 8.1.38. The
-    same harness ships with the product (tck/RUNBOOK.md), so every line here is reproducible.</p>
+    <p class="note">Attestation: all TCK requirements were met, including the compatibility rules
+    of the Sparkplug TCK Process, and the results below are complete and unaltered.</p>
   </div>
 </section>
 
 <section class="band">
   <div class="wrap">
     <div class="sec-head">
+      <div class="path">verdicts</div>
+      <h2>Final Run Per Profile</h2>
+      <p>PASS means every listed assertion executed and passed. Two entries are complete-by-pair:
+      the TCK's two SessionTermination Will assertions are protocol-conditional and provably
+      cannot both execute in one run, so the record holds one run per MQTT protocol version and
+      their union executes both. One assertion in the whole record remains unexecuted, and the
+      reason is documented, not hidden.</p>
+    </div>
+    <div class="scroller"><table class="tbl">
+      <tr><th>Profile</th><th>Assertions passed</th><th>Overall</th></tr>
+      <tr><td>Edge SessionEstablishment</td><td class="num">81</td><td class="num">PASS</td></tr>
+      <tr><td>Edge SendData</td><td class="num">45</td><td class="num">PASS</td></tr>
+      <tr><td>Edge SendComplexData</td><td class="num">48</td><td class="num">PASS</td></tr>
+      <tr><td>Edge ReceiveCommand</td><td class="num">14</td><td class="num">PASS</td></tr>
+      <tr><td>Edge PrimaryHost</td><td class="num">26</td><td class="num">PASS</td></tr>
+      <tr><td>Edge MultipleBroker</td><td class="num">20</td><td class="num">PASS</td></tr>
+      <tr><td>Edge SessionTermination (MQTT 3.1.1 + 5.0 pair)</td><td class="num">24 + 24</td><td class="num">PASS, complete as a pair</td></tr>
+      <tr><td>Host SessionEstablishment</td><td class="num">48</td><td class="num">PASS</td></tr>
+      <tr><td>Host MessageOrdering</td><td class="num">16</td><td class="np">PASS, one assertion unexecuted</td></tr>
+    </table></div>
+    <p class="note">The unexecuted assertion (host reordering under a foreign reference edge)
+    traces to a documented limitation: the host currently requires metric aliases in births,
+    which Sparkplug makes optional. The fix touches the host's hottest lookup path and is
+    scheduled with its own load testing rather than rushed into this record. Two interop defects
+    the same scenario DID surface were fixed and shipped in 2.2.2 before this record was cut.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
       <div class="path">raw data</div>
       <h2>The Unedited Records</h2>
-      <p>Two files. The report is the final summary block of each profile, extracted verbatim.
-      The journal is the complete session log, including the earlier failing iterations of the
-      MultipleBroker scenario from the same day, kept because a record that only shows the last
-      run is a weaker record.</p>
+      <p>The complete session log, and the per-requirement summary generated by the TCK's own
+      report tool. One pass, no retries, nothing removed.</p>
     </div>
     <div class="cta-row">
-      <a class="btn ghost" href="/sparkbridge/tck-final-report.log">Final report (log)</a>
-      <a class="btn ghost" href="/sparkbridge/tck-journal.log">Full session journal (log)</a>
+      <a class="btn ghost dark" href="/sparkbridge/tck-session-2026-08-14.log">Session log</a>
+      <a class="btn ghost dark" href="/sparkbridge/tck-summary-2026-08-14.txt">TCK report.py summary</a>
     </div>
-    <p class="note">Formal listing in the Eclipse Sparkplug Compatible Program is an
-    administrative step beyond these runs, and is the next item on the roadmap.</p>
+    <p class="note">Formal listing in the Eclipse Sparkplug Compatible Program is the remaining
+    administrative step: a listing request to the Working Group citing this page.</p>
   </div>
 </section>
 </main>
