@@ -22,16 +22,33 @@ function fmtTime(iso) {
 // /admin/home, and /admin/tech. Finalized stops move out of the working list
 // and into this labeled section at the bottom, so the remaining route reads
 // clean and what's already done is unmistakable.
+// Collapsed by default: the working route is what matters during the day, so
+// finished stops stay out of the way behind a one-tap header until asked for.
 export function CompletedRoundsSection({ count, children }) {
+  const [open, setOpen] = useState(false)
   if (!count) return null
   return (
     <div style={{ marginTop: 28, borderTop: '3px solid var(--ok)', paddingTop: 16 }}>
-      <div style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ok)', marginBottom: 12 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+          background: 'none', border: 'none', padding: '2px 0', margin: '0 0 12px',
+          cursor: 'pointer', textAlign: 'left',
+          fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ok)',
+        }}
+      >
+        <span style={{ display: 'inline-block', transition: 'transform 0.15s', transform: open ? 'rotate(90deg)' : 'none' }}>▸</span>
         ✓ Completed Rounds ({count})
-      </div>
-      <div style={{ background: 'rgba(var(--ok-rgb),0.04)', border: '1px solid rgba(var(--ok-rgb),0.25)', borderRadius: 12, padding: '14px 14px 0' }}>
-        {children}
-      </div>
+        <span style={{ marginLeft: 'auto', fontWeight: 700, letterSpacing: '0.06em', opacity: 0.75 }}>{open ? 'Hide' : 'Show'}</span>
+      </button>
+      {open && (
+        <div style={{ background: 'rgba(var(--ok-rgb),0.04)', border: '1px solid rgba(var(--ok-rgb),0.25)', borderRadius: 12, padding: '14px 14px 0' }}>
+          {children}
+        </div>
+      )}
     </div>
   )
 }
