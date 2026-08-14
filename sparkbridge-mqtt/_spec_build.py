@@ -92,7 +92,6 @@ page = f'''<!DOCTYPE html>
 {nav}
     </nav>
     <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
-    <div class="crumb mono" id="crumb">spBv1.0/<b>sparkbridge</b>/SPEC/<b>sb-mqtt5</b></div>
   </div>
 </div>
 

@@ -32,7 +32,6 @@
         <a href="/sparkbridge-mqtt/contact">Contact</a>
     </nav>
     <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
-    <div class="crumb mono" id="crumb">spBv1.0/<b>sparkbridge</b>/NDATA/<b id="crumb-sec">overview</b></div>
   </div>
 </div>
 
@@ -40,7 +39,7 @@
   <div class="wrap hero-grid">
     <div>
       <div class="eyebrow">Sparkplug B / 3.0 modules for Ignition</div>
-      <h1>Stop polling. Start publishing.</h1>
+      <h1>Built for MQTT&nbsp;5.<br>Built for What’s&nbsp;Next.</h1>
       <ul class="thesis">
         <li>Each site describes its own data.</li>
         <li>Stale values are flagged, not guessed at.</li>
@@ -71,7 +70,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">spBv1.0/sparkbridge/NDATA/why</div>
-      <h2>Why Polling Costs You</h2>
+      <h2>Data, Subscribed.</h2>
       <p>Most of the time the answer is “nothing changed”. That traffic grows with how many tags you have and how many systems want them, not with what the plant actually did. Sparkplug turns it around: a site sends a value once when it changes, and any number of systems can subscribe to it.</p>
     </div>
     <div class="two">
@@ -93,7 +92,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">spBv1.0/sparkbridge/NBIRTH/modules</div>
-      <h2>Three Modules</h2>
+      <h2>The SparkBridge Package</h2>
       <p>Install only what a site needs. The Edge and the Host work independently, and both interoperate with any other vendor’s Sparkplug software.</p>
     </div>
 
@@ -360,7 +359,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">spBv1.0/sparkbridge/NCMD/security</div>
-      <h2>One Site Cannot Touch Another</h2>
+      <h2>Security as the Standard</h2>
       <p>The Sparkplug specification does not say how to handle security, so it leaves the important questions open: what stops a hacked site from pretending to be another one, or sending commands to your equipment? Here is what SparkBridge does about it.</p>
     </div>
     <div class="scroller">
@@ -494,8 +493,6 @@
   }
   tick();
 
-  // The scroll-spy that keeps the crumb in step with the section lives in the shared shell
-  // script below; a second copy used to run here, both writing #crumb-sec on every scroll.
 })();
 </script>
 
@@ -513,18 +510,6 @@
     var open=n.classList.toggle('open');
     t.setAttribute('aria-expanded',open?'true':'false');
   });}
-  var secName=document.getElementById('crumb-sec');
-  var paths=[].slice.call(document.querySelectorAll('.sec-head .path'));
-  if(!secName||!paths.length) return;
-  function onScroll(){
-    var best=secName.textContent, y=window.scrollY+120, found=null;
-    paths.forEach(function(p){
-      var top=p.getBoundingClientRect().top+window.scrollY;
-      if(top<=y) found=p.textContent.split('/').pop();
-    });
-    if(found&&secName.textContent!==found) secName.textContent=found;
-  }
-  window.addEventListener('scroll',onScroll,{passive:true});
 })();
 </script>
 <script defer src="/sparkbridge-mqtt/sb-chat.js"></script>

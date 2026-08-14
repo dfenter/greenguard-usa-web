@@ -307,6 +307,7 @@ footer a{color:var(--muted-dark)}
 }
 #sbchat-fab:hover{background:#152028}
 #sbchat-fab .sbchat-dot{width:8px;height:8px;border-radius:50%;background:var(--birth);animation:pulse 2s infinite}
+#sbchat-panel[hidden]{display:none}
 #sbchat-panel{
   position:fixed;right:22px;bottom:76px;z-index:91;width:min(400px,calc(100vw - 32px));
   height:min(560px,calc(100vh - 120px));display:flex;flex-direction:column;

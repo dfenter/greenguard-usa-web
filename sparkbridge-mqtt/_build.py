@@ -19,7 +19,7 @@ NAV = [
 ]
 BASE = "/sparkbridge-mqtt/"
 
-def shell(slug, title, desc, crumb, body, extra_head=""):
+def shell(slug, title, desc, body, extra_head=""):
     nav = "\n".join(
         '        <a href="{href}"{cur}>{label}</a>'.format(
             href=BASE + path if path else BASE,
@@ -53,7 +53,6 @@ def shell(slug, title, desc, crumb, body, extra_head=""):
 {nav}
     </nav>
     <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
-    <div class="crumb mono" id="crumb">spBv1.0/<b>sparkbridge</b>/NDATA/<b id="crumb-sec">{crumb}</b></div>
   </div>
 </div>
 
@@ -73,18 +72,6 @@ def shell(slug, title, desc, crumb, body, extra_head=""):
     var open=n.classList.toggle('open');
     t.setAttribute('aria-expanded',open?'true':'false');
   }});}}
-  var secName=document.getElementById('crumb-sec');
-  var paths=[].slice.call(document.querySelectorAll('.sec-head .path'));
-  if(!secName||!paths.length) return;
-  function onScroll(){{
-    var best=secName.textContent, y=window.scrollY+120, found=null;
-    paths.forEach(function(p){{
-      var top=p.getBoundingClientRect().top+window.scrollY;
-      if(top<=y) found=p.textContent.split('/').pop();
-    }});
-    if(found&&secName.textContent!==found) secName.textContent=found;
-  }}
-  window.addEventListener('scroll',onScroll,{{passive:true}});
 }})();
 </script>
 </body>
