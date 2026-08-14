@@ -140,6 +140,18 @@ const ADDONS = [
     oneTime: true,
   },
   {
+    // Extra CO2 tank swapped during a Mosqitter service visit, for customers
+    // who burn through more than the one tank the service covers. Flat $50 per
+    // tank with no delivery fee — the tech is already on site, so unlike
+    // TANK-REFILL this never bundles TANK-DELIVERY-FEE.
+    sku: 'MQ-TANK-EXCH',
+    label: 'Tank Exchange (Extra Refill)',
+    price: 50.00,
+    surfaces: { rounds: true, quote: true },
+    quoteCategory: 'One-Time Add-Ons',
+    oneTime: true,
+  },
+  {
     // Travel charge for stops outside the normal Austin-MSA service radius.
     sku: 'LONG-DIST',
     label: 'Long Distance Charge',

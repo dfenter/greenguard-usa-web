@@ -16,6 +16,10 @@ const SKU_PRICES = {
   'TANK-DELIVERY-FEE': 39.00,
   'TANK-REFILL': 50.00,
   'TANK-HOOKUP-MAINT': 10.00,
+  // Flat-rate extra tank exchange added to a Mosqitter service visit. Unlike
+  // TANK-REFILL this never bundles the $39 delivery fee — the tech is already
+  // on site for the Mosqitter service, so there is no separate trip to bill.
+  'MQ-TANK-EXCH': 50.00,
   // Customer buys their own empty cylinder (hazmat freight billed separately)
   'TANK-20-EMPTY': 239.99,
   TANK1: 89.99,
