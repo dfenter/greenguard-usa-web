@@ -1,6 +1,6 @@
 /* SparkBridge — "Wire and Signal" design system (2026-08 redesign).
    Vernacular: the electrical panel. Machined-aluminum ground, graphite enclosure
-   bands, and ONE accent — cable-marker yellow — used as the wire-marker tags that
+   bands, and ONE accent — run-light green — used as the wire-marker tags that
    open every section along a vertical wire rail. Display type is signage
    (Saira SemiCondensed), body is Public Sans, data is Spline Sans Mono.
    Single committed look: light, precise, panel-shop. */
@@ -15,9 +15,9 @@
   --ink-soft:#4C555F;   /* secondary text (5.9:1 on bone) */
   --paper:#F6F7F8;      /* cards on bone */
   --paper-dim:#B9C2CB;  /* secondary text on graphite */
-  --marker:#F2C230;     /* cable-marker yellow: THE accent */
+  --marker:#35C765;     /* run-light green: THE accent (was cable-marker yellow) */
   --marker-ink:#161A1F; /* text on marker */
-  --ok:#2F8F5B;         /* tiny status dots only */
+  --ok:#2F8F5B;         /* pass/status green, deeper than the accent */
   --bad:#B2452F;        /* tiny status dots only */
   --maxw:1240px;
   --rail-x:26px;        /* wire-rail offset inside .wrap */
@@ -402,3 +402,42 @@ section.tail p{color:var(--paper-dim);max-width:60ch}
 .ccard.s, .band .ccard.s{border-top:4px solid var(--marker)}
 .ccard.r, .band .ccard.r{border-top:4px solid var(--graphite)}
 .ccard.c, .band .ccard.c{border-top:4px solid var(--steel)}
+
+/* ---- spacing pass (2026-08-14 audit): sub-labels, run-in pairs, captions ---- */
+h4{
+  font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:15px;
+  letter-spacing:.05em;text-transform:uppercase;line-height:1.2;margin:0 0 10px;
+}
+.floor{
+  font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--ink-soft);
+  margin:36px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--steel);
+}
+.band .floor{color:var(--paper-dim);border-bottom-color:var(--steel-dark)}
+.sec-head + .floor, .floor:first-child{margin-top:0}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px 26px;margin:0 0 8px}
+.chip b{display:block;font-weight:600;font-size:14.5px;margin-bottom:3px}
+.chip span{font-size:14px;color:var(--ink-soft);display:block}
+.band .chip span{color:var(--paper-dim)}
+caption{
+  caption-side:top;text-align:left;font-family:"Spline Sans Mono",monospace;font-size:11.5px;
+  letter-spacing:.06em;color:var(--ink-soft);padding:0 0 10px;
+}
+.band caption{color:var(--paper-dim)}
+.bandtitle{font-size:clamp(28px,3.6vw,42px);margin:0 0 12px}
+.bandlede{color:var(--ink-soft);max-width:78ch;margin:0 0 8px}
+.tier .act{margin-top:18px}
+.tier .top{margin-bottom:4px}
+/* rhythm: content blocks that follow a section head or each other breathe evenly */
+.sec-head + .scroller, .sec-head + .tbl, .sec-head + .cards, .sec-head + .mods,
+.sec-head + .two, .sec-head + .tiers, .sec-head + .tck, .sec-head + .feats{margin-top:6px}
+.scroller + .note, .tbl + .note, .cards + .note, .tck + .note{margin-top:20px}
+.two > div > h3{margin:8px 0 10px}
+.fgroup ul{margin:0;padding-left:0;list-style:none}
+.fgroup li{margin-bottom:10px}
+.fgroup li b{display:block;font-weight:600;margin-bottom:2px}
+
+/* machined seam wherever two dark sections meet, so they never fuse */
+.band + .band, .band + .tail, .band + footer, section.tail + footer{border-top:1px solid var(--steel-dark)}
+section.tail h2{margin-bottom:12px}
+section.tail .cta-row{margin-top:26px}
