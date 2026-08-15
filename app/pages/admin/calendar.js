@@ -353,7 +353,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
           .cal-sticky { position:sticky; top:calc(76px + env(safe-area-inset-top, 0px)); z-index:40; background:var(--bg); padding-bottom:10px; box-shadow:0 8px 10px -10px rgba(0,0,0,0.35); }
           .week-strip { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin:12px 0 0; }
           .week-scroll { margin-top:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-          .week-grid { display:grid; grid-template-columns:repeat(7, minmax(130px, 1fr)); gap:4px; }
+          .week-grid { display:grid; grid-template-columns:repeat(7, minmax(195px, 1fr)); gap:4px; }
           .day-cell { display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 0; border-radius:10px; cursor:pointer; user-select:none; }
           .day-cell.selected { background:var(--green); color: var(--text-on-accent); }
           .day-cell.today { outline:1px dashed rgba(var(--green-rgb),0.5); outline-offset:-2px; }
