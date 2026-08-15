@@ -345,7 +345,13 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
       <PortalLayout isAdmin topPadding="12px">
         <style jsx>{`
           .hdr-month { display:flex; align-items:center; gap:6px; font-size:1.4rem; font-weight:900; cursor:pointer; color:var(--text-muted); }
-          .week-strip { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin:18px 0 12px; }
+          /* Selection area stays pinned below the sticky top nav (76px tall) while
+             the page scrolls. Horizontal scrolling is scoped to .week-scroll so this
+             never pans off-screen with the week grid. */
+          .cal-sticky { position:sticky; top:calc(76px + env(safe-area-inset-top, 0px)); z-index:40; background:var(--bg); padding-bottom:10px; box-shadow:0 8px 10px -10px rgba(0,0,0,0.35); }
+          .week-strip { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin:12px 0 0; }
+          .week-scroll { margin-top:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+          .week-grid { display:grid; grid-template-columns:repeat(7, minmax(130px, 1fr)); gap:4px; }
           .day-cell { display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 0; border-radius:10px; cursor:pointer; user-select:none; }
           .day-cell.selected { background:var(--green); color: var(--text-on-accent); }
           .day-cell.today { outline:1px dashed rgba(var(--green-rgb),0.5); outline-offset:-2px; }
@@ -381,6 +387,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
           }
         `}</style>
 
+        <div className="cal-sticky">
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
           <div className="ctrl-row">
             <button onClick={() => setPicker(!picker)} style={{ background:'transparent', border:'none', padding:0, flexShrink:0 }} className="hdr-month">
@@ -408,28 +415,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
               </button>
             ))}
           </div>
-          {(viewMode === 'agenda' || viewMode === 'day') && bookings.length > 0 && (
-            <button onClick={refreshMyDistance} disabled={myDistLoading}
-              title="Driving distance from your current location to each stop"
-              style={{ alignSelf:'flex-start', padding:'10px 16px', borderRadius:8, border:'1px solid rgba(var(--info-rgb),0.35)', background:'rgba(var(--info-rgb),0.08)', color:'var(--info)', fontSize:'0.9rem', fontWeight:800, fontFamily:'inherit', cursor: myDistLoading ? 'wait' : 'pointer', opacity: myDistLoading ? 0.6 : 1 }}>
-              {myDistLoading ? 'Locating…' : 'My Distance'}
-            </button>
-          )}
         </div>
-
-        {picker && (
-          <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setPicker(false) }}
-            style={{ marginTop:10, width:'100%', padding:'10px 14px', background:'var(--bg-card)', border:'1px solid rgba(var(--border-rgb),0.25)', borderRadius:8, color:'var(--text)', fontSize:'1rem' }} />
-        )}
-
-        {calendarError && (
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginTop:10, padding:'10px 14px', borderRadius:8, background:'rgba(var(--danger-rgb),0.08)', border:'1px solid rgba(var(--danger-rgb),0.28)', color:'var(--danger)', fontSize:'0.82rem', fontWeight:700 }}>
-            <span>⚠️ Google Calendar unavailable — appointments may be incomplete.</span>
-            <button onClick={() => setRetryNonce((n) => n + 1)} disabled={loading} style={{ padding:'6px 12px', borderRadius:6, border:'1px solid rgba(var(--danger-rgb),0.35)', background:'transparent', color:'var(--danger)', fontWeight:800, cursor:loading ? 'wait' : 'pointer', whiteSpace:'nowrap' }}>
-              {loading ? 'Retrying…' : 'Retry'}
-            </button>
-          </div>
-        )}
 
         <div className="week-strip">
           {week.map((d) => {
@@ -444,6 +430,29 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
             )
           })}
         </div>
+        </div>
+
+        {(viewMode === 'agenda' || viewMode === 'day') && bookings.length > 0 && (
+          <button onClick={refreshMyDistance} disabled={myDistLoading}
+            title="Driving distance from your current location to each stop"
+            style={{ marginTop:10, alignSelf:'flex-start', padding:'10px 16px', borderRadius:8, border:'1px solid rgba(var(--info-rgb),0.35)', background:'rgba(var(--info-rgb),0.08)', color:'var(--info)', fontSize:'0.9rem', fontWeight:800, fontFamily:'inherit', cursor: myDistLoading ? 'wait' : 'pointer', opacity: myDistLoading ? 0.6 : 1 }}>
+            {myDistLoading ? 'Locating…' : 'My Distance'}
+          </button>
+        )}
+
+        {picker && (
+          <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setPicker(false) }}
+            style={{ marginTop:10, width:'100%', padding:'10px 14px', background:'var(--bg-card)', border:'1px solid rgba(var(--border-rgb),0.25)', borderRadius:8, color:'var(--text)', fontSize:'1rem' }} />
+        )}
+
+        {calendarError && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginTop:10, padding:'10px 14px', borderRadius:8, background:'rgba(var(--danger-rgb),0.08)', border:'1px solid rgba(var(--danger-rgb),0.28)', color:'var(--danger)', fontSize:'0.82rem', fontWeight:700 }}>
+            <span>⚠️ Google Calendar unavailable — appointments may be incomplete.</span>
+            <button onClick={() => setRetryNonce((n) => n + 1)} disabled={loading} style={{ padding:'6px 12px', borderRadius:6, border:'1px solid rgba(var(--danger-rgb),0.35)', background:'transparent', color:'var(--danger)', fontWeight:800, cursor:loading ? 'wait' : 'pointer', whiteSpace:'nowrap' }}>
+              {loading ? 'Retrying…' : 'Retry'}
+            </button>
+          </div>
+        )}
 
         <div className="day-title">
           <div className="day-title-name">{fmtDateLong(date)}</div>
@@ -556,7 +565,8 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
         )}
 
         {viewMode === 'week' && (
-          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+          <div className="week-scroll">
+          <div className="week-grid">
             {week.map((d) => {
               const dd = new Date(d + 'T12:00:00')
               const dayBookings = (rangeBookings[d] || []).slice().sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
@@ -586,6 +596,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                 </div>
               )
             })}
+          </div>
           </div>
         )}
 
