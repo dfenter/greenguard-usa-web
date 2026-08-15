@@ -81,9 +81,16 @@ import CtaBand from '../components/ui/CtaBand.astro';
     .cal-day.available { background:rgba(46,74,59,.08); color:var(--pine); cursor:pointer; border:1px solid rgba(46,74,59,.2); }
     .cal-day.available:hover { background:rgba(46,74,59,.15); }
     .cal-day.selected { background:var(--pine); color:var(--paper); border-color:var(--pine); }
+    .cal-day.recommended { position:relative; box-shadow:0 0 0 2px var(--pine); }
+    .cal-day.recommended::after { content:'★'; position:absolute; top:1px; right:4px; font-size:.55rem; line-height:1; color:var(--pine); }
+    .cal-day.selected.recommended::after { color:var(--paper); }
+    .rec-legend { display:flex; align-items:center; gap:6px; font-size:.72rem; color:rgba(30,43,35,.6); margin:-16px 0 20px; }
+    .rec-note { font-size:.78rem; color:var(--pine); font-weight:600; margin:-6px 0 12px; }
     .slot-btn { min-height:44px; padding:8px 4px; border-radius:10px; border:1px solid rgba(30,43,35,.18); background:transparent; color:var(--text); font-size:.8rem; font-weight:600; font-family:inherit; cursor:pointer; text-align:center; }
     .slot-btn:hover { background:var(--paper-alt); border-color:var(--pine); }
     .slot-btn.selected { background:var(--pine); border-color:var(--pine); color:var(--paper); }
+    .slot-btn.suggested { border-color:var(--pine); background:rgba(46,74,59,.08); }
+    .slot-btn.suggested:not(.selected)::after { content:' ★'; color:var(--pine); }
     .review-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:7px 0; border-bottom:1px solid var(--hairline); }
     .review-row:last-child { border-bottom:none; }
     .review-label { color:var(--text-soft); font-size:.78rem; white-space:nowrap; }
@@ -104,6 +111,8 @@ import CtaBand from '../components/ui/CtaBand.astro';
       selectedDate: null,
       viewYear: 0, viewMonth: 0,
       slotsCache: {},  // 'YYYY-M' → { slots: {...} }
+      recsCache: {},   // 'YYYY-M' → { 'YYYY-MM-DD': { driveMin, suggested } }
+      addrKey: '',     // address the caches were fetched for
       monthRequest: 0,
     }
 
@@ -144,6 +153,15 @@ import CtaBand from '../components/ui/CtaBand.astro';
 
       const wasHidden = $('step-2').classList.contains('step-hidden')
       if (isStep1Valid()) {
+        // Slots are personalized by address (route-aware recommendations) —
+        // if the address changed since the caches were filled, refetch.
+        const addrKey = `${state.street}, ${state.city}, ${state.state} ${state.zip}`.toLowerCase()
+        if (addrKey !== state.addrKey) {
+          state.addrKey = addrKey
+          state.slotsCache = {}
+          state.recsCache = {}
+          if (state.viewYear) loadAndRenderMonth()
+        }
         show('step-2')
         if (!state.viewYear) initCalendar()
         if (wasHidden) $('step-2').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -191,9 +209,11 @@ import CtaBand from '../components/ui/CtaBand.astro';
       if (!state.slotsCache[key]) {
         $('cal-grid').innerHTML = '<p style="color:rgba(74,107,87,.7);font-size:0.82rem;padding:16px 0;">Loading availability…</p>'
         try {
-          const r = await fetch(`${PORTAL}/api/book/slots?year=${y}&month=${m}`)
+          const addr = `${state.street}, ${state.city}, ${state.state} ${state.zip}`
+          const r = await fetch(`${PORTAL}/api/book/slots?year=${y}&month=${m}&address=${encodeURIComponent(addr)}`)
           const data = await r.json()
           state.slotsCache[key] = data.slots || {}
+          state.recsCache[key] = data.recommendations || {}
         } catch {
           if (requestId !== state.monthRequest) return
           $('cal-grid').innerHTML = '<p style="color:#9c3a2e;font-size:0.82rem;">Failed to load availability. Please try again.</p>'
@@ -205,6 +225,7 @@ import CtaBand from '../components/ui/CtaBand.astro';
     }
 
     function renderCalendar(year, month, slots) {
+      const recs = state.recsCache[`${year}-${month}`] || {}
       const grid = $('cal-grid')
       const firstDow = new Date(year, month - 1, 1).getDay()
       const daysInMonth = new Date(year, month, 0).getDate()
@@ -230,12 +251,19 @@ import CtaBand from '../components/ui/CtaBand.astro';
           html += `<button type="button" class="cal-day past" disabled aria-disabled="true" aria-label="${dateLabel}, ${reason}">${d}</button>`
         } else if (avail.length) {
           const sel = state.selectedDate === dateStr
-          html += `<button type="button" class="cal-day available${sel ? ' selected' : ''}" onclick="selectDay('${dateStr}')" aria-pressed="${sel ? 'true' : 'false'}" aria-label="${dateLabel}, ${avail.length} slots available" title="${avail.length} slots available">${d}</button>`
+          const rec = recs[dateStr]
+          const recCls = rec ? ' recommended' : ''
+          const recLbl = rec ? ', recommended: our route already passes near you this day' : ''
+          const recTitle = rec ? `We're already in your area this day — easiest to schedule` : `${avail.length} slots available`
+          html += `<button type="button" class="cal-day available${sel ? ' selected' : ''}${recCls}" onclick="selectDay('${dateStr}')" aria-pressed="${sel ? 'true' : 'false'}" aria-label="${dateLabel}, ${avail.length} slots available${recLbl}" title="${recTitle}">${d}</button>`
         } else {
           html += `<button type="button" class="cal-day unavailable" disabled aria-disabled="true" aria-label="${dateLabel}, no slots available">${d}</button>`
         }
       }
       html += '</div>'
+      if (Object.keys(recs).length) {
+        html += `<div class="rec-legend"><span class="cal-day recommended" style="width:20px;min-height:20px;aspect-ratio:1;font-size:.6rem;"></span> Starred days: we're already servicing your neighborhood — easiest to book</div>`
+      }
       grid.innerHTML = html
     }
 
@@ -251,13 +279,21 @@ import CtaBand from '../components/ui/CtaBand.astro';
       renderCalendar(y, m, state.slotsCache[`${y}-${m}`] || {})
       hide('confirm-panel')
 
-      // Show time slots
+      // Show time slots (starring the ones adjacent to a nearby existing stop)
+      const rec = state.recsCache[`${y}-${m}`]?.[dateStr]
+      const suggested = new Set(rec?.suggested || [])
       const d = new Date(dateStr + 'T12:00:00Z')
       $('slots-date-label').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
       const sg = $('slots-grid')
-      sg.innerHTML = slots.map(iso => {
-        return `<button type="button" class="slot-btn" aria-pressed="false" onclick="selectSlot('${iso}')" aria-label="${fmtSlotDisplay(iso)}">${fmtSlotDisplay(iso)}</button>`
+      let slotsHtml = ''
+      if (rec) {
+        slotsHtml += `<div class="rec-note" style="grid-column:1/-1;">Our route already passes near you this day — starred times fit it best.</div>`
+      }
+      slotsHtml += slots.map(iso => {
+        const sug = suggested.has(iso)
+        return `<button type="button" class="slot-btn${sug ? ' suggested' : ''}" aria-pressed="false" onclick="selectSlot('${iso}')" aria-label="${fmtSlotDisplay(iso)}${sug ? ', best fit with our route' : ''}">${fmtSlotDisplay(iso)}</button>`
       }).join('')
+      sg.innerHTML = slotsHtml
       show('slots-panel')
     }
 

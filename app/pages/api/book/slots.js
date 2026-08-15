@@ -1,7 +1,10 @@
-// GET /api/book/slots?year=2026&month=6
+// GET /api/book/slots?year=2026&month=6[&address=123 Main St, Austin TX 78704]
 // Returns available 30-min booking slots for the given month.
 // Reads all GCal events (not just GreenGuard ones) to block occupied time.
+// With `address`, also returns route-aware `recommendations` — days where an
+// existing stop is a short drive away, with the free slots adjacent to it.
 import { getCalendar } from '../../../lib/gcal'
+import { suggestForAddress } from '../../../lib/geo-suggest'
 
 const TZ = 'America/Chicago'
 const SLOT_MIN = 30
@@ -91,8 +94,21 @@ export default async function handler(req, res) {
       if (daySlots.length > 0) result[dateStr] = daySlots
     }
 
-    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
-    return res.status(200).json({ slots: result })
+    // Route-aware recommendations (optional, never fatal). Skip the CDN cache
+    // when personalized by address so one prospect's ranking isn't served to another.
+    const address = (req.query.address || '').trim()
+    let recommendations = null
+    if (address) {
+      try {
+        recommendations = await suggestForAddress(address, result)
+      } catch (e) {
+        console.error('[book/slots] suggest failed:', e.message)
+      }
+      res.setHeader('Cache-Control', 'private, max-age=60')
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
+    }
+    return res.status(200).json({ slots: result, ...(recommendations ? { recommendations } : {}) })
   } catch (e) {
     console.error('[book/slots]', e.message)
     return res.status(500).json({ error: 'Failed to load availability' })

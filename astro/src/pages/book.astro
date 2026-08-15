@@ -179,11 +179,17 @@ import Base from '../layouts/Base.astro';
     .cal-day.available { background:rgba(125,255,170,0.08); color:#7dffaa; cursor:pointer; border:1px solid rgba(125,255,170,0.2); }
     .cal-day.available:hover { background:rgba(125,255,170,0.15); }
     .cal-day.selected { background:rgba(201,168,76,0.2); color:#c9a84c; border:1px solid rgba(201,168,76,0.5); }
+    .cal-day.recommended { position:relative; box-shadow:0 0 0 2px rgba(201,168,76,0.6); }
+    .cal-day.recommended::after { content:'★'; position:absolute; top:1px; right:4px; font-size:.55rem; line-height:1; color:#c9a84c; }
+    .rec-legend { display:flex; align-items:center; gap:6px; font-size:.72rem; color:rgba(212,230,202,0.55); margin:10px 0 0; }
+    .rec-note { grid-column:1/-1; font-size:.78rem; color:#c9a84c; font-weight:600; margin:0 0 6px; }
 
     /* Slots */
     .slot-btn { padding:8px 4px; border-radius:6px; border:1px solid rgba(122,171,130,0.2); background:transparent; color:rgba(212,230,202,0.7); font-size:0.78rem; font-weight:700; font-family:inherit; cursor:pointer; text-align:center; }
     .slot-btn:hover { background:rgba(122,171,130,0.1); border-color:rgba(122,171,130,0.4); }
     .slot-btn.selected { background:rgba(201,168,76,0.15); border-color:#c9a84c; color:#c9a84c; }
+    .slot-btn.suggested { border-color:rgba(201,168,76,0.6); }
+    .slot-btn.suggested:not(.selected)::after { content:' ★'; color:#c9a84c; }
 
     /* Review */
     .review-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:6px 0; border-bottom:1px solid rgba(122,171,130,0.08); }
@@ -204,6 +210,8 @@ import Base from '../layouts/Base.astro';
       selectedISO: null,
       viewYear: 0, viewMonth: 0,
       slotsCache: {},  // 'YYYY-M' → { slots: {...} }
+      recsCache: {},   // 'YYYY-M' → { 'YYYY-MM-DD': { driveMin, suggested } }
+      addrKey: '',     // address the caches were fetched for
     }
 
     // ── Utilities ──────────────────────────────────────────────────────────────
@@ -243,6 +251,15 @@ import Base from '../layouts/Base.astro';
 
       const wasHidden = $('step-2').classList.contains('hidden')
       if (isStep1Valid()) {
+        // Slots are personalized by address (route-aware recommendations) —
+        // if the address changed since the caches were filled, refetch.
+        const addrKey = `${state.street}, ${state.city}, ${state.state} ${state.zip}`.toLowerCase()
+        if (addrKey !== state.addrKey) {
+          state.addrKey = addrKey
+          state.slotsCache = {}
+          state.recsCache = {}
+          if (state.viewYear) loadAndRenderMonth()
+        }
         show('step-2')
         if (!state.viewYear) initCalendar()
         if (wasHidden) $('step-2').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -289,9 +306,11 @@ import Base from '../layouts/Base.astro';
       if (!state.slotsCache[key]) {
         $('cal-grid').innerHTML = '<p style="color:rgba(212,230,202,0.3);font-size:0.82rem;padding:16px 0;">Loading availability…</p>'
         try {
-          const r = await fetch(`${PORTAL}/api/book/slots?year=${y}&month=${m}`)
+          const addr = `${state.street}, ${state.city}, ${state.state} ${state.zip}`
+          const r = await fetch(`${PORTAL}/api/book/slots?year=${y}&month=${m}&address=${encodeURIComponent(addr)}`)
           const data = await r.json()
           state.slotsCache[key] = data.slots || {}
+          state.recsCache[key] = data.recommendations || {}
         } catch {
           $('cal-grid').innerHTML = '<p style="color:#ff8080;font-size:0.82rem;">Failed to load availability. Please try again.</p>'
           return
@@ -301,6 +320,7 @@ import Base from '../layouts/Base.astro';
     }
 
     function renderCalendar(year, month, slots) {
+      const recs = state.recsCache[`${year}-${month}`] || {}
       const grid = $('cal-grid')
       const firstDow = new Date(year, month - 1, 1).getDay()
       const daysInMonth = new Date(year, month, 0).getDate()
@@ -324,12 +344,17 @@ import Base from '../layouts/Base.astro';
           html += `<div class="cal-day past">${d}</div>`
         } else if (avail.length) {
           const sel = state.selectedISO && new Date(state.selectedISO).toLocaleDateString('en-CA', { timeZone: TZ }) === dateStr
-          html += `<div class="cal-day available${sel ? ' selected' : ''}" onclick="selectDay('${dateStr}')" title="${avail.length} slots available">${d}</div>`
+          const rec = recs[dateStr]
+          const recTitle = rec ? `We're already in your area this day — easiest to schedule` : `${avail.length} slots available`
+          html += `<div class="cal-day available${sel ? ' selected' : ''}${rec ? ' recommended' : ''}" onclick="selectDay('${dateStr}')" title="${recTitle}">${d}</div>`
         } else {
           html += `<div class="cal-day unavailable">${d}</div>`
         }
       }
       html += '</div>'
+      if (Object.keys(recs).length) {
+        html += `<div class="rec-legend"><span class="cal-day recommended" style="width:20px;min-height:20px;aspect-ratio:1;font-size:.6rem;"></span> Starred days: we're already servicing your neighborhood — easiest to book</div>`
+      }
       grid.innerHTML = html
     }
 
@@ -347,11 +372,16 @@ import Base from '../layouts/Base.astro';
       // Show time slots
       const d = new Date(dateStr + 'T12:00:00Z')
       $('slots-date-label').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      const rec = state.recsCache[`${y}-${m}`]?.[dateStr]
+      const suggested = new Set(rec?.suggested || [])
       const sg = $('slots-grid')
-      sg.innerHTML = slots.map(iso => {
+      let slotsHtml = rec ? `<div class="rec-note">Our route already passes near you this day — starred times fit it best.</div>` : ''
+      slotsHtml += slots.map(iso => {
         const sel = state.selectedISO === iso
-        return `<button class="slot-btn${sel ? ' selected' : ''}" onclick="selectSlot('${iso}')">${fmtSlotDisplay(iso)}</button>`
+        const sug = suggested.has(iso)
+        return `<button class="slot-btn${sel ? ' selected' : ''}${sug ? ' suggested' : ''}" onclick="selectSlot('${iso}')">${fmtSlotDisplay(iso)}</button>`
       }).join('')
+      sg.innerHTML = slotsHtml
       show('slots-panel')
     }
 
