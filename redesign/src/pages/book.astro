@@ -261,9 +261,6 @@ import CtaBand from '../components/ui/CtaBand.astro';
         }
       }
       html += '</div>'
-      if (Object.keys(recs).length) {
-        html += `<div class="rec-legend"><span class="cal-day recommended" style="width:20px;min-height:20px;aspect-ratio:1;font-size:.6rem;"></span> Starred days: we're already servicing your neighborhood — easiest to book</div>`
-      }
       grid.innerHTML = html
     }
 
@@ -286,9 +283,6 @@ import CtaBand from '../components/ui/CtaBand.astro';
       $('slots-date-label').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
       const sg = $('slots-grid')
       let slotsHtml = ''
-      if (rec) {
-        slotsHtml += `<div class="rec-note" style="grid-column:1/-1;">Our route already passes near you this day. These times fit it best.</div>`
-      }
       slotsHtml += slots.map(iso => {
         const sug = suggested.has(iso)
         return `<button type="button" class="slot-btn${sug ? ' suggested' : ''}" aria-pressed="false" onclick="selectSlot('${iso}')" aria-label="${fmtSlotDisplay(iso)}${sug ? ', best fit with our route' : ''}">${fmtSlotDisplay(iso)}</button>`

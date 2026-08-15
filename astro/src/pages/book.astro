@@ -352,9 +352,6 @@ import Base from '../layouts/Base.astro';
         }
       }
       html += '</div>'
-      if (Object.keys(recs).length) {
-        html += `<div class="rec-legend"><span class="cal-day recommended" style="width:20px;min-height:20px;aspect-ratio:1;font-size:.6rem;"></span> Starred days: we're already servicing your neighborhood — easiest to book</div>`
-      }
       grid.innerHTML = html
     }
 
@@ -375,7 +372,7 @@ import Base from '../layouts/Base.astro';
       const rec = state.recsCache[`${y}-${m}`]?.[dateStr]
       const suggested = new Set(rec?.suggested || [])
       const sg = $('slots-grid')
-      let slotsHtml = rec ? `<div class="rec-note">Our route already passes near you this day. These times fit it best.</div>` : ''
+      let slotsHtml = ''
       slotsHtml += slots.map(iso => {
         const sel = state.selectedISO === iso
         const sug = suggested.has(iso)
