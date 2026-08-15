@@ -375,7 +375,7 @@ import Base from '../layouts/Base.astro';
       const rec = state.recsCache[`${y}-${m}`]?.[dateStr]
       const suggested = new Set(rec?.suggested || [])
       const sg = $('slots-grid')
-      let slotsHtml = rec ? `<div class="rec-note">Our route already passes near you this day — starred times fit it best.</div>` : ''
+      let slotsHtml = rec ? `<div class="rec-note">Our route already passes near you this day. These times fit it best.</div>` : ''
       slotsHtml += slots.map(iso => {
         const sel = state.selectedISO === iso
         const sug = suggested.has(iso)

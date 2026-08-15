@@ -94,21 +94,31 @@ export default async function handler(req, res) {
       if (daySlots.length > 0) result[dateStr] = daySlots
     }
 
-    // Route-aware recommendations (optional, never fatal). Skip the CDN cache
-    // when personalized by address so one prospect's ranking isn't served to another.
+    // Route-aware filtering (never fatal). With an address, the calendar only
+    // offers days our route already passes near, and on those days only the
+    // slots adjacent to the nearby stop. If the address geocodes but nothing is
+    // route-near this month (new area), we fall back to full availability so
+    // the customer can still book. Personalized responses skip the CDN cache.
     const address = (req.query.address || '').trim()
     let recommendations = null
+    let slots = result
     if (address) {
       try {
         recommendations = await suggestForAddress(address, result)
       } catch (e) {
         console.error('[book/slots] suggest failed:', e.message)
       }
+      if (recommendations) {
+        slots = {}
+        for (const [dateStr, rec] of Object.entries(recommendations)) {
+          slots[dateStr] = rec.suggested?.length ? rec.suggested : result[dateStr]
+        }
+      }
       res.setHeader('Cache-Control', 'private, max-age=60')
     } else {
       res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
     }
-    return res.status(200).json({ slots: result, ...(recommendations ? { recommendations } : {}) })
+    return res.status(200).json({ slots, ...(recommendations ? { recommendations } : {}) })
   } catch (e) {
     console.error('[book/slots]', e.message)
     return res.status(500).json({ error: 'Failed to load availability' })
