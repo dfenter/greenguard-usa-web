@@ -498,7 +498,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                     {ev.customerName || 'Customer'}
                     {tanks != null && (
                       <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--green)', background: 'rgba(var(--green-rgb),0.12)', border: '1px solid rgba(var(--green-rgb),0.3)', padding: '2px 7px', borderRadius: 4 }}>
-                        🛢 {tanks} tank{tanks === 1 ? '' : 's'}
+                        🛢️ {tanks} tank{tanks === 1 ? '' : 's'}
                       </span>
                     )}
                   </div>
@@ -556,7 +556,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                     onClick={() => setSelectedEventId(ev.id)}>
                     <div className="event-name">
                       {ev.customerName || 'Customer'}
-                      {tanks != null && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--green)' }}>🛢{tanks}</span>}
+                      {tanks != null && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--green)' }}>🛢️{tanks}</span>}
                     </div>
                     <div className="event-title">{ev.title}</div>
                     <div className="event-time">{fmtTime(ev.startTime)}–{fmtTime(ev.endTime)}</div>
@@ -581,7 +581,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                     <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isToday ? 'var(--green)' : 'rgba(var(--text-rgb),0.55)' }}>
                       {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dd.getDay()]} {dd.getDate()}
                     </div>
-                    {dayTanks > 0 && <span style={{ fontSize: '0.62rem', color: 'var(--green)', fontWeight: 800 }}>🛢{dayTanks}</span>}
+                    {dayTanks > 0 && <span style={{ fontSize: '0.62rem', color: 'var(--green)', fontWeight: 800 }}>🛢️{dayTanks}</span>}
                   </div>
                   {dayBookings.length === 0 && <div style={{ fontSize: '0.7rem', color: 'rgba(var(--text-rgb),0.2)', textAlign: 'center', padding: '20px 0' }}>—</div>}
                   {dayBookings.map((ev) => {
@@ -591,7 +591,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                         style={{ padding: '4px 6px', borderRadius: 4, background: 'rgba(var(--info-rgb),0.16)', border: '1px solid rgba(var(--info-rgb),0.3)', color: 'var(--text)', fontSize: '0.7rem', cursor: 'pointer', lineHeight: 1.3 }}>
                         <div style={{ fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {fmtTime(ev.startTime)} {ev.customerName?.split(' ')[0] || '?'}
-                          {tanks != null && <span style={{ marginLeft: 4, color: 'var(--green)' }}>🛢{tanks}</span>}
+                          {tanks != null && <span style={{ marginLeft: 4, color: 'var(--green)' }}>🛢️{tanks}</span>}
                         </div>
                       </div>
                     )

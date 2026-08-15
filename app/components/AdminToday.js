@@ -142,7 +142,7 @@ export function TodayStopsSection({ todayStops, todayStr, distances, distLoading
       </div>
 
       {todayStops.length === 0 ? (
-        <EmptyState icon="🗓" title="No stops scheduled for today." />
+        <EmptyState icon="📅" title="No stops scheduled for today." />
       ) : (
         <>
           {todayStops.map((stop, i) => finalized(i) ? null : (
