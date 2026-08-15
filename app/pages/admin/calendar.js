@@ -204,8 +204,10 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window === 'undefined') return 'agenda'
     const qv = new URLSearchParams(window.location.search).get('view')
-    if (qv === 'day' || qv === 'week' || qv === 'month' || qv === 'agenda') return qv
-    return window.localStorage.getItem('gg.calendar.viewMode') || 'agenda'
+    if (qv === 'week' || qv === 'month' || qv === 'agenda') return qv
+    if (qv === 'day') return 'agenda' // day view retired from the toggle; old links land on Daily
+    const stored = window.localStorage.getItem('gg.calendar.viewMode')
+    return ['agenda', 'week', 'month'].includes(stored) ? stored : 'agenda'
   })
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem('gg.calendar.viewMode', viewMode)
@@ -407,11 +409,11 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
             </div>
           </div>
           <div className="view-seg" style={{ width:'100%' }}>
-            {['day', 'agenda', 'week', 'month'].map((v) => (
+            {['agenda', 'week', 'month'].map((v) => (
               <button key={v} onClick={() => setViewMode(v)}
                 className={`view-btn${viewMode === v ? ' active' : ''}`}
                 style={{ flex:1 }}>
-                {v}
+                {v === 'agenda' ? 'daily' : v}
               </button>
             ))}
           </div>

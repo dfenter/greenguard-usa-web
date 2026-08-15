@@ -39,7 +39,7 @@ function writeCachedGeocode(address, position) {
   } catch {}
 }
 
-export default function CustomerMap({ customers = [], mapsKey, height = 400, compact = false }) {
+export default function CustomerMap({ customers = [], mapsKey, height = 400, compact = false, zoom = null }) {
   const viewportRef = useRef(null)
   const mapRef = useRef(null)
   const mapObj = useRef(null)
@@ -80,7 +80,7 @@ export default function CustomerMap({ customers = [], mapsKey, height = 400, com
     if (!loaded || !mapRef.current || mapObj.current) return
     mapObj.current = new window.google.maps.Map(mapRef.current, {
       center: { lat: 30.2672, lng: -97.7431 },
-      zoom: compact ? 10 : 11,
+      zoom: zoom ?? (compact ? 10 : 11),
       disableDefaultUI: compact,
       zoomControl: true,
       styles: [

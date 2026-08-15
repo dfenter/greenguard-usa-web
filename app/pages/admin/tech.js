@@ -123,7 +123,7 @@ function TechDashboardView({ adminEmail, todayStr, tomorrowStr, todayStops = [],
         {routeMapData.length > 0 && (
           <section style={{ marginBottom: 28 }}>
             <SectionLabel color="var(--green)" style={{ marginBottom: 10 }}>Today&apos;s Route</SectionLabel>
-            <CustomerMap customers={routeMapData} mapsKey={mapsKey} height={320} compact />
+            <CustomerMap customers={routeMapData} mapsKey={mapsKey} height={440} compact zoom={9} />
           </section>
         )}
 
