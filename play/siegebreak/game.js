@@ -185,7 +185,7 @@
         oil: 100, oilMax: 130, oilPours: 0, supplies: 0, selectedChip: -1, pendingVault: false,
         fortificationLevel: 0, rampartNotice: '', tutorial: null, wavePreview: null, gamepadConnected: false
       };
-      probe.state = this.state;
+      this.refreshProbe();
       this.makeTextures();
       this.makeSpriteSheets();
       this.makePools();
@@ -910,8 +910,17 @@
     }
 
     refreshProbe() {
-      probe.state = this.state; this.state.wallHP[0] = clamp(this.state.wallHP[0], 0, 100); this.state.wallHP[1] = clamp(this.state.wallHP[1], 0, 100); this.state.wallHP[2] = clamp(this.state.wallHP[2], 0, 100);
-      probe.state.mode = this.state.mode; probe.state.night = this.state.night; probe.state.valor = Math.floor(this.state.valor); probe.state.threat = this.state.threat; probe.state.rampart = RAMPARTS[this.state.rampart] ? RAMPARTS[this.state.rampart].name : 'UNKNOWN';
+      this.state.wallHP[0] = clamp(this.state.wallHP[0], 0, 100); this.state.wallHP[1] = clamp(this.state.wallHP[1], 0, 100); this.state.wallHP[2] = clamp(this.state.wallHP[2], 0, 100);
+      // probe.state must be a MIRROR, never an alias of this.state. When it was an
+      // alias, writing the rampart NAME onto probe.state.rampart overwrote the live
+      // numeric rampart index, so the next RAMPARTS[this.state.rampart] lookup was
+      // undefined and startRun threw on .name.
+      if (!this.probeMirror) this.probeMirror = {};
+      probe.state = Object.assign(this.probeMirror, this.state, {
+        valor: Math.floor(this.state.valor),
+        rampartIndex: this.state.rampart,
+        rampart: RAMPARTS[this.state.rampart] ? RAMPARTS[this.state.rampart].name : 'UNKNOWN'
+      });
     }
 
     render(juice) {

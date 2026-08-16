@@ -89,3 +89,54 @@ Implemented:
 - `node --check play/fallline/sw.js` passed.
 - All Fallline files are below 400KB. The Fallline payload is below 2.5MB.
 - Audio files are MP3 only. No em dash is used in user-facing Fallline text.
+
+## Live repair 2026-08-16
+
+Found live-broken on the public site by the fleet interaction probe
+(`live_probe.mjs`): `requestAnimationFrame` count stayed at 0 for the whole
+session and the frame never changed.
+
+### Defect
+
+Uncaught on boot, before the render loop ever started:
+
+```
+TypeError: Cannot read properties of undefined (reading 'forEach')
+    at drawBoard (game.js:831)
+    at resetRun (game.js:410)
+    at create  (game.js:247)
+```
+
+### Root cause
+
+`cellsFor(piece, rotation)` was declared with a required `rotation` argument:
+
+```js
+cellsFor(piece, rotation) { return SHAPES[piece.kind][(rotation + 4) % 4]; }
+```
+
+but three call sites pass the piece alone and rely on the piece's own rotation:
+`lockPiece` (line 525), `drawBoard` (lines 831 and 836) and `spawnPlacementFx`
+(line 914). With `rotation` undefined, `(undefined + 4) % 4` is `NaN`, so
+`SHAPES[kind][NaN]` returned `undefined` and `.forEach` threw.
+
+The throw happened inside `create()`, so the exception unwound out of Phaser's
+scene boot: the scene never finished starting and the render loop was never
+installed. That is why rAF was 0 rather than merely stalling later.
+
+### Fix
+
+`cellsFor` now defaults `rotation` to `piece.rotation` when it is not supplied.
+One method, no behaviour change for the call sites that do pass a rotation
+(`canPlace`, which drives movement and wall kicks).
+
+### Verification
+
+- `node --check play/fallline/game.js` passed.
+- `boot_sweep.mjs`: 0 console errors, 0 uncaught, 0 failed requests.
+- `live_probe.mjs`: PASS, raf=1043 and still advancing after input, 3/5 distinct frames.
+- `create()` now runs to completion: `ready === true`, FX pools 120/80, board 20 rows.
+- Core mechanic resolves under real keyboard input: pieces move, rotate, hard-drop
+  and lock (12 cells occupied, score 0 -> 96, run still active).
+- Gameplay frame is lit and drawing: 528 distinct colours at 5-bit quantisation,
+  99.8% non-black, most common colour only 33% of the frame.

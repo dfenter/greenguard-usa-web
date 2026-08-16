@@ -84,3 +84,69 @@ BUILD: no build step - open index.html (Phaser 3 from /play/_shared/ plus GGKit,
 - Shrunk active events into one queued edge chip at 14px with a 1.0s hold and fast fade; collapsed the tutorial to one 24px top strip that fades after about 3s.
 - Replaced squad words with glyphs, unit/oil meters, route/cooldown state icons, and a banner-charge meter; boundary banners remain only for run, level, clear, and end states.
 - Validation: `node --check` passed for `game.js` and `sw.js`; the in-app browser screenshot smoke test was unavailable in this session.
+
+## Live repair 2026-08-16
+
+Found live-broken on the public site by the fleet interaction probe
+(`live_probe.mjs`). Unlike the other two titles repaired the same day this one
+did run (rAF advanced, the frame changed), but it threw on the first press of
+the menu's play button, and the throw was corrupting live game state.
+
+### Defect
+
+```
+TypeError: Cannot read properties of undefined (reading 'name')
+    at startRun    (game.js:453)
+    at handlePress (game.js:399)
+```
+
+`RAMPARTS[this.state.rampart]` was `undefined`, so `.name` threw.
+
+### Root cause
+
+State aliasing in the test probe mirror. `refreshProbe()` opened with
+
+```js
+probe.state = this.state;                       // ALIAS, not a copy
+...
+probe.state.rampart = RAMPARTS[this.state.rampart] ? RAMPARTS[...].name : 'UNKNOWN';
+```
+
+Because `probe.state` and `this.state` were the same object, writing the rampart
+**display name** onto `probe.state.rampart` overwrote the live **numeric rampart
+index** that `startNight()` had just set. `state.rampart` therefore went
+`0` -> `'OUTER GATEHOUSE'` on the very first `refreshProbe()`, and on the next
+frame `RAMPARTS['OUTER GATEHOUSE']` was `undefined` so it degraded to
+`'UNKNOWN'` and stayed there.
+
+Every later `RAMPARTS[this.state.rampart]` lookup was then undefined. `startRun`
+(line 453) was simply the first one that dereferenced it without a guard; the
+same corrupted index also feeds `startNight`, `fortifyRampart` and the intermission
+FORTIFY button label, so battlefield texture selection and fortification were
+reading a broken index for the whole session. `create()` also seeded the alias
+directly with `probe.state = this.state`.
+
+### Fix
+
+`probe.state` is now a persistent **mirror** object rather than an alias:
+`Object.assign(this.probeMirror, this.state, { valor, rampartIndex, rampart })`.
+The probe keeps its full previous read surface, gains `rampartIndex` alongside
+the human-readable `rampart` name, and can no longer write back into simulation
+state. The `probe.state = this.state` line in `create()` was replaced with a
+`this.refreshProbe()` call so the alias is never published at all.
+
+### Verification
+
+- `node --check play/siegebreak/game.js` passed.
+- `boot_sweep.mjs`: 0 console errors, 0 uncaught, 0 failed requests.
+- `live_probe.mjs`: PASS, raf=1052 and still advancing after input, 5/5 distinct frames.
+- Zero uncaught errors across a full driven night, where the old build threw on
+  the first play-button press.
+- Core mechanic resolves under real pointer input: menu -> play, night 1 running,
+  wave clock advancing to 20.7s, threat progressing `idle` -> `GRAPPLE ROPE`,
+  squads ordered from the rail, hero commands and oil pours accepted, valor earned
+  (0 -> 46), gate reinforced to 340, walls held at 100/100/100.
+- `state.rampart` stays the numeric index 0 and the mirror reports
+  `rampart: "OUTER GATEHOUSE"`, `rampartIndex: 0` for the whole run.
+- Gameplay frame is lit and drawing: 1280 distinct colours at 5-bit quantisation
+  (7174 at full 8-bit), 100% non-black, most common colour 17.7% of the frame.

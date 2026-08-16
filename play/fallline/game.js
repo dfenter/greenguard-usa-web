@@ -431,7 +431,13 @@
       return piece;
     }
 
-    cellsFor(piece, rotation) { return SHAPES[piece.kind][(rotation + 4) % 4]; }
+    // rotation is optional: lockPiece/drawBoard/spawnPlacementFx call this with the
+    // piece alone. Without the default, (undefined + 4) % 4 is NaN and the lookup
+    // returns undefined, which threw on the first frame.
+    cellsFor(piece, rotation) {
+      const r = rotation == null ? piece.rotation : rotation;
+      return SHAPES[piece.kind][(r + 4) % 4];
+    }
 
     canPlace(piece, dx = 0, dy = 0, rotation = piece.rotation) {
       return this.cellsFor(piece, rotation).every((cell) => {

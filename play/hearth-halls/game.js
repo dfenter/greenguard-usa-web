@@ -334,6 +334,18 @@
         g.generateTexture(key, size, size);
         g.destroy();
       }.bind(this);
+      // Phaser 3.87 Graphics has no quadraticBezierTo (that method lives on
+      // Phaser.Curves.Path, with a different argument order). Sample the curve
+      // into lineTo segments instead, keeping the canvas control-point-first
+      // argument order the symbol art was authored against.
+      const quadTo = function (g, x0, y0, cpx, cpy, x1, y1) {
+        const steps = 18;
+        for (let i = 1; i <= steps; i += 1) {
+          const t = i / steps;
+          const u = 1 - t;
+          g.lineTo(u * u * x0 + 2 * u * t * cpx + t * t * x1, u * u * y0 + 2 * u * t * cpy + t * t * y1);
+        }
+      };
       const drawSymbol = function (g, def, s) {
         const c = hex(def.color);
         g.fillStyle(0xffffff, 0.9);
@@ -342,10 +354,10 @@
         const cy = s * 0.49;
         if (def.symbol === 'seed') { g.fillCircle(cx, cy, s * 0.15); g.fillStyle(c); g.fillCircle(cx + s * 0.045, cy - s * 0.045, s * 0.055); }
         if (def.symbol === 'sun') { g.strokeCircle(cx, cy, s * 0.15); for (let i = 0; i < 4; i += 1) { const a = i * Math.PI / 2; g.lineBetween(cx + Math.cos(a) * s * 0.22, cy + Math.sin(a) * s * 0.22, cx + Math.cos(a) * s * 0.3, cy + Math.sin(a) * s * 0.3); } }
-        if (def.symbol === 'leaf') { g.beginPath(); g.moveTo(cx, cy - s * 0.24); g.quadraticBezierTo(cx + s * 0.27, cy - s * 0.04, cx, cy + s * 0.24); g.quadraticBezierTo(cx - s * 0.27, cy - s * 0.04, cx, cy - s * 0.24); g.closePath(); g.fillPath(); g.lineBetween(cx - s * 0.02, cy + s * 0.18, cx + s * 0.13, cy - s * 0.08); }
+        if (def.symbol === 'leaf') { g.beginPath(); g.moveTo(cx, cy - s * 0.24); quadTo(g, cx, cy - s * 0.24, cx + s * 0.27, cy - s * 0.04, cx, cy + s * 0.24); quadTo(g, cx, cy + s * 0.24, cx - s * 0.27, cy - s * 0.04, cx, cy - s * 0.24); g.closePath(); g.fillPath(); g.lineBetween(cx - s * 0.02, cy + s * 0.18, cx + s * 0.13, cy - s * 0.08); }
         if (def.symbol === 'drop') { g.beginPath(); g.moveTo(cx, cy - s * 0.27); g.lineTo(cx + s * 0.21, cy + s * 0.05); g.arc(cx, cy + s * 0.05, s * 0.21, 0, Math.PI, false); g.closePath(); g.fillPath(); }
         if (def.symbol === 'star') { g.beginPath(); for (let i = 0; i < 10; i += 1) { const a = -Math.PI / 2 + i * Math.PI / 5; const r = i % 2 ? s * 0.11 : s * 0.25; const x = cx + Math.cos(a) * r; const y = cy + Math.sin(a) * r; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); } g.closePath(); g.fillPath(); }
-        if (def.symbol === 'flame') { g.beginPath(); g.moveTo(cx, cy - s * 0.27); g.quadraticBezierTo(cx + s * 0.27, cy - s * 0.04, cx + s * 0.13, cy + s * 0.22); g.quadraticBezierTo(cx, cy + s * 0.3, cx - s * 0.18, cy + s * 0.2); g.quadraticBezierTo(cx - s * 0.27, cy + s * 0.04, cx, cy - s * 0.27); g.closePath(); g.fillPath(); }
+        if (def.symbol === 'flame') { g.beginPath(); g.moveTo(cx, cy - s * 0.27); quadTo(g, cx, cy - s * 0.27, cx + s * 0.27, cy - s * 0.04, cx + s * 0.13, cy + s * 0.22); quadTo(g, cx + s * 0.13, cy + s * 0.22, cx, cy + s * 0.3, cx - s * 0.18, cy + s * 0.2); quadTo(g, cx - s * 0.18, cy + s * 0.2, cx - s * 0.27, cy + s * 0.04, cx, cy - s * 0.27); g.closePath(); g.fillPath(); }
       };
       const drawTileShape = function (g, index, color, offset) {
         const cx = 32; const cy = 31 + offset;

@@ -64,3 +64,67 @@ Retry is instant; choices and best score persist locally.
 ### Rejected as factually out of brief
 
 - The suggestion to add more than two room chapters was not applied. The original brief and existing title contract explicitly define two rooms with six fixture choices each, so the fix keeps that content budget and makes the two-room progression legible instead.
+
+## Live repair 2026-08-16
+
+Found live-broken on the public site by the fleet interaction probe
+(`live_probe.mjs`): `requestAnimationFrame` count stayed at 0 for the whole
+session and the frame never changed.
+
+### Defect
+
+Uncaught on boot, before the render loop ever started:
+
+```
+TypeError: g.quadraticBezierTo is not a function
+    at drawSymbol     (game.js:345)
+    at createTextures (game.js:360)
+    at create         (game.js:301)
+```
+
+### Root cause
+
+Right method name, right library, **wrong type**. `g` was inspected at the call
+site and is a genuine `Phaser.GameObjects.Graphics` (from
+`this.make.graphics({ x: 0, y: 0, add: false })`), so this was not a wrong-object
+problem. `quadraticBezierTo` does exist in `play/_shared/phaser.min.js`, but it
+lives on `Phaser.Curves.Path`, not on `Graphics`. Enumerating the whole
+`Graphics` prototype chain in Phaser 3.87 confirms it exposes `moveTo`, `lineTo`,
+`arc`, `beginPath`, `closePath`, `fillPath`, `strokePath` and `lineBetween`, and
+no quadratic or cubic curve method at all.
+
+The two conventions also disagree on argument order, which matters for the fix:
+`Phaser.Curves.Path.quadraticBezierTo` takes `(endX, endY, controlX, controlY)`,
+whereas the five calls here were authored in canvas
+`quadraticCurveTo(cpx, cpy, x, y)` order (control point first). Reading the leaf
+and flame outlines confirms the canvas order is the intended art: control points
+first produce a symmetric leaf lens and a closed flame silhouette, while the
+Phaser order produces neither.
+
+The real damage was larger than one missing glyph. The throw aborted the texture
+bake part-way through `createTextures`, which runs from `create()`. `leaf` is
+tile index 2 of 6, so tiles 2, 3, 4 and 5 plus `hh-particle` and `hh-star` were
+never baked, `create()` never completed, and the scene never started its loop.
+
+### Fix
+
+Added a local `quadTo(g, x0, y0, cpx, cpy, x1, y1)` helper in `createTextures`
+that samples the quadratic into 18 `lineTo` segments, and pointed the five call
+sites (2 in `leaf`, 3 in `flame`) at it, preserving the authored canvas
+control-point-first argument order and the original control points. The drawn
+shapes are unchanged by intent; no art was redesigned.
+
+### Verification
+
+- `node --check play/hearth-halls/game.js` passed.
+- `boot_sweep.mjs`: 0 console errors, 0 uncaught, 0 failed requests.
+- `live_probe.mjs`: PASS, raf=943 and still advancing after input, 5/5 distinct frames.
+- Texture bake now runs to completion: 8/8 textures present
+  (`hh-tile-0..5` at 64x64, `hh-particle` 8x8, `hh-star` 32x32), all 6 particle
+  emitters constructed, UI built. Previously the bake died at tile 2.
+- Core mechanic resolves under real pointer input: dragging a legal pair swaps,
+  matches resolve and cascade (moves 20 -> 18, score 0 -> 252, level reached its
+  `clear` state).
+- Gameplay frame is lit and drawing: 1448 distinct colours at 5-bit quantisation
+  (12,977 at full 8-bit), 100% non-black, most common colour 30.9% of the frame.
+  All six tile silhouettes, including the repaired leaf and flame, render.
