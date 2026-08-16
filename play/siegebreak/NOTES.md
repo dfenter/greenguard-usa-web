@@ -150,3 +150,15 @@ state. The `probe.state = this.state` line in `create()` was replaced with a
   `rampart: "OUTER GATEHOUSE"`, `rampartIndex: 0` for the whole run.
 - Gameplay frame is lit and drawing: 1280 distinct colours at 5-bit quantisation
   (7174 at full 8-bit), 100% non-black, most common colour 17.7% of the frame.
+
+## Retina completion
+
+- **Measured, not expected.** Release gate at deviceScaleFactor 3, run serially at concurrency 1 from `ue-port-studio/aaa/harness` against a private local server: `node release_gate.mjs http://localhost:8791 1 siegebreak`.
+- Gate verdict: **READY**. Measured `canvas.width / getBoundingClientRect().width` = **3.00x** (gate floor 2.85), sampled late by the gate, well after the point where a RESIZE parent poll would have reverted it. Backing store 1170x2100 in a 390x700 CSS box.
+- Real gameplay frame: **3720 distinct colours** (8-bit), flattest colour 18.5% of the frame. The frame was compared side by side against the same interaction at deviceScaleFactor 1: layout, spacing and art are pixel-proportional, only the sampling is denser.
+- **Renderer changed first.** Was `type: Phaser.CANVAS`; now `Phaser.AUTO`, for the same reason as hearth-halls: native density multiplies the fill by up to nine and Canvas2D fill is CPU work.
+- Recipe: `Scale.FIT` with a fixed 390x700 design box, so `hiDpi.phaser()` was NOT used. `scale.width/height` are raised by `GGKit.hiDpi.factor(390, 700)` and `create()` does `setZoom(f)` AND `centerOn(W/2, H/2)`. Every constant in the file stays in design units.
+- **The baked canvases were raised too**, which is the difference between passing the density check and actually looking sharper. `sb-shell` (full-screen chrome) and `sb-battle` (the rampart backdrop) are now baked at RETINA with a pre-scaled 2D context and given an explicit `setDisplaySize()`; the battle texture resets its transform on every refresh so repeated redraws cannot compound the scale. The defender and attacker sprite sheets are baked at RETINA frame size and every sprite that uses them is scaled by 1/RETINA, so the hero's 1.04 leap pop and the per-kind enemy scales are preserved exactly.
+- `source.resolution` was deliberately not used to compensate: it only affects the CANVAS renderer, and under WebGL it makes the quad RETINA times too large.
+- Pointer coordinates are divided by RETINA in `pointerdown`/`pointerup` before the button rect tests, since Phaser reports them in game space (device pixels).
+- All HUD, banner and overlay text carries `resolution: RETINA`.

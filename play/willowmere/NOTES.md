@@ -113,3 +113,15 @@ balance or content changed.
   (driftwood-cove), 833 (lantern-bingo), 851 (harvest-junction), 1095
   (curbside), 1660 (crestfall). Willowmere is 634 on the title card and
   1150-1400 in play.
+
+## Retina completion
+
+- **Measured, not expected.** Release gate at deviceScaleFactor 3, run serially at concurrency 1 from `ue-port-studio/aaa/harness` against a private local server: `node release_gate.mjs http://localhost:8791 1 willowmere`.
+- Gate verdict: **READY**. Measured `canvas.width / getBoundingClientRect().width` = **3.00x** (gate floor 2.85), sampled late by the gate, well after the point where a RESIZE parent poll would have reverted it. Backing store 1170x2532 in a 390x844 CSS box.
+- Real gameplay frame: **7769 distinct colours** (8-bit), flattest colour 21.3% of the frame. The frame was compared side by side against the same interaction at deviceScaleFactor 1: layout, spacing and art are pixel-proportional, only the sampling is denser.
+- Recipe: `Scale.FIT` with a fixed 390x844 design box; `scale.width/height` raised by `GGKit.hiDpi.factor(390, 844)` and the camera zoomed to match. Two things this scrolling title needed that a static FIT title does not:
+  1. **Camera origin moved to (0,0).** Willowmere scrolls a 780x1380 world and pins its whole UI layer with `setScrollFactor(0)`. Under Phaser's default centred camera origin, a zoomed camera places every scrollFactor-0 object at `(pos - width/2) * zoom`, i.e. far off screen. With origin 0 the transform is a plain `(pos - scroll) * zoom`, so both the world scroll and the pinned HUD land exactly where they did at 1x and no `setScroll` call needed rewriting.
+  2. **`setBounds` dropped.** `Camera.clampX/clampY` compute their range as `bounds.x + (displayWidth - width) / 2`, which assumes the centred origin; on an origin-(0,0) zoomed camera that clamp is off by half a viewport and shoves the playfield off screen with no console error. Nothing is lost, because every `setScroll` in this file already clamps itself to `[0, WORLD_W - VW]` and `[0, WORLD_H - VH]`.
+- Baked art: `makeTexture()` takes an optional density. The seven 48x48 icons and the 390x700 cottage interior are baked at RETINA (the cottage image got an explicit `setDisplaySize(390, 700)` to match).
+- **Deliberately left at 1x: the four 780x1380 seasonal world backdrops.** At RETINA 3 each would be 2340x4140, which exceeds the 4096 maximum texture size on a large share of mobile GPUs, and four of them would cost roughly 155MB of texture memory. They stay at their shipped size. Everything drawn over them (player, NPCs, weather, the live `dyn`/`weather`/`uiG` graphics layers, all text and all icons) is now native, so the scene reads sharp; the ground plane itself is the one element that is still resampled. Flagged here rather than left silent.
+- Text `resolution` moved from a hard-coded 2 to RETINA. `source.resolution` was not used anywhere: it only affects the CANVAS renderer and would draw quads RETINA times too large under WebGL.

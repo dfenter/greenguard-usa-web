@@ -128,3 +128,15 @@ shapes are unchanged by intent; no art was redesigned.
 - Gameplay frame is lit and drawing: 1448 distinct colours at 5-bit quantisation
   (12,977 at full 8-bit), 100% non-black, most common colour 30.9% of the frame.
   All six tile silhouettes, including the repaired leaf and flame, render.
+
+## Retina completion
+
+- **Measured, not expected.** Release gate at deviceScaleFactor 3, run serially at concurrency 1 from `ue-port-studio/aaa/harness` against a private local server: `node release_gate.mjs http://localhost:8791 1 hearth-halls`.
+- Gate verdict: **READY**. Measured `canvas.width / getBoundingClientRect().width` = **3.00x** (gate floor 2.85), sampled late by the gate, well after the point where a RESIZE parent poll would have reverted it. Backing store 1170x2532 in a 390x844 CSS box.
+- Real gameplay frame: **5379 distinct colours** (8-bit), flattest colour 16.8% of the frame. The frame was compared side by side against the same interaction at deviceScaleFactor 1: layout, spacing and art are pixel-proportional, only the sampling is denser.
+- **Renderer changed first, as the brief requires.** This title was `type: Phaser.CANVAS`. At native density it fills up to nine times the pixels and Canvas2D fill is CPU work, so it is now `Phaser.AUTO` (WebGL confirmed live: `renderer.type === 2`).
+- Was `Scale.RESIZE` with a parent, hence the 1.00x reading; Phaser's 500ms parent poll reverts any density set under that mode. Converted to `Scale.NONE` sized in device pixels with `zoom: 1/RETINA`, plus a `window` resize listener driving `game.scale.resize()`.
+- Camera zoomed by RETINA and re-centred in `layout()`, so world coordinates stay in CSS pixels and the entire hand-tuned layout (board rect, 142..186 board top, room views, comfort slots) is untouched.
+- **Real defect found and fixed while verifying.** With the zoom in place the canvas rendered nothing but the background colour. `update()` was calling `cameras.main.setScroll(juice.dx, juice.dy)` every frame, which reset the zoomed camera's scroll to 0,0 and cancelled the `centerOn`. Shake is now an offset from the scroll `centerOn` produced. Same class of bug as skyhammer, and equally silent.
+- Pointer coordinates are divided by RETINA before hit-testing (`toWorld()` in `bindInput`), because Phaser reports pointer positions in game space, which is now device pixels.
+- Text `resolution` moved from a hard-coded 2 to RETINA. This is the Text object's bake resolution; `source.resolution` was deliberately not touched, since it only affects the CANVAS renderer and under WebGL would draw every glyph quad RETINA times too large.

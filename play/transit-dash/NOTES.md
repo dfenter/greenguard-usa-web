@@ -77,3 +77,15 @@ results panel; a timed roll clears a barrier as a safe pass and now increments
 the roll counter. Menu, garage, missions, pause/resume/restart, RUN AGAIN,
 DEPOT, Time Attack, `forceStage(2)` (river line) and `reset()` were all
 exercised with no errors.
+
+## Retina completion
+
+- **Measured, not expected.** Release gate at deviceScaleFactor 3, run serially at concurrency 1 from `ue-port-studio/aaa/harness` against a private local server: `node release_gate.mjs http://localhost:8791 1 transit-dash`.
+- Gate verdict: **READY**. Measured `canvas.width / getBoundingClientRect().width` = **3.00x** (gate floor 2.85), sampled late by the gate, well after the point where a RESIZE parent poll would have reverted it. Backing store 1170x2532 in a 390x844 CSS box.
+- Real gameplay frame: **2650 distinct colours** (8-bit), flattest colour 65.8% of the frame. The frame was compared side by side against the same interaction at deviceScaleFactor 1: layout, spacing and art are pixel-proportional, only the sampling is denser.
+- Recipe: `Scale.FIT` with a fixed 390x844 design box. `scale.width/height` raised by `TD.RETINA = GGKit.hiDpi.factor(390, 844)`, and `PlayScene.create()` does `setZoom` AND `centerOn(TD.VW/2, TD.VH/2)`. World coordinates stay in design units, so every literal position in `game.js` is unchanged.
+- **All art is baked denser at a single choke point.** `TD.Art` builds every texture through `makeTexture()`, which now sizes its canvas at RETINA and pre-scales the 2D context; the draw callbacks still work in design units. Consumers compensate: the three pooled image types (`td-sign`, `td-token`, `td-spark`) get `setScale(1/TD.RETINA)` at creation, and the three per-frame `setScale` calls in `drawScreen` divide by it, so parallax depth scaling, token pop and particle sizes are identical. The background, shadow and character images already carried explicit `setDisplaySize` in design units and needed no change.
+- `source.resolution` was not used for the compensation: it only affects the CANVAS renderer and would draw every quad RETINA times too large under WebGL.
+- All 27 text objects carry `resolution: TD.RETINA`.
+- Input needed no change: `gamePoint()` in `main.js` already maps client coordinates through the canvas CSS box into TD.VW/TD.VH space, which is independent of the backing store.
+- The gate's four blind taps parked this title on the Garage panel, so its ART sample is a menu frame (2650 colours, 65.8% flattest, still a clear pass). A real gameplay frame was captured separately by driving `window.__td.forceMode('run')` at deviceScaleFactor 3 and again at 1: the running Yard stage renders correctly, and the two frames are pixel-proportional.

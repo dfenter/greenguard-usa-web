@@ -77,3 +77,14 @@ Replaced:
 - The 4x CPU-throttle 600-frame trace and deployed six-gate HTTPS evidence remain pending because this fix round forbids deploy and the local in-app browser was unavailable. Static checks, headless world checks, save migration checks, and syntax checks passed.
 - LEDGER.md usage-status rows remain pending because that file is outside the permitted Wanderlight and LICENSES.md scope. Every shipped file has source and license entries here.
 - Same-frame fast-tap preservation remains pending because it requires changing GGKit pointer edge retention, which is outside the permitted shared-runtime scope.
+
+## Retina completion
+
+- **Measured, not expected.** Release gate at deviceScaleFactor 3, run serially at concurrency 1 from `ue-port-studio/aaa/harness` against a private local server: `node release_gate.mjs http://localhost:8791 1 wanderlight`.
+- Gate verdict: **READY**. Measured `canvas.width / getBoundingClientRect().width` = **3.00x** (gate floor 2.85), sampled late by the gate, well after the point where a RESIZE parent poll would have reverted it. Backing store 1170x2532 in a 390x844 CSS box.
+- Real gameplay frame: **3189 distinct colours** (8-bit), flattest colour 35.1% of the frame. The frame was compared side by side against the same interaction at deviceScaleFactor 1: layout, spacing and art are pixel-proportional, only the sampling is denser.
+- Was `Scale.RESIZE` with `parent: 'game'`, hence the 1.00x reading. `GGKit.hiDpi.resize()` was NOT used: with RESIZE plus a real parent, Phaser re-derives `canvas.width` from the parent's CSS box every 500ms and silently reverts the density.
+- Converted to `Scale.NONE` sized in device pixels with `zoom: 1/RETINA` in `index.html`, plus a `window` resize listener driving `game.scale.resize()`. The scene relayouts from `scale.width` on its next frame, which it already did every update.
+- The main camera is zoomed by RETINA and re-centred in `layout()`, so world coordinates stay in CSS pixels: the HUD bar height of 72, the 50px move stick, the 94..124 world inset and `worldScale` 3 are all unchanged. `this.scale.width/height` reads were replaced with `viewW()`/`viewH()` helpers that divide by RETINA.
+- Interactive HUD buttons needed no coordinate fix: they use Phaser `setInteractive` hit areas, and Phaser's input hit-testing already accounts for the camera transform.
+- Text picks up `resolution: RETINA` through the single `textStyle()` helper. The pixel-art tilesheets keep `pixelArt: true` nearest filtering and now resolve at true device pixels rather than being blown up by the display.

@@ -140,3 +140,14 @@ One method, no behaviour change for the call sites that do pass a rotation
   and lock (12 cells occupied, score 0 -> 96, run still active).
 - Gameplay frame is lit and drawing: 528 distinct colours at 5-bit quantisation,
   99.8% non-black, most common colour only 33% of the frame.
+
+## Retina completion
+
+- **Measured, not expected.** Release gate at deviceScaleFactor 3, run serially at concurrency 1 from `ue-port-studio/aaa/harness` against a private local server: `node release_gate.mjs http://localhost:8791 1 fallline`.
+- Gate verdict: **READY**. Measured `canvas.width / getBoundingClientRect().width` = **3.00x** (gate floor 2.85), sampled late by the gate, well after the point where a RESIZE parent poll would have reverted it. Backing store 2532x1170 in a 844x390 CSS box.
+- Real gameplay frame: **5329 distinct colours** (8-bit), flattest colour 32.3% of the frame. The frame was compared side by side against the same interaction at deviceScaleFactor 1: layout, spacing and art are pixel-proportional, only the sampling is denser.
+- Was `Scale.RESIZE` with `parent: 'game-root'`, which is why it read exactly 1.00x. That pairing can never hold a dense backing store: Phaser's ScaleManager polls the parent every 500ms and re-derives `canvas.width` from its CSS box, silently reverting the density with nothing logged. `GGKit.hiDpi.resize()` was therefore NOT used.
+- Converted to `Scale.NONE`: the game is sized in device pixels and the config `zoom: 1/RETINA` scales the canvas back down in CSS. A `window` resize listener drives `game.scale.resize()`, which raises the same `resize` event the scene already listened for.
+- The main camera is zoomed by RETINA and re-centred on every layout, so **world coordinates stay in CSS pixels**. That was a deliberate choice: this title's layout is magic numbers end to end (cell clamp 14..34, `(height - 112)/ROWS`, `(width - 280)/COLS`, the +18 board offset, and gesture thresholds of 26/28/42px measured in pointer space). Moving the world into device pixels would have meant rewriting every one of them and risking the feel.
+- Consequences handled: `resizeScene()` and `drawPreviews()` divide `this.scale.width/height` by RETINA, and `boardPoint()` does the same before hit-testing, otherwise every board tap would land RETINA times too far right and down.
+- `centerOn` is applied with every `setZoom`. Without it a zoomed camera holds its own midpoint under the viewport centre and the playfield leaves the screen with zero console output.
