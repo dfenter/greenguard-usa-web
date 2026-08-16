@@ -92,3 +92,42 @@ Two corrections worth recording, because both nearly became false findings:
 when the main canvas reaches the device ratio. `RET-1x` is a fail. Colour
 readings marked `[NO GAMEPLAY FRAME - colour reading void]` are not
 evidence either way and must be re-run against a real gameplay frame.
+
+## AMENDMENT 2026-08-16: Scale.RESIZE cannot hold density with a parent
+
+The first retina wave used this recipe for Phaser Scale.RESIZE titles:
+replace `game.scale.resize(cssW, cssH)` with
+`GGKit.hiDpi.resize(game, cssW, cssH)`. THAT RECIPE IS WRONG for any title
+that sets a `parent`, which is nearly all of them.
+
+With scaleMode RESIZE and a real parent element, Phaser's ScaleManager
+polls the parent every 500ms and `updateScale()` re-derives `gameSize` and
+`canvas.width` from the parent's CSS box. That silently undoes the resize a
+moment after it is applied. Nothing throws. A lane can verify the ratio
+immediately after the call, see 3.0, and still ship a title that renders at
+1x in practice.
+
+Measured rather than argued: after a separate boot crash in the helper was
+fixed, 10 of 10 RESIZE titles still read a ratio of exactly 1.0, and every
+one of them sets a parent (`document.body` or `'game'`). The titles the
+recipe did appear to work for were the ones with NO parent, whose poll
+never runs.
+
+CORRECT SHAPE for a parented title: Scale.NONE with `zoom = 1/factor`,
+which is what `GGKit.hiDpi.phaser()` already produces, driving layout from
+`this.scale.width/height`. Two titles were converted this way and both
+measured exactly 3.00.
+
+Two related traps found in the same repair, both silent:
+
+- A zoomed camera keeps its OWN midpoint under the viewport centre. Calling
+  `setZoom(f)` without `centerOn(DESIGN_W/2, DESIGN_H/2)` puts the visible
+  world window entirely outside the design box, and every scene draws flat.
+  Apply both together, at every scene.
+- Phaser's WebGL batcher sizes its quad from `frame.cutWidth` (the dense
+  size) times object scale, while `source.resolution` only affects the
+  CANVAS renderer. Setting `source.resolution` therefore makes the two
+  render paths disagree and baked textures come out `factor` times too
+  large under WebGL. Do not set it; scale the objects instead, and leave
+  existing explicit `setDisplaySize(cssW, cssH)` calls alone since those are
+  already correct.

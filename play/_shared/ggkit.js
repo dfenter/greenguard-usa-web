@@ -661,6 +661,24 @@
     // For Scale.RESIZE titles, which take their size from the window rather
     // than from config: call this instead of game.scale.resize(cssW, cssH).
     //
+    // READ THIS BEFORE USING IT. Scale.RESIZE CANNOT HOLD A DENSE BACKING
+    // STORE IF THE GAME SETS A PARENT. With scaleMode RESIZE and a real
+    // parent element, Phaser's ScaleManager polls the parent every 500ms and
+    // updateScale() re-derives gameSize and canvas.width from the parent's
+    // CSS box, silently undoing whatever this function set. Nothing throws;
+    // the title just quietly renders at 1x again a moment later.
+    //
+    // Measured, not theorised: after the boot crash below was fixed, 10 of 10
+    // RESIZE titles still read a ratio of exactly 1.0, and every one of them
+    // sets `parent` (document.body or '#game'). The handful the RESIZE recipe
+    // did work for were the ones with NO parent element, so their poll never
+    // ran.
+    //
+    // So: use this ONLY for a parentless RESIZE title. If the title sets a
+    // parent, convert it to Scale.NONE with zoom = 1/factor, which is exactly
+    // what GGKit.hiDpi.phaser() produces, and drive layout from
+    // this.scale.width/height.
+    //
     // Safe to call BEFORE the game has booted. `game.scale` exists from
     // construction but its internals do not, so calling straight through
     // throws "Cannot set properties of undefined (setting 'width')" from
