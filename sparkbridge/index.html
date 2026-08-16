@@ -334,25 +334,25 @@
     <div class="sec-head">
       <div class="path">measured</div>
       <h2>Performance Quantified</h2>
-      <p>Every number below comes from the test suite that ships with the product. The end-to-end and latency figures were captured on a modest <b>2-physical-core</b> machine with nothing else running, doing the full work of writing values into tags. The ingest, codec and replay figures come from an 8-core development host. Both machines are modest, and bigger hardware goes further.</p>
+      <p>Every number below comes from the test suite that ships with the product. The reference rig is a quiet <b>Linux box with six cores</b> and nothing else running, doing the full work of writing values into tags, with the same suite cross-checked on a four-core Mac. It is modest hardware, and bigger hardware goes further.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
-        <caption>Quiet-box gate, 2026-08-11, plus the sharded-projector capture</caption>
+        <caption>Quiet-box gate, 2026-08-15</caption>
         <thead><tr><th>Dimension</th><th>SparkBridge, measured</th><th>Commercial modules</th></tr></thead>
         <tbody>
-          <tr><td>Projected end to end, through to a visible tag</td><td class="num">44,769 updates/s</td><td class="np">not published</td></tr>
-          <tr><td>Wire ingest, before projection</td><td class="num">59,900 updates/s, zero loss</td><td class="np">not published</td></tr>
-          <tr><td>End-to-end latency, warm and paced</td><td class="num">p50 0.216 ms · p99 0.517 ms</td><td class="np">not published</td></tr>
+          <tr><td>Sustained capacity, projected through to visible tags</td><td class="num">at least 340,000 updates/s</td><td class="np">not published</td></tr>
+          <tr><td>Offered ramp absorbed without bending</td><td class="num">480,000 updates/s</td><td class="np">not published</td></tr>
+          <tr><td>End-to-end latency, warm and paced</td><td class="num">p50 0.44 ms · p99 0.97 ms</td><td class="np">not published</td></tr>
           <tr><td>Host capacity, resident state</td><td class="num">500,000 metrics in &lt; 4 GiB</td><td class="np">not published</td></tr>
           <tr><td>Codec throughput, single thread</td><td class="num">3.9M metric-updates/s</td><td class="np">not published</td></tr>
-          <tr><td>Outage replay</td><td class="num">400,000 of 400,000 in 20.33 s</td><td class="np">not published</td></tr>
+          <tr><td>Store and forward replay, loopback</td><td class="num">40,035 updates/s</td><td class="np">not published</td></tr>
           <tr><td>Outage buffering, durable</td><td class="num">2,697 messages/s</td><td class="np">not published</td></tr>
           <tr><td>Host scale-out, 4 shared consumers vs 1</td><td class="num">approx. 20x ingest</td><td>not offered</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note"><b>Ingest and end to end are different ceilings, and the difference is roughly 3x.</b> The ingest row stops after decode and validate. The end-to-end row continues through projection to a value visible on a tag. Both are real; only the second describes what an operator sees. Where this page compares anything, it uses the end-to-end figure. The commercial modules do not publish load or capacity benchmarks, so there is no figure to compare against.</p>
+    <p class="note"><b>The capacity row is a floor, not a peak.</b> It is the lowest sustained rate seen across the 50,000, 250,000 and 500,000 metric tiers, measured all the way through projection to a value visible on a tag, which is what an operator actually sees. On the quiet-box run the offered ramp reached 480,000 updates per second without the run bending, so the ceiling was not found. The commercial modules do not publish load or capacity benchmarks, so there is no figure to compare against.</p>
   </div>
 </section>
 
@@ -383,12 +383,13 @@
       </div>
       <div>
         <h4>The result</h4>
-        <p>The published record is 346 assertions executed, 346 passed, zero failed, across every
-        edge profile and the host session profile. The suite was re-certified against 2.4.0 code
-        on 2026-08-15, seed 240: ten runs, 182 EDGE assertions passed and 52 HOST assertions
-        passed, every profile OVERALL PASS and zero FAIL lines in the whole session. Every run is
-        scripted and repeatable, and the nine-profile session is now a single command, so the
-        result can be reproduced on your own hardware rather than taken on trust.</p>
+        <p>The newest record is the 2026-08-15 seed-240 session against 2.4.0 code: ten runs, zero
+        FAIL lines anywhere in the session, 182 EDGE assertions passed and 52 HOST assertions
+        passed, with a single MAYBE against an optional SHOULD. The earlier 2026-08-14 record of
+        346 assertions executed and 346 passed, zero failed, across every edge profile and the host
+        session profile, stands as history. Every run is scripted and repeatable, and the
+        nine-profile session is now a single command, so the result can be reproduced on your own
+        hardware rather than taken on trust.</p>
         <h4>What this is not</h4>
         <p>It is not yet a formal certification. The official listing with the Eclipse Foundation
         is a separate administrative step, membership, paperwork and a published report, and it is the
@@ -420,7 +421,7 @@
         </tbody>
       </table>
     </div>
-    <p class="note">Assurance base: 531 automated tests including live gateway integration, property-based codec testing, corrupt-buffer and chaos suites, and negative TLS tests; load and endurance scenarios you can run yourself; and repeated independent adversarial review cycles whose findings are fixed, tested and re-verified rather than filed.</p>
+    <p class="note">Assurance base: 820 automated tests including live gateway integration, property-based codec testing, corrupt-buffer and chaos suites, and negative TLS tests; load and endurance scenarios you can run yourself; and repeated independent adversarial review cycles whose findings are fixed, tested and re-verified rather than filed.</p>
   </div>
 </section>
 
@@ -436,7 +437,7 @@
       <div class="tier">
         <div class="top">
           <h3>Development</h3>
-          <div class="price">Free<small>Unlimited non-production use. No time limit, no feature gate.</small></div>
+          <div class="price">Free<small>Non-production use on Ignition's standard two-hour trial, resettable without limit and without a gateway restart. No registration, no tag limit, no feature gate.</small></div>
         </div>
         <p class="why">Every module, on as many test gateways as you want.</p>
       </div>
@@ -489,57 +490,6 @@
 
 </main>
 
-<script>
-(function(){
-  // The signature element: one real Sparkplug session, in order. Births establish the model,
-  // data carries only what changed, the will fires, and the node rebirths.
-  var SESSION = [
-    ['STATE','spBv1.0/STATE/SparkBridge','online=true'],
-    ['NBIRTH','spBv1.0/Plant1/NBIRTH/Edge1','seq=0  bdSeq=7  metrics=1284'],
-    ['DBIRTH','spBv1.0/Plant1/DBIRTH/Edge1/Pump-02','seq=1  metrics=36'],
-    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=2  Zone1/PV=68.4 degF'],
-    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=3  Zone1/SP=70.0'],
-    ['DDATA','spBv1.0/Plant1/DDATA/Edge1/Pump-02','seq=4  Suction=112.7 psi'],
-    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=5  Zone1/PV=68.9 degF'],
-    ['NCMD','spBv1.0/Plant1/NCMD/Edge1','Zone1/SP=72.0  from host'],
-    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=6  Zone1/SP=72.0  confirmed'],
-    ['DDATA','spBv1.0/Plant1/DDATA/Edge1/Pump-02','seq=7  Suction=113.1 psi'],
-    ['NDEATH','spBv1.0/Plant1/NDEATH/Edge1','bdSeq=7  link lost'],
-    ['NDATA','(offline)','buffering to disk  ·  4,812 records held'],
-    ['NBIRTH','spBv1.0/Plant1/NBIRTH/Edge1','seq=0  bdSeq=8  session restored'],
-    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=1  replay  is_historical=true'],
-    ['NDATA','spBv1.0/Plant1/NDATA/Edge1','seq=2  replay  4,812 of 4,812  zero loss']
-  ];
-  var el = document.getElementById('stream');
-  if(!el) return;
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  function line(row, i){
-    var t = String(i).padStart(2,'0');
-    var s = document.createElement('span');
-    s.className = 'ln';
-    s.innerHTML = '<span class="t">'+t+'</span>  <span class="'+row[0]+'">'+row[0].padEnd(6,' ')
-      .replace(/ /g,'&nbsp;')+'</span>  '+row[1]+'  <span class="v">'+row[2]+'</span>';
-    return s;
-  }
-  el.innerHTML = '';  // drop the static no-JS seed before taking over
-  if(reduce){
-    SESSION.forEach(function(r,i){ el.appendChild(line(r,i+1)); });
-    return;
-  }
-  var i = 0, MAX = 13;
-  for(; i < 6; i++) el.appendChild(line(SESSION[i], i+1));  // never show an empty panel
-  function tick(){
-    el.appendChild(line(SESSION[i % SESSION.length], (i % SESSION.length)+1));
-    while(el.children.length > MAX) el.removeChild(el.firstChild);
-    i++;
-    var pause = SESSION[(i-1) % SESSION.length][0] === 'NDEATH' ? 1100 : 620;
-    setTimeout(tick, pause);
-  }
-  tick();
-
-})();
-</script>
 
 <footer>
   <div class="wrap">
